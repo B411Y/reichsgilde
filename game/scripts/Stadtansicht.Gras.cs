@@ -318,6 +318,7 @@ public partial class Stadtansicht
         var uhrGras = Ladezeit.Uhr();
         var frei = GrasFreiraum();
         var wasser = GrasWasser(GewaesserForm);
+        var verbuende = GewaesserForm?.Verbuende ?? (IReadOnlyList<Wasserverbund>)Array.Empty<Wasserverbund>();
         // Bauzonen wie Seen als Vielecke: In der Werkstatt (ihre farbige Fläche bleibt frei von Halmen) und im Hauptmenü; im Spiel wächst dort Gras,
         // bis gebaut wird (Schritt 5j, die Grundstücke stehen in den Sperrflächen)
         if (_entwurf is not null) wasser.Seen.AddRange(_entwurf.Bauzonen.Select(z => z.Ecken.Select(e => new Vector2((float)e.X, (float)e.Z)).ToArray()));
@@ -340,13 +341,13 @@ public partial class Stadtansicht
             for (var n = 0; n < liste.Count; n++)
             {
                 var ergebnis = new GrasErgebnis();
-                _grasLaeufe.Add(new GrasLauf(liste[n], GrasKachelSchritte(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, masken, stark, felsKarte, ergebnis).GetEnumerator(), ergebnis));
+                _grasLaeufe.Add(new GrasLauf(liste[n], GrasKachelSchritte(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte, ergebnis).GetEnumerator(), ergebnis));
             }
             SchwerGezaehlt(anfangUsec);
             return;
         }
         var ergebnisse = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
-        Parallel.For(0, liste.Count, n => ergebnisse[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, masken, stark, felsKarte));
+        Parallel.For(0, liste.Count, n => ergebnisse[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte));
         Ladezeit.Dazu("Gras: Kacheln rechnen (Parallel)", uhrGras);
         Pinselmessung.Dazu("  Gras: Kacheln rechnen (parallel)", messen);
         messen = Pinselmessung.Uhr();
@@ -483,11 +484,11 @@ public partial class Stadtansicht
     /// Wiese, Höhe und Normale des Bodens; dazu die tiefste und höchste Stelle und die Felder mit Gras.
     /// </summary>
     private static (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) GrasKachelRechnen(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
-        Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser,
+        Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser, IReadOnlyList<Wasserverbund> verbuende,
         List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, Feldmaske[] masken, bool stark, bool felsKarte)
     {
         var holder = new GrasErgebnis();
-        foreach (var _ in GrasKachelSchritte(ti, tj, hoehen, stadt, raster, frei, wasser, flaechen, masken, stark, felsKarte, holder)) { }
+        foreach (var _ in GrasKachelSchritte(ti, tj, hoehen, stadt, raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte, holder)) { }
         return holder.Wert;
     }
 
@@ -502,7 +503,7 @@ public partial class Stadtansicht
     /// nach einem Strich über mehrere Bilder (Köln: eine Kachel gut 100 ms am Stück); das Ergebnis liegt zuletzt in <paramref name="ergebnis"/>.
     /// </summary>
     private static IEnumerable<int> GrasKachelSchritte(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
-        Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser,
+        Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser, IReadOnlyList<Wasserverbund> verbuende,
         List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, Feldmaske[] masken, bool stark, bool felsKarte, GrasErgebnis ergebnis)
     {
         const int n = BodenBild;
@@ -596,6 +597,11 @@ public partial class Stadtansicht
             Loeschen(von.Min(bis) - new Vector2(r, r), von.Max(bis) + new Vector2(r, r), p => AbstandZurStrecke(p, von, bis) < r);
             yield return 0;
         }
+        // Wasserverbund (Fluss und See als eine Fläche): Lücke und Kehle sind Wasser, liegen aber weder im Fluss noch im See – dort wuchsen sonst Halme im
+        // Wasser (NAS 09.11.2026, Blick verbund_ecke). Wie beim Fluss 0,3 m Rand; der Kern rechnet je Punkt (liest nur, geht parallel)
+        foreach (var v in verbuende)
+            Loeschen(new Vector2((float)v.Bereich.X0, (float)v.Bereich.Z0), new Vector2((float)v.Bereich.X1, (float)v.Bereich.Z1),
+                p => v.AbstandAm(p.X, p.Y) is { } s && s < 0.3);
         foreach (var see in wasser.Seen) // Seen und Bauzonen
         {
             var (von, bis) = (see[0], see[0]);

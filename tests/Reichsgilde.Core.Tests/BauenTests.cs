@@ -101,7 +101,7 @@ static class BauenTests
             Pruefe.Gleich(36, k.Wege.Count); // Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 7 Gassen (seit 1.11.2026 Urbanusgasse und Abteigasse in Deutz), 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(57, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57
+            Pruefe.Gleich(56, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56
             Pruefe.Gleich(7, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_"))); // je ein Werkstatt-Bauplatz als eigene Zone (Koeln.Bauplaetze.cs)
             Pruefe.Gleich(13, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
@@ -120,7 +120,7 @@ static class BauenTests
 
             var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, an der Rheingasse vor dem Heumarkt (seit 31.10.2026)
             Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
-            Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
+            Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 14, Tiefe: 30 }, "St. Gereon 14 × 30 wie im Kapazitätswerkzeug (seit dem Modell, 9.11.2026; vorher der Block 16 × 14)");
 
             var k1 = k.Bauzonen.First(z => z.Art == Lage.Kern && z.Enthaelt(z.Flaeche.Average(p => p[0]), z.Flaeche.Average(p => p[1]))); // eine Kernzone, deren Mitte in ihr liegt
             var (mx, mz) = (k1.Flaeche.Average(p => p[0]), k1.Flaeche.Average(p => p[1]));

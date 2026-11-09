@@ -189,8 +189,11 @@ public sealed partial class Koeln
         {
             ("Rheingasse", false, 150 + R - MarktVonMauer, 300, 1), ("Rheingasse", true, 150 + R - MarktVonMauer, 300, 2),
             ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
-            ("Hammergasse", true, 0, 200, 2), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
-            ("Kunibertswall", true, 0, 1000, 5), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
+            // seit den Kirchenmodellen (9.11.2026) an der Hammergasse und am Kunibertswall je Seite mehr: St. Aposteln steht an der Südseite der
+            // Hammergasse, St. Kunibert an der Trankgasse; die Karte behält so ihre 82 Hausplätze (67 Einwohnerplätze und 15 Kulissenhäuser
+            // statt 68 und 14: an der Engelspforte passt jetzt das Kulissenhaus)
+            ("Hammergasse", true, 0, 200, 4), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
+            ("Kunibertswall", true, 0, 1000, 6), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })
             n += Reihe("einwohnerplatz_ring", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
         Console.WriteLine($"   Einwohnerplätze in der Altstadt: {n}");

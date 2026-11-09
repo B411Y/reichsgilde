@@ -164,7 +164,10 @@ public partial class Stadtansicht
         {
             var art = Wasserarten.AusKarte(see.Art, 0, Flaecheninhalt(see.Umriss));
             if (SeeNetz(see, form, abstand, art) is not { } netz) continue;
-            var stoff = WasserStoff(shader, art, new Vector2(1, 0.4f), lauf: false, null, abstand, -8, Wasserarten.Saat(see.Name));
+            // Ein See im Wasserverbund (VerbundNetz): Uferabstand mit Vorzeichen im Netz, und vor dem Band des Laufs gezeichnet (das liegt darüber)
+            var verbund = form.Verbuende.Any(v => ReferenceEquals(v.See, see));
+            var stoff = WasserStoff(shader, art, new Vector2(1, 0.4f), lauf: false, null, abstand, verbund ? -9 : -8, Wasserarten.Saat(see.Name));
+            if (verbund) stoff.SetShaderParameter("ufer_vorzeichen", 1f);
             LoecherSetzen(stoff, null, see);
             _wasserFlaechen.AddChild(WasserInstanz("See_" + see.Name, netz, stoff));
         }
@@ -175,6 +178,9 @@ public partial class Stadtansicht
                 if (BeckenNetz(becken, form, abstand) is { } netz)
                     _wasserFlaechen.AddChild(WasserInstanz("Becken_" + becken.Name, netz, stoff));
         }
+        foreach (var v in form.Verbuende)
+            GD.Print($"[wasser] Verbund {v.Lauf.Name}–{v.See.Name}: Stellen {string.Join(", ", v.Stuecke.Select(st => $"{st.Von:0}–{st.Bis:0} m"))}, " +
+                     $"ΔSpiegel {v.SpiegelUnterschied:0.00} m, Wasserstand {v.See.Wasserstand:0.00}{(v.See.StandAutomatisch ? " (vom Lauf übernommen)" : " (fest)")}");
         // Für Klicktests: was gebaut ist, wo die Furten (nur Randeis) und die Löcher im Eis (Mündung, schnelle Stelle) liegen
         var furten = Uebergangsplan?.Querungen.Where(q => q.Art == Uebergangsart.Furt).Select(q => $"{q.GewaesserName} bei {q.Mitte.X:0},{q.Mitte.Z:0}") ?? Enumerable.Empty<string>();
         GD.Print($"[wasser] Stufe {_wasserStufe}, Netz {abstand:0} m, {_wasserFlaechen.GetChildCount()} Flächen, " +
@@ -314,11 +320,12 @@ public partial class Stadtansicht
             uv.Add(new Vector2(o, stelle));
             uv2.Add(richtung * tempo);
             var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
-            var fremd = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, null);
-            var deckkraft = fremd ? 0f : 1f;
+            var fremd = Fremdanteil(form, andere, ort, lauf, null);
+            var deckkraft = 1f - fremd;
             if (muendung is { } m2) deckkraft = 1f - Mathf.SmoothStep(-1f, 3f, m2.Hinein);
             // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
-            farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai),
+            var ufer = form.Verbuende.Count > 0 ? BandUfer(form, lauf, ort, halb - Mathf.Abs(o), eckHoehe - BodenHoehe(ort.X, ort.Y)) : halb - Mathf.Abs(o);
+            farben.Add(new Color(Mathf.Clamp(ufer / 32f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai),
                 schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), deckkraft));
         }
 
@@ -326,6 +333,8 @@ public partial class Stadtansicht
         var kappen = new List<(Vector2 Mittelpunkt, float Halbmesser, float Radius, float Vorzeichen, float Stelle, Vector2 Richtung, Vector2 Mitte, float Halb,
             float Hoehe, float Schaum, float FurtOffen)>();
         var (folgeAb, engsteR) = (-1f, float.MaxValue);
+        // Prüfhilfe: Ecken am äußeren Rand des Bandes, die sichtbar sind (Uferabstand > 0 und Deckkraft über 5 %) – dort endet das Band mit einer harten Kante
+        var (randSichtbar, randBeispiel) = (0, Vector2.Zero);
 
         for (var r = 0; r < reihen.Count; r++)
         {
@@ -352,6 +361,8 @@ public partial class Stadtansicht
                     geklemmt = true;
                 }
                 Ecke(mitte + quer * o, o, (float)pt.Stelle, richtung, halb, hoehe, schaum, furtOffen);
+                if ((j == 0 || j == felder) && farben[^1].R > 0.0005f && farben[^1].A > 0.05f)
+                    (randSichtbar, randBeispiel) = (randSichtbar + 1, randSichtbar == 0 ? mitte + quer * o : randBeispiel);
             }
             if (geklemmt)
             {
@@ -380,6 +391,9 @@ public partial class Stadtansicht
                 stueckAnfang = r;
             }
         }
+
+        if (randSichtbar > 0)
+            GD.Print($"[wasser] {lauf.Name}: {randSichtbar} Ecken am äußeren Rand des Bandes sichtbar (harte Kante), z. B. bei {randBeispiel.X:0.0},{randBeispiel.Y:0.0}");
 
         // Die Kehlenkappen: je geklemmte Reihe eine kleine Scheibe um den Krümmungsmittelpunkt, auf der Höhe der Reihe, mit denselben Netzwerten. Der Abstand
         // eines Punktes der Scheibe zur Mitte des Laufs ist Halbmesser − Abstand zum Mittelpunkt; die Strömung wie im Band (sonst stünde die Scheibe als
@@ -746,6 +760,62 @@ public partial class Stadtansicht
         return dort is not null && !ReferenceEquals(dort, hier);
     }
 
+    /// <summary>
+    /// Wie weit an diesem Ort ein anderes Gewässer übernimmt (0 = dieses, 1 = ein anderes): Deckkraft = 1 − Anteil, und um so viel bleibt das Eis zurück
+    /// (es wächst im anderen). Sonst hart aus <see cref="ImAnderenWasser"/> (Mündung, Hafenbecken); in einem Wasserverbund (Befund 1, 09.11.2026)
+    /// stetig aus dem Anteil des Sees im Kern (<see cref="Wasserverbund.AnteilAm"/>: im Bett des Laufs 0, in Lücke und See 1), längs mit dem Gewicht des
+    /// Verbunds in die harte Regel überblendet – keine Zacken im 2-m-Raster, keine Naht an der Grenze, kein Eis in ehemaligem Land.
+    /// </summary>
+    /// <summary>
+    /// Deckkraft des Verbundnetzes (NAS 09.11.2026: mit Deckkraft = Anteil des Sees lagen Band (1 − a) und Netz (a) halbdurchsichtig übereinander – wo a
+    /// um 0,5 lag, schien der Grund durch: eine Landinsel an der Ecke, wo der Fluss im See endet, und ein Streifen am alten Ufer). Das Netz liegt unter dem
+    /// Band und ist überall voll deckend, wo der See auch nur ein wenig Anteil hat (ab 5 %); das Band blendet darüber aus. Nur im Bett des Laufs, wo das
+    /// Band ganz deckt, fehlt es; längs mit dem Gewicht in die harte Regel.
+    /// </summary>
+    private static float VerbundDeckkraft(Wasserform form, List<Kartenrechteck> andere, Vector2 ort, Wassersee see)
+    {
+        var hart = andere.Count > 0 && ImAnderenWasser(form, andere, ort, null, see) ? 0f : 1f;
+        foreach (var v in form.Verbuende)
+            if (ReferenceEquals(v.See, see) && v.AnteilAm(ort.X, ort.Y) is { } a)
+                return Mathf.Lerp(hart, Mathf.SmoothStep(0f, 0.05f, (float)a.Anteil), (float)a.Gewicht);
+        return hart;
+    }
+
+    /// <summary>
+    /// Uferabstand einer Ecke des Bandes im Verbund: Dort, wo der See anschließt, ist das alte Ufer des Laufs kein Ufer mehr – der gemeinsame Abstand
+    /// (Kern), längs mit dem Gewicht überblendet; sonst der eigene (NAS 09.11.2026: im Winter vereiste das Band am alten Ufer mitten im See).
+    /// </summary>
+    private static float BandUfer(Wasserform form, Wasserlauf lauf, Vector2 ort, float eigen, float tiefe)
+    {
+        // nur im eigenen Bett: Außerhalb seines Ufers (der Rand des Bandes, 15 % breiter) bleibt das Band unsichtbar – dort zeichnet das Verbundnetz.
+        // Sonst endete das Band dort sichtbar mit einer harten Kante (Prüfhilfe „Ecken am äußeren Rand des Bandes sichtbar“; NAS 09.11.2026)
+        if (eigen <= 0) return eigen;
+        foreach (var v in form.Verbuende)
+            if (ReferenceEquals(v.Lauf, lauf) && v.AbstandAm(ort.X, ort.Y) is { } s && v.AnteilAm(ort.X, ort.Y) is { } a)
+                return Mathf.Lerp(eigen, Mathf.Max(eigen, VerbundUfer((float)s, tiefe)), (float)a.Gewicht);
+        return eigen;
+    }
+
+    /// <summary>
+    /// Der Uferabstand, den das Netz im Verbund trägt: der gemeinsame Abstand des Kerns (−s), im Wasser aber mindestens so weit, wie es die Tiefe mit der
+    /// Böschung eines Sees ergäbe. Ohne Bildschirmtextur (Mittel, Niedrig) schätzt der Shader die Tiefe aus dem Uferabstand; am alten Ufer ist der gemeinsame
+    /// Abstand klein, obwohl das Wasser dort tief ist (NAS 09.11.2026: dort war das Wasser hell und halb durchsichtig). Auch das Eis wächst so nur vom echten Ufer.
+    /// </summary>
+    private static float VerbundUfer(float s, float tiefe) => s < 0 ? Mathf.Max(-s, tiefe / (float)Wasserform.Seeboeschung) : -s;
+
+    private static float Fremdanteil(Wasserform form, List<Kartenrechteck> andere, Vector2 ort, Wasserlauf? lauf, Wassersee? see)
+    {
+        var hart = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, see) ? 1f : 0f;
+        foreach (var v in form.Verbuende)
+        {
+            if (!(lauf is not null && ReferenceEquals(v.Lauf, lauf)) && !(see is not null && ReferenceEquals(v.See, see))) continue;
+            if (v.AnteilAm(ort.X, ort.Y) is not { } a) continue;
+            var verbund = lauf is not null ? (float)a.Anteil : 1f - (float)a.Anteil;
+            return Mathf.Lerp(hart, verbund, (float)a.Gewicht);
+        }
+        return hart;
+    }
+
     private static ArrayMesh NetzAusFeldern(List<Vector3> ecken, List<Vector2> uv, List<Vector2> uv2, List<Color> farben, List<int>? indizes)
     {
         var arrays = new Godot.Collections.Array();
@@ -773,6 +843,7 @@ public partial class Stadtansicht
     private ArrayMesh? SeeNetz(Wassersee see, Wasserform form, float abstand, Wasserart art)
     {
         if (see.Umriss.Count < 3 || _gelaende is null) return null;
+        if (form.Verbuende.Any(v => ReferenceEquals(v.See, see))) return VerbundNetz(see, form, abstand, art);
         var umriss = see.Umriss.Select(o => new Vector2((float)o.X, (float)o.Z)).ToArray();
         var ecken = FeinerTeilen(RasterDreiecke(umriss, 0, (float)see.Wasserstand), abstand);
         if (ecken.Count == 0) return null;
@@ -789,6 +860,74 @@ public partial class Stadtansicht
             var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
             return werte[(e.X, e.Z)] = new Color(Mathf.Clamp(rand / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai), 1f, fremd ? 0f : 1f);
         }).ToList();
+        return DreieckNetz(ecken, farben);
+    }
+
+    /// <summary>So viel (m) liegt das Verbundnetz unter dem Spiegel: Wo es mit dem Band des Laufs übereinanderliegt, zeichnet das Band darüber.</summary>
+    private const float VerbundTiefer = 0.005f;
+
+    /// <summary>
+    /// Das Netz eines Sees im Wasserverbund (Befund 1, 09.11.2026; Kern: <see cref="Wasserform.Verbuende"/>): Dreiecke über allen Zellen des Bodens im Bereich
+    /// des Sees und seiner Verbünde, an denen eine Ecke im Wasser liegt (gemeinsamer Abstand unter 0,5 m) – See, geschlossene Lücke und der Rand des Laufs
+    /// in einem Netz. Je Ecke COLOR.r = (4 − Abstand) / 36 (der gemeinsame Abstand des Kerns ist im Wasser negativ, der Uferabstand im Shader positiv) (Shader-Uniform <c>ufer_vorzeichen</c>): Die Kante liegt je Bildpunkt dort, wo
+    /// der Abstand 0 wird, ohne Zacken im Raster; Höhe = Spiegel aus <see cref="Wasserform.An"/> (quer stetig) knapp darunter; Deckkraft = Anteil des Sees
+    /// (im Bett des Laufs zeichnet dessen Band, das nicht ausblendet und seine Strömung, Wellen und Mündungslinien behält). Außerhalb der Verbünde gilt der
+    /// Randabstand des Sees wie bisher.
+    /// </summary>
+    private ArrayMesh? VerbundNetz(Wassersee see, Wasserform form, float abstand, Wasserart art)
+    {
+        var verbuende = form.Verbuende.Where(v => ReferenceEquals(v.See, see)).ToList();
+        var rahmen = verbuende.Aggregate(see.Bereich, (r, v) => new Kartenrechteck(Math.Min(r.X0, v.Bereich.X0), Math.Min(r.Z0, v.Bereich.Z0),
+            Math.Max(r.X1, v.Bereich.X1), Math.Max(r.Z1, v.Bereich.Z1)));
+        float Abstand(float x, float z)
+        {
+            double? s = null;
+            foreach (var v in verbuende)
+                if (v.AbstandAm(x, z) is { } d) s = Math.Min(s ?? double.MaxValue, d);
+            if (s is { } wert) return (float)wert;
+            var rand = see.Randabstand(new Kartenort(x, z));
+            return (float)(see.Enthaelt(new Kartenort(x, z)) ? -rand : rand);
+        }
+        const float z = (float)Hoehenraster.Abstand;
+        var (i0, j0) = ((int)Math.Floor(rahmen.X0 / z), (int)Math.Floor(rahmen.Z0 / z));
+        var (i1, j1) = ((int)Math.Floor(rahmen.X1 / z), (int)Math.Floor(rahmen.Z1 / z));
+        var eckS = new Dictionary<(int, int), float>();
+        float S(int i, int j) => eckS.TryGetValue((i, j), out var w) ? w : eckS[(i, j)] = Abstand(i * z, j * z);
+        var dreiecke = new List<Vector3>();
+        for (var j = j0; j <= j1; j++)
+            for (var i = i0; i <= i1; i++)
+            {
+                if (Mathf.Min(Mathf.Min(S(i, j), S(i + 1, j)), Mathf.Min(S(i + 1, j + 1), S(i, j + 1))) >= 0.5f) continue;
+                var (v00, v10, v11, v01) = (new Vector3(i * z, 0, j * z), new Vector3((i + 1) * z, 0, j * z), new Vector3((i + 1) * z, 0, (j + 1) * z), new Vector3(i * z, 0, (j + 1) * z));
+                dreiecke.AddRange(new[] { v00, v10, v11, v00, v11, v01 });
+            }
+        var ecken = FeinerTeilen(dreiecke, abstand);
+        if (ecken.Count == 0) return null;
+        var andere = AndereGewaesser(form, null, see);
+        var offenStellen = OffeneStellen(form, see.Nummer, see.Name);
+        var furtOffen = Wasserarten.FurtOffen(art, 8f);
+        var werte = new Dictionary<(float, float), (float Hoehe, Color Farbe)>();
+        var farben = new List<Color>(ecken.Count);
+        for (var n = 0; n < ecken.Count; n++)
+        {
+            var e = ecken[n];
+            if (!werte.TryGetValue((e.X, e.Z), out var wert))
+            {
+                var ort = new Vector2(e.X, e.Z);
+                var s = Abstand(e.X, e.Z);
+                var stelle = form.An(e.X, e.Z);
+                var eigen = stelle is { } st && (ReferenceEquals(st.See, see) || verbuende.Any(v => ReferenceEquals(v.Lauf, st.Lauf)));
+                var hoehe = (eigen ? (float)stelle!.Value.Spiegel : (float)see.Wasserstand) - VerbundTiefer;
+                var fremd = Fremdanteil(form, andere, ort, null, see);
+                var deckkraft = VerbundDeckkraft(form, andere, ort, see);
+                var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
+                // Uferabstand im Netz positiv im Wasser: (4 − s) / 36 (NAS 09.11.2026: mit (s + 4) / 36 stand er verkehrt herum, die Seen waren unsichtbar)
+                var ufer = VerbundUfer(s, hoehe + VerbundTiefer - BodenHoehe(e.X, e.Z));
+                werte[(e.X, e.Z)] = wert = (hoehe, new Color(Mathf.Clamp((ufer + 4f) / 36f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai), 1f, deckkraft));
+            }
+            ecken[n] = new Vector3(e.X, wert.Hoehe, e.Z);
+            farben.Add(wert.Farbe);
+        }
         return DreieckNetz(ecken, farben);
     }
 

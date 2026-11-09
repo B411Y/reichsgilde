@@ -263,7 +263,7 @@ public partial class Stadtansicht
     private float _fensterStunde = 12; // Uhrzeit für die Anteile
     private float _fensterNacht;      // Nummer der Nacht (wechselt mittags, wenn kein Fenster leuchtet)
     private bool _messeVorgegeben;    // Startoption --messe=1: Kirchen leuchten, als liefe gerade die Messe
-    private ModellInstanz? _domFenster; // die Hülle des Doms (Stadtansicht.Sonderbauten.cs)
+    private readonly List<ModellInstanz> _kirchenFenster = new(); // die Hüllen von Dom und Kirchen mit Modell: dunkel, zur Messe hell (Stadtansicht.Sonderbauten.cs)
 
     /// <summary>Das Material der Fenster dieser Gruppe – je Gruppe eines für die ganze Stadt. Die erste Vorlage gibt Farbe und Rauheit des Glases.</summary>
     private ShaderMaterial FensterStoff(Fenstergruppe gruppe, BaseMaterial3D? vorlage = null)

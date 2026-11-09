@@ -82,7 +82,7 @@ public sealed partial class Koeln : Stadtskript
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
         E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.");
-        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt.");
+        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Kunibert steht westlich des Alter Markts statt nördlich des Doms am Rhein.");
 
         Wasser();
         Gelaende();
@@ -280,12 +280,18 @@ public sealed partial class Koeln : Stadtskript
         MarktPflastern();
 
         Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");
-        Haus("kirche", "Groß St. Martin", 26, -44, 90, "Martin");
-        Haus("kirche", "St. Gereon", -52, -86, 90, "Gereon");
-        Haus("kirche", "St. Severin", -2, 96, 270, "Severin");
-        Haus("kirche", "St. Aposteln", -72, -34, 180, "Aposteln");
-        Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
+        // Die fünf romanischen Kirchen als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle mit dem Chor
+        // nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken (Entscheidung des
+        // Nutzers): Groß St. Martin 4 m nach Westen (sonst auf der Rheingasse), St. Gereon 3 m nach Westen (Hohe Straße), St. Severin östlich der
+        // Severinstraße (vorher läge er quer über ihr), St. Aposteln zwischen Ehrenstraße und Hohe Straße (die Ehrenstraße lief durch den Block),
+        // St. Kunibert zwischen Trankgasse und Unter Fettenhennen westlich der Bauplätze – nördlich des Doms passt er zwischen Dom, Alter Markt und
+        // Kunibertswall nicht (13,7 statt 14 m); bei z = −76 bekommt die Restflächen-Füllung weiter Steinmetzplätze und einen Taubenschlag.
+        Kirche("kirche_gross_st_martin", "Groß St. Martin", 22, -44, "Martin");
+        Kirche("kirche_st_gereon", "St. Gereon", -55, -86, "Gereon");
+        Kirche("kirche_st_severin", "St. Severin", 7.5, 96, "Severin");
+        Kirche("kirche_st_aposteln", "St. Aposteln", -54, -34, "Aposteln");
+        Kirche("kirche_st_kunibert", "St. Kunibert", -16.6, -76, "Kunibert");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
         // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz
@@ -298,5 +304,17 @@ public sealed partial class Koeln : Stadtskript
         Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
         Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
         RuineVorDemSuedtor();   // bis 1.11.2026 bei 196 | 27 in Deutz, dort liegen jetzt Werkstatt-Bauplätze (Koeln.Bauplaetze.cs)
+    }
+
+    /// <summary>
+    /// Eine romanische Kirche (eigenes Modell im Katalog) mit Drehung 270: Chor nach Osten, Westfront zur Gasse. Bricht ab, wenn ihre Fläche nicht
+    /// frei ist (<see cref="Frei"/>: Gebäude, Wege, Mauer, Wasser, Werkstatt-Bauplätze) – die Kartenprüfung meldet einen Weg durch einen Sonderbau nicht.
+    /// </summary>
+    private void Kirche(string katalog, string name, double x, double z, string kennung)
+    {
+        var b = E.Katalog.Finde(katalog)?.Groesse ?? throw new ArgumentException($"Der Baustein „{katalog}“ hat keine Größe.", nameof(katalog));
+        if (!Frei(Rechteck(P(x, z), b[0], b[1], 270)))
+            throw new InvalidOperationException($"{name}: Die Fläche {b[0]} × {b[1]} m bei ({x} | {z}) ist nicht frei.");
+        Haus(katalog, name, x, z, 270, kennung);
     }
 }
