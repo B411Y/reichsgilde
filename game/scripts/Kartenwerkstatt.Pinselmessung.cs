@@ -82,7 +82,22 @@ public partial class Kartenwerkstatt
             _stadt.FelsModus = Stadtansicht.FelsArt.Streuen;
             _stadt.FelsGruppe = null;
         });
-        await Pinsel("Fels: Radieren (r 10)", Werkstattwerkzeug.Fels, () => _stadt.FelsModus = Stadtansicht.FelsArt.Radieren);
+        // Felspinsel P3: neu verteilen und ausdünnen über die gerade gestreuten Stücke, danach radieren wie bisher (dann sind es weniger Stücke)
+        await Pinsel("Fels: Neu verteilen (r 10, Größe, Drehung, Einsinken)", Werkstattwerkzeug.Fels, () =>
+        {
+            _stadt.FelsModus = Stadtansicht.FelsArt.Verteilen;
+            _stadt.FelsVerteilenWurf = Felswurf.Groesse | Felswurf.Drehung | Felswurf.Einsinken;
+        });
+        await Pinsel("Fels: Ausdünnen bis 10 % (r 10)", Werkstattwerkzeug.Fels, () =>
+        {
+            _stadt.FelsModus = Stadtansicht.FelsArt.Radieren;
+            _stadt.FelsAusduennen = 0.1;
+        });
+        await Pinsel("Fels: Radieren (r 10)", Werkstattwerkzeug.Fels, () =>
+        {
+            _stadt.FelsModus = Stadtansicht.FelsArt.Radieren;
+            _stadt.FelsAusduennen = 0;
+        });
         await Pinsel("Natur: Bäume streuen (r 6)", Werkstattwerkzeug.Pinsel, () => { });
         await Pinsel("Natur: Radierer (r 6)", Werkstattwerkzeug.Radierer, () => { });
         _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
