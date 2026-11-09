@@ -357,6 +357,7 @@ public partial class Stadtansicht
         Profil(8); // Hervorheben
         ProbeVatZeichnen(); // nur mit --passantenprobe (Stadtansicht.Passantenprobe.cs)
         ProbeMelden(delta);
+        PassantNahFolgen(delta); // nur mit --passantnah (Stadtansicht.Passantnah.cs)
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
         _passantenBilder++;

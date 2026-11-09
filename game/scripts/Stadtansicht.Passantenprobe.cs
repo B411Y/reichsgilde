@@ -52,6 +52,8 @@ public partial class Stadtansicht
     private static readonly bool ProbeAktiv = ProbeOption is not null and not "0" and not "aus";
     private static readonly int ProbeMessfigurenZahl = int.TryParse(ProbeOption, out var n) && n > 1 ? n : 0;
     private static readonly string ProbeStufe = Wasserarten.Startoption("probestufe") ?? "auto";
+    /// <summary><c>--probeklip=&lt;Clip&gt;</c>: alle Messfiguren mit diesem Clip (z. B. Buecken, Kauern, Betteln), zum Ansehen einzelner Bewegungen.</summary>
+    private static readonly string? ProbeKlipOption = Wasserarten.Startoption("probeklip");
 
     /// <summary>Zeichnet die Probe gerade gebacken (VAT) statt mit Skelett? Gilt für alle Probefiguren zugleich.</summary>
     private static bool _probeVat;
@@ -74,12 +76,13 @@ public partial class Stadtansicht
         new(0.28f, 0.24f, 0.20f), new(0.22f, 0.22f, 0.23f), new(0.34f, 0.27f, 0.18f), new(0.25f, 0.27f, 0.32f), new(0.38f, 0.33f, 0.27f),
         new(0.42f, 0.24f, 0.19f),
     };
-    /// <summary>Hauben und Gebende: ungebleichtes Leinen, gelblich und dunkler (Runde 4: in der Stadt lasen sich die helleren Töne als weißes Haar),
-    /// einige leicht gefärbt (Ocker, Blassblau, Rötlich).</summary>
+    /// <summary>Hauben und Gebende: ungebleichtes Leinen und gefärbtes Tuch. Klicktest NAS 09.11.: das Beige (0,62/0,56/0,44) lag zu nah an der Haut,
+    /// die Haube las sich als Glatze; darum dunkler und kühler, dazu mehr gefärbte (Ocker, Blassblau, Rötlich, Moosgrün, Dunkelbraun). Am Modell
+    /// setzen sich Hauben zusätzlich mit Saum und Haaransatz ab (passanten_probe.py).</summary>
     private static readonly Color[] ProbeLeinen =
     {
-        new(0.62f, 0.56f, 0.44f), new(0.58f, 0.52f, 0.40f), new(0.66f, 0.60f, 0.48f), new(0.62f, 0.56f, 0.44f),
-        new(0.62f, 0.48f, 0.28f), new(0.52f, 0.57f, 0.62f), new(0.62f, 0.46f, 0.40f),
+        new(0.50f, 0.47f, 0.38f), new(0.46f, 0.43f, 0.35f), new(0.55f, 0.52f, 0.43f),
+        new(0.62f, 0.48f, 0.28f), new(0.40f, 0.50f, 0.60f), new(0.60f, 0.40f, 0.36f), new(0.38f, 0.46f, 0.32f), new(0.30f, 0.22f, 0.17f),
     };
     /// <summary>Natürliche Haarfarben (sRGB): dunkelbraun, braun, schwarz, hellbraun, dunkelblond, rotblond; Alte grau (Klicktest 08.11.: Haar wirkte weiß).</summary>
     private static readonly Color[] ProbeHaarfarben =
@@ -190,6 +193,11 @@ public partial class Stadtansicht
     }
 
     private bool _probePaletteNeu;
+    private Dictionary<Figur, double> _probeLetztePhase = new();
+
+    /// <summary>Unter diesem Takt (Anteil des Gehtempos) steht eine gehende Probefigur: Wer auf dem Weg wartet, bekäme sonst Takt 0 und
+    /// bliebe mitten im Schritt stehen.</summary>
+    private const float ProbeStehenUnterTakt = 0.08f;
 
     /// <summary>
     /// <see cref="BewegungSetzen"/> für die Probe: Gehen, Eilen und Gebeugt nehmen „Gehen“, Tragen „Tragen“ (mit Kiste), Reden, Sitzen, Hacken und
@@ -200,7 +208,7 @@ public partial class Stadtansicht
         string klip;
         float probeTakt;
         var daten = ProbeArten[f.ProbeArt];
-        if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen")
+        if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
         {
             var grund = bewegung switch { "Eilen" => EilenTempo, "Gebeugt" => GebeugtTempo, "Tragen" => TragenTempo, _ => GehenTempo };
             klip = bewegung == "Tragen" ? "Tragen" : "Gehen";
@@ -209,12 +217,12 @@ public partial class Stadtansicht
         }
         else
         {
-            klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" ? bewegung : "Stehen";
+            klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" or "Kauern" or "Betteln" ? bewegung : "Stehen";
             if (f.ProbeBettler && klip is "Stehen" or "Reden" or "Sitzen") klip = "Betteln"; // Schritt 2: der Bettler kauert und streckt die Hand aus
             probeTakt = 1;
         }
         f.Takt = probeTakt;
-        if (f.Bewegung == bewegung) return;
+        if (f.Bewegung == bewegung && klip == f.KiKlip) return;
         f.Bewegung = bewegung;
         if (f.Werkzeuge.TryGetValue("Last", out var last)) last.Visible = klip == "Tragen";
         if (f.Werkzeuge.TryGetValue("Werkzeug", out var axt)) axt.Visible = klip == "Hacken";
@@ -636,7 +644,7 @@ public partial class Stadtansicht
             var zeile = i / seite;
             var spalte = i % seite;
             var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * 1.6f);
-            var art = (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
+            var art = ProbeKlipOption ?? (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
             var richtung = zeile % 2 == 0 ? Vector3.Right : Vector3.Left;
             var knoten = new Node3D { Name = $"Probefigur_{i}" };
             _passantenEbene.AddChild(knoten);
@@ -704,6 +712,20 @@ public partial class Stadtansicht
                  $"(Messfiguren {_probeMessfiguren.Count}), im Bild gezeichnet als VAT {_probeGezeichnet}, Skelette sichtbar {_probeSkelettSichtbar}, " +
                  $"Messfiguren-Rechnung {_probeMs / _probeBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s, GPU (letztes Bild, nur mit --messung) {gpu:0.00} ms, " +
                  $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
+        // Stillstand (NAS 09.11.: eine nahe Figur blieb in der Gehpose stehen): im Bild, mit Gehclip, aber seit der letzten Zeile dieselbe Phase
+        var still = 0;
+        var gehend = 0;
+        var jetzt = new Dictionary<Figur, double>();
+        foreach (var p in _passanten.Values)
+        {
+            if (p.Figur is not { Probe: true } f || !p.Knoten.Visible || !ImBild(p.Knoten.Position)) continue;
+            if (f.KiKlip is not ("Gehen" or "Tragen")) continue;
+            gehend++;
+            if (_probeLetztePhase.TryGetValue(f, out var vorher) && vorher == f.Phase) still++;
+            jetzt[f] = f.Phase;
+        }
+        _probeLetztePhase = jetzt;
+        GD.Print($"[passantenprobe] Im Bild gehend {gehend}, davon seit 10 s ohne Fortschritt {still}");
         _probeMeldeZeit = 0;
         _probeMs = 0;
         _probeBilder = 0;
