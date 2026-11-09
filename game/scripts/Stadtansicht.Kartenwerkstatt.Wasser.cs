@@ -14,7 +14,7 @@ namespace Reichsgilde;
 /// <b>Werkzeug „Fähre“</b> (<see cref="Werkstattwerkzeug.Faehre"/>): zwei Klicks, die beiden Anleger – sie rasten an Wegen ein.</item>
 /// <item><b>Markierungen</b> (<see cref="FlussMarkieren"/>, <see cref="FaehreMarkieren"/>): Jeder Fluss trägt Pfeile in Fließrichtung (kräftig, wenn er gewählt ist), gewählt gold mit seinem Namen,
 /// mit Fehler rot; eine Fährstelle ist eine orange Linie zwischen ihren Anlegern. Ein See ist eine Fläche wie die anderen (blauer Rand).</item>
-/// <item><b>Folgen</b>: Jede Änderung an Gewässern, Wegen und Gelände baut Wasser, Brücken und Fähren neu (<see cref="WasserNachziehen"/>); ein neuer Fluss gräbt sein Bett ins Gelände, also werden die
+/// <item><b>Folgen</b>: Jede Änderung an Gewässern, Wegen und Gelände baut Wasser, Brücken und Fähren neu (<see cref="WasserVoran"/>: in Häppchen, nach einem Weg nur, wenn der Wasserplan etwas anderes sagt); ein neuer Fluss gräbt sein Bett ins Gelände, also werden die
 /// Kacheln unter ihm und alles darauf neu gebaut (wie bei Pinselstrichen); die Wege, die er quert, bekommen ihre Brücken.</item>
 /// </list>
 /// </summary>
@@ -102,28 +102,104 @@ public partial class Stadtansicht
         _wsWasserNeu = _wsWegeNeu = true;
     }
 
-    /// <summary>Am Ende des Bildes (aus <see cref="Nachziehen"/>): Wasser, Brücken, Fähren neu; die Wege neu, wo sich Gewässer geändert haben (Brücken kommen und gehen).</summary>
-    private void WasserNachziehen()
+    /// <summary>
+    /// Ein Weg ist neu, geändert oder gelöscht: Vielleicht quert er ein Gewässer anders als vorher (Brücke, Furt). <see cref="WasserVoran"/> fragt dann den Wasserplan
+    /// und baut nur, wenn er etwas anderes sagt (ein Weg weitab vom Wasser ändert nichts: Köln baute das ganze Wasser dafür neu, 350 ms und mehr).
+    /// </summary>
+    private bool _wsUebergaengePruefen;
+
+    private WasserLauf? _wsWasserLauf;
+
+    /// <summary>
+    /// Am Ende jedes Bildes (aus <see cref="Nachziehen"/>): Wasser, Brücken, Fähren in Häppchen bauen, so weit das Budget der Werkstatt reicht. Neu gebaut wird das Wasser
+    /// ganz, wenn sich Gewässer, Fähren oder das Gelände darunter geändert haben (<see cref="_wsWasserNeu"/>, dazu alle Wege, wo Gewässer sich geändert haben:
+    /// <see cref="_wsWegeNeu"/>); nach einem Weg nur, wenn der Wasserplan etwas anderes sagt: andere Brücken oder Furten bzw. Fähren – bei Furten und Fähren auch die
+    /// Flächen (dort bleibt das Eis offen, das Wasser steht über dem Weg), bei Brücken nur diese. Das Bild bleibt beim alten Wasser, bis das neue ganz gebaut ist.
+    /// </summary>
+    private void WasserVoran()
     {
-        _wsWasserNeu = false;
         if (_entwurf is null) return;
-        var uhr = Pinselmessung.Uhr();
-        GewaesserBauen();
-        Pinselmessung.Dazu("  Wasser: Flächen und Übergänge", uhr);
-        uhr = Pinselmessung.Uhr();
-        VerbuendeNachziehen();
-        foreach (var g in _entwurf.Gewaesser)
-            if (g is EntwurfFluss f) FlussMarkieren(f, false);
-        foreach (var fa in _entwurf.Faehren) FaehreMarkieren(fa, false);
-        Pinselmessung.Dazu("  Wasser: Verbünde und Markierungen", uhr);
-        uhr = Pinselmessung.Uhr();
-        if (_wsWegeNeu)
+        if (!(_wsWasserNeu || _wsWegeNeu || _wsUebergaengePruefen || _wsWasserLauf is not null) || !SchwerDran()) return;
+        var anfang = Time.GetTicksUsec();
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        if (_wsWasserNeu || _wsWegeNeu) WasserStarten(nurUebergaenge: false);
+        if (_wsUebergaengePruefen)
         {
-            _wsWegeNeu = false;
-            foreach (var w in _entwurf.Wege.ToList()) WegBauen(w, false);
+            _wsUebergaengePruefen = false;
+            var (alle, flaechen) = UebergangsZeichen();
+            if (_wsWasserLauf is { } laeuft)
+            {
+                // was die Flächen lesen, ist beim Start des Baus gerechnet; die Übergänge liest der letzte Schritt des Baus frisch
+                if (flaechen != laeuft.FlaechenZeichen) WasserStarten(nurUebergaenge: false, "Furten oder Fähren anders (laufender Bau)");
+            }
+            else if (flaechen != _wsFlaechenZeichen) WasserStarten(nurUebergaenge: false, "Furten oder Fähren anders");
+            else if (alle != _wsUebergangsZeichen) WasserStarten(nurUebergaenge: true, "Brücken, Furten oder Fähren anders");
+        }
+        if (_wsWasserLauf is { Schritte: { } schritte })
+        {
+            var fertig = true;
+            while (schritte.MoveNext())
+                if (Time.GetTicksUsec() >= frist)
+                {
+                    fertig = false;
+                    break;
+                }
+            if (fertig) _wsWasserLauf = null;
+        }
+        Pinselmessung.Dazu("  Wasser: Häppchen", anfang);
+        SchwerGezaehlt(anfang);
+    }
+
+    /// <summary>Fängt den Bau des Wassers von vorn an (ein laufender wird verworfen).</summary>
+    private void WasserStarten(bool nurUebergaenge, string grund = "")
+    {
+        if (Pinselmessung.An) GD.Print($"[wasser] Neubau{(nurUebergaenge ? " (nur Übergänge)" : "")}: {(grund != "" ? grund : _wsWasserNeu ? "Gewässer, Fähre oder Gelände geändert" : _wsWegeNeu ? "Wege neu" : "?")}");
+        if (_wsWasserLauf?.Flaechen is { } verworfen && IsInstanceValid(verworfen) && !verworfen.IsInsideTree()) verworfen.Free();
+        var lauf = new WasserLauf { NurUebergaenge = nurUebergaenge, WegeNeu = _wsWegeNeu || (_wsWasserLauf?.WegeNeu ?? false) }; // ein verworfener Bau hatte die Wege vielleicht noch vor
+        _wsWasserNeu = _wsWegeNeu = false;
+        lauf.FlaechenZeichen = UebergangsZeichen().Flaechen;
+        lauf.Schritte = WasserSchritte(lauf).GetEnumerator();
+        _wsWasserLauf = lauf;
+    }
+
+    private IEnumerable<int> WasserSchritte(WasserLauf lauf)
+    {
+        var entwurf = _entwurf;
+        if (entwurf is null) yield break;
+        if (lauf.NurUebergaenge)
+        {
+            // nur Brücken, Furten und Fähren neu: die Flächen bleiben (sie lesen von ihnen nichts, was sich geändert hätte)
+            if (_gewaesserKnoten is not null)
+            {
+                foreach (var k in _wsUebergangsKnoten) if (IsInstanceValid(k)) KnotenEntfernen((Node3D)k);
+                UebergaengeVergessen();
+                UebergaengeNeuBauen();
+            }
+            yield break;
+        }
+        var uhr = Pinselmessung.Uhr();
+        if (GewaesserForm is { IstLeer: false } form)
+        {
+            foreach (var schritt in WasserflaechenSchritte(form, lauf)) yield return schritt;
+        }
+        Pinselmessung.Dazu("    Wasser: Flächen", uhr);
+        yield return 0;
+        // in einem Schritt: das neue Wasser gilt
+        GewaesserTauschen(lauf);
+        VerbuendeNachziehen();
+        foreach (var g in entwurf.Gewaesser.ToList())
+            if (g is EntwurfFluss f) FlussMarkieren(f, false);
+        foreach (var fa in entwurf.Faehren.ToList()) FaehreMarkieren(fa, false);
+        yield return 0;
+        if (lauf.WegeNeu)
+        {
+            foreach (var w in entwurf.Wege.ToList())
+            {
+                if (entwurf.Enthaelt(w)) WegBauen(w, false);
+                yield return 0;
+            }
             _wsNetzNeu = true;
         }
-        Pinselmessung.Dazu("  Wasser: alle Wege neu", uhr);
     }
 
     /// <summary>Je See der Wasserstand und je Verbund (Lauf–See) sein Bereich beim letzten Bau (für <see cref="VerbuendeNachziehen"/>).</summary>

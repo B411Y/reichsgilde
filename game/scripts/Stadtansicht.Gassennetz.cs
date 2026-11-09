@@ -91,6 +91,16 @@ public sealed class Gassennetz
             KanteMitKreuzungen(KnotenBei(punkte[i]), KnotenBei(punkte[i + 1]));
     }
 
+    /// <summary>Wie <see cref="Weg"/>, aber ein Wegstück je Schritt (die Werkstatt baut das Netz in Häppchen, Stadtansicht.Kartenwerkstatt.Wege.cs): dieselben Aufrufe in derselben Reihenfolge.</summary>
+    public IEnumerable<int> WegSchritte(Vector3[] punkte)
+    {
+        for (var i = 0; i + 1 < punkte.Length; i++)
+        {
+            KanteMitKreuzungen(KnotenBei(punkte[i]), KnotenBei(punkte[i + 1]));
+            yield return i;
+        }
+    }
+
     /// <summary>Legt eine Fähre zwischen zwei Anlegern an (die Punkte hängen am Netz der Wege; die Kante selbst teilt keine Straße).</summary>
     public void Faehre(Vector3 von, Vector3 bis)
     {

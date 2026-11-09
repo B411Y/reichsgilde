@@ -31,7 +31,7 @@ public partial class Stadtansicht
     public string WerkstattPruefsumme()
     {
         var teile = new List<string>();
-        if (_wsNetzHoeheVeraltet || _wsNetzNeu) NetzBauen();
+        if (_wsNetzHoeheVeraltet || _wsNetzNeu || _wsNetzLauf is not null) NetzBauen();
         // Gassennetz: Knoten in ihrer Reihenfolge, Kanten nach Orten sortiert, Fähren
         teile.Add("Netzknoten=" + Kurz(_wsNetz.Knoten.Select(Cm), false));
         teile.Add("Netzkanten=" + Kurz(_wsNetz.Kanten.Select(k => string.CompareOrdinal(Cm(k.Von), Cm(k.Bis)) <= 0 ? Cm(k.Von) + ">" + Cm(k.Bis) : Cm(k.Bis) + ">" + Cm(k.Von)), true));

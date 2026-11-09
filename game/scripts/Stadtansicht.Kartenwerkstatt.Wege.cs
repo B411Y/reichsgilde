@@ -48,7 +48,7 @@ public partial class Stadtansicht
         set
         {
             _wsNetzSichtbar = value;
-            if (_wsNetzNeu || _wsNetzHoeheVeraltet) NetzBauen(); // baut auch die Ansicht
+            if (_wsNetzNeu || _wsNetzHoeheVeraltet || (value && _wsNetzLauf is not null)) NetzBauen(); // baut auch die Ansicht
             else NetzAnsichtBauen();
         }
     }
@@ -64,6 +64,7 @@ public partial class Stadtansicht
         _wsAnschluesse = new Node3D { Name = "Anschluesse" };
         AddChild(_wsAnschluesse);
         foreach (var w in _entwurf!.Wege) WegBauen(w, false);
+        _wsNetzLauf = null; // ein Bau aus einer früheren Karte wäre veraltet
         _wsNetzNeu = true;
     }
 
@@ -150,70 +151,130 @@ public partial class Stadtansicht
     //  Gassennetz
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Ein Bau des Gassennetzes in Häppchen (<see cref="NetzSchritte"/>): das neue Netz und die Stücke, die erst am Ende ins Bild kommen.</summary>
+    private sealed class NetzLauf
+    {
+        public Gassennetz Netz = new();
+        public readonly List<(Vector3 Von, Vector3 Bis)> Strecken = new();
+        public readonly List<(Vector3 Von, Vector3 Bis, float Breite)> Stuecke = new();
+        public IEnumerator<int>? Schritte;
+    }
+
+    private NetzLauf? _wsNetzLauf;
+
     /// <summary>
-    /// Baut das Gassennetz der Werkstatt aus den Wegen des Entwurfs und hängt, wie das Spiel (<see cref="Anschliessen"/>), den Markt, die Tore,
-    /// die Höfe der Werkstattplätze, die Karrenplätze der Umlandbetriebe und die Gatter der Arbeitsstellen mit einem kurzen Stück an den nächsten
-    /// Weg (gezeichnet wie im Spiel). Türen der Häuser kommen im Spiel dazu, hier nicht.
+    /// Baut das Gassennetz der Werkstatt sofort ganz neu (die Ansicht, die Zählung der Teile und die Prüfsumme brauchen es jetzt); sonst baut
+    /// <see cref="NetzVoran"/> es in Häppchen.
     /// </summary>
     private void NetzBauen()
     {
+        if (_entwurf is null || _wsAnschluesse is null)
+        {
+            _wsNetzNeu = _wsNetzHoeheVeraltet = false;
+            return;
+        }
+        NetzStarten();
+        var lauf = _wsNetzLauf!;
+        while (lauf.Schritte!.MoveNext()) { }
+        _wsNetzLauf = null;
+    }
+
+    /// <summary>Fängt den Bau des Gassennetzes von vorn an (ein laufender wird verworfen; er baut in ein eigenes Netz, das Bild bleibt, wie es war).</summary>
+    private void NetzStarten()
+    {
         _wsNetzNeu = _wsNetzHoeheVeraltet = false;
-        if (_entwurf is null || _wsAnschluesse is null) return;
-        var uhrNetz = Pinselmessung.Uhr();
-        _wsNetz = new Gassennetz();
-        var strecken = new List<(Vector3 Von, Vector3 Bis)>();
-        foreach (var w in _entwurf.Wege)
+        var lauf = new NetzLauf();
+        lauf.Schritte = NetzSchritte(lauf).GetEnumerator();
+        _wsNetzLauf = lauf;
+    }
+
+    /// <summary>Jedes Bild (aus <see cref="Nachziehen"/>): das Gassennetz ein Stück weiterbauen, so weit das Budget der Werkstatt reicht.</summary>
+    private void NetzVoran()
+    {
+        if (_entwurf is null) return;
+        if (_wsNetzNeu) NetzStarten();
+        if (_wsNetzLauf is not { Schritte: { } schritte } lauf || !SchwerDran()) return;
+        var anfang = Time.GetTicksUsec();
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        var fertig = true;
+        while (schritte.MoveNext())
+            if (Time.GetTicksUsec() >= frist)
+            {
+                fertig = false;
+                break;
+            }
+        if (fertig) _wsNetzLauf = null;
+        Pinselmessung.Dazu("  Netz: Häppchen", anfang);
+        SchwerGezaehlt(anfang);
+    }
+
+    /// <summary>
+    /// Das Gassennetz der Werkstatt aus den Wegen des Entwurfs: hängt, wie das Spiel (<see cref="Anschliessen"/>), den Markt, die Tore,
+    /// die Höfe der Werkstattplätze, die Karrenplätze der Umlandbetriebe und die Gatter der Arbeitsstellen mit einem kurzen Stück an den nächsten
+    /// Weg (gezeichnet wie im Spiel). Türen der Häuser kommen im Spiel dazu, hier nicht. Ein Schritt je Strecke eines Weges bzw. je Anschluss; erst
+    /// der letzte tauscht das Netz aus und zeichnet die Stücke (vorher bleibt alles beim alten Netz: Köln baute es mit 100 ms und mehr in einem Bild).
+    /// Die Reihenfolge der Rechnung ist die alte, das Netz also dasselbe.
+    /// </summary>
+    private IEnumerable<int> NetzSchritte(NetzLauf lauf)
+    {
+        var entwurf = _entwurf;
+        if (entwurf is null || _wsAnschluesse is null) yield break;
+        var neu = lauf.Netz;
+        foreach (var w in entwurf.Wege.ToList())
         {
             var punkte = w.Verlauf.Select(p => V3(p)).ToArray();
             if (punkte.Length < 2) continue;
-            for (var i = 0; i + 1 < punkte.Length; i++) strecken.Add((punkte[i], punkte[i + 1]));
-            var uhrW = Pinselmessung.Uhr();
-            var netzpunkte = w.IstGlatt ? NetzPunkte(punkte) : punkte;
-            Pinselmessung.Dazu("    Netz: NetzPunkte", uhrW);
-            uhrW = Pinselmessung.Uhr();
-            _wsNetz.Weg(netzpunkte);
-            Pinselmessung.Dazu("    Netz: Gassennetz.Weg", uhrW);
+            for (var i = 0; i + 1 < punkte.Length; i++) lauf.Strecken.Add((punkte[i], punkte[i + 1]));
+            foreach (var schritt in neu.WegSchritte(w.IstGlatt ? NetzPunkte(punkte) : punkte)) yield return schritt;
         }
-        Pinselmessung.Dazu("  Netz: Wege", uhrNetz);
-        uhrNetz = Pinselmessung.Uhr();
-        foreach (var kind in _wsAnschluesse.GetChildren()) kind.QueueFree();
-        SchichtAnschluesseVergessen(); // Stadtansicht.Wegeschicht.cs
 
         void Anhaengen(Vector3 p, float? breite, bool ueberDenMarkt = true)
         {
             Vector3? naechster = null;
             var abstand = float.MaxValue;
-            foreach (var (von, bis) in strecken)
+            foreach (var (von, bis) in lauf.Strecken)
             {
                 var q = Geometry3D.GetClosestPointToSegment(p, von, bis);
                 if (q.DistanceTo(p) < abstand) (naechster, abstand) = (q, q.DistanceTo(p));
             }
-            if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand) _wsNetz.Weg(p, markt.Mitte);
+            if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand) neu.Weg(p, markt.Mitte);
             else if (naechster is { } q)
             {
-                _wsNetz.Weg(p, q);
-                if (breite is { } b && abstand > 0.3f) WegZiehen(p, q, b, _wsAnschluesse);
+                neu.Weg(p, q);
+                if (breite is { } b && abstand > 0.3f) lauf.Stuecke.Add((p, q, b));
             }
         }
-        foreach (var platz in _maerkte)
-            if (platz.Halb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(platz.Mitte) < Gassennetz.Fang)) Anhaengen(platz.Mitte, null, ueberDenMarkt: false);
-        foreach (var tor in _entwurf.Mauern.SelectMany(m => m.Tore)) Anhaengen(V3(tor.Punkt), null);
-        foreach (var g in _entwurf.Gebaeude)
+        foreach (var platz in _maerkte.ToList())
+        {
+            if (platz.Halb > 0 && !neu.Knoten.Any(k => k.DistanceTo(platz.Mitte) < Gassennetz.Fang)) Anhaengen(platz.Mitte, null, ueberDenMarkt: false);
+            yield return 0;
+        }
+        foreach (var tor in entwurf.Mauern.SelectMany(m => m.Tore).ToList())
+        {
+            Anhaengen(V3(tor.Punkt), null);
+            yield return 0;
+        }
+        foreach (var g in entwurf.Gebaeude.ToList())
         {
             if (g.Art == Bausteinart.Werkstattplatz && g.Hof is { } hof) Anhaengen(V3(hof), HofwegBreite);
             else if (g.Art == Bausteinart.Umlandbetrieb && g.Baustein?.Modell is { } datei)
                 Anhaengen(ModellLage(g) * UmlandAnkerImModell(datei).Karren with { Y = 0 }, KarrenwegBreite);
             else if (g.Art == Bausteinart.Umlandstelle && g.Baustein?.Modell is { } stelle)
                 Anhaengen(ModellLage(g) * UmlandAnkerImModell(stelle).Tuer with { Y = 0 }, FusswegBreite); // das Gatter der Arbeitsstelle
+            yield return 0;
         }
         if (Uebergangsplan is { } plan)
             foreach (var f in plan.Faehren)
-                if (f.UeberWasser > 1) _wsNetz.Faehre(new Vector3((float)f.Von.X, 0, (float)f.Von.Z), new Vector3((float)f.Bis.X, 0, (float)f.Bis.Z)); // Karren setzen über
-        Pinselmessung.Dazu("  Netz: Anschlüsse", uhrNetz);
-        uhrNetz = Pinselmessung.Uhr();
+                if (f.UeberWasser > 1) neu.Faehre(new Vector3((float)f.Von.X, 0, (float)f.Von.Z), new Vector3((float)f.Bis.X, 0, (float)f.Bis.Z)); // Karren setzen über
+        yield return 0;
+
+        // zuletzt in einem Schritt: das neue Netz gilt, die Stücke zu Höfen, Karrenplätzen und Gattern kommen in die Schicht (oder werden gezeichnet)
+        _wsNetz = neu;
+        foreach (var kind in _wsAnschluesse.GetChildren()) kind.QueueFree();
+        SchichtAnschluesseVergessen(); // Stadtansicht.Wegeschicht.cs
+        foreach (var (von, bis, breite) in lauf.Stuecke) WegZiehen(von, bis, breite, _wsAnschluesse);
         SchichtAnschluesseAbschliessen(); // weggefallene Anschlüsse aus der Wegeschicht nehmen (Stadtansicht.Wegeschicht.cs)
         NetzAnsichtBauen();
-        Pinselmessung.Dazu("  Netz: Schicht und Ansicht", uhrNetz);
     }
 
     /// <summary>
@@ -251,7 +312,7 @@ public partial class Stadtansicht
     {
         get
         {
-            if (_wsNetzHoeheVeraltet) NetzBauen();
+            if (_wsNetzHoeheVeraltet || _wsNetzNeu || _wsNetzLauf is not null) NetzBauen(); // das Netz soll stimmen, nicht eben noch im Bau sein
             return _wsNetz.Teile();
         }
     }
