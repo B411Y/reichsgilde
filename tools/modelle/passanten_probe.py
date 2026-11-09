@@ -892,12 +892,28 @@ def schnuerung_bauen(koerper, masse):
 
 
 def haar_struppig(obj):
-    """Struppiges kurzes Haar (Ork, Vorlage 09.11.): Strähnen stehen ungleich ab, kleinräumiger als beim Menschen."""
-    me = obj.data
-    for v in me.vertices:
-        z_ = math.sin(v.co.x * 520.0 + v.co.z * 310.0) * math.sin(v.co.y * 470.0 - v.co.z * 260.0)
-        v.co += v.normal * (0.006 + 0.012 * max(0.0, z_))
-    me.update()
+    """Struppiges kurzes Haar (Ork, Vorlage 09.11.; NAS-Klicktest: „Kappe mit Zacken“): Der Rand an Stirn, Schläfen und Nacken läuft in
+    ungleich langen Strähnen aus (Zickzack, bis 3 cm tiefer, die Ränder schont das Verkleinern), innen stehen Büschel ab. Keine neuen Dreiecke."""
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.normal_update()
+    rand = {v for v in bm.verts if v.is_boundary}
+    mitte_x = sum(v.co.x for v in bm.verts) / max(len(bm.verts), 1)
+    mitte_y = sum(v.co.y for v in bm.verts) / max(len(bm.verts), 1)
+    neu = {}
+    for v in bm.verts:
+        w = math.atan2(v.co.x - mitte_x, v.co.y - mitte_y)
+        if v in rand:
+            zacke = abs((w * 16.0 / (2 * math.pi)) % 1.0 - 0.5) * 2.0          # Dreieckswelle: 16 Strähnen rundum
+            lang = 0.5 + 0.5 * math.sin(w * 5.0 + 0.9)                          # ungleich lang
+            neu[v] = v.co + Vector((0, 0, -0.032 * zacke * lang)) + v.normal * 0.006
+        else:
+            z_ = math.sin(v.co.x * 520.0 + v.co.z * 310.0) * math.sin(v.co.y * 470.0 - v.co.z * 260.0)
+            neu[v] = v.co + v.normal * (0.008 + 0.016 * max(0.0, z_))
+    for v, c in neu.items():
+        v.co = c
+    bm.to_mesh(obj.data)
+    bm.free()
     return obj
 
 
