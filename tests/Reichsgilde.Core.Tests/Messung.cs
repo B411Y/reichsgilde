@@ -64,6 +64,10 @@ static class Messung
         // [--berufe=…] – siehe Stressmessung.cs
         if (args.Length > 0 && args[0] == "stress")
             return Stressmessung.Erstellen(args[1..]);
+        // Geheimnisse: entstanden, entdeckt, genutzt, Urteile (Geheimnisse 3c, 9.11.2026): … -- messen geheimnisse [Jahre] [Startwerte]
+        // [--berufe=…] – siehe Geheimnismessung.cs
+        if (args.Length > 0 && args[0] == "geheimnisse")
+            return Geheimnismessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();
