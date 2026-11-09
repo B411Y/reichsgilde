@@ -131,7 +131,7 @@ public partial class Stadtansicht
         var festeKopffarbe = aussehen.Kopffarbe == Schwarz || aussehen.Kopffarbe.R > 0.85f;
         aussehen = aussehen with
         {
-            Gewand = eigeneFarbe ? aussehen.Gewand : ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
+            Gewand = eigeneFarbe ? aussehen.Gewand : ProbeGewandFuer(rolle, nummer),
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
             Kopffarbe = festeKopffarbe ? aussehen.Kopffarbe
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
@@ -234,6 +234,27 @@ public partial class Stadtansicht
 
     private bool _probePaletteNeu;
     private Dictionary<Figur, double> _probeLetztePhase = new();
+
+    /// <summary><c>--probefarben=rolle</c> (Vorschlag des Teamleiters, Entscheidung des Nutzers offen): Gewandfarben nach Stand statt aus allen zehn.</summary>
+    private static readonly bool ProbeFarbenNachRolle = Wasserarten.Startoption("probefarben") == "rolle";
+
+    // Plätze in ProbeGewandfarben: 0 Krapp rot, 1 Waid blau, 2 Wau gelb, 3 Walnuss, 4 Eichenrinde, 5 ungefärbt, 6 graue Wolle, 7 Loden grün,
+    // 8 Waid mit Krapp (violett), 9 Ocker. Arme und Bauern tragen ungefärbt, Braun, Grau, Grün und Ocker; Händler auch Rot, Blau und Violett.
+    private static readonly int[] ProbeFarbenArme = { 3, 4, 5, 6, 7, 9, 2, 4, 6 };
+    private static readonly int[] ProbeFarbenHandel = { 0, 1, 2, 3, 7, 8, 9 };
+
+    /// <summary>Gewandfarbe nach der Nummer; mit <see cref="ProbeFarbenNachRolle"/> aus der Auswahl des Standes.</summary>
+    private static Color ProbeGewandFuer(string? rolle, int nummer)
+    {
+        var auswahl = !ProbeFarbenNachRolle ? null : rolle switch
+        {
+            "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" or "Torwächter" => ProbeFarbenArme,
+            "Krämer" => ProbeFarbenHandel,
+            _ => null,
+        };
+        var zahl = Streuung(nummer, 211);
+        return auswahl is null ? ProbeGewandfarben[zahl % ProbeGewandfarben.Length] : ProbeGewandfarben[auswahl[zahl % auswahl.Length]];
+    }
 
     /// <summary>Unter diesem Takt (Anteil des Gehtempos) steht eine gehende Probefigur: Wer auf dem Weg wartet, bekäme sonst Takt 0 und
     /// bliebe mitten im Schritt stehen.</summary>
