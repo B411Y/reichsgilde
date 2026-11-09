@@ -633,6 +633,27 @@ static class GeheimnisTests
             }
         }),
 
+        ("Geheimnisse: Freispruch eines Ratsherrn – Rechtskundig beim Ankläger ändert die Entschädigung nicht (gilt nur für den Beklagten)", () =>
+        {
+            var daten = DatenMit(("\"beweiskraft\": 20, \"busse\": 300, \"ansehen\": 5, \"meinungEhepartner\"",
+                "\"beweiskraft\": 1, \"busse\": 300, \"ansehen\": 5, \"meinungEhepartner\""));
+            var sim = NeueSimulation(daten);
+            var w = sim.Wirtschaft!;
+            var (a, f) = Haus(w, "Haus Klaeger");
+            var o = f.Oberhaupt;
+            var lw = w.Familien.LebensweiseDaten!;
+            o.Lebensweg.ErfahrungSetzen(lw.Knoten("Rechtskundig")!.Value.Pfad, lw.ErfahrungFuer(9));
+            foreach (var kn in new[] { "WohlgesetzteWorte", "Plaedoyer", "Rechtskundig" })
+                Pruefe.Wahr(w.Ausfuehren(a, new KnotenWaehlen(o.Nummer, kn)).Erfolg, kn);
+            Pruefe.Ungefaehr(2, w.Familien.Lebenswirkung(a).EntschaedigungFaktor, 1e-12);
+            var r = w.Rat.AmtNamens("Kämmerer")!.Ratsherr!;
+            var g = GeheimnisGeben(w, r, Geheimnisart.Ehebruch, wisser: a);
+            Ok(w, a, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Anzeige));
+            JahrBeenden(sim);
+            Pruefe.Wahr(w.Justiz.LetzterGerichtstag.Any(z => z.Contains($"{o.Name} zahlt 200 ") || z.Contains($"{a.Inhaber} zahlt 200 ")),
+                string.Join(" | ", w.Justiz.LetzterGerichtstag));
+        }),
+
         ("Geheimnisse: Bloßstellen – öffentlich, ohne Spur; Ansehen −5 zwei Jahre, Ehepartner −40, der Inhaber −20 über den Bloßsteller, +15 Stress; " +
          "Schulden: Kreditrahmen × 0,75; Mord: Angehörige des Opfers −50", () =>
         {

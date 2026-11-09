@@ -325,7 +325,7 @@ public sealed partial class Geheimniswesen
             }
             else
             {
-                var entschaedigung = j.Entschaedigung * _w.Familien.Lebenswirkung(v.Anklaeger).EntschaedigungFaktor;
+                var entschaedigung = j.Entschaedigung; // Rechtskundig gilt nur für den Beklagten – ein Ratsherr hat keine Lebensweise
                 v.Anklaeger.Gerichtskosten(entschaedigung);
                 _w.Kasse.Buchen(Kassenposten.Strafen, entschaedigung);
                 _w.Meinungen.TatEintragen(v.Beklagter.Kennung, _w.Meinungen.HausKennung(v.Anklaeger), "klage", "Hat ihn verklagt",
