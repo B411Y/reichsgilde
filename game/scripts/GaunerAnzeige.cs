@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
+using Reichsgilde.Core.Geheimnisse;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -124,6 +125,34 @@ public partial class GaunerAnzeige : PanelContainer
 
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
 
+    /// <summary>
+    /// Ein Erpresserbrief mit einem Geheimnis statt Beweisen (Teil 3c): links das Siegel seiner Art, rechts wer droht und womit. Zahlen heißt,
+    /// er vergisst es; wer nicht zahlt, dem kann er es anzeigen oder bloßstellen.
+    /// </summary>
+    private void GeheimnisBrief(Stadtwirtschaft w, Forderung f, Geheimnisart art, string waehrung)
+    {
+        var gw = w.Geheimnisse;
+        var daten = gw.IstAktiv ? gw.Daten.Art(art) : null;
+        var tipp = daten is null ? "Ein Geheimnis" : $"Ein Geheimnis – {daten.Name}: {daten.Beschreibung}";
+        var reihe = new HBoxContainer();
+        reihe.AddThemeConstantOverride("separation", 12);
+        _inhalt.AddChild(reihe);
+        var siegel = CharakterAnzeige.GeheimnisSiegelBild(art, 56, tipp); // ohne Datei bleibt nur der Text
+        if (siegel is not null) reihe.AddChild(siegel);
+        var spalte = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        spalte.AddThemeConstantOverride("separation", 4);
+        reihe.AddChild(spalte);
+        var breite = Breite - 50 - (siegel is null ? 0 : 68);
+        var kopf = Hauptmenue.Text(spalte, $"Erpresserbrief von {f.Erpresser.Inhaber}: {Zahlenformat.Ganz(f.Betrag)} {waehrung} Schweigegeld, " +
+                                           "sonst kommt ein Geheimnis ans Licht.", 15, Rot, umbruchBreite: breite);
+        kopf.TooltipText = "Jemand weiß ein Geheimnis eures Hauses und verlangt Schweigegeld. Zahlt ihr, vergisst er es; zahlt ihr nicht, " +
+                           "kann er es anzeigen (wo es ein Vergehen ist) oder bloßstellen.";
+        var worum = gw.WorumDerBrief(f) ?? daten?.Name ?? art.ToString();
+        var text = Hauptmenue.Text(spalte, $"Er weiß: {worum}. Zahlt ihr, schweigt er und vergisst es. Zahlt ihr nicht, kann er es anzeigen " +
+                                           "oder in der ganzen Stadt bloßstellen.", 13, null, umbruchBreite: breite);
+        text.TooltipText = tipp;
+    }
+
     private static string StufenName(Stadtwirtschaft w, int stufe) =>
         w.Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == w.Diebe.Daten.Beruf && a.Stufe == stufe)?.Name ?? $"Stufe {stufe}";
 
@@ -223,13 +252,18 @@ public partial class GaunerAnzeige : PanelContainer
         foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == _spieler))
         {
             _inhalt.AddChild(new HSeparator());
-            var busse = gericht.DrohendeBusse(f.Erpresser, _spieler);
-            var beweise = gericht.Beweise(f.Erpresser, _spieler).Count();
-            Text(_inhalt, $"Erpresserbrief von {f.Erpresser.Inhaber}: {Zahlenformat.Ganz(f.Betrag)} {waehrung} Schweigegeld, sonst Anklage.", 15, Rot, umbrechen: true);
-            Text(_inhalt, $"Er hat {beweise} Beweise gegen euch. Ein Schuldspruch kostete {Zahlenformat.Ganz(busse)} {waehrung} Buße, " +
-                          $"{gericht.Daten.PrangerJahre} Jahre Pranger{(gericht.DrohtKerker(f.Erpresser, _spieler) ? " und Kerker" : "")}" +
-                          $"{(w.Rat.AmtVon(_spieler) is { } amt ? $" und euer Amt als {amt.Name}" : "")}. " +
-                          "Sein Brief liegt als Beweis gegen ihn in eurem Beweisbuch.", 13, null, umbrechen: true);
+            if (w.Geheimnisse.ArtDesBriefes(f) is { } geheimnisArt)
+                GeheimnisBrief(w, f, geheimnisArt, waehrung); // Teil 3c: mit dem Siegel der Art
+            else
+            {
+                var busse = gericht.DrohendeBusse(f.Erpresser, _spieler);
+                var beweise = gericht.Beweise(f.Erpresser, _spieler).Count();
+                Text(_inhalt, $"Erpresserbrief von {f.Erpresser.Inhaber}: {Zahlenformat.Ganz(f.Betrag)} {waehrung} Schweigegeld, sonst Anklage.", 15, Rot, umbrechen: true);
+                Text(_inhalt, $"Er hat {beweise} Beweise gegen euch. Ein Schuldspruch kostete {Zahlenformat.Ganz(busse)} {waehrung} Buße, " +
+                              $"{gericht.Daten.PrangerJahre} Jahre Pranger{(gericht.DrohtKerker(f.Erpresser, _spieler) ? " und Kerker" : "")}" +
+                              $"{(w.Rat.AmtVon(_spieler) is { } amt ? $" und euer Amt als {amt.Name}" : "")}. " +
+                              "Sein Brief liegt als Beweis gegen ihn in eurem Beweisbuch.", 13, null, umbrechen: true);
+            }
             var zeile = new HBoxContainer();
             zeile.AddThemeConstantOverride("separation", 10);
             _inhalt.AddChild(zeile);

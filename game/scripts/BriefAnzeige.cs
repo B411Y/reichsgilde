@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Geheimnisse;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -8,7 +9,8 @@ namespace Reichsgilde;
 /// Es steht rechts unten über der Siegel-Ecke, ohne die Stadt zu verdecken, und hält nie die Zeit an. Kommen mehrere Briefe, bilden sie einen Stapel
 /// („Brief 2 von 3“, Pfeile zum Blättern); Schließen legt den ganzen Stapel weg – alles steht weiter im Verlauf. Ein Knopf unten führt, soweit der Text es hergibt,
 /// zum Betrieb, ins Familienbuch, in die Ratskammer oder zur Jahresrechnung.
-/// Gestaltet wie die übrigen Bilder: schwarzer Umriss, Farbband leicht neben der Linie, Schraffur am Rand im Schatten.
+/// Gestaltet wie die übrigen Bilder: schwarzer Umriss, Farbband leicht neben der Linie, Schraffur am Rand im Schatten. Handelt der Brief von einem Geheimnis
+/// (<see cref="Meldung.GeheimnisArt"/>), steht unten statt des Wachssiegels das Siegel seiner Art; in Briefen mit mehreren Zeilen steht es klein vor der Zeile.
 /// </summary>
 public sealed partial class BriefAnzeige : PanelContainer
 {
@@ -31,6 +33,9 @@ public sealed partial class BriefAnzeige : PanelContainer
 
     /// <summary>Wohin „Hinsehen“ zu einer Meldung führt, als kurzer Text für den Tooltip (null: nirgends hin, kein Knopf). Setzt die Hauptszene.</summary>
     public Func<Meldung, string?> HinsehenZiel { get; set; } = _ => null;
+
+    /// <summary>Der Tooltip zum Siegel einer Geheimnisart (Name und Beschreibung aus den Daten). Setzt die Hauptszene.</summary>
+    public Func<Geheimnisart, string> GeheimnisTipp { get; set; } = art => art.ToString();
 
     /// <summary>Wurde der Stapel weggelegt (Schließen)?</summary>
     public event Action? Weggelegt;
@@ -188,7 +193,18 @@ public sealed partial class BriefAnzeige : PanelContainer
                     kopfzeile.AddChild(hin);
                 }
             }
-            Hauptmenue.Text(zeile, text, 16, warnung ? Rot : Tinte, umbruchBreite: Breite - 6);
+            // Bei mehreren Zeilen: eine Meldung über ein Geheimnis bekommt das kleine Siegel seiner Art vor den Text (ein Brief mit einer Meldung trägt es unten)
+            var geheim = b.Zeilen.Count > 1 && kern?.GeheimnisArt is { } art ? CharakterAnzeige.GeheimnisSiegelBild(art, 30, GeheimnisTipp(art)) : null;
+            if (geheim is null)
+            {
+                Hauptmenue.Text(zeile, text, 16, warnung ? Rot : Tinte, umbruchBreite: Breite - 6);
+                continue;
+            }
+            var mitSiegel = new HBoxContainer();
+            mitSiegel.AddThemeConstantOverride("separation", 8);
+            zeile.AddChild(mitSiegel);
+            mitSiegel.AddChild(geheim);
+            Hauptmenue.Text(mitSiegel, text, 16, warnung ? Rot : Tinte, umbruchBreite: Breite - 6 - 38);
         }
         if (b.Zeilen.Count > 40) Hauptmenue.Text(_inhalt, $"… und {b.Zeilen.Count - 40} weitere im Verlauf.", 13, Blass);
         if (b.Fuss != "") Hauptmenue.Text(_inhalt, b.Fuss, 13, Blass, umbruchBreite: Breite - 6);
@@ -231,7 +247,13 @@ public sealed partial class BriefAnzeige : PanelContainer
         weg.AddThemeFontSizeOverride("font_size", 14);
         weg.Pressed += Weglegen;
         knoepfe.AddChild(weg);
-        fuss.AddChild(new SiegelBild { Farbe = b.Farbe, Thema = b.Thema, CustomMinimumSize = new Vector2(52, 52) });
+        // Unten das Siegel: bei einem Brief über ein Geheimnis das Siegel seiner Art (Holzschnitt-Medaille), sonst das gezeichnete Wachssiegel des Themas
+        if (b.Kern?.GeheimnisArt is { } briefArt && CharakterAnzeige.GeheimnisSiegelBild(briefArt, 56, GeheimnisTipp(briefArt)) is { } medaille)
+        {
+            medaille.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+            fuss.AddChild(medaille);
+        }
+        else fuss.AddChild(new SiegelBild { Farbe = b.Farbe, Thema = b.Thema, CustomMinimumSize = new Vector2(52, 52) });
     }
 
     private static string ZielText(Brief b) => b.Ziel switch

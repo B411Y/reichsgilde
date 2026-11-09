@@ -50,6 +50,21 @@ public partial class CharakterAnzeige
         return bild;
     }
 
+    /// <summary>
+    /// Das Siegel einer Geheimnisart als Bild in dieser Größe (mit Mipmaps, oben ausgerichtet) – für Charakterfenster, Meldung, Brief und Hinterzimmer.
+    /// null ohne Art oder ohne Datei (dann bleibt nur der Text).
+    /// </summary>
+    internal static TextureRect? GeheimnisSiegelBild(Geheimnisart? art, int groesse, string tipp = "")
+    {
+        if (art is not { } a || GeheimnisSiegel(a) is not { } siegel) return null;
+        return new TextureRect
+        {
+            Texture = siegel, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(groesse, groesse), TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps, MouseFilter = MouseFilterEnum.Pass,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin, TooltipText = tipp,
+        };
+    }
+
     private void GeheimnisZeile(Stadtwirtschaft w, ICharakter c, Geheimnis g)
     {
         var gw = w.Geheimnisse;
@@ -69,18 +84,8 @@ public partial class CharakterAnzeige
         var reihe = new HBoxContainer();
         reihe.AddThemeConstantOverride("separation", 8);
         kasten.AddChild(reihe);
-        var siegel = GeheimnisSiegel(g.Art);
-        if (siegel is not null)
-        {
-            // Siegel der Art (64 px, mit Mipmaps) in Zeilenhöhe; ohne Datei bleibt nur der Text
-            var bild = new TextureRect
-            {
-                Texture = siegel, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-                CustomMinimumSize = new Vector2(36, 36), TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps, MouseFilter = MouseFilterEnum.Pass,
-                SizeFlagsVertical = SizeFlags.ShrinkBegin, TooltipText = art.Beschreibung,
-            };
-            reihe.AddChild(bild);
-        }
+        var siegel = GeheimnisSiegelBild(g.Art, 36, art.Beschreibung); // Siegel der Art in Zeilenhöhe; ohne Datei bleibt nur der Text
+        if (siegel is not null) reihe.AddChild(siegel);
         var zeile = Hauptmenue.Text(reihe, text, 15, g.Oeffentlich ? Grau : eigen ? Rot : Gold, umbruchBreite: Breite - 50 - (siegel is null ? 0 : 44));
         zeile.MouseFilter = MouseFilterEnum.Stop;
         var tipp = art.Beschreibung;

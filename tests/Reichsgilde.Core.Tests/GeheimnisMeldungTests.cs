@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json.Nodes;
+using Reichsgilde;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Geheimnisse;
@@ -358,6 +359,42 @@ static class GeheimnisMeldungTests
             var ohneListe = Mitschreiben(ohne.Wirtschaft!);
             JahrBeenden(ohne);
             Pruefe.Wahr(ohneListe.Count > 20 && ohneListe.All(m => m.GeheimnisArt is null), "ohne Geheimnisse keine Art");
+        }),
+
+        ("Geheimnis-Siegel: Meldungsordnung – eine Meldung über ein Geheimnis ohne andere Art ist „Geheimnis“ (eigen: Siegel, fremd: Verlauf, fremd und " +
+         "vertraulich: verworfen); Urteil, Spitzelbericht und Anzeige bleiben Gericht und Spitzel; ohne Art bleibt derselbe Satz „Sonstiges“", () =>
+        {
+            var o = Meldungsordnung.AusJson(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
+                "game", "daten", "meldungen.json")));
+            var geheim = o.Arten.Single(a => a.Geheimnis);
+            Pruefe.Gleich("Geheimnis", geheim.Id);
+            var satz = "Ein Geheimnis im Haus Brendel: Anna hütet nun „Ehebruch“. Erfährt es ein anderes Haus, kann es euch erpressen, anzeigen oder bloßstellen.";
+            Pruefe.Gleich("Geheimnis", o.Einordnen(new Meldung(Meldungsart.Sonstiges, satz) { GeheimnisArt = Geheimnisart.Ehebruch }).Id);
+            Pruefe.Gleich("Sonstiges", o.Einordnen(new Meldung(Meldungsart.Sonstiges, satz)).Id, "Gegenprobe ohne Art");
+            Pruefe.Gleich(Meldestufe.Siegel, Meldungsordnung.Stufe(geheim, Betroffenheit.Eigen, satz, null));
+            Pruefe.Gleich(Meldestufe.Verlauf, Meldungsordnung.Stufe(geheim, Betroffenheit.Fremd, satz, null));
+            Pruefe.Gleich("Gericht", o.Einordnen(new Meldung(Meldungsart.Sonstiges, "Gerichtstag 1402: Haus Brendel ist Mord SCHULDIG (Anzeige: Haus Eisenbart).")
+                { GeheimnisArt = Geheimnisart.Mord }).Id);
+            Pruefe.Gleich("Spitzel", o.Einordnen(new Meldung(Meldungsart.Sonstiges, "Der Spitzel von Haus Brendel berichtet über Haus Eisenbart: nichts Neues " +
+                "(insgesamt 0). Dazu ein Geheimnis – Anna Eisenbart: Ehebruch.") { GeheimnisArt = Geheimnisart.Ehebruch }).Id);
+            Pruefe.Gleich("Gericht", o.Einordnen(new Meldung(Meldungsart.Anklage, "Haus Brendel zeigt Haus Eisenbart an: Mord (Anna Eisenbart).")
+                { GeheimnisArt = Geheimnisart.Mord }).Id);
+
+            // Mit den Meldungen des Kerns: Das Opfer eines Erpresserbriefs bekommt den Brief (Diebstahl) und das Siegel „Geheimnis“, ein drittes Haus nichts davon
+            var w = NeueSimulation(Daten()).Wirtschaft!;
+            var (a, _) = Haus(w, "Haus Hand");
+            var (b, fb) = Haus(w, "Haus Fuss");
+            var (c, _) = Haus(w, "Haus Dritt");
+            var g = GeheimnisGeben(w, fb.Oberhaupt, Geheimnisart.Ehebruch, wisser: a);
+            var liste = Mitschreiben(w);
+            Ok(w, a, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Gulden, 500));
+            var nennt = Eine(liste, "nennt das Geheimnis");
+            var oeffentlich = Eine(liste, "erhält einen Erpresserbrief");
+            var opfer = o.Einstufen(w, b, nennt.Text, nennt);
+            Pruefe.Wahr(opfer.Art.Id == "Geheimnis" && opfer.Bezug == Betroffenheit.Eigen && !opfer.Verwerfen, $"Opfer: {opfer.Art.Id} {opfer.Bezug}");
+            Pruefe.Gleich(Meldestufe.Siegel, Meldungsordnung.Stufe(opfer.Art, opfer.Bezug, opfer.Text, null));
+            Pruefe.Gleich("Diebstahl", o.Einstufen(w, b, oeffentlich.Text, oeffentlich).Art.Id);
+            Pruefe.Wahr(o.Einstufen(w, c, nennt.Text, nennt).Verwerfen, "ein drittes Haus liest den vertraulichen Satz nicht");
         }),
 
         ("Geheimnis-Siegel: Spielstand – Art an Meldungen und Erpresserbrief bleibt (speichern, laden, gleich weiter); ohne Geheimnis-Meldung kein Feld", () =>
