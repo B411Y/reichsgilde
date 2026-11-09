@@ -13,7 +13,7 @@ static class PersonalNacharbeitTests
     static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
 
-    /// <summary>Die Daten ohne den Schalter (wie bis Datenversion 77).</summary>
+    /// <summary>Die Daten ohne den Schalter (wie bis Datenversion 78).</summary>
     static readonly Lazy<Wirtschaftsdaten> OhneSchalter = new(() =>
     {
         var knoten = JsonNode.Parse(Json.Value)!;
