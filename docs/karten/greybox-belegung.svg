@@ -511,6 +511,22 @@
 <circle cx="40.5" cy="116" r="0.9" fill="#A3262A"/>
 <polygon points="46.7,120.25 46.7,127.75 40.5,127.75 40.5,120.25" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="40.5" cy="124" r="0.9" fill="#A3262A"/>
+<polygon points="-31,9 -15,9 -15,23 -31,23" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="-8.5,-48.3 8.5,-48.3 8.5,-40.3 -8.5,-40.3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="-23" y1="16" x2="0" y2="-44.3" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="-23" y="13" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H1</text>
+<polygon points="14,6 30,6 30,20 14,20" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="8.5,48.3 -8.5,48.3 -8.5,40.3 8.5,40.3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="22" y1="13" x2="0" y2="44.3" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="22" y="10" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H2</text>
+<polygon points="14,-20 30,-20 30,-6 14,-6" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="-48.3,-0.5 -48.3,-17.5 -40.3,-17.5 -40.3,-0.5" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="22" y1="-13" x2="-44.3" y2="-9" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="22" y="-16" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H3</text>
+<polygon points="17,-36 33,-36 33,-22 17,-22" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="48.3,-24.75 48.3,-7.75 40.3,-7.75 40.3,-24.75" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="25" y1="-29" x2="44.3" y2="-16.25" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="25" y="-32" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H4</text>
 <polygon points="74,61 79,66 74,71 69,66" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="81" y="68" font-size="6" fill="#1F2326">Steinbruch</text>
 <polygon points="-4.5,-85 0.5,-80 -4.5,-75 -9.5,-80" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="2.5" y="-78" font-size="6" fill="#1F2326">Steinbruch</text>
 <polygon points="102,-17 107,-12 102,-7 97,-12" fill="#FFFFFF" stroke="#1F2326" opacity="0.8"/><text x="109" y="-10" font-size="6" fill="#1F2326">Mine</text>
