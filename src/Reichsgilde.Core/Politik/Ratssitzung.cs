@@ -194,10 +194,11 @@ public sealed class Ratssitzung
             foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>())
                 foreach (var (waehler, wahl, _) in ausgang?.Stimmen ?? Array.Empty<(Amt, Konto?, bool)>())
                     _w.Meinungen.StimmeGemerkt(waehler, bewerber, wahl == bewerber);
-            // Stress (Teil 3b): Wer sich beworben hat und verliert, ärgert sich.
+            // Stress (Teil 3b): Wer zur Wahl stand und verliert, ärgert sich – der Bewerber wie der abgewählte Amtsinhaber (eigener Text).
             if (ausgang is not null)
-                foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>().Where(h => h != ausgang.Gewinner).Distinct())
-                    _w.Familien.StressRat(bewerber, r => r.WahlVerloren, $"Wahl zum Amt {schritt.Amt!.Name} verloren");
+                foreach (var k in vorher.Kandidaten.Where(k => k.Haus is not null && k.Haus != ausgang.Gewinner).DistinctBy(k => k.Haus))
+                    _w.Familien.StressRat(k.Haus!, r => r.WahlVerloren,
+                        k.IstAmtsinhaber ? $"Amt {schritt.Amt!.Name} verloren" : $"Wahl zum Amt {schritt.Amt!.Name} verloren");
         }
         else
         {

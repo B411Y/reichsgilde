@@ -86,7 +86,11 @@ public sealed record Meldung(Meldungsart Art, string Text)
     /// <summary>Das Spieljahr der Meldung.</summary>
     public int Jahr => new Spielzeit(Minute).Jahr;
 
-    /// <summary>Die vorgegebene Wichtigkeit einer Art (eine Stelle darf sie senken, etwa beim abgewehrten Überfall).</summary>
+    /// <summary>
+    /// Die vorgegebene Wichtigkeit einer Art (eine Stelle darf sie senken, etwa beim abgewehrten Überfall). Achtung: Der Stress
+    /// (<see cref="Dynastie.Familienbuch.StressNachMeldung"/>) zählt Diebstahl, Feuer und Überfall nur ab <see cref="Meldungswichtigkeit.Hoch"/> –
+    /// eine vereitelte Tat muss deshalb „Normal“ melden.
+    /// </summary>
     public static Meldungswichtigkeit Vorgabe(Meldungsart art) => art switch
     {
         Meldungsart.TodOberhaupt or Meldungsart.Feuer or Meldungsart.Pest => Meldungswichtigkeit.Dringend,

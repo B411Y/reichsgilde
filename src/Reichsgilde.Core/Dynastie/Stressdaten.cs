@@ -98,7 +98,7 @@ public sealed class StressHausDaten
 /// <summary>Niederlagen im Rat (Abschnitt "stress.rat"), beim Oberhaupt. Ohne Angabe 0.</summary>
 public sealed class StressRatDaten
 {
-    /// <summary>Das Haus hat sich um ein Amt beworben und die Wahl verloren.</summary>
+    /// <summary>Das Haus stand zur Wahl und hat verloren: als Bewerber („Wahl zum Amt … verloren“) oder als abgewählter Amtsinhaber („Amt … verloren“).</summary>
     public double WahlVerloren { get; init; }
 
     /// <summary>Ein eigener Antrag (Statut, Steuer, Bau, Fest, Stadtglaube, Pflaster) wurde abgelehnt.</summary>

@@ -117,7 +117,7 @@ static class Stressmessung
     {
         if (text.StartsWith("Trauer um ", StringComparison.Ordinal) || text.StartsWith("Verschleppt: ", StringComparison.Ordinal))
             return string.Join(' ', text.Split(' ').Take(text.StartsWith("Trauer", StringComparison.Ordinal) ? 3 : 2));
-        foreach (var anfang in new[] { "Angeklagt", "Streit mit", "Erkrankt", "Abklingen", "Tod im Haus", "Bestohlen", "Brand oder Anschlag", "Überfallen", "Verlust in", "Preise verfallen", "Wahl zum Amt" })
+        foreach (var anfang in new[] { "Angeklagt", "Streit mit", "Erkrankt", "Abklingen", "Tod im Haus", "Bestohlen", "Brand oder Anschlag", "Überfallen", "Verlust in", "Preise verfallen", "Wahl zum Amt", "Amt " })
             if (text.StartsWith(anfang, StringComparison.Ordinal)) return anfang;
         return text;
     }
