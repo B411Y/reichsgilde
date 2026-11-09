@@ -169,6 +169,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Stress (ab Datenversion 77, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress.</summary>
     public Dynastie.StressDaten? Stress { get; init; }
 
+    /// <summary>Geheimnisse (ab Datenversion 78, Charaktersystem Teil 3c). Fehlt der Abschnitt, gibt es keine Geheimnisse.</summary>
+    public Geheimnisse.GeheimnisDaten? Geheimnisse { get; init; }
+
     /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>
     public Dynastie.MeinungDaten? Meinungen { get; init; }
 
@@ -555,6 +558,7 @@ public sealed class Wirtschaftsdaten
                 k.Einrichtung?.Pruefen(f, $"lebensweise.pfade.{pfad}.knoten.{kennung}.einrichtung", Waren);
         Stress?.Pruefen(f, Charakterzuege?.Zuege.Keys, Meinungen?.Aktivitaeten.Keys, Gesundheit?.Krankheiten.Keys, // fehlt ein Abschnitt, wirkt es nur nicht
             typeof(Befehl).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Befehl)) && !t.IsAbstract).Select(t => t.Name));
+        Geheimnisse?.Pruefen(f, Charakterzuege?.Zuege.Keys); // ohne Charakterzüge wirken die Zug-Faktoren nur nicht
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;

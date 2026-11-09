@@ -301,6 +301,7 @@ public sealed class Glaubenswesen
         konto.Familienkosten(Daten.Konvertieren.Gebuehr);
         foreach (var p in f.Lebende) p.Glaube = ziel;
         _konvertiertBis[konto] = Jahr + 1;
+        foreach (var p in _w.Familien.Hauptpersonen(f)) _w.Geheimnisse.Glaubenswechsel(p); // heimlich beim alten Glauben? (Ketzerei, Teil 3c)
         var wie = vorher.IstKirchlich() ? $"tritt zum {ziel.Glaube()} über" : $"lässt sich {ziel.Name()} taufen";
         _w.Melden($"Das Haus {f.Nachname} {wie}.");
         return Befehlsergebnis.Ok($"Das Haus {f.Nachname} {wie} ({Zahlenformat.Ganz(Daten.Konvertieren.Gebuehr)} {_w.Daten.Allgemein.Waehrung}). " +

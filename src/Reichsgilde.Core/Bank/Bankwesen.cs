@@ -397,7 +397,8 @@ public sealed class Bankwesen
 
     /// <summary>So viel bekäme <paramref name="nehmer"/> bei <paramref name="geber"/> höchstens.</summary>
     public double Hoechstkredit(Konto geber, Konto nehmer) =>
-        Math.Max(0, Math.Min(FreierKreditrahmen(geber), Daten.Kredit.KreditwuerdigAnteil * nehmer.Reinvermoegen));
+        Math.Max(0, Math.Min(FreierKreditrahmen(geber), Daten.Kredit.KreditwuerdigAnteil * nehmer.Reinvermoegen
+                                                        * _w.Geheimnisse.KreditFaktor(nehmer))); // Schulden bloßgestellt (Teil 3c)
 
     /// <summary>Warum <paramref name="nehmer"/> bei <paramref name="geber"/> nicht leihen kann (null = er kann).</summary>
     public string? KreditVerboten(Konto geber, Konto nehmer, double betrag, int jahre)
