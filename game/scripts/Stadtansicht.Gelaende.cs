@@ -564,7 +564,17 @@ public partial class Stadtansicht
     private List<Vector3> RasterDreiecke(Vector2[] vieleck, float ueber, float? flach = null)
     {
         var ecken = new List<Vector3>();
-        if (vieleck.Length < 3) return ecken;
+        foreach (var _ in RasterDreieckeSchritte(vieleck, ueber, flach, ecken)) { }
+        return ecken;
+    }
+
+    /// <summary>
+    /// Dasselbe wie <see cref="RasterDreiecke"/> in Häppchen (nach jeder Zeile von Zellen ein Schritt), die Dreiecke landen in <paramref name="ecken"/>: Die
+    /// Werkstatt verteilt so eine große Fläche (ein Wald oder eine Bauzone in Köln, 50–80 ms am Stück) nach einem Pinselstrich auf mehrere Bilder.
+    /// </summary>
+    private IEnumerable<int> RasterDreieckeSchritte(Vector2[] vieleck, float ueber, float? flach, List<Vector3> ecken)
+    {
+        if (vieleck.Length < 3) yield break;
         const float z = (float)Hoehenraster.Abstand;
         var rahmen = new Rect2(vieleck[0], Vector2.Zero);
         foreach (var p in vieleck) rahmen = rahmen.Expand(p);
@@ -585,6 +595,8 @@ public partial class Stadtansicht
 
         Vector3 Punkt(float x, float zz) => new(x, flach ?? BodenHoehe(x, zz) + ueber, zz); // flach: alle Ecken auf dieser Höhe (Wasserfläche)
         for (var j = j0; j <= j1; j++)
+        {
+            yield return j; // vor jeder Zeile von Zellen darf ein anderes Bild drankommen
             for (var i = i0; i <= i1; i++)
             {
                 var (x0, z0, x1, z1) = (i * z, j * z, (i + 1) * z, (j + 1) * z);
@@ -609,7 +621,7 @@ public partial class Stadtansicht
                         }
                     }
             }
-        return ecken;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
