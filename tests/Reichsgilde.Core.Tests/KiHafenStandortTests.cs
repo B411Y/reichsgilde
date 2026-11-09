@@ -182,7 +182,7 @@ static class KiHafenStandortTests
             var karren = b.Karren[0];
             Bis(sim, karren, KarrenZustand.ZumMarkt);
             Pruefe.Wahr(karren.ZielHafen, "der Karren der KI fährt zum Hafen");
-            var erwartet = ki.ErwarteteRundfahrt(Rund(markt), Rund(hafen));
+            var erwartet = ki.ErwarteteRundfahrt(Rund(markt), Rund(hafen), ki.Ausfuhranteil(Betriebsart.Giesserei));
 
             // Gegenprobe: dieselben belegten Orte, ohne Karren zum Hafen – die KI wählt nur nach dem Weg zum Markt (wie vorher)
             var (simO, wO, kiO, bO, ortO) = KiBaut(Datenpfad.OhneHafenziel(Json.Value));
@@ -193,6 +193,49 @@ static class KiHafenStandortTests
             var karrenO = bO.Karren[0];
             Bis(simO, karrenO, KarrenZustand.ZumMarkt);
             Pruefe.Wahr(!karrenO.ZielHafen, "ohne Schalter zum Marktplatz");
+        }),
+
+        ("KI-Hafen: Aufschlag am Hafen (Datenversion 79) – die Fahrt zum Hafen zählt um 1 + Aufschlag × Anteil der Ausfuhrware kürzer; Anteil nach dem " +
+         "einträglichsten Produkt (Tischlerei und Siederei ohne Ausfuhrware 0); ohne Aufschlag in den Daten wie vorher", () =>
+        {
+            string MitAufschlag(double a)
+            {
+                var knoten = System.Text.Json.Nodes.JsonNode.Parse(Json.Value)!;
+                knoten["schiffshandel"]!["hafenAufschlag"] = a;
+                return knoten.ToJsonString();
+            }
+            var (_, w5, ki5, gold5, _) = Stadt("koeln", MitAufschlag(0.05), Minute(1, 9));
+            var (_, w0, ki0, gold0, _) = Stadt("koeln", MitAufschlag(0), Minute(1, 9));
+            // Formel: mit 5 % und nur Ausfuhrware zählt die Fahrt zum Hafen wie eine um 5 % kürzere, ohne Ausfuhrware wie vorher
+            Pruefe.Ungefaehr(234 - 0.75 * (234 - 130 / 1.05), ki5.ErwarteteRundfahrt(234, 130, 1), 1e-9);
+            Pruefe.Ungefaehr(234 - 0.75 * (234 - 130 / 1.025), ki5.ErwarteteRundfahrt(234, 130, 0.5), 1e-9);
+            Pruefe.Ungefaehr(ki0.ErwarteteRundfahrt(234, 130), ki5.ErwarteteRundfahrt(234, 130, 0), 1e-12);
+            Pruefe.Ungefaehr(ki0.ErwarteteRundfahrt(234, 130), ki0.ErwarteteRundfahrt(234, 130, 1), 1e-12); // ohne Aufschlag zählt der Anteil nicht
+            Pruefe.Ungefaehr(80, ki5.ErwarteteRundfahrt(80, 80, 1), 1e-12); // Gleichstand: der Karren fährt zum Marktplatz, kein Aufschlag
+            Pruefe.Ungefaehr(80, ki5.ErwarteteRundfahrt(80, null, 1), 1e-12);
+
+            // Anteil: das einträglichste Produkt zu heutigen Preisen
+            foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Tischlerei, Betriebsart.Siederei, Betriebsart.Maurerei, Betriebsart.Schaenke })
+            {
+                var produkte = w5.Daten.Art(art).Produkte;
+                var best = produkte.First(p => Kalkulation.GewinnJeArbeitsminute(w5, p) == produkte.Max(q => Kalkulation.GewinnJeArbeitsminute(w5, q)));
+                Pruefe.Gleich(w5.Schiffahrt.Daten!.IstAusfuhrware(best) ? 1.0 : 0.0, ki5.Ausfuhranteil(art), $"{art}: {best}");
+            }
+            Pruefe.Gleich(0.0, ki5.Ausfuhranteil(Betriebsart.Tischlerei));
+            Pruefe.Gleich(0.0, ki5.Ausfuhranteil(Betriebsart.Siederei));
+
+            // Kandidaten in Köln: an den Orten am Hafen (mit Ausfuhrware) kürzer um genau den Aufschlag, die übrigen gleich
+            var k5 = ki5.Standortkandidaten(NachLuftlinie(w5, gold5), Hand, 1);
+            var k0 = ki0.Standortkandidaten(NachLuftlinie(w0, gold0), Hand, 1);
+            Pruefe.Gleich(k0.Count, k5.Count);
+            Pruefe.Wahr(k5.Any(x => x.ZumHafen), "Köln: Orte am Hafen");
+            for (var i = 0; i < k5.Count; i++)
+            {
+                Pruefe.Gleich((k0[i].Ort.X, k0[i].Ort.Z, k0[i].Ort.Drehung), (k5[i].Ort.X, k5[i].Ort.Z, k5[i].Ort.Drehung));
+                var erwartet = k5[i].ZumHafen ? Rund(k5[i].Markt) - 0.75 * (Rund(k5[i].Markt) - Rund(k5[i].Hafen!.Value) / 1.05) : Rund(k5[i].Markt);
+                Pruefe.Ungefaehr(erwartet, k5[i].Rundfahrt, 1e-9);
+                Pruefe.Wahr(k5[i].ZumHafen ? k5[i].Rundfahrt < k0[i].Rundfahrt : k5[i].Rundfahrt == k0[i].Rundfahrt, $"#{i}");
+            }
         }),
     };
 }

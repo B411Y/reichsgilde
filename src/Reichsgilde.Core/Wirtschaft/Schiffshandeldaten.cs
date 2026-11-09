@@ -118,6 +118,20 @@ public sealed class SchiffshandelDaten
     public bool KarrenZumHafen { get; init; }
 
     /// <summary>
+    /// Aufschlag auf den Erlös einer Ausfuhrware (<see cref="IstAusfuhrware"/>), die ein Karren direkt am Hafen verkauft, solange der Hafen offen
+    /// ist (Datenversion 79, Nutzerentscheidung „B“ vom 09.11.2026: der Hafen soll sich spürbar lohnen, aber nicht alle sollen dort bauen):
+    /// 0,03 = 3 % mehr. Die Händler am Hafen zahlen etwas mehr für Ware, die sie gleich weiter verschiffen; Preis und Vorrat des Markts bleiben
+    /// dieselben. Ohne Angabe 0 – so rechnen alte Spielstände mit ihren mitgespeicherten Daten weiter wie bisher. Höchstens 5 %.
+    /// </summary>
+    public double HafenAufschlag { get; init; }
+
+    /// <summary>
+    /// Ist diese Ware eine Ausfuhrware – kauft eine der fernen Städte sie (<see cref="FerneStadtDaten.Kauft"/>)? Dieselben Waren, nach denen der
+    /// Landhandel bei ruhendem Schiffshandel fragt (<see cref="LandhandelDaten.Nachfrage"/>).
+    /// </summary>
+    public bool IstAusfuhrware(string ware) => Staedte.Any(s => s.Kauft.ContainsKey(ware));
+
+    /// <summary>
     /// Landhandel, solange der Schiffshandel ruht (<see cref="Aktiv"/> false) und die Karte einen Hafen hat: Faktoren je Ware auf Grundversorgung
     /// („angebot“: Fuhrleute bringen, was sonst die Rückfracht brachte) und Nachfrage („nachfrage“: Händler kaufen für die fernen Städte, was
     /// sonst die Schiffe ausführten). Gleicht aus, was die Stadt ohne Schiffe verliert (Datenversion 70, Nutzer: Option A). Mit laufendem
@@ -202,6 +216,7 @@ public sealed class SchiffshandelDaten
         if (GeleitFaktor < 0) f.Add($"{p}.geleitFaktor darf nicht negativ sein.");
         if (VerkaufAnteil is < 0 or > 1) f.Add($"{p}.verkaufAnteil muss zwischen 0 und 1 liegen.");
         if (HafenAbstand <= 0) f.Add($"{p}.hafenAbstand muss größer als 0 sein.");
+        if (HafenAufschlag is < 0 or > 0.05) f.Add($"{p}.hafenAufschlag muss zwischen 0 und 0,05 liegen (höchstens 5 % mehr).");
         if (eskorten.Count > 0 && !eskorten.ContainsKey("Keine")) f.Add($"{p}: Das Geleit „Keine“ fehlt unter logistik.eskorten.");
         Landhandel.Pruefen(f, $"{p}.landhandel", waren);
     }

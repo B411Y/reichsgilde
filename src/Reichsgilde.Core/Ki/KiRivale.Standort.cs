@@ -19,8 +19,9 @@ namespace Reichsgilde.Core.Ki;
 /// demselben Markt. Die KI suchte aber nur unter den Bauorten nahe am Marktplatz und rechnete nur die Fahrt dorthin, also fuhr nie ein Karren der
 /// KI zum Hafen. Jetzt wertet sie jeden Bauort nach der Fahrt, die sein Karren im Mittel über die Jahre macht (<see cref="ErwarteteRundfahrt"/>):
 /// zum Hafen, solange der offen ist und näher liegt, im Winter zum Marktplatz. Dazu nimmt sie die <see cref="StandortKandidaten"/> nächsten
-/// Bauorte am Hafen hinzu – nur die, an denen der Hafen wirklich der nähere Handelsort ist (sonst brächte die Nähe zum Hafen nichts). Nach den Waren
-/// des Betriebs gewichtet sie nicht: Am Hafen gilt derselbe Markt, die kürzere Fahrt hilft jeder Ware gleich (Designfrage beim Teamleiter).
+/// Bauorte am Hafen hinzu – nur die, an denen der Hafen wirklich der nähere Handelsort ist (sonst brächte die Nähe zum Hafen nichts).
+/// Seit Datenversion 79 zahlen die Händler am offenen Hafen für Ausfuhrware einen kleinen Aufschlag (Nutzerentscheidung „B“); den rechnet die KI
+/// nach dem Anteil der Ausfuhrware am Absatz der neuen Werkstatt mit (<see cref="Ausfuhranteil"/>, <see cref="ErwarteteRundfahrt"/>).
 /// </summary>
 public sealed partial class KiRivale
 {
@@ -63,9 +64,35 @@ public sealed partial class KiRivale
     /// (<see cref="HafenOffenAnteil"/>), sonst zum Marktplatz – wie der Kern beim Aufbruch wählt (<see cref="Stadtwirtschaft.FaehrtZumHafen"/>,
     /// Gleichstand: Marktplatz). Die Minuten sind die der Jahreszeit, in der die KI entscheidet (Schlamm im Frühling, im strengen Winter die
     /// Fähre im Eis); für die anderen Jahreszeiten nimmt sie dieselben – eine Abfrage je Jahreszeit hat der Kern nicht (Befund der Prüfung, Offen).
+    ///
+    /// Aufschlag am Hafen (Datenversion 79, <see cref="SchiffshandelDaten.HafenAufschlag"/>): Verkauft der Karren am offenen Hafen, bringt der
+    /// <paramref name="ausfuhranteil"/> seiner Ladung (Ausfuhrwaren) den Aufschlag mehr. Wie viel das gegen Minuten wiegt, rechnet die KI so, wie
+    /// sie auch Karren vergleicht: Eine Werkstatt, deren Karren nicht nachkommen, verkauft je Fahrt eine Ladung; bringt jede Ladung am Hafen
+    /// (1 + Aufschlag × Anteil) mal so viel, zählt die Fahrt dorthin wie eine um diesen Faktor kürzere. Bei 3 % und nur Ausfuhrware wiegt der
+    /// Hafen also wie eine um 3 % kürzere Fahrt dorthin. Wohin der Karren fährt, entscheidet der Kern weiter nur nach der Zeit.
     /// </summary>
-    internal double ErwarteteRundfahrt(int markt, int? hafen) =>
-        hafen is { } h && h < markt ? markt - HafenOffenAnteil * (markt - h) : markt;
+    internal double ErwarteteRundfahrt(int markt, int? hafen, double ausfuhranteil = 0) =>
+        hafen is { } h && h < markt ? markt - HafenOffenAnteil * (markt - h / Hafenfaktor(ausfuhranteil)) : markt;
+
+    /// <summary>1 + Aufschlag am Hafen × Anteil der Ausfuhrware am Absatz (1 ohne Aufschlag in den Daten).</summary>
+    private double Hafenfaktor(double ausfuhranteil) => 1 + (_w.Schiffahrt.Daten?.HafenAufschlag ?? 0) * Math.Clamp(ausfuhranteil, 0, 1);
+
+    /// <summary>
+    /// Welcher Anteil des Absatzes einer neuen Werkstatt dieser Art Ausfuhrware wäre (<see cref="SchiffshandelDaten.IstAusfuhrware"/>): Die KI
+    /// rechnet wie beim erwarteten Gewinn (<see cref="Kalkulation.ErwarteterJahresgewinn"/>) mit dem einträglichsten Produkt zu heutigen Preisen
+    /// (bei Gleichstand das erste der Liste) – 1, wenn es eine Ausfuhrware ist, sonst 0. Ohne Schiffshandel-Daten 0.
+    /// </summary>
+    internal double Ausfuhranteil(Betriebsart art)
+    {
+        if (_w.Schiffahrt.Daten is not { } daten) return 0;
+        var d = _w.Daten.Art(art);
+        if (!d.IstWerkstatt || d.OhneProduktion || d.Produkte.Count == 0) return 0;
+        string? best = null;
+        var bestWert = double.MinValue;
+        foreach (var ware in d.Produkte) // feste Reihenfolge der Daten; nur ein echtes Mehr verdrängt das frühere
+            if (Kalkulation.GewinnJeArbeitsminute(_w, ware) is var wert && wert > bestWert) (best, bestWert) = (ware, wert);
+        return best is not null && daten.IstAusfuhrware(best) ? 1 : 0;
+    }
 
     /// <summary>Ein geprüfter Bauort: Rang in der Liste der Kandidaten, Fahrzeit hin und zurück zum Markt und zum Hafen (null: kein Weg dorthin).</summary>
     internal readonly record struct Standortwahl(BauBefehl Ort, int Rang, (int Hin, int Zurueck) Markt, (int Hin, int Zurueck)? Hafen, double Rundfahrt)
@@ -79,7 +106,7 @@ public sealed partial class KiRivale
     /// (Luftlinie zum nächsten Marktplatz), dahinter – nur wenn Karren zum Hafen fahren – die <see cref="StandortKandidaten"/> nächsten nach Luftlinie
     /// zum nächsten Hafen, die noch nicht dabei sind und an denen der Hafen der nähere Handelsort ist. Ohne Fahrzeit nach Weglänge leer.
     /// </summary>
-    internal List<Standortwahl> Standortkandidaten(IReadOnlyList<BauBefehl> nachLuftlinie, string karrenTyp)
+    internal List<Standortwahl> Standortkandidaten(IReadOnlyList<BauBefehl> nachLuftlinie, string karrenTyp, double ausfuhranteil = 0)
     {
         var liste = new List<Standortwahl>();
         void Pruefen(BauBefehl o, bool nurZumHafen)
@@ -88,7 +115,8 @@ public sealed partial class KiRivale
             var hafen = FahrzeitZumHafenAmBauort(wb, karrenTyp);
             if (nurZumHafen && hafen is null) return; // (zuerst der Hafen: ohne Weg dorthin spart das die Suche zum Markt)
             if (FahrzeitAmBauort(wb, karrenTyp) is not { } markt) return;
-            var wahl = new Standortwahl(o, liste.Count, markt, hafen, ErwarteteRundfahrt(markt.Hin + markt.Zurueck, hafen is { } h ? h.Hin + h.Zurueck : null));
+            var wahl = new Standortwahl(o, liste.Count, markt, hafen,
+                ErwarteteRundfahrt(markt.Hin + markt.Zurueck, hafen is { } h ? h.Hin + h.Zurueck : null, ausfuhranteil));
             if (!nurZumHafen || wahl.ZumHafen) liste.Add(wahl);
         }
         var amMarkt = nachLuftlinie.Take(StandortKandidaten).ToList();
@@ -112,7 +140,7 @@ public sealed partial class KiRivale
         var erster = nachLuftlinie.FirstOrDefault();
         var typ = _w.Daten.Art(art).Startkarren;
         if (erster is not WerkstattBauen w0 || typ == "" || FahrzeitAmBauort(w0, typ) is null) return (erster, null);
-        var best = Standortkandidaten(nachLuftlinie, typ)
+        var best = Standortkandidaten(nachLuftlinie, typ, Ausfuhranteil(art))
             .OrderBy(x => x.Rundfahrt)
             .ThenBy(x => x.Rang)
             .First();

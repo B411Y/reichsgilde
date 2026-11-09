@@ -78,6 +78,15 @@ public sealed class Schiffahrt
     /// </summary>
     public bool KarrenZumHafen => Daten is { KarrenZumHafen: true } && _w.Karte is not null && HatHafen;
 
+    /// <summary>
+    /// Mit diesem Faktor zählt der Erlös einer Ware, die ein Karren jetzt direkt am Hafen verkauft (Datenversion 79): 1 + <see cref="SchiffshandelDaten.HafenAufschlag"/>
+    /// für eine Ausfuhrware (<see cref="SchiffshandelDaten.IstAusfuhrware"/>), solange der Hafen offen ist (<see cref="HafenOffen"/>; ein Karren, der
+    /// den Hafen erst nach dem Wintereinbruch erreicht, bekommt ihn nicht); sonst 1. Ohne Hafen, ohne Schalter <c>karrenZumHafen</c> oder ohne
+    /// Aufschlag in den Daten immer 1.
+    /// </summary>
+    public double HafenVerkaufsFaktor(string ware) =>
+        KarrenZumHafen && Daten!.HafenAufschlag > 0 && HafenOffen && Daten.IstAusfuhrware(ware) ? 1 + Daten.HafenAufschlag : 1;
+
     private List<Kartengebaeude>? _hafengebaeude;
 
     /// <summary>
