@@ -42,6 +42,13 @@ static class PersonalNacharbeitTests
         w.Wache.Jahresende();
     }
 
+    /// <summary>Setzt das Diebesbuch dieses Jahres eines Hauses (Fänge) – zum Jahresende wird es das Vorjahr.</summary>
+    static void Faenge(Stadtwirtschaft w, Konto k, int faenge)
+    {
+        var feld = typeof(Reichsgilde.Core.Gauner.Diebeswesen).GetField("_diesesJahr", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        ((Dictionary<Konto, Reichsgilde.Core.Gauner.Diebesbuch>)feld.GetValue(w.Diebe)!)[k] = new Reichsgilde.Core.Gauner.Diebesbuch(0, faenge);
+    }
+
     static EinrichtungWirkung Stueck(Stadtwirtschaft w, string beruf, string kennung) => w.Daten.Werkstatt!.Stueck(beruf, kennung)!.Wirkung;
 
     static EinrichtungWirkung Eigenschaft(Stadtwirtschaft w, string kennung) =>
@@ -54,12 +61,12 @@ static class PersonalNacharbeitTests
         return b.Arbeitsminuten / 60.0 * (1 - DetMathe.Pow(1 - chance, leute));
     }
 
-    /// <summary>Buße je Spur: Buße der Tat (Beute einer Stunde) × Spitzelchance – wie das Bestechungsrisiko der KI.</summary>
+    /// <summary>Buße je Spur: Buße der Tat (Beute einer Stunde) × Spitzelchance – wie das Bestechungsrisiko der KI (ohne die Spuren des Hauses).</summary>
     static double BusseJeSpur(Stadtwirtschaft w, Betrieb b)
     {
         var leute = b.Arbeiter.Sum(a => w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * b.TempoBonus;
         var j = w.Justiz.Daten;
-        return Math.Max(j.Mindestbusse, j.BusseFaktor * 60 * leute * w.Diebe.WertJeMinute(b.Stufe)) * j.SpitzelChance * w.Diebe.SpurenFaktor(b.Konto);
+        return Math.Max(j.Mindestbusse, j.BusseFaktor * 60 * leute * w.Diebe.WertJeMinute(b.Stufe)) * j.SpitzelChance;
     }
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -90,10 +97,15 @@ static class PersonalNacharbeitTests
             }
         }),
 
-        ("Jede Wirkung: Lederhandschuhe und Verschwiegen – ein Viertel der erwarteten Buße der Fänge, nur im Versteck (dem besten Diebesbetrieb)", () =>
+        ("Jede Wirkung: Lederhandschuhe und Verschwiegen – nur wo jemand nach Spuren sucht (fremde Wache, fremde Diebe) oder nach eigenen Einbrüchen; nur im Versteck", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (k, b) = Haus(w, "Haus Elster", Betriebsart.Schmugglerloch, 4, "Taschendieb");
+            // Allein in der Stadt: Den Beweis eines Fangs bekommt, wer ihn fasst – Handschuhe ändern daran nichts
+            foreach (var wirkung in new[] { Stueck(w, "Dieb", "Handschuhe"), Eigenschaft(w, "Verschwiegen") })
+                Pruefe.Gleich(0.0, w.Werkstaetten.MehrgewinnDurch(b, wirkung), "niemand sucht");
+            // Eine fremde Wache macht Razzien: ein Viertel der erwarteten Buße der Fänge
+            Haus(w, "Haus Wacker", Betriebsart.Wachhaus, 4, "Rekrut");
             var erwartet = Faenge(w, b, w.Diebe.Fangchance(b)) * BusseJeSpur(w, b) * 0.25;
             foreach (var wirkung in new[] { Stueck(w, "Dieb", "Handschuhe"), Eigenschaft(w, "Verschwiegen") })
             {
@@ -101,13 +113,27 @@ static class PersonalNacharbeitTests
                 Pruefe.Wahr(ist > 0 && Math.Abs(ist - erwartet) < 1e-9, $"erwartet {erwartet}, war {ist}");
             }
             Pruefe.Wahr(w.Werkstaetten.Amortisationsjahre(b, "Handschuhe") is < 4, "Die Handschuhe (80) machen sich in unter 4 Jahren bezahlt");
-            // ein zweiter, schlechterer Diebesbetrieb ist nicht das Versteck – Handschuhe dort wirken nicht
+            // Die Verkleidungstruhe rechnet die Buße eines Fangs ohne die Handschuhe (der Fänger hat den Beweis)
+            var truhe = w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Verkleidung");
+            Pruefe.Wahr(w.Ausfuehren(k, new EinrichtungKaufen(b.Name, "Handschuhe")).Erfolg, "Handschuhe gekauft");
+            Pruefe.Ungefaehr(truhe, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Verkleidung"), 1e-9);
+            Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Verschwiegen")) - erwartet * 0.75) < 1e-9, "Verschwiegen nach den Handschuhen");
+            // ein zweiter, schlechterer Diebesbetrieb ist nicht das Versteck – Spuren dort wirken nicht
             var zweiter = w.BetriebEroeffnen("Schmugglerloch Zwei", Betriebsart.Schmugglerloch, k, startkarren: "");
             w.Einstellen(zweiter, "Taschendieb", 1);
             var versteck = w.Diebe.Versteck(k)!;
             var anderer = versteck == b ? zweiter : b;
-            Pruefe.Gleich(0.0, w.Werkstaetten.MehrgewinnDurch(anderer, Stueck(w, "Dieb", "Handschuhe")), "nicht das Versteck");
-            Pruefe.Wahr(w.Werkstaetten.MehrgewinnDurch(versteck, Stueck(w, "Dieb", "Handschuhe")) > 0, "das Versteck");
+            Pruefe.Gleich(0.0, w.Werkstaetten.MehrgewinnDurch(anderer, Eigenschaft(w, "Verschwiegen")), "nicht das Versteck");
+            Pruefe.Wahr(w.Werkstaetten.MehrgewinnDurch(versteck, Eigenschaft(w, "Verschwiegen")) > 0, "das Versteck");
+            // Ohne fremde Wache, aber nach eigenen Einbrüchen: die Buße für das Diebesgut (Zeugen der eigenen Leute)
+            var w2 = NeueSimulation().Wirtschaft!;
+            var (k2, b2) = Haus(w2, "Haus Elster", Betriebsart.Schmugglerloch, 4, "Taschendieb");
+            b2.UmsatzBuchen(1_000);
+            Abschliessen(w2);
+            var gut = 1_000 * (1 - w2.SteuersatzMarkt(k2));
+            var j = w2.Justiz.Daten;
+            Pruefe.Wahr(Math.Abs(w2.Werkstaetten.MehrgewinnDurch(b2, Eigenschaft(w2, "Verschwiegen")) - Math.Max(j.Mindestbusse, j.BusseFaktor * gut) * j.SpitzelChance * 0.25) < 1e-9,
+                "Verschwiegen nach eigenen Einbrüchen");
         }),
 
         ("Jede Wirkung: Dietriche, Einbrecher und Hehlerfreund – nach dem Diebesgut des Vorjahres (Umsatz ohne Taschendiebe); ohne Diebesgut 0", () =>
@@ -120,29 +146,47 @@ static class PersonalNacharbeitTests
             b.UmsatzBuchen(1_000); // eingebrochene Ware am Markt verkauft
             Abschliessen(w);
             var g = w.Gauner.Daten.Diebstahl.Chance + w.Diebe.Daten.Einbruch.ChanceBonus;
-            var dietriche = 1_000 * (Math.Min(0.95, g + 0.1) / g - 1);
+            var gut = 1_000 * (1 - w.SteuersatzMarkt(k)); // nach der Umsatzsteuer
+            Pruefe.Wahr(gut is > 900 and < 1_000, $"Steuer {gut}");
+            var dietriche = gut * (Math.Min(0.95, g + 0.1) / g - 1);
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1") - dietriche) < 1e-9, $"Dietriche {dietriche}");
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Einbrecher")) - dietriche) < 1e-9, "Einbrecher wie die Dietriche");
-            Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Hehlerfreund")) - 100) < 1e-9, "Hehlerfreund: 10 % von 1.000");
+            Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Hehlerfreund")) - gut * 0.1) < 1e-9, "Hehlerfreund: 10 % des Diebesguts");
             // Mit den Dietrichen wirken die Meisterdietriche weniger (die Chance ist schon höher)
             w.Ausfuehren(k, new EinrichtungKaufen(b.Name, "Werkzeug1"));
-            var meister = 1_000 * (Math.Min(0.95, g + 0.2) / (g + 0.1) - 1);
+            var meister = gut * (Math.Min(0.95, g + 0.2) / (g + 0.1) - 1);
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Stueck(w, "Dieb", "Werkzeug2")) - meister) < 1e-9, $"Meisterdietriche {meister}");
         }),
 
-        ("Jede Wirkung: Hellebarden und Spürnase – Kopfgeld des Vorjahres × (Razzia-Chance mit ÷ ohne − 1); ohne Kopfgeld 0", () =>
+        ("Jede Wirkung: Hellebarden und Spürnase – Kopfgeld aus Urteilen im Vorjahr × (Razzia-Chance mit ÷ ohne − 1); nur nach Razzien, ohne Taschendieb-Kopfgeld", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (k, b) = Haus(w, "Haus Wacker", Betriebsart.Wachhaus, 4, "Rekrut");
+            var (kd, _) = Haus(w, "Haus Elster", Betriebsart.Schmugglerloch, 4, "Taschendieb");
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), "ohne Kopfgeld");
-            w.Wache.KopfgeldNachUrteil(k, 1_000); // ein Viertel der Buße
+            // Kopfgeld aus einem Urteil, aber keine Razzia: nichts (die Beweise kamen anders)
+            w.Wache.KopfgeldNachUrteil(k, 1_000);
             Abschliessen(w);
-            var kopfgeld = w.Wache.Vorjahr(k)!.Kopfgeld;
-            Pruefe.Wahr(kopfgeld > 0, "Kopfgeld im Vorjahr");
+            Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), "ohne Razzia");
+            // mit einer Razzia und zwei fremden Fängen (Kopfgeld 2 × 50, geschätzt und abgezogen)
+            Pruefe.Wahr(w.Wache.Razzia(k, kd).Erfolg, "Razzia");
+            w.Wache.KopfgeldNachUrteil(k, 1_000);
+            Faenge(w, kd, 2);
+            Abschliessen(w);
+            var buch = w.Wache.Vorjahr(k)!;
+            Pruefe.Wahr(buch.Razzien == 1 && buch.Kopfgeld > 2 * w.Wache.Daten.Kopfgeld.Taschendieb, $"Razzien {buch.Razzien}, Kopfgeld {buch.Kopfgeld}");
+            var ausUrteilen = buch.Kopfgeld - 2 * w.Wache.Daten.Kopfgeld.Taschendieb;
             var c = w.Wache.Razziachance(k);
-            var erwartet = kopfgeld * (Math.Min(0.95, c + 0.1) / c - 1);
+            var erwartet = ausUrteilen * (Math.Min(0.95, c + 0.1) / c - 1);
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1") - erwartet) < 1e-9, $"Hellebarden {erwartet}");
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Spuernase")) - erwartet) < 1e-9, "Spürnase wie die Hellebarden");
+            // Eine Razzia und so viel Kopfgeld, wie die fremden Fänge erwarten lassen – also keins aus Urteilen: nichts
+            Pruefe.Wahr(w.Wache.Razzia(k, kd).Erfolg, "zweite Razzia");
+            w.Wache.KopfgeldNachUrteil(k, 4 * w.Wache.Daten.Kopfgeld.Taschendieb / w.Wache.Daten.Kopfgeld.AnteilBusse);
+            Faenge(w, kd, 4);
+            Abschliessen(w);
+            Pruefe.Ungefaehr(4 * w.Wache.Daten.Kopfgeld.Taschendieb, w.Wache.Vorjahr(k)!.Kopfgeld, 1e-9);
+            Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), "nur so viel wie das Taschendieb-Kopfgeld");
         }),
 
         ("Jede Wirkung: Wachhunde und Streifengänger – eigener Schaden in der Stadt × mehr Schutz ÷ (1 − Schutz) und Kopfgeld für fremde Taschendiebe", () =>
@@ -160,6 +204,14 @@ static class PersonalNacharbeitTests
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Hunde") - erwartet) < 1e-9, $"Wachhunde {erwartet}");
             var streife = 1_000 * (w.Wache.PatrouilleschutzMit(b, 1.15) - vorher) / (1 - vorher);
             Pruefe.Wahr(Math.Abs(w.Werkstaetten.MehrgewinnDurch(b, Eigenschaft(w, "Streifengaenger")) - streife) < 1e-9, "Streifengänger");
+            // Fänge eines fremden Diebshauses im Vorjahr: dazu das Kopfgeld, das die Streife mehr bringt
+            var (kd, _) = Haus(w, "Haus Elster", Betriebsart.Schmugglerloch, 4, "Taschendieb");
+            giesserei.RaubBuchen(1_000);
+            Faenge(w, kd, 3);
+            Abschliessen(w);
+            var fang = w.Wache.Daten.Patrouille.TaschendiebFang;
+            var kopfgeld = 3 * w.Wache.Daten.Kopfgeld.Taschendieb * fang * mehr / (1 + fang * vorher);
+            Pruefe.Wahr(kopfgeld > 0 && Math.Abs(w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Hunde") - erwartet - kopfgeld) < 1e-9, $"Wachhunde mit Kopfgeld {kopfgeld}");
             // Am Deckel bringt mehr Streife nichts mehr
             w.Einstellen(w.BetriebEroeffnen("Garnison Groß", Betriebsart.Wachhaus, w.KontoEroeffnen("Haus Groß", startvermoegen: 1_000), startkarren: ""), "Rekrut", 4);
             for (var i = 0; i < 20 && w.Wache.Patrouilleschutz < w.Wache.Daten.Patrouille.Hoechstens; i++)

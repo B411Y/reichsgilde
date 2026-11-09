@@ -124,7 +124,7 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Was eine Eigenschaft des Vorarbeiters diesem Betrieb im Jahr einbringt (<see cref="EigenschaftWaehlenNachGewinn"/>). Grundsätzlich die Rechnung
-    /// des Kerns (<see cref="Personalwesen.MehrgewinnJeJahr"/>), die mehr Lager nicht bewertet. Ein Umlandbetrieb, der im Vorjahr ab
+    /// des Kerns (<see cref="Personalwesen.MehrgewinnJeJahr"/>; mehr Lager bewertet sie erst seit Datenversion 78, siehe unten). Ein Umlandbetrieb, der im Vorjahr ab
     /// <see cref="KiProfil.StillstandFuerKarrenkauf"/> stillstand, weil die Karren nicht nachkommen (Fahrzeit nach Weglänge), bewertet sie wie
     /// beim Karrenkauf:
     ///   • mehr Lager je Ware: jeder Karren lädt mehr (Durchfluss mit dem größeren Lager), der Stillstand fällt auf
