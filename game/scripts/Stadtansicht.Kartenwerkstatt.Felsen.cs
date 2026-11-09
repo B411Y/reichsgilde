@@ -10,11 +10,12 @@ namespace Reichsgilde;
 /// <list type="bullet">
 /// <item><b>Werkzeug</b> <see cref="Werkstattwerkzeug.Fels"/> in drei Arten (<see cref="FelsArt"/>): <b>Streuen</b> mit gedrückter Maus (jede Mausbewegung
 /// gibt der Kern weiter, die Stücke erscheinen sofort, Loslassen macht den Strich zu einem Schritt, Esc nimmt ihn zurück), <b>Stempeln</b> mit einem
-/// Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt), <b>Radieren</b> wie Streuen.</item>
+/// Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt; danach sind die neuen Stücke gewählt und der Gizmo
+/// steht an ihnen – ein Klick auf einen Griff zieht, sonst stempelt er weiter, Fels P2), <b>Radieren</b> wie Streuen.</item>
 /// <item><b>Hang mitformen</b> (R5, Häkchen in der Tafel, Standard aus): Der Stempel hebt das Gelände hinter den Wänden an – ein Schritt mit den Stücken.</item>
 /// <item><b>Vorschau</b>: Kreis des Pinsels; beim Stempeln dazu die Stücke als helle Geister (höchstens acht Netze, je Bild nur neu gesetzt).</item>
 /// <item><b>Anzeige</b> der Stücke wie im Spiel (Stadtansicht.Felsen.cs, F5): MultiMeshes je Zelle und Form, Feinheit nach dem Zoom; dort auch Wählen,
-/// Ziehen, Gizmo (W/E/R, Stadtansicht.Felsgizmo.cs) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
+/// Ziehen, Gizmo (Pfeiltasten, Stadtansicht.Felsgizmo.cs), Rahmen und Kopieren (Stadtansicht.Felsauswahl.cs) und Löschen mit dem Werkzeug „Auswahl“.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -94,7 +95,9 @@ public partial class Stadtansicht
     /// <summary>Linke Maustaste mit dem Felswerkzeug: Stempeln setzt gleich, Streuen und Radieren beginnen einen Strich.</summary>
     private void FelsDruecken(Vector2 maus)
     {
-        if (_entwurf is null || BodenpunktBei(maus) is not { } boden) return;
+        if (_entwurf is null) return;
+        if (FelsModus == FelsArt.Stempeln && FelsGizmoDruecken(maus)) return; // P2: der Gizmo an den gerade gestempelten Stücken geht vor (Stadtansicht.Felsgizmo.cs)
+        if (BodenpunktBei(maus) is not { } boden) return;
         if (FelsModus == FelsArt.Stempeln)
         {
             FelsStempelnBei(new Kartenort(boden.X, boden.Y));
@@ -109,7 +112,11 @@ public partial class Stadtansicht
     {
         if (_entwurf is null) return;
         var neue = Befehl(() => _entwurf.FelsStempeln(FelsPinsel, ort, startwert: FelsStempelStartwert));
-        if (neue is { Count: > 0 }) FelsStempelStartwert++;
+        if (neue is { Count: > 0 })
+        {
+            FelsStempelStartwert++;
+            FelsMehrfachWaehlen(neue, dazu: false); // P2: gleich gewählt, der Gizmo steht an ihnen (Stadtansicht.Felsauswahl.cs)
+        }
         else WerkstattMeldung?.Invoke("Hier setzt der Stempel nichts – der Filter passt nicht oder der Punkt liegt außerhalb der Karte.", true);
     }
 
@@ -166,6 +173,11 @@ public partial class Stadtansicht
         var farbe = FelsModus == FelsArt.Radieren ? new Color(0.95f, 0.35f, 0.3f) : FelsFarbe(FelsGestein ?? _entwurf.Grundgestein.Wirksam).Lightened(0.2f);
         if (FelsModus == FelsArt.Stempeln)
         {
+            if (_gizmoZug is not null || _gizmoHover is not null)
+            {
+                FelsGeisterAus(); // über einem Griff des Gizmos (oder beim Ziehen daran) stempelt ein Klick nicht – also keine Vorschau
+                return;
+            }
             var lagen = _entwurf.FelsStempelVorschau(FelsPinsel, new Kartenort(m.X, m.Y), startwert: FelsStempelStartwert);
             FelsGeisterSetzen(lagen);
             foreach (var l in lagen)
@@ -226,12 +238,14 @@ public partial class Stadtansicht
     public bool WerkstattFelsStreuen(Felspinsel pinsel, IReadOnlyList<Kartenort> strich) =>
         _entwurf is not null && Befehl(() => _entwurf.FelsStreuen(pinsel, strich));
 
-    /// <summary>Für Startoptionen: ein Stempel mit dem Startwert der Vorschau.</summary>
+    /// <summary>Für Startoptionen: ein Stempel mit dem Startwert der Vorschau; die neuen Stücke sind danach gewählt.</summary>
     public int WerkstattFelsStempeln(Felspinsel pinsel, Kartenort ort, double? drehung)
     {
         if (_entwurf is null) return 0;
-        var n = Befehl(() => _entwurf.FelsStempeln(pinsel, ort, drehung, FelsStempelStartwert))?.Count ?? 0;
-        if (n > 0) FelsStempelStartwert++;
-        return n;
+        var neue = Befehl(() => _entwurf.FelsStempeln(pinsel, ort, drehung, FelsStempelStartwert));
+        if (neue is not { Count: > 0 }) return 0;
+        FelsStempelStartwert++;
+        FelsMehrfachWaehlen(neue, dazu: false); // wie der Klick (P2): die neuen Stücke sind gewählt
+        return neue.Count;
     }
 }

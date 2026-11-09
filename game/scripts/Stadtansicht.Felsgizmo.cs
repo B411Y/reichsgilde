@@ -6,14 +6,18 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Der Gizmo für Felsstücke in der Kartenwerkstatt (Fels R3, wie in Unreal) – ein Teil der <c>partial class Stadtansicht</c>. Ist ein Felsstück gewählt
-/// (Werkzeug „Auswahl“), steht ein Gizmo an seinem Aufsetzpunkt (bei mehreren gewählten Stücken an ihrer gemeinsamen Mitte):
+/// (Werkzeug „Auswahl“, oder gleich nach einem Stempel im Felswerkzeug, P2), steht ein Gizmo an seinem Aufsetzpunkt (bei mehreren gewählten Stücken an
+/// ihrer gemeinsamen Mitte):
 /// <list type="bullet">
-/// <item><b>W Verschieben</b>: drei Pfeile (eine Achse) und drei Quadrate (eine Ebene); <b>E Drehen</b>: drei Ringe; <b>R Skalieren</b>: drei Würfel an
-/// Linien (eine Achse) und ein Würfel in der Mitte (gleichmäßig). <b>Q</b> schaltet zwischen Welt- und Stückachsen um (beim Skalieren gelten immer die
-/// Achsen des Stücks, bei mehreren Stücken die der Welt), <b>B</b> setzt die Stücke auf den Boden, <b>Umschalt+B</b> richtet sie zugleich am Hang aus.
-/// Mit gehaltener <b>Strg</b>-Taste (oder dem Häkchen in der Tafel) rastet der Zug ein: 0,25 m, 15°, 0,1.</item>
-/// <item><b>Mehrere Stücke</b>: Umschalt+Klick fügt ein Stück zur Auswahl hinzu bzw. nimmt es heraus; der Gizmo wirkt um die gemeinsame Mitte, Entf löscht
-/// alle gewählten.</item>
+/// <item><b>Verschieben</b>: drei Pfeile (eine Achse) und drei Quadrate (eine Ebene); <b>Drehen</b>: drei Ringe; <b>Skalieren</b>: drei Würfel an
+/// Linien (eine Achse) und ein Würfel in der Mitte (gleichmäßig). Die <b>Pfeiltasten</b> gehören dem Gizmo (Entscheidung des Nutzers, P2: WASD bleibt
+/// immer bei der Kamera): links Verschieben, oben Drehen, rechts Skalieren – in der Reihenfolge der Knöpfe der Tafel –, unten schaltet zwischen Welt-
+/// und Stückachsen um (beim Skalieren gelten immer die Achsen des Stücks, bei mehreren Stücken die der Welt). <b>B</b> oder <b>End</b> setzt die Stücke
+/// auf den Boden, mit Umschalt richtet sie sie zugleich am Hang aus. Mit gehaltener <b>Strg</b>-Taste (oder dem Häkchen in der Tafel) rastet der Zug
+/// ein: 0,25 m, 15°, 0,1.</item>
+/// <item><b>Mehrere Stücke</b>: Umschalt+Klick fügt ein Stück zur Auswahl hinzu bzw. nimmt es heraus; Ziehen ins Leere zieht einen Rahmen (Umschalt:
+/// dazu), Strg+A wählt alle, Strg+I kehrt die Auswahl um (P2, Stadtansicht.Felsauswahl.cs). Der Gizmo wirkt um die gemeinsame Mitte, Entf löscht alle
+/// gewählten, <b>Strg+D</b> kopiert sie (die Kopien sind dann gewählt).</item>
 /// <item><b>Ein Befehl erst beim Loslassen</b>: Beim Ziehen rechnet der Kern nur die Vorschau (<see cref="Kartenentwurf.FelsVorschau"/>) und die
 /// Instanzen der Stücke wandern mit; Loslassen gibt <see cref="Kartenentwurf.FelsTransformieren(IEnumerable{EntwurfFels}, Felsaenderung)"/> – ein
 /// Rückgängig-Schritt je Zug. Esc nimmt den Zug zurück.</item>
@@ -31,10 +35,10 @@ public partial class Stadtansicht
         Skalieren,
     }
 
-    /// <summary>Der gewählte Modus des Gizmos (W, E, R).</summary>
+    /// <summary>Der gewählte Modus des Gizmos (Pfeiltasten links, oben, rechts).</summary>
     public FelsGizmoArt FelsGizmoModus { get; private set; } = FelsGizmoArt.Verschieben;
 
-    /// <summary>Welt- oder Stückachsen (Q)?</summary>
+    /// <summary>Welt- oder Stückachsen (Pfeil unten)?</summary>
     public bool FelsGizmoWelt { get; private set; } = true;
 
     /// <summary>Einrasten dauerhaft an (Häkchen in der Tafel); mit Strg rastet der Zug ohnehin ein.</summary>
@@ -94,6 +98,8 @@ public partial class Stadtansicht
     private GizmoGriff? _gizmoHover;
     private GizmoZug? _gizmoZug;
     private readonly List<MeshInstance3D> _felsMarken = new();
+    private readonly Dictionary<int, TorusMesh> _felsMarkenNetze = new();
+    private StandardMaterial3D? _felsMarkenStoff;
     private readonly Dictionary<int, StandardMaterial3D> _gizmoStoffe = new();
     private StandardMaterial3D? _gizmoHell;
 
@@ -138,7 +144,9 @@ public partial class Stadtansicht
     private void FelsAuswahlBereinigen()
     {
         if (_entwurf is null || _felsAuswahl.Count == 0) return;
-        if (_felsAuswahl.RemoveAll(f => !_entwurf.Enthaelt(f)) > 0) FelsGizmoGeaendert?.Invoke();
+        // viele gewählte (Rahmen, Strg+A): einmal alle Stücke des Entwurfs in eine Menge statt je gewähltes Stück die ganze Liste durchsuchen
+        var da = _felsAuswahl.Count > 8 ? new HashSet<EntwurfFels>(_entwurf.Felsen, ReferenceEqualityComparer.Instance) : null;
+        if (_felsAuswahl.RemoveAll(f => da is not null ? !da.Contains(f) : !_entwurf.Enthaelt(f)) > 0) FelsGizmoGeaendert?.Invoke();
         if (_felsAuswahl.Count > 0 && WerkstattGewaehlt is not EntwurfFels) WerkstattWaehlen(_felsAuswahl[^1]);
     }
 
@@ -146,28 +154,38 @@ public partial class Stadtansicht
     //  Tasten und Maus
     // ═════════════════════════════════════════════════════════════════════════
 
-    private bool FelsGizmoAktiv => _entwurf is not null && Kartenwerkzeug == Werkstattwerkzeug.Auswahl && _felsAuswahl.Count > 0
-                                   && WerkstattEbeneSichtbar(Werkstattebene.Natur);
+    /// <summary>
+    /// Steht der Gizmo? Mit dem Werkzeug „Auswahl“, und im Felswerkzeug beim Stempeln (P2: gleich nach dem Setzen steht er an den neuen Stücken) – sofern
+    /// Felsstücke gewählt sind und die Ebene „Baum- und Naturzonen“ an ist.
+    /// </summary>
+    private bool FelsGizmoAktiv => _entwurf is not null && _felsAuswahl.Count > 0 && WerkstattEbeneSichtbar(Werkstattebene.Natur)
+                                   && (Kartenwerkzeug == Werkstattwerkzeug.Auswahl || (Kartenwerkzeug == Werkstattwerkzeug.Fels && FelsModus == FelsArt.Stempeln));
 
-    /// <summary>W, E, R wählen den Modus, Q die Achsen, B setzt auf den Boden. True, wenn die Taste dem Gizmo gehörte.</summary>
+    /// <summary>
+    /// Die Tasten des Gizmos: Pfeil links, oben, rechts wählen den Modus (Verschieben, Drehen, Skalieren), Pfeil unten die Achsen (Welt/Stück), B oder End
+    /// setzt auf den Boden (mit <paramref name="umschalt"/> am Hang ausgerichtet). True, wenn die Taste dem Gizmo gehörte – solange er steht, schieben die
+    /// Pfeiltasten die Kamera nicht (WASD schon).
+    /// </summary>
     private bool FelsGizmoTaste(Key taste, bool umschalt)
     {
         if (!FelsGizmoAktiv || _wsTeilZiehen is not null || _wsZiehen is not null) return false;
         switch (taste)
         {
-            case Key.W: FelsGizmoModusSetzen(FelsGizmoArt.Verschieben); return true;
-            case Key.E: FelsGizmoModusSetzen(FelsGizmoArt.Drehen); return true;
-            case Key.R: FelsGizmoModusSetzen(FelsGizmoArt.Skalieren); return true;
-            case Key.Q:
-                FelsGizmoWelt = !FelsGizmoWelt;
-                FelsGizmoGeaendert?.Invoke();
+            case Key.Left: FelsGizmoModusSetzen(FelsGizmoArt.Verschieben); return true;
+            case Key.Up: FelsGizmoModusSetzen(FelsGizmoArt.Drehen); return true;
+            case Key.Right: FelsGizmoModusSetzen(FelsGizmoArt.Skalieren); return true;
+            case Key.Down:
+                FelsGizmoWeltSetzen(!FelsGizmoWelt);
                 return true;
-            case Key.B:
+            case Key.B or Key.End:
                 FelsAufsetzen(umschalt);
                 return true;
         }
         return false;
     }
+
+    /// <summary>Gehören die Pfeiltasten gerade dem Gizmo (dann schieben sie die Kamera nicht)?</summary>
+    private bool PfeileFuerGizmo => FelsGizmoAktiv;
 
     /// <summary>Stellt den Modus des Gizmos ein (Tafel oder Taste).</summary>
     public void FelsGizmoModusSetzen(FelsGizmoArt art)
@@ -454,8 +472,8 @@ public partial class Stadtansicht
         var weitere = FelsGizmoAktiv && _felsAuswahl.Count > 1 ? _felsAuswahl.Where(f => !ReferenceEquals(f, WerkstattGewaehlt)).ToList() : new List<EntwurfFels>();
         while (_felsMarken.Count < weitere.Count)
         {
-            var neu = new MeshInstance3D { Name = "FelsMarkierungWeitere", MaterialOverride = ImmerSichtbar(Transparent(Auswahlgold.Lightened(0.15f), 0.8f)),
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            _felsMarkenStoff ??= ImmerSichtbar(Transparent(Auswahlgold.Lightened(0.15f), 0.8f));
+            var neu = new MeshInstance3D { Name = "FelsMarkierungWeitere", MaterialOverride = _felsMarkenStoff, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             AddChild(neu);
             _felsMarken.Add(neu);
         }
@@ -468,9 +486,15 @@ public partial class Stadtansicht
             }
             var f = weitere[i];
             if (Felsformen.Finde(f.Form) is not { } form) continue;
-            var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite * f.AchseX, form.Tiefe * f.AchseZ) / 2 * f.Massstab));
+            // auf 0,1 m gerundet und geteilt: Bei Hunderten gewählter Stücke (Rahmen, Strg+A) gibt es so nur wenige Netze
+            var radius = Mathf.Snapped(Mathf.Max(0.8f, (float)(Math.Max(form.Breite * f.AchseX, form.Tiefe * f.AchseZ) / 2 * f.Massstab)), 0.1f);
             if (_felsMarken[i].Mesh is not TorusMesh ring || !Mathf.IsEqualApprox(ring.InnerRadius, radius))
-                _felsMarken[i].Mesh = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
+            {
+                var schluessel = Mathf.RoundToInt(radius * 10);
+                if (!_felsMarkenNetze.TryGetValue(schluessel, out var netz))
+                    _felsMarkenNetze[schluessel] = netz = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
+                _felsMarken[i].Mesh = netz;
+            }
             _felsMarken[i].Position = new Vector3((float)f.X, BodenHoehe((float)f.X, (float)f.Z) + 0.2f, (float)f.Z);
             _felsMarken[i].Visible = true;
         }
@@ -681,16 +705,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Für Startoptionen: wählt Felsstücke (das letzte ist das gewählte).</summary>
-    public void WerkstattFelsWaehlen(IReadOnlyList<EntwurfFels> stuecke)
-    {
-        if (stuecke.Count == 0)
-        {
-            WerkstattWaehlen((EntwurfTeil?)null);
-            return;
-        }
-        WerkstattWaehlen(stuecke[0]);
-        for (var i = 1; i < stuecke.Count; i++) FelsAuswahlUmschalten(stuecke[i]);
-    }
+    public void WerkstattFelsWaehlen(IReadOnlyList<EntwurfFels> stuecke) => FelsMehrfachWaehlen(stuecke, dazu: false); // Stadtansicht.Felsauswahl.cs
 
     /// <summary>Für Startoptionen und Klicktests: ein Zug am Gizmo, ohne Maus (<paramref name="art"/> Verschieben, Drehen, Skalieren; ein Schritt).</summary>
     public bool WerkstattFelsGizmo(FelsGizmoArt art, Felsaenderung aenderung)
