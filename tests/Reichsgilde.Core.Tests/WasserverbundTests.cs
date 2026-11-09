@@ -341,13 +341,44 @@ static class WasserverbundTests
                         Pruefe.Wahr(alt < 0.7 && tiefe > alt + 0.5, $"bei {x}, {z}: vorher {alt:0.00} m, jetzt {tiefe:0.00} m");
                     }
                 }
-            // das geschlossene Ufer des Sees (Nordufer, Seiten) fällt wie bisher mit 30 %
+            // das geschlossene Ufer des Sees (die Seiten) fällt auch dort, wo der Verbund wirkt, wie bisher mit 30 % (Prüfer: die Orte müssen im Verbund liegen)
             var allein = Leer();
             See(allein, 2, wasserstand: spiegel);
-            foreach (var (x, z) in new[] { (0.0, -39.0), (0.0, -36.0), (-59.0, -25.0), (57.0, -30.0) })
-                Pruefe.Ungefaehr(allein.Gelaendeform.Wasser.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-12);
+            foreach (var (x, z) in new[] { (-59.0, -12.0), (-59.0, -16.0), (58.0, -14.0) })
+            {
+                Pruefe.Wahr(v.AnteilAm(x, z) is not null, $"der Verbund wirkt bei {x}, {z}");
+                Pruefe.Ungefaehr(allein.Gelaendeform.Wasser.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-9);
+            }
             Pruefe.Wahr(v.SeeuferAbstand(0, -7) > 25, $"das Südufer am Fluss zählt nicht als Ufer: {v.SeeuferAbstand(0, -7):0.0} m");
             Pruefe.Ungefaehr(1, v.SeeuferAbstand(0, -39), 1e-9);
+        }),
+
+        ("Wasserverbund: Ein tiefer See (8 m) – der Grund quer vom Fluss weit in den See ohne Stufe (1 cm fein), am Rand des Verbunds wie der See allein", () =>
+        {
+            var e = Leer();
+            Fluss(e);
+            e.SeeAnlegen(new[] { O(-60, -120), O(60, -120), O(60, -8), O(-60, -8) }, "see", null, null, tiefe: 8);
+            var w = e.Gelaendeform.Wasser;
+            Pruefe.Gleich(1, w.Verbuende.Count);
+            var allein = Leer();
+            allein.SeeAnlegen(new[] { O(-60, -120), O(60, -120), O(60, -8), O(-60, -8) }, "see", null, w.Seen[0].Wasserstand, tiefe: 8);
+            foreach (var x in new[] { 0.0, -30.0, 41.3 })
+            {
+                var vorher = w.Boden(x, 0, 0, false);
+                var groesster = (Sprung: 0.0, Z: 0.0);
+                for (var n = 1; n <= 4500; n++)
+                {
+                    var z = -0.01 * n;
+                    var b = w.Boden(x, z, 0, false);
+                    if (Math.Abs(b - vorher) > groesster.Sprung) groesster = (Math.Abs(b - vorher), z);
+                    vorher = b;
+                }
+                Pruefe.Wahr(groesster.Sprung < 0.03, $"x {x}: größter Sprung {groesster.Sprung:0.000} m bei z {groesster.Z:0.00} (Stand vor der Rückblendung: 3,8 m bei z −22)");
+                // ab 16 m hinter dem Ufer des Flusses genau der See allein
+                foreach (var z in new[] { -22.5, -25.0, -30.0 })
+                    Pruefe.Ungefaehr(allein.Gelaendeform.Wasser.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-9);
+                Pruefe.Wahr(w.Seen[0].Wasserstand - w.Boden(x, -9, 0, false) > 1.9, "am alten Ufer tief");
+            }
         }),
 
         ("Wasserverbund: Ein Haus in der geschlossenen Lücke steht im Wasser", () =>

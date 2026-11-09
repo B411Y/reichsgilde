@@ -268,7 +268,7 @@ public sealed partial class Wasserform
             {
                 // im Wasser: die Böschung des Sees (30 %) vom gemeinsamen Ufer, wo der See näher als 4 m (bis 8 m weich) liegt – auch in der Lücke und am
                 // Ufer des Laufs zum See hin (sonst bliebe dort eine flache Schwelle, im Bild ein Streifen); am anderen Ufer des Laufs nur sein Querprofil
-                verbund = Math.Min(boden, spiegel - Nahe(lage) * Verbundtiefe(v, p, s));
+                verbund = Math.Min(boden, spiegel - Nahe(lage) * Verbundtiefe(v, p, s, lage));
                 var halb = lage.W.Breite / 2;
                 if (lage.D <= halb) verbund = Math.Min(verbund, lage.W.Spiegel - lage.W.Tiefe * (1 - (lage.D / halb) * (lage.D / halb)));
             }
@@ -286,10 +286,15 @@ public sealed partial class Wasserform
     /// Die Tiefe des Sees im Verbund an einem Ort im Wasser (s &lt; 0): die Böschung des Sees (30 %) vom geschlossenen Ufer, also nicht von den Stücken des
     /// Umrisses, an denen der Lauf anliegt – Lücke und altes Ufer liegen so auf Seetiefe (Befund NAS 09.11.2026: dort war der Grund flach, ein olivgrüner
     /// Schleier im Wasser); zum gemeinsamen Ufer hin höchstens <see cref="VerbundBoeschung"/> steil (am Rand der Lücke 0, ohne Kante zur Uferrampe).
-    /// Weit vom Lauf ist das geschlossene Ufer das nächste und alles wie im See allein.
+    /// Vom Lauf weg (8 bis 16 m hinter seinem Ufer) geht die Tiefe in die des Sees allein über: Am Rand des Bereichs, in dem der Verbund wirkt, ist sie
+    /// genau die alte (Prüfer 09.11.2026: bei einem tiefen See sprang der Grund dort sonst um mehrere Meter).
     /// </summary>
-    private static double Verbundtiefe(Wasserverbund v, Kartenort p, double s) =>
-        Math.Min(v.See.Tiefe, Math.Min(v.SeeuferAbstand(p.X, p.Z) * Seeboeschung, -s * VerbundBoeschung));
+    private static double Verbundtiefe(Wasserverbund v, Kartenort p, double s, Verbundlage lage)
+    {
+        var verbund = Math.Min(v.See.Tiefe, Math.Min(v.SeeuferAbstand(p.X, p.Z) * Seeboeschung, -s * VerbundBoeschung));
+        var allein = v.See.Enthaelt(p) ? Math.Min(v.See.Tiefe, v.See.Randabstand(p) * Seeboeschung) : 0;
+        return allein + (verbund - allein) * (1 - Gelaendeform.Weich((lage.SL - VerbundSpalt * 2) / (VerbundSpalt * 2)));
+    }
 
     /// <summary>Wie nah der See liegt: 1 bis <see cref="VerbundSpalt"/> (und im See), weich auf 0 beim Doppelten.</summary>
     private static double Nahe(Verbundlage lage) => 1 - Gelaendeform.Weich((lage.SS - VerbundSpalt) / VerbundSpalt);
