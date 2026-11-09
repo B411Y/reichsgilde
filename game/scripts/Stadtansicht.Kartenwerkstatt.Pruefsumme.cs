@@ -39,7 +39,9 @@ public partial class Stadtansicht
         teile.Add("Anschluesse=" + Kurz(_schichtAnschluesse.Select(a => $"{a.Von.X:0.00},{a.Von.Y:0.00}>{a.Bis.X:0.00},{a.Bis.Y:0.00} {a.Breite:0.00}"), true));
         // Wasser: jede Instanz und jeder Knoten mit Namen, Lage und Netz; sortiert (die Reihenfolge der Kinder darf wechseln)
         var wasser = new List<string>();
-        if (_gewaesserKnoten is not null && IsInstanceValid(_gewaesserKnoten)) KnotenSummen(_gewaesserKnoten, Transform3D.Identity, wasser, "");
+        // ohne den Namen der Wurzel: Godot nummeriert sie um, wenn der alte Knoten noch nicht freigegeben ist
+        if (_gewaesserKnoten is not null && IsInstanceValid(_gewaesserKnoten))
+            foreach (var kind in _gewaesserKnoten.GetChildren()) if (kind is Node3D k) KnotenSummen(k, Transform3D.Identity, wasser, "");
         teile.Add("Wasser=" + Kurz(wasser, true));
         if (Pinselmessung.Einzelsummen) foreach (var zeile in wasser.OrderBy(z => z, StringComparer.Ordinal)) GD.Print("WASSERZEILE " + zeile);
         teile.Add("Plan=" + (Uebergangsplan is { } plan
