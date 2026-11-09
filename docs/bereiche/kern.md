@@ -247,6 +247,14 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Messung | Gemessen auf main `7143a4f6` + `f33947e4` (main bei der Messung `57964daf`, dazwischen nur Darstellung), gegen main `fcbc7db4` mit denselben Startwerten. Völker nach 40 Jahren (`--teile=2`, Schmied gegen Mensch): Zwerg +12,1 → +10,0 %, Elb +2,8 → +4,6 %, Halbling −9,6 → −4,9 % (Abstand Zwerg–Halbling 21,7 → 14,9 Punkte); Parfumeur: Elb +13,7 → +9,1 %, Zwerg +2,1 → −2,7 %. Berufe nach 20 Jahren 9/10 im Band (Tischler −15,7 %, offener Punkt), Mittel 33.133 → 32.944; KI ÷ Bezug 1,25 → 1,15, „Schwer“ 1,78 → 1,83 (gegen `…-handgeld.json`). Dieb und Geldleiher je Volk unverändert im Rauschen. Einzelheiten in WIRTSCHAFTSMODELL „Völkerboni ±3 %“. | 09.11.2026 |
 | Außerhalb des Bereichs | `game/scripts/Hauptmenue.cs`: Hinweis je Volk im Hauptmenü auf ±3 % (fester Text, sonst falsch). Spielbuch `haus-und-dynastie.md`: Völkerboni ±3 %. | 09.11.2026 |
 
+### Kartenprüfung in Häppchen (Branch phase5/pinsel-nacharbeit)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Die Darstellung der Kartenwerkstatt verteilt die volle Prüfung nach einem Pinselstrich auf mehrere Bilder (Köln 15–120 ms an einem Stück, ein Schritt ist die Kapazität) | 09.11.2026 |
+| Umsetzung | `Kartenpruefung.Lauf.Schritte()` liefert die Prüfung als Folge von Schritten (`yield return` nach jedem Teil, bei Gebäuden alle 16, bei Paaren alle 4, bei Zonen, Wegen, Rasterfeldern und Probeplan je Zone, Weg bzw. 8 Plätze); `Pruefen` läuft sie in einem Zug durch, `Kartenpruefung.PruefenInSchritten` gibt sie für `Kartenentwurf.BefundeSchritt()` frei (rechnet ein Stück, gibt true, wenn `Befunde` bereit sind; `BefundeBereit`). Jede Änderung (`BefundeVerwerfen` an allen Stellen, die `_befunde` leerten) lässt einen halben Lauf von vorn beginnen; eine Ausnahme setzt ihn zurück. Gleiche Befunde in gleicher Reihenfolge, keine neue Quelle von Zufall, Zeit oder Reihenfolge | 09.11.2026 |
+| Tests | `BefundeSchrittweiseTests` (3): auf Greybox, Probestadt, Messstadt und Köln dieselben Befunde in derselben Reihenfolge wie `Pruefen`; Neustart nach Pinselstrich und Weg mitten im Lauf, nach einer Zone mit sicherem neuen Befund; synchrones Lesen mitten im Lauf. Alle Tests grün bis auf den Zeittest „volle Prüfung mit glatten Wegen unter 20 ms“ (KartenwerkstattWegeTests), der auf der belasteten NAS bei 20,1 ms lag (gemessen: vorher wie nachher 10–20 ms je nach Last) | 09.11.2026 |
+| Offen | Die Kapazitätsprüfung (`Kartenentwurf.Kapazitaetsrechnung`, ein Schritt, Köln 30 ms ohne Last, nach einem Weg bis 500 ms) ist noch nicht in Häppchen | 09.11.2026 |
 ### Große Wand mit mittleren Wänden davor (Branch phase5/grosse-wand)
 
 | Thema | Entscheidung | Datum |

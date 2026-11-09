@@ -66,6 +66,7 @@ public partial class Stadtansicht
     /// <summary>Das grobe Bild der Wegeschicht je Kachel (Stadtansicht.Wegeschicht.cs, B = Pflaster als Grund): In der Stadt steht kein Gras.</summary>
     private readonly Dictionary<(int I, int J), byte[]> _grasStadt = new();
     private readonly HashSet<(int I, int J)> _grasNeu = new();
+
     private bool _grasAlles = true;
     private Node3D? _grasWurzel;
     private bool _grasMakroStark = true;
@@ -179,7 +180,8 @@ public partial class Stadtansicht
         GrasHoeheNachfuehren();
         Pinselmessung.Dazu("  Gras: Höhe beim Malen nachführen", messen);
         // (auch erst, wenn die Nacharbeit eines Geländestrichs fertig ist: Sie meldet weitere Kacheln, und so rechnet jede nur einmal)
-        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { PinselstrichLaeuft: true } && _wsNacharbeit.Count == 0) GrasKachelnRechnen();
+        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { PinselstrichLaeuft: true } && _wsNacharbeit.Count == 0 && SchwerDran()) GrasKachelnRechnen();
+        GrasLaeufeVoran(); // die Kacheln, die die Werkstatt in Häppchen rechnet
         GrasImBild();
     }
 
@@ -290,7 +292,16 @@ public partial class Stadtansicht
     //  Kacheln rechnen
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Rechnet die gemeldeten (oder alle) Kacheln parallel und gibt ihnen Bild, Stoff und Knoten.</summary>
+    /// <summary>Eine Kachel, die die Werkstatt in Häppchen rechnet (<see cref="GrasKachelSchritte"/>).</summary>
+    private sealed record GrasLauf((int I, int J) Kachel, IEnumerator<int> Schritte, GrasErgebnis Ergebnis);
+
+    /// <summary>Die Kacheln, die die Werkstatt gerade über mehrere Bilder rechnet (<see cref="GrasLaeufeVoran"/>).</summary>
+    private readonly List<GrasLauf> _grasLaeufe = new();
+
+    /// <summary>
+    /// Rechnet die gemeldeten (oder alle) Kacheln – alle parallel, außer in der Werkstatt nach einem Strich: Dort beginnt jede gemeldete Kachel einen Lauf
+    /// in Häppchen (<see cref="GrasLaeufeVoran"/> rechnet sie über mehrere Bilder zu Ende), damit kein Bild lange hängt.
+    /// </summary>
     private void GrasKachelnRechnen()
     {
         var liste = _grasAlles ? _gelaendeKacheln.Keys.ToList() : _grasNeu.Where(_gelaendeKacheln.ContainsKey).ToList();
@@ -298,6 +309,8 @@ public partial class Stadtansicht
         _grasAlles = false;
         _grasNeu.Clear();
         if (liste.Count == 0) return;
+        var anfangUsec = Time.GetTicksUsec();
+        var haeppchen = _entwurf is not null && !alles;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         var messen = Pinselmessung.Uhr();
         // auf dem Hauptfaden sammeln, was die Rechnung liest
@@ -319,20 +332,64 @@ public partial class Stadtansicht
         Pinselmessung.Dazu("  Gras: sammeln (Freiraum, Wasser, Höhen)", messen);
         messen = Pinselmessung.Uhr();
         uhrGras = Ladezeit.Uhr();
-        var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
         var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
         var stark = _grasMakroStark = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
         var felsKarte = _felsbodenAn == true; // nur Karten mit Felsen: die Wiese um und zwischen den Flecken wird steinig (Stadtansicht.Felsboden.cs)
-        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte));
+        if (haeppchen)
+        {
+            _grasLaeufe.RemoveAll(l => liste.Contains(l.Kachel)); // ein älterer Lauf derselben Kachel ist überholt
+            for (var n = 0; n < liste.Count; n++)
+            {
+                var ergebnis = new GrasErgebnis();
+                _grasLaeufe.Add(new GrasLauf(liste[n], GrasKachelSchritte(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte, ergebnis).GetEnumerator(), ergebnis));
+            }
+            SchwerGezaehlt(anfangUsec);
+            return;
+        }
+        var ergebnisse = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
+        Parallel.For(0, liste.Count, n => ergebnisse[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte));
         Ladezeit.Dazu("Gras: Kacheln rechnen (Parallel)", uhrGras);
         Pinselmessung.Dazu("  Gras: Kacheln rechnen (parallel)", messen);
         messen = Pinselmessung.Uhr();
         uhrGras = Ladezeit.Uhr();
-        for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
+        for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnisse[n]);
         Ladezeit.Dazu("Gras: Kacheln setzen", uhrGras);
         Pinselmessung.Dazu("  Gras: Bilder setzen", messen);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
+    }
+
+    /// <summary>
+    /// Jedes Bild in der Werkstatt: die Läufe der Kacheln (<see cref="GrasLauf"/>) ein Stück weiter, so viel, wie ins Budget passen (mindestens ein Schritt);
+    /// eine fertige Kachel bekommt ihr Bild. Während eines Strichs ruhen sie – sein Ende meldet die Kacheln noch einmal, falls sich unter dem Lauf etwas änderte.
+    /// </summary>
+    private void GrasLaeufeVoran()
+    {
+        if (_grasLaeufe.Count == 0 || _entwurf is null || _wsBodenStrich || _entwurf.PinselstrichLaeuft || _wsNacharbeit.Count > 0 || !SchwerDran()) return;
+        var anfang = Time.GetTicksUsec();
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        var messen = Pinselmessung.Uhr();
+        while (_grasLaeufe.Count > 0)
+        {
+            var lauf = _grasLaeufe[0];
+            var fertig = true;
+            while (lauf.Schritte.MoveNext())
+                if (Time.GetTicksUsec() >= frist)
+                {
+                    fertig = false;
+                    break;
+                }
+            Pinselmessung.Dazu("  Gras: Kachel rechnen (Häppchen)", messen);
+            if (!fertig) break;
+            messen = Pinselmessung.Uhr();
+            _grasLaeufe.RemoveAt(0);
+            if (_gelaendeKacheln.ContainsKey(lauf.Kachel)) GrasKachelSetzen(lauf.Kachel, lauf.Ergebnis.Wert);
+            Pinselmessung.Dazu("  Gras: Bilder setzen", messen);
+            _grasBlickFuer = null;
+            messen = Pinselmessung.Uhr();
+            if (Time.GetTicksUsec() >= frist) break;
+        }
+        SchwerGezaehlt(anfang);
     }
 
     /// <summary>
@@ -430,6 +487,25 @@ public partial class Stadtansicht
         Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser, IReadOnlyList<Wasserverbund> verbuende,
         List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, Feldmaske[] masken, bool stark, bool felsKarte)
     {
+        var holder = new GrasErgebnis();
+        foreach (var _ in GrasKachelSchritte(ti, tj, hoehen, stadt, raster, frei, wasser, verbuende, flaechen, masken, stark, felsKarte, holder)) { }
+        return holder.Wert;
+    }
+
+    /// <summary>Das Ergebnis von <see cref="GrasKachelSchritte"/> (ein Iterator kann nichts zurückgeben).</summary>
+    private sealed class GrasErgebnis
+    {
+        public (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) Wert;
+    }
+
+    /// <summary>
+    /// <see cref="GrasKachelRechnen"/> in Häppchen (ein Schritt nach je ein paar Zeilen und nach jedem Teil danach): Die Werkstatt rechnet so eine Kachel
+    /// nach einem Strich über mehrere Bilder (Köln: eine Kachel gut 100 ms am Stück); das Ergebnis liegt zuletzt in <paramref name="ergebnis"/>.
+    /// </summary>
+    private static IEnumerable<int> GrasKachelSchritte(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
+        Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser, IReadOnlyList<Wasserverbund> verbuende,
+        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, Feldmaske[] masken, bool stark, bool felsKarte, GrasErgebnis ergebnis)
+    {
         const int n = BodenBild;
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
         // Höhe und Normale wie BodenHoehe (Dreiecke des Netzes) und Gelaendeform.Normale (Steigung in der Zelle), aus den Rasterpunkten der Kachel
@@ -437,11 +513,15 @@ public partial class Stadtansicht
         float H(int i, int j) => hoehen![(j - gj0) * GrasRaster + i - gi0];
         var splat = raster is { IstLeer: false } && BodenKachelGemalt(raster, ti, tj) ? raster.Splat(i0, j0, n, n, 0) : null;
         // Fels R5: Wo der Boden steinig ist (Felsnähe wie im Boden-Shader), stehen keine vollen Halme
+        yield return 0;
         var naehe = splat is not null && felsKarte && raster is not null ? FelsnaeheRechnen(raster, i0, j0, n) : null;
+        yield return 0;
         var daten = new float[n * n * 4];
         var farbe = new byte[n * n * 4];
         var (unten, oben) = (float.MaxValue, float.MinValue);
         for (var b = 0; b < n; b++)
+        {
+            if (b % 16 == 15) yield return b;
             for (var a = 0; a < n; a++)
             {
                 var (x, z) = ((float)(i0 + a), (float)(j0 + b));
@@ -481,6 +561,8 @@ public partial class Stadtansicht
                     oben = Mathf.Max(oben, h);
                 }
             }
+        }
+        yield return 0;
         // Sperrflächen und Wasser: nur die Punkte in ihrem Rahmen prüfen (das ist viel schneller, als jeden Punkt nach allem zu fragen)
         void Loeschen(Vector2 von, Vector2 bis, Func<Vector2, bool> drin)
         {
@@ -507,11 +589,13 @@ public partial class Stadtansicht
                     var abstand = ax > 0 && az > 0 ? MathF.Sqrt(ax * ax + az * az) : Mathf.Max(ax, az);
                     daten[o] *= GrasRandFaktor(abstand + GrasRandRauschen(px, pz));
                 }
+            yield return 0;
         }
         foreach (var (von, bis, halb) in wasser.Fluesse) // Flüsse und Bäche als Stücke mit halber Breite
         {
             var r = halb + 0.3f;
             Loeschen(von.Min(bis) - new Vector2(r, r), von.Max(bis) + new Vector2(r, r), p => AbstandZurStrecke(p, von, bis) < r);
+            yield return 0;
         }
         // Wasserverbund (Fluss und See als eine Fläche): Lücke und Kehle sind Wasser, liegen aber weder im Fluss noch im See – dort wuchsen sonst Halme im
         // Wasser (NAS 09.11.2026, Blick verbund_ecke). Wie beim Fluss 0,3 m Rand; der Kern rechnet je Punkt (liest nur, geht parallel)
@@ -526,11 +610,14 @@ public partial class Stadtansicht
             const float r = 0.7f;
             Loeschen(von - new Vector2(1, 1), bis + new Vector2(1, 1), p => ImVieleck(p, see) || ImVieleck(p + new Vector2(r, 0), see) ||
                 ImVieleck(p - new Vector2(r, 0), see) || ImVieleck(p + new Vector2(0, r), see) || ImVieleck(p - new Vector2(0, r), see));
+            yield return 0;
         }
         // Felder mit Gras: irgendein Punkt im Feld oder einen Meter daneben mit genug Wiese (Punkt k liegt bei Kachel − 1 m + k)
         var felder = new List<int>();
         const int schritt = (int)GrasFeld;
         for (var fj = 0; fj < GrasFelder; fj++)
+        {
+            yield return fj;
             for (var fi = 0; fi < GrasFelder; fi++)
             {
                 var gras = false;
@@ -543,7 +630,8 @@ public partial class Stadtansicht
                         }
                 if (gras) felder.Add(fj * GrasFelder + fi);
             }
-        return (daten, farbe, unten, oben, felder.ToArray());
+        }
+        ergebnis.Wert = (daten, farbe, unten, oben, felder.ToArray());
     }
 
     /// <summary>
