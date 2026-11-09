@@ -1542,6 +1542,7 @@ public partial class Hauptszene : Node
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)
             _ when _stadt.StadtbauText(_auswahlKennung) is { } stadtbau => stadtbau, // Bauvorhaben der Stadt (PR #200)
+            _ when _stadt.KartenText(_auswahlKennung) is { } gebaeude => gebaeude, // Kirchen mit Modell und Blöcke der Karte (Darstellung)
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);

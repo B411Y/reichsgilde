@@ -71,17 +71,17 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 
 **Das Stapelhaus.** Das echte Fischkaufhaus stammt erst von 1558; hier steht um 1400 ein **Gemeinschaftswerk von Menschen und Zwergen** am Rhein (Fiktion): Die Zwerge müssen ihr **Erz und Eisen** unter dem Stapelrecht in Köln verkaufen und wiegen lassen. Eine lange Halle mit Treppengiebeln zum Rhein, zwergischer Basaltsockel, eiserne Beschläge, eine große **Stadtwaage**. **Halblinge** sind Weinhändler und Wirte darin – der Rheinwein ist belegt, die Halblinge sind unsere Zutat.
 
-**Wahrzeichen im Spiel.** Die Kennungen stammen aus `game/karten/koeln.json`; die Modelle kommen in drei Paketen (siehe `docs/bereiche/leveldesign.md`, „Köln-Wahrzeichen“).
+**Wahrzeichen im Spiel.** Die Kennungen stammen aus `game/karten/koeln.json`; die Modelle kommen in drei Paketen (siehe `docs/bereiche/leveldesign.md`, „Köln-Wahrzeichen“; die fünf romanischen Kirchen seit 9.11.2026, steinsichtig aus Tuff und Trachyt, ohne Spur der Völker).
 
 | Wahrzeichen | Kennung | Um 1400 | Spur der Völker |
 |---|---|---|---|
 | Dom | `Dom` | Chor fertig, Südturm mit Kran, Nordturm Stumpf | Elben-Chor, zwergische Dombauhütte |
 | Rathaus | `Rathaus` | Hansasaal (um 1330), Ratsturm im Bau (1407–14) | – |
-| Groß St. Martin | `Martin` | Vierungsturm, Kleeblattchor, am Rhein | – |
-| St. Gereon | `Gereon` | Dekagon (1219–27), langer Chor | – |
-| St. Severin | `Severin` | Westturm im Bau (1393–1411) | – |
-| St. Aposteln | `Aposteln` | Kleeblattchor, wuchtiger Westturm (unsicher in den Einzelheiten) | – |
-| St. Kunibert | `Kunibert` | am Rhein, Chor von zwei Türmen flankiert | – |
+| Groß St. Martin | `Martin` | Kleeblattchor, Vierungsturm mit vier Giebeln und Notdach nach dem Brand 1378 (im Modell ein Rautendach; der Knickhelm kam erst 1450–60), vier Ecktürmchen, am Rhein | – |
+| St. Gereon | `Gereon` | Dekagon (1219–27) mit Zeltdach aus Blei, langer Chor mit zwei Chortürmen | – |
+| St. Severin | `Severin` | romanisches Langhaus, spätromanischer Chor (geweiht 1237), Westturm im Bau seit 1393/94 (im Modell Stumpf mit Gerüst und Tretradkran wie am Dom) | – |
+| St. Aposteln | `Aposteln` | Kleeblattchor mit Vierungsturm (Laterne unsicher), Westquerhaus mit wuchtigem Westturm (Dachform unsicher) | – |
+| St. Kunibert | `Kunibert` | Chor von zwei Türmen flankiert, Westturm nach dem Brand 1376 mit Knickhelm erneuert; eigentlich am Rhein nördlich des Doms, im Spiel westlich des Alter Markts (dort ist kein Platz) | – |
 | Rheinkran | (Teil des Hafenstegs) | Tretradkran an der Liegestelle der Schiffe, seit dem 14. Jahrhundert belegt; steht auf dem Hafensteg, kein eigenes Gebäude | – |
 | Stapelhaus | `Stapelhaus` | Lagerhalle mit Waage am Rhein (Fiktion) | Zwerge, Halblinge |
 | Torburgen, Bayenturm | Tore der Mauer | Doppelturmtore des 13. Jahrhunderts, Bayenturm am Rheinende | – |
