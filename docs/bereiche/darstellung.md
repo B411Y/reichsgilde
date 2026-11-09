@@ -1161,7 +1161,7 @@ Offen zur Ego-Perspektive:
 Offen zu den neuen Stücken:
 
 - (Platzhalter) Zwerge, Halblinge und Elben stehen als Arbeiter in den Werkräumen (Volk aus dem Kern). Klicktest 09.11.2026: Tracht und Haarfarbe stimmen; ein Zwerg am Hobel zeigt nur Kopf und Schultern über der Bank, der Elb am Drechsler und an der Steinsäge steht aufrecht neben dem Werkstück (Hände nicht am Gerät) – die Arbeitshöhen sind für Menschen gebaut.
-- (Platzhalter, Klicktest 09.11.2026) Tischler: Das Schwungrad der Drechselbank steht vor der Tür zur Sägehalle. Parfumeur: das Doppelstockbett steht vor dem Giebelfenster des Dachbodens. Alchimist: Warenstapel (Kräuter, Kröte) stehen vor dem unteren Bett. Wohnstube: Bibliothek und Stube sitzen an der Vorderwand und füllen die offene Seite – sie verdecken beim Hineinsehen die Küche (besser an die Seitenwand).
+- (Platzhalter, Klicktest 09.11.2026) Tischler: Das Schwungrad der Drechselbank steht vor der Tür zur Sägehalle. Parfumeur: das Doppelstockbett steht vor dem Giebelfenster des Dachbodens, das Enfleurage-Regal vor der kleinen Tür im Werkraum. Alchimist: Warenstapel (Kräuter, Kröte) stehen vor dem unteren Bett. Wohnstube: Bibliothek und Stube sitzen an der Vorderwand und füllen die offene Seite – sie verdecken beim Hineinsehen die Küche (besser an die Seitenwand).
 - (Platzhalter) Die Stücke sind nicht animiert (Tretrad, Drechselbank, Hund); die Kupfer- und Glasflächen sehen in der Vorschau heller aus als im Spiel.
 - (Wohnhaus) Das Hauswappen und die Riegel sitzen an der Ostwand weiter vorn als das Tellerbord des Schmucks; bei neuen Schmuckteilen an der Ostwand prüfen.
 ### Himmel, Horizont und Kulissenberge der Ego-Ansicht (Branch phase5/ego-himmel, Auftrag des Nutzers 09.11.2026)
