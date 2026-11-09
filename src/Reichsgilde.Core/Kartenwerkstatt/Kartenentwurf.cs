@@ -409,7 +409,7 @@ public sealed partial class Kartenentwurf
         if (_befundeLauf is null)
         {
             _befundeTeil = new List<Befund>();
-            _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil);
+            _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil, teil => BefundeTeil = teil);
         }
         try
         {
@@ -426,6 +426,9 @@ public sealed partial class Kartenentwurf
         }
         return false;
     }
+
+    /// <summary>An welchem Teil der Prüfung der letzte <see cref="BefundeSchritt"/> gerechnet hat (für Messungen, z. B. „Wasser“); null vor dem ersten.</summary>
+    public string? BefundeTeil { get; private set; }
 
     /// <summary>Die Befunde gelten nicht mehr: auch ein halb gerechneter Lauf (<see cref="BefundeSchritt"/>) fängt neu an.</summary>
     private void BefundeVerwerfen() => (_befunde, _befundeLauf, _befundeTeil) = (null, null, null);
