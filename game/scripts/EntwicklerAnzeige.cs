@@ -304,6 +304,15 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         _stress = Zahl(z, 0, 100, 5, 50, 90);
         Knopf(z, "Setzen", () => { if (_person.Zahl is int p) Befehlen(new EntwicklerStress(p, Wert(_stress))); });
 
+        z = Zeile(s, "Geheimnis", "Die gewählte Person (Oberhaupt, Erbe oder Ehepartner) bekommt ein Geheimnis dieser Art; „wissen“: Euer Haus weiß davon " +
+                                  "und kann es im Charakterfenster nutzen. Einen Mord gibt es nur mit einem Opfer (Krötenschleim, Giftdolch).");
+        foreach (var art in new[] { Reichsgilde.Core.Geheimnisse.Geheimnisart.Ehebruch, Reichsgilde.Core.Geheimnisse.Geheimnisart.Ketzerei,
+                     Reichsgilde.Core.Geheimnisse.Geheimnisart.Schulden })
+        {
+            var a = art;
+            Knopf(z, $"{a} (wissen)", () => { if (_person.Zahl is int p) Befehlen(new EntwicklerGeheimnis($"P{p}", a)); });
+        }
+
         z = Zeile(s, "Tod", "Die gewählte Person stirbt sofort, mit Erbfolge (ohne Erben erlischt das Haus). Zweimal klicken.");
         _todKnopf = Knopf(z, "Sterben lassen", TodGedrueckt);
 
