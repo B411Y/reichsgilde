@@ -66,6 +66,7 @@ STOFFE = {  # Name: (Zone, feste Farbe sRGB, Schicht der Material-Bibliothek ode
     "Hauer": (0, (0.84, 0.79, 0.64), None),
     "Flicken": (0, (0.30, 0.25, 0.19), "tuch"),
     "Stroh": (0, (0.66, 0.56, 0.32), None),
+    "Wams": (1, (1.0, 1.0, 1.0), "leder"),
     "Reisig": (0, (0.34, 0.26, 0.17), None),
 }
 STOFF_NAMEN = list(STOFFE)
@@ -126,20 +127,26 @@ SCHLEIFE_SCHLIESSEN = {"Buecken"}
 FIGUREN = {
     "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock", "bettler", "kutte")},
     "frau": {"datei": "passant_probe_frau.glb", "gender": 0.0, "varianten": ("haube", "gebende", "bettler")},
-    # Schritt 3 des Vollausbaus (Entwurf): Orks und Oger aus demselben Grundnetz und Skelett, eigene Maße über MPFB-Makros und Formziele
-    # (docs/WELT.md: Orks Söldner, Jäger, Knechte, „kurz und rau“, Hauer und grünliche Haut; Oger riesig, schwerste Arbeit). Die Größe im
-    # Spiel bleibt beim Volksfaktor (FigurMasse: Ork 1,1, Oger 1,35); das Modell selbst hat Menschengröße mit anderen Proportionen.
-    "ork": {"datei": "passant_probe_ork.glb", "gender": 1.0, "varianten": ("cotte", "gugel"), "hauer": True,
-            "makros": {"muscle": 1.0, "weight": 0.65, "height": 0.5, "proportions": 0.2},
-            "ziele": {"measure-shoulder-dist-incr": 0.7, "torso-scale-horiz-incr": 0.4, "torso-muscle-dorsi-incr": 0.6,
-                      "measure-neck-height-decr": 0.7, "neck-scale-horiz-incr": 0.6,
-                      "measure-upperarm-length-incr": 0.5, "measure-lowerarm-length-incr": 0.5, "hand-scale-incr": 0.5,
-                      "measure-upperleg-height-decr": 0.3, "upperarm-muscle-incr": 0.5,
+    # Orks und Oger (Vollausbau Schritt 3, Antworten des Nutzers 09.11.2026): dasselbe Grundnetz und Skelett, eigene Maße über MPFB-Makros und
+    # Formziele (docs/WELT.md: Orks Söldner, Jäger, Knechte; Oger riesig, schwerste Arbeit). Nur Männer, barfuß, grobe ärmellose Kleidung wie
+    # Unfreie: Lederwams („wams“) oder Sackleinen („sack“). Orks deutlich kräftiger als Menschen (breites Kreuz, Schultern, Arme, Nacken) und
+    # leicht gebeugt; Oger wie im Entwurf mit Unterbiss und kleinen Hauern. Die Größe im Spiel bleibt beim Volksfaktor (FigurMasse: Ork 1,1,
+    # Oger 1,35); das Modell selbst hat Menschengröße mit anderen Proportionen.
+    "ork": {"datei": "passant_probe_ork.glb", "gender": 1.0, "varianten": ("wams", "sack"), "hauer": "ork", "beugen": 14.0,
+            "makros": {"muscle": 1.0, "weight": 0.8, "height": 0.5, "proportions": 0.1},
+            "ziele": {"measure-shoulder-dist-incr": 1.0, "torso-scale-horiz-incr": 1.0, "torso-muscle-dorsi-incr": 1.0,
+                      "upperarm-scale-horiz-incr": 0.8, "upperarm-scale-depth-incr": 0.8, "lowerarm-scale-horiz-incr": 0.6,
+                      "lowerarm-scale-depth-incr": 0.6, "measure-neck-circ-incr": 1.0,
+                      "torso-muscle-pectoral-incr": 0.7, "torso-scale-depth-incr": 0.3,
+                      "measure-neck-height-decr": 0.9, "neck-scale-horiz-incr": 1.0, "neck-scale-depth-incr": 0.6,
+                      "measure-upperarm-length-incr": 0.5, "measure-lowerarm-length-incr": 0.5, "hand-scale-incr": 0.6,
+                      "measure-upperleg-height-decr": 0.3, "upperarm-muscle-incr": 1.0, "upperarm-shoulder-muscle-incr": 1.0,
+                      "lowerarm-muscle-incr": 1.0, "measure-upperarm-circ-incr": 1.0, "upperleg-muscle-incr": 0.5,
                       "chin-width-incr": 0.8, "chin-prognathism-incr": 0.7, "chin-height-incr": 0.3, "eyebrows-trans-forward": 0.9,
                       "forehead-trans-backward": 0.6, "forehead-scale-vert-decr": 0.5, "nose-flaring-incr": 0.8,
                       "nose-scale-horiz-incr": 0.6, "nose-point-up": 0.5, "nose-scale-vert-decr": 0.4, "ear-scale-incr": 0.3,
                       "ear-rot-backward": 0.5, "mouth-scale-horiz-incr": 0.5}},
-    "oger": {"datei": "passant_probe_oger.glb", "gender": 1.0, "varianten": ("cotte", "gugel"), "hauer": False,
+    "oger": {"datei": "passant_probe_oger.glb", "gender": 1.0, "varianten": ("wams", "sack"), "hauer": "oger",
              "makros": {"muscle": 0.8, "weight": 1.0, "height": 0.55, "proportions": 0.0},
              "ziele": {"stomach-pregnant-incr": 1.0, "measure-shoulder-dist-incr": 0.6, "torso-scale-horiz-incr": 1.0,
                        "torso-scale-depth-incr": 1.0, "measure-neck-height-decr": 0.6, "neck-scale-horiz-incr": 0.6,
@@ -147,9 +154,10 @@ FIGUREN = {
                        "measure-upperarm-length-incr": 0.6, "measure-lowerarm-length-incr": 0.6, "hand-scale-incr": 1.0,
                        "foot-scale-incr": 0.5, "upperarm-fat-incr": 1.0, "lowerarm-muscle-incr": 0.8, "upperleg-fat-incr": 0.8,
                        "measure-upperleg-height-decr": 0.4,
-                       "chin-width-incr": 1.0, "chin-prognathism-incr": 0.6, "eyebrows-trans-forward": 1.0, "eyebrows-trans-down": 0.6,
+                       "chin-width-incr": 1.0, "chin-prognathism-incr": 1.0, "eyebrows-trans-forward": 1.0, "eyebrows-trans-down": 0.6,
                        "forehead-trans-backward": 0.8, "forehead-scale-vert-decr": 0.8, "nose-volume-incr": 0.8,
-                       "nose-scale-horiz-incr": 0.9, "nose-flaring-incr": 0.6, "mouth-scale-horiz-incr": 0.6, "ear-scale-incr": 0.4}},
+                       "nose-scale-horiz-incr": 0.9, "nose-flaring-incr": 0.6, "mouth-scale-horiz-incr": 0.6, "mouth-lowerlip-volume-incr": 0.7,
+                       "ear-scale-incr": 0.4}},
 }
 
 # Vergleichsbild der Völker (Schritt 3): Größe im Spiel je Volk (FigurMasse, Größe Y), Menschen 1
@@ -173,6 +181,8 @@ VORSCHAU = {
     "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.62, 0.56, 0.44)},
     "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.56, 0.60, 0.66)},
     "bettler": {1: (0.36, 0.34, 0.30), 2: (0.28, 0.25, 0.21), 3: (0.70, 0.52, 0.41), 4: (0.24, 0.18, 0.12), 5: (0.50, 0.46, 0.38)},
+    "wams": {1: (0.34, 0.24, 0.15), 2: (0.28, 0.24, 0.20), 3: (0.72, 0.52, 0.40), 4: (0.10, 0.09, 0.08), 5: (0.34, 0.24, 0.15)},
+    "sack": {1: (0.50, 0.45, 0.35), 2: (0.28, 0.24, 0.20), 3: (0.72, 0.52, 0.40), 4: (0.10, 0.09, 0.08), 5: (0.50, 0.45, 0.35)},
     "kutte": {1: (0.36, 0.24, 0.14), 2: (0.28, 0.24, 0.20), 3: (0.72, 0.52, 0.40), 4: (0.22, 0.15, 0.10), 5: (0.36, 0.24, 0.14)},
 }
 
@@ -822,7 +832,60 @@ def rock_bauen(rockhelfer, masse, saum, name):
     return obj
 
 
-def hauer_bauen(koerper, masse):
+def aermellos(vorlage, masse, name, stoffname, flicken=False):
+    """Ärmelloses Oberteil (Orks und Oger): die Ärmel der Cotte 4 cm hinter dem Schultergelenk abgeschnitten (Arme nackt, die Aufdickung
+    zurückgenommen), das Übrige im Stoff „Wams“ (Leder) oder als Sackleinen mit Flicken."""
+    obj = kopie(vorlage, name)
+    namen = gruppen_index(obj)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    deform = bm.verts.layers.deform.active
+
+    def arm(v, s):
+        if knochen_von(v, namen, deform) not in (f"upperarm_{s}", f"lowerarm_{s}", f"hand_{s}"):
+            return None
+        a = masse[f"schulter_{s}"]
+        d = (masse[f"ellbogen_{s}"] - a).normalized()
+        return (v.co - a).dot(d) - 0.04
+
+    for s in ("l", "r"):
+        isolinie_schneiden(bm, lambda v, s=s: arm(v, s))
+    gewand, haut = stoff("Gewand"), stoff("Haut")
+    for f in bm.faces:
+        if f.material_index == stoff("Beinkleid"):
+            f.material_index = haut          # ohne Beinkleid: nackte Beine
+            continue
+        if f.material_index != gewand:
+            continue
+        nackt = any((w := seite(f, lambda v, s=s: arm(v, s))) is not None and w > 0 for s in ("l", "r"))
+        if nackt:
+            f.material_index = haut
+        elif flicken and _flicken(f.calc_center_median()):
+            f.material_index = stoff("Flicken")
+        else:
+            f.material_index = stoff(stoffname)
+    bm.normal_update()
+    for v in bm.verts:
+        if v.link_faces and all(f.material_index == haut for f in v.link_faces) and (arm(v, "l") is not None or arm(v, "r") is not None):
+            v.co -= v.normal * 0.012
+    bm.to_mesh(obj.data)
+    bm.free()
+    return obj
+
+
+def stoff_tauschen(vorlage, name, von, nach):
+    obj = kopie(vorlage, name)
+    a, b = stoff(von), stoff(nach)
+    for p_ in obj.data.polygons:
+        if p_.material_index == a:
+            p_.material_index = b
+    return obj
+
+
+HAUER = {"ork": (0.021, 0.0055, 0.024, 0.012), "oger": (0.022, 0.005, 0.022, 0.003)}   # Abstand zur Mitte, Dicke, Länge, vor dem Kinn
+
+
+def hauer_bauen(koerper, masse, volk="ork"):
     """Hauer der Orks (docs/spielbuch/erbgut.md): zwei kleine Kegel aus dem Unterkiefer neben den Mundwinkeln, nach oben und leicht
     nach außen, starr am Kopf. Die Lage misst sich am Netz: die vordersten Punkte des Gesichts knapp über dem Kinn."""
     me = koerper.data
@@ -834,12 +897,13 @@ def hauer_bauen(koerper, masse):
     bm = bmesh.new()
     n = 5
     for s in (1, -1):
-        fuss = Vector((s * 0.021, y_vorn + 0.012, z_mund - 0.006))
+        seitlich, dicke, laenge, vor = HAUER[volk]
+        fuss = Vector((s * seitlich, y_vorn + vor, z_mund - 0.006))
         richtung = Vector((s * 0.25, -0.15, 1.0)).normalized()
         quer = Vector((1, 0, 0)).cross(richtung).normalized()
         quer2 = richtung.cross(quer)
-        ring = [bm.verts.new(fuss + 0.0055 * (math.cos(2 * math.pi * i / n) * quer + math.sin(2 * math.pi * i / n) * quer2)) for i in range(n)]
-        spitze = bm.verts.new(fuss + richtung * 0.024)
+        ring = [bm.verts.new(fuss + dicke * (math.cos(2 * math.pi * i / n) * quer + math.sin(2 * math.pi * i / n) * quer2)) for i in range(n)]
+        spitze = bm.verts.new(fuss + richtung * laenge)
         for i in range(n):
             bm.faces.new((ring[i], ring[(i + 1) % n], spitze))
         bm.faces.new(list(reversed(ring)))
@@ -1831,6 +1895,30 @@ def zubehoer_bauen(rig, masse, stehen):
     return aus
 
 
+def haltung_beugen(rig, act, grad):
+    """Leicht gebeugte Haltung (Orks): Rücken um grad Grad nach vorn (auf Spine, Chest, UpperChest verteilt), Hals und Kopf richten den Blick
+    wieder fast nach vorn. Geändert werden die Schlüssel der Drehkurven (wie schleife_schliessen), jede mit derselben festen Drehung davor."""
+    verteilung = {"Spine": 0.3, "Chest": 0.35, "UpperChest": 0.35, "Neck": -0.45, "Head": -0.4}
+    for k, anteil in verteilung.items():
+        achse = (rig.data.bones[k].matrix_local.to_3x3().inverted() @ Vector((1, 0, 0))).normalized()
+        extra = Quaternion(achse, math.radians(grad * anteil))
+        kurven = _kurven(act, f'pose.bones["{k}"].rotation_quaternion')
+        if len(kurven) != 4:
+            BERICHT.setdefault("warnungen", []).append(f"haltung_beugen: {k} ohne Drehkurven in {act.name}")
+            continue
+        n = min(len(c.keyframe_points) for c in kurven)
+        for i in range(n):
+            q = extra @ Quaternion([kurven[j].keyframe_points[i].co[1] for j in range(4)])
+            for j in range(4):
+                kp = kurven[j].keyframe_points[i]
+                d = q[j] - kp.co[1]
+                kp.co[1] = q[j]
+                kp.handle_left[1] += d
+                kp.handle_right[1] += d
+        for c in kurven:
+            c.update()
+
+
 def last_bauen(rig, tragen):
     """Kiste zwischen den Händen in der ersten Haltung von „Tragen“; je zur Hälfte an beiden Händen."""
     rig.animation_data.action = tragen
@@ -1895,6 +1983,7 @@ def masse_messen(rig):
         aus[f"unterarm_{s}"] = (b[f"hand_{s}"].head_local - b[f"lowerarm_{s}"].head_local).normalized()
         aus[f"ballen_{s}"] = b[f"ball_{s}"].head_local.copy()
         aus[f"ellbogen_{s}"] = b[f"lowerarm_{s}"].head_local.copy()
+        aus[f"schulter_{s}"] = b[f"upperarm_{s}"].head_local.copy()
     return aus
 
 
@@ -1936,6 +2025,17 @@ def figur_bauen(art, quellen):
         r_bettler = bettler_rock(rock_knie, "RockBettler")
         k_kutte = kopf_aussparen(koerper_lang, masse, "gugel", "KoerperKutte")
         hilfen += [haar, k_cotte, k_gugel, k_rock, k_bettler, r_bettler, k_kutte] + gugel
+        if "wams" in cfg["varianten"] or "sack" in cfg["varianten"]:
+            rock_kurz = rock_bauen(rockhelfer, masse, masse["knie"] + 0.07, "RockKurz")
+            # Körper unter dem kurzen Rock erst 9 cm über dem Knie aussparen (mit dem Knie-Körper blieb zwischen Saum und Bein eine Lücke)
+            k_kurz_roh = koerper_aussparen(koerper, masse["knie"] + 0.09, unter_guertel, "KoerperKurzRoh")
+            k_kurz = kopf_aussparen(k_kurz_roh, masse, "haar", "KoerperKurz")
+            hilfen += [k_kurz_roh, k_kurz]
+            k_wams = aermellos(k_kurz, masse, "KoerperWams", "Wams")
+            r_wams = stoff_tauschen(rock_kurz, "RockWams", "Gewand", "Wams")
+            k_sack = aermellos(k_kurz, masse, "KoerperSack", "Gewand", flicken=True)
+            r_sack = bettler_rock(rock_kurz, "RockSack")
+            hilfen += [rock_kurz, k_wams, r_wams, k_sack, r_sack]
         teile = {
             "cotte": [k_cotte, rock_knie, haar],
             "gugel": [k_gugel, rock_knie] + gugel,
@@ -1943,8 +2043,11 @@ def figur_bauen(art, quellen):
             "bettler": [k_bettler, r_bettler, haar],
             "kutte": [k_kutte, rock_lang] + gugel,       # Mönch (Schritt 4): langer Rock mit Gugel
         }
+        if "wams" in cfg["varianten"] or "sack" in cfg["varianten"]:
+            teile["wams"] = [k_wams, r_wams, haar]
+            teile["sack"] = [k_sack, r_sack, haar]
         if cfg.get("hauer"):
-            hauer = hauer_bauen(koerper, masse)
+            hauer = hauer_bauen(koerper, masse, cfg["hauer"])
             hilfen.append(hauer)
             for liste in teile.values():
                 liste.append(hauer)
@@ -2006,6 +2109,8 @@ def figur_bauen(art, quellen):
         bericht["bewegungen"][name] = {"quelle": q, "clip": clip, "bilder": bilder, "sekunden": bilder / FPS}
         if name in SCHLEIFE_SCHLIESSEN:
             schleife_schliessen(rig, neu)
+        if cfg.get("beugen"):
+            haltung_beugen(rig, neu, cfg["beugen"])
         # Bodenkontakt am Halbschuh gemessen (die Füße sind das Tiefste; Holzschuh und barfuß haben dieselbe Sohle bis auf Millimeter)
         bericht["bewegungen"][name]["boden_korrektur_m"] = bodenkontakt(rig, fuesse["halb"], neu, bilder)
     aktionen["Betteln"] = betteln_bauen(rig, aktionen["Kauern"][0])
@@ -2164,7 +2269,7 @@ def vorschau_material(name, schicht):
     return m
 
 
-VORSCHAU_FUSS = {"cotte": "holz", "gugel": "halb", "rock": "halb", "haube": "holz", "gebende": "halb", "bettler": "barfuss"}
+VORSCHAU_FUSS = {"wams": "barfuss", "sack": "barfuss", "cotte": "holz", "gugel": "halb", "rock": "halb", "haube": "holz", "gebende": "halb", "bettler": "barfuss"}
 
 
 # Berufe in der Vorschau (Schritt 4): (Name, Variante, Fußform, Zubehör)

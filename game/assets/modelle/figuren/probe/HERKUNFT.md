@@ -1,11 +1,12 @@
 # Herkunft: Probe-Passanten mit Skelett (Weg A)
 
-`passant_probe.glb` (Männer) und `passant_probe_frau.glb` (Frauen) entstehen mit `tools/modelle/passanten_probe.py` in Blender (ohne
+`passant_probe.glb` (Männer), `passant_probe_frau.glb` (Frauen), `passant_probe_ork.glb` und `passant_probe_oger.glb` (Orks und Oger, nur Männer) entstehen mit `tools/modelle/passanten_probe.py` in Blender (ohne
 Bildschirm). Nur für die Probe: Das Spiel zeigt die Figuren nur mit der Startoption `--passantenprobe` (`game/scripts/Stadtansicht.Passantenprobe.cs`).
 
 | Teil | Quelle | Lizenz | Bezug |
 |---|---|---|---|
 | Körper (MakeHuman-Grundnetz, Formziele Mann/Frau, Rockhelfer) | MPFB 2.0.18, MakeHuman Community | CC0 1.0 (Assets); MPFB-Code GPL-3.0, nur als Werkzeug benutzt, die Ausgabe gehört dem Nutzer (`LICENSE.md` von MPFB, Abschnitt D) | https://github.com/makehumancommunity/mpfb2 (Tag v2.0.18) |
+| Formen der Orks und Oger (Formziele für Schultern, Rumpf, Nacken, Arme, Kiefer, Brauen, Nase, Bauch, Kopfgröße) | MPFB 2.0.18, MakeHuman Community | CC0 1.0 (Assets) | wie oben |
 | Skelett und Gewichte | Rig „game_engine“ aus MPFB 2.0.18 | CC0 1.0 | wie oben |
 | Stehen, Gehen, Reden, Sitzen, Kauern (daraus „Betteln“ mit eigener Armhaltung) | Quaternius, Universal Animation Library [Standard]: `Idle_Loop`, `Walk_Loop`, `Idle_Talking_Loop`, `Sitting_Idle_Loop`, `Crouch_Idle_Loop` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library |
 | Tragen, Hacken, Bücken | Quaternius, Universal Animation Library 2 [Standard]: `Walk_Carry_Loop`, `TreeChopping_Loop`, `Farm_Harvest` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library-2 |
