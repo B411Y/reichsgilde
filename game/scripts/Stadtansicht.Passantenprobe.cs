@@ -31,8 +31,8 @@ public partial class Stadtansicht
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
-        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.287f, 0.898f, 0.451f),
-        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 1.118f, 0.786f, 0.390f),
+        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.287f, 0.898f, 0.446f),
+        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 1.118f, 0.786f, 0.389f),
     };
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
@@ -71,8 +71,13 @@ public partial class Stadtansicht
         new(0.28f, 0.24f, 0.20f), new(0.22f, 0.22f, 0.23f), new(0.34f, 0.27f, 0.18f), new(0.25f, 0.27f, 0.32f), new(0.38f, 0.33f, 0.27f),
         new(0.42f, 0.24f, 0.19f),
     };
-    /// <summary>Leinen der Hauben und Gebende (gebleicht bis naturfarben).</summary>
-    private static readonly Color[] ProbeLeinen = { new(0.76f, 0.72f, 0.62f), new(0.70f, 0.66f, 0.55f), new(0.80f, 0.77f, 0.68f) };
+    /// <summary>Hauben und Gebende: ungebleichtes Leinen, gelblich und dunkler (Runde 4: in der Stadt lasen sich die helleren Töne als weißes Haar),
+    /// einige leicht gefärbt (Ocker, Blassblau, Rötlich).</summary>
+    private static readonly Color[] ProbeLeinen =
+    {
+        new(0.62f, 0.56f, 0.44f), new(0.58f, 0.52f, 0.40f), new(0.66f, 0.60f, 0.48f), new(0.62f, 0.56f, 0.44f),
+        new(0.62f, 0.48f, 0.28f), new(0.52f, 0.57f, 0.62f), new(0.62f, 0.46f, 0.40f),
+    };
     /// <summary>Natürliche Haarfarben (sRGB): dunkelbraun, braun, schwarz, hellbraun, dunkelblond, rotblond; Alte grau (Klicktest 08.11.: Haar wirkte weiß).</summary>
     private static readonly Color[] ProbeHaarfarben =
     {
@@ -380,7 +385,7 @@ public partial class Stadtansicht
             var knotenMm = new MultiMeshInstance3D
             {
                 Name = $"ProbeVat_{art}_{teil.Name}", Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Layers = _probeVatEbene,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             };
             AddChild(knotenMm);
             knotenMm.GlobalTransform = Transform3D.Identity;
@@ -498,24 +503,11 @@ public partial class Stadtansicht
 
     private int _probeGezeichnet, _probeSkelettSichtbar;
 
-    /// <summary>Render-Ebene der VAT-Netze: im Pixel-Look mit Beleuchtungsbild die Ebene, die die Beleuchtungskamera nicht sieht (wie Regen und Feuer).</summary>
-    private uint _probeVatEbene = 1u;
-
-    /// <summary>
-    /// Vom Pixel-Look jedes Bild (<see cref="PixelBild"/>): Das Beleuchtungsbild zeichnet mit Godots Debug-Zeichnung „Beleuchtung“, und die nimmt für
-    /// jede Fläche das eingebaute Standardmaterial statt des eigenen Shaders (Godot-Quelltext, render_forward_clustered.cpp). Die VAT-Figuren standen
-    /// dort darum in der Ruhehaltung (A-Haltung aus dem Netz), nicht in ihrer Bewegung: Wo Kopf, Haar und Hände im Bild lagen, fand das Stufenlicht
-    /// Boden oder Schatten, und das Glühen hielt die hellen Flächen für Licht (Befund Klicktest 08.11.: leuchtende Köpfe, Schleier). Darum sieht die
-    /// Beleuchtungskamera die VAT-Netze nicht; dort steht der Boden dahinter und gibt das Licht vor. Die Figuren mit Skelett betrifft das nicht (die
-    /// Haut wird vor dem Shader verformt).
-    /// </summary>
-    private void ProbeVatEbeneSetzen(uint ebene)
-    {
-        _probeVatEbene = ebene;
-        if (_probeVatNetze is null) return;
-        foreach (var v in _probeVatNetze.Values)
-            if (IsInstanceValid(v.Knoten) && v.Knoten.Layers != ebene) v.Knoten.Layers = ebene;
-    }
+    // Pixel-Look: Die VAT-Netze liegen auf der gewöhnlichen Ebene 1 und erscheinen auch im zweiten Durchgang. Seit PR #385 zeichnet der
+    // die Debug-Zeichnung „Unbeleuchtet“ (Eigenfarbe), und die behält das eigene Material samt Vertex-Shader (Godot-Quelltext,
+    // render_forward_clustered.cpp: nur „Beleuchtung“, „Überzeichnung“ und „Schattenteilung“ tauschen das Material). Die Figuren stehen dort also in
+    // ihrer Bewegung, ihre Eigenfarbe ist die richtige Grundlage für Stufenlicht und Glühen. Die Ausblendung aus Runde 3 (gegen die Ruhehaltung im
+    // alten Beleuchtungsbild) ist darum zurückgenommen: Sie hätte jetzt die Eigenfarbe des Bodens unter die Figuren gelegt.
 
     /// <summary>Einmal je Bild nach den Passanten: alle sichtbaren Probefiguren im Bild in die MultiMeshes schreiben (Lage, Clip, Bild, Farben).</summary>
     private void ProbeVatZeichnen()

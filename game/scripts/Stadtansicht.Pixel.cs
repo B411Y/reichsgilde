@@ -338,8 +338,6 @@ public partial class Stadtansicht
         foreach (var v in _verdraengerNetze)
             if (v.Layers != teilchen) v.Layers = teilchen;
         Feuer.EbeneSetzen(GetTree(), teilchen);
-        // und die gebackenen Probe-Passanten (Stadtansicht.Passantenprobe.cs): Die Debug-Zeichnung nimmt das Standardmaterial, ohne den Shader stünden sie in Ruhehaltung
-        ProbeVatEbeneSetzen(teilchen);
         if (!laeuft || kamera is null) return;
 
         // Größen: Weltpixel = n × n Fensterpixel. Die Oberfläche kann skaliert sein (ContentScaleFactor): Bildschirmpixel und Zeichenfläche sind zu trennen.
