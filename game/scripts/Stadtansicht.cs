@@ -1111,10 +1111,12 @@ public partial class Stadtansicht : Node3D
         // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld, nicht mit Strg (Strg+S speichert in der Kartenwerkstatt) und nicht mit freier Kamera
         if (frei || GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
         var richtung = Vector2.Zero;
-        if ((Input.IsKeyPressed(Key.W) && !FelsGizmoAktiv) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1; // W gehört dem Gizmo, solange ein Felsstück gewählt ist (Pfeil hoch schiebt weiter)
-        if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) richtung.Y += 1;
-        if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left)) richtung.X -= 1;
-        if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) richtung.X += 1;
+        // WASD schiebt immer; die Pfeiltasten schieben die gewählten Felsen, solange der Gizmo steht (Fels P2, Stadtansicht.Felsauswahl.cs)
+        var pfeile = !PfeileFuerGizmo;
+        if (Input.IsKeyPressed(Key.W) || (pfeile && Input.IsKeyPressed(Key.Up))) richtung.Y -= 1;
+        if (Input.IsKeyPressed(Key.S) || (pfeile && Input.IsKeyPressed(Key.Down))) richtung.Y += 1;
+        if (Input.IsKeyPressed(Key.A) || (pfeile && Input.IsKeyPressed(Key.Left))) richtung.X -= 1;
+        if (Input.IsKeyPressed(Key.D) || (pfeile && Input.IsKeyPressed(Key.Right))) richtung.X += 1;
         if (richtung != Vector2.Zero)
             Verschieben(richtung.Normalized() * (float)delta * _kamera.Size * 0.8f);
     }

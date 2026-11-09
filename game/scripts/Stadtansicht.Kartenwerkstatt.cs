@@ -908,6 +908,7 @@ public partial class Stadtansicht
         BodenWerkzeugAus();    // Stadtansicht.Kartenwerkstatt.Boden.cs
         WasserWerkzeugAus();   // Stadtansicht.Kartenwerkstatt.Wasser.cs
         FelsWerkzeugAus();     // Stadtansicht.Kartenwerkstatt.Felsen.cs
+        FelsRahmenAbbrechen(); // Stadtansicht.Felsauswahl.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -1190,7 +1191,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Eingabe der Kartenwerkstatt – vor der Kamera (wie <see cref="BauEingabe"/>). Gibt true zurück, wenn verbraucht. Mausrad, rechte
-    /// Maustaste und Strg+Q/E bleiben bei der Kamera, Strg+Z/Y/S bei der Szene.
+    /// Maustaste, WASD und Strg+Q/E bleiben bei der Kamera, Strg+Z/Y/S bei der Szene; die Pfeiltasten schieben die gewählten Felsen, solange der Gizmo steht.
     /// </summary>
     private bool WerkstattEingabe(InputEvent eingabe)
     {
@@ -1203,8 +1204,14 @@ public partial class Stadtansicht
             or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See;
         switch (eingabe)
         {
-            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.W or Key.E or Key.R or Key.Q or Key.B, CtrlPressed: false, AltPressed: false } gizmoTaste
-                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (W/E/R wie in Unreal, Q Welt/Stück, B auf den Boden)
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Key1 or Key.Key2 or Key.Key3 or Key.Key4 or Key.B or Key.End, CtrlPressed: false, AltPressed: false } gizmoTaste
+                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (1/2/3 Modus, 4 Achsen bei stehendem Gizmo – vor den Gruppen der Leiste; B/End auf den Boden)
+                return true;
+            case InputEventKey { Pressed: true, Keycode: Key.Left or Key.Up or Key.Right or Key.Down } pfeil
+                when FelsPfeilTaste(pfeil.Keycode, pfeil.ShiftPressed, pfeil.CtrlPressed, pfeil.AltPressed): // die gewählten Felsen schieben, auch gehalten (Stadtansicht.Felsauswahl.cs)
+                return true;
+            case InputEventKey { Pressed: true, Echo: false, CtrlPressed: true, AltPressed: false, Keycode: Key.D or Key.A or Key.I } felsTaste
+                when FelsAuswahlTaste(felsTaste.Keycode): // Strg+D kopieren, Strg+A alle, Strg+I umkehren (Stadtansicht.Felsauswahl.cs)
                 return true;
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
                 Drehen(taste.Keycode == Key.Q ? 1 : -1, taste.AltPressed, taste.Echo);
@@ -1222,7 +1229,7 @@ public partial class Stadtansicht
                 Loeschen();
                 return true;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }:
-                if (FelsGizmoAbbrechen()) { }
+                if (FelsGizmoAbbrechen() || FelsRahmenAbbrechen()) { }
                 else if (_wsZiehen is not null) ZiehenAbbrechen();
                 else if (_wsTeilZiehen is not null) TeilZiehenAbbrechen();
                 else if (_wsStrich is not null) StrichAbbrechen();
@@ -1249,6 +1256,7 @@ public partial class Stadtansicht
                 BodenStrichBeenden();
                 FelsStrichBeenden();
                 FelsGizmoLoslassen();
+                FelsRahmenBeenden(); // Stadtansicht.Felsauswahl.cs
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
@@ -1263,6 +1271,7 @@ public partial class Stadtansicht
                 GelaendeStrichWeiter(bewegung.Position);
                 BodenStrichWeiter(bewegung.Position);
                 FelsStrichWeiter(bewegung.Position);
+                FelsRahmenWeiter(bewegung.Position);
                 return false;
         }
         return false;
@@ -1323,7 +1332,8 @@ public partial class Stadtansicht
     /// gewählten Fläche bzw. ein Tor oder die Linie der gewählten Mauer (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen). Dann, was unter der
     /// Maus liegt: ein Gebäude, dessen Modell über dem Boden getroffen wird (<see cref="StueckTreffer"/>), ein Tor, eine Pflanze, ein Weg, ein
     /// flaches Gebäude (Feld, Weide), eine Mauer, die Grundfläche eines Gebäudes, das Innere der gewählten Fläche (ganze Fläche ziehen), Bauzonen
-    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf. Ausgeblendete Ebenen werden übersprungen (<see cref="WerkstattTeilSichtbar"/>).
+    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf; Ziehen ins Leere (Bauzonen und Naturflächen zählen dazu) zieht einen Auswahlrahmen für
+    /// Felsstücke (Fels P2, Stadtansicht.Felsauswahl.cs). Ausgeblendete Ebenen werden übersprungen (<see cref="WerkstattTeilSichtbar"/>).
     /// </summary>
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
@@ -1353,7 +1363,7 @@ public partial class Stadtansicht
         }
         if (boden is not { } p)
         {
-            WerkstattWaehlen((EntwurfTeil?)null);
+            FelsRahmenOderKlick(maus, null, Input.IsKeyPressed(Key.Shift)); // Ziehen: Auswahlrahmen für Felsen, sonst nichts wählen (Stadtansicht.Felsauswahl.cs)
             return;
         }
         if (WerkstattGewaehlt is EntwurfWeg gewaehlterWeg && AufWeg(gewaehlterWeg, p, toleranz))
@@ -1444,7 +1454,7 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(innen, Ziehart.Ganz, maus, p, -1, -1);
             return;
         }
-        WerkstattWaehlen(FlaecheBei(p));
+        FelsRahmenOderKlick(maus, p, Input.IsKeyPressed(Key.Shift)); // Ziehen: Auswahlrahmen für Felsen (P2), sonst beim Loslassen die Fläche hier wählen
     }
 
     /// <summary>Wählt ein Gebäude und hält es zum Ziehen fest (ein Ziehen beginnt erst nach ein paar Bildpunkten).</summary>
@@ -1515,6 +1525,7 @@ public partial class Stadtansicht
         else if (_wsTeilZiehen is { Teil: EntwurfFels }) return; // beim Ziehen eines Felsstücks erst loslassen (sonst spränge es zurück)
         else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));
         else if (WerkstattGewaehlt is EntwurfPflanze p) Befehl(() => _entwurf.PflanzeDrehen(p, Weiter(p.Drehung)));
+        else if (WerkstattGewaehlt is EntwurfFels && _felsAuswahl.Count > 1) FelsSenkrechtDrehen(richtung * (frei ? 1 : Kartenraster.Drehschritt)); // alle um ihre Mitte (Stadtansicht.Felsauswahl.cs)
         else if (WerkstattGewaehlt is EntwurfFels fels) Befehl(() => _entwurf.FelsDrehen(fels, Weiter(fels.Drehung)));
     }
 }

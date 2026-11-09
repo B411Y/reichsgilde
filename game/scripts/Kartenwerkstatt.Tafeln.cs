@@ -19,7 +19,8 @@ public partial class Kartenwerkstatt
     private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
     private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
 
-    private const int Palettenbreite = 312, Leistenbreite = 60, Rechtsbreite = 400, Rand = 16, ObenAb = 80, UntenBis = 92;
+    private const int Palettenbreite = 312, Leistenbreite = 60, Rechtsbreite = 400, Rand = 16, ObenAb = 80, UntenBis = 116;
+    // UntenBis: Platz für die Hinweistafel unten mit drei Zeilen Tastenhilfe (Felsstück, lange Hilfen brechen um), ohne die Tafeln an den Seiten zu überdecken
 
     /// <summary>Die Gruppen der Gebäude im Katalog links: Überschrift und die Arten, die dazugehören (Reihenfolge wie im Fahrplan).</summary>
     private static readonly (string Titel, string[] Arten)[] Katalogteile =
@@ -180,6 +181,7 @@ public partial class Kartenwerkstatt
         _status.Visible = false;
         _bodenInfo = Hauptmenue.Text(spalte, " ", 13, Gold, zentriert: true); // „Höhe 12,4 m · Gefälle 6 %“ unter der Maus
         _hilfe = Hauptmenue.Text(spalte, "", 12, Grau, zentriert: true);
+        _hilfe.AutowrapMode = TextServer.AutowrapMode.WordSmart; // lange Hilfen brechen um, statt rechts abgeschnitten zu werden
         HilfeZeigen();
         PinselInfoBauen();
     }
@@ -239,7 +241,8 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Boden => "Mit gedrückter Maus malen – Radius, Stärke, Kante, Deko und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Strg+Klick: Bodenart aufnehmen",
             Werkstattwerkzeug.Fels => _stadt.FelsModus switch
             {
-                Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück",
+                Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück"
+                                                 + " · danach steht der Gizmo an den neuen Stücken: Griff ziehen, Pfeiltasten schieben, Strg+D kopiert",
                 Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen – Vorlage, Dichte, Größe und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
                 _ => "Mit gedrückter Maus radieren – Radius und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             },
@@ -250,8 +253,10 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
-            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: W verschieben · E drehen · R skalieren (Gizmo ziehen, Strg rastet ein) · Q Welt/Stück · B auf den Boden · Umschalt+Klick wählt mehrere · Entf löscht · Esc nimmt den Zug zurück · Strg+Z/Y",
-            _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
+            // zwei Zeilen, damit sie bei 1280 px ganz zu sehen sind
+            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: Gizmo ziehen (1 verschieben · 2 drehen · 3 skalieren · 4 Welt/Stück, Strg rastet ein; Gruppen 1–4 erst nach Esc) · Q/E dreht · Strg+D kopiert\n"
+                                                              + "Pfeile schieben (Umschalt 1 m, Strg aufs Raster, Alt+oben/unten Höhe) · End/B: auf den Boden · Umschalt+Klick/Rahmen: mehrere, Strg+A: alle · Entf löscht · Esc: Zug zurück · Strg+Z/Y",
+            _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Ziehen ins Leere: Rahmen um Felsen · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
         _hilfe.Text = zeile + "\nMausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen · 1–0 wählt die Gruppe links";
     }
