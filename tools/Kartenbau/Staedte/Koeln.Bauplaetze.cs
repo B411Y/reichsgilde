@@ -32,8 +32,8 @@ public sealed partial class Koeln
         new("WB_Neumarkt3", "Neumarkt", 176, 20, 190, 36, "an der Deutzer Kirchstraße, südöstlich des Platzes"),
         new("WB_Neumarkt4", "Neumarkt", 186, 6, 202, 20, "an der Deutzer Freiheit Richtung Osttor (Südseite)"),
         new("WB_Neumarkt5", "Neumarkt", 192, -20, 208, -6, "an der Deutzer Freiheit Richtung Osttor (Nordseite)"),
-        // Alter Markt (37 | −110): zwei Höfe zwischen Dom und S4 an der neuen Straße Unter Fettenhennen
-        new("WB_AlterMarkt1", "Alter Markt", 0, -92, 16, -78, "an Unter Fettenhennen, südwestlich des Platzes"),
+        // Alter Markt (37 | −110): ein Hof am Ende der Straße Unter Fettenhennen hinter dem Dom (bis 9.11.2026 dazu WB_AlterMarkt1 bei 0 … 16 | −92 … −78;
+        // dort steht seit dem Rathaus am Markt die Werkstatt des Startgrundstücks S4)
         new("WB_AlterMarkt2", "Alter Markt", -20, -102, -6, -86, "am Ende von Unter Fettenhennen, hinter dem Dom"),
     };
 

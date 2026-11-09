@@ -336,7 +336,7 @@ public sealed class Personalwesen
 
     /// <summary>
     /// Was diese Eigenschaft dem Betrieb im Jahr einbringt, mit den Arbeitern und Waren von jetzt (<see cref="Werkstattwesen.MehrgewinnDurch"/>,
-    /// wie bei der Einrichtung). Ohne Gulden-Wirkung (Lager, Razzia, Spuren …) 0.
+    /// wie bei der Einrichtung). Lager, Fänge, Spuren, Einbruch, Razzia, Streife und Geleit erst mit <c>werkstatt.jedeWirkungRechnen</c> (Datenversion 79), sonst 0.
     /// </summary>
     public double MehrgewinnJeJahr(Betrieb b, string kennung) =>
         b.EigenschaftVon(kennung) is { } e ? _w.Werkstaetten.MehrgewinnDurch(b, e.Wirkung) : 0;
