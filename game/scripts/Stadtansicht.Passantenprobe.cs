@@ -106,6 +106,13 @@ public partial class Stadtansicht
     /// <summary>Hauben und Gebende: ungebleichtes Leinen und gefärbtes Tuch. Klicktest NAS 09.11.: das Beige (0,62/0,56/0,44) lag zu nah an der Haut,
     /// die Haube las sich als Glatze; darum dunkler und kühler, dazu mehr gefärbte (Ocker, Blassblau, Rötlich, Moosgrün, Dunkelbraun). Am Modell
     /// setzen sich Hauben zusätzlich mit Saum und Haaransatz ab (passanten_probe.py).</summary>
+    /// <summary>Hauben der Frauen (Vorlage des Nutzers, NAS-Klicktest 09.11.: im Spiel grau, beige oder rosa statt ocker): eigene Auswahl aus Ocker
+    /// und Abwandlungen – Ocker, Senf, dunkles Ocker, helles Ocker, Blassblau, Rostrot; meist Ocker. Der weiße Innenrand ist fest im Modell.</summary>
+    private static readonly Color[] ProbeHauben =
+    {
+        new(0.72f, 0.50f, 0.18f), new(0.66f, 0.46f, 0.16f), new(0.70f, 0.56f, 0.16f), new(0.58f, 0.40f, 0.14f), new(0.78f, 0.58f, 0.24f),
+        new(0.72f, 0.50f, 0.18f), new(0.42f, 0.52f, 0.66f), new(0.62f, 0.30f, 0.18f),
+    };
     private static readonly Color[] ProbeLeinen =
     {
         new(0.50f, 0.47f, 0.38f), new(0.46f, 0.43f, 0.35f), new(0.55f, 0.52f, 0.43f),
@@ -161,6 +168,7 @@ public partial class Stadtansicht
                 : eigeneFarbe ? aussehen.Gewand : ProbeGewandFuer(rolle, nummer),
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
             Kopffarbe = festeKopffarbe ? aussehen.Kopffarbe
+                : aussehen.Frau && daten.Varianten[variante] is "haube" or "bettler" ? ProbeHauben[Streuung(nummer, 227) % ProbeHauben.Length]
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
             Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
@@ -263,13 +271,13 @@ public partial class Stadtansicht
         var linear = srgb;
         var i = _probePalette.IndexOf(linear);
         if (i >= 0) return i;
-        if (_probePalette.Count >= 63) return 0; // die Palette im Shader hat 64 Plätze
+        if (_probePalette.Count >= 127) { _probePaletteVoll = true; return 0; } // die Palette im Shader hat 128 Plätze (64 liefen über, 09.11.)
         _probePalette.Add(linear);
         _probePaletteNeu = true;
         return _probePalette.Count - 1;
     }
 
-    private bool _probePaletteNeu;
+    private bool _probePaletteNeu, _probePaletteVoll;
 
     /// <summary>Umkreis (Meter) um die Ego-Kamera, in dem Probefiguren auch in der VAT-Stufe mit Skelett gezeichnet werden (Nutzer 09.11.).</summary>
     private const float ProbeEgoNahRadius = 15f;
@@ -814,7 +822,7 @@ public partial class Stadtansicht
 
     private Color[] ProbePaletteFuerShader()
     {
-        var aus = new Color[64];
+        var aus = new Color[128];
         for (var i = 0; i < _probePalette.Count; i++) aus[i] = _probePalette[i];
         return aus;
     }
@@ -827,17 +835,18 @@ public partial class Stadtansicht
         var netzName = $"{tracht.Art}:{(_probeFern ? "Fern" : "Nah")}_{ProbeArten[tracht.Art].Varianten[tracht.Variante]}";
         var (_, bilder) = _probeKlipZeilen[tracht.Art][klip];
         var bild = (float)(f.Phase / f.Dauer * bilder); // Stand in der Schleife, in Bildern
-        var farben = tracht.Gewand + 64f * tracht.Beinkleid + 4096f * tracht.Haut + 262144f * tracht.Haar;
+        var farben = tracht.Gewand + 128f * tracht.Beinkleid + 16384f * tracht.Haut;
+        var haar = tracht.Haar + (tracht.Bart ? 128f : 0f);
         var xf = f.Modell.GlobalTransform;
-        Eintragen(netzName, xf, bild, klip + 16f * tracht.Kopf + (tracht.Bart ? 1024f : 0f), farben); // y: Clip, Kopffarbe, Bart (figur_vat.gdshader)
-        Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben); // Füße (nah und fern dieselben)
+        Eintragen(netzName, xf, bild, klip + 16f * tracht.Kopf, farben, haar); // y: Clip und Kopffarbe, z: Farben, w: Haar und Bart (figur_vat.gdshader)
+        Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
-        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben); // Berufszubehör
+        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Berufszubehör
         _probeGezeichnet++;
     }
 
-    private void Eintragen(string netzName, Transform3D xf, float bild, float klipUndKopf, float farben)
+    private void Eintragen(string netzName, Transform3D xf, float bild, float klipUndKopf, float farben, float haar = 0f)
     {
         if (_probeVatNetze is null || !_probeVatNetze.TryGetValue(netzName, out var v)) return;
         var mm = v.Knoten.Multimesh;
@@ -855,7 +864,7 @@ public partial class Stadtansicht
         p[i + 0] = b.X.X; p[i + 1] = b.Y.X; p[i + 2] = b.Z.X; p[i + 3] = xf.Origin.X;
         p[i + 4] = b.X.Y; p[i + 5] = b.Y.Y; p[i + 6] = b.Z.Y; p[i + 7] = xf.Origin.Y;
         p[i + 8] = b.X.Z; p[i + 9] = b.Y.Z; p[i + 10] = b.Z.Z; p[i + 11] = xf.Origin.Z;
-        p[i + 12] = bild; p[i + 13] = klipUndKopf; p[i + 14] = farben; p[i + 15] = 0;
+        p[i + 12] = bild; p[i + 13] = klipUndKopf; p[i + 14] = farben; p[i + 15] = haar;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -899,6 +908,10 @@ public partial class Stadtansicht
             var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * 1.6f);
             var art = ProbeKlipOption ?? (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
             var richtung = zeile % 2 == 0 ? Vector3.Right : Vector3.Left;
+            // nicht ins Wasser, nicht in Gebäude, Stände und den Brunnen (NAS 09.11.: Messfiguren im Brunnenbecken am Heumarkt)
+            var strecke = art is "Gehen" or "Tragen" ? 8f : 0f;
+            if (ProbeMessPlatz(anfang, richtung, strecke) is not { } platz) { _probeMessAusgelassen++; continue; }
+            (anfang, strecke) = platz;
             var knoten = new Node3D { Name = $"Probefigur_{i}" };
             _passantenEbene.AddChild(knoten);
             var aussehen = AussehenAusNummer(i * 4 + (i % 7 == 0 ? 1 : 0)); // meist Menschen, Farben gestreut
@@ -907,9 +920,41 @@ public partial class Stadtansicht
             if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
             if (!_passantenSchatten) FigurSchatten(figur, false);
             var tempo = art == "Tragen" ? 0.9f : 1.3f;
-            _probeMessfiguren.Add(new ProbeMessfigur(knoten, figur, anfang, richtung, 8f, tempo, art));
+            _probeMessfiguren.Add(new ProbeMessfigur(knoten, figur, anfang, richtung, Math.Max(strecke, 0.01f), tempo, art));
         }
-        GD.Print($"[passantenprobe] {_probeMessfiguren.Count} Messfiguren um ({mitte.X:0}, {mitte.Z:0}) gesetzt");
+        GD.Print($"[passantenprobe] {_probeMessfiguren.Count} Messfiguren um ({mitte.X:0}, {mitte.Z:0}) gesetzt, {_probeMessAusgelassen} ohne freien Platz ausgelassen");
+    }
+
+    private int _probeMessAusgelassen;
+
+    /// <summary>
+    /// Freier Platz für eine Messfigur: Anfang und (bei Gehenden) die ganze Strecke frei von Wasser ohne Brücke, Gebäuden und – auf dem Markt –
+    /// Ständen, Brunnen, Bänken und Kreuz (dieselben Abfragen wie die Passanten: <see cref="PunktFrei"/>, <c>Marktflaeche.Frei</c>). Sonst ein
+    /// Stück quer versetzt oder mit halber Strecke; null, wenn nichts frei ist.
+    /// </summary>
+    private (Vector3 Anfang, float Strecke)? ProbeMessPlatz(Vector3 anfang, Vector3 richtung, float strecke)
+    {
+        bool Frei(Vector3 p)
+        {
+            if (GewaesserForm is { IstLeer: false } wasser && wasser.IstWasser(p.X, p.Z) && DeckHoehe(p.X, p.Z) is null) return false;
+            var platz = PlatzBei(p);
+            if (platz?.Flaeche is { } f && f.Frei(p.X, p.Z) < 0.6f) return false;
+            return PunktFrei(p, platz);
+        }
+        bool StreckeFrei(Vector3 a, float s)
+        {
+            for (var d = 0f; d <= s + 1e-3f; d += 1f) if (!Frei(a + richtung * d)) return false;
+            return true;
+        }
+        var quer = new Vector3(-richtung.Z, 0, richtung.X);
+        for (var k = 0; k < 9; k++)
+        {
+            var versatz = (k % 2 == 0 ? 1 : -1) * ((k + 1) / 2) * 0.8f;
+            var a = anfang + quer * versatz;
+            if (StreckeFrei(a, strecke)) return (a, strecke);
+            if (strecke > 0 && StreckeFrei(a, strecke / 2)) return (a, strecke / 2);
+        }
+        return null;
     }
 
     /// <summary>Jedes Bild: Messfiguren bewegen (Lage auf der Strecke, Pose über die Sparregeln der Figuren) und alle 10 s eine Messzeile.</summary>
@@ -982,7 +1027,7 @@ public partial class Stadtansicht
         GD.Print($"[passantenprobe] Im Bild gehend {gehend}, davon seit 10 s ohne Fortschritt {still}; nah vor der Ego-Kamera mit Skelett {_passanten.Values.Count(p => p.Figur is { ProbeNah: true })}");
         var zubehoer = _probeTrachten.Values.SelectMany(z => z.Zubehoer).GroupBy(z => z).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
         var varianten = _probeTrachten.Values.GroupBy(z => ProbeArten[z.Art].Varianten[z.Variante]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
-        GD.Print($"[passantenprobe] Varianten: {string.Join(", ", varianten)}; Zubehör: {string.Join(", ", zubehoer)}");
+        GD.Print($"[passantenprobe] Varianten: {string.Join(", ", varianten)}; Zubehör: {string.Join(", ", zubehoer)}; Farbpalette {_probePalette.Count} von 128{(_probePaletteVoll ? ", ÜBERGELAUFEN" : "")}");
         _probeMeldeZeit = 0;
         _probeMs = 0;
         _probeBilder = 0;

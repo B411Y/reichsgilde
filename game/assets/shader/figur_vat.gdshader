@@ -1,7 +1,8 @@
 // Probefiguren „Weg A“ als gebackene Vertex-Animation (VAT) im MultiMesh (Stadtansicht.Passantenprobe.cs): ab Zoom 50 statt Skelett.
 // Die Lage jeder Ecke (Modellraum, Halbfloat) und ihre Normale stehen je Bild der Clips in zwei Texturen: Spalte = Eckennummer (UV2.x),
-// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 16 × Kopffarbe + 1024 × Bart,
-// z = Farben (Gewand + 64 × Beinkleid + 4096 × Haut + 262144 × Haar, je ein Platz in „farben“). Zonen und feste Farben wie figur.gdshader.
+// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 16 × Kopffarbe,
+// z = Gewand + 128 × Beinkleid + 16384 × Haut, w = Haar + 128 × Bart (je ein Platz in „farben“, 128 Plätze; 09.11.: mit 64 Plätzen lief die
+// Palette über und Hauben bekamen Platz 0). Zonen und feste Farben wie figur.gdshader.
 // Stoffe: UV.y = Art + 16 × (Schicht der Material-Bibliothek + 1) wie bei den Modellen; „tuch“ und „leder“ bekommen die Farbe ihrer Schicht
 // aus modelle_farbe_hoehe (dreiseitig im Modellraum, geteilt durch die mittlere Farbe der Schicht) – eine einfache Fassung von oberflaeche.gdshader.
 shader_type spatial;
@@ -10,7 +11,7 @@ render_mode cull_disabled;
 uniform sampler2D lage : filter_nearest, repeat_disable;
 uniform sampler2D normale : filter_nearest, repeat_disable;
 uniform vec2 klips[16];          // erste Zeile und Bildzahl je Clip
-uniform vec4 farben[64];        // Palette (linear), vom Spiel gefüllt
+uniform vec4 farben[128];        // Palette (linear), vom Spiel gefüllt
 uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap;
 uniform int stoff_schicht[2];   // Schicht von „tuch“ und „leder“ (−1 = keine)
 uniform float stoff_kachel[2];  // Meter je Kachel
@@ -29,7 +30,7 @@ varying flat vec3 f_kopf;
 varying flat float f_bart;
 
 vec3 farbe_aus(int i, bool srgb) {
-	vec3 c = farben[clamp(i, 0, 63)].rgb;
+	vec3 c = farben[clamp(i, 0, 127)].rgb;
 	if (srgb) {
 		c = mix(1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, c * 12.92, lessThan(c, vec3(0.0031308)));
 	}
@@ -67,12 +68,13 @@ void vertex() {
 	}
 	int f = int(round(INSTANCE_CUSTOM.z));
 	bool srgb = OUTPUT_IS_SRGB;
-	f_gewand = farbe_aus(f % 64, srgb);
-	f_beinkleid = farbe_aus((f / 64) % 64, srgb);
-	f_haut = farbe_aus((f / 4096) % 64, srgb);
-	f_haar = farbe_aus((f / 262144) % 64, srgb);
-	f_kopf = farbe_aus((code / 16) % 64, srgb);
-	f_bart = float(code / 1024); // Bart an (Zone 6 in Haarfarbe) – sonst Haut
+	int h = int(round(INSTANCE_CUSTOM.w));
+	f_gewand = farbe_aus(f % 128, srgb);
+	f_beinkleid = farbe_aus((f / 128) % 128, srgb);
+	f_haut = farbe_aus((f / 16384) % 128, srgb);
+	f_haar = farbe_aus(h % 128, srgb);
+	f_kopf = farbe_aus((code / 16) % 128, srgb);
+	f_bart = float(h / 128); // Bart an (Zone 6 in Haarfarbe) – sonst Haut
 }
 
 void fragment() {
