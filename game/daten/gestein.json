@@ -19,6 +19,8 @@
     "schutt_farbe": "Farbe von Schutt und Sand am Fuß (für F6, Boden um den Fels; auch der Fuß der Stücke nimmt sie an, Fels R1)",
     "eisen": "Anteil der Bänke mit Eisenfarbe und Stärke der rostigen Auswaschung unter den Fugen (Fels R1)",
     "eisen_farbe": "Farbe der eisenhaltigen Bänke und Streifen",
+    "einsprenglinge": "Menge der hellen Feldspat-Tafeln (Sanidin, 1–3 cm) im Gestein, 0 = keine (Trachyt; Felsen R7)",
+    "einsprenglinge_farbe": "Farbe der Einsprenglinge",
     "formen": "Felsformen, die zu der Art passen: Kennungen der Karte (felsen.stuecke[].form, Felsformen im Kern), ein Test prüft sie"
   },
   "moos_farbe": "#46512a",
@@ -53,8 +55,8 @@
       "kennung": "trachyt",
       "name": "Trachyt",
       "herkunft": "Siebengebirge (Drachenfels)",
-      "farbe_hell": "#b9aa8a",
-      "farbe_dunkel": "#7a6b52",
+      "farbe_hell": "#9d958e",
+      "farbe_dunkel": "#5f5852",
       "band_winkel": 0,
       "band_richtung": 0,
       "band_dicke": 1.4,
@@ -67,9 +69,11 @@
       "flechten": 0.55,
       "flechte_farbe": "#b9ae4a",
       "efeu": 0.3,
-      "schutt_farbe": "#968a72",
+      "schutt_farbe": "#8b847b",
       "eisen": 0.15,
       "eisen_farbe": "#a07a4a",
+      "einsprenglinge": 0.6,
+      "einsprenglinge_farbe": "#d9d0c6",
       "formen": ["wand", "felsnase", "block", "schuttbrocken"]
     },
     {

@@ -15,7 +15,8 @@
 // Klüfte und Farbe laufen über Stückgrenzen durch, eine Wand aus vielen Stücken liest sich als eine Masse. Neigung und Richtung der Bänke kommen
 // aus gestein.json (band_winkel, band_richtung), ihre Dicke wellt sich über große Strecken.
 // Makrovariation (R1): großflächige Helligkeit und Farbton (Wellenlängen etwa 15 und 60 m), einzelne Bänke mit Eisenfarbe (gestein.json: eisen),
-// Auswaschung unter jeder Fuge und dunkle Wasserstreifen auf steilen Flächen.
+// Auswaschung unter jeder Fuge und dunkle Wasserstreifen auf steilen Flächen. Einsprenglinge (R7, gestein.json: einsprenglinge): helle
+// Feldspat-Tafeln wie im Trachyt des Drachenfels, nah als einzelne Kristalle, weit weg nur als Aufhellung.
 // Fuß (R1): Die Höhe über dem Gelände kommt aus dem Höhenbild der Felsen (fels_gelaende, Stadtansicht.Felsgelaende.cs) an der Weltlage jedes
 // Bildpunkts – auch bei großen, gekippten Stücken am Hang stimmt sie. In den untersten 0,35–1 m (20 % der Höhe des Stücks, INSTANCE_CUSTOM.y)
 // nimmt der Fels die Farbe des Bodens an (Erde, Schutt der Gesteinsart, Moos), mit ausgefranster Grenze, und am Boden liegt eine dunkle Fuge.
@@ -67,6 +68,8 @@ uniform float spaltrillen = 0.5;
 uniform float rillen_abstand = 0.35;
 uniform float eisen = 0.0;                   // Anteil der Bänke mit Eisenfarbe und Stärke der rostigen Auswaschung (0 … 1)
 uniform vec4 eisen_farbe : source_color = vec4(0.62, 0.36, 0.2, 1.0);
+uniform float einsprenglinge = 0.0;          // Menge der hellen Feldspat-Tafeln (Trachyt, R7), 0 = keine
+uniform vec4 einsprengling_farbe : source_color = vec4(0.85, 0.82, 0.78, 1.0);
 uniform float fuss_hoehe = 0.8;              // so hoch (m) nimmt der Fels am Fuß die Farbe des Bodens an (ohne Höhe des Stücks)
 
 // Das Gelände unter den Felsen (Stadtansicht.Felsgelaende.cs): Höhe in Metern je Rasterpunkt (2 m); fels_gelaende_feld = Welt-X/Z der Ecke
@@ -242,6 +245,20 @@ void fragment() {
 	farbe *= mix(0.74, 1.2, m60 * 0.55 + m15 * 0.45);
 	farbe = mix(farbe * vec3(0.94, 0.98, 1.05), farbe * vec3(1.07, 1.0, 0.88), smoothstep(0.3, 0.7, m15 * 0.6 + (1.0 - m60) * 0.4));
 	farbe = mix(farbe, eisen_farbe.rgb * (0.65 + 0.55 * h), bankEisen * (0.3 + 0.25 * m15) * eisen);
+	// Einsprenglinge (R7): Feldspat-Tafeln im Trachyt (Sanidin, 1–3 cm, hell mit leichtem Rosa) – je Zelle von 9 cm höchstens eine längliche
+	// Tafel in zufälliger Richtung, in Weltlage. Ist ein Bildpunkt größer als ein Kristall (ab etwa 2 cm je Bildpunkt), bleibt nur ihr Flächenanteil
+	// als leichte Aufhellung, sonst flimmerten sie.
+	if (einsprenglinge > 0.0) {
+		vec3 zi = floor(p * 11.0);
+		vec3 zf = fract(p * 11.0) - 0.5;
+		vec3 achse = normalize(vec3(hash1(zi + 1.1), hash1(zi + 2.2), hash1(zi + 3.3)) - 0.5 + 1e-3);
+		float laengs = dot(zf, achse);
+		float tafel = max(abs(laengs) / 0.3, length(zf - achse * laengs) / 0.11);
+		float kristall = (1.0 - smoothstep(0.7, 1.0, tafel)) * step(1.0 - 0.45 * einsprenglinge, hash1(zi + 7.3));
+		float nahK = 1.0 - smoothstep(0.012, 0.03, length(fwidth(p)));
+		float anteil = mix(0.035 * einsprenglinge, kristall, nahK);
+		farbe = mix(farbe, einsprengling_farbe.rgb * (0.85 + 0.3 * h), anteil * 0.85);
+	}
 	float ao = 1.0 - 0.55 * fugeMaske - 0.6 * kluft - 0.35 * (1.0 - h) * (1.0 - h);
 	float rau = rauheit;
 	if (f1_netz) {

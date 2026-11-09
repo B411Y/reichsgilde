@@ -5,7 +5,7 @@ namespace Reichsgilde.Core.Bauen;
 // ═════════════════════════════════════════════════════════════════════════════
 //  „Hang mitformen“ (Fels-Plan R5, 02.11.2026)
 //
-//  Die großen Stücke des Felswand-Satzes haben eine offene Rückseite: Sie sollen im Hang stecken, nicht auf der Wiese stehen. Ist im Felspinsel
+//  Die großen Stücke des Felswand-Satzes haben hinten nur eine grobe Bruchfläche (seit R7 geschlossen): Sie sollen im Hang stecken, nicht auf der Wiese stehen. Ist im Felspinsel
 //  das Häkchen „Hang mitformen“ gesetzt (Felspinsel.HangFormen, Vorgabe aus), hebt der Stempel das Gelände hinter und neben den Wänden an:
 //    • Hinter der Fußlinie des Stücks (wo seine Vorderseite am Boden steht) bleibt das Gelände zunächst, wie es ist – erst 2,5 m dahinter
 //      (Felshang.Vorlauf) beginnt es zu steigen, sonst stäche es durch die Vorderseite. Von dort steigt es in einer S-Kurve (ohne Knick) bis zur

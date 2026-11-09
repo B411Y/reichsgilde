@@ -13,6 +13,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //    Boden mit; DY und Drehungen um x oder z ändern den Versatz.
 //  • FelsEinrasten: auf den Boden setzen (der tiefste Punkt der Unterkante steckt Einsinken · Höhe tief), wahlweise an der Hangnormale ausgerichtet.
 //  • FelsNeuWuerfeln: wie „Reapply“ im Foliage-Werkzeug von Unreal – gesetzte Stücke mit den Zufallsbereichen des Pinsels neu würfeln.
+//  • FelsKopieren (Fels P2): Stücke kopieren, die Kopien hinten an die Liste (Strg+D in der Werkstatt).
+//  • FelsSchieben (Fels P2): Pfeiltasten – kleine Schübe, eine Folge davon ist ein Schritt (zusammengefasst).
 //  Der Boden um den Fels (Felsboden) bleibt dabei liegen, wie beim Verschieben und Drehen (entschieden 02.11.2026).
 //  Alles gerundet wie in der Datei; Winkel über DetMathe (Felsraum) – gleiche Befehle, gleiche Bytes auf jedem Rechner.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -241,6 +243,83 @@ public sealed partial class Kartenentwurf
                 Neigung: Ja(Felswurf.Neigung) ? l.Neigung : null, Einsinken: Ja(Felswurf.Einsinken) ? l.Einsinken : null)));
         }
         FelsTransformieren(werte, "neu gewürfelt");
+    }
+
+    // ── Kopieren (Fels P2) ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Kopiert Stücke (Strg+D in der Werkstatt, wie „Duplicate“ in Unreal): Jede Kopie hat alle Werte ihres Vorbilds (Form, Gestein, Lage, Drehung,
+    /// Größe, Einsinken, Versatz, unbekannte Felder der Datei) und liegt um <paramref name="dx"/>/<paramref name="dz"/> Meter versetzt – ohne Versatz
+    /// genau auf ihm, der Gizmo schiebt sie dann weg. Die Kopien kommen in der Reihenfolge des Entwurfs hinten an die Liste; den Boden um den Fels
+    /// und den Hang ändern sie nicht. Ein Schritt; leer, wenn keins der Stücke im Entwurf ist.
+    /// </summary>
+    public IReadOnlyList<EntwurfFels> FelsKopieren(IEnumerable<EntwurfFels> felsen, double dx = 0, double dz = 0)
+    {
+        FelsStrichBeenden();
+        BodenStrichBeenden();
+        var neue = new List<EntwurfFels>();
+        foreach (var f in Geordnet(felsen))
+        {
+            var kopie = (EntwurfFels)f.KopieTeil();
+            if (dx != 0 || dz != 0) (kopie.X, kopie.Z) = (Kartenraster.Punkt(f.X + dx), Kartenraster.Punkt(f.Z + dz));
+            neue.Add(kopie);
+        }
+        if (neue.Count == 0) return neue;
+        var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
+        Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke kopiert", befehle));
+        return neue;
+    }
+
+    // ── Schieben mit den Pfeiltasten (Fels P2) ──────────────────────────────
+
+    /// <summary>
+    /// Der zuletzt gemachte Schub: sein Schritt in der Geschichte, die Stücke (Reihenfolge des Entwurfs), der Versatz insgesamt auf dem Boden und je
+    /// Stück der Höhenversatz, der wirklich ankam (an <see cref="Felsformen.VersatzMax"/> gekappt – sonst bräuchte der Rückweg erst die Tastendrücke
+    /// über der Grenze).
+    /// </summary>
+    private (IKartenbefehl Befehl, EntwurfFels[] Felsen, double DX, double[] DY, double DZ)? _schub;
+
+    /// <summary>
+    /// Schiebt Stücke um <paramref name="dx"/>, <paramref name="dy"/> (Höhenversatz) und <paramref name="dz"/> Meter (Pfeiltasten der Werkstatt). Mit
+    /// <paramref name="zusammenfassen"/> wird ein Schub, der direkt auf einen Schub derselben Stücke folgt (nichts dazwischen in der Geschichte, nichts
+    /// zum Wiederholen), mit ihm zu <b>einem</b> Schritt: Der alte Schritt wird zurückgenommen und durch einen mit dem Versatz beider ersetzt – ein
+    /// Strg+Z nimmt die ganze Tastenfolge zurück. Ob die Schübe „kurz hintereinander“ kamen, entscheidet der Aufrufer (der Kern kennt keine Uhrzeit).
+    /// Gerundet wie <see cref="FelsTransformieren(IEnumerable{EntwurfFels}, Felsaenderung)"/>. False: nichts geändert (oder der Schub hob den vorigen auf).
+    /// </summary>
+    public bool FelsSchieben(IEnumerable<EntwurfFels> felsen, double dx, double dy, double dz, bool zusammenfassen)
+    {
+        FelsStrichBeenden();
+        var liste = Geordnet(felsen);
+        if (liste.Count == 0 || (dx == 0 && dy == 0 && dz == 0)) return false;
+        var (sx, sz) = (dx, dz);
+        var sy = liste.Select(_ => dy).ToArray();
+        if (zusammenfassen && _schub is { } alt && ReferenceEquals(Geschichte.LetzterOhneWiederholen, alt.Befehl)
+            && alt.Felsen.Length == liste.Count && alt.Felsen.Zip(liste).All(p => ReferenceEquals(p.First, p.Second)))
+        {
+            Geschichte.LetztenVerwerfen(); // die Stücke stehen wieder wie vor der Tastenfolge
+            (sx, sz) = (alt.DX + dx, alt.DZ + dz);
+            for (var i = 0; i < sy.Length; i++) sy[i] = alt.DY[i] + dy;
+        }
+        _schub = null;
+        var vorher = Geschichte.LetzterOhneWiederholen;
+        // Lage auf dem Boden für alle gleich; die Höhe je Stück (ohne Drehen und Skalieren rechnet FelsWerte am Boden: Versatz + DY)
+        var start = liste.Select(f => f.Versatz).ToArray();
+        var (boden, _) = FelsWerte(liste, new Felsaenderung(DX: sx, DZ: sz));
+        var werte = boden.Select((p, i) => (p.Item1, p.Item2 with { Versatz = sy[i] != 0 ? start[i] + sy[i] : null })).ToList();
+        FelsTransformieren(werte, "geschoben");
+        var befehl = Geschichte.LetzterOhneWiederholen;
+        if (befehl is null || ReferenceEquals(befehl, vorher))
+        {
+            MeldungenAusloesen(); // nur verworfen (die Folge hob sich auf): die Stücke stehen wieder am alten Platz
+            return false;
+        }
+        // gemerkt wird, was ankam: über der Grenze nur der Weg bis zu ihr (ungekappt bliebe die Summe exakt wie bisher)
+        var angekommen = new double[sy.Length];
+        for (var i = 0; i < sy.Length; i++)
+            angekommen[i] = start[i] + sy[i] > Felsformen.VersatzMax ? Felsformen.VersatzMax - start[i]
+                : start[i] + sy[i] < -Felsformen.VersatzMax ? -Felsformen.VersatzMax - start[i] : sy[i];
+        _schub = (befehl, liste.ToArray(), sx, angekommen, sz);
+        return true;
     }
 
     // ── Hilfen ───────────────────────────────────────────────────────────────
