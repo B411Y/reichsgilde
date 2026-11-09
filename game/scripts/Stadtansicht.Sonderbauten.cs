@@ -379,6 +379,32 @@ public partial class Stadtansicht
         Beschriftung(g.Name, new Vector3(0, (float)(g.Baustein.SchildHoehe ?? hoehe + 6), 0), 44, modell.Wurzel, kennung);
     }
 
+    /// <summary>
+    /// Text für die Auswahl eines Gebäudes der Karte ohne eigene Tafel (Kennung <c>karte:&lt;Kennung&gt;</c>: die Kirchen mit Modell und die Blöcke
+    /// ohne Modell): Name, bei den Kölner Kirchen eine Zeile Geschichte um 1400. Null, wenn die Kennung keine solche ist.
+    /// </summary>
+    public string? KartenText(string kennung)
+    {
+        if (!kennung.StartsWith("karte:") || _karte is null) return null;
+        var k = kennung["karte:".Length..];
+        var g = _karte.Gebaeude.FirstOrDefault(x => x.Kennung == k);
+        if (g is null) return null;
+        var name = string.IsNullOrEmpty(g.Name) ? g.Baustein?.Name ?? k : g.Name;
+        if (KirchenGeschichte.TryGetValue(g.Katalog, out var geschichte))
+            return $"{name}\n\n{geschichte}\n\nEin Innenraum folgt später; zur Messe leuchten die Fenster.";
+        return $"{name}\n\nEin Gebäude der Stadt.";
+    }
+
+    /// <summary>Eine Zeile zu jeder der fünf Kölner Kirchen, Stand um 1400 (Tafeltext bei Klick, <see cref="KartenText"/>).</summary>
+    private static readonly Dictionary<string, string> KirchenGeschichte = new()
+    {
+        ["kirche_gross_st_martin"] = "Benediktinerabtei am Rhein; nach dem Brand von 1378 trägt der Vierungsturm ein Notdach.",
+        ["kirche_st_gereon"] = "Stiftskirche über römischen Gräbern, berühmt für ihr zehneckiges Langhaus.",
+        ["kirche_st_aposteln"] = "Stiftskirche am Neumarkt mit Kleeblattchor und Laternenturm.",
+        ["kirche_st_severin"] = "Stiftskirche im Süden der Stadt; der Westturm wird seit 1393 neu gebaut, der Tretradkran steht noch daneben.",
+        ["kirche_st_kunibert"] = "Spätromanische Stiftskirche am Rhein im Norden der Stadt.",
+    };
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Dom
     // ═════════════════════════════════════════════════════════════════════════
