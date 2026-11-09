@@ -2,10 +2,10 @@
 // Ein Vollbild-Viereck vor der Kamera mit der kleinsten Zeichenreihenfolge der durchsichtigen Teile: Wasser, Feuer, Rauch, Regen und Nebel werden danach
 // darüber gezeichnet und behalten ihre Original-Behandlung. Der Himmel (Tiefe 0) wird nicht angefasst. Farben bleiben Original (kein Farbstich), nur die
 // Helligkeit wird skaliert. Die Bildpunkte sind Weltpixel (1/N der Fensterauflösung); das Raster der Texel ergibt sich aus dem Low-Res-Bild selbst.
-//   1. Stufenlicht: Die Stufen kommen aus dem LICHT, nicht aus der Endhelligkeit: ein zweiter Durchgang (SubViewport, Debug-Zeichnung „Beleuchtung“,
-//      weiße Oberflächen) liefert nur die Beleuchtung L. Sie wird in Stufen gesetzt; das Bild wird mit Lstufe / L skaliert (gleicher Farbton). Damit bleibt
+//   1. Stufenlicht: Die Stufen kommen aus dem LICHT, nicht aus der Endhelligkeit: ein zweiter Durchgang (SubViewport, Debug-Zeichnung „Unbeleuchtet“, reine Eigenfarbe;
+//      „Beleuchtung“ gibt es nur in Debug-Builds) liefert zusammen mit dem Bild die Beleuchtung L = Bild / Eigenfarbe. Sie wird in Stufen gesetzt; das Bild wird mit Lstufe / L skaliert (gleicher Farbton). Damit bleibt
 //      ein dunkles Dach (dunkle Farbe, volles Licht) dunkel und wird nicht zur Schattenstufe.
-//   2. Weiche Schattenkante: an Kanten des Beleuchtungsbildes wird über gleichtiefe Nachbarn gemittelt und feiner gestuft.
+//   2. Weiche Schattenkante: an Kanten der Beleuchtung wird über gleichtiefe Nachbarn gemittelt und feiner gestuft.
 //   3. Umrisse (wie t3ssel8r): dunkle Außenkontur auf der NÄHEREN Seite eines Tiefensprungs (1 Weltpixel, Eigenfarbe abgedunkelt), dünne Teile (Zaun,
 //      Gerüst) bekommen nur einen halben Strich; helle Innenkanten an KONVEXEN Normalenknicken (Dachfirst, Hausecke).
 //   4. Tiefendunst: Ferne hinter der Brennebene der Kamera wird exponentiell heller und blasser (Luftperspektive).
@@ -17,7 +17,7 @@ render_mode unshaded, depth_test_disabled, cull_disabled, skip_vertex_transform,
 uniform sampler2D tiefe : hint_depth_texture, filter_nearest;
 uniform sampler2D normalen : hint_normal_roughness_texture, filter_nearest;
 uniform sampler2D bild : hint_screen_texture, filter_nearest, repeat_disable;
-uniform sampler2D licht : filter_nearest, repeat_disable;   // Beleuchtung allein (SubViewport), vom Skript gesetzt
+uniform sampler2D albedo : filter_nearest, repeat_disable;   // reine Eigenfarbe (SubViewport, Zeichnung „Unbeleuchtet“), vom Skript gesetzt
 
 uniform float ortho_groesse = 0.0;     // vom Skript: sichtbare Höhe in Metern bei orthografischer Kamera, sonst 0
 uniform float fov_faktor = 1.0;        // vom Skript: 2 * tan(Sichtfeld / 2) bei perspektivischer Kamera
@@ -28,6 +28,7 @@ uniform vec3 dunst_farbe = vec3(0.55, 0.6, 0.68);   // vom Skript: bei Nacht dun
 
 const int STUFEN = 3;
 const float LICHT_DUNKEL = 0.25;       // Beleuchtung der untersten Stufe (Schatten)
+const float LICHT_BEZUG = 0.44;        // Beleuchtung der Zeichnung „Beleuchtung“ (Editor, früher) je Einheit Bild / Eigenfarbe: gemessen an Sonne und Schatten (Faktor 0,39 bis 0,47)
 const float LICHT_HELL = 0.95;         // Beleuchtung der obersten Stufe (volles Sonnenlicht)
 const float DUESTER = 0.12;            // Düsternis: Anteil, um den alles dunkler wird
 const float UMRISS_DUNKEL = 0.4;       // Außenkontur: Eigenfarbe mal diesem Faktor
@@ -51,8 +52,13 @@ vec3 ansichtsort(float d, mat4 inv_proj, vec2 uv) {
 	return v.xyz / v.w;
 }
 
+// Beleuchtung L an einem Bildpunkt = Bild / Eigenfarbe (Bild: linear vor dem Tonemapping, Eigenfarbe: das Unbeleuchtet-Bild, linear gemacht), mal LICHT_BEZUG. Auf 1 begrenzt wie die Anzeige; sehr dunkle Eigenfarben (kaum Information) werden gedeckelt.
+// Hilfsflächen-Zwillinge (Stadtansicht.Pixel.cs) zeichnen Magenta: „volles Licht, nicht stufen“.
 float licht_l(vec2 u) {
-	return lum(pow(max(texture(licht, u).rgb, vec3(0.0)), vec3(2.2)));
+	vec3 a = max(texture(albedo, u).rgb, vec3(0.0));
+	if (a.r > 0.9 && a.g < 0.1 && a.b > 0.9) return LICHT_HELL * lichtskala;
+	float al = max(lum(pow(a, vec3(2.2))), 0.03);
+	return min(lum(textureLod(bild, u, 0.0).rgb) / al * LICHT_BEZUG, 1.0);
 }
 
 float stufe_von(float l, float n, float dunkel, float hell) {
