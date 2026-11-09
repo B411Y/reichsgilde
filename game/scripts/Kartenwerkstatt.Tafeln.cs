@@ -251,7 +251,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
-            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: Gizmo ziehen (R verschieben · T drehen · Z skalieren · U Welt/Stück, Strg rastet ein) · Pfeiltasten schieben (Umschalt 1 m, Strg aufs Raster, Alt+oben/unten Höhe) · End oder B auf den Boden · Q/E dreht · Strg+D kopiert · "
+            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: Gizmo ziehen (1 verschieben · 2 drehen · 3 skalieren · 4 Welt/Stück, Strg rastet ein; Gruppen 1–4 erst nach Esc) · Pfeiltasten schieben (Umschalt 1 m, Strg aufs Raster, Alt+oben/unten Höhe) · End oder B auf den Boden · Q/E dreht · Strg+D kopiert · "
                                                               + "Umschalt+Klick oder Rahmen (Ziehen ins Leere) wählt mehrere, Strg+A alle · Entf löscht · Esc nimmt den Zug zurück · Strg+Z/Y",
             _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Ziehen ins Leere: Rahmen um Felsen · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
