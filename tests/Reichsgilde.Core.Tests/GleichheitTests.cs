@@ -81,7 +81,7 @@ static class GleichheitTests
         FelslagePruefen)).Append((
         "Gleichheit: Felswand-Satz R3/R5 (Hang mitformen, Drehen und Skalieren mehrerer Stücke in Weltlage, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelswandPruefen)).Append((
-        "Gleichheit: Felsen kopieren P2 (versetzt und an Ort, Kopien gedreht und aufgesetzt, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        "Gleichheit: Felsen kopieren und schieben P2 (versetzt und an Ort, Kopien gedreht, geschoben und aufgesetzt, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelskopiePruefen));
 
     /// <summary>Felsen kopieren (Fels P2, Strg+D): gleiche Auswahl, gleiche Kopien – gleiche Bytes (Zeile „felskopie …“ in der Datei der CI).</summary>

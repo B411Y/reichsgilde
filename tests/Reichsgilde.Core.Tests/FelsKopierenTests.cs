@@ -48,6 +48,9 @@ static class FelsKopierenTests
         var erste = e.Felsen.Where((_, i) => i % 2 == 0).Reverse().ToList();
         var kopien = e.FelsKopieren(erste, dx: 7.25, dz: -3.333);
         e.FelsTransformieren(kopien, new Felsaenderung(Drehachse: Felsachse.Y, Winkel: 33.3));
+        // Pfeiltasten: drei Schübe schräg (Kamera über Eck) und einer in die Höhe, zusammengefasst zu einem Schritt
+        for (var i = 0; i < 3; i++) e.FelsSchieben(kopien, 0.1768, 0, -0.1768, zusammenfassen: true);
+        e.FelsSchieben(kopien, 0, 0.25, 0, zusammenfassen: true);
         e.FelsEinrasten(kopien, ausrichten: true);
         e.FelsKopieren(e.Felsen.ToList());
         e.Rueckgaengig();

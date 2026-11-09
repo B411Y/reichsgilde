@@ -14,6 +14,7 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  • FelsEinrasten: auf den Boden setzen (der tiefste Punkt der Unterkante steckt Einsinken · Höhe tief), wahlweise an der Hangnormale ausgerichtet.
 //  • FelsNeuWuerfeln: wie „Reapply“ im Foliage-Werkzeug von Unreal – gesetzte Stücke mit den Zufallsbereichen des Pinsels neu würfeln.
 //  • FelsKopieren (Fels P2): Stücke kopieren, die Kopien hinten an die Liste (Strg+D in der Werkstatt).
+//  • FelsSchieben (Fels P2): Pfeiltasten – kleine Schübe, eine Folge davon ist ein Schritt (zusammengefasst).
 //  Der Boden um den Fels (Felsboden) bleibt dabei liegen, wie beim Verschieben und Drehen (entschieden 02.11.2026).
 //  Alles gerundet wie in der Datei; Winkel über DetMathe (Felsraum) – gleiche Befehle, gleiche Bytes auf jedem Rechner.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -267,6 +268,44 @@ public sealed partial class Kartenentwurf
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
         Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke kopiert", befehle));
         return neue;
+    }
+
+    // ── Schieben mit den Pfeiltasten (Fels P2) ──────────────────────────────
+
+    /// <summary>Der zuletzt gemachte Schub: sein Schritt in der Geschichte, die Stücke (Reihenfolge des Entwurfs) und der Versatz insgesamt.</summary>
+    private (IKartenbefehl Befehl, EntwurfFels[] Felsen, double DX, double DY, double DZ)? _schub;
+
+    /// <summary>
+    /// Schiebt Stücke um <paramref name="dx"/>, <paramref name="dy"/> (Höhenversatz) und <paramref name="dz"/> Meter (Pfeiltasten der Werkstatt). Mit
+    /// <paramref name="zusammenfassen"/> wird ein Schub, der direkt auf einen Schub derselben Stücke folgt (nichts dazwischen in der Geschichte, nichts
+    /// zum Wiederholen), mit ihm zu <b>einem</b> Schritt: Der alte Schritt wird zurückgenommen und durch einen mit dem Versatz beider ersetzt – ein
+    /// Strg+Z nimmt die ganze Tastenfolge zurück. Ob die Schübe „kurz hintereinander“ kamen, entscheidet der Aufrufer (der Kern kennt keine Uhrzeit).
+    /// Gerundet wie <see cref="FelsTransformieren(IEnumerable{EntwurfFels}, Felsaenderung)"/>. False: nichts geändert (oder der Schub hob den vorigen auf).
+    /// </summary>
+    public bool FelsSchieben(IEnumerable<EntwurfFels> felsen, double dx, double dy, double dz, bool zusammenfassen)
+    {
+        FelsStrichBeenden();
+        var liste = Geordnet(felsen);
+        if (liste.Count == 0 || (dx == 0 && dy == 0 && dz == 0)) return false;
+        var (sx, sy, sz) = (dx, dy, dz);
+        if (zusammenfassen && _schub is { } alt && ReferenceEquals(Geschichte.LetzterOhneWiederholen, alt.Befehl)
+            && alt.Felsen.Length == liste.Count && alt.Felsen.Zip(liste).All(p => ReferenceEquals(p.First, p.Second)))
+        {
+            Geschichte.LetztenVerwerfen(); // die Stücke stehen wieder wie vor der Tastenfolge
+            (sx, sy, sz) = (alt.DX + dx, alt.DY + dy, alt.DZ + dz);
+        }
+        _schub = null;
+        var vorher = Geschichte.LetzterOhneWiederholen;
+        var (werte, _) = FelsWerte(liste, new Felsaenderung(DX: sx, DY: sy, DZ: sz));
+        FelsTransformieren(werte, "geschoben");
+        var befehl = Geschichte.LetzterOhneWiederholen;
+        if (befehl is null || ReferenceEquals(befehl, vorher))
+        {
+            MeldungenAusloesen(); // nur verworfen (die Folge hob sich auf): die Stücke stehen wieder am alten Platz
+            return false;
+        }
+        _schub = (befehl, liste.ToArray(), sx, sy, sz);
+        return true;
     }
 
     // ── Hilfen ───────────────────────────────────────────────────────────────
