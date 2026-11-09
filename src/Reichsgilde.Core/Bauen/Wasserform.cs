@@ -625,14 +625,10 @@ public sealed partial class Wasserform
     {
         var p = new Kartenort(x, z);
         var ziel = boden;
-        // Wo ein Wasserverbund wirkt, rechnet er Lauf und See dieses Paares zusammen (Wasserform.Verbund.cs); alle anderen Gewässer wie immer
-        List<Wasserlauf>? ohneLauf = null;
-        List<Wassersee>? ohneSee = null;
-        if (Verbuende.Count > 0) ziel = Math.Min(ziel, VerbundBoden(p, boden, wegkern, ref ohneLauf, ref ohneSee));
-        foreach (var l in Laeufe)
-            if (ohneLauf is null || !ohneLauf.Contains(l)) ziel = Math.Min(ziel, LaufBoden(l, p, boden, wegkern));
-        foreach (var s in Seen)
-            if (ohneSee is null || !ohneSee.Contains(s)) ziel = Math.Min(ziel, SeeBoden(s, p, boden, wegkern));
+        // Wo ein Wasserverbund wirkt, macht er zusätzlich Wasser (Lücke, gemeinsames Bett; Wasserform.Verbund.cs); jedes Gewässer zählt wie immer mit
+        if (Verbuende.Count > 0) ziel = Math.Min(ziel, VerbundBoden(p, boden, wegkern));
+        foreach (var l in Laeufe) ziel = Math.Min(ziel, LaufBoden(l, p, boden, wegkern));
+        foreach (var s in Seen) ziel = Math.Min(ziel, SeeBoden(s, p, boden, wegkern));
         foreach (var b in Becken)
             if (b.Enthaelt(p)) ziel = Math.Min(ziel, b.Boden); // auch unter einem Weg: Die Kaimauer steht im Wasser
         return ziel;

@@ -192,6 +192,8 @@ public sealed partial class Wasserform
                 }
                 if (irgendeiner) beruehrt.Add((l, punkte));
             }
+            // Nach unten bewusst nicht begrenzt (Prüfer 09.11.2026): Schneidet sich der Lauf tief ein (Durchstich), sinkt ein See ohne Wasserstand mit –
+            // er liefe sonst in den Lauf aus. Wer das nicht will, gibt dem See einen festen Wasserstand (dann gilt die Toleranz, kein Verbund).
             var see = roh.StandAutomatisch && tiefster < roh.Wasserstand ? roh.MitWasserstand(tiefster) : roh;
             neu.Add(see);
             foreach (var (l, punkte) in beruehrt)
@@ -220,10 +222,11 @@ public sealed partial class Wasserform
     }
 
     /// <summary>
-    /// Der Boden mit allen Verbünden, die hier wirken: je Verbund gV · Verbundboden + (1 − gV) · alter Boden von Lauf und See; Lauf und See eines
-    /// wirkenden Verbunds kommen in <paramref name="ohneLauf"/> bzw. <paramref name="ohneSee"/> (die rechnet <see cref="Boden"/> nicht noch einmal).
+    /// Der Boden mit allen Verbünden, die hier wirken: je Verbund gV · Verbundboden + (1 − gV) · alter Boden von Lauf und See. <see cref="Boden"/> nimmt
+    /// davon und vom alten Boden aller Gewässer das Minimum: Der Verbund macht nur zusätzlich Wasser – so behält auch eine Schleife desselben Laufs, die
+    /// räumlich nah, entlang des Laufs aber weit weg liegt, ihr Bett (Prüfer 09.11.2026; der Verbund kennt nur die Punkte um seine Stücke).
     /// </summary>
-    private double VerbundBoden(Kartenort p, double boden, bool wegkern, ref List<Wasserlauf>? ohneLauf, ref List<Wassersee>? ohneSee)
+    private double VerbundBoden(Kartenort p, double boden, bool wegkern)
     {
         var ziel = boden;
         foreach (var v in Verbuende)
@@ -235,19 +238,21 @@ public sealed partial class Wasserform
             var verbund = boden;
             if (s < 0)
             {
-                // im Wasser: die Böschung des Sees (30 %) nach dem Anteil des Sees, im Bett des Laufs mindestens dessen Querprofil
-                verbund = Math.Min(boden, spiegel - lage.HS * Math.Min(v.See.Tiefe, -s * Seeboeschung));
+                // im Wasser: die Böschung des Sees (30 %) vom gemeinsamen Ufer, wo der See näher als 4 m (bis 8 m weich) liegt – auch in der Lücke und am
+                // Ufer des Laufs zum See hin (sonst bliebe dort eine flache Schwelle, im Bild ein Streifen); am anderen Ufer des Laufs nur sein Querprofil
+                verbund = Math.Min(boden, spiegel - Nahe(lage) * Math.Min(v.See.Tiefe, -s * Seeboeschung));
                 var halb = lage.W.Breite / 2;
                 if (lage.D <= halb) verbund = Math.Min(verbund, lage.W.Spiegel - lage.W.Tiefe * (1 - (lage.D / halb) * (lage.D / halb)));
             }
             else if (!wegkern && boden > spiegel && s < lage.Uferbreite)
                 verbund = spiegel + (boden - spiegel) * Gelaendeform.Weich(s / lage.Uferbreite);
             ziel = Math.Min(ziel, lage.G * verbund + (1 - lage.G) * alt);
-            (ohneLauf ??= new List<Wasserlauf>()).Add(v.Lauf);
-            (ohneSee ??= new List<Wassersee>()).Add(v.See);
         }
         return ziel;
     }
+
+    /// <summary>Wie nah der See liegt: 1 bis <see cref="VerbundSpalt"/> (und im See), weich auf 0 beim Doppelten.</summary>
+    private static double Nahe(Verbundlage lage) => 1 - Gelaendeform.Weich((lage.SS - VerbundSpalt) / VerbundSpalt);
 
     /// <summary>
     /// <see cref="An"/> mit den Verbünden: Wo das gemeinsame Abstandsfeld unter 0 liegt, ist Wasser – Gewässer das mit dem kleineren eigenen Abstand
@@ -259,13 +264,20 @@ public sealed partial class Wasserform
         foreach (var v in Verbuende)
         {
             if (v.Lage(p) is not { } lage || lage.S >= 0) continue;
-            var spiegel = lage.Spiegel(v.See);
             var laufGilt = lage.SL < lage.SS || (lage.SL == lage.SS && v.Lauf.Nummer < v.See.Nummer);
             var halb = lage.W.Breite / 2;
             var profil = lage.D < halb ? 1 - 0.5 * (lage.D / halb) * (lage.D / halb) : 0.5;
-            var tempo = v.Lauf.Stroemung * profil * (1 - Anteil(lage));
-            var stelle = new Wasserstelle(laufGilt ? v.Lauf : null, laufGilt ? null : v.See, spiegel, lage.W.RichtungX * tempo, lage.W.RichtungZ * tempo, -lage.S);
+            var tempo = v.Lauf.Stroemung * profil * (1 - AnteilQuer(lage));
+            var (spiegel, sx, sz) = (lage.Spiegel(v.See), lage.W.RichtungX * tempo, lage.W.RichtungZ * tempo);
+            // längs mit dem Gewicht in das, was Lauf und See allein ergäben (Prüfer 09.11.2026: sonst sprangen Spiegel um bis zu 8 cm und Strömung am Ende
+            // des Auslaufs); wo allein kein Wasser war (Lücke), bleibt der Verbund
             var eigenes = best is { } b && (ReferenceEquals(b.Lauf, v.Lauf) || ReferenceEquals(b.See, v.See));
+            if (eigenes)
+            {
+                var alt = best!.Value;
+                (spiegel, sx, sz) = (lage.G * spiegel + (1 - lage.G) * alt.Spiegel, lage.G * sx + (1 - lage.G) * alt.StroemungX, lage.G * sz + (1 - lage.G) * alt.StroemungZ);
+            }
+            var stelle = new Wasserstelle(laufGilt ? v.Lauf : null, laufGilt ? null : v.See, spiegel, sx, sz, -lage.S);
             if (best is null || eigenes || spiegel < best.Value.Spiegel) best = stelle;
         }
         return best;

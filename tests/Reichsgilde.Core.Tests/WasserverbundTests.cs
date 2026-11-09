@@ -33,15 +33,19 @@ static class WasserverbundTests
     /// Ein fester Ablauf für den Gleichheitstest: Fluss mit See in 2 m Abstand (Wasserstand automatisch) und ein Teich mit festem Wasserstand an einem
     /// fallenden Bach, dazu Boden, Wasser, Spiegel, Strömung und Uferabstand auf einem Gitter – als Bits der Zahlen (unabhängig von der Ländereinstellung).
     /// </summary>
-    internal static string Ablauf()
+    internal static string Ablauf() => Ablauf(-0.45);
+
+    /// <summary>Der Ablauf mit diesem festen Wasserstand des Teichs (Gegenprobe: ein anderer Wasserstand ergibt andere Bits).</summary>
+    internal static string Ablauf(double teichStand)
     {
         var e = Leer();
         Hang(e, 0.004);
         Fluss(e, nachWesten: true);
         See(e, 2);
         e.FlussAnlegen(new[] { O(-140, 60), O(0, 70), O(140, 60) }, "bach", 3);
-        e.SeeAnlegen(new[] { O(-30, 74), O(30, 74), O(30, 100), O(-30, 100) }, "teich", null, -0.45);
-        var w = e.Gelaendeform.Wasser;
+        e.SeeAnlegen(new[] { O(-30, 74), O(30, 74), O(30, 100), O(-30, 100) }, "teich", null, teichStand);
+        var g = e.Gelaendeform;
+        var w = g.Wasser;
         var text = new System.Text.StringBuilder();
         foreach (var v in w.Verbuende)
             text.Append($"{v.Lauf.Name}|{v.See.Name}|{string.Join(";", v.Stuecke.Select(s => $"{Bits(s.Von)},{Bits(s.Bis)}"))}|{Bits(v.See.Wasserstand)}\n");
@@ -51,7 +55,9 @@ static class WasserverbundTests
                 var stelle = w.An(x, z);
                 text.Append(Bits(w.Boden(x, z, 0.004 * x, false))).Append(' ').Append(Bits(w.Uferabstand(x, z))).Append(' ')
                     .Append(stelle is { } s ? $"{s.Nummer} {Bits(s.Spiegel)} {Bits(s.StroemungX)} {Bits(s.StroemungZ)} {Bits(s.Uferabstand)}" : "-")
-                    .Append(' ').Append(Bits(w.Verbundanteil(x, z))).Append('\n');
+                    .Append(' ').Append(Bits(w.Verbundanteil(x, z))).Append(' ').Append(w.ImUfer(x, z) ? 'u' : '-')
+                    .Append(' ').Append(Bits(g.Hoehe(x, z))) // das Bett, wie die Gelaendeform es im Raster speichert (Zentimeter)
+                    .Append(' ').Append(w.Ueberlappt(new[] { O(x - 1.5, z - 1), O(x + 1.5, z - 1), O(x + 1.5, z + 1), O(x - 1.5, z + 1) })?.Name ?? "-").Append('\n');
             }
         return text.ToString();
     }
@@ -222,6 +228,7 @@ static class WasserverbundTests
             Fluss(e);
             See(e, 2);
             Pruefe.Wahr(e.Gelaendeform.Hoehe(0, -30) < 0, "Bett des Sees vorher");
+            var vorherBett = Enumerable.Range(0, 7).Select(i => e.Gelaendeform.Hoehe(-60 + 20 * i, -30)).ToList();
             e.GelaendePinseln(new Pinsel(Pinselart.Senken, Radius: 10, Staerke: 0.5, Kante: 0.5), new[] { O(-120, 0) });
             var w = e.Gelaendeform.Wasser;
             var frisch = Kartenentwurf.AusJson(e.ZuJson(), Katalog.Value).Gelaendeform;
@@ -230,6 +237,10 @@ static class WasserverbundTests
             for (var z = -40.0; z <= 8; z += 2)
                 for (var x = -60.0; x <= 60; x += 10)
                     Pruefe.Ungefaehr(frisch.Hoehe(x, z), e.Gelaendeform.Hoehe(x, z), 1e-9);
+            // Gegenprobe: Der Strich (60 m vom See entfernt) hat das Bett im See wirklich verändert – ohne das Nachrechnen des Sees in
+            // Gelaendeform.Veraltet bliebe es auf dem alten Stand und der Vergleich oben schlüge fehl
+            for (var i = 0; i < 7; i++)
+                Pruefe.Wahr(e.Gelaendeform.Hoehe(-60 + 20 * i, -30) < vorherBett[i] - 0.3, $"Bett im See bei x {-60 + 20 * i} gesunken");
             // Anteil und Abstand je Verbund: stetig quer über Fluss, Ufer und Lücke
             Pruefe.Gleich(1, w.Verbuende.Count, "ein Verbund");
             var v = w.Verbuende[0];
@@ -245,6 +256,69 @@ static class WasserverbundTests
             Pruefe.Ungefaehr(1, v.AnteilAm(0, -7)!.Value.Anteil, 1e-9);
             Pruefe.Ungefaehr(1, v.AnteilAm(0, -7)!.Value.Gewicht, 0);
             Pruefe.Ungefaehr(w.Verbundabstand(0, -7)!.Value, v.AbstandAm(0, -7)!.Value, 0);
+        }),
+
+        ("Wasserverbund: Eine Schleife desselben Flusses neben dem Verbund (nah, entlang des Laufs weit weg) behält ihr Bett", () =>
+        {
+            // Der Fluss läuft am See entlang nach Osten, wendet und kommt 22 m südlich zurück: Die Rückkehr liegt im Bereich des Verbunds, aber gut 300 m weiter
+            List<Kartenort> Schleife() => new() { O(-150, 0), O(0, 0), O(100, 0), O(125, 11), O(100, 22), O(0, 22), O(-150, 22) };
+            var (mit, ohne) = (Leer(), Leer());
+            mit.FlussAnlegen(Schleife(), "fluss", 12);
+            ohne.FlussAnlegen(Schleife(), "fluss", 12);
+            See(mit, 2, wasserstand: -0.9);
+            var (w, w0) = (mit.Gelaendeform.Wasser, ohne.Gelaendeform.Wasser);
+            Pruefe.Gleich(1, w.Verbuende.Count);
+            Pruefe.Wahr(w.Verbuende[0].AbstandAm(0, 22) is not null, "der Verbund wirkt an der Rückkehr (sonst prüft der Test nichts)");
+            foreach (var x in new[] { -40.0, 0, 30 })
+                foreach (var z in new[] { 17.0, 20, 22, 25, 27 })
+                {
+                    Pruefe.Ungefaehr(w0.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-12);
+                    Pruefe.Gleich(w0.IstWasser(x, z), w.IstWasser(x, z), $"Wasser bei {x}, {z}");
+                }
+            Pruefe.Wahr(w.Boden(0, 22, 0, false) < -1.5, "Bett der Rückkehr");
+        }),
+
+        ("Wasserverbund: Der Ablauf des Gleichheitstests erfasst Boden, Bett, Ufer und Überlappung – ein anderer Wasserstand gibt andere Bits (Gegenprobe)", () =>
+        {
+            var a = Ablauf();
+            Pruefe.Wahr(a.Contains(" u ") && a.Contains("Fluss"), "ImUfer und Ueberlappt stehen im Ablauf");
+            Pruefe.Wahr(a != Ablauf(-0.46), "1 cm Wasserstand ändert das Ergebnis");
+        }),
+
+        ("Wasserverbund: Spiegel und Strömung am Ende des Auslaufs ohne Sprung – auch wo der Verbund mitten am See endet (fallender Spiegel, fein abgetastet)", () =>
+        {
+            // wie „Fallender Spiegel“: der Verbund endet, wo Fluss und See 0,25 m auseinanderliegen – dort ist der See noch nah
+            var e = Leer();
+            Hang(e, 0.01);
+            Fluss(e, nachWesten: true);
+            See(e, 2, wasserstand: Math.Round(e.Gelaendeform.Wasser.Laeufe[0].AnStelle(150).Spiegel, 2));
+            var w = e.Gelaendeform.Wasser;
+            Pruefe.Gleich(1, w.Verbuende.Count);
+            foreach (var z in new[] { -20.0, -12.0, -5.5, -5.0, -3.0, 0.0 })
+            {
+                var (vSp, vT) = (w.An(-60, z)!.Value.Spiegel, w.An(-60, z)!.Value.Tempo);
+                for (var x = -59.95; x <= 60; x += 0.05)
+                {
+                    var st = w.An(x, z)!.Value;
+                    Pruefe.Wahr(Math.Abs(st.Spiegel - vSp) < 0.004, $"Spiegel springt bei {x:0.00}, {z}: {vSp:0.000} → {st.Spiegel:0.000}");
+                    Pruefe.Wahr(Math.Abs(st.Tempo - vT) < 0.02, $"Strömung springt bei {x:0.00}, {z}: {vT:0.000} → {st.Tempo:0.000}");
+                    (vSp, vT) = (st.Spiegel, st.Tempo);
+                }
+            }
+            // quer vom Fluss über die Lücke weit in den See (über die Grenze des Rasters, in dem der Verbund sucht): die Strömung geht stetig auf 0 – mitten
+            // im Verbund (x 0) und dort, wo er nicht mehr wirkt (x −50). Im Auslauf dazwischen bleibt am Ufer des Flusses der Sprung des Flusses allein
+            // (0,5 · Strömung am Ufer, dahinter Land), mit (1 − gV) gedämpft
+            foreach (var x in new[] { 0.0, -50.0 })
+            {
+                double? vorher = null;
+                for (var z = 5.0; z >= -39; z -= 0.01)
+                {
+                    var t = w.An(x, z)?.Tempo;
+                    if (t is { } tt && vorher is { } vv) Pruefe.Wahr(Math.Abs(tt - vv) < 0.012, $"Strömung springt bei {x}, {z:0.00}: {vv:0.000} → {tt:0.000}");
+                    vorher = t;
+                }
+                Pruefe.Ungefaehr(0, w.An(x, -30)!.Value.Tempo, 1e-12);
+            }
         }),
 
         ("Wasserverbund: Ein Haus in der geschlossenen Lücke steht im Wasser", () =>
