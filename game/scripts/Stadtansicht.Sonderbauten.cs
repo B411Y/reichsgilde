@@ -123,17 +123,20 @@ public partial class Stadtansicht
     private void RathausBauen(Kartengebaeude g)
     {
         // Außen das Modell rathaus.glb: Markthalle mit Ratssaal in Fachwerk (16 × 10 m, Vorderseite +Z zum Markt) und Uhrturm vorn rechts, 23,6 m hoch.
-        // Innen vier Räume (Raumansicht, je 40 m auseinander); das Haus bleibt dabei in der Stadt stehen.
+        // In Köln koelner_rathaus.glb (22 × 13 m): Saalbau mit dem Hansasaal (Walmdach, 15,9 m) und links davon der Ratsturm als Baustelle
+        // (Stumpf mit Gerüst, gut 9 m). Innen vier Räume (Raumansicht, je 40 m auseinander); das Haus bleibt dabei in der Stadt stehen.
+        var koeln = g.Katalog == "koelner_rathaus";
         var lage = ModellLage(g);
         var p = lage.Origin;
         var drehung = DrehungVon(g);
         var flaeche = GroesseVon(g);
-        var a = SonderbauAnlegen("Rathaus", string.IsNullOrEmpty(g.Name) ? "Rathaus" : g.Name, p, new Vector3(flaeche.X, 10, flaeche.Y), new Vector3(0, 26, 0),
+        var a = SonderbauAnlegen("Rathaus", string.IsNullOrEmpty(g.Name) ? "Rathaus" : g.Name, p, new Vector3(flaeche.X, koeln ? 16 : 10, flaeche.Y), new Vector3(0, 26, 0),
             zoom: 21, reichweite: 12, raumansicht: true, drehung: drehung);
         var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/rathaus", this, p, new ModellZustand(), "Rathaus");
         if (huelle is not null) huelle.Wurzel.Transform = lage;
         a.Huelle = huelle?.Wurzel;
-        a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f), drehung: drehung)); // der Uhrturm
+        if (koeln) a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(-7.8f, 4.6f, 2.2f), new Vector3(6.2f, 9.2f, 6.2f), drehung: drehung)); // der Ratsturm im Bau
+        else a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f), drehung: drehung)); // der Uhrturm
 
         var innen = a.Innen!;
         var holz = Material(Holz);

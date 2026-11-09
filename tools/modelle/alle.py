@@ -33,7 +33,7 @@ INNENRAEUME = ["schmied_innen", "tischler_innen", "steinmetz_innen", "alchimist_
                "gardist_innen", "geldleiher_innen",
                "rathaus_innen"]          # je Beruf ein Innenraum: Räume, Stufen, Bedienung, Einrichtung, Blickpunkte, Arbeitsplätze; dazu der Ratssaal
 EINWOHNERHAEUSER = ["einwohner_ratsherrenhaus", "einwohner_buergerhaus", "einwohner_wohnhaus"]      # je Hausart ein Modell mit Variante1–Variante3
-SONDERBAUTEN = ["dom", "koelner_dom", "koelner_kirchen", "rathaus", "stadtmauer"]   # Gebäude der Stadt: ohne Zustände und Hausfarbe (koelner_kirchen: fünf Dateien)
+SONDERBAUTEN = ["dom", "koelner_dom", "koelner_kirchen", "koeln_stadtbauten", "rathaus", "stadtmauer"]   # Gebäude der Stadt: ohne Zustände und Hausfarbe (koelner_kirchen: fünf Dateien; koeln_stadtbauten: Kölner Rathaus, Mauerbaukasten, Stapelhaus, Rheinkran)
 UMLAND = ["grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof",
           "wachturm"]         # Umlandbetriebe: Haus, Arbeit, Fahne, Leerstand (gemeinsame Teile in landbau.py)
 BERGE = ["berg_grube"]        # Felsberg hinter der Grube (eigene Datei, Knoten „Berg“)
