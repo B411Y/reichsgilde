@@ -6,7 +6,7 @@ using Reichsgilde.Core.Kartenwerkstatt;
 /// <summary>
 /// Felspinsel P3: alle Pinselwerte in der Tafel (Abstand, Streuung des Einsinkens, Höhenfilter), Radierer nur für die angehakten Formen,
 /// Ausdünnen bis zu einer Dichte und „Neu verteilen“ als Strich (Felspinsel.Verteilen). Jeder neue Wert hat eine Gegenprobe (ohne ihn wirkt er
-/// nicht), jeder Strich ist ein Schritt und Rückgängig gibt dieselbe Datei. Alte Striche bleiben Byte für Byte gleich (Sollwerte von main 4fa25271).
+/// nicht), jeder Strich ist ein Schritt und Rückgängig gibt dieselbe Datei. Alte Striche bleiben Byte für Byte gleich (Sollwerte von main 4fa25271; „felswand“ seit der Großen Wand mit mittleren Wänden von main 5a7f6c51+, Wert auf main nachgemessen).
 /// </summary>
 static class FelspinselP3Tests
 {
@@ -70,7 +70,7 @@ static class FelspinselP3Tests
             Pruefe.Gleich("976a922583daccc2cc59f4d00f93471b5ac046e819bcec409f8cd9fdd61364ba", Sha(FelsenTests.Ablauf()), "fels");
             Pruefe.Gleich("6f093ff6e830fe19702659bad6f8c0a4cf3f76ffdbb0fce5690f4ff9483cb461", Sha(FelsbodenTests.Ablauf()), "felsboden");
             Pruefe.Gleich("d0394ef5baaac59159760545afd76187151ea2cd794037f47160f81b268b2da5", Sha(FelslageTests.Ablauf()), "felslage");
-            Pruefe.Gleich("2e4f84a306b0d719f8a743ed9bbccf5352d50c8f1f92379ccbeb91bce2380d62", Sha(FelsgizmoTests.Ablauf()), "felswand");
+            Pruefe.Gleich("ff567d61546cc50b35ba891ce092b2c2351aea199c8ae49d8ead6ded8fcc203a", Sha(FelsgizmoTests.Ablauf()), "felswand");
             Pruefe.Gleich("a9ba0ec6148012bb578173b9ac85f5e9e919e30b41e9714341248a8092098f90", Sha(FelsKopierenTests.Ablauf()), "felskopie");
             var a = Gestreut();
             var b = Huegel();
