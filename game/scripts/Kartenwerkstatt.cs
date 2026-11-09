@@ -296,10 +296,12 @@ public partial class Kartenwerkstatt : Node
                 _auffrischenNachStrich = true; // Kopf und Fehlerliste (mit der vollen Prüfung) erst nach dem Strich (_Process)
                 return;
             }
+            if (!_stadt.WerkstattBefundeBereit())
+            {
+                _auffrischenNachStrich = true; // die Prüfung rechnet in Häppchen über mehrere Bilder (_Process holt es nach)
+                return;
+            }
             var uhr = Pinselmessung.Uhr();
-            _ = _entwurf.Befunde;
-            Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", uhr);
-            uhr = Pinselmessung.Uhr();
             Auffrischen();
             Pinselmessung.Dazu("Tafeln: Kopf und Fehlerliste", uhr);
         }).CallDeferred();
@@ -644,6 +646,7 @@ public partial class Kartenwerkstatt : Node
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
+        WasserprobeEinsetzen(o); // --wasserprobe: Messkarte der Wasserübergänge (Kartenwerkstatt.Wasserprobe.cs)
         try
         {
             // --werkstatt-groesse=<breite>,<tiefe>[,<rand>] (400 × 300 bis 2.000 × 2.000, Rand 100 bis 600 m), --werkstatt-randvorschlag=1 (oder eine Zahl als Startwert)
@@ -866,6 +869,7 @@ public partial class Kartenwerkstatt : Node
             if (o.GetValueOrDefault("werkstatt-ebenenliste") == "1" && _ebenenKnopf is not null) _ebenenKnopf.ButtonPressed = true; // Liste offen (Haken zeigen den Stand)
             if (o.TryGetValue("katalogbilder", out var katalogbilder)) KatalogbilderSchreiben(katalogbilder);
             if (o.GetValueOrDefault("werkstatt-netz") == "1") _netzSchalter.ButtonPressed = true;
+            WasserprobeNacharbeit(); // --wasserprobe: Breiten einzelner Stützpunkte (Kartenwerkstatt.Wasserprobe.cs)
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)
         {

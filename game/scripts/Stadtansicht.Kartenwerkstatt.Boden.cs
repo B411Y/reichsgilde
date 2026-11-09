@@ -163,6 +163,7 @@ public partial class Stadtansicht
     private void BodenNachziehen()
     {
         if (_entwurf is null) return;
+        BodenStoffeAbarbeiten(); // Stadtansicht.Boden.cs: die Kacheln nach einem Strich, eine nach der anderen
         if (_wsBodenBereiche.Count > 0)
         {
             var r = Vereinigt(_wsBodenBereiche);
@@ -183,8 +184,11 @@ public partial class Stadtansicht
         }
         if (_wsNaturBereiche.Count > 0) _wsDekoBereiche.AddRange(_wsNaturBereiche);
         if (_wsDekoBereiche.Count == 0 || _entwurf.BodenStrichLaeuft || _entwurf.FelsStrichLaeuft || _wsBodenStrich) return;
+        if (!SchwerDran()) return; // in diesem Bild war schon anderes dran (Stadtansicht.Kartenwerkstatt.cs)
         var uhrDeko = Pinselmessung.Uhr();
+        var anfangDeko = Time.GetTicksUsec();
         BodendekoNachziehen();
+        SchwerGezaehlt(anfangDeko);
         Pinselmessung.Dazu("Boden: Deko und Büschel streuen", uhrDeko);
     }
 
@@ -194,7 +198,9 @@ public partial class Stadtansicht
         if (_entwurf is null) return;
         var bereiche = _wsDekoBereiche.Select(b => b.Grow((float)Bodendeko.Rand + 1)).ToList();
         _wsDekoBereiche.Clear();
+        var messenBueschel = Pinselmessung.Uhr();
         foreach (var b in bereiche) BueschelBereich(b); // auch die Grasbüschel weichen (Stadtansicht.Bueschel.cs)
+        Pinselmessung.Dazu("  Deko: Büschel weichen", messenBueschel);
         var kacheln = _entwurf.Boden.Kacheln.Concat(_wsBodenDeko.Keys).Distinct()
             .Where(k =>
             {
@@ -203,8 +209,12 @@ public partial class Stadtansicht
                 return bereiche.Any(x => x.Intersects(rahmen));
             }).ToList();
         if (kacheln.Count == 0) return;
+        var messen = Pinselmessung.Uhr();
         var deko = _entwurf.BodendekoVon(_entwurf.Freiraum(Modellmass));
+        Pinselmessung.Dazu("  Deko: Kern streut", messen);
+        messen = Pinselmessung.Uhr();
         foreach (var k in kacheln) BodendekoKachel(deko, k);
+        Pinselmessung.Dazu("  Deko: Kacheln zeichnen", messen);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
