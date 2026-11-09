@@ -185,6 +185,7 @@ public sealed partial class KiRivale
                     Glaubenspolitik();
                     Stadtpolitik(); // Anträge zu Steuer, Bau und Fest (PR #200)
                     Anklagen();
+                    Geheimnispolitik(); // Geheimnisse anzeigen, erpressen, bloßstellen (Teil 3c, KiRivale.Geheimnisse.cs)
                 }
                 else
                 {
@@ -192,6 +193,7 @@ public sealed partial class KiRivale
                     Glaubenspolitik();
                     Stadtpolitik(); // Anträge zu Steuer, Bau und Fest (PR #200)
                     Anklagen();
+                    Geheimnispolitik(); // Geheimnisse anzeigen, erpressen, bloßstellen (Teil 3c, KiRivale.Geheimnisse.cs)
                     Gaunerei();
                 }
                 Trainieren();
@@ -1278,7 +1280,7 @@ public sealed partial class KiRivale
 
         // Wie viel Gunst fehlt einem Richter, bis er freispricht? Die Gunstwirkung muss unter (Schwelle − Beweiskraft) sinken –
         // geht das wegen der Höchstwirkung nicht, ist dieser Richter nicht umzustimmen.
-        var kraft = gericht.Beweiskraft(v.Anklaeger, Konto);
+        var kraft = gericht.Beweiskraft(v); // mit einem angezeigten Geheimnis (Teil 3c)
         var ziel = d.SchuldSchwelle - kraft - 0.5; // gewünschte Gunstwirkung, etwas unter der Schwelle
         var kosten = new List<(Ratsherr, double)>();
         if (ziel > -d.GunstHoechstwirkung)
@@ -1334,7 +1336,7 @@ public sealed partial class KiRivale
         // 1. Erpresserbriefe: zahlen, wenn das Schweigegeld billiger ist als die drohende Strafe.
         foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == Konto).ToList())
         {
-            var strafe = DrohendeStrafe(f.Erpresser);
+            var strafe = f.Geheimnis is int geheimnis ? GeheimnisSchaden(geheimnis) : DrohendeStrafe(f.Erpresser); // ein Geheimnis: Gericht oder Schande (Teil 3c)
             var zahlen = f.Betrag <= strafe && Konto.Vermoegen - f.Betrag >= Profil.Reserve / 2;
             Befehlen(new ErpressungBeantworten(f.Erpresser.Inhaber, zahlen), zahlen
                 ? $"zahlt {f.Erpresser.Inhaber} {Zahlenformat.Ganz(f.Betrag)} Schweigegeld (eine Verurteilung kostete ≈ {Zahlenformat.Ganz(strafe)})."
@@ -1666,6 +1668,7 @@ public sealed partial class KiRivale
                     (AmtsWert(ziel) > ziel.Daten.Einkommen + 0.5 ? $", die Befugnis ist ihr etwa {Zahlenformat.Ganz(AmtsWert(ziel) - ziel.Daten.Einkommen)} wert" : "") + ").");
         }
 
+        RatsstimmenErpressen(); // fehlt eine Stimme, deren Ratsherr ein Geheimnis hat: erst erpressen, dann werben (Teil 3c, KiRivale.Geheimnisse.cs)
         if (rat.Bewerbungen.TryGetValue(Konto, out var amtName) && rat.AmtNamens(amtName) is { } amt)
             FuerWahlWerben(amt);
 
@@ -1677,7 +1680,10 @@ public sealed partial class KiRivale
                 $"(erwartet {Zahlenformat.MitVorzeichen(ErwartungUnter(bevorzugt) - ErwartungUnter(_w.Statut))} Gulden im Jahr).");
 
         if (rat.Antrag is { } antrag && antrag.Antragsteller == Konto)
+        {
+            RatsstimmenErpressen(); // auch für den eigenen Antrag (Teil 3c)
             FuerStatutWerben(antrag.Statut);
+        }
     }
 
     /// <summary>
@@ -1745,6 +1751,7 @@ public sealed partial class KiRivale
         var sicher = 0;
         foreach (var sitz in waehler)
         {
+            if (rat.Erpresser(sitz) == Konto) { sicher++; continue; } // seine Stimme ist erpresst (Teil 3c)
             if (sitz.Ratsherr is not { } r) continue; // Häuser im Rat lassen sich (noch) nicht beschenken
             var gegner = Math.Max(amt.Ratsherr is null && amt.Konto is null ? 0 : rat.Punkte(r, amt, amt.Konto),
                                   mitbewerber.Select(m => rat.Punkte(r, amt, m)).DefaultIfEmpty(0).Max());
@@ -1761,9 +1768,9 @@ public sealed partial class KiRivale
         var rat = _w.Rat;
         var g = rat.Daten.Gunst;
         var besetzt = rat.Aemter.Where(a => a.IstBesetzt).ToList();
-        var ja = besetzt.Count(a => a.Konto == Konto || a.Ratsherr is { } r && rat.StimmtZu(r, statut, Konto));
+        var ja = besetzt.Count(a => a.Konto == Konto || rat.Erpresser(a) == Konto || a.Ratsherr is { } r && rat.StimmtZu(r, statut, Konto)); // erpresst: sicher (Teil 3c)
         var kosten = besetzt
-            .Where(a => a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
+            .Where(a => rat.Erpresser(a) != Konto && a.Ratsherr is { } r && !rat.StimmtZu(r, statut, Konto) && Math.Abs((int)statut - (int)r.Haltung) == 1)
             .Select(a => (a.Ratsherr!, g.SchwelleNachbarstatut - rat.Meinung(a.Ratsherr!, Konto)))
             .ToList();
         Schenkplan(kosten, besetzt.Count / 2 + 1 - ja, $"für das Statut {statut.Kuerzel()}",
