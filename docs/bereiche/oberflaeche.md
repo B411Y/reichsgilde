@@ -445,6 +445,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ladebalken | Neuer Abschnitt nach den Tafeln: 0,56 „Die Pinsel werden ausgewaschen …“ (`Stadtansicht.WerkstattVorwaermen`, Köln 76 ms, headless gemessen mit `--ladezeit=1`); die übrigen Anteile bleiben (0,532 Tafeln, 0,777 erstes Bild) | 09.11.2026 |
 | Messung | Startoption `--pinselmessung=<datei.md>` (`Kartenwerkstatt.Pinselmessung.cs`): malt nach dem Laden mit jeder Pinselart einen Strich aus 30 Tupfern, legt dazu einen Weg und eine Bauzone an, schreibt die Tabelle und beendet das Spiel | 09.11.2026 |
 
+### Ego-Perspektive im Entwicklerfenster (PR „Oberfläche: Ego-Perspektive im Entwicklerfenster“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Wunsch des Nutzers: Knopf „Ego-Perspektive“ im Entwicklerfenster; Klick auf die Karte wählt den Ort, dort läuft man wie in einem Ego-Shooter herum, Esc stellt die Spielkamera wieder her. Reine Ansicht (kein Befehl, kein Kennzeichen, der Kern bleibt unberührt); die Ansicht steckt in `EgoKamera.cs` und `Stadtansicht.Ego.cs` (`darstellung.md`), hier nur Knopf und Oberfläche. | 09.11.2026 |
+| Knopf | Auf dem Reiter „Wetter und Darstellung“ eine Zeile „Ego-Perspektive“ über den Hilfsanzeigen. Der Knopf schließt das Fenster und startet die Wahl (`Stadtansicht.EgoWaehlen`); geht es nicht (Raum, Haus, schon aktiv), steht die Ablehnung rot im Fenster. Oben mittig steht während der Wahl ein Hinweis „Klick auf die Karte wählt den Ort · Esc: abbrechen“. | 09.11.2026 |
+| Oberfläche im Modus | `Hauptszene.Ego.cs` blendet die Ebene „Oberflaeche“ aus (zu sehen bleibt „Esc: zurück“ unten links) und danach wieder so ein, wie sie war (`--ui=0` bleibt). Öffnet sich in der Zeit ein Jahresbericht, das Spielmenü oder eine Ratssitzung, endet der Modus von selbst (`EgoPruefen`). Die Spielzeit läuft weiter; die Zifferntasten 1–9 stellen das Tempo, alle anderen Tasten nimmt die Kamera (Leertaste springt, sie pausiert nicht). | 09.11.2026 |
+| Steuerung (Festlegung des Teamleiters) | Maus schaut (gefangen), W/A/S/D läuft 1,4 m/s, Umschalt rennt 4 m/s, Leertaste springt, Augenhöhe 1,65 m, Empfindlichkeit 0,12°/Pixel. | 09.11.2026 |
+| Startoption | `--ego=x,z[,gier[,nick]]` (`docs/STARTOPTIONEN.md`). | 09.11.2026 |
+| Klicktest | Vulkan (RTX 2000 Ada, Pixel-Look, Köln, Anzeige 181) mit echten Tasten und Mausbewegungen (`xdotool`): Knopf im Fenster, Hinweis, Klick auf die Straße, Gehen und Rennen, Umsehen, Esc (Spielkamera, Oberfläche und Tempo wie vorher, kein Spielmenü). Kein SCRIPT ERROR. | 09.11.2026 |
 ### Stress im Charakterfenster (PR „Kern: Charaktersystem Teil 3b – Stress“, vom Kern mitgebaut)
 
 | Thema | Entscheidung | Datum |
