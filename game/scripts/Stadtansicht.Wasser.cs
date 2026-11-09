@@ -279,8 +279,11 @@ public partial class Stadtansicht
     /// </summary>
     private (string Uebergaenge, string Flaechen) UebergangsZeichen()
     {
+        var uhrPlan = Pinselmessung.Uhr();
         var plan = Uebergangsplan;
         if (plan is null) return ("", "");
+        _ = plan.Querungen.Count + plan.Faehren.Count;
+        Pinselmessung.Dazu("    Kern: Wasserplan rechnen (erster Zugriff)", uhrPlan);
         static string Z(Kartenort o) => $"{o.X:R},{o.Z:R}";
         var alle = new System.Text.StringBuilder();
         var flaechen = new System.Text.StringBuilder();

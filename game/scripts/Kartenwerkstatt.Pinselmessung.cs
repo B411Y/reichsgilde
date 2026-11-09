@@ -153,7 +153,7 @@ public partial class Kartenwerkstatt
     {
         var bilder = new List<Messbild>();
         var ruhig = 0;
-        while (ruhig < 3 && bilder.Count < 300)
+        while (ruhig < 3 && bilder.Count < (Pinselmessung.Pruefsumme ? 1500 : 300)) // mit Prüfsumme bis alles fertig ist
         {
             var b = await BildMessen(Time.GetTicksUsec());
             bilder.Add(b);
