@@ -54,6 +54,8 @@ public partial class Stadtansicht
         public int ProbeArt { get; init; }
         /// <summary>Probefigur als Bettler: kauert und bettelt statt zu stehen (Vollausbau Schritt 2).</summary>
         public bool ProbeBettler { get; init; }
+        /// <summary>Probefigur mit Kiepe oder Reisigbündel auf dem Rücken: trägt ohne die Arme vorn (Vollausbau Schritt 4).</summary>
+        public bool ProbeRuecklast { get; init; }
         /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>

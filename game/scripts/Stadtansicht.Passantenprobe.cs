@@ -31,7 +31,7 @@ public partial class Stadtansicht
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
-        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler" }, 0.933f, 1.287f, 0.898f, 0.446f),
+        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.933f, 1.287f, 0.898f, 0.446f),
         new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende", "bettler" }, 0.822f, 1.118f, 0.786f, 0.389f),
     };
 
@@ -60,7 +60,7 @@ public partial class Stadtansicht
     private bool _probeFern, _probeVatVersucht;
 
     /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss);
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer);
     private readonly Dictionary<Figur, ProbeTracht> _probeTrachten = new();
     /// <summary>Alle Farben der Probefiguren (linear) für den VAT-Shader; Platz in der Liste = Index im Shader.</summary>
     private readonly List<Color> _probePalette = new();
@@ -116,13 +116,21 @@ public partial class Stadtansicht
         var daten = ProbeArten[art];
         if (Modell(daten.Datei) is not { } szene) return null;
         var bettler = rolle == "Bettler";
-        var variante = bettler ? Array.IndexOf(daten.Varianten, "bettler") : ProbeVarianteFuer(aussehen, nummer);
+        var variante = Array.IndexOf(daten.Varianten, bettler ? "bettler"
+            : !aussehen.Frau && rolle == "Mönch" ? "kutte" : !aussehen.Frau && rolle == "Ratsherr" ? "rock" : "");
+        if (variante < 0) variante = ProbeVarianteFuer(aussehen, nummer);
         var fuss = ProbeFussFuer(rolle, nummer);
+        var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
+        // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
+        var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
+        // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
+        var festeKopffarbe = aussehen.Kopffarbe == Schwarz || aussehen.Kopffarbe.R > 0.85f;
         aussehen = aussehen with
         {
-            Gewand = ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
+            Gewand = eigeneFarbe ? aussehen.Gewand : ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
-            Kopffarbe = aussehen.Frau ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
+            Kopffarbe = festeKopffarbe ? aussehen.Kopffarbe
+                : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
             Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
         };
@@ -140,19 +148,21 @@ public partial class Stadtansicht
         var figur = new Figur
         {
             Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler,
+            ProbeRuecklast = zubehoer.Contains("kiepe") || zubehoer.Contains("buendel"),
             Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
-            if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug") { teil.QueueFree(); continue; }
+            if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug"
+                && !(name.StartsWith("Zub_") && zubehoer.Contains(name[4..]))) { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
             if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss);
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer);
         if (_probeVat) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
@@ -171,12 +181,38 @@ public partial class Stadtansicht
         _ => 0,
     };
 
-    /// <summary>Männer: Gugel bei Kapuze und Eisenhut, sonst nach der Nummer Cotte, Gugel oder langer Rock. Frauen: Gebende bei Schleier, Haube
-    /// bei Haube, sonst nach der Nummer.</summary>
+    /// <summary>Männer: Gugel bei Kapuze; mit Hut (Stroh, Barett, Eisen) Cotte oder langer Rock, sonst nach der Nummer Cotte, Gugel oder langer
+    /// Rock. Frauen: Gebende bei Schleier, Haube bei Haube und unter dem Strohhut, sonst nach der Nummer. Bettler, Mönch und Ratsherr wählt die
+    /// Rolle (<see cref="ProbefigurEinsetzen"/>).</summary>
     private static int ProbeVarianteFuer(FigurAussehen a, int nummer)
     {
-        if (a.Frau) return a.Kopf == Kopfbedeckung.Schleier ? 1 : a.Kopf == Kopfbedeckung.Haube ? 0 : (int)(Streuung(nummer, 977) % 2);
-        return a.Kopf is Kopfbedeckung.Kapuze or Kopfbedeckung.Eisenhut ? 1 : (int)(Streuung(nummer, 977) % 3); // die Bettler-Variante nur über die Rolle
+        if (a.Frau) return a.Kopf == Kopfbedeckung.Schleier ? 1 : a.Kopf is Kopfbedeckung.Haube or Kopfbedeckung.Strohhut ? 0 : (int)(Streuung(nummer, 977) % 2);
+        if (a.Kopf == Kopfbedeckung.Kapuze) return 1;
+        if (a.Kopf is Kopfbedeckung.Strohhut or Kopfbedeckung.Barett or Kopfbedeckung.Eisenhut) return Streuung(nummer, 977) % 4 == 0 ? 2 : 0;
+        return (int)(Streuung(nummer, 977) % 3);
+    }
+
+    /// <summary>
+    /// Berufszubehör (Schritt 4 des Vollausbaus, eigene Netze „Zub_&lt;name&gt;“) nach der Tracht der Rolle (<see cref="TrachtVon"/>): Strohhut
+    /// (Hirte, Feldarbeiter), Barett (Ratsherr, Bürgersohn), Eisenhut, Schürze (Knecht, Magd), Kiepe (Krämer), Reisigbündel (Holzsammler),
+    /// Tasche (Bote), Stab (Hirte; auch für die Hellebarde, bis es sie gibt). Hüte nicht über Gugel und Gebende.
+    /// </summary>
+    private static string[] ProbeZubehoerFuer(FigurAussehen a, string variante)
+    {
+        var aus = new List<string>(3);
+        if (variante is not ("gugel" or "gebende" or "kutte"))
+        {
+            if (a.Kopf == Kopfbedeckung.Strohhut) aus.Add("stroh");
+            else if (a.Kopf == Kopfbedeckung.Barett) aus.Add("barett");
+            else if (a.Kopf == Kopfbedeckung.Eisenhut) aus.Add("eisenhut");
+        }
+        if (a.Schuerze) aus.Add("schuerze");
+        var last = a.Last switch
+        {
+            Last.Kiepe => "kiepe", Last.Buendel => "buendel", Last.Tasche => "tasche", Last.Stab or Last.Hellebarde => "stab", _ => null,
+        };
+        if (last is not null) aus.Add(last);
+        return aus.ToArray();
     }
 
     private int ProbeFarbe(Color srgb)
@@ -211,7 +247,7 @@ public partial class Stadtansicht
         if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
         {
             var grund = bewegung switch { "Eilen" => EilenTempo, "Gebeugt" => GebeugtTempo, "Tragen" => TragenTempo, _ => GehenTempo };
-            klip = bewegung == "Tragen" ? "Tragen" : "Gehen";
+            klip = bewegung == "Tragen" && !f.ProbeRuecklast ? "Tragen" : "Gehen"; // Kiepe und Bündel trägt man auf dem Rücken: die Arme gehen frei
             var modellTempo = (klip == "Tragen" ? daten.TragTempo : daten.GehTempo) * f.Modell.Scale.Y;
             probeTakt = takt * grund * f.Beinfaktor / modellTempo; // gewünschte Meter je Sekunde ÷ Meter je Schleife
         }
@@ -581,6 +617,7 @@ public partial class Stadtansicht
         Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
+        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben); // Berufszubehör
         _probeGezeichnet++;
     }
 
@@ -726,6 +763,9 @@ public partial class Stadtansicht
         }
         _probeLetztePhase = jetzt;
         GD.Print($"[passantenprobe] Im Bild gehend {gehend}, davon seit 10 s ohne Fortschritt {still}");
+        var zubehoer = _probeTrachten.Values.SelectMany(z => z.Zubehoer).GroupBy(z => z).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
+        var varianten = _probeTrachten.Values.GroupBy(z => ProbeArten[z.Art].Varianten[z.Variante]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
+        GD.Print($"[passantenprobe] Varianten: {string.Join(", ", varianten)}; Zubehör: {string.Join(", ", zubehoer)}");
         _probeMeldeZeit = 0;
         _probeMs = 0;
         _probeBilder = 0;
