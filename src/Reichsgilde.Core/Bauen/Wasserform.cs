@@ -227,6 +227,10 @@ public sealed class Wassersee
         Bereich = (Kartenrechteck.Um(umriss) ?? default).Vergroessert(Wasserform.SeeUfer);
     }
 
+    /// <summary>Derselbe See mit einem anderen Wasserstand (ein See ohne Wasserstand am Lauf nimmt dessen Spiegel an, Wasserform.Verbund.cs).</summary>
+    internal Wassersee MitWasserstand(double wasserstand) =>
+        new(Nummer, Name, Art, Umriss, wasserstand, StandAutomatisch, Tiefe, TiefstesUfer, TiefstesUferOrt);
+
     /// <summary>Liegt der Punkt im See?</summary>
     public bool Enthaelt(Kartenort p) => Umriss.Count >= 3 && Bereich.Enthaelt(p) && Kartengeometrie.ImVieleck(p, Umriss);
 
@@ -256,7 +260,7 @@ public readonly record struct Wasserstelle(Wasserlauf? Lauf, Wassersee? See, dou
 }
 
 /// <summary>Alle Gewässer einer Karte mit Spiegel und Bett (siehe Kopf der Datei). Gehört zu einer <see cref="Gelaendeform"/>.</summary>
-public sealed class Wasserform
+public sealed partial class Wasserform
 {
     /// <summary>So tief (Meter) liegt der Spiegel eines Sees ohne Wasserstand unter dem tiefsten Punkt seines Ufers.</summary>
     public const double SeeFreibord = 0.4;
@@ -327,7 +331,7 @@ public sealed class Wasserform
     private readonly Hoehenraster _roh;
     private readonly Func<IReadOnlyList<Gewaesser>> _gewaesser;
     private readonly Func<IReadOnlyList<Kaimauer>> _kaie;
-    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken)? _stand;
+    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken, List<Wasserverbund> Verbuende)? _stand;
 
     /// <param name="roh">Das gespeicherte Höhenraster (für den Spiegel).</param>
     /// <param name="gewaesser">Die Gewässer der Karte – wird nach jedem <see cref="AllesVeraltet"/> neu gefragt.</param>
@@ -338,7 +342,7 @@ public sealed class Wasserform
     /// <summary>Gewässer, Häfen oder Gelände haben sich geändert: beim nächsten Lesen alles neu.</summary>
     public void AllesVeraltet() => _stand = null;
 
-    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken) Stand => _stand ??= Rechnen();
+    private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken, List<Wasserverbund> Verbuende) Stand => _stand ??= Rechnen();
 
     /// <summary>Die Flüsse und Bäche.</summary>
     public IReadOnlyList<Wasserlauf> Laeufe => Stand.Laeufe;
@@ -352,20 +356,22 @@ public sealed class Wasserform
     /// <summary>Hat die Karte kein Wasser?</summary>
     public bool IstLeer => Laeufe.Count == 0 && Seen.Count == 0;
 
-    /// <summary>Die Rechtecke um jedes Gewässer mit seinem Ufer und um jedes Hafenbecken (dort ändern sie den Boden).</summary>
-    public IEnumerable<Kartenrechteck> Bereiche => Laeufe.Select(l => l.Bereich).Concat(Seen.Select(s => s.Bereich)).Concat(Becken.Select(b => b.Bereich));
+    /// <summary>Die Rechtecke um jedes Gewässer mit seinem Ufer, um jeden Wasserverbund mit Lücke und um jedes Hafenbecken (dort ändern sie den Boden).</summary>
+    public IEnumerable<Kartenrechteck> Bereiche =>
+        Laeufe.Select(l => l.Bereich).Concat(Seen.Select(s => s.Bereich)).Concat(Verbuende.Select(v => v.Bereich)).Concat(Becken.Select(b => b.Bereich));
 
     // ── Rechnen ──────────────────────────────────────────────────────────────
 
-    private (List<Wasserlauf>, List<Wassersee>, List<Hafenbecken>) Rechnen()
+    private (List<Wasserlauf>, List<Wassersee>, List<Hafenbecken>, List<Wasserverbund>) Rechnen()
     {
-        var (laeufe, seen) = GewaesserRechnen();
-        _stand = (laeufe, seen, new List<Hafenbecken>()); // die Becken fragen An – das braucht die Gewässer schon
+        var (laeufe, roheSeen) = GewaesserRechnen();
+        var (seen, verbuende) = VerbuendeRechnen(laeufe, roheSeen); // ein See ohne Wasserstand am Lauf nimmt dessen Spiegel an (Wasserform.Verbund.cs)
+        _stand = (laeufe, seen, new List<Hafenbecken>(), verbuende); // die Becken fragen An – das braucht die Gewässer schon
         var becken = new List<Hafenbecken>();
         if (laeufe.Count + seen.Count > 0)
             foreach (var kai in _kaie())
                 if (BeckenRechnen(kai) is { } b) becken.Add(b);
-        return (laeufe, seen, becken);
+        return (laeufe, seen, becken, verbuende);
     }
 
     /// <summary>
@@ -527,7 +533,7 @@ public sealed class Wasserform
         foreach (var s in Seen)
             if (s.Enthaelt(p) && (best is null || s.Wasserstand < best.Value.Spiegel))
                 best = new Wasserstelle(null, s, s.Wasserstand, 0, 0, s.Randabstand(p));
-        return best;
+        return Verbuende.Count == 0 ? best : VerbundAn(p, best);
     }
 
     /// <summary>Liegt der Ort im Wasser (Fluss, Bach, See, Teich)?</summary>
@@ -537,7 +543,8 @@ public sealed class Wasserform
     public bool ImUfer(double x, double z)
     {
         var p = new Kartenort(x, z);
-        return Laeufe.Any(l => l.ImUfer(p)) || Seen.Any(s => s.Bereich.Enthaelt(p) && (s.Enthaelt(p) || s.Randabstand(p) <= SeeUfer));
+        return Laeufe.Any(l => l.ImUfer(p)) || Seen.Any(s => s.Bereich.Enthaelt(p) && (s.Enthaelt(p) || s.Randabstand(p) <= SeeUfer))
+            || (Verbuende.Count > 0 && VerbundImUfer(p));
     }
 
     /// <summary>Liegt der Ort in einem See oder Teich?</summary>
@@ -571,6 +578,7 @@ public sealed class Wasserform
         }
         foreach (var s in Seen)
             best = Math.Min(best, s.Enthaelt(p) ? 0 : s.Randabstand(p));
+        if (Verbuende.Count > 0) best = Math.Min(best, VerbundUferabstand(p));
         return best > hoechstens ? double.MaxValue : best;
     }
 
@@ -604,7 +612,7 @@ public sealed class Wasserform
                 foreach (var (c, d) in Kartengeometrie.Strecken(s.Umriss))
                     if (Kartengeometrie.Schnitt(a, b, c, d) is { } x) return (s.Name, x);
         }
-        return null;
+        return Verbuende.Count == 0 ? null : VerbundUeberlappt(umriss, rahmen);
     }
 
     // ── Bett (für Gelaendeform) ──────────────────────────────────────────────
@@ -617,27 +625,37 @@ public sealed class Wasserform
     {
         var p = new Kartenort(x, z);
         var ziel = boden;
-        foreach (var l in Laeufe)
-        {
-            if (!l.Bereich.Enthaelt(p) || l.Naechste(p) is not ({ } k, { } t, { } d)) continue;
-            var w = l.Bei(k, t);
-            var halb = w.Breite / 2;
-            if (d <= halb)
-                ziel = Math.Min(ziel, w.Spiegel - w.Tiefe * (1 - (d / halb) * (d / halb)));
-            else if (!wegkern && boden > w.Spiegel && d < halb + Uferbreite(w.Breite))
-                ziel = Math.Min(ziel, w.Spiegel + (boden - w.Spiegel) * Gelaendeform.Weich((d - halb) / Uferbreite(w.Breite)));
-        }
-        foreach (var s in Seen)
-        {
-            if (!s.Bereich.Enthaelt(p)) continue;
-            var rand = s.Randabstand(p);
-            if (s.Enthaelt(p))
-                ziel = Math.Min(ziel, s.Wasserstand - Math.Min(s.Tiefe, rand * Seeboeschung));
-            else if (!wegkern && boden > s.Wasserstand && rand < SeeUfer)
-                ziel = Math.Min(ziel, s.Wasserstand + (boden - s.Wasserstand) * Gelaendeform.Weich(rand / SeeUfer));
-        }
+        // Wo ein Wasserverbund wirkt, macht er zusätzlich Wasser (Lücke, gemeinsames Bett; Wasserform.Verbund.cs); jedes Gewässer zählt wie immer mit
+        if (Verbuende.Count > 0) ziel = Math.Min(ziel, VerbundBoden(p, boden, wegkern));
+        foreach (var l in Laeufe) ziel = Math.Min(ziel, LaufBoden(l, p, boden, wegkern));
+        foreach (var s in Seen) ziel = Math.Min(ziel, SeeBoden(s, p, boden, wegkern));
         foreach (var b in Becken)
             if (b.Enthaelt(p)) ziel = Math.Min(ziel, b.Boden); // auch unter einem Weg: Die Kaimauer steht im Wasser
         return ziel;
+    }
+
+    /// <summary>Der Boden am Ort mit dem Bett eines Laufs (Querprofil im Fluss, Uferrampe daneben) – <paramref name="boden"/>, wo er nicht wirkt.</summary>
+    private static double LaufBoden(Wasserlauf l, Kartenort p, double boden, bool wegkern)
+    {
+        if (!l.Bereich.Enthaelt(p) || l.Naechste(p) is not ({ } k, { } t, { } d)) return boden;
+        var w = l.Bei(k, t);
+        var halb = w.Breite / 2;
+        if (d <= halb)
+            return Math.Min(boden, w.Spiegel - w.Tiefe * (1 - (d / halb) * (d / halb)));
+        if (!wegkern && boden > w.Spiegel && d < halb + Uferbreite(w.Breite))
+            return Math.Min(boden, w.Spiegel + (boden - w.Spiegel) * Gelaendeform.Weich((d - halb) / Uferbreite(w.Breite)));
+        return boden;
+    }
+
+    /// <summary>Der Boden am Ort mit dem Bett eines Sees (vom Ufer mit 30 % bis zur Tiefe, außen die Uferrampe) – <paramref name="boden"/>, wo er nicht wirkt.</summary>
+    private static double SeeBoden(Wassersee s, Kartenort p, double boden, bool wegkern)
+    {
+        if (!s.Bereich.Enthaelt(p)) return boden;
+        var rand = s.Randabstand(p);
+        if (s.Enthaelt(p))
+            return Math.Min(boden, s.Wasserstand - Math.Min(s.Tiefe, rand * Seeboeschung));
+        if (!wegkern && boden > s.Wasserstand && rand < SeeUfer)
+            return Math.Min(boden, s.Wasserstand + (boden - s.Wasserstand) * Gelaendeform.Weich(rand / SeeUfer));
+        return boden;
     }
 }
