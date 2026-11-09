@@ -32,6 +32,9 @@ public partial class Stadtansicht
     private bool _wsNetzNeu;
     private bool _wsNetzSichtbar;
 
+    /// <summary>Nur die Höhen unter dem Netz sind veraltet (nach einem Geländestrich): neu gebaut erst, wenn es gezeigt oder gezählt wird.</summary>
+    private bool _wsNetzHoeheVeraltet;
+
     /// <summary>Die Wegart, die das Werkzeug „Weg“ zeichnet.</summary>
     public Wegklasse WerkstattWegklasse { get; set; } = Wegklasse.Gasse;
 
@@ -45,7 +48,7 @@ public partial class Stadtansicht
         set
         {
             _wsNetzSichtbar = value;
-            if (_wsNetzNeu) NetzBauen(); // baut auch die Ansicht
+            if (_wsNetzNeu || _wsNetzHoeheVeraltet) NetzBauen(); // baut auch die Ansicht
             else NetzAnsichtBauen();
         }
     }
@@ -154,7 +157,7 @@ public partial class Stadtansicht
     /// </summary>
     private void NetzBauen()
     {
-        _wsNetzNeu = false;
+        _wsNetzNeu = _wsNetzHoeheVeraltet = false;
         if (_entwurf is null || _wsAnschluesse is null) return;
         _wsNetz = new Gassennetz();
         var strecken = new List<(Vector3 Von, Vector3 Bis)>();
@@ -198,6 +201,7 @@ public partial class Stadtansicht
         if (Uebergangsplan is { } plan)
             foreach (var f in plan.Faehren)
                 if (f.UeberWasser > 1) _wsNetz.Faehre(new Vector3((float)f.Von.X, 0, (float)f.Von.Z), new Vector3((float)f.Bis.X, 0, (float)f.Bis.Z)); // Karren setzen über
+        SchichtAnschluesseAbschliessen(); // weggefallene Anschlüsse aus der Wegeschicht nehmen (Stadtansicht.Wegeschicht.cs)
         NetzAnsichtBauen();
     }
 
@@ -212,7 +216,14 @@ public partial class Stadtansicht
     }
 
     /// <summary>Wie viele getrennte Teile das Gassennetz der Werkstatt hat (1 = alles verbunden).</summary>
-    public int WerkstattNetzTeile => _wsNetz.Teile();
+    public int WerkstattNetzTeile
+    {
+        get
+        {
+            if (_wsNetzHoeheVeraltet) NetzBauen();
+            return _wsNetz.Teile();
+        }
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Einrasten

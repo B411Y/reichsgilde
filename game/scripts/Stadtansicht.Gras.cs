@@ -57,6 +57,8 @@ public partial class Stadtansicht
         /// <summary>Tiefste und höchste Stelle des Bodens in der Kachel.</summary>
         public float Unten, Oben;
         public float[] Puffer = Array.Empty<float>();
+        /// <summary>Das zuletzt gesetzte Bild (je Punkt Dichte, Höhe, Normale x, z) – für das schnelle Nachführen der Höhe beim Malen.</summary>
+        public float[]? Daten;
     }
 
     private readonly Dictionary<(int I, int J), GrasKachel> _grasKacheln = new();
@@ -172,8 +174,74 @@ public partial class Stadtansicht
             _grasKacheln.Clear();
             _grasAlles = true;
         }
-        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { BodenStrichLaeuft: true } and not { FelsStrichLaeuft: true }) GrasKachelnRechnen();
+        // Während eines Pinselstrichs wartet das volle Rechnen bis zum Loslassen; beim Geländepinsel folgen die Halme der Höhe schon beim Malen (GrasHoeheNachfuehren)
+        var messen = Pinselmessung.Uhr();
+        GrasHoeheNachfuehren();
+        Pinselmessung.Dazu("  Gras: Höhe beim Malen nachführen", messen);
+        // (auch erst, wenn die Nacharbeit eines Geländestrichs fertig ist: Sie meldet weitere Kacheln, und so rechnet jede nur einmal)
+        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { PinselstrichLaeuft: true } && _wsNacharbeit.Count == 0) GrasKachelnRechnen();
         GrasImBild();
+    }
+
+    /// <summary>Während eines Geländestrichs: wo sich die Höhe geändert hat (null: nirgends) – <see cref="GrasHoeheNachfuehren"/> führt dort die Halme nach.</summary>
+    private Kartenrechteck? _grasHoehe;
+
+    private void GrasHoeheVormerken(Kartenrechteck r) =>
+        _grasHoehe = _grasHoehe is { } a ? new Kartenrechteck(Math.Min(a.X0, r.X0), Math.Min(a.Z0, r.Z0), Math.Max(a.X1, r.X1), Math.Max(a.Z1, r.Z1)) : r;
+
+    /// <summary>
+    /// Beim Malen mit dem Geländepinsel: In den Bildern der Kacheln nur Höhe und Normale der Punkte im geänderten Rechteck neu (gerechnet wie in
+    /// <see cref="GrasKachelRechnen"/>), die Dichte bleibt bis zum Loslassen – dann rechnet <see cref="GrasKachelnRechnen"/> die Kacheln ganz. Vorher wartete
+    /// das Gras entweder bis zum Loslassen (die Halme schwebten oder versanken) oder rechnete in jedem Bild die ganzen Kacheln (Köln 12–18 ms je Tupfer).
+    /// </summary>
+    private void GrasHoeheNachfuehren()
+    {
+        if (_grasHoehe is not { } r || _gelaende is null) return;
+        _grasHoehe = null;
+        const int n = BodenBild;
+        const float abstand = (float)Hoehenraster.Abstand;
+        var blickNeu = false;
+        foreach (var ((ti, tj), k) in _grasKacheln)
+        {
+            if (k.Daten is not { } daten || k.Bild is null) continue;
+            var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
+            var (a0, a1) = (Math.Max(0, (int)Math.Floor(r.X0) - i0 - 1), Math.Min(n - 1, (int)Math.Ceiling(r.X1) - i0 + 1));
+            var (b0, b1) = (Math.Max(0, (int)Math.Floor(r.Z0) - j0 - 1), Math.Min(n - 1, (int)Math.Ceiling(r.Z1) - j0 + 1));
+            if (a0 > a1 || b0 > b1) continue;
+            // die Rasterpunkte (2 m) unter diesen Punkten, samt dem Nachbarn rechts bzw. unten
+            var (gi0, gj0) = ((int)MathF.Floor((i0 + a0) / abstand), (int)MathF.Floor((j0 + b0) / abstand));
+            var (gb, gt) = ((int)MathF.Floor((i0 + a1) / abstand) + 2 - gi0, (int)MathF.Floor((j0 + b1) / abstand) + 2 - gj0);
+            var hoehen = _gelaende.Ausschnitt(gi0, gj0, gb, gt);
+            float H(int i, int j) => hoehen[(j - gj0) * gb + i - gi0];
+            var (unten, oben) = (k.Unten, k.Oben);
+            for (var b = b0; b <= b1; b++)
+                for (var a = a0; a <= a1; a++)
+                {
+                    var (x, z) = ((float)(i0 + a), (float)(j0 + b));
+                    var (fx, fz) = (x / abstand, z / abstand);
+                    var (i, j) = ((int)MathF.Floor(fx), (int)MathF.Floor(fz));
+                    var (tx, tz) = (fx - i, fz - j);
+                    float h00 = H(i, j), h10 = H(i + 1, j), h01 = H(i, j + 1), h11 = H(i + 1, j + 1);
+                    var h = tx >= tz ? h00 + (h10 - h00) * tx + (h11 - h10) * tz : h00 + (h11 - h01) * tx + (h01 - h00) * tz;
+                    var sx = ((h10 - h00) * (1 - tz) + (h11 - h01) * tz) / abstand;
+                    var sz = ((h01 - h00) * (1 - tx) + (h11 - h10) * tx) / abstand;
+                    var normale = new Vector3(-sx, 1, -sz).Normalized();
+                    var o = (b * n + a) * 4;
+                    daten[o + 1] = h;
+                    daten[o + 2] = normale.X;
+                    daten[o + 3] = normale.Z;
+                    (unten, oben) = (Mathf.Min(unten, h), Mathf.Max(oben, h));
+                }
+            k.Bild.Update(Image.CreateFromData(n, n, false, Image.Format.Rgbaf, MemoryMarshal.AsBytes(daten.AsSpan()).ToArray()));
+            if (unten < k.Unten || oben > k.Oben)
+            {
+                (k.Unten, k.Oben) = (unten, oben);
+                var (x0, z0) = (ti * KachelZellen * 2f, tj * KachelZellen * 2f);
+                k.Knoten.CustomAabb = new Aabb(new Vector3(x0 - 2, unten - 1, z0 - 2), new Vector3(KachelZellen * 2f + 4, oben - unten + 2.5f, KachelZellen * 2f + 4));
+                blickNeu = true;
+            }
+        }
+        if (blickNeu) _grasBlickFuer = null; // die Felder im Bild hängen an tiefster und höchster Stelle
     }
 
     /// <summary>Shader, Netze und die Farbe der Wiese (einmal); false, wenn etwas fehlt (dann kein Gras).</summary>
@@ -231,6 +299,7 @@ public partial class Stadtansicht
         _grasNeu.Clear();
         if (liste.Count == 0) return;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
+        var messen = Pinselmessung.Uhr();
         // auf dem Hauptfaden sammeln, was die Rechnung liest
         var raster = BodenRaster;
         var uhrGras = Ladezeit.Uhr();
@@ -246,6 +315,8 @@ public partial class Stadtansicht
         // die Höhen der Rasterpunkte je Kachel am Stück (der Kern rechnet das Bett der Wege dabei nach, das geht nicht parallel)
         var hoehen = liste.Select(k => BodenBewegt ? _gelaende!.Ausschnitt(k.I * KachelZellen - 1, k.J * KachelZellen - 1, GrasRaster, GrasRaster) : null).ToArray();
         Ladezeit.Dazu("Gras: Vorbereiten und Höhen", uhrGras);
+        Pinselmessung.Dazu("  Gras: sammeln (Freiraum, Wasser, Höhen)", messen);
+        messen = Pinselmessung.Uhr();
         uhrGras = Ladezeit.Uhr();
         var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
         var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
@@ -253,9 +324,12 @@ public partial class Stadtansicht
         var felsKarte = _felsbodenAn == true; // nur Karten mit Felsen: die Wiese um und zwischen den Flecken wird steinig (Stadtansicht.Felsboden.cs)
         Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, masken, stark, felsKarte));
         Ladezeit.Dazu("Gras: Kacheln rechnen (Parallel)", uhrGras);
+        Pinselmessung.Dazu("  Gras: Kacheln rechnen (parallel)", messen);
+        messen = Pinselmessung.Uhr();
         uhrGras = Ladezeit.Uhr();
         for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
         Ladezeit.Dazu("Gras: Kacheln setzen", uhrGras);
+        Pinselmessung.Dazu("  Gras: Bilder setzen", messen);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
     }
@@ -534,6 +608,7 @@ public partial class Stadtansicht
             k.Stoff.SetShaderParameter("wege_ursprung", new Vector2(kachel.I * KachelZellen * 2f, kachel.J * KachelZellen * 2f));
         }
         k.Felder = e.Felder;
+        k.Daten = e.Daten;
         (k.Unten, k.Oben) = (e.Unten, e.Oben);
         // alle Felder als mögliche Kopien (gezeigt werden die ersten VisibleInstanceCount); der Boden ist bis zur Höhe der Halme darin
         var mm = k.Knoten.Multimesh;

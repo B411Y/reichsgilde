@@ -415,6 +415,7 @@ public partial class Stadtansicht
     private void GelaendeKachelBauen(int ti, int tj)
     {
         if (_gelaendeKnoten is null || _gelaende is null) return;
+        var uhr = Pinselmessung.Uhr();
         var (netz, flach) = Ladezeit.Zaehlen("Kachel: Netz", () => KachelNetz(ti, tj));
         if (!_gelaendeKacheln.TryGetValue((ti, tj), out var kachel))
         {
@@ -423,8 +424,16 @@ public partial class Stadtansicht
             _gelaendeKacheln[(ti, tj)] = kachel;
         }
         kachel.Mesh = netz;
-        kachel.MaterialOverride = Ladezeit.Zaehlen("Kachel: Stoff", () => KachelStoff(ti, tj)); // Wiese oder Boden-Shader (Stadtansicht.Boden.cs)
+        Pinselmessung.Dazu("Gelände: Netz der Kacheln", uhr);
+        uhr = Pinselmessung.Uhr();
+        // Wiese oder Boden-Shader (Stadtansicht.Boden.cs). Hat die Kachel ihren Stoff schon, bleibt er: Hier ändert sich nur die Höhe, Gewichtsbilder und
+        // Wegeschicht ersetzen BodenStoffeNeu und WegeschichtBild selbst (vorher rechnete jeder Tupfer des Geländepinsels die drei Bilder der Kachel neu)
+        if (kachel.MaterialOverride is null || !_bodenStoffe.ContainsKey((ti, tj)))
+            kachel.MaterialOverride = Ladezeit.Zaehlen("Kachel: Stoff", () => KachelStoff(ti, tj));
+        Pinselmessung.Dazu("Gelände: Gewichtsbilder der Kacheln", uhr);
+        uhr = Pinselmessung.Uhr();
         Ladezeit.Teil("Kachel: Büschel-Höhe", () => BueschelHoeheGeaendert(ti, tj)); // die Grasbüschel stehen auf der neuen Höhe (Stadtansicht.Bueschel.cs)
+        Pinselmessung.Dazu("Gelände: Büschel-Höhe", uhr);
         kachel.CastShadow = flach ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On;
     }
 

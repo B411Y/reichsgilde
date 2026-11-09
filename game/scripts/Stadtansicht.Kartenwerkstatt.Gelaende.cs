@@ -332,32 +332,118 @@ public partial class Stadtansicht
             var r = Vereinigt(_wsGelaendeKacheln);
             _wsGelaendeKacheln.Clear();
             GelaendeKachelnNeu(r);
+            if (_entwurf.StrichLaeuft) GrasHoeheVormerken(r); // die Halme folgen der Höhe schon beim Malen (Stadtansicht.Gras.cs)
         }
         if (_wsGelaendeObjekte.Count == 0 || _entwurf.StrichLaeuft) return;
+        GelaendeObjekteNachziehen();
+    }
+
+    /// <summary>
+    /// Nach dem Strich: alles, was im geänderten Rechteck auf dem Gelände steht, neu bauen – nicht in einem Bild, sondern als <see cref="_wsNacharbeit"/>,
+    /// ein Teil nach dem anderen, so viele je Bild, wie in <see cref="NacharbeitBudget"/> passen (in Köln kostete ein Geländestrich sonst ein Bild von
+    /// 0,5–0,7 s). Nur Höhen ändern sich: Wege und Mauern rechnen ihre Wegeschicht nicht neu (<see cref="_schichtNurHoehe"/>), das Wasser nur, wenn das
+    /// Rechteck ein Gewässer berührt.
+    /// </summary>
+    private void GelaendeObjekteNachziehen()
+    {
+        if (_entwurf is null) return;
         var bereich = Vereinigt(_wsGelaendeObjekte);
         _wsGelaendeObjekte.Clear();
         var rect = new Rect2((float)bereich.X0, (float)bereich.Z0, (float)bereich.Breite, (float)bereich.Tiefe).Grow(2);
-        if (!GewaesserLeer) _wsWasserNeu = true; // der Spiegel der Flüsse folgt dem Gelände (Brücken, Fähren mit ihm)
+        // der Spiegel der Flüsse folgt dem Gelände (Brücken, Fähren mit ihm) – aber nur, wo ein Gewässer samt Ufer und Glättung liegt (GewaesserBereich)
+        if (!GewaesserLeer && _wsWasserBereiche.Values.Any(b => b.Intersects(rect))) _wsWasserNeu = true;
 
-        foreach (var g in _entwurf.Gebaeude.ToList())
+        var entwurf = _entwurf;
+        foreach (var g in entwurf.Gebaeude.ToList())
             if (BereichVon(g) is { } b && b.Intersects(rect) && _stuecke.ContainsKey(g))
-            {
-                StueckEntfernen(g);
-                StueckBauen(g);
-            }
-        foreach (var w in _entwurf.Wege.ToList())
-            if (BereichVon(w) is { } b && b.Intersects(rect)) WegBauen(w, false);
-        foreach (var m in _entwurf.Mauern.ToList())
-            if (BereichVon(m) is { } b && b.Intersects(rect)) MauerBauen(m, false);
-        foreach (var f in _entwurf.Bauzonen.Cast<EntwurfFlaeche>().Concat(_entwurf.Naturflaechen).Concat(_entwurf.Felder).ToList())
-            if (BereichVon(f) is { } b && b.Intersects(rect)) FlaecheBauen(f, false);
-        foreach (var p in _entwurf.Pflanzen.ToList())
-            if (rect.HasPoint(V2(p.Punkt))) PflanzeBauen(p, false);
-        FelsenImBereich(rect); // Stadtansicht.Kartenwerkstatt.Felsen.cs
-        FelsGelaendeBereich(rect); // das Höhenbild unter den Felsen (Stadtansicht.Felsgelaende.cs)
-        NaturBereichVormerken(rect.Grow(NaturUeberstand)); // die Natur der Flächen und die Äcker folgen dem Boden (Stadtansicht.Kartenwerkstatt.Natur.cs)
+                Nacharbeit("Gebäude", () =>
+                {
+                    StueckHoeheNeu(g); // nur Höhe und Sockel; inzwischen gelöscht: nichts (Stadtansicht.Kartenwerkstatt.cs)
+                });
+        foreach (var w in entwurf.Wege.ToList())
+            if (BereichVon(w) is { } b && b.Intersects(rect))
+                Nacharbeit("Wege", () =>
+                {
+                    if (entwurf.Enthaelt(w)) NurHoeheNeu(() => WegBauen(w, false));
+                });
+        foreach (var m in entwurf.Mauern.ToList())
+            if (BereichVon(m) is { } b && b.Intersects(rect))
+                Nacharbeit("Mauern", () =>
+                {
+                    if (entwurf.Enthaelt(m)) NurHoeheNeu(() => MauerBauen(m, false));
+                });
+        foreach (var f in entwurf.Bauzonen.Cast<EntwurfFlaeche>().Concat(entwurf.Naturflaechen).Concat(entwurf.Felder).ToList())
+            if (BereichVon(f) is { } b && b.Intersects(rect))
+                Nacharbeit("Flächen", () =>
+                {
+                    if (entwurf.Enthaelt(f)) FlaecheBauen(f, false);
+                });
+        foreach (var p in entwurf.Pflanzen.ToList())
+            if (rect.HasPoint(V2(p.Punkt)))
+                Nacharbeit("Pflanzen", () =>
+                {
+                    if (entwurf.Enthaelt(p)) PflanzeBauen(p, false);
+                });
+        Nacharbeit("Felsen und Natur vormerken", () =>
+        {
+            FelsenImBereich(rect); // Stadtansicht.Kartenwerkstatt.Felsen.cs
+            FelsGelaendeBereich(rect); // das Höhenbild unter den Felsen (Stadtansicht.Felsgelaende.cs)
+            NaturBereichVormerken(rect.Grow(NaturUeberstand)); // die Natur der Flächen und die Äcker folgen dem Boden (Stadtansicht.Kartenwerkstatt.Natur.cs)
+        });
+        // erst wenn alles steht: Höfe und Karrenplätze hängen am Netz. Liegen die Anschlüsse flach in der Wegeschicht und ist das Netz nicht zu sehen,
+        // ändert eine neue Höhe nichts Sichtbares – dann erst, wenn jemand das Netz ansieht (in Köln kostete der Neubau 50–140 ms)
+        Nacharbeit("Gassennetz vormerken", () =>
+        {
+            if (WegeschichtMoeglich && _grenzen is not null && !_wsNetzSichtbar) _wsNetzHoeheVeraltet = true; // wie WegZiehen (Stadtansicht.cs)
+            else _wsNetzNeu = true;
+        });
         _wsFehlerNeu = true; // die Hangsperre hat sich vielleicht geändert
         _wsGriffeNeu = true;
-        _wsNetzNeu = true;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Nacharbeit: nach dem Strich, über mehrere Bilder verteilt
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Was nach einem Strich noch neu zu bauen ist (Gebäude, Wege, Flächen, Pflanzen im Rechteck), in der Reihenfolge des Anstellens.</summary>
+    private readonly Queue<Action> _wsNacharbeit = new();
+
+    /// <summary>So viel Zeit (ms) bekommt die Nacharbeit je Bild – mindestens ein Teil kommt immer dran.</summary>
+    private const double NacharbeitBudget = 6;
+
+    /// <summary>Stellt einen Teil der Nacharbeit an (<paramref name="art"/> nennt ihn in der Pinselmessung).</summary>
+    private void Nacharbeit(string art, Action arbeit) => _wsNacharbeit.Enqueue(() =>
+    {
+        var uhr = Pinselmessung.Uhr();
+        arbeit();
+        Pinselmessung.Dazu("  Nacharbeit: " + art, uhr);
+    });
+
+    /// <summary>Ist noch Nacharbeit übrig (für die Messung)?</summary>
+    public bool WerkstattNacharbeitOffen => _wsNacharbeit.Count > 0;
+
+    /// <summary>Jedes Bild (aus <see cref="Nachziehen"/>): Teile der Nacharbeit, bis das Budget verbraucht ist.</summary>
+    private void NacharbeitAbarbeiten()
+    {
+        if (_wsNacharbeit.Count == 0) return;
+        var anfang = Time.GetTicksUsec();
+        do _wsNacharbeit.Dequeue()();
+        while (_wsNacharbeit.Count > 0 && (Time.GetTicksUsec() - anfang) / 1000.0 < NacharbeitBudget);
+    }
+
+    /// <summary>Wird gerade nur wegen einer neuen Höhe neu gebaut? Dann bleibt die Wegeschicht (sie ist flach, Stadtansicht.Wegeschicht.cs).</summary>
+    private bool _schichtNurHoehe;
+
+    private void NurHoeheNeu(Action bauen)
+    {
+        _schichtNurHoehe = true;
+        try
+        {
+            bauen();
+        }
+        finally
+        {
+            _schichtNurHoehe = false;
+        }
     }
 }
