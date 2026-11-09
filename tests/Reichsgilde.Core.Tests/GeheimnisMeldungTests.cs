@@ -138,11 +138,33 @@ static class GeheimnisMeldungTests
         return n;
     }
 
-    static int Zaehlen(string text, string teil)
+    /// <summary>
+    /// Wie viele Meldungen und Erpresserbriefe im Spielstand das neue Feld „GeheimnisArt“ tragen und wie viele nicht – nur dort gesucht
+    /// (denselben Namen hat schon die Anzeige im Verfahren).
+    /// </summary>
+    static (int Mit, int Ohne) NeueFelder(string json)
     {
-        var zahl = 0;
-        for (var i = text.IndexOf(teil, StringComparison.Ordinal); i >= 0; i = text.IndexOf(teil, i + 1, StringComparison.Ordinal)) zahl++;
-        return zahl;
+        int mit = 0, ohne = 0;
+        void Gehen(JsonNode? k)
+        {
+            switch (k)
+            {
+                case JsonObject o:
+                    foreach (var (name, wert) in o.ToList())
+                    {
+                        if (name is "Meldungen" or "Forderungen" && wert is JsonArray liste)
+                            foreach (var e in liste.OfType<JsonObject>())
+                                if (e.ContainsKey("GeheimnisArt")) mit++; else ohne++;
+                        else Gehen(wert);
+                    }
+                    break;
+                case JsonArray a:
+                    foreach (var e in a) Gehen(e);
+                    break;
+            }
+        }
+        Gehen(JsonNode.Parse(json));
+        return (mit, ohne);
     }
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -397,16 +419,18 @@ static class GeheimnisMeldungTests
             Pruefe.Wahr(o.Einstufen(w, c, nennt.Text, nennt).Verwerfen, "ein drittes Haus liest den vertraulichen Satz nicht");
         }),
 
-        ("Geheimnis-Siegel: Spielstand – Art an Meldungen und Erpresserbrief bleibt (speichern, laden, gleich weiter); ohne Geheimnis-Meldung kein Feld", () =>
+        ("Geheimnis-Siegel: Spielstand – Art an Meldungen und Erpresserbrief bleibt (speichern, laden, gleich weiter); das Feld steht nur, wo eine Art gesetzt ist", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 41 },
                 Daten(), new NeuePartie());
             JahrBeenden(sim);
             var w = sim.Wirtschaft!;
-            // Ohne Geheimnis-Meldung: kein Feld (die Ratsherren haben ohne Zufall keine Geheimnisse, niemand nutzt etwas)
+            // Das Feld steht genau an den Meldungen und Briefen mit Art (die KI-Häuser können auch hier Schulden oder Ketzerei bekommen), sonst nirgends
             var vorher = Speicherung.Speichern(sim, spieler, Zeitpunkt);
-            Pruefe.Wahr(!vorher.Contains("\"GeheimnisArt\"", StringComparison.Ordinal), "kein Feld ohne Geheimnis-Meldung");
-            Pruefe.Wahr(w.Meldungsverlauf.Count > 20, "Meldungen im Verlauf");
+            var (mitArt, ohneArt) = NeueFelder(vorher);
+            Pruefe.Gleich(w.Meldungsverlauf.Count(m => m.GeheimnisArt is not null) + w.Gauner.Forderungen.Count(f => f.GeheimnisArt is not null), mitArt,
+                "das Feld nur, wo eine Art gesetzt ist");
+            Pruefe.Wahr(ohneArt > 20, $"Meldungen ohne Art stehen ohne Feld im Spielstand ({ohneArt})");
             // Mit: Brief, Bloßstellen, Ratsstimme
             spieler.Aktionspunkte.Setzen(12);
             var b = w.Konten.First(k => k != spieler && k.IstAktiv && w.Familien.Von(k) is not null);
@@ -416,8 +440,7 @@ static class GeheimnisMeldungTests
             Ok(w, spieler, new GeheimnisNutzen(g1.Nummer, Geheimnisnutzung.Gulden, 300));
             Ok(w, spieler, new GeheimnisNutzen(g2.Nummer, Geheimnisnutzung.Blossstellen));
             var json = Speicherung.Speichern(sim, spieler, Zeitpunkt);
-            var n = JsonNode.Parse(json)!.AsObject();
-            Pruefe.Wahr(Zaehlen(n["Meldungen"]!.ToJsonString(), "\"GeheimnisArt\"") >= 3, "Art in den Meldungen des Spielstands");
+            Pruefe.Wahr(NeueFelder(json).Mit >= mitArt + 4, $"Art an Meldungen und Brief im Spielstand ({NeueFelder(json).Mit}, vorher {mitArt})");
             Pruefe.Wahr(json.Contains("\"GeheimnisArt\": \"Ehebruch\"", StringComparison.Ordinal), "Art als Name");
             var (geladen, geladenerSpieler) = Speicherung.Laden(json);
             var w2 = geladen.Wirtschaft!;
@@ -443,7 +466,7 @@ static class GeheimnisMeldungTests
             Ok(w, spieler, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Gulden, 300));
             var json = Speicherung.Speichern(sim, spieler, Zeitpunkt);
             var alt = OhneNeuesFeld(json).ToJsonString();
-            Pruefe.Wahr(json.Contains("\"GeheimnisArt\"", StringComparison.Ordinal) && !alt.Contains("\"GeheimnisArt\"", StringComparison.Ordinal), "der alte Stand hat kein Feld");
+            Pruefe.Wahr(NeueFelder(json).Mit > 0 && NeueFelder(alt).Mit == 0, "der alte Stand hat kein Feld an Meldungen und Briefen");
             var (geladen, geladenerSpieler) = Speicherung.Laden(alt);
             var w2 = geladen.Wirtschaft!;
             Pruefe.Wahr(w2.Meldungsverlauf.Count == w.Meldungsverlauf.Count && w2.Meldungsverlauf.All(m => m.GeheimnisArt is null), "Meldungen ohne Art");
