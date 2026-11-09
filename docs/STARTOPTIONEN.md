@@ -41,6 +41,7 @@ Startoptionen (nach `--`):
 - `--sitzungzeigen=<immer|betroffen|nie>` (Einstellung „Ratssitzung zeigen“ nur für diesen Start)
 - `--familie=1`
 - `--charakter=<oberhaupt|ehepartner|kind|ratsherr[:n]|Personennummer>[:lebensweg]` (öffnet das Charakterfenster dieser Person, mit `:lebensweg` gleich im Reiter „Lebensweg“, z. B. `oberhaupt:lebensweg`; nach `--spulen`; `kind` = erstes Kind des eigenen Hauses, sonst irgendeines; `ratsherr:2` = zweiter Ratsherr mit Amt); `--charakter-ehe=1` (das Oberhaupt heiratet gleich zu Beginn die standesgemäße Kandidatin, die am ehesten einwilligt – Zuneigung, Ansehen und ihre Meinung –, mit `--vermoegen=30000`; mit `--spulen=17100` wachsen Kinder heran)
+- `--stress=<Wert>[:oberhaupt|ehepartner|Personennummer]` (setzt den Stress dieser Person des eigenen Hauses, ohne Angabe des Oberhaupts, über den Entwicklerbefehl `EntwicklerStress` – nur mit `--entwickler=1`; 100 löst den Zusammenbruch aus; nach `--spulen` und vor `--charakter`, z. B. `--entwickler=1 --stress=75 --charakter=oberhaupt` für den Stressbalken „zermürbt“; `Hauptszene.Charakter.cs`)
 - `--portraets=<Volk>[,<mann|frau>[,<Gesicht 0–4>[,<Haarfarbe>[,<Augenfarbe>]]]]` (öffnet im Hauptmenü die Seite „Euer Oberhaupt“ mit dieser Vorwahl, z. B. `--portraets=elb,frau,2,silberblond,violett`; `--portraets=1` = Menschen, Mann, Gesicht 1); dazu `--blinzeln=zu|offen|<0–1>` (hält die Augen fest, für Bildschirmfotos; `0.5` = halb)
 - `--gericht=1`
 - `--hinterzimmer=1`

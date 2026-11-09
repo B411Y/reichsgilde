@@ -77,14 +77,14 @@ public sealed class Person : ICharakter
         var mitZuegen = anlage + Zugwirkung(t);
         // Züge heben nicht über den Höchstwert (wer schon mehr kann, behält es); sie ziehen höchstens bis 0 ab.
         if (mitZuegen > anlage) mitZuegen = Math.Min(mitZuegen, Math.Max(anlage, TalentHoechstwert));
-        return Math.Max(0, mitZuegen - (Krankheit?.Abzug(t) ?? 0));
+        return Math.Max(0, mitZuegen - (Krankheit?.Abzug(t) ?? 0) - Stresslage.TalentAbzug); // Stress ab „zermürbt“ wie eine leichte Krankheit
     }
 
     /// <summary>Sterne ohne Krankheit und ohne Charakterzüge – das, was die Person gelernt und geerbt hat.</summary>
     public double Anlage(Talent t) => _talente[(int)t];
 
-    /// <summary>Sterne ohne Charakterzüge, aber mit Krankheit (zum Vergleich im Charakterfenster).</summary>
-    public double TalentOhneZuege(Talent t) => Math.Max(0, _talente[(int)t] - (Krankheit?.Abzug(t) ?? 0));
+    /// <summary>Sterne ohne Charakterzüge, aber mit Krankheit und Stress (zum Vergleich im Charakterfenster).</summary>
+    public double TalentOhneZuege(Talent t) => Math.Max(0, _talente[(int)t] - (Krankheit?.Abzug(t) ?? 0) - Stresslage.TalentAbzug);
 
     /// <summary>Was die Charakterzüge zusammen an diesem Talent ändern (positiv oder negativ).</summary>
     public double Zugwirkung(Talent t) => _zuege.Sum(z => z.Talent(t));
@@ -117,6 +117,9 @@ public sealed class Person : ICharakter
 
     /// <summary>Die Lebensweise (Charaktersystem Teil 3a): Pfad, Erfahrung je Pfad und Knoten – nur Oberhaupt, Erbe und Ehepartner sammeln.</summary>
     public Lebensweg Lebensweg { get; } = new();
+
+    /// <summary>Der Stress (Charaktersystem Teil 3b): nur Oberhaupt, Erbe und Ehepartner sammeln ihn. Auskunft über <see cref="Familienbuch.Stress(Person)"/>.</summary>
+    public Stresslage Stresslage { get; } = new();
 
     /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>
     public Gesundheit.Erkrankung? Krankheit { get; internal set; }

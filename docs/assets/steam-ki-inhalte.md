@@ -16,7 +16,7 @@ Wortlaut der Regel vor der Angabe an der Quelle prüfen; die Zusammenfassung sta
 
 ## Ausgeliefert und für Spieler sichtbar (Pre-Generated)
 
-Zusammen: 120 × Audio, 1791 × Bild, 2 × Modell, 3 × Textur.
+Zusammen: 120 × Audio, 1793 × Bild, 2 × Modell, 3 × Textur.
 
 | Inhalt | Anzahl | Art | Werkzeug | Modell | Bemerkung |
 |---|---|---|---|---|---|
@@ -40,6 +40,7 @@ Zusammen: 120 × Audio, 1791 × Bild, 2 × Modell, 3 × Textur.
 | `game/assets/oberflaeche/zeiger/hilfe_*.png` | 3 | Bild | Vorlage des Nutzers, mit Gemini erstellt (Bild nicht im Repository); freigestellt und verkleinert mit tools/oberflaeche/zeiger_hilfe.py (Python, numpy und Pillow) | unbekannt (Gemini, vom Nutzer bedient) | Hilfe-Mauszeiger (CursorShape.Help, game/scripts/Mauszeiger.cs) über den Zug-Icons im Charakterfenster; Spitze des Dreiecks als Zeigerpunkt (0,0); hilfe_<48\|64\|80>.png |
 | `game/assets/oberflaeche/zuege/*.png` | 22 | Bild | Google Gemini (App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App bzw. ChatGPT erzeugt, Modellversion dort nicht angezeigt) | Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository; ohne pilger und gelehrt (eigene Zeile) |
 | `game/assets/oberflaeche/zuege/{pilger,gelehrt}.png` | 2 | Bild | ChatGPT-Bilderzeugung (OpenAI, App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App bzw. ChatGPT erzeugt, Modellversion dort nicht angezeigt) | Gemini-Limit erreicht, daher ChatGPT; Rohbilder nicht im Repository |
+| `game/assets/oberflaeche/zuege/{schwermuetig,reizbar}.png` | 2 | Bild | Google Gemini (App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App erzeugt, Modellversion dort nicht angezeigt) | Vorlage des Nutzers, mit Gemini erstellt (Austauschordner: vorlage_schwermuetig.webp – Mann mit dem Kopf in der Hand, Kerze; vorlage_reizbar.webp – Faust schlägt auf den Tisch); Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository |
 
 ## KI-Inhalte im Repository, die das Spiel nicht zeigt
 

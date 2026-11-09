@@ -60,6 +60,10 @@ static class Messung
         // [--berufe=…] [--voelker=…] – siehe Lebenswegmessung.cs
         if (args.Length > 0 && args[0] == "lebensweg")
             return Lebenswegmessung.Erstellen(args[1..]);
+        // Stress der Oberhäupter, Stufen, Zusammenbrüche, Quellen und Ventile (Stress 3b, 9.11.2026): … -- messen stress [Jahre] [Startwerte]
+        // [--berufe=…] – siehe Stressmessung.cs
+        if (args.Length > 0 && args[0] == "stress")
+            return Stressmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

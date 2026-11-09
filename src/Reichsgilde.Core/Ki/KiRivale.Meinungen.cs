@@ -81,7 +81,8 @@ public sealed partial class KiRivale
         return mw.Aktivitaeten(Konto, r)
             .Where(a => a.Art != mw.GeschenkArt && a.Sperrgrund is null && a.Erwartet > 0 && !Mag(a.Art, nicht: true)
                         && Konto.Vermoegen - a.Gulden >= Profil.Reserve)
-            .OrderByDescending(a => Mag(a.Art, nicht: false))
+            .OrderByDescending(a => IstVentilFuerMich(a, r)) // gestresst: zuerst ein Ventil (Stress, KiRivale.Stress.cs) – zählt dann doppelt
+            .ThenByDescending(a => Mag(a.Art, nicht: false))
             .ThenByDescending(a => a.Erwartet)
             .ThenBy(a => a.Gulden)
             .ThenBy(a => a.Art, StringComparer.Ordinal)
