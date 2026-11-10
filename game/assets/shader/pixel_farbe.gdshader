@@ -52,6 +52,22 @@ vec3 ansichtsort(float d, mat4 inv_proj, vec2 uv) {
 	return v.xyz / v.w;
 }
 
+// Tiefenabstand eines Nachbarn zum Bildpunkt (Meter, positiv = Nachbar liegt weiter weg), für Stufenlicht und Umrisse. Einfach die Differenz der Tiefen,
+// außer bei waagerechten Flächen (ebene) in perspektivischer Ansicht (Ego-Ansicht, freie Kamera): dort gegen die Tangentialebene des Bildpunkts (Ort p0,
+// Normale n0). Ein flacher Boden im streifenden Blick wird mit der Entfernung je Bildzeile tiefer, schon ab etwa 8 m um mehr als die Umrissschwelle (1,2 %
+// der Tiefe): Der Shader hielt jeden Bildpunkt dahinter für einen Tiefensprung und zeichnete den Boden mit einem Schlag dunkler und mit Umriss (waagerechte
+// Linie quer durchs Bild). Die Ebene sagt die Tiefe des Nachbarn voraus; nur was von ihr abweicht, ist ein echter Sprung. Schrägen, Stämme und Äste bleiben
+// bei der einfachen Differenz, sonst verschwänden ihre Umrisse (die Ebene sagt dort die Tiefe der Fläche dahinter voraus). Sehr flacher Winkel zwischen
+// Strahl und Ebene: ebenfalls die einfache Differenz.
+float tiefen_abstand(float zn, float dn, vec2 u, vec3 p0, vec3 n0, float z0, bool ebene, mat4 inv_proj) {
+	if (!ebene) return zn - z0;
+	vec3 r = ansichtsort(dn, inv_proj, u);
+	float nr = dot(n0, r);
+	if (abs(nr) < 0.02 * length(r)) return zn - z0;
+	float t = dot(n0, p0) / nr;
+	return zn - (-r.z * t);
+}
+
 // Beleuchtung L an einem Bildpunkt = Bild / Eigenfarbe (Bild: linear vor dem Tonemapping, Eigenfarbe: das Unbeleuchtet-Bild, linear gemacht), mal LICHT_BEZUG. Auf 1 begrenzt wie die Anzeige; sehr dunkle Eigenfarben (kaum Information) werden gedeckelt.
 // Hilfsflächen-Zwillinge (Stadtansicht.Pixel.cs) zeichnen Magenta: „volles Licht, nicht stufen“.
 float licht_l(vec2 u) {
@@ -79,6 +95,7 @@ void fragment() {
 	if (d <= 0.000001) { discard; }   // Himmel: nichts anfassen
 	bool ortho = ortho_groesse > 0.0;
 	vec3 n0 = texture(normalen, uv).xyz * 2.0 - 1.0;
+	bool ebene = !ortho && (INV_VIEW_MATRIX * vec4(n0, 0.0)).y > 0.9;   // waagerechte Fläche (Boden) in perspektivischer Ansicht, siehe tiefen_abstand
 	vec3 c = textureLod(bild, uv, 0.0).rgb;
 
 	vec4 vp = INV_PROJECTION_MATRIX * vec4(uv * 2.0 - 1.0, d, 1.0);
@@ -100,7 +117,7 @@ void fragment() {
 			vec2 u = uv + vec2(cos(a), sin(a)) * px;
 			float dn = texture(tiefe, u).x;
 			if (dn <= 0.000001) continue;
-			if (abs(linear_tief(dn, INV_PROJECTION_MATRIX, u) - z0) > uschwelle) continue;
+			if (abs(tiefen_abstand(linear_tief(dn, INV_PROJECTION_MATRIX, u), dn, u, vp.xyz, n0, z0, ebene, INV_PROJECTION_MATRIX)) > uschwelle) continue;
 			float ln = licht_l(u);
 			sum += ln; cnt += 1.0; lmin = min(lmin, ln); lmax = max(lmax, ln);
 		}
@@ -129,7 +146,7 @@ void fragment() {
 			vec2 u = uv + rich[j] * px;
 			float dj = texture(tiefe, u).x;
 			if (dj <= 0.000001) continue;
-			lap += linear_tief(dj, INV_PROJECTION_MATRIX, u) - z0; zahl++;
+			lap += tiefen_abstand(linear_tief(dj, INV_PROJECTION_MATRIX, u), dj, u, vp.xyz, n0, z0, ebene, INV_PROJECTION_MATRIX); zahl++;
 		}
 		bool flach = zahl == 4 && abs(lap) < 0.3 * wp;
 		float aussen = 0.0, innen = 0.0;
@@ -139,14 +156,14 @@ void fragment() {
 			bool fern;
 			float z = 0.0;
 			if (dn <= 0.000001) fern = true;
-			else { z = linear_tief(dn, INV_PROJECTION_MATRIX, u); fern = z - z0 > uschwelle; }
+			else { z = tiefen_abstand(linear_tief(dn, INV_PROJECTION_MATRIX, u), dn, u, p0, n0, z0, ebene, INV_PROJECTION_MATRIX); fern = z > uschwelle; }
 			if (fern) {
 				// dünnes Teil? Gegenseite im Abstand 2 ebenfalls tief oder Himmel: nur halber Strich
 				vec2 u2 = uv - rich[i] * px * 2.0;
 				float d2 = texture(tiefe, u2).x;
-				bool dunn = d2 <= 0.000001 || linear_tief(d2, INV_PROJECTION_MATRIX, u2) - z0 > uschwelle;
+				bool dunn = d2 <= 0.000001 || tiefen_abstand(linear_tief(d2, INV_PROJECTION_MATRIX, u2), d2, u2, p0, n0, z0, ebene, INV_PROJECTION_MATRIX) > uschwelle;
 				aussen = max(aussen, dunn ? 0.45 : 1.0);
-			} else if (abs(z - z0) < uschwelle) {
+			} else if (abs(z) < uschwelle) {
 				vec3 n = texture(normalen, u).xyz * 2.0 - 1.0;
 				if (dot(n0, n) < UMRISS_KNICK) {
 					vec3 dp = ansichtsort(dn, INV_PROJECTION_MATRIX, u) - p0;
