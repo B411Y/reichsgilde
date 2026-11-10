@@ -1,0 +1,24 @@
+datei,quelle,sha256_quelle,dauer_s,roh_dauer_s,lufs,true_peak_dbtp,groesse_mb,gain_db,ziel_gesenkt,schwerpunkt_hz,anteil_ueber_2khz,kurzzeit_std,abtastrate
+event/event_aufstand_orks_und_oger.ogg,event_aufstand_Orks und Oger.wav,ef1fa0a497975a93f9b25daa2018257a90fa2110597971b17315858278a32c8b,129.6,129.6,-17.1,-6.85,2.77,-2.6,nein,2869,0.372,1.95,48000
+event/event_hochzeit_hochzeit.ogg,event_hochzeit_Hochzeit.wav,15f90fab5b16e3609ab5e195911efad09079503ada29ad8b80d03cefff504d6a,122.3,122.3,-17.0,-4.79,2.59,-1.4,nein,1161,0.126,2.05,48000
+event/event_kampf_jetzt_aber_schnell.ogg,event_kampf_Jetzt Aber Schnell!.wav,088dab0608b31a634cd2e33ac5b11a22a5642fac573b9f2a24c05ade1eb10368,112.8,112.8,-17.1,-5.12,2.46,-0.2,nein,2584,0.351,2.16,48000
+event/event_sklaven_schwere_ketten.ogg,event_sklaven_Schwere Ketten.wav,6b76899ee4d2c6a60e39cb0e3ae716d5ea7831ce2964b3ff391c29a91ab7698b,193.3,194.0,-17.0,-6.09,3.88,-2.6,nein,1183,0.169,2.47,48000
+event/event_sklaven_sklaven_an_die_arbeit.ogg,event_sklaven_Sklaven an die Arbeit.wav,fdb367fcb400c8b0e40a76105f7d5be35f17c4c3083e7d9ee6adc6538714ba5b,169.8,170.0,-17.0,-6.32,3.71,-3.4,nein,2735,0.313,2.52,48000
+nacht/nacht_es_lauert.ogg,nacht_Es Lauert.wav,17cf24d093dce7ab2c5e4520eadc362a52e330851d01e043c2e3a3a792e35cd9,147.3,148.4,-17.0,-2.68,3.36,-0.5,nein,2802,0.275,2.4,48000
+nacht/nacht_unheimlich.ogg,nacht_Unheimlich.wav,271f2e586faf47030ca7d55c7283808918545680db76575ff950283c48197f98,178.4,178.4,-17.0,-4.48,3.46,-1.1,nein,590,0.036,2.98,48000
+tag/tag_adels_schmeich.ogg,tag_Adels Schmeich.wav,853655b155ad8bcd5df983cb0bd6180560b455080dd14700bbd50d1fcd17d78f,135.0,135.0,-17.0,-4.99,3.04,-1.0,nein,1555,0.168,1.2,48000
+tag/tag_elben.ogg,tag_Elben.wav,025764d54b2a7aa6106dc05c1c0a207e2faf4976ad113d7e5c63f0022840c37e,78.5,78.6,-17.0,-2.97,1.72,-0.5,nein,1800,0.204,1.88,48000
+tag/tag_halblinge.ogg,tag_Halblinge.wav,12e3c8800f69fdbc4255df43f6a57425a8c4b791c9e851a1d0ccd05e478f62a3,112.3,112.4,-17.0,-4.79,2.69,-2.4,nein,3064,0.311,1.07,48000
+tag/tag_hungerlohn.ogg,tag_Hungerlohn.wav,597b0fe2b2262cc55e342e88183e619cd9954bd046fd0a6ab73a0f78f8171f69,169.2,169.2,-17.0,-5.4,3.52,-1.5,nein,802,0.077,3.07,48000
+tag/tag_marktplatz.ogg,tag_Marktplatz.wav,331a96f298080eacf8d0d653c767c019490fd40d06c9a945406ef399fb3d40ca,103.5,103.6,-17.0,-4.02,2.35,-1.6,nein,1856,0.2,1.26,48000
+tag/tag_marsch_der_ritter.ogg,tag_Marsch der Ritter.wav,ba4e74274a08db29a5b2488814183566c691d48e8cea104c58760bfc7398694b,137.4,137.4,-17.0,-3.86,3.07,-0.9,nein,2043,0.257,1.94,48000
+tag/tag_menschen.ogg,tag_Menschen.wav,6c443487c7ae82ee5f7b8dc3cd7bb3104cffee98faf4978b4ca7391f00a47176,171.8,171.8,-17.0,-5.3,3.7,-1.1,nein,2706,0.379,1.77,48000
+tag/tag_zwerge.ogg,tag_Zwerge.wav,995a72107c2606546ce7903da77630829888aa9544ad9847e44024d05dc11455,123.4,123.4,-17.0,-4.57,2.7,-5.2,nein,2607,0.346,2.4,48000
+tag/tag_fruehling_fruehlingstanz.ogg,tag_frühling_Frühlingstanz.wav,78168b540a228fe5e90ac652708a6c1b2fdeeeb033d4a8c371a10a4cd5861765,95.5,95.6,-17.0,-4.45,2.22,-1.4,nein,1841,0.215,1.53,48000
+tag/tag_fruehling_fruehlingsauftakt.ogg,tag_frühling_Frühlingsauftakt.wav,1ad001b5d401b52916fc7bf8bfcca54f522a7245ced73f358f3b08e69cca1a8e,92.8,94.8,-17.0,-3.67,2.13,-1.1,nein,1965,0.215,1.35,48000
+tag/tag_herbst_herbstrauschen.ogg,tag_herbst_Herbstrauschen.wav,116d92fb78faca7b5946aead859d79f16a3a5aff346a1526318ba28d054d3677,182.3,182.3,-18.4,-1.3,4.17,-1.3,ja,1486,0.143,1.56,48000
+tag/tag_sommer_sonnengang.ogg,tag_sommer_Sonnengang.wav,e4b890d3003c4d16a0d1922580cd82dac3c9feb96067bd1f180f69ad6987a8f6,173.9,174.0,-17.0,-3.86,3.76,-1.1,nein,1683,0.142,1.99,48000
+tag/tag_winter_kaltes_glockenspiel.ogg,tag_winter_Kaltes Glockenspiel.wav,b5e6bd97c62ac42a4044b91c1cd7aa623096db0e5004c795fce50a3640420640,86.3,86.3,-17.0,-2.06,1.85,-2.2,nein,1207,0.094,4.53,48000
+tod/tod_abschied.ogg,tod_Abschied.wav,91830b485fc5c8691c0834993a58d31a88ec457a2fcb82cd5afa2cbc43a350ad,117.6,117.6,-17.0,-4.84,2.45,-1.2,nein,1029,0.113,2.6,48000
+tod/tod_der_letzte_wunsch.ogg,tod_Der letzte Wunsch.wav,624816f1b90eb1a65685fabc2c2070a5f76d87af78780c7a8cf63afe70b1a137,188.0,188.0,-17.0,-4.96,3.9,0.1,nein,829,0.083,3.22,48000
+tod/tod_verlorene_seele.ogg,tod_Verlorene Seele.wav,7302ad906a2b0434fc7a3739172d9d1b31e17ccd47ba2b15dd96152a28983e09,183.6,183.6,-17.0,-3.8,3.86,-0.3,nein,743,0.068,2.14,48000

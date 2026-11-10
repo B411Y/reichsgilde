@@ -6,8 +6,8 @@ Geräusche, Musik, Stimmen, Audio-Busse. Neue Einträge unten anhängen, keine N
 
 Plan (Schritte in dieser Reihenfolge):
 - Schritt 6: Geräusche an Orten (Werkstätten, Markt, Hafen) und Innenräume (die Schankstube ist fertig, Glocken und Wetter auch)
-- Schritt 7: Lautheit angleichen und Ducking (z. B. Musik leiser bei Ansagen)
-- Schritt 8: Musik (ACE-Step-Test)
+- Schritt 7: Lautheit angleichen; Ducking der Musik bei Ansagen ist da (Umgebung und Stimmen noch nicht: Umgebung bei Ansagen leiser?)
+- Schritt 8: Musik: gebaut (siehe „Dynamische Musik“ unten); Hörurteil des Nutzers steht aus
 - Quellen: freesound.org nur CC0, Kenney (CC0); Lücken mit Stable Audio Open (Grafik-PC, der Teamleiter erzeugt). Nicht: Sonniss (das Repository ist öffentlich, Rohdateien dürfen nicht weitergegeben werden), BBC-Sammlung, Modelle mit NC-Lizenz.
 - Ein Test der Umrechnung `KlangDienst.ProzentZuDb` fehlt, weil sie im Spielordner liegt und die Tests nur den Kern kennen; ginge mit einer Kopie im Kern oder einer Testszene.
 - (Umgebung) Hörurteil des Nutzers zur Hörprobe 3 steht aus: Gesprächsfetzen (klingen sie nach Menschen, zu laut, zu oft, Wiederholung), Stadt gegen Natur (kippt es am Stadtrand weich), Glocken (Pegel, Muster, zu lang), Regen und Donner (Pegel, Verzögerung), Nachtwächter-Horn, Schankstube, Frösche und Laub. **Alle neuen Klänge sind nur gemessen und im Spektrogramm angesehen, nie gehört** (die Agenten können nicht hören); Moderne Reste in Fes (469700: Moped, Touristen?), Pferd und Handwerk ebenso.
@@ -32,6 +32,13 @@ Plan (Schritte in dieser Reihenfolge):
 - (Umgebung) Regen nur gemessen, nicht gehört (Hörprobe 7 liegt beim Nutzer): Pegel (Regen im Freien klar über der Stadt-Grundschicht), Ziegeldach statt Blech, Traufe. Die Dachaufnahme (466241, vom Dachboden, mit etwas Verkehr und Wind im Hintergrund, Hochpass 180 Hz) und die 16 s lange Traufe (622847, hörbar wiederkehrend) sind die schwächsten Stellen; Schindel- und Strohdach bleiben offen, bis es brauchbare CC0-Aufnahmen gibt (gesucht: „rain thatched roof“ ergab nichts Passendes).
 - Blitzschlag: Rufe und Stimmengewirr an der Löschkette (CC0 suchen)
 - (von Darstellung) Eigenes Geläut je Kirche in Köln: Die fünf romanischen Kirchen (`koeln_gross_st_martin.glb`, `koeln_st_gereon`, `koeln_st_aposteln`, `koeln_st_severin`, `koeln_st_kunibert`, Katalog `kirche_…`) tragen je einen leeren Knoten `Anker_Glocke` in der Glockenstube des Hauptturms (St. Severin im südlichen Ostturm). Das Spiel liest ihn noch nicht; Vorschlag: Morgen-, Mess- und Abendglocke dort mit eigener Stimme je Kirche (Ort statt nur Seite), die Feuerglocke beim Blitz von der nächsten (`Stadtansicht.Blitzbrand.NaechsteKirche` nimmt heute die Mitte der Fläche in 25 m Höhe).
+
+- (Musik) **Alles ungehört:** Die 23 Stücke sind vom Nutzer mit Suno erzeugt und gehört; Pegel (−17 LUFS Datei, in der Partie −9 dB, im Menü −4 dB), Ducking (−9 dB), Überblenden und die Zuordnung zu Lagen sind nur gemessen und gerechnet. Zu hören: Pegel der Musik gegen Stadtklang und Ansagen, Nähte beim Lagewechsel, Dauer der Pausen je Stufe, Menüstück.
+- (Musik) **Pausen in Echtzeit-Minuten:** Der Auftrag nannte „1–3 Spielminuten“; eine Spielminute dauert bei Tempo 1 etwa 0,8 s, das wäre keine Pause. Gewählt: Immer 1–3, Oft 3–6, Selten 8–15 Echtzeit-Minuten (`MusikModell.PauseGrenzen`, eine Tabelle); Entscheidung des Nutzers, falls anders gewünscht.
+- (Musik) **Fehlende Auslöser im Kern:** „Brand löschen“ und „Kampf der Wache“ meldet der Kern nicht (Kampf kommt aus Überfall, Einbruch, Feuer gegen das eigene Haus); einen **Aufstand** gibt es nicht (Platzhalter: Pestjahr, `Hauptszene.MusikAufstand`, später umhängen); „Heirat im eigenen Haus“ und „Tod im eigenen Haus“ kommen aus den Meldungen. Kein Eingriff in den Kern nötig.
+- (Musik) Stücke ohne Volk gibt es nur vier; Orks und Oger haben kein Volksstück. Die Lage Tag/Nacht ist Uhrzeit (ab 20 Uhr bis 6 Uhr), nicht der Sonnenstand der Jahreszeit; wer das Licht abends früher/später will, ändert `MusikModell.IstNacht`.
+- (Musik) Das Stück „Frühlingsauftakt“: Tippfehler der Suno-Quelle („Frühlungsauftakt“) ist in Titel und Dateiname korrigiert.
+- (Musik) Dateigröße: 23 Stücke zusammen etwa 70 MB (OGG q0,4, Stereo, etwa 160 kbit/s). Falls das Repository zu groß wird: Qualität senken (`OGG_QUALITAET` in `tools/ton/musik_bauen.py`) oder auf Git LFS legen (Entscheidung Teamleiter).
 
 ## Entscheidungen
 
@@ -201,3 +208,18 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Töne | Vier neue Töne rein rechnerisch erzeugt (`tools/ton/meldungstoene.py`, Standardbibliothek): `siegel_neu_1/2.wav` (weicher Wachsklopfer) und `pergament_1/2.wav` (Rascheln); Ereignisse `MeldungSiegel`, `MeldungBrief` in `KlangOberflaeche`, die jetzt auch `.wav` lädt. Brief bei Gefahr dazu die leise Glocke, „✗“ bleibt der Holzklopfer. Lizenz „Alle Rechte vorbehalten“, Protokollzeile und `docs/assets/prompts/meldungstoene.md`. Nicht abgehört (Hörurteil offen). | 05.11.2026 |
+
+### Dynamische Musik (Suno, 23 Stücke, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Quelle | 23 Stücke, vom Nutzer mit Suno erzeugt (bezahltes Abo, höchste Stufe, kommerzielle Nutzung erlaubt); Protokoll je Datei (KI, Werkzeug „Suno“, Modellversion und Prompt unbekannt, Lizenz nach den Nutzungsbedingungen des Abos), Steam-KI-Liste ergänzt. Ablage `game/assets/audio/musik/<lage>/` (tag, nacht, tod, event), Titel und Zuordnung in `game/daten/musik.json` | 10.11.2026 |
+| Aufbereitung | `tools/ton/musik_bauen.py`: Stille kürzen, 0,8 s ein, 4 s aus, nur Verstärkung auf −17 LUFS (kein Begrenzer), True-Peak nach dem OGG-Rundlauf unter −1 dBTP; ein Stück (Herbstrauschen, Spitze) bei −18,4 LUFS; OGG Vorbis q0,4; Messwerte `docs/assets/musik-messwerte.csv` | 10.11.2026 |
+| Aufbau | `MusikModell` (Rechnung, ohne Godot, getestet), `Musikspieler` (Knoten unter `KlangDienst`, läuft über Szenenwechsel), Anschluss `Hauptszene.Musik.cs`, `Stadtansicht.Musik.cs` (Unfreie nah) | 10.11.2026 |
+| Tag/Nacht | Nacht = „Dunkle Nacht“ der Spielzeit (ab 20:00) bis 6:00; Tag: Stücke ohne Jahreszeit/Volk + der Jahreszeit + Volk des Oberhaupts; nie dasselbe zweimal (die letzten zwei werden gemieden) | 10.11.2026 |
+| Ablauf | Pause nach jedem Stück je Häufigkeit; Lagewechsel mitten im Stück: Überblenden 4–8 s (gleiche Leistung), in der Pause erst danach ein Stück der neuen Lage; erstes Stück 4 s nach Partiebeginn | 10.11.2026 |
+| Ereignisse | Tod, Kampf, Aufstand, Hochzeit, Sklaven (Rang in dieser Reihenfolge, ein höherer unterbricht ein niedrigeres); Augenblicke (Tod, Hochzeit, Kampf) spielen zu Ende, Zustände (Sklaven, Aufstand) mindestens 20 s und enden 6 s weich; Wiederholsperre 2 min nach dem Ende; danach 2 s Pause und Grundmusik mit 4 s Einblenden | 10.11.2026 |
+| Ducking | −9 dB in 0,35 s, zurück in 1,5 s, solange der Haushofmeister spricht (`KlangDienst.AnsageSpielt`); am einzelnen Spieler, nicht am Bus (der Regler des Nutzers bleibt unberührt) | 10.11.2026 |
+| Einstellung | Reiter Ton: Regler Musik (Bus) und „Wie oft Musik spielt“ (Immer, Oft, Selten, Nur Ereignisse, Aus; Standard Oft; Schlüssel `musik_haeufigkeit` in `user://einstellungen.cfg`, Abschnitt `ton`) | 10.11.2026 |
+| Hauptmenü | Menüstück: „Adels Schmeich“ (tag): gleichmäßigster Verlauf der Tagesstücke (Kurzzeit-Lautheit schwankt nur 1,2 LU), Schwerpunkt mittig (1,6 kHz), keine Marsch- oder Volksfarbe; nach dem Ende 25 s Pause, wieder von vorn. Kein eigenes Menüstück vorhanden | 10.11.2026 |
+| Prüfung | `--musiktest=<lage>` (tag, nacht, tod, hochzeit, kampf, sklaven, aufstand, selbst), `--musiklog=1`; Entwicklerfenster, Reiter Klänge, Abschnitt Musik; `MusikTests` (15 Tests: Daten, Lage, Auswahl, Pausen, Ablauf über 6 Stunden, Wechsel, Ereignisse, Zustände, Aus) | 10.11.2026 |

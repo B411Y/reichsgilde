@@ -97,6 +97,20 @@ Die Klänge sind Aufnahmen von freesound.org (CC0, und für Glocke, Frösche und
 
 `--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1 --karte=greybox` spielt eine feste Hörprobe von 7 Minuten ab (früher Morgen mit Morgenglocke, Markttreiben mit Gesprächsfetzen und Messglocke, der Weg von der Stadt aufs Land und zum Fluss, Frühlingsabend mit Fröschen, Sommernacht mit Grillen, Winter mit Schnee und Krähen, Abend mit Abendglocke, die Schänke von außen, nah und von innen, Schankschluss mit Feuerglocke, Nacht mit Nachtwächter, Regen und Gewitter; die Menschen kommen dabei aus einem erfundenen Tagesablauf, Wetter und Karte sind echt) und beendet das Spiel. Im Entwicklerfenster steht unter „Umgebung“ eine Zeile mit den Menschen im Umkreis und den Pegeln. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
+## Die Musik
+
+Die Musik ist **dynamisch**: Sie wechselt mit Tag und Nacht und weicht Ereignissen. 23 Stücke, mit Suno erzeugt (Liste mit Titeln: `game/daten/musik.json`, Dateien unter `assets/audio/musik/`).
+
+- **Tag** (bis 20 Uhr, ab 6 Uhr morgens): im Wechsel die Stücke ohne Jahreszeit (Marktplatz, Hungerlohn, Adels Schmeich, Marsch der Ritter), die der **laufenden Jahreszeit** und das **Volksstück** (Menschen, Zwerge, Elben, Halblinge), wenn das Oberhaupt deines Hauses diesem Volk angehört.
+- **Nacht** (ab 20 Uhr, die „dunkle Nacht“ der Spielzeit, bis zum Morgen um 6 Uhr): die Nachtstücke.
+- **Pausen:** Nach jedem Stück ist Pause, nie dasselbe Stück zweimal hintereinander. Wechselt die Lage mitten im Stück (Abend), blendet das Stück in 4 bis 8 Sekunden ins nächste über.
+- **Ereignisse** haben Vorrang, blenden die Grundmusik aus und danach wieder ein: **Tod** im eigenen Haus (Stück aus `tod/`), **Hochzeit** im eigenen Haus, **Kampf** (Überfall, Einbruch, Feuer gegen das eigene Haus), **Sklaven** (Leibeigene, Orks oder Oger arbeiten und die Kamera ist bei ihnen; das Stück endet, wenn man wegschaut), **Aufstand** (vorerst bei „großer Not in der Stadt“, d. h. im Pestjahr; es gibt noch keinen Aufstand). Rang bei gleichzeitigen Ereignissen: Tod, Kampf, Aufstand, Hochzeit, Sklaven. Ein Ereignis wiederholt sich frühestens 2 Minuten nach dem Ende seines Stücks.
+- **Haushofmeister:** Spricht er, geht die Musik für die Dauer der Ansage um 9 dB herunter.
+- **Hauptmenü:** ein ruhiges Stück (Adels Schmeich), nach seinem Ende 25 Sekunden Pause, dann wieder.
+- **Einstellungen** (Reiter Ton): Regler „Musik“ (Lautstärke) und **Wie oft Musik spielt**: Immer (Pause 1 bis 3 Minuten), Oft (3 bis 6, Standard), Selten (8 bis 15), Nur Ereignisse, Aus. Die Pausen sind Echtzeit; das Spieltempo ändert sie nicht.
+
+Fehlt eine Datei, bleibt es still (eine Warnung im Log); das Spiel läuft weiter. **Ausprobieren:** Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Musik** (laufendes Stück, Pause, Ducking, jedes Stück zum Vorhören); Startoption `--musiktest=tag|nacht|tod|hochzeit|kampf|sklaven|aufstand|menue|selbst` ([STARTOPTIONEN](../STARTOPTIONEN.md)). Die Musik ist nur gemessen und im Protokoll belegt, vom Entwickler-Team nicht abgehört.
+
 ## Gespräche der Passanten (geplant)
 
 Später sollen kleine Gesprächsrunden von zwei oder drei Passanten zu hören sein, mit der Stimm-KI gesprochen, kurz und derb und passend zur Lage in der Stadt (Preise, Wetter, Gerüchte, Steuer, Fest, Pest). Stil, Aufbau, Bedingungen und Technik stehen im Entwurf [Passanten-Gespräche – Stil und Bauleitfaden](../ton/gespraeche-stil.md); gebaut ist davon noch nichts.
