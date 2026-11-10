@@ -170,7 +170,8 @@ public static class Ladezeit
                  $"{Engine.GetFramesPerSecond():0} Bilder/s), Pipelines in den Bildern +{summe - _pipelinesStart}, insgesamt: {text}");
         if (Bilderordner is { } o && _baum?.Root is { } f) Foto(f, o, "4-ruhig");
         GD.Print($"Ladezeit: fertig bei {jetzt} ms");
-        if (Wert == "ende") _baum?.Quit();
+        // Nicht mitten im Zeichnen beenden (FramePostDraw): erst im nächsten Leerlauf, sonst Absturz beim Beenden.
+        if (Wert == "ende") _baum?.CallDeferred(SceneTree.MethodName.Quit, 0);
     }
 
     private static void Foto(Viewport fenster, string ordner, string name)

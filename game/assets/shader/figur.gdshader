@@ -13,6 +13,8 @@ uniform vec4 beinkleid : source_color = vec4(0.35, 0.3, 0.25, 1.0);
 uniform vec4 haut : source_color = vec4(0.85, 0.66, 0.52, 1.0);
 uniform vec4 haar : source_color = vec4(0.3, 0.2, 0.12, 1.0);
 uniform vec4 kopfbedeckung : source_color = vec4(0.6, 0.5, 0.3, 1.0);
+// Zone 6 = Bart (Passanten mit Skelett): mit Bart in Haarfarbe, sonst Haut – so braucht der Bart kein eigenes Netz
+uniform bool bart = false;
 
 varying flat int zone;
 varying vec3 grundfarbe;
@@ -33,6 +35,7 @@ void fragment() {
 	else if (zone == 3) farbe = haut.rgb;
 	else if (zone == 4) farbe = haar.rgb;
 	else if (zone == 5) farbe = kopfbedeckung.rgb;
+	else if (zone == 6) farbe = bart ? mix(haut.rgb, haar.rgb, 0.7) : haut.rgb;
 	ALBEDO = farbe;
 	ROUGHNESS = 0.9;
 }
