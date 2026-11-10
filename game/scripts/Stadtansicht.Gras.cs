@@ -257,7 +257,7 @@ public partial class Stadtansicht
         return _grasShader is not null;
     }
 
-    /// <summary>Das Mittel der Wiesentextur (Schicht 0 von <c>boden_farbe_hoehe.webp</c>): die Grundfarbe der Halme.</summary>
+    /// <summary>Das Mittel der Wiesentextur (Schicht 0 von <c>boden_farbe_hoehe.webp</c>): die Grundfarbe der Halme. (Der private Boden-Atlas, <c>PrivateTexturen</c>, lässt den Mittelwert der Schicht 0 unverändert; <c>privat_bauen.py</c> gleicht ihn ab.)</summary>
     private static Color WiesenFarbe(TextureLayered? texturen)
     {
         if (texturen?.GetLayerData(0) is not { } bild) return new Color(0.33f, 0.4f, 0.19f);
