@@ -214,27 +214,62 @@ static class EntscheidungTests
             Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
         }),
 
-        ("Entscheidungen: Höchstens 6 offen je Haus – die siebte lässt die älteste mit ihrer Voreinstellung auslaufen; mit 6 bleiben alle offen", () =>
+        ("Entscheidungen: Die Obergrenze löst bei der Unterwelt nichts aus – auch mit hoechstOffen 1 bleiben alle Forderungen offen, nichts wird gezahlt oder abgelehnt", () =>
         {
-            var (sim, w, mensch, _, _) = Partie();
+            foreach (var hoechstens in new[] { 6, 1 })
+            {
+                var daten = Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+                    .Replace("\"hoechstOffen\": 6", $"\"hoechstOffen\": {hoechstens}"));
+                var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: daten) { EntwicklerErlaubt = true };
+                var w = sim.Wirtschaft!;
+                Pruefe.Gleich(hoechstens, w.Entscheidungen.Daten.HoechstOffen);
+                var mensch = w.KontoEroeffnen("Haus Mensch", startvermoegen: 10_000);
+                w.Familien.Gruenden(mensch, Volk.Mensch, Geschlecht.Mann, alter: 40);
+                var tochter = w.Familien.KindAufnehmen(mensch, 16);
+                var abschluesse = new List<(Entscheidung, Entscheidungsabschluss)>();
+                w.Entscheidungen.Geschlossen += (e, a) => abschluesse.Add((e, a));
+                var erpresser = Enumerable.Range(1, 7).Select(i => w.KontoEroeffnen($"Haus Erpresser {i}", startvermoegen: 1_000)).ToList();
+                for (var i = 0; i < 7; i++)
+                {
+                    Fordern(w, mensch, erpresser[i], Entscheidungsart.Erpresserbrief, 100 + i);
+                    sim.Tick();
+                }
+                Fordern(w, mensch, erpresser[0], Entscheidungsart.Loesegeld, 500);
+                var geld = mensch.Vermoegen;
+                sim.Tick();
+                Pruefe.Gleich(8, w.Entscheidungen.OffenFuer(mensch).Count, $"alle acht offen (hoechstOffen {hoechstens})");
+                Pruefe.Gleich(0, abschluesse.Count, "keine lief aus");
+                Pruefe.Gleich(7, w.Gauner.Forderungen.Count(f => f.Opfer == mensch));
+                Pruefe.Wahr(w.Diebe.IstGeisel(tochter), "die Geisel bleibt Geisel");
+                Pruefe.Gleich(geld, mensch.Vermoegen, "nichts gezahlt");
+            }
+        }),
+
+        ("Entscheidungen: Eine direkte Antwort schließt nur ihre eigene Frage – eine zugleich verfallene Lösegeldforderung schließt der Abgleich mit „Schweigen“", () =>
+        {
+            var (sim, w, mensch, elster, rabe) = Partie(vermoegen: 50);
+            var meldungen = Mitschreiben(w);
             var abschluesse = new List<(Entscheidung, Entscheidungsabschluss)>();
             w.Entscheidungen.Geschlossen += (e, a) => abschluesse.Add((e, a));
-            var erpresser = Enumerable.Range(1, 7).Select(i => w.KontoEroeffnen($"Haus Erpresser {i}", startvermoegen: 1_000)).ToList();
-            for (var i = 0; i < 6; i++)
-            {
-                Fordern(w, mensch, erpresser[i], Entscheidungsart.Erpresserbrief, 100 + i);
-                sim.Tick();
-            }
-            Pruefe.Gleich(6, w.Entscheidungen.OffenFuer(mensch).Count, "sechs offen");
-            Pruefe.Gleich(0, abschluesse.Count, "Gegenprobe: keine lief aus");
-            Fordern(w, mensch, erpresser[6], Entscheidungsart.Erpresserbrief, 106);
+            Fordern(w, mensch, elster, Entscheidungsart.Loesegeld, 800);
             sim.Tick();
-            Pruefe.Gleich(6, w.Entscheidungen.OffenFuer(mensch).Count, "wieder sechs");
-            var (alt, grund) = abschluesse.Single();
-            Pruefe.Gleich(erpresser[0], alt.Absender);
-            Pruefe.Gleich(Entscheidungsabschluss.Obergrenze, grund);
-            Pruefe.Wahr(w.Gauner.ForderungAn(mensch, erpresser[0]) is null, "die älteste wurde abgelehnt");
-            Pruefe.Wahr(w.Entscheidungen.OffenFuer(mensch).Any(e => e.Absender == erpresser[6] && e.Nummer == 7), "die neue ist offen");
+            var loesegeld = Einzige(w, mensch);
+            BisJahr(sim, 1401);
+            Fordern(w, mensch, rabe, Entscheidungsart.Erpresserbrief, 100);
+            sim.Tick();
+            while (sim.Zeit.VergangeneMinuten <= loesegeld.Frist) sim.Tick(); // die letzte Minute: Jahresrechnung, die Geisel wird verkauft
+            Pruefe.Wahr(!w.Diebe.IstGeisel(Tochter(w, mensch)) && w.Diebe.Briefe.Count == 0, "Lösegeld verfallen");
+            Pruefe.Gleich(2, w.Entscheidungen.OffenFuer(mensch).Count, "vor dem Abgleich noch beide offen");
+            Pruefe.Wahr(w.Ausfuehren(mensch, new ErpressungBeantworten(rabe.Inhaber, false)).Erfolg, "Tafel lehnt den Erpresser ab");
+            var (erste, grund) = abschluesse.Single();
+            Pruefe.Gleich(Entscheidungsart.Erpresserbrief, erste.Art);
+            Pruefe.Gleich(Entscheidungsabschluss.Entschieden, grund);
+            Pruefe.Gleich(loesegeld.Nummer, Einzige(w, mensch).Nummer); // Gegenprobe: das Lösegeld bekommt nicht Grund und Wahl der Tafel
+            sim.Tick();
+            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(Entscheidungsabschluss.Frist, abschluesse[1].Item2);
+            Pruefe.Wahr(meldungen[^1].Text.Contains("kein Lösegeld gezahlt") && !meldungen.Any(m => m.Text.Contains("Lösegeld für") && m.Text.Contains("gezahlt.")),
+                string.Join(" | ", meldungen.Select(m => m.Text)));
         }),
 
         ("Entscheidungen: Zwei Geiseln beim selben Dieb – die jüngere Forderung wartet, bis die ältere beantwortet ist", () =>

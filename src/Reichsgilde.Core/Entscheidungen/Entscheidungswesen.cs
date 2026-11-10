@@ -26,7 +26,7 @@ public enum Entscheidungsabschluss
     Entschieden,
     /// <summary>Die Frist lief ab: Die Voreinstellung galt (bei der Unterwelt: Schweigen heißt Nein, wie vor Stufe 3).</summary>
     Frist,
-    /// <summary>Das Haus hatte schon <see cref="EntscheidungDaten.HoechstOffen"/> offene Fragen – die älteste lief mit der Voreinstellung aus.</summary>
+    /// <summary>Das Haus hatte schon <see cref="EntscheidungDaten.HoechstOffen"/> offene Fragen mit kurzer Frist – die älteste lief mit ihrer umkehrbaren Voreinstellung aus.</summary>
     Obergrenze,
     /// <summary>Die Forderung verschwand auf anderem Weg (oder das Haus ist nicht mehr im Spiel) – es gab nichts mehr zu entscheiden.</summary>
     Hinfaellig,
@@ -47,7 +47,10 @@ public sealed record Entscheidung(int Nummer, Entscheidungsart Art, Konto Haus, 
 /// <summary>Werte der Entscheidungen (Abschnitt „entscheidungen“, ab Datenversion 81). Fehlt der Abschnitt, gelten diese Vorgaben.</summary>
 public sealed class EntscheidungDaten
 {
-    /// <summary>So viele Fragen dürfen je Haus offen sein; kommt eine weitere, läuft die älteste mit ihrer Voreinstellung aus.</summary>
+    /// <summary>
+    /// So viele Fragen mit kurzer Frist dürfen je Haus offen sein; kommt eine weitere, läuft die älteste mit umkehrbarer Voreinstellung aus (gibt es
+    /// keine, wartet die neue). Die Forderungen der Unterwelt zählen nicht mit.
+    /// </summary>
     public int HoechstOffen { get; init; } = 6;
 
     /// <summary>
@@ -87,8 +90,8 @@ public sealed class EntscheidungDaten
 ///
 /// Ablauf je Spielminute (am Anfang des Ticks, nach den Befehlen dieser Minute):
 ///   • Abgleich: Fragen, deren Forderung verschwand, schließen; für neue Forderungen an Häuser von Menschen eine Frage öffnen (in der Reihenfolge
-///     der Listen: erst die Erpresserbriefe, dann die Briefe der Diebe). Mehr als <see cref="EntscheidungDaten.HoechstOffen"/> je Haus: die älteste
-///     läuft mit ihrer Voreinstellung aus.
+///     der Listen: erst die Erpresserbriefe, dann die Briefe der Diebe). Mehr als <see cref="EntscheidungDaten.HoechstOffen"/> Fragen mit kurzer
+///     Frist je Haus: die älteste mit umkehrbarer Voreinstellung läuft aus; die Forderungen der Unterwelt zählen nicht und werden nie vorzeitig ausgeführt.
 ///   • Fristablauf in fester Reihenfolge nach Nummer. Bei der Unterwelt gilt „Zahlen“ (Lösegeld, wenn das Geld reicht) am Anfang der letzten Minute
 ///     des Folgejahres; „Ablehnen“ überlässt der Kern der Jahresrechnung, die schon vor Stufe 3 Schweigen als Nein wertete – so brennt es nach
 ///     abgelehntem Schutzgeld wie bisher in der nächsten Nacht.
@@ -260,12 +263,18 @@ public sealed class Entscheidungswesen
         return null;
     }
 
-    private Befehlsergebnis Antworten(Entscheidung e, int wahl, Entscheidungsabschluss grund)
+    /// <summary>Der bestehende Befehl zu dieser Wahl (null: Die Wahl braucht keinen – bei der Unterwelt nur ohne Absender).</summary>
+    private static Befehl? BefehlFuer(Entscheidung e, int wahl)
     {
-        if (e.Absender is not { } von) return Befehlsergebnis.Abgelehnt("Diese Forderung hat keinen Absender.");
-        Befehl befehl = e.Art == Entscheidungsart.Erpresserbrief
+        if (e.Absender is not { } von) return null;
+        return e.Art == Entscheidungsart.Erpresserbrief
             ? new ErpressungBeantworten(von.Inhaber, wahl == Zahlen)
             : new DiebesforderungBeantworten(von.Inhaber, e.Art == Entscheidungsart.Schutzgeld ? Diebesbriefart.Schutzgeld : Diebesbriefart.Loesegeld, wahl == Zahlen);
+    }
+
+    private Befehlsergebnis Antworten(Entscheidung e, int wahl, Entscheidungsabschluss grund)
+    {
+        if (BefehlFuer(e, wahl) is not { } befehl) return Befehlsergebnis.Abgelehnt("Diese Forderung hat keinen Absender.");
         var vorher = _grund;
         _grund = grund;
         try { return _w.Ausfuehren(e.Haus, befehl); } // schließt die Frage über NachBefehl
@@ -278,14 +287,18 @@ public sealed class Entscheidungswesen
     /// </summary>
     internal void NachBefehl(Konto absender, Befehl befehl)
     {
+        // Nur die Frage, die zum Befehl passt (Art und Absender) – was sonst verschwand, schließt der Abgleich mit seinem eigenen Grund.
         bool zahlen;
-        if (befehl is ErpressungBeantworten a) zahlen = a.Zahlen;
-        else if (befehl is DiebesforderungBeantworten d) zahlen = d.Zahlen;
+        string absenderName;
+        Entscheidungsart[] arten;
+        if (befehl is ErpressungBeantworten a) (zahlen, absenderName, arten) = (a.Zahlen, a.Erpresser, new[] { Entscheidungsart.Erpresserbrief });
+        else if (befehl is DiebesforderungBeantworten d)
+            (zahlen, absenderName, arten) = (d.Zahlen, d.Dieb, new[] { d.Art == Diebesbriefart.Schutzgeld ? Entscheidungsart.Schutzgeld : Entscheidungsart.Loesegeld });
         else return;
         for (var i = 0; i < _offen.Count; i++)
         {
             var e = _offen[i];
-            if (e.Haus != absender || Besteht(e)) continue;
+            if (e.Haus != absender || !arten.Contains(e.Art) || e.Absender?.Inhaber != absenderName || Besteht(e)) continue;
             _offen.RemoveAt(i);
             Schliessen(e, _grund, zahlen ? Zahlen : Ablehnen);
             i--;
@@ -341,14 +354,24 @@ public sealed class Entscheidungswesen
     /// <summary>Die Jahresfrist der Unterwelt: die letzte Spielminute des Folgejahres (die Jahresrechnung am Ende dieser Minute wertet Schweigen als Nein).</summary>
     private static long Jahresfrist(int jahr) => (jahr + 2 - Spielzeit.StartJahr) * (long)Spielzeit.MinutenProTag - 1;
 
+    /// <summary>
+    /// Zählt diese Frage zur Obergrenze? Die Forderungen der Unterwelt (Jahresfrist) nie: Die Obergrenze darf nichts Unumkehrbares auslösen
+    /// (Entscheidung des Teamleiters, 10.11.2026) – sie werden nie vorzeitig ausgeführt und verdrängen nichts.
+    /// </summary>
+    private static bool ZaehltZurObergrenze(Entscheidung e) => !EntscheidungDaten.HatJahresfrist(e.Art);
+
+    /// <summary>Darf die Obergrenze diese Frage verdrängen? Nur eine mit kurzer Frist, deren Voreinstellung jetzt umkehrbar ist (kein Befehl).</summary>
+    private bool Verdraengbar(Entscheidung e) => ZaehltZurObergrenze(e) && BefehlFuer(e, Voreinstellung(e)) is null;
+
     private void Oeffnen(Entscheidung neu)
     {
-        // Obergrenze je Haus: die älteste läuft mit ihrer Voreinstellung aus. Geht auch das nicht, wartet die neue Frage auf die nächste Minute.
-        if (_offen.Count(e => e.Haus == neu.Haus) >= Daten.HoechstOffen)
+        // Obergrenze je Haus: die älteste verdrängbare Frage läuft mit ihrer (umkehrbaren) Voreinstellung aus. Gibt es keine, wartet die neue
+        // Frage auf eine spätere Minute.
+        if (ZaehltZurObergrenze(neu) && _offen.Count(e => e.Haus == neu.Haus && ZaehltZurObergrenze(e)) >= Daten.HoechstOffen)
         {
-            var aelteste = _offen.Where(e => e.Haus == neu.Haus).OrderBy(e => e.Beginn).ThenBy(e => e.Nummer).First();
+            if (_offen.Where(e => e.Haus == neu.Haus && Verdraengbar(e)).OrderBy(e => e.Beginn).ThenBy(e => e.Nummer).FirstOrDefault() is not { } aelteste) return;
             Ausloesen(aelteste, Entscheidungsabschluss.Obergrenze, _w.Uhr.VergangeneMinuten);
-            if (_offen.Count(e => e.Haus == neu.Haus) >= Daten.HoechstOffen) return;
+            if (_offen.Count(e => e.Haus == neu.Haus && ZaehltZurObergrenze(e)) >= Daten.HoechstOffen) return;
         }
         var e = neu with { Nummer = _naechste++ };
         _offen.Add(e);

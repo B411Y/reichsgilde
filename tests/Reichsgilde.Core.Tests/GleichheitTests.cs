@@ -71,7 +71,7 @@ static class GleichheitTests
     /// <param name="GeheimMeldungen">Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel) – der Verlauf steht im Spielstand und in der Prüfsumme.</param>
     /// <param name="Entscheidungen">Minute, Nummer, Art und Ausgang jeder Entscheidung des Menschen (Stufe 3: geöffnet, entschieden, Frist, Obergrenze, hinfällig) – sie stehen im Spielstand.</param>
     sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
-        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen, IReadOnlyList<string> Entscheidungen);
+        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen, IReadOnlyList<string> Entscheidungen, IReadOnlyDictionary<long, int> OffenAnLadepunkten);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -207,11 +207,14 @@ static class GleichheitTests
         // (Lauf C lädt dazwischen, Minute(2, 21, 37), mit offener Frage).
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", b.Entscheidungen), "Entscheidungen mit deutscher Ländereinstellung");
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", c.Entscheidungen), "Entscheidungen mit Speichern und Laden");
+        Pruefe.Gleich(string.Join(",", a.OffenAnLadepunkten.OrderBy(x => x.Key)), string.Join(",", c.OffenAnLadepunkten.OrderBy(x => x.Key)), "offene Entscheidungen an den Ladepunkten");
         if (p.Startwert == 4711)
         {
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains(" EntscheidungTreffen ok")), $"Kein erfolgreicher Befehl EntscheidungTreffen ({string.Join(" | ", a.Entscheidungen)})");
             Pruefe.Wahr(a.Entscheidungen.Any(z => z.Contains($" {Reichsgilde.Core.Entscheidungen.Entscheidungsabschluss.Frist} ")),
                 $"Kein Fristablauf einer Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
+            Pruefe.Wahr(c.OffenAnLadepunkten.GetValueOrDefault(Minute(2, 21, 37)) > 0,
+                $"Lauf C lädt bei Minute(2, 21, 37) ohne offene Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
         }
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
@@ -265,6 +268,7 @@ static class GleichheitTests
         var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
         var geheimMeldungen = new List<string>(); // Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel)
         var entscheidungen = new List<string>(); // Minute, Nummer, Art und Ausgang jeder Entscheidung (Stufe 3)
+        var offenAnLadepunkten = new Dictionary<long, int>(); // offene Entscheidungen an jedem Ladepunkt
         void BlitzeZaehlen(Simulation s)
         {
             s.Wirtschaft!.Meldung += m =>
@@ -287,6 +291,7 @@ static class GleichheitTests
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
             if (Ladepunkte.Contains(t)) braende.AddRange(Brandlage(sim.Wirtschaft!, t));
+            if (Ladepunkte.Contains(t)) offenAnLadepunkten[t] = sim.Wirtschaft!.Entscheidungen.Offen.Count; // Lauf C: nach dem Laden
             foreach (var befehl in skript.Befehle(t, sim.Wirtschaft!, spieler))
             {
                 var ergebnis = sim.Wirtschaft!.Ausfuehren(spieler, befehl);
@@ -317,7 +322,7 @@ static class GleichheitTests
                 wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen, entscheidungen);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen, entscheidungen, offenAnLadepunkten);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
