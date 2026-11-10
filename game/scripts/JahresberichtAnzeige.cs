@@ -63,6 +63,9 @@ public partial class JahresberichtAnzeige : PanelContainer
     {
         if (simulation.Wirtschaft is not { } w) return;
         UiHilfe.KinderEntfernen(_inhalt);
+        _geheimnisTexte.Clear();
+        foreach (var m in w.Meldungsverlauf)
+            if (m.GeheimnisArt is { } geheimnisArt) _geheimnisTexte[m.Text] = geheimnisArt;
         var waehrung = w.Daten.Allgemein.Waehrung;
         var bilanz = spieler.Vorjahr;
 
@@ -230,8 +233,25 @@ public partial class JahresberichtAnzeige : PanelContainer
         _ => "",
     };
 
+    /// <summary>Meldungen des Kerns über ein Geheimnis nach ihrem Text (Anzeige, kein Spielstand): daran erkennt der Bericht Zeilen, die ein Siegel bekommen.</summary>
+    private readonly Dictionary<string, Reichsgilde.Core.Geheimnisse.Geheimnisart> _geheimnisTexte = new();
+
     private void Text(string text, int groesse, Color? farbe = null, bool zentriert = false)
     {
+        // Zeile über ein Geheimnis (Urteil, Spitzelbericht, Gerede): das kleine Siegel der Art steht vor dem Text; ohne Datei nur der Text
+        if (text.StartsWith("• ", StringComparison.Ordinal) && _geheimnisTexte.TryGetValue(text[2..], out var art)
+            && CharakterAnzeige.GeheimnisSiegelBild(art, 22, $"Ein Geheimnis – {art}") is { } siegel)
+        {
+            var reihe = new HBoxContainer();
+            reihe.AddThemeConstantOverride("separation", 6);
+            _inhalt.AddChild(reihe);
+            siegel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+            reihe.AddChild(siegel);
+            var beschriftung = Label(reihe, text[2..], groesse, farbe);
+            beschriftung.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            beschriftung.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            return;
+        }
         var label = Label(_inhalt, text, groesse, farbe);
         label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         if (zentriert) label.HorizontalAlignment = HorizontalAlignment.Center;

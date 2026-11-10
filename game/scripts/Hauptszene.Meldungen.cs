@@ -375,7 +375,7 @@ public partial class Hauptszene
             brief.Zeilen.Add(("Jahresabrechnung", $"Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)} {w.Daten.Allgemein.Waehrung}, Umsatz {Zahlenformat.Ganz(v.Umsatz)}.", v.Gewinn < 0));
         foreach (var gruppe in _jahresSammler.GroupBy(p => p.Art).OrderBy(g => Ordnung.Arten.ToList().IndexOf(g.Key)))
             foreach (var p in gruppe)
-                brief.Zeilen.Add((gruppe.Key.Name, p.Text, p.Warnung));
+                brief.Zeilen.Add(new Briefzeile(gruppe.Key.Name, p.Text, p.Warnung, p.Kern)); // mit Kern: Geheimnis-Siegel vor der Zeile
         _jahresSammler.Clear();
         BriefEinreihen(brief);
     }
@@ -384,7 +384,7 @@ public partial class Hauptszene
     {
         var thema = Ordnung.Thema("gefahr");
         var brief = new Brief { Titel = "Die Nacht", Absender = "Der Büttel", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id };
-        foreach (var p in _nachtSammler) brief.Zeilen.Add(($"{p.Zeit}", p.Text, p.Warnung));
+        foreach (var p in _nachtSammler) brief.Zeilen.Add(new Briefzeile($"{p.Zeit}", p.Text, p.Warnung, p.Kern));
         brief.Fuss = _nachtSammler.Count == 1 ? "Das war alles in dieser Nacht." : $"{_nachtSammler.Count} Vorfälle in dieser Nacht.";
         _nachtSammler.Clear();
         BriefEinreihen(brief, gefahr: true);
