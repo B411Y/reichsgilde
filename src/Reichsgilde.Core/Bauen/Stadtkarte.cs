@@ -580,7 +580,15 @@ public sealed class Stadtkarte
     /// derselben gepackten Form wie in der Kartendatei.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Hoehenraster? Hoehen { get; init; }
+    public Hoehenraster? Hoehen { get => _hoehen; init => _hoehen = value; }
+
+    private Hoehenraster? _hoehen;
+
+    /// <summary>
+    /// Setzt das Höhenraster nachträglich – nur für die Kartenprüfung, die ihre Karte für die Startwege ohne das Feld <c>hoehen</c> liest und das Raster
+    /// in einem eigenen Häppchen (Kartenentwurf.StartwegSchritte); vor dem ersten Lesen von Gelände und Wasserplan.
+    /// </summary>
+    internal void HoehenSetzen(Hoehenraster? hoehen) => (_hoehen, _gelaendeform, _wasserplan) = (hoehen, null, null);
 
     /// <summary>
     /// Die Bodentexturen und die Dichte ihrer Deko (seit der Kartenwerkstatt, Schritt 5e; <see cref="Bodenraster"/>, Deko: <see cref="Bodendeko"/>)

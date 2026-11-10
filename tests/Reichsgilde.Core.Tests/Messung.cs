@@ -68,6 +68,10 @@ static class Messung
         // [--berufe=…] – siehe Geheimnismessung.cs
         if (args.Length > 0 && args[0] == "geheimnisse")
             return Geheimnismessung.Erstellen(args[1..]);
+        // Rechenzeit der Kartenprüfung in Häppchen nach Änderungen in der Kartenwerkstatt (9.11.2026): … -- messen pruefung [Karte …]
+        // [--wiederholen=N] – siehe Pruefschrittmessung.cs
+        if (args.Length > 0 && args[0] == "pruefung")
+            return Pruefschrittmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

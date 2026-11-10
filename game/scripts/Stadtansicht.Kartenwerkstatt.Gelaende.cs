@@ -482,11 +482,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ist noch Nacharbeit nach einem Strich übrig – auch die Natur, der Grasteppich, die Wegeschicht und die Prüfung in Häppchen (für die Messung)?</summary>
-    public bool WerkstattNacharbeitOffen => _wsNacharbeit.Count > 0 || NaturOffen || _grasLaeufe.Count > 0 || _grasNeu.Count > 0 || _schichtVeraltet.Count > 0 || _wsStoffAuftraege.Count > 0 || _torErdeVeraltet || _torErdeLauf is not null || _wsFehlerNeu;
+    public bool WerkstattNacharbeitOffen => _wsNacharbeit.Count > 0 || NaturOffen || _grasLaeufe.Count > 0 || _grasNeu.Count > 0 || _schichtVeraltet.Count > 0 || _wsStoffAuftraege.Count > 0 || _torErdeVeraltet || _torErdeLauf is not null || _wsFehlerNeu
+        || _wsWasserNeu || _wsWegeNeu || _wsUebergaengePruefen || _wsWasserLauf is not null || _wsNetzNeu || _wsNetzLauf is not null;
 
     /// <summary>Wofür noch Arbeit offen ist (für die Messung).</summary>
     public string WerkstattOffenText() =>
-        $"Nacharbeit {_wsNacharbeit.Count}, Natur {_wsNaturRechnet.Count}/{_wsNaturNeu.Count}/{_wsFelderNeu.Count}, Gras {_grasLaeufe.Count}/{_grasNeu.Count}, Wegeschicht {_schichtVeraltet.Count}, Torerde {_torErdeVeraltet}/{_torErdeLauf is not null}, Fehler {_wsFehlerNeu}, Befunde bereit {_entwurf?.BefundeBereit}";
+        $"Nacharbeit {_wsNacharbeit.Count}, Natur {_wsNaturRechnet.Count}/{_wsNaturNeu.Count}/{_wsFelderNeu.Count}, Gras {_grasLaeufe.Count}/{_grasNeu.Count}, Wegeschicht {_schichtVeraltet.Count}, Torerde {_torErdeVeraltet}/{_torErdeLauf is not null}, Fehler {_wsFehlerNeu}, Wasser {_wsWasserNeu}/{_wsWegeNeu}/{_wsUebergaengePruefen}/{_wsWasserLauf is not null}, Netz {_wsNetzNeu}/{_wsNetzLauf is not null}, Befunde bereit {_entwurf?.BefundeBereit}";
 
     /// <summary>Jedes Bild (aus <see cref="Nachziehen"/>): Teile der Nacharbeit, bis das Budget verbraucht ist.</summary>
     private void NacharbeitAbarbeiten()

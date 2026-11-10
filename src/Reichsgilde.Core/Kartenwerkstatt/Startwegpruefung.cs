@@ -38,23 +38,36 @@ public static class Startwegpruefung
     public static IReadOnlyList<Startweg> Rechnen(Kartenentwurf entwurf)
     {
         if (entwurf.Startnetz() is not var (karte, netz)) return Array.Empty<Startweg>();
+        var liste = new List<Startweg>();
+        foreach (var _ in Schritte(entwurf, karte, netz, liste)) { }
+        return liste;
+    }
+
+    /// <summary>
+    /// Die Startwege des Entwurfs auf seinem Netz (<see cref="Kartenentwurf.Startnetz"/>) in Häppchen: ein Weg je Element, in derselben Reihenfolge wie
+    /// <see cref="Rechnen(Kartenentwurf)"/>, in <paramref name="liste"/>.
+    /// </summary>
+    internal static IEnumerable<int> Schritte(Kartenentwurf entwurf, Stadtkarte karte, Karrennetz netz, List<Startweg> liste)
+    {
         // die Plätze so, wie sie jetzt im Entwurf stehen (das gespeicherte Netz kennt nur Wege, Wasser und Marktplätze)
         Kartengebaeude? Platz(string kennung) => entwurf.GebaeudeMit(kennung) is { } g
             ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
             : null;
-        return Rechnen(karte, netz, entwurf.Start.AlsStartbelegung(), Platz);
+        return Schritte(karte, netz, entwurf.Start.AlsStartbelegung(), Platz, liste);
     }
 
     /// <summary>Wie oben für eine geladene Karte.</summary>
-    public static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte) =>
-        karte.Start is { } start && karte.Marktplaetze.Count > 0
-            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit)
-            : Array.Empty<Startweg>();
-
-    private static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit)
+    public static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte)
     {
-        if (karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
+        if (karte.Start is not { } start || karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
         var liste = new List<Startweg>();
+        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste)) { }
+        return liste;
+    }
+
+    private static IEnumerable<int> Schritte(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, List<Startweg> liste)
+    {
+        if (karte.Marktplaetze.Count == 0) yield break;
         void Messen(string wer, string kennung, Betriebsart? art)
         {
             if (platzMit(kennung) is not { Baustein: not null } g) return; // fehlt der Platz, meldet das die Startbelegung
@@ -67,10 +80,13 @@ public static class Startwegpruefung
             liste.Add(new Startweg(wer, kennung, ort, hin.Count > 0 ? hin.Sum(s => s.Laenge) : null, markt?.Name, new Kartenort(g.Punkt[0], g.Punkt[1])));
         }
         Messen("Spieler", start.Spieler.Werkstatt.Platz, null);
+        yield return 0;
         foreach (var h in start.Haeuser)
             foreach (var b in h.Betriebe)
+            {
                 Messen(h.Name, b.Platz, b.Art);
-        return liste;
+                yield return 0;
+            }
     }
 
     /// <summary>

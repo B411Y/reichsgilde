@@ -31,6 +31,9 @@ static class LangsameTests
         ("GreyboxTests", "Bauorte – genau die gültigen Rasterstellen", 1),              // 3 s: jede Rasterstelle der Stadt
         ("StartwegpruefungTests", "ein Gebäude ohne Startplatz rechnet nichts neu", 1), // 3 s: Startwege in Köln
         ("BlitzTests", "Ein Feuer vom späten Abend brennt über den Jahreswechsel", 1),  // 3 s
+        ("PruefungInkrementellTests", "zufälligen Änderungen (auch mitten im Lauf)", 1), // 10–15 s: volle Prüfung frisch geöffnet nach jeder Änderung
+        ("PruefungInkrementellTests", "Startwege in Häppchen Zahl für Zahl", 1),         // 4 s: Startwege zweimal je Runde (Köln)
+        ("PruefungInkrementellTests", "das Bett nach einem Weg oder einer Mauer", 1),    // 4–5 s: Bett Punkt für Punkt gegen eine frisch geöffnete Karte
         ("KiHafenStandortTests", "baut die KI am Rheinhafen", 1),                       // 6 s: Bauorte in Köln belegen, zwei Städte (spiel-ki)
         ("HafenAufschlagTests", "verkauft Silberringe", 1),                             // 4 s: sechs Kölner Fahrten mit und ohne Aufschlag
     };
