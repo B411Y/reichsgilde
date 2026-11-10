@@ -121,7 +121,7 @@ Im Wege-Modus sind nur Wege anklickbar, Gebäude und Boden nicht.
 
 Jede Tafel hat oben rechts ein **✕** und lässt sich am **oberen Rand ziehen**. Jedes Fenster öffnet **in der Bildschirmmitte** (zwischen Zeitstrahl und Betriebsleiste), auch wenn du es vorher verschoben hattest; festgehaltene Fenster, die zugleich offen sind, liegen leicht versetzt. Nur die kleine Auswahl am Mauszeiger und die Tafeln beim Bauen bleiben an ihrem Platz. Ein Klick holt ein Fenster nach vorn, **Esc** schließt das oberste, **X** schließt alle. Der Knopf mit der **Nadel** („Festhalten“, bei Rat, Familie, Markt, Wohnhaus, Bericht, Hafen …) lässt ein Fenster offen, wenn eine andere Tafel aufgeht. So liegen mehrere nebeneinander, etwa Markt und Betrieb zum Vergleichen.
 
-Tafeln, die nicht ins Fenster passen, bekommen Scrollbalken; das **Mausrad** über der Tafel rollt sie.
+Tafeln, die nicht ins Fenster passen, bekommen Scrollbalken; das **Mausrad** über der Tafel rollt sie. Liegt die Maus über einem Fenster, einer Tafel, einer Leiste oder dem Menü (auch über dessen Rand), bekommt die Stadt dahinter weder Klick noch Mausrad noch Hervorhebung; nur über freier Stadt reagiert sie. Das Fragezeichen als Zeiger erscheint nur über Dingen, die wirklich einen Tooltip zeigen (zum Beispiel den Charakterzügen).
 
 ### Tooltips
 
