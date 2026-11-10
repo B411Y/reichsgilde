@@ -69,6 +69,7 @@ public partial class Stadtansicht
     {
         var natur = new Node3D { Name = "Natur" };
         AddChild(natur);
+        _egoNaturTeile.Clear();
         foreach (var ((datei, knoten), lagen) in _naturLagen)
         {
             if (NaturNetz(datei, knoten) is not { } netz) continue;
@@ -107,6 +108,7 @@ public partial class Stadtansicht
                     CastShadow = IstBodenDatei(datei) ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
                 };
                 natur.AddChild(teil);
+                if (EgoNaturArt(datei) != EgoFormArt.Keine) _egoNaturTeile.Add((teil, datei)); // für die Kollision der Ego-Perspektive (Stadtansicht.EgoHindernisse.cs)
                 NaturDetailMelden(teil, datei); // Natur-Dichte und Sichtweite der Feinheiten (Stadtansicht.Grafik.cs)
             }
         }

@@ -36,8 +36,8 @@ public partial class Stadtansicht
     private CanvasLayer? _egoWahlEbene;
     private EgoMerker? _egoMerker;
 
-    /// <summary>Ein Hindernis: ein gedrehtes Rechteck auf dem Boden (Mitte, Achsen, halbe Maße) mit Höhenbereich.</summary>
-    private readonly record struct EgoHindernis(Vector2 Mitte, Vector2 AchseX, Vector2 AchseZ, float Hx, float Hz, float Unten, float Oben);
+    /// <summary>Ein Hindernis: ein gedrehtes Rechteck auf dem Boden (Mitte, Achsen, halbe Maße) mit Höhenbereich – oder, mit <c>Rund</c>, ein Kreis vom Halbmesser <c>Hx</c> (Stamm, Pfosten, Tier).</summary>
+    private readonly record struct EgoHindernis(Vector2 Mitte, Vector2 AchseX, Vector2 AchseZ, float Hx, float Hz, float Unten, float Oben, bool Rund = false);
 
     /// <summary>Der Stand der Ansicht vor der Ego-Perspektive, damit Esc sie genau wiederherstellt.</summary>
     private sealed record EgoMerker(
@@ -151,6 +151,7 @@ public partial class Stadtansicht
     {
         if (_ego is not null || _raum is not null || _innen is not null || _entwurf is not null) return false;
         EgoHindernisseLesen();
+        EgoKleineLesen(ort);
         var start = EgoFreierOrt(ort);
         var umgebung = _umgebung.Environment;
         _egoMerker = new EgoMerker(
@@ -171,7 +172,7 @@ public partial class Stadtansicht
         _freieKamera = _ego;
         _freiGemeldet = true; // die Ortsmeldung der freien Kamera ist hier nicht gemeint
         _kamerafahrt?.Kill();
-        GD.Print($"[ego] Start bei {start.X:0.0},{start.Y:0.0}, Boden {BodenHoehe(start.X, start.Y):0.0}, Fuß {FussHoehe(start.X, start.Y):0.0}; Hindernisse: {_egoKlickHindernisse.Count} Gebäude, {_egoMauern.Count} Mauerteile");
+        GD.Print($"[ego] Start bei {start.X:0.0},{start.Y:0.0}, Boden {BodenHoehe(start.X, start.Y):0.0}, Fuß {FussHoehe(start.X, start.Y):0.0}; Hindernisse: {_egoKlickHindernisse.Count} Gebäude, {_egoMauern.Count} Mauerteile, {_egoKleineZahl} kleine (Bäume, Zäune, Stände …)");
         EgoGeaendert?.Invoke(true);
         return true;
     }
@@ -184,6 +185,7 @@ public partial class Stadtansicht
         if (_ego is not { } ego || _egoMerker is not { } m) return;
         _ego = null;
         _egoMerker = null;
+        EgoKleineLeeren();
         ego.Beendet -= EgoBeenden;
         ego.GetParent()?.RemoveChild(ego);
         ego.QueueFree();
@@ -236,7 +238,11 @@ public partial class Stadtansicht
     {
         if (_raum is not null || _innen is not null) { EgoBeenden(); return; }
         _egoHindernisZeit += GetProcessDeltaTime();
-        if (_egoHindernisZeit >= EgoHindernisAlle) EgoHindernisseLesen();
+        if (_egoHindernisZeit >= EgoHindernisAlle) { EgoHindernisseLesen(); EgoKleinePruefen(); }
+        var bewegtStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        EgoBewegteLesen(ego.GlobalPosition);
+        _egoRechenZeit += System.Diagnostics.Stopwatch.GetElapsedTime(bewegtStart).TotalMilliseconds;
+        EgoLog(ego);
         var o = ego.GlobalPosition;
         var vor = new Vector2(-Mathf.Sin(Mathf.DegToRad(ego.Gier)), -Mathf.Cos(Mathf.DegToRad(ego.Gier)));
         _kamerafahrt?.Kill();
@@ -244,6 +250,21 @@ public partial class Stadtansicht
         _zielDrehung = ego.Gier;
         _kameraDrehung.RotationDegrees = new Vector3(0, ego.Gier, 0);
         _kamera.Size = EgoZoom;
+    }
+
+    private double _egoLogZeit, _egoLogSumme;
+    private int _egoLogBilder;
+
+    /// <summary>Startoption <c>--egolog=1</c>: einmal je Sekunde Ort der Füße und mittlere Bildzeit in die Ausgabe (für Klicktests und Leistungsvergleiche).</summary>
+    private void EgoLog(EgoKamera ego)
+    {
+        if (Wasserarten.Startoption("egolog") is null) return;
+        var dt = GetProcessDeltaTime();
+        _egoLogZeit += dt; _egoLogSumme += dt; _egoLogBilder++;
+        if (_egoLogZeit < 1.0) return;
+        GD.Print($"[egolog] Ort {ego.Ort.X:0.00},{ego.Ort.Y:0.00} Bildzeit {_egoLogSumme / _egoLogBilder * 1000:0.0} ms ({_egoLogBilder} Bilder), Karrenkisten {_egoBewegte.Count}, Kollision {_egoRechenZeit / _egoLogBilder:0.000} ms je Bild" + string.Concat(_egoBewegte.Take(4).Select(h => $" [{h.Mitte.X:0.0},{h.Mitte.Y:0.0} {h.Hx:0.0}x{h.Hz:0.0}]")));
+        _egoRechenZeit = 0;
+        _egoLogZeit = _egoLogSumme = 0; _egoLogBilder = 0;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -316,6 +337,7 @@ public partial class Stadtansicht
     {
         foreach (var h in _egoKlickHindernisse) if (EgoEindringen(h, p, fussY) is not null) return true;
         foreach (var h in _egoMauern) if (EgoEindringen(h, p, fussY) is not null) return true;
+        foreach (var h in EgoKleine(p)) if (EgoEindringen(h, p, fussY) is not null) return true;
         return false;
     }
 
@@ -324,6 +346,13 @@ public partial class Stadtansicht
     {
         if (fussY >= h.Oben - 0.05f || fussY + EgoKamera.Augenhoehe + 0.1f <= h.Unten) return null; // darüber stehen oder darunter durchgehen (Torbogen)
         var d = p - h.Mitte;
+        if (h.Rund)
+        {
+            var summe = h.Hx + EgoKamera.Radius;
+            var abstandRund = d.Length();
+            if (abstandRund >= summe) return null;
+            return (abstandRund > 1e-4f ? d / abstandRund : Vector2.Right, summe - abstandRund);
+        }
         var (lx, lz) = (d.Dot(h.AchseX), d.Dot(h.AchseZ));
         var (qx, qz) = (Mathf.Abs(lx) - h.Hx, Mathf.Abs(lz) - h.Hz);
         const float r = EgoKamera.Radius;
@@ -350,11 +379,21 @@ public partial class Stadtansicht
     /// <summary>Schiebt einen Ort aus allen Hindernissen heraus (bis zu vier Durchgänge, damit eine Ecke zwischen zwei Wänden hält).</summary>
     private Vector2 EgoHerausschieben(Vector2 p, float fussY)
     {
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
+        try { return EgoHerausschiebenRechnen(p, fussY); }
+        finally { _egoRechenZeit += System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds; }
+    }
+
+    private double _egoRechenZeit;
+
+    private Vector2 EgoHerausschiebenRechnen(Vector2 p, float fussY)
+    {
         for (var durchgang = 0; durchgang < 4; durchgang++)
         {
             var bewegt = false;
             foreach (var h in _egoKlickHindernisse) bewegt |= Verschieben(h);
             foreach (var h in _egoMauern) bewegt |= Verschieben(h);
+            foreach (var h in EgoKleine(p)) bewegt |= Verschieben(h);
             if (!bewegt) break;
         }
         return p;
