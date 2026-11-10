@@ -141,12 +141,18 @@ public static class Kartenpruefung
     /// Dieselbe Prüfung in kleinen Schritten (für die Darstellung, die sie über mehrere Bilder verteilt): Jeder Aufruf von <c>MoveNext</c> rechnet ein
     /// Stück, nach dem letzten steht das Ergebnis im <paramref name="ergebnis"/>. Die Befunde sind dieselben und in derselben Reihenfolge wie bei
     /// <see cref="Pruefen"/> – die Schritte sind nur die Stellen, an denen <see cref="Pruefen"/> weitermacht. Der Entwurf darf sich zwischen den
-    /// Schritten nicht ändern (<see cref="Kartenentwurf.BefundeSchritt"/> prüft das).
+    /// Schritten nicht ändern (<see cref="Kartenentwurf.BefundeSchritt"/> prüft das). <paramref name="teil"/> erfährt nach jedem Schritt, an welchem Teil
+    /// der Prüfung er gerechnet hat (für Messungen, <see cref="Kartenentwurf.BefundeTeil"/>).
     /// </summary>
-    internal static IEnumerator<bool> PruefenInSchritten(Kartenentwurf entwurf, List<Befund> ergebnis)
+    internal static IEnumerator<bool> PruefenInSchritten(Kartenentwurf entwurf, List<Befund> ergebnis, Action<string>? teil = null)
     {
         var lauf = new Lauf(entwurf, ergebnis);
-        foreach (var _ in lauf.Schritte()) yield return false;
+        foreach (var _ in lauf.Schritte())
+        {
+            teil?.Invoke(lauf.Teil);
+            yield return false;
+        }
+        teil?.Invoke(lauf.Teil);
         yield return true;
     }
 
@@ -245,6 +251,9 @@ public static class Kartenpruefung
             return _b;
         }
 
+        /// <summary>An welchem Teil der Prüfung der Lauf gerade rechnet (für Messungen: <see cref="Kartenentwurf.BefundeTeil"/>).</summary>
+        public string Teil { get; private set; } = "Vorbereiten";
+
         /// <summary>
         /// Die ganze Prüfung als Folge von Schritten (<c>yield return</c> nach jedem Teil, bei den Gebäuden und Paaren nach je einer Handvoll):
         /// <see cref="Alles"/> läuft sie in einem Zug durch, die Darstellung verteilt sie auf mehrere Bilder (<see cref="Kartenpruefung.PruefenInSchritten"/>).
@@ -253,17 +262,20 @@ public static class Kartenpruefung
         {
             yield return 0; // das Vorbereiten der Wege, Mauern und Zonen im Konstruktor
             var gebaeude = _e.Gebaeude;
+            Teil = "Gebäude";
             for (var i = 0; i < gebaeude.Count; i++)
             {
                 Einzeln(gebaeude[i]);
                 if (i % 16 == 15) yield return 0;
             }
+            Teil = "Gebäudepaare";
             for (var i = 0; i < gebaeude.Count; i++)
             {
                 for (var j = i + 1; j < gebaeude.Count; j++)
                     Paar(gebaeude[i], gebaeude[j]);
                 if (i % 4 == 3) yield return 0;
             }
+            Teil = "Kennungen und Betriebe";
             foreach (var doppelt in gebaeude.GroupBy(g => g.Kennung).Where(x => x.Count() > 1))
                 Fehler("kennung", $"Die Kennung „{doppelt.Key}“ gibt es {doppelt.Count()}-mal.", doppelt.First().Punkt, doppelt.Key);
             foreach (var doppelt in gebaeude.Where(g => g.Betrieb is not null).GroupBy(g => g.Betrieb).Where(x => x.Count() > 1))
@@ -271,8 +283,10 @@ public static class Kartenpruefung
                     doppelt.First().Punkt, doppelt.Select(g => g.Kennung).ToArray());
             yield return 0;
 
+            Teil = "Wege";
             foreach (var schritt in Wege()) yield return schritt;
             yield return 0;
+            Teil = "Bauzonen: Formen und Raster";
             ZonenFormen();
             if (_r.Stadtregeln && _felder is null)
             {
@@ -284,37 +298,72 @@ public static class Kartenpruefung
                     yield return 0;
                 }
             }
+            Teil = "Bauzonen";
             foreach (var schritt in Bauzonen()) yield return schritt;
             yield return 0;
+            Teil = "Bauzonen am Hang";
             foreach (var schritt in ZonenAmHang()) yield return schritt;
             yield return 0;
+            Teil = "Probeplan";
             if (_r.Stadtregeln)
                 foreach (var schritt in Probeplan()) yield return schritt;
             yield return 0;
+            Teil = "Wohnhausplätze und Startgrundstücke";
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
-            if (_r.Startgrundstuecke > 0) Startgrundstuecke();
+            if (_r.Startgrundstuecke > 0)
+                foreach (var teil in Startgrundstuecke())
+                {
+                    Teil = teil;
+                    yield return 0;
+                }
+            Teil = "Marktplätze und Vorkommen";
             Marktplaetze();
             Vorkommen();
             yield return 0;
+            Teil = "Mauern und Häfen";
             Mauern();
             Haefen();
             yield return 0;
+            // Was die Regel „Wasser“ liest, vorher in eigenen Häppchen (sonst rechnete sie es beim ersten Lesen am Stück): Gewässer, Bett des Geländes
+            // (nach einem Weg nur um ihn herum, Gelaendeform.LinienVeraltet), Wasserplan je Weg – dieselben Werte
+            Teil = "Wasser: Gewässer";
+            foreach (var _ in _e.Wasserform.Schritte()) yield return 0;
+            Teil = "Wasser: Gelände";
+            foreach (var _ in _e.Gelaendeform.AktualisierenSchritte()) yield return 0;
+            Teil = "Wasser: Wasserplan";
+            foreach (var _ in _e.Wasserplan.Schritte()) yield return 0;
+            Teil = "Wasser";
             Wasser();
             yield return 0;
+            Teil = "Natur";
             Natur();
             yield return 0;
+            Teil = "Felder";
             Feldflaechen();
             yield return 0;
+            Teil = "Pflanzen";
             Pflanzen();
             yield return 0;
+            Teil = "Felsen, Grenzen, Start";
             Felsen();
             Grenzen();
             Start();
             yield return 0;
+            Teil = "Wegenetz";
             Wegenetz();
             yield return 0;
+            Teil = "Einwohnerplätze";
             Einwohnerplaetze();
-            if (_r.Kapazitaet is { } schwere) _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
+            if (_r.Kapazitaet is { } schwere)
+            {
+                // die Kapazität in ihren eigenen Häppchen (Kartenentwurf.KapazitaetSchritte; aus dem Zwischenspeicher sofort fertig)
+                foreach (var teil in _e.KapazitaetSchritte(schwere))
+                {
+                    Teil = teil;
+                    yield return 0;
+                }
+                _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
+            }
         }
 
         /// <summary>
@@ -705,15 +754,17 @@ public static class Kartenpruefung
         /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (karte.py, Regel 5). „Gleich weit“ misst
         /// seit dem 1.11.2026 den Karrenweg, wie ihn der Kern rechnet (<see cref="Startwegpruefung"/>, Befund M4 der Prüfung von phase5/gehtempo):
         /// Die Luftlinie wirkt im Kern nicht, der Weg über die Fahrzeit schon. Abweichungen über ±10 % vom Mittel (Werkstätten und Start-Umland
-        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet.
+        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet. Die Startwege
+        /// rechnet der Entwurf in Häppchen (<see cref="Kartenentwurf.StartwegSchritte"/>, je Element ein Stück mit dem Namen seines Teils).
         /// </summary>
-        private void Startgrundstuecke()
+        private IEnumerable<string> Startgrundstuecke()
         {
             var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
                 .GroupBy(x => x.m.Groups[1].Value, x => x.g).ToList();
             if (starts.Count != _r.Startgrundstuecke)
                 Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
-            if (starts.Count == 0) return;
+            if (starts.Count == 0) yield break;
+            foreach (var teil in _e.StartwegSchritte()) yield return teil;
             _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
         }
 
