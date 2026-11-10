@@ -316,6 +316,12 @@ public static class Kartenpruefung
                     Teil = teil;
                     yield return 0;
                 }
+            else if (_e.Start.Hofstellen.Any(h => h.Start)) // Fairness auf jeder Karte mit Hofstellen
+            {
+                Teil = "Startwege";
+                foreach (var teil in _e.StartwegSchritte()) { Teil = teil; yield return 0; }
+                _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
+            }
             Hofstellen();
             Teil = "Marktplätze und Vorkommen";
             Marktplaetze();
