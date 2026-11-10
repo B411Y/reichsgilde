@@ -102,6 +102,31 @@ static class HofstellenHaeppchenTests
             Pruefe.Wahr(veraendert, "die Hofstellen haben die Kapazität verändert (sonst prüft der Test nichts)");
         }),
 
+        ("Ladeprobe: Karte kaputt, ein Weg stößt das Netz an, mitten im Lauf repariert – danach Startwege und Befunde wie frisch geöffnet (Befund der Prüfung)", () =>
+        {
+            // zweimal: kaputt durch einen Umlandbetrieb ohne Betrieb (repariert: Betrieb zurück) und durch die gelöschte Hofstelle des Spielers
+            // (repariert: der Spieler zieht auf eine freie Hofstelle)
+            foreach (var weise in new[] { "Betrieb", "Hofstelle" })
+            {
+                var e = Lade("koeln");
+                _ = e.Befunde.Count;
+                var betrieb = e.GebaeudeMit("Grube4")!.Betrieb;
+                var hof = e.Start.HofstelleVon(e.Start.SpielerWerkstatt!.Platz)!;
+                var frei = e.FreieHofstellen().First();
+                if (weise == "Betrieb") e.BetriebSetzen("Grube4", null);
+                else e.HofstelleLoeschen(hof.Kennung);
+                Pruefe.Gleich(0, e.Befunde.Count(b => b.Regel == "startweg"), $"{weise}: kaputt – keine Startwege");
+                e.WegVerschieben(e.Wege[0], 0.5, 0); // A: das Netz muss neu
+                using (var lauf = e.StartwegSchritte().GetEnumerator())
+                    Pruefe.Wahr(lauf.MoveNext() && lauf.Current == "Startwege: Karte schreiben", $"{weise}: die kaputte Karte geschrieben");
+                if (weise == "Betrieb") e.BetriebSetzen("Grube4", betrieb); // B: repariert, mitten im Netz
+                else e.SpielerHofstelleSetzen(frei.Kennung);
+                Pruefe.Gleich(Wege(Startwegpruefung.Rechnen(e.ZuStadtkarte())), Wege(e.Startwegrechnung()), $"{weise}: Startwege");
+                Pruefe.Wahr(e.Startwegrechnung().Count > 0, $"{weise}: repariert – Startwege");
+                Pruefe.Gleich(Frisch(e), Text(e.Befunde), $"{weise}: Befunde");
+            }
+        }),
+
         ("Hofstellen: wer alle löscht, speichert eine leere Liste – das Öffnen macht aus den Startpaaren keine neuen; Rückgängig bringt sie zurück", () =>
         {
             var e = Lade("greybox");

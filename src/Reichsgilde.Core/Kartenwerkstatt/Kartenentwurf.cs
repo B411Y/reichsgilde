@@ -566,8 +566,11 @@ public sealed partial class Kartenentwurf
     /// <summary>Karte und Karrennetz für die Startwege (null, wenn die Karte sich nicht laden lässt oder keinen Marktplatz hat).</summary>
     internal (Stadtkarte Karte, Karrennetz Netz)? Startnetz()
     {
-        foreach (var _ in StartnetzSchritte()) { }
-        foreach (var _ in LadeprobeSchritte()) { }
+        do
+        {
+            foreach (var _ in StartnetzSchritte()) { }
+            foreach (var _ in LadeprobeSchritte()) { }
+        } while (!_startnetzGerechnet); // die Probe kann das Netz neu anstoßen
         return _startnetz;
     }
 
@@ -579,6 +582,10 @@ public sealed partial class Kartenentwurf
     /// </summary>
     private IEnumerable<string> LadeprobeSchritte()
     {
+        // Endete ein Netzlauf ohne Netz (er las eine kaputte Karte), während eine Änderung mitten in ihm die Karte vielleicht reparierte: das Netz
+        // noch einmal rechnen statt proben (Befund der Prüfung; liest der neue Lauf wieder eine kaputte Karte, endet er schon beim Lesen)
+        if (_ladeprobe && _startnetzGerechnet && _startnetz is null)
+            (_ladeprobe, _ladeprobeLauf, _startnetzGerechnet, _startnetzLauf, _startwege, _startplaetze, _startwegLauf) = (false, null, false, null, null, null, null);
         while (_ladeprobe && _startnetzGerechnet && _startnetz is not null)
         {
             _ladeprobeLauf ??= LadeprobeLauf().GetEnumerator();
