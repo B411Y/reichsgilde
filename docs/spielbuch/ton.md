@@ -72,10 +72,11 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Direkter Blitzeinschlag in ein Gebäude (später mit Brand; jetzt nur über das Entwicklerfenster oder `--einschlag=<Sekunden>`) | hellster Blitz und ein brachialer Knall fast ohne Verzögerung, deutlich lauter als jeder normale Donner |
 | Schnee | **Schneestille**: alles leiser und dumpfer, Vögel kaum |
 | Wind (Wetter) | Flaute still, Sturm laut, auch nah |
-| Arbeitsbeginn 8 Uhr | **Morgenglocke** (Geläut mehrerer großer Glocken) vom Dom |
+| Arbeitsbeginn 8 Uhr | **Morgenglocke** (Geläut mehrerer großer Glocken) von den Kirchen der Stadt, der Dom trägt am weitesten |
 | Messe (Stunde des Kirchenwesens, 10 Uhr) | **Messglocke**, Geläut |
 | Arbeitsende 20 Uhr | **Abendglocke**, die große Glocke allein, dann weitere (Feierabend) |
 | Schankschluss 22 Uhr | **Feuerglocke**, die große Glocke allein, langsam und schwer (Sperrstunde: Feuer abdecken, Gassen räumen) |
+| Entfernung | Die Glocken läuten von jeder Kirche der Stadt und werden mit dem Abstand zum Blickpunkt leiser und dumpfer: in der Stadt voll, am Stadtrand etwa 13 dB leiser, im Umland nur noch ein leises, dumpfes Läuten (etwa 23 dB leiser, nie ganz weg); mehrere Kirchen addieren sich nach Leistung, der Dom trägt am weitesten. Wer währenddessen aufs Land zieht, hört es leiser werden |
 | Blitzschlag (ein Haus brennt) | **Sturmläuten** von der nächsten Kirche, ein paar Sekunden nach dem Einschlag: die große Glocke allein, tief und gedämpft, Schlag auf Schlag, so lange das Feuer brennt; dann klingt es aus. Nah gut zu hören, mit der Entfernung leiser. Der Einschlag selbst hat den lauten direkten Donner |
 | Nacht, eine Streife mit Laterne ist unterwegs | ab und zu das **Horn des Nachtwächters** an der Streife |
 

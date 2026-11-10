@@ -297,6 +297,7 @@ public partial class KlangUmgebung : Node
         _neueGlocken.Clear();
         if (!_fahrt || _fahrtZeit >= FahrtZufallAb) _glocken.Schritt(eingaben, aus, _neueGlocken);
         foreach (var g in _neueGlocken) GlockeSpielen(g);
+        if (_neueGlocken.Count == 0) GlockeNachfuehren(eingaben.Lage, delta);
         if (_logStufe >= 2 && _zeit >= _logUhr)
         {
             _logUhr = Math.Floor(_zeit) + 1;
@@ -414,6 +415,20 @@ public partial class KlangUmgebung : Node
         LetzterRuf = $"Glocke {art.Name}: {g.Datei}, Seite {g.Seite:+0.00;-0.00}, {g.Db:0.0} dB, {g.Tiefpass:0} Hz (bei {_zeit:0} s)";
         if (_logStufe >= 2)
             GD.Print($"UMGEBUNG GLOCKE t={_zeit:0.00} art={art.Name} datei={g.Datei} seite={g.Seite:0.00} spieler={g.Db:0.0} tiefpass={g.Tiefpass:0} tonhoehe={g.Tonhoehe:0.000} laenge={ton.GetLength():0.00} uhr={UhrText(LetzteEingaben.UhrMinute)}");
+    }
+
+    /// <summary>
+    /// Während eine Glocke läutet (bis eine halbe Minute), folgen Pegel, Seite und Tiefpass dem Blickpunkt: Wer währenddessen aufs Land zieht,
+    /// hört sie leiser und dumpfer werden (höchstens 12 dB und 6 kHz je Sekunde, damit es nicht springt).
+    /// </summary>
+    private void GlockeNachfuehren(KlangStadtlebenModell.Lage lage, double delta)
+    {
+        if (!_glockenSpieler.Playing) return;
+        var e = M.GlockenPlaner.Gemischt(lage);
+        var schritt = (float)delta;
+        _glockenSpieler.VolumeDb = Mathf.MoveToward(_glockenSpieler.VolumeDb, KlangGlockenModell.SpielerDb(e, M.GlockenDb), 12f * schritt);
+        if (_panGlocke is not null) _panGlocke.Pan = Mathf.MoveToward(_panGlocke.Pan, e.Seite * 0.8f, 1.5f * schritt);
+        if (_tiefpassGlocke is not null) _tiefpassGlocke.CutoffHz = Mathf.MoveToward(_tiefpassGlocke.CutoffHz, e.Tiefpass, 6000f * schritt);
     }
 
     /// <summary>Ein Läuten dieser Art jetzt (Entwicklerreiter): am Ort des Doms, wie die Lage gerade ist.</summary>

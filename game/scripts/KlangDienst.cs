@@ -129,6 +129,12 @@ public partial class KlangDienst : Node
         _instanz = this;
         ProcessMode = ProcessModeEnum.Always;
         BusseTesten();
+        if (OS.GetCmdlineUserArgs().Contains("--glockentest=1"))
+        {
+            // Selbsttest der Glocken nach Entfernung (dB-Werte in Stadtmitte, am Stadtrand und im Umland), ohne Spiel; Rückgabewert 0 = in Ordnung
+            GetTree().Quit(KlangGlockenModell.Selbsttest(t => GD.Print(t)) ? 0 : 1);
+            return;
+        }
         var test = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--umgebungtest="));
         if (test is "--umgebungtest=1" or "--umgebungtest=kaputt")
         {
