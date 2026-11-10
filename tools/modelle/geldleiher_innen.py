@@ -83,6 +83,7 @@ import innenausbau as ia  # noqa: E402  (Wand, Decke, Prüfbericht, Vorschau)
 import parfumeur_innen as pi  # noqa: E402  (Lichter, Wandquader, Täfelung, freie Stücke)
 import prediger_innen as pr  # noqa: E402  (Steinplatten, Schreibpult, Laibung, Gewölbe, Truhe, Leuchter)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Regal, Löschfass, Anker, Blickpunkte)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Laterne, Hoftor, Animation, Export)
 import wirt_innen as wi  # noqa: E402  (Punkt am Platz, Tisch, Bank, Dielen, Krug)
 
@@ -1716,6 +1717,8 @@ def bauen():
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_haus, HAUSTUER_B, HAUSTUER_H)
     ti.hoftor(teil("Bedienung_Karren_Hoftor"), st, si.rahmen(HOFTOR_X, WY0, 0), HOFTOR_B, HOFTOR_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((5.3, 3.85, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube"), st, pe.rahmen(1.96, -4.50, 0), "Bank")
     si.bretttuer(teil("Tuer_Werk_Pfand"), st, si.rahmen(PFAND_X, WY1, 180), TUER_B, TUER_H, stoff="Taeferholz")
     tuer_lager = teil("Tuer_Werk_Lager")
     si.bretttuer(tuer_lager, st, si.rahmen(LAGER_X, WY1, 180), TUER_B, TUER_H, stoff="Taeferholz dunkel", ring=False)

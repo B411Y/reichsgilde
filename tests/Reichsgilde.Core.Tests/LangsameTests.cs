@@ -31,6 +31,8 @@ static class LangsameTests
         ("GreyboxTests", "Bauorte – genau die gültigen Rasterstellen", 1),              // 3 s: jede Rasterstelle der Stadt
         ("StartwegpruefungTests", "ein Gebäude ohne Startplatz rechnet nichts neu", 1), // 3 s: Startwege in Köln
         ("BlitzTests", "Ein Feuer vom späten Abend brennt über den Jahreswechsel", 1),  // 3 s
+        ("KiHafenStandortTests", "baut die KI am Rheinhafen", 1),                       // 6 s: Bauorte in Köln belegen, zwei Städte (spiel-ki)
+        ("HafenAufschlagTests", "verkauft Silberringe", 1),                             // 4 s: sechs Kölner Fahrten mit und ohne Aufschlag
     };
 
     public static bool IstLangsam(Testfall test) =>

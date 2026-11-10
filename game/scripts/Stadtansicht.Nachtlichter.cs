@@ -562,7 +562,7 @@ public partial class Stadtansicht
         return new Wachgang
         {
             Knoten = knoten,
-            Figur = FigurEinsetzen(knoten, WacheAussehen(nummer, stand.Arbeiter.Arbeitskraft, false), nummer),
+            Figur = FigurEinsetzen(knoten, WacheAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal), false), nummer),
         };
     }
 

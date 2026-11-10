@@ -76,6 +76,7 @@ import alchimist_innen as ai  # noqa: E402  (Drehkörper, Scheiben, Flaschen, Ti
 import figuren as fg  # noqa: E402  (Mischglas, Vorlage, Presse, Arbeitshöhen der Bewegungen)
 import innenausbau as ia  # noqa: E402  (Böden, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Fachwerk innen, Fenster, Lichter, Laterne, Hoftor, Animation, Export)
 
 NAME = "parfumeur_innen"
@@ -1491,6 +1492,10 @@ def bauen():
     si.bretttuer(teil("Holztuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((1.55, -3.05, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.enfleurage(teil("Einrichtung_Enfleurage"), st, pe.rahmen(-2.33, -3.50, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke", "Lager"), st, pe.rahmen(0.85, -2.95, 0, Z_LAGER), "Parfumeur", 1.8)
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Lager"), st, pe.rahmen(-4.00, -0.96, -90, Z_LAGER))
     handschuhe(teil("Einrichtung_Handschuhe"), st, -2.25)
     ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf zum Blütenboden
     si.bretttuer(teil("Tuer_Werk_Laden"), st, si.rahmen(WX1, LADENTUER_Y, 90), LADENTUER_B, LADENTUER_H, stoff="Brett")

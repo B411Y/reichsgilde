@@ -48,6 +48,7 @@ import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 import innenausbau as ia  # noqa: E402  (Böden, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Wände, Fenster, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler  # noqa: E402  (Rundholz wie außen)
 
 NAME = "tischler_innen"
@@ -1046,6 +1047,10 @@ def bauen():
     si.bretttuer(teil("Holztuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((2.55, -3.05, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.drechselbank(teil("Einrichtung_Drechselbank"), st, pe.rahmen(-1.10, -3.50, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke", "Lager"), st, pe.rahmen(0.80, -2.95, 0, Z_LAGER), "Tischler", 1.7)
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Lager"), st, pe.rahmen(-3.94, 1.14, -90, Z_LAGER))
     schuerzen(teil("Einrichtung_Schuerzen"), st, si.rahmen(-0.95, WY0, 0))
     ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Holzlager
     si.bretttuer(teil("Tuer_Werk_Saege"), st, si.rahmen(SAEGETUER_X, WY1, 180), SAEGETUER_B, SAEGETUER_H, stoff="Brett")

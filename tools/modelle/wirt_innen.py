@@ -74,6 +74,7 @@ import figuren as fg  # noqa: E402  (Kessel, Ofen, Vorlage, Zapfhahn, Krug auf d
 import innenausbau as ia  # noqa: E402  (Böden, Decke, Prüfbericht, Vorschau)
 import parfumeur_innen as pi  # noqa: E402  (Gefach, Täfelung, liegendes Fass, Butzenfenster, Wandquader)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Fachwerk innen, Fenster, Lichter, Laterne, Hoftor, Animation, Export)
 
 NAME = "wirt_innen"
@@ -1162,6 +1163,10 @@ def bauen():
     braupfanne(teil("Einrichtung_Braupfanne", "Kueche"), st)
     handschuhe(teil("Einrichtung_Handschuhe", "Kueche"), st, si.rahmen(5.2, KY1 - 0.06, 180))
     si.loeschfass(teil("Einrichtung_Loeschfass", "Kueche"), st, Vector((7.6, -1.55, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.gewoelbekeller(teil("Einrichtung_Gewoelbekeller"), st, pe.rahmen(4.50, -0.70, 90), False)
+    pe.ladentheke(teil("Einrichtung_Ladentheke"), st, pe.rahmen(1.20, 4.00, 180), "Wirt")
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Saal"), st, pe.rahmen(1.04, 4.00, 180, Z_SAAL))
     ti.hoftor(teil("Bedienung_Karren_Hoftor", "Kueche"), st, si.rahmen(KX1, HOFTOR_Y, 90), HOFTOR_B, HOFTOR_H)
     ti.laterne(kueche, st, Vector((7.0, 0.3, 2.75)), H_KUECHE - 0.26)
     setzen(licht(Vector((7.0, 0.3, 2.6)), (0, 0, -1), "Lampe"), "Kueche")
