@@ -37,7 +37,7 @@ Plan (Schritte in dieser Reihenfolge):
 - (Musik) **Pausen in Echtzeit-Minuten:** Der Auftrag nannte „1–3 Spielminuten“; eine Spielminute dauert bei Tempo 1 etwa 0,8 s, das wäre keine Pause. Gewählt: Immer 1–3, Oft 3–6, Selten 8–15 Echtzeit-Minuten (`MusikModell.PauseGrenzen`, eine Tabelle); Entscheidung des Nutzers, falls anders gewünscht.
 - (Musik) **Fehlende Auslöser im Kern:** „Brand löschen“ und „Kampf der Wache“ meldet der Kern nicht (Kampf kommt aus Überfall, Einbruch, Feuer gegen das eigene Haus); einen **Aufstand** gibt es nicht (Platzhalter: Pestjahr, `Hauptszene.MusikAufstand`, später umhängen); „Heirat im eigenen Haus“ und „Tod im eigenen Haus“ kommen aus den Meldungen. Kein Eingriff in den Kern nötig.
 - (Musik) Stücke ohne Volk gibt es nur vier; Orks und Oger haben kein Volksstück. Die Lage Tag/Nacht ist Uhrzeit (ab 20 Uhr bis 6 Uhr), nicht der Sonnenstand der Jahreszeit; wer das Licht abends früher/später will, ändert `MusikModell.IstNacht`.
-- (Musik) Das Stück „Frühlungsauftakt“ ist so benannt wie im Suno-Export (vermutlich „Frühlingsauftakt“): Titel in `daten/musik.json` und Dateiname `tag_fruehling_fruehlungsauftakt.ogg`; bei Wunsch umbenennen.
+- (Musik) Das Stück „Frühlingsauftakt“: Tippfehler der Suno-Quelle („Frühlungsauftakt“) ist in Titel und Dateiname korrigiert.
 - (Musik) Dateigröße: 23 Stücke zusammen etwa 70 MB (OGG q0,4, Stereo, etwa 160 kbit/s). Falls das Repository zu groß wird: Qualität senken (`OGG_QUALITAET` in `tools/ton/musik_bauen.py`) oder auf Git LFS legen (Entscheidung Teamleiter).
 
 ## Entscheidungen
