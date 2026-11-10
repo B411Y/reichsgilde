@@ -67,6 +67,8 @@ static class KartenformatTests
                                             && d != "natur/natur_felsen" && d != "natur/natur_felswand" && !d.StartsWith("kulisse/")).ToList();
             // Ohne Katalog: Requisiten (requisiten/, z. B. der Eimer der Löschkette) setzt das Spiel bei Ereignissen, nicht die Karte.
             fehlen.RemoveAll(d => d.StartsWith("requisiten/"));
+            // Ohne Katalog: der 3D-Handschuh des Mauszeigers (zeiger/, Oberfläche, nicht Teil der Karte).
+            fehlen.RemoveAll(d => d.StartsWith("zeiger/"));
             // Ohne Katalog: die Baukästen der Restflächen-Füllung (props/fuellung_*, props_fuellung_kit); sie stellt die Stadtansicht nach restflaechen.json, nicht die Karte.
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
