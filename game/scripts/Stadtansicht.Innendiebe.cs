@@ -165,7 +165,7 @@ public partial class Stadtansicht
         var nummer = stand.Arbeiter.Nummer;
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false }; // der Anker blickt mit −Z auf sein Ziel, die Figur mit +Z: um 180° gedreht einsetzen
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, DiebAussehen(nummer, stand.Arbeiter.Arbeitskraft, stand.Meisterdieb), nummer) is not { } figur)
+        if (FigurEinsetzen(halter, DiebAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal), stand.Meisterdieb), nummer) is not { } figur)
         {
             halter.QueueFree();
             return null;
@@ -223,17 +223,16 @@ public partial class Stadtansicht
     /// Aussehen eines Diebes, fest je Arbeiter: dunkles Gewand (Lehrlinge heller und geflickt), meist mit Kapuze, manche mit Barett, Orks grün;
     /// der Meisterdieb trägt weinrotes Samtgewand und ein schwarzes Barett über grauem Haar.
     /// </summary>
-    private static FigurAussehen DiebAussehen(int nummer, string arbeitskraft, bool meister)
+    private static FigurAussehen DiebAussehen(int nummer, Arbeiterbild bild, bool meister)
     {
-        var volk = arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
+        var volk = bild.Volk;
         if (meister)
-            return new FigurAussehen(volk, false, new Color(0.34f, 0.08f, 0.11f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
+            return new FigurAussehen(volk, bild.Frau ?? false, new Color(0.34f, 0.08f, 0.11f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
         var dunkel = new[] { new Color(0.17f, 0.17f, 0.19f), new Color(0.22f, 0.20f, 0.17f), new Color(0.15f, 0.18f, 0.17f), new Color(0.26f, 0.20f, 0.16f) };
-        var gewand = IstAnfaenger(arbeitskraft) ? new Color(0.32f, 0.29f, 0.25f) : dunkel[Streuung(nummer, 7) % (uint)dunkel.Length];
-        var haare = Haarfarben(volk);
-        var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 4 == 0;
+        var gewand = bild.Anfaenger ? new Color(0.32f, 0.29f, 0.25f) : dunkel[Streuung(nummer, 7) % (uint)dunkel.Length];
+        var frau = FrauVon(bild, nummer, 4);
         var kopf = (Streuung(nummer, 29) % 6) switch { 0 => Kopfbedeckung.Barett, 1 => Kopfbedeckung.Keine, _ => Kopfbedeckung.Kapuze };
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), haare[nummer * 5 % haare.Length], gewand, kopf);
+        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), HaarVon(bild, nummer), gewand, kopf);
     }
 
     /// <summary>Name und Hinweis unter der Maus bei einem Dieb: Rang und Nummer, darunter was er gerade tut und seine Laune.</summary>

@@ -636,14 +636,15 @@ public sealed partial class KiRivale
     /// <summary>
     /// Die neue Werkstatt bauen: die gültigen Stellen nach Luftlinie zum nächsten Marktplatz geordnet (mehrere Märkte je Stadt seit 31.10.2026,
     /// Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher), bei Gleichstand in der festen
-    /// Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Mit der Fahrzeit nach Weglänge nimmt die KI unter den nächsten die mit dem kürzesten Karrenweg
-    /// (<see cref="Bauort"/>, KiRivale.Standort.cs), sonst die erste. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
+    /// Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Mit der Fahrzeit nach Weglänge nimmt die KI unter den nächsten (fahren Karren zum Hafen, auch
+    /// unter den nächsten am Hafen) die mit dem kürzesten Karrenweg im Mittel über die Jahre (<see cref="Bauort"/>, KiRivale.Standort.cs), sonst die
+    /// erste. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
     /// </summary>
     private void WerkstattBauen(Angebot angebot, double gewinn)
     {
         _bauorteGefragt = true;
         var karte = _w.Karte;
-        var (ort, minuten) = Bauort(_w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
+        var (ort, wahl) = Bauort(_w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
             .OrderBy(o => karte?.MarktAbstandQuadrat(o.X, o.Z) ?? o.X * o.X + o.Z * o.Z)
             .ToList(), angebot.Art);
         if (ort is null)
@@ -653,7 +654,14 @@ public sealed partial class KiRivale
         }
         var v = _w.Bauen.Vorschau(Konto, ort);
         var waehrung = _w.Daten.Allgemein.Waehrung;
-        var weg = minuten is { } m ? $"; der {_w.Daten.Art(angebot.Art).Startkarren} braucht {Zahlenformat.Ganz(m)} Minuten zum Markt" : "";
+        var startkarren = _w.Daten.Art(angebot.Art).Startkarren;
+        var weg = wahl switch
+        {
+            { ZumHafen: true, Hafen: { } h } x => $"; der {startkarren} braucht {Zahlenformat.Ganz(h.Hin)} Minuten zum Hafen " +
+                                                  $"({(_w.Jahreszeiten.IstAktiv ? "im Winter " : "")}{Zahlenformat.Ganz(x.Markt.Hin)} zum Markt)",
+            { } x => $"; der {startkarren} braucht {Zahlenformat.Ganz(x.Markt.Hin)} Minuten zum Markt",
+            null => "",
+        };
         Befehlen(ort, $"baut {v.Betrieb} neu ({Zahlenformat.Ganz(v.Kosten)} {waehrung}, fertig in {Jahre(v.BauzeitMinuten)}; " +
                       $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr{weg}) – keine freie Werkstatt rechnet sich besser.");
     }

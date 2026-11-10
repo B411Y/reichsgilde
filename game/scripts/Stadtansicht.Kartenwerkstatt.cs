@@ -551,7 +551,9 @@ public partial class Stadtansicht
         if (belegung is { } anzeige) BelegungsfahneBauen(groesse, anzeige, wurzel); // Stadtansicht.Kartenwerkstatt.Start.cs
         var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung, Belegung = belegung };
         _stuecke[g] = stueck;
-        if (_entwurf?.FehlerhafteGebaeude.Contains(g.Kennung) == true) FehlerUeberzug(stueck, true);
+        // nur aus fertigen Befunden: Sonst rechnete das Bauen eines Gebäudes die ganze Prüfung in einem Bild – die Fehlerfarbe kommt dann mit FehlerZeigen,
+        // sobald die Prüfung in Häppchen fertig ist (_wsFehlerNeu)
+        if (_entwurf is { BefundeBereit: true } e && e.FehlerhafteGebaeude.Contains(g.Kennung)) FehlerUeberzug(stueck, true);
         MarkierungSetzen(g, stueck);
         if (BereichVon(g) is { } bereich) _wsBereiche[g] = bereich;
     }

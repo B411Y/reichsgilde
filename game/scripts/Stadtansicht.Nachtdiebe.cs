@@ -256,7 +256,7 @@ public partial class Stadtansicht
         {
             var nummer = 40000 + nr * 10 + i;
             var kennung = $"dieb:nacht:{nr}:{i}" + (bande ? ":b" : "");
-            var aussehen = MarktDiebAussehen(nummer, "Geselle");
+            var aussehen = MarktDiebAussehen(nummer, Arbeiterbild.Ersatz());
             var dieb = DiebfigurBauen(kennung, aussehen, nummer, eigen, null, v.Taeterbetrieb ?? "", null);
             dieb.Knoten.GetNodeOrNull("Marke")?.QueueFree(); // keine Bildpunkte: nachts soll man die Gestalten selbst erkennen
             // kein Mondschein-Rand mehr (war: Fresnel-Überlagerung, ließ die Täter nachts bläulich leuchten): Fremde Diebe sind nachts dunkle Schatten, nur das Hervorheben bei Maus und Auswahl bleibt

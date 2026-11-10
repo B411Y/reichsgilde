@@ -82,7 +82,11 @@ public sealed class Gelaendeform
     // ── Neu rechnen ──────────────────────────────────────────────────────────
 
     /// <summary>Wege oder Mauern haben sich geändert: das ganze Bett beim nächsten Lesen neu.</summary>
-    public void AllesVeraltet() => _allesNeu = true;
+    public void AllesVeraltet()
+    {
+        _allesNeu = true;
+        _durchgang++;
+    }
 
     /// <summary>
     /// Das Raster hat sich in diesem Rechteck geändert: das Bett dort (mit Reichweite der Profile) beim nächsten Lesen neu. Berührt es ein
@@ -91,6 +95,7 @@ public sealed class Gelaendeform
     public void Veraltet(Kartenrechteck bereich)
     {
         _veraltet.Add(bereich);
+        _durchgang++;
         var nass = Wasser.Bereiche.Where(b => b.Ueberdeckt(bereich.Vergroessert(Wasserform.Glaettung))).ToList();
         if (nass.Count == 0) return;
         // Wasserverbund: Ein See am Lauf nimmt dessen Spiegel an, und ob beide eine Fläche bilden, hängt am Spiegel – ändert sich der Lauf, auch See
@@ -103,52 +108,114 @@ public sealed class Gelaendeform
         _veraltet.AddRange(nass);
     }
 
+    /// <summary>
+    /// Ein Weg oder eine Mauer hat sich geändert (kam dazu, fiel weg): das Bett in diesem Rechteck beim nächsten Lesen neu – es muss alles
+    /// enthalten, was die Linie vorher und nachher einebnete (ihren Rahmen samt halber Breite und <see cref="Bankett"/>). Das Bett eines Punkts hängt nur
+    /// an den Linien, deren Bett ihn erreicht, an ihrem Profil (nur aus dem Raster) und am Wasser; außerhalb bleibt es also gleich, innen rechnet es
+    /// wie <see cref="Veraltet"/> mit allen Linien neu – dasselbe Bett wie ganz neu gerechnet (Test <c>PruefungInkrementellTests</c>), aber in Köln nur
+    /// ein paar tausend Punkte statt des ganzen Rasters. Anders als <see cref="Veraltet"/> bleibt der Spiegel der Gewässer (er hängt nicht an Wegen).
+    /// </summary>
+    public void LinienVeraltet(Kartenrechteck bereich)
+    {
+        _veraltet.Add(bereich);
+        _durchgang++;
+    }
+
     /// <summary>Ein Gewässer oder ein Hafen hat sich geändert (oder kam dazu, fiel weg): Spiegel, Becken und das ganze Bett beim nächsten Lesen neu.</summary>
     public void WasserVeraltet()
     {
         Wasser.AllesVeraltet();
         _allesNeu = true;
+        _durchgang++;
     }
+
+    /// <summary>Zählt jede Änderung und jeden Durchgang des Neurechnens: Ein Durchgang in Häppchen bricht ab, sobald ein anderer dazwischenkam.</summary>
+    private int _durchgang;
+
+    /// <summary>Rasterbereiche, die ein Durchgang schon geleert, aber nicht fertig gerechnet hat (er brach ab): Der nächste Durchgang rechnet sie mit.</summary>
+    private readonly List<(int I0, int J0, int I1, int J1)> _geleert = new();
 
     /// <summary>Rechnet das Bett neu, wo es veraltet ist.</summary>
     private void Aktualisieren()
     {
-        if (!_allesNeu && _veraltet.Count == 0) return;
+        foreach (var _ in AktualisierenSchritte()) { }
+    }
+
+    /// <summary>
+    /// Dasselbe wie das Neurechnen beim nächsten Lesen, aber in Häppchen (je etwa <see cref="PunkteJeSchritt"/> Rasterpunkte; die Kartenprüfung: ihre
+    /// Regel „Wasser“ und die Startwege, die ihr Netz auf einer eigenen Stadtkarte bauen). Die Werte sind dieselben. Zwischen zwei Häppchen ist das Bett
+    /// halb gerechnet, die Markierungen (was veraltet ist) stehen aber noch: Wer jetzt liest, rechnet in einem Zug selbst fertig. Kommt so ein Durchgang
+    /// oder eine Änderung dazwischen, bricht dieser Lauf beim nächsten Häppchen ohne weitere Schreibzugriffe ab; die Markierungen löscht nur ein
+    /// Durchgang, der fertig wird. Was ein abgebrochener Durchgang schon geleert hat, merkt sich <see cref="_geleert"/>: Der nächste rechnet es mit
+    /// (Befund der Prüfung: sonst blieb nach einem schmaleren breitesten Weg ein Ring ohne Bett, weil die Reichweite aus den Linien von jetzt kommt).
+    /// </summary>
+    internal IEnumerable<int> AktualisierenSchritte()
+    {
+        if (!_allesNeu && _veraltet.Count == 0 && _geleert.Count == 0) yield break;
+        var mein = ++_durchgang;
         if (IstFlach)
         {
             // flach: das Profil ist überall 0, das Bett auch
             if (!_bett.IstLeer) _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
             _allesNeu = false;
             _veraltet.Clear();
-            return;
+            _geleert.Clear();
+            yield break;
         }
         var linien = _linien().Where(l => l.Linie.Count >= 2 && l.Breite > 0).ToList();
         if (_allesNeu)
         {
             _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
-            BettRechnen(linien, null);
+            foreach (var _ in BettRechnen(linien, null))
+            {
+                yield return 0;
+                if (mein != _durchgang) yield break;
+            }
         }
         else
         {
             var reichweite = Glaettung + Profilschritt + Hoehenraster.Abstand + (linien.Count == 0 ? 0 : linien.Max(l => l.Breite / 2)) + Bankett;
-            foreach (var r in _veraltet)
+            // die veralteten Rechtecke mit Reichweite und, was abgebrochene Durchgänge geleert haben, genau so (jeder Bereich rechnet seine Punkte mit
+            // allen Linien neu – die Reihenfolge der Bereiche ändert nichts)
+            var bereiche = _veraltet.Select(r => Hoehenraster.Punkte(r.Vergroessert(reichweite))).Concat(_geleert).ToList();
+            foreach (var (i0, j0, i1, j1) in bereiche)
             {
-                var (i0, j0, i1, j1) = Hoehenraster.Punkte(r.Vergroessert(reichweite));
+                if (!_geleert.Contains((i0, j0, i1, j1))) _geleert.Add((i0, j0, i1, j1));
                 _bett.BereichLeeren(i0, j0, i1, j1);
-                BettRechnen(linien, (i0, j0, i1, j1));
+                foreach (var _ in BettRechnen(linien, (i0, j0, i1, j1)))
+                {
+                    yield return 0;
+                    if (mein != _durchgang) yield break;
+                }
             }
         }
+        _geleert.Clear();
         _allesNeu = false;
         _veraltet.Clear();
     }
 
-    /// <summary>Rechnet das Bett aller Linien, nur für die Rasterpunkte in <paramref name="nur"/> (null: überall).</summary>
-    private void BettRechnen(IReadOnlyList<Bettlinie> linien, (int I0, int J0, int I1, int J1)? nur)
+    /// <summary>
+    /// So viele Rasterpunkte rechnet ein Häppchen von <see cref="AktualisierenSchritte"/> ungefähr (Köln: rund eine Millisekunde) – im Bett der Gewässer
+    /// weniger, dort kostet ein Punkt mehr (<see cref="Wasserform.Boden"/>).
+    /// </summary>
+    private const int PunkteJeSchritt = 20_000, WasserpunkteJeSchritt = 2_000;
+
+    /// <summary>
+    /// Rechnet das Bett aller Linien, nur für die Rasterpunkte in <paramref name="nur"/> (null: überall) – in Häppchen (ein Element nach je etwa
+    /// <see cref="PunkteJeSchritt"/> Rasterpunkten; <see cref="Aktualisieren"/> läuft sie in einem Zug durch).
+    /// </summary>
+    private IEnumerable<int> BettRechnen(IReadOnlyList<Bettlinie> linien, (int I0, int J0, int I1, int J1)? nur)
     {
         // je Rasterpunkt der beste Kandidat: höheres Gewicht gewinnt, bei gleichem der kleinere Abstand
         var beste = new Dictionary<(int, int), (double Gewicht, double Abstand, double Ziel)>();
+        var gezaehlt = 0;
         foreach (var l in linien)
         {
+            if (gezaehlt >= PunkteJeSchritt)
+            {
+                gezaehlt = 0;
+                yield return 0;
+            }
             var halb = l.Breite / 2;
             var weite = halb + Bankett;
             if (nur is { } bereich)
@@ -168,6 +235,7 @@ public sealed class Gelaendeform
                 var r = new Kartenrechteck(Math.Min(a.X, b.X), Math.Min(a.Z, b.Z), Math.Max(a.X, b.X), Math.Max(a.Z, b.Z)).Vergroessert(weite);
                 var (i0, j0, i1, j1) = Hoehenraster.Punkte(r);
                 if (nur is { } n) (i0, j0, i1, j1) = (Math.Max(i0, n.I0), Math.Max(j0, n.J0), Math.Min(i1, n.I1), Math.Min(j1, n.J1));
+                if (i1 >= i0 && j1 >= j0) gezaehlt += (i1 - i0 + 1) * (j1 - j0 + 1);
                 for (var j = j0; j <= j1; j++)
                     for (var i = i0; i <= i1; i++)
                     {
@@ -182,24 +250,33 @@ public sealed class Gelaendeform
                     }
             }
         }
+        yield return 0;
+        // jeden Punkt einmal schreiben (die Reihenfolge der Punkte ändert nichts: jeder hat seinen eigenen Wert)
         foreach (var ((i, j), (w, _, ziel)) in beste)
         {
+            if (++gezaehlt >= PunkteJeSchritt)
+            {
+                gezaehlt = 0;
+                yield return 0;
+            }
             int roh = Roh.Wert(i, j);
             var boden = roh + (ziel * 100 - roh) * w;
             var unterschied = (int)Math.Round(boden - roh, MidpointRounding.AwayFromZero);
             if (unterschied != 0) _bett.WertSetzen(i, j, unterschied);
         }
-        WasserbettRechnen(beste, nur);
+        foreach (var _ in WasserbettRechnen(beste, nur)) yield return 0;
     }
 
     /// <summary>
     /// Gräbt das Bett der Gewässer in die Schicht (nach den Wegen): je Rasterpunkt im Bereich eines Gewässers der Boden mit Fluss, See und Ufer
-    /// (<see cref="Wasserform.Boden"/>); im Kern eines Weges oder einer Mauer (Gewicht 1 in <paramref name="wege"/>) bleibt das Ufer stehen.
+    /// (<see cref="Wasserform.Boden"/>); im Kern eines Weges oder einer Mauer (Gewicht 1 in <paramref name="wege"/>) bleibt das Ufer stehen. In Häppchen
+    /// wie <see cref="BettRechnen"/>.
     /// </summary>
-    private void WasserbettRechnen(Dictionary<(int, int), (double Gewicht, double Abstand, double Ziel)> wege, (int I0, int J0, int I1, int J1)? nur)
+    private IEnumerable<int> WasserbettRechnen(Dictionary<(int, int), (double Gewicht, double Abstand, double Ziel)> wege, (int I0, int J0, int I1, int J1)? nur)
     {
-        if (Wasser.IstLeer) return;
+        if (Wasser.IstLeer) yield break;
         var erledigt = new HashSet<(int, int)>();
+        var gezaehlt = 0;
         foreach (var bereich in Wasser.Bereiche)
         {
             var (i0, j0, i1, j1) = Hoehenraster.Punkte(bereich);
@@ -207,6 +284,11 @@ public sealed class Gelaendeform
             for (var j = j0; j <= j1; j++)
                 for (var i = i0; i <= i1; i++)
                 {
+                    if (++gezaehlt >= WasserpunkteJeSchritt)
+                    {
+                        gezaehlt = 0;
+                        yield return 0;
+                    }
                     if (!erledigt.Add((i, j))) continue;
                     int roh = Roh.Wert(i, j);
                     var boden = (roh + _bett.Wert(i, j)) / 100.0;

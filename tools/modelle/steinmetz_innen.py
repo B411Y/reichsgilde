@@ -59,6 +59,7 @@ from bausteine import Matrix, Vector  # noqa: E402
 import figuren as fg  # noqa: E402  (Hand der Bewegung „Saegen“ für den Griff der Steinsäge, Arbeitshöhen)
 import innenausbau as ia  # noqa: E402  (Böden, Putz, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Mauern, Fenster, Steinboden, Pult, Türen, Werkzeugwand, Kisten, Anker)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import steinmetz  # noqa: E402  (Säule und Quaderstapel wie außen)
 import tischler_innen as ti  # noqa: E402  (Hoftor, Schürzen, Laterne, Fenster in dünnen Wänden, Animation, Export)
 
@@ -999,6 +1000,10 @@ def bauen():
     si.tuerstock(werk, st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-0.15, -3.05, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.steinsaege(teil("Einrichtung_Steinsaege"), st, pe.rahmen(2.02, -3.50, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke"), st, pe.rahmen(-1.20, 3.50, 180), "Steinmetz")
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Lager"), st, pe.rahmen(-4.00, 1.34, -90, Z_LAGER))
     ti.schuerzen(teil("Einrichtung_Schuerzen"), st, si.rahmen(-0.75, WY0, 0))
     ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Steinlager
     M_th = si.rahmen(HUETTENTUER_X, WY1, 180)

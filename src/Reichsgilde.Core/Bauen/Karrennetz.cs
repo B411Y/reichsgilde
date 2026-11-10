@@ -133,7 +133,24 @@ public sealed class Karrennetz
     /// des Weges (<see cref="Wegkosten"/>). Die Stadtwirtschaft nimmt beides nur mit der Fahrzeit nach Weglänge (Datenversion 65) – ein alter
     /// Spielstand mit seinen alten Daten behält das Netz, mit dem er gespeichert wurde.
     /// </summary>
-    public static Karrennetz Von(Stadtkarte karte, bool marktlinien = true, bool alleWege = false)
+    public static Karrennetz Von(Stadtkarte karte, bool marktlinien = true, bool alleWege = false) => new(Netzlinien(karte, marktlinien, alleWege), karte.Gelaendeform);
+
+    /// <summary>
+    /// Dasselbe Netz wie <see cref="Von"/>, in Häppchen gebaut (für einen Hintergrund-Lauf: die Startwege der Kartenprüfung, Kartenentwurf.StartwegSchritte):
+    /// Jedes Element ist ein Stück Arbeit; am Ende bekommt <paramref name="fertig"/> das Netz. Dieselben Schritte in derselben Reihenfolge wie im
+    /// Konstruktor, nur mit Pausen.
+    /// </summary>
+    internal static IEnumerable<int> VonInSchritten(Stadtkarte karte, bool marktlinien, bool alleWege, Action<Karrennetz> fertig)
+    {
+        var linien = Netzlinien(karte, marktlinien, alleWege);
+        yield return 0;
+        var netz = new Karrennetz();
+        foreach (var _ in netz.Aufbauen(linien, karte.Gelaendeform)) yield return 0;
+        fertig(netz);
+    }
+
+    /// <summary>Die Linien des Netzes einer Karte (siehe <see cref="Von"/>).</summary>
+    private static List<Netzlinie> Netzlinien(Stadtkarte karte, bool marktlinien, bool alleWege)
     {
         var plan = karte.Wasserplan;
         var linien = new List<Netzlinie>();
@@ -147,7 +164,7 @@ public sealed class Karrennetz
         }
         linien.AddRange(plan.Faehren.Select(f => new Netzlinie(new[] { f.Von, f.Bis }, IstFaehre: true)));
         if (marktlinien) linien.AddRange(Marktlinien(karte, alleWege));
-        return new Karrennetz(linien, karte.Gelaendeform);
+        return linien;
     }
 
     /// <summary>
@@ -217,12 +234,35 @@ public sealed class Karrennetz
     /// <param name="gelaende">Für die Höhen (Profil jeder Linie); flach: alle Anstiege 0.</param>
     public Karrennetz(IReadOnlyList<Netzlinie> netzlinien, Gelaendeform gelaende)
     {
+        foreach (var _ in Aufbauen(netzlinien, gelaende)) { }
+    }
+
+    /// <summary>Ein leeres Netz für <see cref="VonInSchritten"/> (das <see cref="Aufbauen"/> füllt).</summary>
+    private Karrennetz()
+    {
+    }
+
+    /// <summary>So viele Strecken (bzw. Paare von Strecken in einem Fach) bearbeitet ein Häppchen von <see cref="Aufbauen"/> ungefähr.</summary>
+    private const int StreckenJeSchritt = 1_000, PaareJeSchritt = 10_000;
+
+    /// <summary>
+    /// Baut das Netz aus den Linien (der Konstruktor läuft es in einem Zug durch, <see cref="VonInSchritten"/> in Häppchen): Strecken mit Profil, Fächer,
+    /// Teilung an Kreuzungen und Straßenenden, Knoten und Kanten – in dieser Reihenfolge, die Pausen ändern nichts.
+    /// </summary>
+    private IEnumerable<int> Aufbauen(IReadOnlyList<Netzlinie> netzlinien, Gelaendeform gelaende)
+    {
         var linien = netzlinien.Select(n => n.Linie).ToList();
         // alle Strecken mit ihren Höhen an beiden Enden, ihrer Fahrbahn und ob andere Linien sie teilen dürfen (eine Fähre nicht)
         var strecken = new List<(Kartenort A, Kartenort B, double HA, double HB, int Linie, Fahrbahn Art, bool Teilbar)>();
         var stelleVon = new List<(double Anfang, double Laenge)>(); // je Strecke: Meter entlang ihrer Linie am Anfang, Länge
+        var bisher = 0;
         for (var l = 0; l < linien.Count; l++)
         {
+            if (strecken.Count - bisher >= StreckenJeSchritt)
+            {
+                bisher = strecken.Count;
+                yield return 0;
+            }
             var n = netzlinien[l];
             if (n.IstFaehre)
             {
@@ -255,6 +295,7 @@ public sealed class Karrennetz
                 stelleVon.Add((stelle - laenge, laenge));
             }
         }
+        yield return 0;
         // je Strecke die Stellen (0 … 1), an denen sie geteilt wird: Kreuzungen und Straßenenden anderer Linien
         var teilung = strecken.Select(_ => new List<double> { 0, 1 }).ToList();
         var faecher = new Dictionary<(int, int), List<int>>();
@@ -272,8 +313,19 @@ public sealed class Karrennetz
                 }
         }
         var ende = linien.Select(p => p.Count == 0 ? (default(Kartenort), default(Kartenort)) : (p[0], p[^1])).ToList();
+        yield return 0;
+        // die Fächer in der Reihenfolge des Wörterbuchs: Jede Strecke sammelt ihre Stellen, die unten sortiert und ohne Doppelte genommen werden –
+        // die Reihenfolge der Fächer ändert am Netz nichts
+        var paare = 0;
         foreach (var liste in faecher.Values)
             foreach (var s in liste)
+            {
+                if (paare >= PaareJeSchritt)
+                {
+                    paare = 0;
+                    yield return 0;
+                }
+                paare += liste.Count;
                 foreach (var t in liste)
                 {
                     if (s >= t || strecken[s].Linie == strecken[t].Linie) continue;
@@ -292,9 +344,12 @@ public sealed class Karrennetz
                         foreach (var e in new[] { ende[ls].Item1, ende[ls].Item2 })
                             if (Kartengeometrie.AbstandStrecke(e, c, d) <= Fang) teilung[t].Add(Stelle(c, d, e));
                 }
+            }
+        yield return 0;
         // Knoten und Kanten
         for (var s = 0; s < strecken.Count; s++)
         {
+            if (s % StreckenJeSchritt == StreckenJeSchritt - 1) yield return 0;
             var (a, b, ha, hb, linie, art, _) = strecken[s];
             var stellen = teilung[s].Distinct().OrderBy(t => t).ToList();
             var weg = netzlinien[linie].Weg;
