@@ -35,8 +35,20 @@ Unter **Einstellungen → Meldungen** wählt ihr für jede Art (Todesfälle, Geb
 
 Seit Stufe 2 sagt das Spiel selbst, **welches Haus** eine Meldung betrifft, **wer** (die Person) und **wo** (Betrieb, Wohnhaus, Ort auf der Karte). Das gilt für die Ereignisse, die der Haushofmeister ansagt: Tod, Geburt, Hochzeit, Krankheit, Pest, Feuer (Anschlag und Blitzschlag), Einbruch, Überfall auf Karren und Schiffe, Anklage, Mahnung und Bankrott, knappe Kasse, Stillstand, Meisterprüfung, Aufstieg, Wahl und Ratsanträge – dazu alle Familienereignisse und die Nachrichten der Unterwelt. Was ein Haus angeht, ist darum sicher „euer Haus“ oder „ein anderes“; der Rest wird wie bisher am Text erkannt. Der Haushofmeister sagt jetzt auch einen **Blitzschlag** in euer Haus an. Meldungen über ein **Geheimnis** nennen dazu seine Art: ein neues Geheimnis eures Hauses, Gerede, Beichte, der Erpresserbrief (nur für euch; die Stadt erfährt bloß, dass ein Brief kam), eine erpresste Ratsstimme, Anzeige, Bloßstellen, Urteil und Spitzelbericht. Was keiner anderen Art angehört, steht unter der Art **Geheimnisse** (Vorgabe: Siegel für euer Haus, sonst Verlauf); Urteile und Spitzelberichte bleiben bei Gericht und Spitzel. Ältere Spielstände haben im Verlauf noch keine Art.
 
+## Entscheidungen
+
+Manche Briefe verlangen eine **Antwort** (Stufe 3). Bisher sind es die drei Forderungen der Unterwelt: der **Erpresserbrief** (Schweigegeld zahlen oder nicht), das **Schutzgeld** (zahlen – oder es brennt in der nächsten Nacht) und das **Lösegeld** für eine Geisel (zahlen – oder sie wird in die Fremde verkauft, für immer). Jede offene Frage hat eine **Frist** und eine **Voreinstellung**, die gilt, wenn ihr nicht antwortet:
+
+| Frage | Frist | Voreinstellung |
+|---|---|---|
+| Erpresserbrief | bis Ende des nächsten Jahres | Ablehnen (Schweigen heißt Nein) |
+| Schutzgeld | bis Ende des nächsten Jahres | Ablehnen (Schweigen heißt Nein) |
+| Lösegeld | bis Ende des nächsten Jahres | **Zahlen, wenn das Geld reicht**, sonst Ablehnen |
+
+Antworten könnt ihr wie bisher in der Gauner-Tafel des Hinterzimmers; das erledigt auch die Frage. Schlägt eine Antwort fehl (zu wenig Geld), bleibt die Frage offen. Höchstens **sechs** Fragen bleiben je Haus offen; kommt eine siebte, gilt für die älteste ihre Voreinstellung. Jede beantwortete oder abgelaufene Frage steht als eine Zeile im **Verlauf** („Ihr habt Haus Elster 400 Gulden Schweigegeld gezahlt.“, „… Schweigen galt als Nein.“), nur für euer Haus. Die offenen Fragen stehen im Spielstand; bei einem älteren Spielstand legt das Spiel sie in der ersten Minute aus den Forderungen neu an. KI-Häuser bekommen keine Fragen, sie antworten selbst. Fragen zu Krankheit (Medicus), Erbe und entdeckten Geheimnissen folgen, mit einer Frist von zwei Spielstunden. Den Entscheidungsbrief mit Knöpfen, Fristbalken und „Später“ baut die Oberfläche als Nächstes; dort wählt ihr auch je Art „Entscheidung“ oder „Automatisch“.
+
 ## Grenzen
 
-Entscheidungen mit Wahl (Heiratsantrag, Steuerforderung, Anklage) folgen später (Stufe 3). Im Mehrspielerspiel pausiert nichts.
+Weitere Entscheidungen (Heiratsantrag, Anklage, Brand, Bestechung) folgen später. Im Mehrspielerspiel pausiert nichts.
 
 Zum Ausprobieren: `--meldungen=demo` (Siegel und ein Stillstand) oder `--meldungen=brief` (dazu zwei Briefe), `--einstellungen=1 --reiter=Meldungen`; Geheimnisse: `--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1`.

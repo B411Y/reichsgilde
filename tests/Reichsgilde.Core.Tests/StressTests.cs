@@ -88,7 +88,7 @@ static class StressTests
          "neue erworbene Züge Schwermütig und Reizbar ohne Anlass", () =>
         {
             var d = Daten.Value.Stress!;
-            Pruefe.Gleich(80, Daten.Value.Version);
+            Pruefe.Gleich(81, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "Stress aktiv");
             Pruefe.Gleich("angespannt:40,zermürbt:70", string.Join(",", d.Stufen.Select(s => $"{s.Name}:{s.Ab}")));
             Pruefe.Gleich(100.0, d.Hoechstwert);

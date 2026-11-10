@@ -213,16 +213,19 @@ static class DiebTests
             Pruefe.Gleich(tochter, w.Familien.Erbe(f));
         }),
 
-        ("Entführung: Kommt bis Ende des Folgejahres kein Lösegeld, wird die Geisel in die Fremde verkauft", () =>
+        // Seit den Entscheidungen (Stufe 3, Datenversion 81) zahlt bei einem Menschen die Voreinstellung das Lösegeld, wenn das Geld reicht
+        // (EntscheidungTests) – darum hier mehr Lösegeld, als das Opfer hat.
+        ("Entführung: Kommt bis Ende des Folgejahres kein Lösegeld (das Geld reicht nicht), wird die Geisel in die Fremde verkauft", () =>
         {
             var sim = NeueSimulation(Geschickt.Value);
             var (w, k, _) = Dieb(sim, Betriebsart.Diebesgilde);
             var (opfer, _) = Opfer(w);
             var f = w.Familien.Gruenden(opfer, Volk.Zwerg, Geschlecht.Mann, alter: 50);
             var sohn = w.Familien.KindAufnehmen(opfer, 10, Geschlecht.Mann);
-            Pruefe.Wahr(w.Ausfuehren(k, new Entfuehren(opfer.Inhaber, sohn.Nummer, 5_000)).Erfolg, "Auftrag");
+            Pruefe.Wahr(w.Ausfuehren(k, new Entfuehren(opfer.Inhaber, sohn.Nummer, 50_000)).Erfolg, "Auftrag");
             BisNachDerNacht(sim);
             Pruefe.Wahr(w.Diebe.IstGeisel(sohn), "Geisel");
+            Pruefe.Wahr(opfer.Vermoegen < 50_000, "Das Opfer kann nicht zahlen");
             JahrBeenden(sim);
             Pruefe.Wahr(sohn.Lebt && w.Diebe.IstGeisel(sohn), "Die Frist läuft bis Ende des Folgejahres");
             JahrBeenden(sim);

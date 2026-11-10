@@ -440,6 +440,9 @@ public sealed class Unterwelt
         return Befehlsergebnis.Ok($"Der Brief ist zugestellt. {opfer.Inhaber} hat bis zum Jahresende Zeit. Aber Vorsicht: Der Brief ist selbst ein Beweis gegen euch.");
     }
 
+    /// <summary>Entwicklerfenster: ein Erpresserbrief ohne Beweise, Spur und Würfel (Frist wie gewöhnlich bis Ende des Folgejahres).</summary>
+    internal void EntwicklerForderung(Konto erpresser, Konto opfer, double betrag) => _forderungen.Add(new Forderung(erpresser, opfer, betrag, _w.Jahr));
+
     internal Befehlsergebnis ErpressungBeantworten(Konto opfer, Konto erpresser, bool zahlen)
     {
         if (ForderungAn(opfer, erpresser) is not { } f)

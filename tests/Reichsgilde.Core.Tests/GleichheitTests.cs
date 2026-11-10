@@ -19,7 +19,8 @@ using Reichsgilde.Core.Zeit;
 /// Je Startwert spielt dieselbe Partie dreimal 10 Jahre auf der Greybox-Karte (1 Mensch, 3 KI-Häuser; mehrere Menschen kennt der
 /// Partieaufbau noch nicht), dazu eine Partie 4 Jahre in Köln (drei Marktplätze, Wege über das Pflaster, Fahrzeit nach Weglänge – Befund der
 /// Prüfung von phase5/gehtempo, 1.11.2026), mit einem festen Befehlsskript des Menschen: kaufen und verkaufen per Karren, einen Zweitbetrieb pachten,
-/// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
+/// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung, Antworten auf Entscheidungen
+/// (Stufe 3: Fragen mit ungerader Nummer beantwortet er, die übrigen laufen ab).
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
 ///   • Lauf C speichert und lädt an acht Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in drei Bränden nach Blitzschlag, einer davon über den Jahreswechsel) und direkt nach jedem Löschen.
@@ -68,8 +69,9 @@ static class GleichheitTests
     /// <param name="Geheimnisse">Wie viele Geheimnisse es nach jedem Jahr gibt, zusammen (Teil 3c) – sie stehen im Spielstand.</param>
     /// <param name="Wissen">Was die Häuser nach jedem Jahr von fremden Geheimnissen wissen, zusammen (Teil 3c) – steht im Spielstand.</param>
     /// <param name="GeheimMeldungen">Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel) – der Verlauf steht im Spielstand und in der Prüfsumme.</param>
+    /// <param name="Entscheidungen">Minute, Nummer, Art und Ausgang jeder Entscheidung des Menschen (Stufe 3: geöffnet, entschieden, Frist, Obergrenze, hinfällig) – sie stehen im Spielstand.</param>
     sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
-        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen);
+        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen, IReadOnlyList<string> Entscheidungen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -200,6 +202,17 @@ static class GleichheitTests
         // Meldungen mit Geheimnisart (Siegel) sollen vorkommen – sonst prüfte die Prüfsumme das Feld im Verlauf nicht mit.
         Pruefe.Wahr(a.GeheimMeldungen.Count > 0, $"Keine Meldung mit Geheimnisart in {p.Jahre} Jahren (Startwert {p.Startwert})");
         Pruefe.Gleich(string.Join("\n", a.GeheimMeldungen), string.Join("\n", c.GeheimMeldungen), "Meldungen mit Geheimnisart mit Speichern und Laden");
+        // Entscheidungen (Stufe 3) stehen im Spielstand: Öffnen, Befehl und Fristablauf laufen mit Speichern und Laden gleich. Bei 4711 schreibt
+        // ein KI-Haus dem Menschen 1402 zwei Erpresserbriefe – der Mensch zahlt den ersten (EntscheidungTreffen), der zweite läuft Ende 1403 ab
+        // (Lauf C lädt dazwischen, Minute(2, 21, 37), mit offener Frage).
+        Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", b.Entscheidungen), "Entscheidungen mit deutscher Ländereinstellung");
+        Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", c.Entscheidungen), "Entscheidungen mit Speichern und Laden");
+        if (p.Startwert == 4711)
+        {
+            Pruefe.Wahr(a.Befehle.Any(z => z.Contains(" EntscheidungTreffen ok")), $"Kein erfolgreicher Befehl EntscheidungTreffen ({string.Join(" | ", a.Entscheidungen)})");
+            Pruefe.Wahr(a.Entscheidungen.Any(z => z.Contains($" {Reichsgilde.Core.Entscheidungen.Entscheidungsabschluss.Frist} ")),
+                $"Kein Fristablauf einer Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
+        }
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -220,6 +233,7 @@ static class GleichheitTests
         Zeilen[p.Startwert] = zeilen;
         DateiSchreiben();
         Console.WriteLine($"          Prüfsumme Startwert {p.Startwert}: {a.Ende}");
+        Console.WriteLine($"          Entscheidungen Startwert {p.Startwert}: {a.Entscheidungen.Count} Einträge – {string.Join(", ", a.Entscheidungen.Select(z => z.Split(' ')[3]).GroupBy(x => x).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"))}");
         if (a.Braende.Count > 0) Console.WriteLine($"          Brennende Häuser an Ladepunkten: {string.Join(" | ", a.Braende.Select(z => z.Split(' ')[1] + " " + z.Split(' ')[2]))}");
     }
 
@@ -250,6 +264,7 @@ static class GleichheitTests
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
         var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
         var geheimMeldungen = new List<string>(); // Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel)
+        var entscheidungen = new List<string>(); // Minute, Nummer, Art und Ausgang jeder Entscheidung (Stufe 3)
         void BlitzeZaehlen(Simulation s)
         {
             s.Wirtschaft!.Meldung += m =>
@@ -257,6 +272,8 @@ static class GleichheitTests
                 if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal) || m.StartsWith("Funkenflug!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}");
             };
             s.Wirtschaft.Gemeldet += m => { if (m.GeheimnisArt is { } art) geheimMeldungen.Add($"{m.Minute} {art} {m.Text}"); };
+            s.Wirtschaft.Entscheidungen.Geoeffnet += e => entscheidungen.Add($"{s.Zeit.VergangeneMinuten} {e.Nummer} {e.Art} offen {e.Haus.Inhaber}");
+            s.Wirtschaft.Entscheidungen.Geschlossen += (e, a) => entscheidungen.Add($"{s.Zeit.VergangeneMinuten} {e.Nummer} {e.Art} {a} {e.Haus.Inhaber}");
         }
         var braende = new List<string>(); // an jedem Ladepunkt: Lager und Vermögen der Häuser, deren Gebäude brennt (Lauf C: nach dem Laden)
         BlitzeZaehlen(sim);
@@ -300,7 +317,7 @@ static class GleichheitTests
                 wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen, entscheidungen);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
@@ -416,6 +433,11 @@ static class GleichheitTests
                 _abgegebenIm = jahr;
                 _wiederUm = t + 10;
             }
+            // Entscheidungen (Stufe 3): um 12:30 die Fragen mit ungerader Nummer beantworten (abwechselnd zahlen und ablehnen), die übrigen laufen ab
+            if (uhr == Minute(0, 12, 30))
+                foreach (var e in w.Entscheidungen.OffenFuer(spieler).Where(e => e.Nummer % 2 == 1).OrderBy(e => e.Nummer))
+                    liste.Add(new EntscheidungTreffen(e.Nummer, e.Nummer % 4 == 1 ? Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Zahlen
+                        : Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Ablehnen));
             if (t == _wiederUm && _zweitbetrieb is not null)
             {
                 liste.Add(new LiegenschaftErwerben(_zweitbetrieb));
