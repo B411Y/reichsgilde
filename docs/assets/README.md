@@ -60,6 +60,10 @@ python3 tools/assets/danksagung_bauen.py --pruefen   # prüfen (läuft in protok
 
 **Ablauf bei neuem Fremdmaterial:** Zeile im Protokoll (Herkunft „Fremdpaket“, Lizenz, Bezugsquelle), dann den Eintrag in `tools/assets/danksagung_quelle.json` anlegen (Werk, Urheber, Adresse, Lizenz; Feld `deckt` nennt den Anfang des Protokoll-Musters) und die Datei neu bauen. Freesound-Aufnahmen stehen in der Tabelle von `game/assets/audio/umgebung/HERKUNFT.md` und kommen von selbst hinein. Das Prüfskript meldet jede Fremdpaket-Zeile ohne Eintrag und jede Namensnennung im Protokoll, die in der Tabelle fehlt.
 
+## Private Texturen (GameDev.tv)
+
+Gekaufte Texturen mit Lizenz, die die Weitergabe einzelner Dateien verbietet (GameDev.tv General Asset License 2.0), kommen **nie** ins Repository, auch nicht verkleinert oder in einem Patch. Sie liegen in einem privaten Ordner, `tools/assets/privat_holen.py` kopiert sie nach `game/assets/privat/` (in `.gitignore`), `privat_manifest.json` nennt sie mit SHA-256. Das Protokoll hat dafür eine Zeile mit Herkunft „privat“ (Muster und Anzahl werden nicht geprüft, `game/assets/privat/` zählt nicht als Repo-Asset). Das Spiel nimmt ohne die Dateien die eigenen Texturen (`PrivateTexturen.cs`).
+
 ## Verhältnis zu anderen Dateien
 
 - `HERKUNFT.md` neben Fremdpaketen und dem KI-Schmied (`game/assets/modelle/natur/`, `props/`, `figuren/ki/`) und den Höhendaten der Kulissenberge (`kulisse/`) behalten die Lizenztexte und Einzelheiten der Werkzeuge; in Ordnern mit KI-Bildern verweist eine kurze `HERKUNFT.md` hierher.
