@@ -504,3 +504,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tafel Start | Zeile „Hofstelle“ für Spieler und jedes Haus (alle Hofstellen der Karte, genutzte vorgewählt, belegte anderer Häuser ausgegraut); Wohnhaus, Startplatz und Betriebe bleiben | 09.11.2026 |
 | Bauzonen | Haken „nur Werkstätten“ bleibt, Tooltip „Veraltet – besser eine Hofstelle“ | 09.11.2026 |
 | Startoption Werkstatt | `--werkstatt-hofstelle=x,z[,grad[,start]]` (STARTOPTIONEN); Umriss mit `--werkstatt-umriss=hofstelle,x,z[,grad]` | 09.11.2026 |
+
+### Hofstellen: Hafentafel, Kamera-Start, Startbrief (Branch phase5/hofstellen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hafentafel (N7) | Bei ruhendem Schiffshandel nennt sie den Hafen-Aufschlag für Ausfuhrwaren (`schiffshandel.hafenAufschlag` über `Schiffahrt.Daten`, nur mit `karrenZumHafen`) und zeigt die Ausfuhrwaren (Waren, die eine ferne Stadt kauft) als Warenzeichen mit Tooltip „Ausfuhrware, +3 % am Hafen“; ist der Hafen zu, steht „Aufschlag entfällt solange“, die Zeichen sind weg. Keine neue Kern-Abfrage nötig | 10.11.2026 |
+| Kamera-Start (N8) | Neue Partie: Kamera sofort (ohne Fahrt) zwischen Werkstatt und Wohnhaus des Spielers (`Stadtansicht.KameraAufHofstelle`, `Hauptszene.KameraAufEigenenHof`), auch bei gelosteter Hofstelle. Ein Spielstand speichert keine Kamera (Kern, `Speicherstand.cs`); Laden und Probepartie behalten den Blick der Karte; `--blick` geht vor | 10.11.2026 |
+| Startbrief (N10) | Der vorhandene Start-Hinweis (Brief des Haushofmeisters) sagt „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein.“, als Dieb „Euer Unterschlupf“, als Gardist „Euer Wachhaus“ (Beruf des Startbetriebs); abschaltbar mit der Meldungsart „Personal“ (Aus oder Nur Verlauf, Vorgabe Siegel zeigt ihn) | 10.11.2026 |
+
+### Offen (von Oberfläche, Hofstellen)
+
+- Kamera im Spielstand speichern (Kern: `Speicherstand.cs`), damit das Laden den letzten Blick wiederherstellt statt den Kartenblick.
+

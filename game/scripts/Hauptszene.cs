@@ -693,6 +693,7 @@ public partial class Hauptszene : Node
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
+        if (!optionen.ContainsKey("blick")) KameraAufEigenenHof(); // neue Partie: der Blick beginnt über der eigenen Hofstelle
         StartHinweisZeigen(optionen); // einmaliger Hinweis zum Personalbuch (Hauptszene.Starthinweis.cs)
         if (optionen.TryGetValue("baum", out var baumWahl)) // Talentbaum der Einrichtung von außen: wohnhaus oder betrieb (eigene Werkstatt)
         {
