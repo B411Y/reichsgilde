@@ -9,7 +9,8 @@ Das Ergebnis liegt außerhalb von Git (z. B. C:\\Reichsgilde_Privat\\gamedevtv);
 Stufe 1 (sets/): je Satz fünf Karten in 2048 × 2048 (Albedo, Normale OpenGL, Rauheit, AO, Höhe), verlustfreies WebP.
 Stufe 2 (spiel/): was das Spiel lädt, in 1024 × 1024:
   boden/boden_farbe_hoehe.webp, boden/boden_normal_rauheit.webp  der Boden-Atlas des Spiels (elf Schichten untereinander) mit ausgetauschten
-                                                                 Schichten: Fels (Rock 1), Erde (Soil 1), Kies (Ground 1), Schlamm (Soil 2);
+                                                                 Schichten: Fels (Rock 1), Erde (Soil 1), Kies (Ground 1), Schlamm (Soil 2); Wiese: nur Struktur
+                                                                 (Normale, Rauheit, Höhe, Helligkeitsmuster) aus Grasses 1, Farbe und Mittelwert wie bisher;
                                                                  die übrigen Schichten stammen aus dem Atlas im Repo (--repo)
   fels/fels_struktur.png                                         Struktur des Fels-Shaders (R, G Neigung, B Höhe, A Flecken) aus Rock 2
   schnee/schnee_farbe_hoehe.webp, schnee/schnee_normal_rauheit.webp   Schneeauflage (Snow_1)
@@ -56,6 +57,11 @@ SAETZE = {
 }
 # Schicht im Boden-Atlas (Reihenfolge wie Bodentextur im Kern) -> Satz
 ATLAS_TAUSCH = {1: "soil_1", 2: "rock_1", 3: "ground_1", 6: "soil_2"}
+# Wiese (Schicht 0): nur Struktur aus Grasses 1; Farbe und Mittelwert bleiben die der bisherigen Wiese (Stadtansicht.Gras.cs liest den Mittelwert)
+WIESE_SCHICHT = 0
+WIESE_SATZ = "grasses_1"
+WIESE_STAERKE = 0.55  # Anteil der Helligkeitsschwankung der privaten Albedo, die auf die bisherige Farbe wirkt
+GRAS_VARIANTEN = ["Grass 1a", "Grass 2", "Grass 2a", "Grass 3", "Grass 3a"]  # weitere Albedo-Fassungen (1a/2a/3a trocken), nur im privaten Speicher
 SCHICHTEN = 11
 
 
@@ -151,6 +157,50 @@ def satz_bauen(quelle, ziel, name, ordner, stamm):
     speichere(hoe, os.path.join(pfad, "hoehe.webp"), lossless=True)
 
 
+def gras_varianten(quelle, ziel):
+    """Die weiteren Albedo-Fassungen von Grasses 1 (2048, verlustbehaftet, q92) in sets/grasses_1/albedo_<name>.webp; das Spiel nimmt sie nicht."""
+    d = os.path.join(quelle, "Grasses 1")
+    for v in GRAS_VARIANTEN:
+        ziel_datei = os.path.join(ziel, "sets", "grasses_1", "albedo_" + v.lower().replace(" ", "_") + ".webp")
+        if os.path.exists(ziel_datei):
+            continue
+        a = laden(os.path.join(d, v + "_basecolor.png"), 2048, 3)
+        speichere(a, ziel_datei, lossless=False, quality=92)
+
+
+def wiese_struktur(fh, nr, k, g, bericht):
+    """Schicht 0 (Wiese): bisherige Farbe, moduliert mit Helligkeit/AO der privaten Gras-Albedo, Normale, Rauheit, Höhe privat.
+    Der Mittelwert je Kanal (wie ihn Stadtansicht.Gras.cs aus der Schicht liest) bleibt der der bisherigen Wiese."""
+    z0, z1 = WIESE_SCHICHT * g, (WIESE_SCHICHT + 1) * g
+    alt = fh[z0:z1, :, :3].copy()
+    lum = (k["albedo"] * np.array([0.3, 0.55, 0.15])).sum(axis=2) * (0.75 + 0.25 * k["ao"][..., 0])
+    rel = lum / lum.mean()
+    rel_std = float(rel.std())
+    m = 1.0 + WIESE_STAERKE * (rel - 1.0)
+    neu = alt * m[..., None]
+    # Mittelwert je Kanal wieder auf den der alten Schicht (bis auf Rundung), dann begrenzen und noch einmal nachziehen
+    for _ in range(3):
+        neu = np.clip(neu * (alt.reshape(-1, 3).mean(axis=0) / neu.reshape(-1, 3).mean(axis=0)), 0, 1)
+    fh[z0:z1, :, :3] = neu
+    fh[z0:z1, :, 3:4] = hoehe_strecken(k["hoehe"])
+    # Normale: so stark wie die bisherige (Standardabweichung der Neigung)
+    s_alt = float(((nr[z0:z1, :, :2] * 2 - 1)).std())
+    n, _ = normal_xy_gl(k)
+    xy, _z = normale_ok(n)
+    s_neu = float(xy.std())
+    f = min(1.0, s_alt / max(s_neu, 1e-6))
+    xy = xy * f
+    nr[z0:z1, :, 0] = xy[..., 0] * 0.5 + 0.5
+    nr[z0:z1, :, 1] = xy[..., 1] * 0.5 + 0.5
+    r_alt = float(nr[z0:z1, :, 2].mean())
+    r = np.clip(k["rauheit"][..., 0] + (r_alt - float(k["rauheit"].mean())), 0.05, 1.0)
+    nr[z0:z1, :, 2] = r
+    bericht.append(
+        f"Wiese <- {WIESE_SATZ} (nur Struktur): Mittel alt {tuple(round(float(v), 4) for v in alt.reshape(-1, 3).mean(axis=0))}, "
+        f"neu {tuple(round(float(v), 4) for v in neu.reshape(-1, 3).mean(axis=0))}; Helligkeitsschwankung privat {rel_std:.3f}, mit Staerke {WIESE_STAERKE} -> {float(m.std()):.3f}; "
+        f"Normale Neigung alt {s_alt:.3f}, neu {s_neu:.3f}, Faktor {f:.2f}; Rauheit Mittel {r_alt:.2f}")
+
+
 def satz_lesen(ziel, name, groesse):
     pfad = os.path.join(ziel, "sets", name)
     kart = {}
@@ -217,6 +267,7 @@ def spiel_bauen(ziel, repo, bericht):
         nr[z0:z1, :, 0] = xy[..., 0] * 0.5 + 0.5
         nr[z0:z1, :, 1] = xy[..., 1] * 0.5 + 0.5
         nr[z0:z1, :, 2] = k["rauheit"][..., 0]
+    wiese_struktur(fh, nr, s[WIESE_SATZ], g, bericht)
     os.makedirs(os.path.join(ziel, "spiel", "boden"), exist_ok=True)
     speichere(fh, os.path.join(ziel, "spiel/boden/boden_farbe_hoehe.webp"), lossless=False, quality=95)
     speichere(nr, os.path.join(ziel, "spiel/boden/boden_normal_rauheit.webp"), lossless=True)
@@ -305,6 +356,7 @@ def main():
     print("Stufe 1: Sätze (2048)")
     for name, (ordner, stamm) in SAETZE.items():
         satz_bauen(a.quelle, a.ziel, name, ordner, stamm)
+    gras_varianten(a.quelle, a.ziel)
     pruefen(a.ziel, bericht)
     print("Stufe 2: Dateien des Spiels (1024)")
     spiel_bauen(a.ziel, a.repo, bericht)
