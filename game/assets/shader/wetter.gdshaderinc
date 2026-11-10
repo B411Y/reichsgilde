@@ -258,11 +258,25 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		vec3 weiss = vec3(0.66, 0.68, 0.73);
 		// sch_f.a > 0: Schneetextur (die privaten Texturen, boden.gdshaderinc): Farbe und Rauheit daraus, ihre Neigung (sch_n.xy, Welt x/z) auf dem Licht
 		if (sch_f.a > 0.5) weiss = sch_f.rgb * vec3(0.70, 0.72, 0.77);
-		weiss *= (0.94 + 0.06 * (1.0 - tiefe)) * mix(1.0, 0.86, stadt);
+		// Ohne Schneetextur Rauschen in drei Größen (nicht periodisch) statt der Höhe der Wiesentextur darunter: Sie wiederholt sich alle paar Meter und
+		// schimmerte als schwaches Kachelmuster durch den Schnee. Dazu die Unebenheit der Wiese unter dem Schnee fast ganz glätten (vorher blieben 30 %).
+		// px = Meter je Bildpunkt: Das feine Rauschen und die Verwehungen blenden mit der Entfernung aus (aus der Ferne flimmerten sie und kippten das Stufenlicht
+		// des Pixel-Looks zeilenweise zwischen zwei Stufen)
+		float fein = 1.0 - smoothstep(0.015, 0.08, px);
+		float flocken = w_rausch(wp * 0.9) * 0.5 + w_rausch(wp * 3.7 + 2.0) * 0.3 + mix(0.5, w_rausch(wp * 11.0 + 5.0), fein) * 0.2;
+		if (sch_f.a <= 0.5) weiss *= 0.95 + 0.07 * flocken;
+		weiss *= mix(1.0, 0.86, stadt);
 		bf = mix(bf, weiss, deck);
 		rau = mix(rau, sch_f.a > 0.5 ? sch_n.z : 0.7, deck);
-		nw = normalize(mix(nw, n, deck * 0.7));
+		nw = normalize(mix(nw, n, deck * 0.95));
 		if (sch_f.a > 0.5) nw = normalize(nw + vec3(sch_n.x, 0.0, sch_n.y) * deck);
+		else if (stufe >= 1) {
+			// kleine Verwehungen: Neigung aus dem Gefälle des Rauschens (weich, ohne Textur)
+			vec2 e = vec2(0.15, 0.0);
+			vec2 q = wp * 2.3 + 7.0;
+			vec2 g = vec2(w_rausch(q + e) - w_rausch(q - e), w_rausch(q + e.yx) - w_rausch(q - e.yx));
+			nw = normalize(nw + vec3(g.x, 0.0, g.y) * 0.22 * deck * fein);
+		}
 	}
 }
 
