@@ -275,7 +275,7 @@ public sealed partial class Siegelecke : Control
         AddChild(_reihe);
         // Unten rechts, über der Betriebsleiste; wächst nach links
         SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, 16);
-        CustomMinimumSize = new Vector2(Siegel.Groesse * Hoechstens + 6 * (Hoechstens - 1), Siegel.Groesse + 6);
+        CustomMinimumSize = new Vector2(Siegel.Groesse * (Hoechstens + 1) + 6 * Hoechstens, Siegel.Groesse + 6); // Platz für die dauerhafte Feder
         OffsetLeft = -16 - CustomMinimumSize.X;
         OffsetRight = -16;
         Hoehe(Rollbereich.LeistenHoehe);
@@ -291,7 +291,7 @@ public sealed partial class Siegelecke : Control
     public Siegel? Finden(string schluessel) => _siegel.FirstOrDefault(s => s.Schluessel == schluessel);
 
     /// <summary>Legt ein Siegel an oder fügt dem vorhandenen mit diesem Schlüssel den Posten hinzu. Gibt zurück, ob es neu war.</summary>
-    public bool Hinzufuegen(string schluessel, Meldethema thema, Meldungsposten posten, Func<Siegel, Brief> briefBauer, double frist = 0, bool stapeln = true)
+    public bool Hinzufuegen(string schluessel, Meldethema thema, Meldungsposten posten, Func<Siegel, Brief> briefBauer, double frist = 0, bool stapeln = true, bool dauerhaft = false)
     {
         var vorhanden = Finden(schluessel);
         if (vorhanden is not null)
@@ -307,7 +307,7 @@ public sealed partial class Siegelecke : Control
         }
         var s = new Siegel
         {
-            Schluessel = schluessel, ThemaId = thema.Id, Farbe = Color.FromHtml(thema.Farbe), Frist = frist, BriefBauer = briefBauer,
+            Schluessel = schluessel, ThemaId = thema.Id, Farbe = Color.FromHtml(thema.Farbe), Frist = frist, BriefBauer = briefBauer, Dauerhaft = dauerhaft,
             Posten = new List<Meldungsposten> { posten },
         };
         s.Angeklickt += k => Angeklickt?.Invoke(k);
@@ -316,7 +316,8 @@ public sealed partial class Siegelecke : Control
         _siegel.Insert(0, s);
         _reihe.AddChild(s);
         _reihe.MoveChild(s, 0);
-        while (_siegel.Count > Hoechstens) Entfernen(_siegel[^1]); // das älteste weicht; es steht weiter im Verlauf
+        // Das älteste gewöhnliche Siegel weicht (es steht weiter im Verlauf); ein dauerhaftes (Feder der Entscheidungen) zählt nicht mit und weicht nie
+        while (_siegel.Count(x => !x.Dauerhaft) > Hoechstens && _siegel.LastOrDefault(x => !x.Dauerhaft) is { } aelteste) Entfernen(aelteste);
         Rollbereich.EckeHoehe = Siegel.Groesse + 14;
         return true;
     }

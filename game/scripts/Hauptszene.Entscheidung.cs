@@ -18,7 +18,23 @@ public partial class Hauptszene
     /// </summary>
     private void EntscheidungStartoption(string wert)
     {
-        foreach (var teil in wert.Split(',')) EntscheidungStartoptionEine(teil.Trim()); // mehrere mit Komma: ein Stapel im Klicktest
+        foreach (var teil in wert.Split(','))
+        {
+            if (teil.Trim() == "Siegelvoll") EckeFuellen(); else EntscheidungStartoptionEine(teil.Trim());
+        } // mehrere mit Komma: ein Stapel im Klicktest
+    }
+
+    /// <summary>Nur für den Klicktest (<c>--entscheidung=…,Siegelvoll</c>): füllt die Siegel-Ecke mit acht gewöhnlichen Siegeln – das Feder-Siegel darf keines davon verdrängen und bleibt.</summary>
+    private void EckeFuellen()
+    {
+        var themen = Ordnung.Themen;
+        for (var i = 0; i < 8; i++)
+        {
+            var thema = themen[i % themen.Count];
+            var posten = new Meldungsposten { Zeit = "04:00", Jahr = 1400, Text = $"Probesiegel {i + 1}", Original = "", Art = Ordnung.Art("Sonstiges"), Bezug = Betroffenheit.Eigen, Stufe = Meldestufe.Siegel };
+            _ecke.Hinzufuegen("probe:" + i, thema, posten, _ => new Brief { Titel = "Probe" });
+        }
+        Protokollieren("--entscheidung=Siegelvoll: acht Probesiegel in der Ecke.");
     }
 
     private void EntscheidungStartoptionEine(string wert)

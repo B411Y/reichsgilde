@@ -149,7 +149,7 @@ public partial class Hauptszene
         };
         if (_entscheidungSiegel is null || !IsInstanceValid(_entscheidungSiegel) || _ecke.Finden("entscheidung") is null)
         {
-            _ecke.Hinzufuegen("entscheidung", EntscheidungThema, posten, _ => new Brief { Titel = "Entscheidung" });
+            _ecke.Hinzufuegen("entscheidung", EntscheidungThema, posten, _ => new Brief { Titel = "Entscheidung" }, dauerhaft: true);
             _entscheidungSiegel = _ecke.Finden("entscheidung");
             if (_entscheidungSiegel is not null) _entscheidungSiegel.Dauerhaft = true;
         }
