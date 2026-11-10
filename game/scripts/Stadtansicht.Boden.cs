@@ -47,8 +47,12 @@ public partial class Stadtansicht
 
     /// <summary>Texturen des Bodens (Texture2DArray je Datei, elf Schichten untereinander, <c>tools/oberflaeche/bodentexturen_blender.py</c>): RGB Farbe
     /// und A Höhe, dazu RG Normale und B Rauheit (fehlt diese Datei, nimmt Hoch die Höhe als Unebenheit).</summary>
-    private const string BodenTexturDatei = "res://assets/texturen/boden/boden_farbe_hoehe.webp",
-                         BodenNormalenDatei = "res://assets/texturen/boden/boden_normal_rauheit.webp";
+    private const string BodenTexturEigen = "res://assets/texturen/boden/boden_farbe_hoehe.webp",
+                         BodenNormalenEigen = "res://assets/texturen/boden/boden_normal_rauheit.webp";
+
+    /// <summary>Mit den privaten Texturen (<see cref="PrivateTexturen"/>, GameDev.tv) der Atlas mit getauschten Schichten (Fels, Erde, Kies, Schlamm), sonst der eigene.</summary>
+    private static string BodenTexturDatei => PrivateTexturen.BodenAtlas(BodenTexturEigen, BodenNormalenEigen).Farbe;
+    private static string BodenNormalenDatei => PrivateTexturen.BodenAtlas(BodenTexturEigen, BodenNormalenEigen).Normale;
 
     /// <summary>Der Stoff und die drei Gewichtsbilder je Geländekachel, die Texturen trägt.</summary>
     private readonly Dictionary<(int I, int J), (ShaderMaterial Stoff, ImageTexture[] Bilder)> _bodenStoffe = new();
@@ -71,12 +75,34 @@ public partial class Stadtansicht
         return true;
     }
 
+    private (Texture2D Farbe, Texture2D Normale)? _schneeTexturen;
+    private bool _schneeGeprueft;
+
+    /// <summary>Die private Schneetextur (Farbe und Höhe, Normale und Rauheit) oder null, wenn die Dateien fehlen (dann bleibt der Schnee wie bisher).</summary>
+    private (Texture2D Farbe, Texture2D Normale)? SchneeTexturen()
+    {
+        if (_schneeGeprueft) return _schneeTexturen;
+        _schneeGeprueft = true;
+        const string fh = "schnee/schnee_farbe_hoehe.webp", nr = "schnee/schnee_normal_rauheit.webp";
+        if (!PrivateTexturen.Da(fh) || !PrivateTexturen.Da(nr)) return null;
+        var f = GD.Load<Texture2D>(PrivateTexturen.Wurzel + fh);
+        var n = GD.Load<Texture2D>(PrivateTexturen.Wurzel + nr);
+        if (f is not null && n is not null) _schneeTexturen = (f, n);
+        return _schneeTexturen;
+    }
+
     /// <summary>Ein neuer Stoff mit dem Boden-Shader der aktuellen Stufe und den Texturen (die Werte der Kachel setzt der Aufrufer).</summary>
     private ShaderMaterial BodenStoffNeu(string name)
     {
         var stoff = new ShaderMaterial { Shader = _bodenShader[(int)_bodenStufe], ResourceName = name };
         stoff.SetShaderParameter("texturen", _bodenTexturen);
         stoff.SetShaderParameter("teppich", GrasAn ? 1f : 0f); // die Wiese unter dem Grasteppich (Stadtansicht.Gras.cs)
+        if (SchneeTexturen() is { } schnee) // private Schneetextur (Snow_1), nur wenn die Dateien da sind
+        {
+            stoff.SetShaderParameter("schnee_fh", schnee.Farbe);
+            stoff.SetShaderParameter("schnee_nr", schnee.Normale);
+            stoff.SetShaderParameter("schnee_privat", true);
+        }
         if (_bodenStufe == Bodenqualitaet.Hoch && _bodenNormalen is not null)
         {
             stoff.SetShaderParameter("texturen_nr", _bodenNormalen);

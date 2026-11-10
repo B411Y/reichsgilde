@@ -12,16 +12,21 @@ namespace Reichsgilde;
 public static class Vorladen
 {
     /// <summary>Die großen Dateien, die jede Partie braucht.</summary>
-    private static readonly string[] Dateien =
+    private static string[] Dateien()
     {
-        "res://assets/texturen/modelle/modelle_farbe_hoehe.webp",
-        "res://assets/texturen/modelle/modelle_normal_rauheit.webp",
-        "res://assets/texturen/boden/boden_farbe_hoehe.webp",
-        "res://assets/texturen/boden/boden_normal_rauheit.webp",
-        // zwei große Modelle, die beim Laden jeder Stadt und mit den ersten Passanten gebraucht werden (je 0,1 bis 0,2 s auf dem Hauptfaden)
-        "res://assets/modelle/natur/natur_kit_baeume.glb",
-        "res://assets/modelle/figuren/ki/schmied_ki.glb",
-    };
+        // der Boden-Atlas: mit den privaten Texturen deren Fassung (PrivateTexturen), sonst die eigene
+        var boden = PrivateTexturen.BodenAtlas("res://assets/texturen/boden/boden_farbe_hoehe.webp", "res://assets/texturen/boden/boden_normal_rauheit.webp");
+        return new[]
+        {
+            "res://assets/texturen/modelle/modelle_farbe_hoehe.webp",
+            "res://assets/texturen/modelle/modelle_normal_rauheit.webp",
+            boden.Farbe,
+            boden.Normale,
+            // zwei große Modelle, die beim Laden jeder Stadt und mit den ersten Passanten gebraucht werden (je 0,1 bis 0,2 s auf dem Hauptfaden)
+            "res://assets/modelle/natur/natur_kit_baeume.glb",
+            "res://assets/modelle/figuren/ki/schmied_ki.glb",
+        };
+    }
 
     private static readonly HashSet<string> _offen = new();
 
@@ -29,7 +34,7 @@ public static class Vorladen
     public static void Starten(SceneTree baum)
     {
         if (_offen.Count > 0 || DisplayServer.GetName() == "headless" || OS.GetCmdlineUserArgs().Contains("--vorladen=0")) return;
-        foreach (var pfad in Dateien)
+        foreach (var pfad in Dateien())
         {
             if (!ResourceLoader.Exists(pfad) || ResourceLoader.LoadThreadedRequest(pfad) != Error.Ok) continue;
             _offen.Add(pfad);
