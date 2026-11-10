@@ -1,0 +1,181 @@
+{
+ "_hinweis": "Titel der Musikstücke (Suno, vom Nutzer erzeugt), Stand 10.11.2026. lage: tag, nacht, tod oder event; zusatz: Jahreszeit (tag) oder Ereignis (event); volk: nur bei Volksstücken. Dateien unter assets/audio/musik/. Lesen: Musikspieler.cs.",
+ "menue": "tag/tag_adels_schmeich.ogg",
+ "stuecke": [
+  {
+   "datei": "event/event_aufstand_orks_und_oger.ogg",
+   "titel": "Orks und Oger",
+   "lage": "event",
+   "zusatz": "aufstand",
+   "dauer": 129.6,
+   "lufs": -17.1
+  },
+  {
+   "datei": "event/event_hochzeit_hochzeit.ogg",
+   "titel": "Hochzeit",
+   "lage": "event",
+   "zusatz": "hochzeit",
+   "dauer": 122.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "event/event_kampf_jetzt_aber_schnell.ogg",
+   "titel": "Jetzt Aber Schnell!",
+   "lage": "event",
+   "zusatz": "kampf",
+   "dauer": 112.8,
+   "lufs": -17.1
+  },
+  {
+   "datei": "event/event_sklaven_schwere_ketten.ogg",
+   "titel": "Schwere Ketten",
+   "lage": "event",
+   "zusatz": "sklaven",
+   "dauer": 193.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "event/event_sklaven_sklaven_an_die_arbeit.ogg",
+   "titel": "Sklaven an die Arbeit",
+   "lage": "event",
+   "zusatz": "sklaven",
+   "dauer": 169.8,
+   "lufs": -17.0
+  },
+  {
+   "datei": "nacht/nacht_es_lauert.ogg",
+   "titel": "Es Lauert",
+   "lage": "nacht",
+   "dauer": 147.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "nacht/nacht_unheimlich.ogg",
+   "titel": "Unheimlich",
+   "lage": "nacht",
+   "dauer": 178.4,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_adels_schmeich.ogg",
+   "titel": "Adels Schmeich",
+   "lage": "tag",
+   "dauer": 135.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_elben.ogg",
+   "titel": "Elben",
+   "lage": "tag",
+   "volk": "Elben",
+   "dauer": 78.5,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_halblinge.ogg",
+   "titel": "Halblinge",
+   "lage": "tag",
+   "volk": "Halblinge",
+   "dauer": 112.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_hungerlohn.ogg",
+   "titel": "Hungerlohn",
+   "lage": "tag",
+   "dauer": 169.2,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_marktplatz.ogg",
+   "titel": "Marktplatz",
+   "lage": "tag",
+   "dauer": 103.5,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_marsch_der_ritter.ogg",
+   "titel": "Marsch der Ritter",
+   "lage": "tag",
+   "dauer": 137.4,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_menschen.ogg",
+   "titel": "Menschen",
+   "lage": "tag",
+   "volk": "Menschen",
+   "dauer": 171.8,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_zwerge.ogg",
+   "titel": "Zwerge",
+   "lage": "tag",
+   "volk": "Zwerge",
+   "dauer": 123.4,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_fruehling_fruehlingstanz.ogg",
+   "titel": "Frühlingstanz",
+   "lage": "tag",
+   "zusatz": "fruehling",
+   "dauer": 95.5,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_fruehling_fruehlungsauftakt.ogg",
+   "titel": "Frühlungsauftakt",
+   "lage": "tag",
+   "zusatz": "fruehling",
+   "dauer": 92.8,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_herbst_herbstrauschen.ogg",
+   "titel": "Herbstrauschen",
+   "lage": "tag",
+   "zusatz": "herbst",
+   "dauer": 182.3,
+   "lufs": -18.4
+  },
+  {
+   "datei": "tag/tag_sommer_sonnengang.ogg",
+   "titel": "Sonnengang",
+   "lage": "tag",
+   "zusatz": "sommer",
+   "dauer": 173.9,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_winter_kaltes_glockenspiel.ogg",
+   "titel": "Kaltes Glockenspiel",
+   "lage": "tag",
+   "zusatz": "winter",
+   "dauer": 86.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tod/tod_abschied.ogg",
+   "titel": "Abschied",
+   "lage": "tod",
+   "dauer": 117.6,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tod/tod_der_letzte_wunsch.ogg",
+   "titel": "Der letzte Wunsch",
+   "lage": "tod",
+   "dauer": 188.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tod/tod_verlorene_seele.ogg",
+   "titel": "Verlorene Seele",
+   "lage": "tod",
+   "dauer": 183.6,
+   "lufs": -17.0
+  }
+ ]
+}
