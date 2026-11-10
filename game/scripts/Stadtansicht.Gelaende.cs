@@ -417,6 +417,7 @@ public partial class Stadtansicht
         if (_gelaendeKnoten is null || _gelaende is null) return;
         var uhr = Pinselmessung.Uhr();
         var (netz, flach) = Ladezeit.Zaehlen("Kachel: Netz", () => KachelNetz(ti, tj));
+        Pinselmessung.Dazu("    Gelände: Netz rechnen (mit Ausschnitt des Kerns)", uhr);
         if (!_gelaendeKacheln.TryGetValue((ti, tj), out var kachel))
         {
             kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}", Layers = 1 | TorErdeEbene }; // Ebene der Erde im Torweg (Stadtansicht.Torerde.cs)
@@ -441,7 +442,9 @@ public partial class Stadtansicht
     private (ArrayMesh Netz, bool Flach) KachelNetz(int ti, int tj)
     {
         const int n = KachelZellen, rand = KachelRand, breite = n + 1 + 2 * rand;
+        var uhrAusschnitt = Pinselmessung.Uhr();
         var hoehen = _gelaende!.Ausschnitt(n * ti - rand, n * tj - rand, breite, breite);
+        Pinselmessung.Dazu("    Gelände: Ausschnitt (Kern)", uhrAusschnitt);
         float H(int i, int j) => hoehen[(j + rand) * breite + i + rand];
         const double kachel = n * Hoehenraster.Abstand;
         var netz = new ArrayMesh();

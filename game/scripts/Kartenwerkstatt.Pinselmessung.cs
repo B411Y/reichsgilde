@@ -102,8 +102,28 @@ public partial class Kartenwerkstatt
         await Pinsel("Natur: Radierer (r 6)", Werkstattwerkzeug.Radierer, () => { });
         _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
         if (Pinselmessung.Gewollt("Weg"))
+        {
+            // Wege: anlegen, über einen Bach und über den Rhein legen (Furt bzw. Brücke, nur wo die Karte Wasser hat), verschieben, löschen
+            EntwurfWeg? weg = null;
             ergebnisse.Add(await BefehlMessen("Weg anlegen (Gasse, 3 Punkte)", () =>
-                _stadt.WerkstattWegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(cx - 30, cz + 24), new(cx, cz + 30), new(cx + 30, cz + 24) }, true)));
+                weg = _stadt.WerkstattWegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(cx - 30, cz + 24), new(cx, cz + 30), new(cx + 30, cz + 24) }, true)));
+            if (weg is not null)
+            {
+                ergebnisse.Add(await BefehlMessen("Weg verschieben (10 m)", () => { _entwurf.WegVerschieben(weg, 10, 4); return null; }));
+                ergebnisse.Add(await BefehlMessen("Weg löschen", () => { _entwurf.WegLoeschen(weg); return null; }));
+            }
+            if (_entwurf.Gewaesser.Count > 0)
+            {
+                EntwurfWeg? ueber = null;
+                // Köln: der Duffesbach (3 m) liegt bei x −60 auf z 142, der Rhein bei z −60 auf x 92
+                ergebnisse.Add(await BefehlMessen("Weg über das Wasser (Gasse, Duffesbach)", () =>
+                    ueber = _stadt.WerkstattWegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(-60, 120), new(-60, 168) }, false)));
+                if (ueber is not null) ergebnisse.Add(await BefehlMessen("Weg über das Wasser löschen", () => { _entwurf.WegLoeschen(ueber); return null; }));
+                ergebnisse.Add(await BefehlMessen("Weg über den Rhein (Hauptstraße, 80 m)", () =>
+                    ueber = _stadt.WerkstattWegAnlegen(Wegklasse.Haupt, new List<Kartenort> { new(55, -60), new(135, -60) }, false)));
+                if (ueber is not null) ergebnisse.Add(await BefehlMessen("Weg über den Rhein löschen", () => { _entwurf.WegLoeschen(ueber); return null; }));
+            }
+        }
         if (Pinselmessung.Gewollt("Bauzone"))
             ergebnisse.Add(await BefehlMessen("Bauzone anlegen (30 × 30 m)", () =>
                 _entwurf.BauzoneAnlegen(Lage.Vorstadt, new List<Kartenort> { new(cx - 15, cz - 60), new(cx + 15, cz - 60), new(cx + 15, cz - 30), new(cx - 15, cz - 30) })));
@@ -133,7 +153,7 @@ public partial class Kartenwerkstatt
     {
         var bilder = new List<Messbild>();
         var ruhig = 0;
-        while (ruhig < 3 && bilder.Count < 300)
+        while (ruhig < 3 && bilder.Count < (Pinselmessung.Pruefsumme ? 1500 : 300)) // mit Prüfsumme bis alles fertig ist
         {
             var b = await BildMessen(Time.GetTicksUsec());
             bilder.Add(b);
@@ -188,6 +208,7 @@ public partial class Kartenwerkstatt
         Pinselmessung.Dazu("Loslassen (Kern: Schritt, Rückgängig)", uhr);
         var bild = await BildMessen(anfang);
         var nach = await RuhigWarten();
+        if (Pinselmessung.Pruefsumme) GD.Print($"PRUEFSUMME {name}: {_stadt.WerkstattPruefsumme()}");
         return new Pinselergebnis(name, leer, new List<Messbild>(), bild, nach);
     }
 
