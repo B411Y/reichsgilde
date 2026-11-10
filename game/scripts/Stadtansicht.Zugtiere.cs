@@ -367,6 +367,10 @@ public partial class Stadtansicht
         return p.DistanceTo(a + ab * (vb * denom) + ac * (vc * denom));
     }
 
+    /// <summary>Seitlicher Abstand (Meter) des Läufers von der Mitte des Ochsen und sein Vorsprung (Meter) vor dem Joch: neben Schulter und Kopf.</summary>
+    private const float KarrenLaeuferAbstand = 1.1f;
+    private const float KarrenLaeuferVorn = 0.9f;
+
     /// <summary>
     /// Stellt den Fuhrmann an den Anker des Karrens (Handkarren: <c>Anker_Ziehen</c> vor der Zugstange, Ochsenkarren: <c>Anker_Fahrer_Seite</c>, Pferdekarren:
     /// <c>Anker_Bock</c>, die Hüfte auf der Sitzfläche). Der Anker blickt mit −Z, die Figur mit +Z: Ein Halter am Anker dreht sie um 180° um die Hochachse.
@@ -378,6 +382,12 @@ public partial class Stadtansicht
         var halter = new Node3D { Name = "Fuhrmann" };
         eltern.AddChild(halter);
         halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
+        if (art.ZieherClip == "Nebenhergehen" && art.TierAnker.Length > 0 && modell.FindChild(art.TierAnker[0], true, false) is Node3D joch)
+        {
+            // Der Läufer geht neben dem Ochsen auf Höhe von Schulter und Kopf (nicht am Wagen): seitlich 1,1 m von der Mitte des Tiers, 0,9 m vor dem Joch; die Höhe bleibt die des Ankers (Boden)
+            var seite = anker.Position.X >= 0 ? 1f : -1f;
+            halter.Position = new Vector3(seite * KarrenLaeuferAbstand, anker.Position.Y, joch.Position.Z + KarrenLaeuferVorn);
+        }
         var frau = fuhrmann.Geschlecht == Geschlecht.Frau;
         var haare = Haarfarben(fuhrmann.Volk);
         // Gewand, Haut und Haar wählt die Probefigur selbst (gedeckte Pflanzenfarben, nach der Nummer); die Hausfarbe trägt nur der Karren

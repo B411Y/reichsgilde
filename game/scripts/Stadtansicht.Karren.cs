@@ -43,6 +43,12 @@ public partial class Stadtansicht
         public Figur? Fahrer { get; set; }
         /// <summary>Die sichtbare Fahrt mit fester Geschwindigkeit (Stadtansicht.Karren.cs, <see cref="Karrenzug"/>) und die Profile, mit denen sie zuletzt gerechnet wurde.</summary>
         public Karrenzug Zug { get; } = new();
+        /// <summary>Wo der Karren auf dem Weg gezeigt wird (Meter vom Hof), ob er auf dem Weg ist (nicht am Hof), ob er dem Markt zu fährt, auf welchem Weg und sein letztes Tempo (Meter je Sekunde): die Folgeregel (<see cref="KarrenFolgen"/>) liest das von den Karren desselben Betriebs.</summary>
+        public float Meter { get; set; }
+        public bool AufWeg { get; set; }
+        public bool ZumMarkt { get; set; }
+        public Vector3[]? WegRef { get; set; }
+        public float Tempo { get; set; } = 1f;
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
@@ -90,8 +96,71 @@ public partial class Stadtansicht
     /// <summary>So weit (in Metern) darf ein Karren außerhalb des Bildes stehen und wird noch animiert (seine Tiere sind rund 5 m lang).</summary>
     private const float KarrenRandMeter = 6f;
 
-    /// <summary>So weit (Meter) stehen wartende Karren hintereinander: ein Ochsenkarren ist mit Ochse 5 m lang, ein Pferdekarren mit zwei Pferden 6 m.</summary>
-    private const float KarrenAbstand = 7f;
+    /// <summary>Luft (Meter) zwischen zwei Gespannen in der Reihe auf dem Weg.</summary>
+    private const float KarrenLuft = 0.5f;
+
+    /// <summary>Abstand (Meter) der wartenden Karren am Hof nebeneinander: größte Breite eines Gespanns (2,4 m) plus Luft.</summary>
+    private const float KarrenHofBreite = 2.6f;
+
+    /// <summary>Bis zu welcher Strecke (Meter) ab dem Hof ein Karren aus seinem Platz am Hof auf den Weg einschwenkt.</summary>
+    private const float KarrenEinschwenken = 6f;
+
+    /// <summary>
+    /// Länge des Gespanns vor und hinter dem Ursprung des Karrens (Meter, Fahrtrichtung vorn), gemessen aus den Modellen (Karren und Zugtier an den Ankern,
+    /// <c>tools/modelle/karren.py</c>): Pferdekarren 8,98 + 0,63, Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
+    /// </summary>
+    internal static (float Vorn, float Hinten) KarrenGespann(string typ) => typ switch
+    {
+        "Pferdekarren" => (8.98f, 0.63f),
+        "Ochsenkarren" => (5.33f, 1.28f),
+        _ => (2.93f, 0.88f),
+    };
+
+    /// <summary>Reihenabstand zweier Gespanne (Meter), gültig in beiden Fahrtrichtungen: max(vorn + hinten des anderen) + Luft.</summary>
+    internal static float KarrenReihenabstand(string typA, string typB)
+    {
+        var (va, ha) = KarrenGespann(typA);
+        var (vb, hb) = KarrenGespann(typB);
+        return Math.Max(va + hb, vb + ha) + KarrenLuft;
+    }
+
+    /// <summary>
+    /// Bis zu dieser Strecke (Meter vom Hof) bleibt der Karren auf seinem Platz neben den anderen: Beim Losfahren, bis sein Heck am Bug des lÃ¤ngsten anderen Gespanns
+    /// vorbei ist, beim Heimkommen (<paramref name="ankunft"/>), bis sein Bug an dessen Bug vorbei ist (Bug = Gespann vorn); ohne andere Karren 0.
+    /// </summary>
+    internal static float KarrenHofZone(IReadOnlyList<string> typen, int nummer, bool ankunft)
+    {
+        if (typen.Count < 2) return 0f;
+        var laengster = 0f;
+        for (var i = 0; i < typen.Count; i++) if (i != nummer) laengster = Math.Max(laengster, KarrenGespann(typen[i]).Vorn);
+        var (vorn, hinten) = KarrenGespann(typen[nummer]);
+        return laengster + (ankunft ? vorn : hinten) + 0.3f;
+    }
+
+    /// <summary>Wie weit (Meter) der Karren Nr. <paramref name="nummer"/> am Markt hinter dem ersten Halteplatz steht: die Summe der Reihenabstände bis zum letzten Karren des Betriebs.</summary>
+    internal static float KarrenHaltRueckstand(IReadOnlyList<string> typen, int nummer)
+    {
+        var summe = 0f;
+        for (var i = nummer; i < typen.Count - 1; i++) summe += KarrenReihenabstand(typen[i], typen[i + 1]);
+        return summe;
+    }
+
+    /// <summary>
+    /// Folgeregel unterwegs: Wohin darf der Karren (<paramref name="ich"/>, Karrenart <paramref name="typ"/>) höchstens fahren, ohne einem Karren desselben Betriebs
+    /// in gleicher Richtung auf demselben Weg näher zu kommen als Gespannlänge vorn + hinten des Vordermanns + Luft? Gibt die Stelle (Meter) zurück, die er
+    /// nicht überschreitet (Hinfahrt: nach oben, Rückfahrt: nach unten); <paramref name="ziel"/> bleibt unverändert, wenn keiner im Weg ist.
+    /// Wartende am Hof (nicht auf dem Weg) zählen nicht, sie stehen nebeneinander.
+    /// </summary>
+    internal static float KarrenFolgen(float ziel, bool zumMarkt, string typ, IEnumerable<(string Typ, float Meter)> vorleute)
+    {
+        var (vorn, _) = KarrenGespann(typ);
+        foreach (var (andereTyp, meter) in vorleute)
+        {
+            var luecke = vorn + KarrenGespann(andereTyp).Hinten + KarrenLuft;
+            ziel = zumMarkt ? Math.Min(ziel, meter - luecke) : Math.Max(ziel, meter + luecke);
+        }
+        return ziel;
+    }
 
     /// <summary>So weit (Meter) neben der Mitte des Weges fahren die Karren: auf ihrer rechten Seite (Rechtsverkehr, Schritt 5d).</summary>
     private const float KarrenSpur = 0.9f;
@@ -288,10 +357,12 @@ public partial class Stadtansicht
         var weg = KarrenWeg(ansicht, zumHafen);
         if (KarrenKlangTest) gezeigt.KlangProbeWeg = weg; // nur mit --karrenklangtest=1 (Stadtansicht.KarrenKlang.cs)
         var laenge = WegLaenge(weg);
-        var versatz = laenge > 0 ? nummer * KarrenAbstand / laenge : 0f;
-        // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter
-        var spaet = laenge > 0 ? (ansicht.Betrieb.Karren.Count - 1 - nummer) * KarrenAbstand / laenge : 0f;
-        float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
+        // Am Hof warten die Karren nebeneinander (wie im Umland), unterwegs gilt die Folgeregel (KarrenFolgen), am Markt halten sie in der Reihe nach
+        // Gespannlänge: der letzte Karren ganz vorn, die übrigen je einen Reihenabstand dahinter
+        var typen = ansicht.Betrieb.Karren.Select(k => k.Typ).ToList();
+        var rueckstand = KarrenHaltRueckstand(typen, nummer);
+        var spaet = laenge > 0 ? rueckstand / laenge : 0f;
+        float Stelle(float anteil) => Math.Clamp(Math.Min(anteil, 1f - spaet), 0f, 1f);
         // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
         // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo und auf demselben Weg (Halteplatz, Hof, Zubringer, Wege,
         // Halt vor dem Pflaster), bei der Standard-Rundendauer kommen beide bis auf die Rundung auf ganze Minuten zugleich an. Wer früher da ist
@@ -312,26 +383,65 @@ public partial class Stadtansicht
                 zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         }
         gezeigt.Geschwindigkeit = sim.Takt.IstPausiert ? 0 : (float)(zug.MeterJeMinute(hin, zurueck) * sim.Takt.TicksProSekunde);
-        // Am Halt (Ende der Fahrt, auch wenn der Karren hinter einem anderen wartet) rollt er nicht mehr
-        if (zug.Etappe is Etappe.Hin or Etappe.Zurueck && zug.Weg(hin, zurueck) + versatz > 1f - spaet) gezeigt.Geschwindigkeit = 0;
+        // Stelle auf dem Weg (Meter): wohin der Zug will (am Markt höchstens bis zum eigenen Halteplatz), dann die Folgeregel hinter dem Vordermann
+        var wunsch = zug.Etappe == Etappe.Hof ? 0f : Stelle((float)zug.Weg(hin, zurueck)) * laenge;
+        var amHalt = zug.Etappe is Etappe.Hin or Etappe.Zurueck && zug.Weg(hin, zurueck) * laenge >= laenge - rueckstand - 0.01f;
+        var zone = KarrenHofZone(typen, nummer, !zug.ZumMarkt);
+        var vorleute = ansicht.Betrieb.Karren
+            .Select((k, i) => (k, i))
+            .Where(p => p.k != karren && _karren.TryGetValue(p.k, out var a) && a.AufWeg && ReferenceEquals(a.WegRef, weg) && a.ZumMarkt == zug.ZumMarkt
+                        && (zug.ZumMarkt ? a.Meter >= gezeigt.Meter : a.Meter <= gezeigt.Meter)
+                        && !(a.Meter < KarrenHofZone(typen, p.i, !zug.ZumMarkt) && gezeigt.Meter < zone)) // beide noch auf ihren Plätzen nebeneinander: sie behindern sich nicht
+            .Select(p => (p.k.Typ, _karren[p.k].Meter)).ToList();
+        var stelleM = zug.Etappe == Etappe.Hof ? 0f : KarrenFolgen(wunsch, zug.ZumMarkt, karren.Typ, vorleute);
+        stelleM = Math.Clamp(stelleM, 0f, laenge);
+        var vorherM = gezeigt.Meter;
+        var imBild = KarrenImBild(knoten.GlobalPosition);
+        if (neu || !imBild || zug.Etappe == Etappe.Hof || Math.Abs(stelleM - vorherM) > 12f) gezeigt.Meter = stelleM; // unbeobachtet oder weit weg: gleich dort
+        else
+        {
+            // Aufholen nach dem Warten höchstens im Tempo der Fahrt, nie schneller als die Zeit
+            var schritt = sim.Takt.IstPausiert ? 0f : (float)delta * Math.Max(gezeigt.Tempo, 1f);
+            gezeigt.Meter = stelleM > vorherM ? Math.Min(stelleM, vorherM + schritt) : Math.Max(stelleM, vorherM - schritt);
+        }
+        gezeigt.AufWeg = zug.Etappe != Etappe.Hof;
+        gezeigt.ZumMarkt = zug.ZumMarkt;
+        gezeigt.WegRef = weg;
+        if (gezeigt.Geschwindigkeit > 0.01f) gezeigt.Tempo = gezeigt.Geschwindigkeit;
+        // Am Halt (Ende der Fahrt, auch wenn der Karren hinter einem anderen wartet) rollt er nicht mehr; wer von der Folgeregel gebremst wird, rollt im Tempo seiner Verschiebung
+        if (amHalt) gezeigt.Geschwindigkeit = 0;
+        else if (zug.Etappe is Etappe.Hin or Etappe.Zurueck && Math.Abs(stelleM - wunsch) > 0.02f && delta > 0)
+            gezeigt.Geschwindigkeit = Math.Min(gezeigt.Geschwindigkeit, Math.Abs(gezeigt.Meter - vorherM) / (float)delta);
+        var meterAnteil = laenge > 0 ? gezeigt.Meter / laenge : 0f;
         Vector3 ziel;
         Vector3 blick;
+        var hofGewicht = 0f;
         if (zug.Etappe == Etappe.Hof && ansicht.KarrenReihe is { } reihe)
         {
             // Umland: am Halteplatz stehen die Karren nebeneinander (4 m, Reihe aus Stadtansicht.Umland.cs), mittig um den Anker verteilt; bei der Abfahrt rücken sie auf den Weg
             ziel = ansicht.Hof + reihe * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f);
             blick = ziel + (weg[1] - ansicht.Hof); // alle mit derselben Blickrichtung, nicht zum selben Punkt
         }
-        else if (zug.Etappe == Etappe.Hof)
-        {
-            ziel = PunktAufWeg(weg, Stelle(0));
-            blick = PunktAufWeg(weg, Math.Min(1f, Stelle(0) + (laenge > 0 ? 1f / laenge : 0f)));
-        }
         else
         {
-            var stelle = Stelle((float)zug.Weg(hin, zurueck));
-            ziel = PunktAufWeg(weg, stelle);
-            blick = PunktAufWeg(weg, Math.Clamp(stelle + (zug.ZumMarkt ? 0.02f : -0.02f), 0f, 1f));
+            // Hofgewicht: 1 auf dem Platz am Hof (bis zur Ausfahrt- bzw. Einfahrtzone), dann in KarrenEinschwenken Metern bis 0 auf der Mitte des Weges
+            hofGewicht = Math.Clamp(1f - (gezeigt.Meter - zone) / KarrenEinschwenken, 0f, 1f);
+            ziel = PunktAufWeg(weg, meterAnteil);
+            var dAnteil = zug.Etappe == Etappe.Hof ? 1f / Math.Max(laenge, 1f) : zug.ZumMarkt ? 0.02f : -0.02f;
+            blick = PunktAufWeg(weg, Math.Clamp(meterAnteil + dAnteil, 0f, 1f));
+            if (ansicht.KarrenReihe is null && weg.Length > 1 && ansicht.Betrieb.Karren.Count > 1)
+            {
+                // Hof: nebeneinander quer zum Weg (KarrenHofBreite), beim Losfahren in den ersten Metern auf die Mitte des Weges einschwenken
+                var achse = weg[1] - weg[0];
+                achse.Y = 0;
+                if (achse.LengthSquared() > 1e-6f)
+                {
+                    var quer = new Vector3(-achse.Z, 0, achse.X).Normalized();
+                    var seite = quer * KarrenHofBreite * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f) * hofGewicht;
+                    ziel += seite;
+                    blick += seite;
+                }
+            }
         }
 
         // Rechtsverkehr (Schritt 5d): unterwegs und am Markt halten sich die Karren rechts, so begegnen sich Hin- und Rückfahrt auf ihren Seiten
@@ -341,7 +451,7 @@ public partial class Stadtansicht
             fahrt.Y = 0;
             if (fahrt.LengthSquared() > 1e-6f)
             {
-                var rechts = new Vector3(-fahrt.Z, 0, fahrt.X).Normalized() * KarrenSpur;
+                var rechts = new Vector3(-fahrt.Z, 0, fahrt.X).Normalized() * KarrenSpur * (1f - hofGewicht); // auf dem Platz am Hof gilt die Reihe, nicht die Spur
                 ziel += rechts;
                 blick += rechts;
             }
@@ -352,7 +462,7 @@ public partial class Stadtansicht
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
         // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
         knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
-        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && zug.Weg(hin, zurueck) + versatz > 1f - spaet, jetztGenau, Stelle((float)zug.Weg(hin, zurueck)) * laenge, knoten.Position, neu);
+        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
         var richtung = blick - knoten.Position;
         richtung.Y = 0;
         if (richtung.LengthSquared() > 0.01f)
