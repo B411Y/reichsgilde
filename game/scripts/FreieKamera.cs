@@ -150,6 +150,8 @@ public partial class FreieKamera : Camera3D
     public override void _UnhandledInput(InputEvent eingabe)
     {
         if (!Current) return;
+        // Über einer Tafel oder einem Fenster bekommt die Kamera kein Rad und keinen Klick (bei gefangener Maus gilt das nicht).
+        if (!Umsehen && eingabe is InputEventMouseButton { Pressed: true } && GetViewport().GuiGetHoveredControl() is not null) return;
         switch (eingabe)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }:

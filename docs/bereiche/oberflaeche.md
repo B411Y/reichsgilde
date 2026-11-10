@@ -394,6 +394,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Aussehen | Messing-Dreieck mit Fragezeichen nach einer Vorlage des Nutzers (mit Gemini erstellt, Herkunft im Protokoll); freigestellt mit `tools/oberflaeche/zeiger_hilfe.py`, Höhe 48/64/80 wie die Hände, 1 Pixel dunkle Kontur, ohne Schein und ohne Hover-Fassung. Feine Gravur und Nieten gehen bei 48 Pixel weich verloren, Form und Farbe bleiben. | 09.11.2026 |
 | Einbau | `Mauszeiger` setzt `CursorShape.Help` je Größe, unabhängig von Stufe und Zustand, Zeigerpunkt (0, 0) = Dreiecksspitze; `ZeigerEntfernen` setzt ihn zurück. | 09.11.2026 |
+### Maus: nichts geht durch Fenster, Hilfe-Zeiger nur bei Tooltip (Branch fix/maus-durchgriff)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache Fragezeichen | Godot machte beim Setzen der Zeigerbilder (`SetCustomMouseCursor` für Pfeil, Hand, Hilfe nacheinander) die zuletzt bzw. mittig gesetzte Form zur aktuellen, bis sich die Maus wieder bewegte: nach jedem Wechsel des Zeigerzustands (z. B. am Rand eines Knopfes im Hauptmenü) blitzte kurz das Fragezeichen auf. Kein Steuerelement hatte dort einen Tooltip. | 10.11.2026 |
+| Lösung Zeiger | `Mauszeiger.Anwenden` merkt die Form vorher und stellt sie nach dem Setzen wieder her. Das Fragezeichen trägt der Hilfe-Platz nur, wenn `Tooltips.QuelleFinden` für das Steuerelement unter der Maus (und dessen Eltern bis zum ersten mit `MouseFilter Stop`) einen nicht leeren Tooltip liefert; sonst trägt er das Bild des Pfeils. Die Suche steht jetzt öffentlich in `Tooltips` und wird von beiden benutzt. | 10.11.2026 |
+| Ursache Durchgriff | Container und Beschriftungen haben `MouseFilter Pass`; was kein Knopf verbrauchte (Rand, Abstand zwischen Knöpfen, Text), kam in `Stadtansicht._UnhandledInput` an und zoomte oder wählte ein Gebäude – auch hinter dem Hauptmenü. | 10.11.2026 |
+| Lösung Durchgriff | `Stadtansicht.MausUeberOberflaeche` (Innentafel oder `GuiGetHoveredControl` nicht leer): Drücken und Rad der Maus erreichen die Welt (Auswahl, Bauen, Raum, Ego-Wahl, Kartenwerkstatt-Werkzeuge, Zoom, Ziehen) nur über freier Welt; Loslassen geht immer durch. `FreieKamera` ebenso (außer bei gefangener Maus). Neue Fenster brauchen keinen eigenen Schutz. | 10.11.2026 |
+
 ### Werkstatt-Pinsel: Fehlerliste nach dem Strich, Ladebalken mit Vorwärmen (Branch phase5/werkstatt-pinsel-fluessig)
 
 | Thema | Entscheidung | Datum |
