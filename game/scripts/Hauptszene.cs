@@ -63,6 +63,7 @@ namespace Reichsgilde;
 ///   --hafen=1          die Hafentafel des ersten Hafens öffnen (=<Kennung> eines Hafens der Karte, =staedte: auf dem Reiter „Ferne Städte“)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
+///   --hofstelle=S3     Hofstelle des Spielers (Kennung aus der Karte, z. B. S3 in Köln; zufall oder ohne Angabe: gelost)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
@@ -612,6 +613,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
+        if (optionen.TryGetValue("erpresserbrief", out var briefWert)) _erpresserbriefWartet = briefWert; // ebenso (Siegel der Geheimnisse)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -692,6 +694,7 @@ public partial class Hauptszene : Node
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
+        if (!optionen.ContainsKey("blick")) KameraAufEigenenHof(); // neue Partie: der Blick beginnt über der eigenen Hofstelle
         StartHinweisZeigen(optionen); // einmaliger Hinweis zum Personalbuch (Hauptszene.Starthinweis.cs)
         if (optionen.TryGetValue("baum", out var baumWahl)) // Talentbaum der Einrichtung von außen: wohnhaus oder betrieb (eigene Werkstatt)
         {
@@ -1030,6 +1033,7 @@ public partial class Hauptszene : Node
         // hat, geht nicht – auch eine Wahl aus dem Menü wird darauf begrenzt
         var haeuser = (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
         neu ??= new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
+            Hofstelle: optionen.TryGetValue("hofstelle", out var hof) && !hof.Equals("zufall", StringComparison.OrdinalIgnoreCase) ? hof : null,
             Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null,
             Rivalen: haeuser);
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
@@ -1166,6 +1170,7 @@ public partial class Hauptszene : Node
         };
         w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
+        MusikVerbinden(simulation, w, spieler); // dynamische Musik (Hauptszene.Musik.cs)
         // Was vorher geschah (die ersten Züge der KI beim Aufstellen, nach dem Laden die letzten Meldungen aus dem Spielstand), steht im Verlauf.
         VerlaufAusSpielstand(w, spieler);
 
@@ -1245,6 +1250,11 @@ public partial class Hauptszene : Node
         {
             _geheimnisWartet = null;
             GeheimnisStartoption(geheimnisWunsch); // vor --charakter, damit das Fenster das Geheimnis zeigt
+        }
+        if (_erpresserbriefWartet is { } briefWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _erpresserbriefWartet = null;
+            ErpresserbriefStartoption(briefWunsch);
         }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {

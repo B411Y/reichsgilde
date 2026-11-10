@@ -115,6 +115,14 @@
           "pflicht": false
         },
         {
+          "werk": "Open World Terrain Pack (Boden-, Fels- und Schneetexturen)",
+          "autor": "GameDev.tv",
+          "quelle": "https://www.gamedev.tv",
+          "lizenz": "GameDev.tv General Asset License 2.0",
+          "hinweis": "",
+          "pflicht": false
+        },
+        {
           "werk": "Snow 014 (Eisrelief)",
           "autor": "ambientCG",
           "quelle": "https://ambientcg.com/view?id=Snow014",

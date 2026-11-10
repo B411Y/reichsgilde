@@ -149,6 +149,8 @@ public partial class Kartenwerkstatt
         var raster = Raster();
         _startTafel.AddChild(raster);
         Zeile(raster, "Farbe", Farbwahl(Start.SpielerFarbe, f => _entwurf.SpielerFarbeSetzen(f), "Die Farbe des Spielerhauses in der Stadt (Dächer, Fahnen)"));
+        HofstellenWahl(raster, Start.SpielerWohnhaus, Start.SpielerWerkstatt?.Platz, kennung => _entwurf.SpielerHofstelleSetzen(kennung),
+            "Setzt Wohnhaus und Startplatz des Spielers in einem Schritt auf diese Hofstelle (ohne Los; im Startmenü wählt der Spieler selbst)");
         Zeile(raster, "Wohnhaus", PlatzZeile(Start.SpielerWohnhaus, () => PlatzFragen("Wohnhaus des Spielers: einen freien Wohnhausplatz anklicken",
             g => WohnhausGrund(g, -1), g => _entwurf.SpielerWohnhausSetzen(g.Kennung)), () => _entwurf.SpielerWohnhausSetzen(null)));
         Zeile(raster, "Startplatz", PlatzZeile(Start.SpielerWerkstatt?.Platz, () => StartplatzFragen(null), () => _entwurf.SpielerStartplatzEntfernen(),
@@ -221,6 +223,34 @@ public partial class Kartenwerkstatt
         _hausZeigen = false;
     }
 
+    /// <summary>
+    /// Die Zeile „Hofstelle“: alle Hofstellen der Karte zur Wahl, die gerade genutzte (Wohnhaus und Werkstatt passen) vorgewählt; belegte anderer
+    /// Häuser sind grau. Ohne Hofstellen in der Karte entfällt die Zeile. Die Felder Wohnhaus und Startplatz darunter bleiben zum Feinstellen.
+    /// </summary>
+    private void HofstellenWahl(GridContainer raster, string? wohnhaus, string? werkstatt, Action<string> setzen, string tipp)
+    {
+        if (Start.Hofstellen.Count == 0) return;
+        var frei = _entwurf.FreieHofstellen();
+        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = tipp };
+        wahl.AddItem("(keine gewählt)");
+        var aktuell = 0;
+        foreach (var h in Start.Hofstellen)
+        {
+            var istFrei = frei.Any(f => f.Kennung == h.Kennung);
+            var meine = h.Wohnhaus == wohnhaus && h.Werkstatt == werkstatt;
+            wahl.AddItem($"{h.Kennung} {h.Name ?? ""}".Trim() + (h.Start ? "" : " (kein Startplatz)") + (istFrei || meine ? "" : " – belegt"));
+            wahl.SetItemMetadata(wahl.ItemCount - 1, h.Kennung);
+            if (!istFrei && !meine) wahl.SetItemDisabled(wahl.ItemCount - 1, true);
+            if (meine) aktuell = wahl.ItemCount - 1;
+        }
+        wahl.Select(aktuell);
+        wahl.ItemSelected += i =>
+        {
+            if (i > 0) setzen(wahl.GetItemMetadata((int)i).AsString());
+        };
+        Zeile(raster, "Hofstelle", wahl);
+    }
+
     private string Zusammenfassung(EntwurfHaus h)
     {
         var teile = new List<string> { h.Volk.Einzahl() };
@@ -247,6 +277,8 @@ public partial class Kartenwerkstatt
         Zeile(raster, "Oberhaupt", geschlecht);
         Zeile(raster, "Farbe", Farbwahl(h.Farbe, f => _entwurf.HausFarbeSetzen(i, f), "Farbe des Hauses in der Stadt (Dächer, Fahnen, Rahmen in der Werkstatt)"));
         Zeile(raster, "Wappen", WappenWahl(h.Wappen, w => _entwurf.HausWappenSetzen(i, w)));
+        HofstellenWahl(raster, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _entwurf.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }),
+            kennung => _entwurf.HausHofstelleSetzen(i, kennung), "Setzt Wohnhaus und Werkstatt des Hauses in einem Schritt auf diese Hofstelle (ohne Los; der Betriebsname zieht mit)");
         Zeile(raster, "Wohnhaus", PlatzZeile(h.Wohnhaus, () => PlatzFragen($"Wohnhaus für {h.Name}: einen freien Wohnhausplatz anklicken",
             g => WohnhausGrund(g, i), g => _entwurf.HausWohnhausSetzen(i, g.Kennung)), () => _entwurf.HausWohnhausSetzen(i, null)));
 

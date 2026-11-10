@@ -15,8 +15,8 @@
   {"kennung": "Dom", "katalog": "dom", "name": "Dom", "punkt": [-20, -11.15], "drehung": 0},
   {"kennung": "Weinmarkt", "katalog": "werkstattplatz", "name": "Weinmarkt", "punkt": [-23, 16], "drehung": 0},
   {"kennung": "Giesserei_Eisenbart", "katalog": "werkstattplatz", "name": "Gießerei Eisenbart", "punkt": [22, 13], "drehung": 0, "betrieb": "Gießerei Eisenbart"},
-  {"kennung": "Tischlerei_Eichwald", "katalog": "werkstattplatz", "name": "Tischlerei Eichwald", "punkt": [22, -13], "drehung": 0, "betrieb": "Tischlerei Eichwald"},
-  {"kennung": "Maurerei_Kieselbach", "katalog": "werkstattplatz", "name": "Maurerei Kieselbach", "punkt": [25, -29], "drehung": 0, "betrieb": "Maurerei Kieselbach"},
+  {"kennung": "Tischlerei_Eichwald", "katalog": "werkstattplatz", "name": "Tischlerei Eichwald", "punkt": [24, -13], "drehung": 0, "betrieb": "Tischlerei Eichwald"},
+  {"kennung": "Maurerei_Kieselbach", "katalog": "werkstattplatz", "name": "Maurerei Kieselbach", "punkt": [24, -29], "drehung": 0, "betrieb": "Maurerei Kieselbach"},
   {"kennung": "Steinbruch_Kieselbach", "katalog": "steinbruch", "name": "Steinbruch Kieselbach", "punkt": [74, 66], "drehung": 171.5, "betrieb": "Steinbruch Kieselbach"},
   {"kennung": "Steinbruch_am_Felsenhang", "katalog": "steinbruch", "name": "Steinbruch am Felsenhang", "punkt": [-4.5, -80], "drehung": -69.1, "betrieb": "Steinbruch am Felsenhang"},
   {"kennung": "Kraeutergarten_am_Bach", "katalog": "kraeutergarten", "name": "Kräutergarten am Bach", "punkt": [106, 70], "drehung": -159, "betrieb": "Kräutergarten am Bach"},
@@ -109,8 +109,8 @@
   {"name": "Vorstadtgasse", "klasse": "gasse", "linie": [[64, -42.5], [64, 42.5]], "gefahr": 1, "breite": 3},
   {"name": "Gasse Weinmarkt", "klasse": "gasse", "linie": [[-23, 22.5], [-34, 22.5], [-34, 6], [-12, 6], [0, 0]], "gefahr": 1, "breite": 3.5},
   {"name": "Gasse Gießerei Eisenbart", "klasse": "gasse", "linie": [[22, 19.5], [12, 19.5], [12, 12], [0, 0]], "gefahr": 1, "breite": 3.5},
-  {"name": "Gasse Tischlerei Eichwald", "klasse": "gasse", "linie": [[22, -6.5], [12.5, -6.5], [0, 0]], "gefahr": 1, "breite": 3.5},
-  {"name": "Gasse Maurerei Kieselbach", "klasse": "gasse", "linie": [[25, -22.5], [11, -22.5], [11, -13], [0, 0]], "gefahr": 1, "breite": 3.5},
+  {"name": "Gasse Tischlerei Eichwald", "klasse": "gasse", "linie": [[24, -6.5], [24, 0]], "gefahr": 1, "breite": 3.5},
+  {"name": "Gasse Maurerei Kieselbach", "klasse": "gasse", "linie": [[24, -22.5], [15.5, -22.5], [0, 0]], "gefahr": 1, "breite": 3.5},
   {"name": "Weg zum Abzweig Steinbruch Kieselbach", "klasse": "land", "linie": [[76, -1.3], [80, 26]], "gefahr": 1, "breite": 4},
   {"name": "Weg zu Steinbruch Kieselbach", "klasse": "land", "linie": [[80, 26], [69.3, 57]], "gefahr": 1, "breite": 4},
   {"name": "Weg zum Abzweig Steinbruch am Felsenhang", "klasse": "land", "linie": [[-50, 6], [-62, -58]], "gefahr": 1, "breite": 4},
@@ -186,7 +186,7 @@
  ],
  "restflaechen": [
   {"kennung": "R1", "art": "kern", "grund": "klein", "felder": 15, "flaeche": [[-36, -8], [-30, -8], [-30, 2], [-36, 2]]},
-  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 16, "flaeche": [[32, -20], [36, -20], [36, -4], [32, -4]]},
+  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 16, "flaeche": [[34, -36], [36, -36], [36, -4], [34, -4]]},
   {"kennung": "R3", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[-48, -48], [-46, -48], [-46, -38], [-48, -38]]},
   {"kennung": "R4", "art": "mauerring", "grund": "klein", "felder": 4, "flaeche": [[-48, 10], [-40, 10], [-40, 12], [-48, 12]]},
   {"kennung": "R5", "art": "mauerring", "grund": "klein", "felder": 13, "flaeche": [[-48, 34], [-40, 34], [-40, 38], [-46, 38], [-46, 48], [-48, 48]]},
@@ -571,6 +571,12 @@
     "wohnhaus": "Wohnhaus4",
     "betriebe": [{"platz": "Maurerei_Kieselbach", "art": "Maurerei"}, {"platz": "Steinbruch_Kieselbach", "art": "Steinbruch"}]
    }
+  ],
+  "hofstellen": [
+   {"kennung": "H1", "name": "Weinmarkt", "werkstatt": "Weinmarkt", "wohnhaus": "Wohnhaus1", "start": true},
+   {"kennung": "H2", "name": "an der Ostgasse (Süd)", "werkstatt": "Giesserei_Eisenbart", "wohnhaus": "Wohnhaus2", "start": true},
+   {"kennung": "H3", "name": "an der Ostgasse (Nord)", "werkstatt": "Tischlerei_Eichwald", "wohnhaus": "Wohnhaus3", "start": true},
+   {"kennung": "H4", "name": "an der Ringgasse", "werkstatt": "Maurerei_Kieselbach", "wohnhaus": "Wohnhaus4", "start": true}
   ]
  },
  "kamera": {"punkt": [24, -6], "zoom": 95, "drehung": 0},

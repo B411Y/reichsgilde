@@ -858,6 +858,7 @@ public static class Befehle
         foreach (var b in befunde.Where(b => b.Schwere == Schwere.Hinweis)) aus.WriteLine($"   Hinweis: {b.Text}");
         aus.WriteLine($"   Wegenetz: {e.Wege.Count} Wege" + (befunde.Any(b => b.Regel == "wegenetz") ? "" : ", 1 zusammenhängender Teil"));
         aus.WriteLine("   Gebäude: " + string.Join(", ", e.Gebaeude.GroupBy(g => g.Art == "" ? "?" : g.Art).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Count()} {g.Key}")));
+        HofstellenBericht(e, aus);
         if (e.Regeln.Kapazitaet is not null)
             foreach (var zeile in e.Kapazitaetsrechnung().Bericht) aus.WriteLine($"   {zeile}");
         if (e.Probeplan.Count > 0)
@@ -884,6 +885,29 @@ public static class Befehle
         foreach (var b in fehler) aus.WriteLine($"FEHLER: {b.Text}");
         aus.WriteLine($"{e.Kennung}: {fehler.Count} Fehler, {befunde.Count - fehler.Count} Hinweise");
         return fehler.Count;
+    }
+
+    /// <summary>
+    /// Die Hofstellen der Karte (seit 9.11.2026): Kennung, Name, Start oder frei, Werkstatt (Punkt, Drehung), Wohnhaus (Punkt) und der Karrenweg der
+    /// Werkstatt zum nächsten Marktplatz – auch für die freien Hofstellen, gerechnet an einer Kopie, in der jede als Startplatz gilt.
+    /// </summary>
+    private static void HofstellenBericht(Kartenentwurf e, TextWriter aus)
+    {
+        if (e.Start.Hofstellen.Count == 0) return;
+        var kopie = Kartenentwurf.AusJson(e.ZuJson(), e.Katalog);
+        kopie.Daten = e.Daten;
+        foreach (var h in kopie.Start.Hofstellen.Where(h => !h.Start)) kopie.HofstelleStartSetzen(h.Kennung, true);
+        var wege = kopie.Startwegrechnung().Where(w => w.Wer.StartsWith("Hofstelle ", StringComparison.Ordinal))
+            .ToDictionary(w => w.Wer["Hofstelle ".Length..], w => w);
+        var start = e.Start.Hofstellen.Count(h => h.Start);
+        aus.WriteLine($"   Hofstellen: {e.Start.Hofstellen.Count} ({start} Start, {e.Start.Hofstellen.Count - start} frei)");
+        foreach (var h in e.Start.Hofstellen)
+        {
+            var (w, n) = (e.GebaeudeMit(h.Werkstatt), e.GebaeudeMit(h.Wohnhaus));
+            var weg = wege.TryGetValue(h.Kennung, out var s) && s.Meter is { } m ? $"{Kartenschreiber.Zahl(Math.Round(m, 1))} m zum {s.Markt}" : "kein Weg";
+            aus.WriteLine($"      {h.Kennung} {(h.Start ? "Start" : "frei ")} „{h.Name ?? "–"}“: Werkstatt {(w is null ? "?" : $"{w.Punkt} d={Kartenschreiber.Zahl(w.Drehung)}")}, " +
+                          $"Wohnhaus {(n is null ? "?" : $"{n.Punkt} d={Kartenschreiber.Zahl(n.Drehung)}")}, Karrenweg {weg}");
+        }
     }
 
     /// <summary>Fläche eines Vielecks in m² (Gaußsche Trapezformel).</summary>

@@ -21,7 +21,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      neue Werkstätten und Wohnhäuser).
 //    • Im Umland zwei Umlandwege mit 17 Umlandbetrieben: die acht der KI-Häuser und die neun Liegenschaften zur Pacht aus wirtschaft.json.
 //    • Start: der Spieler und acht KI-Häuser. Die ersten drei gleichen den Häusern der Greybox (Schmied/Zwerg, Tischler/Elb, Steinmetz/Halbling);
-//      eine Messung mit n Häusern nimmt die ersten n.
+//      eine Messung mit n Häusern nimmt die ersten n. Jedes Startpaar ist eine Start-Hofstelle (S1 … S9, seit 9.11.2026).
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Messstadt : Stadtskript
@@ -141,6 +141,8 @@ public sealed class Messstadt : Stadtskript
             E.BetriebHinzufuegen(haus, werkstaetten[i + 1].Kennung, h.Werkstatt);
             E.BetriebHinzufuegen(haus, umlandKi[i].Kennung, h.Umland);
         }
+        // Hofstellen (seit 9.11.2026): die neun Startpaare sind Start-Hofstellen
+        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nordseite" : "Südseite")}, {Math.Abs(w.X):0} m {(w.X < 0 ? "westlich" : "östlich")} des Marktes)");
 
         E.KameraStartSetzen(P(0, 0), 140);
     }

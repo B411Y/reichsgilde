@@ -149,7 +149,7 @@ public sealed partial class Geheimniswesen
             _w.Familien.StressAendern(partner, e.EhepartnerStress, $"Ehebruch von {p.Vorname} entdeckt");
             _w.Familien.StressAendern(p, e.EhepartnerStress, $"{partner.Vorname} weiß vom Ehebruch");
             _w.Melden(Meldungsart.Sonstiges, $"Unfriede im Haus {f.Nachname}: {partner.Vorname} hat den Ehebruch von {p.Vorname} entdeckt. " +
-                                              "Das bleibt im Haus – aber die Ehe leidet.", haus: f.Konto, person: p, vertraulich: true);
+                                              "Das bleibt im Haus – aber die Ehe leidet.", haus: f.Konto, person: p, vertraulich: true, geheimnis: g.Art);
         }
     }
 
@@ -159,15 +159,15 @@ public sealed partial class Geheimniswesen
         var e = Daten.Entdecken;
         foreach (var haus in _w.Konten.Where(k => k.IstAktiv).ToList())
         {
-            var gefunden = new List<string>();
+            var gefunden = new List<Geheimnis>();
             var chance = e.Gerede + _w.Familien.Lebenswirkung(haus).Geruechte;
             if (chance <= 0) continue;
             foreach (var g in _geheimnisse.Where(g => !g.Oeffentlich && !IstEigen(haus, g) && Wissen(haus, g) is null).ToList())
                 if (_zufall.NextDouble() < chance * Schutz(g) && WissenGeben(haus, g, "Gerede"))
-                    gefunden.Add(Text(g));
+                    gefunden.Add(g);
             if (gefunden.Count > 0)
-                _w.Melden(Meldungsart.Sonstiges, $"Gerede in der Stadt: {string.Join("; ", gefunden)}. Ihr wisst es nun – was Ihr daraus macht, steht im Charakterfenster.",
-                    haus: haus, vertraulich: true);
+                _w.Melden(Meldungsart.Sonstiges, $"Gerede in der Stadt: {string.Join("; ", gefunden.Select(Text))}. Ihr wisst es nun – was Ihr daraus macht, steht im Charakterfenster.",
+                    haus: haus, vertraulich: true, geheimnis: EineArt(gefunden));
         }
     }
 
@@ -188,7 +188,7 @@ public sealed partial class Geheimniswesen
                 if (glaube is not null && GlaubeVon(c) != glaube) continue;
                 if (_zufall.NextDouble() < e.Beichte * Schutz(g) && WissenGeben(prediger, g, "Beichte", ausBeichte: true))
                     _w.Melden(Meldungsart.Sonstiges, $"Im Beichtstuhl hört {prediger.Inhaber}: {Text(g)}. Nutzen könnt Ihr es erst, wenn Ihr das Beichtgeheimnis brecht.",
-                        haus: prediger, vertraulich: true);
+                        haus: prediger, vertraulich: true, geheimnis: g.Art);
             }
         }
     }
@@ -201,16 +201,16 @@ public sealed partial class Geheimniswesen
     };
 
     /// <summary>„Agnes Hammerschmid: Ehebruch“ – für Meldungen.</summary>
-    private string Text(Geheimnis g) => $"{Inhaber(g)?.Name ?? g.Inhaber}: {Beschreibung(g)}";
+    internal string Text(Geheimnis g) => $"{Inhaber(g)?.Name ?? g.Inhaber}: {Beschreibung(g)}";
 
     /// <summary>
     /// Spitzelbericht am Gerichtstag (aus dem Stadtgericht): Jedes Geheimnis von Oberhaupt, Ehepartner und Erbe des Ziels findet der Spitzel mit
     /// 30 % ± 3 Prozentpunkten je Stern „Bei Nacht und Nebel“ (eigenes Oberhaupt plus, Inhaber minus), 10–60 %, dazu Ohr an der Wand; mal Verschwiegen.
     /// </summary>
-    /// <returns>Was er fand (für den Bericht).</returns>
-    internal List<string> SpitzelBericht(Konto auftraggeber, Konto ziel)
+    /// <returns>Was er fand (für den Bericht: <see cref="Text"/>, Art: <see cref="EineArt"/>).</returns>
+    internal List<Geheimnis> SpitzelBericht(Konto auftraggeber, Konto ziel)
     {
-        var gefunden = new List<string>();
+        var gefunden = new List<Geheimnis>();
         if (!IstAktiv || _w.Familien.Von(ziel) is not { } f) return gefunden;
         var e = Daten.Entdecken;
         var eigen = _w.Familien.Talent(auftraggeber, Talent.NachtUndNebel);
@@ -220,25 +220,27 @@ public sealed partial class Geheimniswesen
             {
                 var chance = Math.Clamp(e.Spitzel + e.SpitzelJeStern * (eigen - p.Talent(Talent.NachtUndNebel)), e.SpitzelMin, e.SpitzelMax) + bonus;
                 if (_zufall.NextDouble() < Math.Min(1, chance) * Schutz(g) && WissenGeben(auftraggeber, g, "Spitzel"))
-                    gefunden.Add(Text(g));
+                    gefunden.Add(g);
             }
         return gefunden;
     }
 
     /// <summary>Am Gerichtstag: Die Spitzel auf Ratsherren berichten (nur Geheimnisse, keine Spuren), dann sind sie fort.</summary>
-    internal void RatsspitzelBerichten(Action<string, Konto?> eintrag)
+    /// <param name="eintrag">Text, Auftraggeber (vertraulich) und die Art der gefundenen Geheimnisse (<see cref="EineArt"/>) für die Meldung.</param>
+    internal void RatsspitzelBerichten(Action<string, Konto?, Geheimnisart?> eintrag)
     {
         if (!IstAktiv) { _ratsspitzel.Clear(); return; }
         var e = Daten.Entdecken;
         foreach (var (auftraggeber, r) in _ratsspitzel)
         {
-            var gefunden = new List<string>();
+            var gefunden = new List<Geheimnis>();
             var chance = Math.Min(1, e.SpitzelRatsherr + _w.Familien.Lebenswirkung(auftraggeber).SpitzelBonus);
             foreach (var g in Von(r).Where(g => !g.Oeffentlich && !KenntNutzbar(auftraggeber, g)).ToList())
                 if (_zufall.NextDouble() < chance && WissenGeben(auftraggeber, g, "Spitzel"))
-                    gefunden.Add(Beschreibung(g));
+                    gefunden.Add(g);
             eintrag($"Der Spitzel von {auftraggeber.Inhaber} berichtet über {r.Name}: " +
-                    (gefunden.Count == 0 ? "nichts, was sich gegen ihn verwenden ließe." : $"ein Geheimnis – {string.Join(", ", gefunden)}."), auftraggeber);
+                    (gefunden.Count == 0 ? "nichts, was sich gegen ihn verwenden ließe." : $"ein Geheimnis – {string.Join(", ", gefunden.Select(Beschreibung))}."),
+                auftraggeber, EineArt(gefunden));
         }
         _ratsspitzel.Clear();
     }

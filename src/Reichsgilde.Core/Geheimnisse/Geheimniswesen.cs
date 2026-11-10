@@ -222,6 +222,21 @@ public sealed partial class Geheimniswesen
     /// <summary>Wie viele Geheimnisse die Person hütet (geheim) – für den Tooltip des Stresses.</summary>
     public int GeheimeAnzahl(ICharakter c) => _geheimnisse.Count(g => g.Inhaber == c.Kennung && !g.Oeffentlich);
 
+    /// <summary>
+    /// Mit welchem Geheimnis ein Erpresserbrief droht – seine Art fürs Siegel (null: ein Brief mit Beweisen). Ältere Spielstände kennen nur die
+    /// Nummer: dann die Art des Geheimnisses, solange es besteht.
+    /// </summary>
+    public Geheimnisart? ArtDesBriefes(Gauner.Forderung f) =>
+        f.GeheimnisArt ?? (f.Geheimnis is int n ? Nummer(n)?.Art : null);
+
+    /// <summary>
+    /// Worum ein Erpresserbrief droht, wie im Brief: „Agnes Hammerschmid: Ehebruch“, solange das Geheimnis besteht – sonst der Name der Art
+    /// (null: ein Brief mit Beweisen).
+    /// </summary>
+    public string? WorumDerBrief(Gauner.Forderung f) =>
+        f.Geheimnis is int n && Nummer(n) is { } g ? Text(g)
+        : ArtDesBriefes(f) is { } art && _d is not null ? Daten.Art(art).Name : null;
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Hilfen
     // ═════════════════════════════════════════════════════════════════════════
@@ -239,9 +254,17 @@ public sealed partial class Geheimniswesen
         _geheimnisse.Add(g);
         if (inhaber is Person p && _w.Familien.FamilieVon(p) is { } f)
             _w.Melden(Meldungsart.Sonstiges, $"Ein Geheimnis im Haus {f.Nachname}: {p.Vorname} hütet nun „{Beschreibung(g)}“. " +
-                                              "Erfährt es ein anderes Haus, kann es euch erpressen, anzeigen oder bloßstellen.", haus: f.Konto, person: p, vertraulich: true);
+                                              "Erfährt es ein anderes Haus, kann es euch erpressen, anzeigen oder bloßstellen.", haus: f.Konto, person: p, vertraulich: true,
+                geheimnis: art);
         return g;
     }
+
+    /// <summary>
+    /// Die Art für eine Meldung über diese Geheimnisse (<see cref="Meldung.GeheimnisArt"/>): sind alle von derselben Art, diese – sonst
+    /// (verschiedene Arten, keines) null.
+    /// </summary>
+    internal static Geheimnisart? EineArt(IReadOnlyCollection<Geheimnis> liste) =>
+        liste.Count > 0 && liste.All(g => g.Art == liste.First().Art) ? liste.First().Art : null;
 
     /// <summary>Ein Geheimnis ist vorbei (Inhaber tot, Schulden beglichen): mit allem Wissen darüber.</summary>
     private void Entfernen(Geheimnis g)

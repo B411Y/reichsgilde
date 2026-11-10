@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "ziel": "game/assets/privat",
+  "quelle": "gamedev.tv, Open World Terrain Pack (Terrain Layer Textures)",
+  "lizenz": "GameDev.tv General Asset License 2.0",
+  "dateien": [
+    {
+      "datei": "LIZENZ.txt",
+      "groesse": 891,
+      "sha256": "830438c20e5cc7a06cb568241518c47a24074dd4331a31e54e48ecee88a1433a",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "boden/boden_farbe_hoehe.webp",
+      "groesse": 10126594,
+      "sha256": "32071e967aacd9d30113ae54fc8932cd505cb2ca2f4c6bc742a20b394d0cc9fc",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "boden/boden_farbe_hoehe.webp.import",
+      "groesse": 664,
+      "sha256": "828ad296ceec9a7e01711ee9cbdf9219df822f5fdf5e37f5bc653b694fb5dd93",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "boden/boden_normal_rauheit.webp",
+      "groesse": 20874712,
+      "sha256": "6c8b75d2d570f20e197b56b8875848bca586d9b3841704fc5a174c363658e9ee",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "boden/boden_normal_rauheit.webp.import",
+      "groesse": 673,
+      "sha256": "0fd4bdcd3f075bef5262d44e1f2d5770f7259baa35b68929a08c84f9a6968ee9",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "fels/fels_struktur.png",
+      "groesse": 2824455,
+      "sha256": "fd461097a00b4c204ef9788e046c66c6e735785615c5614046d4073efe26a1b8",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "fels/fels_struktur.png.import",
+      "groesse": 962,
+      "sha256": "cc6aa758acd1e6ff2a53b467ce8f0b904cc8db5ab99a4cd8292b540b8f7d04dd",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "schnee/schnee_farbe_hoehe.webp",
+      "groesse": 1058662,
+      "sha256": "8b81adf3d794598ef860d07d5568076287426aff1a86b94158f62bb93560e7eb",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "schnee/schnee_farbe_hoehe.webp.import",
+      "groesse": 982,
+      "sha256": "9adc9dab9f3720987beee096f651757fad05e223eb263e25d4a8849eb06e1f00",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "schnee/schnee_normal_rauheit.webp",
+      "groesse": 1470338,
+      "sha256": "8ec7b51426418f641187f4a061872952c6c1bbddfbaf4e67d0f2cb026655d93a",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    },
+    {
+      "datei": "schnee/schnee_normal_rauheit.webp.import",
+      "groesse": 991,
+      "sha256": "c748478c6e79005e1fe75d2586268c4b1194ad19ee87cafc376b3ba43eea49af",
+      "lizenz": "GameDev.tv General Asset License 2.0"
+    }
+  ]
+}

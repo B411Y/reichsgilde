@@ -86,7 +86,8 @@ static class FreieStartplaetzeTests
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(Datenpfad.Karte("greybox"))));
             Pruefe.Wahr(karte.Pruefen().Count == 0, "Die Karte liest sich: " + string.Join(" | ", karte.Pruefen()));
 
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: karte);
+            // ohne Los (Hofstellen, 9.11.2026): der Spieler auf seiner Vorgabe Wohnhaus1, Haus Eisenbart auf Wohnhaus2
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
             var bauen = sim.Wirtschaft!.Bauen;
             var haus = bauen.Wohnhaus(spieler)!;
             Pruefe.Gleich("Wohnhaus1", haus.Kennung);

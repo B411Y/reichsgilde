@@ -16,6 +16,9 @@ public enum Werkstattwerkzeug
     /// <summary>Ein Gebäude des Katalogs setzen (Umriss an der Maus).</summary>
     Baustein,
 
+    /// <summary>Eine Hofstelle setzen: Werkstattplatz und Wohnhausplatz nebeneinander (Umriss beider an der Maus, Stadtansicht.Kartenwerkstatt.Hofstelle.cs).</summary>
+    Hofstelle,
+
     /// <summary>Eine einzelne Pflanze des Katalogs setzen.</summary>
     Pflanze,
 
@@ -981,7 +984,8 @@ public partial class Stadtansicht
         Kartenwerkzeug = werkzeug;
         WerkstattBaustein = werkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze ? baustein : null;
         _wsGeprueft = null;
-        if (werkzeug != Werkstattwerkzeug.Baustein && _wsUmriss is not null) _wsUmriss.Visible = false;
+        if (werkzeug is not (Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Hofstelle) && _wsUmriss is not null) _wsUmriss.Visible = false;
+        if (werkzeug != Werkstattwerkzeug.Hofstelle) HofstelleUmrissAus();
         if (werkzeug != Werkstattwerkzeug.Pflanze) PflanzenGeistAus();
         if (werkzeug is not (Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer)) PinselAus();
         if (werkzeug != Werkstattwerkzeug.Platz) PlatzwahlAus(); // Stadtansicht.Kartenwerkstatt.Start.cs
@@ -1059,6 +1063,18 @@ public partial class Stadtansicht
                     UmrissZeigen(katalog, x, zz, WerkstattDrehung, 1, null);
                 }
                 else if (_wsUmriss is not null) _wsUmriss.Visible = false;
+                break;
+            case Werkstattwerkzeug.Hofstelle:
+                if (maus is { } hort)
+                {
+                    var (hx, hz) = Einrasten(hort.X, hort.Y);
+                    HofstelleUmrissZeigen(hx, hz, WerkstattDrehung);
+                }
+                else
+                {
+                    if (_wsUmriss is not null) _wsUmriss.Visible = false;
+                    HofstelleUmrissAus();
+                }
                 break;
             case Werkstattwerkzeug.Pflanze:
                 PflanzenGeistZeigen(maus);
@@ -1350,6 +1366,9 @@ public partial class Stadtansicht
                 if (double.IsNaN(x)) return;
                 if (Befehl(() => _entwurf.Setzen(katalog, x, z, WerkstattDrehung)) is { } g) WerkstattWaehlen(g);
                 return;
+            case Werkstattwerkzeug.Hofstelle:
+                HofstelleKlick(boden);
+                return;
             case Werkstattwerkzeug.Pflanze when WerkstattBaustein is { } art && boden is { } ort:
                 if (Befehl(() => _entwurf.PflanzeSetzen(art, ort.X, ort.Y, WerkstattDrehung)) is { } p) WerkstattWaehlen(p);
                 return;
@@ -1579,7 +1598,7 @@ public partial class Stadtansicht
     {
         double Weiter(double grad) => frei ? Kartenraster.Drehung(grad + richtung) : Kartenraster.DrehungRunden(grad + richtung * Kartenraster.Drehschritt);
         if (_wsZiehen is { } z) z.Drehung = Weiter(z.Drehung);
-        else if (Kartenwerkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze) WerkstattDrehung = Weiter(WerkstattDrehung);
+        else if (Kartenwerkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Hofstelle or Werkstattwerkzeug.Pflanze) WerkstattDrehung = Weiter(WerkstattDrehung);
         else if (wiederholt || _entwurf is null) return; // gehaltene Taste: kein Befehl je Wiederholung
         else if (_wsTeilZiehen is { Teil: EntwurfFels }) return; // beim Ziehen eines Felsstücks erst loslassen (sonst spränge es zurück)
         else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));

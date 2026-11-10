@@ -41,3 +41,6 @@ __pycache__/
 
 # TressFX kommt per tools/tressfx_holen.sh aus dem GitHub-Release, nicht ins Repository
 game/addons/tressfx/
+
+# Gekaufte GameDev.tv-Texturen (Lizenz: keine Weitergabe einzelner Dateien): nur lokal, tools/assets/privat_holen.py
+game/assets/privat/

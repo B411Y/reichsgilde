@@ -94,12 +94,12 @@ public sealed partial class Koeln : Stadtskript
         Strassen();
         Wahrzeichen();
         Startgrundstuecke();
+        FreieHofstellenAnlegen();   // Hofstellen N1–N5, A1, R1, R2 (Koeln.Hofstellen.cs), vor den Einwohnerplätzen und Kulissen
         Einwohnerplaetze();
         Umland();
         Arbeitsstellen();
         KreuzungenVerbinden();
         LagenVorbereiten();
-        WerkstattbauplaetzeAnlegen();   // von Hand gezeichnet, gehen vor
         Bauzonen();
         Natur();
         Boden();

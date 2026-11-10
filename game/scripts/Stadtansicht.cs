@@ -1030,6 +1030,19 @@ public partial class Stadtansicht : Node3D
         if (zoom is { } z2) _kamera.Size = Mathf.Clamp(z2, KameraMinZoom, KameraGroessterZoom());
     }
 
+    /// <summary>
+    /// Stellt die Kamera sofort über die eigene Hofstelle: zwischen Werkstatt und Wohnhaus (fehlt eines, auf das andere); Zoom und Drehung bleiben.
+    /// False, wenn keines von beiden eine Ansicht hat (dann bleibt der Blick der Karte).
+    /// </summary>
+    public bool KameraAufHofstelle(string werkstattKennung, string wohnhausKennung)
+    {
+        var mitten = new[] { werkstattKennung, wohnhausKennung }.Select(k => AnsichtZu(k)?.Mitte).OfType<Vector3>().ToList();
+        if (mitten.Count == 0) return false;
+        var summe = mitten.Aggregate(Vector3.Zero, (a, m) => a + m);
+        KameraSetzen(summe.X / mitten.Count, summe.Z / mitten.Count);
+        return true;
+    }
+
     /// <summary>Fährt die Kamera sanft zu einem Gebäude (Betriebsleiste der Oberfläche, PR #197), einem Hafen oder Schiff (PR #199), der Zoom bleibt. False, wenn es die Kennung nicht gibt oder man drinnen ist.</summary>
     public bool Hinfahren(string kennung)
     {
@@ -1147,8 +1160,17 @@ public partial class Stadtansicht : Node3D
         _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, rahmen.Position.X, rahmen.End.X), 0, Mathf.Clamp(neu.Z, rahmen.Position.Y, rahmen.End.Y));
     }
 
+    /// <summary>
+    /// Liegt die Maus über einem sichtbaren Oberflächen-Element (Fenster, Tafel, Leiste, Menü, Tooltip, auch über dessen Rand, Abstand oder Beschriftung)?
+    /// Dann bekommt die Welt keinen Klick und kein Mausrad. Die Steuerelemente lassen Ereignisse sonst durch (Container und Beschriftungen haben MouseFilter Pass),
+    /// und was kein Knopf verbraucht, käme hier an und zoomte oder wählte ein Gebäude.
+    /// </summary>
+    public bool MausUeberOberflaeche => UnterTafel || GetViewport().GuiGetHoveredControl() is not null;
+
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        // Drücken und Rad nur über freier Welt; das Loslassen darf immer durch (ein begonnenes Ziehen muss enden können).
+        if (eingabe is InputEventMouseButton { Pressed: true } && MausUeberOberflaeche) return;
         if (_raum is not null)
         {
             RaumEingabe(eingabe);

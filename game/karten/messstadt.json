@@ -138,6 +138,17 @@
   "pflanzen": []
  },
  "start": {
+  "hofstellen": [
+   {"kennung": "S1", "name": "an der Hauptstraße (Nordseite, 24 m westlich des Marktes)", "werkstatt": "Werkstattplatz1", "wohnhaus": "Wohnhausplatz1", "start": true},
+   {"kennung": "S2", "name": "an der Hauptstraße (Nordseite, 24 m östlich des Marktes)", "werkstatt": "Werkstattplatz2", "wohnhaus": "Wohnhausplatz2", "start": true},
+   {"kennung": "S3", "name": "an der Hauptstraße (Nordseite, 42 m westlich des Marktes)", "werkstatt": "Werkstattplatz3", "wohnhaus": "Wohnhausplatz3", "start": true},
+   {"kennung": "S4", "name": "an der Hauptstraße (Nordseite, 42 m östlich des Marktes)", "werkstatt": "Werkstattplatz4", "wohnhaus": "Wohnhausplatz4", "start": true},
+   {"kennung": "S5", "name": "an der Hauptstraße (Nordseite, 60 m westlich des Marktes)", "werkstatt": "Werkstattplatz5", "wohnhaus": "Wohnhausplatz5", "start": true},
+   {"kennung": "S6", "name": "an der Hauptstraße (Nordseite, 60 m östlich des Marktes)", "werkstatt": "Werkstattplatz6", "wohnhaus": "Wohnhausplatz6", "start": true},
+   {"kennung": "S7", "name": "an der Hauptstraße (Südseite, 24 m westlich des Marktes)", "werkstatt": "Werkstattplatz7", "wohnhaus": "Wohnhausplatz7", "start": true},
+   {"kennung": "S8", "name": "an der Hauptstraße (Südseite, 24 m östlich des Marktes)", "werkstatt": "Werkstattplatz8", "wohnhaus": "Wohnhausplatz8", "start": true},
+   {"kennung": "S9", "name": "an der Hauptstraße (Südseite, 42 m westlich des Marktes)", "werkstatt": "Werkstattplatz9", "wohnhaus": "Wohnhausplatz9", "start": true}
+  ],
   "spieler": {"wohnhaus": "Wohnhausplatz1", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
   "haeuser": [
    {

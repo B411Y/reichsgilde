@@ -153,7 +153,9 @@ static class KartenformatTests
             json["start"]!["spieler"]!["jeBeruf"] = new JsonObject { ["Steinmetz"] = new JsonObject { ["platz"] = "Probeplatz", ["name"] = "{art} am Probeplatz" } };
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog());
 
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value, new NeuePartie(Beruf: "Steinmetz", Rivalen: 2), karte: karte);
+            // ohne Los (Hofstellen, 9.11.2026): jedes Haus genau, wie die Startbelegung es setzt
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value,
+                new NeuePartie(Beruf: "Steinmetz", Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich("Haus Hammerschmid, Haus Steinhauer, Haus Eichwald", string.Join(", ", w.Konten.Select(k => k.Inhaber)));
             var steinhauer = w.Konten[1];

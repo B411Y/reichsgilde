@@ -893,3 +893,27 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Einsinken und Überlappung je Form | `Felsform.EinsinkenFaktor` mal Einsinken des Pinsels (Wände 0,33 → 10 %, Pfeiler 0,25, Schuttkegel 0,1, Gesimse 0 = aufsetzen; F1 = 1, derselbe Wurf, gleiche Zahlen), `Felsform.Ueberlappung` (große Wände 60 %, mittlere 55 %, Gesimse 50 %, Pfeiler 45 %, Schuttkegel 70 %; F1 35 %); zwischen zwei Stücken gilt das Größere. | 02.11.2026 |
 | Hang mitformen (`Bauen/Felshang.cs`) | `Felspinsel.HangFormen` (Vorgabe aus, nur beim Stempel): hinter Stücken mit `HangFormt` (Wände mit offener Rückseite, Pfeilerbündel) hebt der Befehl das Gelände an: ab 2,5 m hinter der Fußlinie (`Vorlauf`, R4b: sonst sticht der Hang durch die Wand) eine S-Kurve bis 0,4 m unter die Oberkante an der Rückseite (bei 16 m Wand knapp 70°), dahinter 0,25 m je Meter weiter (höchstens die Höhe des Stücks); seitlich voll bis zum Wandende (an den Enden 60 % der Höhe, die Wände laufen dort niedriger aus), dann über 3–10 m weich auf Null. Nur gehoben, nie gesenkt, Höchstwert über alle Stücke eines Stempels (Reihenfolge gleichgültig, Test; zwei Stempel nacheinander rechnen vom schon gehobenen Gelände); ein Stück mit höherer Wand dahinter (mittlere Wand vor einer großen) formt nichts, sonst entstünde ein Wall dazwischen. Gerechnet mit der Drehung um die Senkrechte, ganze Rasterpunkte, `DetMathe`. `GelaendeAendern` im selben Sammelbefehl wie Stücke und Boden; das Raster ändert sich beim Stempeln sofort (wie der Boden), Rückgängig Byte für Byte (Test). Gilt nicht fürs Streuen (eigene Wahl: ein Strich mit Tausenden Tupfern bräuchte eigene Regeln). | 02.11.2026 |
 | Gleichheit | Neuer Fall „felswand …“ (`FelsgizmoTests.Ablauf`: Große Wand mit Hang, Drehen um x, z und y, Skalieren, Einrasten, Rückgängig). | 02.11.2026 |
+
+## Messungen (älter, verschoben am 09.11.2026)
+
+### Bauzonen aus dem Raster für jede Karte (PR #310)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Variante A (Nutzer, C+A freigegeben): die Köln-Rechnung „frei heißt bebaubar“ als `Kartenentwurf.BauzonenAusRaster` im Kern (`Kartenwerkstatt/Rasterbauzonen.cs`). Köln, Greybox und Probestadt rechnen damit; gerechnet wird beim Kartenbau, nie in der Partie. Bauwesen, Befehle, Spielstand und Mehrspieler unverändert; Datenversion bleibt (wirtschaft.json unberührt). | 04.11. |
+| Lage | Grobe Lage-Gebiete `lagen` in der Karte (erstes Gebiet gilt, Art auch „keine“) oder eine Regel des Stadtskripts (`Rastervorgaben.LageVon`, Köln). Keine automatische Regel „Umkreis um den Markt“ – die Gebiete zeichnet man von Hand. | 04.11. |
+| Hand-Zonen | Zonen ohne `"berechnet": true` sind von Hand gezeichnet, bleiben bei jeder Rechnung, gehen vor (Felder darauf und daran bleiben frei) und stehen hinter den berechneten (Köln: 7 Werkstatt-Bauplätze). | 04.11. |
+| Abstände | Wege halbe Breite + 0,5 m, Gebäude 2 m, Mauer und Ufer 2 m wie die Prüfung (genau 2 m ist frei); Köln behält 3 m zu Mauer und Ufer und seinen Bereich x −340 … 250 – so bleiben seine 57 Zonen gleich. Hang bis 7 % (8-×-8-m-Fenster), Feld ≤ 30 m und Zone ≤ 7,5 m von einer Karrenstraße, mindestens 24 Felder. | 04.11. |
+| Restflächen | Freie Felder in Kern, Mauerring und Vorstadt, die keine Zone wurden, als `restflaechen` (Kennung R…, Lage, Grund `klein` unter 24 Feldern oder `abseits`, Felder, Umriss); im Umland keine. Nur Daten für die Darstellung, in `Stadtkarte.Restflaechen`. | 04.11. |
+| Greybox | Umbau `greybox-raster`: sieben Lage-Gebiete um die alten Zonen (der Mischwald im Westen bleibt Wald), 11 Hand-Zonen → 9 berechnete; jedes alte Feld bleibt Zone derselben Lage (Kern 268 → 335, Mauerring 130 → 156, Vorstadt 442 → 781 Felder). Der Probeplan bekommt die neuen Zonennamen. | 04.11. |
+| Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
+| Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |
+
+### Ein Lehrling zum Start (PR #318)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Startpersonal | Jeder Startbetrieb beginnt mit einem Anfänger (Nutzer): Spieler und KI-Häuser gleich, bei „Schwer“ auch der Umlandbetrieb der KI (vorher 2 in der Stadt, 3 im Umland). Wert in den Daten: `personal.startJeBetrieb` = 1, Datenversion 72; ohne Angabe wie bisher. | 04.11. |
+| KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
+| Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
+

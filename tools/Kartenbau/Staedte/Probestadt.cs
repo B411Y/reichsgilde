@@ -19,7 +19,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Bauzonen (seit 4.11.2026): aus dem 2-m-Raster gerechnet (Kartenentwurf.BauzonenAusRaster) – von Hand stehen nur drei Lage-Gebiete:
 //      Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt vor den Toren bis zu den Feldwegen. Dazu die Restflächen.
 //    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve; im Randstreifen (300 m) Felder und Waldstücke aus dem Rand-Vorschlag.
-//    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei).
+//    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei); drei Start-Hofstellen (Startpaare) und eine freie Hofstelle (vierte Werkstatt).
 //    • Gelände: die Stadt flach, nach Osten ein sanfter Hang hinauf (die östliche Vorstadt steigt bis 4 % an), im Randstreifen Hügel bis 25 m
 //      und rundherum natürliche Unebenheit. Unter keinem Platz mehr als 8 % Gefälle (die Prüfung meldet nichts).
 //    • Wasser (Schritt 5c): Ein Bach kommt vom Hügel im Nordwesten, quert den Waldweg in einer Furt, läuft an der Westmauer entlang (eine
@@ -113,6 +113,8 @@ public sealed class Probestadt : Stadtskript
         E.BetriebHinzufuegen(tischler, werkstaetten[1].Kennung, Betriebsart.Tischlerei);
         var giesser = E.HausHinzufuegen("Haus Brendel");
         E.BetriebHinzufuegen(giesser, werkstaetten[3].Kennung, Betriebsart.Giesserei);
+        // Hofstellen (seit 9.11.2026): die drei Startpaare sind Start-Hofstellen, die vierte Werkstatt mit dem nächsten freien Wohnhausplatz eine freie
+        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nord" : "Süd")}{(w.X < 0 ? "west" : "ost")})", freie: true);
 
         // ── Gelände: sanfter Hang an der östlichen Vorstadt, Hügel im Randstreifen, Unebenheit im Rand ──
         Huegel(P(280, 0), 220, 6);          // höchstens 1,5 · 6 / 220 ≈ 4 % – die Mauer bei x = 70 liegt am Fuß

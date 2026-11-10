@@ -177,6 +177,17 @@ public sealed class EinstellungenAnzeige
         "Sprache und Rufe der Menschen.",
     };
 
+    private static readonly MusikModell.Haeufigkeit[] MusikHaeufigkeiten = Enum.GetValues<MusikModell.Haeufigkeit>();
+
+    private static string MusikErklaerung(MusikModell.Haeufigkeit h) => h switch
+    {
+        MusikModell.Haeufigkeit.Immer => "Nach jedem Stück nur eine kurze Pause (1 bis 3 Minuten).",
+        MusikModell.Haeufigkeit.Oft => "Pausen von 3 bis 6 Minuten (Standard).",
+        MusikModell.Haeufigkeit.Selten => "Lange Pausen von 8 bis 15 Minuten, Musik nur ab und zu.",
+        MusikModell.Haeufigkeit.NurEreignisse => "Keine Musik im Alltag, nur bei Ereignissen (Tod, Hochzeit, Kampf, Unfreie, Not).",
+        _ => "Keine Musik, auch nicht im Hauptmenü und bei Ereignissen.",
+    };
+
     private const string Datei = "user://einstellungen.cfg";
     private const string KostetViel = "Kostet viel Grafikleistung. Auf einem schwächeren Rechner zuerst hier sparen.";
     private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
@@ -263,6 +274,7 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _tooltipTaste;
     // Spiel
     private readonly OptionButton _sitzung;
+    private readonly OptionButton _musikHaeufigkeit;
     // Meldungen
     private static readonly string[] StufenNamen = { "Aus", "Nur Verlauf", "Siegel", "Brief" };
     private readonly List<(Meldeart Art, OptionButton Auswahl)> _meldungsWahl = new();
@@ -580,6 +592,14 @@ public sealed class EinstellungenAnzeige
             reglerZeile.AddChild(stumm);
             _tonRegler.Add((regler, wert, stumm));
         }
+        Abschnitt(s, "Musik");
+        zeile = Zeile(s, "Wie oft Musik spielt", () => Liste("Die Musik wechselt mit Tag und Nacht und weicht Ereignissen (Tod, Hochzeit, Kampf, Unfreie bei der Arbeit, Not in der Stadt). Lautstärke: Regler „Musik“ oben.",
+                                                             MusikHaeufigkeiten.Select(h => (MusikModell.Name(h), MusikErklaerung(h))), Array.IndexOf(MusikHaeufigkeiten, KlangDienst.MusikHaeufigkeit)));
+        _musikHaeufigkeit = Auswahl(zeile, MusikHaeufigkeiten.Select(MusikModell.Name), nummer =>
+        {
+            KlangDienst.MusikHaeufigkeitSetzen(MusikHaeufigkeiten[nummer]);
+            Auffrischen();
+        });
         Abschnitt(s, "Ansagen und Hintergrund");
         _tonAnsagen = Schalter(s, "Ansagen des Haushofmeisters", () => "Bei wichtigen Ereignissen (Tod, Krankheit, Geburt, leeres Lager …) spricht der Haushofmeister einen kurzen Satz; die Meldung steht auch als Text da. " +
                                                                        "Immer nur eine Ansage zur Zeit, bei dichter Folge entfallen manche.", an => KlangDienst.AnsagenSetzen(an));
@@ -846,6 +866,7 @@ public sealed class EinstellungenAnzeige
             _tonRegler[i].Stumm.SetPressedNoSignal(KlangDienst.Stumm(i));
         }
         _tonAnsagen.SetPressedNoSignal(KlangDienst.AnsagenAn);
+        _musikHaeufigkeit.Select(Array.IndexOf(MusikHaeufigkeiten, KlangDienst.MusikHaeufigkeit));
         _tonHintergrund.SetPressedNoSignal(KlangDienst.HintergrundStumm);
         StandAuffrischen();
         TippsSetzen();

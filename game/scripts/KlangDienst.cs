@@ -148,8 +148,26 @@ public partial class KlangDienst : Node
         }
         _ansagenAn = !geladen || datei.GetValue("ton", "ansagen", true).AsBool();
         _hintergrundStumm = !geladen || datei.GetValue("ton", "hintergrund_stumm", true).AsBool();
+        _musikHaeufigkeit = geladen && Enum.TryParse<MusikModell.Haeufigkeit>(datei.GetValue("ton", "musik_haeufigkeit", "Oft").AsString(), out var haeufigkeit)
+            ? haeufigkeit : MusikModell.Haeufigkeit.Oft;
         for (var i = 0; i < Regelbusse.Length; i++) BusAnwenden(i);
+        // Die dynamische Musik hängt unter dem Dienst, damit sie über Szenenwechsel hinweg weiterspielt (Hauptmenü, Ladebildschirm, Partie)
+        AddChild(new Musikspieler { Name = "Musikspieler" });
     }
+
+    private static MusikModell.Haeufigkeit _musikHaeufigkeit = MusikModell.Haeufigkeit.Oft;
+
+    /// <summary>Wie oft Musik spielt (Einstellungen, Reiter Ton; Standard „Oft“). Gespeichert im Abschnitt „ton“, Schlüssel <c>musik_haeufigkeit</c>.</summary>
+    public static MusikModell.Haeufigkeit MusikHaeufigkeit => _musikHaeufigkeit;
+
+    public static void MusikHaeufigkeitSetzen(MusikModell.Haeufigkeit haeufigkeit, bool speichern = true)
+    {
+        _musikHaeufigkeit = haeufigkeit;
+        if (speichern) Speichern("musik_haeufigkeit", haeufigkeit.ToString());
+    }
+
+    /// <summary>Spricht gerade der Haushofmeister? Die Musik geht dann leiser (Ducking, <see cref="Musikspieler"/>).</summary>
+    public static bool AnsageSpielt => _instanz?._ansageLaeuft == true;
 
     /// <summary>
     /// Schreibt eine Warnung ins Log für jeden erwarteten Bus, der im Layout fehlt (sonst spielt Godot still über Master), und für jeden

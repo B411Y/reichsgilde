@@ -246,23 +246,22 @@ public partial class Tooltips : Node
             ? t.Quelle is not null && t.Quelle == _quelle
             : t.Kennung is not null && t.Eltern.VerweisUnterMaus == t.Kennung;
 
-    /// <summary>Findet das Steuerelement unter der Maus, das einen Tooltip hat (wie der eingebaute: nach oben, bis eins die Maus beansprucht).</summary>
-    private void QuelleAktualisieren(Control? unter, double delta)
+    /// <summary>Findet das Steuerelement unter der Maus, das einen Tooltip hat (wie der eingebaute: nach oben, bis eins die Maus beansprucht); Text leer, wenn keins.</summary>
+    public static (Control? Quelle, string Text) QuelleFinden(Control? unter)
     {
-        if (unter is not null && _ebene.IsAncestorOf(unter)) return; // über einem eigenen Tooltip: Quelle bleibt
-        Control? quelle = null;
-        var text = "";
         for (var c = unter; c is not null; c = c.GetParentOrNull<Control>())
         {
             var t = c.GetTooltip(c.GetLocalMousePosition());
-            if (!string.IsNullOrEmpty(t))
-            {
-                quelle = c;
-                text = t;
-                break;
-            }
+            if (!string.IsNullOrEmpty(t)) return (c, t);
             if (c.MouseFilter == Control.MouseFilterEnum.Stop || c.TopLevel) break;
         }
+        return (null, "");
+    }
+
+    private void QuelleAktualisieren(Control? unter, double delta)
+    {
+        if (unter is not null && _ebene.IsAncestorOf(unter)) return; // über einem eigenen Tooltip: Quelle bleibt
+        var (quelle, text) = QuelleFinden(unter);
         if (quelle != _quelle)
         {
             _quelle = quelle;
