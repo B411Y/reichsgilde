@@ -333,7 +333,7 @@ public partial class Stadtansicht
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, ProbeFarbe(bartton));
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, bart ? ProbeFarbe(bartton) : 0);
         ProbeArtAnfordern(art);
         if (_probeVat && ProbeArtGebacken(art)) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
@@ -669,7 +669,7 @@ public partial class Stadtansicht
             var shader = GD.Load<Shader>("res://assets/shader/figur_vat.gdshader");
             _passantenEbene ??= NeueEbene();
             var teile = wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()
-                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art >= 2 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
+                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art is 2 or 3 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
             for (var i = 0; i < teile.Count; i++)
             {
                 var teil = teile[i];
@@ -824,7 +824,7 @@ public partial class Stadtansicht
             var teile = new List<string>();
             foreach (var klip in ProbeKlips)
             {
-                var fps = stufe == "24" ? 24 : ProbeVatBilderFuer(klip);
+                var fps = stufe == "24" ? 24 : ProbeVatBilderFuer(klip, art);
                 var anim = spieler.GetAnimation(klip);
                 var bilder = Math.Max(1, (int)Math.Round(anim.Length * fps));
                 var fehler = new List<float>();
