@@ -220,7 +220,7 @@ public partial class Stadtansicht
     {
         if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
-        if (f.Probe && _probeVat && !f.ProbeNah) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
+        if (f.Probe && _probeVat && !f.ProbeNah && _probeArtFertigStatisch[f.ProbeArt]) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
         f.Spieler.Seek(f.Anfang + f.Phase, true);
         f.Neu = false;
     }

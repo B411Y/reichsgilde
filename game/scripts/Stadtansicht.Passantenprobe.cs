@@ -83,6 +83,44 @@ public partial class Stadtansicht
         return (gene.SichtbarerWert("bartform") * 3 / 256) switch { 0 => "bart", 1 => "bartzopf", _ => "bartgabel" };
     }
 
+    /// <summary>
+    /// Bartton nach Erbgut: etwas dunkler als das Kopfhaar, mit „haar_rot“ röter (Bärte sind oft rötlicher als das Haar); graues Haar bleibt grau,
+    /// nur eine Spur dunkler. Zwerge tragen ihren Bart in diesem Ton, nicht in der Haarfarbe.
+    /// </summary>
+    private static Color ProbeBartton(Color haar, Volk volk, int nummer)
+    {
+        var rot = ProbeErbgut(volk, nummer).SichtbarerWert("haar_rot") / 255f;
+        if (haar == ProbeGrau || haar == GrauesHaar) return new Color(haar.R * 0.92f, haar.G * 0.92f, haar.B * 0.92f);
+        return new Color(Math.Min(1f, haar.R * (0.88f + 0.30f * rot)), haar.G * (0.76f - 0.10f * rot), haar.B * (0.68f - 0.14f * rot));
+    }
+
+    /// <summary>
+    /// Der Bart bekommt im Alpha seiner Eckenfarbe den Abstand von der Oberkante in Vierteln eines Meters (0 = Oberlippe, 1 = 25 cm tiefer): so kann
+    /// der Shader den Übergang zur Haut, die Mundfuge zwischen Schnurrbart und Vollbart und die Strähnen ohne Blender zeichnen
+    /// (<c>figur.gdshader</c>, <c>figur_vat.gdshader</c>).
+    /// </summary>
+    private static Color[] ProbeBartAbstand(Godot.Collections.Array arrays)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var farben = arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var oben = ecken.Max(e => e.Y);
+        return farben.Select((c, i) => new Color(c.R, c.G, c.B, Math.Clamp((oben - ecken[i].Y) / 0.25f, 0f, 1f))).ToArray();
+    }
+
+    private static readonly Dictionary<Mesh, ArrayMesh> _probeBartNetze = new();
+    /// <summary>Das Bartnetz mit dem Abstand im Alpha (einmal je Netz der Datei).</summary>
+    private static Mesh ProbeBartNetz(Mesh netz)
+    {
+        if (_probeBartNetze.TryGetValue(netz, out var fertig)) return fertig;
+        var arrays = netz.SurfaceGetArrays(0);
+        arrays[(int)Mesh.ArrayType.Color] = ProbeBartAbstand(arrays);
+        var neu = new ArrayMesh();
+        neu.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        return _probeBartNetze[netz] = neu;
+    }
+
+    private readonly Dictionary<(ShaderMaterial, Color), ShaderMaterial> _probeBartTonStoffe = new();
+
     /// <summary>Datei der Probe nach Volk und Geschlecht: Orks und Oger haben eigene Dateien (auch Frauen nehmen sie: es gibt nur Männer).</summary>
     /// <summary>Netze der Ork- und Oger-Dateien, die nie gezeigt werden (die Dateien enthalten alle Netze des gemeinsamen Bauskripts).</summary>
     private static readonly HashSet<string> ProbeUnfreiOhne = new(StringComparer.Ordinal) { "Fuss_halb", "Fuss_holz", "Zub_stroh", "Zub_barett", "Zub_eisenhut" };
@@ -135,7 +173,7 @@ public partial class Stadtansicht
     private bool _probeFern, _probeVatVersucht;
 
     /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer, bool Bart);
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer, bool Bart, int BartFarbe = 0);
 
     /// <summary>Figurstoffe mit Bart (Zone 6 in Haarfarbe), je Stoff ohne Bart einmal angelegt.</summary>
     private readonly Dictionary<ShaderMaterial, ShaderMaterial> _probeBartStoffe = new();
@@ -268,18 +306,32 @@ public partial class Stadtansicht
             }
             stoff = mitBart;
         }
+        var bartton = ProbeBartton(aussehen.Haar, aussehen.Volk, nummer);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
             if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug"
                 && !(name.StartsWith("Zub_") && zubehoer.Contains(name[4..]))) { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
+            if (name.StartsWith("Zub_bart") && teil.Mesh is ArrayMesh bartMesh)
+            {
+                teil.Mesh = ProbeBartNetz(bartMesh);
+                if (!_probeBartTonStoffe.TryGetValue((stoff, bartton), out var bartStoff))
+                {
+                    bartStoff = (ShaderMaterial)stoff.Duplicate();
+                    bartStoff.SetShaderParameter("bartnetz", true);
+                    bartStoff.SetShaderParameter("haar", bartton);
+                    _probeBartTonStoffe[(stoff, bartton)] = bartStoff;
+                }
+                teil.MaterialOverride = bartStoff;
+            }
             if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart);
-        if (_probeVat) modell.Visible = false;
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, ProbeFarbe(bartton));
+        ProbeArtAnfordern(art);
+        if (_probeVat && ProbeArtGebacken(art)) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
     }
@@ -440,6 +492,7 @@ public partial class Stadtansicht
     {
         if (!ProbeAktiv) return;
         ProbeEgoNahSetzen();
+        ProbeNachbacken();
         // Gebacken wird hinter dem Ladebalken (Aufbauen); fehlt das (Tests, Werkzeuge), hier auf einmal
         if (_probeVatNetze is null && !_probeVatVersucht && ProbeStufe != "skelett") ProbeVatBacken();
         var vat = ProbeStufe switch
@@ -455,7 +508,7 @@ public partial class Stadtansicht
         foreach (var f in _probeTrachten.Keys)
         {
             if (!IsInstanceValid(f.Modell)) continue;
-            f.Modell.Visible = !vat;
+            f.Modell.Visible = !(vat && ProbeArtGebacken(f.ProbeArt));
             f.Neu = true; // beim Zurück zum Skelett gleich die richtige Pose
         }
         GD.Print($"[passantenprobe] Stufe {(vat ? "VAT" : "Skelett")} bei Zoom {_kamera.Size:0}");
@@ -502,11 +555,16 @@ public partial class Stadtansicht
         _probeVatVersucht = true;
         var uhr = Stopwatch.StartNew();
         _probeVatNetze = new();
+        Array.Clear(_probeArtFertigStatisch);
         _probeVatAusSpeicher = 0;
         _probeVatBytes = 0;
-        for (var art = 0; art < ProbeArten.Length; art++)
+        // Nur Mensch, Ork und Oger gleich; Zwerge, Elben und Halblinge (Art 4 bis 9) erst, wenn die erste Figur der Art erscheint (ProbeArtAnfordern)
+        for (var art = 0; art < ProbeSofortArten; art++)
+        {
             foreach (var anteil in ProbeVatBackenArt(art))
-                yield return (art + anteil) / ProbeArten.Length;
+                yield return (art + anteil) / ProbeSofortArten;
+            _probeArtFertig[art] = true;
+        }
         _probePaletteNeu = true;
         GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, davon {_probeVatAusSpeicher} aus dem Zwischenspeicher, " +
                  $"Texturen {_probeVatBytes / 1048576.0:0.0} MB, {ProbeVatBilder} Bilder/s, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[0][i].Bilder}"))} Bilder)");
@@ -514,6 +572,56 @@ public partial class Stadtansicht
 
     private int _probeVatAusSpeicher;
     private long _probeVatBytes;
+
+    /// <summary>Die ersten Arten (Mensch, Ork, Oger) backt der Ladebalken; die kleinen Völker folgen nach Bedarf.</summary>
+    private const int ProbeSofortArten = 4;
+    private static readonly bool[] _probeArtFertigStatisch = new bool[ProbeArten.Length]; // wie _probeVat statisch (FigurBewegen ist statisch)
+    private bool[] _probeArtFertig => _probeArtFertigStatisch;
+    private readonly Queue<int> _probeArtWarteschlange = new();
+    private IEnumerator<float>? _probeArtLauf;
+    private int _probeArtLaeuft = -1;
+    private Stopwatch? _probeArtUhr;
+    /// <summary>Wie viele Millisekunden je Bild höchstens ins Nachbacken einer Art gehen (ein Netz je Schritt, beim Zwischenspeicher fast nichts).</summary>
+    private const double ProbeNachbackenMs = 4.0;
+
+    /// <summary>Ist die Art gebacken (das MultiMesh zeichnet sie)? Vorher bleibt das Skelett sichtbar.</summary>
+    private bool ProbeArtGebacken(int art) => _probeVatNetze is not null && art >= 0 && art < _probeArtFertig.Length && _probeArtFertig[art];
+
+    /// <summary>Merkt eine Art zum Backen vor, sobald die erste Figur von ihr erscheint (Zwerg, Elb, Halbling, je Mann und Frau).</summary>
+    private void ProbeArtAnfordern(int art)
+    {
+        if (!ProbeAktiv || ProbeStufe == "skelett" || art < ProbeSofortArten || _probeArtFertig[art] || _probeArtLaeuft == art || _probeArtWarteschlange.Contains(art)) return;
+        _probeArtWarteschlange.Enqueue(art);
+    }
+
+    /// <summary>Jedes Bild: die wartende Art ein Stück weiterbacken (höchstens <see cref="ProbeNachbackenMs"/>), ohne Ruckler.</summary>
+    private void ProbeNachbacken()
+    {
+        if (_probeVatNetze is null) return;
+        var uhr = Stopwatch.StartNew();
+        while (uhr.Elapsed.TotalMilliseconds < ProbeNachbackenMs)
+        {
+            if (_probeArtLauf is null)
+            {
+                if (!_probeArtWarteschlange.TryDequeue(out var art)) return;
+                _probeArtLaeuft = art;
+                _probeArtLauf = ProbeVatBackenArt(art).GetEnumerator();
+                _probeArtUhr = Stopwatch.StartNew();
+                _probeVatAusSpeicher = 0;
+            }
+            if (_probeArtLauf.MoveNext()) continue;
+            var fertig = _probeArtLaeuft;
+            _probeArtLauf.Dispose();
+            _probeArtLauf = null;
+            _probeArtLaeuft = -1;
+            _probeArtFertig[fertig] = true;
+            _probePaletteNeu = true;
+            GD.Print($"[passantenprobe] Art {fertig} ({ProbeArten[fertig].Datei}) nachgebacken in {_probeArtUhr!.ElapsedMilliseconds} ms Gesamtzeit ({_probeVatAusSpeicher} Netze aus dem Zwischenspeicher), Texturen jetzt {_probeVatBytes / 1048576.0:0.0} MB");
+            if (_probeVat)
+                foreach (var f in _probeTrachten.Keys)
+                    if (IsInstanceValid(f.Modell) && f.ProbeArt == fertig && !f.ProbeNah) f.Modell.Visible = false;
+        }
+    }
 
     private IEnumerable<float> ProbeVatBackenArt(int art)
     {
@@ -588,7 +696,7 @@ public partial class Stadtansicht
                 neu.Resize((int)Mesh.ArrayType.Max);
                 neu[(int)Mesh.ArrayType.Vertex] = ecken;
                 neu[(int)Mesh.ArrayType.Normal] = normalen;
-                neu[(int)Mesh.ArrayType.Color] = arrays[(int)Mesh.ArrayType.Color];
+                neu[(int)Mesh.ArrayType.Color] = name.StartsWith("Zub_bart") ? ProbeBartAbstand(arrays) : arrays[(int)Mesh.ArrayType.Color];
                 neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
                 neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(e => new Vector2(e + 0.5f, 0)).ToArray();
                 neu[(int)Mesh.ArrayType.Index] = arrays[(int)Mesh.ArrayType.Index];
@@ -599,6 +707,7 @@ public partial class Stadtansicht
                 var stoff = new ShaderMaterial { Shader = shader };
                 stoff.SetShaderParameter("lage", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, daten.Lage)));
                 stoff.SetShaderParameter("normale", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, daten.Richtung)));
+                if (name.StartsWith("Zub_bart")) stoff.SetShaderParameter("bartnetz", true);
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
                 if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
                 stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
@@ -909,7 +1018,7 @@ public partial class Stadtansicht
         Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
-        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Berufszubehör
+        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben, z.StartsWith("bart") ? tracht.BartFarbe : haar); // Berufszubehör, Bärte im eigenen Ton
         _probeGezeichnet++;
     }
 
