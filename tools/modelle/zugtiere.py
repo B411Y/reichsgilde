@@ -40,9 +40,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 import figuren as fg  # noqa: E402
 import zugtiere_anim as za  # noqa: E402
+import zugtiere_kopf as zk  # noqa: E402
+import zugtiere_ochse as zo  # noqa: E402
 from bausteine import Vector  # noqa: E402
 
 FPS = 24
+KUMMET_BOGEN = 0.10
 KITS = os.environ.get("RG_KITS", os.path.expanduser("~/werkzeuge/assets/entpackt"))
 QUELLE = os.environ.get("RG_FARM_BLENDS", os.path.join(KITS, "Quaternius_Farm_Animals_CC0", "Blends"))
 VORSCHAU = os.environ.get("ZUGTIERE_VORSCHAU", bs.VORSCHAU)
@@ -55,7 +58,7 @@ PALETTEN = {
     "ochse_rotbraun": {"Fell": (0.44, 0.25, 0.14), "Dunkel": (0.21, 0.12, 0.075), "Maul": (0.60, 0.46, 0.38), "Huf": (0.25, 0.21, 0.175)},
     "ochse_falb": {"Fell": (0.67, 0.51, 0.32), "Dunkel": (0.44, 0.31, 0.19), "Maul": (0.80, 0.66, 0.52), "Huf": (0.30, 0.25, 0.20)},
 }
-HAARFARBE = {"pferd_rotbraun": (0.50, 0.29, 0.13), "pferd_schwarzbraun": (0.085, 0.07, 0.065),
+HAARFARBE = {"pferd_rotbraun": (0.33, 0.175, 0.085), "pferd_schwarzbraun": (0.085, 0.07, 0.065),
              "ochse_rotbraun": (0.19, 0.095, 0.055), "ochse_falb": (0.15, 0.105, 0.07)}      # Fuchs: Mähne heller rotbraun, Rappe fast schwarz, Falbe dunkel
 bs.FARBEN.update({
     "Horn": (0.80, 0.74, 0.60), "Hornspitze": (0.20, 0.17, 0.14), "Gurt": (0.12, 0.10, 0.09),
@@ -95,6 +98,22 @@ def _rauschen(p):
     """Gleichbleibendes Rauschen 0..1 aus der Lage (kein Zufall, jedes Erzeugen gleich)."""
     s = math.sin(p.x * 12.9898 + p.y * 78.233 + p.z * 37.719) * 43758.5453
     return s - math.floor(s)
+
+
+def _glatt(p):
+    """Weiches Rauschen 0..1 (Werte-Rauschen mit glatter Überblendung, jedes Erzeugen gleich)."""
+    ix, iy, iz = math.floor(p.x), math.floor(p.y), math.floor(p.z)
+    fx, fy, fz = _weich(p.x - ix), _weich(p.y - iy), _weich(p.z - iz)
+
+    def e(a, b, c):
+        return _rauschen(Vector((a * 1.0 + 0.5, b * 1.0 + 0.5, c * 1.0 + 0.5)))
+    r = 0.0
+    for dx in (0, 1):
+        for dy in (0, 1):
+            for dz in (0, 1):
+                w = (fx if dx else 1 - fx) * (fy if dy else 1 - fy) * (fz if dz else 1 - fz)
+                r += w * e(ix + dx, iy + dy, iz + dz)
+    return r
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -206,15 +225,15 @@ def formen(art, bm, gw, ske, ob):
         w = gw.summe(v, rumpf)
         if w <= 0.0:
             continue
-        v.co.x *= 1.0 + (0.14 if pferd else 0.10) * w
-        v.co.z -= (0.30 if pferd else 0.16) * w * _weich((belly_z - v.co.z) / 0.9)       # tieferer Bauch
+        v.co.x *= 1.0 + (0.14 if pferd else 0.05) * w
+        v.co.z -= (0.30 if pferd else 0.10) * w * _weich((belly_z - v.co.z) / 0.9)       # tieferer Bauch
     for seite in ("L", "R"):
         for vorn in ("Front", "Back"):
             oben, unten = f"{vorn}UpLeg.{seite}", f"{vorn}LowLeg.{seite}"
             fuss = f"{vorn}Foot.{seite}"
             radial(bm, gw, [oben], *knochen(ske, oben), 1.65 if pferd else 1.26)
             radial(bm, gw, [unten, fuss], *knochen(ske, unten), 1.52 if pferd else 1.20)
-    radial(bm, gw, ["Neck"], *knochen(ske, "Neck"), 1.22 if pferd else 1.36)
+    radial(bm, gw, ["Neck"], *knochen(ske, "Neck"), 1.22 if pferd else 1.24)
     radial(bm, gw, ["Shoulders"], *knochen(ske, "Shoulders"), 1.12 if pferd else 1.20)
     if not pferd:                                                   # Widerrist des Ochsen etwas höher
         for v in bm.verts:
@@ -337,18 +356,19 @@ def kummet(bm, gw, ske, s, ziel_hoehe=1.595):
     rx = max(abs(q.x - p.x) for q in pts) + 0.004
     rs = max(abs((q - p).dot(senk)) for q in pts) + 0.004
     n = 20
-    ring = [p + (math.cos(2 * math.pi * k / n) * rx * lat + math.sin(2 * math.pi * k / n) * rs * senk) for k in range(n)]
-    rohr(bm, gw, "Shoulders", 6, ring, [0.052] * n, n=8, geschlossen=True, mitte=p, achse=achse)
+    bogen = KUMMET_BOGEN                                                 # Kummet von der Seite gebogen: die Seiten wölben sich nach vorn, Ober- und Unterseite liegen zurück
+    ring = [p + (math.cos(2 * math.pi * k / n) * rx * lat + math.sin(2 * math.pi * k / n) * rs * senk) + achse * (bogen * math.cos(2 * math.pi * k / n) ** 2) for k in range(n)]
+    rohr(bm, gw, "Shoulders", 6, ring, [0.056] * n, n=8, geschlossen=True, mitte=p, achse=achse)
     # Hamen: flache Hölzer in einem geschlossenen Oval um den Polsterring (Kummetform): an den Seiten Holz, oben und unten Lederriemen;
     # am Scheitel jeder Seite ein deutlicher Zugring (Eisen) in der Seitenebene
-    zug = 0.052 + 0.014
+    zug = 0.056 + 0.014
     n_h = 48
     ringe_b = []
     for k in range(n_h):
         w = 2 * math.pi * k / n_h
         rad = (math.cos(w) * lat * (rx + zug) + math.sin(w) * senk * (rs + zug))
         radn = (math.cos(w) * lat / max(rx + zug, 1e-3) + math.sin(w) * senk / max(rs + zug, 1e-3)).normalized()
-        c = p + rad
+        c = p + rad + achse * (bogen * math.cos(w) ** 2)
         ringe_b.append([bm.verts.new(c + achse * 0.040 + radn * 0.012), bm.verts.new(c + achse * 0.040 - radn * 0.012),
                         bm.verts.new(c - achse * 0.040 - radn * 0.012), bm.verts.new(c - achse * 0.040 + radn * 0.012)])
     for rg in ringe_b:
@@ -363,11 +383,11 @@ def kummet(bm, gw, ske, s, ziel_hoehe=1.595):
             fl.material_index = pl
             fl.smooth = False
     for sx in (-1, 1):
-        mitte_r = p + sx * (rx + zug + 0.075) * lat
+        mitte_r = p + sx * (rx + zug + 0.075) * lat + achse * bogen
         u1, u2 = achse, senk
         pf = [mitte_r + (math.cos(2 * math.pi * k / 14) * u1 + math.sin(2 * math.pi * k / 14) * u2) * 0.048 for k in range(14)]
         rohr(bm, gw, "Shoulders", 8, pf, [0.014] * 14, n=6, geschlossen=True, mitte=mitte_r, achse=sx * lat)
-        rohr(bm, gw, "Shoulders", 8, [p + sx * (rx + zug) * lat, mitte_r - sx * lat * 0.035], [0.018, 0.018], n=6)
+        rohr(bm, gw, "Shoulders", 8, [p + sx * (rx + zug) * lat + achse * bogen, mitte_r - sx * lat * 0.035], [0.018, 0.018], n=6)
     # Sattelgurt (Bauchgurt) hinter den Vorderbeinen: liegt der Haut an (Strahl vom Querschnittsmittelpunkt), kein frei hängender Reif
     from mathutils.bvhtree import BVHTree
     bvh = BVHTree.FromBMesh(bm)
@@ -613,32 +633,32 @@ def haare(bm, gw, ske, art):
                     q = r / 2.0
                     sp.append(haut(p0.y + 0.004 * q, p0.z - links * q, 1.0, 0.008))
                 gitter.append(sp)
-            h.flaeche(gitter, w_haut, 0, hell=0.62)
+            h.flaeche(gitter, w_haut, 0, hell=0.60)
             # Locken: breite, weiche Strähnen vom Kamm (vom Genick bis zum Widerrist) über die Halsseite herab; Länge und Schwung wechseln fließend,
             # die Ecken hängen an den Gewichten der nächsten Hautecke (folgen Hals, Schulter und Kopf)
-            anzahl = 26
+            anzahl = 38
             for c in range(anzahl):
                 s_ = (c + 0.5) / anzahl
                 f = s_ * (len(kamm) - 1)
                 i0 = min(len(kamm) - 2, int(f))
                 p0 = kamm[i0].lerp(kamm[i0 + 1], f - i0)
-                rand = min(1.0, 0.5 + s_ * 6.0, (1.0 - s_) * 6.0 + 0.50)
+                rand = min(0.30 + 0.70 * _weich(s_ / 0.22), (1.0 - s_) * 6.0 + 0.50)           # am Genick kurz auslaufend, keine Kante
                 zuf = _rauschen(Vector((c * 2.3, 4.0, 0.7)))
                 welle = 0.5 + 0.5 * math.sin(2 * math.pi * 1.6 * s_ + 0.6)
                 laenge = rand * (0.30 + 0.07 * math.sin(math.pi * (0.1 + 0.8 * s_))) * (0.78 + 0.34 * welle + 0.14 * zuf)
                 pf, br, di = [], [], []
-                pf.append(haut(p0.y, p0.z, 0.0, 0.026))
-                br.append(0.040)
-                di.append(0.026)
+                pf.append(haut(p0.y, p0.z, 0.0, 0.016))
+                br.append(0.032)
+                di.append(0.018)
                 for k in range(1, 7):
                     q = k / 6.0
                     z = p0.z - laenge * q
-                    y = p0.y + 0.07 * q * q * (1 + s_) + 0.022 * math.sin(2 * math.pi * (0.9 * q + 1.1 * s_) + c * 0.5)
-                    pf.append(haut(y, z, -1.0, 0.026 + 0.045 * math.sin(math.pi * (0.10 + 0.75 * q)) + 0.012 * zuf))
-                    br.append(0.046 * (1.0 - 0.80 * q ** 1.6))
-                    di.append(0.034 * (1.0 - 0.75 * q))
+                    y = p0.y + 0.07 * q * q * (1 + s_) + 0.034 * math.sin(2 * math.pi * (0.8 * q + 1.3 * s_) + c * 0.9) * q
+                    pf.append(haut(y, z, -1.0, 0.014 + 0.032 * math.sin(math.pi * (0.10 + 0.75 * q)) + 0.010 * zuf))
+                    br.append(0.036 * (1.0 - 0.78 * q ** 1.4))
+                    di.append(0.022 * (1.0 - 0.72 * q))
                 aussen = Vector((-1, 0, 0.4)).normalized()
-                h.lock(pf, br, di, aussen, w_haut, 0.62, 1.45, jitter=0.78 + 0.46 * zuf)
+                h.lock(pf, br, di, aussen, w_haut, 0.72, 1.12, jitter=(0.80 if c % 2 else 1.06) * (0.92 + 0.16 * zuf))     # zwei Töne im Wechsel, Spitzen nur wenig heller
         # Loch der Vorlage schließen, Schweifrübe (Rundkörper aus der Kruppe) mit Haarlocken, die aus ihr wachsen
         rand_k = [e for e in bm.edges if e.is_boundary]
         if rand_k:
@@ -766,7 +786,7 @@ def hoerner(bm, gw, ske, s):
 #  Eckenfarbe: Verlauf
 # ─────────────────────────────────────────────────────────────────────────────
 
-def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None):
+def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None, art=None, variante=None):
     """Gegenschattierung wie bei Huftieren: Rücken dunkler, Bauch und Innenseiten der Beine heller, Beine unten dunkler („Stiefel“),
     dazu leichtes Rauschen – nur auf Fell (nicht auf Leder und Holz). Haarsträhnen: je Strähne ein Helligkeitsfaktor, Wurzel dunkler."""
     attr = me.color_attributes.get("Farbe")
@@ -775,6 +795,7 @@ def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None):
     zs = [v.co.z for v in me.vertices]
     z0, z1 = min(zs), max(zs)
     hoehe = max(0.3, z1 - z0)
+    namen_g = {g.index: g.name for g in ob.vertex_groups}
     for poly in me.polygons:
         haar = haar_faktor.get(poly.index) if haar_faktor else None
         if haar is None and poly.index not in fell_flaechen:
@@ -790,7 +811,17 @@ def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None):
                 ruecken = _weich(n.z * 1.4 - 0.2)                      # Oberseite
                 f = 0.95 + 0.50 * bauch - 0.20 * ruecken
                 f *= 1.0 - 0.40 * _weich((0.55 - p.z) / 0.45)           # unten dunkler
-                f *= 1.0 + (_rauschen(p * 3.0) - 0.5) * 0.08
+                f *= 1.0 + (_rauschen(p * 3.0) - 0.5) * 0.05
+                # Fellschattierung: großflächige Töne (Handbreit bis Handspanne) und Haarstrich in Körperrichtung
+                f *= 1.0 + 0.30 * (_glatt(p * 4.5) - 0.5) + 0.18 * (_glatt(Vector((p.x * 11.0, p.y * 3.0, p.z * 11.0))) - 0.5)
+                kh_ = sum(g.weight for g in v.groups if namen_g.get(g.group) in ("Head", "Neck"))
+                if art == "ochse":
+                    f *= 1.0 - 0.20 * min(1.0, kh_)                       # Kopf und Hals dunkler als der Rumpf
+                if art == "pferd" and variante == "schwarzbraun":
+                    band = _weich(1.0 - abs(n.z - 0.40) / 0.45)            # Schimmer: Kanten der Muskeln und Flanken fangen Licht
+                    f *= 1.0 + 0.55 * band * (0.45 + 0.55 * _glatt(Vector((p.x * 7.0, p.y * 2.2, p.z * 7.0))))
+                    d_ = _glatt(p * 17.0)                                   # Apfelung: weiche hellere Flecken
+                    f *= 1.0 + 0.32 * _weich((d_ - 0.58) / 0.14) * _weich(n.z + 0.35)
             c = attr.data[li].color
             attr.data[li].color = (min(1.0, c[0] * f), min(1.0, c[1] * f), min(1.0, c[2] * f), 1.0)
 
@@ -826,10 +857,10 @@ def abzeichen(me, ob, ske, art, variante, fell_flaechen):
                 k = (1.0 + 1.1 * w, 1.0 + 2.2 * w, 1.0 + 3.2 * w)
             elif variante == "schwarzbraun" and kopf > 0.5 and t > 0.78:
                 w = _weich((t - 0.78) / 0.12)
-                k = (1.0 + 1.4 * w, 1.0 + 1.5 * w, 1.0 + 1.5 * w)
-            elif variante == "falb" and rumpf > 0.4 and abs(p.x) < 0.035 and n.z > 0.35:
-                w = _weich((0.035 - abs(p.x)) / 0.012) * _weich((n.z - 0.35) / 0.3)
-                k = (1.0 - 0.55 * w, 1.0 - 0.62 * w, 1.0 - 0.65 * w)
+                k = (1.0 + 0.55 * w, 1.0 + 0.62 * w, 1.0 + 0.65 * w)
+            elif variante == "falb" and rumpf > 0.4 and abs(p.x) < 0.060 and n.z > 0.25:
+                w = _weich((0.060 - abs(p.x)) / 0.030) * _weich((n.z - 0.25) / 0.3)       # Aalstrich: breit, weich ausklingend
+                k = (1.0 - 0.50 * w, 1.0 - 0.60 * w, 1.0 - 0.66 * w)
             c = attr.data[li].color
             attr.data[li].color = (min(1.0, c[0] * k[0]), min(1.0, c[1] * k[1]), min(1.0, c[2] * k[2]), 1.0)
 
@@ -1234,17 +1265,22 @@ def bauen(datei, art, variante, bilder_ausgeben=True):
         eb.tail = ursprung[eb.name][1] * s + Vector((0, 0, -zmin))
     bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
-    ohren_anlegen(ske, ob, art)
+    if art == "pferd":
+        zk.ohren_knochen(ske, ob)
+    else:
+        ohren_anlegen(ske, ob, art)
 
     # Zubehör und Hörner (Meter)
     bm = bmesh.new()
     bm.from_mesh(me)
     gw = Gewichte(bm, ob)
     if art == "pferd":
+        print(zk.kopf_pferd(bm, gw, ske, ob))
         zug = kummet(bm, gw, ske, 1.0)
         haar_obj = haare(bm, gw, ske, art)
         klauen(bm, gw, ske, art)
     else:
+        print(zo.ochse_form(bm, gw, ske))
         hoerner(bm, gw, ske, 1.0)
         zug = joch(bm, gw, ske, 1.0)
         haar_obj = haare(bm, gw, ske, art)
@@ -1262,7 +1298,7 @@ def bauen(datei, art, variante, bilder_ausgeben=True):
     me.update()
     # Farben zusammenlegen, Verlauf
     vorher, nachher = bs.farben_zusammenlegen([ob])
-    verlauf(me, ob, PLATZ, fell_flaechen, haar_faktor)
+    verlauf(me, ob, PLATZ, fell_flaechen, haar_faktor, art, variante)
     abzeichen(me, ob, ske, art, variante, fell_flaechen)
     m = ob.modifiers.new("Skelett", "ARMATURE")
     m.object = ske
@@ -1283,7 +1319,7 @@ def bauen(datei, art, variante, bilder_ausgeben=True):
     bmf.free()
     d = fern.modifiers.new("Verkleinern", "DECIMATE")
     d.decimate_type = "COLLAPSE"
-    d.ratio = 0.14
+    d.ratio = 0.14 if art != "pferd" else 0.108                     # Pferd: nach dem neuen Kopf dieselbe Fernnetz-Größe wie zuvor (rund 1180 Dreiecke)
     d.use_collapse_triangulate = True
     fern.modifiers.move(len(fern.modifiers) - 1, 0)
     bpy.context.view_layer.objects.active = fern
