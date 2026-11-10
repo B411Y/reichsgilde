@@ -279,6 +279,8 @@ public sealed class EinstellungenAnzeige
     private static readonly string[] StufenNamen = { "Aus", "Nur Verlauf", "Siegel", "Brief" };
     private readonly List<(Meldeart Art, OptionButton Auswahl)> _meldungsWahl = new();
     private readonly CheckButton _siegelBewegung;
+    private readonly CheckButton _entscheidungAnhalten;
+    private readonly List<(string Schluessel, OptionButton Auswahl)> _entscheidungsWahl = new();
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -630,9 +632,26 @@ public sealed class EinstellungenAnzeige
                 _meldungsWahl.Add((a, auswahl));
             }
         }
+        // Entscheidungen (Stufe 3): je Art Brief mit Wahl oder Voreinstellung automatisch
+        Abschnitt(s, "Entscheidungen");
+        Hinweis(s, "Manche Fragen verlangen eine Antwort in Spielzeit. „Entscheidung“: ein Brief mit Knöpfen und Frist. „Automatisch“: es gilt gleich die Voreinstellung, ihr bekommt nur einen Brief mit dem Ergebnis.");
+        _entscheidungAnhalten = Schalter(s, "Bei Entscheidungen anhalten", () => "Solange ein Entscheidungsbrief offen ist, steht die Zeit. Nur im Einzelspiel; im Mehrspieler läuft die Frist weiter. „Später“ im Brief lässt die Zeit weiterlaufen.",
+                                         an => Entscheidungseinstellungen.Anhalten = an);
+        foreach (var (schluessel, name, erklaerung, standard) in Entscheidungseinstellungen.Arten)
+        {
+            var key = schluessel;
+            var tippZeile = Zeile(s, name, () => erklaerung + "\n\nVorgabe: " + (standard ? "Automatisch" : "Entscheidung") + ".", 260);
+            var auswahl = Auswahl(tippZeile, new[] { "Entscheidung", "Automatisch" }, nummer =>
+            {
+                Entscheidungseinstellungen.Setzen(key, nummer == 1);
+                Auffrischen();
+            });
+            _entscheidungsWahl.Add((key, auswahl));
+        }
         var meldungenZurueck = Hauptmenue.Knopf(s, "Auf die Vorgabe zurücksetzen", () =>
         {
             Meldungseinstellungen.Zuruecksetzen();
+            Entscheidungseinstellungen.Zuruecksetzen();
             Auffrischen();
         });
         meldungenZurueck.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
@@ -858,6 +877,9 @@ public sealed class EinstellungenAnzeige
         _siegelBewegung.SetPressedNoSignal(Meldungseinstellungen.Bewegung);
         foreach (var (art, auswahl) in _meldungsWahl)
             auswahl.Select(Math.Min((int)Meldungseinstellungen.Wirksam(art), auswahl.ItemCount - 1));
+        _entscheidungAnhalten.SetPressedNoSignal(Entscheidungseinstellungen.Anhalten);
+        foreach (var (schluessel, auswahl) in _entscheidungsWahl)
+            auswahl.Select(Entscheidungseinstellungen.Automatisch(schluessel) ? 1 : 0);
         _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
         _sitzung.Select(Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung));
         for (var i = 0; i < _tonRegler.Count; i++)

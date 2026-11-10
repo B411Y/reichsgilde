@@ -89,10 +89,23 @@ public static class Siegelzeichner
         Zeichen(ziel, mitte, r * 0.40f, thema);
     }
 
-    private static void Linie(CanvasItem c, Vector2 mitte, float s, float breite, params (float X, float Y)[] punkte)
+    private static void Linie(CanvasItem c, Vector2 mitte, float s, float breite, params (float X, float Y)[] punkte) => LinieFarbe(c, mitte, s, breite, Tinte, punkte);
+
+    private static void LinieFarbe(CanvasItem c, Vector2 mitte, float s, float breite, Color farbe, params (float X, float Y)[] punkte)
     {
         var pts = punkte.Select(p => mitte + new Vector2(p.X, p.Y) * s).ToArray();
-        c.DrawPolyline(pts, Tinte, breite, true);
+        c.DrawPolyline(pts, farbe, breite, true);
+    }
+
+    /// <summary>Eine Schreibfeder (Kiel unten links, Fahne oben rechts) in Tinte – Zeichen der Entscheidungen (Siegel, Verlauf, Brief).</summary>
+    public static void Feder(CanvasItem c, Vector2 m, float s, float breite, Color? farbe = null)
+    {
+        var f = farbe ?? Tinte;
+        LinieFarbe(c, m, s, breite * 0.9f, f, (-0.95f, 0.95f), (0.55f, -0.55f)); // Kiel
+        LinieFarbe(c, m, s, breite * 0.8f, f, (0.95f, -0.95f), (0.35f, -0.9f), (-0.05f, -0.6f), (-0.4f, -0.1f), (-0.55f, 0.35f), (-0.45f, 0.45f)); // Fahne links oben
+        LinieFarbe(c, m, s, breite * 0.8f, f, (0.95f, -0.95f), (0.9f, -0.35f), (0.6f, 0.05f), (0.2f, 0.3f), (-0.2f, 0.45f), (-0.45f, 0.45f)); // Fahne rechts unten
+        LinieFarbe(c, m, s, breite * 0.5f, f, (0.1f, -0.45f), (0.55f, -0.1f)); // zwei Äste
+        LinieFarbe(c, m, s, breite * 0.5f, f, (-0.15f, -0.05f), (0.25f, 0.2f));
     }
 
     /// <summary>Das Zeichen in der Mitte, gezeichnet in Tinte (Einheitskoordinaten von −1 bis 1, skaliert mit <paramref name="s"/>).</summary>
@@ -124,6 +137,9 @@ public static class Siegelzeichner
             case "rat": // Krone
                 Linie(c, m, s, breite, (-0.95f, 0.65f), (-0.95f, -0.45f), (-0.45f, 0.1f), (0, -0.8f), (0.45f, 0.1f), (0.95f, -0.45f), (0.95f, 0.65f), (-0.95f, 0.65f));
                 break;
+            case "entscheidung": // Feder
+                Feder(c, m, s * 1.05f, breite);
+                break;
             case "befehl": // Kreuz
                 Linie(c, m, s, breite * 1.2f, (-0.7f, -0.7f), (0.7f, 0.7f));
                 Linie(c, m, s, breite * 1.2f, (0.7f, -0.7f), (-0.7f, 0.7f));
@@ -150,6 +166,8 @@ public sealed partial class Siegel : Control
     public Color Farbe = Colors.Gray;
     public int Anzahl = 1;
     public bool Gelesen;
+    /// <summary>Bleibt, bis die Hauptszene es selbst wegnimmt (Entscheidungen): Rechtsklick und Frist verwerfen es nicht.</summary>
+    public bool Dauerhaft;
     /// <summary>Echtzeit in Sekunden, nach der das Siegel von selbst verschwindet (0: bleibt, bis es gelesen ist).</summary>
     public double Frist;
     public List<Meldungsposten> Posten = new();
@@ -197,7 +215,7 @@ public sealed partial class Siegel : Control
     public override void _Process(double delta)
     {
         _alter += delta;
-        if (Frist > 0 && _alter >= Frist) Verworfen?.Invoke(this);
+        if (Frist > 0 && !Dauerhaft && _alter >= Frist) Verworfen?.Invoke(this);
         if (Meldungseinstellungen.Bewegung && (_alter < 0.4 || (!Gelesen && !_ueber))) QueueRedraw();
     }
 
@@ -205,7 +223,7 @@ public sealed partial class Siegel : Control
     {
         if (ereignis is not InputEventMouseButton { Pressed: true } klick) return;
         if (klick.ButtonIndex == MouseButton.Left) Angeklickt?.Invoke(this);
-        else if (klick.ButtonIndex == MouseButton.Right) Verworfen?.Invoke(this);
+        else if (klick.ButtonIndex == MouseButton.Right && !Dauerhaft) Verworfen?.Invoke(this);
         AcceptEvent();
     }
 
@@ -323,7 +341,8 @@ public sealed partial class Siegelecke : Control
         {
             var neu = s.Posten.Count > 0 ? s.Posten[0].Text : "";
             if (neu.Length > 140) neu = neu[..140] + "…";
-            var tipp = (s.Anzahl > 1 ? $"{s.Anzahl} Meldungen · " : "") + neu + "\nKlick: Brief lesen · Rechtsklick: beiseitelegen";
+            var tipp = s.Dauerhaft ? neu + "\nKlick: Entscheidungsbrief öffnen"
+                : (s.Anzahl > 1 ? $"{s.Anzahl} Meldungen · " : "") + neu + "\nKlick: Brief lesen · Rechtsklick: beiseitelegen";
             if (s.TooltipText != tipp) s.TooltipText = tipp;
         }
     }

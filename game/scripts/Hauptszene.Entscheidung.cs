@@ -18,6 +18,11 @@ public partial class Hauptszene
     /// </summary>
     private void EntscheidungStartoption(string wert)
     {
+        foreach (var teil in wert.Split(',')) EntscheidungStartoptionEine(teil.Trim()); // mehrere mit Komma: ein Stapel im Klicktest
+    }
+
+    private void EntscheidungStartoptionEine(string wert)
+    {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
         var teile = wert.Split(':');
         var betrag = 400.0;
