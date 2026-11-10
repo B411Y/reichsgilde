@@ -358,10 +358,11 @@ def kummet(bm, gw, ske, s, ziel_hoehe=1.595):
     n = 20
     bogen = KUMMET_BOGEN                                                 # Kummet von der Seite gebogen: die Seiten wölben sich nach vorn, Ober- und Unterseite liegen zurück
     ring = [p + (math.cos(2 * math.pi * k / n) * rx * lat + math.sin(2 * math.pi * k / n) * rs * senk) + achse * (bogen * math.cos(2 * math.pi * k / n) ** 2) for k in range(n)]
-    rohr(bm, gw, "Shoulders", 6, ring, [0.056] * n, n=8, geschlossen=True, mitte=p, achse=achse)
+    pad_r = [0.054 + 0.026 * max(0.0, -math.sin(2 * math.pi * k / n)) ** 1.3 for k in range(n)]      # Unterteil (Brustpolster) dicker als oben
+    rohr(bm, gw, "Shoulders", 6, ring, pad_r, n=8, geschlossen=True, mitte=p, achse=achse)
     # Hamen: flache Hölzer in einem geschlossenen Oval um den Polsterring (Kummetform): an den Seiten Holz, oben und unten Lederriemen;
     # am Scheitel jeder Seite ein deutlicher Zugring (Eisen) in der Seitenebene
-    zug = 0.056 + 0.014
+    zug = 0.080 + 0.012
     n_h = 48
     ringe_b = []
     for k in range(n_h):
@@ -388,6 +389,16 @@ def kummet(bm, gw, ske, s, ziel_hoehe=1.595):
         pf = [mitte_r + (math.cos(2 * math.pi * k / 14) * u1 + math.sin(2 * math.pi * k / 14) * u2) * 0.048 for k in range(14)]
         rohr(bm, gw, "Shoulders", 8, pf, [0.014] * 14, n=6, geschlossen=True, mitte=mitte_r, achse=sx * lat)
         rohr(bm, gw, "Shoulders", 8, [p + sx * (rx + zug) * lat + achse * bogen, mitte_r - sx * lat * 0.035], [0.018, 0.018], n=6)
+    # Hamenspitzen oben (zwei Hölzer mit Knauf, durch einen Riemen verbunden) und Zughaken unten
+    obenp = p + senk * (rs + zug) + achse * 0.0
+    for sx in (-1, 1):
+        fuss_ = obenp + sx * lat * 0.050
+        rohr(bm, gw, "Shoulders", 7, [fuss_ - senk * 0.02, fuss_ + senk * 0.085, fuss_ + senk * 0.115 + achse * 0.01], [0.017, 0.015, 0.011], n=6)
+        rohr(bm, gw, "Shoulders", 7, [fuss_ + senk * 0.108 + achse * 0.008, fuss_ + senk * 0.150 + achse * 0.012], [0.026, 0.026], n=8)
+    rohr(bm, gw, "Shoulders", 8, [obenp + lat * 0.050 + senk * 0.060, obenp + senk * 0.075 + achse * 0.01, obenp - lat * 0.050 + senk * 0.060], [0.008, 0.008, 0.008], n=5)
+    untenp = p - senk * (rs + zug) + achse * 0.0
+    for sx in (-1, 1):
+        rohr(bm, gw, "Shoulders", 9, [untenp + sx * lat * 0.05 + senk * 0.01, untenp + sx * lat * 0.05 - senk * 0.045 + achse * 0.01, untenp + sx * lat * 0.05 - senk * 0.075 + achse * 0.045], [0.014, 0.013, 0.010], n=6)
     # Sattelgurt (Bauchgurt) hinter den Vorderbeinen: liegt der Haut an (Strahl vom Querschnittsmittelpunkt), kein frei hängender Reif
     from mathutils.bvhtree import BVHTree
     bvh = BVHTree.FromBMesh(bm)
@@ -619,7 +630,7 @@ def haare(bm, gw, ske, art):
                 f = s_ * (len(kamm) - 1)
                 i0 = min(len(kamm) - 2, int(f))
                 p0 = kamm[i0].lerp(kamm[i0 + 1], f - i0)
-                rand = min(1.0, s_ * 5.0, (1.0 - s_) * 5.0 + 0.35)
+                rand = min(_weich(s_ / 0.35), (1.0 - s_) * 5.0 + 0.35)
                 laenge = 0.62 * rand * (0.26 + 0.05 * math.sin(math.pi * (0.1 + 0.8 * s_)))
                 links = 0.7 * rand * 0.07
                 sp = []
@@ -627,11 +638,11 @@ def haare(bm, gw, ske, art):
                     q = 1.0 - r / 3.0
                     z = p0.z - laenge * q
                     y = p0.y + 0.04 * q * q * (1 + s_)
-                    sp.append(haut(y, z, -1.0, 0.008 + 0.012 * q) if q > 0.05 else haut(p0.y, p0.z, 0.0, 0.008))
-                sp.append(haut(p0.y, p0.z, 0.0, 0.010))
+                    sp.append(haut(y, z, -1.0, 0.004 + 0.008 * q) if q > 0.05 else haut(p0.y, p0.z, 0.0, 0.004))
+                sp.append(haut(p0.y, p0.z, 0.0, 0.005))
                 for r in range(1, 3):
                     q = r / 2.0
-                    sp.append(haut(p0.y + 0.004 * q, p0.z - links * q, 1.0, 0.008))
+                    sp.append(haut(p0.y + 0.004 * q, p0.z - links * q, 1.0, 0.004))
                 gitter.append(sp)
             h.flaeche(gitter, w_haut, 0, hell=0.60)
             # Locken: breite, weiche Strähnen vom Kamm (vom Genick bis zum Widerrist) über die Halsseite herab; Länge und Schwung wechseln fließend,
@@ -642,7 +653,7 @@ def haare(bm, gw, ske, art):
                 f = s_ * (len(kamm) - 1)
                 i0 = min(len(kamm) - 2, int(f))
                 p0 = kamm[i0].lerp(kamm[i0 + 1], f - i0)
-                rand = min(0.30 + 0.70 * _weich(s_ / 0.22), (1.0 - s_) * 6.0 + 0.50)           # am Genick kurz auslaufend, keine Kante
+                rand = min(0.10 + 0.90 * _weich(s_ / 0.38), (1.0 - s_) * 6.0 + 0.50)           # am Genick kurz auslaufend, keine Kante
                 zuf = _rauschen(Vector((c * 2.3, 4.0, 0.7)))
                 welle = 0.5 + 0.5 * math.sin(2 * math.pi * 1.6 * s_ + 0.6)
                 laenge = rand * (0.30 + 0.07 * math.sin(math.pi * (0.1 + 0.8 * s_))) * (0.78 + 0.34 * welle + 0.14 * zuf)
@@ -855,11 +866,11 @@ def abzeichen(me, ob, ske, art, variante, fell_flaechen):
                 else:
                     w = _weich((0.55 - t) / 0.15) * _weich((t - 0.10) / 0.15) * _weich((breit - abs(p.x)) / 0.012) * _weich(n.z * 3.0 + 0.2)
                 k = (1.0 + 1.1 * w, 1.0 + 2.2 * w, 1.0 + 3.2 * w)
-            elif variante == "schwarzbraun" and kopf > 0.5 and t > 0.78:
-                w = _weich((t - 0.78) / 0.12)
-                k = (1.0 + 0.55 * w, 1.0 + 0.62 * w, 1.0 + 0.65 * w)
-            elif variante == "falb" and rumpf > 0.4 and abs(p.x) < 0.060 and n.z > 0.25:
-                w = _weich((0.060 - abs(p.x)) / 0.030) * _weich((n.z - 0.25) / 0.3)       # Aalstrich: breit, weich ausklingend
+            elif variante == "schwarzbraun" and kopf > 0.5 and t > 0.55:
+                w = _weich((t - 0.55) / 0.45)
+                k = (1.0 + 0.28 * w, 1.0 + 0.32 * w, 1.0 + 0.34 * w)
+            elif variante == "falb" and rumpf > 0.4 and abs(p.x) < 0.095 and n.z > 0.10:
+                w = _weich((0.095 - abs(p.x)) / 0.040) * _weich((n.z - 0.10) / 0.3)       # Aalstrich: breit, weich ausklingend
                 k = (1.0 - 0.50 * w, 1.0 - 0.60 * w, 1.0 - 0.66 * w)
             c = attr.data[li].color
             attr.data[li].color = (min(1.0, c[0] * k[0]), min(1.0, c[1] * k[1]), min(1.0, c[2] * k[2]), 1.0)
@@ -976,6 +987,7 @@ def clips_schreiben(art, cfg, clips, daten, zug=None):
                        "Wechsel zwischen Stehen, Stehen-Varianten und Anfahren_/Anhalten_ sind ohne Blendzeit möglich (Abstand höchstens 2,2 mm).",
         "mehrere_tiere": "Zwei Pferde nie im Gleichtakt: das zweite startet Gehen/Ziehen mit seek(0,5 · Dauer) bzw. um diese Zeit später "
                          "(Fußfolge gegen das erste verschoben); Stehen-Varianten je Tier zufällig und zeitlich versetzt.",
+        "lod": "Dreiecksbudget (Runde 10): Nahnetz Pferd rund 11 400, Ochse 6 170 Dreiecke; Fernnetz Pferd rund 1 210, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 11 400 = 22 800 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Fernnetz der Pferde liegt 10 mm höher (Decimate-Ausgleich).",
         "vat": "Gehen und Ziehen mit 24 Bildern je Sekunde backen (nicht 12): Mitte zwischen zwei Bildern höchstens rund 1 cm Abweichung, "
                "bei 12 rund 7 bis 9 cm (siehe docs/bereiche/darstellung.md).",
     }
@@ -1326,6 +1338,8 @@ def bauen(datei, art, variante, bilder_ausgeben=True):
     for o in bpy.context.scene.objects:
         o.select_set(o is fern)
     bpy.ops.object.modifier_apply(modifier=d.name)
+    if art == "pferd":
+        fern.data.transform(Matrix.Translation((0, 0, 0.010)))      # Decimate zieht die Hufspitzen bis 9 mm unter den Boden
     fern.data.validate()
     fern.data.calc_loop_triangles()
     dreiecke_fern = len(fern.data.loop_triangles)

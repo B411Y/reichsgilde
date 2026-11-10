@@ -14,18 +14,18 @@ from mathutils import Vector
 
 # Kopf-Längsschnitte: s (m vom Genick), halbe Breite, Höhe über der Mittellinie, Tiefe darunter
 SCHNITTE = [
-    (-0.12, 0.118, 0.105, 0.130),
-    (-0.06, 0.118, 0.108, 0.140),
-    (0.00, 0.116, 0.108, 0.165),
-    (0.06, 0.114, 0.100, 0.182),
-    (0.13, 0.108, 0.092, 0.202),
-    (0.18, 0.097, 0.083, 0.192),
-    (0.24, 0.083, 0.073, 0.128),
-    (0.30, 0.070, 0.066, 0.090),
-    (0.38, 0.059, 0.058, 0.077),
-    (0.46, 0.055, 0.053, 0.066),
-    (0.54, 0.056, 0.052, 0.062),
-    (0.60, 0.060, 0.053, 0.061),
+    (-0.12, 0.116, 0.105, 0.095),
+    (-0.06, 0.118, 0.108, 0.125),
+    (0.00, 0.118, 0.108, 0.165),
+    (0.06, 0.116, 0.102, 0.205),
+    (0.12, 0.112, 0.096, 0.232),
+    (0.17, 0.102, 0.088, 0.215),
+    (0.22, 0.088, 0.078, 0.150),
+    (0.28, 0.074, 0.072, 0.098),
+    (0.36, 0.063, 0.068, 0.078),
+    (0.46, 0.057, 0.063, 0.066),
+    (0.54, 0.056, 0.058, 0.062),
+    (0.60, 0.060, 0.056, 0.060),
     (0.65, 0.072, 0.060, 0.068),
     (0.69, 0.077, 0.062, 0.067),
     (0.715, 0.073, 0.059, 0.061),
@@ -38,8 +38,8 @@ KOPF_LAENGE = 1.04
 KOPF_QUER = 1.32
 OHR_LAENGE = 0.23
 KOPF_NEIGUNG = 50.0       # Grad unter der Waagerechten (die Vorlage hat 34)
-HALS_ENDRADIUS = 0.115
-HALS_ANFANG = 0.10
+HALS_ENDRADIUS = 0.098
+HALS_ANFANG = 0.0
 
 
 def _smooth01(x):
@@ -87,14 +87,14 @@ def punkt(s, th):
     # Seite spiegeln: Funktionen nur von |x|-Seite abhängig, daher th auf die rechte Hälfte spiegeln
     tr = math.atan2(sn, abs(c))                                   # -90..90 Grad
     zu = 0.0
-    zu += 0.0085 * _gauss(s, 0.105, 0.045) * _gauss(tr, math.radians(52), 0.34)          # Augenbogen über dem Auge
+    zu += 0.0150 * _gauss(s, 0.105, 0.045) * _gauss(tr, math.radians(52), 0.34)          # Augenbogen über dem Auge
     zu += -0.0040 * _gauss(s, 0.105, 0.030) * _gauss(tr, math.radians(24), 0.22)         # Augenhöhle (flache Mulde unter dem Bogen)
-    zu += 0.0105 * _gauss(s, 0.150, 0.065) * _gauss(tr, math.radians(-42), 0.45)         # Backe, Ganasche
+    zu += 0.0160 * _gauss(s, 0.140, 0.065) * _gauss(tr, math.radians(-42), 0.45)         # Backe, Ganasche
     zu += 0.0070 * _gauss(s, 0.255, 0.075) * _gauss(tr, math.radians(8), 0.26)           # Gesichtsleiste (Wangenkamm)
     zu += -0.0060 * _gauss(s, 0.30, 0.05) * _gauss(tr, math.radians(-22), 0.30)         # Mulde vor der Ganasche
     zu += 0.0050 * _gauss(s, 0.665, 0.030) * _gauss(tr, math.radians(40), 0.45)          # Nüsternwulst
-    zu += -0.0070 * _gauss(s, 0.665, 0.060) * _gauss(tr, math.radians(-18), 0.22)        # Lippenfurche
-    zu += -0.0035 * _gauss(s, 0.47, 0.10) * _gauss(tr, math.radians(90), 0.40)           # Nasenrücken leicht eingezogen (Seitenansicht)
+    zu += -0.0110 * _gauss(s, 0.665, 0.060) * _gauss(tr, math.radians(-18), 0.22)        # Lippenfurche
+    zu += 0.0040 * _gauss(s, 0.40, 0.14) * _gauss(tr, math.radians(90), 0.40)           # Nasenrücken leicht eingezogen (Seitenansicht)
     # Nüstern: tiefe Vertiefung an der Stirn des Mauls
     zu += -0.0140 * _gauss(s, 0.717, 0.011) * _gauss(tr, math.radians(48), 0.22)
     r = math.hypot(x, z)
@@ -226,7 +226,7 @@ def kopf_pferd(bm, gw, ske, ob, platz_fell=0, platz_dunkel=1, platz_maul=2, plat
             thm = 2 * math.pi * (k + 0.5) / n_um
             trm = math.atan2(math.sin(thm), abs(math.cos(thm)))
             pl = platz_fell
-            if sm > 0.685 and trm < math.radians(60):
+            if sm > 0.725 and trm < math.radians(30):
                 pl = platz_maul                                    # Maul: helleres, kurzes Haar
             nu_d = math.hypot(_winkeldiff(trm, math.radians(48)) * 0.9, (sm - 0.717) * 1.5)
             fl.material_index = pl
@@ -239,12 +239,12 @@ def kopf_pferd(bm, gw, ske, ob, platz_fell=0, platz_dunkel=1, platz_maul=2, plat
         ctr = c - nach_aussen * 0.004
         lid = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.035)
         for v in lid["verts"]:
-            v.co = c - nach_aussen * 0.016 + v.co * Vector((0.85, 1.0, 0.75))
+            v.co = c - nach_aussen * 0.012 + v.co * Vector((0.95, 1.1, 0.85))
             v[gw.dl][gw.idx["Head"]] = 1.0
         for fl in {f for v in lid["verts"] for f in v.link_faces}:
             fl.material_index = platz_fell
             fl.smooth = True
-        geo = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.0245)
+        geo = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=0.028)
         vs = geo["verts"]
         # in die Länge ziehen (Mandelform) und zum Kopf ausrichten
         for v in vs:
@@ -271,7 +271,7 @@ def kopf_pferd(bm, gw, ske, ob, platz_fell=0, platz_dunkel=1, platz_maul=2, plat
         seite = 1 if name == "Ohr_L" else -1
         start, _spitze = ohr_ansatz(ske, seite)
         laenge = OHR_LAENGE
-        wurz = 0.052
+        wurz = 0.056
         punkte = []
         for k in range(8):
             u = k / 7.0
@@ -283,7 +283,7 @@ def kopf_pferd(bm, gw, ske, ob, platz_fell=0, platz_dunkel=1, platz_maul=2, plat
             u = k / 7.0
             br = wurz * (1.0 - 0.88 * (u ** 1.4)) * (1.0 if u > 0.04 else 0.8)
             br *= 1.0 + 0.40 * math.sin(math.pi * min(u * 1.25, 1.0))      # Bauch in der Mitte
-            di = 0.017 * (1.0 - 0.45 * u)
+            di = 0.027 * (1.0 - 0.40 * u)
             radien_br.append(br)
             radien_di.append(di)
         ringe_o = []

@@ -13,6 +13,7 @@ from mathutils.bvhtree import BVHTree
 
 
 STAERKE = 1.9
+GLAETTEN = 10
 
 
 def _g(d, r):
@@ -20,6 +21,10 @@ def _g(d, r):
 
 
 def ochse_form(bm, gw, ske, platz_dunkel=5, platz_fell=0):
+    # Körper glätten (Bauchlinie, Kruppe): Zickzack und Knitter der Vorlage weg, Beine und Kopf bleiben
+    rumpf_v = [v for v in bm.verts if gw.summe(v, ["Torso", "Hips", "Body", "Back", "Shoulders"]) > 0.55 and gw.summe(v, ["Head"]) < 0.3]
+    for _ in range(GLAETTEN):
+        bmesh.ops.smooth_vert(bm, verts=rumpf_v, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
     bm.normal_update()
     bvh = BVHTree.FromBMesh(bm)
     b = ske.data.bones
@@ -54,11 +59,13 @@ def ochse_form(bm, gw, ske, platz_dunkel=5, platz_fell=0):
             pl.append((p, r, amp * STAERKE, Vector(sk)))
 
     for sd in (1, -1):
-        add(oben(sd * 0.20, H.y - 0.02), 0.11, 0.030)                         # Hüfthöcker
+        add(oben(sd * 0.20, H.y - 0.02), 0.11, 0.052)                         # Hüfthöcker
         add(oben(sd * 0.10, H.y + 0.34), 0.13, 0.014)                          # Sitzbein, Kruppe
         add(seitlich(H.y + 0.14, H.z - 0.30, sd), 0.24, 0.040, (1, 1.4, 1.1))   # Oberschenkel
         add(seitlich(H.y - 0.30, H.z - 0.55, sd), 0.20, -0.032, (1, 1.3, 1))     # Flanke eingezogen
-        add(seitlich(T.y - 0.05, T.z - 0.40, sd), 0.36, 0.024, (1, 1.8, 1))      # Rippenrundung
+        add(seitlich(T.y - 0.05, T.z - 0.40, sd), 0.36, 0.030, (1, 1.8, 1))      # Rippenrundung
+        for k_ in range(6):                                                        # Rippenbogen: schwache senkrechte Wülste
+            add(seitlich(T.y + 0.30 - 0.13 * k_, T.z - 0.40, sd), 0.07, 0.012, (1, 1, 2.6))
         add(seitlich(0.5 * (Sh.y + ShT.y), ShT.z - 0.18, sd), 0.22, 0.032, (1, 1.3, 1.3))   # Schulterblatt
     add(oben(0.0, Sh.y - 0.12), 0.17, 0.035, (1.3, 1.0, 1.0))                    # Widerrist
     add(oben(0.0, N0.y - 0.10), 0.20, 0.040, (1.4, 1.2, 1.0))                    # Nackenmuskel
@@ -74,7 +81,8 @@ def ochse_form(bm, gw, ske, platz_dunkel=5, platz_fell=0):
             add(augeort + up * 0.045 + a * 0.01, 0.045, 0.016, (1.0, 1.3, 1.0))      # Augenbogen
             add(augeort - up * 0.07 - a * 0.05, 0.07, 0.014, (1.0, 1.4, 1.0))       # Backenknochen
             add(augeort + a * 0.14, 0.07, -0.012, (1.0, 1.4, 1.0))                   # Mulde zum Flotzmaul
-    add(oben(0.0, (Hd + a * 0.06).y), 0.11, 0.022)                                  # Stirnwulst zwischen den Hörnern
+    add(oben(0.0, (Hd + a * 0.06).y), 0.11, 0.034)
+    add(oben(0.0, (Hd + a * 0.22).y), 0.09, -0.018, (1, 1.2, 1))                    # Stirnabsatz: Mulde hinter dem Nasenrücken                                  # Stirnwulst zwischen den Hörnern
     # anwenden
     for v in bm.verts:
         n = v.normal
