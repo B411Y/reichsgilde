@@ -151,7 +151,11 @@ public partial class Stadtansicht
 
     /// <summary>Bilder je Sekunde eines Clips: „Hacken“ ist schnell (bei 12 Bildern/s lag die Axthand zwischen zwei Bildern bis 40 cm daneben)
     /// und bleibt bei 24, alle übrigen 12.</summary>
-    private static int ProbeVatBilderFuer(string klip) => klip == "Hacken" ? 24 : ProbeVatBilder;
+    private static int ProbeVatBilderFuer(string klip, int art = 0) =>
+        art >= ProbeSofortArten ? (klip == "Hacken" ? ProbeVatBilder : ProbeVatBilderKleineVoelker) : klip == "Hacken" ? 24 : ProbeVatBilder;
+
+    /// <summary>Zwerge, Elben und Halblinge werden mit 8 Bildern/s gebacken (Hacken 12): spart etwa ein Drittel der Texturen; die VAT zeigt sie erst ab Zoom 50.</summary>
+    private const int ProbeVatBilderKleineVoelker = 8;
 
     private static readonly string? ProbeOption = Wasserarten.Startoption("passantenprobe");
     /// <summary>Sind die Passanten Figuren mit Skelett (Weg A)? Seit Schritt 5 des Vollausbaus der Normalfall; <c>--passantenprobe=0</c> holt die
@@ -641,7 +645,7 @@ public partial class Stadtansicht
             var zeilen = 0;
             for (var c = 0; c < ProbeKlips.Length; c++)
             {
-                var bilder = Math.Max(1, (int)Math.Round(spieler.GetAnimation(ProbeKlips[c]).Length * ProbeVatBilderFuer(ProbeKlips[c])));
+                var bilder = Math.Max(1, (int)Math.Round(spieler.GetAnimation(ProbeKlips[c]).Length * ProbeVatBilderFuer(ProbeKlips[c], art)));
                 _probeKlipZeilen[art][c] = (zeilen, bilder);
                 zeilen += bilder;
             }
@@ -653,7 +657,7 @@ public partial class Stadtansicht
                 for (var c = 0; c < ProbeKlips.Length; c++)
                 {
                     var anim = spieler.GetAnimation(ProbeKlips[c]);
-                    for (var b = 0; b < _probeKlipZeilen[art][c].Bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilderFuer(ProbeKlips[c]), zuWurzel));
+                    for (var b = 0; b < _probeKlipZeilen[art][c].Bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilderFuer(ProbeKlips[c], art), zuWurzel));
                 }
                 return haltungen;
             }
