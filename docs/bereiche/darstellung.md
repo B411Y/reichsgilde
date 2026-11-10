@@ -347,29 +347,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Besuchsnummer | `ZierFahrplan` liefert `LiegeBeginn` jetzt in allen drei Phasen (vorher nur beim Liegen), damit die Rückfracht beim Abfahren dieselbe ist |
 | Offen | Stufe 3 (Träger mit Bürgern), Niederländer, Nachen, Treidelpferde |
 
-### Passanten: Wegsuchen verteilt (PR #283)
-
-Auftrag des Teamleiters 1.11.2026: Weg über den Platz erst beim Losgehen planen, höchstens so viele Wegsuchen je Bild, wie Zeit ist; Ziel kein Einzelbild über 20 ms zur vollen Stunde in Köln.
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Weg über den Platz später | Ein neuer Weg des Kerns bekommt zuerst nur das Gassennetz; der Teil auf einem Platz (`PlatzOffen`) wird 20 Spielminuten vor dem Losgehen oder später über die Fläche gesucht (`PlatzNachplanen`, gleiches Tempo: die Laufzeit wächst mit der Länge). Beginnt der Weg auf dem Platz und ist im Bild keine Zeit mehr, bleibt die Figur ein Bild länger stehen. Ein Anschluss im Bild (`Weitergehen`) sucht den Platz gleich, wenn die Figur auf ihm ist, sonst ebenso später. | 1.11.2026 |
-| Höchstens so viel je Bild | Wegsuchen (neue Wege des Kerns samt Gassennetz und Mittellinie mit Bodenmetern, Wege über die Flächen, Bummelgänge) teilen sich 2 ms je Bild (`WegsucheJeBildMs`); die erste läuft immer, der Rest im nächsten Bild. Bis dahin bleibt alles, wie es war (wer geht, geht den alten Weg weiter). | 1.11.2026 |
-| Bodenmeter langer Wege | Stützpunkte alle 0,1 m bis 60 m Weg, bis 150 m alle 0,25 m, darüber alle 0,5 m (`Passantenspur.BodenschrittFuer`); die Figur ist dabei höchstens 8 bzw. 10 cm längs des Weges anders (Test `PassantenspurLangTests`). Stehende auf der Fläche werden je Linie einmal genau geprüft (nicht je Abtastpunkt). | 1.11.2026 |
-| Messung | `--passantenprofil=1` (jetzt mit dem teuersten Bild je Abschnitt, dem teuersten Weg im Netz, über die Fläche und der teuersten Bodenmeter-Tabelle), Köln Neumarkt 10 Uhr, ohne `--passantennaehe`, Läufe von 110 s. Schlimmstes Einzelbild der Passanten zur vollen Stunde (11 Uhr): vorher 302,7 ms (Wege planen 144 ms, Laufen 84 ms), nachher 26,6 und 35,6 ms in zwei Läufen; übrige Abschnitte 16–23 ms; im Mittel 4–7 ms je Bild. Das erste Bild nach dem Laden bleibt lang (über 1 s, alle Figuren bekommen ihren ersten Weg). Ziel 20 ms nicht erreicht, siehe Offen. | 1.11.2026 |
-
-### Passanten: Netzwege gemerkt, Bodenmeter stückweise (PR #283)
-
-Auftrag des Teamleiters 1.11.2026.
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Netzwege | `Gassennetz.PfadZwischen` merkt seine Ergebnisse (Anfänge, Enden, Vor- und Nachlauf auf Zentimeter; bis 20 000; neu bei jeder Änderung des Netzes). Teuerster Netzweg zur vollen Stunde 9 → 2–8 ms. | 1.11.2026 |
-| Bodenmeter stückweise | Die Tabelle wird bei der Planung nur angelegt und über die Bilder in Stücken zu 150 Einträgen gefüllt (`BodenmeterFuellen`, wer zuerst losgeht, zuerst, im Budget der Wegsuchen); `Passantenspur.BodenmeterFuellen` gibt genau dieselbe Tabelle wie in einem Zug (Test). Will jemand losgehen, dessen Tabelle fehlt, rechnet er ein Stück und wartet sonst ein Bild; wer schon geht, rechnet den Rest sofort. Teuerste Tabelle im Bild 7–17 → 2–3 ms. | 1.11.2026 |
-| Fläche | A* auf der Fläche mit Belegung und Stehenden: Schätzung doppelt gewichtet und höchstens 4000 Zellen; gelingt der gefächerte Weg nicht, der einfache um die festen Hindernisse (`PfadEinfach`), erst danach die Kreise wie vor v3. `FreieZelle` prüft höchstens 40 Sichtlinien. Wer schon geht und bis 15 m an einem Platz ist, bekommt den Weg über die Fläche sofort (sonst ginge er die rohe Linie durch einen Stand). | 1.11.2026 |
-| Allein redend | Ursache: Wer auf die Planung seines neuen Weges wartete (Budget), wurde ein paar Bilder nicht gestellt und redete weiter, obwohl der Partner schon ging. Jetzt hört sie dann auf (`NochGespraech`). Greybox 10 Uhr: 0. | 1.11.2026 |
-| Messung | Köln Neumarkt, Start 10 Uhr, ohne `--passantennaehe`, zwei Läufe: schlimmstes Einzelbild zur vollen Stunde 26,0 und 32,5 ms (vorher 26,6 / 35,6, ganz am Anfang 302,7), sonst 16–25 ms. Greybox 10 Uhr (mit Messung): Überschneidungen auf dem Pflaster Laufende 18,8, mit Stehenden 8,5 je Minute, allein redend 0, in Ständen 0, schlimmstes Bild 8–22 ms. Ziel 20 ms in Köln zur vollen Stunde nicht ganz erreicht, siehe Offen. | 1.11.2026 |
-
 ### Felspinsel P2: Auswahlrahmen, Kopieren, Schieben mit den Pfeiltasten (Branch phase5/fels-p2, PR folgt)
 
 | Thema | Entscheidung | Datum |
