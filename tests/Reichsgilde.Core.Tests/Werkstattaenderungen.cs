@@ -4,7 +4,7 @@ using Reichsgilde.Core.Kartenwerkstatt;
 /// <summary>
 /// Zufällige Änderungen in der Kartenwerkstatt für die Tests „in Häppchen und mit Vorrat gleich der vollen Prüfung“ (KapazitaetInHaeppchenTests,
 /// PruefungInkrementellTests): Wege anlegen, verschieben, löschen, umklassieren, breiter oder schmaler, Stützpunkte, Gebäude, Bauzonen, Mauern,
-/// Gelände- und Bodenstriche, Rückgängig und Wiederholen – jeweils in der Nähe von etwas, das schon auf der Karte steht. Der Zufall ist der des Tests
+/// Gelände- und Bodenstriche, Hofstellen (setzen, löschen, auflösen, Start umschalten; 10.11.2026), Rückgängig und Wiederholen – jeweils in der Nähe von etwas, das schon auf der Karte steht. Der Zufall ist der des Tests
 /// (fester Startwert).
 /// </summary>
 static class Werkstattaenderungen
@@ -13,8 +13,11 @@ static class Werkstattaenderungen
     public static readonly string[] Arten =
     {
         "weg-neu", "weg-verschieben", "weg-loeschen", "weg-klasse", "weg-breite", "stuetzpunkt", "gebaeude", "zone-neu", "zone-verschieben", "zone-loeschen",
-        "mauer", "gelaende", "boden", "rueckgaengig", "wiederholen",
+        "mauer", "gelaende", "boden", "hof-start", "hof-neu", "hof-loeschen", "hof-aufloesen", "rueckgaengig", "wiederholen",
     };
+
+    /// <summary>Nur die Änderungen an Hofstellen und am Start (die Zahl der Hofstellen zählt für die Pflicht, die Plätze für die Startwege).</summary>
+    public static readonly string[] Hofstellen = { "hof-start", "hof-neu", "hof-loeschen", "hof-aufloesen" };
 
     static Kartenort O(double x, double z) => new(x, z);
 
@@ -122,6 +125,31 @@ static class Werkstattaenderungen
                     for (var i = 0; i < 6; i++) e.BodenStrichWeiter(O(p.X + i * 3, p.Z));
                     e.BodenStrichBeenden();
                     return $"{art} bei {p}";
+                }
+                case "hof-start" when e.Start.Hofstellen.Count > 0:
+                {
+                    var h = e.Start.Hofstellen[r.Next(e.Start.Hofstellen.Count)];
+                    e.HofstelleStartSetzen(h.Kennung, !h.Start);
+                    return $"{art} {h.Kennung} {!h.Start}";
+                }
+                case "hof-neu":
+                {
+                    var p = Irgendwo(e, r, 30);
+                    var h = e.HofstelleSetzen(p.X, p.Z, r.Next(4) * 90 + (r.Next(2) == 0 ? 0 : r.Next(-20, 21)), start: r.Next(2) == 0);
+                    return $"{art} {h.Kennung} {h.Start}";
+                }
+                case "hof-loeschen" when e.Start.Hofstellen.Count > 0:
+                {
+                    var h = e.Start.Hofstellen[r.Next(e.Start.Hofstellen.Count)];
+                    e.HofstelleLoeschen(h.Kennung);
+                    return $"{art} {h.Kennung}";
+                }
+                case "hof-aufloesen" when e.Start.Hofstellen.Count > 0:
+                {
+                    // die Plätze bleiben stehen, nur die Startbelegung ändert sich – die Zahl der Hofstellen sinkt (Pflicht der Werkstätten)
+                    var h = e.Start.Hofstellen[r.Next(e.Start.Hofstellen.Count)];
+                    e.HofstelleAufloesen(h.Kennung);
+                    return $"{art} {h.Kennung}";
                 }
                 case "rueckgaengig":
                     return e.Rueckgaengig() ? art : "—";
