@@ -719,9 +719,9 @@ public sealed class Werkstattwesen
         };
     }
 
-    /// <summary>Erlös der Jahresmenge am Markt nach Steuer, mit dem Preisfaktor von jetzt.</summary>
+    /// <summary>Erlös der Jahresmenge am Markt nach Steuer, mit dem Preisfaktor von jetzt und dem Aufschlag am Hafen (<see cref="Stadtwirtschaft.HafenFaktor"/>).</summary>
     private double Erloeswert(Betrieb b) =>
-        Jahresmengen(b).Sum(x => x.Menge * _w.Markt[x.Ware].Preis) * (1 - _w.SteuersatzMarkt(b.Konto)) * b.PreisFaktor * _w.Familien.VerkaufsFaktor(b.Konto);
+        Jahresmengen(b).Sum(x => x.Menge * _w.Markt[x.Ware].Preis * _w.HafenFaktor(b, x.Ware)) * (1 - _w.SteuersatzMarkt(b.Konto)) * b.PreisFaktor * _w.Familien.VerkaufsFaktor(b.Konto);
 
     /// <summary>Nach wie vielen Jahren sich das Stück bezahlt macht: Preis ÷ <see cref="ErwarteterMehrgewinnJeJahr"/> – null ohne Mehrgewinn.</summary>
     public double? Amortisationsjahre(Betrieb b, string kennung) =>

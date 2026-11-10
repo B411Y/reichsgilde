@@ -471,7 +471,7 @@ public partial class MarktAnzeige : PanelContainer
         if (_ware is { } ware)
         {
             var stand = w.Markt[ware];
-            var text = $"{ware}: im Lager {b.ImLager(ware)} · verkaufen ≈ {Zahlenformat.Kommazahl(stand.Preis * w.Familien.VerkaufsFaktor(_spieler))} · " +
+            var text = $"{ware}: im Lager {b.ImLager(ware)} · verkaufen ≈ {Zahlenformat.Kommazahl(stand.Preis * w.KarrenVerkaufsFaktor(karren, ware) * b.PreisFaktor)} · " +
                        $"kaufen ≈ {Zahlenformat.Kommazahl(w.HandKaufpreis(_spieler, ware, 1))} {waehrung} je Stück";
             if (_wareText!.Text != text) _wareText.Text = text;
             _halten!.SetPressedNoSignal(b.HaeltZurueck(ware));
@@ -482,7 +482,7 @@ public partial class MarktAnzeige : PanelContainer
             string.Join(", ", l.Select(x => $"{x.Value} {x.Key} (≈ {Zahlenformat.Ganz(wert(x.Key, x.Value))})"));
         var teile = new List<string>();
         if (_verkauf.Count > 0)
-            teile.Add("Verkaufen: " + Liste(_verkauf, (ware, n) => w.Markt[ware].Preis * n * w.Familien.VerkaufsFaktor(_spieler)));
+            teile.Add("Verkaufen: " + Liste(_verkauf, (ware, n) => w.KarrenErloes(karren, ware, n))); // wie die Abrechnung (Aufschlag am Hafen)
         if (_kauf.Count > 0)
             teile.Add("Kaufen: " + Liste(_kauf, (ware, n) => w.HandKaufpreis(_spieler, ware, n)));
         var grund = w.HandelsauftragVerboten(b, GewaehlterKarren, _verkauf, _kauf, vormerken: unterwegs);

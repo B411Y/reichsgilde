@@ -16,7 +16,7 @@ static class HafenAufschlagTests
     const string Hand = "Handkarren";
 
     /// <summary>Die Wirtschaftsdaten mit Bauzeit 0 für Werkstätten (die Werkstatt steht sofort) und diesem Aufschlag am Hafen.</summary>
-    static string Daten(double? aufschlag, bool zumHafen = true)
+    internal static string Daten(double? aufschlag, bool zumHafen = true)
     {
         const string werkstatt = "\"werkstatt\": { \"breite\": 16, \"tiefe\": 14, \"bauzeitJahre\": 1,";
         var json = File.ReadAllText(Datenpfad.Wirtschaft());
@@ -29,10 +29,10 @@ static class HafenAufschlagTests
         return knoten.ToJsonString();
     }
 
-    static long Minute(int jahr, int stunde) => jahr * (long)Spielzeit.MinutenProTag + stunde * 60 - Spielzeit.TagesbeginnMinute;
+    internal static long Minute(int jahr, int stunde) => jahr * (long)Spielzeit.MinutenProTag + stunde * 60 - Spielzeit.TagesbeginnMinute;
 
     /// <summary>Der Bauort in Köln mit der kürzesten Fahrt (hin + zurück) zum Hafen, an dem der Hafen näher ist als jeder Marktplatz.</summary>
-    static readonly Lazy<WerkstattBauen> NahAmHafen = new(() =>
+    internal static readonly Lazy<WerkstattBauen> NahAmHafen = new(() =>
     {
         var (_, w, k) = Koeln(Daten(0.03), Minute(1, 9));
         int Rund(int? hin, int? zurueck) => (hin ?? 9999) + (zurueck ?? 9999);
@@ -44,7 +44,7 @@ static class HafenAufschlagTests
             .First().Ort;
     });
 
-    static (Simulation Sim, Stadtwirtschaft W, Konto K) Koeln(string json, long minute)
+    internal static (Simulation Sim, Stadtwirtschaft W, Konto K) Koeln(string json, long minute)
     {
         var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
             new Spielzeit(minute), Wirtschaftsdaten.AusJson(json));
