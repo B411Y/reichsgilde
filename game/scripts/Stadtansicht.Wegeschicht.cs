@@ -224,11 +224,13 @@ public partial class Stadtansicht
             var kachel = liste[k];
             if (ergebnis[k] is not { } daten)
             {
+                _schichtSummen.Remove(kachel);
                 _schichtKacheln.Remove(kachel);
                 _grasStadt.Remove(kachel);
             }
             else
             {
+                if (Pinselmessung.Pruefsumme) _schichtSummen[kachel] = Kurz(daten.Bild) + " " + Kurz(daten.Info) + " " + Kurz(daten.Spur); // Prüfsumme der Messung (Stadtansicht.Kartenwerkstatt.Pruefsumme.cs)
                 var (bild, info, spur) = bilder[k]!.Value;
                 if (_schichtKacheln.TryGetValue(kachel, out var alt))
                 {
