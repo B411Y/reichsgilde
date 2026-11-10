@@ -12,8 +12,8 @@ namespace Reichsgilde;
 /// <item>Augenhöhe <see cref="Augenhoehe"/> (1,65 m), Gehtempo <see cref="Gehtempo"/> (1,4 m/s), Rennen <see cref="Renntempo"/> (4 m/s).</item>
 /// <item><b>Boden</b>: Die Füße stehen auf <see cref="Fusshoehe"/> (Gelände, Fundamente, Brückendecks – die Stadtansicht liefert sie). Stufen bis
 /// <see cref="Stufenhoehe"/> steigt man, höher geht es nicht; fällt der Boden tiefer ab, fällt man (Schwerkraft), die Leertaste springt.</item>
-/// <item><b>Hindernisse</b>: <see cref="Herausschieben"/> schiebt den Kreis der Füße (Halbmesser <see cref="Radius"/>) aus Gebäuden und Mauern (gleitet an der Wand
-/// entlang), <see cref="Gesperrt"/> hält vom Wasser fern; beides liefert die Stadtansicht (Stadtansicht.Ego.cs).</item>
+/// <item><b>Hindernisse</b>: <see cref="Herausschieben"/> schiebt den Kreis der Füße (Halbmesser <see cref="Radius"/>) aus Gebäuden, Mauern, Bäumen, Zäunen, Ständen und Karren (gleitet an der Wand
+/// entlang, in Teilschritten von 20 cm), <see cref="Gesperrt"/> hält vom Wasser fern; beides liefert die Stadtansicht (Stadtansicht.Ego.cs).</item>
 /// <item>Die Oberfläche ist während des Modus ausgeblendet; zu sehen ist nur der kleine Hinweis „Esc: zurück“. Alle Tasten außer den Ziffern (Tempo) nimmt die Kamera
 /// selbst, damit kein Kürzel des Spiels (Leertaste = Pause, F = Familie …) hindurchgeht.</item>
 /// </list>
@@ -149,7 +149,16 @@ public partial class EgoKamera : FreieKamera
     /// <summary>Kann man mit den Füßen auf Höhe <see cref="_fussY"/> dorthin treten (kein Wasser, keine zu hohe Stufe)?</summary>
     private bool Begehbar(Vector2 p) => !Gesperrt(p) && Fusshoehe(p.X, p.Y) - _fussY <= Stufenhoehe;
 
+    /// <summary>Ein Schritt in Teilschritten von höchstens <see cref="Teilschritt"/> m, damit auch beim Rennen kein dünner Zaun übersprungen wird.</summary>
     private void Gehen(Vector2 schritt)
+    {
+        var n = Mathf.Max(1, Mathf.CeilToInt(schritt.Length() / Teilschritt));
+        for (var i = 0; i < n; i++) GehenEinzeln(schritt / n);
+    }
+
+    private const float Teilschritt = 0.2f;
+
+    private void GehenEinzeln(Vector2 schritt)
     {
         var ziel = Herausschieben(_ort + schritt, _fussY);
         if (Begehbar(ziel)) { _ort = ziel; return; }

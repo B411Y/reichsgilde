@@ -67,6 +67,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerHausbrand hb: return MitHaus(absender, hb.Haus, Hausbrand);
             case EntwicklerBlitz bl: return _w.Blitz.Entwicklerblitz(bl.Gebaeude, absender);
             case EntwicklerDiebeshaus dh: return MitHaus(absender, dh.Haus, Diebeshaus);
+            case EntwicklerForderung fo: return MitHaus(absender, fo.Haus, k => Forderung(k, fo));
             case EntwicklerWare ware: return MitBetrieb(ware.Betrieb, b => Ware(b, ware.Ware, ware.Menge));
             case EntwicklerZutaten z: return MitBetrieb(z.Betrieb, Zutaten);
             default: return Befehlsergebnis.Abgelehnt($"Den Entwicklerbefehl {befehl.GetType().Name} kennt der Kern nicht.");
@@ -143,6 +144,35 @@ public sealed class Entwicklerhilfe
         var frei = versteck.Plaetze - versteck.Belegt;
         if (frei > 0) _w.Einstellen(versteck, "Geselle", frei);
         return Befehlsergebnis.Ok($"{versteck.Name} hat {versteck.Belegt} Diebe.");
+    }
+
+    private Befehlsergebnis Forderung(Konto opfer, EntwicklerForderung fo)
+    {
+        if (_w.Konten.FirstOrDefault(k => k.Inhaber == fo.Von) is not { } von) return Befehlsergebnis.Abgelehnt($"Ein Haus „{fo.Von}“ gibt es nicht.");
+        if (von == opfer) return Befehlsergebnis.Abgelehnt("Ein Haus fordert nichts von sich selbst.");
+        if (!opfer.IstAktiv || !von.IstAktiv) return Befehlsergebnis.Abgelehnt("Beide Häuser müssen noch im Spiel sein.");
+        if (!double.IsFinite(fo.Betrag) || fo.Betrag <= 0) return Befehlsergebnis.Abgelehnt("Der Betrag muss größer als 0 sein.");
+        var betrag = $"{Zahlenformat.Ganz(fo.Betrag)} {Waehrung}";
+        switch (fo.Art)
+        {
+            case Entscheidungen.Entscheidungsart.Erpresserbrief:
+                if (!_w.Gauner.IstAktiv) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Unterwelt.");
+                if (_w.Gauner.ForderungAn(opfer, von) is not null) return Befehlsergebnis.Abgelehnt($"{opfer.Inhaber} hat schon einen Brief von {von.Inhaber}.");
+                _w.Gauner.EntwicklerForderung(von, opfer, fo.Betrag);
+                return Befehlsergebnis.Ok($"{opfer.Inhaber} erhält einen Erpresserbrief von {von.Inhaber} über {betrag}.");
+            case Entscheidungen.Entscheidungsart.Schutzgeld:
+                if (!_w.Diebe.IstAktiv) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Diebe.");
+                if (_w.Diebe.BriefAn(opfer, von, Gauner.Diebesbriefart.Schutzgeld) is not null)
+                    return Befehlsergebnis.Abgelehnt($"{opfer.Inhaber} hat schon eine Schutzgeldforderung von {von.Inhaber}.");
+                _w.Diebe.EntwicklerBrief(Gauner.Diebesbriefart.Schutzgeld, von, opfer, fo.Betrag, null);
+                return Befehlsergebnis.Ok($"{von.Inhaber} verlangt von {opfer.Inhaber} {betrag} Schutzgeld.");
+            default:
+                if (!_w.Diebe.IstAktiv) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Diebe.");
+                if (_w.Diebe.Entfuehrbar(opfer).FirstOrDefault() is not { } geisel)
+                    return Befehlsergebnis.Abgelehnt($"Im Haus {opfer.Inhaber} gibt es niemanden, der entführt werden kann (das Oberhaupt nie).");
+                _w.Diebe.EntwicklerBrief(Gauner.Diebesbriefart.Loesegeld, von, opfer, fo.Betrag, geisel.Nummer);
+                return Befehlsergebnis.Ok($"{von.Inhaber} hält {geisel.Vorname} aus dem Haus {opfer.Inhaber} fest und verlangt {betrag} Lösegeld.");
+        }
     }
 
     // ── Familie ─────────────────────────────────────────────────────────────
