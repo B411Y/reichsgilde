@@ -214,7 +214,7 @@ public sealed partial class Stadtwirtschaft
         if (!NachWeglaengeGerechnet || NachWeglaenge(karrenTyp) is null || !Schiffahrt.KarrenZumHafen || Karte is not { } karte
             || Karrennetz is not { } netz || !Bauen.IstAktiv || !Daten.Betriebsarten.TryGetValue(ort.Art, out var artDaten) || !artDaten.InDerStadt)
             return null;
-        var platz = new Betriebsplatz("", null, new Grundstueck(-1, Bauen.Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
+        var platz = Bauen.PlatzAmBauort(ort); // auf einer freien Hofstelle der Werkstattplatz der Karte
         var (wegHin, wegZurueck, hafen, _) = StreckeWieImBild(Karrenweg.Start(platz, ort.Art, artDaten, karte.Katalog), karte, netz, Schiffahrt.Hafengebaeude);
         if (wegHin.Count == 0 || hafen is null) return null;
         var zeiten = Zeiten(wegHin, wegZurueck, karrenTyp, FesteFahrzeit(artDaten.Ort));
@@ -224,7 +224,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Die Strecke (hin, zurück), die eine Werkstatt an diesem Bauort hätte – wie <see cref="Fahrten"/> nach dem Bau (für Tests auch mit alten Daten).</summary>
     internal (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck) StreckeAmBauort(WerkstattBauen ort, BetriebsartDaten artDaten, Stadtkarte karte, Karrennetz netz)
     {
-        var platz = new Betriebsplatz("", null, new Grundstueck(-1, Bauen.Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
+        var platz = Bauen.PlatzAmBauort(ort); // auf einer freien Hofstelle der Werkstattplatz der Karte
         var (hin, zurueck, _, _) = NachWeglaengeGerechnet
             ? StreckeWieImBild(Karrenweg.Start(platz, ort.Art, artDaten, karte.Katalog), karte, netz)
             : StreckeAlt(platz, karte, netz);

@@ -97,7 +97,8 @@ static class GreyboxTests
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
 
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: k);
+            // ohne Los (Hofstellen, 9.11.2026): jedes Haus auf seiner Vorgabe; gelost dieselben vier Hofstellen anders verteilt (HofstellenStartTests)
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: k);
             var w = sim.Wirtschaft!;
             for (var i = 0; i < w.Konten.Count; i++)
                 Pruefe.Gleich($"Wohnhaus{i + 1}", w.Bauen.Wohnhaus(w.Konten[i])!.Kennung);

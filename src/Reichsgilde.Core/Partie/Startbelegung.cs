@@ -95,6 +95,16 @@ public sealed class Startbelegung
     public Spielerstart Spieler { get; init; } = new();
     public List<Starthaus> Haeuser { get; init; } = new();
 
+    /// <summary>
+    /// Die Hofstellen der Karte (<see cref="Hofstelle"/>, Feld <c>hofstellen</c>, seit 09.11.2026) – null: eine Karte von vorher (dann sitzt jedes
+    /// Haus fest, wo <see cref="Spieler"/> und <see cref="Haeuser"/> es hinsetzen, wie bisher; <see cref="Stadtkarte.AusJson"/> bildet sie aus den
+    /// Startpaaren). Mit Hofstellen sind Spieler und Häuser nur die Vorgabe ohne Los (<see cref="Startplatzvergabe.Vorgabe"/>); eine Partie
+    /// schreibt die Belegung auf die gelosten Hofstellen um (<see cref="Hofstellenvergabe"/>).
+    /// </summary>
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Hofstelle>? Hofstellen { get; internal set; }
+
     /// <summary>Die Namen aller KI-Häuser (für das Menü: Diesen Namen darf der Spieler nicht nehmen).</summary>
     [JsonIgnore]
     public IReadOnlyList<string> Rivalennamen => Haeuser.Select(h => h.Name).ToList();

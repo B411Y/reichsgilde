@@ -20,11 +20,13 @@ static class KarrenwegTests
     static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
-    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)
+    /// <param name="vorgabe">Ohne Los der Hofstellen (9.11.2026): jedes Haus auf seinem Platz der Startbelegung, wie vor den Hofstellen.</param>
+    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null, bool vorgabe = false)
     {
         var haeuser = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Startplaetze: vorgabe ? Startplatzvergabe.Vorgabe : Startplatzvergabe.Gelost),
+            karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
         return sim.Wirtschaft!;
     }
 
@@ -214,10 +216,15 @@ static class KarrenwegTests
                 ("greybox", "Tischlerei Eichwald", 22, 22, 30, 30), ("probestadt", "Gießerei Brendel", 32, 32, 30, 30),
                 ("probestadt", "Gießerei am Werkstattplatz", 30, 30, 30, 30), ("probestadt", "Tischlerei Ahlbeck", 32, 32, 30, 30),
             };
+            // Seit den fairen Hofstellen der Greybox (9.11.2026) stehen Tischlerei Eichwald (22 → 24 | −13) und Maurerei Kieselbach (25 → 24 | −29) an
+            // anderer Stelle – für sie gibt es keinen Wert des alten Codes mehr; die übrigen Plätze sind unverändert
+            var verlegt = new[] { "Maurerei Kieselbach", "Tischlerei Eichwald" };
+            alterCode = alterCode.Where(x => !(x.Karte == "greybox" && verlegt.Contains(x.Betrieb))).ToArray();
             foreach (var kennung in new[] { "greybox", "probestadt" })
             {
-                var w = Partie(kennung, alt);
-                var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }).OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
+                var w = Partie(kennung, alt, vorgabe: true); // die Werte des alten Codes gelten für die Plätze der Startbelegung
+                var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 } && !(kennung == "greybox" && verlegt.Contains(b.Name)))
+                    .OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
                 var erwartet = alterCode.Where(x => x.Karte == kennung).ToList();
                 Pruefe.Gleich(string.Join(", ", erwartet.Select(x => x.Betrieb)), string.Join(", ", mitWeg.Select(b => b.Name)), kennung);
                 foreach (var (b, x) in mitWeg.Zip(erwartet))

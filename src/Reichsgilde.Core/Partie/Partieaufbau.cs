@@ -22,6 +22,10 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Darf keinem KI-Haus gehören.</param>
 /// <param name="Aussehen">Gesicht, Haar und Augen des Oberhaupts im Porträt; null = gewürfelt. Muss zum Volk passen
 /// (<see cref="Aussehenspalette.Verboten"/>).</param>
+/// <param name="Hofstelle">Startplatz des Spielers auf einer Karte mit Hofstellen: Kennung einer Start-Hofstelle (<see cref="Hofstellenvergabe.Angebot"/>);
+/// null = gelost (Knopf „Zufall“). Ohne Hofstellen ohne Wirkung.</param>
+/// <param name="Startplaetze">Gelost (wie im Spiel: die KI-Häuser bekommen geloste Hofstellen) oder Vorgabe (jedes Haus, wo die Startbelegung
+/// der Karte es hinsetzt – für Tests und Vergleiche).</param>
 public sealed record NeuePartie(
     string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
@@ -33,7 +37,9 @@ public sealed record NeuePartie(
     int Rivalen = 3,
     Konfession? Glaube = null,
     Wappen? Wappen = null,
-    Aussehen? Aussehen = null);
+    Aussehen? Aussehen = null,
+    string? Hofstelle = null,
+    Startplatzvergabe Startplaetze = Startplatzvergabe.Gelost);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -102,6 +108,13 @@ public static class Partieaufbau
             throw new ArgumentException(start.Haeuser.Count == 1 ? "Hier spielt genau ein KI-Haus mit."
                 : $"Es spielen ein bis {Zahlwort(start.Haeuser.Count)} KI-Häuser mit.");
 
+        // Hofstellen (09.11.2026): Die Partie spielt auf der Partiekarte – die Startbelegung auf den gewählten bzw. gelosten Hofstellen.
+        if (karte is { HatHofstellen: true })
+        {
+            karte = Hofstellenvergabe.Belegen(karte, daten, neu, einstellungen.Zufallsstartwert, Mitspielend(start, daten, neu.Rivalen));
+            start = karte.Startbelegung;
+        }
+
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
         if (karte is not null) w.KarteSetzen(karte);
@@ -122,7 +135,7 @@ public static class Partieaufbau
 
         // Die KI-Häuser in der Reihenfolge der Karte; das erste spielt immer mit. Sein Konto entsteht noch vor der Familie des Spielers
         // (so war die Reihenfolge schon vor der Karte – die Zufallszahlen der Familien bleiben dieselben).
-        var haeuser = start.Haeuser.Take(neu.Rivalen).Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
+        var haeuser = Mitspielend(start, daten, neu.Rivalen);
         var konten = new Dictionary<Starthaus, Konto>();
         Konto KontoVon(Starthaus h)
         {
@@ -140,9 +153,14 @@ public static class Partieaufbau
         w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
         foreach (var h in haeuser)
             HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
+        w.Bauen.FreieHofstellenFreigeben(); // was niemand bekommen hat, ist ab jetzt Bauplatz (nur mit Hofstellen)
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
         return (simulation, spieler);
     }
+
+    /// <summary>Die KI-Häuser, die mitspielen: die ersten <paramref name="rivalen"/> der Startbelegung, deren Betriebsarten die Daten kennen.</summary>
+    private static List<Starthaus> Mitspielend(Startbelegung start, Wirtschaftsdaten daten, int rivalen) =>
+        start.Haeuser.Take(rivalen).Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
 
     private static string Zahlwort(int n) => n switch { 2 => "zwei", 3 => "drei", 4 => "vier", 5 => "fünf", 6 => "sechs", 7 => "sieben", _ => n.ToString() };
 

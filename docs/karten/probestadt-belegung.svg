@@ -658,6 +658,22 @@
 <polygon points="-82,115 -98,115 -98,101 -82,101" fill="#B7C79A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="-90" cy="101" r="0.9" fill="#A3262A"/>
 <text x="-90" y="109" font-size="3" text-anchor="middle" fill="#1F2326">Hafen am Sandfluss</text>
+<polygon points="-38,-17 -22,-17 -22,-3 -38,-3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="4,-30 -4,-30 -4,-40 4,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="-30" y1="-10" x2="0" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="-30" y="-13" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S1</text>
+<polygon points="24,-17 40,-17 40,-3 24,-3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="-6,-30 -14,-30 -14,-40 -6,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="32" y1="-10" x2="-10" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="32" y="-13" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S2</text>
+<polygon points="40,17 24,17 24,3 40,3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<polygon points="14,-30 6,-30 6,-40 14,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
+<line x1="32" y1="10" x2="10" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
+<text x="32" y="7" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S3</text>
+<polygon points="-22,17 -38,17 -38,3 -22,3" fill="none" stroke="#2F4F7A" stroke-width="0.9" stroke-dasharray="1 1.5" stroke-linejoin="round"/>
+<polygon points="-14,30 -6,30 -6,40 -14,40" fill="none" stroke="#2F4F7A" stroke-width="0.9" stroke-dasharray="1 1.5" stroke-linejoin="round"/>
+<line x1="-30" y1="10" x2="-10" y2="35" stroke="#2F4F7A" stroke-width="0.6" stroke-dasharray="1 1.5"/>
+<text x="-30" y="7" font-size="6" text-anchor="middle" fill="#2F4F7A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H1</text>
 <text x="0" y="-18" font-size="6" text-anchor="middle" fill="#6B6E66">K1</text>
 <text x="-26" y="18" font-size="6" text-anchor="middle" fill="#6B6E66">K2</text>
 <text x="26" y="18" font-size="6" text-anchor="middle" fill="#6B6E66">K3</text>

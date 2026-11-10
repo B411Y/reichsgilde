@@ -23,10 +23,11 @@ static class StartwegpruefungTests
             Pruefe.Gleich(8, wege.Count(w => w.Ort == Arbeitsort.Werkstatt));
             Pruefe.Gleich(7, wege.Count(w => w.Ort == Arbeitsort.Umland));
             Pruefe.Wahr(wege.All(w => w.Meter is > 0 && w.Markt is not null), "jeder Startbetrieb hat einen Weg");
-            // mit demselben Modell (Schmied) liegen die sieben KI-Werkstätten gleich weit, der Spieler 2,5 m weiter (sein Weg ist 24 m, die alte feste Zeit)
-            foreach (var w in wege.Where(w => w.Ort == Arbeitsort.Werkstatt && w.Wer != "Spieler"))
+            // mit demselben Modell (Schmied) liegen die Werkstätten der sieben KI-Hofstellen gleich weit, die des Spielers (S1) 2,5 m weiter (sein Weg ist
+            // 24 m, die alte feste Zeit); seit den Hofstellen (9.11.2026) misst die Regel jede Start-Hofstelle („Hofstelle S1“ …), nicht mehr die Belegung
+            foreach (var w in wege.Where(w => w.Ort == Arbeitsort.Werkstatt && w.Wer != "Hofstelle S1"))
                 Pruefe.Ungefaehr(21.1, w.Meter!.Value, 0.01);
-            Pruefe.Ungefaehr(23.6, wege.Single(w => w.Wer == "Spieler").Meter!.Value, 0.01);
+            Pruefe.Ungefaehr(23.6, wege.Single(w => w.Wer == "Hofstelle S1").Meter!.Value, 0.01);
             var hinweise = e.Befunde.Where(b => b.Regel == "startweg").ToList();
             Pruefe.Wahr(hinweise.All(b => b.Schwere == Schwere.Hinweis), "nur Hinweise");
             Pruefe.Gleich("Bauernhof1, Grube4, S1_Werkstatt", string.Join(", ", hinweise.SelectMany(b => b.Gebaeude).Order(StringComparer.Ordinal)));
@@ -57,7 +58,7 @@ static class StartwegpruefungTests
             }
         }),
 
-        ("Startwege: aus dem Zwischenspeicher – ein Gebäude verschoben rechnet nur die Wege neu (nicht das Netz), ein Marktplatz auch das Netz; die Greybox prüft sie nicht", () =>
+        ("Startwege: aus dem Zwischenspeicher – ein Gebäude verschoben rechnet nur die Wege neu (nicht das Netz), ein Marktplatz auch das Netz; die Greybox prüft sie seit den Hofstellen auch", () =>
         {
             var e = Oeffnen("koeln");
             var vorher = e.Startwegrechnung();
@@ -75,7 +76,12 @@ static class StartwegpruefungTests
             Pruefe.Wahr(!ReferenceEquals(netz, e.Startnetz()!.Value.Netz), "ein Marktplatz baut das Netz neu");
 
             var greybox = Oeffnen("greybox");
-            Pruefe.Wahr(greybox.Befunde.All(b => b.Regel != "startweg"), "Greybox ohne Regel der Startgrundstücke");
+            // bis zu den Hofstellen (9.11.2026) prüfte nur Köln die Startwege; jetzt jede Karte mit Start-Hofstellen. Die vier der Greybox liegen seit
+            // dem Umbau greybox-hofstellen-fair im Band; übrig sind zwei Umlandbetriebe
+            Pruefe.Gleich("Grube_Eisenbart, Steinbruch_Kieselbach",
+                string.Join(", ", greybox.Befunde.Where(b => b.Regel == "startweg").SelectMany(b => b.Gebaeude).Order(StringComparer.Ordinal)));
+            var hofwege = greybox.Startwegrechnung().Where(w => w.Wer.StartsWith("Hofstelle")).Select(w => w.Meter!.Value).ToList();
+            Pruefe.Wahr(hofwege.Count == 4 && hofwege.All(m => Math.Abs(m - hofwege.Average()) <= 0.10 * hofwege.Average()), $"Greybox im Band: {string.Join(" / ", hofwege)}");
         }),
 
         ("Startwege: ein Gebäude ohne Startplatz rechnet nichts neu; nach einem Ladefehler (Umlandbetrieb ohne Betrieb) springt die Regel nach der Behebung wieder an", () =>

@@ -100,8 +100,17 @@ public sealed class Grundstueck
     /// <summary>In welcher Bauzone es liegt (bzw. die nächste) – für die Frage, was auf dem Bauplatz später stehen darf.</summary>
     public Lage? Lage { get; }
 
-    /// <summary>Kennung des Wohnhausplatzes in der Karte, wenn es ein Startplatz ist (sonst null).</summary>
+    /// <summary>
+    /// Kennung des Platzes in der Karte, wenn das Grundstück auf einem liegt (sonst null): ein Wohnhausplatz (Startplatz, auch als Bauplatz nach
+    /// einem Abriss) oder – mit Hofstellen – der Werkstattplatz einer Hofstelle (<see cref="AufWerkstattplatz"/>).
+    /// </summary>
     public string? Kennung { get; }
+
+    /// <summary>
+    /// Liegt es auf dem Werkstattplatz einer Hofstelle (seit 09.11.2026)? Als Bauplatz nimmt es nur eine Werkstatt auf, eingepasst in Mitte und
+    /// Drehung des Platzes; die Werkstatt darauf steht danach wie auf dem Platz der Karte (<see cref="Bauwesen.PlatzVon"/>).
+    /// </summary>
+    public bool AufWerkstattplatz { get; internal set; }
 
     /// <summary>
     /// Wohnhaus: wer darin wohnt (im Leerstand das bankrotte oder erloschene Haus) bzw. wer nach dem Bau oder der Sanierung einzieht.
@@ -243,10 +252,22 @@ public sealed class Bauwesen
     /// </summary>
     public Betriebsplatz? PlatzVon(string betrieb) =>
         Karte?.PlatzVon(betrieb) is { } fest ? new Betriebsplatz(betrieb, fest, null)
-        : Werkstatt(betrieb) is { } g ? new Betriebsplatz(betrieb, null, g)
+        : Werkstatt(betrieb) is { } g ? WerkstattplatzVon(g) is { } platz ? new Betriebsplatz(betrieb, platz, null) : new Betriebsplatz(betrieb, null, g)
         : null;
 
-    /// <summary>Freie Bauplätze nach Abriss.</summary>
+    /// <summary>Der Werkstattplatz der Karte, auf dem dieses Grundstück liegt (Hofstelle) – oder null.</summary>
+    private Kartengebaeude? WerkstattplatzVon(Grundstueck g) => g.AufWerkstattplatz ? Karte?.GebaeudeMit(g.Kennung) : null;
+
+    /// <summary>
+    /// Wo eine Werkstatt aus diesem Bauauftrag stünde – für die Fahrzeit am Bauort (wie <see cref="PlatzVon"/> nach dem Bau): auf dem
+    /// Werkstattplatz einer freien Hofstelle der Platz der Karte, sonst ein Grundstück mit dem <see cref="Grundriss(BauBefehl)"/>.
+    /// </summary>
+    public Betriebsplatz PlatzAmBauort(WerkstattBauen ort) =>
+        Werkstattplatz(ort) is { } bauplatz && WerkstattplatzVon(bauplatz) is { } platz
+            ? new Betriebsplatz("", platz, null)
+            : new Betriebsplatz("", null, new Grundstueck(-1, Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
+
+    /// <summary>Freie Bauplätze: nach Abriss, nach einem Umzug und – mit Hofstellen – die Teile der freien Hofstellen.</summary>
     public IEnumerable<Grundstueck> Bauplaetze => _grundstuecke.Where(g => g.Art == Grundstuecksart.Bauplatz);
 
     /// <summary>Das leerstehende Wohnhaus eines bankrotten oder erloschenen Hauses (null: lebt noch, schon verkauft oder kein Platz).</summary>
@@ -282,7 +303,7 @@ public sealed class Bauwesen
     /// <summary>Die Fläche, die das Gebäude an dieser Stelle belegen würde (inkl. Vorplatz).</summary>
     public Grundriss Grundriss(BauBefehl befehl)
     {
-        if (Wohnhausplatz(befehl) is { } platz) return platz.Grundriss;
+        if (Eingepasst(befehl) is { } platz) return platz.Grundriss;
         var m = Mass(befehl);
         return new Grundriss(befehl.X, befehl.Z, m?.Breite ?? 0, m?.Tiefe ?? 0, ((befehl.Drehung % 4) + 4) % 4);
     }
@@ -296,11 +317,30 @@ public sealed class Bauwesen
             ? new Hausflaeche(platz.Punkt[0], platz.Punkt[1], m[0] * platz.Massstab, m[1] * platz.Massstab, platz.Drehung)
             : Hausflaeche.Von(g.Grundriss);
 
-    /// <summary>Wo das Gebäude des Befehls stünde: eingepasst auf einen Wohnhausplatz wie der Platz, sonst der <see cref="Grundriss(BauBefehl)"/>.</summary>
-    public Hausflaeche Flaeche(BauBefehl befehl) => Wohnhausplatz(befehl) is { } platz ? Flaeche(platz) : Hausflaeche.Von(Grundriss(befehl));
+    /// <summary>Wo das Gebäude des Befehls stünde: eingepasst auf einen Wohnhaus- bzw. Werkstattplatz wie der Platz, sonst der <see cref="Grundriss(BauBefehl)"/>.</summary>
+    public Hausflaeche Flaeche(BauBefehl befehl) => Eingepasst(befehl) is { } platz ? Flaeche(platz) : Hausflaeche.Von(Grundriss(befehl));
 
-    /// <summary>Ist der Bauplatz aus einem Wohnhausplatz der Karte entstanden (Abriss oder Umzug)? Dann nimmt er nur Wohnhäuser auf, eingepasst.</summary>
-    public static bool IstWohnhausplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.Kennung is not null;
+    /// <summary>
+    /// Ist der Bauplatz ein Wohnhausplatz der Karte (nach Abriss oder Umzug, oder der Wohnhausteil einer freien Hofstelle)? Dann nimmt er nur
+    /// Wohnhäuser auf, eingepasst.
+    /// </summary>
+    public static bool IstWohnhausplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.Kennung is not null && !g.AufWerkstattplatz;
+
+    /// <summary>Ist der Bauplatz der Werkstattteil einer freien Hofstelle? Dann nimmt er nur eine Werkstatt auf, eingepasst.</summary>
+    public static bool IstWerkstattplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.AufWerkstattplatz;
+
+    /// <summary>
+    /// Der Werkstattteil einer freien Hofstelle (als Bauplatz), auf den dieser Werkstatt-Neubau eingepasst wird – null, wenn die Mitte nicht genau
+    /// auf einem liegt. Er nimmt jede Werkstatt der Stufe 1 auf, in genau seiner Fläche (wie die Startwerkstatt).
+    /// </summary>
+    public Grundstueck? Werkstattplatz(BauBefehl befehl) => befehl is not WerkstattBauen ? null
+        : Bauplaetze.FirstOrDefault(p => IstWerkstattplatz(p) && Math.Abs(p.Grundriss.X - befehl.X) < 1e-6 && Math.Abs(p.Grundriss.Z - befehl.Z) < 1e-6);
+
+    /// <summary>Der Platz der Karte (als Bauplatz), auf den der Befehl eingepasst wird: ein Wohnhausplatz oder der Werkstattplatz einer Hofstelle.</summary>
+    private Grundstueck? Eingepasst(BauBefehl befehl) => Wohnhausplatz(befehl) ?? Werkstattplatz(befehl);
+
+    /// <summary>Muss der Bauplatz eingepasst bebaut werden (ein Platz der Karte: Wohnhausplatz oder Werkstattplatz einer Hofstelle)?</summary>
+    private static bool IstPlatz(Grundstueck g) => IstWohnhausplatz(g) || IstWerkstattplatz(g);
 
     /// <summary>
     /// Der Wohnhausplatz (als Bauplatz), auf den dieser Wohnhaus-Neubau eingepasst wird – null, wenn die Mitte nicht genau auf einem liegt.
@@ -320,8 +360,10 @@ public sealed class Bauwesen
         if (Daten is not { } d || Mass(befehl) is null) return befehl;
         if (befehl is WohnhausBauen && Bauplaetze.FirstOrDefault(p => IstWohnhausplatz(p) && p.Grundriss.Enthaelt(befehl.X, befehl.Z)) is { } wohnplatz)
             return befehl with { X = wohnplatz.Grundriss.X, Z = wohnplatz.Grundriss.Z, Drehung = wohnplatz.Grundriss.Drehung };
+        if (befehl is WerkstattBauen && Bauplaetze.FirstOrDefault(p => IstWerkstattplatz(p) && p.Grundriss.Enthaelt(befehl.X, befehl.Z)) is { } werkplatz)
+            return befehl with { X = werkplatz.Grundriss.X, Z = werkplatz.Grundriss.Z, Drehung = werkplatz.Grundriss.Drehung };
         var g = Grundriss(befehl);
-        foreach (var platz in Bauplaetze.Where(p => !IstWohnhausplatz(p)))
+        foreach (var platz in Bauplaetze.Where(p => !IstPlatz(p)))
         {
             var p = platz.Grundriss;
             if (!p.Enthaelt(befehl.X, befehl.Z) || g.HalbX > p.HalbX + 1e-6 || g.HalbZ > p.HalbZ + 1e-6) continue;
@@ -400,24 +442,42 @@ public sealed class Bauwesen
         var g = Grundriss(befehl);
         var name = GebaeudeName(befehl);
         var felder = g.Felder(d.Raster).ToList();
-        // Wohnhausplätze sind nur eingepasst bebaubar: Dann zählt genau dieser eine, sonst keiner (und keiner darf berührt werden).
-        var eingepasst = Wohnhausplatz(befehl);
+        // Wohnhausplätze (und die Werkstattplätze der Hofstellen) sind nur eingepasst bebaubar: Dann zählt genau dieser eine, sonst keiner (und
+        // keiner darf berührt werden).
+        var eingepasst = Eingepasst(befehl);
         if (eingepasst is null && Bauplaetze.Any(p => IstWohnhausplatz(p) && g.Ueberlappt(p.Grundriss)))
             return befehl is WerkstattBauen
                 ? "Auf einem Wohnhausplatz stehen nur Wohnhäuser."
                 : "Ein Wohnhaus kommt genau auf den Wohnhausplatz – nicht daneben oder halb darauf.";
-        var bauplaetze = eingepasst is not null ? new List<Grundstueck> { eingepasst } : Bauplaetze.Where(p => !IstWohnhausplatz(p)).ToList();
+        if (eingepasst is null && Bauplaetze.Any(p => IstWerkstattplatz(p) && g.Ueberlappt(p.Grundriss)))
+            return befehl is WerkstattBauen
+                ? "Eine Werkstatt kommt genau auf den Werkstattplatz der Hofstelle – nicht daneben oder halb darauf."
+                : "Auf dem Werkstattplatz einer Hofstelle steht nur eine Werkstatt.";
+        var bauplaetze = eingepasst is not null ? new List<Grundstueck> { eingepasst } : Bauplaetze.Where(p => !IstPlatz(p)).ToList();
 
         Grundstueck? BauplatzBei((double X, double Z) f) => bauplaetze.FirstOrDefault(p => p.Grundriss.Enthaelt(f.X, f.Z));
         if (!g.AufDemRaster(d.Raster) && !felder.All(f => BauplatzBei(f) is not null))
             return $"Gebaut wird auf dem Raster von {Zahlenformat.Knapp(d.Raster)} m – oder genau auf einem Bauplatz.";
 
+        // Ein Platz einer Hofstelle ist von der Kartenprüfung gegen alle Bauten der Karte geprüft (in seiner echten, auch schrägen Fläche). Sein
+        // Grundriss ist bei schrägen Plätzen nur das umschließende Rechteck und überdeckt dann den Nachbarplatz derselben Hofstelle oder einen Bau
+        // daneben – darum zählen dort nur die Neubauten in den Bauzonen (ohne Kennung), nicht die Plätze und Bauten der Karte (Befund der Prüfung).
+        var aufHofstelle = eingepasst is not null && karte.HofstelleVon(eingepasst.Kennung) is not null;
         foreach (var anderes in _grundstuecke.Where(x => x.Art != Grundstuecksart.Bauplatz))
-            if (g.Ueberlappt(anderes.Grundriss))
+            if ((!aufHofstelle || anderes.Kennung is null) && g.Ueberlappt(anderes.Grundriss))
                 return $"Hier steht schon {Bezeichnung(anderes)}.";
+        if (aufHofstelle)
+        {
+            // Die Plätze einer Hofstelle stehen frei wie alle Plätze der Karte (LEVELDESIGN §3): keine Bauzone, keine Straße nötig. Die Lage gilt
+            // für Wohnhäuser weiter (ein Stadtpalais nur in Kern und Mauerring), soweit der Platz in der Stadt liegt.
+            if (befehl is WohnhausBauen && eingepasst!.Lage is { } platzLage and not Lage.Umland && !mass.Lagen.Contains(platzLage))
+                return $"Ein {name} steht nur {LagenText(mass.Lagen)}.";
+            return null;
+        }
         foreach (var fest in karte.Gebaeude)
         {
-            if (fest.Art == Bausteinart.Wohnhausplatz && _grundstuecke.Any(x => x.Kennung == fest.Kennung)) continue; // vergebener Startplatz: als Grundstück geprüft
+            // vergebener Startplatz (bzw. Platz einer Hofstelle, auch frei als Bauplatz): als Grundstück geprüft
+            if (fest.Art is Bausteinart.Wohnhausplatz or Bausteinart.Werkstattplatz && _grundstuecke.Any(x => x.Kennung == fest.Kennung)) continue;
             if (fest.Grundriss is { } fg && g.Ueberlappt(fg))
                 return $"Hier steht {(fest.Name != "" ? fest.Name : "ein fester Bau")}.";
         }
@@ -472,7 +532,11 @@ public sealed class Bauwesen
         foreach (var platz in bauplaetze)
         {
             var p = platz.Grundriss;
-            if (!IstWohnhausplatz(platz))
+            if (IstWerkstattplatz(platz))
+            {
+                if (vorlage is WerkstattBauen) Pruefen(vorlage with { X = p.X, Z = p.Z, Drehung = p.Drehung });
+            }
+            else if (!IstWohnhausplatz(platz))
                 for (var drehung = 0; drehung < 4; drehung++) Pruefen(Einrasten(vorlage with { X = p.X, Z = p.Z, Drehung = drehung }));
             else if (vorlage is WohnhausBauen)
                 Pruefen(vorlage with { X = p.X, Z = p.Z, Drehung = p.Drehung });
@@ -481,7 +545,7 @@ public sealed class Bauwesen
         // Rasterstellen: Das Gebiet umfasst alle passenden Bauzonen und die Bauplätze. Vorab genügt ein billiger Blick auf die vier Eckfelder:
         // Liegt eines weder auf einem Bauplatz noch in einer passenden Zone, lehnt PlatzVerboten die Stelle sicher ab.
         var zonen = Karte!.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).Select(z => (Zone: z, Rahmen: Platzsuche.Rahmen(z.Flaeche))).ToList();
-        var freie = bauplaetze.Where(p => !IstWohnhausplatz(p)).ToList();
+        var freie = bauplaetze.Where(p => !IstPlatz(p)).ToList();
         var ecken = zonen.SelectMany(z => z.Zone.Flaeche.Select(e => (X: e[0], Z: e[1])))
             .Concat(freie.SelectMany(p => new[] { (X: p.Grundriss.X - p.Grundriss.HalbX, Z: p.Grundriss.Z - p.Grundriss.HalbZ),
                                                    (X: p.Grundriss.X + p.Grundriss.HalbX, Z: p.Grundriss.Z + p.Grundriss.HalbZ) }))
@@ -508,7 +572,7 @@ public sealed class Bauwesen
                     var (ax, az) = (g.HalbX - r / 2, g.HalbZ - r / 2); // von der Mitte zu den Mitten der Eckfelder
                     if (!Bebaubar(x - ax, z - az) || !Bebaubar(x + ax, z - az) || !Bebaubar(x - ax, z + az) || !Bebaubar(x + ax, z + az)) continue;
                     var befehl = vorlage with { X = x, Z = z, Drehung = drehung };
-                    if (Wohnhausplatz(befehl) is null) Pruefen(befehl); // genau auf einem Wohnhausplatz: schon oben, in seiner Drehung
+                    if (Eingepasst(befehl) is null) Pruefen(befehl); // genau auf einem Platz der Karte: schon oben, in seiner Drehung
                 }
         return orte;
     }
@@ -724,9 +788,14 @@ public sealed class Bauwesen
         return name;
     }
 
+    /// <summary>
+    /// Ist der Name schon vergeben – auch an einen festen Platz der Karte über das Muster der Spielerwerkstatt („{art} an der Ostgasse“ fände
+    /// sonst für „Tischlerei an der Ostgasse“ den Startplatz des Spielers, seit dessen Werkstatt mit Hofstellen nach der Straße heißen kann)?
+    /// </summary>
     private bool Vergeben(string name) =>
         _w.Betriebe.Any(b => b.Name == name) || _w.Daten.Liegenschaften.Any(l => l.Name == name) || _w.FreieLiegenschaften.Any(l => l.Name == name)
-        || _grundstuecke.Any(g => g.Betrieb == name) || Karte?.Gebaeude.Any(f => f.Name == name || f.Betrieb == name) == true;
+        || _grundstuecke.Any(g => g.Betrieb == name) || Karte?.Gebaeude.Any(f => f.Name == name || f.Betrieb == name) == true
+        || Karte?.PlatzVon(name) is not null;
 
     /// <summary>
     /// Wo eine neue Werkstatt liegt, kurz und mit passender Präposition – nach dem Namen der nächsten Karrenstraße:
@@ -808,7 +877,11 @@ public sealed class Bauwesen
         if (BauVerboten(konto, befehl) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var v = Vorschau(konto, befehl);
         if (v.Kosten > 0) konto.Investition(v.Kosten);
-        var g = Neu(v.Grundriss, befehl is WohnhausBauen ? Grundstuecksart.Wohnhaus : Grundstuecksart.Werkstatt, null);
+        // Auf einem Platz einer Hofstelle behält der Neubau dessen Kennung: Er steht dann wie auf dem Platz der Karte (Fläche, Drehung, Fahrzeit).
+        // Ein Wohnhaus auf einem anderen Wohnhausplatz (Karten ohne Hofstellen) bekommt sie wie bisher nicht.
+        var eingepasst = Eingepasst(befehl);
+        var hofplatz = eingepasst is { Kennung: { } k } && Karte?.HofstelleVon(k) is not null ? k : null;
+        var g = Neu(v.Grundriss, befehl is WohnhausBauen ? Grundstuecksart.Wohnhaus : Grundstuecksart.Werkstatt, hofplatz, hofplatz is not null ? eingepasst!.Lage : null);
         g.Besitzer = konto;
         g.Arbeit = Bauarbeit.Neubau;
         g.FertigAb = zeit.VergangeneMinuten + v.BauzeitMinuten;
@@ -818,8 +891,9 @@ public sealed class Bauwesen
             g.Betrieb = v.Betrieb;
             g.Betriebsart = b.Art;
         }
-        // Bauplätze unter dem Neubau sind vergeben – auch ein Rest daneben (Bauplätze sind Rechtecke).
-        foreach (var platz in Bauplaetze.Where(p => p.Grundriss.Ueberlappt(g.Grundriss)).ToList())
+        // Bauplätze unter dem Neubau sind vergeben – auch ein Rest daneben (Bauplätze sind Rechtecke). Auf einer Hofstelle nur ihr eigener Platz (und
+        // Reste in den Bauzonen): Der Nachbarplatz derselben Hofstelle überdeckt sich bei schrägen Plätzen nur im umschließenden Rechteck.
+        foreach (var platz in Bauplaetze.Where(p => p.Grundriss.Ueberlappt(g.Grundriss) && (hofplatz is null || p == eingepasst || p.Kennung is null)).ToList())
         {
             _grundstuecke.Remove(platz);
             BauplatzBebaut?.Invoke(platz);
@@ -840,10 +914,17 @@ public sealed class Bauwesen
 
     private Grundstueck Neu(Grundriss grundriss, Grundstuecksart art, string? kennung, Lage? lage = null)
     {
-        var g = new Grundstueck(_naechsteNummer++, grundriss, art, lage ?? Karte?.ZoneBei(grundriss.X, grundriss.Z)?.Art, kennung);
+        var g = new Grundstueck(_naechsteNummer++, grundriss, art, lage ?? Karte?.ZoneBei(grundriss.X, grundriss.Z)?.Art, kennung)
+        {
+            AufWerkstattplatz = AufWerkstattplatz(kennung),
+        };
         _grundstuecke.Add(g);
         return g;
     }
+
+    /// <summary>Ist die Kennung der Werkstattplatz einer Hofstelle (Karten ohne Hofstellen: nie)?</summary>
+    private bool AufWerkstattplatz(string? kennung) =>
+        kennung is not null && Karte?.HofstelleVon(kennung) is { } h && h.Werkstatt == kennung;
 
     private void HauswerteAktualisieren(params Konto[] konten)
     {
@@ -940,6 +1021,27 @@ public sealed class Bauwesen
     }
 
     /// <summary>
+    /// Am Ende des Aufbaus einer Partie mit Hofstellen (<see cref="Partie.Hofstellenvergabe"/>): Jede Hofstelle, die niemand bekommen hat, wird
+    /// frei zum Bauen – ihr Wohnhausplatz ein Bauplatz wie nach einem Abriss (nur Wohnhäuser), ihr Werkstattplatz ein Bauplatz nur für eine
+    /// Werkstatt (beide eingepasst). Belegt ist ein Werkstattplatz, an dem ein Betrieb steht (ein Betrieb der Partie, auch die Werkstatt des
+    /// Spielers über das Muster seines Namens, oder ein Name am Platz). In der Reihenfolge der Hofstellen, je erst das Wohnhaus, dann die Werkstatt.
+    /// Ohne Hofstellen oder ohne Bauwesen geschieht nichts.
+    /// </summary>
+    internal void FreieHofstellenFreigeben()
+    {
+        if (!IstAktiv || Karte is not { HatHofstellen: true } karte) return;
+        var besetzt = _w.Betriebe.Select(b => karte.PlatzVon(b.Name)?.Kennung).OfType<string>().ToHashSet(StringComparer.Ordinal); // nur nachgeschlagen
+        foreach (var h in karte.Hofstellen)
+        {
+            if (karte.GebaeudeMit(h.Wohnhaus) is { Grundriss: { } gw } wohnhaus && _grundstuecke.All(g => g.Kennung != h.Wohnhaus))
+                Neu(gw, Grundstuecksart.Bauplatz, h.Wohnhaus, wohnhaus.Lage);
+            if (karte.GebaeudeMit(h.Werkstatt) is { Grundriss: { } gk } werkstatt && string.IsNullOrEmpty(werkstatt.Betrieb) && !besetzt.Contains(h.Werkstatt)
+                && _grundstuecke.All(g => g.Kennung != h.Werkstatt))
+                Neu(gk, Grundstuecksart.Bauplatz, h.Werkstatt);
+        }
+    }
+
+    /// <summary>
     /// Nach dem Laden: Werkstätten in der Stadt, für die die Karte keinen Platz mehr hat (alte Spielstände, z. B. die zehn Werkstätten
     /// zum Kauf, die seit PR #162 gestrichen sind), bekommen ein Grundstück an der ersten freien Stelle der Bauzonen – wie eine fertig
     /// gebaute Werkstatt (<see cref="FreieOrte"/>, feste Reihenfolge, also bei jedem Laden gleich). Gibt die Namen zurück, für die
@@ -993,6 +1095,7 @@ public sealed class Bauwesen
             {
                 Besitzer = gs.Besitzer is int n ? konten[n] : null, GespeicherteStufe = gs.Stufe,
                 Betrieb = gs.Betrieb, Betriebsart = gs.Betriebsart, Arbeit = gs.Arbeit, FertigAb = gs.FertigAb, LeerSeit = gs.LeerSeit,
+                AufWerkstattplatz = AufWerkstattplatz(gs.Kennung), // aus der Karte im Spielstand (Hofstellen)
             });
     }
 }

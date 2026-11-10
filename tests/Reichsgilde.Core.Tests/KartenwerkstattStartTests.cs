@@ -360,13 +360,15 @@ static class KartenwerkstattStartTests
         {
             var e = Oeffnen("greybox");
             e.Daten = Daten.Value;
+            // ein viertes KI-Haus braucht eine fünfte Start-Hofstelle (Hofstellen, 9.11.2026): ein Werkstattplatz vor der Stadt und der freie Wohnhaus5
+            e.HofstelleBilden(e.Setzen("werkstattplatz", -150, 120, 90).Kennung, "Wohnhaus5", start: true);
             var meldungen = new List<Kartenaenderung>();
             e.Geaendert += meldungen.Add;
             var i = e.HausHinzufuegen();
             Pruefe.Gleich(3, i);
             var h = e.Start.Haeuser[3];
             Pruefe.Gleich("Haus Ahlbeck", h.Name);
-            Pruefe.Gleich("Wohnhaus5", h.Wohnhaus, "der erste freie Wohnhausplatz");
+            Pruefe.Gleich("Wohnhaus5", h.Wohnhaus, "das Wohnhaus der ersten freien Start-Hofstelle");
             Pruefe.Wahr(h.Farbe is not null && h.Farbe != "#b33329" && h.Farbe != "#336bb8", $"eine freie Farbe ({h.Farbe})");
             Pruefe.Wahr(!e.Start.Haeuser.Take(3).Any(x => x.Wappen == h.Wappen), "ein freies Wappen");
             Pruefe.Wahr(meldungen[^1] is { Teil: Kartenteil.Start } m && ReferenceEquals(m.Start, e.Start), "Ereignis für die Startbelegung");
@@ -518,7 +520,9 @@ static class KartenwerkstattStartTests
         {
             var e = Oeffnen("greybox");
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
-            var (simDatei, spielerDatei) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 3), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+            // „Karte ausprobieren“ lost nicht (Hofstellen, 9.11.2026): wie die Datei ohne Los
+            var (simDatei, spielerDatei) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
+                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
             var (w, wd) = (sim.Wirtschaft!, simDatei.Wirtschaft!);
             Folge(wd.Konten.Select(k => k.Inhaber).ToArray(), w.Konten.Select(k => k.Inhaber).ToArray());
             Folge(wd.Konten.Select(k => k.Wappen).ToArray(), w.Konten.Select(k => k.Wappen).ToArray());
@@ -527,14 +531,16 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich("Gießerei am Weinmarkt", w.Betriebe.First(b => b.Konto == spieler).Name);
             Pruefe.Wahr(w.Karte is not null && w.Bauen.IstAktiv, "die Partie hat die Karte und baut");
 
-            // mit einem anderen Beruf und einem vierten Haus aus der Werkstatt
+            // mit einem anderen Beruf und einem vierten Haus aus der Werkstatt – es braucht eine fünfte Start-Hofstelle (sein Wohnhaus kommt von dort)
             e.Daten = Daten.Value;
+            // (die Greybox verlangt genau 8 Wohnhausplätze: die fünfte Hofstelle nimmt den freien Wohnhaus5 und einen neuen Werkstattplatz vor der Stadt)
+            var hof = e.Start.HofstelleMit(e.HofstelleBilden(e.Setzen("werkstattplatz", -150, 120, 90).Kennung, "Wohnhaus5", start: true))!;
             var i = e.HausHinzufuegen();
             e.BetriebHinzufuegen(i, "Grube_am_Silberberg", Betriebsart.Mine);
             var (sim4, spieler4) = e.Ausprobieren(Daten.Value, "Tischler");
             Pruefe.Gleich(5, sim4.Wirtschaft!.Konten.Count, "Spieler und vier KI-Häuser");
             Pruefe.Gleich("Tischlerei am Weinmarkt", sim4.Wirtschaft.Betriebe.First(b => b.Konto == spieler4).Name);
-            Pruefe.Gleich("Wohnhaus5", sim4.Wirtschaft.Bauen.Wohnhaus(sim4.Wirtschaft.Konten[4])!.Kennung);
+            Pruefe.Gleich(hof.Wohnhaus, sim4.Wirtschaft.Bauen.Wohnhaus(sim4.Wirtschaft.Konten[4])!.Kennung);
             Pruefe.Wahr(sim4.Wirtschaft.Betriebe.Any(b => b.Name == "Grube am Silberberg" && b.Konto.Inhaber == "Haus Ahlbeck"), "die Grube gehört dem neuen Haus");
             // die Partie läuft
             for (var t = 0; t < 200; t++) sim4.Tick();
@@ -558,9 +564,19 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich("Maurerei am Werkstattplatz 2", w.Betriebe.First(b => b.Konto == spieler).Name);
             Pruefe.Gleich("Tischlerei Ahlbeck", w.Betriebe.Single(b => b.Konto == w.Konten[1]).Name);
             for (var t = 0; t < 200; t++) sim.Tick();
-            // Wieder schreiben und lesen: dieselbe Karte
+            // Wieder schreiben und lesen: dieselbe Karte – beim ersten Öffnen kommen die Hofstellen aus den Startpaaren dazu (9.11.2026), danach bleibt sie
             var json = e.ZuJson();
-            Pruefe.Gleich(json, Kartenentwurf.AusJson(json, Katalog.Value).ZuJson());
+            var wieder = Kartenentwurf.AusJson(json, Katalog.Value);
+            Pruefe.Gleich("H1 Werkstattplatz 2 Wohnhausplatz | H2 Werkstattplatz Wohnhausplatz 2", string.Join(" | ",
+                wieder.Start.Hofstellen.Select(h => $"{h.Kennung} {e.GebaeudeMit(h.Werkstatt)!.Name} {e.GebaeudeMit(h.Wohnhaus)!.Name}")));
+            Pruefe.Gleich(wieder.ZuJson(), Kartenentwurf.AusJson(wieder.ZuJson(), Katalog.Value).ZuJson());
+            static string OhneHofstellen(string text)
+            {
+                var n = System.Text.Json.Nodes.JsonNode.Parse(text)!.AsObject();
+                n["start"]!.AsObject().Remove("hofstellen");
+                return n.ToJsonString();
+            }
+            Pruefe.Gleich(OhneHofstellen(json), OhneHofstellen(wieder.ZuJson()), "sonst gleich");
             Pruefe.Wahr(json.Contains("\"start\": {") && json.Contains("\"tore\": [{\"name\": \"Osttor\", \"punkt\": [60, 10], \"schliesstNachts\": true}]"), json);
         }),
 
