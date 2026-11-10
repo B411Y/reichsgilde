@@ -16,6 +16,11 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class EntscheidungTests
 {
+    /// <summary>Die offenen Fragen der Unterwelt (Teil 1) – Teil 2 fragt in langen Läufen auch nach Krankheit, Erbe, Geheimnis und Mahnung.</summary>
+    static List<Entscheidung> Unterwelt(this Entscheidungswesen ew) => ew.Offen.Where(e => EntscheidungDaten.HatJahresfrist(e.Art)).ToList();
+
+    static List<Entscheidung> UnterweltFuer(this Entscheidungswesen ew, Konto haus) => ew.OffenFuer(haus).Where(e => EntscheidungDaten.HatJahresfrist(e.Art)).ToList();
+
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
     static readonly DateTime Zeitpunkt = new(2026, 11, 10, 12, 0, 0);
 
@@ -37,12 +42,16 @@ static class EntscheidungTests
         Pruefe.Wahr(w.Ausfuehren(opfer, new EntwicklerForderung(art, von.Inhaber, betrag)).Erfolg, $"Forderung {art} von {von.Inhaber}");
 
     static Entscheidung Einzige(Stadtwirtschaft w, Konto haus) =>
-        w.Entscheidungen.OffenFuer(haus) is { Count: 1 } l ? l[0] : throw new Exception($"Erwartet eine offene Entscheidung, sind {w.Entscheidungen.OffenFuer(haus).Count}.");
+        w.Entscheidungen.UnterweltFuer(haus) is { Count: 1 } l ? l[0] : throw new Exception($"Erwartet eine offene Entscheidung, sind {w.Entscheidungen.UnterweltFuer(haus).Count}.");
 
     static List<Meldung> Mitschreiben(Stadtwirtschaft w)
     {
         var liste = new List<Meldung>();
-        w.Gemeldet += m => { if (m.Art == Meldungsart.Entscheidung) liste.Add(m); };
+        // Nur die Meldungen der Unterwelt-Fragen (Teil 2 fragt in langen Läufen auch nach Krankheit, Erbe …): Schliessen meldet unmittelbar vor Geschlossen.
+        w.Entscheidungen.Geschlossen += (e, _) =>
+        {
+            if (EntscheidungDaten.HatJahresfrist(e.Art) && w.Meldungsverlauf.Count > 0 && w.Meldungsverlauf[^1] is { Art: Meldungsart.Entscheidung } m) liste.Add(m);
+        };
         return liste;
     }
 
@@ -62,7 +71,7 @@ static class EntscheidungTests
             w.KiAnmelden(rabe);
             Fordern(w, mensch, elster, Entscheidungsart.Erpresserbrief, 400);
             Fordern(w, rabe, elster, Entscheidungsart.Erpresserbrief, 400);
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count, "vor dem Tick");
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count, "vor dem Tick");
             sim.Tick();
             var e = Einzige(w, mensch);
             Pruefe.Gleich(Entscheidungsart.Erpresserbrief, e.Art);
@@ -71,12 +80,12 @@ static class EntscheidungTests
             Pruefe.Gleich(1, e.Nummer);
             Pruefe.Gleich(Entscheidungswesen.Ablehnen, e.Voreinstellung);
             Pruefe.Gleich(2L * Spielzeit.MinutenProTag - 1, e.Frist, "letzte Minute des Folgejahres");
-            Pruefe.Gleich(0, w.Entscheidungen.OffenFuer(rabe).Count, "KI-Haus");
-            Pruefe.Gleich(1, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.UnterweltFuer(rabe).Count, "KI-Haus");
+            Pruefe.Gleich(1, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Wahr(w.Entscheidungen.Titel(e).Contains("Haus Elster") && w.Entscheidungen.Beschreibung(e).Contains("400"), w.Entscheidungen.Beschreibung(e));
             Pruefe.Gleich(2, w.Entscheidungen.Wahlen(e).Count);
             sim.Tick();
-            Pruefe.Gleich(1, w.Entscheidungen.Offen.Count, "keine zweite Frage zur selben Forderung");
+            Pruefe.Gleich(1, w.Entscheidungen.Unterwelt().Count, "keine zweite Frage zur selben Forderung");
         }),
 
         ("Entscheidungen: EntscheidungTreffen zahlt über den bestehenden Befehl (0 AP), schließt die Frage und schreibt eine vertrauliche Meldung in den Verlauf", () =>
@@ -92,7 +101,7 @@ static class EntscheidungTests
             Pruefe.Gleich(ap, mensch.Aktionspunkte.Vorrat, "0 AP");
             Pruefe.Ungefaehr(geld - 400, mensch.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(geldElster + 400, elster.Vermoegen, 1e-9);
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Wahr(w.Gauner.ForderungAn(mensch, elster) is null, "Forderung erledigt");
             var m = meldungen.Single();
             Pruefe.Wahr(m.Vertraulich && w.HausVon(m) == mensch && m.Text.Contains("Schweigegeld gezahlt"), m.Text);
@@ -113,7 +122,7 @@ static class EntscheidungTests
             Pruefe.Wahr(w.Entscheidungen.Folgen(e, Entscheidungswesen.Zahlen).Contains("reicht euer Geld nicht"), w.Entscheidungen.Folgen(e, Entscheidungswesen.Zahlen));
             w.Ausfuehren(mensch, new EntwicklerGulden(1_000));
             Pruefe.Wahr(w.Ausfuehren(mensch, new EntscheidungTreffen(e.Nummer, Entscheidungswesen.Zahlen)).Erfolg, "mit Geld");
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
         }),
 
         ("Entscheidungen: Falsche Nummer, fremdes Haus und unbekannte Wahl werden abgelehnt, die Frage bleibt", () =>
@@ -135,18 +144,18 @@ static class EntscheidungTests
             Fordern(w, mensch, elster, Entscheidungsart.Schutzgeld, 300);
             Fordern(w, mensch, rabe, Entscheidungsart.Erpresserbrief, 200);
             sim.Tick();
-            Pruefe.Gleich(2, w.Entscheidungen.OffenFuer(mensch).Count);
+            Pruefe.Gleich(2, w.Entscheidungen.UnterweltFuer(mensch).Count);
             // Gegenprobe: Eine Antwort auf die andere Forderung schließt nur deren Frage.
             Pruefe.Wahr(w.Ausfuehren(mensch, new ErpressungBeantworten(rabe.Inhaber, false)).Erfolg, "Erpresser abgewiesen");
             var rest = Einzige(w, mensch);
             Pruefe.Gleich(Entscheidungsart.Schutzgeld, rest.Art);
             Pruefe.Wahr(meldungen.Single().Text.Contains("Erpresserbrief von Haus Rabe zurückgewiesen"), meldungen.Single().Text);
             Pruefe.Wahr(w.Ausfuehren(mensch, new DiebesforderungBeantworten(elster.Inhaber, Diebesbriefart.Schutzgeld, true)).Erfolg, "Tafel zahlt");
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Gleich(2, meldungen.Count);
             Pruefe.Wahr(!w.Ausfuehren(mensch, new EntscheidungTreffen(rest.Nummer, Entscheidungswesen.Ablehnen)).Erfolg, "nichts mehr offen");
             sim.Tick();
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count, "keine neue Frage aus der erledigten Forderung");
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count, "keine neue Frage aus der erledigten Forderung");
         }),
 
         ("Entscheidungen: Fristablauf beim Erpresserbrief – bis Ende des Folgejahres offen, dann gilt Schweigen als Nein (Abschluss Frist)", () =>
@@ -154,7 +163,7 @@ static class EntscheidungTests
             var (sim, w, mensch, elster, _) = Partie();
             var meldungen = Mitschreiben(w);
             var abschluesse = new List<Entscheidungsabschluss>();
-            w.Entscheidungen.Geschlossen += (_, a) => abschluesse.Add(a);
+            w.Entscheidungen.Geschlossen += (e, a) => { if (EntscheidungDaten.HatJahresfrist(e.Art)) abschluesse.Add(a); };
             Fordern(w, mensch, elster, Entscheidungsart.Erpresserbrief, 400);
             sim.Tick();
             var e = Einzige(w, mensch);
@@ -169,7 +178,7 @@ static class EntscheidungTests
             sim.Tick(); // letzte Minute: Jahresrechnung, Schweigen heißt Nein
             Pruefe.Wahr(w.Gauner.ForderungAn(mensch, elster) is null, "Forderung verfallen");
             sim.Tick(); // Abgleich: Frage geschlossen
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Gleich(Entscheidungsabschluss.Frist, abschluesse.Single());
             Pruefe.Wahr(meldungen.Single().Text.Contains("Schweigen galt als Nein"), meldungen.Single().Text);
             Pruefe.Wahr(mensch.Vermoegen <= geld, "nichts gezahlt");
@@ -192,7 +201,7 @@ static class EntscheidungTests
                 Pruefe.Wahr(w.Diebe.IstGeisel(tochter), "Geisel");
                 while (sim.Zeit.VergangeneMinuten <= e.Frist) sim.Tick();
                 sim.Tick();
-                Pruefe.Gleich(0, w.Entscheidungen.Offen.Count, reich ? "reich" : "arm");
+                Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count, reich ? "reich" : "arm");
                 Pruefe.Wahr(!w.Diebe.IstGeisel(tochter), "keine Geisel mehr");
                 Pruefe.Gleich(reich, tochter.Lebt && w.Familien.Von(mensch)!.Lebende.Contains(tochter), reich ? "frei" : "verkauft");
                 Pruefe.Wahr(meldungen.Single().Text.Contains(reich ? "Lösegeld für" : "kein Lösegeld"), meldungen.Single().Text);
@@ -211,7 +220,7 @@ static class EntscheidungTests
             while (sim.Zeit.VergangeneMinuten <= e.Frist) sim.Tick();
             Pruefe.Wahr(w.Diebe.Auftraege.Any(a => a.Art == Diebesstueck.Brandstiftung && a.Betrieb == giesserei.Name), "Brand für die nächste Nacht vorgemerkt");
             sim.Tick();
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
         }),
 
         ("Entscheidungen: Die Obergrenze löst bei der Unterwelt nichts aus – auch mit hoechstOffen 1 bleiben alle Forderungen offen, nichts wird gezahlt oder abgelehnt", () =>
@@ -227,7 +236,7 @@ static class EntscheidungTests
                 w.Familien.Gruenden(mensch, Volk.Mensch, Geschlecht.Mann, alter: 40);
                 var tochter = w.Familien.KindAufnehmen(mensch, 16);
                 var abschluesse = new List<(Entscheidung, Entscheidungsabschluss)>();
-                w.Entscheidungen.Geschlossen += (e, a) => abschluesse.Add((e, a));
+                w.Entscheidungen.Geschlossen += (e, a) => { if (EntscheidungDaten.HatJahresfrist(e.Art)) abschluesse.Add((e, a)); };
                 var erpresser = Enumerable.Range(1, 7).Select(i => w.KontoEroeffnen($"Haus Erpresser {i}", startvermoegen: 1_000)).ToList();
                 for (var i = 0; i < 7; i++)
                 {
@@ -237,7 +246,7 @@ static class EntscheidungTests
                 Fordern(w, mensch, erpresser[0], Entscheidungsart.Loesegeld, 500);
                 var geld = mensch.Vermoegen;
                 sim.Tick();
-                Pruefe.Gleich(8, w.Entscheidungen.OffenFuer(mensch).Count, $"alle acht offen (hoechstOffen {hoechstens})");
+                Pruefe.Gleich(8, w.Entscheidungen.UnterweltFuer(mensch).Count, $"alle acht offen (hoechstOffen {hoechstens})");
                 Pruefe.Gleich(0, abschluesse.Count, "keine lief aus");
                 Pruefe.Gleich(7, w.Gauner.Forderungen.Count(f => f.Opfer == mensch));
                 Pruefe.Wahr(w.Diebe.IstGeisel(tochter), "die Geisel bleibt Geisel");
@@ -250,7 +259,7 @@ static class EntscheidungTests
             var (sim, w, mensch, elster, rabe) = Partie(vermoegen: 50);
             var meldungen = Mitschreiben(w);
             var abschluesse = new List<(Entscheidung, Entscheidungsabschluss)>();
-            w.Entscheidungen.Geschlossen += (e, a) => abschluesse.Add((e, a));
+            w.Entscheidungen.Geschlossen += (e, a) => { if (EntscheidungDaten.HatJahresfrist(e.Art)) abschluesse.Add((e, a)); };
             Fordern(w, mensch, elster, Entscheidungsart.Loesegeld, 800);
             sim.Tick();
             var loesegeld = Einzige(w, mensch);
@@ -259,14 +268,14 @@ static class EntscheidungTests
             sim.Tick();
             while (sim.Zeit.VergangeneMinuten <= loesegeld.Frist) sim.Tick(); // die letzte Minute: Jahresrechnung, die Geisel wird verkauft
             Pruefe.Wahr(!w.Diebe.IstGeisel(Tochter(w, mensch)) && w.Diebe.Briefe.Count == 0, "Lösegeld verfallen");
-            Pruefe.Gleich(2, w.Entscheidungen.OffenFuer(mensch).Count, "vor dem Abgleich noch beide offen");
+            Pruefe.Gleich(2, w.Entscheidungen.UnterweltFuer(mensch).Count, "vor dem Abgleich noch beide offen");
             Pruefe.Wahr(w.Ausfuehren(mensch, new ErpressungBeantworten(rabe.Inhaber, false)).Erfolg, "Tafel lehnt den Erpresser ab");
             var (erste, grund) = abschluesse.Single();
             Pruefe.Gleich(Entscheidungsart.Erpresserbrief, erste.Art);
             Pruefe.Gleich(Entscheidungsabschluss.Entschieden, grund);
             Pruefe.Gleich(loesegeld.Nummer, Einzige(w, mensch).Nummer); // Gegenprobe: das Lösegeld bekommt nicht Grund und Wahl der Tafel
             sim.Tick();
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Gleich(Entscheidungsabschluss.Frist, abschluesse[1].Item2);
             Pruefe.Wahr(meldungen[^1].Text.Contains("kein Lösegeld gezahlt") && !meldungen.Any(m => m.Text.Contains("Lösegeld für") && m.Text.Contains("gezahlt.")),
                 string.Join(" | ", meldungen.Select(m => m.Text)));
@@ -278,13 +287,13 @@ static class EntscheidungTests
             Fordern(w, mensch, elster, Entscheidungsart.Loesegeld, 500);
             Fordern(w, mensch, elster, Entscheidungsart.Loesegeld, 600);
             sim.Tick();
-            var liste = w.Entscheidungen.Offen.OrderBy(e => e.Nummer).ToList();
+            var liste = w.Entscheidungen.Unterwelt().OrderBy(e => e.Nummer).ToList();
             Pruefe.Gleich(2, liste.Count);
             var r = w.Ausfuehren(mensch, new EntscheidungTreffen(liste[1].Nummer, Entscheidungswesen.Zahlen));
             Pruefe.Wahr(!r.Erfolg && r.Meldung.Contains("zuerst"), r.Meldung);
             Pruefe.Wahr(w.Ausfuehren(mensch, new EntscheidungTreffen(liste[0].Nummer, Entscheidungswesen.Zahlen)).Erfolg, "ältere");
             Pruefe.Wahr(w.Ausfuehren(mensch, new EntscheidungTreffen(liste[1].Nummer, Entscheidungswesen.Voreinstellungswahl)).Erfolg, "jüngere mit Voreinstellung");
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count);
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count);
             Pruefe.Wahr(w.Familien.Von(mensch)!.Lebende.Count() == 3, "beide frei");
         }),
 
@@ -305,7 +314,7 @@ static class EntscheidungTests
             Pruefe.Gleich((2, Entscheidungsart.Loesegeld, "Haus Rabe", 700.0), (e.Nummer, e.Art, e.Absender!.Inhaber, e.Betrag));
             Fordern(w2, spieler!, w2.Konten.First(k => k.Inhaber == "Haus Elster"), Entscheidungsart.Schutzgeld, 300);
             geladen.Tick();
-            Pruefe.Gleich(3, w2.Entscheidungen.Offen.Max(x => x.Nummer), "die Nummern laufen weiter");
+            Pruefe.Gleich(3, w2.Entscheidungen.Unterwelt().Max(x => x.Nummer), "die Nummern laufen weiter");
         }),
 
         ("Entscheidungen: Alter Spielstand ohne Abschnitt lädt mit leerer Liste – die erste Minute legt die Fragen aus den Forderungen neu an", () =>
@@ -314,15 +323,15 @@ static class EntscheidungTests
             Fordern(w, mensch, elster, Entscheidungsart.Erpresserbrief, 400);
             Fordern(w, mensch, rabe, Entscheidungsart.Schutzgeld, 300);
             sim.Tick();
-            var vorher = w.Entscheidungen.Offen.Select(e => (e.Art, e.Absender!.Inhaber, e.Betrag, e.Frist)).ToList();
+            var vorher = w.Entscheidungen.Unterwelt().Select(e => (e.Art, e.Absender!.Inhaber, e.Betrag, e.Frist)).ToList();
             var n = JsonNode.Parse(Speicherung.Speichern(sim, mensch, Zeitpunkt))!.AsObject();
             Pruefe.Wahr(n["Wirtschaft"]!.AsObject().Remove("Entscheidungen"), "Abschnitt entfernt");
             var (geladen, spieler) = Speicherung.Laden(n.ToJsonString());
-            Pruefe.Gleich(0, geladen.Wirtschaft!.Entscheidungen.Offen.Count, "leer nach dem Laden");
+            Pruefe.Gleich(0, geladen.Wirtschaft!.Entscheidungen.Unterwelt().Count, "leer nach dem Laden");
             geladen.Tick();
-            var nachher = geladen.Wirtschaft.Entscheidungen.Offen.Select(e => (e.Art, e.Absender!.Inhaber, e.Betrag, e.Frist)).ToList();
+            var nachher = geladen.Wirtschaft.Entscheidungen.Unterwelt().Select(e => (e.Art, e.Absender!.Inhaber, e.Betrag, e.Frist)).ToList();
             Pruefe.Gleich(string.Join("; ", vorher), string.Join("; ", nachher));
-            Pruefe.Wahr(geladen.Wirtschaft.Entscheidungen.Offen.All(e => e.Haus == spieler), "an den Menschen");
+            Pruefe.Wahr(geladen.Wirtschaft.Entscheidungen.Unterwelt().All(e => e.Haus == spieler), "an den Menschen");
         }),
 
         ("Entscheidungen: Über den Befehlsboten mit Verzögerung wirkt die Wahl erst im Ziel-Tick; das Protokoll spielt dieselbe Partie ab", () =>
@@ -335,22 +344,22 @@ static class EntscheidungTests
             sim.Bote.Verzoegerung = 2;
             sim.Bote.Einreihen(mensch, new EntscheidungTreffen(e.Nummer, Entscheidungswesen.Zahlen));
             sim.Tick();
-            Pruefe.Gleich(1, w.Entscheidungen.Offen.Count, "noch nicht");
+            Pruefe.Gleich(1, w.Entscheidungen.Unterwelt().Count, "noch nicht");
             sim.Tick();
             sim.Tick();
-            Pruefe.Gleich(0, w.Entscheidungen.Offen.Count, "im Ziel-Tick");
+            Pruefe.Gleich(0, w.Entscheidungen.Unterwelt().Count, "im Ziel-Tick");
             var protokoll = sim.Bote.AufzeichnungBeenden();
             var abgespielt = protokoll.Abspielen();
             Pruefe.Gleich(Reichsgilde.Core.Mehrspieler.Zustandspruefsumme.Berechnen(sim), Reichsgilde.Core.Mehrspieler.Zustandspruefsumme.Berechnen(abgespielt));
         }),
 
-        ("Entscheidungen: Daten – fristMinuten nur für Arten ohne Jahresfrist, ab 1 Minute; Obergrenze ab 1; Datenversion 81", () =>
+        ("Entscheidungen: Daten – fristMinuten nur für Arten ohne Jahresfrist, ab 1 Minute; Obergrenze ab 1; Datenversion 82", () =>
         {
-            Pruefe.Gleich(81, Daten.Value.Version);
+            Pruefe.Gleich(82, Daten.Value.Version);
             Pruefe.Gleich(6, Daten.Value.Entscheidungen!.HoechstOffen);
             Pruefe.Gleich(120, Daten.Value.Entscheidungen.FristFuer(Entscheidungsart.Erpresserbrief), "standard");
             var json = File.ReadAllText(Datenpfad.Wirtschaft());
-            const string alt = "\"entscheidungen\": { \"hoechstOffen\": 6, \"fristMinuten\": { \"standard\": 120 } }";
+            const string alt = "\"entscheidungen\": { \"hoechstOffen\": 6, \"erbeAbSterberisiko\": 0.1, \"fristMinuten\": { \"standard\": 120, \"Krankheit\": 120, \"Erbe\": 120, \"Geheimnis\": 120, \"Mahnung\": 120 } }";
             Pruefe.Wahr(json.Contains(alt), "Abschnitt gefunden");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace(alt, "\"entscheidungen\": { \"hoechstOffen\": 0 }")), "hoechstOffen");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace(alt, "\"entscheidungen\": { \"fristMinuten\": { \"Loesegeld\": 60 } }")), "Jahresfrist");

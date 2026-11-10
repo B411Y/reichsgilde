@@ -790,6 +790,22 @@
    ]
   },
   {
+   "id": "Entscheidung",
+   "name": "Entscheidungen",
+   "kern": [
+    "Entscheidung"
+   ],
+   "thema": "befehl",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Entschieden",
+   "absender": "Euer Schreiber",
+   "erklaerung": "Was aus einer Entscheidung wurde: gewählt, nach Ablauf der Frist mit der Voreinstellung oder hinfällig. Die offene Frage selbst zeigt der Entscheidungsbrief.",
+   "ziel": "bericht",
+   "muster": []
+  },
+  {
    "id": "KI-Zug",
    "name": "Züge der Rivalen",
    "thema": "stadt",

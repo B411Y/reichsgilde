@@ -1,5 +1,5 @@
 {
-  "version": 81,
+  "version": 82,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2322,7 +2322,7 @@
       { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 }
     ]
   },
-  "entscheidungen": { "hoechstOffen": 6, "fristMinuten": { "standard": 120 } },
+  "entscheidungen": { "hoechstOffen": 6, "erbeAbSterberisiko": 0.1, "fristMinuten": { "standard": 120, "Krankheit": 120, "Erbe": 120, "Geheimnis": 120, "Mahnung": 120 } },
   "glaube": {
     "voelker": {
       "Mensch": { "Katholisch": 0.6, "Evangelisch": 0.4 },

@@ -1,6 +1,6 @@
 # Bereich Darstellung – Offen und Entscheidungen
 
-> **Archiv:** Ältere und abgelöste Entscheidungen (bis 1.11.2026, darunter die Passanten-Abschnitte) stehen in [archiv/darstellung.md](archiv/darstellung.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
+> **Archiv:** Ältere und abgelöste Entscheidungen (bis 9.11.2026, darunter die Passanten-Abschnitte) stehen in [archiv/darstellung.md](archiv/darstellung.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
 
 **Nur der Darstellungs-Chat schreibt hier.** Ausnahme: Ein anderer Bereich darf unter „Offen“ eine Zeile mit „(von …)“ anhängen, wenn er hier etwas braucht.
 
