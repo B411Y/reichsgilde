@@ -99,6 +99,13 @@ public sealed record EntwicklerBlitz(string? Gebaeude = null) : EntwicklerBefehl
 /// </summary>
 public sealed record EntwicklerDiebeshaus(string? Haus = null) : EntwicklerBefehl;
 
+/// <summary>
+/// Eine Forderung der Unterwelt von Haus <c>Von</c> an <c>Haus</c> (null: an den Absender) zustellen – ohne Beweise, Versteck, Würfel und
+/// Aktionspunkte, damit sich eine Entscheidung (Benachrichtigungen Stufe 3) ausprobieren lässt. Lösegeld nimmt den ersten Angehörigen, der
+/// entführt werden kann, als Geisel. Die Frist ist die gewöhnliche Jahresfrist.
+/// </summary>
+public sealed record EntwicklerForderung(Entscheidungen.Entscheidungsart Art, string Von, double Betrag, string? Haus = null) : EntwicklerBefehl;
+
 // ── Wirtschaft ──────────────────────────────────────────────────────────────
 
 /// <summary>Ware ins Lager des Betriebs legen (negativ: herausnehmen, höchstens was da ist) – ohne Kosten, auch über die Lagergrenze.</summary>

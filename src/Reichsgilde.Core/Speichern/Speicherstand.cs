@@ -205,6 +205,35 @@ public sealed record WirtschaftStand
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public GeheimnisseStand? Geheimnisse { get; init; }
+
+    /// <summary>
+    /// Offene Entscheidungen (Benachrichtigungen Stufe 3). Null, solange es in der Partie nie eine gab – alte Spielstände bleiben Byte für Byte, wie
+    /// sie waren; fehlt der Abschnitt, legt der Kern die Fragen zu offenen Forderungen der Unterwelt in der ersten Minute neu an.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public EntscheidungenStand? Entscheidungen { get; init; }
+}
+
+/// <summary>Die offenen Entscheidungen (siehe <see cref="Reichsgilde.Core.Entscheidungen.Entscheidungswesen"/>).</summary>
+public sealed record EntscheidungenStand
+{
+    /// <summary>Die Nummer der nächsten Frage – Nummern werden in einer Partie nie doppelt vergeben.</summary>
+    public int NaechsteNummer { get; init; } = 1;
+    public List<EntscheidungStand> Offen { get; init; } = new();
+}
+
+/// <summary>Eine offene Frage; Haus und Absender als Nummer in <see cref="WirtschaftStand.Konten"/>, Person als Personennummer.</summary>
+public sealed record EntscheidungStand
+{
+    public int Nummer { get; init; }
+    public Reichsgilde.Core.Entscheidungen.Entscheidungsart Art { get; init; }
+    public int Haus { get; init; }
+    public int? Absender { get; init; }
+    public int? Person { get; init; }
+    public double Betrag { get; init; }
+    public long Beginn { get; init; }
+    public long Frist { get; init; }
+    public int Voreinstellung { get; init; }
 }
 
 /// <summary>Die Geheimnisse der Stadt (siehe <see cref="Reichsgilde.Core.Geheimnisse.Geheimniswesen"/>).</summary>

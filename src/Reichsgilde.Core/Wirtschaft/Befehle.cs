@@ -265,6 +265,14 @@ public sealed record Entfuehren(string Haus, int Person, double Betrag) : Befehl
 /// <summary>Auf eine Forderung von Dieben antworten: Schutzgeld oder Lösegeld zahlen – oder nicht.</summary>
 public sealed record DiebesforderungBeantworten(string Dieb, Gauner.Diebesbriefart Art, bool Zahlen) : Befehl;
 
+/// <summary>
+/// Eine offene Entscheidung beantworten (Benachrichtigungen Stufe 3, 0 AP): <paramref name="Nummer"/> aus
+/// <see cref="Entscheidungen.Entscheidungswesen.Offen"/>, <paramref name="Wahl"/> = Index in <see cref="Entscheidungen.Entscheidungswesen.Wahlen"/>
+/// (Erpresserbrief, Schutzgeld, Lösegeld: 0 Zahlen, 1 Ablehnen) oder <see cref="Entscheidungen.Entscheidungswesen.Voreinstellungswahl"/> (−1) für die
+/// Voreinstellung, wie sie beim Ausführen gilt. Wirkt über den bestehenden Befehl mit dessen Prüfungen; schlägt er fehl, bleibt die Frage offen.
+/// </summary>
+public sealed record EntscheidungTreffen(int Nummer, int Wahl) : Befehl;
+
 /// <summary>Die eigene Wache durchsucht dieses Haus: Beweise für seine Taten, Diebesgut wird beschlagnahmt.</summary>
 public sealed record Razzia(string Haus) : Befehl;
 

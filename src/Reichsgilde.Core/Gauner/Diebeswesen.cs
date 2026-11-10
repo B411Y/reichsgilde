@@ -607,6 +607,10 @@ public sealed class Diebeswesen
                                   $"(erwarteter Schaden ≈ {Zahlenformat.Ganz(DrohenderBrand(opfer, dieb))}). Aber: Die Forderung ist ein Beweis gegen euch.");
     }
 
+    /// <summary>Entwicklerfenster: eine Forderung ohne Versteck, Spur und Würfel (Frist wie gewöhnlich bis Ende des Folgejahres).</summary>
+    internal void EntwicklerBrief(Diebesbriefart art, Konto dieb, Konto opfer, double betrag, int? geisel) =>
+        _briefe.Add(new Diebesbrief(art, dieb, opfer, betrag, _w.Jahr, geisel));
+
     internal Befehlsergebnis Beantworten(Konto opfer, Konto dieb, Diebesbriefart art, bool zahlen)
     {
         if (BriefAn(opfer, dieb, art) is not { } brief)
