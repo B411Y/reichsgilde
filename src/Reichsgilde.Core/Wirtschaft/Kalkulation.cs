@@ -286,7 +286,8 @@ public static class Kalkulation
         b.LeistungProMinute * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand) * w.Jahreszeiten.Arbeitsfaktor(b);
 
     /// <summary>
-    /// Gewinn je Stück dieser Ware in diesem Betrieb (Tooltips): Erlös am Markt (mit Verhandlungsgeschick) − Umsatzsteuer des Hauses
+    /// Gewinn je Stück dieser Ware in diesem Betrieb (Tooltips): Erlös am Markt (mit Verhandlungsgeschick und – verkaufen die Karren am Hafen –
+    /// dem Aufschlag für Ausfuhrware, <see cref="Stadtwirtschaft.HafenFaktor"/>) − Umsatzsteuer des Hauses
     /// − Zutaten zum Marktpreis − Lohnanteil − Unterhaltsanteil. Lohn (wie ihn die Jahresabrechnung zahlt, <see cref="Betrieb.LohnJeArbeiter"/>)
     /// und Unterhalt (mit dem Wächter) werden nach der Herstellzeit verteilt: Jahreskosten ÷ (Leistung × Arbeitsminuten) × Minuten je Stück.
     /// Ohne Personal rechnet sie mit einem Gesellen. Umland: Förderzeit statt Herstellzeit, keine Zutaten.
@@ -294,7 +295,7 @@ public static class Kalkulation
     public static Stueckrechnung GewinnJeStueck(Stadtwirtschaft w, Betrieb b, string ware)
     {
         var daten = w.Daten.Waren[ware];
-        var preis = w.Markt[ware].Preis * w.Familien.VerkaufsFaktor(b.Konto);
+        var preis = w.Markt[ware].Preis * w.Familien.VerkaufsFaktor(b.Konto) * w.HafenFaktor(b, ware); // Aufschlag am Hafen wie die Abrechnung
         var steuer = preis * w.SteuersatzMarkt(b.Konto);
         var zutaten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
         var minuten = b.IstWerkstatt ? b.MinutenJeStueck(ware) : daten.Zeit;

@@ -312,7 +312,7 @@ public partial class Stadtansicht
     private static int ZellenNummer(BetriebsAnsicht a, GefangenPlatz platz) => a.Modellraum!.Zellenplaetze.IndexOf(platz);
 
     /// <summary>
-    /// Aussehen eines Wachmanns, fest je Arbeiter: der Wappenrock der Stadt in Rot (Lehrlinge in blassem, ungefärbtem Rot), meist barhäuptig, manche mit dunklem Barett, Orks grün;
+    /// Aussehen eines Wachmanns, fest je Arbeiter: der Wappenrock der Stadt in Rot (Lehrlinge in blassem, ungefärbtem Rot), mit Eisenhut (wie die Torwächter; Streife, Wachhaus und Festnahme), Orks grün;
     /// der Hauptmann trägt ein dunkles Weinrot mit schwarzem Barett über grauem Haar.
     /// </summary>
     private static FigurAussehen WacheAussehen(int nummer, Arbeiterbild bild, bool hauptmann)
@@ -322,8 +322,7 @@ public partial class Stadtansicht
             return new FigurAussehen(volk, bild.Frau ?? false, new Color(0.46f, 0.07f, 0.09f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
         var rock = bild.Anfaenger ? new Color(0.62f, 0.34f, 0.30f) : Stadtrot.Lerp(new Color(0.55f, 0.10f, 0.10f), (Streuung(nummer, 7) % 5) / 8f);
         var frau = FrauVon(bild, nummer, 6);
-        var kopf = Streuung(nummer, 29) % 4 == 0 ? Kopfbedeckung.Barett : Kopfbedeckung.Keine;
-        return new FigurAussehen(volk, frau, rock, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), HaarVon(bild, nummer), new Color(0.20f, 0.14f, 0.12f), kopf);
+        return new FigurAussehen(volk, frau, rock, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), HaarVon(bild, nummer), new Color(0.45f, 0.45f, 0.48f), Kopfbedeckung.Eisenhut);
     }
 
     /// <summary>Aussehen eines Gefangenen: ein Taschendieb in ärmlichem, geflicktem Lumpengewand ohne Kapuze (wie die Lehrlinge der Diebe), mancher ein Ork.</summary>
