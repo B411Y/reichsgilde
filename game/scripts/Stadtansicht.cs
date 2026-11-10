@@ -1160,8 +1160,17 @@ public partial class Stadtansicht : Node3D
         _kameraDrehung.Position = new Vector3(Mathf.Clamp(neu.X, rahmen.Position.X, rahmen.End.X), 0, Mathf.Clamp(neu.Z, rahmen.Position.Y, rahmen.End.Y));
     }
 
+    /// <summary>
+    /// Liegt die Maus über einem sichtbaren Oberflächen-Element (Fenster, Tafel, Leiste, Menü, Tooltip, auch über dessen Rand, Abstand oder Beschriftung)?
+    /// Dann bekommt die Welt keinen Klick und kein Mausrad. Die Steuerelemente lassen Ereignisse sonst durch (Container und Beschriftungen haben MouseFilter Pass),
+    /// und was kein Knopf verbraucht, käme hier an und zoomte oder wählte ein Gebäude.
+    /// </summary>
+    public bool MausUeberOberflaeche => UnterTafel || GetViewport().GuiGetHoveredControl() is not null;
+
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        // Drücken und Rad nur über freier Welt; das Loslassen darf immer durch (ein begonnenes Ziehen muss enden können).
+        if (eingabe is InputEventMouseButton { Pressed: true } && MausUeberOberflaeche) return;
         if (_raum is not null)
         {
             RaumEingabe(eingabe);

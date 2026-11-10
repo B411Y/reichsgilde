@@ -50,7 +50,7 @@ public partial class Mauszeiger : Node
         Bild(stufe, Art.Normal, 48) is { } bild ? new AtlasTexture { Atlas = bild, Region = new Rect2(Scheinrand[0], Scheinrand[0], 48, 48) } : null;
 
     private static Mauszeiger? _aktiv;
-    private static (int Stufe, Art Art, int Groesse, bool An)? _gesetzt;
+    private static (int Stufe, Art Art, int Groesse, bool An, bool Hilfe)? _gesetzt;
 
     /// <summary>Stand des Hauses (0 = Gemeiner) oder null (kein Spiel, zum Beispiel im Hauptmenü).</summary>
     public Func<int?>? StandAbfrage { get; set; }
@@ -85,8 +85,10 @@ public partial class Mauszeiger : Node
         var stufe = StufeFest > 0 ? Math.Clamp(StufeFest, 1, Haende) : Fenster.ZeigerStufe > 0 ? Math.Clamp(Fenster.ZeigerStufe, 1, Haende) : Math.Clamp((StandAbfrage?.Invoke() ?? 0) + 1, 1, Stufen);
         var art = an ? ArtErmitteln() : Art.Normal;
         var groesse = an ? GroesseWaehlen() : 0;
-        if (_gesetzt == (stufe, art, groesse, an)) return;
-        _gesetzt = (stufe, art, groesse, an);
+        // Fragezeichen nur genau dort, wo das Steuerelement unter der Maus wirklich einen Tooltip hat; sonst trägt der Hilfe-Platz das Bild des Pfeils.
+        var hilfeAn = an && !string.IsNullOrEmpty(Tooltips.QuelleFinden(GetViewport().GuiGetHoveredControl()).Text);
+        if (_gesetzt == (stufe, art, groesse, an, hilfeAn)) return;
+        _gesetzt = (stufe, art, groesse, an, hilfeAn);
         if (!an)
         {
             ZeigerEntfernen();
@@ -96,13 +98,18 @@ public partial class Mauszeiger : Node
         if (bild is null) return;
         var nr = Array.IndexOf(Groessen, groesse);
         var hotspot = art == Art.Schloss ? SchlossPunkte[nr] : new Vector2(HandPunkte[nr].X, HandPunkte[nr].Y);
-        // Pfeil = der gewählte Zustand; „Zeigefinger“ (Knöpfe mit Handform) immer klick.
-        Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
+        // Godot macht beim Setzen eines Bildes die zuletzt bzw. mittig gesetzte Form (früher: Hilfe) zur aktuellen, bis sich die Maus bewegt – das Fragezeichen blitzte so auf Knopfrändern auf.
+        // Darum die Form von vorher danach wieder herstellen.
+        var vorher = Input.GetCurrentCursorShape();
+        var hilfe = hilfeAn ? HilfeBild(groesse) : null;
+        if (hilfe is not null) Input.SetCustomMouseCursor(hilfe, Input.CursorShape.Help, HilfePunkte[nr]);
+        else Input.SetCustomMouseCursor(bild, Input.CursorShape.Help, hotspot);
+        // „Zeigefinger“ (Knöpfe mit Handform) immer klick.
         var klick = art == Art.Normal ? Bild(stufe, Art.Klick, groesse) : bild;
         if (klick is not null) Input.SetCustomMouseCursor(klick, Input.CursorShape.PointingHand, hotspot);
-        // Hilfe (Fragezeichen, Messing): erscheint über den Zug-Icons im Charakterfenster; unabhängig von Stufe und Zustand.
-        var hilfe = HilfeBild(groesse);
-        if (hilfe is not null) Input.SetCustomMouseCursor(hilfe, Input.CursorShape.Help, HilfePunkte[nr]);
+        // Pfeil = der gewählte Zustand.
+        Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
+        if (Input.GetCurrentCursorShape() != vorher) DisplayServer.CursorSetShape((DisplayServer.CursorShape)(int)vorher);
         GD.Print($"[zeiger] Stufe {stufe} {art.ToString().ToLowerInvariant()} {groesse}px bei {GetViewport().GetMousePosition()} über {Beschreibung()}");
     }
 
