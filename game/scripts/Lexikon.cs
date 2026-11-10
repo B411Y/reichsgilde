@@ -12,8 +12,9 @@ namespace Reichsgilde;
 /// <param name="Titel">Überschrift des Eintrags.</param>
 /// <param name="Gruppe">Gruppe in der Liste links (Spiel, Wirtschaft, Berufe, Waren, Stadt, Familie, Rat, Gauner …).</param>
 /// <param name="Text">Der Text: Verweise als <c>[[kennung]]</c> oder <c>[[kennung|Anzeigetext]]</c>, Live-Zahlen als <c>{wert:name}</c>.</param>
+/// <param name="Bilder">Bilder zum Eintrag (Feld <c>bilder</c>), je <c>art:name</c> oder <c>art:name|Tooltip</c> mit der Art <c>geheimnis</c> (Siegel), <c>zug</c> (Medaillon) oder <c>ware</c> (Waren-Knopf); fehlt die Datei, bleibt nur der Text. Einträge der Gruppe „Waren“ zeigen ihren Waren-Knopf von selbst (Titel = Warenname).</param>
 /// <param name="Auch">Weitere Wortformen, die in Tooltips automatisch auf den Eintrag verweisen (z. B. Mehrzahl); sparsam, nur wo die Beugungsendungen nicht reichen.</param>
-public sealed record Begriff(string Kennung, string Titel, string Gruppe, string Text, string[]? Auch = null);
+public sealed record Begriff(string Kennung, string Titel, string Gruppe, string Text, string[]? Auch = null, string[]? Bilder = null);
 
 /// <summary>
 /// Das <b>Lexikon</b> im Spiel (Vorbild: das Lexikon in Crusader Kings 3, nur die Mechanik): Begriffe mit Verweisen untereinander und Live-Zahlen.
@@ -95,6 +96,10 @@ public static class Lexikon
         var optionen = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         return JsonSerializer.Deserialize<List<Begriff>>(json, optionen) ?? new List<Begriff>();
     }
+
+    /// <summary>Die Bild-Angaben eines Begriffs (<c>art:name|Tooltip</c>): die Liste der Datei, bei Waren sonst der Knopf zum Titel.</summary>
+    public static IReadOnlyList<string> BilderVon(Begriff b)
+        => b.Bilder is { Length: > 0 } ? b.Bilder : b.Gruppe == "Waren" ? new[] { "ware:" + b.Titel } : Array.Empty<string>();
 
     /// <summary>Der Begriff mit dieser Kennung (Groß- und Kleinschreibung egal), sonst null.</summary>
     public static Begriff? FindeBegriff(string kennung)

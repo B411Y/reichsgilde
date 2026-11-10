@@ -40,9 +40,11 @@ public sealed partial class Stadtwirtschaft
     /// <summary>
     /// Eine Meldung mit Art, Betroffenem und Ort. <paramref name="haus"/> fehlt, wird das Haus des <paramref name="betrieb"/>s genommen.
     /// Ort: der Betrieb, sonst das Gebäude der Karte (<paramref name="gebaeude"/>, mit Lage), sonst mit <paramref name="wohnhaus"/> das Wohnhaus des Hauses.
+    /// <paramref name="geheimnis"/>: die Art des Geheimnisses, von dem die Meldung handelt (<see cref="Wirtschaft.Meldung.GeheimnisArt"/>).
     /// </summary>
     internal void Melden(Meldungsart art, string text, Konto? haus = null, Dynastie.Person? person = null, Betrieb? betrieb = null,
-        bool wohnhaus = false, Meldungswichtigkeit? wichtigkeit = null, bool vertraulich = false, Gefahren.Blitzziel? gebaeude = null)
+        bool wohnhaus = false, Meldungswichtigkeit? wichtigkeit = null, bool vertraulich = false, Gefahren.Blitzziel? gebaeude = null,
+        Geheimnisse.Geheimnisart? geheimnis = null)
     {
         haus ??= betrieb?.Konto ?? gebaeude?.Betrieb?.Konto ?? gebaeude?.Bewohner;
         betrieb ??= gebaeude?.Betrieb;
@@ -57,6 +59,7 @@ public sealed partial class Stadtwirtschaft
             X = gebaeude?.X,
             Z = gebaeude?.Z,
             Vertraulich = vertraulich && nummer >= 0,
+            GeheimnisArt = geheimnis,
         });
     }
 
@@ -86,7 +89,7 @@ public sealed partial class Stadtwirtschaft
     internal List<MeldungStand>? MeldungenSichern() => _meldungsverlauf.Count == 0 ? null : _meldungsverlauf.Select(m => new MeldungStand
     {
         Art = m.Art, Text = m.Text, Minute = m.Minute, Wichtigkeit = m.Wichtigkeit, Haus = m.Haus, Person = m.Person, Ort = m.Ort, Ortsname = m.Ortsname,
-        X = m.X, Z = m.Z, Vertraulich = m.Vertraulich,
+        X = m.X, Z = m.Z, Vertraulich = m.Vertraulich, GeheimnisArt = m.GeheimnisArt,
     }).ToList();
 
     /// <summary>Stellt den Verlauf aus dem Spielstand her (nach den Konten). Unbekannte Kontonummern werden zu „kein Haus“; mehr als die Länge: die neuesten.</summary>
@@ -98,7 +101,7 @@ public sealed partial class Stadtwirtschaft
             _meldungsverlauf.Add(new Meldung(s.Art, s.Text ?? "")
             {
                 Minute = s.Minute, Wichtigkeit = s.Wichtigkeit, Haus = s.Haus is int h && h >= 0 && h < _konten.Count ? h : null, Person = s.Person,
-                Ort = s.Ort, Ortsname = s.Ortsname, X = s.X, Z = s.Z, Vertraulich = s.Vertraulich,
+                Ort = s.Ort, Ortsname = s.Ortsname, X = s.X, Z = s.Z, Vertraulich = s.Vertraulich, GeheimnisArt = s.GeheimnisArt,
             });
     }
 

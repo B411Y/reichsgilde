@@ -15,7 +15,8 @@ namespace Reichsgilde;
 /// <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
 /// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (<see cref="BriefAnzeige"/>, hält nie die Zeit an).
 /// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“).
-/// Siegel und Brief zeigen das Porträt des Betroffenen (<see cref="PortraetFuer"/>); „Hinsehen“ fährt zu Betrieb, Wohnhaus oder Ort und öffnet die Auswahl bzw.
+/// Siegel und Brief zeigen das Porträt des Betroffenen (<see cref="PortraetFuer"/>), bei einer Meldung über ein Geheimnis dazu das Siegel seiner Art
+/// (<see cref="Meldung.GeheimnisArt"/>, <see cref="CharakterAnzeige.GeheimnisSiegelBild"/>); „Hinsehen“ fährt zu Betrieb, Wohnhaus oder Ort und öffnet die Auswahl bzw.
 /// das Charakterfenster (<see cref="MeldungAnsteuern"/>). Nach dem Laden kommt der Verlauf aus dem Spielstand (<see cref="VerlaufAusSpielstand"/>).
 ///
 /// Damit nichts überflutet:
@@ -58,6 +59,7 @@ public partial class Hauptszene
         _brief.ZielGewaehlt += BriefZiel;
         _brief.Hinsehen += MeldungAnsteuern;
         _brief.HinsehenZiel = HinsehenZiel;
+        _brief.GeheimnisTipp = GeheimnisTipp;
     }
 
     private Meldungsordnung Ordnung => Meldungseinstellungen.Ordnung;
@@ -263,10 +265,29 @@ public partial class Hauptszene
         }
     }
 
-    /// <summary>Das kleine Porträt am Siegel (gerahmt) – oder null.</summary>
+    /// <summary>
+    /// Das kleine Bild am Siegel: das Porträt des Betroffenen (gerahmt) und, wenn die Meldung von einem Geheimnis handelt, rechts daneben das Siegel
+    /// seiner Art (<see cref="Meldung.GeheimnisArt"/>) – oder null.
+    /// </summary>
     private Control? SiegelBild(Meldungsposten posten)
     {
-        if (PortraetFuer(posten.Kern) is not { } p || _simulation.Wirtschaft is not { } w) return null;
+        var portraet = PortraetRahmen(posten.Kern);
+        if (CharakterAnzeige.GeheimnisSiegelBild(posten.Kern?.GeheimnisArt, 30) is not { } geheim) return portraet;
+        var reihe = new HBoxContainer();
+        reihe.AddThemeConstantOverride("separation", 2);
+        if (portraet is not null) reihe.AddChild(portraet);
+        reihe.AddChild(geheim);
+        return reihe;
+    }
+
+    /// <summary>Wie der Brief das Siegel einer Geheimnisart erklärt (Tooltip): Name und Beschreibung aus den Daten.</summary>
+    private string GeheimnisTipp(Reichsgilde.Core.Geheimnisse.Geheimnisart art) =>
+        _simulation?.Wirtschaft?.Geheimnisse is { IstAktiv: true } g ? $"Ein Geheimnis – {g.Daten.Art(art).Name}: {g.Daten.Art(art).Beschreibung}" : "Ein Geheimnis";
+
+    /// <summary>Das kleine Porträt am Siegel (gerahmt) – oder null.</summary>
+    private Control? PortraetRahmen(Meldung? kern)
+    {
+        if (PortraetFuer(kern) is not { } p || _simulation.Wirtschaft is not { } w) return null;
         var rahmen = new PanelContainer();
         rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
@@ -354,7 +375,7 @@ public partial class Hauptszene
             brief.Zeilen.Add(("Jahresabrechnung", $"Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)} {w.Daten.Allgemein.Waehrung}, Umsatz {Zahlenformat.Ganz(v.Umsatz)}.", v.Gewinn < 0));
         foreach (var gruppe in _jahresSammler.GroupBy(p => p.Art).OrderBy(g => Ordnung.Arten.ToList().IndexOf(g.Key)))
             foreach (var p in gruppe)
-                brief.Zeilen.Add((gruppe.Key.Name, p.Text, p.Warnung));
+                brief.Zeilen.Add(new Briefzeile(gruppe.Key.Name, p.Text, p.Warnung, p.Kern)); // mit Kern: Geheimnis-Siegel vor der Zeile
         _jahresSammler.Clear();
         BriefEinreihen(brief);
     }
@@ -363,7 +384,7 @@ public partial class Hauptszene
     {
         var thema = Ordnung.Thema("gefahr");
         var brief = new Brief { Titel = "Die Nacht", Absender = "Der Büttel", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id };
-        foreach (var p in _nachtSammler) brief.Zeilen.Add(($"{p.Zeit}", p.Text, p.Warnung));
+        foreach (var p in _nachtSammler) brief.Zeilen.Add(new Briefzeile($"{p.Zeit}", p.Text, p.Warnung, p.Kern));
         brief.Fuss = _nachtSammler.Count == 1 ? "Das war alles in dieser Nacht." : $"{_nachtSammler.Count} Vorfälle in dieser Nacht.";
         _nachtSammler.Clear();
         BriefEinreihen(brief, gefahr: true);

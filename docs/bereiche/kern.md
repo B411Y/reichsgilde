@@ -117,27 +117,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
 
-### Bauzonen aus dem Raster für jede Karte (PR #310)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Umfang | Variante A (Nutzer, C+A freigegeben): die Köln-Rechnung „frei heißt bebaubar“ als `Kartenentwurf.BauzonenAusRaster` im Kern (`Kartenwerkstatt/Rasterbauzonen.cs`). Köln, Greybox und Probestadt rechnen damit; gerechnet wird beim Kartenbau, nie in der Partie. Bauwesen, Befehle, Spielstand und Mehrspieler unverändert; Datenversion bleibt (wirtschaft.json unberührt). | 04.11. |
-| Lage | Grobe Lage-Gebiete `lagen` in der Karte (erstes Gebiet gilt, Art auch „keine“) oder eine Regel des Stadtskripts (`Rastervorgaben.LageVon`, Köln). Keine automatische Regel „Umkreis um den Markt“ – die Gebiete zeichnet man von Hand. | 04.11. |
-| Hand-Zonen | Zonen ohne `"berechnet": true` sind von Hand gezeichnet, bleiben bei jeder Rechnung, gehen vor (Felder darauf und daran bleiben frei) und stehen hinter den berechneten (Köln: 7 Werkstatt-Bauplätze). | 04.11. |
-| Abstände | Wege halbe Breite + 0,5 m, Gebäude 2 m, Mauer und Ufer 2 m wie die Prüfung (genau 2 m ist frei); Köln behält 3 m zu Mauer und Ufer und seinen Bereich x −340 … 250 – so bleiben seine 57 Zonen gleich. Hang bis 7 % (8-×-8-m-Fenster), Feld ≤ 30 m und Zone ≤ 7,5 m von einer Karrenstraße, mindestens 24 Felder. | 04.11. |
-| Restflächen | Freie Felder in Kern, Mauerring und Vorstadt, die keine Zone wurden, als `restflaechen` (Kennung R…, Lage, Grund `klein` unter 24 Feldern oder `abseits`, Felder, Umriss); im Umland keine. Nur Daten für die Darstellung, in `Stadtkarte.Restflaechen`. | 04.11. |
-| Greybox | Umbau `greybox-raster`: sieben Lage-Gebiete um die alten Zonen (der Mischwald im Westen bleibt Wald), 11 Hand-Zonen → 9 berechnete; jedes alte Feld bleibt Zone derselben Lage (Kern 268 → 335, Mauerring 130 → 156, Vorstadt 442 → 781 Felder). Der Probeplan bekommt die neuen Zonennamen. | 04.11. |
-| Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
-| Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |
-
-### Ein Lehrling zum Start (PR #318)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Startpersonal | Jeder Startbetrieb beginnt mit einem Anfänger (Nutzer): Spieler und KI-Häuser gleich, bei „Schwer“ auch der Umlandbetrieb der KI (vorher 2 in der Stadt, 3 im Umland). Wert in den Daten: `personal.startJeBetrieb` = 1, Datenversion 72; ohne Angabe wie bisher. | 04.11. |
-| KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
-| Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
-
 ### Messhilfe Meldungen je Spieljahr (PR #320)
 
 | Thema | Entscheidung | Datum |
@@ -311,6 +290,18 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Ketzerei (Entscheidung Nutzer 09.11.) | Designfrage aus der Prüfung: Vorher war Ketzerei anzeigbar, sobald irgendein Stadtglaube galt – auch gegen jemanden, der heimlich gerade den Stadtglauben hält. Entscheidung des Nutzers nach der Empfehlung: anzeigbar nur, wenn der Inhaber sich nach außen zum Stadtglauben bekennt (Person: `Glaube`; Ratsherr: `Glaubenswesen.GlaubeVon`), heimlich aber anderes glaubt; wer offen einen anderen Glauben lebt, ist kein Ketzer. Neue Abfrage `Geheimniswesen.KeinVergehen(g)` (Grund oder null) in `NutzenVerboten` (Sperrgrund „… bekennt sich nicht zum Stadtglauben – kein Ketzer.“), `KiRivale.GeheimnisSchaden` und dem Tooltip im Charakterfenster. Erpressen und Bloßstellen bleiben möglich. Geprüft wird bei der Anzeige; ein späterer Glaubenswechsel ändert das laufende Verfahren nicht. Test mit Gegenproben (Haus und Ratsherr, ohne und mit Stadtglauben). | 09.11.2026 |
 | Außerhalb des Bereichs | Im Auftrag mitgebaut: Spiel-KI (`KiRivale.cs`, neu `KiRivale.Geheimnisse.cs`), Oberfläche (neu `CharakterAnzeige.Geheimnisse.cs`, `CharakterAnzeige.cs`, `GerichtAnzeige.cs`, `EntwicklerAnzeige.cs`, `Lexikon.cs`, `game/daten/lexikon.json`, `Hauptszene.cs`, `Hauptszene.Charakter.cs`). Keine Bilder (Offen bei oberflaeche). | 09.11.2026 |
 
+### Geheimnis-Siegel in Meldungen (PR „Oberfläche: Siegel für die Geheimnisse“, Kern-Teil)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Teamleiter 09.11.2026: Meldungen und Erpresserbrief um die Geheimnisart ergänzen, damit Meldung, Brief und Hinterzimmer das Siegel der Art zeigen (Oberfläche siehe oberflaeche.md „Geheimnis-Siegel“). Lexikon bleibt offen. | 09.11.2026 |
+| Feld | `Meldung.GeheimnisArt` (`Geheimnisart?`), gesetzt über `Stadtwirtschaft.Melden(…, geheimnis:)`: neues Geheimnis (`Neu`, vertraulich ans eigene Haus), Gerede, Beichte, Ehepartner, Spitzelbericht auf ein Haus (`SpitzelBericht` gibt jetzt die `Geheimnis`-Objekte, Text über `Text(g)`) und auf einen Ratsherrn, erpresste Ratsstimme (ans Haus), vertraulicher Satz zum Erpresserbrief, Anzeige gegen Haus und Ratsherrn, Bloßstellen, Urteile am Gerichtstag (schuldig, frei, eingestellt; `Stadtgericht.Eintrag(text, fuer, geheimnis)`, Delegat `Action<string, Konto?, Geheimnisart?>`). Die `Meldungsart` bleibt (Sonstiges bzw. Anklage), Texte und Würfe unverändert. | 09.11.2026 |
+| Mehrere Arten (selbst entschieden) | Nennt eine Meldung Geheimnisse verschiedener Art (Gerede, Spitzelbericht), bleibt die Art null (`Geheimniswesen.EineArt`) – das Siegel einer Art wäre für die übrigen irreführend. | 09.11.2026 |
+| Öffentlich (selbst entschieden) | Der öffentliche Satz „X erhält einen Erpresserbrief …“ und die Sätze zum Zahlen oder Ablehnen tragen keine Art (nach 3c erfährt die Stadt nur, dass ein Brief kam); die Art steht nur am vertraulichen Satz an das Opfer. Öffentliche Meldungen mit Art nennen sie ohnehin im Text oder folgen auf eine öffentliche Anzeige. | 09.11.2026 |
+| Erpresserbrief | `Forderung.GeheimnisArt` (positional, Vorgabe null) aus `GeheimnisErpressen(…, art, …)`; Abfragen `ArtDesBriefes(f)` (ältere Stände ohne Art: über die Nummer, solange das Geheimnis besteht; Nummern werden nie wiederverwendet) und `WorumDerBrief(f)` („Inhaber: Art“) fürs Hinterzimmer. | 09.11.2026 |
+| Spielstand | `MeldungStand.GeheimnisArt` und `ForderungStand.GeheimnisArt` (geschützte Datei `Speicherstand.cs`), nur geschrieben, wenn gesetzt. Ältere Stände laden ohne Art und bleiben beim Speichern gleich; die Simulation liest das Feld nie (ein Jahr weiter bis auf das Feld gleich). Kein `wirtschaft.json`, Datenversion bleibt 78. | 09.11.2026 |
+| Tests | Neu `GeheimnisMeldungTests` (12, je mit Gegenprobe: öffentlicher Satz zum Brief, Brief und Anklage mit Beweisen, Gerede über zwei Arten, Spitzel ohne Fund, Partie ohne Abschnitt; dazu Partie mit KI, Einordnung der Oberfläche, Spielstand mit Feld genau dort, wo eine Art gesetzt ist, alter Stand ohne Feld und Greybox 1406). Der Gleichheitstest verlangt Meldungen mit Art und vergleicht sie mit Speichern und Laden (alle vier Partien grün). `MeldungsordnungTests` kennt die neue Art „Geheimnis“. 1.565 Tests grün. | 09.11.2026 |
+| Prüfung | Unabhängiger Prüfer (opus) über den Diff: 0 hoch, 0 mittel, 3 niedrig, alle behoben – die Spielstand-Tests suchten „GeheimnisArt“ im ganzen Stand (den Namen hat auch `VerfahrenStand`, und die KI kann auch mit ruhigen Daten Schulden oder Ketzerei bekommen): jetzt nur an Meldungen und Briefen, genau wo gesetzt; Hinterzimmer zeigte bei einem alten Brief ohne Art den Beweis-Text; `--erpresserbrief=7` nahm eine Zahl als Art. Geprüft ohne Befund: Vollständigkeit, Geheimhaltung, Würfelreihenfolge, Rundlauf. | 09.11.2026 |
 ### Kartenprüfung inkrementell (Branch phase5/pruefung-inkrementell)
 
 | Thema | Entscheidung | Datum |

@@ -91,10 +91,11 @@ static class MeldungsordnungTests
             Pruefe.Wahr(rivalen.Count > 20, $"Züge der Rivalen erkannt ({rivalen.Count})");
             foreach (var (text, e) in liste)
             {
-                if (!e.RivalenZug) Pruefe.Gleich(Meldungsmessung.Einordnen(text), e.Art.Id, "Art wie die Messung: " + text);
+                // Die Messung kennt nur den Text: eine Meldung über ein Geheimnis ist für sie „Sonstiges“ (die Art „Geheimnis“ kommt vom Kern)
+                if (!e.RivalenZug) Pruefe.Gleich(Meldungsmessung.Einordnen(text), e.Art.Id == "Geheimnis" ? "Sonstiges" : e.Art.Id, "Art wie die Messung: " + text);
                 var stufe = Meldungsordnung.Stufe(e.Art, e.Bezug, e.Text, null);
                 if (e.RivalenZug) Pruefe.Gleich(Meldestufe.Verlauf, stufe, "Rivalenzug");
-                if (e.Verwerfen) Pruefe.Wahr(e.Art.Id is "Diebstahl" or "Spitzel", "Verworfen nur Unterwelt und Spitzel: " + text);
+                if (e.Verwerfen) Pruefe.Wahr(e.Art.Id is "Diebstahl" or "Spitzel" or "Geheimnis", "Verworfen nur Unterwelt, Spitzel und fremde Geheimnisse: " + text);
             }
             var sonstiges = liste.Count(x => x.E.Art.Id == "Sonstiges");
             Pruefe.Wahr(sonstiges <= liste.Count / 50, $"höchstens 2 % Sonstiges ({sonstiges} von {liste.Count})");

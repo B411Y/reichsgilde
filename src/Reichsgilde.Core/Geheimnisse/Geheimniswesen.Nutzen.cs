@@ -103,7 +103,7 @@ public sealed partial class Geheimniswesen
     {
         var opfer = HausVon(g)!;
         var inhaber = Inhaber(g)!;
-        var ergebnis = _w.Gauner.GeheimnisErpressen(haus, opfer, betrag, g.Nummer, $"{inhaber.Name}: {Beschreibung(g)}", _zufall);
+        var ergebnis = _w.Gauner.GeheimnisErpressen(haus, opfer, betrag, g.Nummer, g.Art, $"{inhaber.Name}: {Beschreibung(g)}", _zufall);
         if (!ergebnis.Erfolg) return ergebnis;
         Wissen(haus, g)!.BriefIm = Jahr;
         InhaberStress(g, Daten.Stress.Erpresst, $"Erpresst: {Beschreibung(g)}");
@@ -130,7 +130,7 @@ public sealed partial class Geheimniswesen
         InhaberStress(g, Daten.Stress.Erpresst, "Um die Ratsstimme erpresst");
         if (opferHaus is not null)
             _w.Melden(Meldungsart.Sonstiges, $"{haus.Inhaber} weiß von „{Beschreibung(g)}“ ({inhaber.Name}) und verlangt eure Stimme: In der nächsten Ratssitzung " +
-                                              $"stimmt {opferHaus.Inhaber} bei allen Punkten wie {haus.Inhaber}.", haus: opferHaus, vertraulich: true);
+                                              $"stimmt {opferHaus.Inhaber} bei allen Punkten wie {haus.Inhaber}.", haus: opferHaus, vertraulich: true, geheimnis: g.Art);
         return Befehlsergebnis.Ok($"{inhaber.Name} gibt nach: In der nächsten Ratssitzung stimmt {sitz.Inhaber} ({sitz.Name}) bei allen Punkten wie ihr. " +
                                   "Die Erpressung ist eine Spur gegen euch.");
     }
@@ -157,7 +157,7 @@ public sealed partial class Geheimniswesen
             richter.AddRange(SchoeffenGegen(vorsitz, r).Select(x => new Richter("Schöffe", x, null)));
             _verfahren.Add(new RatsherrVerfahren(haus, r, g.Nummer, g.Art, Jahr, richter));
             _w.Melden(Meldungsart.Anklage, $"{haus.Inhaber} zeigt den Ratsherrn {r.Name} an: {art.Name}. Es richten {string.Join(", ", richter.Select(x => x.Name))}. " +
-                                            "Gerichtstag ist am Jahresende.");
+                                            "Gerichtstag ist am Jahresende.", geheimnis: g.Art);
             ergebnis = Befehlsergebnis.Ok($"Anzeige gegen {r.Name} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(x => x.Name))}.");
         }
         if (!ergebnis.Erfolg) return ergebnis;
@@ -202,7 +202,7 @@ public sealed partial class Geheimniswesen
         if (g.Art == Geheimnisart.Schulden && a.KreditFaktor < 1) folgen.Add($"die Geldleiher leihen {Zahlenformat.Ganz((1 - a.KreditFaktor) * 100)} % weniger");
         _w.Melden(Meldungsart.Sonstiges, $"{haus.Inhaber} stellt {inhaber.Name} bloß: {Beschreibung(g)}! Die ganze Stadt redet davon" +
                                           (folgen.Count > 0 ? $" – {string.Join(", ", folgen)}." : "."),
-            haus: hausDes, person: inhaber as Person, wichtigkeit: Meldungswichtigkeit.Hoch);
+            haus: hausDes, person: inhaber as Person, wichtigkeit: Meldungswichtigkeit.Hoch, geheimnis: g.Art);
         return Befehlsergebnis.Ok($"Ihr stellt {inhaber.Name} bloß: {Beschreibung(g)}. Ohne Gericht und ohne Spur – aber {inhaber.Name} wird es euch nicht vergessen.");
     }
 
@@ -299,7 +299,8 @@ public sealed partial class Geheimniswesen
     /// Am Gerichtstag (aus dem Stadtgericht, nach den Verfahren gegen Häuser): Schuldig verliert der Ratsherr seinen Sitz und rückt
     /// <see cref="GeheimnisRatsherrenDaten.SperreJahre"/> Jahre in kein Amt nach; Freispruch: Der Ankläger zahlt die Entschädigung in die Stadtkasse.
     /// </summary>
-    internal void Gerichtstag(Action<string, Konto?> eintrag)
+    /// <param name="eintrag">Text, Haus (vertraulich; hier immer null) und die Art des Geheimnisses für die Meldung.</param>
+    internal void Gerichtstag(Action<string, Konto?, Geheimnisart?> eintrag)
     {
         if (_verfahren.Count == 0) return;
         var j = _w.Justiz.Daten;
@@ -309,7 +310,7 @@ public sealed partial class Geheimniswesen
         {
             if (!v.Anklaeger.IstAktiv)
             {
-                eintrag($"Gerichtstag {jahr}: Die Anzeige von {v.Anklaeger.Inhaber} gegen {v.Beklagter.Name} wird eingestellt.", null);
+                eintrag($"Gerichtstag {jahr}: Die Anzeige von {v.Anklaeger.Inhaber} gegen {v.Beklagter.Name} wird eingestellt.", null, v.Art);
                 continue;
             }
             var schuldstimmen = v.Richter.Count(r => Ueberzeugung(r, v) >= j.SchuldSchwelle - 1e-9);
@@ -321,7 +322,7 @@ public sealed partial class Geheimniswesen
                 _gesperrt[v.Beklagter.Name] = jahr + Daten.Ratsherren.SperreJahre;
                 if (amt is not null) _w.Rat.RatsherrAbsetzen(v.Beklagter);
                 eintrag($"Gerichtstag {jahr}: Der Ratsherr {v.Beklagter.Name} ist SCHULDIG – {name} ({zaehlung}): " +
-                        (amt is not null ? $"Verlust des Amtes {amt.Name}, " : "") + $"{Daten.Ratsherren.SperreJahre} Jahre ohne Amt.", null);
+                        (amt is not null ? $"Verlust des Amtes {amt.Name}, " : "") + $"{Daten.Ratsherren.SperreJahre} Jahre ohne Amt.", null, v.Art);
             }
             else
             {
@@ -331,7 +332,7 @@ public sealed partial class Geheimniswesen
                 _w.Meinungen.TatEintragen(v.Beklagter.Kennung, _w.Meinungen.HausKennung(v.Anklaeger), "klage", "Hat ihn verklagt",
                     _w.Meinungen.Daten?.Taten.Klage ?? 0);
                 eintrag($"Gerichtstag {jahr}: Der Ratsherr {v.Beklagter.Name} wird freigesprochen ({zaehlung}). " +
-                        $"{v.Anklaeger.Inhaber} zahlt {Zahlenformat.Ganz(entschaedigung)} {waehrung} in die Stadtkasse.", null);
+                        $"{v.Anklaeger.Inhaber} zahlt {Zahlenformat.Ganz(entschaedigung)} {waehrung} in die Stadtkasse.", null, v.Art);
             }
         }
         _verfahren.Clear();

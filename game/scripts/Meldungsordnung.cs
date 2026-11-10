@@ -40,6 +40,12 @@ public sealed class Meldeart
     /// <summary>Texte, die trotz <see cref="Sammeln"/> einzeln bleiben (z. B. eine Anklage gegen das eigene Haus).</summary>
     public IReadOnlyList<string> Einzeln { get; init; } = Array.Empty<string>();
 
+    /// <summary>
+    /// Die Art für Meldungen des Kerns über ein Geheimnis (<see cref="Meldung.GeheimnisArt"/>), die weder eine Art des Kerns noch ein Textmuster
+    /// einer anderen Art trifft (Feld <c>geheimnis</c>) – sonst wären sie „Sonstiges“ und stünden nur im Verlauf.
+    /// </summary>
+    public bool Geheimnis { get; init; }
+
     /// <summary>Kann der Spieler diese Art in den Einstellungen wählen? Rivalen und Sonstiges nur Verlauf oder aus.</summary>
     public bool NurVerlauf => Id is "KI-Zug" or "Sonstiges" or "Bau" or "Kirche" or "Besitz" or "Entwickler";
 
@@ -142,6 +148,7 @@ public sealed class Meldungsordnung
                 Ausnahmen = a.TryGetProperty("ausnahmen", out var ausn)
                     ? ausn.EnumerateArray().Select(x => (MusterLesen(x), Stufe(x, "stufe"))).ToList() : new(),
                 Einzeln = a.TryGetProperty("einzeln", out var einz) ? einz.EnumerateArray().Select(x => x.GetString()!).ToList() : Array.Empty<string>(),
+                Geheimnis = a.TryGetProperty("geheimnis", out var geheim) && geheim.GetBoolean(),
                 Kern = a.TryGetProperty("kern", out var kern)
                     ? kern.EnumerateArray().Select(x => Enum.TryParse<Meldungsart>(x.GetString(), out var k) ? k
                         : throw new FormatException($"meldungen.json: unbekannte Art des Kerns „{x.GetString()}“.")).ToList()
@@ -151,13 +158,17 @@ public sealed class Meldungsordnung
         return new Meldungsordnung(themen, arten);
     }
 
-    /// <summary>Die Art einer Meldung des Kerns: nach ihrer <see cref="Meldung.Art"/>, wenn eine Art sie unter <c>kern</c> nennt, sonst nach dem Text.</summary>
+    /// <summary>
+    /// Die Art einer Meldung des Kerns: nach ihrer <see cref="Meldung.Art"/>, wenn eine Art sie unter <c>kern</c> nennt, sonst nach dem Text. Bleibt
+    /// eine Meldung über ein Geheimnis (<see cref="Meldung.GeheimnisArt"/>) danach „Sonstiges“, gehört sie zur Art mit <see cref="Meldeart.Geheimnis"/>.
+    /// </summary>
     public Meldeart Einordnen(Meldung m)
     {
         if (m.Art != Meldungsart.Sonstiges)
             foreach (var art in _arten)
                 if (art.Kern.Contains(m.Art)) return art;
-        return Einordnen(m.Text);
+        var nachText = Einordnen(m.Text);
+        return nachText == _sonstiges && m.GeheimnisArt is not null && _arten.FirstOrDefault(a => a.Geheimnis) is { } geheimnis ? geheimnis : nachText;
     }
 
     /// <summary>Die Art nach dem Text allein (ohne Kenntnis der Partie; Züge der Rivalen erkennt erst <see cref="Einstufen"/>).</summary>

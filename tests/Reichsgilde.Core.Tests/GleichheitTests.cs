@@ -67,8 +67,9 @@ static class GleichheitTests
     /// <param name="Stress">Wie viele Stressquellen (Einträge mit Wert über 0) die Personen der Häuser nach jedem Jahr tragen, zusammen – der Stress steht im Spielstand und damit in der Prüfsumme.</param>
     /// <param name="Geheimnisse">Wie viele Geheimnisse es nach jedem Jahr gibt, zusammen (Teil 3c) – sie stehen im Spielstand.</param>
     /// <param name="Wissen">Was die Häuser nach jedem Jahr von fremden Geheimnissen wissen, zusammen (Teil 3c) – steht im Spielstand.</param>
+    /// <param name="GeheimMeldungen">Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel) – der Verlauf steht im Spielstand und in der Prüfsumme.</param>
     sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
-        int Geheimnisse, int Wissen);
+        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -196,6 +197,9 @@ static class GleichheitTests
         // Die Häuser sollen auch etwas wissen (Gerede, Spitzel der KI) – sonst prüfte der Lauf ihre Pfade nicht.
         Pruefe.Wahr(a.Wissen > 0, $"Kein Wissen über Geheimnisse in {p.Jahre} Jahren (Startwert {p.Startwert})");
         Pruefe.Gleich(a.Wissen, c.Wissen, "Wissen über Geheimnisse mit Speichern und Laden");
+        // Meldungen mit Geheimnisart (Siegel) sollen vorkommen – sonst prüfte die Prüfsumme das Feld im Verlauf nicht mit.
+        Pruefe.Wahr(a.GeheimMeldungen.Count > 0, $"Keine Meldung mit Geheimnisart in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(string.Join("\n", a.GeheimMeldungen), string.Join("\n", c.GeheimMeldungen), "Meldungen mit Geheimnisart mit Speichern und Laden");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -245,10 +249,15 @@ static class GleichheitTests
 
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
         var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
-        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m =>
+        var geheimMeldungen = new List<string>(); // Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel)
+        void BlitzeZaehlen(Simulation s)
         {
-            if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal) || m.StartsWith("Funkenflug!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}");
-        };
+            s.Wirtschaft!.Meldung += m =>
+            {
+                if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal) || m.StartsWith("Funkenflug!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}");
+            };
+            s.Wirtschaft.Gemeldet += m => { if (m.GeheimnisArt is { } art) geheimMeldungen.Add($"{m.Minute} {art} {m.Text}"); };
+        }
         var braende = new List<string>(); // an jedem Ladepunkt: Lager und Vermögen der Häuser, deren Gebäude brennt (Lauf C: nach dem Laden)
         BlitzeZaehlen(sim);
         var befehle = new List<string>();
@@ -291,7 +300,7 @@ static class GleichheitTests
                 wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
