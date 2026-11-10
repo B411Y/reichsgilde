@@ -409,7 +409,7 @@ public sealed partial class Kartenentwurf
         if (_befundeLauf is null)
         {
             _befundeTeil = new List<Befund>();
-            _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil);
+            _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil, teil => BefundeTeil = teil);
         }
         try
         {
@@ -427,17 +427,73 @@ public sealed partial class Kartenentwurf
         return false;
     }
 
+    /// <summary>An welchem Teil der Prüfung der letzte <see cref="BefundeSchritt"/> gerechnet hat (für Messungen, z. B. „Wasser“); null vor dem ersten.</summary>
+    public string? BefundeTeil { get; private set; }
+
     /// <summary>Die Befunde gelten nicht mehr: auch ein halb gerechneter Lauf (<see cref="BefundeSchritt"/>) fängt neu an.</summary>
     private void BefundeVerwerfen() => (_befunde, _befundeLauf, _befundeTeil) = (null, null, null);
 
     /// <summary>
     /// Die Kapazitätsprüfung dieses Entwurfs (<see cref="Kapazitaetspruefung"/>) – aus dem Zwischenspeicher, bis sich ein Gebäude, ein Weg oder
-    /// eine Bauzone ändert (nur davon hängt sie ab; in Köln dauert sie einige 10 ms).
+    /// eine Bauzone ändert (nur davon hängt sie ab; in Köln 5–10 ms). Neu gerechnet wird mit dem Vorrat des letzten Laufs (<see cref="Abstandsvorrat"/>:
+    /// die Abstände zur Straße nur in der Nähe geänderter Wege); die volle Prüfung rechnet sie in Häppchen (<see cref="KapazitaetSchritte"/>), wer sie
+    /// hier fragt, bekommt den Rest in einem Zug.
     /// </summary>
-    public Kapazitaet Kapazitaetsrechnung(Schwere schwere = Schwere.Fehler) =>
-        _kapazitaet is { } k && k.Schwere == schwere ? k.Ergebnis : (_kapazitaet = (schwere, Kapazitaetspruefung.Pruefen(this, schwere))).Value.Ergebnis;
+    public Kapazitaet Kapazitaetsrechnung(Schwere schwere = Schwere.Fehler)
+    {
+        foreach (var _ in KapazitaetSchritte(schwere)) { }
+        return _kapazitaet!.Value.Ergebnis;
+    }
+
+    /// <summary>
+    /// Rechnet die <see cref="Kapazitaetsrechnung"/> in Häppchen (jedes Element ein Stück, sein Wert der Name des Teils); ist sie fertig oder steht sie im
+    /// Zwischenspeicher, endet die Folge. Ein halber Lauf bleibt über Änderungen erhalten, die die Kapazität nicht betreffen (Boden, Gelände, Natur …);
+    /// eine an Gebäuden, Wegen oder Bauzonen verwirft ihn (<see cref="Vormerken"/>).
+    /// </summary>
+    internal IEnumerable<string> KapazitaetSchritte(Schwere schwere)
+    {
+        while (_kapazitaet is not { } k || k.Schwere != schwere)
+        {
+            if (_kapazitaetLauf is null || _kapazitaetLaufSchwere != schwere)
+            {
+                var lauf = Kapazitaetspruefung.Schritte(this, schwere, _kapazitaetVorrat, (ergebnis, vorrat) =>
+                {
+                    _kapazitaet = (schwere, ergebnis);
+                    _kapazitaetVorrat = vorrat;
+                }).GetEnumerator();
+                (_kapazitaetLauf, _kapazitaetLaufSchwere) = (lauf, schwere);
+            }
+            bool weiter;
+            try
+            {
+                weiter = _kapazitaetLauf.MoveNext();
+            }
+            catch
+            {
+                _kapazitaetLauf = null; // nach einer Ausnahme ist der Lauf tot
+                throw;
+            }
+            if (!weiter)
+            {
+                _kapazitaetLauf = null;
+                yield break;
+            }
+            yield return _kapazitaetLauf.Current;
+        }
+    }
 
     private (Schwere Schwere, Kapazitaet Ergebnis)? _kapazitaet;
+
+    /// <summary>Ein angefangener Lauf der Kapazitätsprüfung (<see cref="KapazitaetSchritte"/>) und mit welcher Schwere er rechnet.</summary>
+    private IEnumerator<string>? _kapazitaetLauf;
+
+    private Schwere _kapazitaetLaufSchwere;
+
+    /// <summary>Raster und Abstände des letzten fertigen Laufs (<see cref="Abstandsvorrat"/>) – bleibt über Änderungen; der nächste Lauf vergleicht.</summary>
+    private Abstandsvorrat? _kapazitaetVorrat;
+
+    /// <summary>Für Tests: Raster und Abstände des letzten fertigen Laufs der Kapazitätsprüfung.</summary>
+    internal Abstandsvorrat? KapazitaetVorrat => _kapazitaetVorrat;
 
     /// <summary>
     /// Die Karrenwege der Startbetriebe zum Markt (<see cref="Startwegpruefung"/>, für die Fairness der Startgrundstücke) – aus dem
@@ -448,14 +504,57 @@ public sealed partial class Kartenentwurf
     /// </summary>
     public IReadOnlyList<Startweg> Startwegrechnung()
     {
-        if (_startwege is { } bekannt) return bekannt;
+        foreach (var _ in StartwegSchritte()) { }
+        return _startwege!;
+    }
+
+    /// <summary>
+    /// Rechnet die <see cref="Startwegrechnung"/> in Häppchen (jedes Element ein Stück, sein Wert der Name des Teils): Karte schreiben und lesen, ihr
+    /// Gelände, der Wasserplan, das Karrennetz (alles nur, wenn das Netz neu muss) und je Startbetrieb ein Weg. Steht sie im Zwischenspeicher, endet die
+    /// Folge sofort. Ein halber Lauf bleibt über Änderungen erhalten, die Netz bzw. Wege nicht betreffen (<see cref="StartwegeVormerken"/>); dieselben
+    /// Wege wie in einem Zug, denn jeder Teil rechnet wie vorher.
+    /// </summary>
+    internal IEnumerable<string> StartwegSchritte()
+    {
+        while (_startwege is null)
+        {
+            _startwegLauf ??= StartwegLauf().GetEnumerator();
+            bool weiter;
+            try
+            {
+                weiter = _startwegLauf.MoveNext();
+            }
+            catch
+            {
+                _startwegLauf = null; // nach einer Ausnahme ist der Lauf tot
+                throw;
+            }
+            if (!weiter)
+            {
+                _startwegLauf = null;
+                yield break;
+            }
+            yield return _startwegLauf.Current;
+        }
+    }
+
+    /// <summary>Ein Lauf der Startwege: die Plätze merken, das Netz (falls nötig) und je Startbetrieb den Weg.</summary>
+    private IEnumerable<string> StartwegLauf()
+    {
         var start = Start.AlsStartbelegung();
         var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Append(start.Spieler.Werkstatt.Platz).ToHashSet(StringComparer.Ordinal);
         _startplaetze = (kennungen, kennungen.Select(GebaeudeMit).OfType<EntwurfGebaeude>().ToHashSet(ReferenceEqualityComparer.Instance));
-        return _startwege = Startwegpruefung.Rechnen(this);
+        foreach (var t in StartnetzSchritte()) yield return t;
+        var liste = new List<Startweg>();
+        if (_startnetz is var (karte, netz))
+            foreach (var _ in Startwegpruefung.Schritte(this, karte, netz, liste)) yield return "Startwege: Wege der Startbetriebe";
+        _startwege = liste;
     }
 
     private IReadOnlyList<Startweg>? _startwege;
+
+    /// <summary>Ein angefangener Lauf der Startwege bzw. ihres Netzes (<see cref="StartwegSchritte"/>).</summary>
+    private IEnumerator<string>? _startwegLauf, _startnetzLauf;
 
     /// <summary>Die Plätze der letzten Startweg-Rechnung (Kennungen und Gebäude): Nur ihre Änderung (oder die eines Marktplatzes) rechnet die Wege neu.</summary>
     private (HashSet<string> Kennungen, HashSet<object> Gebaeude)? _startplaetze;
@@ -463,31 +562,132 @@ public sealed partial class Kartenentwurf
     /// <summary>Karte und Karrennetz für die Startwege (null, wenn die Karte sich nicht laden lässt oder keinen Marktplatz hat).</summary>
     internal (Stadtkarte Karte, Karrennetz Netz)? Startnetz()
     {
-        if (_startnetzGerechnet) return _startnetz;
-        _startnetzGerechnet = true;
+        foreach (var _ in StartnetzSchritte()) { }
+        return _startnetz;
+    }
+
+    /// <summary>Rechnet das <see cref="Startnetz"/> in Häppchen weiter (oder fängt es an); ist es gerechnet, endet die Folge.</summary>
+    private IEnumerable<string> StartnetzSchritte()
+    {
+        while (!_startnetzGerechnet)
+        {
+            _startnetzLauf ??= StartnetzLauf().GetEnumerator();
+            bool weiter;
+            try
+            {
+                weiter = _startnetzLauf.MoveNext();
+            }
+            catch (Exception)
+            {
+                // wie vorher: eine Ausnahme irgendwo beim Netz heißt kein Netz (Befund der Prüfung: sonst blieb ein toter Lauf stehen)
+                (_startnetz, _startnetzGerechnet, _startnetzLauf) = (null, true, null);
+                yield break;
+            }
+            if (!weiter)
+            {
+                _startnetzLauf = null;
+                yield break;
+            }
+            yield return _startnetzLauf.Current;
+        }
+    }
+
+    /// <summary>
+    /// Ein Lauf des Netzes, wie vorher in einem Zug: die Karte, wie sie gespeichert würde (<see cref="ZuStadtkarte"/>, hier aus dem JSON-Baum ohne das
+    /// Zeilenformat), ihr Gelände, Wasserplan und Karrennetz. Wirft ein Teil (die Karte lädt nicht), gibt es kein Netz – die Fehler der Karte melden die
+    /// übrigen Regeln.
+    /// </summary>
+    private IEnumerable<string> StartnetzLauf()
+    {
+        var ok = true;
+        void Fehler() => ok = false;
+        // die Höhen (die Hälfte der Datei) liest ein eigenes Häppchen: genau so, wie der Leser der Karte sie läse (Text → JSON → Hoehenraster.AusJson)
+        string? text = null, hoehen = null;
+        foreach (var t in Geschuetzt(() => Einmal(() =>
+                 {
+                     var knoten = ZuJsonKnoten();
+                     if (knoten["hoehen"] is { } h) (hoehen, _) = (h.ToJsonString(), knoten.Remove("hoehen"));
+                     text = knoten.ToJsonString();
+                 }), "Startwege: Karte schreiben", Fehler))
+            yield return t;
+        Stadtkarte? karte = null;
+        var mitMarkt = false;
+        if (ok)
+            foreach (var t in Geschuetzt(() => Einmal(() =>
+                     {
+                         karte = Stadtkarte.AusJson(text!, Katalog);
+                         mitMarkt = karte.Marktplaetze.Count > 0;
+                     }), "Startwege: Karte lesen", Fehler))
+                yield return t;
+        if (ok && hoehen is not null)
+            foreach (var t in Geschuetzt(() => Einmal(() => karte!.HoehenSetzen(Hoehenraster.AusJson(JsonNode.Parse(hoehen)))), "Startwege: Höhen", Fehler))
+                yield return t;
+        Karrennetz? netz = null;
+        if (ok && mitMarkt)
+        {
+            // die Folgen erst im Schutz erzeugen: schon karte.Wasserplan rechnet die Verläufe aller Wege (Befund der Prüfung)
+            foreach (var t in Geschuetzt(() => karte!.Gelaendeform.Wasser.Schritte(), "Startwege: Gewässer", Fehler)) yield return t;
+            if (ok) foreach (var t in Geschuetzt(() => karte!.Gelaendeform.AktualisierenSchritte(), "Startwege: Gelände", Fehler)) yield return t;
+            if (ok) foreach (var t in Geschuetzt(() => karte!.Wasserplan.Schritte(), "Startwege: Wasserplan", Fehler)) yield return t;
+            if (ok)
+                foreach (var t in Geschuetzt(() => Karrennetz.VonInSchritten(karte!, marktlinien: true, alleWege: true, n => netz = n), "Startwege: Karrennetz", Fehler))
+                    yield return t;
+        }
+        (_startnetz, _startnetzGerechnet) = (ok && netz is not null ? (karte!, netz) : null, true);
+
+        static IEnumerable<int> Einmal(Action tun)
+        {
+            tun();
+            yield return 0;
+        }
+    }
+
+    /// <summary>
+    /// Erzeugt die Schritte und läuft sie durch, nach jedem gibt sie <paramref name="teil"/> zurück; eine Ausnahme (auch schon beim Erzeugen) beendet sie
+    /// und meldet <paramref name="fehler"/>.
+    /// </summary>
+    private static IEnumerable<string> Geschuetzt(Func<IEnumerable<int>> schritte, string teil, Action fehler)
+    {
+        IEnumerator<int>? lauf = null;
         try
         {
-            var karte = ZuStadtkarte();
-            _startnetz = karte.Marktplaetze.Count == 0 ? null : (karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true));
+            while (true)
+            {
+                bool weiter;
+                try
+                {
+                    lauf ??= schritte().GetEnumerator();
+                    weiter = lauf.MoveNext();
+                }
+                catch (Exception)
+                {
+                    fehler();
+                    yield break;
+                }
+                if (!weiter) yield break;
+                yield return teil;
+            }
         }
-        catch (Exception) { _startnetz = null; } // die Fehler der Karte melden die übrigen Regeln
-        return _startnetz;
+        finally
+        {
+            lauf?.Dispose();
+        }
     }
 
     private (Stadtkarte Karte, Karrennetz Netz)? _startnetz;
     private bool _startnetzGerechnet;
 
-    /// <summary>Verwirft Startwege und Netz, soweit die Änderung sie betrifft (siehe <see cref="Startwegrechnung"/>).</summary>
+    /// <summary>Verwirft Startwege und Netz, soweit die Änderung sie betrifft (siehe <see cref="Startwegrechnung"/>), samt einem halben Lauf.</summary>
     private void StartwegeVormerken(Kartenaenderung a)
     {
         // Ohne Netz (die Karte ließ sich nicht laden oder hat keinen Marktplatz) kann jede Änderung das beheben – dann neu versuchen (Befund der Prüfung)
         var netzWeg = _startnetzGerechnet && _startnetz is null
                       || a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre
                       || a.Objekt is EntwurfGebaeude { Katalog: Stadtkarte.MarktKatalog };
-        if (netzWeg) (_startnetz, _startnetzGerechnet) = (null, false); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt)
+        if (netzWeg) (_startnetz, _startnetzGerechnet, _startnetzLauf) = (null, false, null); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt)
         if (netzWeg || a.Teil == Kartenteil.Start || _startplaetze is not { } plaetze
             || a.Objekt is EntwurfGebaeude g && (plaetze.Kennungen.Contains(g.Kennung) || plaetze.Gebaeude.Contains(g)))
-            (_startwege, _startplaetze) = (null, null);
+            (_startwege, _startplaetze, _startwegLauf) = (null, null, null);
     }
 
     /// <summary>Hat die Karte Fehler (Hinweise zählen nicht)?</summary>
@@ -623,7 +823,13 @@ public sealed partial class Kartenentwurf
     /// Die Karte als Text der Kartendatei (Format 2), im Zeilenformat des Werkzeugs: Eine unverändert gespeicherte Karte ist Byte für Byte
     /// dieselbe Datei. Leere freiwillige Abschnitte (wasser, start …) fallen weg wie beim Werkzeug.
     /// </summary>
-    public string ZuJson()
+    public string ZuJson() => Kartenschreiber.Kompakt(ZuJsonKnoten());
+
+    /// <summary>
+    /// Die Kartendatei als JSON-Baum, bevor <see cref="ZuJson"/> ihn ins Zeilenformat schreibt: Daraus liest die Prüfung ihre Karte für die Startwege
+    /// (<see cref="StartwegSchritte"/>), ohne die Zeilen zu formatieren – die Werte sind dieselben.
+    /// </summary>
+    internal JsonObject ZuJsonKnoten()
     {
         var aus = new JsonObject();
         static JsonArray Liste(IEnumerable<EntwurfTeil> teile) => new(teile.Select(t => (JsonNode)t.AlsJson()).ToArray());
@@ -709,7 +915,7 @@ public sealed partial class Kartenentwurf
             if (Freiwillig.Contains(k) && v is null or JsonArray { Count: 0 } or JsonObject { Count: 0 }) continue;
             aus[k] = v?.DeepClone();
         }
-        return Kartenschreiber.Kompakt(aus);
+        return aus;
     }
 
     /// <summary>Abschnitte, die das Werkzeug weglässt, wenn sie leer sind.</summary>
@@ -912,18 +1118,36 @@ public sealed partial class Kartenentwurf
 
     internal void Uebernehmen(EntwurfTeil t, EntwurfTeil werte)
     {
+        var bettVorher = BettBereich(t); // wo ein Weg oder eine Mauer vorher das Gelände einebnete
         t.UebernimmTeil(werte);
         if (t is EntwurfGebaeude g) g.Baustein = Katalog.Finde(g.Katalog);
         if (t is EntwurfPflanze p) p.Baustein = Katalog.Finde(p.Katalog);
-        Vormerken(new Kartenaenderung(Aenderungsart.Geaendert, t));
+        Vormerken(new Kartenaenderung(Aenderungsart.Geaendert, t), bettVorher);
     }
 
-    private void Vormerken(Kartenaenderung a)
+    /// <summary>
+    /// Das Rechteck, in dem ein Weg oder eine Mauer das Gelände einebnet (ihr Rahmen samt halber Breite und Bankett, wie <see cref="Bettlinien"/> sie
+    /// nimmt); null für andere Teile und für Linien ohne Bett (weniger als zwei Punkte).
+    /// </summary>
+    private static Kartenrechteck? BettBereich(EntwurfTeil t) => t switch
+    {
+        EntwurfWeg { Punkte.Count: >= 2 } w => Kartenrechteck.Um(w.Verlauf)?.Vergroessert(w.BreiteWirksam / 2 + Gelaendeform.Bankett),
+        EntwurfMauer { Ecken.Count: >= 2 } m => Kartenrechteck.Um(m.Ecken)?.Vergroessert(Gelaendeform.Mauerbett / 2 + Gelaendeform.Bankett),
+        _ => null,
+    };
+
+    /// <param name="bettVorher">Bei einem geänderten Weg oder einer Mauer: wo sie vorher das Gelände einebneten (<see cref="BettBereich"/>).</param>
+    private void Vormerken(Kartenaenderung a, Kartenrechteck? bettVorher = null)
     {
         BefundeVerwerfen();
-        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) _kapazitaet = null;
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) (_kapazitaet, _kapazitaetLauf) = (null, null);
         StartwegeVormerken(a);
-        if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
+        if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer)
+        {
+            // das Bett der Wege und Mauern: nur wo die Linie vorher und nachher lag (vorher das ganze Bett, Köln 35–50 ms je Weg)
+            if (bettVorher is { } vorher) _gelaende.LinienVeraltet(vorher);
+            if (BettBereich(a.Objekt) is { } jetzt) _gelaende.LinienVeraltet(jetzt);
+        }
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
         _ausstehend.Add(a);

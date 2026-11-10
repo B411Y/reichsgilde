@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 
 namespace Reichsgilde;
 
@@ -48,7 +49,17 @@ public partial class Stadtansicht
         public bool Hervorgehoben { get; set; }
         /// <summary>KI-Schmied aus TRELLIS (Stadtansicht.KiFiguren.cs): ein Netz mit eigener Textur, Clips nach Namen in der Bibliothek statt der zehn Schleifen.</summary>
         public bool Ki { get; init; }
-        /// <summary>Welche Animation des KI-Schmieds gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
+        /// <summary>Probefigur „Weg A“ (Stadtansicht.Passantenprobe.cs): MPFB-Körper mit Spielskelett, Clips nach Namen, ab Zoom 50 gebacken (VAT).</summary>
+        public bool Probe { get; init; }
+        /// <summary>Welche Probedatei (0 Mann, 1 Frau, <c>ProbeArten</c>).</summary>
+        public int ProbeArt { get; init; }
+        /// <summary>Probefigur als Bettler: kauert und bettelt statt zu stehen (Vollausbau Schritt 2).</summary>
+        public bool ProbeBettler { get; init; }
+        /// <summary>Probefigur mit Kiepe oder Reisigbündel auf dem Rücken: trägt ohne die Arme vorn (Vollausbau Schritt 4).</summary>
+        public bool ProbeRuecklast { get; init; }
+        /// <summary>Probefigur nah vor der Ego-Kamera: auch in der VAT-Stufe mit Skelett gezeichnet (Stadtansicht.Passantenprobe.cs).</summary>
+        public bool ProbeNah { get; set; }
+        /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
         public double Anfang { get; set; } = SchleifenAnfang;
@@ -189,6 +200,7 @@ public partial class Stadtansicht
     private static void BewegungSetzen(Figur f, string bewegung, float takt = 1, string[]? werkzeug = null)
     {
         f.Takt = takt;
+        if (f.Probe) { ProbeBewegungSetzen(f, bewegung, takt); return; }
         if (f.Ki) { KiBewegungSetzen(f, bewegung, takt); return; }
         if (f.Bewegung == bewegung) return;
         f.Bewegung = bewegung;
@@ -208,6 +220,7 @@ public partial class Stadtansicht
     {
         if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
+        if (f.Probe && _probeVat && !f.ProbeNah) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
         f.Spieler.Seek(f.Anfang + f.Phase, true);
         f.Neu = false;
     }
@@ -329,6 +342,17 @@ public partial class Stadtansicht
     };
 
     private static readonly Color GrauesHaar = new(0.62f, 0.60f, 0.58f);
+
+    /// <summary>Ob die Figur eine Frau ist: das Geschlecht des Arbeiters im Kern; bei Ersatzfiguren (ohne Arbeiter) wie bisher jede <paramref name="jede"/>-te Figur unter Menschen.</summary>
+    private static bool FrauVon(Arbeiterbild bild, int nummer, uint jede) => bild.Frau ?? (bild.Volk == Volk.Mensch && Streuung(nummer, 53) % jede == 0);
+
+    /// <summary>Haarfarbe der Figur: die des Arbeiters im Kern (wie im Porträt); ohne (Ersatzfiguren, Orks, Oger) aus der Palette des Volks nach der Nummer.</summary>
+    private static Color HaarVon(Arbeiterbild bild, int nummer)
+    {
+        if (bild.Haar is { } h && h != Haarfarbe.Kahl) return PortraetAnzeige.Farbe(h);
+        var haare = Haarfarben(bild.Volk);
+        return haare[nummer * 5 % haare.Length];
+    }
 
     /// <summary>Hautfarbe: Elben etwas heller, Zwerge etwas rötlicher, Orks grün, Oger grau.</summary>
     private static Color HautVon(Volk volk) => volk switch

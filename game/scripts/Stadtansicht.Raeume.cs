@@ -425,12 +425,16 @@ public partial class Stadtansicht
 
         var schild = Beschriftung("", a.Mitte + s + new Vector3(0, 3.9f, -1.6f), 30, a.Innen);
         var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
+        var (stuecke, hausfarben) = WohnstubeEinrichtungAnlegen(a, s);
         var familienStand = "";
         a.Raumzustaende.Add((zeit, arbeitszeit) =>
         {
             if (_raum?.Kennung != RaumWohnstube) return;
             var w = _simulation?.Wirtschaft;
             var farbe = haus.Farbe();
+            var gekauft = haus.Konto()?.WohnhausEinrichtung; // Einrichtung des Wohnhauses (PR #224): ein Stück erscheint nach dem Kauf
+            foreach (var (kennung, knoten) in stuecke) knoten.Visible = gekauft?.Contains(kennung) == true;
+            foreach (var stoff in hausfarben) stoff.AlbedoColor = farbe;
             var familie = haus.Konto() is { } konto ? w?.Familien.Von(konto) : null;
             var stand = familie is null ? "" : farbe + string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
             if (stand != familienStand)
@@ -444,6 +448,43 @@ public partial class Stadtansicht
             schild.Text = familie is null ? "Wohnstube"
                 : $"Wohnstube der Familie {familie.Nachname}\n{PersonenText(familie.Lebende.Count())} im Haus\nKlick: Familie";
         });
+    }
+
+    /// <summary>
+    /// Die Einrichtung des Wohnhauses aus <c>wohnstube_innen.glb</c> (Platzhalter, PR #224): ein Knoten <c>Einrichtung_&lt;Kennung&gt;</c> je Stück des Talentbaums
+    /// (Vorratskammer, Küche, Hauswappen, Stube, Bibliothek, Riegel, Hund), erst nach dem Kauf sichtbar (Kennung wie <c>Konto.WohnhausEinrichtung</c>).
+    /// Das Material „Hausfarbe“ (Wappen, Fensterladen) bekommt je Raum eine eigene Kopie, die die Farbe des Hauses trägt. Ohne Datei bleibt die Wohnstube leer.
+    /// </summary>
+    private (Dictionary<string, MeshInstance3D> Stuecke, List<StandardMaterial3D> Hausfarben) WohnstubeEinrichtungAnlegen(InnenAnsicht a, Vector3 s)
+    {
+        var stuecke = new Dictionary<string, MeshInstance3D>();
+        var hausfarben = new List<StandardMaterial3D>();
+        if (Modell("innen/wohnstube_innen") is not { } szene) return (stuecke, hausfarben);
+        var wurzel = szene.Instantiate<Node3D>();
+        wurzel.Position = a.Mitte + s;
+        a.Innen!.AddChild(wurzel);
+        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = teil.Name.ToString();
+            if (name.StartsWith("Einrichtung_"))
+            {
+                stuecke[name["Einrichtung_".Length..]] = teil;
+                teil.Visible = false;
+            }
+            if (teil.Mesh is not { } netz) continue;
+            for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            {
+                if (netz.SurfaceGetMaterial(i) is not StandardMaterial3D stoff) continue;
+                if (stoff.ResourceName == "Farben") FarbenEinrichten(stoff);
+                else if (stoff.ResourceName == "Hausfarbe")
+                {
+                    var kopie = (StandardMaterial3D)stoff.Duplicate();
+                    teil.SetSurfaceOverrideMaterial(i, kopie);
+                    hausfarben.Add(kopie);
+                }
+            }
+        }
+        return (stuecke, hausfarben);
     }
 
     private static string PersonenText(int anzahl) => anzahl == 1 ? "1 Person" : $"{anzahl} Personen";

@@ -88,6 +88,7 @@ import innenausbau as ia  # noqa: E402  (Wand, Böden, Decke, Prüfbericht, Vors
 import parfumeur_innen as pi  # noqa: E402  (Lichter, Kinder, Wandquader, Täfelung, Butzenfenster, Handschuhe)
 import prediger as pr  # noqa: E402  (Umriss des Spitzbogens wie außen)
 import schmied_innen as si  # noqa: E402  (Pult, Türen, Werkzeugwand, Kisten, Löschfass, Anker, Blickpunkte)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Laterne, Hoftor, Animation, Export)
 import wirt_innen as wi  # noqa: E402  (Netz versetzt bauen, Punkt am Platz, Sitzplätze mit Sitzhöhe, Radleuchter)
 
@@ -1874,6 +1875,10 @@ def bauen():
     werkzeug_sakristei(teil("Einrichtung_Werkzeug2", "Werk"), st, M_wz, 2)
     wi.handschuhe(teil("Einrichtung_Handschuhe", "Werk"), st, si.rahmen(SX1, 3.55, 90))
     si.loeschfass(teil("Einrichtung_Loeschfass", "Werk"), st, Vector((-5.0, 5.15, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.skriptorium(teil("Einrichtung_Skriptorium", "Werk"), st, pe.rahmen(-5.85, -0.60, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke", "Lager"), st, pe.rahmen(0.60, 5.40, 180, Z_KRYPTA), "Prediger", 1.7)
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Lager"), st, pe.rahmen(-2.78, 0.20, 0, Z_KRYPTA), "Werkstatt", False)   # nur Zusatz: Krypta und Sakristei haben keinen Platz für ein Bett
     ti.hoftor(teil("Bedienung_Karren_Hoftor", "Werk"), st, si.rahmen(HOFTOR_X, SY0, 0), HOFTOR_B, HOFTOR_H)
     si.bretttuer(teil("Tuer_Werk_Kirche", "Werk"), st, si.rahmen(SX1, SAKTUER_Y, 90), TUER_B, TUER_H, stoff="Brett", rueck=0.25)
     o_schatz = Oe(SCHATZTUER_X, 0.0, TUER_B, TUER_H)                      # vermauert, ab Stufe 3 davor die Eisentür

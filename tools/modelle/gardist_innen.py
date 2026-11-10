@@ -79,6 +79,7 @@ import innenausbau as ia  # noqa: E402  (Wand, Böden, Decke, Prüfbericht, Vors
 import parfumeur_innen as pi  # noqa: E402  (Lichter, Wandquader, Täfelung)
 import prediger_innen as pr  # noqa: E402  (Steinplatten, Schreibpult, Gittertür, Truhe)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Regal, Kisten, Löschfass, Schleifbock, Anker, Blickpunkte)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Fenster, Laterne, Hoftor, Animation, Export)
 import wirt_innen as wi  # noqa: E402  (Punkt am Platz, Tisch, Bank, Dielen)
 
@@ -1203,6 +1204,8 @@ def bauen():
     ti.hoftor(teil("Bedienung_Karren_Hoftor"), st, si.rahmen(HOFTOR_X, WY0, 0), HOFTOR_B, HOFTOR_H)
     hunde(teil("Einrichtung_Hunde"), st)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((WX0 + 0.45, -0.35, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube"), st, pe.rahmen(-0.38, -4.00, 0), "Wache", False)   # nur Zusatz: Pritschen gibt es schon
     si.bretttuer(teil("Tuer_Werk_Lager"), st, si.rahmen(LAGER_X, WY1, 180), TUER_B, TUER_H, stoff="Holz")
     gittertuer_werk(teil("Tuer_Werk_Zelle"), st)
     si.bretttuer(teil("Tuer_Werk_Uebung"), st, si.rahmen(WX1, UEBUNG_Y, 90), UEBUNG_B, UEBUNG_H, stoff="Holz")

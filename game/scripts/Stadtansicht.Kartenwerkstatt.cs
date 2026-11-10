@@ -375,9 +375,11 @@ public partial class Stadtansicht
                 if (g.Baustein?.AmUfer == true) GewaesserGeaendert(g, weg); // ein Hafen: das Becken vor der Kaimauer (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 break;
             case EntwurfWeg w:
+                var uhrWeg = Pinselmessung.Uhr();
                 WegBauen(w, weg);
+                Pinselmessung.Dazu("  Weg: bauen (Knoten, Schicht, Markierung)", uhrWeg);
                 _wsNetzNeu = true;
-                if (!GewaesserLeer) _wsWasserNeu = true; // Brücken, Furten und Fähren hängen an den Wegen
+                if (!GewaesserLeer) _wsUebergaengePruefen = true; // Brücken, Furten und Fähren hängen an den Wegen (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 break;
             case EntwurfFlaeche f:
                 FlaecheBauen(f, weg);
@@ -450,13 +452,13 @@ public partial class Stadtansicht
         Pinselmessung.Dazu("Nacharbeit nach dem Strich (Budget je Bild)", uhr);
         BodenNachziehen();    // Bilder der Bodentexturen und ihre Deko (Stadtansicht.Kartenwerkstatt.Boden.cs)
         uhr = Pinselmessung.Uhr();
-        if (_wsWasserNeu || _wsWegeNeu) WasserNachziehen(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        WasserVoran(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
         Pinselmessung.Dazu("Wasser", uhr);
         uhr = Pinselmessung.Uhr();
         NaturNachziehen();
         Pinselmessung.Dazu("Natur und Felder streuen", uhr);
         uhr = Pinselmessung.Uhr();
-        if (_wsNetzNeu) NetzBauen();
+        NetzVoran(); // Stadtansicht.Kartenwerkstatt.Wege.cs
         Pinselmessung.Dazu("Gassennetz", uhr);
         // Die volle Prüfung erst nach dem Strich: Sie rechnet die ganze Karte (Köln 10–36 ms) und änderte sich sonst bei jedem Tupfer
         // und in Häppchen (WerkstattBefundeBereit), nicht in einem Bild
@@ -549,7 +551,9 @@ public partial class Stadtansicht
         if (belegung is { } anzeige) BelegungsfahneBauen(groesse, anzeige, wurzel); // Stadtansicht.Kartenwerkstatt.Start.cs
         var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung, Belegung = belegung };
         _stuecke[g] = stueck;
-        if (_entwurf?.FehlerhafteGebaeude.Contains(g.Kennung) == true) FehlerUeberzug(stueck, true);
+        // nur aus fertigen Befunden: Sonst rechnete das Bauen eines Gebäudes die ganze Prüfung in einem Bild – die Fehlerfarbe kommt dann mit FehlerZeigen,
+        // sobald die Prüfung in Häppchen fertig ist (_wsFehlerNeu)
+        if (_entwurf is { BefundeBereit: true } e && e.FehlerhafteGebaeude.Contains(g.Kennung)) FehlerUeberzug(stueck, true);
         MarkierungSetzen(g, stueck);
         if (BereichVon(g) is { } bereich) _wsBereiche[g] = bereich;
     }

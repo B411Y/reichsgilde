@@ -212,7 +212,7 @@ public partial class Stadtansicht
         var nummer = stand.Arbeiter.Nummer;
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false }; // der Anker blickt mit −Z auf sein Ziel, die Figur mit +Z: um 180° gedreht einsetzen
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, SchreiberAussehen(nummer, stand.Arbeiter.Arbeitskraft), nummer) is not { } figur)
+        if (FigurEinsetzen(halter, SchreiberAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal)), nummer) is not { } figur)
         {
             halter.QueueFree();
             return null;
@@ -326,14 +326,13 @@ public partial class Stadtansicht
     /// <summary>
     /// Aussehen eines Schreibers, fest je Arbeiter: das dunkelblaue Gewand der Geldleiher (Lehrlinge in blassem, ungefärbtem Blau), meist mit Barett, Orks grün.
     /// </summary>
-    private static FigurAussehen SchreiberAussehen(int nummer, string arbeitskraft)
+    private static FigurAussehen SchreiberAussehen(int nummer, Arbeiterbild bild)
     {
-        var volk = arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
-        var gewand = IstAnfaenger(arbeitskraft) ? new Color(0.36f, 0.40f, 0.52f) : new Color(0.14f, 0.19f, 0.36f).Lerp(new Color(0.20f, 0.26f, 0.44f), (Streuung(nummer, 7) % 5) / 8f);
-        var haare = Haarfarben(volk);
-        var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 4 == 0;
+        var volk = bild.Volk;
+        var gewand = bild.Anfaenger ? new Color(0.36f, 0.40f, 0.52f) : new Color(0.14f, 0.19f, 0.36f).Lerp(new Color(0.20f, 0.26f, 0.44f), (Streuung(nummer, 7) % 5) / 8f);
+        var frau = FrauVon(bild, nummer, 4);
         var kopf = frau ? Kopfbedeckung.Haube : Streuung(nummer, 29) % 3 == 0 ? Kopfbedeckung.Keine : Kopfbedeckung.Barett;
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), haare[nummer * 5 % haare.Length],
+        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), HaarVon(bild, nummer),
             frau ? Leinenfarbe : new Color(0.10f, 0.12f, 0.22f), kopf);
     }
 
