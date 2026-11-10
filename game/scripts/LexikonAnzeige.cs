@@ -17,6 +17,7 @@ public partial class LexikonAnzeige : CenterContainer
     private Tree _baum = null!;
     private Label _titel = null!;
     private Label _gruppe = null!;
+    private HFlowContainer _bilder = null!;
     private RichTextLabel _text = null!;
     private Button _zurueck = null!;
     private readonly Dictionary<string, TreeItem> _eintraege = new();
@@ -81,6 +82,10 @@ public partial class LexikonAnzeige : CenterContainer
         reihe.AddChild(rechts);
         _titel = Hauptmenue.Text(rechts, "", 22, Gold, umbruchBreite: Breite - ListeBreite - 100);
         _gruppe = Hauptmenue.Text(rechts, "", 13, Grau);
+        _bilder = new HFlowContainer { Visible = false };
+        _bilder.AddThemeConstantOverride("h_separation", 8);
+        _bilder.AddThemeConstantOverride("v_separation", 6);
+        rechts.AddChild(_bilder);
         _text = new RichTextLabel
         {
             BbcodeEnabled = true, FitContent = false, ScrollActive = true, SelectionEnabled = true,
@@ -135,6 +140,7 @@ public partial class LexikonAnzeige : CenterContainer
         _titel.Text = "Lexikon";
         _gruppe.Text = Lexikon.Fehler ?? $"{Lexikon.Alle.Count} Begriffe";
         _gezeigt = "";
+        BilderZeigen(null);
         _text.Text = "Hier steht, wie das Spiel funktioniert. Links nach Gruppen stöbern oder oben suchen; goldene Wörter im Text führen zu weiteren Einträgen, " +
                      "und die Zahlen darin sind die, die gerade im Spiel gelten.\n\nTipp: [b]L[/b] öffnet und schließt das Lexikon, [b]Esc[/b] schließt es.";
         _zurueck.Disabled = _verlauf.Count == 0;
@@ -150,6 +156,7 @@ public partial class LexikonAnzeige : CenterContainer
         _gruppe.Text = b.Gruppe;
         _gezeigt = "";
         _zurueck.Disabled = _verlauf.Count == 0;
+        BilderZeigen(b);
         if (_eintraege.TryGetValue(b.Kennung, out var zeile))
         {
             _baumMeldet = false;
@@ -160,6 +167,49 @@ public partial class LexikonAnzeige : CenterContainer
         }
         TextAktualisieren();
         _text.ScrollToLine(0);
+    }
+
+    /// <summary>
+    /// Zeigt die Bilder des Eintrags (Siegel, Medaillons, Waren-Knöpfe) in einer Reihe über dem Text; ohne Datei oder ohne Angabe bleibt die Reihe weg
+    /// und es steht nur der Text da. Mehrere Bilder (Charakterzüge) werden kleiner, ein Einzelbild größer.
+    /// </summary>
+    private void BilderZeigen(Begriff? b)
+    {
+        foreach (var kind in _bilder.GetChildren()) kind.QueueFree();
+        _bilder.Visible = false;
+        if (b is null) return;
+        var angaben = Lexikon.BilderVon(b);
+        var groesse = angaben.Count > 8 ? 44 : angaben.Count > 1 ? 64 : 72;
+        foreach (var angabe in angaben)
+        {
+            var teile = angabe.Split('|', 2);
+            var art = teile[0].Split(':', 2);
+            if (art.Length < 2) continue;
+            var tipp = teile.Length > 1 ? teile[1] : art[1];
+            Control? bild = art[0] switch
+            {
+                "geheimnis" when Enum.TryParse<Reichsgilde.Core.Geheimnisse.Geheimnisart>(art[1], true, out var ga) => CharakterAnzeige.GeheimnisSiegelBild(ga, groesse, tipp),
+                "zug" => ZugBild(art[1], groesse, tipp),
+                "ware" when WarenIcons.Icon(art[1]) is not null => WarenIcons.Bild(art[1], groesse),
+                _ => null,
+            };
+            if (bild is null) continue;
+            if (art[0] == "ware") { bild.MouseFilter = MouseFilterEnum.Stop; bild.TooltipText = tipp; }
+            _bilder.AddChild(bild);
+        }
+        _bilder.Visible = _bilder.GetChildCount() > 0;
+    }
+
+    private static TextureRect? ZugBild(string kennung, int groesse, string tipp)
+    {
+        var pfad = $"res://assets/oberflaeche/zuege/{kennung}.png";
+        if (!ResourceLoader.Exists(pfad)) return null;
+        return new TextureRect
+        {
+            Texture = GD.Load<Texture2D>(pfad), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(groesse, groesse), TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
+            MouseFilter = MouseFilterEnum.Stop, TooltipText = tipp,
+        };
     }
 
     private void Zurueck()

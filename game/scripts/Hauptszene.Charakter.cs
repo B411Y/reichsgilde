@@ -97,6 +97,46 @@ public partial class Hauptszene
         Protokollieren("--geheimnis: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerGeheimnis(person.Kennung, art))));
     }
 
+    /// <summary>Startoption <c>--erpresserbrief=</c>, wartet wie <c>--geheimnis=</c> bis nach dem Vorspulen.</summary>
+    private string? _erpresserbriefWartet;
+
+    /// <summary>
+    /// <c>--erpresserbrief=&lt;Ehebruch|Ketzerei|Schulden&gt;[:Betrag]</c> (Siegel der Geheimnisse): Euer Oberhaupt bekommt ein Geheimnis dieser Art, das
+    /// erste andere Haus weiß davon und schickt Euch einen Erpresserbrief (Schweigegeld, ohne Angabe 500). Alles über Befehle des anderen Hauses:
+    /// <see cref="Core.Entwickler.EntwicklerGeheimnis"/> und <see cref="Core.Entwickler.EntwicklerAktionspunkte"/> (darum nur mit <c>--entwickler=1</c>),
+    /// dann <see cref="Core.Wirtschaft.GeheimnisNutzen"/>. Für den Klicktest des Siegels in Meldung, Brief und Hinterzimmer, z. B.
+    /// <c>--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1</c>.
+    /// </summary>
+    private void ErpresserbriefStartoption(string wert)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        var teile = wert.Split(':');
+        var oberhaupt = w.Familien.Von(_spieler)?.Oberhaupt;
+        var rivale = w.Konten.FirstOrDefault(k => k != _spieler && k.IstAktiv && w.Familien.Von(k) is not null);
+        var betrag = 500.0;
+        if (oberhaupt is null || rivale is null || !Enum.TryParse<Core.Geheimnisse.Geheimnisart>(teile[0], out var art) || !Enum.IsDefined(art)
+            || art == Core.Geheimnisse.Geheimnisart.Mord
+            || teile.Length > 1 && !double.TryParse(teile[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out betrag))
+        {
+            Protokollieren($"--erpresserbrief={wert}: erwartet <Ehebruch|Ketzerei|Schulden>[:Betrag] und ein anderes Haus mit Familie.");
+            return;
+        }
+        void Melden(string text)
+        {
+            Protokollieren("--erpresserbrief: " + text);
+            GD.Print("--erpresserbrief: " + text); // auch ins Log (Klicktest, --headless)
+        }
+        var wissen = _simulation.Bote.SofortAusfuehren(rivale, new Core.Entwickler.EntwicklerGeheimnis(oberhaupt.Kennung, art));
+        Melden(UiHilfe.MeldungText(wissen));
+        if (!wissen.Erfolg || w.Geheimnisse.Von(oberhaupt).FirstOrDefault(g => g.Art == art) is not { } geheimnis) return;
+        _simulation.Bote.SofortAusfuehren(rivale, new Core.Entwickler.EntwicklerAktionspunkte()); // der Brief kostet Aktionspunkte
+        Melden(UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(rivale,
+            new Core.Wirtschaft.GeheimnisNutzen(geheimnis.Nummer, Core.Geheimnisse.Geheimnisnutzung.Gulden, betrag))));
+        Melden($"Brief mit Siegel „{w.Gauner.ForderungAn(_spieler, rivale)?.GeheimnisArt}“; Siegel in der Ecke mit Geheimnis: " +
+               $"{_ecke.Alle.Count(s => s.Posten.Any(p => p.Kern?.GeheimnisArt is not null))}");
+        if (_hinterzimmer.Visible) _hinterzimmer.Oeffnen(); // mit --hinterzimmer=1 schon offen: neu aufbauen, damit der Brief darin steht
+    }
+
     /// <summary>
     /// <c>--charakter-ehe=1</c>: das ledige Oberhaupt wirbt um den Kandidaten, der am ehesten einwilligt (mit viel Geld, <c>--vermoegen=</c>),
     /// und heiratet – für Bildschirmfotos mit Familie. Seit PR #231 zählt die Meinung des Kandidaten mit; darum nicht mehr einfach der erste.

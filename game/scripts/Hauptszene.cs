@@ -613,6 +613,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
+        if (optionen.TryGetValue("erpresserbrief", out var briefWert)) _erpresserbriefWartet = briefWert; // ebenso (Siegel der Geheimnisse)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -1248,6 +1249,11 @@ public partial class Hauptszene : Node
         {
             _geheimnisWartet = null;
             GeheimnisStartoption(geheimnisWunsch); // vor --charakter, damit das Fenster das Geheimnis zeigt
+        }
+        if (_erpresserbriefWartet is { } briefWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _erpresserbriefWartet = null;
+            ErpresserbriefStartoption(briefWunsch);
         }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {

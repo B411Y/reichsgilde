@@ -32,13 +32,32 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
 - (Werkstatt-Pinsel) Pinselmessung (`Kartenwerkstatt.Pinselmessung.cs`, `Rest()`): Die Spalte „übriges Bild (Godot, Leerlauf)“ zieht die Summe aller Teilschritte ab, manche stecken aber ineinander („  Nacharbeit: …“ in „Nacharbeit nach dem Strich“, „  Gras: …“ in „im Bild: Grasteppich“) und zählen doppelt; die Spalte ist dann zu klein und kann negativ werden. Betrifft nur das Messwerkzeug.
 - (Stress 3b) Klicktest des Stressbalkens auf der NAS steht aus (Startoption `--entwickler=1 --stress=75 --charakter=oberhaupt`; Bilder: Balken angespannt und zermürbt, Tooltip mit Einträgen, fremde Person „Wirkt …“, Aktivitätenliste mit Stresszeile, Entwicklerfenster „Stress setzen“, Zusammenbruch-Meldung).
-- (Geheimnisse 3c) Bilder je Art (Ehebruch, Ketzerei, Schulden, Mord) als kleine Zeichen vor der Zeile im Charakterfenster und ein Siegel für die Meldungen (Gerede, Beichte, „Unfriede im Haus“) – bis dahin nur Text; ein Bild bräuchte nur eine Zeile in `GeheimnisZeile` (wie `ZugIcon` mit Rückfall auf Text). Dazu der Gerichtssaal: Anzeigen mit Geheimnis stehen als gewöhnliches Verfahren in der Liste („wegen Ehebruch“ über `Stadtgericht.Anklagepunkte(v)`, die Prognose rechnet das Geheimnis mit), ein Verfahren gegen einen Ratsherrn erscheint dort nicht (nur als Meldung und im Gerichtstag-Protokoll) – ein eigener Abschnitt „Anzeigen gegen Ratsherren“ (`Geheimniswesen.RatsherrVerfahren`, `Ueberzeugung(richter, v)`) wäre klein.
+- (Geheimnisse) Klicktest der Siegel auf der NAS steht aus: Charakterfenster (Startoptionen siehe nächster Punkt) sowie Meldung, Brief und Hinterzimmer mit `--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1` (Siegel „Geheimnisse“ in der Ecke mit Medaille neben dem Porträt, Brief mit Medaille am Fuß, Brief „Erpresserbrief“, im Hinterzimmer der Brief mit Medaille; Lesbarkeit der Medaille bei 30 px).
 - (Geheimnisse 3c) Klicktest auf der NAS steht aus (Schritte im Bericht des PR): `--entwickler=1 --geheimnis=Ehebruch:rivale --charakter=rivale`, `--geheimnis=Ketzerei:ratsherr --charakter=ratsherr`, `--geheimnis=Schulden:oberhaupt --charakter=oberhaupt`; Godot legt beim ersten Öffnen `CharakterAnzeige.Geheimnisse.cs.uid` an (mit einchecken).
 - Hofstellen (Startmenü, Kartenwerkstatt): Klicktest auf der NAS steht aus (Schritte im Bericht); der Umriss der Hofstelle prüft Werkstatt- und Wohnhausplatz getrennt (Text nennt nur den ersten Fehler), ein Platz mit Fehler färbt beide Umrisse rot. Im Menü fehlt für Karten ohne Wegenetz-Angabe die Meter-Zahl (dann nur der Name).
 - (Hofstellen) Die Tafel „Start“ nimmt Hofstellen mit anderer Werkstattart des Hauses nicht gesondert aus; „Hofstelle“ setzt immer den ersten Werkstattbetrieb des Hauses um.
 - (von Spiel-KI) Aufschlag am Hafen (Datenversion 80): Verkauft ein Karren am offenen Hafen Ausfuhrware, bringt sie `Schiffahrt.Daten.HafenAufschlag` (3 %) mehr (`Schiffahrt.HafenVerkaufsFaktor(ware)`, Liste über `SchiffshandelDaten.IstAusfuhrware`). Hafentafel (`HafenAnzeige.cs` um Zeile 193) und Hinweis in `Hauptszene.Hafen.cs` (um Zeile 117) sagen noch „dieselben Preise wie auf dem Marktplatz“ – Wunsch: Satz „Karren erzielen hier für Ausfuhrware 3 % mehr (nicht im Winter)“ mit Tooltip der Ausfuhrwaren; die Vorschau „verkaufen ≈“ im Marktfenster rechnet ohne Aufschlag.
 
 ## Entscheidungen
+
+### Lexikon mit Bildern und Siegel im Verlauf (PR „Oberfläche: Siegel für die Geheimnisse“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bild-Baustein | `Begriff` hat das Feld `bilder` (Liste von `art:name` oder `art:name\|Tooltip`; Arten `geheimnis` = Siegel, `zug` = Medaillon, `ware` = Waren-Knopf). `LexikonAnzeige.BilderZeigen` setzt sie als Reihe (`HFlowContainer`) zwischen Gruppe und Text: Einzelbild 72 px, mehrere 64 px, über acht 44 px. Fehlt die Datei oder die Angabe, steht nur der Text; es entstehen keine neuen Bilder. | 10.11.2026 |
+| Einsatz | „Geheimnisse“ zeigt die vier Siegel, „Charakterzüge“ alle 25 Medaillons (je mit Tooltip-Name), jeder Eintrag der Gruppe „Waren“ von selbst seinen Waren-Knopf (Titel = Warenname, `Lexikon.BilderVon`; Einträge wie „Rohstoff“ ohne Knopf bleiben bildlos). | 10.11.2026 |
+| Verlauf und Jahresbericht | Im Verlauf (Reiter im Bericht) steht vor jeder Meldung mit `GeheimnisArt` das Siegel (22 px, Tooltip „Ein Geheimnis – Art“). Der Brief „Jahresbericht“ und der Nachtbrief tragen den Kern der Meldung in ihrer `Briefzeile`; `BriefAnzeige` setzt daraus bei Mehrzeilen-Briefen das Siegel vor die Zeile (und den Knopf „Hinsehen“, wo es ein Ziel gibt). Die Tafel `JahresberichtAnzeige` (Rangliste) hat keine Meldungen. | 10.11.2026 |
+
+### Geheimnis-Siegel (PR „Oberfläche: Siegel für die Geheimnisse“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bilder | Vier runde Medaillen (128 px, Holzschnitt, KI wie die Lebensweise-Icons, Runde 2 der Entwürfe: Ehebruch zwei zerbrochene Ringe, Ketzerei brennender Scheiterhaufen mit Buch, Mord Totenkopf mit gekreuzten Dolchen, Schulden Geldbeutel auf offener Hand) in `game/assets/oberflaeche/geheimnisse/<art>.png`; Prompts in `docs/assets/prompts/geheimnis_siegel.md`, Lizenz „Alle Rechte vorbehalten“. | 09.11.2026 |
+| Einsatz | Im Charakterfenster steht vor jeder Geheimniszeile das Siegel der Art (36 px, `CharakterAnzeige.GeheimnisSiegel`, mit Mipmaps; Tooltip: Beschreibung der Art). Fehlt die Datei, bleibt nur der Text. Test `GeheimnisSiegelTests`: für jede `Geheimnisart` PNG und Importdatei. | 09.11.2026 |
+| Meldung und Brief | Der Kern gibt jeder Meldung über ein Geheimnis die Art mit (`Meldung.GeheimnisArt`, siehe kern.md „Geheimnis-Siegel in Meldungen“). Am Siegel der Ecke steht die Medaille (30 px) rechts neben dem Porträt (`Hauptszene.SiegelBild`; ohne Porträt allein unten links); ein Brief mit einer solchen Meldung trägt unten die Medaille (56 px) statt des gezeichneten Wachssiegels, ein Brief mit mehreren Zeilen sie klein vor der Zeile (30 px). Tooltip: Name und Beschreibung der Art (`BriefAnzeige.GeheimnisTipp`). Gemeinsames Bild `CharakterAnzeige.GeheimnisSiegelBild(art, groesse, tipp)`. | 09.11.2026 |
+| Meldungsart „Geheimnisse“ (selbst entschieden) | Die Meldungen über Geheimnisse waren „Sonstiges“ und standen nur im Verlauf – ein Siegel hätte man nie gesehen. Neue Art `Geheimnis` in `meldungen.json` (Thema Gefahr, eigen Siegel, Stadt und fremd Verlauf, Absender „Euer Vertrauter“, Feld `"geheimnis": true`, keine Textmuster): `Meldungsordnung.Einordnen(meldung)` nimmt sie für Meldungen mit Art, die weder eine Art des Kerns noch ein Textmuster trifft (ein neues Geheimnis, Gerede, Beichte, der Satz zum Erpresserbrief, erpresste Ratsstimme, Bloßstellen, Unfriede im Haus). Urteile und Spitzelberichte bleiben bei Gericht und Spitzel (Jahresbericht), die Anzeige bei Gericht. In den Einstellungen wählbar wie jede Art. Zurücknehmen: die Stufe in `meldungen.json` auf `verlauf`. | 09.11.2026 |
+| Hinterzimmer | Ein Erpresserbrief mit Geheimnis (`Geheimniswesen.ArtDesBriefes`) steht mit Medaille (56 px) links: „Erpresserbrief von X: … Schweigegeld, sonst kommt ein Geheimnis ans Licht.“ und „Er weiß: <Inhaber: Art>. Zahlt ihr, schweigt er und vergisst es. Zahlt ihr nicht, kann er es anzeigen oder in der ganzen Stadt bloßstellen.“ (`GaunerAnzeige.GeheimnisBrief`; vorher stand dort „sonst Anklage“ mit den Beweisen). Brief mit Beweisen unverändert. | 09.11.2026 |
+| Startoption | `--erpresserbrief=<Ehebruch|Ketzerei|Schulden>[:Betrag]` (nur mit `--entwickler=1`): das erste andere Haus erfährt über `EntwicklerGeheimnis` ein Geheimnis eures Oberhaupts, bekommt Aktionspunkte (`EntwicklerAktionspunkte`) und schickt den Brief (`GeheimnisNutzen`) – alles Befehle des anderen Hauses; schreibt ins Log (`--erpresserbrief: …`, auch die Zahl der Siegel mit Geheimnis) und baut ein offenes Hinterzimmer neu auf. Headless geprüft: Brief mit Art, ein Siegel mit Geheimnis. | 09.11.2026 |
 
 ### Danksagung (PR „Oberfläche: Danksagung mit allen Lizenzhinweisen“)
 
@@ -262,77 +281,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tooltips der Unterschalter | Innenräume: was es tut (weiches Licht von Fenster, Glut, Lampe, dunklere Ecken, Glut warm), Räume etwa so hell wie ohne, Kosten (schwache Karte bei Mittel gut 70 % mehr Zeit je Bild, gemessen in `darstellung.md`), Standard an. Außenansicht: experimentell, nur grobe Felder von 5 m wegen der Kamerahöhe, kaum sichtbar, kühlere Schatten, Flecken auf großen Erdflächen, kostet trotzdem (rund 8 %, Hoch 17 %), neue Häuser und Fensterlicht kommen erst beim Verschieben nach, Standard aus. | 30.10.2026 |
 | Klicktest Unterschalter | Vulkan (T400, Greybox, `--einstellungen=1 --reiter=GrafikErweitert --sdfgi=2`): beide Zeilen unter „Globale Beleuchtung (SDFGI): Mittel“, eingerückt, Schalter in der Spalte von „Indirektes Licht“, Innenräume golden (an), Außenansicht hell (aus) mit Flamme und „– experimentell“; beide Tooltips nach 12 s Hover (heften sich fest). Umschalten in der Partie (`--innen=1`, Einstellungen über der Schmiede): Klick auf „Innenräume“ schaltet SDFGI im Raum dahinter sofort aus, ein zweiter Klick wieder an, ohne Neustart. Bilder: Scratchpad `sdfgi2/ui/` (`l2/`, `umschalten/`). | 30.10.2026 |
 | Tooltips nach der Prüfung (von Darstellung) | Niedrig nennt die leicht treppigen Kanten (halbe Auflösung), Mittel „auf voller Auflösung (glatte Kanten)“, Hoch „viermal so viele Strahlen wie Niedrig“. „Innenräume“: die Räume bleiben in jeder Stufe etwa so hell wie ohne; Kosten auf einer schwachen Karte rund 30 / 40 % (in Wohnhaus und Rathaus bis 75 %) / mehr als doppelt. „Außenansicht“: rund 7 % bei Niedrig, 15 % bei Mittel und Hoch. Messung: `docs/bereiche/darstellung.md`, „Prüfung“. | 31.10.2026 |
-### Entwicklerfenster: Fehler im Aufbau (PR #269)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ursache | `Hauptszene.EntwicklerBauen` hängte das Fenster ein (`AddChild` ruft `_Ready`, das die Reiter baut) und verband es erst danach mit der Partie. Seit dem Schalter „Nachtnebel“ (PR #266) las der Aufbau `_stadt.Nachtnebel`, `_stadt` war noch leer: `_Ready` brach im Reiter „Wetter und Darstellung“ ab. Messwerte und Klänge fehlten, das Fenster stand beim Start offen (ohne ✕), und `DarstellungAuffrischen` warf zweimal je Sekunde eine `NullReferenceException`. | 30.10.2026 |
-| Regel | Verbinden vor dem Einhängen. Der Aufbau eines Reiters liest die Partie nicht; den Stand der Schalter und Listen setzen die Auffrisch-Methoden (beim Öffnen und zweimal je Sekunde). Der Schalter „Nachtnebel“ startet ohne Wahl. | 30.10.2026 |
-| Absicherung | `Bauen` baut jeden Reiter für sich: Wirft der Aufbau, steht die Ausnahme einmal im Log, die übrigen Reiter, ✕ und Verstecken laufen weiter. Aufgefrischt werden nur fertig gebaute Reiter (ein Kennzeichen je Reiter); die Messwerte frischt `_Process` selbst auf. | 30.10.2026 |
-| Klicktest | Vulkan (T400), `--entwickler=1`, je mit F12: Stadt (alle sechs Reiter, Nachtnebel zeigt „An (neu)“), Raumansicht `--innen=1` (Wetter Regen mit Meldung, Messwerte) und Probepartie der Kartenwerkstatt (Wetter und Darstellung). Fenster beim Start zu, keine Ausnahme des Fensters im Log; auf `main` im selben Ablauf 94 (eine im Aufbau, 93 beim Auffrischen). Gegenprobe mit einem absichtlich eingebauten Fehler im Aufbau: eine Meldung im Log, Fenster beim Start zu, die anderen Reiter und „+1.000“ gehen. | 30.10.2026 |
-
-### Kartenwerkstatt: Pinsel-Paket 1 (PR #279)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Tafel | Gelände- und Bodentafel haben die klappbaren Abschnitte „Pinsel“ und „Filter“. Filter: Vorlagen **Überall**, **Ebene ≤ 8 %**, **Hang ≥ 15 %** (Grenzen der Hangsperre), Regler „Steigung ab/bis“ (bis ganz rechts = ohne Grenze), Auswahl „Nur auf“ mit Rand. Eigene Haken „Nur Mulden heben“ (Heben) und „Nur Spitzen kappen“ (Senken). | 31.10. |
-| Pipette | Knopf „Pipette“ neben Ziel-/Bezugshöhe und neben dem Namen der Textur (für Einsteiger auffindbar, im Klicktest klickbar), dazu Strg+Klick wie in Terrain3D. Sie gilt für einen Klick und verfällt beim Werkzeugwechsel; die Bodenart-Pipette wählt die Textur wie ein Klick in der Palette. | 31.10. |
-| Schild unter dem Pinsel | Kleines Schild rechts unterhalb der Maus (am Bildrand nach innen geklappt), Stil der Werkstatt-Tafeln mit dünnem Goldrand: Höhe des Rasters (wie die Pipette, mit Wegbett, wenn es abweicht), Steigung wie der Filter, bis zu drei Bodenarten mit Anteil, bei Terrassen die Stufe, ob der Filter hier wirkt, ob die Pipette bereit ist. Solange es sichtbar ist, zeigt die Statusleiste nur das Werkzeug (sonst stünden zwei verschiedene Steigungen nebeneinander). | 31.10. |
-| Icon | „Terrassen“ aus `tools/icons/kartenwerkstatt_icons.py` (drei Stufen mit Grasnarbe und Weinstöcken); das Skript zeichnet die übrigen Icons Byte für Byte wie vorher. | 31.10. |
-| Nebenbei behoben | Schieberegler melden sich bei `TreeEntered` statt `Ready` am Bild-Takt an: Die klappbaren Abschnitte hängen sie um, danach fehlte die Abfrage des Loslassens und beim Schließen kam „disconnect a nonexistent connection“. In der Palette springt beim Klick der vorige Werkzeug-Knopf heraus (vorher blieben z. B. Heben und Senken beide gedrückt). | 31.10. |
-| Nach der Prüfung | Eine eingetippte Zielhöhe setzt den Haken „Feste Zielhöhe“ sichtbar; trifft die bereitgestellte Pipette keinen Boden, springt ihr Knopf heraus (Ereignis `WerkstattPipetteGeaendert(genommen)`); die Tooltips zu Mulden/Spitzen sagen genau, was geschieht (höchstens bis Mitte ± Stärke, auf ebenem Boden wie gewohnt); ist der Steigungsbereich schmaler als 4 Prozentpunkte, warnt die Tafel rot. | 31.10. |
-| Klicktest | Vulkan (T400), neue Karte mit Hügel aus der Startoption: Terrassen (4-m-Stufen, Fels an den Kanten), Ebnen mit Pipette (Bank auf genau 9,78 m), nur Mulden (−4,00 → −1,00 m, Ebene bleibt 0,00), nur Spitzen (Kuppe gekappt), Fels nur ab 15 % (Kuppe und Ebene bleiben Wiese), Moos nur auf Fels, Bodenart-Pipette. Bilder im Bericht. | 31.10. |
-
-### Kartenwerkstatt: Felspinsel F4 (PR #284)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Platz | Keine neue Gruppe (die Tasten 1–0 sind belegt): Abschnitt „Felsen“ in der Palette **Gelände** (2) mit den Stempeln Felswand, Felskuppe, Felsrippe, Felsstück, dazu „Felsen streuen“ und „Fels-Radierer“. Symbole als Farbfeld in der Farbe des Grundgesteins (wie die Bodentexturen), der Radierer mit dem vorhandenen Icon – kein neues Asset. | 01.11. |
-| Tafel | Klappbare Abschnitte „Vorlage“ (Gruppe oder Einzelstücke mit Haken je Form, Gestein der neuen Stücke mit „wie die Karte“, Grundgestein der Karte als Befehl mit Rückgängig), „Pinsel“ (Radius und Dichte nur beim Streuen, Größe, Streuung, Einsinken, Neigung, „Schauseite hangabwärts“) und „Filter“ (derselbe Abschnitt wie Gelände und Boden). Radierer nur Radius und Filter. Tooltips an jedem Regler. | 01.11. |
-| Vorschau | Streuen und Radieren: Kreis an der Maus (rot beim Radierer). Stempel: die Stücke selbst als helle Geister (höchstens so viele Netze wie die größte Gruppe, wiederverwendet) und je Stück ein Kreis der Grundfläche – gerechnet vom Kern (`FelsStempelVorschau`) mit dem Startwert, den auch der Klick nimmt; „Neu würfeln“ zählt ihn weiter. Das Schild an der Maus (Höhe, Steigung, Filter) gilt auch für den Felspinsel. | 01.11. |
-| Anzeige | VORLÄUFIG bis F5: je Stück ein MeshInstance3D (Stufe 1 aus `natur_felsen.glb`, Fels-Material aus F2 je Gesteinsart geteilt), nur in der Werkstatt. Lage: Drehung, Neigung zur Hangnormalen, Kippen, Einsinken unter den Boden unter der Mitte; folgt Geländeänderungen. Kein Wählen einzelner Stücke (nur Radierer). | 01.11. |
-| Startoption | `--werkstatt-fels=grundgestein:…|stempel:…|streuen:…|radierer:…` und die Werkzeuge `fels:<wand|kuppe|rippe|einzeln|streuen|radierer>` für `--werkstatt-werkzeug`/`--werkstatt-umriss` (STARTOPTIONEN.md). | 01.11. |
-| Dichte | Vorgabe beim Streuen 20 % für Einzelstücke, 10 % für Gruppen (Gruppen sind groß und standen mit 30 % zu dicht); die Werkstatt merkt sich beide getrennt. | 01.11. |
-| Klicktest | Vulkan (T400), neue Karte mit Hügel: Wand gestempelt (Schauseite hangabwärts, Geist der nächsten Wand), Rippen gestreut, radiert, Rückgängig; mit echter Maus Kuppe gestempelt, zweiter Stempel, Strg+Z nimmt ihn zurück. | 01.11. |
-
 ### Kartenwerkstatt: Felspinsel P2 – Tafel und Tastenhilfe (Branch phase5/fels-p2, PR folgt)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Tafel Felsstück | `Kartenwerkstatt.Felslage.cs`: Tooltips der Gizmo-Knöpfe nennen die Tasten 1, 2, 3 (Achsen: 4); „Auf den Boden (End)“; neuer Knopf „Kopieren (Strg+D)“; neue Zeile Auswahl mit „Gleiche Form“, „Gleiches Gestein“, „Umkehren (Strg+I)“, „Alle (Strg+A)“. Die Hilfe unter den Knöpfen nennt die Gizmo-Tasten und das Schieben mit den Pfeiltasten in Worten (keine Pfeilzeichen: die Schrift hat sie vielleicht nicht) | 09.11.2026 |
 | Tastenhilfe unten | `Kartenwerkstatt.Tafeln.cs`: Zeile für ein gewähltes Felsstück mit 1/2/3/4 (Gruppen 1–4 erst nach Esc), Pfeiltasten zum Schieben (Umschalt, Strg, Alt), End/B, Q/E, Strg+D, Rahmen und Strg+A; beim Stempeln der Zusatz „danach steht der Gizmo an den neuen Stücken“; im Werkzeug Auswahl „Ziehen ins Leere: Rahmen um Felsen“. Entscheidungen zu Tasten und Verhalten in `darstellung.md` („Felspinsel P2“) | 09.11.2026 |
-
-### Schilder und Ampeln des Fahrwegs (PR #282)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Zeichnung | `FahrwegAnzeige` (Control unter allen Tafeln) zeichnet im Holzschnitt-Stil: Papier um 2 px neben dem schwarzen Rahmen, Schraffur unten und rechts, Pfosten zum Halt am Markt; Siegel als Farbmarke. Gezeichnet statt Asset (kein Protokolleintrag nötig). | 01.11.2026 |
-| Schild | Name des Platzes, „Startkarren: hin … · zurück … min“, darunter der schnellste Karren (die Karrenart mit der kürzesten Hinfahrt). Bester Platz mit Goldrand, die anderen blasser; ein Platz außerhalb des Bildes: Schild am Rand mit Spitze zu ihm. | 01.11.2026 |
-| Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
-| Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |
-
-### Bautafel rechts und Werkstatt-Bauplätze (PR #285)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ursache Bildmitte | `Fensterrahmen.Anmelden` ruft `_Ready` des Rahmens sofort auf; bei sichtbarer Tafel setzte `BeimZeigen` schon die Mitte (`_platz = MitteLage`), bevor der Aufrufer `Mittig = false` setzen konnte. Bau- und Wegtafel blieben so in der Mitte (die Auswahl nicht, sie setzt bei jedem Öffnen `PlatzSetzen`). Jetzt nimmt `Mittig = false` eine schon gesetzte Mitte zurück | 02.11.2026 |
-| Bautafel | Öffnet immer rechts unter dem Zeitstrahl (`PlatzSetzen` wie die Auswahl, auch nach dem Ziehen); die Höhe hält Zeitstrahl und Betriebsleiste frei (`RechtsAnheften`) | 02.11.2026 |
-| Bauliste | Die Zeile „keine Ampeln → return“ aus #282 stand in `ListeZeigen` statt nur in `FahrwegZeigen`: Bei offener Liste gibt es nie Ampeln, Legende und alle Gebäudeknöpfe fehlten. Entfernt (Befund der Prüfung) | 02.11.2026 |
-| Werkstatt-Bauplatz | Tooltip an der Maus über einer Zone mit `"nur": "werkstatt"` („Nur Werkstätten …“), Zeile in „Platz wählen“, Legende „Rand mit Amboss: nur Werkstätten“ nur auf Karten mit solchen Zonen; kein Tooltip bei offener Rückfrage, die graue Zeile nur bei grünem Umriss | 02.11.2026 |
-
-### Sitzplätze in der Schänke (PR #287)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Anzeige | Betriebsverwaltung (`GaststubeAktualisieren`) unter „Erwartet ≈ … Gäste“: „Plätze: belegt / frei (von n)“ aus `Gastwirtschaft.Platzbelegung` (Schätzung der laufenden Stunde), dahinter „heute kein Platz: n“ aus `Gaestebuch.Voll` nur, wenn größer 0, mit „(davon m ohne Platz in der ganzen Stadt)“ aus `Ausgefallen`. Nur Gäste-Plätze, keine Einwohner-Grenze (greift mit den Spieldaten nie). Tooltip in einfacher Sprache am Gästetext | 02.11.2026 |
-
-### Mauszeiger (PR #308)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Zeiger | Lederhandschuh aus Blender (`tools/modelle/handschuh.py`), feine Pixel, 6 Stufen nach `Konto.Stand`, je „normal“ und „klick“ (wärmer), dazu Bronze-Türschloss mit S-Griff; 32/48/64 Pixel nach Fensterhöhe und Oberflächengröße (Standard 48 bei 1080p). Freigabe des Nutzers. | 04.11.2026 |
-| Zustände | „klick“ über Gebäude, Figuren, Bauplatz im Baumodus und freigegebenen Knöpfen; Schloss über Gebäuden mit Innenraum (`HatInnenansicht`), nur außerhalb von Räumen. Karren sind nicht einzeln wählbar, darum ohne eigenen Zustand. | 04.11.2026 |
-| Einstellung | „Eigener Mauszeiger“ (Barrierefreiheit, Standard an) mit Tooltip; Startoptionen `--zeiger`, `--zeigerstufe`. Hauptmenü und Kartenwerkstatt zeigen Stufe 1; die Werkstatt hat keinen eigenen Pinsel-Zeiger. | 04.11.2026 |
 
 ### Handschuh-Zeiger aus echter Hand, Wahl in den Einstellungen (PR #330)
 
