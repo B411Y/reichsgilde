@@ -131,6 +131,13 @@ public sealed class EntwurfStart : EntwurfTeil
     private List<EntwurfHaus> _haeuser = new();
     private List<EntwurfHofstelle> _hofstellen = new();
 
+    /// <summary>
+    /// Hat die Karte schon Hofstellen geführt (die Datei hatte das Feld <c>hofstellen</c>, oder es gab welche)? Dann schreibt sie auch ohne Hofstellen
+    /// eine leere Liste – sonst machte das nächste Öffnen (wie bei einer Karte von vor den Hofstellen) aus den Startpaaren wieder Hofstellen, und wer
+    /// die letzte gelöscht hatte, hätte sie zurück (Befund 10.11.2026). Eine Karte, die nie welche hatte, bekommt sie beim ersten Öffnen wie bisher.
+    /// </summary>
+    private bool _hofstellenGefuehrt;
+
     /// <summary>Abweichende Startplätze je Beruf, in der Reihenfolge der Datei.</summary>
     public IReadOnlyList<KeyValuePair<string, EntwurfStartplatz>> JeBeruf => _jeBeruf;
 
@@ -158,7 +165,11 @@ public sealed class EntwurfStart : EntwurfTeil
 
     internal void HaeuserSetzen(IEnumerable<EntwurfHaus> haeuser) => _haeuser = haeuser.ToList();
     internal void JeBerufSetzen(IEnumerable<KeyValuePair<string, EntwurfStartplatz>> plaetze) => _jeBeruf = plaetze.ToList();
-    internal void HofstellenSetzen(IEnumerable<EntwurfHofstelle> hofstellen) => _hofstellen = hofstellen.ToList();
+    internal void HofstellenSetzen(IEnumerable<EntwurfHofstelle> hofstellen)
+    {
+        _hofstellen = hofstellen.ToList();
+        _hofstellenGefuehrt |= _hofstellen.Count > 0;
+    }
 
     /// <summary>Die Belegung in den Typen der Partie (wie der Kern sie aus der Datei liest).</summary>
     public Startbelegung AlsStartbelegung() => JsonSerializer.Deserialize<Startbelegung>(AlsJson().ToJsonString(), Stadtkarte.Optionen)!;
@@ -194,6 +205,7 @@ public sealed class EntwurfStart : EntwurfTeil
         {
             Vorlage = hofstellen is not null && i < hofstellen.Count ? hofstellen[i]?.DeepClone() as JsonObject : null,
         }).ToList();
+        e._hofstellenGefuehrt = hofstellen is not null || e._hofstellen.Count > 0;
         return e;
     }
 
@@ -203,7 +215,7 @@ public sealed class EntwurfStart : EntwurfTeil
         {
             SpielerWohnhaus = SpielerWohnhaus, SpielerFarbe = SpielerFarbe, SpielerWerkstatt = SpielerWerkstatt, Vorlage = Vorlage, _spielerVorlage = _spielerVorlage,
         };
-        (k._jeBeruf, k._haeuser, k._hofstellen) = (_jeBeruf.ToList(), _haeuser.ToList(), _hofstellen.ToList());
+        (k._jeBeruf, k._haeuser, k._hofstellen, k._hofstellenGefuehrt) = (_jeBeruf.ToList(), _haeuser.ToList(), _hofstellen.ToList(), _hofstellenGefuehrt);
         return k;
     }
 
@@ -211,7 +223,7 @@ public sealed class EntwurfStart : EntwurfTeil
     {
         var o = (EntwurfStart)werte;
         (SpielerWohnhaus, SpielerFarbe, SpielerWerkstatt, Vorlage, _spielerVorlage) = (o.SpielerWohnhaus, o.SpielerFarbe, o.SpielerWerkstatt, o.Vorlage, o._spielerVorlage);
-        (_jeBeruf, _haeuser, _hofstellen) = (o._jeBeruf.ToList(), o._haeuser.ToList(), o._hofstellen.ToList());
+        (_jeBeruf, _haeuser, _hofstellen, _hofstellenGefuehrt) = (o._jeBeruf.ToList(), o._haeuser.ToList(), o._hofstellen.ToList(), o._hofstellenGefuehrt);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfStart o && AlsJson().ToJsonString() == o.AlsJson().ToJsonString();
@@ -222,7 +234,7 @@ public sealed class EntwurfStart : EntwurfTeil
         var spieler = Zusammensetzen(_spielerVorlage,
             ("wohnhaus", SpielerWohnhaus is null ? null : JsonValue.Create(SpielerWohnhaus)), ("farbe", SpielerFarbe is null ? null : JsonValue.Create(SpielerFarbe)),
             ("werkstatt", SpielerWerkstatt?.AlsJson()), ("jeBeruf", jeBeruf));
-        var hofstellen = _hofstellen.Count == 0 ? null : new JsonArray(_hofstellen.Select(h => (JsonNode)h.AlsJson()).ToArray());
+        var hofstellen = _hofstellen.Count == 0 && !_hofstellenGefuehrt ? null : new JsonArray(_hofstellen.Select(h => (JsonNode)h.AlsJson()).ToArray());
         return Zusammensetzen(Vorlage, ("hofstellen", hofstellen), ("spieler", spieler), ("haeuser", new JsonArray(_haeuser.Select(h => (JsonNode)h.AlsJson()).ToArray())));
     }
 }

@@ -311,8 +311,8 @@ public sealed class Karren
 
     private void Ankommen(Spielzeit zeit, Stadtwirtschaft w)
     {
-        // Am Hafen zahlen die Händler für Ausfuhrware einen kleinen Aufschlag, solange er offen ist (Datenversion 80); am Marktplatz 1.
-        double Hafenfaktor(string ware) => ZielHafen ? w.Schiffahrt.HafenVerkaufsFaktor(ware) : 1;
+        // Verhandeln × Aufschlag am Hafen (nur Ausfuhrware, Hafen offen; Datenversion 80) – dieselbe Rechnung wie die Vorschauen.
+        double Faktor(string ware) => w.KarrenVerkaufsFaktor(Heimat.Konto, ware, ZielHafen);
 
         if (Zustand == KarrenZustand.ZumMarkt)
         {
@@ -320,7 +320,7 @@ public sealed class Karren
             {
                 var vorher = Heimat.Konto.Laufend.Umsatz;
                 foreach (var (ware, stueck) in _ladung)
-                    Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto) * Hafenfaktor(ware), w.SteuersatzMarkt(Heimat.Konto));
+                    Heimat.Verkaufen(ware, stueck, w.Markt, Faktor(ware), w.SteuersatzMarkt(Heimat.Konto));
                 _ladung.Clear();
                 AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
                 Zurueckfahren(zeit, w);
@@ -329,7 +329,7 @@ public sealed class Karren
 
             // Alles verkaufen ...
             foreach (var (ware, stueck) in _ladung)
-                Heimat.Verkaufen(ware, stueck, w.Markt, w.Familien.VerkaufsFaktor(Heimat.Konto) * Hafenfaktor(ware), w.SteuersatzMarkt(Heimat.Konto));
+                Heimat.Verkaufen(ware, stueck, w.Markt, Faktor(ware), w.SteuersatzMarkt(Heimat.Konto));
             _ladung.Clear();
 
             // ... und knappe Zutaten einkaufen.
