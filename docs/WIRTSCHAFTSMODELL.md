@@ -2776,4 +2776,15 @@ Häuser von Menschen bekommen Fragen mit Frist und Voreinstellung (Einzelheiten 
 - Abschnitt 4 (Messstadt, passiver Spieler, Vermögen je KI-Haus nach 20 Jahren): 1 Haus 81.477 → 80.650 (−1,0 %), 3 Häuser 62.281 → 63.129 (+1,4 %), 5 Häuser 56.560 → 55.110 (−2,6 %), 8 Häuser 49.286 → 48.972 (−0,6 %); der Fehler des Mittels liegt bei etwa 4.000 – im Rauschen.
 - Abschnitt 8 (Hafen, passiver Spieler): Greybox mit Schiffshandel 14.473 → 14.296 (−1,2 %), ohne 13.044 → 13.252 (+1,6 %); Probestadt 14.298 → 13.918 (−2,7 %), ohne 13.304 → 13.132 (−1,3 %). Der Medicus kostet den passiven Spieler etwas Geld, rettet aber Angehörige; die Abstände „mit gegen ohne Schiffshandel“ verschieben sich im Rauschen (+11,0 → +7,9 % bzw. +7,5 → +6,0 %). Stadtkasse und Steuer ändern sich leicht mit, weil der Spieler anders lebt (Greybox Mittel aller Jahre −4.336 → −3.818).
 
-Ergebnis: Die Voreinstellungen ändern die Balance nicht messbar; ein Spieler, der Fragen nicht beantwortet, liegt innerhalb von ±3 % wie vorher.
+**Passiver Spieler selbst** (Befund der Prüfung: im Bericht zählt er in Abschnitt 4 nicht mit). Eigene Messung: Greybox, Partieaufbau wie im Spiel (`NeuePartie()` mit Standardwerten, drei KI-Häuser), der Mensch gibt keinen Befehl, 40 Startwerte (3000–3039), 20 Jahre; gemessen auf main e353ad54 gegen main e353ad54 + diesen Branch (4c4b0407). Der Messcode war eine vorübergehende Testdatei und steht nicht im Repository.
+
+| | vorher | nachher | Unterschied je Partie |
+|---|---|---|---|
+| Reinvermögen nach 10 Jahren, Mittel | 8.309 | 8.145 | −163 (−2,0 %, Fehler ±26) |
+| Reinvermögen nach 20 Jahren, Mittel | 13.528 | 13.287 | −241 (−1,8 %, Fehler ±142) |
+| Medicus durch die Voreinstellung | – | 110 Rufe in 40 Partien | 2,8 je Partie, 330 Gulden in 20 Jahren |
+| Kräuterschnaps, Lösegeld | – | 0 | – (ein passiver Spieler kauft keinen Schnaps und wurde nie entführt) |
+
+Der passive Spieler heiratet nicht; in allen Partien lebt am Ende nur das Oberhaupt, in beiden Läufen. Der Medicus heilt also nur das Oberhaupt; er kostet in 20 Jahren 330 Gulden, das Reinvermögen sinkt um 241 (etwas weniger als die Kosten, weil das geheilte Oberhaupt seine Talente früher zurückhat).
+
+Ergebnis: Die Voreinstellungen ändern die Balance der KI-Häuser nicht. Ein Spieler, der keine Frage beantwortet, hat nach 20 Jahren im Mittel 1,8 % weniger Reinvermögen (−241 Gulden), fast ganz durch den Medicus (330 Gulden für 2,8 Rufe).
