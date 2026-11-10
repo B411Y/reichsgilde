@@ -5,11 +5,13 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Ochsenkarren und Pferdekarren als Modelle aus Blender
-/// (<c>karren_hand.glb</c>, <c>karren_ochse.glb</c>, <c>karren_krieg.glb</c>, Fahrtrichtung +Z) mit Skelett und den Bewegungen „Fahren“ und „Stehen“.
+/// (<c>karren/karren_hand.glb</c>, <c>karren_ochse.glb</c>, <c>karren_pferd.glb</c>, Fahrtrichtung +Z) – ohne Tier und ohne Figur, mit Rädern als
+/// eigenen Knoten (<c>Rad_*</c>), die sich nach der gefahrenen Strecke drehen. Zieher und Zugtiere sind eigene Figuren an den Ankern
+/// (<c>Stadtansicht.Zugtiere.cs</c>): ein Passant aus dem Fuhrmann des Karrens, Ochse oder Pferde mit Skelett (nah), gebacken (ab Zoom 50) und als Fernnetz (ab 100).
 ///
-/// Die Darstellung rechnet nichts aus, sie liest nur den <see cref="Karren"/> des Kerns: Zustand (fährt oder steht), Ladung (wie viele Sorten)
-/// und Besitzer (Farbe von Plane und Hausfarbe). Die Animationen laufen am Ort; <see cref="KarrenBewegen"/> schiebt den Karren und stellt das
-/// Tempo der Bewegung so ein, dass die Räder nicht rutschen. Karren außerhalb des Bildes werden nicht animiert, sehr kleine (weit herausgezoomt) seltener.
+/// Die Darstellung rechnet nichts aus, sie liest nur den <see cref="Karren"/> des Kerns: Zustand (fährt, steht am Betrieb oder am Tor), Ladung (wie viele Sorten),
+/// Besitzer (Farbe von Plane, Wimpel und Decke) und den Fuhrmann (<see cref="Karren.FuhrmannIn"/>). <see cref="KarrenBewegen"/> schiebt den Karren und stellt das
+/// Tempo der Räder, Schritte und Hufe so ein, dass nichts rutscht. Karren außerhalb des Bildes werden nicht animiert.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -18,7 +20,16 @@ public partial class Stadtansicht
     {
         public required Node3D Wurzel { get; init; }
         public required KarrenArt Art { get; init; }
-        public AnimationPlayer? Spieler { get; init; }
+        /// <summary>Die Räder des Modells (Knoten, Ruhelage, Halbmesser, Drehwinkel): <see cref="KarrenRaederDrehen"/>.</summary>
+        public Rad[] Raeder { get; init; } = Array.Empty<Rad>();
+        /// <summary>Die Stützbeine des Handkarrens (nur im Stand gezeigt) und ob sie gerade sichtbar sind.</summary>
+        public Node3D? Stuetze { get; init; }
+        public bool StuetzeSichtbar { get; set; }
+        /// <summary>Die Zugtiere (Ochse, ein oder zwei Pferde) an den Ankern des Karrens.</summary>
+        public Zugtier[] Tiere { get; set; } = Array.Empty<Zugtier>();
+        /// <summary>Der Halter des Ziehers am Anker (null ohne Figur) und ob er gerade gezeigt wird (Nachtregel: nur ein fahrender Karren hat seinen Fuhrmann bei sich).</summary>
+        public Node3D? FahrerHalter { get; set; }
+        public bool FahrerSichtbar { get; set; } = true;
         /// <summary>„Ladung1“ bis „LadungN“ des Modells (Kisten, Säcke, Fässer): so viele sichtbar, wie Sorten geladen sind.</summary>
         public required MeshInstance3D[] Ladung { get; init; }
         public MeshInstance3D? Plane { get; init; }
@@ -26,12 +37,9 @@ public partial class Stadtansicht
         /// <summary>Wie viele Ladungsknoten gerade sichtbar sind (-1 = noch nie gesetzt); geschaltet wird nur beim Wechsel.</summary>
         public int GezeigteLadung { get; set; } = -1;
         public bool Eskortiert { get; set; }
-        public string Bewegung { get; set; } = "";
-        /// <summary>Animationszeit, die noch nicht abgespielt ist (der Karren war aus dem Bild oder das Bild wurde übersprungen).</summary>
-        public double Rueckstand { get; set; }
         /// <summary>Versetzt die Bilder, in denen Karren animiert werden, damit nicht alle im selben Bild dran sind.</summary>
         public int Versatz { get; init; }
-        /// <summary>Der Mensch am Karren (Zieher, Treiber, Kutscher), eine Figur wie die Passanten; null, wenn das Figurenmodell fehlt.</summary>
+        /// <summary>Der Fuhrmann am Karren (Zieher, Läufer am Ochsen, Kutscher), eine Passantenfigur mit Skelett; null, wenn das Figurenmodell oder der Kern fehlt.</summary>
         public Figur? Fahrer { get; set; }
         /// <summary>Die sichtbare Fahrt mit fester Geschwindigkeit (Stadtansicht.Karren.cs, <see cref="Karrenzug"/>) und die Profile, mit denen sie zuletzt gerechnet wurde.</summary>
         public Karrenzug Zug { get; } = new();
@@ -51,25 +59,33 @@ public partial class Stadtansicht
         public float HinLetzte { get; set; }
     }
 
-    /// <summary>Was an einer Karrenart verschieden ist: das Modell, der Weg einer Schleife „Fahren“ und der Anker für den Menschen.</summary>
-    private sealed record KarrenArt(string Datei, float Weg, string Anker, string FigurFahren, string FigurStehen, bool Pferd = false);
+    /// <summary>Ein Rad des Karrens: der Knoten und seine Ruhelage, der Halbmesser (Meter) und der gesamte Drehwinkel (Bogenmaß) um die lokale X-Achse.</summary>
+    private sealed class Rad
+    {
+        public required Node3D Knoten { get; init; }
+        public required Transform3D Ruhe { get; init; }
+        public required float Radius { get; init; }
+        public float Winkel { get; set; }
+    }
 
     /// <summary>
-    /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. <c>Weg</c> ist die Strecke, die eine Schleife „Fahren“ zurücklegt (Räder genau einmal herum,
-    /// 2π · Radhalbmesser aus <c>tools/modelle/karren.py</c>): 2,83 m beim Handkarren, 4,52 m beim Ochsenkarren, 3,77 m beim Pferdekarren.
+    /// Was an einer Karrenart verschieden ist: das Modell, die Räder (Knotennamen, Halbmesser nach <c>tools/modelle/karren.py</c>, falls das Modell ihn nicht als
+    /// Extra <c>radius</c> mitbringt), der Anker und der Clip des Ziehers, die Zugtierart (<c>pferd</c>, <c>ochse</c>; null: keines) mit ihren Ankern.
+    /// </summary>
+    private sealed record KarrenArt(string Datei, (string Name, float Radius)[] Raeder, string ZieherAnker, string ZieherClip, string? Tier, string[] TierAnker, bool Pferd = false);
+
+    /// <summary>
+    /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. Der Handkarren wird gezogen (Nutzer, 10.11.2026): der Zieher steht an der Zugstange vorn
+    /// (<c>Anker_Ziehen</c>, Hände hinter dem Körper, Clip „Ziehen“); am Ochsenkarren geht der Fuhrmann mit dem Stecken neben dem Ochsen
+    /// („Nebenhergehen“), am Pferdekarren sitzt er auf dem Bock („SitzenBock“, auch beim Halt).
     /// </summary>
     private static readonly Dictionary<string, KarrenArt> KarrenArten = new()
     {
-        ["Handkarren"] = new("fahrzeuge/karren_hand", 2f * Mathf.Pi * 0.45f, "Anker_Zieher", "Ziehen", "Stehen"),
-        ["Ochsenkarren"] = new("fahrzeuge/karren_ochse", 2f * Mathf.Pi * 0.72f, "Anker_Treiber", "Gehen", "Stehen"),
-        ["Pferdekarren"] = new("fahrzeuge/karren_krieg", 2f * Mathf.Pi * 0.6f, "Anker_Kutscher", "Kutschieren", "Kutschieren", Pferd: true),
+        ["Handkarren"] = new("karren/karren_hand", new[] { ("Rad_L", 0.45f), ("Rad_R", 0.45f) }, "Anker_Ziehen", "Ziehen", null, Array.Empty<string>()),
+        ["Ochsenkarren"] = new("karren/karren_ochse", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Fahrer_Seite", "Nebenhergehen", "ochse", new[] { "Anker_Deichsel" }),
+        ["Pferdekarren"] = new("karren/karren_pferd", new[] { ("Rad_HL", 0.62f), ("Rad_HR", 0.62f), ("Rad_VL", 0.5f), ("Rad_VR", 0.5f) }, "Anker_Bock", "SitzenBock", "pferd",
+            new[] { "Anker_Pferd_L", "Anker_Pferd_R" }, Pferd: true),
     };
-
-    /// <summary>Schneller als so viele Schleifen „Fahren“ je Sekunde dreht kein Rad: bei hohem Tempo rutschen sie lieber, als zu flimmern.</summary>
-    private const float KarrenMaxTempo = 3f;
-
-    /// <summary>Ab dieser Kamerahöhe (Meter) ist ein Karren so klein, dass er nur jedes dritte Bild animiert wird (über der weiten Zoomstufe 100 m, wie der gewohnte Zoom 95 davor).</summary>
-    private const float KarrenFernZoom = 105f;
 
     /// <summary>So weit (in Metern) darf ein Karren außerhalb des Bildes stehen und wird noch animiert (seine Tiere sind rund 5 m lang).</summary>
     private const float KarrenRandMeter = 6f;
@@ -80,32 +96,19 @@ public partial class Stadtansicht
     /// <summary>So weit (Meter) neben der Mitte des Weges fahren die Karren: auf ihrer rechten Seite (Rechtsverkehr, Schritt 5d).</summary>
     private const float KarrenSpur = 0.9f;
 
-    private readonly HashSet<string> _karrenSchleifen = new();
-
     private KarrenAnsicht KarrenErzeugen(Karren karren, Color besitzer, int nummer)
     {
         var art = KarrenArten.GetValueOrDefault(karren.Typ) ?? KarrenArten["Handkarren"];
         var wurzel = new Node3D { Name = "Karren" };
         AddChild(wurzel);
-        // Zustand: nur die Hausfarbe (Besitzer); „Ladung1–3“ und „Plane“ schaltet KarrenBewegen
+        // Zustand: nur die Hausfarbe (Besitzer); „Ladung1–3“, „Plane“ und „Stuetze“ schaltet KarrenBewegen
         var modell = ModellEinsetzen(art.Datei, wurzel, Vector3.Zero, new ModellZustand(Besitzer: besitzer))?.Wurzel;
-        AnimationPlayer? spieler = null;
         var ladung = new List<MeshInstance3D>();
         MeshInstance3D? plane = null;
+        var raeder = new List<Rad>();
+        Node3D? stuetze = null;
         if (modell is not null)
         {
-            spieler = modell.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().FirstOrDefault();
-            if (spieler is not null)
-            {
-                // Die Bewegungen sind Schleifen; Godot übernimmt das nicht aus der Datei. Die Animationen teilen sich alle Karren einer Art.
-                if (_karrenSchleifen.Add(art.Datei))
-                    foreach (var name in spieler.GetAnimationList())
-                        spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
-                // Wir schalten den Takt selbst (außerhalb des Bildes ruht der Karren): kein automatischer Lauf
-                spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
-                spieler.Play("Stehen");
-                spieler.Seek(GD.Randf() * spieler.CurrentAnimationLength, true); // Tiere und Räder nicht im Gleichschritt
-            }
             for (var i = 1; modell.FindChild($"Ladung{i}", true, false) is MeshInstance3D teil; i++)
             {
                 teil.Visible = false;
@@ -113,38 +116,51 @@ public partial class Stadtansicht
             }
             plane = modell.FindChild("Plane", true, false) as MeshInstance3D;
             if (plane is not null) plane.Visible = false;
+            stuetze = modell.FindChild("Stuetze", true, false) as Node3D;
+            if (stuetze is not null) stuetze.Visible = false;
+            foreach (var (name, radius) in art.Raeder)
+                if (modell.FindChild(name, true, false) is Node3D rad)
+                    raeder.Add(new Rad { Knoten = rad, Ruhe = rad.Transform, Radius = RadHalbmesser(rad, radius) });
         }
         // Die Eskorte bleibt vorerst ein Begleiter neben dem Karren
         var eskorte = new MeshInstance3D { Name = "Eskorte", Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.8f }, MaterialOverride = Material(new Color(0.35f, 0.35f, 0.38f)), Position = new Vector3(1.8f, 0.9f, 0.6f), Visible = false };
         wurzel.AddChild(eskorte);
         var ansicht = new KarrenAnsicht
         {
-            Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer, KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
+            Wurzel = wurzel, Art = art, Raeder = raeder.ToArray(), Stuetze = stuetze, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
+            KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
         };
-        ansicht.Fahrer = KarrenFahrerEinsetzen(ansicht, modell, karren, besitzer);
+        if (modell is not null && _wirtschaft is { } w)
+        {
+            var fuhrmann = karren.FuhrmannIn(w); // abgeleitet aus Haus und Karren: derselbe Karren hat immer denselben Fuhrmann und dieselben Fellfarben
+            ansicht.Tiere = ZugtiereEinsetzen(modell, art, fuhrmann);
+            ansicht.Fahrer = KarrenFuhrmannEinsetzen(ansicht, modell, art, fuhrmann);
+        }
         return ansicht;
     }
 
-    /// <summary>Die Figur ist ein Mensch: Zieher, Treiber und Kutscher sind für 0,92 m Hüfthöhe an Holmen, Seil und Bock abgestimmt.</summary>
-    private const float KarrenGehTempo = GehenTempo;
+    /// <summary>Der Halbmesser eines Rades: das Extra <c>radius</c> des Modells (aus <c>karren.py</c>), sonst der Wert der Karrenart.</summary>
+    private static float RadHalbmesser(Node3D rad, float standard) =>
+        rad.HasMeta("extras") && rad.GetMeta("extras").AsGodotDictionary() is { } extras && extras.ContainsKey("radius") ? (float)extras["radius"].AsDouble() : standard;
 
     /// <summary>
-    /// Stellt den Menschen an den Anker des Karrens: Zieher zwischen den Holmen („Ziehen“), Treiber neben dem Ochsen („Gehen“), Kutscher auf
-    /// dem Bock („Kutschieren“). Der Anker blickt mit −Z, die Figur mit +Z: Ein Halter am Anker dreht sie um 180° um die Hochachse. Die Figur
-    /// kommt aus <see cref="FigurEinsetzen"/> (<c>Stadtansicht.Figuren.cs</c>), immer als Mensch (Nummer durch 4 teilbar), im Gewand in
-    /// der gedämpften Hausfarbe; die Nummer stammt aus Betriebs- und Karrenname, damit sie bei jedem Start gleich ist.
+    /// Die Räder drehen sich nach der gefahrenen Strecke: Winkel = Weg ÷ Halbmesser um die lokale X-Achse (vorwärts ist +Z, die Oberseite läuft nach vorn). Nur wenn
+    /// der Karren im Bild ist und fährt; das Rad bleibt sonst, wie es ist.
     /// </summary>
-    private Figur? KarrenFahrerEinsetzen(KarrenAnsicht ansicht, Node3D? modell, Karren karren, Color besitzer)
+    private void KarrenRaederDrehen(KarrenAnsicht karren, float geschwindigkeit, double delta)
     {
-        if (modell?.FindChild(ansicht.Art.Anker, true, false) is not Node3D anker || anker.GetParent() is not { } eltern) return null;
-        var halter = new Node3D { Name = "Fahrer" };
-        eltern.AddChild(halter);
-        halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
-        var nummer = 4 * (int)(StabilerHash(karren.Heimat.Name + "/" + karren.Name) % 100000);
-        var gewand = besitzer.Lerp(new Color(0.45f, 0.38f, 0.28f), 0.45f);
-        var aussehen = AussehenAusNummer(nummer, gewand) with { Kopf = Kopfbedeckung.Strohhut };
-        return FigurEinsetzen(halter, aussehen, nummer);
+        if (karren.Raeder.Length == 0 || geschwindigkeit <= 0.05f || _simulation?.Takt.IstPausiert == true) return;
+        var meter = Mathf.Min(geschwindigkeit, KarrenMaxTempo) * (float)delta; // bei sehr hohem Tempo rutschen die Räder lieber, als zu flimmern
+        var sichtbar = KarrenImBild(karren.Wurzel);
+        foreach (var rad in karren.Raeder)
+        {
+            rad.Winkel = Mathf.PosMod(rad.Winkel + meter / rad.Radius, Mathf.Tau);
+            if (sichtbar) rad.Knoten.Transform = rad.Ruhe.RotatedLocal(Vector3.Right, rad.Winkel);
+        }
     }
+
+    /// <summary>Schneller als so viele Meter je Sekunde drehen sich die Räder nicht mehr mit (<see cref="KarrenRaederDrehen"/>).</summary>
+    private const float KarrenMaxTempo = 12f;
 
     /// <summary>Ein Hash, der bei jedem Programmstart gleich ist (<c>string.GetHashCode</c> ist es nicht).</summary>
     private static uint StabilerHash(string text)
@@ -152,25 +168,6 @@ public partial class Stadtansicht
         var h = 2166136261u;
         foreach (var c in text) h = (h ^ c) * 16777619u;
         return h;
-    }
-
-    /// <summary>
-    /// Der Mensch am Karren bewegt sich mit: beim Fahren „Ziehen“ oder „Gehen“ im Takt der Räder (die Schritte passen zum Tempo, aber
-    /// nicht schneller als <see cref="KarrenMaxTempo"/> Schleifen der Räder), der Kutscher „Kutschieren“; im Stand „Stehen“ (der Kutscher
-    /// bleibt auf dem Bock bei „Kutschieren“).
-    /// </summary>
-    private void KarrenFahrerBewegen(KarrenAnsicht karren, float geschwindigkeit, double delta)
-    {
-        if (karren.Fahrer is not { } fahrer) return;
-        if (geschwindigkeit > 0.05f)
-        {
-            var kutscher = karren.Art.FigurFahren == "Kutschieren";
-            var tempo = Mathf.Min(geschwindigkeit, KarrenMaxTempo * karren.Art.Weg);
-            BewegungSetzen(fahrer, karren.Art.FigurFahren, kutscher ? 1f : Mathf.Min(tempo / (KarrenGehTempo * fahrer.Beinfaktor), 3f));
-        }
-        else BewegungSetzen(fahrer, karren.Art.FigurStehen);
-        var sekunden = _simulation?.Takt.IstPausiert == true ? 0 : delta; // in der Pause steht auch der Mensch still
-        FigurImBildBewegen(fahrer, karren.Wurzel.Position, sekunden);
     }
 
     /// <summary>
@@ -250,30 +247,24 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wählt „Fahren“ oder „Stehen“ und treibt die Bewegung voran. Beim Fahren läuft die Schleife so schnell, dass die Räder auf dem Boden abrollen:
-    /// <c>Geschwindigkeit / Weg</c> Schleifen je Sekunde.
+    /// Einmal je Bild und Karren: Räder drehen, Stützbeine des Handkarrens im Stand zeigen, Zugtiere und Fuhrmann bewegen. Nachtregel nach dem
+    /// <b>Zustand</b> des Karrens, nicht nach der Uhr: am Betrieb oder am geschlossenen Tor steht der Karren ohne Fuhrmann (<see cref="Karren.Faehrt"/>), das Zugtier
+    /// steht angebunden (Clip „Stehen“); sobald er fährt, ist der Fuhrmann wieder da.
     /// </summary>
-    private void KarrenAnimieren(KarrenAnsicht karren, float geschwindigkeit, double delta)
+    private void KarrenAnimieren(Karren karren, KarrenAnsicht ansicht, float geschwindigkeit, double delta)
     {
-        if (karren.Spieler is not { } spieler) return;
-        var faehrt = geschwindigkeit > 0.05f;
-        var bewegung = faehrt ? "Fahren" : "Stehen";
-        if (bewegung != karren.Bewegung)
+        var faehrt = karren.Faehrt(_simulation!.Zeit);
+        var rollt = faehrt && geschwindigkeit > 0.05f;
+        KarrenRaederDrehen(ansicht, rollt ? geschwindigkeit : 0f, delta);
+        if (ansicht.Stuetze is { } stuetze && ansicht.StuetzeSichtbar != !rollt)
         {
-            karren.Bewegung = bewegung;
-            spieler.Play(bewegung, 0.25);
+            ansicht.StuetzeSichtbar = !rollt; // der Handkarren steht auf seinen Stützbeinen, solange er nicht rollt
+            stuetze.Visible = !rollt;
         }
-        var tempo = faehrt ? Mathf.Min(geschwindigkeit / karren.Art.Weg, KarrenMaxTempo) * spieler.GetAnimation("Fahren").Length : 1f;
-        if (_simulation?.Takt.IstPausiert == true || !KarrenImBild(karren.Wurzel))
-        {
-            karren.Rueckstand = 0;
-            return;
-        }
-        karren.Rueckstand += delta * tempo;
-        // weit herausgezoomt sieht man die Bewegung kaum: nur jedes dritte Bild (die Zeit läuft in einem Stück nach)
-        if (_kamera.Size >= KarrenFernZoom && (Engine.GetProcessFrames() + (ulong)karren.Versatz) % 3 != 0) return;
-        spieler.Advance(karren.Rueckstand);
-        karren.Rueckstand = 0;
+        var beladen = karren.Ladung.Values.Any(l => l > 0);
+        var imBild = _raum is null && KarrenImBild(ansicht.Wurzel);
+        ZugtiereBewegen(ansicht, rollt, beladen, geschwindigkeit, delta, imBild);
+        KarrenFuhrmannBewegen(ansicht, faehrt, rollt, geschwindigkeit, delta);
     }
 
     private void KarrenBewegen(Karren karren, int nummer, BetriebsAnsicht ansicht, int fahrzeit, double jetztGenau, double delta, bool spieler)
@@ -393,8 +384,7 @@ public partial class Stadtansicht
             gezeigt.Eskorte.Visible = eskortiert;
         }
 
-        KarrenAnimieren(gezeigt, gezeigt.Geschwindigkeit, delta);
-        KarrenFahrerBewegen(gezeigt, gezeigt.Geschwindigkeit, delta);
+        KarrenAnimieren(karren, gezeigt, gezeigt.Geschwindigkeit, delta);
     }
 
     /// <summary>
