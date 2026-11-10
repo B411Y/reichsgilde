@@ -227,7 +227,9 @@ public sealed partial class Entscheidungswesen
                 return $"{p.Vorname} hat {(k.IstPest ? "die Pest" : k.Name)} – bis Ende {k.Bis}, am Jahresende tödlich mit {Prozent(_w.Gesundheit.Sterberisiko(k))}.";
             case Entscheidungsart.Erbe:
                 var o = e.Person is int n ? _w.Familien.PersonNummer(n) : null;
-                var grund = o?.Krankheit is { } kr && _w.Familien.Sterberisiko(o) < Daten.ErbeAbSterberisiko ? $"schwer krank ({kr.Name})" : "alt und gebrechlich";
+                // Das Wort wie im Familienbuch (Familienbuch.Verfassung: „betagt“ bis 15 %, dann „gebrechlich“)
+                var grund = o?.Krankheit is { } kr && _w.Familien.Sterberisiko(o) < Daten.ErbeAbSterberisiko ? $"schwer krank ({kr.Name})"
+                    : o is null ? "betagt" : _w.Familien.Verfassung(o);
                 return $"{o?.Vorname ?? "Das Oberhaupt"} ist {grund}. Wer soll das Haus erben? Ohne Testament erbt das älteste volljährige Kind.";
             case Entscheidungsart.Geheimnis:
                 return $"Ihr habt erfahren: {GeheimnisText(e)}. Was macht ihr daraus?";
@@ -309,7 +311,9 @@ public sealed partial class Entscheidungswesen
         if (wahl is null)
             return e.Art switch
             {
-                Entscheidungsart.Krankheit => $"Die Krankheit von {person} ist vorbei – nichts mehr zu entscheiden.",
+                Entscheidungsart.Krankheit => e.Person is int tot && _w.Familien.PersonNummer(tot) is { Lebt: false }
+                    ? $"{person} ist gestorben – die Frage nach der Krankheit hat sich erledigt."
+                    : $"Die Krankheit von {person} ist vorbei – nichts mehr zu entscheiden.",
                 Entscheidungsart.Erbe => $"Die Frage nach dem Erben von {person} hat sich erledigt.",
                 Entscheidungsart.Geheimnis => $"Das Geheimnis ({GeheimnisText(e)}) taugt nicht mehr – nichts mehr zu entscheiden.",
                 _ => "Die Mahnung des Kämmerers hat sich erledigt.",

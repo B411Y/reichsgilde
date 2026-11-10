@@ -144,6 +144,49 @@ static class EntscheidungTeil2Tests
             Pruefe.Gleich(0, Von(w3, mensch3, Entscheidungsart.Erbe).Count, "nicht wieder gefragt");
         }),
 
+        ("Entscheidungen Teil 2: Erbe – das Testament im Familienbuch schließt die Frage (Kind aus der Auswahl: seine Wahl; ein fünftes Kind: „Testament geändert“); ein fremdes Haus nicht", () =>
+        {
+            foreach (var inAuswahl in new[] { true, false })
+            {
+                var (sim, w, mensch, rabe) = Partie(alter: 78, kinder: 5);
+                var abschluesse = Abschluesse(w);
+                var meldungen = new List<string>();
+                w.Gemeldet += m => { if (m.Art == Meldungsart.Entscheidung) meldungen.Add(m.Text); };
+                sim.Tick();
+                var e = Von(w, mensch, Entscheidungsart.Erbe).Single();
+                Pruefe.Gleich(4, e.Auswahl!.Count, "höchstens vier zur Wahl");
+                var juengstes = w.Familien.Von(mensch)!.Kinder.Single(k => !e.Auswahl.Contains(k.Nummer));
+                // Gegenprobe: ein Testament im anderen Haus schließt die Frage nicht
+                w.Familien.KindAufnehmen(rabe, 20);
+                Pruefe.Wahr(w.Ausfuehren(rabe, new ErbenBestimmen(w.Familien.Von(rabe)!.Kinder.First().Nummer)).Erfolg, "fremdes Testament");
+                Pruefe.Gleich(0, abschluesse.Count(x => x.E.Haus == mensch), "fremdes Testament schließt nichts");
+                var person = inAuswahl ? e.Auswahl[1] : juengstes.Nummer;
+                Pruefe.Wahr(w.Ausfuehren(mensch, new ErbenBestimmen(person)).Erfolg, "Familienbuch");
+                var (zu, grund) = abschluesse.Single(x => x.E.Haus == mensch);
+                Pruefe.Gleich((e.Nummer, Entscheidungsabschluss.Entschieden), (zu.Nummer, grund));
+                var name = w.Familien.PersonNummer(person)!.Vorname;
+                Pruefe.Wahr(inAuswahl ? meldungen[^1].Contains($"Testament: {name} soll") : meldungen[^1].Contains("Testament") && meldungen[^1].Contains("geändert"), meldungen[^1]);
+                sim.Tick();
+                Pruefe.Gleich(0, Von(w, mensch, Entscheidungsart.Erbe).Count, "nicht wieder gefragt");
+            }
+        }),
+
+        ("Entscheidungen Teil 2: Krankheit – stirbt die Person bei offener Frage, meldet die Frage den Tod statt „vorbei“", () =>
+        {
+            var (sim, w, mensch, _) = Partie();
+            var kind = Kind(w, mensch);
+            var meldungen = new List<string>();
+            w.Gemeldet += m => { if (m.Art == Meldungsart.Entscheidung) meldungen.Add(m.Text); };
+            Krank(w, mensch, kind, "Ruhr");
+            Krank(w, mensch, Kind(w, mensch, 1), "Ruhr");
+            sim.Tick();
+            Pruefe.Wahr(w.Ausfuehren(mensch, new EntwicklerTod(kind.Nummer)).Erfolg, "Tod");
+            Pruefe.Wahr(w.Ausfuehren(mensch, new EntwicklerKrankheit(Kind(w, mensch).Nummer, null)).Erfolg, "Gegenprobe: geheilt");
+            sim.Tick();
+            Pruefe.Wahr(meldungen.Any(m => m.Contains($"{kind.Vorname} ist gestorben")), string.Join(" | ", meldungen));
+            Pruefe.Wahr(meldungen.Any(m => m.Contains("ist vorbei")), "Gegenprobe: die geheilte Person – " + string.Join(" | ", meldungen));
+        }),
+
         ("Entscheidungen Teil 2: Geheimnis entdeckt – Bloßstellen über die Frage, Voreinstellung Merken; direkte Nutzung schließt die Frage (Doppelweg)", () =>
         {
             var (sim, w, mensch, rabe) = Partie();
