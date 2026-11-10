@@ -377,6 +377,12 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre am Sandfluss", "von": [-130, 113], "bis": [-130, 137]}],
  "start": {
+  "hofstellen": [
+   {"kennung": "S1", "name": "an der Hauptstraße (Nordwest)", "werkstatt": "Werkstattplatz1", "wohnhaus": "Wohnhausplatz2", "start": true},
+   {"kennung": "S2", "name": "an der Hauptstraße (Nordost)", "werkstatt": "Werkstattplatz2", "wohnhaus": "Wohnhausplatz1", "start": true},
+   {"kennung": "S3", "name": "an der Hauptstraße (Südost)", "werkstatt": "Werkstattplatz4", "wohnhaus": "Wohnhausplatz3", "start": true},
+   {"kennung": "H1", "name": "an der Hauptstraße (Südwest)", "werkstatt": "Werkstattplatz3", "wohnhaus": "Wohnhausplatz6"}
+  ],
   "spieler": {"wohnhaus": "Wohnhausplatz2", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
   "haeuser": [
    {

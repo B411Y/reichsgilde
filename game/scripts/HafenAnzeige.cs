@@ -87,6 +87,9 @@ public partial class HafenAnzeige : PanelContainer
     private VBoxContainer _ruhtSeite = null!;
     private Label _ruhtText = null!;
     private Button _handeln = null!;
+    private Label _ausfuhrKopf = null!;
+    private HFlowContainer _ausfuhr = null!;
+    private bool _ausfuhrGebaut;
 
     /// <summary>„Waren handeln“, wenn der Schiffshandel ruht: die Markttafel öffnen.</summary>
     public event Action? MarktGewuenscht;
@@ -136,6 +139,11 @@ public partial class HafenAnzeige : PanelContainer
         _handeln = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin, Text = "Waren handeln" };
         _handeln.Pressed += () => MarktGewuenscht?.Invoke();
         _ruhtSeite.AddChild(_handeln);
+        _ausfuhrKopf = Hauptmenue.Text(_ruhtSeite, "", 12, Grau, umbruchBreite: Breite);
+        _ausfuhr = new HFlowContainer { Visible = false, CustomMinimumSize = new Vector2(Breite, 0) };
+        _ausfuhr.AddThemeConstantOverride("h_separation", 4);
+        _ausfuhr.AddThemeConstantOverride("v_separation", 4);
+        _ruhtSeite.AddChild(_ausfuhr);
 
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Hafen", festhaltbar: true);
@@ -189,12 +197,18 @@ public partial class HafenAnzeige : PanelContainer
         if (ruht)
         {
             var offen = w.Schiffahrt.HafenOffen;
+            // Hafen-Aufschlag (Datenversion 80): nur für Karren, die eine Ausfuhrware am offenen Hafen verkaufen; der Wert steht in den Daten
+            var aufschlag = w.Schiffahrt.KarrenZumHafen ? w.Schiffahrt.Daten?.HafenAufschlag ?? 0 : 0;
+            var plus = $"+{Zahlenformat.Prozent(aufschlag)}";
             var text = offen
                 ? "Am Hafen handelt man mit dem Markt der Stadt: dieselben Waren, derselbe Vorrat und dieselben Preise wie auf dem Marktplatz."
+                  + (aufschlag > 0 ? $" Nur Ausfuhrwaren, die ein Karren hier am Hafen verkauft, bringen {plus} mehr." : "")
                 : w.Jahreszeiten.FlussZugefroren
                     ? $"Der {w.Jahreszeiten.Flussname ?? hafen.Fluss} ist zugefroren – der Hafen ist geschlossen. Gehandelt wird solange auf dem Marktplatz."
                     : $"Im Winter treiben Eisschollen auf dem {w.Jahreszeiten.Flussname ?? hafen.Fluss} – der Hafen ist bis zum Frühling geschlossen. Gehandelt wird solange auf dem Marktplatz.";
+            if (!offen && aufschlag > 0) text += $" Der Hafen-Aufschlag ({plus} auf Ausfuhrwaren) entfällt solange.";
             if (_ruhtText.Text != text) _ruhtText.Text = text;
+            AusfuhrwarenZeigen(w, offen && aufschlag > 0, plus);
             if (_handeln.Disabled == offen) _handeln.Disabled = !offen;
             return;
         }
@@ -212,6 +226,23 @@ public partial class HafenAnzeige : PanelContainer
         _seitAufbau = 0;
         if ((Reiter)_reiter.CurrentTab == Reiter.Schiffe) SchiffeNachziehen(w);
         else StaedteNachziehen(w);
+    }
+
+    /// <summary>Die Ausfuhrwaren (die fernen Städte kaufen sie) als Warenzeichen unter dem Text; nur am offenen Hafen mit Aufschlag.</summary>
+    private void AusfuhrwarenZeigen(Stadtwirtschaft w, bool zeigen, string plus)
+    {
+        if (_ausfuhr.Visible != zeigen) _ausfuhr.Visible = zeigen;
+        var kopf = zeigen ? "Ausfuhrwaren:" : "";
+        if (_ausfuhrKopf.Text != kopf) _ausfuhrKopf.Text = kopf;
+        if (!zeigen || _ausfuhrGebaut || w.Schiffahrt.Daten is not { } daten) return;
+        _ausfuhrGebaut = true;
+        foreach (var ware in daten.Staedte.SelectMany(s => s.Kauft.Keys).Distinct().OrderBy(x => x, StringComparer.Ordinal))
+        {
+            var bild = WarenIcons.Bild(ware, 22);
+            bild.TooltipText = $"{ware}: Ausfuhrware, {plus} am Hafen";
+            bild.MouseFilter = MouseFilterEnum.Stop;
+            _ausfuhr.AddChild(bild);
+        }
     }
 
     /// <summary>Was den Aufbau bestimmt: die eigenen Schiffe (am Kai oder nicht, mit welchem Auftrag), das gewählte und sein Entwurf (Ziel, Quelle), ob das Haus Zöllner ist.</summary>

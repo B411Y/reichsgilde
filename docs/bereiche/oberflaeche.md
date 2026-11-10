@@ -34,6 +34,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Stress 3b) Klicktest des Stressbalkens auf der NAS steht aus (Startoption `--entwickler=1 --stress=75 --charakter=oberhaupt`; Bilder: Balken angespannt und zermürbt, Tooltip mit Einträgen, fremde Person „Wirkt …“, Aktivitätenliste mit Stresszeile, Entwicklerfenster „Stress setzen“, Zusammenbruch-Meldung).
 - (Geheimnisse) Klicktest der Siegel auf der NAS steht aus: Charakterfenster (Startoptionen siehe nächster Punkt) sowie Meldung, Brief und Hinterzimmer mit `--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1` (Siegel „Geheimnisse“ in der Ecke mit Medaille neben dem Porträt, Brief mit Medaille am Fuß, Brief „Erpresserbrief“, im Hinterzimmer der Brief mit Medaille; Lesbarkeit der Medaille bei 30 px).
 - (Geheimnisse 3c) Klicktest auf der NAS steht aus (Schritte im Bericht des PR): `--entwickler=1 --geheimnis=Ehebruch:rivale --charakter=rivale`, `--geheimnis=Ketzerei:ratsherr --charakter=ratsherr`, `--geheimnis=Schulden:oberhaupt --charakter=oberhaupt`; Godot legt beim ersten Öffnen `CharakterAnzeige.Geheimnisse.cs.uid` an (mit einchecken).
+- Hofstellen (Startmenü, Kartenwerkstatt): Klicktest auf der NAS steht aus (Schritte im Bericht); der Umriss der Hofstelle prüft Werkstatt- und Wohnhausplatz getrennt (Text nennt nur den ersten Fehler), ein Platz mit Fehler färbt beide Umrisse rot. Im Menü fehlt für Karten ohne Wegenetz-Angabe die Meter-Zahl (dann nur der Name).
+- (Hofstellen) Die Tafel „Start“ nimmt Hofstellen mit anderer Werkstattart des Hauses nicht gesondert aus; „Hofstelle“ setzt immer den ersten Werkstattbetrieb des Hauses um.
 - (von Spiel-KI) Aufschlag am Hafen (Datenversion 80): Verkauft ein Karren am offenen Hafen Ausfuhrware, bringt sie `Schiffahrt.Daten.HafenAufschlag` (3 %) mehr (`Schiffahrt.HafenVerkaufsFaktor(ware)`, Liste über `SchiffshandelDaten.IstAusfuhrware`). Hafentafel (`HafenAnzeige.cs` um Zeile 193) und Hinweis in `Hauptszene.Hafen.cs` (um Zeile 117) sagen noch „dieselben Preise wie auf dem Marktplatz“ – Wunsch: Satz „Karren erzielen hier für Ausfuhrware 3 % mehr (nicht im Winter)“ mit Tooltip der Ausfuhrwaren; die Vorschau „verkaufen ≈“ im Marktfenster rechnet ohne Aufschlag.
 
 ## Entscheidungen
@@ -443,3 +445,29 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ratssitzung | Die Begründung eines erpressten Sitzes heißt „Erpresst von Haus X – stimmt wie Haus X.“ bzw. „– stimmt für ihn.“ (aus `Ratssitzung` im Kern); ein erpresstes Haus des Spielers ist im Punkt nicht frei, wo der Erpresser die Stimme bestimmt (`Stadtrat.StimmeVerboten`, `WahlStimmeVerboten` mit Grund), sonst stimmt es wie gewohnt. Gerichtssaal: Ein Verfahren nennt seine Anklagepunkte über `Stadtgericht.Anklagepunkte(v)` (mit dem angezeigten Geheimnis, sonst wie bisher). | 09.11.2026 |
 | Lexikon, Entwicklerfenster, Startoption | Lexikon-Eintrag „Geheimnisse“ (Gruppe Haus und Familie) mit `{wert:geheimnis_spitzel}`, `geheimnis_spitzel_ratsherr`, `geheimnis_gerede`, `geheimnis_beichte`, `geheimnis_ansehen_jahre`, `geheimnis_busse`, `geheimnis_mord_busse`. Entwicklerfenster, Reiter „Familie und Ereignisse“: Zeile „Geheimnis“ mit Ehebruch, Ketzerei, Schulden (jeweils mit Wissen) für die gewählte Person. Startoption `--geheimnis=<Art>[:oberhaupt|ehepartner|rivale|ratsherr[:n]|Nummer]` und `--charakter=rivale` (`Hauptszene.Charakter.cs`). | 09.11.2026 |
 | Bilder | Keine: je Art nur Text (Platzhalter, nichts lädt ein Bild). Siehe Offen. | 09.11.2026 |
+
+### Hofstellen im Startmenü und in der Kartenwerkstatt (PR folgt, Branch phase5/hofstellen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Startmenü | In „Euer Oberhaupt“ nach dem Startberuf die Zeile **Hofstelle**: „Zufall“ (Vorgabe) und je Start-Hofstelle der gewählten Karte „<Name> – <m> m zum <Markt>“ (`Hofstellenvergabe.Angebot`, nur beim Wechsel der Karte gerechnet, `HofstellenWahlFuellen`); ohne Hofstellen entfällt die Zeile; `NeuePartie.Hofstelle` null bei Zufall; Startplatzvergabe „Vorgabe“ wird im Menü nicht angeboten | 09.11.2026 |
+| Kartenkachel | Statt „Werkstattplätze“ „Hofstellen: <Start> zum Start, <frei> frei“ (frei = alle Hofstellen minus Spieler und Rivalen); Karten ohne Hofstellen zeigen weiter die Werkstattplätze | 09.11.2026 |
+| Startoption | `--hofstelle=<kennung oder zufall>` (Hauptszene.cs) | 09.11.2026 |
+| Werkzeug Hofstelle | Eigener Werkzeugwert `Werkstattwerkzeug.Hofstelle`, erster Eintrag der Gruppe Gebäude. Umriss beider Plätze: der Werkstattplatz mit dem gewöhnlichen Umriss samt Prüfung, der Wohnhausplatz als zweiter Umriss mit eigener Prüfung (`Stadtansicht.Kartenwerkstatt.Hofstelle.cs`); die Lagen rechnet die Oberfläche nur für die Vorschau, gesetzt wird im Kern (`HofstelleSetzen`) | 09.11.2026 |
+| Eigenschaften | Gruppe „Hofstelle“ bei Werkstatt- und Wohnhausplätzen (`Kartenwerkstatt.Hofstelle.cs`): Name, Haken Startplatz, auflösen, löschen; ohne Hofstelle Hinweis und „Hofstelle bilden“ mit dem nächsten freien Platz der anderen Art (einfachste Lösung, kein Wählen) | 09.11.2026 |
+| Tafel Start | Zeile „Hofstelle“ für Spieler und jedes Haus (alle Hofstellen der Karte, genutzte vorgewählt, belegte anderer Häuser ausgegraut); Wohnhaus, Startplatz und Betriebe bleiben | 09.11.2026 |
+| Bauzonen | Haken „nur Werkstätten“ bleibt, Tooltip „Veraltet – besser eine Hofstelle“ | 09.11.2026 |
+| Startoption Werkstatt | `--werkstatt-hofstelle=x,z[,grad[,start]]` (STARTOPTIONEN); Umriss mit `--werkstatt-umriss=hofstelle,x,z[,grad]` | 09.11.2026 |
+
+### Hofstellen: Hafentafel, Kamera-Start, Startbrief (Branch phase5/hofstellen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hafentafel (N7) | Bei ruhendem Schiffshandel nennt sie den Hafen-Aufschlag für Ausfuhrwaren (`schiffshandel.hafenAufschlag` über `Schiffahrt.Daten`, nur mit `karrenZumHafen`) und zeigt die Ausfuhrwaren (Waren, die eine ferne Stadt kauft) als Warenzeichen mit Tooltip „Ausfuhrware, +3 % am Hafen“; ist der Hafen zu, steht „Aufschlag entfällt solange“, die Zeichen sind weg. Keine neue Kern-Abfrage nötig | 10.11.2026 |
+| Kamera-Start (N8) | Neue Partie: Kamera sofort (ohne Fahrt) zwischen Werkstatt und Wohnhaus des Spielers (`Stadtansicht.KameraAufHofstelle`, `Hauptszene.KameraAufEigenenHof`), auch bei gelosteter Hofstelle. Ein Spielstand speichert keine Kamera (Kern, `Speicherstand.cs`); Laden und Probepartie behalten den Blick der Karte; `--blick` geht vor | 10.11.2026 |
+| Startbrief (N10) | Der vorhandene Start-Hinweis (Brief des Haushofmeisters) sagt „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein.“, als Dieb „Euer Unterschlupf“, als Gardist „Euer Wachhaus“ (Beruf des Startbetriebs); abschaltbar mit der Meldungsart „Personal“ (Aus oder Nur Verlauf, Vorgabe Siegel zeigt ihn) | 10.11.2026 |
+
+### Offen (von Oberfläche, Hofstellen)
+
+- Kamera im Spielstand speichern (Kern: `Speicherstand.cs`), damit das Laden den letzten Blick wiederherstellt statt den Kartenblick.
+

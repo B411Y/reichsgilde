@@ -31,7 +31,7 @@ public sealed partial class Stadtwirtschaft
         if (Karte is not { } karte || Karrennetz is not { } netz || !Bauen.IstAktiv || !NachWeglaengeGerechnet
             || !Daten.Betriebsarten.TryGetValue(ort.Art, out var artDaten) || !artDaten.InDerStadt)
             return Array.Empty<Fahrweg>();
-        var platz = new Betriebsplatz("", null, new Grundstueck(-1, Bauen.Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
+        var platz = Bauen.PlatzAmBauort(ort); // auf einer freien Hofstelle der Werkstattplatz der Karte
         var start = Karrenweg.Start(platz, ort.Art, artDaten, karte.Katalog);
         var (hin, zurueck, bester, punkte) = StreckeWieImBild(start, karte, netz);
         if (bester is null || punkte is not { Count: >= 2 }) return Array.Empty<Fahrweg>();

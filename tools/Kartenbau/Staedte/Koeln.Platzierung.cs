@@ -47,13 +47,11 @@ public sealed partial class Koeln
     }
 
     /// <summary>
-    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>), zu Wegen (halbe Breite + 0,3 m), zu Mauern
-    /// (<paramref name="mauerAbstand"/>, sonst 4 m),
-    /// zum Wasser (3 m) und zu den Werkstatt-Bauplätzen (2 m).
+    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>),
+    /// zu Wegen (halbe Breite + 0,3 m), zu Mauern (<paramref name="mauerAbstand"/>, sonst 4 m) und zum Wasser (3 m).
     /// </summary>
     private bool Frei(IReadOnlyList<Kartenort> umriss, double abstand = 1.5, double wasserAbstand = 3, double mauerAbstand = 4)
     {
-        if (AmBauplatz(umriss)) return false;   // Werkstatt-Bauplätze nahe den Märkten bleiben frei (Koeln.Bauplaetze.cs)
         foreach (var g in E.Gebaeude)
         {
             var e = g.Ecken();
@@ -157,6 +155,17 @@ public sealed partial class Koeln
         Startgrundstueck(6, "Deutzer Kirchstraße", links: false, sHint: 19);  // Deutz, nördlich des Platzes, westlich der Kirchstraße
         Startgrundstueck(7, "Deutzer Kirchstraße", links: true, sHint: 19);   // Deutz, nördlich des Platzes, östlich der Kirchstraße
         Startgrundstueck(8, "Deutzer Freiheit", links: true, sHint: 12);      // Deutz, westlich des Platzes, nördlich der Freiheit (zum Rhein)
+
+        // Seit 9.11.2026 (Hofstellen) ist jedes Startgrundstück eine Start-Hofstelle: Werkstattplatz und Wohnhausplatz mit dem Namen der Lage (der
+        // Name der Spielerwerkstatt: „Gießerei am Heumarkt“; ein Name mit Präposition bleibt, wie er ist). Im Spiel wählt der Spieler eine, die
+        // KI-Häuser bekommen geloste; die Vorgabe in Start() (Spieler S1, KI-Häuser S2–S8) gilt ohne Los.
+        var namen = new[]
+        {
+            "Heumarkt", "an der Rheingasse (Heumarkt)", "am Malzbüchel", "Unter Fettenhennen", "an der Rheingasse (Alter Markt)",
+            "an der Deutzer Kirchstraße (West)", "an der Deutzer Kirchstraße (Ost)", "an der Deutzer Freiheit",
+        };
+        for (var n = 1; n <= namen.Length; n++)
+            E.HofstelleBilden($"S{n}_Werkstatt", $"S{n}_Wohnhaus", start: true, name: namen[n - 1], kennung: $"S{n}");
     }
 
     // ── Reihen von Häusern an einer Straße ───────────────────────────────────
@@ -224,6 +233,8 @@ public sealed partial class Koeln
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
             ("Bayenstraße", true, 0, 200, 3), ("Rheingasse", true, 100, 200, 2), ("Engelspforte", true, 0, 200, 1),
+            // Ersatz für die Kulissenhäuser, die den Hofstellen weichen (9.11.2026: zwei am Rheinhafen, drei in Deutz; die Karte behält 82 Hausplätze)
+            ("Rheingasse", false, 131, 156, 3), ("Breite Straße", true, 0, 200, 3),
         })
             k += Reihe("kulisse_buergerhaus", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
         Console.WriteLine($"   Kulissenhäuser: {k} und {kulissenAmMarkt} am Alter Markt");

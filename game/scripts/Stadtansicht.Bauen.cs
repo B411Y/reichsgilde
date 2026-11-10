@@ -306,6 +306,9 @@ public partial class Stadtansicht
 
         if (g.Arbeit is not { } arbeit)
             return g.Zustand != Bauzustand.Bauplatz ? null
+                : Bauwesen.IstWerkstattplatz(g) // freie Hofstelle (09.11.2026), ihr Werkstattteil
+                    ? string.Join("\n", "Bauplatz (Werkstatt einer Hofstelle)", "", $"Freie Fläche, {flaeche}.",
+                        "Hier darf jeder eine Werkstatt bauen – sie steht genau auf dem Platz. Ein Wohnhaus gehört auf den Wohnhausplatz der Hofstelle daneben. Im Kontor „Bauen“ wählen und die Maus über den Platz führen.")
                 : Bauwesen.IstWohnhausplatz(g)
                     ? string.Join("\n", "Bauplatz (Wohnhausplatz)", "", $"Freie Fläche, {flaeche}.",
                         "Hier darf jeder ein Wohnhaus jeder Stufe bauen – es passt sich der Fläche an. Eine Werkstatt darf hier nicht stehen. Im Kontor „Bauen“ wählen und die Maus über den Platz führen.")

@@ -316,6 +316,13 @@ public static class Kartenpruefung
                     Teil = teil;
                     yield return 0;
                 }
+            else if (_e.Start.Hofstellen.Any(h => h.Start)) // Fairness auf jeder Karte mit Hofstellen
+            {
+                Teil = "Startwege";
+                foreach (var teil in _e.StartwegSchritte()) { Teil = teil; yield return 0; }
+                _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
+            }
+            Hofstellen();
             Teil = "Marktplätze und Vorkommen";
             Marktplaetze();
             Vorkommen();
@@ -594,6 +601,8 @@ public static class Kartenpruefung
                 var mitte = Kartengeometrie.Mitte(flaeche);
                 if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt)
                     FehlerAn("zone-nur", $"Bauzone {z.Kennung}: „nur“ kennt nur „{Bauzone.NurWerkstatt}“, nicht „{nur}“.", mitte, new[] { z });
+                else if (z.Nur == Bauzone.NurWerkstatt)
+                    HinweisAn("zone-nur", $"Bauzone {z.Kennung} ist ein Werkstatt-Bauplatz – seit den Hofstellen (9.11.2026) besser eine Hofstelle mit Platz für Werkstatt und Wohnhaus.", mitte, new[] { z });
                 if (karren.Count == 0)
                 {
                     FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte, new[] { z });
@@ -759,6 +768,19 @@ public static class Kartenpruefung
         /// </summary>
         private IEnumerable<string> Startgrundstuecke()
         {
+            // Mit Hofstellen (seit 9.11.2026): mindestens so viele Start-Hofstellen; gemessen werden alle (Startwegpruefung)
+            if (_e.Start.Hofstellen.Count > 0)
+            {
+                var anzahl = _e.Start.Hofstellen.Count(h => h.Start);
+                if (anzahl < _r.Startgrundstuecke)
+                    Fehler("startgrundstuecke", $"Die Karte hat {anzahl} Start-Hofstellen – für {_r.Startgrundstuecke} Häuser zu wenig.", null);
+                if (anzahl > 0)
+                {
+                    foreach (var teil in _e.StartwegSchritte()) yield return teil;
+                    _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
+                }
+                yield break;
+            }
             var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
                 .GroupBy(x => x.m.Groups[1].Value, x => x.g).ToList();
             if (starts.Count != _r.Startgrundstuecke)
@@ -766,6 +788,63 @@ public static class Kartenpruefung
             if (starts.Count == 0) yield break;
             foreach (var teil in _e.StartwegSchritte()) yield return teil;
             _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
+        }
+
+        /// <summary>
+        /// Die Hofstellen (seit 9.11.2026, Regel „hofstelle“): Jede verweist auf einen Werkstatt- und einen Wohnhausplatz der Karte, kein Platz gehört zu
+        /// zwei Hofstellen, Kennungen eindeutig; die Vorgabe der Startbelegung setzt jedes Haus auf genau eine Start-Hofstelle (Wohnhaus und Werkstatt
+        /// derselben); es gibt mindestens so viele Start-Hofstellen wie Häuser (Spieler und KI-Häuser). Fehler. Die Fairness der Start-Hofstellen
+        /// (Karrenweg ±10 %, Hinweis) misst „startweg“ – auf jeder Karte mit Hofstellen.
+        /// </summary>
+        private void Hofstellen()
+        {
+            var s = _e.Start;
+            if (s.Hofstellen.Count == 0) return;
+            var teil = new EntwurfTeil[] { s };
+            Kartenort? Ort(string? k) => k is null ? null : _e.GebaeudeMit(k)?.Punkt;
+            string[] Betroffen(params string?[] k) => k.OfType<string>().Where(x => _e.GebaeudeMit(x) is not null).ToArray();
+            void HofFehler(string text, params string?[] plaetze) => FehlerAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
+
+            foreach (var h in s.Hofstellen)
+            {
+                if (string.IsNullOrWhiteSpace(h.Kennung)) HofFehler("Hofstellen: Eine Hofstelle hat keine Kennung.", h.Werkstatt);
+                if (_e.GebaeudeMit(h.Werkstatt) is not { Art: Bausteinart.Werkstattplatz })
+                    HofFehler($"Hofstelle {h.Kennung}: „{h.Werkstatt}“ ist kein Werkstattplatz der Karte.", h.Werkstatt, h.Wohnhaus);
+                if (_e.GebaeudeMit(h.Wohnhaus) is not { Art: Bausteinart.Wohnhausplatz })
+                    HofFehler($"Hofstelle {h.Kennung}: „{h.Wohnhaus}“ ist kein Wohnhausplatz der Karte.", h.Wohnhaus, h.Werkstatt);
+            }
+            foreach (var doppelt in s.Hofstellen.GroupBy(h => h.Kennung).Where(x => x.Count() > 1))
+                HofFehler($"Hofstellen: Die Kennung „{doppelt.Key}“ ist doppelt.", doppelt.First().Werkstatt);
+            foreach (var doppelt in s.Hofstellen.SelectMany(h => new[] { h.Werkstatt, h.Wohnhaus }).GroupBy(p => p).Where(x => x.Count() > 1))
+                HofFehler($"Hofstellen: Der Platz „{doppelt.Key}“ gehört zu mehreren Hofstellen.", doppelt.Key);
+
+            if (s.Haeuser.Count == 0 && s.SpielerWerkstatt is null && s.SpielerWohnhaus is null) return;
+            // Die Vorgabe (nur ohne Los: Tests, Vergleiche, „Karte ausprobieren“): jedes Haus auf genau einer Start-Hofstelle, Wohnhaus und Werkstatt
+            // derselben. Ein Hinweis – im Spiel bekommt jedes Haus ohnehin eine Hofstelle (gewählt oder gelost).
+            void HofHinweis(string text, params string?[] plaetze) =>
+                HinweisAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
+            void Vorgabe(string wer, string? wohnhaus, string? werkstatt)
+            {
+                var hw = s.HofstelleVon(werkstatt);
+                var hh = s.HofstelleVon(wohnhaus);
+                if (werkstatt is not null && hw is null)
+                    HofHinweis($"Start, {wer}: Die Werkstatt „{werkstatt}“ gehört zu keiner Hofstelle – ohne Los sitzt das Haus dort, im Spiel bekommt es eine Hofstelle.", werkstatt);
+                if (wohnhaus is not null && hh is null)
+                    HofHinweis($"Start, {wer}: Das Wohnhaus „{wohnhaus}“ gehört zu keiner Hofstelle – ohne Los wohnt das Haus dort, im Spiel bekommt es eine Hofstelle.", wohnhaus);
+                if (hw is not null && hh is not null && hw != hh)
+                    HofHinweis($"Start, {wer}: Wohnhaus und Werkstatt liegen auf verschiedenen Hofstellen ({hh.Kennung}, {hw.Kennung}).", werkstatt, wohnhaus);
+                if ((hw ?? hh) is { Start: false } h)
+                    HofHinweis($"Start, {wer}: Die Hofstelle {h.Kennung} ist kein Startplatz – ohne Los sitzt das Haus trotzdem dort.", werkstatt ?? wohnhaus);
+            }
+            Vorgabe("Spieler", s.SpielerWohnhaus, s.SpielerWerkstatt?.Platz);
+            foreach (var h in s.Haeuser)
+                Vorgabe(h.Name, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }));
+            // gelost wird für den Spieler und jedes Haus, das auf einer Hofstelle sitzt (ein Haus ganz außerhalb bleibt, wo es ist)
+            var start = s.Hofstellen.Count(h => h.Start);
+            var haeuser = s.Haeuser.Count(h => s.HofstelleVon(h.Wohnhaus) is not null // wie Hofstellenvergabe.VorgabeVon: die erste Werkstatt oder das Wohnhaus
+                || s.HofstelleVon(h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz })) is not null);
+            if (start < 1 + haeuser)
+                HofFehler($"Hofstellen: {start} Startplätze für den Spieler und {haeuser} KI-Häuser – es braucht mindestens {1 + haeuser}.");
         }
 
         /// <summary>

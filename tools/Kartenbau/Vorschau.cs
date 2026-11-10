@@ -138,6 +138,7 @@ public static class Vorschau
         }
         Uebergaenge(e, Zeile);
         Gebaeude(e, Zeile);
+        Hofstellen(e, Zeile);
         foreach (var p in e.Pflanzen)
             Zeile($"<circle cx=\"{F(p.X)}\" cy=\"{F(p.Z)}\" r=\"1\" fill=\"#5F7F4F\"/>");
         foreach (var v in e.Vorkommen)
@@ -414,6 +415,53 @@ public static class Vorschau
             else if (g.Art == Bausteinart.Wohnhausplatz)
                 zeile($"<text x=\"{F(g.X)}\" y=\"{F(g.Z + 1.5)}\" font-size=\"4\" text-anchor=\"middle\" fill=\"#fff\" font-weight=\"bold\">{X(g.Kennung)}</text>");
         }
+    }
+
+    /// <summary>
+    /// Die Hofstellen (seit 9.11.2026): ein Rahmen um Werkstattplatz und Wohnhausplatz (die Hülle ihrer Ecken; liegen sie getrennt, etwa über einer
+    /// Straße, jeder für sich mit einer Linie dazwischen) und die Kennung über der Werkstatt – Start-Hofstellen rot und gestrichelt, freie blau und gepunktet.
+    /// </summary>
+    private static void Hofstellen(Kartenentwurf e, Action<string> zeile)
+    {
+        foreach (var h in e.Start.Hofstellen)
+        {
+            var (werkstatt, wohnhaus) = (e.GebaeudeMit(h.Werkstatt)?.Ecken(), e.GebaeudeMit(h.Wohnhaus)?.Ecken());
+            if (werkstatt is not { Count: >= 3 } || wohnhaus is not { Count: >= 3 }) continue;
+            var (farbe, strich) = h.Start ? (Farben["start"], "4 2") : ("#2F4F7A", "1 1.5");
+            string Rahmen(IEnumerable<Kartenort> ecken) =>
+                $"<polygon points=\"{Punkte(ecken)}\" fill=\"none\" stroke=\"{farbe}\" stroke-width=\"0.9\" stroke-dasharray=\"{strich}\" stroke-linejoin=\"round\"/>";
+            var (mw, mh) = (Kartengeometrie.Mitte(werkstatt), Kartengeometrie.Mitte(wohnhaus));
+            if (Kartengeometrie.AbstandVielecke(werkstatt, wohnhaus) < 3) zeile(Rahmen(Huelle(werkstatt.Concat(wohnhaus).ToList())));   // Hof: ein Rahmen
+            else
+            {
+                // getrennte Plätze (etwa über eine Straße): beide umrahmt, eine Linie dazwischen
+                zeile(Rahmen(werkstatt));
+                zeile(Rahmen(wohnhaus));
+                zeile($"<line x1=\"{F(mw.X)}\" y1=\"{F(mw.Z)}\" x2=\"{F(mh.X)}\" y2=\"{F(mh.Z)}\" stroke=\"{farbe}\" stroke-width=\"0.6\" stroke-dasharray=\"{strich}\"/>");
+            }
+            zeile($"<text x=\"{F(mw.X)}\" y=\"{F(mw.Z - 3)}\" font-size=\"6\" text-anchor=\"middle\" fill=\"{farbe}\" font-weight=\"bold\" stroke=\"#fff\" stroke-width=\"0.5\" paint-order=\"stroke\">{X(h.Kennung)}</text>");
+        }
+    }
+
+    /// <summary>Die konvexe Hülle von Punkten (Andrews Monotonenkette).</summary>
+    private static List<Kartenort> Huelle(IReadOnlyList<Kartenort> punkte)
+    {
+        var p = punkte.OrderBy(q => q.X).ThenBy(q => q.Z).ToList();
+        static double Kreuz(Kartenort o, Kartenort a, Kartenort b) => (a.X - o.X) * (b.Z - o.Z) - (a.Z - o.Z) * (b.X - o.X);
+        var h = new List<Kartenort>();
+        foreach (var q in p)
+        {
+            while (h.Count >= 2 && Kreuz(h[^2], h[^1], q) <= 0) h.RemoveAt(h.Count - 1);
+            h.Add(q);
+        }
+        var unten = h.Count + 1;
+        for (var i = p.Count - 2; i >= 0; i--)
+        {
+            while (h.Count >= unten && Kreuz(h[^2], h[^1], p[i]) <= 0) h.RemoveAt(h.Count - 1);
+            h.Add(p[i]);
+        }
+        h.RemoveAt(h.Count - 1);
+        return h;
     }
 
     /// <summary>Die Farbe eines KI-Hauses: aus der Karte, sonst die Hausfarbe an seiner Stelle.</summary>

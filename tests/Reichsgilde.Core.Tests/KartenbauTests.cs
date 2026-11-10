@@ -47,20 +47,23 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026): 7.135 Felder, Pflicht und Reserve passen – 79 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026, die Hofstellen seit 9.11.2026): 6.569 Felder, Pflicht und Reserve passen – 84 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 7135 Felder, davon fest belegt 0",   // bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093
-                "Pflicht Werkstatt: 16 von 16 passen", "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
+                "Stadt-Bauzonen: 6569 Felder, davon fest belegt 0",   // bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
+                // seit den Hofstellen: 16 Hofstellen, 8 für die Häuser einer Partie mit 8 Häusern, die übrigen 8 nehmen je eine Pflicht-Werkstatt auf (vorher 16 von 16 in den Zonen)
+                "Pflicht Werkstatt: 8 auf freien Hofstellen", "Pflicht Werkstatt: 8 von 8 passen (dazu die freien Hofstellen)",
+                "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 5623 Felder (79%), nach der Reserve: 5159 Felder",
+                "Frei nach der Pflicht: 5505 Felder (84%), nach der Reserve: 5041 Felder", // vor den Hofstellen 5.623 (79 %) und 5.159
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve; feste keine (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder)
-            Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
-            Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
+            // Die gesetzten Gebäude: alle 76 aus Pflicht und Reserve (vor den Hofstellen 84: acht Werkstätten stehen jetzt auf Hofstellen); feste keine
+            // (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder)
+            Pruefe.Gleich(76, k.Plaetze.Count(p => p.Art != "fest"));
+            Pruefe.Gleich(8 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
             Pruefe.Gleich(0, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
         }),
 
@@ -73,7 +76,9 @@ static class KartenbauTests
                 // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; seit den Häusern in der Deutzer Südhälfte (1.11.2026) noch einmal, vorher −6.192.870; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343;
                 // seit den Bauzonen aus dem Raster (4.11.2026; Köln unverändert) Greybox vorher 4 / 23 / 714 / −2.170.301, Probestadt vorher 0 / 80 / 1.752 / 7.598.432;
                 // seit den Kirchenmodellen in Köln (9.11.2026) die Prüfsumme neu, vorher −5.342.922; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) noch einmal, vorher −7.195.386, und seit dem Rathaus am Alter Markt, vorher −8.093.550
-                ("koeln", 0, 84, 1976, -7853157L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 80, 1752, 6597050L),
+                // seit den Hofstellen (9.11.2026): Köln vorher 0 / 84 / 1.976 / −7.853.157 (die sechs Werkstatt-Bauplätze und zwei Hafenzonen sind Hofstellen, 8 Pflicht-Werkstätten
+                // stehen auf freien Hofstellen), Messstadt vorher 0 / 80 / 1.752 / 6.597.050 (9 Hofstellen: eine nimmt eine Pflicht-Werkstatt auf)
+                ("koeln", 0, 76, 1528, -5176768L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 79, 1696, 5021759L),
             };
             var gemessen = erwartet.Select(x =>
             {
@@ -129,14 +134,18 @@ static class KartenbauTests
             Pruefe.Wahr(!ReferenceEquals(vorher, e.Kapazitaetsrechnung()), "ein Gebäude schon");
         }),
 
-        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), keine Fehler", () =>
+        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), dazu seit den Hofstellen 2 Startwege des Umlands, keine Fehler", () =>
         {
             var e = Oeffnen("greybox");
             Pruefe.Gleich(0, Fehler(e).Count, Liste(Fehler(e)));
             var hinweise = e.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
             Pruefe.Gleich(4, hinweise.Count(b => b.Regel == "weg-ueber-umland"), Liste(hinweise));
             Pruefe.Gleich(3, hinweise.Count(b => b.Regel == "ueberlappung"), Liste(hinweise));
-            Pruefe.Gleich(7, hinweise.Count, Liste(hinweise));
+            // Seit den Hofstellen (9.11.2026) misst die Fairness jede Karte mit Start-Hofstellen. Die vier Start-Hofstellen liegen seit dem Umbau
+            // greybox-hofstellen-fair im Band (20,3 / 18,1 / 19,1 / 21,1 m; vorher H3 10,6 und H4 25,1 m) – es bleiben die zwei Umlandbetriebe
+            Pruefe.Gleich(2, hinweise.Count(b => b.Regel == "startweg"), Liste(hinweise));
+            Pruefe.Wahr(hinweise.Where(b => b.Regel == "startweg").All(b => !b.Text.Contains("Hofstelle")), "keine Start-Hofstelle außerhalb ±10 %");
+            Pruefe.Gleich(9, hinweise.Count, Liste(hinweise));
         }),
 
         // ── Einwohnerplätze ──────────────────────────────────────────────────

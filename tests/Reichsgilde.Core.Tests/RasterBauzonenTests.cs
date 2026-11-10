@@ -191,7 +191,7 @@ static class RasterBauzonenTests
             Pruefe.Gleich(felder.Count, teile.Sum(t => t.Teil.Count + t.Schnitt.Count), "kein Feld geht verloren");
         }),
 
-        ("Raster-Bauzonen: Greybox und Probestadt sind aktuell – neu gerechnet ergibt dieselbe Datei; Köln hat seine Werkstatt-Bauplätze von Hand", () =>
+        ("Raster-Bauzonen: Greybox und Probestadt sind aktuell – neu gerechnet ergibt dieselbe Datei; Köln hat nur berechnete Zonen (die Werkstatt-Bauplätze sind seit 9.11.2026 Hofstellen)", () =>
         {
             foreach (var karte in new[] { "greybox", "probestadt" })
             {
@@ -203,9 +203,9 @@ static class RasterBauzonenTests
                 Pruefe.Gleich(text, e.ZuJson(), $"{karte}: die Datei ist auf dem Stand der Rechnung (sonst: bauzonen {karte})");
             }
             var koeln = Oeffnen("koeln");
-            Pruefe.Gleich(6, koeln.Bauzonen.Count(z => !z.Berechnet && z.Nur == Bauzone.NurWerkstatt), "6 Werkstatt-Bauplätze von Hand (bis zum Rathaus am Alter Markt 7)");
-            Pruefe.Gleich(48, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48
-            Pruefe.Wahr(koeln.Bauzonen.TakeWhile(z => z.Berechnet).Count() == 48, "die Rasterzonen stehen vorn");
+            Pruefe.Gleich(0, koeln.Bauzonen.Count(z => !z.Berechnet), "keine Zone von Hand (bis zu den Hofstellen 6 Werkstatt-Bauplätze, bis zum Rathaus am Alter Markt 7)");
+            Pruefe.Gleich(46, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46
+            Pruefe.Gleich(0, koeln.Start.Hofstellen.Count(h => h.Kennung.StartsWith("WB_")), "die Werkstatt-Bauplätze heißen als Hofstellen N1–N5 und A1");
             Pruefe.Wahr(koeln.Restflaechen.Count > 0, "Köln hat Restflächen");
         }),
 
