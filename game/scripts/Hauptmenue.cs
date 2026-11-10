@@ -101,6 +101,8 @@ public partial class Hauptmenue : Node
             return;
         }
 
+        Musikspieler.MenueSetzen(true); // ein ruhiges Stück im Hauptmenü (Musikspieler.cs); nur im echten Menü, nicht bei Startoptionen; beim Verlassen blendet es aus
+        TreeExiting += () => Musikspieler.MenueSetzen(false);
         var stadt = GetNode<Stadtansicht>("%Stadt");
         var drehen = new Godot.Timer { WaitTime = 9, Autostart = true };
         drehen.Timeout += () => stadt.Drehen(1);

@@ -1170,6 +1170,7 @@ public partial class Hauptszene : Node
         };
         w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
+        MusikVerbinden(simulation, w, spieler); // dynamische Musik (Hauptszene.Musik.cs)
         // Was vorher geschah (die ersten Züge der KI beim Aufstellen, nach dem Laden die letzten Meldungen aus dem Spielstand), steht im Verlauf.
         VerlaufAusSpielstand(w, spieler);
 

@@ -22,7 +22,7 @@ public sealed partial class EntwicklerAnzeige
     private AudioStreamPlayer _vorhoerer = null!;
     private readonly List<(int Bus, Label Wert, ProgressBar Pegel)> _busZeilen = new();
     private int _klaengeNummer = -1;
-    private Label? _umgebungKopf;
+    private Label? _umgebungKopf, _musikKopf;
     private readonly List<(int Schicht, Label Wert, ProgressBar Pegel)> _umgebungZeilen = new();
     private readonly List<(int Art, Label Wert)> _rufZeilen = new();
 
@@ -79,6 +79,7 @@ public sealed partial class EntwicklerAnzeige
         }
 
         UmgebungAbschnitt(s, bekannt);
+        MusikAbschnitt(s, bekannt);
 
         s.AddChild(new HSeparator());
         Hauptmenue.Text(s, "Weitere Dateien unter assets/audio/", 18, Gold);
@@ -98,6 +99,36 @@ public sealed partial class EntwicklerAnzeige
                 StillerKnopf(fluss, name, () => Vorhoeren(Laden(pfad), bus, 0, 1, name), $"{pfad} · Bus {bus}");
             }
         }
+    }
+
+    /// <summary>Abschnitt „Musik“: laufendes Stück, Pause, Ducking (<see cref="Musikspieler.Zustand"/>) und jedes Stück zum Vorhören (Bus Musik, ohne die Regeln).</summary>
+    private void MusikAbschnitt(VBoxContainer s, HashSet<string> bekannt)
+    {
+        s.AddChild(new HSeparator());
+        Hauptmenue.Text(s, "Musik (Bus Musik, dynamisch: Tag, Nacht, Ereignisse; Einstellungen: Reiter Ton)", 18, Gold);
+        _musikKopf = Hauptmenue.Text(s, "", 13, Gold, umbruchBreite: Breite - 60);
+        var stuecke = Musikspieler.Aktiv?.Stuecke ?? new List<MusikModell.Stueck>();
+        foreach (var gruppe in stuecke.GroupBy(x => x.Lage))
+        {
+            var reihe = Zeile(s, gruppe.Key, "Stücke dieser Lage; „▶“ spielt das Stück sofort (blendet die laufende Musik aus).");
+            var fluss = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            fluss.AddThemeConstantOverride("h_separation", 4);
+            reihe.AddChild(fluss);
+            foreach (var stueck in gruppe)
+            {
+                var pfad = Musikspieler.Ordner + stueck.Datei;
+                bekannt.Add(pfad);
+                var beschreibung = $"{stueck.Titel}{(stueck.Zusatz is not null ? " · " + stueck.Zusatz : "")}{(stueck.Volk is not null ? " · " + stueck.Volk : "")}";
+                StillerKnopf(fluss, "▶ " + beschreibung, () => Musikspieler.Aktiv?.Vorhoeren(stueck), $"{pfad} · {stueck.Dauer:0} s · {stueck.Lufs:0.0} LUFS");
+            }
+        }
+    }
+
+    private void MusikAuffrischen()
+    {
+        if (_musikKopf is null) return;
+        var text = Musikspieler.Aktiv?.Zustand() ?? "Der Musikspieler läuft nicht.";
+        if (_musikKopf.Text != text) _musikKopf.Text = text;
     }
 
     /// <summary>Abschnitt „Umgebung“: Schichten und Rufarten aus <see cref="KlangUmgebungModell"/>, die Werte kommen in <see cref="KlaengeAuffrischen"/>.</summary>
@@ -262,6 +293,7 @@ public sealed partial class EntwicklerAnzeige
     {
         if (!_klaengeFertig || _reiter.CurrentTab != _klaengeNummer) return;
         UmgebungAuffrischen();
+        MusikAuffrischen();
         foreach (var (nummer, wert, pegel) in _busZeilen)
         {
             var index = AudioServer.GetBusIndex(KlangDienst.Regelbusse[nummer].Bus);
