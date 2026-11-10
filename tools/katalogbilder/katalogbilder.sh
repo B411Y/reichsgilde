@@ -4,7 +4,7 @@
 #   tools/katalogbilder/katalogbilder.sh              alle Bausteine mit Modell
 #   tools/katalogbilder/katalogbilder.sh kennung,kennung   nur diese (neues Objekt nachrendern)
 # Braucht Godot 4.7.2 mono und ein Fenster: unter Linux ohne Bildschirm Xvfb (Ordner ~/werkzeuge/xvfb wie in CLAUDE.md), sonst ein normales Fenster.
-# Mit Grafikkarte (Vulkan) bessere Kanten: TREIBER=vulkan. Danach einmal importieren (--headless --import --path game) und die Bilder ansehen.
+# Eigene Display-Nummer: XDISPLAY=:283. Mit Grafikkarte (Vulkan) bessere Kanten: TREIBER=vulkan. Danach einmal importieren (--headless --import --path game) und die Bilder ansehen.
 set -e
 WURZEL=$(cd "$(dirname "$0")/../.." && pwd)
 X=~/werkzeuge/xvfb
@@ -14,7 +14,7 @@ if [ -z "$DISPLAY" ] && [ -d "$X" ]; then
   export LD_LIBRARY_PATH=$X/root/usr/lib/x86_64-linux-gnu:$X/root/lib/x86_64-linux-gnu LIBGL_DRIVERS_PATH=$X/root/usr/lib/x86_64-linux-gnu/dri
   export __GLX_VENDOR_LIBRARY_NAME=mesa XKB_CONFIG_ROOT=$X/root/usr/share/X11/xkb
   mkdir -p /tmp/xkb; ln -sf $X/root/usr/bin/xkbcomp /tmp/xkb/xkbcomp
-  D=:57
+  D=${XDISPLAY:-:57}
   $X/Xvfb-gepatcht $D -screen 0 1280x720x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > /dev/null 2>&1 &
   XPID=$!
   trap 'kill $XPID' EXIT
