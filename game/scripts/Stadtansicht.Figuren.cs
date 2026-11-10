@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 
 namespace Reichsgilde;
 
@@ -341,6 +342,17 @@ public partial class Stadtansicht
     };
 
     private static readonly Color GrauesHaar = new(0.62f, 0.60f, 0.58f);
+
+    /// <summary>Ob die Figur eine Frau ist: das Geschlecht des Arbeiters im Kern; bei Ersatzfiguren (ohne Arbeiter) wie bisher jede <paramref name="jede"/>-te Figur unter Menschen.</summary>
+    private static bool FrauVon(Arbeiterbild bild, int nummer, uint jede) => bild.Frau ?? (bild.Volk == Volk.Mensch && Streuung(nummer, 53) % jede == 0);
+
+    /// <summary>Haarfarbe der Figur: die des Arbeiters im Kern (wie im Porträt); ohne (Ersatzfiguren, Orks, Oger) aus der Palette des Volks nach der Nummer.</summary>
+    private static Color HaarVon(Arbeiterbild bild, int nummer)
+    {
+        if (bild.Haar is { } h && h != Haarfarbe.Kahl) return PortraetAnzeige.Farbe(h);
+        var haare = Haarfarben(bild.Volk);
+        return haare[nummer * 5 % haare.Length];
+    }
 
     /// <summary>Hautfarbe: Elben etwas heller, Zwerge etwas rötlicher, Orks grün, Oger grau.</summary>
     private static Color HautVon(Volk volk) => volk switch

@@ -292,8 +292,8 @@ public partial class Stadtansicht
     });
 
     /// <summary>Aussehen eines Taschendiebs am Markt: wie im Versteck (<see cref="DiebAussehen"/>), aber immer mit Gugel.</summary>
-    private static FigurAussehen MarktDiebAussehen(int nummer, string arbeitskraft) =>
-        DiebAussehen(nummer, arbeitskraft, false) with { Kopf = Kopfbedeckung.Kapuze };
+    private static FigurAussehen MarktDiebAussehen(int nummer, Arbeiterbild bild) =>
+        DiebAussehen(nummer, bild, false) with { Kopf = Kopfbedeckung.Kapuze };
 
     private float MarktBodenHoehe(Vector3 p)
     {
@@ -383,7 +383,7 @@ public partial class Stadtansicht
             : PunktUm(opfer.Platz, opfer.Ort, voll ? Taschendiebgang.EntfernungFremd : nah, streu);
         if (start is not { } s) return null;
         var nummer = 20000 + haus.Name.Sum(c => c) % 1000 * 100 + griff.Dieb.Nummer;
-        var dieb = DiebfigurBauen($"dieb:{++_diebZaehler}", MarktDiebAussehen(nummer, griff.Dieb.Arbeitskraft), nummer, eigen, griff.Dieb, haus.Name, null);
+        var dieb = DiebfigurBauen($"dieb:{++_diebZaehler}", MarktDiebAussehen(nummer, Arbeiterbild.Von(griff.Dieb, _wirtschaft?.Personal)), nummer, eigen, griff.Dieb, haus.Name, null);
         var richtung = new Vector3(s.X - opfer.Ort.X, 0, s.Z - opfer.Ort.Z);
         richtung = richtung.LengthSquared() < 1e-4f ? Vector3.Back : richtung.Normalized();
         var szene = new Griffszene
@@ -670,7 +670,7 @@ public partial class Stadtansicht
         var name = string.IsNullOrWhiteSpace(v.TaeterName) ? "Ein Taschendieb" : v.TaeterName;
         var text = $"{name}\n\nAm Markt auf frischer Tat ertappt" + (v.OpferName is { } o ? $" – die Hand in der Tasche von {o}." : ".")
                    + (v.Wache is { } wh ? $" Die Wache von {wh.Inhaber} führt ihn ab." : " Ein Bürger hat ihn erkannt, die Büttel führen ihn ab.");
-        var dieb = DiebfigurBauen($"dieb:fest:{_festZaehler}", MarktDiebAussehen(nummer, "Geselle"), nummer, false, null, "", text);
+        var dieb = DiebfigurBauen($"dieb:fest:{_festZaehler}", MarktDiebAussehen(nummer, Arbeiterbild.Ersatz()), nummer, false, null, "", text);
         Node3D knoten;
         Figur? figur;
         if (torwaechter is not null) { knoten = torwaechter.Knoten; figur = torwaechter.Figur; }
@@ -679,7 +679,7 @@ public partial class Stadtansicht
             knoten = new Node3D { Name = $"Festnahme_Wache_{_festZaehler}", Visible = false };
             _diebEbene!.AddChild(knoten);
             if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.2f, 0.9f, 0.2f));
-            figur = FigurEinsetzen(knoten, WacheAussehen(nummer + 500, "Geselle", false), nummer + 500);
+            figur = FigurEinsetzen(knoten, WacheAussehen(nummer + 500, Arbeiterbild.Ersatz(), false), nummer + 500);
         }
         var szene = new Festnahmeszene
         {

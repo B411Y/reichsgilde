@@ -106,31 +106,102 @@ public partial class Stadtansicht
     private Wasserplan? Uebergangsplan => _entwurf?.Wasserplan ?? _karte?.Wasserplan;
 
     /// <summary>
-    /// Baut Wasserflächen, Brücken, Furten, Fähren neu auf (oder zum ersten Mal). Eine Karte ohne Wasser bekommt nichts und kostet nichts.
+    /// Ein Bau der Wasserflächen (in Häppchen, <see cref="WasserflaechenSchritte"/>): Was er baut, hängt noch nirgends – erst <see cref="WasserflaechenAnwenden"/>
+    /// tauscht es gegen die alten Flächen, bis dahin bleibt das Bild, wie es war.
+    /// </summary>
+    private sealed class WasserLauf
+    {
+        public Node3D? Flaechen;
+        public readonly List<(ShaderMaterial Stoff, Wasserart Art)> Stoffe = new();
+        public readonly List<(Wasserlauf Lauf, Wasserart Art, ShaderMaterial Stoff)> Schollen = new();
+        public IEnumerator<int>? Schritte;
+
+        /// <summary>Was die Flächen vom Wasserplan lesen (Furten, Fähren) beim Start des Baus (Kartenwerkstatt.Wasser.cs).</summary>
+        public string FlaechenZeichen = "";
+        public bool NurUebergaenge, WegeNeu;
+    }
+
+    /// <summary>
+    /// Baut Wasserflächen, Brücken, Furten, Fähren neu auf (oder zum ersten Mal), in einem Zug. Eine Karte ohne Wasser bekommt nichts und kostet nichts.
+    /// Die Werkstatt baut es in Häppchen (Stadtansicht.Kartenwerkstatt.Wasser.cs).
     /// </summary>
     private void GewaesserBauen()
+    {
+        var bau = new WasserLauf { FlaechenZeichen = _entwurf is null ? "" : UebergangsZeichen().Flaechen };
+        if (GewaesserForm is { IstLeer: false } form)
+        {
+            var uhr = Pinselmessung.Uhr();
+            foreach (var _ in WasserflaechenSchritte(form, bau)) { }
+            Pinselmessung.Dazu("    Wasser: Flächen", uhr);
+        }
+        GewaesserTauschen(bau);
+    }
+
+    /// <summary>Das neue Wasser gilt: die alten Knoten gehen, die neuen Flächen und die Übergänge aus dem Wasserplan kommen an ihre Stelle.</summary>
+    private void GewaesserTauschen(WasserLauf bau)
     {
         if (_gewaesserKnoten is not null) KnotenEntfernen(_gewaesserKnoten);
         _gewaesserKnoten = null;
         _wasserFlaechen = null;
         _wasserStoffe.Clear();
         UebergaengeVergessen();
-        if (GewaesserForm is not { IstLeer: false } form) return;
-
+        _wsUebergangsKnoten.Clear();
+        if (bau.Flaechen is null) return;
         _gewaesserKnoten = new Node3D { Name = "Gewaesser" };
         AddChild(_gewaesserKnoten);
-        WasserflaechenBauen(form);
-        if (Uebergangsplan is { } plan) UebergaengeBauen(_gewaesserKnoten, plan);
+        WasserflaechenAnwenden(bau);
+        _wsFlaechenZeichen = bau.FlaechenZeichen;
+        UebergaengeNeuBauen();
     }
 
-    /// <summary>Die Wasserflächen (ohne Übergänge) in der Stufe der Grafik-Voreinstellung, mit einem Stoff je Gewässer.</summary>
+    /// <summary>Die Brücken, Furten und Fähren aus dem Wasserplan unter <see cref="_gewaesserKnoten"/> (ihre Knoten stehen danach in <see cref="_wsUebergangsKnoten"/>).</summary>
+    private void UebergaengeNeuBauen()
+    {
+        if (_gewaesserKnoten is null) return;
+        var uhr = Pinselmessung.Uhr();
+        var erster = _gewaesserKnoten.GetChildCount();
+        if (Uebergangsplan is { } plan) UebergaengeBauen(_gewaesserKnoten, plan);
+        _wsUebergangsKnoten.Clear();
+        for (var i = erster; i < _gewaesserKnoten.GetChildCount(); i++) _wsUebergangsKnoten.Add(_gewaesserKnoten.GetChild(i));
+        if (_entwurf is not null) _wsUebergangsZeichen = UebergangsZeichen().Uebergaenge;
+        Pinselmessung.Dazu("    Wasser: Übergänge", uhr);
+    }
+
+    /// <summary>Die Knoten der Übergänge unter <see cref="_gewaesserKnoten"/> (zum Ersetzen, ohne die Flächen anzufassen).</summary>
+    private readonly List<Node> _wsUebergangsKnoten = new();
+
+    /// <summary>Was der Wasserplan beim letzten Bau gesagt hat (Kartenwerkstatt.Wasser.cs): alle Übergänge, und was die Flächen davon lesen.</summary>
+    private string? _wsUebergangsZeichen, _wsFlaechenZeichen;
+
+    /// <summary>Die Wasserflächen (ohne Übergänge) in der Stufe der Grafik-Voreinstellung, mit einem Stoff je Gewässer; sie ersetzen die alten.</summary>
     private void WasserflaechenBauen(Wasserform form)
     {
         if (_gewaesserKnoten is null) return;
+        var bau = new WasserLauf();
+        foreach (var _ in WasserflaechenSchritte(form, bau)) { }
+        WasserflaechenAnwenden(bau);
+    }
+
+    /// <summary>Die gebauten Flächen ersetzen die alten (samt Stoffen und wartenden Schollenfeldern).</summary>
+    private void WasserflaechenAnwenden(WasserLauf bau)
+    {
+        if (_gewaesserKnoten is null || bau.Flaechen is null) return;
         if (_wasserFlaechen is not null) KnotenEntfernen(_wasserFlaechen);
-        _wasserStoffe.Clear();
-        _wasserFlaechen = new Node3D { Name = "Wasserflaechen" };
+        _wasserFlaechen = bau.Flaechen;
         _gewaesserKnoten.AddChild(_wasserFlaechen);
+        _wasserStoffe.Clear();
+        _wasserStoffe.AddRange(bau.Stoffe);
+        SchollenVergessen();
+        _schollenWarten.AddRange(bau.Schollen);
+    }
+
+    /// <summary>
+    /// Baut die Wasserflächen in Häppchen (ein Stück Fluss von <see cref="FlussStueck"/> Metern je Schritt) in <paramref name="bau"/>; nichts davon ist im Bild,
+    /// bis <see cref="WasserflaechenAnwenden"/> es einsetzt. Dieselben Flächen wie der Bau in einem Zug.
+    /// </summary>
+    private IEnumerable<int> WasserflaechenSchritte(Wasserform form, WasserLauf bau)
+    {
+        var flaechen = bau.Flaechen = new Node3D { Name = "Wasserflaechen" };
         _wasserStufe = _wasserStufeMessung ?? Wasserarten.StufeAusGrafik();
         var shader = Wasserarten.ShaderFuer(_wasserStufe);
         var abstand = Wasserarten.NetzAbstand(_wasserStufe);
@@ -142,7 +213,7 @@ public partial class Stadtansicht
         _wasserLoecher = _muendungen.Select(m => new OffeneStelle(m.Ort, m.Ort, Mathf.Max(1f, m.Halb), Offenart.Loch, "Mündung " + m.Bach.Name)).ToList();
         foreach (var (lauf, art) in arten)
             if (art.Name == Wasserarten.Bach.Name) _wasserLoecher.AddRange(SchnelleStellen(lauf));
-        SchollenVergessen();
+        yield return 0;
 
         foreach (var lauf in form.Laeufe)
         {
@@ -152,13 +223,18 @@ public partial class Stadtansicht
             var richtung = new Vector2((float)(ende.X - anfang.X), (float)(ende.Z - anfang.Z));
             // Reihenfolge der Durchsichtigen: Flüsse zuerst, Bäche darüber (sie blenden in der Mündung in den Fluss über)
             var stoff = WasserStoff(shader, art, richtung, lauf: true, (float)lauf.Stroemung, abstand, art.Name == Wasserarten.Fluss.Name ? -8 : -7,
-                Wasserarten.Saat(lauf.Name));
+                Wasserarten.Saat(lauf.Name), bau.Stoffe);
             LoecherSetzen(stoff, lauf, null);
             MuendungenSetzen(stoff, lauf);
             var nr = 0;
-            foreach (var netz in FlussNetze(lauf, form, abstand, art))
-                _wasserFlaechen.AddChild(WasserInstanz($"Fluss_{lauf.Name}_{nr++}", netz, stoff));
-            if (art.Schollen > 0) _schollenWarten.Add((lauf, art, stoff));
+            var netze = new List<ArrayMesh>();
+            foreach (var _ in FlussNetze(lauf, form, abstand, art, netze))
+            {
+                while (nr < netze.Count) flaechen.AddChild(WasserInstanz($"Fluss_{lauf.Name}_{nr}", netze[nr++], stoff));
+                yield return 0;
+            }
+            while (nr < netze.Count) flaechen.AddChild(WasserInstanz($"Fluss_{lauf.Name}_{nr}", netze[nr++], stoff));
+            if (art.Schollen > 0) bau.Schollen.Add((lauf, art, stoff));
         }
         foreach (var see in form.Seen)
         {
@@ -166,25 +242,29 @@ public partial class Stadtansicht
             if (SeeNetz(see, form, abstand, art) is not { } netz) continue;
             // Ein See im Wasserverbund (VerbundNetz): Uferabstand mit Vorzeichen im Netz, und vor dem Band des Laufs gezeichnet (das liegt darüber)
             var verbund = form.Verbuende.Any(v => ReferenceEquals(v.See, see));
-            var stoff = WasserStoff(shader, art, new Vector2(1, 0.4f), lauf: false, null, abstand, verbund ? -9 : -8, Wasserarten.Saat(see.Name));
+            var stoff = WasserStoff(shader, art, new Vector2(1, 0.4f), lauf: false, null, abstand, verbund ? -9 : -8, Wasserarten.Saat(see.Name), bau.Stoffe);
             if (verbund) stoff.SetShaderParameter("ufer_vorzeichen", 1f);
             LoecherSetzen(stoff, null, see);
-            _wasserFlaechen.AddChild(WasserInstanz("See_" + see.Name, netz, stoff));
+            flaechen.AddChild(WasserInstanz("See_" + see.Name, netz, stoff));
+            yield return 0;
         }
         if (form.Becken.Count > 0)
         {
-            var stoff = WasserStoff(shader, Wasserarten.Hafenbecken, new Vector2(1, 0.4f), lauf: false, null, abstand, -6); // nach dem Fluss: blendet in ihn über
+            var stoff = WasserStoff(shader, Wasserarten.Hafenbecken, new Vector2(1, 0.4f), lauf: false, null, abstand, -6, 0f, bau.Stoffe); // nach dem Fluss: blendet in ihn über
             foreach (var becken in form.Becken)
+            {
                 if (BeckenNetz(becken, form, abstand) is { } netz)
-                    _wasserFlaechen.AddChild(WasserInstanz("Becken_" + becken.Name, netz, stoff));
+                    flaechen.AddChild(WasserInstanz("Becken_" + becken.Name, netz, stoff));
+                yield return 0;
+            }
         }
         foreach (var v in form.Verbuende)
             GD.Print($"[wasser] Verbund {v.Lauf.Name}–{v.See.Name}: Stellen {string.Join(", ", v.Stuecke.Select(st => $"{st.Von:0}–{st.Bis:0} m"))}, " +
                      $"ΔSpiegel {v.SpiegelUnterschied:0.00} m, Wasserstand {v.See.Wasserstand:0.00}{(v.See.StandAutomatisch ? " (vom Lauf übernommen)" : " (fest)")}");
         // Für Klicktests: was gebaut ist, wo die Furten (nur Randeis) und die Löcher im Eis (Mündung, schnelle Stelle) liegen
         var furten = Uebergangsplan?.Querungen.Where(q => q.Art == Uebergangsart.Furt).Select(q => $"{q.GewaesserName} bei {q.Mitte.X:0},{q.Mitte.Z:0}") ?? Enumerable.Empty<string>();
-        GD.Print($"[wasser] Stufe {_wasserStufe}, Netz {abstand:0} m, {_wasserFlaechen.GetChildCount()} Flächen, " +
-                 $"{string.Join(", ", _wasserStoffe.Select(s => s.Art.Name).Distinct())}; Furten: {string.Join("; ", furten)}; " +
+        GD.Print($"[wasser] Stufe {_wasserStufe}, Netz {abstand:0} m, {flaechen.GetChildCount()} Flächen, " +
+                 $"{string.Join(", ", bau.Stoffe.Select(s => s.Art.Name).Distinct())}; Furten: {string.Join("; ", furten)}; " +
                  $"Löcher im Eis: {string.Join("; ", _wasserLoecher.Select(l => $"{l.Name} bei {l.A.X:0},{l.A.Y:0}"))}; " +
                  $"Hafenbecken: {string.Join("; ", form.Becken.Select(b => $"{b.Name} {b.Bereich.X0:0},{b.Bereich.Z0:0} bis {b.Bereich.X1:0},{b.Bereich.Z1:0}"))}; " +
                  $"Mündungen: {string.Join("; ", _muendungen.Select(m => $"{m.Bach.Name} in {m.Ziel?.Name ?? m.ZielSee?.Name ?? "?"} bei {m.Ort.X:0},{m.Ort.Y:0}" +
@@ -192,14 +272,48 @@ public partial class Stadtansicht
                          $"Spiegel {st.Spiegel:0.00}, Bach {LaufStelle(m.Bach, m.Ort)?.Spiegel:0.00})" : "")))}");
     }
 
-    private ShaderMaterial WasserStoff(Shader shader, Wasserart art, Vector2 richtung, bool lauf, float? tempo, float abstand, int reihenfolge, float saat = 0f)
+    /// <summary>
+    /// Was der Wasserplan über Brücken, Furten und Fähren sagt, als Text: <c>Uebergaenge</c> alles (Brücken, Furten, Fähren), <c>Flaechen</c> nur, was die Wasserflächen
+    /// davon lesen (Furten und Fähren: das Eis bleibt dort offen, das Wasser steht über dem Weg). Gleicher Text heißt: nichts neu zu bauen (die Werkstatt baut das Wasser
+    /// nach dem Anlegen eines Weges nur, wenn sich etwas geändert hat).
+    /// </summary>
+    private (string Uebergaenge, string Flaechen) UebergangsZeichen()
+    {
+        var uhrPlan = Pinselmessung.Uhr();
+        var plan = Uebergangsplan;
+        if (plan is null) return ("", "");
+        _ = plan.Querungen.Count + plan.Faehren.Count;
+        Pinselmessung.Dazu("    Kern: Wasserplan rechnen (erster Zugriff)", uhrPlan);
+        static string Z(Kartenort o) => $"{o.X:R},{o.Z:R}";
+        var alle = new System.Text.StringBuilder();
+        var flaechen = new System.Text.StringBuilder();
+        foreach (var q in plan.Querungen)
+        {
+            var zeile = $"{q.Art}|{q.Weg}|{q.WegName}|{q.Gewaesser}|{q.GewaesserName}|{Z(q.Anfang)}|{Z(q.Ende)}|{q.VonStelle:R}|{q.BisStelle:R}|{Z(q.UferA)}|{Z(q.UferB)}|"
+                        + $"{q.UferAStelle:R}|{q.UferBStelle:R}|{q.Spannweite:R}|{q.Breite:R}|{q.Richtung:R}|{q.Uferhoehe:R}|{q.Deckhoehe:R}|{q.AnfangHoehe:R}|{q.EndeHoehe:R}|"
+                        + $"{q.Spiegel:R}|{q.Tiefe:R}|{q.Felder}|{q.Feldlaenge:R}|{q.Quert}|{q.Karren}|{string.Join(";", q.Pfeiler.Select(f => $"{Z(f.Ort)}@{f.Fuss:R}"))}\n";
+            alle.Append(zeile);
+            if (q.Art == Uebergangsart.Furt) flaechen.Append(zeile);
+        }
+        foreach (var f in plan.Faehren)
+        {
+            var zeile = $"F|{f.Nummer}|{f.Name}|{Z(f.Von)}|{Z(f.Bis)}|{f.Gewaesser}|{f.Laenge:R}|{f.UeberWasser:R}|{f.Spiegel:R}|{f.Richtung:R}|{f.VonImWasser}|{f.BisImWasser}|"
+                        + $"{Z(f.VonUferkante)}|{Z(f.BisUferkante)}|{f.VonUfer:R}|{f.BisUfer:R}\n";
+            alle.Append(zeile);
+            flaechen.Append(zeile);
+        }
+        return (alle.ToString(), flaechen.ToString());
+    }
+
+    private ShaderMaterial WasserStoff(Shader shader, Wasserart art, Vector2 richtung, bool lauf, float? tempo, float abstand, int reihenfolge, float saat = 0f,
+        List<(ShaderMaterial Stoff, Wasserart Art)>? ziel = null)
     {
         var stoff = new ShaderMaterial { Shader = shader, ResourceName = "Wasser_" + art.Name, RenderPriority = reihenfolge };
         Wasserarten.BilderSetzen(stoff);
         Wasserarten.Anwenden(stoff, art, richtung, _wasserWinter, uferImNetz: true, lauf, tempo, abstand, saat, _wasserTauen);
         stoff.SetShaderParameter("himmel_grund", WasserHimmelGrund);
         stoff.SetShaderParameter("sampler_scale", new Vector2(WasserBildMassstab, WasserBildMassstab));
-        _wasserStoffe.Add((stoff, art));
+        (ziel ?? _wasserStoffe).Add((stoff, art));
         return stoff;
     }
 
@@ -273,7 +387,7 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Das Band eines Flusses in Stücken: Reihen alle <paramref name="abstand"/> Meter entlang der Mittellinie, in jeder Reihe gleich viele Ecken quer
+    /// Das Band eines Flusses in Stücken (jedes fertige Stück kommt in <paramref name="netze"/>, danach ein Schritt): Reihen alle <paramref name="abstand"/> Meter entlang der Mittellinie, in jeder Reihe gleich viele Ecken quer
     /// (Abstand höchstens <paramref name="abstand"/>, mindestens vier Felder), alle auf der Höhe des Spiegels. UV = (quer, Stelle) in Metern, UV2 = Strömung
     /// nach x und z, COLOR = (Uferabstand / 32, Eiskanal (<see cref="Wasserarten.EisKanal"/>: offen bzw. still vor einer Kaimauer), Schaumanteil, Deckkraft) –
     /// wie <c>wasser_realistisch.gdshaderinc</c> sie liest.
@@ -283,9 +397,8 @@ public partial class Stadtansicht
     /// Kehlenkappe um den Mittelpunkt schließt das Loch (<see cref="Kehlenkappe"/>). Der Uferabstand ist der wahre Abstand der Ecke zur Mitte – ohne
     /// Faltung liegt jede Ecke ihrer Reihe am nächsten, so passt er zum Kern.</para>
     /// </summary>
-    private List<ArrayMesh> FlussNetze(Wasserlauf lauf, Wasserform form, float abstand, Wasserart art)
+    private IEnumerable<int> FlussNetze(Wasserlauf lauf, Wasserform form, float abstand, Wasserart art, List<ArrayMesh> netze)
     {
-        var netze = new List<ArrayMesh>();
         var p = lauf.Punkte;
         var schritt = Math.Max(1, Mathf.RoundToInt(abstand));
         var reihen = new List<int>();
@@ -382,6 +495,7 @@ public partial class Stadtansicht
             if (r > stueckAnfang && (laenge >= FlussStueck || r == reihen.Count - 1))
             {
                 netze.Add(BandNetz(ecken, uv, uv2, farben, felder));
+                yield return r; // ein Stück je Schritt: die Werkstatt baut das Wasser in Häppchen (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 if (r == reihen.Count - 1) break;
                 var letzte = felder + 1;
                 ecken = ecken.GetRange(ecken.Count - letzte, letzte);
@@ -409,8 +523,8 @@ public partial class Stadtansicht
                     Ecke(ort, o, k.Stelle + (ort - k.Mitte).Dot(k.Richtung), k.Richtung, k.Halb, k.Hoehe, k.Schaum, k.FurtOffen);
                 });
             netze.Add(NetzAusFeldern(ecken, uv, uv2, farben, indizes));
+            yield return 0;
         }
-        return netze;
     }
 
     /// <summary>

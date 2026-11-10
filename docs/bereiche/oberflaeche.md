@@ -36,6 +36,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Geheimnisse 3c) Klicktest auf der NAS steht aus (Schritte im Bericht des PR): `--entwickler=1 --geheimnis=Ehebruch:rivale --charakter=rivale`, `--geheimnis=Ketzerei:ratsherr --charakter=ratsherr`, `--geheimnis=Schulden:oberhaupt --charakter=oberhaupt`; Godot legt beim ersten Öffnen `CharakterAnzeige.Geheimnisse.cs.uid` an (mit einchecken).
 - Hofstellen (Startmenü, Kartenwerkstatt): Klicktest auf der NAS steht aus (Schritte im Bericht); der Umriss der Hofstelle prüft Werkstatt- und Wohnhausplatz getrennt (Text nennt nur den ersten Fehler), ein Platz mit Fehler färbt beide Umrisse rot. Im Menü fehlt für Karten ohne Wegenetz-Angabe die Meter-Zahl (dann nur der Name).
 - (Hofstellen) Die Tafel „Start“ nimmt Hofstellen mit anderer Werkstattart des Hauses nicht gesondert aus; „Hofstelle“ setzt immer den ersten Werkstattbetrieb des Hauses um.
+- (von Spiel-KI) Aufschlag am Hafen (Datenversion 80): Verkauft ein Karren am offenen Hafen Ausfuhrware, bringt sie `Schiffahrt.Daten.HafenAufschlag` (3 %) mehr (`Schiffahrt.HafenVerkaufsFaktor(ware)`, Liste über `SchiffshandelDaten.IstAusfuhrware`). Hafentafel (`HafenAnzeige.cs` um Zeile 193) und Hinweis in `Hauptszene.Hafen.cs` (um Zeile 117) sagen noch „dieselben Preise wie auf dem Marktplatz“ – Wunsch: Satz „Karren erzielen hier für Ausfuhrware 3 % mehr (nicht im Winter)“ mit Tooltip der Ausfuhrwaren; die Vorschau „verkaufen ≈“ im Marktfenster rechnet ohne Aufschlag.
 
 ## Entscheidungen
 

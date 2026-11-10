@@ -340,7 +340,14 @@ public sealed partial class Wasserform
         (_roh, _gewaesser, _kaie) = (roh, gewaesser, kaie ?? (() => Array.Empty<Kaimauer>()));
 
     /// <summary>Gewässer, Häfen oder Gelände haben sich geändert: beim nächsten Lesen alles neu.</summary>
-    public void AllesVeraltet() => _stand = null;
+    public void AllesVeraltet()
+    {
+        _stand = null;
+        _aenderungen++;
+    }
+
+    /// <summary>Zählt die Änderungen: Ein Lauf in Häppchen (<see cref="Schritte"/>), über den eine Änderung kam, bricht ab.</summary>
+    private int _aenderungen;
 
     private (List<Wasserlauf> Laeufe, List<Wassersee> Seen, List<Hafenbecken> Becken, List<Wasserverbund> Verbuende) Stand => _stand ??= Rechnen();
 
@@ -364,7 +371,14 @@ public sealed partial class Wasserform
 
     private (List<Wasserlauf>, List<Wassersee>, List<Hafenbecken>, List<Wasserverbund>) Rechnen()
     {
-        var (laeufe, roheSeen) = GewaesserRechnen();
+        var (laeufe, roheSeen) = (new List<Wasserlauf>(), new List<Wassersee>());
+        foreach (var _ in GewaesserRechnen(laeufe, roheSeen)) { }
+        return MitVerbundUndBecken(laeufe, roheSeen);
+    }
+
+    /// <summary>Zu den fertigen Gewässern die Wasserverbünde und die Hafenbecken.</summary>
+    private (List<Wasserlauf>, List<Wassersee>, List<Hafenbecken>, List<Wasserverbund>) MitVerbundUndBecken(List<Wasserlauf> laeufe, List<Wassersee> roheSeen)
+    {
         var (seen, verbuende) = VerbuendeRechnen(laeufe, roheSeen); // ein See ohne Wasserstand am Lauf nimmt dessen Spiegel an (Wasserform.Verbund.cs)
         _stand = (laeufe, seen, new List<Hafenbecken>(), verbuende); // die Becken fragen An – das braucht die Gewässer schon
         var becken = new List<Hafenbecken>();
@@ -372,6 +386,25 @@ public sealed partial class Wasserform
             foreach (var kai in _kaie())
                 if (BeckenRechnen(kai) is { } b) becken.Add(b);
         return (laeufe, seen, becken, verbuende);
+    }
+
+    /// <summary>
+    /// Rechnet die Gewässer in Häppchen, eins je Häppchen (die Kartenprüfung: ihre Regel „Wasser“ und die Startwege, Kartenentwurf.StartwegSchritte);
+    /// dasselbe wie beim ersten Lesen. Hat inzwischen jemand gelesen (und damit gerechnet), endet die Folge beim nächsten Häppchen ohne Neues; kam eine
+    /// Änderung dazwischen (<see cref="AllesVeraltet"/>), bricht sie ab, ohne etwas zu merken.
+    /// </summary>
+    internal IEnumerable<int> Schritte()
+    {
+        if (_stand is not null) yield break;
+        var stand = _aenderungen;
+        var (laeufe, roheSeen) = (new List<Wasserlauf>(), new List<Wassersee>());
+        foreach (var _ in GewaesserRechnen(laeufe, roheSeen))
+        {
+            yield return 0;
+            if (stand != _aenderungen || _stand is not null) yield break;
+        }
+        if (_stand is not null) yield break;
+        _stand = MitVerbundUndBecken(laeufe, roheSeen);
     }
 
     /// <summary>
@@ -402,10 +435,9 @@ public sealed partial class Wasserform
         }, spiegel);
     }
 
-    private (List<Wasserlauf>, List<Wassersee>) GewaesserRechnen()
+    /// <summary>Die Flüsse und Seen in der Reihenfolge der Karte, je Gewässer ein Häppchen.</summary>
+    private IEnumerable<int> GewaesserRechnen(List<Wasserlauf> laeufe, List<Wassersee> seen)
     {
-        var laeufe = new List<Wasserlauf>();
-        var seen = new List<Wassersee>();
         var liste = _gewaesser();
         for (var n = 0; n < liste.Count; n++)
         {
@@ -416,8 +448,8 @@ public sealed partial class Wasserform
             }
             else if (g.Flaeche is { Count: >= 3 } f && f.All(p => p is { Length: >= 2 }))
                 seen.Add(SeeRechnen(n, g));
+            yield return 0;
         }
-        return (laeufe, seen);
     }
 
     /// <summary>Breite eines Stützpunkts: [x, z, breite] – sonst die des Flusses, sonst die Vorgabe der Art.</summary>

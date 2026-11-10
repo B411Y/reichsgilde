@@ -68,8 +68,11 @@ public partial class Stadtansicht
     {
         if (_schollenWarten.Count > 0 && _wasserFlaechen is not null && IsInstanceValid(_wasserFlaechen))
         {
-            foreach (var (lauf, art, _) in _schollenWarten) SchollenBauen(lauf, art);
-            _schollenWarten.Clear();
+            // Die Werkstatt baut die Schollen erst, wenn Eis da ist (Köln: der Rhein allein kostete nach jedem Weg über das Wasser ein Bild von gut 100 ms,
+            // und ohne Winter sieht man davon nichts); im Spiel wie bisher gleich.
+            var bereit = _schollenWarten.Where(w => _entwurf is null || _wasserTauen > 0f || Wasserarten.EisFortschritt(w.Art, _wasserWinter) > 0f).ToList();
+            foreach (var (lauf, art, _) in bereit) SchollenBauen(lauf, art);
+            _schollenWarten.RemoveAll(w => bereit.Contains(w));
         }
         if (_schollenFelder.Count == 0) return;
         var kamera = GetViewport()?.GetCamera3D();

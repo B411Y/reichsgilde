@@ -7,6 +7,7 @@ using Reichsgilde.Core.Wirtschaft;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen hafen [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--beruf=Schmied|Wirt|Ausbau] [--ohne-hafenziel] [--handgeld=Gulden]
+//                [--hafenaufschlag=0.03]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte (wie messen jahreszeiten): der Spieler als Schmied und als Wirt mit
 //  einem Betrieb (KI geführt, ohne Expansion) und der ausbauende Spieler („Ausbau“, Profil der KI-Häuser).
@@ -14,7 +15,9 @@ using Reichsgilde.Core.Wirtschaft;
 //  Hinfahrt und Hin- plus Rückfahrt (Minuten nach dem Kern, zum Handelsort der Fahrt), der Anteil der Fahrten zum Hafen (alle Jahreszeiten
 //  und je Jahreszeit), das gezahlte Handgeld je Haus und Jahr und die Köpfe je Haus am Jahresende.
 //  --ohne-hafenziel setzt schiffshandel.karrenZumHafen aus (die Karren fahren nur zu den Marktplätzen, wie bis Datenversion 72);
-//  --handgeld=N setzt personal.handgeld (0 = keins, wie bis Datenversion 72). Ohne die Schalter gelten die Spieldaten.
+//  --handgeld=N setzt personal.handgeld (0 = keins, wie bis Datenversion 72); --hafenaufschlag=x setzt schiffshandel.hafenAufschlag (0 = keiner,
+//  wie bis Datenversion 78). Ohne die Schalter gelten die Spieldaten. Dazu je Gruppe die Werkstätten in der Stadt, die nach dem Start
+//  dazukamen (gebaut oder gekauft), wie viele davon näher am Hafen liegen (Handkarren hin + zurück), und der Umsatz je Jahr.
 // ═════════════════════════════════════════════════════════════════════════════
 
 static class Hafenmessung
@@ -28,6 +31,11 @@ static class Hafenmessung
         public readonly double[,] Anzahl = new double[2, 4], Hafen = new double[2, 4], Hin = new double[2, 4], Rund = new double[2, 4];
         public double HandgeldSpieler, HandgeldKi, KoepfeSpieler, KoepfeKi;
         public int Jahre, KiHaeuserJahre;
+        /// <summary>Betriebe in der Stadt beim Start; je später dazugekommener Werkstatt (gebaut oder gekauft): Gruppe (0 Spieler, 1 KI) und ob ihr Handkarren näher am Hafen ist.</summary>
+        public HashSet<Betrieb>? Start;
+        public readonly Dictionary<Betrieb, (int Gruppe, bool AmHafen)> Neue = new(ReferenceEqualityComparer.Instance);
+        /// <summary>Umsatz je Gruppe (Summe der Jahre) – für den Anteil, den der Aufschlag am Hafen ausmachen kann.</summary>
+        public readonly double[] Umsatz = new double[2];
     }
 
     public static int Erstellen(string[] args)
@@ -41,11 +49,13 @@ static class Hafenmessung
         var nurBeruf = Schalter("beruf");
         var ohneHafenziel = args.Contains("--ohne-hafenziel");
         var handgeld = Schalter("handgeld") is { } h ? double.Parse(h, System.Globalization.CultureInfo.InvariantCulture) : (double?)null;
+        var aufschlag = Schalter("hafenaufschlag") is { } s0 ? double.Parse(s0, System.Globalization.CultureInfo.InvariantCulture) : (double?)null;
         if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
         var q = new Messquellen(anpassen: json =>
         {
             if (ohneHafenziel) json = Datenpfad.OhneHafenziel(json);
             if (handgeld is { } g) json = Datenpfad.MitHandgeld(json, g);
+            if (aufschlag is { } a) json = MitHafenaufschlag(json, a);
             return json;
         });
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
@@ -75,7 +85,7 @@ static class Hafenmessung
         foreach (var (a, (r, _)) in ergebnisse.Where(x => x.Value.P.Fehler is not null).Take(5)) Console.Error.WriteLine($"FEHLER in {a}: {r.Fehler}");
 
         Console.WriteLine($"Hafenmessung: {jahre} Jahre, {startwerte} Startwerte je Karte und Aufbau; Karren zum Hafen {(daten.Schiffshandel?.KarrenZumHafen == true ? "an" : "aus")}, " +
-                          $"Handgeld {Zahlenformat.Ganz(daten.Personal?.Handgeld ?? 0)}");
+                          $"Handgeld {Zahlenformat.Ganz(daten.Personal?.Handgeld ?? 0)}, Aufschlag am Hafen {Zahlenformat.Kommazahl(100 * (daten.Schiffshandel?.HafenAufschlag ?? 0))} %");
         foreach (var karte in karten)
             foreach (var aufbau in new[] { "Schmied", "Wirt", "Ausbau" }.Where(x => nurBeruf is null || nurBeruf == x))
             {
@@ -109,6 +119,10 @@ static class Hafenmessung
                     }));
                     Console.WriteLine($"  {(g == 0 ? "Spieler" : "KI-Haus")}: {Zahlenformat.Kommazahl(jeJahr)} Fahrten je Jahr, hin Ø {Zahlenformat.Kommazahl(hin / Math.Max(1, anzahl))} min, " +
                                       $"hin + zurück Ø {Zahlenformat.Kommazahl(rund / Math.Max(1, anzahl))} min, zum Hafen {Prozent(hafen, anzahl)} ({jeZeit})");
+                    var neue = gruppe.Sum(x => x.Z.Neue.Values.Count(v => v.Gruppe == g));
+                    var amHafen = gruppe.Sum(x => x.Z.Neue.Values.Count(v => v.Gruppe == g && v.AmHafen));
+                    Console.WriteLine($"    neue Werkstätten in der Stadt (gebaut oder gekauft): {neue}, davon näher am Hafen {amHafen} ({Prozent(amHafen, neue)}); " +
+                                      $"Umsatz je Jahr {Zahlenformat.Ganz(gruppe.Sum(x => x.Z.Umsatz[g]) / Math.Max(1, g == 0 ? jahreSumme : kiJahre))}");
                 }
             }
         return 0;
@@ -129,6 +143,7 @@ static class Hafenmessung
     static void Minute(Stadtwirtschaft w, Zaehler z)
     {
         var spieler = w.Konten[0];
+        z.Start ??= new HashSet<Betrieb>(w.Betriebe, ReferenceEqualityComparer.Instance);
         var jz = (int)w.Uhr.Jahreszeit;
         foreach (var b in w.Betriebe)
             foreach (var k in b.Karren)
@@ -152,11 +167,29 @@ static class Hafenmessung
         var spieler = w.Konten[0];
         z.HandgeldSpieler += spieler.Vorjahr?.Handgeld ?? 0;
         z.KoepfeSpieler += w.Betriebe.Where(b => b.Konto == spieler).Sum(b => b.Belegt);
+        z.Umsatz[0] += spieler.Vorjahr?.Umsatz ?? 0;
         foreach (var k in w.Konten.Skip(1).Where(k => k.IstAktiv))
         {
             z.KiHaeuserJahre++;
             z.HandgeldKi += k.Vorjahr?.Handgeld ?? 0;
             z.KoepfeKi += w.Betriebe.Where(b => b.Konto == k).Sum(b => b.Belegt);
+            z.Umsatz[1] += k.Vorjahr?.Umsatz ?? 0;
         }
+        // Werkstätten, die nach dem Start dazukamen: Liegt ihr Hafen (Handkarren hin + zurück) näher als der Marktplatz?
+        z.Start ??= new HashSet<Betrieb>(w.Betriebe, ReferenceEqualityComparer.Instance);
+        foreach (var b in w.Betriebe.Where(b => b.InDerStadt && b.IstWerkstatt && !z.Start!.Contains(b) && !z.Neue.ContainsKey(b)))
+        {
+            var hafen = w.FahrzeitZumHafen(b, "Handkarren", true) + w.FahrzeitZumHafen(b, "Handkarren", false);
+            var markt = w.Fahrzeit(b, "Handkarren", true) + w.Fahrzeit(b, "Handkarren", false);
+            z.Neue[b] = (b.Konto == spieler ? 0 : 1, hafen is { } hz && hz < markt);
+        }
+    }
+
+    /// <summary>Die Daten mit diesem Aufschlag am Hafen (<c>schiffshandel.hafenAufschlag</c>, Datenversion 80).</summary>
+    static string MitHafenaufschlag(string json, double aufschlag)
+    {
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(json)!;
+        knoten["schiffshandel"]!["hafenAufschlag"] = aufschlag;
+        return knoten.ToJsonString();
     }
 }

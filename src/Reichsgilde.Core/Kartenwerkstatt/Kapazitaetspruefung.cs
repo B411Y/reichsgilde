@@ -61,55 +61,155 @@ public static class Kapazitaetspruefung
 
     /// <summary>
     /// Prüft die Karte. <paramref name="schwere"/>: wie schwer es wiegt, wenn die Pflicht nicht passt (Köln: Fehler, neue Karten: Hinweis).
-    /// Die Reserve steht nur im Bericht.
+    /// Die Reserve steht nur im Bericht. Rechnet alles neu; die Kartenwerkstatt fragt <see cref="Kartenentwurf.Kapazitaetsrechnung"/> (mit Vorrat).
     /// </summary>
-    public static Kapazitaet Pruefen(Kartenentwurf e, Schwere schwere = Schwere.Fehler) => new Belegung(e).Pruefen(schwere);
+    public static Kapazitaet Pruefen(Kartenentwurf e, Schwere schwere = Schwere.Fehler)
+    {
+        Kapazitaet? ergebnis = null;
+        foreach (var _ in Schritte(e, schwere, null, (k, _) => ergebnis = k)) { }
+        return ergebnis!;
+    }
+
+    /// <summary>
+    /// Dieselbe Prüfung in Häppchen (die Kartenwerkstatt verteilt sie auf mehrere Bilder): Jedes Element ist ein Stück Rechnung, sein Wert der Name
+    /// des Teils („Kapazität: Abstände“). Am Ende bekommt <paramref name="fertig"/> das Ergebnis und den <see cref="Abstandsvorrat"/> für den nächsten
+    /// Lauf. Mit dem <paramref name="vorrat"/> des letzten Laufs auf demselben Entwurf rechnet sie die Abstände zur Straße nur in der Nähe geänderter
+    /// Wege neu (siehe dort) – das Ergebnis ist dasselbe wie ohne (Test <c>KapazitaetInHaeppchenTests</c>). Der Entwurf darf sich zwischen den
+    /// Häppchen nicht an Gebäuden, Wegen oder Bauzonen ändern (<see cref="Kartenentwurf"/> fängt dann neu an).
+    /// </summary>
+    internal static IEnumerable<string> Schritte(Kartenentwurf e, Schwere schwere, Abstandsvorrat? vorrat, Action<Kapazitaet, Abstandsvorrat> fertig) =>
+        new Belegung(e).Schritte(schwere, vorrat, fertig);
 
     /// <summary>
     /// Die Felder der Stadt-Bauzonen und was darauf steht – die Rechnung von <c>kapazitaet.py</c>. Die Felder stehen in Arrays über dem
     /// umschließenden Rechteck aller Stadt-Bauzonen (Feld (i, j) hat die Nummer (i − i0) · Höhe + (j − j0)), nicht in Wörterbüchern: Die Prüfung
     /// fragt Köln mit seinen 8.000 Feldern hunderttausendfach ab (27.10.2026: so mit den Blöcken unten von rund 75 auf 20 ms, dasselbe Ergebnis).
+    /// Seit dem 9.11.2026 in Häppchen (<see cref="Schritte"/>): dieselben Rechenschritte in derselben Reihenfolge, nur mit Pausen dazwischen.
     /// </summary>
     private sealed class Belegung
     {
         /// <summary>So viele Felder je Richtung fasst ein Block, für den <see cref="Streckenfaecher"/> die Strecken in der Nähe einmal sammelt.</summary>
-        private const int Block = 4;
+        internal const int Block = 4;
+
+        /// <summary>
+        /// Größe der Häppchen (Köln: jedes unter einer Millisekunde): so viele Zonen, Blöcke der Abstände, feste Gebäude, gesetzte Gebäude und beim
+        /// Suchen eines Platzes geprüfte Felder.
+        /// </summary>
+        private const int ZonenJeSchritt = 4, BloeckeJeSchritt = 96, GebaeudeJeSchritt = 64, SetzenJeSchritt = 8, FelderJeSchritt = 2048;
 
         private readonly Kartenentwurf _e;
         private readonly double _r;
-        private readonly int _i0, _j0, _breite, _hoehe;
-        private readonly Lage?[] _zone;             // null: keine Stadt-Bauzone
-        private readonly bool[] _nurWerkstatt;      // Feld einer Zone „nur“: „werkstatt“ (Werkstatt-Bauplatz): dort keine Wohnhäuser
-        private readonly double[] _karren, _alle;   // Abstand zur nächsten Karrenstraße bzw. zum nächsten Weg
-        private readonly bool[] _frei;
-        private readonly int[] _felder;             // die Nummern aller Zonenfelder, aufsteigend
+        private Zonenraster _raster = null!;
+        private int _i0, _j0, _hoehe;
+        private Lage?[] _zone = null!;              // null: keine Stadt-Bauzone
+        private bool[] _nurWerkstatt = null!;       // Feld einer Zone „nur“: „werkstatt“ (Werkstatt-Bauplatz): dort keine Wohnhäuser
+        private double[] _karren = null!, _alle = null!; // Abstand zur nächsten Karrenstraße bzw. zum nächsten Weg
+        private bool[] _frei = null!;
+        private int[] _felder = null!;              // die Nummern aller Zonenfelder, aufsteigend
         private int _freiAnzahl;
         private readonly List<Kapazitaetsplatz> _gesetzt = new();
 
-        // Die heißen Schleifen sind gleich voll optimiert (AggressiveOptimization): Die Kartenwerkstatt ruft die Prüfung nur ab und zu auf,
-        // .NET würde sie sonst erst nach 30 Aufrufen nachoptimieren, und bis dahin dauert sie doppelt so lange.
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public Belegung(Kartenentwurf e)
+        public Belegung(Kartenentwurf e) => (_e, _r) = (e, e.Raster);
+
+        /// <summary>Die ganze Prüfung in Häppchen (<see cref="Kapazitaetspruefung.Schritte"/>).</summary>
+        public IEnumerable<string> Schritte(Schwere schwere, Abstandsvorrat? vorrat, Action<Kapazitaet, Abstandsvorrat> fertig)
         {
-            (_e, _r) = (e, e.Raster);
-            var zonen = e.Bauzonen.Where(z => z.Art != Lage.Umland && z.Ecken.Count > 0).Select(z => (z.Art, NurWerkstatt: z.Nur == Bauzone.NurWerkstatt, Ecken: z.Ecken,
+            foreach (var t in ZonenRechnen(vorrat)) yield return t;
+            (_i0, _j0, _hoehe, _zone, _nurWerkstatt, _felder) = (_raster.I0, _raster.J0, _raster.Hoehe, _raster.Zone, _raster.NurWerkstatt, _raster.Felder);
+            _frei = new bool[_zone.Length];
+            foreach (var n in _felder) _frei[n] = true;
+            _freiAnzahl = _felder.Length;
+            // die Wege so, wie die Abstände sie nehmen (Verlauf und Klasse) – der Vorrat vergleicht damit beim nächsten Lauf
+            var wege = _e.Wege.Where(w => w.Punkte.Count > 0).Select(w => new Wegstand(w, w.Verlauf, w.IstKarrenstrasse)).ToList();
+            foreach (var t in AbstaendeRechnen(vorrat, wege)) yield return t;
+
+            foreach (var t in FestBelegen()) yield return t;
+            _folgeWerkstatt = Reihenfolge(_felder.Select(n => 0).ToArray(), _karren);
+            yield return "Kapazität: Reihenfolge";
+            _folgeWohnen = Reihenfolge(_felder.Select(n => (_alle[n] > Strassennah ? 2 : 0) + (_karren[n] <= Strassennah ? 1 : 0)).ToArray(), _alle);
+            yield return "Kapazität: Reihenfolge";
+
+            var befunde = new List<Befund>();
+            var bericht = new List<string>();
+            var gesamt = _felder.Length;
+            bericht.Add($"Stadt-Bauzonen: {gesamt} Felder, davon fest belegt {gesamt - _freiAnzahl}");
+            // Hofstellen (seit 9.11.2026): Die Häuser einer Partie mit 8 Häusern sitzen auf 8 Hofstellen; jede weitere ist frei, und ihr Werkstattplatz
+            // nimmt eine der Werkstätten der Pflicht auf (er steht als Platz der Karte schon fest belegt da).
+            var freieHofstellen = Math.Max(0, _e.Start.Hofstellen.Count - Haeuser);
+            foreach (var (art, pflicht) in Pflicht)
+            {
+                var aufHofstellen = art == "Werkstatt" ? Math.Min(pflicht, freieHofstellen) : 0;
+                var anzahl = pflicht - aufHofstellen;
+                if (aufHofstellen > 0) bericht.Add($"Pflicht {art}: {aufHofstellen} auf freien Hofstellen");
+                var gesetzt = 0;
+                for (var k = 0; k < anzahl; k++)
+                {
+                    var passt = false;
+                    foreach (var t in Setzen(art, null, x => passt = x, "Kapazität: Pflicht")) yield return t;
+                    if (passt) gesetzt++;
+                    if (k % SetzenJeSchritt == SetzenJeSchritt - 1) yield return "Kapazität: Pflicht";
+                }
+                var text = $"Pflicht {art}: {gesetzt} von {anzahl} passen" + (aufHofstellen > 0 ? " (dazu die freien Hofstellen)" : "");
+                bericht.Add(text);
+                if (gesetzt != anzahl)
+                    befunde.Add(new Befund(schwere, "kapazitaet", $"Kapazität (Partie mit 8 Häusern): {text} in die Bauzonen der Stadt.", Array.Empty<string>(), null));
+                yield return "Kapazität: Pflicht";
+            }
+            var nachPflicht = _freiAnzahl;
+            var kernUndRing = new HashSet<Lage> { Lage.Kern, Lage.Mauerring };
+            foreach (var (art, anzahl) in Reserve)
+            {
+                var gesetzt = 0;
+                for (var k = 0; k < anzahl; k++)
+                {
+                    var passt = false;
+                    foreach (var t in Setzen(art, art == "Stadthof" ? kernUndRing : null, x => passt = x, "Kapazität: Reserve")) yield return t;
+                    if (passt) gesetzt++;
+                    if (k % SetzenJeSchritt == SetzenJeSchritt - 1) yield return "Kapazität: Reserve";
+                }
+                bericht.Add($"Reserve {art}: {gesetzt} von {anzahl} passen");
+                yield return "Kapazität: Reserve";
+            }
+            var anteil = gesamt == 0 ? 0 : (int)Math.Round(100.0 * nachPflicht / gesamt, MidpointRounding.ToEven);
+            bericht.Add($"Frei nach der Pflicht: {nachPflicht} Felder ({anteil}%), nach der Reserve: {_freiAnzahl} Felder");
+            fertig(new Kapazitaet(befunde, bericht, _gesetzt, _r), new Abstandsvorrat(_raster, wege, _karren, _alle));
+        }
+
+        /// <summary>
+        /// Das Raster der Stadt-Bauzonen. Haben sich die Zonen seit dem Vorrat nicht geändert (gleiche Lage, „nur“ und Ecken in derselben Reihenfolge,
+        /// gleiches Raster), nimmt sie dessen Raster – es ist dasselbe.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private IEnumerable<string> ZonenRechnen(Abstandsvorrat? vorrat)
+        {
+            var zonen = _e.Bauzonen.Where(z => z.Art != Lage.Umland && z.Ecken.Count > 0).Select(z => (z.Art, NurWerkstatt: z.Nur == Bauzone.NurWerkstatt, Ecken: z.Ecken.ToArray(),
                 I0: (int)Math.Floor(z.Ecken.Min(q => q.X) / _r), I1: (int)Math.Floor(z.Ecken.Max(q => q.X) / _r),
                 J0: (int)Math.Floor(z.Ecken.Min(q => q.Z) / _r), J1: (int)Math.Floor(z.Ecken.Max(q => q.Z) / _r))).ToList();
+            var signatur = zonen.Select(z => (z.Art, z.NurWerkstatt, z.Ecken)).ToList();
+            if (vorrat?.Zonen is { } alt && alt.Gleich(_r, signatur))
+            {
+                _raster = alt;
+                yield break;
+            }
+            var (i0, j0, breite, hoehe) = (0, 0, 0, 0);
             if (zonen.Count > 0)
-                (_i0, _j0, _breite, _hoehe) = (zonen.Min(z => z.I0), zonen.Min(z => z.J0),
+                (i0, j0, breite, hoehe) = (zonen.Min(z => z.I0), zonen.Min(z => z.J0),
                     zonen.Max(z => z.I1) - zonen.Min(z => z.I0) + 1, zonen.Max(z => z.J1) - zonen.Min(z => z.J0) + 1);
-            _zone = new Lage?[_breite * _hoehe];
-            _nurWerkstatt = new bool[_zone.Length];
+            (_i0, _j0, _hoehe) = (i0, j0, hoehe);
+            var zone = new Lage?[breite * hoehe];
+            var nurWerkstatt = new bool[zone.Length];
             // Eine spätere Zone überschreibt eine frühere, wie vorher im Wörterbuch. Je Rasterzeile (gleiches j, also gleiches Z) schneiden
             // dieselben Kanten mit denselben X-Werten wie in Kartengeometrie.ImVieleck; ein Feld liegt drin, wenn rechts von seiner Mitte
             // ungerade viele Schnitte liegen. Dasselbe Ergebnis, aber die Ecken werden je Zeile statt je Feld durchgegangen.
             var schnitte = new List<double>();
-            foreach (var z in zonen)
+            for (var nr = 0; nr < zonen.Count; nr++)
+            {
+                var z = zonen[nr];
                 for (var j = z.J0; j <= z.J1; j++)
                 {
                     var (p, pz) = (z.Ecken, Mitte(0, j).Z);
                     schnitte.Clear();
-                    for (int a = 0, b = p.Count - 1; a < p.Count; b = a++)
+                    for (int a = 0, b = p.Length - 1; a < p.Length; b = a++)
                     {
                         var (x1, z1, x2, z2) = (p[a].X, p[a].Z, p[b].X, p[b].Z);
                         if ((z1 > pz) != (z2 > pz)) schnitte.Add((x2 - x1) * (pz - z1) / (z2 - z1) + x1);
@@ -120,28 +220,56 @@ public static class Kapazitaetspruefung
                     {
                         var px = Mitte(i, j).X;
                         while (links < schnitte.Count && !(px < schnitte[links])) links++;
-                        if ((schnitte.Count - links) % 2 == 1) (_zone[Nummer(i, j)], _nurWerkstatt[Nummer(i, j)]) = (z.Art, z.NurWerkstatt);
+                        if ((schnitte.Count - links) % 2 == 1) (zone[Nummer(i, j)], nurWerkstatt[Nummer(i, j)]) = (z.Art, z.NurWerkstatt);
                     }
                 }
-            _felder = Enumerable.Range(0, _zone.Length).Where(n => _zone[n] is not null).ToArray();
-            _frei = new bool[_zone.Length];
-            foreach (var n in _felder) _frei[n] = true;
-            _freiAnzahl = _felder.Length;
+                if (nr % ZonenJeSchritt == ZonenJeSchritt - 1) yield return "Kapazität: Zonen";
+            }
+            var felder = Enumerable.Range(0, zone.Length).Where(n => zone[n] is not null).ToArray();
+            _raster = new Zonenraster(_r, signatur, i0, j0, breite, hoehe, zone, nurWerkstatt, felder);
+            yield return "Kapazität: Zonen";
+        }
 
-            // Die Abstände zur Straße blockweise: Felder eines Blocks teilen sich die Strecken in ihrer Nähe.
+        /// <summary>
+        /// Je Zonenfeld der Abstand zur nächsten Karrenstraße und zum nächsten Weg, blockweise: Felder eines Blocks teilen sich die Strecken in ihrer
+        /// Nähe. Mit einem Vorrat auf demselben Raster rechnet sie nur die Blöcke neu, die ein geänderter Weg (sein alter oder neuer Verlauf) erreichen
+        /// kann; die anderen behalten den Wert des Vorrats (<see cref="Abstandsvorrat"/> sagt, warum er gleich ist).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private IEnumerable<string> AbstaendeRechnen(Abstandsvorrat? vorrat, List<Wegstand> wege)
+        {
+            const string teil = "Kapazität: Abstände";
+            var breite = _raster.Breite;
             _karren = new double[_zone.Length];
             _alle = new double[_zone.Length];
-            var wege = e.Wege.Where(w => w.Punkte.Count > 0).ToList();
-            var karren = new Streckenfaecher(wege.Where(w => w.IstKarrenstrasse));
-            var alle = new Streckenfaecher(wege);
+            List<Wegrahmen>? karrenNeu = null, alleNeu = null; // null: alle Blöcke neu
+            if (vorrat is not null && ReferenceEquals(vorrat.Zonen, _raster))
+            {
+                (karrenNeu, alleNeu) = vorrat.Geaendert(wege);
+                Array.Copy(vorrat.Karren, _karren, _karren.Length);
+                Array.Copy(vorrat.Alle, _alle, _alle.Length);
+            }
+            Streckenfaecher? karren = null, alle = null;
+            if (karrenNeu is not { Count: 0 })
+            {
+                karren = new Streckenfaecher(wege.Where(w => w.Karren).Select(w => w.Verlauf));
+                yield return teil;
+            }
+            if (alleNeu is not { Count: 0 })
+            {
+                alle = new Streckenfaecher(wege.Select(w => w.Verlauf));
+                yield return teil;
+            }
+            if (karren is null && alle is null) yield break;
             var nummern = new List<int>(Block * Block);
             var punkte = new Kartenort[Block * Block];
             var abstand = new double[Block * Block];
-            for (var bi = 0; bi < _breite; bi += Block)
+            var gerechnet = 0;
+            for (var bi = 0; bi < breite; bi += Block)
                 for (var bj = 0; bj < _hoehe; bj += Block)
                 {
                     nummern.Clear();
-                    for (var i = bi; i < Math.Min(bi + Block, _breite); i++)
+                    for (var i = bi; i < Math.Min(bi + Block, breite); i++)
                         for (var j = bj; j < Math.Min(bj + Block, _hoehe); j++)
                             if (_zone[i * _hoehe + j] is not null)
                             {
@@ -149,11 +277,21 @@ public static class Kapazitaetspruefung
                                 nummern.Add(i * _hoehe + j);
                             }
                     if (nummern.Count == 0) continue;
-                    karren.Naechste(punkte, nummern.Count, abstand);
-                    for (var k = 0; k < nummern.Count; k++) _karren[nummern[k]] = abstand[k];
-                    alle.Naechste(punkte, nummern.Count, abstand);
-                    for (var k = 0; k < nummern.Count; k++) _alle[nummern[k]] = abstand[k];
+                    var neuK = karren is not null && Abstandsvorrat.Erreicht(karrenNeu, punkte, nummern.Count);
+                    var neuA = alle is not null && Abstandsvorrat.Erreicht(alleNeu, punkte, nummern.Count);
+                    if (neuK)
+                    {
+                        karren!.Naechste(punkte, nummern.Count, abstand);
+                        for (var k = 0; k < nummern.Count; k++) _karren[nummern[k]] = abstand[k];
+                    }
+                    if (neuA)
+                    {
+                        alle!.Naechste(punkte, nummern.Count, abstand);
+                        for (var k = 0; k < nummern.Count; k++) _alle[nummern[k]] = abstand[k];
+                    }
+                    if ((neuK || neuA) && ++gerechnet % BloeckeJeSchritt == 0) yield return teil;
                 }
+            yield return teil;
         }
 
         private Kartenort Mitte(int i, int j) => new((i + 0.5) * _r, (j + 0.5) * _r);
@@ -162,7 +300,7 @@ public static class Kapazitaetspruefung
 
         /// <summary>Die Nummer des Feldes, oder −1, wenn es außerhalb aller Stadt-Bauzonen liegt.</summary>
         private int Zonenfeld(int i, int j) =>
-            i < _i0 || j < _j0 || i >= _i0 + _breite || j >= _j0 + _hoehe || _zone[Nummer(i, j)] is null ? -1 : Nummer(i, j);
+            i < _i0 || j < _j0 || i >= _i0 + _raster.Breite || j >= _j0 + _hoehe || _zone[Nummer(i, j)] is null ? -1 : Nummer(i, j);
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private void Belegen(List<(int I, int J)> felder)
@@ -177,10 +315,12 @@ public static class Kapazitaetspruefung
 
         /// <summary>Die Gebäude der Karte nehmen ihre Felder zuerst weg (Grundfläche aus dem Katalog).</summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private void FestBelegen()
+        private IEnumerable<string> FestBelegen()
         {
+            var nummer = 0;
             foreach (var g in _e.Gebaeude)
             {
+                if (++nummer % GebaeudeJeSchritt == 0) yield return "Kapazität: Gebäude der Karte";
                 if (g.Groesse is not var (breite, tiefe) || g.Massstab <= 0) continue;
                 var w = g.Drehung * Math.PI / 180;
                 (double X, double Z) richtung;
@@ -196,6 +336,7 @@ public static class Kapazitaetspruefung
                 Belegen(felder);
                 _gesetzt.Add(new Kapazitaetsplatz("fest", felder));
             }
+            yield return "Kapazität: Gebäude der Karte";
         }
 
         /// <summary>Die Zonenfelder unter einem gedrehten Rechteck (Breite quer zur Richtung, Tiefe entlang), jedes einmal.</summary>
@@ -217,7 +358,7 @@ public static class Kapazitaetspruefung
         }
 
         /// <summary>Die Felder in der Reihenfolge, in der Werkstätten bzw. Wohnhäuser sie versuchen (einmal je Lauf; belegte werden übersprungen).</summary>
-        private int[]? _folgeWerkstatt, _folgeWohnen;
+        private int[] _folgeWerkstatt = null!, _folgeWohnen = null!;
 
         /// <summary>
         /// Ab welcher Stelle der Reihenfolge eine Gebäudeart weitersucht: Felder davor passten schon beim letzten Mal nicht, und weil Felder nur
@@ -225,9 +366,13 @@ public static class Kapazitaetspruefung
         /// </summary>
         private readonly Dictionary<string, int> _ab = new();
 
-        /// <summary>Setzt ein Gebäude auf den ersten passenden Platz; <paramref name="erlaubt"/> schränkt die Lagen ein (Stadthof nicht in der Vorstadt).</summary>
+        /// <summary>
+        /// Setzt ein Gebäude auf den ersten passenden Platz (<paramref name="ergebnis"/>: ob es passte); <paramref name="erlaubt"/> schränkt die Lagen ein
+        /// (Stadthof nicht in der Vorstadt). Ein Häppchen nach je <see cref="FelderJeSchritt"/> geprüften Feldern (eine Art, die nirgends mehr passt,
+        /// geht sonst alle Felder am Stück durch).
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private bool Setzen(string art, IReadOnlySet<Lage>? erlaubt = null)
+        private IEnumerable<string> Setzen(string art, IReadOnlySet<Lage>? erlaubt, Action<bool> ergebnis, string teil)
         {
             var (b, t) = Groessen[art];
             var werkstatt = art == "Werkstatt";
@@ -236,10 +381,11 @@ public static class Kapazitaetspruefung
             // Die Reihenfolge hängt nur an den Abständen – sie gilt für alle Felder, die noch frei sind (wie das Sortieren der freien Felder).
             // Wohnhäuser: erst die straßennahen Felder, darunter erst die fern der Karrenstraße. Bei Gleichstand entscheidet die Nummer, also
             // erst i, dann j.
-            var folge = werkstatt ? _folgeWerkstatt ??= Reihenfolge(_felder.Select(n => 0).ToArray(), dist)
-                : _folgeWohnen ??= Reihenfolge(_felder.Select(n => (dist[n] > Strassennah ? 2 : 0) + (_karren[n] <= Strassennah ? 1 : 0)).ToArray(), dist);
+            var folge = werkstatt ? _folgeWerkstatt : _folgeWohnen;
+            var geprueft = 0;
             for (var n = _ab.GetValueOrDefault(art); n < folge.Length; n++)
             {
+                if (++geprueft % FelderJeSchritt == 0) yield return teil;
                 if (!_frei[folge[n]]) continue;
                 var (i, j) = (_i0 + folge[n] / _hoehe, _j0 + folge[n] % _hoehe);
                 foreach (var (w, h) in new[] { (b, t), (t, b) })
@@ -254,11 +400,12 @@ public static class Kapazitaetspruefung
                         Belegen(felder);
                         _gesetzt.Add(new Kapazitaetsplatz(art, felder));
                         _ab[art] = n;
-                        return true;
+                        ergebnis(true);
+                        yield break;
                     }
             }
             _ab[art] = folge.Length;
-            return false;
+            ergebnis(false);
         }
 
         /// <summary>
@@ -297,7 +444,7 @@ public static class Kapazitaetspruefung
         private bool Passt(int i0, int j0, int w, int h, double[] dist, IReadOnlySet<Lage>? erlaubt, bool werkstatt)
         {
             // Felder außerhalb des Rasters liegen in keiner Bauzone, sind also nie frei.
-            if (i0 < _i0 || j0 < _j0 || i0 + w > _i0 + _breite || j0 + h > _j0 + _hoehe) return false;
+            if (i0 < _i0 || j0 < _j0 || i0 + w > _i0 + _raster.Breite || j0 + h > _j0 + _hoehe) return false;
             var nah = 0;
             for (var a = 0; a < w; a++)
             {
@@ -312,41 +459,130 @@ public static class Kapazitaetspruefung
             }
             return nah >= 2;
         }
-
-        public Kapazitaet Pruefen(Schwere schwere)
-        {
-            FestBelegen();
-            var befunde = new List<Befund>();
-            var bericht = new List<string>();
-            var gesamt = _felder.Length;
-            bericht.Add($"Stadt-Bauzonen: {gesamt} Felder, davon fest belegt {gesamt - _freiAnzahl}");
-            // Hofstellen (seit 9.11.2026): Die Häuser einer Partie mit 8 Häusern sitzen auf 8 Hofstellen; jede weitere ist frei, und ihr Werkstattplatz
-            // nimmt eine der Werkstätten der Pflicht auf (er steht als Platz der Karte schon fest belegt da).
-            var freieHofstellen = Math.Max(0, _e.Start.Hofstellen.Count - Haeuser);
-            foreach (var (art, pflicht) in Pflicht)
-            {
-                var aufHofstellen = art == "Werkstatt" ? Math.Min(pflicht, freieHofstellen) : 0;
-                var anzahl = pflicht - aufHofstellen;
-                if (aufHofstellen > 0) bericht.Add($"Pflicht {art}: {aufHofstellen} auf freien Hofstellen");
-                var gesetzt = Enumerable.Range(0, anzahl).Count(_ => Setzen(art));
-                var text = $"Pflicht {art}: {gesetzt} von {anzahl} passen" + (aufHofstellen > 0 ? " (dazu die freien Hofstellen)" : "");
-                bericht.Add(text);
-                if (gesetzt != anzahl)
-                    befunde.Add(new Befund(schwere, "kapazitaet", $"Kapazität (Partie mit 8 Häusern): {text} in die Bauzonen der Stadt.", Array.Empty<string>(), null));
-            }
-            var nachPflicht = _freiAnzahl;
-            var kernUndRing = new HashSet<Lage> { Lage.Kern, Lage.Mauerring };
-            foreach (var (art, anzahl) in Reserve)
-            {
-                var gesetzt = Enumerable.Range(0, anzahl).Count(_ => Setzen(art, art == "Stadthof" ? kernUndRing : null));
-                bericht.Add($"Reserve {art}: {gesetzt} von {anzahl} passen");
-            }
-            var anteil = gesamt == 0 ? 0 : (int)Math.Round(100.0 * nachPflicht / gesamt, MidpointRounding.ToEven);
-            bericht.Add($"Frei nach der Pflicht: {nachPflicht} Felder ({anteil}%), nach der Reserve: {_freiAnzahl} Felder");
-            return new Kapazitaet(befunde, bericht, _gesetzt, _r);
-        }
     }
 }
+
+/// <summary>
+/// Das Raster der Stadt-Bauzonen einer Kapazitätsprüfung (unveränderlich, damit der <see cref="Abstandsvorrat"/> es weitergeben kann): die Zonen, aus
+/// denen es entstand (Lage, „nur Werkstatt“, Ecken, Raster), das umschließende Rechteck in Feldern und je Feld Lage, „nur Werkstatt“ und die
+/// Nummern aller Zonenfelder.
+/// </summary>
+internal sealed class Zonenraster
+{
+    private readonly double _raster;
+    private readonly IReadOnlyList<(Lage Art, bool NurWerkstatt, Kartenort[] Ecken)> _zonen;
+
+    public Zonenraster(double raster, IReadOnlyList<(Lage Art, bool NurWerkstatt, Kartenort[] Ecken)> zonen, int i0, int j0, int breite, int hoehe,
+        Lage?[] zone, bool[] nurWerkstatt, int[] felder) =>
+        (_raster, _zonen, I0, J0, Breite, Hoehe, Zone, NurWerkstatt, Felder) = (raster, zonen, i0, j0, breite, hoehe, zone, nurWerkstatt, felder);
+
+    public int I0 { get; }
+    public int J0 { get; }
+    public int Breite { get; }
+    public int Hoehe { get; }
+    public Lage?[] Zone { get; }
+    public bool[] NurWerkstatt { get; }
+    public int[] Felder { get; }
+
+    /// <summary>Entstünde aus diesen Zonen dasselbe Raster? (Gleiche Zonen in derselben Reihenfolge mit Zahl für Zahl gleichen Ecken.)</summary>
+    public bool Gleich(double raster, IReadOnlyList<(Lage Art, bool NurWerkstatt, Kartenort[] Ecken)> zonen) =>
+        raster == _raster && zonen.Count == _zonen.Count
+        && zonen.Zip(_zonen).All(p => p.First.Art == p.Second.Art && p.First.NurWerkstatt == p.Second.NurWerkstatt && p.First.Ecken.SequenceEqual(p.Second.Ecken));
+}
+
+/// <summary>Ein Weg, wie die Abstände der Kapazitätsprüfung ihn nahmen: der Weg selbst (als Objekt), sein Verlauf (unveränderliche Liste) und ob er Karren trägt.</summary>
+internal sealed record Wegstand(EntwurfWeg Weg, IReadOnlyList<Kartenort> Verlauf, bool Karren)
+{
+    /// <summary>Das Rechteck um den Verlauf (jede Strecke liegt darin); null ohne Punkte.</summary>
+    public Wegrahmen? Rahmen { get; } = Verlauf.Count == 0 ? null
+        : new Wegrahmen(Verlauf.Min(p => p.X), Verlauf.Min(p => p.Z), Verlauf.Max(p => p.X), Verlauf.Max(p => p.Z));
+}
+
+/// <summary>Ein achsparalleles Rechteck um den Verlauf eines Weges (Meter).</summary>
+internal readonly record struct Wegrahmen(double X0, double Z0, double X1, double Z1);
+
+/// <summary>
+/// Was die Kapazitätsprüfung für den nächsten Lauf auf demselben Entwurf aufhebt: das Raster der Stadt-Bauzonen und je Feld den Abstand zur nächsten
+/// Karrenstraße und zum nächsten Weg, dazu die Wege, mit denen sie gerechnet wurden (9.11.2026, Kartenwerkstatt: ein neuer Weg rechnete vorher alle
+/// 8.000 Felder Kölns neu).
+///
+/// Warum ein Block seinen Wert behalten darf: <see cref="Streckenfaecher.Naechste"/> gibt je Feld den kürzesten Abstand zu einer Strecke, höchstens
+/// <see cref="Streckenfaecher.Reichweite"/> – und eine Strecke, deren Rahmen weiter als die Reichweite (plus <c>Spiel</c>) vom Rechteck der Felder eines
+/// Blocks liegt, nimmt er nie in die Auswahl und rechnet mit ihr keine Grenze (sie fällt bei <c>mindestens &gt; oben + Spiel</c> heraus, und
+/// <c>oben</c> ist nie größer als die Reichweite). Für so einen Block ist es gleich, ob es die Strecke gibt. Ändert sich ein Weg, rechnet die Prüfung
+/// darum nur die Blöcke neu, die das Rechteck um seinen alten oder neuen Verlauf auf <see cref="Streckenfaecher.Reichweite"/> + 1 m erreicht; die
+/// anderen Strecken behalten ihre Reihenfolge (ein Weg kommt dazu, fällt weg oder ändert sich an seiner Stelle), und mit ihnen ändert sich nichts.
+/// Haben sich die Bauzonen geändert, rechnet sie alles neu. Der Test <c>KapazitaetInHaeppchenTests</c> vergleicht die Abstände Zahl für Zahl mit einer
+/// Rechnung ohne Vorrat.
+/// </summary>
+internal sealed class Abstandsvorrat
+{
+    public Abstandsvorrat(Zonenraster zonen, IReadOnlyList<Wegstand> wege, double[] karren, double[] alle) => (Zonen, Wege, Karren, Alle) = (zonen, wege, karren, alle);
+
+    public Zonenraster Zonen { get; }
+    public IReadOnlyList<Wegstand> Wege { get; }
+
+    /// <summary>Je Feld des Rasters der Abstand zur nächsten Karrenstraße bzw. zum nächsten Weg (wird nach dem Anlegen nicht mehr verändert).</summary>
+    public double[] Karren { get; }
+
+    public double[] Alle { get; }
+
+    /// <summary>Bis zu dieser Entfernung (Meter) vom Rechteck eines geänderten Weges rechnet ein Block neu: die Reichweite und 1 m Sicherheit.</summary>
+    public const double Umkreis = Streckenfaecher.Reichweite + 1;
+
+    /// <summary>
+    /// Die Rechtecke der Wege, die sich seit diesem Vorrat geändert haben (alter und neuer Verlauf; neu, gelöscht, verschoben, andere Klasse), getrennt
+    /// für die Karrenstraßen und alle Wege. Verglichen wird je Weg (als Objekt): gleicher Verlauf Punkt für Punkt und gleiche Klasse heißt unverändert.
+    /// </summary>
+    public (List<Wegrahmen> Karren, List<Wegrahmen> Alle) Geaendert(IReadOnlyList<Wegstand> neu)
+    {
+        var (karren, alle) = (new List<Wegrahmen>(), new List<Wegrahmen>());
+        void Dazu(Wegstand s)
+        {
+            if (s.Rahmen is not { } r) return;
+            alle.Add(r);
+            if (s.Karren) karren.Add(r);
+        }
+        // nur zum Nachschlagen (die Reihenfolge der Rechtecke zählt nicht: gefragt wird nur, ob eins einen Block erreicht)
+        var vorher = new Dictionary<EntwurfWeg, Wegstand>(ReferenceEqualityComparer.Instance);
+        foreach (var w in Wege) vorher[w.Weg] = w;
+        var jetzt = new HashSet<EntwurfWeg>(ReferenceEqualityComparer.Instance);
+        foreach (var w in neu)
+        {
+            jetzt.Add(w.Weg);
+            if (vorher.TryGetValue(w.Weg, out var a))
+            {
+                if (a.Karren == w.Karren && (ReferenceEquals(a.Verlauf, w.Verlauf) || a.Verlauf.SequenceEqual(w.Verlauf))) continue;
+                Dazu(a);
+            }
+            Dazu(w);
+        }
+        foreach (var a in Wege)
+            if (!jetzt.Contains(a.Weg)) Dazu(a);
+        return (karren, alle);
+    }
+
+    /// <summary>
+    /// Erreicht eines der <paramref name="rahmen"/> (null: alle) das Rechteck um die ersten <paramref name="anzahl"/> Punkte auf <see cref="Umkreis"/>
+    /// Meter?
+    /// </summary>
+    public static bool Erreicht(List<Wegrahmen>? rahmen, Kartenort[] punkte, int anzahl)
+    {
+        if (rahmen is null) return true;
+        if (rahmen.Count == 0) return false;
+        var (x0, x1, z0, z1) = (double.MaxValue, double.MinValue, double.MaxValue, double.MinValue);
+        for (var p = 0; p < anzahl; p++)
+            (x0, x1, z0, z1) = (Math.Min(x0, punkte[p].X), Math.Max(x1, punkte[p].X), Math.Min(z0, punkte[p].Z), Math.Max(z1, punkte[p].Z));
+        foreach (var r in rahmen)
+        {
+            var dx = Math.Max(0, Math.Max(r.X0 - x1, x0 - r.X1));
+            var dz = Math.Max(0, Math.Max(r.Z0 - z1, z0 - r.Z1));
+            if (dx * dx + dz * dz <= Umkreis * Umkreis) return true;
+        }
+        return false;
+    }
+}
+
 
 /// <summary>
 /// Die Strecken der Wege in Fächern zu 8 × 8 m, damit der nächste Weg eines Feldes nur unter den Strecken in der Nähe gesucht wird (Köln:
@@ -380,12 +616,12 @@ internal sealed class Streckenfaecher
     private int _anzahl;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public Streckenfaecher(IEnumerable<EntwurfWeg> wege)
+    public Streckenfaecher(IEnumerable<IReadOnlyList<Kartenort>> linien)
     {
         var strecken = new List<(Kartenort A, Kartenort B)>();
-        foreach (var w in wege)
-            for (var i = 0; i + 1 < w.Verlauf.Count; i++)
-                strecken.Add((w.Verlauf[i], w.Verlauf[i + 1]));
+        foreach (var l in linien)
+            for (var i = 0; i + 1 < l.Count; i++)
+                strecken.Add((l[i], l[i + 1]));
         var anzahl = strecken.Count;
         (_a, _b) = (new Kartenort[anzahl], new Kartenort[anzahl]);
         (_x0, _x1, _z0, _z1) = (new double[anzahl], new double[anzahl], new double[anzahl], new double[anzahl]);

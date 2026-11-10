@@ -55,6 +55,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 import innenausbau as ia  # noqa: E402  (Böden, Putz, Ruß, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import schmied  # noqa: E402  (Kohlehaufen wie außen)
 
 NAME = "schmied_innen"
@@ -711,6 +712,10 @@ def bauen():
     grosser_blasebalg(teil("Einrichtung_Blasebalg"), st, rahmen(ESSE_X, WY1, 180))
     loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-1.88, 2.88, 0)))
     schuerzen(teil("Einrichtung_Schuerzen"), st)
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.schleifstein(teil("Einrichtung_Schleifstein"), st, pe.rahmen(0.10, -3.25, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke"), st, pe.rahmen(2.00, 2.70, 180, Z_LAGER), "Schmied", 1.7)
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube"), st, pe.rahmen(-0.84, -2.70, 0, Z_LAGER))
 
     # ── Stufen (kumulativ): Boden, Ausstattung ────────────────────────────────
     M_fein = rahmen(WX1, -2.5, 90)
@@ -780,7 +785,7 @@ def bauen():
               raum_l: [decke_l.objekt(), kran.objekt(), himmel.objekt(), o_schlot2]}
     for name, netz in teile.items():
         o = netz.objekt()
-        im_lager = name in ("Bedienung_Lager_Regal", "Bedienung_Lager_Kisten", "Einrichtung_Regale", "Tuer_Lager_Werk")
+        im_lager = name in ("Bedienung_Lager_Regal", "Bedienung_Lager_Kisten", "Einrichtung_Regale", "Tuer_Lager_Werk", "Einrichtung_Lehrlingsstube", "Einrichtung_Ladentheke")
         kinder[raum_l if im_lager else raum_w].append(o)
         if name.startswith("Einrichtung_"):
             bs.zustand(o)

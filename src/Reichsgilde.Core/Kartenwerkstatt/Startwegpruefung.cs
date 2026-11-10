@@ -38,38 +38,53 @@ public static class Startwegpruefung
     public static IReadOnlyList<Startweg> Rechnen(Kartenentwurf entwurf)
     {
         if (entwurf.Startnetz() is not var (karte, netz)) return Array.Empty<Startweg>();
-        return Rechnen(karte, netz, entwurf.Start.AlsStartbelegung(), PlatzImEntwurf(entwurf), nurHofstellen: false);
+        var liste = new List<Startweg>();
+        foreach (var _ in Schritte(entwurf, karte, netz, liste)) { }
+        return liste;
     }
 
-    /// <summary>Die Plätze so, wie sie jetzt im Entwurf stehen (das gespeicherte Netz kennt nur Wege, Wasser und Marktplätze).</summary>
-    private static Func<string, Kartengebaeude?> PlatzImEntwurf(Kartenentwurf entwurf) => kennung => entwurf.GebaeudeMit(kennung) is { } g
-        ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
-        : null;
+    /// <summary>
+    /// Die Startwege des Entwurfs auf seinem Netz (<see cref="Kartenentwurf.Startnetz"/>) in Häppchen: ein Weg je Element, in derselben Reihenfolge wie
+    /// <see cref="Rechnen(Kartenentwurf)"/>, in <paramref name="liste"/>.
+    /// </summary>
+    internal static IEnumerable<int> Schritte(Kartenentwurf entwurf, Stadtkarte karte, Karrennetz netz, List<Startweg> liste)
+    {
+        // die Plätze so, wie sie jetzt im Entwurf stehen (das gespeicherte Netz kennt nur Wege, Wasser und Marktplätze)
+        Kartengebaeude? Platz(string kennung) => entwurf.GebaeudeMit(kennung) is { } g
+            ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
+            : null;
+        return Schritte(karte, netz, entwurf.Start.AlsStartbelegung(), Platz, liste, nurHofstellen: false);
+    }
 
     /// <summary>Wie oben für eine geladene Karte.</summary>
-    public static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte) =>
-        karte.Start is { } start && karte.Marktplaetze.Count > 0
-            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, nurHofstellen: false)
-            : Array.Empty<Startweg>();
+    public static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte)
+    {
+        if (karte.Start is not { } start || karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
+        var liste = new List<Startweg>();
+        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste, nurHofstellen: false)) { }
+        return liste;
+    }
 
     /// <summary>
     /// Nur die Werkstätten der Start-Hofstellen (Wer = Kennung der Hofstelle) – für die Wahl im Startmenü (<see cref="Hofstellenvergabe.Angebot"/>).
     /// Leer ohne Hofstellen oder ohne Marktplatz.
     /// </summary>
-    public static IReadOnlyList<Startweg> Hofstellen(Stadtkarte karte) =>
-        karte.Start is { } start && karte.HatHofstellen && karte.Marktplaetze.Count > 0
-            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, nurHofstellen: true)
-            : Array.Empty<Startweg>();
+    public static IReadOnlyList<Startweg> Hofstellen(Stadtkarte karte)
+    {
+        if (karte.Start is not { } start || !karte.HatHofstellen || karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
+        var liste = new List<Startweg>();
+        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste, nurHofstellen: true)) { }
+        return liste;
+    }
 
     /// <summary>
     /// Mit Hofstellen (seit 09.11.2026) gilt die Fairness für jede Start-Hofstelle, nicht nur für die Plätze der Startbelegung: Gemessen werden die
     /// Werkstätten aller Start-Hofstellen (Wer = „Hofstelle S3“) und die Umlandbetriebe der KI-Häuser; ohne Hofstellen wie bisher die Werkstatt des
     /// Spielers und jeder Betrieb der KI-Häuser.
     /// </summary>
-    private static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, bool nurHofstellen)
+    private static IEnumerable<int> Schritte(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, List<Startweg> liste, bool nurHofstellen)
     {
-        if (karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
-        var liste = new List<Startweg>();
+        if (karte.Marktplaetze.Count == 0) yield break;
         void Messen(string wer, string kennung, Betriebsart? art)
         {
             if (platzMit(kennung) is not { Baustein: not null } g) return; // fehlt der Platz, meldet das die Startbelegung
@@ -84,19 +99,29 @@ public static class Startwegpruefung
         var hofstellen = (start.Hofstellen ?? new List<Hofstelle>()).Where(h => h.Start).ToList();
         if (hofstellen.Count > 0)
         {
-            foreach (var h in hofstellen) Messen(nurHofstellen ? h.Kennung : $"Hofstelle {h.Kennung}", h.Werkstatt, null);
-            if (nurHofstellen) return liste;
+            foreach (var h in hofstellen)
+            {
+                Messen(nurHofstellen ? h.Kennung : $"Hofstelle {h.Kennung}", h.Werkstatt, null);
+                yield return 0;
+            }
+            if (nurHofstellen) yield break;
             foreach (var h in start.Haeuser)
                 foreach (var b in h.Betriebe.Where(b => platzMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb }))
+                {
                     Messen(h.Name, b.Platz, b.Art);
-            return liste;
+                    yield return 0;
+                }
+            yield break;
         }
-        if (nurHofstellen) return liste;
+        if (nurHofstellen) yield break;
         Messen("Spieler", start.Spieler.Werkstatt.Platz, null);
+        yield return 0;
         foreach (var h in start.Haeuser)
             foreach (var b in h.Betriebe)
+            {
                 Messen(h.Name, b.Platz, b.Art);
-        return liste;
+                yield return 0;
+            }
     }
 
     /// <summary>
