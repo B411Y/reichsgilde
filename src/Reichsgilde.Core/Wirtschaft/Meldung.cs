@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Geheimnisse;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde.Core.Wirtschaft;
@@ -82,6 +83,13 @@ public sealed record Meldung(Meldungsart Art, string Text)
 
     /// <summary>Nur für das betroffene Haus bestimmt (Nachrichten der Unterwelt an ihren Auftraggeber) – andere sollen sie nicht lesen.</summary>
     public bool Vertraulich { get; init; }
+
+    /// <summary>
+    /// Worum es geht, wenn die Meldung von einem Geheimnis handelt (Teil 3c: entstanden, entdeckt, erpresst, angezeigt, bloßgestellt, verurteilt) –
+    /// für das Siegel der Art in Meldung und Brief. Nennt eine Meldung mehrere Geheimnisse verschiedener Art, bleibt es null; ebenso, wo nur
+    /// bekannt wird, dass es ein Geheimnis gibt (der öffentliche Satz zum Erpresserbrief).
+    /// </summary>
+    public Geheimnisart? GeheimnisArt { get; init; }
 
     /// <summary>Das Spieljahr der Meldung.</summary>
     public int Jahr => new Spielzeit(Minute).Jahr;

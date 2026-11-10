@@ -435,7 +435,7 @@ public sealed class Stadtgericht
         var beweise = Beweise(anklaeger, beklagter).Count();
         _w.Melden(Meldungsart.Anklage, $"{anklaeger.Inhaber} zeigt {beklagter.Inhaber} an: {worum}" +
                   (beweise > 0 ? $", dazu {beweise} {(beweise == 1 ? "Beweis" : "Beweise")} ({VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))})" : "") +
-                  $". Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.", haus: beklagter);
+                  $". Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.", haus: beklagter, geheimnis: art);
         return Befehlsergebnis.Ok($"Anzeige gegen {beklagter.Inhaber} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(r => r.Name))}.");
     }
 
@@ -476,7 +476,7 @@ public sealed class Stadtgericht
         {
             if (!v.Beklagter.IstAktiv || !v.Anklaeger.IstAktiv)
             {
-                Eintrag($"Gerichtstag {jahr}: Das Verfahren {v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wird eingestellt.");
+                Eintrag($"Gerichtstag {jahr}: Das Verfahren {v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wird eingestellt.", geheimnis: v.GeheimnisArt);
                 continue;
             }
             var beweise = Beweise(v.Anklaeger, v.Beklagter).ToList();
@@ -531,7 +531,7 @@ public sealed class Stadtgericht
                 text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} wird freigesprochen ({zaehlung}). " +
                        $"{v.Anklaeger.Inhaber} zahlt {Zahlenformat.Ganz(entschaedigung)} {waehrung} Entschädigung.";
             }
-            Eintrag(text);
+            Eintrag(text, geheimnis: v.GeheimnisArt); // ein angezeigtes Geheimnis: Siegel seiner Art
             _letzteUrteile.Add(new Urteil(v.Anklaeger, v.Beklagter, schuldig, stimmen.Count(s => s.Schuldig), text));
 
             // Niemand wird zweimal für dieselbe Tat angeklagt: verhandelte Spuren sind erledigt.
@@ -559,7 +559,8 @@ public sealed class Stadtgericht
             Eintrag($"Der Spitzel von {auftraggeber.Inhaber} berichtet über {ziel.Inhaber}: " +
                     (gefunden == 0 ? "nichts Neues" : $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}") +
                     $" (insgesamt {gesamt})" + (geheim.Count == 0 ? "."
-                        : $". Dazu {(geheim.Count == 1 ? "ein Geheimnis" : $"{geheim.Count} Geheimnisse")} – {string.Join("; ", geheim)}."), fuer: auftraggeber);
+                        : $". Dazu {(geheim.Count == 1 ? "ein Geheimnis" : $"{geheim.Count} Geheimnisse")} – {string.Join("; ", geheim.Select(_w.Geheimnisse.Text))}."),
+                fuer: auftraggeber, geheimnis: Geheimnisse.Geheimniswesen.EineArt(geheim));
         }
         _spitzel.Clear();
         _w.Geheimnisse.RatsspitzelBerichten(Eintrag); // Spitzel auf Ratsherren (Teil 3c): nur Geheimnisse
@@ -595,10 +596,11 @@ public sealed class Stadtgericht
     internal void Freilassen(Konto konto) => _kerkerBis.Remove(konto);
 
     /// <param name="fuer">Spitzelbericht und Gerüchte: nur für dieses Haus bestimmt (vertraulich).</param>
-    private void Eintrag(string text, Konto? fuer = null)
+    /// <param name="geheimnis">Handelt der Eintrag von einem Geheimnis (Urteil nach einer Anzeige, Spitzelbericht): seine Art für das Siegel der Meldung.</param>
+    private void Eintrag(string text, Konto? fuer = null, Geheimnisse.Geheimnisart? geheimnis = null)
     {
         _letzterGerichtstag.Add(text);
-        _w.Melden(Meldungsart.Sonstiges, text, haus: fuer, vertraulich: fuer is not null);
+        _w.Melden(Meldungsart.Sonstiges, text, haus: fuer, vertraulich: fuer is not null, geheimnis: geheimnis);
     }
 
     private void SpurenEntfernen(Func<Spur, bool> bedingung)

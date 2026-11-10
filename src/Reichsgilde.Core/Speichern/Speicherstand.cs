@@ -109,6 +109,10 @@ public sealed record MeldungStand
 
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool Vertraulich { get; init; }
+
+    /// <summary>Die Art des Geheimnisses, von dem die Meldung handelt (Siegel). Fehlt sonst – und in Spielständen von davor.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart? GeheimnisArt { get; init; }
 }
 
 public sealed record WirtschaftStand
@@ -695,6 +699,10 @@ public sealed record ForderungStand
     /// <summary>Ein Brief mit einem Geheimnis statt Beweisen (Teil 3c): seine Nummer. Fehlt sonst.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public int? Geheimnis { get; init; }
+
+    /// <summary>Und seine Art (Siegel des Briefes). Fehlt sonst – und in Spielständen von davor (dann nennt sie das Geheimnis selbst, solange es besteht).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart? GeheimnisArt { get; init; }
 }
 
 public sealed record NachtereignisStand

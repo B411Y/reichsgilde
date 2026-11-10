@@ -254,6 +254,12 @@ public partial class BerichtAnzeige : PanelContainer
             _verlaufListe.AddChild(zeile);
             var punkt = new Punkt { Farbe = Color.FromHtml(Meldungseinstellungen.Ordnung.Thema(m.Art.Thema).Farbe), CustomMinimumSize = new Vector2(10, 18), Hohl = m.Stufe == Meldestufe.Verlauf };
             zeile.AddChild(punkt);
+            // Meldung über ein Geheimnis: das kleine Siegel seiner Art vor der Zeile (ohne Datei bleibt nur der Text)
+            if (CharakterAnzeige.GeheimnisSiegelBild(m.Kern?.GeheimnisArt, 22, m.Kern?.GeheimnisArt is { } ga ? $"Ein Geheimnis – {ga}" : "") is { } siegel)
+            {
+                siegel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+                zeile.AddChild(siegel);
+            }
             var text = Hauptmenue.Text(zeile, $"{m.Jahr} · {m.Zeit}  {m.Text}", 13, m.Warnung ? Rot : m.Bezug == Betroffenheit.Fremd ? Grau : null, umbruchBreite: Breite - 24);
             text.TooltipText = $"{m.Art.Name} · " + m.Stufe switch
             {
