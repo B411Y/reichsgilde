@@ -1,6 +1,6 @@
 # Herkunft: Probe-Passanten mit Skelett (Weg A)
 
-`passant_probe.glb` (Männer), `passant_probe_frau.glb` (Frauen), `passant_probe_ork.glb` und `passant_probe_oger.glb` (Orks und Oger, nur Männer) entstehen mit `tools/modelle/passanten_probe.py` in Blender (ohne
+`passant_probe.glb` (Männer), `passant_probe_frau.glb` (Frauen), `passant_probe_ork.glb` und `passant_probe_oger.glb` (Orks und Oger, nur Männer) sowie `passant_probe_zwerg.glb`, `_zwergin`, `_elb`, `_elbin`, `_halbling` und `_halblingin` (Zwerge, Elben, Halblinge, Männer und Frauen) entstehen mit `tools/modelle/passanten_probe.py` in Blender (ohne
 Bildschirm). Nur für die Probe: Das Spiel zeigt die Figuren nur mit der Startoption `--passantenprobe` (`game/scripts/Stadtansicht.Passantenprobe.cs`).
 
 | Teil | Quelle | Lizenz | Bezug |
@@ -8,6 +8,8 @@ Bildschirm). Nur für die Probe: Das Spiel zeigt die Figuren nur mit der Startop
 | Körper (MakeHuman-Grundnetz, Formziele Mann/Frau, Rockhelfer) | MPFB 2.0.18, MakeHuman Community | CC0 1.0 (Assets); MPFB-Code GPL-3.0, nur als Werkzeug benutzt, die Ausgabe gehört dem Nutzer (`LICENSE.md` von MPFB, Abschnitt D) | https://github.com/makehumancommunity/mpfb2 (Tag v2.0.18) |
 | Vorlage für Körperform, Hände und Kleidung (Mann, Frau, Ork, Oger; 09.11.2026) | Bilder des Nutzers, mit Gemini erzeugt (Prompt unbekannt); nur als Vorlage benutzt, nicht im Repository | – | – |
 | Formen der Orks und Oger (Formziele für Schultern, Rumpf, Nacken, Arme, Kiefer, Brauen, Nase, Bauch, Kopfgröße) | MPFB 2.0.18, MakeHuman Community | CC0 1.0 (Assets) | wie oben |
+| Proportionen der Zwerge, Elben und Halblinge (Formziele für Beinlänge, Schultern, Rumpf, Hals, Hände, Ohren, Kopf, Wangen, Bauch) | MPFB 2.0.18, MakeHuman Community | CC0 1.0 (Assets) | wie oben |
+| Bärte der Zwerge, langes Haar der Elben, offenes Haar der Elbinnen | eigenes Skript | Alle Rechte vorbehalten (`LICENSE-INHALTE.md`) | `tools/modelle/passanten_probe.py` |
 | Skelett und Gewichte | Rig „game_engine“ aus MPFB 2.0.18 | CC0 1.0 | wie oben |
 | Stehen, Gehen, Reden, Sitzen, Kauern (daraus „Betteln“ mit eigener Armhaltung) | Quaternius, Universal Animation Library [Standard]: `Idle_Loop`, `Walk_Loop`, `Idle_Talking_Loop`, `Sitting_Idle_Loop`, `Crouch_Idle_Loop` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library |
 | Tragen, Hacken, Bücken | Quaternius, Universal Animation Library 2 [Standard]: `Walk_Carry_Loop`, `TreeChopping_Loop`, `Farm_Harvest` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library-2 |

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 
 namespace Reichsgilde;
 
@@ -27,7 +28,9 @@ public partial class Stadtansicht
     /// Hüfthöhe (Kopf des Oberschenkelknochens), Meter je Sekunde, die „Gehen“ und „Tragen“ bei Takt 1 schaffen (Standfuß: so rutschen die Füße
     /// nicht), Höhe des Gesäßes über den Sohlen beim Sitzen.
     /// </summary>
-    private sealed record ProbeArtDaten(string Datei, string[] Varianten, float Huefte, float GehTempo, float TragTempo, float Sitzhoehe);
+    /// <param name="Hoehe">Höhe des Modells (Scheitel) in Metern; bei den Völkern ab Art 4 setzt das Spiel den Maßstab = Körpergröße ÷ Hoehe (0 = Menschenmaß, Maßstab aus <see cref="FigurMasse"/>).</param>
+    /// <param name="Schritt">Zusatzfaktor auf Tempo und Takt (kleine Völker gehen kürzere, schnellere Schritte als ihre Beinlänge allein ergäbe).</param>
+    private sealed record ProbeArtDaten(string Datei, string[] Varianten, float Huefte, float GehTempo, float TragTempo, float Sitzhoehe, float Hoehe = 0, float Schritt = 1);
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
@@ -37,13 +40,59 @@ public partial class Stadtansicht
         // der Oger in Sackleinen (ocker)
         new("figuren/probe/passant_probe_ork", new[] { "wams" }, 0.920f, 1.213f, 0.854f, 0.439f),
         new("figuren/probe/passant_probe_oger", new[] { "sack" }, 0.952f, 1.258f, 0.886f, 0.449f),
+        // Zwerge, Elben, Halblinge (Völker-Passanten): Maße aus dem Bericht von passanten_probe.py (hoehe_m, huefte_m, Tempo, Sitzhöhe)
+        new("figuren/probe/passant_probe_zwerg", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.841f, 0.922f, 0.634f, 0.371f, 1.573f),
+        new("figuren/probe/passant_probe_zwergin", new[] { "haube", "gebende", "bettler" }, 0.756f, 0.804f, 0.556f, 0.307f, 1.479f),
+        new("figuren/probe/passant_probe_elb", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.977f, 1.462f, 1.028f, 0.496f, 1.826f, 1.1f),
+        new("figuren/probe/passant_probe_elbin", new[] { "haube", "gebende", "bettler", "offen" }, 0.839f, 1.220f, 0.848f, 0.445f, 1.635f, 1.08f),
+        new("figuren/probe/passant_probe_halbling", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.881f, 1.009f, 0.697f, 0.373f, 1.675f),
+        new("figuren/probe/passant_probe_halblingin", new[] { "haube", "gebende", "bettler" }, 0.781f, 0.850f, 0.601f, 0.313f, 1.532f),
     };
+
+    /// <summary>Körpergröße in Metern (Mitte der Spanne, je Figur ±5 cm gestreut): Zwerg 1,30–1,40, Elb 1,80–1,90, Halbling 1,05–1,15; Frauen 5 % kleiner.</summary>
+    private static float ProbeKoerpergroesse(Volk volk, bool frau, int nummer)
+    {
+        var mitte = volk switch { Volk.Zwerg => 1.35f, Volk.Elb => 1.85f, _ => 1.10f };
+        var streu = ((Streuung(nummer, 307) & 0xFFFF) / 65535f - 0.5f) * 0.10f;
+        return (mitte + streu) * (frau ? FrauenGroesse : 1f);
+    }
+
+    /// <summary>Ist die Probefigur ein Zwerg, Elb oder Halbling (Art 4 bis 9, eigene Proportionen und Größe)?</summary>
+    private static bool ProbeKleinesVolk(int art) => art >= 4;
+
+    /// <summary>Erbgut der Passanten (fester Startwert aus Volk und Nummer, nichts im Spielstand): daraus Bartform und Bartwuchs.</summary>
+    private static readonly Dictionary<(Volk, int), Erbgut> _probeErbgut = new();
+    private static Erbgut ProbeErbgut(Volk volk, int nummer)
+    {
+        if (!_probeErbgut.TryGetValue((volk, nummer), out var e))
+            _probeErbgut[(volk, nummer)] = e = Erbgut.Wuerfeln(Erbgutvorlage.Standard, 7000 + nummer, volk);
+        return e;
+    }
+
+    /// <summary>
+    /// Bartnetz nach Erbgut (<c>SichtbarerWert("bartwuchs", Geschlecht)</c>, Form aus „bartform“) – nur Zwerge. Männer: Vollbart, geflochten mit einem Zopf
+    /// oder zwei Zöpfen (je ein Drittel der Form). Zwerginnen: meist bartlos (Wert unter 120), ab 120 ein kurzer Bart, ab 180 (selten) geflochten
+    /// – so die Vorgabe des Nutzers; das Spielbuch (erbgut.md) schreibt den Zwerginnen noch häufiger einen Bart zu.
+    /// </summary>
+    private static string? ProbeBartnetzFuer(FigurAussehen a, int nummer)
+    {
+        if (a.Volk != Volk.Zwerg) return null;
+        var gene = ProbeErbgut(a.Volk, nummer);
+        var wuchs = gene.SichtbarerWert("bartwuchs", a.Frau ? Geschlecht.Frau : Geschlecht.Mann);
+        if (a.Frau) return wuchs >= 180 ? "bartzopf" : wuchs >= 120 ? "bartkurz" : null;
+        return (gene.SichtbarerWert("bartform") * 3 / 256) switch { 0 => "bart", 1 => "bartzopf", _ => "bartgabel" };
+    }
 
     /// <summary>Datei der Probe nach Volk und Geschlecht: Orks und Oger haben eigene Dateien (auch Frauen nehmen sie: es gibt nur Männer).</summary>
     /// <summary>Netze der Ork- und Oger-Dateien, die nie gezeigt werden (die Dateien enthalten alle Netze des gemeinsamen Bauskripts).</summary>
     private static readonly HashSet<string> ProbeUnfreiOhne = new(StringComparer.Ordinal) { "Fuss_halb", "Fuss_holz", "Zub_stroh", "Zub_barett", "Zub_eisenhut" };
 
-    private static int ProbeArtVon(FigurAussehen a) => a.Volk switch { Volk.Ork => 2, Volk.Oger => 3, _ => a.Frau ? 1 : 0 };
+    private static int ProbeArtVon(FigurAussehen a) => a.Volk switch
+    {
+        Volk.Ork => 2, Volk.Oger => 3,
+        Volk.Zwerg => a.Frau ? 5 : 4, Volk.Elb => a.Frau ? 7 : 6, Volk.Halbling => a.Frau ? 9 : 8,
+        _ => a.Frau ? 1 : 0,
+    };
 
     /// <summary>Lederwams und Sackleinen der Orks und Oger (sRGB): Leder braun, Sackleinen ungefärbt.</summary>
     private static readonly Color[] ProbeLeder = { new(0.34f, 0.24f, 0.15f), new(0.28f, 0.20f, 0.13f), new(0.40f, 0.30f, 0.19f), new(0.22f, 0.17f, 0.12f) };
@@ -74,6 +123,9 @@ public partial class Stadtansicht
     /// steht eine Messzeile im Protokoll.</summary>
     private static readonly bool ProbeErsetztAlle = ProbeOption is not null && ProbeAktiv;
     private static readonly int ProbeMessfigurenZahl = int.TryParse(ProbeOption, out var n) && n > 1 ? n : 0;
+    private static readonly Volk? ProbeVolkErzwingen = Enum.TryParse<Volk>(Wasserarten.Startoption("passantenvolk"), true, out var erzwungenesVolk) ? erzwungenesVolk : null;
+    private static readonly string? ProbeVoelkerMischen = Wasserarten.Startoption("passantenvoelker");
+    private static readonly bool ProbeFrauenErzwingen = Wasserarten.Startoption("passantenfrau") == "1";
     private static readonly string ProbeStufe = Wasserarten.Startoption("probestufe") ?? "auto";
     /// <summary><c>--probeklip=&lt;Clip&gt;</c>: alle Messfiguren mit diesem Clip (z. B. Buecken, Kauern, Betteln), zum Ansehen einzelner Bewegungen.</summary>
     private static readonly string? ProbeKlipOption = Wasserarten.Startoption("probeklip");
@@ -146,18 +198,30 @@ public partial class Stadtansicht
     /// </summary>
     private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null)
     {
+        // Zum Ansehen: --passantenvolk=<Zwerg|Elb|Halbling|Mensch|Ork|Oger> macht alle Passanten zu diesem Volk, --passantenfrau=1 alle zu Frauen
+        if (ProbeVolkErzwingen is { } erzwungen) aussehen = aussehen with { Volk = erzwungen };
+        if (ProbeFrauenErzwingen) aussehen = aussehen with { Frau = true };
         var art = ProbeArtVon(aussehen);
         var daten = ProbeArten[art];
-        var unfrei = art >= 2; // Orks und Oger
+        var unfrei = art is 2 or 3; // Orks und Oger
         if (Modell(daten.Datei) is not { } szene) return null;
         var bettler = rolle == "Bettler";
         var variante = Array.IndexOf(daten.Varianten, bettler ? "bettler"
             : !aussehen.Frau && rolle == "Mönch" ? "kutte" : !aussehen.Frau && rolle == "Ratsherr" ? "rock" : "");
         if (variante < 0) variante = unfrei ? 0 : ProbeVarianteFuer(aussehen, nummer);
+        // Elbinnen tragen das Haar oft offen (statt Haube), wenn nichts auf dem Kopf sitzt
+        if (art == 7 && daten.Varianten[variante] == "haube" && aussehen.Kopf == Kopfbedeckung.Keine && Streuung(nummer, 311) % 2 == 0)
+            variante = Array.IndexOf(daten.Varianten, "offen");
         var fuss = unfrei ? 2 : ProbeFussFuer(rolle, nummer); // Orks und Oger barfuß
         var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
+        if (ProbeBartnetzFuer(aussehen, nummer) is { } bartnetz) zubehoer = zubehoer.Append(bartnetz).ToArray();
+        // Elben: langes Haar fällt über den Rücken, wo nichts die Haare verdeckt (Kappe der Männer, offene Haare der Elbinnen)
+        if (aussehen.Volk == Volk.Elb && daten.Varianten[variante] is "cotte" or "rock" or "bettler" && !aussehen.Frau || aussehen.Volk == Volk.Elb && daten.Varianten[variante] == "offen")
+            zubehoer = zubehoer.Append("langhaar").ToArray();
         // Bart bzw. Stoppeln (Vorlage 09.11.): zwei von drei Männern, nicht bei Mönchen – Zone 6 der Gesichtshaut in Haarfarbe statt Haut
-        var bart = art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0;
+        var bart = art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0
+            || art == 4 // Zwerge: immer Bartzone auf den Wangen (unter dem Bartnetz)
+            || art == 8 && ProbeErbgut(aussehen.Volk, nummer).SichtbarerWert("bartwuchs", Geschlecht.Mann) >= 55; // Halblinge: nur mit kräftigem Wuchs Stoppeln
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
         var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
         // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
@@ -171,11 +235,14 @@ public partial class Stadtansicht
                 : aussehen.Frau && daten.Varianten[variante] is "haube" or "bettler" ? ProbeHauben[Streuung(nummer, 227) % ProbeHauben.Length]
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
-            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
+            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeKleinesVolk(art) ? Haarfarben(aussehen.Volk)[Streuung(nummer, 239) % Haarfarben(aussehen.Volk).Length]
+                : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
         };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
         // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
         var massstab = huefte / 0.92f * groesse.Y;
+        // Zwerge, Elben, Halblinge: eigenes Modell mit eigenen Proportionen, der Maßstab bringt es auf die Körpergröße des Volks
+        if (ProbeKleinesVolk(art)) massstab = ProbeKoerpergroesse(aussehen.Volk, aussehen.Frau, nummer) / daten.Hoehe;
         var modell = szene.Instantiate<Node3D>();
         modell.Scale = Vector3.One * massstab;
         eltern.AddChild(modell);
@@ -188,7 +255,7 @@ public partial class Stadtansicht
         {
             Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler,
             ProbeRuecklast = zubehoer.Contains("kiepe") || zubehoer.Contains("buendel"),
-            Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
+            Beinfaktor = daten.Huefte / 0.92f * massstab * daten.Schritt, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
         if (bart)
@@ -899,13 +966,13 @@ public partial class Stadtansicht
             && float.TryParse(blick[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var bx)
             && float.TryParse(blick[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var bz))
             mitte = new Vector3(bx, 0, bz);
-        var seite = (int)Math.Ceiling(Math.Sqrt(ProbeMessfigurenZahl));
+        var seite = ProbeVoelkerMischen == "reihe" ? 4 : (int)Math.Ceiling(Math.Sqrt(ProbeMessfigurenZahl)); // „reihe“: vier Spalten (Mensch, Zwerg, Elb, Halbling)
         for (var i = 0; i < ProbeMessfigurenZahl; i++)
         {
             var nummer = 900000 + i;
             var zeile = i / seite;
             var spalte = i % seite;
-            var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * 1.6f);
+            var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * (ProbeVoelkerMischen == "reihe" ? 2.4f : 1.6f));
             var art = ProbeKlipOption ?? (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
             var richtung = zeile % 2 == 0 ? Vector3.Right : Vector3.Left;
             // nicht ins Wasser, nicht in Gebäude, Stände und den Brunnen (NAS 09.11.: Messfiguren im Brunnenbecken am Heumarkt)
@@ -916,8 +983,12 @@ public partial class Stadtansicht
             _passantenEbene.AddChild(knoten);
             var aussehen = AussehenAusNummer(i * 4 + (i % 7 == 0 ? 1 : 0)); // meist Menschen, Farben gestreut
             var volk = i % 9 == 4 ? Volk.Ork : i % 23 == 5 ? Volk.Oger : Volk.Mensch; // meist Menschen, einige Orks und Oger
-            aussehen = aussehen with { Volk = volk, Frau = volk == Volk.Mensch && aussehen.Frau, Haut = HautVon(volk), Kopf = i % 3 == 0 ? Kopfbedeckung.Kapuze : aussehen.Kopf };
-            if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
+            // --passantenvoelker=1: bunte Mischung mit Zwergen, Elben und Halblingen (je ein Viertel); =reihe: je Spalte ein Volk (Mensch, Zwerg, Elb, Halbling) zum Größenvergleich
+            if (ProbeVoelkerMischen == "reihe") volk = (spalte % 4) switch { 1 => Volk.Zwerg, 2 => Volk.Elb, 3 => Volk.Halbling, _ => Volk.Mensch };
+            if (ProbeVoelkerMischen == "reihe") aussehen = aussehen with { Frau = zeile % 2 == 1 }; // gerade Reihen Männer, ungerade Frauen
+            else if (ProbeVoelkerMischen == "1") volk = (i % 8) switch { 0 or 1 => Volk.Zwerg, 2 or 3 => Volk.Elb, 4 or 5 => Volk.Halbling, _ => Volk.Mensch };
+            aussehen = aussehen with { Volk = volk, Frau = (volk is Volk.Mensch or Volk.Zwerg or Volk.Elb or Volk.Halbling) && aussehen.Frau || ProbeVoelkerMischen == "reihe" && zeile % 2 == 1, Haut = HautVon(volk), Kopf = i % 3 == 0 && ProbeVoelkerMischen != "reihe" ? Kopfbedeckung.Kapuze : aussehen.Kopf };
+            if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 && ProbeVoelkerMischen != "reihe" ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
             if (!_passantenSchatten) FigurSchatten(figur, false);
             var tempo = art == "Tragen" ? 0.9f : 1.3f;
             _probeMessfiguren.Add(new ProbeMessfigur(knoten, figur, anfang, richtung, Math.Max(strecke, 0.01f), tempo, art));
