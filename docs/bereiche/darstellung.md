@@ -884,6 +884,15 @@ Offen zu Himmel und Horizont:
 | „Haus Overstolz“ unter dem Rheinkran-Steg (Klicktest 9.11.) | Herkunft: der Klickkörper des Wohnhauses von Haus Overstolz (Platz 45,5 \| 69,4, Kai gegenüber dem Rheinkran), ein Quader 8 × 10 × 10 m um das ganze Haus. Der Strahl der Kamera (40° Neigung) streifte seine obere Ecke (über dem schrägen Dach) und traf den Quader, bevor er den Steg erreichte (Debugausgabe: Treffer bei 49,5 \| 10 \| 66,5). Jetzt umschließt der Körper eines Spielhauses nur den Grundriss des Modells (Umriss der Netze) und drei Viertel seiner Höhe; ohne Modell bleibt der Quader wie vorher. Alle Wohnhäuser der Spielhäuser sind betroffen (Auswahl und Beschriftung unverändert). Selbst entschieden. | 09.11.2026 |
 | Blitzhöhen (Kern) | `koelner_rathaus` 16, `stapelhaus` 14, `rheinkran` 6 stehen in `wirtschaft.json` (`blitz.hoehen`, Kern, Commit ca3a8a83, Test `BlitzKoelnTests`); Datenversion bleibt (nur neue Schlüssel für Stücke dieses Branchs). Das Kölner Rathaus galt vorher als `rathaus` mit 22 m. | 09.11.2026 |
 
+### Private GameDev.tv-Texturen (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Lizenz und Ablage | Die gekauften Terrain Layer Textures (GameDev.tv General Asset License 2.0: Nutzung im Spiel ja, einzelne Dateien weitergeben nein) bleiben außerhalb von Git. Im Repo nur der Rahmen: `tools/assets/privat_bauen.py` (aufbereiten), `privat_holen.py` (nach `game/assets/privat/`, `.gitignore`, SHA-256 gegen `docs/assets/privat_manifest.json`), `PrivateTexturen.cs` (Laufzeitwahl), Protokollzeile Herkunft „privat“, Eintrag „GameDev.tv“ in der Danksagung | 10.11.2026 |
+| Rückfall | Fehlen die Dateien, gelten ohne Fehler die eigenen Texturen (ein Hinweis im Log); CI und öffentliches Repo laufen so | 10.11.2026 |
+| Einbau | Boden-Atlas (1024, 11 Schichten) mit Fels = Rock 1, Erde = Soil 1, Kies = Ground 1, Schlamm = Soil 2 (Helligkeit auf die alte Schicht abgeglichen, AO mild eingerechnet); Fels-Struktur des Fels-Shaders aus Rock 2 (Neigung auf die Stärke der alten Struktur gebracht); Schneedecke des Bodens mit Snow_1 (Farbe, Normale, Rauheit, zwei Maßstäbe). | 10.11.2026 |
+| Wiese (Grasses 1) | Nur Struktur: Schicht 0 des Atlas behält ihre Farbe; die Helligkeit der privaten Albedo (mit AO, Stärke 0,55) wirkt als Muster darauf, danach wird der Mittelwert je Kanal auf den der alten Schicht gezogen (alt 0,3234 \| 0,395 \| 0,2354, neu gleich; im Bild des Spiels aus jedem siebten Bildpunkt gemessen Abweichung unter 0,3 von 255). Damit bleibt die Farbe der Halme (`WiesenFarbe` in `Stadtansicht.Gras.cs` liest den Mittelwert der Schicht 0) und die Jahreszeit (Herbst, Schnee) wie bisher. Normale (nie stärker als die alte), Rauheit (Mittel wie bisher) und Höhe sind privat. Die weiteren Fassungen (1a, 2, 2a, 3, 3a) liegen nur im privaten Speicher (`sets/grasses_1/albedo_*.webp`); das Spiel nimmt sie nicht | 10.11.2026 |
+| Gewässergrund | bleibt offen: Der Boden hat keine Eckenfarben; Kies und Schlamm wirken nun nur, wo der Boden sie malt (Ufer, Wege) | 10.11.2026 |
 ### Werkstatt: Weganlegen ohne Ruckler (Branch phase5/wege-ruckler)
 
 | Thema | Entscheidung | Datum |

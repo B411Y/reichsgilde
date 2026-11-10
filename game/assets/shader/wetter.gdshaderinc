@@ -167,7 +167,7 @@ vec2 tropfringe(vec2 p, float zeit, float px) {
 // Stärke) für die nasse Tropfkante (traufe_nass), ohne Traufe (9, 0).
 // Die Nässe an einem Ort ist die größere aus Wetter und Tropfkante (max, nicht Summe): An der Traufe ist der Boden so nass, wie er bei Regen
 // höchstens wird, dazu durchnässt (satt): dunkler und gesättigter, matt glänzend, mit kleinen Pfützen in Fugen und Mulden – mit fester Obergrenze, nie schwarz.
-void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, float wiese, int stufe, float zeit, vec2 traufe, float land) {
+void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, float wiese, int stufe, float zeit, vec2 traufe, float land, vec4 sch_f, vec3 sch_n) {
 	float px = max(fwidth(wp.x), fwidth(wp.y));   // Meter je Bildpunkt, vor jeder Verzweigung (Ableitungen brauchen alle Nachbarpunkte)
 	bool ringe = stufe >= 2;
 	float tk = traufe_nass(wp, traufe);
@@ -255,10 +255,14 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		float matsch = aufweg * d * (1.0 - deck);
 		bf = mix(bf, bf * vec3(0.58, 0.55, 0.52), matsch * 0.75);
 		rau = mix(rau, 0.45, matsch);
-		vec3 weiss = vec3(0.66, 0.68, 0.73) * (0.94 + 0.06 * (1.0 - tiefe)) * mix(1.0, 0.86, stadt);
+		vec3 weiss = vec3(0.66, 0.68, 0.73);
+		// sch_f.a > 0: Schneetextur (die privaten Texturen, boden.gdshaderinc): Farbe und Rauheit daraus, ihre Neigung (sch_n.xy, Welt x/z) auf dem Licht
+		if (sch_f.a > 0.5) weiss = sch_f.rgb * vec3(0.70, 0.72, 0.77);
+		weiss *= (0.94 + 0.06 * (1.0 - tiefe)) * mix(1.0, 0.86, stadt);
 		bf = mix(bf, weiss, deck);
-		rau = mix(rau, 0.7, deck);
+		rau = mix(rau, sch_f.a > 0.5 ? sch_n.z : 0.7, deck);
 		nw = normalize(mix(nw, n, deck * 0.7));
+		if (sch_f.a > 0.5) nw = normalize(nw + vec3(sch_n.x, 0.0, sch_n.y) * deck);
 	}
 }
 

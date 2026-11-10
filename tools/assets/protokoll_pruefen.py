@@ -39,7 +39,9 @@ SPALTEN = ["pfad_muster", "anzahl", "art", "herkunft", "werkzeug", "modell_versi
            "commit_pr", "nachbearbeitung", "bedingungen_werkzeug", "lizenz_ergebnis", "spieler_sieht", "bemerkung"]
 FREIWILLIG = {"bemerkung"}
 ARTEN = {"Bild", "Modell", "Textur", "Shader", "Schrift", "Audio", "Text"}
-HERKUENFTE = {"KI", "Nutzer", "gemischt", "Fremdpaket", "eigenes Skript", "unbekannt"}
+HERKUENFTE = {"KI", "Nutzer", "gemischt", "Fremdpaket", "eigenes Skript", "unbekannt", "privat"}
+# „privat“: gekaufte Texturen (GameDev.tv, Lizenz verbietet die Weitergabe einzelner Dateien) liegen nur in game/assets/privat/, von Git ignoriert
+# (tools/assets/privat_holen.py). Die Zeile beschreibt sie, trifft im öffentlichen Repository aber keine Datei; Muster und „anzahl“ werden nicht geprüft.
 KI_HERKUENFTE = {"KI", "gemischt"}
 
 # Hier muss jede Datei einen Eintrag haben. Die KI-Quellen unter tools/ (Bilder, Stimmvorlage) stehen im Repository,
@@ -70,6 +72,8 @@ def dateien_im_repository():
 
 
 def ausgenommen(pfad):
+    if pfad.startswith("game/assets/privat/"):
+        return True   # private Dateien sind keine Repo-Assets (siehe HERKUENFTE „privat“)
     name = pfad.rsplit("/", 1)[-1]
     return name in AUSGENOMMEN_NAME or name.endswith(AUSGENOMMEN_ENDUNG)
 
@@ -205,6 +209,8 @@ def zuordnen(zeilen, dateien, fehler):
     for zeile in zeilen:
         nummer = zeile["_nummer"]
         ort = f"Zeile {nummer} ({zeile['pfad_muster']})"
+        if zeile["herkunft"] == "privat":
+            continue
         if not erfasst[nummer]:
             if roh[nummer]:
                 fehler.append(f"{ort}: alle {roh[nummer]} Treffer sind von späteren Zeilen überdeckt")

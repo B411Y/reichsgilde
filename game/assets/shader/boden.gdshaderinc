@@ -46,6 +46,11 @@ uniform sampler2D wege_info : filter_linear, repeat_disable;
 uniform sampler2D wege_spur : filter_linear_mipmap, repeat_disable;
 // Welt-X/Z der Kachelecke
 uniform vec2 wege_ursprung = vec2(0.0);
+// Schneetextur (Snow_1 der privaten GameDev.tv-Texturen, Stadtansicht.Boden.cs setzt sie nur, wenn die Dateien da sind): RGB Farbe, A Höhe; Normale und Rauheit (RG, B)
+uniform sampler2D schnee_fh : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D schnee_nr : filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool schnee_privat = false;
+uniform float schnee_massstab = 3.0;
 // Grasteppich an (Schritt 5i, Stadtansicht.Gras.cs): Die Wiese darunter wird in seinen Horsten dunkler (Schatten der Halme)
 uniform float teppich = 0.0;
 
@@ -938,7 +943,21 @@ void fragment() {
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen), Tropfkante und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe, clamp(land, 0.0, 1.0));
+	// Schneetextur (nur mit den privaten Texturen, schnee_privat; sonst bleibt sch_f.a = 0 und der Schnee wie bisher): zwei Maßstäbe übereinander gegen Wiederholung
+	vec4 sch_f = vec4(0.0);
+	vec3 sch_n = vec3(0.0);
+	if (schnee_privat && wetter_schnee > 0.001) {
+		vec2 sch_u1 = welt / schnee_massstab;
+		vec2 sch_u2 = welt / (schnee_massstab * 2.71) + vec2(0.31, 0.57);
+		vec4 sch_a1 = texture(schnee_fh, sch_u1);
+		vec4 sch_a2 = texture(schnee_fh, sch_u2);
+		vec4 sch_b1 = texture(schnee_nr, sch_u1);
+		vec4 sch_b2 = texture(schnee_nr, sch_u2);
+		sch_f = vec4(mix(sch_a1.rgb, sch_a2.rgb, 0.4), 1.0);
+		vec2 sch_xy = mix(sch_b1.rg, sch_b2.rg, 0.4) * 2.0 - 1.0;
+		sch_n = vec3(sch_xy.x * 0.5, -sch_xy.y * 0.5, mix(sch_b1.b, sch_b2.b, 0.4));
+	}
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe, clamp(land, 0.0, 1.0), sch_f, sch_n);
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);

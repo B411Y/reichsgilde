@@ -24,7 +24,10 @@ public static class Gesteinsarten
     public const string Pfad = "res://daten/gestein.json";
     public const string ShaderHoch = "res://assets/shader/fels.gdshader";
     public const string ShaderNiedrig = "res://assets/shader/fels_niedrig.gdshader";
-    public const string StrukturPfad = "res://assets/texturen/fels/fels_struktur.png";
+    public const string StrukturEigen = "res://assets/texturen/fels/fels_struktur.png";
+
+    /// <summary>Die Struktur: mit den privaten Texturen (<see cref="PrivateTexturen"/>, Rock 2) deren Fassung, sonst die eigene.</summary>
+    public static string StrukturPfad => PrivateTexturen.Waehle("fels/fels_struktur.png", StrukturEigen);
     public const string AtlasNormalPfad = "res://assets/texturen/felsen/felsen_normal.webp";
     public const string AtlasHoehlungPfad = "res://assets/texturen/felsen/felsen_hoehlung.webp";
 
