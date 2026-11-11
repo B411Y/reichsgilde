@@ -1058,6 +1058,9 @@ public static class Kartenpruefung
                     HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Kippen {M(f.KippenX)} oder Rollen {M(f.KippenZ)} liegt außerhalb von −180 bis 180°.", f.Punkt, new[] { f });
                 if (new[] { f.AchseX, f.AchseY, f.AchseZ }.Any(a => a < Felsformen.AchseMin || a > Felsformen.AchseMax))
                     HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Achsen {M(f.AchseX)} × {M(f.AchseY)} × {M(f.AchseZ)} – jede gehört zwischen 0,25 und 4.", f.Punkt, new[] { f });
+                // P5 (Offen aus kern.md): ein von Hand falsch langes „achsen“ fiel bisher still weg – die Vorlage des Eintrags kennt den Rohwert
+                if (f.Vorlage?["achsen"] is { } roh && (roh is not System.Text.Json.Nodes.JsonArray a || a.Count != 3))
+                    HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: „achsen“ braucht drei Zahlen (Breite, Höhe, Tiefe) – es gilt 1 × 1 × 1, beim Speichern fällt der Eintrag weg.", f.Punkt, new[] { f });
                 if (Math.Abs(f.Versatz) > Felsformen.VersatzMax)
                     HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Versatz {M(f.Versatz)} m liegt außerhalb von ±20 m.", f.Punkt, new[] { f });
                 if (!_grenzen.InDerKarte(f.X, f.Z)) HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt} liegt außerhalb der Karte.", f.Punkt, new[] { f });

@@ -52,7 +52,10 @@ internal sealed class GelaendeAendern : IKartenbefehl
 
 public sealed partial class Kartenentwurf
 {
-    /// <summary>Das gespeicherte Höhenraster (Feld <c>hoehen</c>). Nur lesen – ändern über die Pinsel.</summary>
+    /// <summary>
+    /// Das wirksame Höhenraster: ohne Stücke mit eigenem Hang das gespeicherte (Feld <c>hoehen</c>), sonst die Grundhöhe mit der Hang-Schicht
+    /// (P4a, <see cref="Grundhoehen"/>, Kartenentwurf.Felsschicht.cs). Nur lesen – ändern über die Pinsel.
+    /// </summary>
     public Hoehenraster Hoehen => _hoehen;
 
     /// <summary>
@@ -91,7 +94,7 @@ public sealed partial class Kartenentwurf
     public void GelaendeStrichBeginnen(Pinsel pinsel)
     {
         GelaendeStrichBeenden();
-        _strich = Gelaendepinsel.Beginnen(_hoehen, pinsel, Kartengrenzen.Aussen, _boden);
+        _strich = Gelaendepinsel.Beginnen(Grundraster, pinsel, Kartengrenzen.Aussen, _boden); // P4a: die Werkzeuge formen die Grundhöhe
     }
 
     /// <summary>
@@ -105,7 +108,7 @@ public sealed partial class Kartenentwurf
         var bereich = strich.Weiter(p);
         if (bereich is { } b)
         {
-            GelaendeGeaendert(b);
+            GrundGeaendert(b);
             MeldungenAusloesen();
         }
         return bereich;
@@ -135,7 +138,7 @@ public sealed partial class Kartenentwurf
     public bool Rampe(Kartenort von, Kartenort nach, double breite, double kante = 4)
     {
         GelaendeStrichBeenden();
-        return Eintragen("Rampe angelegt", Gelaendepinsel.Rampe(_hoehen, von, nach, breite, kante, Kartengrenzen.Aussen));
+        return Eintragen("Rampe angelegt", Gelaendepinsel.Rampe(Grundraster, von, nach, breite, kante, Kartengrenzen.Aussen));
     }
 
     /// <summary>
@@ -147,7 +150,7 @@ public sealed partial class Kartenentwurf
     public Hoehenkartenbericht HoehenkarteEinlesen(ushort[] werte, Hoehenkartenlage lage)
     {
         GelaendeStrichBeenden();
-        var bericht = Hoehenkarte.Einlesen(_hoehen, werte, lage, Kartengrenzen.Aussen, out var aenderung);
+        var bericht = Hoehenkarte.Einlesen(Grundraster, werte, lage, Kartengrenzen.Aussen, out var aenderung);
         Eintragen("Höhenkarte eingelesen", aenderung);
         return bericht;
     }
@@ -157,7 +160,7 @@ public sealed partial class Kartenentwurf
     /// tiefste und höchste Höhe. <c>Begrenzt</c> zählt Punkte außerhalb von unten … oben.
     /// </summary>
     public (ushort[] Werte, Hoehenkartenlage Lage, int Begrenzt) HoehenkarteAusgeben(int? untenCm = null, int? obenCm = null) =>
-        Hoehenkarte.Ausgeben(_hoehen, Kartengrenzen.Aussen, untenCm, obenCm);
+        Hoehenkarte.Ausgeben(Grundraster, Kartengrenzen.Aussen, untenCm, obenCm); // P4a: die Grundhöhe (wieder eingelesen, gäbe es sonst den Hang doppelt)
 
     /// <summary>Eine Kachel, in der überall 0 steht (zum Vergleichen; nicht ändern).</summary>
     private static readonly short[] LeereKachel = new short[Hoehenraster.Kachel * Hoehenraster.Kachel];
@@ -186,8 +189,8 @@ public sealed partial class Kartenentwurf
     /// <summary>Setzt Kacheln des Rasters (für den Befehl) und meldet das Rechteck.</summary>
     internal void KachelnSetzen(IEnumerable<((int I, int J) Kachel, short[]? Werte)> kacheln, Kartenrechteck bereich)
     {
-        foreach (var (k, w) in kacheln) _hoehen.KachelSetzen(k, w);
-        GelaendeGeaendert(bereich);
+        foreach (var (k, w) in kacheln) Grundraster.KachelSetzen(k, w);
+        GrundGeaendert(bereich);
     }
 
     private void GelaendeGeaendert(Kartenrechteck bereich)

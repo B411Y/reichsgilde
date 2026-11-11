@@ -86,6 +86,8 @@ public partial class Kartenwerkstatt
             "wie „Reapply“ in Unreal; jeder Druck würfelt neu, ein Schritt für Strg+Z. Unter dem Pinsel geht es mit „Felsen neu verteilen“ (Gelände › Felsen)");
         Knopf(knoepfe, "Kopieren (Strg+D)", () => _stadt.FelsKopieren(), "Kopiert die gewählten Stücke an Ort und Stelle (ein Schritt für Strg+Z); danach sind die Kopien gewählt – mit dem Gizmo wegziehen");
         FelsWurfHaken(_eigenschaften); // was „Neu verteilen“ würfelt (Kartenwerkstatt.Felsen.cs)
+        FelsHangTafel(auswahl);
+        FelsGruppeTafel(auswahl); // P5: ablegen im Katalog, Gruppe wählen, verbinden, auflösen (Kartenwerkstatt.Felskatalog.cs)
 
         // Auswahl (P2): alle einer Art, umkehren, alle
         var wahl = new HFlowContainer();
@@ -101,6 +103,45 @@ public partial class Kartenwerkstatt
                                         + "Umschalt+Klick wählt mehrere, Ziehen ins Leere zieht einen Rahmen (mit Umschalt: dazu). Der Zug ist erst beim Loslassen ein Schritt für Strg+Z, Esc nimmt ihn zurück. "
                                         + "WASD schiebt die Kamera.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
+    }
+
+    /// <summary>
+    /// P4b: der Abschnitt „Hang“ für die gewählten Stücke – „Eigener Hang“ (Häkchen, an nur bei Wänden mit Hang), „Hebung ablösen“ (mit dem Hinweis aus
+    /// <see cref="Kartenentwurf.FelsHebungVorschau"/>) und die schwebenden Stücke.
+    /// </summary>
+    private void FelsHangTafel(List<EntwurfFels> auswahl)
+    {
+        var mitHang = auswahl.Where(s => Felsschicht.HatHang(s.Form)).ToList();
+        Hauptmenue.Text(_eigenschaften, "Hang", 15, Gold);
+        if (mitHang.Count == 0)
+        {
+            Hauptmenue.Text(_eigenschaften, "Diese Form formt keinen Hang (nur die Wände: Große Wand, Mittlere Wand, Pfeilerbündel).", 12, Grau, umbruchBreite: Rechtsbreite - 30);
+        }
+        else
+        {
+            var alle = mitHang.All(s => s.Hang);
+            var haken = new CheckBox { Text = mitHang.Count > 1 ? $"Eigener Hang ({mitHang.Count} Wände)" : "Eigener Hang", ButtonPressed = alle, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "An: Der Hang hinter der Wand gehört zum Stück als eigene Schicht – er wandert mit, wenn man die Wand verschiebt oder dreht, und verschwindet mit ihr. " +
+                              "Aus: Die Wand formt das Gelände nicht mehr (die Grundhöhe bleibt). Die Stücke bleiben dabei, wo sie stehen. Ein Schritt für Strg+Z. " +
+                              "Steht der Hang schon fest im Gelände (alte Wand), zuerst „Hebung ablösen“." };
+            haken.AddThemeFontSizeOverride("font_size", 14);
+            haken.Toggled += an =>
+            {
+                _stadt.FelsAuswahlHang(an);
+                EigenschaftenZeigen(neu: true);
+            };
+            _eigenschaften.AddChild(haken);
+            var hinweis = _stadt.FelsHebungText();
+            Knopf(_eigenschaften, "Hebung ablösen", () =>
+                {
+                    if (_stadt.FelsAuswahlHebungAbloesen()) EigenschaftenZeigen(neu: true);
+                },
+                "Für alte Wände, deren Hang fest im Gelände steht: nimmt diese Hebung aus dem Gelände und gibt den Wänden dafür den eigenen Hang – das Gelände sieht danach etwa aus wie vorher, " +
+                "folgt der Wand aber beim Verschieben und Löschen. Ein Schritt für Strg+Z. Wo der feste Hang das Gelände ganz überdeckte, ist die alte Höhe verloren: Sie wird aus dem Rand geschätzt, gesenkt wird nur." +
+                (hinweis is null ? "" : $"\n{hinweis}"));
+            if (hinweis is not null) Hauptmenue.Text(_eigenschaften, hinweis, 12, Grau, umbruchBreite: Rechtsbreite - 30);
+        }
+        FelsSchwebendeZeile(_eigenschaften);
     }
 
     /// <summary>Ein Zahlenfeld für einen Wert; die Änderung ruft <paramref name="setzen"/> (Befehl). Der Wert wird nicht noch einmal gesetzt, wenn er gleich ist.</summary>

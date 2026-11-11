@@ -37,6 +37,23 @@ public partial class Hauptszene
         else _charakter.Oeffnen(person);
     }
 
+    /// <summary>
+    /// <c>--stammbaum=&lt;stammbaum|chronik&gt;[:rivale|Hausnummer]</c>: öffnet das Familienbuch auf diesem Reiter, für das eigene Haus oder das erste andere Haus (<c>rivale</c>)
+    /// bzw. das Haus mit dieser Nummer in der Stadt (0 = das erste). Nach <c>--spulen</c>, damit mehrere Generationen da sind.
+    /// </summary>
+    private void StammbaumStartoption(string wert)
+    {
+        if (_simulation.Wirtschaft is not { } w) return;
+        var teile = wert.Split(':');
+        var reiter = teile[0] == "chronik" ? FamilienAnzeige.Reiter.Chronik : FamilienAnzeige.Reiter.Stammbaum;
+        Core.Wirtschaft.Konto? haus = null;
+        if (teile.Length > 1)
+            haus = teile[1] == "rivale" ? w.Konten.FirstOrDefault(k => k != _spieler && w.Familien.Von(k) is not null)
+                : int.TryParse(teile[1], out var nr) && nr >= 0 && nr < w.Konten.Count ? w.Konten[nr] : null;
+        TafelnSchliessen();
+        _familientafel.Oeffnen(reiter, haus);
+    }
+
     /// <summary>Startoption <c>--stress=</c>, wartet wie <c>--charakter=</c> bis nach dem Vorspulen.</summary>
     private string? _stressWartet;
 

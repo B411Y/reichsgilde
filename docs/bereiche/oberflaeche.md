@@ -496,3 +496,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - Kamera im Spielstand speichern (Kern: `Speicherstand.cs`), damit das Laden den letzten Blick wiederherstellt statt den Kartenblick.
 
+### Stammbaum und Hauschronik im Familienbuch (Branch phase5/stammbaum, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Reiter | Familienbuch (Taste F) mit den Reitern Familie / Stammbaum / Chronik; über Stammbaum und Chronik eine Hausreihe (Wappen, Name), alle Häuser der Stadt wählbar, auch erloschene und KI-Häuser. Der Reiter Familie bleibt das eigene Haus, wie bisher | 11.11.2026 |
+| Stammbaum | Raster aus Blockbreiten (Person plus Eingeheiratete), Eltern über der Mitte der Kinder; gezeichnet in einem Steuerelement (`Baumzeichnung`), nur Lebende mit echtem Porträt (52 px, ruhend), Verstorbene mit gezeichnetem Grabstein – das hält große Häuser flüssig. Verschieben, Mausrad-Zoom 0,3 bis 1,6, Einpassen, „Zum Oberhaupt“, Zweige einklappen. Klick öffnet das Charakterfenster (`PortraetAnzeige.PersonOeffnen`) | 11.11.2026 |
+| Kern-Ergänzung | `Familienbuch.Stammbaum` und `Familienbuch.Chronik` in `Familienbuch.Stammbaum.cs`: nur lesend, abgeleitet, kein Spielstand, keine Datenversion. Test `StammbaumTests` | 11.11.2026 |
+| Chronik | Zwei Quellen: Personen (Gründung, Geburt, Tod, Erbfolge – für immer) und `Meldungsverlauf` des Hauses (Hochzeit, Ämter, Stand, Meisterprüfung, Geheimnisse, Entscheidungen, Anklage, Feuer – nur die letzten 500 Meldungen). 25 Einträge je Seite mit Porträt | 11.11.2026 |
+| Herkunftswappen | Das Haus der Stadt mit dem Geburtsnamen, sonst `Wappen.AusName(Geburtsname)` (dasselbe Wappen wie überall) | 11.11.2026 |
+
+### Offen (von Oberfläche, Stammbaum)
+
+- Designfrage: Frühere Ehen ohne Kinder und die Jahre früherer Hochzeiten, Ämter, Geheimnisse gehen aus der Chronik verloren, sobald sie aus dem Verlauf (500 Meldungen) fallen. Empfehlung: eine kleine, dauerhafte Hauschronik im Kern (nur Hochzeit, Amt, Stand, Geheimnis entdeckt, Entscheidung mit Jahr und Person; wenige Dutzend Zeilen je Haus, eigener Abschnitt im Spielstand wie `Meldungen`, ohne Wirkung auf die Simulation). Das braucht kern (Spielstand), deshalb nicht in diesem PR.
+
