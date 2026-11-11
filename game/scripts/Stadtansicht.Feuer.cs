@@ -580,7 +580,9 @@ public partial class Stadtansicht
         public required long Start { get; init; }
         /// <summary>Bis zu dieser Spielminute schlagen Flammen aus dem Haus (nach einem Anschlag <see cref="BrennMinuten"/>, nach einem Blitzschlag so lange, wie der Kern sagt).</summary>
         public required long FlammenEnde { get; init; }
-        public List<Feuer> Feuer { get; } = new();
+        /// <summary>Der Brand am Haus (Flammen aus Fenstern und Dach, Brandflecken); null nur in alten Aufrufen.</summary>
+        public Gebaeudebrand? Haus { get; init; }
+        public string Phase { get; set; } = "";
         public bool Flammen { get; set; } = true;
     }
 
@@ -600,8 +602,9 @@ public partial class Stadtansicht
     private long FlammenEnde(long start) => BlitzUm(start) is { } e ? e.BrandEnde : start + BrennMinuten;
 
     /// <summary>
-    /// Zündet das Modell an: ein großes Feuer aus dem Dach (mit Licht und dicker Rauchsäule) und Flammen aus bis zu drei Fenstern, vorzugsweise vorn
-    /// und unten. Die Größe folgt der Grundfläche. Alles hängt an einem Knoten im Modell und geht mit ihm.
+    /// Zündet das Modell an (Auftrag „Feuer überall“): Flammen aus den Fenstern und aus dem Dach, Brandflecken und Glut auf dem Dach, Rauch, Funken und Licht;
+    /// der Ablauf (Anfang, Vollbrand, Ausklingen, Glut) folgt den Minuten des Kerns (<see cref="BraendeAktualisieren"/>, <see cref="BrandVerlauf"/>). Die Stellen findet
+    /// <c>Stadtansicht.Gebaeudebrand.cs</c> im Modell. Alles hängt an einem Knoten im Modell und geht mit ihm.
     /// </summary>
     private void BrandAnbringen(string kennung, ModellInstanz modell, long start)
     {
@@ -609,49 +612,16 @@ public partial class Stadtansicht
         if (_braende.TryGetValue(kennung, out var alt) && IsInstanceValid(alt.Wurzel) && alt.Wurzel.GetParent() == modell.Wurzel) return;
         var (min, max) = ModellUmriss(modell.Wurzel);
         if (min.X > max.X) return;
-        var (dachMin, dachMax) = ModellUmriss(modell.Wurzel, min.Y + (max.Y - min.Y) * 0.7f);
-        if (dachMin.X > dachMax.X) (dachMin, dachMax) = (min, max);
-        var wurzel = new Node3D { Name = "Brand" };
-        modell.Wurzel.AddChild(wurzel);
-        var brand = new Brand { Wurzel = wurzel, Start = start, FlammenEnde = FlammenEnde(start) };
-        // Blitzschlag: ein großes Feuer, das aus dem Dach schlägt (oben auf dem Dach, mehrere Herde, mehr Fenster); ein Anschlag bleibt kleiner
-        var blitz = BlitzUm(start) is not null;
-        // Über der Mitte des Dachs (der obere Teil des Modells, nicht der Hof), etwas unter dem First
-        var mitte = (dachMin + dachMax) * 0.5f;
-        var groesse = Mathf.Clamp(Mathf.Min(dachMax.X - dachMin.X, dachMax.Z - dachMin.Z) / 5f, 0.7f, 1.3f);
-        if (blitz) groesse = Mathf.Clamp(Mathf.Min(max.X - min.X, max.Z - min.Z) / 4f, 1.4f, 2.4f);
-        var dach = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, true, (Streuung(kennung.Sum(c => c), 41) & 0xFFFF) / 65535f, groesse);
-        dach.Aussen = true;
-        dach.Position = new Vector3(mitte.X, blitz ? DachHoeheBei(modell.Wurzel, mitte.X, mitte.Z, max.Y) - 0.6f : max.Y - Mathf.Min(2.4f, (max.Y - min.Y) * 0.3f), mitte.Z);
-        wurzel.AddChild(dach);
-        brand.Feuer.Add(dach);
-        if (blitz)
-        {
-            // zwei weitere Herde auf dem Hauptdach, längs der langen Seite, ohne Licht (eins genügt)
-            var lang = max.X - min.X >= max.Z - min.Z;
-            foreach (var t in new[] { 0.3f, 0.7f })
-            {
-                var x = lang ? Mathf.Lerp(min.X, max.X, t) : (min.X + max.X) / 2;
-                var z = lang ? (min.Z + max.Z) / 2 : Mathf.Lerp(min.Z, max.Z, t);
-                var herd = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, false, (Streuung((int)(t * 1000) + kennung.Length, 43) & 0xFFFF) / 65535f, groesse * 0.8f);
-                herd.Aussen = true;
-                herd.Position = new Vector3(x, DachHoeheBei(modell.Wurzel, x, z, max.Y) - 0.4f, z);
-                wurzel.AddChild(herd);
-                brand.Feuer.Add(herd);
-            }
-        }
-        foreach (var lage in BrandFenster(modell, blitz ? 6 : 3))
-        {
-            var f = Feuer.Neu(FeuerVorgabe.Fensterbrand, false, (Streuung((int)(lage.X * 100), (int)(lage.Z * 100)) & 0xFFFF) / 65535f, blitz ? 1.4f : 1f);
-            f.Aussen = true;
-            f.Position = lage;
-            wurzel.AddChild(f);
-            brand.Feuer.Add(f);
-        }
+        var blitz = BlitzUm(start) is not null; // Blitzschlag: mehr Fenster und Herde, größere Flammen
+        var saat = kennung.Aggregate(17, (h, c) => h * 31 + c);
+        var fenster = FensterAnkerSuchen(modell, blitz ? 9 : 5, saat);
+        var dach = DachAnkerSuchen(modell, blitz ? 10 : 7, saat, blitz ? 1.35f : 1f);
+        var haus = Gebaeudebrand.Bauen(fenster, dach, saat);
+        modell.Wurzel.AddChild(haus);
+        var brand = new Brand { Wurzel = haus, Start = start, FlammenEnde = FlammenEnde(start), Haus = haus };
         _braende[kennung] = brand;
-        GD.Print($"[feuer] Brand: {kennung} ab Spielminute {start} ({brand.Feuer.Count - 1} Fenster)");
+        GD.Print($"[feuer] Brand: {kennung} ab Spielminute {start} ({haus.Fenster} Fenster, {haus.Daecher} Dachstellen; Dach: {string.Join(", ", dach.Select(d => $"y {d.Punkt.Y:0.0} Neigung {Mathf.RadToDeg(Mathf.Acos(Mathf.Clamp(d.Normale.Normalized().Y, -1f, 1f))):0}°"))})");
     }
-
     /// <summary>Die Höhe der obersten Fläche des Modells (lokal) über der Stelle (x, z), gesucht in 2 m Umkreis; sonst <paramref name="sonst"/>.</summary>
     private static float DachHoeheBei(Node3D modell, float x, float z, float sonst)
     {
@@ -701,28 +671,6 @@ public partial class Stadtansicht
         return (min, max);
     }
 
-    /// <summary>
-    /// Bis zu <paramref name="anzahl"/> Fenster für Flammen: je Scheibe die Mitte und die Richtung nach außen (aus den Fensterflächen des Modells, die
-    /// <see cref="ModellEinsetzen"/> gemerkt hat). Bevorzugt die Vorderseite (+Z) und die unteren Geschosse, mindestens 2,5 m auseinander. Der Fuß der
-    /// Flamme liegt etwas vor der Scheibe und unter ihrer Mitte.
-    /// </summary>
-    private static List<Vector3> BrandFenster(ModellInstanz modell, int anzahl)
-    {
-        var scheiben = new List<Bauteil>();
-        foreach (var (teil, flaeche) in modell.Fenster)
-            if (teil.IsVisibleInTree() && teil.Mesh is { } netz)
-                scheiben.AddRange(Bauteile(netz, flaeche, LageUnter(modell.Wurzel, teil)).Where(b => b.Groesse.Y > 0.3f && Mathf.Abs(b.Normale.Y) < 0.5f));
-        var gewaehlt = new List<Vector3>();
-        foreach (var s in scheiben.OrderByDescending(s => s.Normale.Z > 0.6f).ThenBy(s => s.Mitte.Y).ThenBy(s => s.Mitte.X))
-        {
-            var lage = s.Mitte + s.Normale * 0.12f + new Vector3(0, -s.Groesse.Y * 0.3f, 0);
-            if (gewaehlt.Any(g => g.DistanceTo(lage) < 2.5f)) continue;
-            gewaehlt.Add(lage);
-            if (gewaehlt.Count >= anzahl) break;
-        }
-        return gewaehlt;
-    }
-
     private static ShaderMaterial? _russSchicht;
     private readonly Dictionary<BaseMaterial3D, Material> _russStoffe = new();
 
@@ -735,14 +683,38 @@ public partial class Stadtansicht
         if (_russStoffe.TryGetValue(stoff, out var fertig)) return fertig;
         _russSchicht ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/russ.gdshader"), RenderPriority = 1 };
         var kopie = (BaseMaterial3D)stoff.Duplicate();
-        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, 0.8f);
+        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, 0.3f);
         kopie.NextPass = _russSchicht;
         return _russStoffe[stoff] = kopie;
+    }
+
+    /// <summary>Mit <c>RG_DACHSTOFF=1</c>: schreibt je Dachfläche Name, Art, Shader, Override, Nächste Schicht und Werte ins Protokoll (Gegenprobe zu Dachstreifen).</summary>
+    private static void DachStoffLogen(ModellInstanz modell, string wann)
+    {
+        foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (teil.Mesh is not { } netz) continue;
+            for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            {
+                if (netz.SurfaceGetMaterial(i) is not BaseMaterial3D stoff || !Dachstoffe.Contains(stoff.ResourceName)) continue;
+                var over = teil.GetSurfaceOverrideMaterial(i);
+                var aktiv = over ?? stoff;
+                string Beschr(Material? m) => m switch
+                {
+                    null => "-",
+                    ShaderMaterial sm => $"Shader {sm.Shader?.ResourceName ?? sm.Shader?.ResourcePath}",
+                    BaseMaterial3D b => $"{b.GetType().Name} Albedo {b.AlbedoColor} rauh {b.Roughness:0.00} metall {b.Metallic:0.00} Textur {(b.AlbedoTexture is null ? "-" : "ja")} Nächste {Beschr(b.NextPass)}",
+                    _ => m.GetType().Name,
+                };
+                GD.Print($"[dachstoff] {modell.Wurzel.Name}/{teil.Name} Fläche {i} '{stoff.ResourceName}' ({wann}): Vorlage {Beschr(stoff)}; Override {Beschr(over)}; Aktiv {Beschr(aktiv)}; Teil Override-Material {Beschr(teil.MaterialOverride)}");
+            }
+        }
     }
 
     /// <summary>Färbt das Dach eines Werkstattmodells rußig (nach einem Brand, bis die Reparatur fertig ist) oder gibt ihm seine Farbe zurück.</summary>
     private void DachRussSetzen(ModellInstanz modell, bool russ)
     {
+        if (OS.GetEnvironment("RG_DACHSTOFF") == "1") DachStoffLogen(modell, russ ? "vor dem Ruß" : "vor dem Abnehmen des Ruß");
         foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
@@ -788,7 +760,10 @@ public partial class Stadtansicht
         return bis - dauer;
     }
 
-    /// <summary>Jedes Bild: Flammen aus, wenn die Brennzeit um ist (dann schwelt es und der Rauch wird dünner), und weg, wenn alles vorbei ist.</summary>
+    /// <summary>
+    /// Jedes Bild: Der Brand rückt in seiner Phase vor (<see cref="BrandVerlauf"/>: Anfang, Vollbrand, Ausklingen, Glut aus den Minuten des Kerns); ist alles
+    /// vorbei (Brennzeit + Schwelzeit) oder das Modell neu gebaut, ist der Knoten weg.
+    /// </summary>
     private void BraendeAktualisieren(long jetzt, double bruchteil)
     {
         if (_braende.Count == 0) return;
@@ -802,16 +777,14 @@ public partial class Stadtansicht
                 (fertig ??= new()).Add(kennung);
                 continue;
             }
-            var flammen = t < brennMinuten;
-            if (flammen != brand.Flammen)
+            var stand = BrandVerlauf.Rechnen(t, brennMinuten, GlimmMinuten);
+            if (stand.Phase != brand.Phase)
             {
-                brand.Flammen = flammen;
-                foreach (var f in brand.Feuer) f.FlammeAn = flammen;
+                brand.Phase = stand.Phase;
+                GD.Print($"[feuer] Brand {kennung}: {stand.Phase} (Spielminute {jetzt}, Flamme {stand.Flamme:0.00}, Glut {stand.Glut:0.00})");
             }
-            // Ausbruch: der Rauch quillt in den ersten Minuten auf; Schwelen: er wird dünner
-            var rauch = t < 4f ? Mathf.Clamp(t / 4f, 0.05f, 1f) : flammen ? 1f : 1f - 0.85f * (t - brennMinuten) / GlimmMinuten;
-            foreach (var f in brand.Feuer)
-                if (Mathf.Abs(f.RauchStaerke - rauch) > 0.01f) f.RauchStaerke = rauch;
+            brand.Flammen = stand.Flamme > 0.02f;
+            brand.Haus?.Setzen(stand);
         }
         if (fertig is null) return;
         foreach (var kennung in fertig)
@@ -821,7 +794,6 @@ public partial class Stadtansicht
             _braende.Remove(kennung);
         }
     }
-
     // ═════════════════════════════════════════════════════════════════════════
     //  Innenräume: Kerzen und Esse
     // ═════════════════════════════════════════════════════════════════════════

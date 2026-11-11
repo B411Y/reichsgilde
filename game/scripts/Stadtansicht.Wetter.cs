@@ -350,6 +350,7 @@ public partial class Stadtansicht
         WetterGlobal("wetter_dach", _schneeDecke);
         WetterGlobal("wetter_flaechen", draussen ? 1 : 0);
         WetterGlobal("wetter_wind", _wetter.Wind);
+        Feuer.Regen = draussen ? _wetter.Regen : 0f; // Brände löschen bei Regen nicht, aber kleiner und mit mehr Dampf (Gebaeudebrand.cs)
         Kaminrauch.Wind = _wetter.Wind;   // der Rauch der Schornsteine führt den Windverlauf selbst (Kaminrauch.cs)
         WetterGlobal("wellen_seegang", _seegang, 0.0005f);
         // Fahnen: 0,2 + 1,2 · Wind ergibt bei leichtem Wind (0,25) den Grundwert 0,5; mehr als 1,1 ließe sie zu wild schlagen
