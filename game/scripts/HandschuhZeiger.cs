@@ -331,7 +331,7 @@ public partial class HandschuhZeiger : CanvasLayer
         if (clip == "Tippen") return (float)HandschuhModell.TippenTempo;
         if (clip.Contains("Bereit") || clip.Contains("Winken")) return 1f;
         // Übergänge in die Ziehen-Faust und zurück: feste Wunschdauer, Tempo = Cliplänge / Dauer
-        if (clip.Contains("Greifen") && !clip.Contains("Text") && Laenge(clip) is var l and > 0) return (float)(l / HandschuhModell.FaustUebergangSekunden);
+        if (clip.StartsWith("Uebergang_") && clip.Contains("Greifen") && !clip.Contains("Text") && Laenge(clip) is var l and > 0) return (float)(l / HandschuhModell.FaustUebergangSekunden);
         return (float)HandschuhModell.UebergangTempo;
     }
 
