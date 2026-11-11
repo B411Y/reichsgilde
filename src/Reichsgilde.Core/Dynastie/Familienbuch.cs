@@ -376,8 +376,10 @@ public sealed partial class Familienbuch
     /// <param name="vorname">Ohne Angabe ein zufälliger Name des Volkes.</param>
     /// <param name="glaube">Ohne Angabe der Startglaube des Volkes.</param>
     /// <param name="aussehen">Ohne Angabe gewürfelt (<see cref="Aussehenspalette.Verboten"/> sagt, was passt).</param>
+    /// <param name="zuege">Die Persönlichkeitszüge des Oberhaupts, schon gewürfelt (Neue Partie: <see cref="Partie.Partiebesetzung.SpielerZuege"/>,
+    /// „Züge neu würfeln“); ohne Angabe gewürfelt wie bei jedem Erwachsenen. Angeborene Züge werden immer gewürfelt.</param>
     public Familie Gruenden(Konto konto, Volk volk, Geschlecht geschlecht, string? vorname = null, int? alter = null, Konfession? glaube = null,
-        Aussehen? aussehen = null)
+        Aussehen? aussehen = null, IReadOnlyList<Charakterzug>? zuege = null)
     {
         if (aussehen is { } a && Aussehenspalette.Verboten(volk, a) is { } unpassend)
             throw new ArgumentException(unpassend, nameof(aussehen));
@@ -398,7 +400,10 @@ public sealed partial class Familienbuch
         if (aussehen is { } gewaehlt) oberhaupt.Aussehen = gewaehlt;
         ErbgutWuerfeln(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
-        ZuegeFuerErwachsenen(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
+        if (zuege is null)
+            ZuegeFuerErwachsenen(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
+        else
+            ZuegeVorgeben(oberhaupt, zuege);
         var familie = new Familie(konto, volk, nachname, oberhaupt);
         _familien[konto] = familie;
         KandidatenAuffuellen();

@@ -804,6 +804,8 @@ public static class Kartenpruefung
             Kartenort? Ort(string? k) => k is null ? null : _e.GebaeudeMit(k)?.Punkt;
             string[] Betroffen(params string?[] k) => k.OfType<string>().Where(x => _e.GebaeudeMit(x) is not null).ToArray();
             void HofFehler(string text, params string?[] plaetze) => FehlerAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
+            void HofHinweisOhneVorgabe(string text, params string?[] plaetze) =>
+                HinweisAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
 
             foreach (var h in s.Hofstellen)
             {
@@ -817,6 +819,21 @@ public static class Kartenpruefung
                 HofFehler($"Hofstellen: Die Kennung „{doppelt.Key}“ ist doppelt.", doppelt.First().Werkstatt);
             foreach (var doppelt in s.Hofstellen.SelectMany(h => new[] { h.Werkstatt, h.Wohnhaus }).GroupBy(p => p).Where(x => x.Count() > 1))
                 HofFehler($"Hofstellen: Der Platz „{doppelt.Key}“ gehört zu mehreren Hofstellen.", doppelt.Key);
+
+            // Nummerierte Höfe (11.11.2026): Hof 1 bis 8, jede Nummer einmal, ohne Lücke ab 1 (Hof n bekommt Spieler n)
+            var nummeriert = s.Hofstellen.Where(h => h.Nummer is not null).ToList();
+            if (nummeriert.Count > 0)
+            {
+                foreach (var h in nummeriert.Where(h => h.Nummer is < 1 or > Partiebesetzung.HoechstensHoefe))
+                    HofFehler($"Hofstelle {h.Kennung}: Höfe sind von 1 bis {Partiebesetzung.HoechstensHoefe} nummeriert, nicht {h.Nummer}.", h.Werkstatt);
+                foreach (var doppelt in nummeriert.GroupBy(h => h.Nummer).Where(x => x.Count() > 1))
+                    HofFehler($"Hofstellen: Hof {doppelt.Key} gibt es mehrmals ({string.Join(", ", doppelt.Select(h => h.Kennung))}).", doppelt.First().Werkstatt);
+                var nummern = nummeriert.Select(h => h.Nummer!.Value).Where(n => n is >= 1 and <= Partiebesetzung.HoechstensHoefe).Distinct().ToList();
+                for (var n = 1; n <= nummern.DefaultIfEmpty(0).Max(); n++)
+                    if (!nummern.Contains(n)) HofFehler($"Hofstellen: Hof {n} fehlt – die Höfe sind ohne Lücke ab 1 nummeriert.");
+                foreach (var h in s.Hofstellen.Where(h => h.Start && h.Nummer is null))
+                    HofHinweisOhneVorgabe($"Hofstelle {h.Kennung}: Startplatz ohne Nummer – auf einer Karte mit nummerierten Höfen beginnt dort niemand.", h.Werkstatt);
+            }
 
             if (s.Haeuser.Count == 0 && s.SpielerWerkstatt is null && s.SpielerWohnhaus is null) return;
             // Die Vorgabe (nur ohne Los: Tests, Vergleiche, „Karte ausprobieren“): jedes Haus auf genau einer Start-Hofstelle, Wohnhaus und Werkstatt
@@ -840,7 +857,8 @@ public static class Kartenpruefung
             foreach (var h in s.Haeuser)
                 Vorgabe(h.Name, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }));
             // gelost wird für den Spieler und jedes Haus, das auf einer Hofstelle sitzt (ein Haus ganz außerhalb bleibt, wo es ist)
-            var start = s.Hofstellen.Count(h => h.Start);
+            var start = nummeriert.Count > 0 ? nummeriert.Select(h => h.Nummer).Where(n => n is >= 1 and <= Partiebesetzung.HoechstensHoefe).Distinct().Count()
+                : s.Hofstellen.Count(h => h.Start);
             var haeuser = s.Haeuser.Count(h => s.HofstelleVon(h.Wohnhaus) is not null // wie Hofstellenvergabe.VorgabeVon: die erste Werkstatt oder das Wohnhaus
                 || s.HofstelleVon(h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz })) is not null);
             if (start < 1 + haeuser)
@@ -1266,8 +1284,10 @@ public static class Kartenpruefung
                 else if (Platz(kennung) is not { Art: Bausteinart.Wohnhausplatz })
                     StartFehler($"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.", kennung);
             }
-            Wohnhaus("Spieler", s.SpielerWohnhaus);
-            if (s.SpielerWerkstatt is null) StartFehler("Start, Spieler: Der Startplatz der Werkstatt fehlt.", null);
+            // Knappes Format (11.11.2026): Mit nummerierten Höfen braucht die Karte weder Spieler noch KI-Häuser – die Partie würfelt sie.
+            var knapp = s.Hofstellen.Any(h => h.Nummer is not null);
+            if (!(knapp && s.SpielerWohnhaus is null)) Wohnhaus("Spieler", s.SpielerWohnhaus);
+            if (s.SpielerWerkstatt is null && !knapp) StartFehler("Start, Spieler: Der Startplatz der Werkstatt fehlt.", null);
             foreach (var (beruf, w) in s.JeBeruf.Select(e => (e.Key, (EntwurfStartplatz?)e.Value)).Prepend(("", s.SpielerWerkstatt)))
             {
                 if (w is null) continue;
@@ -1279,7 +1299,7 @@ public static class Kartenpruefung
             }
             if (s.SpielerFarbe is { } sf && !IstFarbe(sf)) StartFehler($"Start, Spieler: Die Farbe „{sf}“ ist nicht #rrggbb.", null);
 
-            if (s.Haeuser.Count == 0) StartFehler("Start: Es braucht mindestens ein KI-Haus (das erste spielt immer mit).", null);
+            if (s.Haeuser.Count == 0 && !knapp) StartFehler("Start: Es braucht mindestens ein KI-Haus (das erste spielt immer mit).", null);
             if (s.Haeuser.Count > Kartenentwurf.HoechstensHaeuser) StartFehler($"Start: Höchstens {Kartenentwurf.HoechstensHaeuser} KI-Häuser, nicht {s.Haeuser.Count}.", null);
             foreach (var h in s.Haeuser)
             {

@@ -39,7 +39,17 @@ public sealed class Hofstelle
     /// Kartenprüfung). Ohne Angabe (false): eine Hofstelle nur zum späteren Bauen, z. B. am Hafen.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool Start { get; init; }
+    public bool Start { get => _start || Nummer is not null; init => _start = value; }
+    private readonly bool _start;
+
+    /// <summary>
+    /// Nummer des Hofes, 1 bis <see cref="Partiebesetzung.HoechstensHoefe"/> (Nutzerentscheidung 11.11.2026): Hof 1 bekommt Spieler 1, Hof 2
+    /// Spieler 2 usw. – ob Mensch oder KI, entscheidet erst die Partie. Eine Hofstelle mit Nummer ist immer ein Startplatz. Hat eine Karte
+    /// nummerierte Höfe, sind nur sie die Startplätze, und die Partie vergibt sie nach der Nummer statt durch das Los
+    /// (<see cref="Hofstellenvergabe.Zuteilen"/>). Null: eine Hofstelle ohne Nummer wie bisher.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? Nummer { get; init; }
 
     /// <summary>Gehört dieser Platz der Karte (Kennung) zur Hofstelle?</summary>
     public bool Umfasst(string? platz) => platz is not null && (platz == Werkstatt || platz == Wohnhaus);

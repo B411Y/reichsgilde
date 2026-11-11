@@ -68,7 +68,7 @@ static class SteinmetzTests
                 .SequenceEqual(new[] { "Maurerei Kieselbach", "Steinbruch Kieselbach" }), "Betriebe von Kieselbach");
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Familienname: "Haus Kieselbach", Aufstellung: Aufstellungsart.Vorgabe)),
                 "schon der Name eines Rivalen");
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 4, Aufstellung: Aufstellungsart.Vorgabe)), "ein bis drei");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 4, Aufstellung: Aufstellungsart.Vorgabe)), "null bis drei"); // seit 11.11.2026 auch ohne KI-Gegner
             var (sim2, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Wahr(sim2.Wirtschaft!.Konten.All(k => k.Inhaber != Partieaufbau.DritterRivale), "mit zwei Rivalen ohne Kieselbach");
         }),

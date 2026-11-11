@@ -964,8 +964,10 @@ public sealed class Stadtkarte
                 f.Add($"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.");
         }
         Wohnhaus("Spieler", s.Spieler.Wohnhaus);
+        // Ohne Abschnitt „spieler“ (knappes Format mit Höfen, 11.11.2026) bekommt der Spieler seinen Hof erst in der Partie
+        var ohneSpieler = s.Spieler.Werkstatt.Platz == "" && s.Hofstellen is { Count: > 0 };
         foreach (var (beruf, w) in s.Spieler.JeBeruf.Prepend(new("", s.Spieler.Werkstatt)))
-            if (GebaeudeMit(w.Platz) is not { Art: Bausteinart.Werkstattplatz })
+            if (!(ohneSpieler && beruf == "") && GebaeudeMit(w.Platz) is not { Art: Bausteinart.Werkstattplatz })
                 f.Add($"Start, Spieler{(beruf == "" ? "" : $" ({beruf})")}: „{w.Platz}“ ist kein Werkstattplatz der Karte.");
 
         foreach (var h in s.Haeuser)

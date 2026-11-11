@@ -108,11 +108,21 @@ public static class Startaufstellung
     public sealed record Ergebnis(Startbelegung Belegung, Stadtkarte? Karte, IReadOnlyList<(string Name, Betriebsart Art)> Frei, string? Meldung);
 
     /// <summary>Lost die mitspielenden KI-Häuser aus (siehe Kopf). <paramref name="spielerglaube"/>: zählt für die Kirchengrenze, wenn der Spieler Prediger ist.</summary>
+    /// <param name="vorgaben">„Erweitert“ (11.11.2026): je KI-Haus (gleiche Reihenfolge) was festgelegt ist – Volk, Glaube, Beruf, Name, Wappen. Die
+    /// drei Würfe geschehen trotzdem (die Reihe bleibt fest); die festgelegten Berufe sind von Anfang an vergeben. Prüfen:
+    /// <see cref="Partiebesetzung.VorgabenPruefen"/>.</param>
+    /// <param name="spielerhaus">Name des Spielerhauses – den bekommt kein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>).</param>
     public static Ergebnis Losen(Stadtkarte? karte, Startbelegung start, Wirtschaftsdaten daten, string spielerberuf, Konfession spielerglaube,
-        IReadOnlyList<Starthaus> mitspielend, int zufallsstartwert)
+        IReadOnlyList<Starthaus> mitspielend, int zufallsstartwert, IReadOnlyList<Hausvorgabe?>? vorgaben = null, string? spielerhaus = null)
     {
         var los = Losquelle(zufallsstartwert);
+        Hausvorgabe? V(int i) => vorgaben is not null && i < vorgaben.Count ? vorgaben[i] : null;
         var vergeben = new List<string> { spielerberuf };
+        vergeben.AddRange(Enumerable.Range(0, mitspielend.Count).Select(i => V(i)?.Beruf).OfType<string>());
+        // Namen gewürfelter Häuser: eigene Zufallsquelle, keiner doppelt (Spieler, Häuser der Karte, Vorgaben)
+        var namensquelle = Partiebesetzung.Namensquelle(zufallsstartwert);
+        var hausnamen = mitspielend.Select((h, i) => V(i)?.Name is { } n ? Partieaufbau.Hausname(n) : h.Name).Where(n => n != "").ToList();
+        if (spielerhaus is not null) hausnamen.Add(spielerhaus);
         var kirchen = new List<Konfession>(); // je Kirche ihr Glaube
         var grenze = daten.Kirche?.KirchenJeGlaube ?? 0;
         bool IstKirche(string beruf) => daten.Kirche is { } k && beruf == k.Beruf;
@@ -128,29 +138,51 @@ public static class Startaufstellung
         var namen = new List<(string Platz, string Name)>(); // neue Namen an Plätzen der Karte
         var haeuser = new List<Starthaus>();
         var ohne = new List<string>();
-        foreach (var h in mitspielend)
+        for (var i = 0; i < mitspielend.Count; i++)
         {
-            // Je Haus genau drei Würfe: Volk, Glaube, Beruf
-            var volk = KiVoelker[los.Next(KiVoelker.Count)];
+            var h = mitspielend[i];
+            var v = V(i);
+            // Je Haus genau drei Würfe: Volk, Glaube, Beruf (auch wenn etwas vorgegeben ist)
+            var volk = Partiebesetzung.VolkWuerfeln(los, v);
             var glauben = Startglauben(volk);
             var glaube = glauben[los.Next(glauben.Count)];
+            if (v?.Glaube is { } vg) glaube = vg;
             var werkstatt = h.Betriebe.FirstOrDefault(AufWerkstattplatz);
-            var alterBeruf = werkstatt is null ? h.Betriebe.Select(b => daten.Art(b.Art).Beruf).FirstOrDefault(b => b != "") : daten.Art(werkstatt.Art).Beruf;
+            var alterBeruf = h.Gewuerfelt ? null
+                : werkstatt is null ? h.Betriebe.Select(b => daten.Art(b.Art).Beruf).FirstOrDefault(b => b != "") : daten.Art(werkstatt.Art).Beruf;
             var kandidaten = werkstatt is null
                 ? (alterBeruf is not null && !vergeben.Contains(alterBeruf) ? new List<string> { alterBeruf } : new List<string>())
                 : FreieBerufe(daten, vergeben).Where(b => !IstKirche(b) || grenze <= 0 || kirchen.Count(k => k == glaube) < grenze).ToList();
             var wurf = los.Next(Math.Max(1, kandidaten.Count));
-            if (kandidaten.Count == 0)
+            string name;
+            if (v?.Name is { } vn) name = Partieaufbau.Hausname(vn);
+            else if (h.Gewuerfelt)
             {
-                ohne.Add(h.Name);
+                name = Partieaufbau.Hausname(Partiebesetzung.NameWuerfeln(daten, namensquelle, volk, hausnamen));
+                hausnamen.Add(name);
+            }
+            else name = h.Name;
+            string beruf;
+            if (v?.Beruf is { } vb)
+            {
+                if (werkstatt is null && vb != alterBeruf)
+                    throw new ArgumentException($"{name} hat keinen Werkstattplatz – sein Beruf lässt sich nicht vorgeben.");
+                beruf = vb; // schon vergeben (oben)
+            }
+            else if (kandidaten.Count == 0)
+            {
+                ohne.Add(name);
                 continue;
             }
-            var beruf = kandidaten[wurf];
-            vergeben.Add(beruf);
+            else
+            {
+                beruf = kandidaten[wurf];
+                vergeben.Add(beruf);
+            }
             if (IstKirche(beruf)) kirchen.Add(glaube);
 
             List<Startbetrieb> betriebe;
-            if (beruf == alterBeruf)
+            if (beruf == alterBeruf && name == h.Name)
             {
                 betriebe = h.Betriebe; // wie die Karte: Plätze, Namen, Startprodukt
                 belegt.AddRange(h.Betriebe.Where(AufUmlandplatz));
@@ -158,7 +190,7 @@ public static class Startaufstellung
             else
             {
                 var b = daten.Berufe[beruf];
-                var nachname = Familie.NachnameAus(h.Name);
+                var nachname = Familie.NachnameAus(name);
                 betriebe = new List<Startbetrieb> { new() { Platz = werkstatt!.Platz, Art = b.Werkstatt, ErsatzName = "{art} " + nachname } };
                 if (karte is not null) namen.Add((werkstatt.Platz, $"{daten.Art(b.Werkstatt).Name} {nachname}"));
                 if (b.Umland is { } u && daten.KenntArt(u))
@@ -175,7 +207,7 @@ public static class Startaufstellung
             }
             haeuser.Add(new Starthaus
             {
-                Name = h.Name, Volk = volk, Glaube = glaube, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Farbe, Wohnhaus = h.Wohnhaus,
+                Name = name, Volk = volk, Glaube = glaube, Geschlecht = h.Geschlecht, Wappen = v?.Wappen ?? h.Wappen, Farbe = h.Farbe, Wohnhaus = h.Wohnhaus,
                 Betriebe = betriebe,
             });
         }

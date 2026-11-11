@@ -170,7 +170,7 @@ static class KartenformatTests
             Pruefe.Gleich("Maurerei am Probeplatz", w.Betriebe.Single(b => b.Konto == spieler).Name);
             Pruefe.Gleich("Probeplatz", w.Bauen.PlatzVon("Maurerei am Probeplatz")!.Gebaeude!.Kennung);
 
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "ein bis zwei KI-Häuser");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "null bis zwei KI-Häuser");
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Steinhauer", Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "Name eines Rivalen");
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value,
                 new NeuePartie(Wappen: new Wappen(Teilung.Geteilt, Tinktur.Rot, Tinktur.Silber, Figur.Turm), Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "KI-Haus");

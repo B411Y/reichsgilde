@@ -79,15 +79,19 @@ public sealed record EntwurfHofstelle(string Kennung, string? Name, string Werks
     /// <summary>Der Eintrag aus der Datei; zählt beim Vergleich nicht.</summary>
     internal JsonObject? Vorlage { get; init; }
 
-    public bool Equals(EntwurfHofstelle? o) => o is not null && Kennung == o.Kennung && Name == o.Name && Werkstatt == o.Werkstatt && Wohnhaus == o.Wohnhaus && Start == o.Start;
-    public override int GetHashCode() => HashCode.Combine(Kennung, Name, Werkstatt, Wohnhaus, Start);
+    /// <summary>Nummer des Hofes 1 … 8 (Hof 1 = Spieler 1, <see cref="Hofstelle.Nummer"/>); null = ohne Nummer. Mit Nummer immer ein Startplatz.</summary>
+    public int? Nummer { get; init; }
+
+    public bool Equals(EntwurfHofstelle? o) => o is not null && Kennung == o.Kennung && Name == o.Name && Werkstatt == o.Werkstatt && Wohnhaus == o.Wohnhaus && Start == o.Start
+                                              && Nummer == o.Nummer;
+    public override int GetHashCode() => HashCode.Combine(Kennung, Name, Werkstatt, Wohnhaus, Start, Nummer);
 
     /// <summary>Gehört dieser Platz (Kennung) zur Hofstelle?</summary>
     public bool Umfasst(string? platz) => platz is not null && (platz == Werkstatt || platz == Wohnhaus);
 
     internal JsonObject AlsJson() => EntwurfTeil.Zusammensetzen(Vorlage,
         ("kennung", Kennung), ("name", string.IsNullOrWhiteSpace(Name) ? null : JsonValue.Create(Name)), ("werkstatt", Werkstatt), ("wohnhaus", Wohnhaus),
-        ("start", Start ? JsonValue.Create(true) : null));
+        ("start", Start || Nummer is not null ? JsonValue.Create(true) : null), ("nummer", Nummer is { } n ? JsonValue.Create(n) : null));
 }
 
 /// <summary>Was ein Platz der Karte am Start ist.</summary>
@@ -203,6 +207,7 @@ public sealed class EntwurfStart : EntwurfTeil
         var hofstellen = vorlage?["hofstellen"] as JsonArray;
         e._hofstellen = (s.Hofstellen ?? new List<Hofstelle>()).Select((h, i) => new EntwurfHofstelle(h.Kennung, h.Name, h.Werkstatt, h.Wohnhaus, h.Start)
         {
+            Nummer = h.Nummer,
             Vorlage = hofstellen is not null && i < hofstellen.Count ? hofstellen[i]?.DeepClone() as JsonObject : null,
         }).ToList();
         e._hofstellenGefuehrt = hofstellen is not null || e._hofstellen.Count > 0;
@@ -518,7 +523,24 @@ public sealed partial class Kartenentwurf
     }
 
     /// <summary>Taugt die Hofstelle als Startplatz (Fairness ±10 %, nur unter diesen wird gelost)?</summary>
-    public void HofstelleStartSetzen(string kennung, bool start) => HofstelleAendern(kennung, start ? "als Startplatz" : "nicht mehr Startplatz", h => h with { Start = start });
+    public void HofstelleStartSetzen(string kennung, bool start) => HofstelleAendern(kennung, start ? "als Startplatz" : "nicht mehr Startplatz", h => h with { Start = start, Nummer = start ? h.Nummer : null }); // ein nummerierter Hof ist immer Startplatz
+
+    /// <summary>
+    /// Gibt der Hofstelle die Nummer eines Hofes (1 … 8: Hof 1 = Spieler 1 …; mit Nummer auch ein Startplatz) oder nimmt sie ihr (null). Die Karte
+    /// speichert dann nur Lage, Drehung und Nummer – Namen, Wappen und Berufe würfelt die Partie (Nutzerentscheidung 11.11.2026).
+    /// </summary>
+    /// <exception cref="ArgumentException">Nummer außerhalb 1 … 8 oder schon bei einer anderen Hofstelle.</exception>
+    public void HofstelleNummerSetzen(string kennung, int? nummer)
+    {
+        if (nummer is { } n)
+        {
+            if (n is < 1 or > Partiebesetzung.HoechstensHoefe)
+                throw new ArgumentException($"Höfe sind von 1 bis {Partiebesetzung.HoechstensHoefe} nummeriert.", nameof(nummer));
+            if (_start.Hofstellen.FirstOrDefault(h => h.Nummer == n && h.Kennung != kennung) is { } andere)
+                throw new ArgumentException($"Hof {n} ist schon die Hofstelle {andere.Kennung}.", nameof(nummer));
+        }
+        HofstelleAendern(kennung, nummer is { } m ? $"ist Hof {m}" : "ohne Nummer", h => h with { Nummer = nummer, Start = h.Start || nummer is not null });
+    }
 
     /// <summary>Name der Hofstelle (Lage für den Namen der Spielerwerkstatt; null oder leer: die nächste Karrenstraße).</summary>
     public void HofstelleUmbenennen(string kennung, string? name) =>
@@ -626,6 +648,10 @@ public sealed partial class Kartenentwurf
         var namen = start.Rivalennamen.ToHashSet();
         var familie = new[] { "Hammerschmid", "Probst", "Kartenmacher", "Feldmesser" }.FirstOrDefault(n => !namen.Contains(Partieaufbau.Hausname(n))) ?? "Neubürger";
         var wappen = Wappen.Vorlagen.FirstOrDefault(w => !start.Rivalenwappen.Contains(w)) ?? Wappen.AusName(familie);
+        // Knappes Format mit nummerierten Höfen (11.11.2026): jeder Hof besetzt, die KI-Häuser gewürfelt wie im Spiel
+        var hoefe = Hofstellenvergabe.Startplaetze(start.Hofstellen ?? new List<Hofstelle>());
+        if (start.Haeuser.Count == 0 && (start.Hofstellen ?? new List<Hofstelle>()).Any(h => h.Nummer is not null))
+            return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(0, hoefe.Count - 1), Wappen: wappen);
         // Mit Hofstellen ohne Los, und jedes KI-Haus mit Beruf, Volk und Betrieben der Startbelegung – so, wie die Karte eingestellt ist
         // (im Spiel wird beides gelost: Hofstellen und Startaufstellung)
         return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(1, start.Haeuser.Count), Wappen: wappen,
