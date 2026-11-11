@@ -10,7 +10,9 @@ using Reichsgilde.Core.Speichern;
 /// Fahrzeit nach Weglänge, die gemeinsame Strecke und die Marktplätze gelten nur mit <c>logistik.weglaenge</c>. Verglichen wird der Spielstand
 /// ohne die Abschnitte „Daten“ und „Karte“ (die schreibt der neue Kern mit seinen neuen, leeren Feldern; die Simulation selbst steht in
 /// „Wirtschaft“). Die Sollwerte sind auf main 880e3387 gerechnet (Probe mit demselben Ablauf, 1.11.2026). Ebenso ohne „Meldungen“ (Benachrichtigungen
-/// Stufe 2, 6.11.2026): der Verlauf der Meldungen ist neu, die Simulation liest ihn nie – „Wirtschaft“ bleibt bitgleich.
+/// Stufe 2, 6.11.2026): der Verlauf der Meldungen ist neu, die Simulation liest ihn nie – „Wirtschaft“ bleibt bitgleich. Seit dem 11.11.2026
+/// (Bart der Zwerginnen) auch ohne das Erbgut der Personen (<c>Spielstandfelder.Erbgut</c>, die Simulation liest es nie): Die Sollwerte dafür
+/// sind auf main 770c374a mit demselben Ablauf gerechnet, wo die Sollwerte von main 880e3387 mit Erbgut noch galten.
 /// </summary>
 static class AlterSpielstandSollwertTests
 {
@@ -25,7 +27,7 @@ static class AlterSpielstandSollwertTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Alter Spielstand (Greybox, Herbst 1406, Datenversion 55): drei Jahre weiter bitgleich mit dem Kern auf main 880e3387 (SHA-256 ohne Daten, Karte und Meldungen)", () =>
+        ("Alter Spielstand (Greybox, Herbst 1406, Datenversion 55): drei Jahre weiter bitgleich mit dem Kern auf main 880e3387 (SHA-256 ohne Daten, Karte, Meldungen und Erbgut; Sollwerte ohne Erbgut von main 770c374a)", () =>
         {
             var datei = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
                 "tests", "Reichsgilde.Core.Tests", "Spielstaende", "format2-greybox-herbst1406.json.gz");

@@ -375,7 +375,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Ziel | Entscheidung des Nutzers: Zwerginnen sind meist ohne Bart. Schwellen der Passanten-Darstellung: unter 120 bartlos, ab 120 kurz, ab 180 geflochten. Ziel etwa 15–25 % mit Bart, geflochten selten. | 11.11.2026 |
+| Ziel | Entscheidung des Nutzers: Zwerginnen sind meist ohne Bart. Das Erbgut gilt für die Personen der Häuser und der Brautschau (Porträt, Familienbuch); die Passanten haben auf main kein Erbgut. Richtwerte des Auftrags: unter 120 bartlos, ab 120 kurz, ab 180 geflochten – im Code von main gibt es diese Schwellen nicht, die Darstellung legt ihre eigenen fest (der Völker-Branch hat feste). Ziel etwa 15–25 % ab 120, ab 180 selten. | 11.11.2026 |
 | Werte | `bartwuchs_frau` der Zwerge: Mittel 90 → 70, Streuung 40 → 60, höchstens 190 → 210 (min 0). Gewürfelt (4000 feste Startwerte): 19,9 % ab 120, 1,3 % ab 180. Die alten Werte gaben 22,2 % ab 120, aber keinen einzigen geflochtenen Bart (Mittel + 2 Streuungen = 170 < 180) – die breitere Kurve macht den geflochtenen Bart erst möglich, das niedrigere Mittel hält den Anteil mit Bart unter einem Viertel. | 11.11.2026 |
 | Spielstand | Keine Datenversion: Gespeichert werden die Allele, nicht die Kurve – Personen in alten Ständen behalten ihren Bart, nur neu gewürfelte (Startoberhaupt, KI-Häuser, Brautschau, fehlender Elternteil) folgen der neuen Kurve. | 11.11.2026 |
 | Test | `ErbgutTests` „Zwerginnen meist ohne Bart …“ mit Gegenproben: die alte Kurve gibt keinen geflochtenen Bart, ein Mittel von 120 zu viele Bärte; Töchter einer bärtigen Zwergin sind bärtiger als die einer bartlosen. | 11.11.2026 |

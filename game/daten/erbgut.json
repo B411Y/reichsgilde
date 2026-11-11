@@ -490,7 +490,7 @@
     },
     {
       "kennung": "bartwuchs_frau", "name": "Bartwuchs der Frauen", "art": "Zubehoer",
-      "beschreibung": "Dieselbe Skala wie „bartwuchs“, sichtbar nur bei Frauen (Männer tragen und vererben es, man sieht es nur nicht). Nur Zwerginnen können einen Bart haben, meist aber keinen: unter 120 bartlos, ab 120 kurz (etwa jede fünfte), ab 180 geflochten (etwa 1 von 100).",
+      "beschreibung": "Dieselbe Skala wie „bartwuchs“, sichtbar nur bei Frauen (Männer tragen und vererben es, man sieht es nur nicht). Gilt für die Personen der Häuser und der Brautschau (Porträt, Familienbuch). Nur Zwerginnen können einen Bart haben, meist aber keinen: Gewürfelt liegt etwa jede fünfte bei 120 oder mehr, etwa 1 von 100 bei 180 oder mehr (Richtwerte: ab 120 ein kurzer, ab 180 ein geflochtener Bart; die Darstellung legt ihre Schwellen selbst fest).",
       "dominanz": 50, "mutation": 3,
       "voelker": {
         "Mensch":   { "min":   0, "mittel":   0, "max":   0, "streuung":  0 },
