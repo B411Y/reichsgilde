@@ -18,6 +18,12 @@ static class Spielstandfelder
     /// </summary>
     public static readonly string[] NurLaden = { "EinkaufErwartetImMarkt" };
 
+    /// <summary>
+    /// Das Erbgut der Personen (Allele für den 3D-Kopf): Die Simulation liest es nie, es hat eigene Würfel je Person (kein Wurf der gemeinsamen
+    /// Zufallsquelle). Ändert sich die Gen-Vorlage (Bart der Zwerginnen, 11.11.2026), ändern sich nur diese Texte – die Partie rechnet gleich.
+    /// </summary>
+    public static readonly string[] Erbgut = { "Erbgut" };
+
     /// <summary>Entfernt diese Felder überall im Spielstand, auch wenn sie etwas tragen (für Felder aus <see cref="NurLaden"/>).</summary>
     public static void Ohne(JsonNode? knoten, IReadOnlyCollection<string> felder)
     {

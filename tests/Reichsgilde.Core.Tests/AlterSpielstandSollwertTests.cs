@@ -16,9 +16,11 @@ static class AlterSpielstandSollwertTests
 {
     static readonly string[] Sollwerte =
     {
-        "32479e9e70fcda4cf05abb40311ac46dd330c714efe2169b0242c782276dbdf2",
-        "258c8b4f5f6da13159dc3f1b34cb38cb0422e17d0fcb5ef5df38aae68a59f611",
-        "b579efb56425e48507072f35594c6fd51b585403b04b6663cb8d61cc396618ab",
+        // Ohne das Erbgut der Personen (11.11.2026): gerechnet auf main 770c374a mit demselben Ablauf – dort mit Erbgut noch gleich den Sollwerten
+        // von main 880e3387 (32479e9e…, 258c8b4f…, b579efb5…).
+        "12b73856ad598920a90451b89c66e8d2ab0da36858ec1ca756f224bcb2940e99",
+        "b08c5d4af791f5f211949d8bd405e4ea750375be37daad9dac7fba09905a4920",
+        "9c9ad7e38a3883d47e1f67060ba1985eb674ed3ebc4947ac170e65054984d218",
     };
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -41,6 +43,7 @@ static class AlterSpielstandSollwertTests
                         n.Remove(schluessel);
                 Spielstandfelder.OhneLeere(n, Spielstandfelder.Hafenziel); // neue Felder (Datenversion 73), solange sie nichts tragen
                 Spielstandfelder.Ohne(n, Spielstandfelder.NurLaden); // nur fürs Laden (Datenversion 75), durchgehend ohne Wirkung
+                Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
                 var ist = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant();
                 Pruefe.Gleich(Sollwerte[jahr], ist, $"Jahr {jahr + 1} nach dem Laden");
             }
