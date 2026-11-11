@@ -99,7 +99,19 @@ static class GleichheitTests
         "Gleichheit: Felspinsel P4a (Hang als eigene Schicht, Hebung ablösen, Verschieben, Drehen, Hang aus, Gelände darunter, Löschen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei und wirksame Höhe",
         FelsHangPruefen)).Append((
         "Gleichheit: Felspinsel P5 (eigene Felsgruppen im Katalog, gedreht, gespiegelt, verbunden gestempelt und gestreut, Kopien, Gruppe auflösen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Katalog- und Kartendatei",
-        FelsgruppenPruefen));
+        FelsgruppenPruefen)).Append((
+        "Gleichheit: Felspinsel P6 (Fläche füllen im Umriss und im Kreis, Voreinstellungen Schutthalde, Felskuppe, Steinbruch, Lücken, auf Fels, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsfuellungPruefen));
+
+    /// <summary>Felspinsel P6: Fläche füllen nach Regeln – gleiche Bytes der Kartendatei (Zeile „felsfuellung …“ in der Datei der CI).</summary>
+    static void FelsfuellungPruefen()
+    {
+        var a = Sha256(FelsfuellungTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsfuellungTests.Ablauf()), "Fels P6: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsfuellungTests.Ablauf())), "Fels P6: de-DE");
+        Zeilen[-11] = new[] { $"felsfuellung {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felspinsel P5: eigene Felsgruppen – gleiche Bytes von Katalog- und Kartendatei (Zeile „felsgruppen …“ in der Datei der CI).</summary>
     static void FelsgruppenPruefen()

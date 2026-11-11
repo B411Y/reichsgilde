@@ -137,6 +137,10 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Geaendert += EntwurfGeaendert;
         _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
         _stadt.FelsGizmoGeaendert += FelsGizmoGeaendert;
+        _stadt.FelsFuellungGeaendert += () => // P6: Zahl, Warnung und Knopf der Tafel folgen dem Umriss
+        {
+            if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Fels && _stadt.FelsModus == Stadtansicht.FelsArt.Fuellen && !EingabeOffen()) EigenschaftenZeigen(neu: true);
+        };
         _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
@@ -1037,6 +1041,21 @@ public partial class Kartenwerkstatt : Node
                 GD.Print($"Neu verteilt unter dem Pinsel: {_entwurf.Geschichte.RueckgaengigText}");
                 break;
             }
+            case "fuellen" or "fuellvorschau": // P6: fuellen:<umriss|steinbruch|schutthalde|felskuppe>,x1,z1;x2,z2;… (eine Ecke: Kreis mit pinsel:radius) – füllt (über 1500 bestätigt);
+                                               // fuellvorschau: dasselbe, der Umriss bleibt geschlossen mit Vorschau und Tafel stehen
+            {
+                var t = rest.Split(',', 2);
+                if (t[0] != Felsfuellung.EinfachKennung && Felsfuellung.Finde(t[0]) is null)
+                    throw new ArgumentException($"{art}: unbekannte Füllung „{t[0]}“ (umriss, steinbruch, schutthalde, felskuppe).");
+                _stadt.FelsFuellKennung = t[0];
+                var ecken = Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList();
+                var flaeche = ecken.Count == 1 ? Felsflaeche.Kreis(ecken[0], Math.Clamp(_stadt.FelsRadius, Felspinsel.MinRadius, Felspinsel.MaxRadius)) : new Felsflaeche(ecken);
+                var schaetzung = _entwurf.FelsFuellenSchaetzen(_stadt.FelsFuellungWirksam, flaeche);
+                var n = _stadt.WerkstattFelsFuellen(ecken, null, art == "fuellvorschau", bestaetigen: true);
+                GD.Print($"Fläche füllen ({t[0]}): Schätzung {schaetzung}, {(art == "fuellvorschau" ? "Vorschau" : "gesetzt")} {n} Stücke"
+                         + (n > Felsfuellung.Obergrenze ? $" – über der Obergrenze {Felsfuellung.Obergrenze} (bestätigt)" : "") + $", jetzt {_entwurf.Felsen.Count}");
+                break;
+            }
             case "pinsel": // pinsel:<feld>=<wert>,… – Werte der Tafel für die folgenden Schritte (P3)
                 foreach (var feld in rest.Split(',', StringSplitOptions.RemoveEmptyEntries))
                 {
@@ -1058,6 +1077,12 @@ public partial class Kartenwerkstatt : Node
                         case "aussparen": _stadt.FelsAussparen = wert == "an"; break; // P3b
                         case "bauzonen": _stadt.FelsAussparenBauzonen = wert == "an"; break;
                         case "spiegeln": _stadt.FelsSpiegeln = wert == "an"; break; // P5
+                        case "luecken": _stadt.FelsFuellLuecken = Zahl(wert); break; // P6: Fläche füllen „im Umriss“
+                        case "auffels": _stadt.FelsFuellAufFels = wert == "an"; break;
+                        case "vorlage": // P6: vorlage=einzeln (die Formen) oder eine Gruppe (wand, kuppe, …, eigen_n) für Streuen und Füllen
+                            _stadt.FelsGruppe = wert == "einzeln" ? null
+                                : _stadt.FelsKatalog.Finde(wert) is not null ? wert : throw new ArgumentException($"pinsel: unbekannte Vorlage „{wert}“.");
+                            break;
                         case "verbinden": _stadt.FelsVerbinden = wert == "an"; break; // P5
                         case "formen":
                             _stadt.FelsFormen.Clear();
@@ -1068,7 +1093,7 @@ public partial class Kartenwerkstatt : Node
                             _stadt.FelsHoehenbereich = wert == "aus" ? null : new Felsbereich(Zahl(wert.Split('/')[0]), Zahl(wert.Split('/')[1]));
                             break;
                         default:
-                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, aussparen, bauzonen, hang, formen, hoehe).");
+                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, aussparen, bauzonen, hang, formen, hoehe, luecken, auffels, vorlage).");
                     }
                 }
                 break;

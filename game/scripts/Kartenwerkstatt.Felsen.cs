@@ -40,6 +40,7 @@ public partial class Kartenwerkstatt
         {
             Stadtansicht.FelsArt.Radieren => "Fels-Radierer",
             Stadtansicht.FelsArt.Verteilen => "Felsen neu verteilen",
+            Stadtansicht.FelsArt.Fuellen => "Fläche füllen",
             Stadtansicht.FelsArt.Streuen => gruppe is null ? "Felsen streuen" : $"Streuen: {gruppe.Name}",
             _ => gruppe is null ? "Stempel: Felsstück" : $"Stempel: {gruppe.Name}",
         };
@@ -54,7 +55,16 @@ public partial class Kartenwerkstatt
             kopf.AddChild(wuerfeln);
         }
 
-        if (modus is Stadtansicht.FelsArt.Streuen or Stadtansicht.FelsArt.Stempeln) FelsVorlage(gruppe);
+        if (modus == Stadtansicht.FelsArt.Fuellen)
+        {
+            FelsFuellAbschnitt(); // P6
+            if (Felsfuellung.Finde(_stadt.FelsFuellKennung) is not null)
+            {
+                FelsGesteinUndBoden();
+                return;
+            }
+        }
+        if (modus is Stadtansicht.FelsArt.Streuen or Stadtansicht.FelsArt.Stempeln or Stadtansicht.FelsArt.Fuellen) FelsVorlage(gruppe);
         else FelsFormenWahl(modus);
 
         Hauptmenue.Text(_eigenschaften, "Pinsel", 15, Gold);
@@ -77,7 +87,7 @@ public partial class Kartenwerkstatt
             FelsWurfHaken(_eigenschaften);
             raster = ZweiSpalten();
         }
-        if (modus == Stadtansicht.FelsArt.Streuen)
+        if (modus is Stadtansicht.FelsArt.Streuen or Stadtansicht.FelsArt.Fuellen)
         {
             Zeile(raster, "Dichte", Schieber(0.02, 0.8, 0.02, _stadt.FelsDichte, d => $"{d * 100:0} %", d => _stadt.FelsDichte = d,
                 "Wie viel des Kreises die Felsen bedecken sollen: Der Strich setzt Stücke, bis die Grundflächen diesen Anteil erreichen"));
@@ -110,7 +120,7 @@ public partial class Kartenwerkstatt
         hang.AddThemeFontSizeOverride("font_size", 14);
         hang.Toggled += an => _stadt.FelsZumHang = an;
         _eigenschaften.AddChild(hang);
-        if (modus == Stadtansicht.FelsArt.Streuen)
+        if (modus is Stadtansicht.FelsArt.Streuen or Stadtansicht.FelsArt.Fuellen)
         {
             var aus = new CheckBox { Text = "Gebäude und Wege aussparen", ButtonPressed = _stadt.FelsAussparen, FocusMode = Control.FocusModeEnum.None,
                 TooltipText = "Das Streuen setzt kein Stück, dessen Grundfläche ein Gebäude (mit Vorplatz) oder einen Weg berührt. Der Stempel und das Gizmo bleiben frei, " +
@@ -174,6 +184,7 @@ public partial class Kartenwerkstatt
                 Stadtansicht.FelsArt.Stempeln => "Die Vorschau an der Maus zeigt genau die Stücke, die der Klick setzt. Felsen sperren nichts: Gebäude, Wege und Bauzonen dürfen darauf stehen.",
                 Stadtansicht.FelsArt.Verteilen => "Der Strich würfelt die angehakten Werte jedes Stücks unter dem Pinsel einmal neu – mit den Werten oben und unter „Erweitert“, " +
                                                   "wie ein Stück, das der Pinsel dort setzte (wie „Reapply“ in Unreal). Ort, Form und Gestein bleiben. Ein Strich ist ein Schritt.",
+                Stadtansicht.FelsArt.Fuellen => "Die Füllung hält Abstand wie das Streuen; die Dichte gilt für den Teil der Fläche, in dem die Regel wirkt. Nach Änderungen an den Reglern: „Vorschau auffrischen“.",
                 _ => "Ein Strich setzt alle halben Radius einen Tupfer; jedes Stück hält Abstand zu den anderen. Mit Umschalt radiert der Strich. Felsen sperren nichts.",
             },
             12, Grau, umbruchBreite: Rechtsbreite - 30);
@@ -183,6 +194,100 @@ public partial class Kartenwerkstatt
         FelsErweitert();
         FelsFilter();
         FelsSchwebendeZeile(_eigenschaften);
+    }
+
+    /// <summary>
+    /// P6: Der Abschnitt „Fläche füllen“: Füllung (im Umriss oder Voreinstellung), bei „im Umriss“ Lücken und „auf Fels“, Stand des Umrisses mit Schätzung
+    /// und Zahl der Vorschau, die Warnung über der Obergrenze und die Knöpfe Füllen (darüber zweimal), Neu würfeln, Vorschau auffrischen.
+    /// </summary>
+    private void FelsFuellAbschnitt()
+    {
+        var raster = ZweiSpalten();
+        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Im Umriss: der Pinsel unten füllt den Umriss. Voreinstellungen bringen eine Regelkette mit (wie PCG in Unreal): Steinbruch – Wände am Steilhang, " +
+                          "Blöcke am Hang, Schutt im Flachen und auf den Wänden; Schutthalde – Wände am Steilhang, Brocken und Schutt am Fuß, Schutt im Kies; " +
+                          "Felskuppe – Kuppen oben, Blöcke, Schutt auf den Kuppen und unten. Von unten gelten dann Gestein, Boden und Aussparen." };
+        wahl.AddItem("Im Umriss (Pinsel)");
+        foreach (var v in Felsfuellung.Voreinstellungen) wahl.AddItem(v.Name);
+        var liste = Felsfuellung.Voreinstellungen.ToList();
+        wahl.Selected = liste.FindIndex(v => v.Kennung == _stadt.FelsFuellKennung) + 1;
+        wahl.ItemSelected += i =>
+        {
+            _stadt.FelsFuellKennung = i == 0 ? Felsfuellung.EinfachKennung : liste[(int)i - 1].Kennung;
+            _stadt.FelsFuellVorschauRechnen(); // baut die Tafel über das Ereignis neu
+            EigenschaftenZeigen(neu: true);
+        };
+        Zeile(raster, "Füllung", wahl);
+        if (_stadt.FelsFuellKennung == Felsfuellung.EinfachKennung)
+        {
+            Zeile(raster, "Lücken", Schieber(0, Felsregel.LueckenMax, 0.05, _stadt.FelsFuellLuecken, l => l <= 0 ? "keine" : $"{l * 100:0} %", l => _stadt.FelsFuellLuecken = l,
+                "Rauschen lässt etwa diesen Anteil der Fläche frei – so entstehen Gruppen und Lücken statt eines gleichmäßigen Teppichs"));
+            var auf = new CheckBox { Text = "Auf Fels setzen (klein auf groß)", ButtonPressed = _stadt.FelsFuellAufFels, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = $"Die Stücke kommen nur oben auf große Stücke (Grundfläche ab {Komma(Felsfuellung.AufFelsRadius, "0.0")} m Halbmesser) in der Fläche – etwa Schutt auf Kuppen und Wänden" };
+            auf.AddThemeFontSizeOverride("font_size", 14);
+            auf.Toggled += an =>
+            {
+                _stadt.FelsFuellAufFels = an;
+                _stadt.FelsFuellVorschauRechnen();
+            };
+            _eigenschaften.AddChild(auf);
+        }
+        var obergrenze = Felsfuellung.Obergrenze;
+        if (!_stadt.FelsUmrissZu)
+        {
+            Hauptmenue.Text(_eigenschaften, _stadt.FelsUmriss.Count == 0
+                ? "Ecken des Umrisses in die Karte klicken – Enter oder ein Klick auf die erste Ecke schließt ihn. Ein Klick und Enter: ein Kreis mit dem Radius unten."
+                : $"Umriss: {_stadt.FelsUmriss.Count} Ecken – Enter oder Klick auf die erste Ecke schließt, Rücktaste nimmt die letzte weg.", 13, Hell, umbruchBreite: Rechtsbreite - 30);
+            return;
+        }
+        var n = _stadt.FelsFuellVorschau.Count;
+        Hauptmenue.Text(_eigenschaften, $"Fläche {Komma(Math.Round(_stadt.FelsFuellFlaeche?.Flaeche ?? 0), "0")} m² · geschätzt etwa {_stadt.FelsFuellSchaetzung} · Vorschau {n} Stücke",
+            13, Hell, umbruchBreite: Rechtsbreite - 30);
+        if (n > obergrenze || _stadt.FelsFuellSchaetzung > obergrenze)
+            Hauptmenue.Text(_eigenschaften, $"Achtung: mehr als {obergrenze} Stücke in einem Befehl – das kann die Karte langsam machen. " +
+                                            (_stadt.FelsFuellBestaetigt ? "Noch einmal drücken füllt trotzdem." : "Füllen fragt einmal nach."), 13, Rot, umbruchBreite: Rechtsbreite - 30);
+        var knoepfe = new HBoxContainer();
+        knoepfe.AddThemeConstantOverride("separation", 8);
+        _eigenschaften.AddChild(knoepfe);
+        Knopf(knoepfe, _stadt.FelsFuellBestaetigt ? $"Wirklich füllen ({n})" : $"Füllen ({n} Stücke)", () => _stadt.FelsFuellenAusfuehren(),
+            "Setzt genau die Stücke der Vorschau – ein Schritt für Strg+Z");
+        Knopf(knoepfe, "Neu würfeln", () =>
+        {
+            _stadt.FelsFuellStartwert++;
+            _stadt.FelsFuellVorschauRechnen();
+        }, "Andere Orte, Drehungen und Größen für dieselbe Fläche");
+        Knopf(knoepfe, "Vorschau auffrischen", () => _stadt.FelsFuellVorschauRechnen(), "Rechnet die Vorschau mit den Werten der Tafel neu");
+    }
+
+    /// <summary>P6: Bei einer Voreinstellung gelten von der Tafel nur Gestein, Boden mitmalen und Aussparen (Vorlage, Größe und Dichte bringt die Regelkette mit).</summary>
+    private void FelsGesteinUndBoden()
+    {
+        var raster = ZweiSpalten();
+        var gestein = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Das Gestein aller Stücke der Füllung – „wie die Karte“ folgt dem Grundgestein" };
+        gestein.AddItem($"wie die Karte ({GesteinName(_entwurf.Grundgestein.Wirksam)})");
+        foreach (var g in Felsformen.Gesteine) gestein.AddItem(GesteinName(g));
+        gestein.Selected = _stadt.FelsGestein is { } eigen ? Felsformen.Gesteine.ToList().IndexOf(eigen) + 1 : 0;
+        gestein.ItemSelected += i =>
+        {
+            _stadt.FelsGestein = i == 0 ? null : Felsformen.Gesteine[(int)i - 1];
+            _stadt.FelsFuellVorschauRechnen();
+        };
+        Zeile(raster, "Gestein", gestein);
+        foreach (var (text, wert, setzen) in new (string, bool, Action<bool>)[]
+                 {
+                     ("Gebäude und Wege aussparen", _stadt.FelsAussparen, an => _stadt.FelsAussparen = an),
+                     ("Boden mitmalen", _stadt.FelsBoden, an => _stadt.FelsBoden = an),
+                 })
+        {
+            var haken = new CheckBox { Text = text, ButtonPressed = wert, FocusMode = Control.FocusModeEnum.None };
+            haken.AddThemeFontSizeOverride("font_size", 14);
+            haken.Toggled += an =>
+            {
+                setzen(an);
+                _stadt.FelsFuellVorschauRechnen();
+            };
+            _eigenschaften.AddChild(haken);
+        }
     }
 
     /// <summary>

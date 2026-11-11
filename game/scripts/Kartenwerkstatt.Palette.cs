@@ -345,6 +345,8 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Fels, vorher: () => (_stadt.FelsModus, _stadt.FelsGruppe) = (Stadtansicht.FelsArt.Stempeln, null), bild: Farbfeld(felsfarbe.Darkened(0.15f)));
         Eintrag("fels:streuen", "Felsen streuen", "Mit gedrückter Maus malen: Stücke oder Gruppen locker in den Kreis streuen, bis die Dichte erreicht ist (Vorlage, Dichte und Größe rechts)",
             Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Streuen, bild: Farbfeld(felsfarbe.Lightened(0.15f)));
+        Eintrag("fels:fuellen", "Fläche füllen", "Einen Umriss klicken (Enter schließt; nach nur einem Klick ein Kreis mit dem Radius rechts) und ihn nach Regeln füllen: im Umriss mit dem Pinsel oder als Steinbruch, Schutthalde, Felskuppe – wie PCG in Unreal",
+            Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Fuellen, bild: Farbfeld(felsfarbe.Darkened(0.3f)));
         Eintrag("fels:verteilen", "Neu verteilen", "Mit gedrückter Maus über Felsstücke fahren: Die angehakten Werte (Größe, Drehung, Einsinken …) werden mit den Werten rechts neu gewürfelt – wie „Reapply“ in Unreal",
             Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Verteilen, bild: Farbfeld(new Color(0.78f, 0.64f, 0.30f)));
         Eintrag("fels:radierer", "Fels-Radierer", "Mit gedrückter Maus über Felsstücke fahren – alle mit der Mitte im Kreis sind weg, mit „Ausdünnen bis“ nur so viele, bis die Dichte erreicht ist (Formen und Filter rechts gelten auch hier)",

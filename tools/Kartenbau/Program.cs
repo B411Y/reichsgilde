@@ -78,6 +78,9 @@ public static class Program
                     Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
                 "textur" when ziel is not null && worte.Count == 4 && BodenpinselVon(worte[2], args) is { } bodenpinsel && Orte(worte[3]) is { Count: > 0 } bodenstrich =>
                     Befehle.Textur(ordner, ziel, bodenpinsel, bodenstrich, Console.Out),
+                "felsen" when ziel is not null && worte.Count == 4 && schalter.Contains("--fuellen") && !schalter.Contains("--stempel") && !schalter.Contains("--streuen")
+                              && FuellungVon(worte[2], args) is { } fuellung && Orte(worte[3]) is { Count: 1 or >= 3 } umriss =>
+                    Befehle.FelsenFuellen(ordner, ziel, fuellung, umriss, Wert(args, "--radius") ?? 30, (int?)Wert(args, "--startwert"), Console.Out),
                 "felsen" when ziel is not null && worte.Count == 4 && schalter.Contains("--stempel") != schalter.Contains("--streuen")
                               && FelspinselVon(worte[2], args) is { } felspinsel && Orte(worte[3]) is { Count: > 0 } felsorte =>
                     Befehle.Felsen(ordner, ziel, schalter.Contains("--stempel"), felspinsel, felsorte, Wert(args, "--drehung"),
@@ -286,6 +289,26 @@ public static class Program
         };
     }
 
+    /// <summary>
+    /// Die Füllung für <c>felsen --fuellen</c> (Felspinsel P6): eine Voreinstellung (<c>steinbruch</c>, <c>schutthalde</c>, <c>felskuppe</c>; die Schalter
+    /// des Pinsels geben Gestein und Boden) oder eine Vorlage wie bei <c>--streuen</c> („im Umriss“, dazu --luecken=0–0.9, --rauschweite=<m>,
+    /// --auffels=an). --aussparen=an spart Gebäude und Wege aus. Null bei unlesbarer Angabe.
+    /// </summary>
+    public static Felsfuellung? FuellungVon(string vorlage, IEnumerable<string> args)
+    {
+        var liste = args.ToList();
+        foreach (var zahl in new[] { "--luecken", "--rauschweite" })
+            if (Text(liste, zahl) is not null && Wert(liste, zahl) is null) return null;
+        if (Text(liste, "--auffels") is not (null or "an" or "aus") || Text(liste, "--aussparen") is not (null or "an" or "aus")) return null;
+        var aussparen = Text(liste, "--aussparen") == "an";
+        var name = vorlage.Split('@')[0];
+        if (Felsfuellung.Finde(name) is { } v)
+            return FelspinselVon("block" + (vorlage.Contains('@') ? "@" + vorlage.Split('@', 2)[1] : ""), liste) is { } basis ? v.MitPinsel(basis with { Aussparen = aussparen }) : null;
+        return FelspinselVon(vorlage, liste) is { } p
+            ? Felsfuellung.Einfach(p with { Aussparen = aussparen }, Wert(liste, "--luecken") ?? 0, Wert(liste, "--rauschweite") ?? 24, Text(liste, "--auffels") == "an")
+            : null;
+    }
+
     /// <summary>Der Wert eines Schalters „--name=zahl“ (Punkt als Dezimaltrenner, auch mit dem Minuszeichen „−“) – oder null.</summary>
     private static double? Wert(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
@@ -352,6 +375,10 @@ public static class Program
                                                   --streuen streut einen Strich durch die Orte (Dichte 0–1 der Fläche, Abstand in m zusätzlich
                                                   zwischen den Stücken). <vorlage> ist eine Gruppe (wand, kuppe, rippe, wandgross) oder Formen mit +
                                                   (block+platte); gleiche Angaben, gleicher Startwert: dieselben Bytes
+              felsen <karte> --fuellen <voreinstellung|vorlage[@gestein]> <x,z;x,z;x,z…|x,z> [--radius=30] [--startwert=<n>] [--aussparen=an]
+                       [--luecken=0] [--rauschweite=24] [--auffels=an] und die Schalter von --streuen
+                                                  füllt einen Umriss (ein Ort: Kreis mit --radius) in einem Schritt nach Regeln: Voreinstellung
+                                                  steinbruch, schutthalde, felskuppe oder eine Vorlage („im Umriss“); über 1500 Stücke eine Warnung
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
               hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m> --quelle=<…> --lizenz=<…>
@@ -562,6 +589,28 @@ public static class Befehle
         }
         aus.WriteLine($"{e.Kennung}: {neu} Felsstücke {(stempel ? $"gestempelt ({orte.Count} Orte)" : $"gestreut ({orte.Count} Punkte, Radius {Kartenschreiber.Zahl(pinsel.Radius)} m)")}, "
                       + $"jetzt {e.Felsen.Count}");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary>
+    /// <c>felsen --fuellen</c> (Felspinsel P6): füllt den Umriss (mindestens drei Orte; ein Ort: Kreis mit <paramref name="radius"/>) nach den Regeln
+    /// (<see cref="Kartenentwurf.FelsFuellen"/>), dann schreiben – nur ohne Fehler. Über <see cref="Felsfuellung.Obergrenze"/> Stücke nur eine Warnung.
+    /// </summary>
+    public static int FelsenFuellen(Projektordner o, string karte, Felsfuellung fuellung, IReadOnlyList<Kartenort> umriss, double radius, int? startwert,
+        TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var flaeche = umriss.Count == 1 ? Felsflaeche.Kreis(umriss[0], radius) : new Felsflaeche(umriss);
+        var neue = e.FelsFuellen(fuellung, flaeche, startwert);
+        if (neue.Count == 0)
+        {
+            aus.WriteLine($"{e.Kennung}: Die Füllung setzt kein Felsstück (Fläche zu klein, außerhalb, Regeln passen nicht?) – nichts geschrieben.");
+            return 0;
+        }
+        aus.WriteLine($"{e.Kennung}: Fläche gefüllt ({fuellung.Name}, {Kartenschreiber.Zahl(Math.Round(flaeche.Flaeche))} m²): {neue.Count} Felsstücke, jetzt {e.Felsen.Count}");
+        if (neue.Count > Felsfuellung.Obergrenze)
+            aus.WriteLine($"Warnung: mehr als {Felsfuellung.Obergrenze} Stücke in einem Befehl – die Karte kann langsam werden.");
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 

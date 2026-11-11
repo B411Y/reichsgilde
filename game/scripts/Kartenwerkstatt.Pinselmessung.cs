@@ -113,6 +113,12 @@ public partial class Kartenwerkstatt
             var name = $"Fels: Hang-Vorschau beim Ziehen ({bezeichnung} große Wände mit Hang, 80 m)";
             if (Pinselmessung.Gewollt(name)) ergebnisse.Add(await HangZugMessen(name, strich, wande, cx, cz));
         }
+        // Felspinsel P6: Fläche füllen mit etwa 1500 und 3000 Stücken (Obergrenze und Plan-Messung) – Vorschau, Füllen, Rückgängig, Leerlauf mit den Stücken
+        foreach (var ziel in new[] { Felsfuellung.Obergrenze, 2 * Felsfuellung.Obergrenze })
+        {
+            var name = $"Fels: Fläche füllen (etwa {ziel} Stücke, Blöcke)";
+            if (Pinselmessung.Gewollt(name)) ergebnisse.Add(await FuellenMessen(name, ziel, cx, cz));
+        }
         await Pinsel("Natur: Bäume streuen (r 6)", Werkstattwerkzeug.Pinsel, () => { });
         await Pinsel("Natur: Radierer (r 6)", Werkstattwerkzeug.Radierer, () => { });
         _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
@@ -238,6 +244,49 @@ public partial class Kartenwerkstatt
         for (var k = 0; k < schritte; k++) _entwurf.Rueckgaengig();
         var nach = await RuhigWarten();
         return new Pinselergebnis(name, leer, tupfer, loslassen, nach);
+    }
+
+    /// <summary>
+    /// Felspinsel P6: Ein Quadrat um die Mitte, so groß, dass die Schätzung etwa <paramref name="ziel"/> Blöcke ergibt; fünfmal (Startwert 1 … 5)
+    /// Vorschau (Kern), Füllen (Kern und das Bild danach) und Rückgängig. Im ersten Lauf dazu 20 Bilder Leerlauf mit den Stücken (gegen den Leerlauf vorher).
+    /// Je Füllen ein Bild in der Spalte „je Tupfer“.
+    /// </summary>
+    private async Task<Pinselergebnis> FuellenMessen(string name, int ziel, float cx, float cz)
+    {
+        _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
+        var fuellung = Felsfuellung.Einfach(new Felspinsel(Formen: new[] { "block", "platte" }, Dichte: 0.3));
+        Felsflaeche Quadrat(double s) => new(new[] { new Kartenort(cx - s / 2, cz - s / 2), new Kartenort(cx + s / 2, cz - s / 2), new Kartenort(cx + s / 2, cz + s / 2), new Kartenort(cx - s / 2, cz + s / 2) });
+        var seite = 100.0;
+        seite *= Math.Sqrt(ziel / (double)Math.Max(1, _entwurf.FelsFuellenSchaetzen(fuellung, Quadrat(seite))));
+        var flaeche = Quadrat(seite);
+        await RuhigWarten();
+        var leer = new List<Messbild>();
+        for (var i = 0; i < 20; i++) leer.Add(await BildMessen(Time.GetTicksUsec()));
+        var (vorschau, kern, rueck, leerMit, bilder) = (new List<double>(), new List<double>(), new List<double>(), new List<Messbild>(), new List<Messbild>());
+        var stuecke = 0;
+        var nach = new List<Messbild>();
+        for (var k = 1; k <= 5; k++)
+        {
+            var uhr = System.Diagnostics.Stopwatch.StartNew();
+            stuecke = _entwurf.FelsFuellenVorschau(fuellung, flaeche, k).Count;
+            vorschau.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            var anfang = Time.GetTicksUsec();
+            uhr.Restart();
+            _entwurf.FelsFuellen(fuellung, flaeche, k);
+            kern.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            bilder.Add(await BildMessen(anfang));
+            nach = await RuhigWarten();
+            if (k == 1)
+                for (var i = 0; i < 20; i++) leerMit.Add(await BildMessen(Time.GetTicksUsec()));
+            uhr.Restart();
+            _entwurf.Rueckgaengig();
+            rueck.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            await RuhigWarten();
+        }
+        GD.Print($"Pinselmessung: {name}: Quadrat {seite:0} m, {stuecke} Stücke; Median Vorschau {Ms(Median(vorschau))} ms, Füllen (Kern) {Ms(Median(kern))} ms, "
+                 + $"Füllen mit Bild {Ms(Median(bilder.Select(b => (double)b.Usec)))} ms, Rückgängig {Ms(Median(rueck))} ms, Füllen + Rückgängig {Ms(Median(kern) + Median(rueck))} ms; "
+                 + $"Leerlauf vorher {Ms(Median(leer.Select(b => (double)b.Usec)))} ms, mit den Stücken {Ms(Median(leerMit.Select(b => (double)b.Usec)))} ms");
+        return new Pinselergebnis(name, leer, bilder, bilder[^1], nach);
     }
 
     private async Task<Pinselergebnis> BefehlMessen(string name, Func<object?> befehl)

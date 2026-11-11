@@ -31,6 +31,9 @@ public partial class Stadtansicht
 
         /// <summary>„Neu verteilen“ (P3, wie „Reapply“ in Unreal): Der Strich würfelt die angehakten Werte der Stücke unter dem Pinsel neu.</summary>
         Verteilen,
+
+        /// <summary>„Fläche füllen“ (P6, wie PCG in Unreal): Umriss klicken, nach Regeln füllen (Stadtansicht.Felsfuellung.cs).</summary>
+        Fuellen,
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -189,6 +192,11 @@ public partial class Stadtansicht
             FelsStempelnBei(new Kartenort(boden.X, boden.Y));
             return;
         }
+        if (FelsModus == FelsArt.Fuellen)
+        {
+            FelsUmrissKlick(boden); // P6: Stadtansicht.Felsfuellung.cs
+            return;
+        }
         _wsFelsRadiert = FelsUmschaltRadiert;
         FelsStrichStarten(_wsFelsRadiert ? FelsRadierer with { Ausduennen = false } : FelsPinsel);
         FelsStrichPunkt(boden);
@@ -269,6 +277,7 @@ public partial class Stadtansicht
     {
         FelsStrichAbbrechen();
         FelsGeisterAus();
+        FelsUmrissLeeren(melden: false); // P6
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -309,6 +318,11 @@ public partial class Stadtansicht
             return;
         }
         FelsGeisterAus();
+        if (FelsModus == FelsArt.Fuellen)
+        {
+            FelsUmrissZeigen(m, farbe); // P6: Stadtansicht.Felsfuellung.cs
+            return;
+        }
         var radius = (float)Math.Clamp(FelsRadius, Felspinsel.MinRadius, Felspinsel.MaxRadius);
         VorschauDreiecke(BandDreiecke(Kreis(m, radius), Mathf.Max(0.12f, MeterJePixel * 1.2f), 0.2f), new Color(farbe, 0.95f));
         VorschauPunkte(new[] { m }, new Color(farbe, 0.95f));
