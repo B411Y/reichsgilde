@@ -395,11 +395,40 @@ public partial class Stadtansicht
             Kopfbedeckung.Strohhut, art.ZieherClip == "Nebenhergehen" ? Last.Stab : Last.Keine);
         var figur = ProbefigurEinsetzen(halter, aussehen, fuhrmann.Startwert, "Fuhrmann");
         if (figur is null) { halter.QueueFree(); return null; }
+        if (art.ZieherClip == "Nebenhergehen") StabKraeftigen(figur);
         if (art.ZieherClip == "SitzenBock") halter.Position -= new Vector3(0, figur.Kniehoehe - 0.02f, 0); // die Hüfte sitzt auf der Sitzfläche
         ansicht.FahrerHalter = halter;
         halter.Visible = false; // gezeigt wird er erst, wenn der Karren fährt (KarrenFuhrmannBewegen)
         ansicht.FahrerSichtbar = false;
         return figur;
+    }
+
+    /// <summary>Wie viel dicker (Meter, je Seite) und in welcher Farbe der Stecken des Läufers erscheint: aus 3,4 cm werden gut 6 cm, hell wie frisch geschält (NAS-Klicktest: sonst nicht zu erkennen).</summary>
+    private const float StabDickePlus = 0.013f;
+    private static readonly Color StabFarbe = new(0.80f, 0.64f, 0.38f);
+
+    /// <summary>
+    /// Der Stecken des Läufers (Zubehör „Zub_stab“ des Figurenmodells, nur im Nahnetz mit Skelett): Die Ecken rücken 1,3 cm entlang ihrer Normale hinaus (aus dem dünnen Stab wird ein
+    /// kräftiger Stecken, sein Modell im Blender-Skript bleibt unberührt) und er bekommt ein helles Holz, damit er sich von Gewand und Hand abhebt.
+    /// </summary>
+    private static void StabKraeftigen(Figur figur)
+    {
+        foreach (var teil in figur.Modell.FindChildren("Zub_stab", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (teil.Mesh is not ArrayMesh netz || netz.GetSurfaceCount() == 0) continue;
+            var arrays = netz.SurfaceGetArrays(0);
+            if (arrays[(int)Mesh.ArrayType.Vertex].VariantType == Variant.Type.Nil || arrays[(int)Mesh.ArrayType.Normal].VariantType == Variant.Type.Nil) continue;
+            var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+            var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+            var neu = new Vector3[ecken.Length];
+            for (var i = 0; i < ecken.Length; i++) neu[i] = ecken[i] + normalen[i] * StabDickePlus;
+            arrays[(int)Mesh.ArrayType.Vertex] = neu;
+            var dick = new ArrayMesh();
+            dick.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            dick.CustomAabb = netz.GetAabb().Grow(0.05f);
+            teil.Mesh = dick;
+            teil.MaterialOverride = new StandardMaterial3D { AlbedoColor = StabFarbe, Roughness = 0.85f };
+        }
     }
 
     /// <summary>

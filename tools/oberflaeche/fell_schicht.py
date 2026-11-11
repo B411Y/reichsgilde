@@ -8,8 +8,8 @@ neu geschrieben, q95 wie vorher), setzt in den .import-Dateien slices/vertical=1
 game/daten/materialbibliothek.json ein. Läuft die Schicht schon (Atlas 12 Zeilen hoch), bleibt der Atlas, nur die Schicht wird ersetzt.
 Die Zuordnung „Materialname → Schicht“ (namen) ergänzt zugtiere.py nicht von selbst: sie steht von Hand in der JSON-Datei.
 
-Aussehen: Haare als feine Striche entlang der Bildhöhe (auf der Flanke läuft das Fell so von oben nach unten), nahtlos gekachelt (FFT-
-Filter), drei Größen übereinander, ohne Muster im Großen (sonst sähe man die Kachel im Raster); die Höhe liegt in A, die Normale in R/G aus der Höhe, B Rauheit. Die Farbe ist nur Helligkeit mit
+Aussehen: Haare als kurze, feine, verbogene Striche entlang der Bildhöhe (auf der Flanke läuft das Fell so von oben nach unten), nahtlos gekachelt (FFT-
+Filter, periodisch verschoben), zwei Größen und weiche Töne übereinander, ohne Muster im Großen (sonst sähe man die Kachel im Raster); die Höhe liegt in A, die Normale in R/G aus der Höhe, B Rauheit. Die Farbe ist nur Helligkeit mit
 einem Hauch Wärme: der Shader teilt durch die mittlere Farbe und färbt mit der Modellfarbe (Eckenfarbe der Tiere).
 Kachel 0,5 m: 1 Pixel = 0,5 mm, ein Haar etwa 2 bis 3 Pixel breit (bewusst gröber als in der Natur: von der Spielkamera aus sähe man sonst nichts).
 """
@@ -37,19 +37,29 @@ def streifen(saat, sx, sy):
     return (r - r.mean()) / (r.std() + 1e-9)
 
 
+def verzerren(h, saat, staerke):
+    """Verbiegt die Striche: Bild an periodischem, weichem Rauschen verschoben (nahtlos), Haar ringelt sich statt wie Holzmaserung gerade zu laufen."""
+    rng = np.random.default_rng(saat)
+    ix, iy = np.meshgrid(np.arange(N), np.arange(N))
+    dx = streifen(saat + 100, 28.0 * N / 1024, 28.0 * N / 1024) * staerke
+    dy = streifen(saat + 101, 28.0 * N / 1024, 28.0 * N / 1024) * staerke
+    return h[(iy + np.round(dy).astype(int)) % N, (ix + np.round(dx).astype(int)) % N]
+
+
 def bauen():
     s = N / 1024.0
-    grob = streifen(11, 5.0 * s, 70.0 * s)          # Haarbüschel
-    mittel = streifen(12, 2.6 * s, 26.0 * s)         # einzelne Haare, länger
-    fein = streifen(13, 1.3 * s, 9.0 * s)            # Härchen
-    h = 0.45 * grob + 0.75 * mittel + 0.55 * fein
+    # Runde 11: kürzere, feinere, verbogene Striche und weniger Kontrast – das Fell sah im Licht wie Holzmaserung aus (lange, gerade, regelmäßige Streifen)
+    mittel = streifen(12, 1.8 * s, 11.0 * s)         # einzelne Haare, kurz
+    fein = streifen(13, 1.0 * s, 4.0 * s)            # Härchen
+    fleck = streifen(14, 14.0 * s, 14.0 * s)         # weiche, ungerichtete Töne (Unterwolle, Wirbel)
+    h = 0.80 * verzerren(mittel, 21, 16.0 * s) + 0.55 * verzerren(fein, 22, 9.0 * s) + 0.40 * fleck
     h = (h - h.min()) / (h.max() - h.min())
-    # Haare stehen als Rücken, die Täler dazwischen sind dunkler (Unterwolle)
-    hell = 0.66 + 0.34 * h ** 1.25
+    # Haare stehen als Rücken, die Täler dazwischen sind dunkler (Unterwolle), aber sanft
+    hell = 0.76 + 0.24 * h ** 1.1
     hell = np.clip(hell, 0.2, 1.0)
     farbe = np.dstack([hell * 0.97, hell * 0.93, hell * 0.88])            # Hauch warm
     # Normale aus der Höhe (OpenGL: G+ zum oberen Bildrand); wegen der Streifen vor allem seitlich geneigt
-    stark = 22.0
+    stark = 14.0
     nx = -np.gradient(h, axis=1) * stark
     ny = np.gradient(h, axis=0) * stark          # Zeile 0 oben: + Richtung nach unten, OpenGL G+ nach oben
     nz = np.ones_like(h)

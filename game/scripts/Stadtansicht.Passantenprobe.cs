@@ -488,12 +488,56 @@ public partial class Stadtansicht
     /// <summary>Gebackene Zugtiernetze der ersten Datei einer Tierart, von der zweiten (anderes Fell) mitbenutzt: Schlüssel „&lt;Tier&gt;/&lt;Netz&gt;“.</summary>
     private readonly Dictionary<string, (Dictionary<(int, int, int, int, int, int), List<int>> Spalten, int Zeilen, ProbeVatDaten Daten, ImageTexture Lage, ImageTexture Richtung)> _tierVatGeteilt = new();
 
+    /// <summary>
+    /// Verschweißt die Ecken eines Tiernetzes, die sich nur in der UV unterscheiden: Lage, Normale, Farbe, Knochen und Gewichte gleich heißt dieselbe Spalte in der VAT-Textur.
+    /// Der Importer von Godot trennt Ecken an jeder UV-Naht (Pferd Nah 16 381 statt 8 713, Fern 2 783 statt 1 360), der Shader <c>tier_vat.gdshader</c> liest aber nur Farbe und
+    /// UV2. Die UV entfällt im Ergebnis. Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
+    /// </summary>
+    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+        var farben = arrays[(int)Mesh.ArrayType.Color].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var knochen = arrays[(int)Mesh.ArrayType.Bones].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
+        var gewichte = arrays[(int)Mesh.ArrayType.Weights].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
+        var index = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
+        var je = knochen is null ? 0 : knochen.Length / ecken.Length; // 4 oder 8 Knochen je Ecke
+        var bekannt = new Dictionary<string, int>();
+        var neu = new List<int>(); // alte Eckennummer des ersten Vorkommens je neuer Ecke
+        var zuNeu = new int[ecken.Length];
+        for (var e = 0; e < ecken.Length; e++)
+        {
+            var sb = new System.Text.StringBuilder(96);
+            void Zahl(float f) => sb.Append(BitConverter.SingleToInt32Bits(f)).Append(',');
+            Zahl(ecken[e].X); Zahl(ecken[e].Y); Zahl(ecken[e].Z);
+            Zahl(normalen[e].X); Zahl(normalen[e].Y); Zahl(normalen[e].Z);
+            if (farben is not null) { Zahl(farben[e].R); Zahl(farben[e].G); Zahl(farben[e].B); Zahl(farben[e].A); }
+            for (var k = 0; k < je; k++) sb.Append(knochen![e * je + k]).Append(',');
+            for (var k = 0; k < je; k++) Zahl(gewichte![e * je + k]);
+            var schluessel = sb.ToString();
+            if (!bekannt.TryGetValue(schluessel, out var nr)) { bekannt[schluessel] = nr = neu.Count; neu.Add(e); }
+            zuNeu[e] = nr;
+        }
+        var ergebnis = new Godot.Collections.Array();
+        ergebnis.Resize((int)Mesh.ArrayType.Max);
+        ergebnis[(int)Mesh.ArrayType.Vertex] = neu.Select(e => ecken[e]).ToArray();
+        ergebnis[(int)Mesh.ArrayType.Normal] = neu.Select(e => normalen[e]).ToArray();
+        if (farben is not null) ergebnis[(int)Mesh.ArrayType.Color] = neu.Select(e => farben[e]).ToArray();
+        if (knochen is not null)
+        {
+            ergebnis[(int)Mesh.ArrayType.Bones] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => knochen[e * je + k])).ToArray();
+            ergebnis[(int)Mesh.ArrayType.Weights] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => gewichte![e * je + k])).ToArray();
+        }
+        ergebnis[(int)Mesh.ArrayType.Index] = index.Select(i => zuNeu[i]).ToArray();
+        return ergebnis;
+    }
+
     /// <summary>Schlüssel einer Ecke (Ort auf 0,1 mm, Normale auf 0,01): die Importe zweier Dateien gleichen Netzes ordnen die Ecken verschieden an.</summary>
     private static (int, int, int, int, int, int) EckenSchluessel(Vector3 ort, Vector3 normale) =>
         ((int)Math.Round(ort.X * 10000), (int)Math.Round(ort.Y * 10000), (int)Math.Round(ort.Z * 10000),
          (int)Math.Round(normale.X * 100), (int)Math.Round(normale.Y * 100), (int)Math.Round(normale.Z * 100));
 
-    /// <summary>Ordnet jeder Ecke der zweiten Datei die Spalte derselben Ecke in den geteilten Texturen zu; null, wenn eine Ecke fehlt oder doppelt vorkommt.</summary>
+    /// <summary>Ordnet jeder Ecke der zweiten Datei die Spalte derselben Ecke in den geteilten Texturen zu; null, wenn eine Ecke fehlt (kommt sie öfter vor als in der ersten Datei, etwa weil das andere Fell eine Farbnaht mehr hat, nimmt sie dieselbe Spalte noch einmal: gleicher Ort, gleiche Normale, gleiche Lage in jedem Bild).</summary>
     private static float[]? EckenZuordnen(Dictionary<(int, int, int, int, int, int), List<int>> spalten, Vector3[] ecken, Vector3[] normalen)
     {
         var aus = new float[ecken.Length];
@@ -501,11 +545,21 @@ public partial class Stadtansicht
         for (var i = 0; i < ecken.Length; i++)
         {
             var schluessel = EckenSchluessel(ecken[i], normalen[i]);
-            if (!spalten.TryGetValue(schluessel, out var liste)) return null;
+            if (!spalten.TryGetValue(schluessel, out var liste))
+            {
+                // Das Fernnetz (Decimate) setzt bei dem anderen Fell ab und zu eine Ecke um Millimeter anders: dann nimmt sie die Spalte der nächsten Ecke der ersten Datei (höchstens 2 cm entfernt)
+                var beste = float.MaxValue;
+                foreach (var (k, l) in spalten)
+                {
+                    var d = new Vector3(k.Item1 - schluessel.Item1, k.Item2 - schluessel.Item2, k.Item3 - schluessel.Item3).Length() / 10000f;
+                    if (d < beste) (beste, liste) = (d, l);
+                }
+                if (beste > 0.02f || liste is null) return null;
+                schluessel = spalten.Keys.First(k => ReferenceEquals(spalten[k], liste));
+            }
             genommen.TryGetValue(schluessel, out var n);
-            if (n >= liste.Count) return null;
             genommen[schluessel] = n + 1;
-            aus[i] = liste[n] + 0.5f; // Ecken mit gleichem Ort und gleicher Normale (Haarkarten) sind austauschbar
+            aus[i] = liste[n % liste.Count] + 0.5f; // Ecken mit gleichem Ort und gleicher Normale (Haarkarten) sind austauschbar
         }
         return aus;
     }
@@ -566,6 +620,7 @@ public partial class Stadtansicht
                 var netz = (ArrayMesh)teil.Mesh;
                 var skin = teil.Skin!;
                 var arrays = netz.SurfaceGetArrays(0);
+                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
                 var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
                 var name = teil.Name.ToString();
@@ -603,7 +658,7 @@ public partial class Stadtansicht
                 neu[(int)Mesh.ArrayType.Vertex] = ecken;
                 neu[(int)Mesh.ArrayType.Normal] = normalen;
                 neu[(int)Mesh.ArrayType.Color] = arrays[(int)Mesh.ArrayType.Color];
-                neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
+                if (arrays[(int)Mesh.ArrayType.TexUV].VariantType != Variant.Type.Nil) neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
                 neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(e => new Vector2(spaltenNummer?[e] ?? e + 0.5f, 0)).ToArray();
                 neu[(int)Mesh.ArrayType.Index] = arrays[(int)Mesh.ArrayType.Index];
                 var vatNetz = new ArrayMesh();

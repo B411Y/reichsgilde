@@ -97,9 +97,9 @@ public partial class Stadtansicht
     private const float KarrenRandMeter = 6f;
 
     /// <summary>Luft (Meter) zwischen zwei Gespannen in der Reihe auf dem Weg.</summary>
-    private const float KarrenLuft = 0.5f;
+    private const float KarrenLuft = 0.8f;
 
-    /// <summary>Abstand (Meter) der wartenden Karren am Hof nebeneinander: größte Breite eines Gespanns (2,4 m) plus Luft.</summary>
+    /// <summary>Alter Abstand (Meter) der wartenden Karren am Hof nebeneinander (nur noch für die Messung „vorher“): jetzt gilt <see cref="KarrenHofQuer"/>.</summary>
     private const float KarrenHofBreite = 2.6f;
 
     /// <summary>Bis zu welcher Strecke (Meter) ab dem Hof ein Karren aus seinem Platz am Hof auf den Weg einschwenkt.</summary>
@@ -107,11 +107,11 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Länge des Gespanns vor und hinter dem Ursprung des Karrens (Meter, Fahrtrichtung vorn), gemessen aus den Modellen (Karren und Zugtier an den Ankern,
-    /// <c>tools/modelle/karren.py</c>): Pferdekarren 8,98 + 0,63, Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
+    /// <c>tools/modelle/karren.py</c>): Pferdekarren 8,98 + 1,22 (hinteres Rad), Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
     /// </summary>
     internal static (float Vorn, float Hinten) KarrenGespann(string typ) => typ switch
     {
-        "Pferdekarren" => (8.98f, 0.63f),
+        "Pferdekarren" => (8.98f, 1.22f),
         "Ochsenkarren" => (5.33f, 1.28f),
         _ => (2.93f, 0.88f),
     };
@@ -412,7 +412,10 @@ public partial class Stadtansicht
         if (amHalt) gezeigt.Geschwindigkeit = 0;
         else if (zug.Etappe is Etappe.Hin or Etappe.Zurueck && Math.Abs(stelleM - wunsch) > 0.02f && delta > 0)
             gezeigt.Geschwindigkeit = Math.Min(gezeigt.Geschwindigkeit, Math.Abs(gezeigt.Meter - vorherM) / (float)delta);
-        var meterAnteil = laenge > 0 ? gezeigt.Meter / laenge : 0f;
+        // Hofreihe (Stadtansicht.KarrenHof.cs): der Platz am Hof liegt um den Versatz weiter auf dem Weg, damit das Heck nicht im Sockel steht; der Rest des Weges wird entsprechend gestaucht
+        var hofLage = ansicht.KarrenReihe is null && weg.Length > 1 ? KarrenHofLage(ansicht, weg, typen) : (Quer: Array.Empty<float>(), Versatz: 0f, Achse: Vector3.Zero);
+        var versatz = laenge > hofLage.Versatz + 2f ? hofLage.Versatz : 0f;
+        var meterAnteil = laenge > 0 ? (versatz + gezeigt.Meter * (laenge - versatz) / laenge) / laenge : 0f;
         Vector3 ziel;
         Vector3 blick;
         var hofGewicht = 0f;
@@ -429,18 +432,13 @@ public partial class Stadtansicht
             ziel = PunktAufWeg(weg, meterAnteil);
             var dAnteil = zug.Etappe == Etappe.Hof ? 1f / Math.Max(laenge, 1f) : zug.ZumMarkt ? 0.02f : -0.02f;
             blick = PunktAufWeg(weg, Math.Clamp(meterAnteil + dAnteil, 0f, 1f));
-            if (ansicht.KarrenReihe is null && weg.Length > 1 && ansicht.Betrieb.Karren.Count > 1)
+            if (ansicht.KarrenReihe is null && weg.Length > 1 && ansicht.Betrieb.Karren.Count > 1 && nummer < hofLage.Quer.Length)
             {
-                // Hof: nebeneinander quer zum Weg (KarrenHofBreite), beim Losfahren in den ersten Metern auf die Mitte des Weges einschwenken
-                var achse = weg[1] - weg[0];
-                achse.Y = 0;
-                if (achse.LengthSquared() > 1e-6f)
-                {
-                    var quer = new Vector3(-achse.Z, 0, achse.X).Normalized();
-                    var seite = quer * KarrenHofBreite * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f) * hofGewicht;
-                    ziel += seite;
-                    blick += seite;
-                }
+                // Hof: nebeneinander quer zum Weg (Querlage nach Gespannbreite plus Luft, KarrenHofQuer), beim Losfahren in den ersten Metern auf die Mitte des Weges einschwenken
+                var rechtsVomWeg = new Vector3(-hofLage.Achse.Z, 0, hofLage.Achse.X);
+                var seite = rechtsVomWeg * hofLage.Quer[nummer] * hofGewicht;
+                ziel += seite;
+                blick += seite;
             }
         }
 

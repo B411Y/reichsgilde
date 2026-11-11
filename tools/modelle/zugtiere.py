@@ -46,6 +46,7 @@ from bausteine import Vector  # noqa: E402
 
 FPS = 24
 KUMMET_BOGEN = 0.10
+HINTERHAND_GLAETTEN = 14
 KITS = os.environ.get("RG_KITS", os.path.expanduser("~/werkzeuge/assets/entpackt"))
 QUELLE = os.environ.get("RG_FARM_BLENDS", os.path.join(KITS, "Quaternius_Farm_Animals_CC0", "Blends"))
 VORSCHAU = os.environ.get("ZUGTIERE_VORSCHAU", bs.VORSCHAU)
@@ -647,7 +648,7 @@ def haare(bm, gw, ske, art):
             h.flaeche(gitter, w_haut, 0, hell=0.60)
             # Locken: breite, weiche Strähnen vom Kamm (vom Genick bis zum Widerrist) über die Halsseite herab; Länge und Schwung wechseln fließend,
             # die Ecken hängen an den Gewichten der nächsten Hautecke (folgen Hals, Schulter und Kopf)
-            anzahl = 38
+            anzahl = 44
             for c in range(anzahl):
                 s_ = (c + 0.5) / anzahl
                 f = s_ * (len(kamm) - 1)
@@ -658,16 +659,16 @@ def haare(bm, gw, ske, art):
                 welle = 0.5 + 0.5 * math.sin(2 * math.pi * 1.6 * s_ + 0.6)
                 laenge = rand * (0.30 + 0.07 * math.sin(math.pi * (0.1 + 0.8 * s_))) * (0.78 + 0.34 * welle + 0.14 * zuf)
                 pf, br, di = [], [], []
-                pf.append(haut(p0.y, p0.z, 0.0, 0.016))
-                br.append(0.032)
-                di.append(0.018)
+                pf.append(haut(p0.y, p0.z, 0.0, 0.030))                                              # Runde 11: Wurzel hebt sich vom Kamm ab (Volumen, keine Platte)
+                br.append(0.046)
+                di.append(0.032)
                 for k in range(1, 7):
                     q = k / 6.0
                     z = p0.z - laenge * q
                     y = p0.y + 0.07 * q * q * (1 + s_) + 0.034 * math.sin(2 * math.pi * (0.8 * q + 1.3 * s_) + c * 0.9) * q
-                    pf.append(haut(y, z, -1.0, 0.014 + 0.032 * math.sin(math.pi * (0.10 + 0.75 * q)) + 0.010 * zuf))
-                    br.append(0.036 * (1.0 - 0.78 * q ** 1.4))
-                    di.append(0.022 * (1.0 - 0.72 * q))
+                    pf.append(haut(y, z, -1.0, 0.018 + 0.046 * math.sin(math.pi * (0.10 + 0.75 * q)) + 0.014 * zuf))
+                    br.append(0.046 * (1.0 - 0.78 * q ** 1.4))
+                    di.append(0.032 * (1.0 - 0.72 * q))
                 aussen = Vector((-1, 0, 0.4)).normalized()
                 h.lock(pf, br, di, aussen, w_haut, 0.72, 1.12, jitter=(0.80 if c % 2 else 1.06) * (0.92 + 0.16 * zuf))     # zwei Töne im Wechsel, Spitzen nur wenig heller
         # Loch der Vorlage schließen, Schweifrübe (Rundkörper aus der Kruppe) mit Haarlocken, die aus ihr wachsen
@@ -824,10 +825,14 @@ def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None, art=None, variante
                 f *= 1.0 - 0.40 * _weich((0.55 - p.z) / 0.45)           # unten dunkler
                 f *= 1.0 + (_rauschen(p * 3.0) - 0.5) * 0.05
                 # Fellschattierung: großflächige Töne (Handbreit bis Handspanne) und Haarstrich in Körperrichtung
-                f *= 1.0 + 0.30 * (_glatt(p * 4.5) - 0.5) + 0.18 * (_glatt(Vector((p.x * 11.0, p.y * 3.0, p.z * 11.0))) - 0.5)
+                # Runde 11: kein Strich mehr in Körperrichtung (las sich im Licht als Holzmaserung), stattdessen ungerichtete Töne in zwei Größen
+                f *= 1.0 + 0.32 * (_glatt(p * 4.5) - 0.5) + 0.16 * (_glatt(p * 10.0 + Vector((3.1, 1.7, 5.3))) - 0.5)
                 kh_ = sum(g.weight for g in v.groups if namen_g.get(g.group) in ("Head", "Neck"))
                 if art == "ochse":
                     f *= 1.0 - 0.20 * min(1.0, kh_)                       # Kopf und Hals dunkler als der Rumpf
+                    # Binnenzeichnung (Runde 11): große dunkle Schattierungen (Schulter, Flanke, Hinterhand) und hellere Fläche an Bauch und Beinen, weich ineinander
+                    f *= 1.0 - 0.34 * _weich((_glatt(p * 2.4 + Vector((7.0, 2.0, 1.0))) - 0.52) / 0.10)
+                    f *= 1.0 + 0.16 * _weich((_glatt(p * 3.1 + Vector((1.0, 9.0, 4.0))) - 0.56) / 0.10)
                 if art == "pferd" and variante == "schwarzbraun":
                     band = _weich(1.0 - abs(n.z - 0.40) / 0.45)            # Schimmer: Kanten der Muskeln und Flanken fangen Licht
                     f *= 1.0 + 0.55 * band * (0.45 + 0.55 * _glatt(Vector((p.x * 7.0, p.y * 2.2, p.z * 7.0))))
@@ -987,7 +992,7 @@ def clips_schreiben(art, cfg, clips, daten, zug=None):
                        "Wechsel zwischen Stehen, Stehen-Varianten und Anfahren_/Anhalten_ sind ohne Blendzeit möglich (Abstand höchstens 2,2 mm).",
         "mehrere_tiere": "Zwei Pferde nie im Gleichtakt: das zweite startet Gehen/Ziehen mit seek(0,5 · Dauer) bzw. um diese Zeit später "
                          "(Fußfolge gegen das erste verschoben); Stehen-Varianten je Tier zufällig und zeitlich versetzt.",
-        "lod": "Dreiecksbudget (Runde 10): Nahnetz Pferd rund 11 400, Ochse 6 170 Dreiecke; Fernnetz Pferd rund 1 210, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 11 400 = 22 800 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Fernnetz der Pferde liegt 10 mm höher (Decimate-Ausgleich).",
+        "lod": "Dreiecksbudget (Runde 11): Nahnetz Pferd rund 11 700, Ochse 6 170 Dreiecke; Fernnetz Pferd rund 1 250, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 11 700 = 23 400 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Fernnetz der Pferde liegt 10 mm höher (Decimate-Ausgleich).",
         "vat": "Gehen und Ziehen mit 24 Bildern je Sekunde backen (nicht 12): Mitte zwischen zwei Bildern höchstens rund 1 cm Abweichung, "
                "bei 12 rund 7 bis 9 cm (siehe docs/bereiche/darstellung.md).",
     }
@@ -1287,6 +1292,13 @@ def bauen(datei, art, variante, bilder_ausgeben=True):
     bm.from_mesh(me)
     gw = Gewichte(bm, ob)
     if art == "pferd":
+        # Runde 11: Kruppe und Oberschenkel rund (NAS: Hinterteil eckig): Ecken der Hinterhand weich verrunden, Beine und Rücken bleiben
+        h_hips = Vector(ske.data.bones["Hips"].head_local)
+        hinterhand = [v for v in bm.verts if v.co.y > h_hips.y - 0.10 and v.co.z > 0.80 and gw.summe(v, ["Tail1", "Tail2", "Tail3", "Tail4", "Head", "Neck"]) < 0.3]
+        for _ in range(HINTERHAND_GLAETTEN):
+            bmesh.ops.smooth_vert(bm, verts=hinterhand, factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True)
+        bm.normal_update()
+        print("Hinterhand verrundet:", len(hinterhand), "Ecken")
         print(zk.kopf_pferd(bm, gw, ske, ob))
         zug = kummet(bm, gw, ske, 1.0)
         haar_obj = haare(bm, gw, ske, art)
