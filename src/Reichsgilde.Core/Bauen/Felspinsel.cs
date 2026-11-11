@@ -66,6 +66,8 @@ public sealed record Felsbereich(double Von, double Bis)
 /// von–bis; null: überall); <paramref name="NurFormen"/> – Radierer, Ausdünnen und Neu verteilen nehmen nur Stücke der <paramref name="Formen"/> (bei einer
 /// Gruppe: ihrer Formen); <paramref name="Ausduennen"/> – der Radierer nimmt Stücke weg, bis die Grundflächen im Kreis nur noch <paramref name="Dichte"/>
 /// decken; <paramref name="Verteilen"/> – der Strich setzt nichts, sondern würfelt diese Werte der Stücke unter dem Pinsel neu („Reapply“).
+/// P3b: <paramref name="Aussparen"/> – das Streuen setzt kein Stück, dessen Grundfläche ein Gebäude (mit Vorplatz) oder einen Weg berührt (Felsaussparung.cs;
+/// Vorgabe aus, damit alte Striche gleich bleiben – die Tafel schaltet es an); <paramref name="AussparenBauzonen"/> – dazu auch Bauzonen. Stempel und Radierer fragen nicht.
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
@@ -73,7 +75,7 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     Felsbereich? AchseX = null, Felsbereich? AchseY = null, Felsbereich? AchseZ = null, Felsbereich? Drehbereich = null,
     Felsbereich? Kippbereich = null, Felsbereich? Rollbereich = null, Felsbereich? Versatzbereich = null, double? NeigungBis = null,
     bool HangFormen = false, double Abstand = 0, double EinsinkenStreuung = Felspinsel.EinsinkenStreuungVorgabe, Felsbereich? Hoehenbereich = null,
-    bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null)
+    bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null, bool Aussparen = false, bool AussparenBauzonen = false)
 {
     /// <summary>Streuung des Einsinkens ohne Angabe (± Anteil der Höhe, wie vor P3).</summary>
     public const double EinsinkenStreuungVorgabe = 0.05;

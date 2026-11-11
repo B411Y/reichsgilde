@@ -81,6 +81,15 @@ public partial class Kartenwerkstatt
         {
             _stadt.FelsModus = Stadtansicht.FelsArt.Streuen;
             _stadt.FelsGruppe = null;
+            _stadt.FelsAussparen = false; // ohne Aussparen als Vergleich zur nächsten Zeile
+        });
+        // Felspinsel P3b: dieselbe Messung mit Gebäuden und Wegen aussparen (Suchraster je Strich, eine Abfrage je Versuch)
+        await Pinsel("Fels: Streuen mit Aussparen (r 10, Blöcke)", Werkstattwerkzeug.Fels, () =>
+        {
+            _stadt.FelsModus = Stadtansicht.FelsArt.Streuen;
+            _stadt.FelsGruppe = null;
+            _entwurf.Rueckgaengig(); // der Strich oben ist ein Schritt: so liegt dieselbe Stelle wieder frei und der Strich setzt wirklich Stücke
+            _stadt.FelsAussparen = true;
         });
         // Felspinsel P3: neu verteilen und ausdünnen über die gerade gestreuten Stücke, danach radieren wie bisher (dann sind es weniger Stücke)
         await Pinsel("Fels: Neu verteilen (r 10, Größe, Drehung, Einsinken)", Werkstattwerkzeug.Fels, () =>

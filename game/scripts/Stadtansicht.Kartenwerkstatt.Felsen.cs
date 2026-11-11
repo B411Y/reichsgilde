@@ -108,6 +108,12 @@ public partial class Stadtansicht
     /// <summary>Radierer, Ausdünnen und Neu verteilen nehmen nur Stücke der angehakten Formen.</summary>
     public bool FelsNurFormen { get; set; }
 
+    /// <summary>P3b: Streuen setzt nichts in Gebäude (mit Vorplatz) und auf Wege; Vorgabe an. Stempel und Radierer fragen nicht.</summary>
+    public bool FelsAussparen { get; set; } = true;
+
+    /// <summary>P3b: dazu auch Bauzonen aussparen (nur mit <see cref="FelsAussparen"/>; Vorgabe aus).</summary>
+    public bool FelsAussparenBauzonen { get; set; }
+
     /// <summary>Radierer: bis zu dieser Dichte ausdünnen (Anteil der Kreisfläche); 0: alles weg wie bisher.</summary>
     public double FelsAusduennen { get; set; }
 
@@ -121,7 +127,7 @@ public partial class Stadtansicht
     public Felspinsel FelsPinselWerte => new(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken,
         FelsNeigung, FelsZumHang, FelsFilter, Boden: FelsBoden, AchseX: FelsAchseX, AchseY: FelsAchseY, AchseZ: FelsAchseZ, Drehbereich: FelsDrehbereich,
         Kippbereich: FelsKippbereich, Rollbereich: FelsRollbereich, Versatzbereich: FelsVersatzbereich, NeigungBis: FelsNeigungBis, HangFormen: FelsHangFormen,
-        Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen);
+        Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen, Aussparen: FelsAussparen, AussparenBauzonen: FelsAussparenBauzonen);
 
     /// <summary>Der Radierer mit Radius, Filter, Höhe und Formen (Ausdünnen, wenn eine Dichte eingestellt ist).</summary>
     public Felspinsel FelsRadierer => Felspinsel.Radiergummi(FelsRadius, FelsFilter) with

@@ -110,6 +110,25 @@ public partial class Kartenwerkstatt
         hang.AddThemeFontSizeOverride("font_size", 14);
         hang.Toggled += an => _stadt.FelsZumHang = an;
         _eigenschaften.AddChild(hang);
+        if (modus == Stadtansicht.FelsArt.Streuen)
+        {
+            var aus = new CheckBox { Text = "Gebäude und Wege aussparen", ButtonPressed = _stadt.FelsAussparen, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Das Streuen setzt kein Stück, dessen Grundfläche ein Gebäude (mit Vorplatz) oder einen Weg berührt. Der Stempel und das Gizmo bleiben frei, " +
+                              "und Bauen auf Fels bleibt erlaubt. Gilt für den Strich, wie die Karte beim Beginn des Strichs steht." };
+            aus.AddThemeFontSizeOverride("font_size", 14);
+            CheckBox? zonen = null;
+            aus.Toggled += an =>
+            {
+                _stadt.FelsAussparen = an;
+                if (zonen is not null) zonen.Disabled = !an;
+            };
+            _eigenschaften.AddChild(aus);
+            zonen = new CheckBox { Text = "auch Bauzonen aussparen", ButtonPressed = _stadt.FelsAussparenBauzonen, Disabled = !_stadt.FelsAussparen, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Dazu bleiben auch die Bauzonen frei (die Flächen, auf denen Häuser entstehen dürfen). Aus: Felsen dürfen in Bauzonen stehen." };
+            zonen.AddThemeFontSizeOverride("font_size", 14);
+            zonen.Toggled += an => _stadt.FelsAussparenBauzonen = an;
+            _eigenschaften.AddChild(zonen);
+        }
         if (modus != Stadtansicht.FelsArt.Verteilen)
         {
             var boden = new CheckBox { Text = "Boden mitmalen", ButtonPressed = _stadt.FelsBoden, FocusMode = Control.FocusModeEnum.None,

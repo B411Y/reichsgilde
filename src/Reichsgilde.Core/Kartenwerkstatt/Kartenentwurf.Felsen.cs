@@ -328,7 +328,11 @@ public sealed partial class Kartenentwurf
         {
             (_e, Pinsel, _startwert) = (entwurf, pinsel, startwert);
             if (pinsel.Boden && !pinsel.Radierer && pinsel.Verteilen is null) Boden = new Felsbodenstrich(entwurf._boden, entwurf._hoehen, entwurf.Kartengrenzen.Aussen);
+            // P3b: Gebäude und Wege des Entwurfs, wie sie beim Beginn des Strichs stehen (der Strich ändert sie nicht)
+            if (pinsel.Aussparen && !pinsel.Radierer && pinsel.Verteilen is null) _aussparung = Felsaussparung.Von(entwurf, pinsel.AussparenBauzonen);
         }
+
+        private readonly Felsaussparung? _aussparung;
 
         /// <summary>Die Stücke, die „Neu verteilen“ in diesem Strich schon gewürfelt hat (jedes nur einmal je Strich).</summary>
         private readonly HashSet<EntwurfFels> _verteilt = new(ReferenceEqualityComparer.Instance);
@@ -437,7 +441,7 @@ public sealed partial class Kartenentwurf
                     : Felsstreuung.Filterfaktor(p, _e._hoehen, _e._boden, x, z);
                 if (faktor < 1 && zufall.NextDouble() >= faktor) continue;
                 var lagen = Felsstreuung.Treffer(p, zufall, _e._hoehen, x, z);
-                if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l))) continue;
+                if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l) || _aussparung?.Belegt(l.X, l.Z, l.Radius) == true)) continue;
                 fehl = 0;
                 foreach (var l in lagen)
                 {

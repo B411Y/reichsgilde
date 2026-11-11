@@ -1043,6 +1043,8 @@ public partial class Kartenwerkstatt : Node
                         case "neigung": _stadt.FelsNeigung = Zahl(wert); break;
                         case "ausduennen": _stadt.FelsAusduennen = Zahl(wert); break;
                         case "nurformen": _stadt.FelsNurFormen = wert == "an"; break;
+                        case "aussparen": _stadt.FelsAussparen = wert == "an"; break; // P3b
+                        case "bauzonen": _stadt.FelsAussparenBauzonen = wert == "an"; break;
                         case "formen":
                             _stadt.FelsFormen.Clear();
                             _stadt.FelsFormen.AddRange(wert.Split('+', StringSplitOptions.RemoveEmptyEntries)
@@ -1052,7 +1054,7 @@ public partial class Kartenwerkstatt : Node
                             _stadt.FelsHoehenbereich = wert == "aus" ? null : new Felsbereich(Zahl(wert.Split('/')[0]), Zahl(wert.Split('/')[1]));
                             break;
                         default:
-                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, formen, hoehe).");
+                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, aussparen, bauzonen, formen, hoehe).");
                     }
                 }
                 break;

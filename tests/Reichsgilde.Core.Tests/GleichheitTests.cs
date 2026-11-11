@@ -93,7 +93,19 @@ static class GleichheitTests
         "Gleichheit: Wasserverbund (Fluss und See als eine Fläche, Boden, Bett, Ufer, Spiegel, Strömung auf einem Gitter) ergibt zweimal und mit deutscher Ländereinstellung dieselben Bits",
         WasserverbundPruefen)).Append((
         "Gleichheit: Felspinsel P3 (Abstand, Streuung des Einsinkens, Ausdünnen, Neu verteilen, Radierer nur für Formen, Höhenfilter, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelsP3Pruefen));
+        FelsP3Pruefen)).Append((
+        "Gleichheit: Felspinsel P3b (Streuen mit Gebäuden, Wegen und Bauzonen aussparen, Stempel im Haus) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsAussparenPruefen));
+
+    /// <summary>Felspinsel P3b: Aussparen von Gebäuden, Wegen und Bauzonen – gleiche Bytes (Zeile „felsaus …“ in der Datei der CI).</summary>
+    static void FelsAussparenPruefen()
+    {
+        var a = Sha256(FelsAussparungTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsAussparungTests.Ablauf()), "Fels P3b: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsAussparungTests.Ablauf())), "Fels P3b: de-DE");
+        Zeilen[-8] = new[] { $"felsaus {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felspinsel P3: die neuen Pinselwerte, Ausdünnen und Neu verteilen – gleiche Bytes (Zeile „felsp3 …“ in der Datei der CI).</summary>
     static void FelsP3Pruefen()
