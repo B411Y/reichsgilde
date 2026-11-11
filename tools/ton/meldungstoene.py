@@ -6,6 +6,7 @@ Aufruf:  python3 tools/ton/meldungstoene.py game/assets/audio/geraeusche/oberfla
 Nur die Python-Standardbibliothek (kein numpy). Jeder Ton ist Mono, 44,1 kHz, 16 Bit; der Zufall ist an einen festen
 Startwert je Datei gebunden, ein neuer Lauf liefert also dieselben Bytes.
   siegel_neu_1/2.wav   Siegel erscheint: weicher Wachsklopfer (tiefer Sinus, fallende Tonhöhe) + kurzes Schmatzen + ganz leises Tick
+  siegel_feder.wav     Entscheidung kommt: Wachsklopfer wie das Siegel, dazu ein kurzer Federstrich (Rauschen mit steigendem Filter) und ein zweiter, hellerer Ton
   pergament_1/2.wav    Brief kommt / wird gelesen: Rascheln von Pergament (gefiltertes Rauschen mit unregelmäßigen Knacksern)
 """
 import math, random, struct, sys, wave
@@ -63,6 +64,24 @@ def siegel(start, tief):
     return aus
 
 
+def feder(start, tief):
+    """Wachsklopfer, dann ein Federstrich über Pergament (kurzes, hohes Kratzen) und ein heller Nachklang: „hier ist etwas zu entscheiden“."""
+    r = random.Random(start)
+    n = int(RATE * 0.55)
+    aus = siegel(start, tief) + [0.0] * (n - int(RATE * 0.32))
+    kratz = hochpass(tiefpass([r.uniform(-1, 1) for _ in range(int(RATE * 0.2))], 7000), 2200)
+    anfang = int(RATE * 0.11)
+    for i, x in enumerate(kratz):
+        t = i / RATE
+        huell = math.sin(math.pi * min(1.0, t / 0.2)) ** 2 * (0.55 + 0.45 * math.sin(t * 70))
+        aus[anfang + i] += x * huell * 0.9
+    ton = int(RATE * 0.25)
+    for i in range(ton):
+        t = i / RATE
+        aus[int(RATE * 0.26) + i] += math.sin(2 * math.pi * 392 * t) * math.exp(-t * 14) * 0.22
+    return aus
+
+
 def pergament(start, dauer):
     r = random.Random(start)
     n = int(RATE * dauer)
@@ -91,6 +110,7 @@ if __name__ == "__main__":
     ziel = sys.argv[1] if len(sys.argv) > 1 else "."
     schreiben(f"{ziel}/siegel_neu_1.wav", siegel(11, 150))
     schreiben(f"{ziel}/siegel_neu_2.wav", siegel(12, 175))
+    schreiben(f"{ziel}/siegel_feder.wav", feder(13, 165))
     schreiben(f"{ziel}/pergament_1.wav", pergament(21, 0.55))
     schreiben(f"{ziel}/pergament_2.wav", pergament(22, 0.7))
     print("fertig")
