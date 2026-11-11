@@ -597,9 +597,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lösung | Jedes Fenster außer dem Hauptfenster bekommt eine eigene Ebene 128 (`HandschuhSpiegel`) mit demselben Bild der Bühne (geteilte Textur), gezeichnet an der Mausposition des Fensters; angelegt über `SceneTree.NodeAdded`, aktiv nur bei sichtbarem Fenster. Kein Systemzeiger als Ersatz. Headless nachgewiesen: 87 Fenster (PopupMenus) bekommen die Ebene (Log `[spiegel]`); Test der Lagerechnung (`HandschuhModell.FensterPosition`). **Kein Spielbild**; auf der NAS zu prüfen: OptionButton Volk in der Charakterwahl offen, PopupMenu, Dialog, Kontextmenü, Tooltip (Hand über dem Popup sichtbar, Fingerspitze genau auf dem Mauspunkt, auch am Rand des Popups) | 11.11.2026 |
 | Offen | Die Mausposition im Popup kommt von `Window.GetMousePosition()`; sie ist nur aktuell, solange das Fenster Mausbewegungen bekommt (Maus über dem Popup). Reicht die Hand über den Rand des Popups hinaus, kann der Teil im Popup einen Moment an der letzten Position stehen; ungesehen | 11.11.2026 |
 
-### Handschuh 64 px (PR #…)
+### Handschuh 64 px, schnellere Faust (PR #…)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Größe | Nutzerwunsch: der Zeiger ist bei 1080p jetzt 64 statt 48 Pixel (`Mauszeiger.GroesseWaehlen`: unter 0,75 → 48, unter 1,35 → 64, sonst 80). Bühne, Zeigerpunkt, Spiegel-Ebenen und „?“ leiten sich aus der Größe ab und wachsen mit | 11.11.2026 |
 | Prüfung | Ohne Klicktest auf Wunsch des Nutzers | 11.11.2026 |
+| Faust | Übergänge in die Ziehen-Faust und zurück (`Uebergang_*_Greifen`, `Greifen_*`) auf 0,12 s gekürzt: Tempo = Cliplänge der Datei / 0,12 (`HandschuhModell.FaustUebergangSekunden`), glb unverändert. Vorher (Tempo 1,8): Ruhe→Greifen 0,69 s, Greifen→Ruhe 0,56 s, Zeigen↔Greifen 0,28 s | 11.11.2026 |
