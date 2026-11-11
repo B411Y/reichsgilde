@@ -23,7 +23,7 @@
     {"name": "planken", "kachel": 2.0, "projektion": "wand", "mittel": [0.11998, 0.09072, 0.06466]},
     {"name": "laub", "kachel": 1.5, "projektion": "wand", "mittel": [0.03765, 0.06075, 0.01187]},
     {"name": "nadeln", "kachel": 1.2, "projektion": "wand", "mittel": [0.02145, 0.03266, 0.01008]},
-    {"name": "fell", "kachel": 0.5, "projektion": "wand", "mittel": [0.68004, 0.61856, 0.54644]}
+    {"name": "fell", "kachel": 0.25, "projektion": "wand", "mittel": [0.56603, 0.51512, 0.45533]}
   ],
   "namen": {
     "Bruchstein": "bruchstein",
