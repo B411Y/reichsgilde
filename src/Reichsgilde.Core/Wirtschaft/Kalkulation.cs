@@ -12,23 +12,29 @@ public static class Kalkulation
     /// Gewinn je Arbeitsminute, wenn man diese Ware jetzt herstellt und verkauft:
     /// (Verkaufspreis nach Steuer − Zutaten zum Marktpreis) ÷ Herstellungszeit.
     /// Für Rohstoffe (keine Zutaten) ist das einfach Preis nach Steuer ÷ Förderzeit.
+    /// Mit <paramref name="betrieb"/> rechnet der Erlös den Aufschlag am Hafen mit, den die Karren dieses Betriebs für die Ware bekämen
+    /// (<see cref="Stadtwirtschaft.HafenFaktor"/>, derselbe Faktor wie Abrechnung und Vorschau über <see cref="Stadtwirtschaft.KarrenVerkaufsFaktor(Konto, string, bool)"/>);
+    /// ohne Betrieb (Ware für einen neuen Betrieb an unbekanntem Ort) ohne Aufschlag. Verhandeln und Lebensweise des Hauses rechnet die
+    /// Schätzung wie bisher nicht.
     /// </summary>
-    public static double GewinnJeArbeitsminute(Stadtwirtschaft w, string ware)
+    public static double GewinnJeArbeitsminute(Stadtwirtschaft w, string ware, Betrieb? betrieb = null)
     {
         var daten = w.Daten.Waren[ware];
-        var erloes = w.Markt[ware].Preis * (1 - w.Umsatzsteuer);
+        var preis = w.Markt[ware].Preis;
+        if (betrieb is not null) preis *= w.HafenFaktor(betrieb, ware); // ohne Hafenfahrt genau 1: Zahl für Zahl wie vorher
+        var erloes = preis * (1 - w.Umsatzsteuer);
         var zutaten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
         return (erloes - zutaten) / daten.Zeit;
     }
 
     /// <summary>
     /// Wert einer Arbeitsminute in diesem Betrieb bei der aktuellen Ausrichtung – in einer Werkstatt nach den Waren in Arbeit gewichtet,
-    /// mit der Einrichtung (weniger Zeit je Stück = mehr wert je Minute).
+    /// mit der Einrichtung (weniger Zeit je Stück = mehr wert je Minute) und dem Aufschlag am Hafen (<see cref="GewinnJeArbeitsminute"/> mit Betrieb).
     /// </summary>
     public static double WertJeArbeitsminute(Stadtwirtschaft w, Betrieb betrieb) =>
         betrieb.OhneProduktion ? w.WertOhneWare(betrieb.Artdaten)
-        : betrieb.IstWerkstatt ? Werkstattmix(betrieb, ware => GewinnJeArbeitsminute(w, ware) / betrieb.ZeitFaktor(ware))
-        : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware));
+        : betrieb.IstWerkstatt ? Werkstattmix(betrieb, ware => GewinnJeArbeitsminute(w, ware, betrieb) / betrieb.ZeitFaktor(ware))
+        : Gemischt(betrieb, ware => GewinnJeArbeitsminute(w, ware, betrieb));
 
     /// <summary>Werkstatt: nach dem Anteil der Waren an der Arbeit gewichtet (eine Ware: genau deren Wert).</summary>
     private static double Werkstattmix(Betrieb b, Func<string, double> wert) =>
@@ -78,13 +84,15 @@ public static class Kalkulation
     /// </summary>
     /// <param name="statut">Unter welchem Statut gerechnet wird (ohne Angabe: das geltende) – für „Was brächte Statut C?".</param>
     /// <param name="leistung">Faktor auf die Leistung der Arbeitskräfte – etwa der Völkerbonus des Hauses (<see cref="Stadtwirtschaft.VolksFaktor"/>).</param>
-    public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art, Fronstatut? statut = null, double leistung = 1)
+    /// <param name="betrieb">Rechnet für diesen bestehenden Betrieb (Ausbau): mit dem Aufschlag am Hafen, den seine Karren bekämen
+    /// (<see cref="GewinnJeArbeitsminute"/> mit Betrieb). Ohne Angabe ein neuer Betrieb ohne Aufschlag.</param>
+    public static double ErwarteterJahresgewinn(Stadtwirtschaft w, Betriebsart art, Fronstatut? statut = null, double leistung = 1, Betrieb? betrieb = null)
     {
         var geltend = statut ?? w.Statut;
         var d = w.Daten.Art(art);
         var ort = d.Ort;
         var wertJeMinute = d.OhneProduktion ? w.WertOhneWare(d)
-            : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware));
+            : (d.IstWerkstatt ? d.Produkte : d.Rohstoffe).Max(ware => GewinnJeArbeitsminute(w, ware, betrieb));
         var minuten = w.Daten.Arbeitsminuten(art);
         var schicht = w.Daten.Schichtfaktor(art); // Lohn je Stunde gleich: die längere Schicht im Wirtshaus kostet mehr
         // Die beste Kraft, die in diese Art passt (mit „personal“: ihre Laufbahn – auf Dauer der Geselle bzw. Altknecht).
@@ -97,11 +105,11 @@ public static class Kalkulation
 
     /// <summary>
     /// Was der Ausbau zur nächsten Stufe im Jahr mehr bringt (voll belegt, bestes Produkt, heutige Preise) –
-    /// 0, wenn es keine nächste Stufe gibt.
+    /// 0, wenn es keine nächste Stufe gibt. Mit dem Aufschlag am Hafen, den die Karren dieses Betriebs bekämen.
     /// </summary>
     public static double AusbauMehrgewinn(Stadtwirtschaft w, Betrieb betrieb) =>
         betrieb.Artdaten.Ausbau is { } neu
-            ? ErwarteterJahresgewinn(w, neu) - ErwarteterJahresgewinn(w, betrieb.Art)
+            ? ErwarteterJahresgewinn(w, neu, betrieb: betrieb) - ErwarteterJahresgewinn(w, betrieb.Art, betrieb: betrieb)
             : 0;
 
     // ── Schiffshandel (PR #199) ─────────────────────────────────────────────

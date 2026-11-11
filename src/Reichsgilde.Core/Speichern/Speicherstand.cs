@@ -220,6 +220,10 @@ public sealed record EntscheidungenStand
     /// <summary>Die Nummer der nächsten Frage – Nummern werden in einer Partie nie doppelt vergeben.</summary>
     public int NaechsteNummer { get; init; } = 1;
     public List<EntscheidungStand> Offen { get; init; } = new();
+
+    /// <summary>Anlässe aus Teil 2 (Krankheit, Erbe, Geheimnis, Mahnung), die schon entschieden sind und nicht wieder gefragt werden (null: keine).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Erledigt { get; init; }
 }
 
 /// <summary>Eine offene Frage; Haus und Absender als Nummer in <see cref="WirtschaftStand.Konten"/>, Person als Personennummer.</summary>
@@ -234,6 +238,18 @@ public sealed record EntscheidungStand
     public long Beginn { get; init; }
     public long Frist { get; init; }
     public int Voreinstellung { get; init; }
+
+    /// <summary>Erbe: die Kinder zur Wahl (Personennummern).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<int>? Auswahl { get; init; }
+
+    /// <summary>Geheimnis: die Nummer des Geheimnisses.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Geheimnis { get; init; }
+
+    /// <summary>Teil 2: der Schlüssel des Anlasses (null bei den Forderungen der Unterwelt).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Anlass { get; init; }
 }
 
 /// <summary>Die Geheimnisse der Stadt (siehe <see cref="Reichsgilde.Core.Geheimnisse.Geheimniswesen"/>).</summary>

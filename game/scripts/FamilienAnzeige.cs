@@ -31,6 +31,17 @@ public partial class FamilienAnzeige : PanelContainer
     private double _geschenkBetrag = 200;
     private Label _meldung = null!;
 
+    // ── Reiter: Familie (das bisherige Buch) · Stammbaum · Chronik (PR Stammbaum) ──
+    public enum Reiter { Familie, Stammbaum, Chronik }
+    private Reiter _reiter = Reiter.Familie;
+    private Konto? _ansicht; // das Haus, dessen Stammbaum und Chronik gezeigt werden (null: das eigene)
+    private readonly List<Button> _reiterKnoepfe = new();
+    private HBoxContainer _haeuser = null!;
+    private StammbaumAnzeige _stammbaum = null!;
+    private VBoxContainer _chronik = null!;
+    private int _chronikSeite = 1;
+    private const int ChronikProSeite = 25;
+
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
@@ -52,9 +63,42 @@ public partial class FamilienAnzeige : PanelContainer
         spalte.AddThemeConstantOverride("separation", 8);
         rand.AddChild(spalte);
 
+        var reiter = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        reiter.AddThemeConstantOverride("separation", 6);
+        spalte.AddChild(reiter);
+        var gruppe = new ButtonGroup();
+        foreach (var r in Enum.GetValues<Reiter>())
+        {
+            var ziel = r;
+            var knopf = new Button
+            {
+                Text = r.ToString(), ToggleMode = true, ButtonGroup = gruppe, FocusMode = FocusModeEnum.None, ButtonPressed = r == _reiter,
+                CustomMinimumSize = new Vector2(150, 34),
+                TooltipText = r switch
+                {
+                    Reiter.Familie => "Euer Haus: Oberhaupt, Ehe, Kinder, Gesundheit und Brautschau.",
+                    Reiter.Stammbaum => "Der Stammbaum eines Hauses – auch der Häuser der anderen.",
+                    _ => "Die Hauschronik: Geburten, Hochzeiten, Todesfälle, Erbfolgen, Ämter.",
+                },
+            };
+            knopf.AddThemeFontSizeOverride("font_size", 16);
+            knopf.Pressed += () => ReiterWaehlen(ziel);
+            reiter.AddChild(knopf);
+            _reiterKnoepfe.Add(knopf);
+        }
+        _haeuser = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        _haeuser.AddThemeConstantOverride("separation", 6);
+        spalte.AddChild(_haeuser);
+
         _inhalt = new VBoxContainer();
         _inhalt.AddThemeConstantOverride("separation", 6);
         spalte.AddChild(_inhalt);
+        _stammbaum = new StammbaumAnzeige();
+        spalte.AddChild(_stammbaum);
+        _chronik = new VBoxContainer();
+        _chronik.AddThemeConstantOverride("separation", 6);
+        _chronik.CustomMinimumSize = new Vector2(0, 600); // gleiche Höhe wie der Stammbaum, damit das Fenster beim Reiterwechsel nicht springt
+        spalte.AddChild(_chronik);
 
         _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite - 50);
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
@@ -68,11 +112,119 @@ public partial class FamilienAnzeige : PanelContainer
     {
         _simulation = simulation;
         _spieler = spieler;
+        _ansicht = null;
+        if (_simulation?.Wirtschaft is { } w) _stammbaum.Verbinden(w, spieler);
     }
+
+    /// <summary>Öffnet das Familienbuch auf diesem Reiter (Startoption <c>--stammbaum=</c>), optional für ein anderes Haus.</summary>
+    public void Oeffnen(Reiter reiter, Konto? haus = null)
+    {
+        _ansicht = haus;
+        _reiter = reiter;
+        Oeffnen();
+    }
+
+    private void ReiterWaehlen(Reiter r)
+    {
+        _reiter = r;
+        _chronikSeite = 1;
+        Aufbauen();
+    }
+
+    /// <summary>Das Haus, das Stammbaum und Chronik zeigen.</summary>
+    private Konto Ansicht => _ansicht ?? _spieler!;
+
+    private void HaeuserAufbauen(Stadtwirtschaft w)
+    {
+        UiHilfe.KinderEntfernen(_haeuser);
+        _haeuser.Visible = _reiter != Reiter.Familie;
+        if (!_haeuser.Visible) return;
+        var buch = w.Familien;
+        foreach (var konto in w.Konten.Where(k => buch.Von(k) is not null))
+        {
+            var familie = buch.Von(konto)!;
+            var knopf = new Button
+            {
+                ToggleMode = true, ButtonPressed = konto == Ansicht, FocusMode = FocusModeEnum.None,
+                TooltipText = $"Haus {familie.Nachname}{(konto.IstErloschen ? " (erloschen)" : "")} ansehen",
+            };
+            var zeile = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+            zeile.AddThemeConstantOverride("separation", 5);
+            var wappen = WappenBild.Neu(konto.Wappen, 20);
+            wappen.MouseFilter = MouseFilterEnum.Ignore;
+            zeile.AddChild(wappen);
+            var name = Hauptmenue.Text(zeile, familie.Nachname + (konto == _spieler ? " (Ihr)" : ""), 14, konto.IstErloschen ? Grau : null);
+            name.MouseFilter = MouseFilterEnum.Ignore;
+            knopf.AddChild(zeile);
+            knopf.CustomMinimumSize = new Vector2(zeile.GetCombinedMinimumSize().X + 18, 30);
+            var ziel = konto;
+            knopf.Pressed += () => { _ansicht = ziel; _chronikSeite = 1; Aufbauen(); };
+            _haeuser.AddChild(knopf);
+        }
+    }
+
+    /// <summary>Die Hauschronik: die Einträge des Kerns mit Jahr, Art und Porträt, 25 auf einer Seite, die neuesten zuerst.</summary>
+    private void ChronikAufbauen(Stadtwirtschaft w)
+    {
+        UiHilfe.KinderEntfernen(_chronik);
+        var buch = w.Familien;
+        if (buch.Von(Ansicht) is not { } f) { Text(_chronik, "Dieses Haus hat keine Familie.", 15, Grau); return; }
+        Hauptmenue.Text(_chronik, $"Chronik des Hauses {f.Nachname}", 22, Gold, zentriert: true);
+        var eintraege = buch.Chronik(f, _spieler!);
+        Hauptmenue.Text(_chronik, $"{eintraege.Count} Einträge – Geburten, Todesfälle und Erbfolgen bleiben für immer; Hochzeiten, Ämter, Geheimnisse und Entscheidungen nur, solange sie im Verlauf der Stadt stehen (die letzten 500 Meldungen).",
+            12, Grau, zentriert: true, umbruchBreite: Breite - 60);
+        var zeigen = Math.Min(eintraege.Count, _chronikSeite * ChronikProSeite);
+        var jahrDavor = int.MinValue;
+        for (var i = 0; i < zeigen; i++)
+        {
+            var e = eintraege[i];
+            if (e.Jahr != jahrDavor)
+            {
+                jahrDavor = e.Jahr;
+                _chronik.AddChild(new HSeparator());
+                Text(_chronik, $"Anno {e.Jahr}", 15, Gold);
+            }
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 10);
+            _chronik.AddChild(zeile);
+            if (e.Person is int nr && buch.PersonNummer(nr) is { } person)
+            {
+                var bild = PortraetAnzeige.Neu(44, lebendig: false);
+                bild.Zeigen(buch, person);
+                bild.TooltipText = person.Name;
+                zeile.AddChild(bild);
+            }
+            else zeile.AddChild(new Control { CustomMinimumSize = new Vector2(44, 44) });
+            var art = Hauptmenue.Text(zeile, ChronikName(e.Art), 12, ChronikFarbe(e.Art));
+            art.CustomMinimumSize = new Vector2(86, 0);
+            art.VerticalAlignment = VerticalAlignment.Center;
+            var text = Hauptmenue.Text(zeile, e.Text, 14, null, umbruchBreite: Breite - 220);
+            text.VerticalAlignment = VerticalAlignment.Center;
+        }
+        if (zeigen < eintraege.Count)
+        {
+            var mehr = new Button { Text = $"Ältere Einträge ({eintraege.Count - zeigen})", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
+            mehr.Pressed += () => { _chronikSeite++; Aufbauen(); };
+            _chronik.AddChild(mehr);
+        }
+    }
+
+    private static string ChronikName(Chronikart a) => a switch
+    {
+        Chronikart.Gruendung => "Gründung", Chronikart.Geburt => "Geburt", Chronikart.Heirat => "Hochzeit", Chronikart.Tod => "Tod",
+        Chronikart.Erbe => "Erbfolge", Chronikart.Amt => "Amt, Stand", Chronikart.Geheimnis => "Geheimnis", Chronikart.Entscheidung => "Entscheidung", _ => "Ereignis",
+    };
+
+    private static Color ChronikFarbe(Chronikart a) => a switch
+    {
+        Chronikart.Geburt => Gruen, Chronikart.Tod => Grau, Chronikart.Erbe or Chronikart.Gruendung => Gold, Chronikart.Heirat => new Color(0.95f, 0.65f, 0.7f),
+        Chronikart.Geheimnis => Rot, Chronikart.Amt => new Color(0.6f, 0.75f, 0.95f), Chronikart.Entscheidung => new Color(0.8f, 0.65f, 0.95f), _ => Grau,
+    };
 
     public void Oeffnen()
     {
         _meldung.Text = "";
+        if (_simulation?.Wirtschaft is { } w0 && (_ansicht is null || w0.Familien.Von(_ansicht) is null)) _ansicht = null;
         Aufbauen();
         Show();
     }
@@ -120,6 +272,13 @@ public partial class FamilienAnzeige : PanelContainer
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         var buch = w.Familien;
+        for (var i = 0; i < _reiterKnoepfe.Count; i++) _reiterKnoepfe[i].SetPressedNoSignal(i == (int)_reiter);
+        _inhalt.Visible = _reiter == Reiter.Familie;
+        _stammbaum.Visible = _reiter == Reiter.Stammbaum;
+        _chronik.Visible = _reiter == Reiter.Chronik;
+        HaeuserAufbauen(w);
+        if (_reiter == Reiter.Stammbaum) { _stammbaum.Aufbauen(Ansicht); return; }
+        if (_reiter == Reiter.Chronik) { ChronikAufbauen(w); return; }
         UiHilfe.KinderEntfernen(_inhalt);
         if (buch.Von(_spieler) is not { } f)
         {

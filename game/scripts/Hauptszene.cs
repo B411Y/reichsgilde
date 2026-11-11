@@ -158,6 +158,7 @@ public partial class Hauptszene : Node
     /// <summary>Startoption --spulen: So viele Spielminuten (Ticks) auf einen Schlag ablaufen lassen, sobald nichts mehr zu klicken bleibt.</summary>
     private int _spulen;
     private string? _charakterWartet;
+    private string? _stammbaumWartet;
     /// <summary>Startoption --innen=betrieb:<Name> für eine Werkstatt, die erst durch --bauklick und --spulen entsteht.</summary>
     private string? _innenWartet;
     /// <summary>Startoption --speichern=x.json: Nach --bauklick und --spulen wird die Partie unter diesem Namen gespeichert.</summary>
@@ -609,11 +610,13 @@ public partial class Hauptszene : Node
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
         if (optionen.TryGetValue("erpresserbrief", out var briefWert)) _erpresserbriefWartet = briefWert; // ebenso (Siegel der Geheimnisse)
+        if (optionen.TryGetValue("entscheidung", out var entscheidungWert)) _entscheidungWartet = entscheidungWert; // ebenso (Benachrichtigungen Stufe 3)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -1168,6 +1171,7 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
+        EntscheidungenVerbinden(simulation, w, spieler); // Entscheidungsbrief (Hauptszene.Entscheidungsbrief.cs)
         w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
         MusikVerbinden(simulation, w, spieler); // dynamische Musik (Hauptszene.Musik.cs)
@@ -1256,6 +1260,16 @@ public partial class Hauptszene : Node
             _erpresserbriefWartet = null;
             ErpresserbriefStartoption(briefWunsch);
         }
+        if (_entscheidungWartet is { } entscheidungWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _entscheidungWartet = null;
+            EntscheidungStartoption(entscheidungWunsch);
+        }
+        if (_stammbaumWartet is { } stammbaumWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _stammbaumWartet = null;
+            StammbaumStartoption(stammbaumWunsch);
+        }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {
             _charakterWartet = null;
@@ -1272,6 +1286,7 @@ public partial class Hauptszene : Node
         Anzeigen();
         LeisteAnzeigen(delta);
         MeldungenAltern(delta);
+        EntscheidungenAbgleichen();
         _berichtTafel.Aktualisieren(delta);
         _hafenTafel.Aktualisieren(delta);
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar

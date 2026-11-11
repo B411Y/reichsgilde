@@ -62,7 +62,7 @@ static class KartenformatTests
             // Nicht in der Stadt aufgestellt: Figuren, Karren, Vögel, Innenräume, die Flussschiffe, die Nachen und der Hafensteg (ihn setzt die Stadtansicht an jeden Hafen); die Marktstände gehören zum Markt.
             // Ohne Katalog: die Felsstücke und der Felswand-Satz (setzt der Fels-Pinsel, Felspinsel F3/F5, Felsen R4) und die Kulissenberge hinter dem Kartenrand.
             var imKatalog = k.Bausteine.Select(b => b.Modell).OfType<string>().ToHashSet();
-            var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("fahrzeuge/") && !d.StartsWith("tiere/")
+            var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("karren/") && !d.StartsWith("tiere/")
                                             && !d.StartsWith("innen/") && d != "gebaeude/marktstaende" && d != "gebaeude/lichter" && d != "wasser/wasser_schiff" && d != "wasser/wasser_niederlaender" && d != "wasser/wasser_nachen" && d != "wasser/wasser_hafensteg"
                                             && d != "natur/natur_felsen" && d != "natur/natur_felswand" && !d.StartsWith("kulisse/")).ToList();
             // Ohne Katalog: Requisiten (requisiten/, z. B. der Eimer der Löschkette) setzt das Spiel bei Ereignissen, nicht die Karte.

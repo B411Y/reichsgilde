@@ -74,6 +74,10 @@ static class GesundheitTests
             w.Gesundheit.Erkranken(k, f.Oberhaupt, "Haarausfall"); // dauert 2 Jahre
             Pruefe.Ungefaehr(vorher - 3, w.Rat.Ansehen(k), 1e-9);
             Pruefe.Gleich(w.Familien.Jahr + 1, f.Oberhaupt.Krankheit!.Bis);
+            // Stufe 3 (Entscheidungen): Der Mensch bekommt eine Frage zur Krankheit; er tut nichts – sonst riefe die Voreinstellung den Medicus.
+            sim.Tick();
+            foreach (var e in w.Entscheidungen.Offen.Where(e => e.Art == Reichsgilde.Core.Entscheidungen.Entscheidungsart.Krankheit).ToList())
+                Pruefe.Wahr(w.Ausfuehren(e.Haus, new EntscheidungTreffen(e.Nummer, Reichsgilde.Core.Entscheidungen.Entscheidungswesen.NichtsTun)).Erfolg, "nichts tun");
             JahrBeenden(sim);
             Pruefe.Gleich("Haarausfall", f.Oberhaupt.Krankheit?.Name);
             JahrBeenden(sim);

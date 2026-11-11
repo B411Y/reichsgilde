@@ -738,7 +738,7 @@ public sealed class Werkstattwesen
         {
             var ware = b.WareVon(a);
             return _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort) * volk * b.Arbeitsminuten * b.TempoBonus
-                   * Kalkulation.GewinnJeArbeitsminute(_w, ware) / b.ZeitFaktor(ware) * gewicht(ware);
+                   * Kalkulation.GewinnJeArbeitsminute(_w, ware, b) / b.ZeitFaktor(ware) * gewicht(ware); // mit dem Aufschlag am Hafen wie Erloeswert
         });
     }
 

@@ -1,8 +1,8 @@
 ---
 name: integration
-description: Integration – führt Mitglieder-Branches im Funktions-Branch zusammen, baut, testet, macht den Klicktest und bereitet den PR vor. Mergt nicht nach main. Sonnet, Aufwand hoch.
+description: Integration – führt Mitglieder-Branches im Funktions-Branch zusammen, baut, testet, macht den Klicktest und bereitet den PR vor. Mergt nicht nach main. Sonnet, Aufwand mittel.
 model: sonnet
-effort: high
+effort: medium
 color: green
 ---
 
@@ -17,7 +17,7 @@ Der Funktions-Branch `phaseN/thema` und sein PR, so wie der Auftrag sie nennt. D
 0. **Funktions-Branch anlegen**, wenn der Auftrag es sagt: Branch `phaseN/thema` von `origin/main`, lokal im Worktree. Einen PR legst du nicht an: Auf GitHub ist immer nur ein PR offen, den öffnet der Push-Agent, wenn der Branch an der Reihe ist (`.claude/teamleiter.md`, „Merge-Ablauf Einbahnstraße“). Hat die Action „PRs aktuell halten“ schon etwas in den Branch auf GitHub eingemergt, vorher `origin/<branch>` mergen.
 1. **Mitglieder-Branches einmergen** (mergen, nicht rebasen): Vor dem Einmergen und vor dem Löschen eines Mitglieder-Branches `git merge-base --is-ancestor origin/<mitglieder-branch> <funktions-branch>` prüfen; fehlt der Commit, erst einmergen.
 2. **`origin/main` einmergen** (`git fetch origin`, dann mergen). Konflikte in `docs/bereiche/*.md`: beide Einträge behalten. Danach die Tabellen in `docs/bereiche/*.md` auf doppelte Zeilen und Leerzeilen mitten in der Tabelle prüfen.
-3. **Kleinkram-Hilfsarbeiten** (Texte, Namen, Zusammenfassungen) an einen Unter-Agenten mit `model: haiku`, `effort: high` geben (siehe unten); das Ergebnis selbst prüfen, bauen und testen, dann committen mit `Agent: integration`.
+3. **Kleinkram-Hilfsarbeiten** (Texte, Namen, Zusammenfassungen) an einen Unter-Agenten mit `model: haiku`, `effort: medium` geben (siehe unten); das Ergebnis selbst prüfen, bauen und testen, dann committen mit `Agent: integration`.
 4. **Bauen und testen:** `dotnet build Reichsgilde.sln`, `dotnet run -c Release --project tests/Reichsgilde.Core.Tests` ohne Schalter (alle Tests grün, auch die langsamen; nie einen Test abschalten). **Asset-Protokoll:** `python3 tools/assets/protokoll_pruefen.py` muss grün sein – kein Asset ohne Protokolleintrag im selben PR (`docs/assets/README.md`); fehlt eine Zeile, geht der Befund an den Teamleiter bzw. das Mitglied, das das Asset gebracht hat. Neue Assets tragen „Alle Rechte vorbehalten“ als Lizenz (außer Fremdmaterial). Vor „bereit“ (Schritt 8) noch einmal laufen lassen.
 5. **Projekt importieren:** `~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64 --headless --import --path game` (vor dem Klicktest, nach jedem Einmergen).
 6. **Klicktest** (siehe unten) mit Bildschirmfotos, die du **selbst ansiehst** (Read-Werkzeug), und einer ehrlichen Beschreibung: was zu sehen ist, was fehlt oder falsch aussieht.
@@ -46,7 +46,7 @@ WORKTREE=<worktree> DISPLAY_NR=<nummer> [TREIBER=nvidia] tools/klicktest/lauf.sh
 
 ## Hilfsagenten
 
-- **Kleinkram** (Texte, Namen, Zusammenfassungen): Unter-Agent mit `model: haiku`, `effort: high`.
+- **Kleinkram** (Texte, Namen, Zusammenfassungen): Unter-Agent mit `model: haiku`, `effort: medium`.
 - Kern, Spiel-KI, Spielstand, schwierige Grafik und alle Entscheidungen bleiben bei Claude-Mitgliedern.
 
 ## Regeln

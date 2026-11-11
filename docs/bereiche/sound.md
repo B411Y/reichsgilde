@@ -24,7 +24,7 @@ Plan (Schritte in dieser Reihenfolge):
 - (Umgebung) Namensnennung der CC-BY-Quellen im Spiel: klankbeeld (Glocke Noteman, auch das Sturmläuten beim Blitzschlag), poots (Frösche), juskiddink (Horn) gehören in eine Liste der Mitwirkenden im Spiel (Danksagung); bis dahin nur in `HERKUNFT.md` und im Protokoll.
 - (Umgebung) Glocken ohne Vorlage der Kölner Glockenordnung: Die Zeiten folgen den Regeln des Spiels (8, 10, 20, 22 Uhr); eine echte Quelle zu Köln um 1400 (Rügeglocke, Feuerglocke, Torschluss) fehlt, die Websuche fand nur allgemeine Belege (Türmer, Feuerglocke, Wächter mit Horn, Glocke als Zeitzeichen).
 
-- Eigenes, helleres Geläut je romanischer Kirche in Köln (wenn Köln-Paket 2 kommt), Dom bleibt am tiefsten.
+- Eigenes, helleres Geläut je romanische Kirche in Köln (Ort und Pegel je Kirche gibt es seit 10.11.2026, der Klang ist noch überall derselbe Dom-Aufnahme); Dom bleibt am tiefsten.
 - (Umgebung) Donner: Der Tiefpass sitzt am Bus (ein Wert für alle gleichzeitig klingenden Schläge, der zuletzt gesetzte gilt); mit dichten Blitzen über der Stadt klingt der ferne Donner dann kurz heller.
 
 - **Blitzeinschlag → Gebäudebrand** (Spielmechanik, nicht Ton): `Stadtansicht.BlitzEinschlag(Vector3 ort)` ist die Andockstelle (hellster Blitz aus der Richtung des Orts, brachiale Einschlag-Aufnahme ohne Verzögerung, Abstand aus dem Ort); die Mechanik „Einschlag setzt ein Haus in Brand“ kommt später (Kern, siehe `docs/bereiche/kern.md`).
@@ -223,3 +223,16 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Einstellung | Reiter Ton: Regler Musik (Bus) und „Wie oft Musik spielt“ (Immer, Oft, Selten, Nur Ereignisse, Aus; Standard Oft; Schlüssel `musik_haeufigkeit` in `user://einstellungen.cfg`, Abschnitt `ton`) | 10.11.2026 |
 | Hauptmenü | Menüstück: „Adels Schmeich“ (tag): gleichmäßigster Verlauf der Tagesstücke (Kurzzeit-Lautheit schwankt nur 1,2 LU), Schwerpunkt mittig (1,6 kHz), keine Marsch- oder Volksfarbe; nach dem Ende 25 s Pause, wieder von vorn. Kein eigenes Menüstück vorhanden | 10.11.2026 |
 | Prüfung | `--musiktest=<lage>` (tag, nacht, tod, hochzeit, kampf, sklaven, aufstand, selbst), `--musiklog=1`; Entwicklerfenster, Reiter Klänge, Abschnitt Musik; `MusikTests` (15 Tests: Daten, Lage, Auswahl, Pausen, Ablauf über 6 Stunden, Wechsel, Ereignisse, Zustände, Aus) | 10.11.2026 |
+
+### Kirchenglocken nach Entfernung (Befund 10.11.2026, Branch fix/glocken-entfernung)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befund | Es läutete eine einzige Glocke am Dom, auf dem Land nur 12 dB leiser (Tiefpass bis 3,5 kHz): Im Umland klang sie fast wie in der Stadt; die übrigen Kirchen Kölns läuteten nie | 10.11.2026 |
+| Hörer | Blickpunkt der Kamera am Boden (wie bei allen Umgebungsklängen und dem Regen), Abstand in Spielmetern; die Karte ist etwa 1 : 10 verkleinert | 10.11.2026 |
+| Kurve | `KlangGlockenModell.cs` (reine Rechnung, kein Godot): je Kirche Pegel = Quellpegel − 9 dB · log2(Abstand / Nahbereich), im Nahbereich voll. 9 statt 6 dB (Freifeld) je Verdopplung: Häuser, Boden und Luft schlucken zusätzlich, und die Karte ist kurz; bei 6 dB wäre das Umland kaum leiser als die Stadt. Pfarrkirche Nahbereich 30 m, Dom 60 m und +3 dB (trägt weiter) | 10.11.2026 |
+| Summe | Alle Kirchen der Karte (Dom, `kirche`, `kirche_…`) addieren sich nach **Leistung**, nicht nach Pegel (zwei gleiche +3 dB), gedeckelt bei 0 dB (Glocke aus nächster Nähe) und nie leiser als **−36 dB**: Glocken tragen weit, im Umland sind sie leise, aber nicht weg. Seite = nach Leistung gewichtet | 10.11.2026 |
+| Tiefpass | Je Kirche 16 kHz im Nahbereich bis 2,5 kHz beim Sechsfachen (Pfarrkirche 180 m, Dom 360 m), mehrere nach Leistung im Logarithmus gemittelt | 10.11.2026 |
+| Nachführen | Während des Läutens (bis 30 s) folgen Pegel (12 dB/s), Seite und Tiefpass (6 kHz/s) dem Blickpunkt; Zeiten und Auslöser unverändert | 10.11.2026 |
+| Werte (Köln, sechs Kirchen) | Stadtmitte (0\|0) −1,2 dB, Stadtrand (0\|200) −13,5 dB, Umland (0\|400) −22,7 dB, fernes Umland (0\|800) −30,8 dB; nur eine Kirche (Martin) −6,4/−27,3/−35,0/−36,0; nur der Dom −5,1/−18,4/−24,8/−32,3 | 10.11.2026 |
+| Prüfung | `--glockentest=1` (dB-Werte, Tiefpass), Tests `KlangGlockenTests` (Kurve, Dom, Summe, Mindestpegel, Seite), der Selbsttest der Umgebung prüft nah gegen 400 m. **Nicht gehört** (kein Fenster, keine Ohren): Hörurteil des Nutzers zu Pegel im Umland (−23 dB gewollt „leise“?) und zum Stadtrand steht aus | 10.11.2026 |

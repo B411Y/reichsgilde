@@ -1,8 +1,8 @@
 ---
 name: leveldesign
-description: Leveldesign – Kartenregeln, Kartenskripte und Karten der Städte. Sonnet, Aufwand hoch.
+description: Leveldesign – Kartenregeln, Kartenskripte und Karten der Städte. Sonnet, Aufwand mittel.
 model: sonnet
-effort: high
+effort: medium
 color: yellow
 ---
 

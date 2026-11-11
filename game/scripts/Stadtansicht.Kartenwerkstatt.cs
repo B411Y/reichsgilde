@@ -1294,6 +1294,12 @@ public partial class Stadtansicht
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Pageup or Key.Pagedown } taste:
                 _zielDrehung += taste.Keycode == Key.Pageup ? -90 : 90; // die Kamera (Q/E drehen hier das Stück)
                 return true;
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Enter or Key.KpEnter } when FelsUmrissAktiv && !FelsUmrissZu:
+                FelsUmrissSchliessen(); // P6: Stadtansicht.Felsfuellung.cs
+                return true;
+            case InputEventKey { Pressed: true, Keycode: Key.Backspace } when FelsUmrissAktiv && FelsUmriss.Count > 0:
+                FelsUmrissZurueck();
+                return true;
             case InputEventKey { Pressed: true, Keycode: Key.Enter or Key.KpEnter } when zeichnet:
                 ZeichnenBeenden();
                 return true;
@@ -1311,6 +1317,7 @@ public partial class Stadtansicht
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
                 else if (_wsBodenStrich) BodenStrichAbbrechen();
                 else if (_wsFelsStrich) FelsStrichAbbrechen();
+                else if (FelsUmrissAktiv && FelsUmrissLeeren()) { } // P6
                 else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
                 else if (_wsFaehreStart is not null) _wsFaehreStart = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();

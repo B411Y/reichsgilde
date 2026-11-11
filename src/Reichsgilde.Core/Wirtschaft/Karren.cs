@@ -93,6 +93,19 @@ public sealed class Karren
     /// <summary>Wartet der Karren gerade am geschlossenen Tor? (für Anzeige und Darstellung)</summary>
     public bool WartetAmTor(Spielzeit zeit) => TorWartenBis is { } bis && zeit.VergangeneMinuten < bis;
 
+    /// <summary>
+    /// Fährt der Karren gerade mit seinem Fuhrmann (unterwegs und nicht am geschlossenen Tor)? Für die Darstellung: am Betrieb und am Tor
+    /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden. Nur eine Abfrage, ändert nichts an den Fahrzeiten.
+    /// </summary>
+    public bool Faehrt(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && !WartetAmTor(zeit);
+
+    /// <summary>
+    /// Der Fuhrmann dieses Karrens, nur fürs Bild (abgeleitet, nicht gespeichert, ohne Lohn): fest aus Betriebsname (Heimat.Name) und Karrenname gewürfelt,
+    /// das Volk mit der Wahrscheinlichkeit „personal.eigenesVolk“ das des Hauses, sonst eines der vier Bürgervölker.
+    /// </summary>
+    public Fuhrmann FuhrmannIn(Stadtwirtschaft w) =>
+        Fuhrmann.Ableiten(Heimat.Name, Name, w.Familien.Von(Heimat.Konto)?.Oberhaupt.Volk, w.Personal.Daten?.EigenesVolk ?? 0.6, w.Personal.Daten?.Frauen ?? 0.15);
+
     /// <summary>Der Rückweg ins Umland beginnt erst, wenn das Tor aufgeht (Überfall und Eskorte erst dann).</summary>
     private bool _rueckfahrtWartet;
 

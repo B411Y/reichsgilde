@@ -43,6 +43,7 @@
     <Compile Include="..\..\game\scripts\Marktbummel.cs" Link="Gehtempo\Marktbummel.cs" />
     <!-- Die Rechnung der Umgebungsklänge und der Menschen dahinter (Ton Schritt 4) kennt ebenfalls kein Godot – KlangUmgebungTests.cs -->
     <Compile Include="..\..\game\scripts\KlangUmgebungModell.cs" Link="Umgebung\KlangUmgebungModell.cs" />
+    <Compile Include="..\..\game\scripts\KlangGlockenModell.cs" Link="Umgebung\KlangGlockenModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenModell.cs" Link="Umgebung\KlangStadtlebenModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenKern.cs" Link="Umgebung\KlangStadtlebenKern.cs" />
     <Compile Include="..\..\game\scripts\KlangUmweltModell.cs" Link="Umgebung\KlangUmweltModell.cs" />

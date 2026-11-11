@@ -60,6 +60,7 @@ public partial class Hauptszene
         _brief.Hinsehen += MeldungAnsteuern;
         _brief.HinsehenZiel = HinsehenZiel;
         _brief.GeheimnisTipp = GeheimnisTipp;
+        EntscheidungsbriefBauen();
     }
 
     private Meldungsordnung Ordnung => Meldungseinstellungen.Ordnung;
@@ -221,6 +222,13 @@ public partial class Hauptszene
 
     private void SiegelGelesen(Siegel s)
     {
+        if (s.Schluessel == "entscheidung") // das Feder-Siegel holt die beiseitegelegten Fragen zurück
+        {
+            KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
+            _entscheidungSpaeter.Clear();
+            EntscheidungenAbgleichen();
+            return;
+        }
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
         _brief.Zeigen(s.BriefBauer?.Invoke(s) ?? new Brief { Titel = "Nachricht" });
         if (s.Schluessel.StartsWith("still:", StringComparison.Ordinal)) { s.Gelesen = true; s.QueueRedraw(); } // bleibt, bis der Betrieb wieder läuft
