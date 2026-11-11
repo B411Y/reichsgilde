@@ -57,3 +57,7 @@ Herkunft je Datei: `docs/assets/protokoll.csv`.
 mit `tools/ton/meldungston_erzeugen.py` (numpy; keine Aufnahme, keine KI, keine fremde Quelle, nichts aus dem Original-Spiel). Sie ersetzen die früheren eigenen WAV
 `siegel_neu_1/2`, `pergament_1/2`, `siegel_feder` und die Kenney-Holzklopfer `impact_wood_medium_000..002` (Fehler). Lizenz: Alle Rechte vorbehalten
 (Inhalte des Projekts, `LICENSE-INHALTE.md`); Beschreibung und Rezepte in `docs/assets/prompts/meldungston.md`.
+
+`tuer_auf.ogg` (Tür beim Betreten, 11.11.2026) ist eine **eigene Aufnahme des Nutzers** (eigenes Mikrofon, bearbeitet in SounCraft); Lizenz: Alle Rechte vorbehalten.
+`tuer_zu.ogg` (Tür beim Verlassen) ist ein Ausschnitt aus Freesound 402465, „Door Open Close Heavy Wooden Hard Loud Creak …“ von **LampEight**
+(https://freesound.org/people/LampEight/sounds/402465/), Lizenz **CC0 1.0**, Nennung nicht verlangt. Beide nur auf −18 LUFS verstärkt (`tools/ton/tuer_einbauen.py`).
