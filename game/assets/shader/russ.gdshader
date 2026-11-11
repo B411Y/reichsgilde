@@ -18,11 +18,15 @@ varying vec3 welt;
 void vertex() { welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
 
 void fragment() {
-	float kohle = smoothstep(0.38, 0.6, fbm(welt.xz * 0.45 + welt.y * 0.2));
+	// Ruß nur stellenweise (etwa ein Drittel der Fläche), nicht über das ganze Dach: große Dächer (Rathaus, Schiefer) waren sonst eine einheitlich dunkle Fläche
+	float kohle = smoothstep(0.52, 0.72, fbm(welt.xz * 0.45 + welt.y * 0.2));
 	// Asche: in Streifen die Falllinie hinab (lang in y, schmal quer)
-	float asche = smoothstep(0.62, 0.8, fbm(vec2(welt.x * 1.6 + welt.z * 1.6, welt.y * 0.35))) * (1.0 - kohle);
-	vec3 farbe = mix(vec3(0.025, 0.022, 0.02), vec3(0.42, 0.40, 0.38), asche / max(asche + kohle, 1e-3));
+	// Flaches Dach (Rathaus): keine Falllinie, y ist überall gleich und das Muster würde zu senkrechten Streifen; dort fleckig in der Fläche
+	float flach = smoothstep(0.85, 0.97, (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y);
+	vec2 ap = mix(vec2(welt.x * 1.6 + welt.z * 1.6, welt.y * 0.35), welt.xz * 0.9, flach);
+	float asche = smoothstep(0.62, 0.8, fbm(ap)) * (1.0 - kohle) * mix(1.0, 0.6, flach);
+	vec3 farbe = mix(vec3(0.03, 0.027, 0.025), vec3(0.30, 0.285, 0.27), asche / max(asche + kohle, 1e-3));
 	ALBEDO = farbe;
 	ROUGHNESS = 0.95;
-	ALPHA = clamp((0.85 * kohle + 0.7 * asche) * staerke, 0.0, 0.92);
+	ALPHA = clamp((0.8 * kohle + 0.4 * asche) * staerke, 0.0, 0.85);
 }

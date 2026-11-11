@@ -48,6 +48,9 @@ public sealed partial class EntwicklerAnzeige
         z = Zeile(s, "Blitz", "Löst einen Blitz aus, auch bei schönem Wetter. Das Licht des Blitzes gibt es in den Wettereffekten Mittel und Hoch, nicht im Innenraum.");
         Knopf(z, "Blitz auslösen", () => { _stadt.BlitzAusloesen(); Melden("Blitz."); });
         Knopf(z, "Blitzeinschlag am Markt", () => { _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Vector3(8, 0, 6)); Melden("Direkter Einschlag am Marktplatz (Ton: brachialer Knall; die Brandwirkung kommt später)."); }, "Ein direkter Blitzeinschlag nahe dem Marktplatz: hellster Blitz, brachiale Einschlag-Aufnahme fast ohne Verzögerung. Normale Gewitter schlagen nie so nah ein.");
+        z = Zeile(s, "Gebäude", "Wähle ein Gebäude in der Stadt: Der nächste Klick darauf löst den Befehl aus (Esc bricht ab, die Kamera bleibt stehen). Das Fenster bleibt offen und zeigt das Ergebnis; schieb es beiseite, wenn es das Gebäude verdeckt.");
+        Knopf(z, "Blitz auf Gebäude …", () => GebaeudeWaehlen(true), "Der Blitz schlägt in das angeklickte Gebäude ein – mit Brand, Schaden und Löschkette wie im Gewitter (Befehl EntwicklerBlitz). Rathaus, Kirchen, Werkstätten und Wohnhäuser gehen; Markt, Hafen, Bauplätze und Baustellen nicht.");
+        Knopf(z, "Brand hier …", () => GebaeudeWaehlen(false), "Das angeklickte Gebäude brennt ohne Blitz: Betriebe über „Feuer im Betrieb“, bewohnte Wohnhäuser über „Hausbrand“. Rathaus, Kirchen und leere Häuser haben keinen Brandbefehl – dafür „Blitz auf Gebäude“.");
 
         z = Zeile(s, "Jahreszeit", "Die Jahreszeit der Ansicht: Wiese, Laub, Äcker, Schnee. Der Kalender und die Simulation bleiben, wie sie sind.");
         var reihe2 = new HBoxContainer();
@@ -194,5 +197,54 @@ public sealed partial class EntwicklerAnzeige
             + $" (Texturen {Mb(RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TextureMemUsed))})\n"
             + $"Spielzeit {_sim.Zeit.DatumText}, {_sim.Zeit.UhrzeitText} · Minute {Zahlenformat.Ganz(_sim.Zeit.VergangeneMinuten)} · Tempo {takt.Tempo}×{(takt.IstPausiert ? " (Pause)" : "")}"
             + $" · {Math.Round(takt.TicksProSekunde, 1)} Ticks/s";
+    }
+
+    /// <summary>
+    /// Wählmodus „Blitz auf Gebäude …“ (<paramref name="blitz"/>) bzw. „Brand hier …“: Der nächste Klick auf ein Gebäude schickt <see cref="EntwicklerBlitz"/>
+    /// mit der Kennung des Blitzziels bzw. den Brandbefehl der Gebäudeart (<see cref="Entwicklerziel.Brandbefehl"/>: Betrieb → Feuer, bewohntes Wohnhaus → Hausbrand,
+    /// sonst abgelehnt). Alles über den Boten wie die übrigen Werkzeuge.
+    /// </summary>
+    private void GebaeudeWaehlen(bool blitz)
+    {
+        var hinweis = blitz ? "Blitz: Klick auf ein Gebäude schlägt dort ein" : "Brand: Klick auf einen Betrieb oder ein bewohntes Wohnhaus setzt es in Brand";
+        if (_stadt.GebaeudeWaehlen(hinweis, kennung => GebaeudeGewaehlt(kennung, blitz), kennung => GebaeudeGueltig(kennung, blitz)))
+            Melden(hinweis + " (Esc bricht ab).");
+        else Melden("Gebäude wählen geht gerade nicht (in einem Raum, im Haus oder in der Ego-Perspektive).", gut: false);
+    }
+
+    /// <summary>Ist dieses Gebäude ein Ziel der Wahl (Blitz: jedes Blitzziel; Brand: Betrieb oder bewohntes Wohnhaus)? So überspringt der Klick Nachbarn, die davor stehen.</summary>
+    private bool GebaeudeGueltig(string kennung, bool blitz)
+    {
+        var ziele = _sim?.Wirtschaft?.Blitz.Ziele();
+        var ziel = ziele is null ? null : Entwicklerziel.Finden(kennung, ziele);
+        return ziel is not null && (blitz || ziel.Brandbefehl() is not null);
+    }
+
+    private void GebaeudeGewaehlt(string kennung, bool blitz)
+    {
+        var ziele = _sim?.Wirtschaft?.Blitz.Ziele();
+        var ziel = ziele is null ? null : Entwicklerziel.Finden(kennung, ziele);
+        if (ziel is null) { GD.Print($"[entwickler] {(blitz ? "Blitz" : "Brand")}: {kennung} ist kein Ziel"); Melden($"✗ „{kennung}“ ist kein Gebäude, das brennen kann (Markt, Hafen, Bauplatz, Baustelle …).", gut: false); return; }
+        Core.Wirtschaft.Befehl? befehl = blitz ? new EntwicklerBlitz(ziel.Kennung) : ziel.Brandbefehl();
+        if (befehl is null) { GD.Print($"[entwickler] {ziel.Kennung}: kein Brandbefehl"); Melden($"✗ {ziel.Name}: Hier gibt es keinen Brandbefehl (nur Betriebe und bewohnte Wohnhäuser) – nimm „Blitz auf Gebäude“.", gut: false); return; }
+        GD.Print($"[entwickler] {(blitz ? "Blitz" : "Brand")} auf {ziel.Kennung} ({ziel.Name}) aus Klick auf {kennung}");
+        Befehlen(befehl);
+    }
+
+    /// <summary>
+    /// Startoption <c>--blitzwahl=blitz|brand[@kennung]</c>: nach dem Aufbau den Wählmodus einschalten (für das Bild des Hinweises); mit <c>@kennung</c> klickt
+    /// die Option selbst auf dieses Gebäude (gleicher Weg wie der Klick). Neutralisiert sich mit Esc.
+    /// </summary>
+    public void WahlVorgeben(string wert)
+    {
+        var teile = wert.Split('@', 2);
+        var blitz = teile[0] != "brand";
+        GebaeudeWaehlen(blitz);
+        if (teile.Length > 1 && teile[1] != "") GetTree().CreateTimer(1.0).Timeout += () =>
+        {
+            if (!IsInstanceValid(this) || !IsInsideTree()) return;
+            _stadt.GebaeudeWahlAbbrechen();
+            GebaeudeGewaehlt(teile[1], blitz);
+        };
     }
 }

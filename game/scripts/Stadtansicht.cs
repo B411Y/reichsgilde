@@ -1178,6 +1178,11 @@ public partial class Stadtansicht : Node3D
             RaumEingabe(eingabe);
             return;
         }
+        if (GebaeudeWahlEingabe(eingabe))
+        {
+            GetViewport().SetInputAsHandled(); // Entwicklerwerkzeug: der Klick wählt das Gebäude, Esc bricht ab (Stadtansicht.Gebaeudewahl.cs)
+            return;
+        }
         if (EgoWahlEingabe(eingabe))
         {
             GetViewport().SetInputAsHandled(); // Ego-Perspektive: der Klick wählt den Ort, Esc bricht ab (Stadtansicht.Ego.cs)

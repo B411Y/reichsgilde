@@ -84,6 +84,22 @@ static class ErbgutTests
 
     static double Mittel(IEnumerable<int> werte) => werte.Average();
 
+    /// <summary>Anteil der gewürfelten Zwerginnen (4000 feste Startwerte) mit kurzem (ab 120) und mit geflochtenem Bart (ab 180) – die Schwellen der Passanten-Darstellung.</summary>
+    static (double Kurz, double Geflochten) Bartanteile(Erbgutvorlage v)
+    {
+        var werte = Enumerable.Range(0, 4000).Select(i => Erbgut.Wuerfeln(v, 40_000 + i, Volk.Zwerg).SichtbarerWert("bartwuchs", Geschlecht.Frau)).ToList();
+        return (werte.Count(x => x >= 120) / 4000.0, werte.Count(x => x >= 180) / 4000.0);
+    }
+
+    /// <summary>Die Gen-Vorlage aus erbgut.json, nur der Frauenbart der Zwerge mit anderen Werten (für Gegenproben).</summary>
+    static Erbgutvorlage MitZwerginnenbart(string werte)
+    {
+        var text = File.ReadAllText(Datei());
+        const string heute = "\"mittel\":  70, \"max\": 210, \"streuung\": 60";
+        Pruefe.Wahr(text.Contains(heute), "Frauenbart der Zwerge in erbgut.json nicht gefunden");
+        return Erbgutvorlage.AusJson(text.Replace(heute, werte));
+    }
+
     static double Streuung(IReadOnlyCollection<int> werte)
     {
         var m = werte.Average();
@@ -230,16 +246,21 @@ static class ErbgutTests
             Pruefe.Gleich(Bild(sim.Wirtschaft!), Bild(kopie.Wirtschaft!));
         }),
 
-        ("Erbgut: Zwerginnen tragen Bart – meist leicht (kurz oder geflochten), selten voll; Frauen anderer Völker keinen, Männer wie bisher", () =>
+        ("Erbgut: Zwerginnen meist ohne Bart – etwa jede fünfte kurz (ab 120), selten geflochten (ab 180); Frauen anderer Völker keinen, Männer wie bisher", () =>
         {
             var v = Erbgutvorlage.Standard;
             Pruefe.Gleich("bartwuchs_frau", v.Gen("bartwuchs")!.BeiFrauen);
-            var zwerge = Enumerable.Range(0, 2000).Select(i => Erbgut.Wuerfeln(v, 40_000 + i, Volk.Zwerg)).ToList();
+            var zwerge = Enumerable.Range(0, 4000).Select(i => Erbgut.Wuerfeln(v, 40_000 + i, Volk.Zwerg)).ToList();
             var frauen = zwerge.Select(e => e.SichtbarerWert("bartwuchs", Geschlecht.Frau)).ToList();
-            var leicht = frauen.Count(x => x is >= 40 and < 160) / 2000.0;
-            var voll = frauen.Count(x => x >= 160) / 2000.0;
-            Pruefe.Wahr(leicht >= 0.8, $"Nur {leicht:P0} der Zwerginnen mit leichtem Bart");
-            Pruefe.Wahr(voll is >= 0.003 and <= 0.05, $"Vollbart bei {voll:P1} der Zwerginnen (selten heißt 0,3–5 %)");
+            var (kurz, geflochten) = Bartanteile(v);
+            Pruefe.Wahr(kurz is >= 0.15 and <= 0.25, $"Bart (ab 120) bei {kurz:P1} der Zwerginnen (Ziel 15–25 %)");
+            Pruefe.Wahr(geflochten is >= 0.003 and <= 0.03, $"Geflochtener Bart (ab 180) bei {geflochten:P1} der Zwerginnen (selten heißt 0,3–3 %)");
+            Pruefe.Wahr(zwerge.All(e => e.SichtbarerWert("bartwuchs", Geschlecht.Mann) >= 182), "Zwerg ohne Vollbart");
+            // Gegenprobe: Die alte Vorlage (Mittel 90, Streuung 40, höchstens 190) hätte keine geflochtenen Bärte, ein Mittel von 120 zu viele kurze
+            var alt = Bartanteile(MitZwerginnenbart("\"mittel\":  90, \"max\": 190, \"streuung\": 40"));
+            Pruefe.Wahr(alt.Geflochten < 0.003, $"Gegenprobe alt: {alt.Geflochten:P1} geflochten");
+            var zuViel = Bartanteile(MitZwerginnenbart("\"mittel\": 120, \"max\": 210, \"streuung\": 60"));
+            Pruefe.Wahr(zuViel.Kurz > 0.25, $"Gegenprobe Mittel 120: nur {zuViel.Kurz:P1} mit Bart");
             Pruefe.Wahr(Mittel(frauen) < Mittel(zwerge.Select(e => e.SichtbarerWert("bartwuchs", Geschlecht.Mann))) - 80, "Zwerginnen so bärtig wie Zwerge");
             foreach (var e in zwerge.Take(50))
             {
@@ -252,8 +273,10 @@ static class ErbgutTests
                 Pruefe.Wahr(Enumerable.Range(0, 200).All(i => Erbgut.Wuerfeln(v, i, volk).SichtbarerWert("bartwuchs", Geschlecht.Frau) == 0), $"Bärtige Frau ({volk})");
             // Vererbt wird der Frauenbart wie jedes Gen – auch über den Vater; die Menschentochter einer Zwergin hat keinen
             var zwergin = zwerge.First(e => e.SichtbarerWert("bartwuchs_frau") >= 120 && e.VerdeckterWert("bartwuchs_frau") >= 120);
-            var toechter = Enumerable.Range(0, 200).Select(i => Erbgut.Vererben(v, i, Volk.Zwerg, zwerge[i + 100], zwergin)).ToList();
-            Pruefe.Wahr(toechter.Average(t => t.SichtbarerWert("bartwuchs", Geschlecht.Frau)) > 100, "Töchter einer bärtigen Zwergin ohne mehr Bart");
+            var glatte = zwerge.First(e => e.SichtbarerWert("bartwuchs_frau") < 60 && e.VerdeckterWert("bartwuchs_frau") < 60);
+            double Toechterbart(Erbgut mutter) => Enumerable.Range(0, 200)
+                .Average(i => Erbgut.Vererben(v, i, Volk.Zwerg, zwerge[i + 100], mutter).SichtbarerWert("bartwuchs", Geschlecht.Frau));
+            Pruefe.Wahr(Toechterbart(zwergin) > Toechterbart(glatte) + 40, $"Töchter einer bärtigen Zwergin ({Toechterbart(zwergin):0}) nicht bärtiger als die einer bartlosen ({Toechterbart(glatte):0})");
             Pruefe.Wahr(Enumerable.Range(0, 50).All(i => Erbgut.Vererben(v, i, Volk.Mensch, Erbgut.Wuerfeln(v, 300 + i, Volk.Mensch), zwergin)
                 .SichtbarerWert("bartwuchs", Geschlecht.Frau) == 0), "Menschentochter mit Bart");
         }),

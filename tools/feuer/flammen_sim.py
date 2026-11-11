@@ -87,6 +87,41 @@ VARIANTEN = {
         # gleichmäßig oranger Klumpen ohne Zungen. „weich“: einmal leicht weichzeichnen (bei viel Wirbel wird die Flamme sonst fleckig)
         flammen_exponent=2.0, belichtung=0.85, weich=True, rand_seite=0.25,
     ),
+    # Gebäudebrand aus einem Fenster (Wunsch des Nutzers 30.10.2026, Auftrag „Feuer überall“): eine breite Brennerplatte in der Öffnung, ein Schub nach vorn
+    # und oben, dahinter die Wand (Prallkörper): die Flamme kippt aus dem Fenster und klebt an der Fassade (Coandă); Rückzündungen als kurze Stöße.
+    "fenster": dict(
+        saat_versatz=2000,
+        gebiet=(2.0, 2.0, 3.0), bild=(128, 192),
+        brenner_radius=0.4, brenner_hoehe=0.3, brenner_z=0.22, platte=(0.8, 0.3, 0.3), schub=(0.0, -0.35, 0.9), wand=0.45,
+        brennstoff=3.0, waerme=2.4, brennstoff_schwanken=0.8, schwanken_abstand=7,
+        textur_groesse=0.2, textur_tempo=0.05,
+        wackeln=0.03,
+        brennrate=0.4, flammen_rauch=1.0, flammen_wirbel=2.4, wirbel=0.4, zuendung=1.25, hoechsttemp=3.0,
+        auftrieb_dichte=0.3, auftrieb_waerme=2.2, aufloesen=20,
+        rauschen=False, rauschen_staerke=0.5, rauschen_massstab=3.0, rauschen_zeit=0.1,
+        zeitmassstab=0.8,
+        stiche=5, stich_radius=0.16, stich_tempo=11.0, stich_dauer=(4, 7), stich_brennstoff=3.2,
+        bildrate=24,
+        russ=1.2, flammen_deckung=2.0,
+        flammen_exponent=1.9, belichtung=0.85, weich=True, rand_seite=0.25,
+    ),
+    # Gebäudebrand aus dem Dach: schmaler und höher als „wild“, ruppig, viele kräftige Stichflammen (das Feuer bricht durch die Ziegel und schießt nach oben)
+    "dach": dict(
+        saat_versatz=3000,
+        gebiet=(2.0, 2.0, 3.0), bild=(128, 192),
+        brenner_radius=0.42, brenner_hoehe=0.2, brenner_z=0.12,
+        brennstoff=4.0, waerme=2.8, brennstoff_schwanken=0.6, schwanken_abstand=6,
+        textur_groesse=0.2, textur_tempo=0.05,
+        wackeln=0.04,
+        brennrate=0.35, flammen_rauch=1.0, flammen_wirbel=2.8, wirbel=0.5, zuendung=1.25, hoechsttemp=3.0,
+        auftrieb_dichte=0.3, auftrieb_waerme=3.0, aufloesen=20,
+        rauschen=False, rauschen_staerke=0.5, rauschen_massstab=3.0, rauschen_zeit=0.1,
+        zeitmassstab=0.85,
+        stiche=9, stich_radius=0.15, stich_tempo=17.0, stich_dauer=(4, 8), stich_brennstoff=3.8,
+        bildrate=24,
+        russ=1.2, flammen_deckung=2.0,
+        flammen_exponent=2.0, belichtung=0.85, weich=True, rand_seite=0.25,
+    ),
 }
 
 # Farbe eines Würfelchens nach seiner Flammenstärke f (0 … 1): schwach dunkelrot, stark gelb bis weißgelb (linear, vor der Sättigung)
@@ -127,7 +162,7 @@ def optionen():
 # ═════════════════════════════════════════════════════════════════════════════
 
 def szene_bauen(bpy, v, aufloesung, cache):
-    rng = np.random.default_rng(SAAT + (0 if v is VARIANTEN["ruhig"] else 1000))
+    rng = np.random.default_rng(SAAT + v.get("saat_versatz", 0 if v is VARIANTEN["ruhig"] else 1000))
     for o in list(bpy.data.objects):
         bpy.data.objects.remove(o)
     sc = bpy.context.scene
@@ -185,8 +220,12 @@ def szene_bauen(bpy, v, aufloesung, cache):
     tex.noise_depth = 2
     tex.noise_type = "SOFT_NOISE"
 
-    def brenner(name, radius, hoehe, lage):
-        bpy.ops.mesh.primitive_cylinder_add(radius=radius, depth=hoehe, location=lage, vertices=24)
+    def brenner(name, radius, hoehe, lage, platte=None):
+        if platte:
+            bpy.ops.mesh.primitive_cube_add(size=1, location=lage)
+            bpy.context.active_object.scale = platte
+        else:
+            bpy.ops.mesh.primitive_cylinder_add(radius=radius, depth=hoehe, location=lage, vertices=24)
         o = bpy.context.active_object
         o.name = name
         f = o.modifiers.new("Fluid", "FLUID")
@@ -200,8 +239,20 @@ def szene_bauen(bpy, v, aufloesung, cache):
         fs.subframes = 1
         return o, fs
 
-    haupt, fs = brenner("Brenner", v["brenner_radius"], v["brenner_hoehe"], (0, 0, v["brenner_z"]))
+    haupt, fs = brenner("Brenner", v["brenner_radius"], v["brenner_hoehe"], (0, 0, v["brenner_z"]), v.get("platte"))
     fs.temperature = v["waerme"]
+    if v.get("schub"):
+        fs.use_initial_velocity = True
+        fs.velocity_coord = v["schub"]
+    if v.get("wand") is not None:
+        # Die Wand hinter dem Fenster (Prallkörper): Gas und Flamme können nicht hindurch und strömen an ihr hoch
+        bpy.ops.mesh.primitive_cube_add(size=1, location=(0, v["wand"] + 0.15, v["gebiet"][2] / 2))
+        w = bpy.context.active_object
+        w.name = "Wand"
+        w.scale = (v["gebiet"][0] * 1.2, 0.3, v["gebiet"][2] * 1.2)
+        wm = w.modifiers.new("Fluid", "FLUID")
+        wm.fluid_type = "EFFECTOR"
+        wm.effector_settings.effector_type = "COLLISION"
     fs.use_texture = True
     fs.noise_texture = tex
     fs.texture_map_type = "AUTO"

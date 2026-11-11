@@ -28,6 +28,8 @@ public partial class Stadtansicht
         /// <summary>Lage und Blickrichtung der Figur (vorne ist +Z); das Modell hängt darunter.</summary>
         public required Node3D Knoten { get; init; }
         public required Figur? Figur { get; init; }
+        /// <summary>Die Löschkette (Stadtansicht.Loeschkette.cs) hat diese Figur eingezogen: Sie bewegt sich nur dort, die Planung der Passanten lässt sie in Ruhe, bis sie wieder frei ist.</summary>
+        public bool Eingezogen { get; set; }
         /// <summary>Geht gebeugt (Bettler, Alte) oder trägt eine Last auf dem Rücken (Kiepe, Bündel).</summary>
         public bool Gebeugt { get; init; }
         public bool Traegt { get; init; }
@@ -201,6 +203,7 @@ public partial class Stadtansicht
                 PassantVerbergen(p, e.Nummer);
                 continue;
             }
+            if (p.Eingezogen) continue; // Helfer der Löschkette: Lage, Gang und Pose bestimmt sie (Stadtansicht.Loeschkette.cs)
 
             // Wo die Figur ist, sagt ihr eigener Laufplan (siehe LaufPlanen): vor dem Losgehen am alten Ort,
             // nach der Ankunft am neuen, dazwischen unterwegs.
