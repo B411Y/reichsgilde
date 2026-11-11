@@ -146,6 +146,17 @@
           ]
         },
         {
+          "werk": "Pferd und Ochse als Zugtiere der Karren (nach „LowPoly Animated Farm Animal Pack“, bearbeitet)",
+          "autor": "Quaternius",
+          "quelle": "https://opengameart.org/content/lowpoly-animated-farm-animal-pack",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/modelle/tiere/tier_{pferd_rotbraun"
+          ]
+        },
+        {
           "werk": "Probe-Passant mit Skelett: Körper, Gewichte und Spielskelett aus MakeHuman (MPFB 2), Bewegungen aus der Universal Animation Library 1 und 2 (bearbeitet, auf das eigene Skelett übertragen)",
           "autor": "MakeHuman Community; Quaternius",
           "quelle": "https://github.com/makehumancommunity/mpfb2 ; https://quaternius.com/packs/universalanimationlibrary.html ; https://quaternius.com/packs/universalanimationlibrary2.html",
