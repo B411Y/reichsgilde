@@ -123,5 +123,300 @@
     "ochse_falb Fell": "fell",
     "ochse_falb Dunkel": "fell",
     "ochse_falb Haar": "fell"
+  },
+  "relief": {
+    "_hinweis": "Relief-Texturen (CC0, Poly Haven): tools/oberflaeche/relief_texturen.py. Gleicher Name wie eine bisherige Schicht ersetzt sie, wo die Dateien da sind; 'neu' = Schicht ohne Vorgaenger (nur mit Relief). 'namen' bildet Materialnamen auf neue Schichten ab.",
+    "schichten": [
+      {
+        "name": "bruchstein",
+        "kachel": 2.0,
+        "projektion": "wand",
+        "mittel": [
+          0.32904,
+          0.26148,
+          0.17989
+        ],
+        "tiefe": 0.05,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.9195
+      },
+      {
+        "name": "quader",
+        "kachel": 1.6,
+        "projektion": "wand",
+        "mittel": [
+          0.16416,
+          0.1198,
+          0.06622
+        ],
+        "tiefe": 0.04,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.9354
+      },
+      {
+        "name": "kalkputz",
+        "kachel": 1.5,
+        "projektion": "wand",
+        "mittel": [
+          0.16849,
+          0.13796,
+          0.08121
+        ],
+        "tiefe": 0.02,
+        "staerke": 1.2,
+        "nass": 1.0,
+        "ao_mittel": 0.9493
+      },
+      {
+        "name": "lehmputz",
+        "kachel": 2.0,
+        "projektion": "wand",
+        "mittel": [
+          0.16618,
+          0.10013,
+          0.04405
+        ],
+        "tiefe": 0.03,
+        "staerke": 1.1,
+        "nass": 1.0,
+        "ao_mittel": 0.9851
+      },
+      {
+        "name": "fachwerkholz",
+        "kachel": 0.8,
+        "projektion": "wand",
+        "mittel": [
+          0.12807,
+          0.10753,
+          0.08452
+        ],
+        "tiefe": 0.02,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.8793
+      },
+      {
+        "name": "bretter",
+        "kachel": 2.0,
+        "projektion": "wand",
+        "mittel": [
+          0.11483,
+          0.0855,
+          0.05968
+        ],
+        "tiefe": 0.02,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.9155
+      },
+      {
+        "name": "dachziegel",
+        "kachel": 1.25,
+        "projektion": "reihen",
+        "mittel": [
+          0.25738,
+          0.07158,
+          0.02227
+        ],
+        "tiefe": 0.05,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.8809,
+        "reihe": 0.45
+      },
+      {
+        "name": "schiefer",
+        "kachel": 1.5,
+        "projektion": "reihen",
+        "mittel": [
+          0.03776,
+          0.04084,
+          0.03785
+        ],
+        "tiefe": 0.03,
+        "staerke": 1.1,
+        "nass": 1.0,
+        "ao_mittel": 0.9637,
+        "reihe": 0.32
+      },
+      {
+        "name": "stroh",
+        "kachel": 0.9,
+        "projektion": "dach",
+        "mittel": [
+          0.0788,
+          0.07104,
+          0.0604
+        ],
+        "tiefe": 0.05,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.8367
+      },
+      {
+        "name": "sandstein",
+        "kachel": 2.0,
+        "projektion": "wand",
+        "mittel": [
+          0.41292,
+          0.29842,
+          0.18119
+        ],
+        "tiefe": 0.04,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.9687
+      },
+      {
+        "name": "ziegelstein",
+        "kachel": 2.0,
+        "projektion": "wand",
+        "mittel": [
+          0.2032,
+          0.11861,
+          0.07832
+        ],
+        "tiefe": 0.03,
+        "staerke": 1.0,
+        "nass": 1.0,
+        "ao_mittel": 0.9283
+      },
+      {
+        "name": "holzschindeln",
+        "kachel": 1.5,
+        "projektion": "reihen",
+        "mittel": [
+          0.24044,
+          0.20545,
+          0.15749
+        ],
+        "tiefe": 0.03,
+        "staerke": 1.1,
+        "nass": 1.0,
+        "ao_mittel": 0.8299,
+        "reihe": 0.28
+      },
+      {
+        "name": "pflaster",
+        "kachel": 1.5,
+        "projektion": "wand",
+        "mittel": [
+          0.19426,
+          0.15864,
+          0.11101
+        ],
+        "tiefe": 0.05,
+        "staerke": 1.0,
+        "nass": 0.55,
+        "ao_mittel": 0.699,
+        "neu": true
+      }
+    ],
+    "namen": {
+      "Pflaster": "pflaster"
+    }
+  },
+  "pixel": {
+    "_hinweis": "Pixel-Fassung (tools/oberflaeche/pixel_fassung.py, pixel_farbe.webp): je Schicht der Bibliothek (gleiche Nummer) eine grobe, farbstufige Textur nur fuer den Pixel-Look; kachel = Meter je Kachel, 0 = keine Fassung (dann gilt die normale Schicht).",
+    "schichten": [
+      {
+        "name": "bruchstein",
+        "kachel": 1.7
+      },
+      {
+        "name": "quader",
+        "kachel": 0.8
+      },
+      {
+        "name": "kalkputz",
+        "kachel": 1.5
+      },
+      {
+        "name": "lehmputz",
+        "kachel": 2.0
+      },
+      {
+        "name": "fachwerkholz",
+        "kachel": 0.8
+      },
+      {
+        "name": "bretter",
+        "kachel": 1.02
+      },
+      {
+        "name": "dachziegel",
+        "kachel": 2.8
+      },
+      {
+        "name": "schiefer",
+        "kachel": 1.6
+      },
+      {
+        "name": "stroh",
+        "kachel": 0.9
+      },
+      {
+        "name": "sandstein",
+        "kachel": 1.28
+      },
+      {
+        "name": "ziegelstein",
+        "kachel": 2.2
+      },
+      {
+        "name": "eisen",
+        "kachel": 0.8
+      },
+      {
+        "name": "kupfer",
+        "kachel": 1.2
+      },
+      {
+        "name": "holzschindeln",
+        "kachel": 2.8
+      },
+      {
+        "name": "leder",
+        "kachel": 0.6
+      },
+      {
+        "name": "tuch",
+        "kachel": 0.5
+      },
+      {
+        "name": "farbholz",
+        "kachel": 1.2
+      },
+      {
+        "name": "rinde",
+        "kachel": 1.2
+      },
+      {
+        "name": "fels",
+        "kachel": 6.0
+      },
+      {
+        "name": "planken",
+        "kachel": 2.0
+      },
+      {
+        "name": "laub",
+        "kachel": 1.5
+      },
+      {
+        "name": "nadeln",
+        "kachel": 1.2
+      },
+      {
+        "name": "fell",
+        "kachel": 0.5
+      },
+      {
+        "name": "pflaster",
+        "kachel": 1.7
+      }
+    ]
   }
 }

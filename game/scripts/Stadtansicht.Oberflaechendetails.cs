@@ -74,10 +74,14 @@ public partial class Stadtansicht
     /// <summary>Das Netz, das ein MultiMesh jetzt zeigen soll: mit Struktur (Jahreszeitwechsel der Natur).</summary>
     private Mesh OberflaecheNetz(Mesh netz) => _oberflaeche?.Netz(netz) ?? netz;
 
-    /// <summary>Stufe der Material-Bibliothek nach der Einstellung „Boden“: Niedrig die Struktur wie bisher, Mittel Farbe, Hoch dazu Normalen und Rauheit.</summary>
+    /// <summary>Stufe der Material-Bibliothek nach der Einstellung „Boden“: Niedrig die Struktur wie bisher, Mittel Farbe, Hoch dazu Normalen und Rauheit; mit Relief-Texturen schon ab Mittel Normalen, Rauheit und AO, ab Hoch Parallax.</summary>
     private void OberflaecheStufeNachfuehren()
     {
-        if (_oberflaeche is not null) _oberflaeche.Stufe = (int)Fenster.AktuelleBodenqualitaet;
+        if (_oberflaeche is null) return;
+        _oberflaeche.Stufe = (int)Fenster.AktuelleBodenqualitaet;
+        _oberflaeche.Pixel = Fenster.PixelLookAn;   // Pixel-Look: Relief nur als ruhige Farbe
+        // Parallax der Relief-Texturen nur in Boden Hoch (Voreinstellungen Hoch und Ultra): 4 Schritte, in Ultra 8
+        _oberflaeche.Parallax = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch ? (Fenster.AktuelleVoreinstellung == Voreinstellung.Ultra ? 8 : 4) : 0;
     }
 
     /// <summary>Jedes Bild: umgefärbte Materialien nachziehen.</summary>
