@@ -18,6 +18,18 @@ static class Spielstandfelder
     /// </summary>
     public static readonly string[] NurLaden = { "EinkaufErwartetImMarkt" };
 
+    /// <summary>
+    /// Das Erbgut der Personen (Allele für den 3D-Kopf): Die Simulation liest es nie, es hat eigene Würfel je Person (kein Wurf der gemeinsamen
+    /// Zufallsquelle). Ändert sich die Gen-Vorlage (Bart der Zwerginnen, 11.11.2026), ändern sich nur diese Texte – die Partie rechnet gleich.
+    /// </summary>
+    public static readonly string[] Erbgut = { "Erbgut" };
+
+    /// <summary>
+    /// Die dauerhafte Hauschronik (Datenversion 83): Die Simulation liest sie nie, sie hält nur fest, was geschah – „Hauschronik“ (Format) und
+    /// „Chronik“ (Einträge je Familie) fallen wie der Verlauf der Meldungen aus dem Vergleich.
+    /// </summary>
+    public static readonly string[] Hauschronik = { "Hauschronik", "Chronik" };
+
     /// <summary>Entfernt diese Felder überall im Spielstand, auch wenn sie etwas tragen (für Felder aus <see cref="NurLaden"/>).</summary>
     public static void Ohne(JsonNode? knoten, IReadOnlyCollection<string> felder)
     {

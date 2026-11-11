@@ -95,6 +95,8 @@ static class HafenRuhtTests
                 n[schluessel]!.AsObject().Remove("Blitz");
             Spielstandfelder.OhneLeere(n, Spielstandfelder.Hafenziel); // neue Felder (Datenversion 73), solange sie nichts tragen
             Spielstandfelder.Ohne(n, Spielstandfelder.NurLaden); // nur fürs Laden (Datenversion 75), durchgehend ohne Wirkung
+            Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
+            Spielstandfelder.Ohne(n, Spielstandfelder.Hauschronik); // die Hauschronik (Datenversion 83): die Simulation liest sie nie
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
@@ -108,9 +110,11 @@ static class HafenRuhtTests
     static readonly string[] Sollwerte =
     {
         "Schiffe 1 → 1, Fahrten 6",
-        "eff1eef3820614fa76b5dcaf049f58a642741ec625bd49c17c766e7bb56ebdde",
-        "46ceacc4ca11a9933db16e732d1e17027ce0a00be9ecfcca5c40a62b97daad25",
-        "37185b3f096a665607da9202bc095ce46de356c28c7372d4423cb64e9ceb3cae",
+        // Ohne das Erbgut der Personen (11.11.2026): gerechnet auf main 770c374a mit demselben Ablauf – dort mit Erbgut noch gleich den
+        // Sollwerten vor dem Schalter (eff1eef3…, 46ceacc4…, 37185b3f…).
+        "251fc776248248679ed221f56e28bef2301978c6580469534b790d3dc892a754",
+        "b01bd17cc3d054c55c2c038e086ed6bfc55e9d744b08a7dc73486eac310c1bed",
+        "317386f4506249b9a64121890ac1eda08760a0a4b0f8cee904cf28d9e9b16055",
     };
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -118,7 +122,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(82, d.Version);
+            Pruefe.Gleich(83, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

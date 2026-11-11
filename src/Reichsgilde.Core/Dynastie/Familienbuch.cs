@@ -568,6 +568,7 @@ public sealed partial class Familienbuch
         f.MitgliederListe.Add(p);
         f.Ehepartner = p;
         if (uebertritt) _w.Geheimnisse.Glaubenswechsel(p); // heimlich beim alten Glauben? (Ketzerei, Teil 3c – eigener Würfel)
+        ChronikEintragen(konto, Chronikart.Heirat, $"{f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} ({p.Volk.Einzahl()}).", p);
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
                         $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
                         (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
@@ -882,6 +883,7 @@ public sealed partial class Familienbuch
             NaechsteNummer = _naechsteNummer,
             ErbgutVersion = Erbgutvorlage.Version,
             ErbgutGene = ErbgutGene(),
+            Hauschronik = HauschronikFormat,
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
             {
@@ -889,6 +891,7 @@ public sealed partial class Familienbuch
                 Oberhaupt = f.Oberhaupt.Nummer, Ehepartner = f.Ehepartner?.Nummer, Testament = f.Testament?.Nummer,
                 Mitglieder = f.Mitglieder.Select(p => p.Nummer).ToList(),
                 Ahnen = f.Ahnen.Select(p => p.Nummer).ToList(),
+                Chronik = ChronikSichern(f),
             }).ToList(),
             Kandidaten = _kandidaten.Select(k => new KandidatStand { Person = k.Person.Nummer, Stand = k.Stand }).ToList(),
             // Feste Reihenfolge: Ein Dictionary zählt nach Löschungen nicht mehr in Einfügereihenfolge auf.
@@ -934,6 +937,7 @@ public sealed partial class Familienbuch
         ErbgutWiederherstellen(s, personen); // alte Spielstände ohne Erbgut: aus dem Startwert jeder Person
 
         _familien.Clear();
+        _chronikErgaenzen.Clear();
         foreach (var fs in s.Familien)
         {
             var f = new Familie(konten[fs.Konto], fs.Volk, fs.Nachname, personen[fs.Oberhaupt]);
@@ -942,6 +946,7 @@ public sealed partial class Familienbuch
             f.AhnenListe.AddRange(fs.Ahnen.Select(n => personen[n]));
             f.Ehepartner = fs.Ehepartner is int e ? personen[e] : null;
             f.Testament = fs.Testament is int t ? personen[t] : null;
+            ChronikWiederherstellen(f, fs.Chronik, mitChronik: s.Hauschronik is not null);
             _familien[f.Konto] = f;
         }
         _kandidaten.Clear();
