@@ -12,6 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Fell) Im Godot-Fenster nicht gesehen (NAS: Pferd und Ochse Zoom 25/50, Tag/Nacht/Regen). Mögliche Ursache der „Ringe“ im NAS-Bild: `oberflaeche.gdshader` projiziert Wandschichten je Fragment aus der geglätteten Normalen (Rahmen u/v dreht sich über den runden Körper, kippt bei n.y > 0,7 um); für Tiere wäre eine dreiseitige Projektion in Objektkoordinaten (wie `figur_vat.gdshader`) robuster – Vorschlag, nicht gebaut (Shader ohne Fenster nicht prüfbar). Falbe Pferde und Fesselbehang nicht gebaut.
 
 - (Umland) Böschung am Hang: Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf dem Netz (nur wenige dm Unterschied, im Klicktest nicht sichtbar); der Erdsaum ist nur Erdfarbe, ohne Farbverlauf zum Gras im Netz
 - (Boden) Stempel in der Kartenwerkstatt (dort fehlen Höfe, Wege und Restflächen-Untergründe, die Modelle haben keine Platte mehr); Stempel für Stadthäuser (Vorplatz Pflaster) und ein Pinsel „Stempel anpassen“
@@ -280,6 +281,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Karren-Nachtrag, Rest) Köpfe und Mähne der Zugtiere: Pferdekopf nah eckig und glatt (Unterteilung/Glättung), Ochsenrumpf klobig (Proportion), Fuchs-Mähne mit scharfer Kante am Genick und zu hohem Kontrast (`tools/modelle/zugtiere.py`, Mähnenfarbe Zeile 59, `haare()`): braucht eine neue Blender-Runde mit Neubau aller Tier-glb, VAT und Protokollzeilen; nicht in diesem Nachtrag. Der Stecken des Läufers (Zubehör „Stab“ der Figur, 4,5 cm) ist dünn; kräftiger geht nur im Figurenmodell (`figuren.py`). Reihe am Hof, Folgeregel, Läufer am Ochsen und Kutscher am Bock sind nur im Fenster zu prüfen (Klicktest NAS: Köln, Heumarkt, `--karren=Ochsenkarren,Pferdekarren,Handkarren --vermoegen=5000`, Zoom 25). Bekannt: ein heimkehrender Pferdekarren fährt am Markt noch durch einen dort wartenden Ochsen (Rechtsspur 0,9 m reicht für 2,2 m Gespannbreite nicht; Nachbildung 84 bis 225 s)
 
 ## Entscheidungen
+
+### Fell der Zugtiere (Branch fix/fell-schicht, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fell-Schicht neu | Schicht „fell“ (Nr. 22, `tools/oberflaeche/fell_schicht.py`) neu gerechnet: Haare als verbogene Striche in einem Richtungsfeld mit sanften Wirbeln (line integral convolution), Strähnen von 1 bis 2 mm, wenig weiche Töne. Haarkontrast etwa 3-fach (Streuung 3 % → 10 % der Helligkeit), Normale etwa 2,5-fach (Stärke 14 → 28), Kachel 0,5 → 0,25 m, Rauheit 0,80 bis 0,92 → 0,60 bis 0,88 (matt-seidig). Nur diese Schicht geändert (Normaldatei Schichten 0 bis 21 bitgleich, Farbdatei Neukodierung PSNR 53,4 dB), Tier-glb und VAT unverändert. Kein Fremdmaterial (Beast Fur nicht eingebaut) | 11.11.2026 |
+| Ehrlich | Vorschau nur Blender (Nachbau des Shaders mit Bump), nicht der Godot-Shader. Glanzlichter am Rücken und Fesselbehang gibt es nicht: die Rauheit kommt aus der Schicht (Wandprojektion), nicht aus der Lage am Körper; Fesselbehang bräuchte Geometrie |
 
 ### Karren, Zieher und Zugtiere im Spiel (Branch phase5/karren-zieher, Teil d)
 
