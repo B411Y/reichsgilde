@@ -11,6 +11,7 @@ render_mode cull_disabled;
 uniform sampler2D lage : filter_nearest, repeat_disable;
 uniform sampler2D normale : filter_nearest, repeat_disable;
 uniform vec2 klips[16];          // erste Zeile und Bildzahl je Clip
+uniform bool bartnetz = false;      // Bartnetz der Zwerge: Alpha der Eckenfarbe = Abstand von der Oberlippe (Stadtansicht.Passantenprobe.cs)
 uniform vec4 farben[128];        // Palette (linear), vom Spiel gefüllt
 uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap;
 uniform int stoff_schicht[2];   // Schicht von „tuch“ und „leder“ (−1 = keine)
@@ -28,6 +29,20 @@ varying flat vec3 f_haut;
 varying flat vec3 f_haar;
 varying flat vec3 f_kopf;
 varying flat float f_bart;
+varying float bart_abstand;
+
+// Bartnetz (Zwerge): Alpha der Eckenfarbe = Abstand von der Oberlippe in Vierteln eines Meters. Daraus: weicher Übergang zur Haut oben (kein
+// harter Rand), Mundfuge zwischen Schnurrbart und Vollbart, Strähnen, im Ansatz dunkler und zur Spitze heller.
+vec3 bart_tonen(vec3 farbe, vec3 hautfarbe, float abstand, vec3 ort_m) {
+	float m = abstand * 0.25; // Meter unter der Oberkante
+	float strahne = 0.5 + 0.5 * sin(ort_m.x * 260.0 + ort_m.y * 40.0 + sin(ort_m.x * 90.0) * 2.0);
+	vec3 c = farbe * mix(0.78, 1.12, smoothstep(0.0, 0.18, m)) * (0.86 + 0.28 * strahne);
+	// Oberkante und Wangen: der Bart geht über einen Stoppelton in die Gesichtshaut über (kein harter Rand)
+	float rand = max(1.0 - smoothstep(0.0, 0.050, m), smoothstep(0.040, 0.085, abs(ort_m.x)) * (1.0 - smoothstep(0.02, 0.10, m)));
+	c = mix(c, mix(hautfarbe, farbe * 0.8, 0.45), rand * 0.85);
+	c *= 1.0 - 0.55 * (smoothstep(0.022, 0.030, m) * (1.0 - smoothstep(0.036, 0.046, m))); // Mundfuge: Schnurrbart darüber, Vollbart darunter
+	return c;
+}
 
 vec3 farbe_aus(int i, bool srgb) {
 	vec3 c = farben[clamp(i, 0, 127)].rgb;
@@ -62,6 +77,7 @@ void vertex() {
 	stoff_nr = -1;
 	if (schicht >= 0 && schicht == stoff_schicht[0]) stoff_nr = 0;
 	else if (schicht >= 0 && schicht == stoff_schicht[1]) stoff_nr = 1;
+	bart_abstand = COLOR.a;
 	grundfarbe = COLOR.rgb;
 	if (!OUTPUT_IS_SRGB) {
 		grundfarbe = mix(pow((COLOR.rgb + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), COLOR.rgb * (1.0 / 12.92), lessThan(COLOR.rgb, vec3(0.04045)));
@@ -85,6 +101,7 @@ void fragment() {
 	else if (zone == 4) farbe = f_haar;
 	else if (zone == 5) farbe = f_kopf;
 	else if (zone == 6) farbe = f_bart > 0.5 ? mix(f_haut, f_haar, 0.7) : f_haut;
+	if (bartnetz && zone == 4) farbe = bart_tonen(farbe, f_haut, bart_abstand, ort);
 	if (stoff_nr >= 0) {
 		// dreiseitig im Modellraum: Stoffbild je Achse, gewichtet nach der Normalen
 		float s = 1.0 / stoff_kachel[stoff_nr];
