@@ -1233,7 +1233,7 @@ public sealed partial class Kartenentwurf
         }
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
-        if (a.Objekt is EntwurfKopf && _grund is not null) _schichtNeu = true; // P4a: Größe und Rand begrenzen den Hang
+        if (a.Objekt is EntwurfKopf && _grund is not null) (_schichtNeu, _schichtStand) = (true, null); // P4a: Größe und Rand begrenzen den Hang (ganz neu)
         _ausstehend.Add(a);
     }
 

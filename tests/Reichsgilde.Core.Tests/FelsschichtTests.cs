@@ -148,12 +148,13 @@ static class FelsschichtTests
             Pruefe.Wahr(f.Hoehen.Hoehe(60, 32) - original.Hoehe(60, 32) < 0.5, "und kommt nicht mit");
         }),
 
-        ("Fels P4a: Mehrere Stücke wirken als Höchstwert – die Reihenfolge der Stücke ist gleichgültig; eine Wand allein hebt weniger (Gegenprobe)", () =>
+        ("Fels P4a: Mehrere Stücke wirken als Höchstwert – liegt keine Mitte im Hang eines anderen, ist die Reihenfolge gleichgültig; eine Wand allein hebt weniger (Gegenprobe)", () =>
         {
-            // dieselben Stücke in umgekehrter Reihenfolge in der Datei (gestempelt wird auf das sichtbare Gelände: dort zählt die Reihenfolge des Stempelns)
+            // dieselben Stücke in umgekehrter Reihenfolge in der Datei; die Hänge überlagern sich, keine Mitte liegt im Hang des anderen (sonst zählt die
+            // Reihenfolge: die Zelle um eine Mitte heben nur Stücke davor – Test „Rücken an Rücken“ in FelsHangStreuenTests)
             var e = Huegel();
-            e.FelsStempeln(Wand(true), O(-50, 0), drehung: 0, startwert: 1);
-            e.FelsStempeln(Wand(true), O(-38, -6), drehung: 25, startwert: 1);
+            e.FelsStempeln(Wand(true), O(-80, 0), drehung: 0, startwert: 1);
+            e.FelsStempeln(Wand(true), O(-56, 2), drehung: 10, startwert: 1);
             var text = e.ZuJson();
             var knoten = System.Text.Json.Nodes.JsonNode.Parse(text)!;
             var stuecke = knoten["felsen"]!["stuecke"]!.AsArray();
@@ -164,8 +165,12 @@ static class FelsschichtTests
             Pruefe.Gleich(R(e.Hoehen), R(u.Hoehen), "gleiche wirksame Höhe");
             Pruefe.Gleich(R(e.Hoehen), R(Stadtkarte.AusJson(knoten.ToJsonString(), Katalog.Value).Hoehen!), "Stadtkarte umgekehrt: gleiche wirksame Höhe");
             var allein = Huegel();
-            allein.FelsStempeln(Wand(true), O(-50, 0), drehung: 0, startwert: 1);
+            allein.FelsStempeln(Wand(true), O(-80, 0), drehung: 0, startwert: 1);
             Pruefe.Wahr(R(allein.Hoehen) != R(e.Hoehen), "zwei Wände heben mehr als eine");
+            // die Hänge überlagern sich wirklich (sonst prüfte der Höchstwert nichts)
+            var nurZweite = Felsschicht.Rechnen(e.Grundhoehen, e.Kartengrenzen.Aussen, e.Felsen.Skip(1).Select(x => x.AlsLage()));
+            var nurErste = Felsschicht.Rechnen(e.Grundhoehen, e.Kartengrenzen.Aussen, e.Felsen.Take(1).Select(x => x.AlsLage()));
+            Pruefe.Wahr(nurErste.Keys.Count(nurZweite.ContainsKey) > 5, "die Hänge überlagern sich");
         }),
 
         ("Fels P4a: Hebt die Schicht die Mitte einer Wand, rechnet ihr Hang von der wirksamen Höhe – die Gruppe „wandgross“ als Schicht wie fest gestempelt (Gegenprobe: ab Grundhöhe zu tief)", () =>
@@ -175,17 +180,27 @@ static class FelsschichtTests
             e.FelsStempeln(pinsel, O(-40, 60), drehung: 30, startwert: 8);
             var f = Huegel();
             f.FelsStempeln(pinsel with { HangSchicht = false }, O(-40, 60), drehung: 30, startwert: 8);
-            Pruefe.Wahr(Abstand(e.Hoehen, f.Hoehen) <= 3, $"Schicht wie fester Hang, Abstand {Abstand(e.Hoehen, f.Hoehen)} cm");
+            // außerhalb der Zellen um die Mitten (die heben nur Stücke davor; fest gestempelt hob die ganze Gruppe sie mit)
+            var mitten = e.Felsen.SelectMany(x =>
+            {
+                var (a, b) = ((int)Math.Floor(x.X / Hoehenraster.Abstand), (int)Math.Floor(x.Z / Hoehenraster.Abstand));
+                return new[] { (a, b), (a + 1, b), (a, b + 1), (a + 1, b + 1) };
+            }).ToHashSet();
+            var (pi0, pj0, pi1, pj1) = Hoehenraster.Punkte(new Kartenrechteck(-200, -150, 200, 150));
+            var abstand = 0;
+            for (var j = pj0; j <= pj1; j++)
+                for (var i = pi0; i <= pi1; i++)
+                    if (!mitten.Contains((i, j))) abstand = Math.Max(abstand, Math.Abs(e.Hoehen.Wert(i, j) - f.Hoehen.Wert(i, j)));
+            Pruefe.Wahr(abstand <= 3, $"Schicht wie fester Hang außerhalb der Mittelzellen, Abstand {abstand} cm");
             for (var k = 0; k < e.Felsen.Count; k++)
                 Pruefe.Wahr(Math.Abs(Felsraum.UrsprungY(e.Felsen[k].AlsLage(), e.Hoehen) - Felsraum.UrsprungY(f.Felsen[k].AlsLage(), f.Hoehen)) <= 0.03, $"Stück {k} steht gleich");
             // neu geöffnet: dieselbe Höhe (der Ursprung wird aus Grundhöhe und Versatz wiedergefunden)
             Pruefe.Gleich(R(e.Hoehen), R(Kartenentwurf.AusJson(e.ZuJson(), Katalog.Value).Hoehen), "geöffnet gleich");
-            // Gegenprobe: die Mitte mindestens eines Stücks ist gehoben – ab der Grundhöhe gerechnet läge der Hang deutlich zu tief
+            // Gegenprobe: ohne die Reihenfolge (jedes Stück hebt jede Mitte) stünde die Gruppe anders – hier hebt der Hang eines späteren Stücks eine Mitte
             var lagen = e.Felsen.Select(x => x.AlsLage()).ToList();
-            Pruefe.Wahr(lagen.Any(l => e.Hoehen.Hoehe(l.X, l.Z) - e.Grundhoehen.Hoehe(l.X, l.Z) > 0.5), "eine Mitte gehoben");
-            var alt = Felsschicht.Rechnen(e.Grundhoehen, e.Kartengrenzen.Aussen, lagen.Select(l => (l, (double?)Felsraum.UrsprungY(l, e.Grundhoehen))).ToList());
-            var tiefer = alt.Count(p => e.Hoehen.Wert(p.Key.I, p.Key.J) - p.Value > 50);
-            Pruefe.Wahr(tiefer > 20, $"ab Grundhöhe: {tiefer} Punkte über 0,5 m zu tief");
+            var (ohne, _) = Felsschicht.RechnenOhneReihenfolge(e.Grundhoehen, e.Kartengrenzen.Aussen, lagen);
+            var anders = ohne.Count(p => Math.Abs(e.Hoehen.Wert(p.Key.I, p.Key.J) - p.Value) > 50);
+            Pruefe.Wahr(anders > 20, $"ohne Reihenfolge: {anders} Punkte über 0,5 m anders");
         }),
 
         ("Fels P4a: Zwei Wände hintereinander als Schicht – hinter der hinteren steigt das Gelände bis unter ihre Oberkante, wie fest gestempelt", () =>
@@ -210,6 +225,11 @@ static class FelsschichtTests
             var allein = Huegel();
             allein.FelsStempeln(Wand(true, "wand_gross_3"), O(-50, -10), drehung: 0, startwert: 1);
             Pruefe.Wahr(allein.Hoehen.Hoehe(l.X, l.Z - 8) < dahinter - 2, "allein niedriger");
+            // Gegenprobe (Befund 1): ab der Grundhöhe gerechnet (Ursprung ohne die Hebung unter der Mitte) läge der Hang deutlich zu tief
+            var lagen = s.Felsen.Select(x => x.AlsLage()).ToList();
+            var alt = Felsschicht.Rechnen(s.Grundhoehen, s.Kartengrenzen.Aussen, lagen.Select(x => (x, (double?)Felsraum.UrsprungY(x, s.Grundhoehen))).ToList());
+            var tiefer = alt.Count(p => s.Hoehen.Wert(p.Key.I, p.Key.J) - p.Value > 50);
+            Pruefe.Wahr(tiefer > 20, $"ab Grundhöhe: {tiefer} Punkte über 0,5 m zu tief");
         }),
 
         ("Fels P4a: Stempel mit Schicht – der ausgeglichene Versatz bleibt in ±20 m wie beim Verschieben und Streuen (Gegenprobe: ohne Grenze darunter)", () =>
@@ -220,9 +240,15 @@ static class FelsschichtTests
             var vorher = e.Hoehen.Kopie();
             var neue = e.FelsStempeln(pinsel, O(0, 0), drehung: 0, startwert: 3);
             Pruefe.Wahr(neue.Count > 0 && neue.All(f => Math.Abs(f.Versatz) <= Felsformen.VersatzMax), "alle in ±20 m: " + string.Join(", ", neue.Select(f => f.Versatz)));
-            // Gegenprobe: mindestens ein Stück hätte tiefer gemusst (es steht jetzt höher, als die Vorschau es zeigte)
-            var gekappt = neue.Where((f, k) => f.Versatz == -Felsformen.VersatzMax && Felsraum.UrsprungY(f.AlsLage(), e.Hoehen) > Felsraum.UrsprungY(vorschau[k], vorher) + 0.05).Count();
-            Pruefe.Wahr(gekappt > 0, $"gekappt: {gekappt}");
+            // seit der Reihenfolge (die Mitte heben nur Stücke davor) heben die Stücke dieser Gruppe einander die Mitten nicht: jedes steht, wo die Vorschau
+            // es zeigte, die Grenze bleibt eine Sicherung
+            for (var k = 0; k < neue.Count; k++)
+                Pruefe.Wahr(Math.Abs(Felsraum.UrsprungY(neue[k].AlsLage(), e.Hoehen) - Felsraum.UrsprungY(vorschau[k], vorher)) <= 0.03, $"Stück {k} steht wie in der Vorschau");
+            // Gegenprobe: ohne die Reihenfolge höben sich die Stücke die Mitten (der Ausgleich müsste dann unter −20 m)
+            var lagen = neue.Select(f => f.AlsLage()).ToList();
+            var (ohne, _) = Felsschicht.RechnenOhneReihenfolge(e.Grundhoehen, e.Kartengrenzen.Aussen, lagen);
+            var gehoben = lagen.Count(l => Felsschicht.Hoehe(e.Grundhoehen, ohne, l.X, l.Z) - e.Grundhoehen.Hoehe(l.X, l.Z) > 1);
+            Pruefe.Wahr(gehoben > 0, $"ohne Reihenfolge {gehoben} Mitten gehoben");
         }),
 
         ("Fels P4a: Speichern und Laden – Datei gleich, Entwurf, Stadtkarte und Spielstand rechnen dieselbe wirksame Höhe; gespeichert ist die Grundhöhe", () =>

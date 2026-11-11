@@ -144,8 +144,30 @@ public partial class Kartenwerkstatt
                 TooltipText = "Der Stempel hebt das Gelände hinter und neben den großen Wänden an (sie sind hinten offen), damit sie im Hang stecken und nicht auf der Wiese stehen. " +
                               "Der Hang beginnt etwa 2,5 m hinter der Fußlinie. Ein Schritt mit den Stücken; gilt nur für die Wände des Wand-Satzes (Große Wand, Mittlere Wand, Pfeilerbündel)." };
             hangFormen.AddThemeFontSizeOverride("font_size", 14);
-            hangFormen.Toggled += an => _stadt.FelsHangFormen = an;
+            CheckBox? schicht = null;
+            hangFormen.Toggled += an =>
+            {
+                _stadt.FelsHangFormen = an;
+                if (schicht is not null) schicht.Disabled = !an;
+            };
             _eigenschaften.AddChild(hangFormen);
+            // P4b: der Hang als eigene Schicht (Vorgabe an) – folgt dem Stück beim Verschieben, Drehen und Löschen
+            schicht = new CheckBox { Text = "als eigene Schicht (folgt dem Stück)", ButtonPressed = _stadt.FelsHangSchicht, Disabled = !_stadt.FelsHangFormen, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "An: Der Hang gehört zu den Wänden. Er wandert mit, wenn man eine Wand verschiebt oder dreht, und verschwindet mit ihr – am alten Platz bleibt kein Wall. " +
+                              "Das Gelände darunter (die Grundhöhe) bleibt, wie es gemalt wurde. Aus: Der Hang wird fest ins Gelände geschrieben (wie früher). " +
+                              "Beim Gizmo schaltet „Eigener Hang“ ihn für gewählte Stücke an oder aus." };
+            schicht.AddThemeFontSizeOverride("font_size", 13);
+            schicht.Toggled += an => _stadt.FelsHangSchicht = an;
+            _eigenschaften.AddChild(schicht);
+        }
+        if (modus == Stadtansicht.FelsArt.Streuen)
+        {
+            var streuenHang = new CheckBox { Text = "Hang mitformen (eigene Schicht)", ButtonPressed = _stadt.FelsStreuenHang, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Die gestreuten Wände (Große Wand, Mittlere Wand, Pfeilerbündel, Gruppe Große Wand) heben das Gelände dahinter an – als eigene Schicht, sie folgt jeder Wand " +
+                              "beim Verschieben und Löschen. Ein Strich bleibt ein Schritt für Strg+Z. Aus: Der Strich lässt das Gelände, wie es ist." };
+            streuenHang.AddThemeFontSizeOverride("font_size", 14);
+            streuenHang.Toggled += an => _stadt.FelsStreuenHang = an;
+            _eigenschaften.AddChild(streuenHang);
         }
         Hauptmenue.Text(_eigenschaften, modus switch
             {
@@ -160,6 +182,30 @@ public partial class Kartenwerkstatt
                 "Würfelt die angehakten Werte der gewählten Stücke neu (ein Schritt für Strg+Z)");
         FelsErweitert();
         FelsFilter();
+        FelsSchwebendeZeile(_eigenschaften);
+    }
+
+    /// <summary>
+    /// P4b: „Schwebende Stücke“ (wie „Invalid“ im Foliage-Werkzeug von Unreal): die Zahl der Stücke, deren Unterkante über dem Boden liegt (etwa nach dem
+    /// Senken des Geländes darunter), und der Knopf, der sie wählt – dann setzt „Auf den Boden“ (End) sie wieder auf. Die Zahl steht beim Aufbau der Tafel;
+    /// der Knopf zählt neu.
+    /// </summary>
+    private void FelsSchwebendeZeile(Container eltern)
+    {
+        var anzahl = _stadt.FelsSchwebendeAnzahl();
+        Hauptmenue.Text(eltern, "Schwebende Stücke", 15, Gold);
+        var zeile = new HBoxContainer();
+        zeile.AddThemeConstantOverride("separation", 8);
+        eltern.AddChild(zeile);
+        var text = Hauptmenue.Text(zeile, anzahl == 0 ? "keine" : $"{anzahl} schweben", 13, anzahl == 0 ? Grau : Hell);
+        text.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        Knopf(zeile, "Schwebende wählen", () =>
+            {
+                var n = _stadt.FelsSchwebendeWaehlen();
+                if (n == 0) text.Text = "keine";
+                Melden(n == 0 ? "Kein Felsstück schwebt." : $"{n} schwebende Felsstücke gewählt – „Auf den Boden“ (End) setzt sie auf.");
+            },
+            "Wählt alle Stücke, deren Unterkante mehr als 10 cm über dem Boden liegt – zum Beispiel nach dem Senken des Geländes unter ihnen. Danach „Auf den Boden“ (End) oder Löschen.");
     }
 
     /// <summary>Die Häkchen, welche Werte „Neu verteilen“ neu würfelt (Strich und Knopf an der Auswahl teilen sie).</summary>

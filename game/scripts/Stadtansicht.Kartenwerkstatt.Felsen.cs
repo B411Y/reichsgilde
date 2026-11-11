@@ -76,6 +76,15 @@ public partial class Stadtansicht
     /// </summary>
     public bool FelsHangFormen { get; set; }
 
+    /// <summary>
+    /// P4b: „Hang mitformen“ des Stempels als eigene Schicht (Vorgabe an): Die Wände tragen das Feld „hang“, der Hang folgt ihnen beim Verschieben,
+    /// Drehen und Löschen und wird nie fest ins Gelände geschrieben. Aus: wie vor P4a (fest ins Raster). Die Startoption <c>hang:an</c> schaltet es aus (alte Bilder bleiben gleich).
+    /// </summary>
+    public bool FelsHangSchicht { get; set; } = true;
+
+    /// <summary>P4b: Der Strich des Streuens formt den Hang der gestreuten Wände mit (immer als Schicht; Vorgabe aus, sonst höbe jeder Strich das Gelände).</summary>
+    public bool FelsStreuenHang { get; set; }
+
     /// <summary>Wo der Felspinsel wirkt (Steigung, Boden); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
     public Pinselfilter FelsFilter { get; set; } = Pinselfilter.Keiner;
 
@@ -126,7 +135,7 @@ public partial class Stadtansicht
     /// </summary>
     public Felspinsel FelsPinselWerte => new(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken,
         FelsNeigung, FelsZumHang, FelsFilter, Boden: FelsBoden, AchseX: FelsAchseX, AchseY: FelsAchseY, AchseZ: FelsAchseZ, Drehbereich: FelsDrehbereich,
-        Kippbereich: FelsKippbereich, Rollbereich: FelsRollbereich, Versatzbereich: FelsVersatzbereich, NeigungBis: FelsNeigungBis, HangFormen: FelsHangFormen,
+        Kippbereich: FelsKippbereich, Rollbereich: FelsRollbereich, Versatzbereich: FelsVersatzbereich, NeigungBis: FelsNeigungBis, HangFormen: FelsHangFormen, HangSchicht: FelsHangSchicht,
         Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen, Aussparen: FelsAussparen, AussparenBauzonen: FelsAussparenBauzonen);
 
     /// <summary>Der Radierer mit Radius, Filter, Höhe und Formen (Ausdünnen, wenn eine Dichte eingestellt ist).</summary>
@@ -140,6 +149,7 @@ public partial class Stadtansicht
     {
         FelsArt.Radieren => FelsRadierer,
         FelsArt.Verteilen => FelsPinselWerte with { Gruppe = null, Verteilen = FelsVerteilenWurf == Felswurf.Keins ? null : FelsVerteilenWurf },
+        FelsArt.Streuen => FelsPinselWerte with { HangFormen = FelsStreuenHang, HangSchicht = true }, // P4b: der Hang beim Streuen ist immer die Schicht
         _ => FelsPinselWerte,
     };
 
@@ -278,6 +288,7 @@ public partial class Stadtansicht
             }
             var lagen = _entwurf.FelsStempelVorschau(FelsPinsel, new Kartenort(m.X, m.Y), startwert: FelsStempelStartwert);
             FelsGeisterSetzen(lagen);
+            FelsHangStempelZeigen(lagen, m); // P4b: der Hang, den der Klick heben würde (Stadtansicht.Felshang.cs)
             foreach (var l in lagen)
                 VorschauDreiecke(BandDreiecke(Kreis(new Vector2((float)l.X, (float)l.Z), Mathf.Max(0.3f, (float)l.Radius)), Mathf.Max(0.06f, MeterJePixel * 0.8f), 0.2f),
                     new Color(farbe, 0.8f));
@@ -325,6 +336,7 @@ public partial class Stadtansicht
 
     private void FelsGeisterAus()
     {
+        FelsHangGeistAus(FelsHangBesitzer.Stempel);
         if (_wsFelsGeister is not null) _wsFelsGeister.Visible = false;
     }
 

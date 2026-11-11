@@ -10,7 +10,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //    • _grund – die Grundhöhe: was gespeichert wird und was die Geländewerkzeuge (Pinsel, Rampe, Höhenkarte) und ihr Rückgängig ändern;
 //    • _hoehen – die wirksame Höhe (Grundhöhe + Hang aller Stücke mit „hang“): was Darstellung, Prüfung und Felsraum lesen (Hoehen).
 //  Die Schicht wird nach jedem Befehl, Rückgängig und Wiederholen nachgeführt (MeldungenAusloesen → SchichtAuffrischen), bevor die Änderungen
-//  gemeldet werden. Neu gerechnet wird der Hang nur, wenn sich ein Stück mit „hang“ geändert hat oder die Grundhöhe in seiner Reichweite;
+//  gemeldet werden. Neu gerechnet wird der Hang nur, wenn sich ein Stück mit „hang“ geändert hat oder die Grundhöhe in seiner Reichweite, und
+//  dann nur im Gebiet dieser Stücke (seit P4b, Prüfer-Befund: Streuen und Pinseln am Hang hängen nicht von der Zahl der Wände ab);
 //  geschrieben werden nur Kacheln, in denen sich etwas ändert, und gemeldet wird nur das Rechteck, das sich wirklich geändert hat.
 //  Da die Schicht aus den Stücken folgt, ist das Verschieben einer Wand mit Hang ein einziger kleiner Schritt (die Werte des Stücks) – die
 //  Geschichte hält dafür keine Kacheln.
@@ -26,6 +27,15 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Ein Stück mit „hang“ (oder die Karte) hat sich geändert: die Schicht ganz neu rechnen.</summary>
     private bool _schichtNeu;
+
+    /// <summary>
+    /// Der Stand der letzten Rechnung der Schicht (in der Reihenfolge der Stücke): je Stück mit „hang“ Lage, Ursprung und ob es einen Hang formt –
+    /// daraus rechnet <see cref="SchichtAuffrischen"/> nur nach, was sich geändert hat. Null: beim nächsten Mal die ganze Schicht.
+    /// </summary>
+    private List<(EntwurfFels Fels, Felslage Lage, double Ursprung, double Basis, bool Aktiv)>? _schichtStand;
+
+    /// <summary>Wie oft die Schicht ganz bzw. nur in einem Gebiet neu gerechnet wurde (für Tests und Messungen).</summary>
+    internal int SchichtGanzGerechnet, SchichtTeilGerechnet;
 
     /// <summary>Hier hat sich die Grundhöhe geändert (null: nirgends).</summary>
     private Kartenrechteck? _grundGeaendert;
@@ -50,14 +60,16 @@ public sealed partial class Kartenentwurf
     /// <summary>
     /// Wie das wirksame Gelände aussähe, wenn die Stücke diese Lagen hätten (Hang und Ort aus der Lage) – ohne etwas zu ändern: die Rasterpunkte,
     /// deren Höhe (Meter) sich gegenüber jetzt ändern würde, nach j und i geordnet. Für die Vorschau beim Ziehen am Gizmo (P4b, zusammen mit
-    /// <see cref="FelsVorschau"/>). Leer, wenn kein Stück einen Hang trägt.
+    /// <see cref="FelsVorschau"/>). <paramref name="neue"/> (P4b): Lagen noch nicht gesetzter Stücke, etwa die Geister des Stempels (mit <see cref="Felslage.Hang"/>).
+    /// Leer, wenn kein Stück einen Hang trägt.
     /// </summary>
-    public IReadOnlyList<(int I, int J, double Hoehe)> FelsHangVorschau(IEnumerable<(EntwurfFels Fels, Felslage Lage)> lagen)
+    public IReadOnlyList<(int I, int J, double Hoehe)> FelsHangVorschau(IEnumerable<(EntwurfFels Fels, Felslage Lage)> lagen, IEnumerable<Felslage>? neue = null)
     {
         var ersatz = new Dictionary<EntwurfFels, Felslage>(ReferenceEqualityComparer.Instance);
         foreach (var (f, l) in lagen) ersatz[f] = l;
-        if (_grund is null && !ersatz.Values.Any(l => l.Hang)) return Array.Empty<(int, int, double)>();
-        return Unterschied(Schichtvorschau(ersatz, Array.Empty<Felslage>())).Select(p => (p.I, p.J, p.Cm / 100.0)).ToList();
+        var dazu = neue?.ToList() ?? new List<Felslage>();
+        if (_grund is null && !ersatz.Values.Any(l => l.Hang) && !dazu.Any(l => l.Hang)) return Array.Empty<(int, int, double)>();
+        return Unterschied(Schichtvorschau(ersatz, dazu)).Select(p => (p.I, p.J, p.Cm / 100.0)).ToList();
     }
 
     /// <summary>
@@ -257,46 +269,126 @@ public sealed partial class Kartenentwurf
         return aus;
     }
 
+    /// <summary>So viele Rechtecke darf das Gebiet des Nachrechnens haben; mehr: die ganze Schicht neu.</summary>
+    private const int SchichtBereicheMax = 64;
+
     /// <summary>
-    /// Führt die wirksame Höhe nach (siehe Kopf der Datei): Hat sich ein Stück mit „hang“ geändert oder die Grundhöhe in der Reichweite eines solchen,
-    /// wird die Schicht neu gerechnet; dann wird jede betroffene Kachel aus Grundhöhe und Schicht gebaut und, wenn sie anders ist, gesetzt. Mit
-    /// <paramref name="melden"/> wird das geänderte Rechteck als Gelände gemeldet.
+    /// Führt die wirksame Höhe nach (siehe Kopf der Datei): Neu gerechnet wird nur, was sich ändern kann (Felspinsel P4b, Prüfer-Befund) – das Gebiet
+    /// aus den Reichweiten der Stücke, die dazukamen, wegfielen oder sich änderten (alte und neue Lage, auch wenn ein Stück vorgelagert wurde oder
+    /// nicht mehr), dazu die geänderte Grundhöhe, wenn sie eine Reichweite trifft; liegt die Mitte eines weiteren Stücks darin (sein Ursprung kann
+    /// sich ändern), kommt seine Reichweite dazu, bis sich nichts mehr ausbreitet. In diesem Gebiet wird die Schicht aus allen Stücken gerechnet, die
+    /// es erreichen; die übrigen behalten ihren Ursprung. Ohne Stand (Öffnen, neue Kartengröße) oder bei sehr großem Gebiet die ganze Schicht.
+    /// Dann wird jede betroffene Kachel aus Grundhöhe und Schicht gebaut und, wenn sie anders ist, gesetzt. Mit <paramref name="melden"/> wird das
+    /// geänderte Rechteck als Gelände gemeldet. <paramref name="fest"/>: dieses Stück steht auf diesem Ursprung (Streuen: es bleibt, wo es gesetzt
+    /// wurde; danach gleicht sein Versatz aus).
     /// </summary>
-    private void SchichtAuffrischen(bool melden = true)
+    private void SchichtAuffrischen(bool melden = true, (EntwurfFels Fels, double Ursprung)? fest = null)
     {
         if (_grund is not { } grund)
         {
-            (_schichtNeu, _grundGeaendert) = (false, null);
+            (_schichtNeu, _grundGeaendert, _schichtStand) = (false, null, null);
             return;
         }
-        if (!_schichtNeu && _grundGeaendert is null) return;
+        if (!_schichtNeu && _grundGeaendert is null && fest is null) return;
         var geaendert = _grundGeaendert;
-        var lagen = _felsen.Where(f => f.Hang).Select(f => f.AlsLage()).ToList();
-        var allesNeu = _schichtNeu || (geaendert is { } g0 && lagen.Any(l => Felsschicht.Reichweite(l) is { } r && Schneiden(r, g0)));
-        var neu = allesNeu ? (lagen.Count == 0 ? new() : Felsschicht.Rechnen(grund, Kartengrenzen.Aussen, lagen)) : _schicht;
-        // die Kacheln, die sich ändern können: wo die Grundhöhe sich änderte, und (bei neuer Schicht) wo die alte oder die neue Schicht liegt
-        var kacheln = new SortedSet<(int J, int I)>();
-        if (geaendert is { } g)
+        var karte = Kartengrenzen.Aussen;
+        var hang = _felsen.Where(f => f.Hang).ToList();
+        var lagen = hang.Select(f => f.AlsLage()).ToList();
+        var n = hang.Count;
+        double? Fest(int k) => fest is { } x && ReferenceEquals(x.Fels, hang[k]) ? x.Ursprung : null;
+        Dictionary<(int I, int J), short> neu;
+        double[] ursprung;
+        bool[] aktiv;
+        var bereiche = Schichtbereiche(grund, hang, lagen, geaendert, fest?.Fels, out aktiv, out var markiert);
+        var stand = bereiche is null ? null : SchichtStandIndex();
+        ursprung = hang.Select(f => stand is not null && stand.TryGetValue(f, out var s) ? s.Ursprung : 0).ToArray();
+        var basis = hang.Select(f => stand is not null && stand.TryGetValue(f, out var s) ? s.Basis : 0).ToArray();
+        List<int>? auswahl = null;
+        Dictionary<(int I, int J), int>? sperre = null;
+        double[]? teilUrsprung = null, teilBasis = null;
+        if (bereiche is { Count: > 0 })
         {
-            var (i0, j0, i1, j1) = Hoehenraster.Punkte(g);
+            // Liegt die Mitte eines weiteren Stücks im Gebiet, wird sein Ursprung mitgerechnet; ändert er sich, kommt seine Reichweite dazu – bis sich
+            // nichts mehr ausbreitet. Stücke, deren Reichweite das Gebiet erreicht, aber deren Mitte nicht darin liegt, behalten ihren Ursprung.
+            var reich = lagen.Select(Felsschicht.Reichweite).ToArray();
+            sperre = Felsschicht.Sperre(lagen); // aus allen Stücken: die Nummern sind ihre Stellen in der ganzen Liste
+            for (var weiter = true; weiter && bereiche is not null;)
+            {
+                weiter = false;
+                var b0 = bereiche;
+                var mitte = Enumerable.Range(0, n).Select(k => !markiert[k] && MitteIn(lagen[k], b0)).ToArray();
+                // Quellen: alles, was das Gebiet erreicht, dazu was die Mittelzelle eines mitgerechneten Stücks erreicht (sie liegt nicht immer ganz im Gebiet)
+                var zellen = Enumerable.Range(0, n).Where(k => mitte[k]).Select(k => Mittelzelle(lagen[k])).ToList();
+                auswahl = Enumerable.Range(0, n).Where(k => reich[k] is { } r && (b0.Any(b => Schneiden(r, b)) || zellen.Any(z => Schneiden(r, z)))).ToList();
+                (teilUrsprung, teilBasis) = Felsschicht.Urspruenge(grund, karte,
+                    auswahl.Select(k => markiert[k] ? (lagen[k], Fest(k), (double?)null) : mitte[k] ? (lagen[k], null, null) : (lagen[k], ursprung[k], basis[k])).ToList(),
+                    auswahl.Select(k => aktiv[k]).ToArray(), auswahl, sperre);
+                for (var a = 0; a < auswahl.Count; a++)
+                {
+                    var k = auswahl[a];
+                    if (!mitte[k] || (teilUrsprung[a] == ursprung[k] && teilBasis[a] == basis[k])) continue;
+                    markiert[k] = weiter = true;
+                    if (reich[k] is { } r) bereiche.Add(r);
+                }
+                if (bereiche.Count > SchichtBereicheMax) bereiche = null;
+            }
+        }
+        if (bereiche is null)
+        {
+            // die ganze Schicht
+            SchichtGanzGerechnet++;
+            (neu, ursprung, basis, aktiv) = n == 0 ? (new(), Array.Empty<double>(), Array.Empty<double>(), Array.Empty<bool>())
+                : Felsschicht.RechnenMitStand(grund, karte, Enumerable.Range(0, n).Select(k => (lagen[k], Fest(k))).ToList());
+        }
+        else
+        {
+            neu = _schicht;
+            if (bereiche.Count > 0)
+            {
+                SchichtTeilGerechnet++;
+                var punkte = bereiche.Select(Hoehenraster.Punkte).ToList();
+                for (var a = 0; a < auswahl!.Count; a++) (ursprung[auswahl[a]], basis[auswahl[a]]) = (teilUrsprung![a], teilBasis![a]);
+                var teilLagen = auswahl.Select(k => lagen[k]).ToList();
+                var teil = Felsschicht.Teilweise(grund, karte, teilLagen, teilUrsprung!, teilBasis!, auswahl.Select(k => aktiv[k]).ToArray(), bereiche, auswahl, sperre!);
+                // in der Schicht selbst: das Gebiet leeren und neu setzen (der Rest bleibt, wie er ist)
+                foreach (var (i0, j0, i1, j1) in punkte)
+                    for (var j = j0; j <= j1; j++)
+                        for (var i = i0; i <= i1; i++) neu.Remove((i, j));
+                foreach (var (p, w) in teil) neu[p] = w;
+            }
+        }
+        _schichtStand = Enumerable.Range(0, n).Select(k => (hang[k], lagen[k], ursprung[k], basis[k], aktiv[k])).ToList();
+        // die Kacheln, die sich ändern können: wo die Grundhöhe sich änderte und wo neu gerechnet wurde (bzw. bei der ganzen Schicht, wo die alte oder die neue liegt)
+        var kacheln = new SortedSet<(int J, int I)>();
+        void KachelnIn(Kartenrechteck b)
+        {
+            var (i0, j0, i1, j1) = Hoehenraster.Punkte(b);
             var (k0, k1) = (Hoehenraster.KachelVon(i0, j0), Hoehenraster.KachelVon(i1, j1));
             for (var kj = k0.J; kj <= k1.J; kj++)
                 for (var ki = k0.I; ki <= k1.I; ki++) kacheln.Add((kj, ki));
         }
-        var jeKachel = new Dictionary<(int I, int J), List<(int Stelle, short Cm)>>();
-        foreach (var ((i, j), cm) in neu)
-        {
-            var k = Hoehenraster.KachelVon(i, j);
-            if (!jeKachel.TryGetValue(k, out var liste)) jeKachel[k] = liste = new();
-            liste.Add((((j & (Hoehenraster.Kachel - 1)) * Hoehenraster.Kachel) | (i & (Hoehenraster.Kachel - 1)), cm));
-            if (allesNeu) kacheln.Add((k.J, k.I));
-        }
-        if (allesNeu)
-            foreach (var (i, j) in _schicht.Keys)
+        if (geaendert is { } g) KachelnIn(g);
+        if (bereiche is not null) foreach (var b in bereiche) KachelnIn(b);
+        else
+            foreach (var (i, j) in _schicht.Keys.Concat(neu.Keys))
             {
                 var k = Hoehenraster.KachelVon(i, j);
                 kacheln.Add((k.J, k.I));
             }
+        var jeKachel = new Dictionary<(int I, int J), List<(int Stelle, short Cm)>>();
+        void Punkt(int i, int j, short cm)
+        {
+            var k = Hoehenraster.KachelVon(i, j);
+            if (!jeKachel.TryGetValue(k, out var liste)) jeKachel[k] = liste = new();
+            liste.Add((((j & (Hoehenraster.Kachel - 1)) * Hoehenraster.Kachel) | (i & (Hoehenraster.Kachel - 1)), cm));
+        }
+        if (bereiche is null)
+            foreach (var ((i, j), cm) in neu) Punkt(i, j, cm);
+        else // nur die Punkte der betroffenen Kacheln (nachschlagen statt die ganze Schicht durchgehen)
+            foreach (var (kj, ki) in kacheln)
+                for (var j = kj * Hoehenraster.Kachel; j < (kj + 1) * Hoehenraster.Kachel; j++)
+                    for (var i = ki * Hoehenraster.Kachel; i < (ki + 1) * Hoehenraster.Kachel; i++)
+                        if (neu.TryGetValue((i, j), out var cm)) Punkt(i, j, cm);
         int? ai0 = null, aj0 = null, ai1 = null, aj1 = null;
         foreach (var (kj, ki) in kacheln)
         {
@@ -320,6 +412,71 @@ public sealed partial class Kartenentwurf
         var bereich = new Kartenrechteck(ai0.Value * Hoehenraster.Abstand, aj0!.Value * Hoehenraster.Abstand, ai1!.Value * Hoehenraster.Abstand, aj1!.Value * Hoehenraster.Abstand);
         if (melden) GelaendeGeaendert(bereich);
         else _gelaende.Veraltet(bereich);
+    }
+
+    /// <summary>
+    /// Das Gebiet, in dem die Schicht neu zu rechnen ist (siehe <see cref="SchichtAuffrischen"/>), und welche Stücke ihren Ursprung neu suchen
+    /// (<paramref name="markiert"/>) – null: die ganze Schicht (kein Stand oder zu viele Rechtecke). Leer: nichts zu rechnen.
+    /// </summary>
+    private List<Kartenrechteck>? Schichtbereiche(Hoehenraster grund, List<EntwurfFels> hang, List<Felslage> lagen, Kartenrechteck? geaendert,
+        EntwurfFels? fest, out bool[] aktiv, out bool[] markiert)
+    {
+        var n = hang.Count;
+        aktiv = Felsschicht.Aktiv(grund, lagen);
+        markiert = new bool[n];
+        if (_schichtStand is null || n == 0) return null;
+        var stand = SchichtStandIndex();
+        var reich = lagen.Select(Felsschicht.Reichweite).ToArray();
+        var bereiche = new List<Kartenrechteck>();
+        for (var k = 0; k < n; k++)
+        {
+            if (stand.TryGetValue(hang[k], out var s))
+            {
+                if (s.Lage == lagen[k] && s.Aktiv == aktiv[k] && !ReferenceEquals(hang[k], fest)) continue;
+                if (Felsschicht.Reichweite(s.Lage) is { } alt) bereiche.Add(alt);
+            }
+            markiert[k] = true;
+            if (reich[k] is { } r) bereiche.Add(r);
+        }
+        var jetzt = new HashSet<EntwurfFels>(hang, ReferenceEqualityComparer.Instance);
+        foreach (var (f, lage, _, _, _) in _schichtStand)
+            if (!jetzt.Contains(f) && Felsschicht.Reichweite(lage) is { } weg) bereiche.Add(weg);
+        if (geaendert is { } g && reich.Any(r => r is { } x && Schneiden(x, g)))
+        {
+            bereiche.Add(g);
+            // die Grundhöhe unter der Mitte ist der Fuß des Hangs (Felshang: basis): Auch wenn der Ursprung gleich bleibt (die Mitte liegt im Hang
+            // eines anderen Stücks), ändert sich dann der ganze Hang – das Stück gilt als geändert
+            var nurG = new List<Kartenrechteck> { g };
+            for (var k = 0; k < n; k++)
+            {
+                if (markiert[k] || !MitteIn(lagen[k], nurG)) continue;
+                markiert[k] = true;
+                if (reich[k] is { } r) bereiche.Add(r);
+            }
+        }
+        return bereiche.Count > SchichtBereicheMax ? null : bereiche;
+    }
+
+    /// <summary>Liegt einer der vier Rasterpunkte um die Mitte des Stücks (aus denen seine Höhe kommt) in einem der Rechtecke?</summary>
+    private static bool MitteIn(Felslage l, List<Kartenrechteck> bereiche)
+    {
+        var mitte = Mittelzelle(l);
+        return bereiche.Any(b => Schneiden(b, mitte));
+    }
+
+    /// <summary>Die Zelle (Meter) der vier Rasterpunkte um die Mitte eines Stücks.</summary>
+    private static Kartenrechteck Mittelzelle(Felslage l)
+    {
+        var (i, j) = ((int)Math.Floor(l.X / Hoehenraster.Abstand), (int)Math.Floor(l.Z / Hoehenraster.Abstand));
+        return new Kartenrechteck(i * Hoehenraster.Abstand, j * Hoehenraster.Abstand, (i + 1) * Hoehenraster.Abstand, (j + 1) * Hoehenraster.Abstand);
+    }
+
+    /// <summary>Der Stand der letzten Rechnung je Stück: Lage, Ursprung, Auswahl (nur zum Nachschlagen).</summary>
+    private Dictionary<EntwurfFels, (Felslage Lage, double Ursprung, double Basis, bool Aktiv)> SchichtStandIndex()
+    {
+        var aus = new Dictionary<EntwurfFels, (Felslage, double, double, bool)>(ReferenceEqualityComparer.Instance);
+        foreach (var (f, l, u, b, a) in _schichtStand!) aus[f] = (l, u, b, a);
+        return aus;
     }
 
     /// <summary>Berühren oder überdecken sich zwei Rechtecke (der Rand zählt mit)?</summary>

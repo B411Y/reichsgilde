@@ -13,7 +13,8 @@ namespace Reichsgilde.Core.Bauen;
 //      Grundhöhe; mehrere Stücke als Höchstwert, die Reihenfolge der Stücke ist gleichgültig). Löschen oder Abschalten stellt die Grundhöhe
 //      exakt wieder her.
 //    • Ein Stück steht auf der wirksamen Höhe (Boden unter der Mitte samt Schicht + Versatz) – von dort rechnet auch sein Hang: Hebt der Hang
-//      einer anderen Wand (oder der eigene) die Mitte, steigt der eigene Hang mit (Urspruenge, nachgerechnet bis nichts mehr steigt). Welche
+//      einer anderen Wand die Mitte, steigt der eigene Hang mit. Die Zelle um die Mitte heben nur Stücke, die in der Datei davor stehen (Sperre,
+//      wie die Reihenfolge des Stempelns beim festen Hang): kein Stück hebt sich selbst, keine zwei einander – ein Durchgang (Urspruenge). Welche
 //      Stücke vorgelagert sind, entscheidet die Höhe über der Grundhöhe (sonst nähme eine Wand auf dem Hang einer anderen dieser den Hang).
 //    • Die Geländewerkzeuge der Werkstatt (Pinsel, Rampe, Höhenkarte) formen die Grundhöhe; die Schicht liegt darüber.
 //    • Ohne Stück mit „hang“ ist die wirksame Höhe die Grundhöhe selbst (dasselbe Raster): alte Karten und Spielstände bleiben Byte für Byte gleich.
@@ -36,25 +37,70 @@ public static class Felsschicht
         Rechnen(grund, karte, stuecke.Where(l => l.Hang).Select(l => (l, (double?)null)).ToList());
 
     /// <summary>
-    /// Wie <see cref="Rechnen(Hoehenraster, Kartenrechteck, IEnumerable{Felslage})"/> (nur Stücke mit „hang“ übergeben). Ein Stück steht auf der
-    /// wirksamen Höhe (Boden unter der Mitte samt Schicht + Versatz), und von dort rechnet sein Hang (wie der feste Hang vom Gelände unter dem Stück):
-    /// Hebt die Schicht die Mitte eines Stücks, steigt auch sein Hang (<see cref="Urspruenge"/>). Ein vorgegebener Ursprung (Meter) gilt statt dessen –
-    /// für Befehle, die ein Stück dort lassen, wo es steht, und dann seinen Versatz ausgleichen.
+    /// Wie <see cref="Rechnen(Hoehenraster, Kartenrechteck, IEnumerable{Felslage})"/> (nur Stücke mit „hang“ übergeben, in der Reihenfolge der Datei).
+    /// Ein Stück steht auf der wirksamen Höhe (Boden unter der Mitte samt Schicht + Versatz), und von dort rechnet sein Hang (wie der feste Hang vom
+    /// Gelände unter dem Stück). Die Zelle um seine Mitte heben nur Stücke, die vor ihm stehen (<see cref="Sperre"/>, wie die Reihenfolge des
+    /// Stempelns beim festen Hang): So hängt kein Ursprung von sich selbst ab, und alle folgen in einem Durchgang (<see cref="Urspruenge"/>). Ein
+    /// vorgegebener Ursprung (Meter) gilt statt dessen – für Befehle, die ein Stück dort lassen, wo es steht, und dann seinen Versatz ausgleichen.
     /// </summary>
-    public static Dictionary<(int I, int J), short> Rechnen(Hoehenraster grund, Kartenrechteck karte, IReadOnlyList<(Felslage Lage, double? Ursprung)> stuecke)
-    {
-        var lagen = stuecke.Select(s => s.Lage).ToList();
-        var aktiv = Aktiv(grund, lagen);
-        var ursprung = Urspruenge(grund, karte, stuecke, aktiv);
-        return Runden(grund, Felshang.Hebung(grund, karte, lagen, ursprung, aktiv: aktiv));
-    }
+    public static Dictionary<(int I, int J), short> Rechnen(Hoehenraster grund, Kartenrechteck karte, IReadOnlyList<(Felslage Lage, double? Ursprung)> stuecke) =>
+        RechnenMitStand(grund, karte, stuecke).Schicht;
 
     /// <summary>
     /// Welche Stücke einen Hang formen (Form mit Hang, nicht vorgelagert): verglichen wird, wie hoch die Stücke über der Grundhöhe stünden (Ursprung
     /// auf der Grundhöhe), nicht auf der gehobenen – sonst machte eine Wand, die auf dem Hang einer anderen steht, diese vorgelagert und nähme ihr den
     /// Hang, auf dem sie steht. So hängt die Auswahl nicht von der Schicht ab.
     /// </summary>
-    private static bool[] Aktiv(Hoehenraster grund, IReadOnlyList<Felslage> lagen) => Felshang.Aktiv(lagen, Felshang.Urspruenge(grund, lagen));
+    internal static bool[] Aktiv(Hoehenraster grund, IReadOnlyList<Felslage> lagen) => Felshang.Aktiv(lagen, Felshang.Urspruenge(grund, lagen));
+
+    /// <summary>
+    /// Je Rasterpunkt in der Zelle um die Mitte eines Stücks die kleinste Nummer (Stelle in der Liste) der Stücke, deren Mitte dort liegt: Dort heben
+    /// nur Stücke mit kleinerer Nummer. Die Höhe, auf der ein Stück steht, hängt so nur von Stücken vor ihm ab – nie von seinem eigenen Hang und nie
+    /// im Kreis (zwei Wände Rücken an Rücken höben sich sonst gegenseitig bis an die Grenze des Rasters).
+    /// </summary>
+    internal static Dictionary<(int I, int J), int> Sperre(IReadOnlyList<Felslage> lagen)
+    {
+        var aus = new Dictionary<(int I, int J), int>();
+        for (var k = 0; k < lagen.Count; k++)
+        {
+            var (i, j) = Mittelpunkt(lagen[k]);
+            foreach (var p in new[] { (i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1) }) aus.TryAdd(p, k);
+        }
+        return aus;
+    }
+
+    /// <summary>Der Rasterpunkt links oben in der Zelle um die Mitte (die vier Punkte, aus denen die Höhe unter der Mitte kommt).</summary>
+    private static (int I, int J) Mittelpunkt(Felslage l) => ((int)Math.Floor(l.X / Hoehenraster.Abstand), (int)Math.Floor(l.Z / Hoehenraster.Abstand));
+
+    /// <summary>
+    /// Wie <see cref="Rechnen(Hoehenraster, Kartenrechteck, IReadOnlyList{ValueTuple{Felslage, double?}})"/>, dazu Ursprung und Auswahl je Stück –
+    /// der Stand, von dem aus der Entwurf später nur betroffene Stücke neu rechnet (<see cref="Teilweise"/>).
+    /// </summary>
+    internal static (Dictionary<(int I, int J), short> Schicht, double[] Ursprung, double[] Basis, bool[] Aktiv) RechnenMitStand(Hoehenraster grund, Kartenrechteck karte,
+        IReadOnlyList<(Felslage Lage, double? Ursprung)> stuecke)
+    {
+        var lagen = stuecke.Select(s => s.Lage).ToList();
+        var aktiv = Aktiv(grund, lagen);
+        var sperre = Sperre(lagen);
+        var (ursprung, basis) = Urspruenge(grund, karte, stuecke.Select(s => (s.Lage, s.Ursprung, (double?)null)).ToList(), aktiv, null, sperre);
+        return (Runden(grund, Felshang.Hebung(grund, karte, lagen, ursprung, aktiv: aktiv, sperre: sperre, basis: basis)), ursprung, basis, aktiv);
+    }
+
+    /// <summary>
+    /// Die Punkte der Schicht nur in diesen Rechtecken (Meter), aus den Stücken mit Ursprung und Auswahl (alle Stücke, deren Reichweite eins der
+    /// Rechtecke trifft, müssen dabei sein; <paramref name="rang"/>: ihre Nummern in der ganzen Liste, aufsteigend; <paramref name="sperre"/> aus
+    /// der ganzen Liste) – Zahl für Zahl dieselben wie in der ganzen Rechnung.
+    /// </summary>
+    internal static Dictionary<(int I, int J), short> Teilweise(Hoehenraster grund, Kartenrechteck karte, IReadOnlyList<Felslage> lagen,
+        IReadOnlyList<double> ursprung, IReadOnlyList<double> basis, bool[] aktiv, IReadOnlyList<Kartenrechteck> bereiche, IReadOnlyList<int> rang,
+        IReadOnlyDictionary<(int I, int J), int> sperre)
+    {
+        var aus = new Dictionary<(int I, int J), short>();
+        foreach (var b in bereiche)
+            foreach (var (p, w) in Runden(grund, Felshang.Hebung(grund, karte, lagen, ursprung, Hoehenraster.Punkte(b), aktiv, rang, sperre, basis)))
+                aus[p] = w;
+        return aus;
+    }
 
     /// <summary>Die Hebung (cm, ungerundet) als Punkte der Schicht: gerundet wie ein Pinsel, nur Punkte, die höher kommen.</summary>
     private static Dictionary<(int I, int J), short> Runden(Hoehenraster grund, Dictionary<(int I, int J), double> hebung)
@@ -70,49 +116,56 @@ public static class Felsschicht
 
     private static short Gerundet(double cm) => (short)Math.Clamp((int)Math.Round(cm, MidpointRounding.AwayFromZero), Hoehenraster.TiefsteCm, Hoehenraster.HoechsteCm);
 
-    /// <summary>So oft rechnet <see cref="Urspruenge"/> höchstens nach (danach gilt der letzte Stand).</summary>
-    public const int UrsprungRunden = 32;
-
     /// <summary>
-    /// Der Ursprung jedes Stücks (Meter, wie <see cref="Felsraum.UrsprungY"/>) auf der wirksamen Höhe, die die Schicht selbst ergibt: Die Schicht
-    /// hängt von den Ursprüngen ab und hebt den Boden unter den Mitten – darum von der Grundhöhe aus so lange nachgerechnet, bis sich kein Ursprung
-    /// mehr ändert (die Auswahl <paramref name="aktiv"/> steht vorher fest, gehoben wird nur, also steigt jeder Ursprung nur; höchstens
-    /// <see cref="UrsprungRunden"/> Runden). Gerechnet werden dabei nur die
-    /// vier Rasterpunkte um jede Mitte, aus den Stücken, deren Reichweite sie trifft – gerundet wie die Schicht, also Zahl für Zahl die Höhe,
-    /// auf der das Stück dargestellt wird.
+    /// Der Ursprung jedes Stücks (Meter, wie <see cref="Felsraum.UrsprungY"/>) auf der wirksamen Höhe – in einem Durchgang in der Reihenfolge der
+    /// Liste: Die Zelle um die Mitte eines Stücks heben nur Stücke davor (<see cref="Sperre"/>), deren Ursprung schon feststeht. Gerechnet werden nur
+    /// die vier Rasterpunkte um jede Mitte, aus den Stücken, deren Reichweite sie trifft – gerundet wie die Schicht, also Zahl für Zahl die Höhe, auf
+    /// der das Stück dargestellt wird. <paramref name="rang"/>: die Nummern der Stücke in der ganzen Liste (aufsteigend; null: ihre Stelle hier).
     /// </summary>
-    internal static double[] Urspruenge(Hoehenraster grund, Kartenrechteck karte, IReadOnlyList<(Felslage Lage, double? Ursprung)> stuecke, bool[] aktiv)
+    internal static (double[] Ursprung, double[] Basis) Urspruenge(Hoehenraster grund, Kartenrechteck karte,
+        IReadOnlyList<(Felslage Lage, double? Ursprung, double? Basis)> stuecke, bool[] aktiv, IReadOnlyList<int>? rang, IReadOnlyDictionary<(int I, int J), int> sperre)
     {
         var n = stuecke.Count;
         var lagen = stuecke.Select(s => s.Lage).ToList();
-        var u = new double[n];
-        for (var k = 0; k < n; k++) u[k] = stuecke[k].Ursprung ?? Felsraum.UrsprungY(lagen[k], grund);
-        // je Stück ohne festen Ursprung: die vier Punkte um die Mitte und die Stücke, deren Hang sie erreichen kann
+        var (u, basis) = (new double[n], new double[n]);
         var reich = lagen.Select(Reichweite).ToArray();
-        var offen = new List<(int K, (int I0, int J0, int I1, int J1) Punkte, int[] Quellen)>();
         for (var k = 0; k < n; k++)
         {
-            if (stuecke[k].Ursprung is not null) continue;
-            var (i, j) = ((int)Math.Floor(lagen[k].X / Hoehenraster.Abstand), (int)Math.Floor(lagen[k].Z / Hoehenraster.Abstand));
-            var (x0, z0, x1, z1) = (i * Hoehenraster.Abstand, j * Hoehenraster.Abstand, (i + 1) * Hoehenraster.Abstand, (j + 1) * Hoehenraster.Abstand);
-            var quellen = Enumerable.Range(0, n).Where(m => aktiv[m] && reich[m] is { } r && r.X0 <= x1 && x0 <= r.X1 && r.Z0 <= z1 && z0 <= r.Z1).ToArray();
-            if (quellen.Length > 0) offen.Add((k, (i, j, i + 1, j + 1), quellen));
-        }
-        for (var runde = 0; runde < UrsprungRunden && offen.Count > 0; runde++)
-        {
-            var neu = (double[])u.Clone();
-            foreach (var (k, punkte, quellen) in offen)
+            // der Boden unter der Mitte: Grundhöhe, gehoben nur von Stücken davor (die stehen schon fest)
+            var boden = stuecke[k].Basis;
+            if (boden is null)
             {
+                var (i, j) = Mittelpunkt(lagen[k]);
+                var zelle = new Kartenrechteck(i * Hoehenraster.Abstand, j * Hoehenraster.Abstand, (i + 1) * Hoehenraster.Abstand, (j + 1) * Hoehenraster.Abstand);
                 var maske = new bool[n];
-                foreach (var m in quellen) maske[m] = true;
-                var hebung = Felshang.Hebung(grund, karte, lagen, u, punkte, maske);
-                var schicht = Runden(grund, hebung);
-                neu[k] = Hoehe(grund, schicht, lagen[k].X, lagen[k].Z) - lagen[k].Einsinken * Felsraum.Groesse(lagen[k]).Y + lagen[k].Versatz;
+                var quellen = false;
+                for (var m = 0; m < k; m++)
+                    if (aktiv[m] && reich[m] is { } r && r.X0 <= zelle.X1 && zelle.X0 <= r.X1 && r.Z0 <= zelle.Z1 && zelle.Z0 <= r.Z1) maske[m] = quellen = true;
+                var schicht = quellen ? Runden(grund, Felshang.Hebung(grund, karte, lagen, u, (i, j, i + 1, j + 1), maske, rang, sperre, basis)) : new();
+                boden = Hoehe(grund, schicht, lagen[k].X, lagen[k].Z);
             }
+            basis[k] = boden.Value;
+            u[k] = stuecke[k].Ursprung ?? boden.Value - lagen[k].Einsinken * Felsraum.Groesse(lagen[k]).Y + lagen[k].Versatz;
+        }
+        return (u, basis);
+    }
+    /// <summary>
+    /// Nur für die Gegenprobe der Tests: die Schicht ohne die Reihenfolge (jedes Stück hebt jede Zelle, auch die eigene), Ursprünge nachgerechnet,
+    /// bis sich keiner mehr ändert (höchstens <paramref name="runden"/> Runden) – so rechnete P4a vor der Nachprüfung.
+    /// </summary>
+    internal static (Dictionary<(int I, int J), short> Schicht, double[] Ursprung) RechnenOhneReihenfolge(Hoehenraster grund, Kartenrechteck karte,
+        IReadOnlyList<Felslage> lagen, int runden = 32)
+    {
+        var aktiv = Aktiv(grund, lagen);
+        var u = lagen.Select(l => Felsraum.UrsprungY(l, grund)).ToArray();
+        for (var runde = 0; runde < runden; runde++)
+        {
+            var schicht = Runden(grund, Felshang.Hebung(grund, karte, lagen, u, aktiv: aktiv));
+            var neu = lagen.Select(l => Hoehe(grund, schicht, l.X, l.Z) - l.Einsinken * Felsraum.Groesse(l).Y + l.Versatz).ToArray();
             if (neu.AsSpan().SequenceEqual(u)) break;
             u = neu;
         }
-        return u;
+        return (Runden(grund, Felshang.Hebung(grund, karte, lagen, u, aktiv: aktiv)), u);
     }
 
     /// <summary>

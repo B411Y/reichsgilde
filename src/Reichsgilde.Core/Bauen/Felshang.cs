@@ -68,11 +68,14 @@ public static class Felshang
     /// <paramref name="nur"/> begrenzt auf diese Rasterpunkte (für die Höhe unter der Mitte, Felsschicht.Urspruenge).
     /// </summary>
     internal static Dictionary<(int I, int J), double> Hebung(Hoehenraster raster, Kartenrechteck karte, IReadOnlyList<Felslage> stuecke,
-        IReadOnlyList<double> ursprung, (int I0, int J0, int I1, int J1)? nur = null, IReadOnlyList<bool>? aktiv = null)
+        IReadOnlyList<double> ursprung, (int I0, int J0, int I1, int J1)? nur = null, IReadOnlyList<bool>? aktiv = null,
+        IReadOnlyList<int>? rang = null, IReadOnlyDictionary<(int I, int J), int>? sperre = null, IReadOnlyList<double>? basis = null)
     {
         var neu = new Dictionary<(int I, int J), double>();
-        Durchlaufen(raster, karte, stuecke, ursprung, nur, aktiv, (i, j, soll, seitlich) =>
+        Durchlaufen(raster, karte, stuecke, ursprung, nur, aktiv, basis, (k, i, j, soll, seitlich) =>
         {
+            // Hang-Schicht: die Zelle um die Mitte eines Stücks heben nur Stücke, die in der Datei vor ihm stehen (Felsschicht.Sperre)
+            if (sperre is not null && sperre.TryGetValue((i, j), out var grenze) && (rang?[k] ?? k) >= grenze) return;
             var alt = raster.Wert(i, j) / 100.0;
             if (soll <= alt) return;
             var cm = (alt + seitlich * (soll - alt)) * 100;
@@ -90,8 +93,9 @@ public static class Felshang
     internal static bool[] Aktiv(IReadOnlyList<Felslage> stuecke, IReadOnlyList<double> ursprung)
     {
         var hang = stuecke.Select(l => Felsformen.Finde(l.Form) is { HangFormt: true }).ToArray();
+        var groesse = stuecke.Select(Felsraum.Groesse).ToArray(); // einmal je Stück, nicht je Paar
         var aus = new bool[stuecke.Count];
-        for (var k = 0; k < stuecke.Count; k++) aus[k] = hang[k] && !Vorgelagert(k, stuecke, ursprung, hang);
+        for (var k = 0; k < stuecke.Count; k++) aus[k] = hang[k] && !Vorgelagert(k, stuecke, ursprung, hang, groesse);
         return aus;
     }
 
@@ -102,7 +106,7 @@ public static class Felshang
     internal static void Flaeche(Hoehenraster raster, Kartenrechteck karte, IEnumerable<Felslage> stuecke, Action<int, int> punkt)
     {
         var liste = stuecke.ToList();
-        Durchlaufen(raster, karte, liste, Urspruenge(raster, liste), null, null, (i, j, _, _) => punkt(i, j));
+        Durchlaufen(raster, karte, liste, Urspruenge(raster, liste), null, null, null, (_, i, j, _, _) => punkt(i, j));
     }
 
     /// <summary>
@@ -131,42 +135,49 @@ public static class Felshang
 
     /// <summary>Ruft für jeden Rasterpunkt im Hang jedes nicht vorgelagerten Stücks (Form mit <see cref="Felsform.HangFormt"/>) Sollhöhe (Meter) und Anteil auf.</summary>
     private static void Durchlaufen(Hoehenraster raster, Kartenrechteck karte, IReadOnlyList<Felslage> stuecke, IReadOnlyList<double> ursprung,
-        (int I0, int J0, int I1, int J1)? nur, IReadOnlyList<bool>? aktiv, Action<int, int, double, double> punkt)
+        (int I0, int J0, int I1, int J1)? nur, IReadOnlyList<bool>? aktiv, IReadOnlyList<double>? basis, Action<int, int, int, double, double> punkt)
     {
         var erlaubt = Hoehenraster.Punkte(karte);
         if (nur is { } n) erlaubt = (Math.Max(erlaubt.I0, n.I0), Math.Max(erlaubt.J0, n.J0), Math.Min(erlaubt.I1, n.I1), Math.Min(erlaubt.J1, n.J1));
         if (erlaubt.I0 > erlaubt.I1 || erlaubt.J0 > erlaubt.J1) return;
         aktiv ??= Aktiv(stuecke, ursprung);
         for (var k = 0; k < stuecke.Count; k++)
-            if (aktiv[k]) Stueck(raster, erlaubt, stuecke[k], ursprung[k], Felsformen.Finde(stuecke[k].Form)!, punkt);
+        {
+            if (!aktiv[k]) continue;
+            var nr = k;
+            Stueck(raster, erlaubt, stuecke[k], ursprung[k], basis?[k], Felsformen.Finde(stuecke[k].Form)!, (i, j, soll, seitlich) => punkt(nr, i, j, soll, seitlich));
+        }
     }
 
     /// <summary>
     /// Steht ein höheres Stück der Auswahl hinter diesem (in dessen Breite)? Dann ist es vorgelagert – eine mittlere Wand vor einer großen –, und das
     /// Gelände steigt nur hinter dem großen, nicht als Wall dazwischen. Nur Stücke mit <paramref name="hang"/> zählen.
     /// </summary>
-    private static bool Vorgelagert(int k, IReadOnlyList<Felslage> alle, IReadOnlyList<double> ursprung, bool[] hang)
+    private static bool Vorgelagert(int k, IReadOnlyList<Felslage> alle, IReadOnlyList<double> ursprung, bool[] hang, Felsvektor[] groesse)
     {
         var p = alle[k];
-        var (gp, hp) = (Felsraum.Groesse(p), ursprung[k]);
-        var (c, s) = (DetMathe.Cos(p.Drehung * Math.PI / 180), DetMathe.Sin(p.Drehung * Math.PI / 180));
+        var (gp, hp) = (groesse[k], ursprung[k]);
+        double c = 0, s = 0;
+        var winkel = false; // die Winkel erst, wenn ein höheres Stück in Frage kommt
         for (var m = 0; m < alle.Count; m++)
         {
             var q = alle[m];
-            if (!hang[m] || m == k || q == p) continue;
-            var gq = Felsraum.Groesse(q);
+            if (!hang[m] || m == k) continue;
+            var gq = groesse[m];
+            if (!(ursprung[m] + gq.Y > hp + gp.Y + 0.5) || q == p) continue; // nur ein höheres zählt (billig zuerst)
+            if (!winkel) (c, s, winkel) = (DetMathe.Cos(p.Drehung * Math.PI / 180), DetMathe.Sin(p.Drehung * Math.PI / 180), true);
             var (dx, dz) = (q.X - p.X, q.Z - p.Z);
             var (u, v) = (dx * c - dz * s, dx * s + dz * c); // Ort von q in den Achsen von p (v: + = Schauseite)
-            if (v < -2 && Math.Abs(u) < gp.X / 2 + 0.4 * gq.X && ursprung[m] + gq.Y > hp + gp.Y + 0.5) return true;
+            if (v < -2 && Math.Abs(u) < gp.X / 2 + 0.4 * gq.X) return true;
         }
         return false;
     }
 
-    private static void Stueck(Hoehenraster raster, (int I0, int J0, int I1, int J1) erlaubt, Felslage l, double ursprung, Felsform form, Action<int, int, double, double> punkt)
+    private static void Stueck(Hoehenraster raster, (int I0, int J0, int I1, int J1) erlaubt, Felslage l, double ursprung, double? fuss, Felsform form, Action<int, int, double, double> punkt)
     {
         var g = Felsraum.Groesse(l); // Breite, Höhe, Tiefe in Metern
         var (sx, sz) = (l.Massstab * l.AchseX, l.Massstab * l.AchseZ);
-        var basis = raster.Hoehe(l.X, l.Z);
+        var basis = fuss ?? raster.Hoehe(l.X, l.Z); // Hang-Schicht: der Boden unter der Mitte, wie ihn das Stück beim Stempeln sah (Felsschicht.Urspruenge)
         var oben = ursprung + g.Y - Unterkante;
         var hoehe = oben - basis;
         if (hoehe <= 0.5) return;

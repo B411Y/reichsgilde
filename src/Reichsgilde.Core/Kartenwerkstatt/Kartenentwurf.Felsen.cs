@@ -457,7 +457,24 @@ public sealed partial class Kartenentwurf
                 {
                     var neu = EntwurfFels.Aus(l);
                     var raster = Raster; // vor dem Setzen: es kennt die Stücke bis hier
+                    // P4b: „Hang mitformen“ als Schicht beim Streuen – die Wände tragen „hang“, ihr Versatz gleicht den Boden unter der Mitte aus (wie der Stempel)
+                    var mitHang = p.HangFormen && p.HangSchicht && Felsschicht.HatHang(neu.Form);
+                    var (vorherHoehe, ursprung) = (0.0, 0.0);
+                    if (mitHang)
+                    {
+                        _e.SchichtEinrichten();
+                        _e.SchichtAuffrischen(); // der Stand vor diesem Stück (meldet das Gelände mit; nur, was sich geändert hat)
+                        vorherHoehe = _e._hoehen.Hoehe(neu.X, neu.Z);
+                        ursprung = Felsraum.UrsprungY(neu.AlsLage(), _e._hoehen); // hier steht das Stück; sein Hang rechnet von dort (P4a-Befund)
+                        neu.Hang = true;
+                    }
                     Ausfuehren(new TeilSetzen(neu, _e._felsen.Count));
+                    if (mitHang)
+                    {
+                        _e.SchichtAuffrischen(fest: (neu, ursprung)); // nur um das neue Stück
+                        neu.Versatz = Kartenraster.Punkt(Math.Clamp(neu.Versatz - (_e._hoehen.Hoehe(neu.X, neu.Z) - vorherHoehe), -Felsformen.VersatzMax, Felsformen.VersatzMax));
+                        _e.SchichtVormerken(); // der Versatz ändert die Lage: beim nächsten Nachführen rechnet sein Ursprung wieder aus dem Versatz (dasselbe Ergebnis)
+                    }
                     raster.Dazu(neu);
                     if (ImKreis(l.X, l.Z)) belegt += Math.PI * l.Radius * l.Radius;
                     if (Boden?.Malen(Felsfuss.Von(l)) is { } r) bodenBereich = bodenBereich is { } b
