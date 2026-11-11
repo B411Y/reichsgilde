@@ -73,6 +73,20 @@ const float REL_AO_FARBE = 0.55;                 // so viel der Verdeckung dunke
 const float REL_POM_NAH = 0.008;                 // Parallax: voll bis so viele Meter je Bildpunkt, ...
 const float REL_POM_FERN = 0.02;                 // ... aus (Ferne flimmert und waere unsichtbar)
 
+// Pixel-Fassung (tools/oberflaeche/pixel_fassung.py, pixel_farbe.webp): je Schicht eine eigene grobe, farbstufige Textur mit eingebackenen Schatten, nur fuer den Pixel-Look
+// (bib_pixel = 1). pix_kacheln[b] = Meter je Kachel, 0 = keine Fassung fuer diese Schicht (dann gilt die normale Schicht wie vorher). Keine Normale, keine Rauheit, kein Parallax.
+uniform sampler2DArray pix_farbe : source_color, repeat_enable, filter_linear_mipmap;
+uniform float pix_kacheln[BIB_MAX];
+uniform float pix_aktiv = 0.0;                   // 1, wenn das Spiel pixel_farbe.webp geladen hat
+
+// Kanten (Oberflaechendetails.cs legt je Polygon-Dreieck den Abstand zu den echten Kanten und die Normale der Nachbarflaeche in CUSTOM0 bis CUSTOM2): An Kanten zwischen zwei
+// Flaechen (Dach/Giebel, Wandecken, Firste) setzt sich die Struktur ueber die Kante fort (in einem schmalen Streifen weich mit der Projektion der Nachbarflaeche gemischt, an
+// der Kante je zur Haelfte: beide Seiten zeigen dort dasselbe Bild), die Normalen-Struktur und der Parallax laufen zur Kante hin aus, dazu ein leichter Kantenschatten.
+uniform float kanten_staerke = 1.0;              // 0 aus
+const float KANTE_BREITE = 0.07;                 // Streifen der Ueberblendung in Metern (mindestens 2 Bildpunkte)
+const float KANTE_SCHATTEN = 0.28;               // so viel dunkler direkt an der Kante
+const float KANTE_SCHATTEN_BREITE = 0.035;       // Breite des Kantenschattens in Metern (mindestens 1 Bildpunkt)
+
 const float REL_FEIN_NAH = 0.08;                 // Feinheiten (Fugen, Ziegelkanten): voll bis 8 cm je Bildpunkt (Zoom 25/50/100 auf 1080p: 2,3/4,6/9,3 cm), ...
 const float REL_FEIN_FERN = 0.20;                // ... darueber gröbere Mip-Stufe und schwächere Normale (Moiré: Punktreihen, Schachbrett, v. a. im Pixel-Look)
 
@@ -99,6 +113,10 @@ varying flat int v_bib;
 varying flat int v_zone;
 varying flat int v_reihen;
 varying vec3 eckfarbe;
+varying vec3 kante_d;                  // Abstand (Objektkoordinaten) zu den drei Kanten des Dreiecks, 1e4 = keine echte Kante
+varying flat vec3 kante_n0;            // Normale der Nachbarflaeche je Kante, (0,0,0) = keine
+varying flat vec3 kante_n1;
+varying flat vec3 kante_n2;
 
 void vertex() {
 	// Eckenfarben stehen als sRGB-Werte in der GLB: Der Compatibility-Renderer rechnet in sRGB, Forward+ linear (wie figur.gdshader)
@@ -106,6 +124,10 @@ void vertex() {
 	if (!OUTPUT_IS_SRGB) {
 		eckfarbe = mix(pow((COLOR.rgb + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), COLOR.rgb * (1.0 / 12.92), lessThan(COLOR.rgb, vec3(0.04045)));
 	}
+	kante_d = CUSTOM0.xyz;
+	kante_n0 = CUSTOM1.xyz;
+	kante_n1 = vec3(CUSTOM1.w, CUSTOM2.xy);
+	kante_n2 = vec3(CUSTOM2.zw, CUSTOM0.w);
 	ort = VERTEX;
 	ort_n = NORMAL;
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -164,8 +186,11 @@ void fragment() {
 	if (b >= 0 && b < BIB_MAX && bib_stufe > 0) {
 		int rs = rel_schicht[b] - 1;       // Schicht im Relief-Array, −1: die bisherige Textur
 		bool rel = rs >= 0;
-		bool normalen = bib_stufe >= 2 || (rel && bib_stufe >= 1);
-		float s = 1.0 / bib_kacheln[b];
+		// Pixel-Look mit Pixel-Fassung dieser Schicht: eigene grobe Textur, eigene Kachel, ohne Normale und Parallax
+		bool pixfass = bib_pixel > 0.5 && pix_aktiv > 0.5 && pix_kacheln[b] > 0.0;
+		bool weich = rel || pixfass;       // Relief-Stoffe und Pixel-Fassung: Dachreihen weicher gezeichnet
+		bool normalen = !pixfass && (bib_stufe >= 2 || (rel && bib_stufe >= 1));
+		float s = 1.0 / (pixfass ? pix_kacheln[b] : bib_kacheln[b]);
 		bool bib_dach = bib_projektion[b] >= 1;
 		bool bib_reihen = bib_projektion[b] == 2;
 		vec3 n = normalize(ort_n);
@@ -195,16 +220,48 @@ void fragment() {
 				float fr = pv - r;
 				d = r * 0.0537;
 				float breite = fwidth(pv);            // weich, wo eine Reihe nur wenige Bildpunkte hoch ist (keine flimmernden Linien)
-				kante = 1.0 - BIB_REIHE_KANTE * (rel ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.0, 0.12 + breite, fr)) * (1.0 - smoothstep(0.25, 0.6, breite));
-				kippen = BIB_REIHE_NEIGUNG * (rel ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.25, 0.6, breite));
+				kante = 1.0 - BIB_REIHE_KANTE * (weich ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.0, 0.12 + breite, fr)) * (1.0 - smoothstep(0.25, 0.6, breite));
+				kippen = BIB_REIHE_NEIGUNG * (weich ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.25, 0.6, breite));
 			}
 			uv.x += d * 7.31 + 0.37 * sin(d * 113.0) + 0.23 * sin(d * 271.0);
 			reihe = sin(d * 157.0 + 1.3 * sin(d * 59.0));
 		}
+		// Kanten: Abstand zur naechsten echten Kante (Meter) und die Projektion der Nachbarflaeche dort (gleiche Regeln wie oben, mit deren Normale). Ohne Kantendaten
+		// im Netz (Nullen) bleibt alles wie bisher.
+		float kante_nah = 0.0;             // 1 an der Kante ... 0 ausserhalb des Streifens
+		float kante_dunkel = 0.0;          // dito fuer den Kantenschatten
+		vec3 u2 = u, v2 = v;
+		vec2 uv2 = uv;
+		float mass = length(MODEL_MATRIX[0].xyz);
+		float wpp = max(length(dFdx(welt)), length(dFdy(welt)));   // Meter je Bildpunkt (ausserhalb des Zweigs: Ableitungen)
+		if (kanten_staerke > 0.0) {
+			float kd = min(kante_d.x, min(kante_d.y, kante_d.z));
+			vec3 kn = (kante_d.x <= kante_d.y && kante_d.x <= kante_d.z) ? kante_n0 : (kante_d.y <= kante_d.z ? kante_n1 : kante_n2);
+			if (dot(kn, kn) > 0.5 && kd < 1000.0) {
+				float km = kd * mass;
+				kante_nah = (1.0 - smoothstep(0.0, max(KANTE_BREITE, 2.0 * wpp), km)) * kanten_staerke;
+				kante_dunkel = (1.0 - smoothstep(0.0, max(KANTE_SCHATTEN_BREITE, wpp), km)) * kanten_staerke;
+				vec3 n2 = normalize(kn);
+				u2 = cross(vec3(0.0, 1.0, 0.0), n2);
+				bool liegend2 = bib_dach ? length(u2) < 0.05 : abs(n2.y) > 0.7;
+				u2 = liegend2 ? vec3(1.0, 0.0, 0.0) : normalize(u2);
+				v2 = liegend2 ? vec3(0.0, 0.0, -sign(n2.y + 1e-4)) : cross(n2, u2);
+				uv2 = vec2(dot(ort, u2), -dot(ort, v2)) * s;
+			}
+		}
 		vec4 fh, nr;
+		vec4 nr_nachbar = vec4(0.5, 0.5, 0.0, 1.0);   // Normale usw. der Nachbarprojektion, Gewicht nachbar_wert (0 = keine)
+		float nachbar_wert = 0.0;
 		float staerke = 1.0;
 		float grob = 0.0;   // 0 nah genug fuer Fugen und Normale, 1 zu fern oder Pixel-Look
-		if (rel) {
+		if (pixfass) {
+			fh = vec4(textureGrad(pix_farbe, vec3(uv, float(b)), uv_dx, uv_dy).rgb, 1.0);
+			nr = vec4(0.5, 0.5, 0.0, 1.0);
+			staerke = 0.0;
+			float rl = dot(fh.rgb, vec3(0.3333)) / max(dot(bib_mittel[b], vec3(0.3333)), 1e-3);
+			tiefe = clamp(1.1 - 0.8 * rl, 0.0, 1.0);   // dunkle Stellen (Fugen) halten das Wasser laenger
+			if (kante_nah > 0.001) fh.rgb = mix(fh.rgb, textureGrad(pix_farbe, vec3(uv2, float(b)), uv_dx, uv_dy).rgb, 0.5 * kante_nah);
+		} else if (rel) {
 			float mpp = max(length(uv_dx), length(uv_dy)) / s * length(MODEL_MATRIX[0].xyz);   // Meter je Bildpunkt
 			grob = smoothstep(REL_FEIN_NAH, REL_FEIN_FERN, mpp);
 			float pix = bib_pixel;   // Pixel-Look: gröbere Mip-Stufe immer, Normale und Fugen gedämpft, nicht weg (sonst glatt), keine harten Reihenlinien   // 0 nah, 1 fern (im Pixel-Look wegen der grossen Bildpunkte schon früh)
@@ -214,7 +271,7 @@ void fragment() {
 			grob = max(grob, 0.55 * pix);   // Fugenfarbe und AO im Pixel-Look auf 45 %
 			// Parallax (nur Hoch und Ultra, nur ganz nah): die Textur um den Versatz verschieben, ehe Farbe, Normale und AO gelesen werden
 			if (bib_pom > 0 && bib_pixel < 0.5 && bib_stufe >= 2 && rel_tiefe[b] > 0.0) {
-				float weit = 1.0 - smoothstep(REL_POM_NAH, REL_POM_FERN, mpp);
+				float weit = (1.0 - smoothstep(REL_POM_NAH, REL_POM_FERN, mpp)) * (1.0 - kante_nah);
 				if (weit > 0.0) {
 					vec3 vw = normalize(transpose(mat3(MODEL_MATRIX)) * (mat3(INV_VIEW_MATRIX) * VIEW));   // Blick zur Kamera in Objektkoordinaten
 					uv += rel_versatz(uv, uv_dx, uv_dy, vec3(dot(vw, u), -dot(vw, v), dot(vw, n)), float(rs), rel_tiefe[b] * s * weit, bib_pom);
@@ -222,6 +279,14 @@ void fragment() {
 			}
 			fh = textureGrad(rel_farbe, vec3(uv, float(rs)), uv_dx, uv_dy);
 			nr = textureGrad(rel_nr, vec3(uv, float(rs)), uv_dx, uv_dy);
+			if (kante_nah > 0.001) {
+				// an der Kante je zur Haelfte mit der Struktur in der Projektion der Nachbarflaeche (ohne Parallax, nur in diesem schmalen Streifen)
+				float wk = 0.5 * kante_nah;
+				fh = mix(fh, textureGrad(rel_farbe, vec3(uv2, float(rs)), uv_dx, uv_dy), wk);
+				vec4 nr2 = textureGrad(rel_nr, vec3(uv2, float(rs)), uv_dx, uv_dy);
+				nr_nachbar = nr2;
+				nachbar_wert = wk;
+			}
 			ao_aus = nr.a;
 			staerke *= rel_staerke[b];
 			// Tiefe fuer die Naesse: Fugen und Senken (Hoehe und AO) halten das Wasser laenger, Rinnen laufen dort
@@ -230,9 +295,20 @@ void fragment() {
 			fh = textureGrad(bib_farbe, vec3(uv, float(b)), uv_dx, uv_dy);
 			tiefe = 1.0 - fh.a;
 			nr = normalen ? textureGrad(bib_nr, vec3(uv, float(b)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
+			if (kante_nah > 0.001) {
+				float wk = 0.5 * kante_nah;
+				fh = mix(fh, textureGrad(bib_farbe, vec3(uv2, float(b)), uv_dx, uv_dy), wk);
+				if (normalen) nr_nachbar = textureGrad(bib_nr, vec3(uv2, float(b)), uv_dx, uv_dy);
+				nachbar_wert = wk;
+			}
 		}
 		vec2 t = (nr.rg * 2.0 - 1.0) * staerke;
 		vec3 neigung = u * t.x + v * (t.y + kippen);     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
+		if (nachbar_wert > 0.0) {
+			vec2 t2 = (nr_nachbar.rg * 2.0 - 1.0) * staerke;
+			neigung = mix(neigung, u2 * t2.x + v2 * t2.y, nachbar_wert);
+			ao_aus = mix(ao_aus, nr_nachbar.a, nachbar_wert);
+		}
 		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
 		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
 		vec3 g_vor = grund;
@@ -259,6 +335,8 @@ void fragment() {
 			grund = mix(grund, g_vor * fl, grob);   // fern: Fugen und Verdeckung weg, die mittlere Helligkeit ist die der Modellfarbe (das Mittel der Schicht enthaelt Verdeckung und Streiflicht)
 			ao_aus = mix(ao_aus, 1.0, grob);
 		}
+		grund *= 1.0 - KANTE_SCHATTEN * kante_dunkel;   // Kantenschatten
+		ao_aus *= 1.0 - 0.5 * kante_dunkel;
 		grund = clamp(grund, 0.0, 1.0);
 		rau = normalen ? clamp(nr.b + rauheit - (rel ? 1.0 : 0.9), 0.04, 1.0) : rauheit;
 	} else {

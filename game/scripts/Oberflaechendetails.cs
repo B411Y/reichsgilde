@@ -39,6 +39,7 @@ internal sealed class Oberflaechendetails
     private const string BibNormalenPfad = "res://assets/texturen/modelle/modelle_normal_rauheit.webp";
     private const string RelFarbePfad = "res://assets/texturen/modelle/relief_farbe_hoehe.webp";
     private const string RelNormalenPfad = "res://assets/texturen/modelle/relief_normal_rauheit_ao.webp";
+    private const string PixelPfad = "res://assets/texturen/modelle/pixel_farbe.webp";
 
     /// <summary>Diese Materialien leuchten oder spiegeln und behalten ihr Aussehen (Namen wie in <c>docs/bereiche/darstellung.md</c>).</summary>
     private static readonly HashSet<string> Behalten = new() { "Glut", "Fenster", "Glas", "Wasser" };
@@ -70,6 +71,13 @@ internal sealed class Oberflaechendetails
 
     /// <summary>Schritte der Parallax-Okklusion der Relief-Texturen: 0 aus (Niedrig, Mittel), Hoch 4, Ultra 8.</summary>
     private int _parallax;
+
+    /// <summary>
+    /// Pixel-Fassung (<c>tools/oberflaeche/pixel_fassung.py</c>, Block „pixel“ in <c>materialbibliothek.json</c>): je Schicht der Bibliothek (gleiche Nummer) eine grobe, farbstufige
+    /// Textur mit eingebackenen Schatten, nur für den Pixel-Look. Kachel in Metern je Schicht, 0 = keine Fassung. Fehlt die Datei, bleibt der Pixel-Look wie vorher.
+    /// </summary>
+    private TextureLayered? _pixFarbe;
+    private readonly float[] _pixKacheln = new float[BibMax];
 
     /// <summary>Höchstens so viele Schichten kennt der Shader (<c>BIB_MAX</c> in <c>oberflaeche.gdshader</c>).</summary>
     private const int BibMax = 32;
@@ -141,6 +149,7 @@ internal sealed class Oberflaechendetails
                 _bibReihe[i] = d.TryGetValue("reihe", out var reihe) ? (float)reihe.AsDouble() : 0.4f;
             }
             ReliefLaden(bib, schichten, liste.Count);
+            PixelLaden(bib);
             foreach (var (name, schicht) in bib["namen"].AsGodotDictionary())
                 if (schichten.TryGetValue(schicht.AsString(), out var s)) _bibliothek[name.AsString()] = s;
                 else GD.PushError($"Material-Bibliothek: Schicht „{schicht}“ für „{name}“ fehlt.");
@@ -191,9 +200,19 @@ internal sealed class Oberflaechendetails
         _relNormalen = normalen;
     }
 
+    /// <summary>Die Pixel-Fassung einlesen, wenn die Datei und der Block „pixel“ da sind (sonst zeigt der Pixel-Look weiter die Relief-Farbe).</summary>
+    private void PixelLaden(Godot.Collections.Dictionary bib)
+    {
+        if (!bib.TryGetValue("pixel", out var pv) || pv.AsGodotDictionary() is not { Count: > 0 } pixel || !ResourceLoader.Exists(PixelPfad)) return;
+        var liste = pixel["schichten"].AsGodotArray();
+        for (var i = 0; i < liste.Count && i < BibMax; i++)
+            _pixKacheln[i] = (float)liste[i].AsGodotDictionary()["kachel"].AsDouble();
+        _pixFarbe = Vorladen.Laden<TextureLayered>(PixelPfad);
+    }
+
     private float _pixel;
 
-    /// <summary>Pixel-Look: Die Relief-Texturen zeigen nur ruhige Farbe (keine Normale, Fugen, kein Parallax), sonst Moiré aus Punktreihen und Schachbrett.</summary>
+    /// <summary>Pixel-Look: Jeder Stoff mit Pixel-Fassung zeigt sie (grob, farbstufig, Schatten eingebacken, ohne Normale und Parallax); die übrigen zeigen die Relief-Farbe ruhig.</summary>
     public bool Pixel
     {
         get => _pixel > 0.5f;
@@ -298,6 +317,12 @@ internal sealed class Oberflaechendetails
                 ziel.SetShaderParameter("rel_nass", _relNass);
             }
         }
+        if (_pixFarbe is not null && (inBibliothek || jeFlaeche))
+        {
+            ziel.SetShaderParameter("pix_farbe", _pixFarbe);
+            ziel.SetShaderParameter("pix_kacheln", _pixKacheln);
+            ziel.SetShaderParameter("pix_aktiv", 1f);
+        }
         ziel.SetShaderParameter("bib_stufe", _stufe);
         ziel.SetShaderParameter("bib_pom", _parallax);
         ziel.SetShaderParameter("bib_pixel", _pixel);
@@ -369,6 +394,7 @@ internal sealed class Oberflaechendetails
     /// </summary>
     public void Umstellen(MeshInstance3D knoten)
     {
+        KantenEinbauen(knoten);
         if (knoten.Mesh is not { } netz) return;
         var instanz = knoten.GetInstance();
         if (knoten.MaterialOverride is { } alles)
@@ -384,6 +410,42 @@ internal sealed class Oberflaechendetails
             var ziel = Ableiten(ueberschrieben ?? netz.SurfaceGetMaterial(i)) ?? ueberschrieben;
             RenderingServer.InstanceSetSurfaceOverrideMaterial(instanz, i, ziel?.GetRid() ?? new Rid());
         }
+    }
+
+    private readonly Dictionary<Mesh, Mesh?> _kantenNetze = new();
+    private readonly HashSet<Mesh> _kantenKopien = new();
+
+    /// <summary>Anzahl der Netze mit Kantendaten und echter Kanten darin (für Meldungen und Tests).</summary>
+    public int KantenNetzeAnzahl { get; private set; }
+    public int KantenAnzahl { get; private set; }
+
+    /// <summary>
+    /// Tauscht das Netz eines unbewegten Knotens gegen eine Kopie mit Kantendaten (<see cref="OberflaechenKanten"/>), wenn ein Material der Bibliothek darauf liegt. Einmal je Netz
+    /// berechnet; Knoten mit Haut oder Formen und alles ohne Bibliotheksstoff bleiben, wie sie sind (der Shader sieht dann Nullen und ändert nichts).
+    /// </summary>
+    private void KantenEinbauen(MeshInstance3D knoten)
+    {
+        if (knoten.Mesh is not { } netz || knoten.Skin is not null || _kantenKopien.Contains(netz)) return;
+        if (!_kantenNetze.TryGetValue(netz, out var kopie))
+        {
+            kopie = null;
+            if (_bibFarbe is not null && HatBibliotheksstoff(netz))
+            {
+                kopie = OberflaechenKanten.Berechnen(netz, out var anzahl);
+                if (kopie is not null) { _kantenKopien.Add(kopie); KantenNetzeAnzahl++; KantenAnzahl += anzahl; }
+            }
+            _kantenNetze[netz] = kopie;
+        }
+        if (kopie is not null) knoten.Mesh = kopie;
+    }
+
+    /// <summary>Liegt auf mindestens einer Fläche ein Stoff der Bibliothek (mit Schicht je Fläche oder nach Namen), aber keine Figur?</summary>
+    private bool HatBibliotheksstoff(Mesh netz)
+    {
+        for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            if (netz.SurfaceGetMaterial(i) is BaseMaterial3D { } m && Ableiten(m) is not null && m.ResourceName != "Figur"
+                && (JeFlaeche.Contains(m.ResourceName) || _bibliothek.ContainsKey(m.ResourceName))) return true;
+        return false;
     }
 
     /// <summary>Gibt dem RenderingServer wieder an, was das Spiel am Knoten eingestellt hat – so, als hätte es die Oberflächendetails nie gegeben.</summary>

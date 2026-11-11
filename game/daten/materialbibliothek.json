@@ -317,5 +317,106 @@
     "namen": {
       "Pflaster": "pflaster"
     }
+  },
+  "pixel": {
+    "_hinweis": "Pixel-Fassung (tools/oberflaeche/pixel_fassung.py, pixel_farbe.webp): je Schicht der Bibliothek (gleiche Nummer) eine grobe, farbstufige Textur nur fuer den Pixel-Look; kachel = Meter je Kachel, 0 = keine Fassung (dann gilt die normale Schicht).",
+    "schichten": [
+      {
+        "name": "bruchstein",
+        "kachel": 1.7
+      },
+      {
+        "name": "quader",
+        "kachel": 0.8
+      },
+      {
+        "name": "kalkputz",
+        "kachel": 1.5
+      },
+      {
+        "name": "lehmputz",
+        "kachel": 2.0
+      },
+      {
+        "name": "fachwerkholz",
+        "kachel": 0.8
+      },
+      {
+        "name": "bretter",
+        "kachel": 1.02
+      },
+      {
+        "name": "dachziegel",
+        "kachel": 2.8
+      },
+      {
+        "name": "schiefer",
+        "kachel": 1.6
+      },
+      {
+        "name": "stroh",
+        "kachel": 0.9
+      },
+      {
+        "name": "sandstein",
+        "kachel": 1.28
+      },
+      {
+        "name": "ziegelstein",
+        "kachel": 2.2
+      },
+      {
+        "name": "eisen",
+        "kachel": 0.8
+      },
+      {
+        "name": "kupfer",
+        "kachel": 1.2
+      },
+      {
+        "name": "holzschindeln",
+        "kachel": 2.8
+      },
+      {
+        "name": "leder",
+        "kachel": 0.6
+      },
+      {
+        "name": "tuch",
+        "kachel": 0.5
+      },
+      {
+        "name": "farbholz",
+        "kachel": 1.2
+      },
+      {
+        "name": "rinde",
+        "kachel": 1.2
+      },
+      {
+        "name": "fels",
+        "kachel": 6.0
+      },
+      {
+        "name": "planken",
+        "kachel": 2.0
+      },
+      {
+        "name": "laub",
+        "kachel": 1.5
+      },
+      {
+        "name": "nadeln",
+        "kachel": 1.2
+      },
+      {
+        "name": "fell",
+        "kachel": 0.5
+      },
+      {
+        "name": "pflaster",
+        "kachel": 1.7
+      }
+    ]
   }
 }
