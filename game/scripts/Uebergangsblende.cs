@@ -58,6 +58,7 @@ public partial class Uebergangsblende : CanvasLayer
         var klinkeDa = klinkeDauer is not null;
         if (!Ablauf.Starten(richtung, ziel, klinkeDa, klinkeDauer ?? InnenraumUebergang.KlinkeSekunden)) { if (klinkeDa) KlinkeLoslasser?.Invoke(); return false; }
         _klinkeGespielt = klinkeDa;
+        KlangOberflaeche.Spielen(KlangTuerModell.Fuer(richtung) == TuerKlang.Auf ? KlangOberflaeche.Ereignis.TuerAuf : KlangOberflaeche.Ereignis.TuerZu); // Tür auf beim Drücken der Klinke / Start der Blende hinein, Tür zu beim Hinausgehen
         _schritte.Clear();
         foreach (var s in schritte) _schritte.Enqueue(s);
         _flaeche.MouseFilter = Control.MouseFilterEnum.Stop;

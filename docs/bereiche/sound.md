@@ -221,6 +221,17 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Erzeugung | `tools/ton/meldungston_erzeugen.py` (numpy) baut alle fünf; die WAV sind bitgleich zu den Klangrunden (Kurzhash), das OGG ist wegen des Ogg-Containers nicht bytegleich. Protokollzeile und `docs/assets/prompts/meldungston.md` | 11.11.2026 |
 | Offen | Nicht abgehört im Spiel: Hörprobe und Klicktest an Siegel-Ecke, Brief, Entscheidungsbrief, „✗“ und Mahnung samt Pegelvergleich zu Klick, Münzen und Glocke (Nutzer) | 11.11.2026 |
 
+### Türklang beim Betreten und Verlassen (Wahl des Nutzers, 11.11.2026, Branch phase5/tuerklang)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wahl | Tür auf = `tuer_auf` (eigene Aufnahme des Nutzers, bearbeitet in SounCraft); Tür zu = `tuer_zu_2` (Freesound 402465, LampEight, CC0) | 11.11.2026 |
+| Einbau | Zwei neue Ereignisse `TuerAuf`/`TuerZu` in `KlangOberflaeche` (Bus Ui wie die übrigen Oberflächenklänge), je eine Datei, −5 dB, Streuung 0,02; Dateien `tuer_auf.ogg`, `tuer_zu.ogg` im Ordner der Oberflächenklänge, gebaut mit `tools/ton/tuer_einbauen.py` | 11.11.2026 |
+| Pegel | Beide auf −18,0 LUFS (nur Verstärkung, kein Begrenzer; wie drop_leather −18,2, planken −19,3, Meldungstöne −20), True Peak −3,4 und −1,5 dBTP; tuer_auf wurde dafür um 3,7 dB leiser, tuer_zu blieb | 11.11.2026 |
+| Auslöser | Eine Stelle: `Uebergangsblende.Starten`, nach angenommenem Start. Betreten = Tür auf (mit Handschuh fällt das auf das Drücken der Klinke, weil `KlinkeStarter` im selben Aufruf davor läuft; ohne Handschuh auf den Start der Blende hinein), Verlassen = Tür zu beim Start der Blende heraus. Zuordnung in `KlangTuerModell.Fuer` (Test) | 11.11.2026 |
+| Lizenz | tuer_auf: eigenes Werk des Nutzers, Alle Rechte vorbehalten; tuer_zu: CC0 | 11.11.2026 |
+| Offen | Nicht abgehört im Spiel: Hörprobe und Pegelvergleich zu Klick und Fenster (Nutzer) | 11.11.2026 |
+
 ### Dynamische Musik (Suno, 23 Stücke, PR #…)
 
 | Thema | Entscheidung | Datum |
