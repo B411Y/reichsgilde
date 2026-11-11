@@ -1169,6 +1169,7 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
+        EntscheidungenVerbinden(simulation, w, spieler); // Entscheidungsbrief (Hauptszene.Entscheidungsbrief.cs)
         w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
         MusikVerbinden(simulation, w, spieler); // dynamische Musik (Hauptszene.Musik.cs)
@@ -1278,6 +1279,7 @@ public partial class Hauptszene : Node
         Anzeigen();
         LeisteAnzeigen(delta);
         MeldungenAltern(delta);
+        EntscheidungenAbgleichen();
         _berichtTafel.Aktualisieren(delta);
         _hafenTafel.Aktualisieren(delta);
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar

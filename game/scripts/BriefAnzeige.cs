@@ -267,7 +267,7 @@ public sealed partial class BriefAnzeige : PanelContainer
     };
 
     /// <summary>Ein Farbband: Fläche in der Farbe des Themas, leicht versetzt zum schwarzen Umriss, mit Schraffur am rechten Ende.</summary>
-    private sealed partial class Farbband : Control
+    internal sealed partial class Farbband : Control
     {
         public Color Farbe;
 
@@ -283,7 +283,7 @@ public sealed partial class BriefAnzeige : PanelContainer
     }
 
     /// <summary>Das Siegel am Fuß des Briefes.</summary>
-    private sealed partial class SiegelBild : Control
+    internal sealed partial class SiegelBild : Control
     {
         public Color Farbe;
         public string Thema = "stadt";
