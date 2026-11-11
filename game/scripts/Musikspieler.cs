@@ -16,7 +16,8 @@ namespace Reichsgilde;
 /// Die Partie hängt sich über <see cref="PartieAnschliessen"/> an (Eingaben je Bild: Uhr, Jahreszeit, Volk, Zustände); Ereignisse kommen über
 /// <see cref="Melden"/>. Eigener Zufall (<see cref="Random"/>), nie der der Simulation. Einstellungen: Häufigkeit in <see cref="KlangDienst"/>
 /// (Reiter Ton), Lautstärke über den Bus Musik.
-/// Startoption <c>--musiktest=&lt;lage&gt;</c> (tag, nacht, tod, hochzeit, kampf, sklaven, aufstand, menue; <c>selbst</c> prüft nur die Rechnung): spielt sofort
+/// Startoption <c>--musiktest=&lt;lage&gt;</c> (tag, nacht, tod, hochzeit, kampf, gefahr, einbruch, geburt, aufstieg, sklaven, aufstand, messe, kirche[:katholisch|evangelisch|ahtnisch],
+/// werkstatt[:handwerk|dienstleistung], menue; <c>selbst</c> prüft nur die Rechnung): spielt sofort
 /// ein Stück dieser Lage und schreibt „MUSIK …“-Zeilen ins Log.
 /// </summary>
 public partial class Musikspieler : Node
@@ -31,8 +32,18 @@ public partial class Musikspieler : Node
 
     public static Musikspieler? Aktiv { get; private set; }
 
-    /// <summary>Die Eingaben der Partie (null: keine laufende Partie): Uhr in Minuten, Jahreszeit, Volk des Oberhaupts, Zustand (Sklaven, Aufstand).</summary>
-    public sealed record PartieEingabe(double UhrMinute, Jahreszeit Jahreszeit, Volk? Volk, M.Anlass Zustand);
+    /// <summary>
+    /// Wie weit die Musik die Stadt-Atmosphäre gerade absenkt (dB, 0 oder negativ): während eines Ereignisstücks <see cref="M.AtmoDuckDb"/>, weich hin und zurück.
+    /// <see cref="KlangUmgebung"/> zieht den Wert von den Bussen Draußen, Stadt und Innen ab; es gab dort noch kein Ducking (auch kein Glocken-Ducking), dies ist der gemeinsame Weg.
+    /// </summary>
+    public static float AtmoDuck { get; private set; }
+
+    /// <summary>
+    /// Die Eingaben der Partie (null: keine laufende Partie): Uhr in Minuten, Jahreszeit, Volk des Oberhaupts, Zustand (Sklaven, Aufstand), Berufsgruppen des Hauses,
+    /// Glaube des Oberhaupts (Name im Datenfeld <c>glaube</c> oder null), Ort der Kamera, Glaube der Kirche, in der sie ist, und ob Messe ist.
+    /// </summary>
+    public sealed record PartieEingabe(double UhrMinute, Jahreszeit Jahreszeit, Volk? Volk, M.Anlass Zustand,
+        M.Berufsgruppe Beruf = M.Berufsgruppe.Keine, string? Glaube = null, M.Ort Ort = M.Ort.Draussen, string? KirchenGlaube = null, bool Messe = false);
 
     private Func<PartieEingabe?>? _partie;
     private bool _menue;
@@ -50,6 +61,10 @@ public partial class Musikspieler : Node
     private string? _test;
     private double? _testUhr;
     private M.Anlass _testZustand;
+    private M.Ort? _testOrt;
+    private string? _testGlaube;
+    private M.Berufsgruppe? _testBeruf;
+    private bool _testMesse;
     private bool _log;
 
     /// <summary>Was zuletzt befohlen wurde (für das Entwicklerfenster).</summary>
@@ -87,7 +102,7 @@ public partial class Musikspieler : Node
             s.Spieler.Stream = null;
         }
         _spuren.Clear();
-        if (Aktiv == this) Aktiv = null;
+        if (Aktiv == this) { Aktiv = null; AtmoDuck = 0; }
     }
 
     private void Laden()
@@ -152,6 +167,16 @@ public partial class Musikspieler : Node
             case "tod": _steuerung?.Melden(M.Anlass.Tod); break;
             case "hochzeit": _steuerung?.Melden(M.Anlass.Hochzeit); break;
             case "kampf": _steuerung?.Melden(M.Anlass.Kampf); break;
+            case "gefahr": _steuerung?.Melden(M.Anlass.Gefahr); break;
+            case "einbruch": _steuerung?.Melden(M.Anlass.Einbruch); break;
+            case "geburt": _steuerung?.Melden(M.Anlass.Geburt); break;
+            case "aufstieg": _steuerung?.Melden(M.Anlass.Aufstieg); break;
+            case "messe": _testMesse = true; _testGlaube = "Katholisch"; _testUhr = 10 * 60; _steuerung?.PauseBeenden(); break;
+            case "kirche" or "kirche:katholisch" or "kirche:evangelisch" or "kirche:ahtnisch":
+                _testOrt = M.Ort.Kirche; _testGlaube = t.Contains(':') ? char.ToUpper(t[7]) + t[8..] : "Katholisch"; _steuerung?.PauseBeenden(); break;
+            case "werkstatt" or "werkstatt:handwerk" or "werkstatt:dienstleistung":
+                _testOrt = M.Ort.EigeneWerkstatt; _testUhr = 12 * 60;
+                _testBeruf = t.EndsWith("dienstleistung") ? M.Berufsgruppe.Dienstleistung : M.Berufsgruppe.Handwerk; _steuerung?.PauseBeenden(); break;
             case "sklaven": _testZustand = M.Anlass.Sklaven; break;
             case "aufstand": _testZustand = M.Anlass.Aufstand; break;
         }
@@ -174,7 +199,8 @@ public partial class Musikspieler : Node
         var e = _partie!();
         if (e is null) return; // Ladebildschirm: noch nichts
         var eingabe = new M.Eingabe(_testUhr ?? e.UhrMinute, e.Jahreszeit, e.Volk, _test is null ? haeufigkeit : M.Haeufigkeit.Immer,
-            _testZustand != M.Anlass.Keiner ? _testZustand : e.Zustand);
+            _testZustand != M.Anlass.Keiner ? _testZustand : e.Zustand, _testBeruf ?? e.Beruf, _testGlaube ?? e.Glaube, _testOrt ?? e.Ort,
+            _testOrt == M.Ort.Kirche ? _testGlaube : e.KirchenGlaube, _testMesse || e.Messe);
         var zuEnde = _steuerung!.Laufend is { } l && !_spuren.Any(s => s.Stueck == l && s.Ziel > 0 && (s.Spieler.Playing || s.Alter < 0.3));
         var befehle = _steuerung.Schritt(delta, eingabe, zuEnde);
         foreach (var b in befehle) Ausfuehren(b, PartieDb);
@@ -215,7 +241,7 @@ public partial class Musikspieler : Node
         }
         var stueck = b.Stueck!;
         Ausblenden(b.AltAus > 0 ? b.AltAus : 0.5);
-        LetzterBefehl = $"{(b.Wechsel ? "Wechsel" : "Start")} {stueck.Datei}{(b.Anlass != M.Anlass.Keiner ? " (" + b.Anlass + ")" : "")}, ein {b.Einblende:0.#} s, alt aus {b.AltAus:0.#} s";
+        LetzterBefehl = $"{(b.Wechsel ? "Wechsel" : "Start")} {stueck.Datei}{(b.Anlass != M.Anlass.Keiner ? " (" + b.Anlass + ")" : "")}, ein {b.Einblende:0.#} s, alt aus {b.AltAus:0.#} s{(M.LautstaerkeDb(stueck) != 0 ? $", Verstärkung {M.LautstaerkeDb(stueck):+0.#;-0.#} dB" : "")}";
         if (_log) GD.Print($"MUSIK {LetzterBefehl}");
         var pfad = Ordner + stueck.Datei;
         AudioStream? ton = null;
@@ -228,7 +254,7 @@ public partial class Musikspieler : Node
         var spieler = new AudioStreamPlayer { Stream = ton, Bus = KlangDienst.BusMusik, VolumeDb = KlangDienst.MindestDb };
         AddChild(spieler);
         spieler.Play();
-        _spuren.Add(new Spur { Spieler = spieler, Stueck = stueck, Fortschritt = 0, Ziel = 1, Rate = 1f / (float)Math.Max(b.Einblende, 0.05), Grundpegel = pegelDb });
+        _spuren.Add(new Spur { Spieler = spieler, Stueck = stueck, Fortschritt = 0, Ziel = 1, Rate = 1f / (float)Math.Max(b.Einblende, 0.05), Grundpegel = pegelDb + (float)M.LautstaerkeDb(stueck) });
     }
 
     private void Ausblenden(double sekunden)
@@ -246,6 +272,10 @@ public partial class Musikspieler : Node
         _duckZiel = KlangDienst.AnsageSpielt ? DuckDb : 0f;
         var schritt = (float)delta * Math.Abs(DuckDb) / (_duckZiel < _duck ? DuckAbSekunden : DuckAufSekunden);
         _duck = _duck < _duckZiel ? Math.Min(_duck + schritt, _duckZiel) : Math.Max(_duck - schritt, _duckZiel);
+        // Stadt-Atmosphäre unter einem Ereignisstück leiser
+        var atmoZiel = _spuren.Any(x => x.Ziel > 0 && x.Stueck.Lage == "event") ? (float)M.AtmoDuckDb : 0f;
+        var atmoSchritt = (float)delta * (float)Math.Abs(M.AtmoDuckDb) / (float)(atmoZiel < AtmoDuck ? M.AtmoAb : M.AtmoAuf);
+        AtmoDuck = AtmoDuck < atmoZiel ? Math.Min(AtmoDuck + atmoSchritt, atmoZiel) : Math.Max(AtmoDuck - atmoSchritt, atmoZiel);
         for (var i = _spuren.Count - 1; i >= 0; i--)
         {
             var s = _spuren[i];
@@ -270,12 +300,12 @@ public partial class Musikspieler : Node
     public string Zustand()
     {
         var h = KlangDienst.MusikHaeufigkeit;
-        var kopf = $"Häufigkeit {M.Name(h)} · Stücke {_stuecke.Count} · Ducking {_duck:0.0} dB";
+        var kopf = $"Häufigkeit {M.Name(h)} · Stücke {_stuecke.Count} · Ducking {_duck:0.0} dB · Atmo {AtmoDuck:0.0} dB";
         if (_steuerung is { } st && _partie is not null)
         {
-            var nacht = st.LaufendeNacht is { } n ? (n ? "Nacht" : "Tag") : "–";
+            var nacht = st.LaufendeLage ?? "–";
             var laufend = st.Laufend is { } l
-                ? $"läuft: {l.Titel} ({l.Lage}{(l.Zusatz is not null ? "/" + l.Zusatz : "")}{(l.Volk is not null ? "/" + l.Volk : "")}), {st.LaufZeit:0} von {l.Dauer:0} s"
+                ? $"läuft: {l.Titel} ({l.Lage}{(l.Zusatz is not null ? "/" + l.Zusatz : "")}{(l.Volk is not null ? "/" + l.Volk : "")}{(l.Beruf is not null ? "/" + l.Beruf : "")}{(l.Glaube is not null ? "/" + l.Glaube : "")}), {st.LaufZeit:0} von {l.Dauer:0} s"
                     + (st.LaufenderAnlass != M.Anlass.Keiner ? $" · Anlass {st.LaufenderAnlass}" : $" · für {nacht}")
                 : h == M.Haeufigkeit.Aus ? "Musik aus"
                 : h == M.Haeufigkeit.NurEreignisse ? "wartet auf ein Ereignis"
@@ -313,6 +343,10 @@ public partial class Musikspieler : Node
         foreach (var j in Enum.GetValues<Jahreszeit>())
             if (M.TagKandidaten(_stuecke, j, null).Count < 3) Fehler($"zu wenige Tagesstücke im {j}");
         if (_stuecke.All(s => s.Datei != _menueDatei)) Fehler("Menüstück fehlt in der Liste");
+        foreach (var g in new[] { "Katholisch", "Evangelisch", "Ahtnisch" })
+            if (M.GlaubensKandidaten(_stuecke, g).Count == 0) Fehler($"kein Glaubensstück {g}");
+        foreach (var b in new[] { M.Berufsgruppe.Handwerk, M.Berufsgruppe.Dienstleistung })
+            if (!_stuecke.Any(s => s.Beruf == M.BerufName(b))) Fehler($"kein Berufsstück {b}");
         log(gut ? $"MUSIKTEST in Ordnung ({_stuecke.Count} Stücke)" : "MUSIKTEST FEHLER (siehe oben)");
         return gut;
     }

@@ -344,18 +344,19 @@ public partial class KlangUmgebung : Node
                 KlangDienst.SchleifePausieren(name, anhalten);
             }
         }
-        if (_busDraussen >= 0 && (float.IsNaN(_draussenDb) || Math.Abs(aus.DraussenDb - _draussenDb) > 0.05f))
-            AudioServer.SetBusVolumeDb(_busDraussen, _draussenDb = aus.DraussenDb);
-        if (_busStadt >= 0 && (float.IsNaN(_stadtDb) || Math.Abs(aus.StadtDb - _stadtDb) > 0.05f))
-            AudioServer.SetBusVolumeDb(_busStadt, _stadtDb = aus.StadtDb);
+        var musikDuck = Musikspieler.AtmoDuck; // unter einem Ereignisstück der Musik etwas leiser (Musikspieler.AtmoDuck)
+        if (_busDraussen >= 0 && (float.IsNaN(_draussenDb) || Math.Abs(aus.DraussenDb + musikDuck - _draussenDb) > 0.05f))
+            AudioServer.SetBusVolumeDb(_busDraussen, _draussenDb = aus.DraussenDb + musikDuck);
+        if (_busStadt >= 0 && (float.IsNaN(_stadtDb) || Math.Abs(aus.StadtDb + musikDuck - _stadtDb) > 0.05f))
+            AudioServer.SetBusVolumeDb(_busStadt, _stadtDb = aus.StadtDb + musikDuck);
         if (_panSchenke is not null && (float.IsNaN(_schenkeSeite) || Math.Abs(aus.SchenkeSeite - _schenkeSeite) > 0.005f))
             _panSchenke.Pan = _schenkeSeite = aus.SchenkeSeite;
         if (_busSchenke >= 0 && (float.IsNaN(_schenkeDb) || Math.Abs(aus.SchenkeDb - _schenkeDb) > 0.05f))
             AudioServer.SetBusVolumeDb(_busSchenke, _schenkeDb = aus.SchenkeDb);
         if (_tiefpassSchenke is not null && (float.IsNaN(_schenkeTp) || Math.Abs(aus.SchenkeTiefpass / _schenkeTp - 1) > 0.02f))
             _tiefpassSchenke.CutoffHz = _schenkeTp = aus.SchenkeTiefpass;
-        if (_busInnen >= 0 && (float.IsNaN(_innenDb) || Math.Abs(aus.InnenDb - _innenDb) > 0.05f))
-            AudioServer.SetBusVolumeDb(_busInnen, _innenDb = aus.InnenDb);
+        if (_busInnen >= 0 && (float.IsNaN(_innenDb) || Math.Abs(aus.InnenDb + musikDuck - _innenDb) > 0.05f))
+            AudioServer.SetBusVolumeDb(_busInnen, _innenDb = aus.InnenDb + musikDuck);
         if (_tiefpassDraussen is not null && (float.IsNaN(_draussenTp) || Math.Abs(aus.DraussenTiefpass / _draussenTp - 1) > 0.01f))
             _tiefpassDraussen.CutoffHz = _draussenTp = aus.DraussenTiefpass;
         if (_tiefpassStadt is not null && (float.IsNaN(_stadtTp) || Math.Abs(aus.StadtTiefpass / _stadtTp - 1) > 0.01f))

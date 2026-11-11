@@ -10,7 +10,7 @@ using M = Reichsgilde.MusikModell;
 /// </summary>
 static class MusikTests
 {
-    static string Spielordner(params string[] teile)
+    internal static string Spielordner(params string[] teile)
     {
         var ordner = new DirectoryInfo(AppContext.BaseDirectory);
         while (ordner is not null)
@@ -22,10 +22,10 @@ static class MusikTests
         throw new FileNotFoundException("game/" + string.Join("/", teile) + " wurde nicht gefunden.");
     }
 
-    static (List<M.Stueck> Stuecke, string Menue) Liste() => M.Laden(File.ReadAllText(Spielordner("daten", "musik.json")));
+    internal static (List<M.Stueck> Stuecke, string Menue) Liste() => M.Laden(File.ReadAllText(Spielordner("daten", "musik.json")));
 
     /// <summary>Spielt die Steuerung in Schritten von <c>dt</c> Sekunden durch; ein „Spieler“ lässt jedes Stück seine Dauer laufen.</summary>
-    sealed class Lauf
+    internal sealed class Lauf
     {
         public readonly M.Steuerung Steuerung;
         public readonly List<(double Zeit, M.Befehl Befehl)> Befehle = new();
@@ -36,6 +36,10 @@ static class MusikTests
         public M.Anlass Zustand;
         public Jahreszeit Jahreszeit = Jahreszeit.Fruehling;
         public Volk? Volk = Reichsgilde.Core.Volk.Elb;
+        public M.Berufsgruppe Beruf = M.Berufsgruppe.Keine;
+        public string? Glaube, KirchenGlaube;
+        public M.Ort Ort = M.Ort.Draussen;
+        public bool Messe;
         double _endeZeit = double.MaxValue;
         (double Start, M.Stueck Stueck, M.Anlass Anlass)? _aktuell;
 
@@ -57,7 +61,7 @@ static class MusikTests
                     _aktuell = null;
                     _endeZeit = double.MaxValue;
                 }
-                foreach (var b in Steuerung.Schritt(dt, new M.Eingabe(Uhr, Jahreszeit, Volk, Haeufigkeit, Zustand), zuEnde))
+                foreach (var b in Steuerung.Schritt(dt, new M.Eingabe(Uhr, Jahreszeit, Volk, Haeufigkeit, Zustand, Beruf, Glaube, Ort, KirchenGlaube, Messe), zuEnde))
                 {
                     Befehle.Add((Zeit, b));
                     if (_aktuell is { } a) // abgelöst (Wechsel, Ereignis, Ausblenden)
@@ -78,16 +82,16 @@ static class MusikTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Musik: die Liste (daten/musik.json) hat 23 Stücke, jede Datei liegt da, jede Lage ist besetzt, das Menüstück steht darin", () =>
+        ("Musik: die Liste (daten/musik.json) hat 48 Stücke, jede Datei liegt da, jede Lage ist besetzt, das Menüstück steht darin", () =>
         {
             var (s, menue) = Liste();
-            Pruefe.Gleich(23, s.Count);
+            Pruefe.Gleich(48, s.Count);
             foreach (var x in s) Pruefe.Wahr(File.Exists(Spielordner("assets", "audio", "musik", x.Datei.Replace('/', Path.DirectorySeparatorChar))), x.Datei + " fehlt");
             Pruefe.Wahr(s.Any(x => x.Datei == menue), "Menüstück");
-            Pruefe.Wahr(s.All(x => (x.Lage is "tag" or "nacht" or "tod" or "event") && x.Dauer > 30), "Lage/Dauer");
+            Pruefe.Wahr(s.All(x => (x.Lage is "tag" or "nacht" or "tod" or "event" or "glaube" or "menue") && x.Dauer > 10), "Lage/Dauer");
             foreach (var a in Enum.GetValues<M.Anlass>().Where(a => a != M.Anlass.Keiner)) Pruefe.Wahr(M.AnlassKandidaten(s, a).Count > 0, "Anlass " + a);
             Pruefe.Wahr(M.NachtKandidaten(s).Count >= 2, "Nacht");
-            Pruefe.Wahr(s.Count(x => x.Volk is not null) == 4, "vier Volksstücke");
+            Pruefe.Wahr(s.Count(x => x.Volk is not null) == 8, "acht Volksstücke (je Volk zwei)");
         }),
 
         ("Musik: kaputte oder leere Liste ergibt keine Stücke und wirft nicht", () =>
@@ -113,11 +117,11 @@ static class MusikTests
         {
             var (s, _) = Liste();
             var fruehElb = M.TagKandidaten(s, Jahreszeit.Fruehling, Volk.Elb);
-            Pruefe.Gleich(7, fruehElb.Count); // 4 neutrale + 2 Frühling + Elben
-            Pruefe.Wahr(fruehElb.Any(x => x.Volk == "Elben") && fruehElb.Count(x => x.Zusatz == "fruehling") == 2, "Elb, Frühling");
-            Pruefe.Wahr(fruehElb.All(x => x.Zusatz is null or "fruehling"), "nur Frühling");
-            Pruefe.Gleich(5, M.TagKandidaten(s, Jahreszeit.Sommer, Volk.Ork).Count); // 4 + Sommer, kein Volk
-            Pruefe.Gleich(6, M.TagKandidaten(s, Jahreszeit.Winter, Volk.Zwerg).Count);
+            Pruefe.Gleich(10, fruehElb.Count); // 5 neutrale + 3 Frühling + 2 Elben
+            Pruefe.Wahr(fruehElb.Count(x => x.Volk == "Elben") == 2 && fruehElb.Count(x => x.Zusatz == "fruehling") == 3, "Elb, Frühling");
+            Pruefe.Wahr(fruehElb.All(x => x.Zusatz is null or "fruehling") && fruehElb.All(x => x.Beruf is null && x.Glaube is null), "nur Frühling, ohne Beruf und Glaube");
+            Pruefe.Gleich(7, M.TagKandidaten(s, Jahreszeit.Sommer, Volk.Ork).Count); // 5 + 2 Sommer, kein Volk
+            Pruefe.Gleich(10, M.TagKandidaten(s, Jahreszeit.Winter, Volk.Zwerg).Count); // 5 + 3 Winter + 2 Zwerge
             Pruefe.Wahr(M.TagKandidaten(s, Jahreszeit.Herbst, Volk.Mensch).Any(x => x.Volk == "Menschen"), "Menschen");
             Pruefe.Wahr(M.TagKandidaten(s, Jahreszeit.Herbst, null).All(x => x.Volk is null), "ohne Volk");
         }),
@@ -295,15 +299,16 @@ static class MusikTests
             Pruefe.Gleich(0, l.Befehle.Count);
         }),
 
-        ("Musik: Meldungen des Kerns ergeben die Anlässe (Tod, Heirat, Überfall/Einbruch/Feuer = Kampf), sonst keiner", () =>
+        ("Musik: Meldungen des Kerns ergeben die Anlässe (Tod, Heirat, Geburt, Einbruch, Überfall/Feuer = Gefahr), sonst keiner", () =>
         {
             Pruefe.Gleich(M.Anlass.Tod, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.TodOberhaupt));
             Pruefe.Gleich(M.Anlass.Tod, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.TodFamilie));
             Pruefe.Gleich(M.Anlass.Hochzeit, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Heirat));
-            Pruefe.Gleich(M.Anlass.Kampf, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Ueberfall));
-            Pruefe.Gleich(M.Anlass.Kampf, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Diebstahl));
-            Pruefe.Gleich(M.Anlass.Kampf, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Feuer));
-            Pruefe.Gleich(M.Anlass.Keiner, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Geburt));
+            Pruefe.Gleich(M.Anlass.Gefahr, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Ueberfall));
+            Pruefe.Gleich(M.Anlass.Einbruch, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Diebstahl));
+            Pruefe.Gleich(M.Anlass.Gefahr, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Feuer));
+            Pruefe.Gleich(M.Anlass.Geburt, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Geburt));
+            Pruefe.Gleich(M.Anlass.Keiner, M.AnlassAusAnsage(KlangAnsagenErkennung.Id.Krankheit));
             Pruefe.Gleich(M.Anlass.Keiner, M.AnlassAusAnsage(null));
         }),
     };

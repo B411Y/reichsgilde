@@ -40,5 +40,6 @@ public partial class Hauptszene
     {
         if (_spieler is not null && _simulation.Ratssitzung is not null && _simulation.Wirtschaft is { } w)
             KlangAnsagen.Wahlergebnis(punkt, w, _spieler);
+        if (_spieler is not null) MusikWahlErgebnis(punkt, _spieler);
     }
 }

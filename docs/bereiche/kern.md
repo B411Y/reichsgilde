@@ -83,6 +83,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing, Startaufstellung) Entscheidung Nutzer 11.11.2026: SO LASSEN – die gelosten KI-Häuser sind erstmal schwächer (Messung `messen bericht 20 20`, 900 Partien, main fd6861b8 + 1a/1b 4d9104d5 → mit 1c: KI ÷ Bezug (Median) 1,18 → 0,92, auf „Schwer“ 1,86 → 1,03; Berufe außerhalb ±15 % vorher nur Gardist −21 %, nachher Steinmetz +16 %, Prediger +23 %, Dieb −16 %, Gardist −26 %; 8 Häuser: Vermögen je KI-Haus −39 % → −3 % gegen allein; JSON-Dateien nicht im Repo, Zahlen in WIRTSCHAFTSMODELL „Startaufstellung“). Balancing später gesammelt. Als Option dann: Umland-Startplätze für Duftgarten, Klosterhof und Wachturm in die Karten (Leveldesign), danach neu messen; sonst KI für Dieb/Gardist/Geldleiher stärken (spiel-ki).
 - (Nutzer, später) Startberuf „Zufall“ für den Spieler; Mehrspieler-Startbildschirm mit gesperrten Berufen (`Startaufstellung.FreieBerufe`).
 
+- (von Sound) **Gefahrenmeldung der Wache mit Art:** `Wachwesen` (Razzia, Streife) meldet nur Text (`_w.Melden(text)`, Art `Sonstiges`); die Musik („Nahe Bedrohung“) kann „Gefahrenmeldung der Wache beim Spieler“ deshalb nicht erkennen. Vorschlag: eine eigene `Meldungsart.Bedrohung` (Wichtigkeit hoch, `Haus` = Betroffener) für Warnungen der Wache vor einer Tat am eigenen Haus; die Musik hängt sie dann an Anlass Gefahr. Der Kampf (Überfall abgewehrt, Wächter vereitelt Einbruch, Dieb gestellt) läuft schon über `Vorfallbuch.Neu`, braucht nichts.
+
 ## Entscheidungen
 
 ## Messungen

@@ -1,0 +1,31 @@
+datei,quelle,sha256_quelle,dauer_s,roh_dauer_s,lufs,true_peak_dbtp,groesse_mb,gain_db,ziel_gesenkt,abtastrate,ereignis_gain_db,tp_mit_gain_dbtp,gain_ok
+event/event_aufstand_orks_und_oger.ogg,event_aufstand_Orks und Oger.wav,ef1fa0a497975a93f9b25daa2018257a90fa2110597971b17315858278a32c8b,129.6,129.6,-17.1,-6.85,2.77,-2.6,nein,48000,3,-3.85,ja
+event/event_hochzeit_hochzeit.ogg,event_hochzeit_Hochzeit.wav,15f90fab5b16e3609ab5e195911efad09079503ada29ad8b80d03cefff504d6a,122.3,122.3,-17.0,-4.79,2.59,-1.4,nein,48000,3,-1.79,ja
+event/event_kampf_jetzt_aber_schnell.ogg,event_kampf_Jetzt Aber Schnell!.wav,088dab0608b31a634cd2e33ac5b11a22a5642fac573b9f2a24c05ade1eb10368,112.8,112.8,-17.1,-5.12,2.46,-0.2,nein,48000,3,-2.12,ja
+event/event_sklaven_schwere_ketten.ogg,event_sklaven_Schwere Ketten.wav,6b76899ee4d2c6a60e39cb0e3ae716d5ea7831ce2964b3ff391c29a91ab7698b,193.3,194.0,-17.0,-6.09,3.88,-2.6,nein,48000,3,-3.09,ja
+event/event_sklaven_sklaven_an_die_arbeit.ogg,event_sklaven_Sklaven an die Arbeit.wav,fdb367fcb400c8b0e40a76105f7d5be35f17c4c3083e7d9ee6adc6538714ba5b,169.8,170.0,-17.0,-6.32,3.71,-3.4,nein,48000,3,-3.32,ja
+event/event_dieb_einbruch.ogg,event_dieb_Einbruch.wav,7de4b8780e7d43b35dcaabe1580ab658313343f87f7f6648f72e17d3061add8c,93.9,94.0,-17.1,-4.7,1.28,-0.1,nein,48000,3,-1.7,ja
+event/event_geburt_geburt.ogg,event_geburt_Geburt.wav,e0515b308227644fe432113d224e1b28e8bf253b0e11233cde7e8ccc7753402c,12.0,12.0,-17.0,-6.8,0.18,-2.7,nein,48000,3,-3.8,ja
+event/event_gefahr_nahe_bedrohung.ogg,event_gefahr_Nahe Bedrohung.wav,d749c44c6004bbfba3ed367bbf097b56ee3aca1a32cda3c6745f5bf0b5878416,147.6,149.4,-17.1,-3.8,2.09,-1.1,nein,48000,3,-0.8,ja
+event/event_levelup_glueckwunsch_v2.ogg,event_levelup_Gkückwunsch_V2.wav,65a46f2b7a6ffa5db44b9259b6bf14022a3c1431ed061c315d87f3e57a23a968,21.7,21.7,-17.0,-5.4,0.34,-2.2,nein,48000,3,-2.4,ja
+event/event_levelup_glueckwunsch.ogg,event_levelup_Glückwunsch.wav,06cf2eed125e8a874d34b0cdf6fc7ebad5a63c97d67e0f0f3945681a15cba26a,21.9,21.9,-17.0,-5.3,0.34,-1.7,nein,48000,3,-2.3,ja
+glaube/glaube_ahtnisch.ogg,glauben_Ahtnisch.wav,d3a0bc1384130401400b76cf460765d7ed4b365c2bd8a9d58468a3e4740f3e60,109.0,109.0,-17.0,-6.0,1.55,-1.6,nein,48000,0,-6.0,ja
+glaube/glaube_ahtnisch_v2.ogg,glauben_Ahtnisch_V2.wav,e4c1e4c3457e8f88825292c3ae25710e323cc7762fa68979b8118195953eafe1,133.1,133.1,-17.0,-6.0,1.83,-1.2,nein,48000,0,-6.0,ja
+glaube/glaube_evangelisch.ogg,glauben_Evangelisch.wav,8babca6484dd6a0afe2a8889973d6669629b9f09b8a0af067ae8193403d18611,153.8,154.0,-17.0,-6.3,2.02,-0.7,nein,48000,0,-6.3,ja
+glaube/glaube_katholisch.ogg,glauben_Katholisch.wav,b93d2651e52661099fdb9de21e9df79c7819e3472f1bfebfba845d41733c90cf,148.8,149.0,-17.0,-5.3,2.06,-1.9,nein,48000,0,-5.3,ja
+menue/menue_reichsgilde.ogg,menu_Reichsgilde.wav,c252aecd6617d37d0f7c2d0e56c75531521d73b72f76dbe7ac4833841977ebf7,298.2,300.0,-17.1,-3.7,4.05,0.2,nein,48000,0,-3.7,ja
+nacht/nacht_augen_im_dunkeln.ogg,nacht_Augen im Dunkeln.wav,59fe15ba0c31239b22e3340f55a4c75c6bb9d1ab10d52be03048ece38a156b40,203.1,203.1,-17.0,-4.7,2.71,-1.1,nein,48000,0,-4.7,ja
+nacht/nacht_herumtreiber.ogg,nacht_Herumtreiber.wav,c5a16302f8d69d2f8290903f9eeaaaeb5ec37fa4121a2dfa444d7c2a8da24297,268.5,270.0,-17.1,-5.1,3.55,-1.0,nein,48000,0,-5.1,ja
+tag/tag_arbeitruf.ogg,tag_Arbeitruf.wav,4192528766707bb024c7a9a9fe70604d2658b1767219429b1a9c3c8db46c8c24,184.3,184.8,-17.0,-5.6,3.0,-2.3,nein,48000,0,-5.6,ja
+tag/tag_beruf_dienstleistung.ogg,tag_beruf_Dienstleistung.wav,2f97af23f147232fd62593dc2e52ed65979e4d553229044f77ea065b9e157946,178.5,179.8,-17.0,-3.9,2.53,-1.1,nein,48000,0,-3.9,ja
+tag/tag_beruf_handwerk.ogg,tag_beruf_Handwerk.wav,0a92d6de691c0b32e746d98ca377b42738989b97b25bc154ccbf2e6e084c4512,178.3,180.0,-17.0,-4.3,2.48,-0.5,nein,48000,0,-4.3,ja
+tag/tag_elb_elbengefuehle.ogg,tag_elb_Elbengefühle.wav,bb83a8ef71f43f567a03a6048ad6387b548ac8b987d7890f3e21f7c3a2a566eb,183.1,183.2,-17.0,-5.0,2.56,-0.7,nein,48000,0,-5.0,ja
+tag/tag_fruehling_neuanfang.ogg,tag_frühling_Neuanfang.wav,84c21fe1099b20bcb47818a476328889deb4a65701468579a75ce254eecae415,268.5,270.0,-17.0,-5.2,3.75,0.0,nein,48000,0,-5.2,ja
+tag/tag_halbling_halblingsruh.ogg,tag_halbling_Halblingsruh.wav,6a993e5f7b7aac29e19b4ddc170eea8c81d0fa594ffabc6deedb35ed79a00487,177.4,179.9,-17.0,-5.1,2.45,-0.8,nein,48000,0,-5.1,ja
+tag/tag_herbst_erster_laub.ogg,tag_herbst_Erster Laub.wav,232ef75a9002c5aaac6da021fe7f730276a170cb046b854aa16db05366bd8bfd,318.0,320.0,-17.0,-4.7,4.5,0.9,nein,48000,0,-4.7,ja
+tag/tag_mensch_menschenstolz.ogg,tag_mensch_Menschenstolz.wav,03daa7fe3c8d6afe1a1074add884f22a36a2cbc624c65c64470babfb680099ff,180.0,180.0,-17.0,-5.1,2.58,-0.5,nein,48000,0,-5.1,ja
+tag/tag_sommer_warme_geduld.ogg,tag_sommer_Warme Geduld.wav,b36b4a674fdb6c4c4b3d5339fc69b643f88ed6fd15e53c39d4ec6277a0e1f350,268.3,269.8,-17.0,-4.7,3.57,-0.4,nein,48000,0,-4.7,ja
+tag/tag_winter_frost.ogg,tag_winter_Frost.wav,3a4097286f53615fc8ce7b6c61371a7e23500be4824e0d675b59f1a0b1b355a3,296.9,298.8,-17.0,-5.6,3.88,-1.6,nein,48000,0,-5.6,ja
+tag/tag_winter_letzter_winter.ogg,tag_winter_Letzter Winter.wav,be984d4f89870922f4815fee0dc86d3ec0481da3cd4f4c0f75c29c9a500cc7b3,297.1,298.8,-17.0,-3.3,3.91,0.0,nein,48000,0,-3.3,ja
+tag/tag_zwerg_zwergentreiben.ogg,tag_zwerg_Zwergentreiben.wav,2de18d03ca77c2faa7c00b5f05bf9e6d58732c65120bd6af77e037e2888eea0f,176.8,179.7,-17.1,-5.0,2.48,-1.7,nein,48000,0,-5.0,ja
+tod/tod_der_tod.ogg,tod_Der Tod.wav,7db06852fd45fc535aad57dca99888d956b300897eb3eb998f8a0cfe390d2d65,120.1,120.1,-17.0,-5.6,1.54,-1.2,nein,48000,0,-5.6,ja
