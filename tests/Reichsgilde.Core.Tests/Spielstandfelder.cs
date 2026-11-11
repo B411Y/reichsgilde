@@ -24,6 +24,12 @@ static class Spielstandfelder
     /// </summary>
     public static readonly string[] Erbgut = { "Erbgut" };
 
+    /// <summary>
+    /// Die dauerhafte Hauschronik (Datenversion 83): Die Simulation liest sie nie, sie hält nur fest, was geschah – „Hauschronik“ (Format) und
+    /// „Chronik“ (Einträge je Familie) fallen wie der Verlauf der Meldungen aus dem Vergleich.
+    /// </summary>
+    public static readonly string[] Hauschronik = { "Hauschronik", "Chronik" };
+
     /// <summary>Entfernt diese Felder überall im Spielstand, auch wenn sie etwas tragen (für Felder aus <see cref="NurLaden"/>).</summary>
     public static void Ohne(JsonNode? knoten, IReadOnlyCollection<string> felder)
     {

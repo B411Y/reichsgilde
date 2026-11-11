@@ -192,6 +192,7 @@ public partial class Stadtansicht
             AddChild(stelleKnoten);
             KronenMelden(stelleKnoten);
             _umlandstellen[g.Name] = g;
+            stelleKnoten.SetMeta("stelle_art", knotenName); // für die Zäune der Ego-Perspektive (Stadtansicht.EgoHindernisse.cs)
 
             // Das Gatter („Anker_Tuer“ des Baukastens) am Weg; im Netz endet der Gang in der Mitte der Stelle, wo die Arbeit ist
             var gatter = lage * UmlandAnkerImModell(datei).Tuer;

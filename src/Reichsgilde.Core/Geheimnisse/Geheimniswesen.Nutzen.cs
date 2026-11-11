@@ -203,6 +203,8 @@ public sealed partial class Geheimniswesen
         _w.Melden(Meldungsart.Sonstiges, $"{haus.Inhaber} stellt {inhaber.Name} bloß: {Beschreibung(g)}! Die ganze Stadt redet davon" +
                                           (folgen.Count > 0 ? $" – {string.Join(", ", folgen)}." : "."),
             haus: hausDes, person: inhaber as Person, wichtigkeit: Meldungswichtigkeit.Hoch, geheimnis: g.Art);
+        if (hausDes is not null)
+            _w.Familien.ChronikEintragen(hausDes, Dynastie.Chronikart.Geheimnis, $"{haus.Inhaber} stellt {inhaber.Name} bloß: {Beschreibung(g)}.", inhaber as Person);
         return Befehlsergebnis.Ok($"Ihr stellt {inhaber.Name} bloß: {Beschreibung(g)}. Ohne Gericht und ohne Spur – aber {inhaber.Name} wird es euch nicht vergessen.");
     }
 

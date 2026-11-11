@@ -72,6 +72,7 @@ public sealed partial class Stadtwirtschaft
         Gemeldet?.Invoke(m);
         Meldung?.Invoke(m.Text);
         Familien?.StressNachMeldung(m); // Stress (Teil 3b): Diebstahl, Feuer, Überfall gegen das Haus stehen hier schon mit Art und Haus
+        Familien?.ChronikNachMeldung(m); // Hauschronik: ein Brand, der das Haus trifft (alles andere tragen die Stellen selbst ein)
     }
 
     /// <summary>So viele Meldungen behält der <see cref="Meldungsverlauf"/> (und der Spielstand): gut drei Spieljahre in Köln.</summary>
@@ -104,6 +105,9 @@ public sealed partial class Stadtwirtschaft
                 Ort = s.Ort, Ortsname = s.Ortsname, X = s.X, Z = s.Z, Vertraulich = s.Vertraulich, GeheimnisArt = s.GeheimnisArt,
             });
     }
+
+    /// <summary>Nach dem Laden des Verlaufs: Spielstände von vor der Hauschronik ergänzen sie aus ihm (soweit er reicht).</summary>
+    internal void ChronikNachDemLaden() => Familien.ChronikAusVerlaufErgaenzen();
 
     /// <summary>Das betroffene Haus einer Meldung (null: keines oder unbekannt).</summary>
     public Konto? HausVon(Meldung m) => m.Haus is int i && i >= 0 && i < _konten.Count ? _konten[i] : null;
@@ -797,7 +801,7 @@ public sealed partial class Stadtwirtschaft
         foreach (var betrieb in _betriebe.Where(b => b.Konto == konto))
             foreach (var kraft in betrieb.Belegung.Keys.ToList())
                 betrieb.Einstellen(kraft, 0, Statut);
-        Rat.Ausscheiden(konto);
+        Rat.Ausscheiden(konto, konto.IstErloschen ? "Haus erloschen" : "Bankrott");
     }
 
     /// <summary>
@@ -1120,6 +1124,8 @@ public sealed partial class Stadtwirtschaft
         konto.Standesgebuehr(neu.Gebuehr); // geht an den Landesherrn, nicht in die Stadtkasse (PR #200)
         konto.Stand++;
         Melden(Meldungsart.StandAufstieg, $"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})", haus: konto);
+        if (Familien.Von(konto) is { } familie)
+            Familien.ChronikEintragen(konto, Dynastie.Chronikart.Amt, $"Das Haus {familie.Nachname} steigt in den Stand {neu.Name} auf.", familie.Oberhaupt);
         Aufgestiegen?.Invoke(konto, neu);
         return Befehlsergebnis.Ok($"{konto.Inhaber} steigt in den Stand {neu.Name} auf.");
     }

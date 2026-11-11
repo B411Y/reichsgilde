@@ -3,7 +3,7 @@ using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
-/// <summary>Tests für Stammbaum und Hauschronik des Familienbuchs (nur lesend abgeleitet, kein Spielstand).</summary>
+/// <summary>Tests für Stammbaum und Hauschronik des Familienbuchs (der Baum nur abgeleitet; die gespeicherte Chronik prüft <c>HauschronikTests</c>).</summary>
 static class StammbaumTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
@@ -127,16 +127,16 @@ static class StammbaumTests
             GleicheMenge(f, w.Familien.Stammbaum(f));
         }),
 
-        ("Hauschronik: vertrauliche Meldungen nur für das Haus selbst (Gegenprobe mit fremdem Konto)", () =>
+        ("Hauschronik: vertrauliche Einträge nur für das Haus selbst (Gegenprobe mit fremdem Konto)", () =>
         {
             var (w, konto, f, _, _, _, _) = ZweiGenerationen();
             var fremd = w.KontoEroeffnen("Haus Fremd", startvermoegen: 1000);
-            w.Melden(Meldungsart.Entscheidung, "GEHEIM-ENTSCHEIDUNG", haus: konto, vertraulich: true);
+            w.Familien.ChronikEintragen(konto, Chronikart.Entscheidung, "GEHEIM-ENTSCHEIDUNG", vertraulich: true);
             Pruefe.Wahr(w.Familien.Chronik(f, konto).Any(e => e.Text == "GEHEIM-ENTSCHEIDUNG"), "das Haus selbst sieht sie");
             Pruefe.Wahr(!w.Familien.Chronik(f, fremd).Any(e => e.Text == "GEHEIM-ENTSCHEIDUNG"), "ein fremdes Haus nicht");
         }),
 
-        ("Hauschronik: Gründung, Geburt, Tod, Erbfolge aus den Personen, Heirat aus dem Verlauf; neueste zuerst", () =>
+        ("Hauschronik: Gründung, Geburt, Tod, Erbfolge aus den Personen, Heirat aus der gespeicherten Chronik; neueste zuerst", () =>
         {
             var (w, konto, f, gruender, _, erbe, _) = ZweiGenerationen();
             var chronik = w.Familien.Chronik(f, konto);
@@ -144,7 +144,7 @@ static class StammbaumTests
             Pruefe.Wahr(chronik.Any(e => e.Art == Chronikart.Geburt), "Geburt");
             Pruefe.Wahr(chronik.Any(e => e.Art == Chronikart.Tod && e.Person == gruender.Nummer), "Tod des Gründers");
             Pruefe.Wahr(chronik.Any(e => e.Art == Chronikart.Erbe && e.Person == erbe.Nummer), "Erbfolge");
-            Pruefe.Wahr(chronik.Any(e => e.Art == Chronikart.Heirat), "Heirat aus dem Meldungsverlauf");
+            Pruefe.Wahr(chronik.Any(e => e.Art == Chronikart.Heirat), "Heirat aus der gespeicherten Chronik");
             for (var i = 1; i < chronik.Count; i++)
                 Pruefe.Wahr(chronik[i - 1].Jahr >= chronik[i].Jahr, "neueste Jahr zuerst");
             // Gleich zweimal berechnet: dieselbe Reihenfolge (Determinismus).

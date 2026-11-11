@@ -24,6 +24,8 @@
     <Compile Include="..\..\game\scripts\Arbeitertracht.cs" Link="Arbeitertracht\Arbeitertracht.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
+    <!-- Zäune der Umlandstellen als Kisten der Ego-Perspektive (Zaun blockiert, Tor und Lücke offen) – EgoZaunTests.cs -->
+    <Compile Include="..\..\game\scripts\EgoZaun.cs" Link="Gehtempo\EgoZaun.cs" />
     <Compile Include="..\..\game\scripts\Taschendiebgang.cs" Link="Gehtempo\Taschendiebgang.cs" />
     <!-- Einbruch und Banden bei Nacht (Wachen und Diebe, Paket P4) – NachtgangTests.cs -->
     <Compile Include="..\..\game\scripts\Nachtgang.cs" Link="Gehtempo\Nachtgang.cs" />
@@ -49,5 +51,7 @@
     <Compile Include="..\..\game\scripts\KlangUmweltModell.cs" Link="Umgebung\KlangUmweltModell.cs" />
     <!-- Die Rechnung der dynamischen Musik kennt kein Godot – MusikTests.cs -->
     <Compile Include="..\..\game\scripts\MusikModell.cs" Link="Musik\MusikModell.cs" />
+    <!-- Ablauf, Hysterese und Neigung des 3D-Handschuh-Zeigers (Haltungen, Clip-Reihenfolge, FPS-Rückfall) kennen kein Godot – HandschuhModellTests.cs -->
+    <Compile Include="..\..\game\scripts\HandschuhModell.cs" Link="Handschuh\HandschuhModell.cs" />
   </ItemGroup>
 </Project>

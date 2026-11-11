@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 
 namespace Reichsgilde;
 
@@ -26,8 +27,19 @@ public partial class Stadtansicht
     /// Eine Probedatei: Varianten (Netze „Nah_&lt;variante&gt;“ und „Fern_&lt;variante&gt;“) und die Maße aus dem Bericht von passanten_probe.py:
     /// Hüfthöhe (Kopf des Oberschenkelknochens), Meter je Sekunde, die „Gehen“ und „Tragen“ bei Takt 1 schaffen (Standfuß: so rutschen die Füße
     /// nicht), Höhe des Gesäßes über den Sohlen beim Sitzen.
+    ///
+    /// Seit dem Karrenumbau (Teil d) stehen die vier Zugtiere (<c>tiere/tier_&lt;pferd|ochse&gt;_&lt;fell&gt;.glb</c>) hinter den Menschen in derselben Liste:
+    /// gebacken, zwischengespeichert und gezeichnet wird mit derselben Pipeline; <paramref name="Klips"/> ist ihre eigene Clipliste (null: <see cref="ProbeKlips"/>),
+    /// <c>GehTempo</c> das Tempo (m/s) ihres Clips „Gehen“ bei Takt 1 (Pferd 1,3, Ochse 0,8).
     /// </summary>
-    private sealed record ProbeArtDaten(string Datei, string[] Varianten, float Huefte, float GehTempo, float TragTempo, float Sitzhoehe);
+    /// <param name="Hoehe">Höhe des Modells (Scheitel) in Metern; bei den Völkern ab Art 4 setzt das Spiel den Maßstab = Körpergröße ÷ Hoehe (0 = Menschenmaß, Maßstab aus <see cref="FigurMasse"/>).</param>
+    /// <param name="Schritt">Zusatzfaktor auf Tempo und Takt (kleine Völker gehen kürzere, schnellere Schritte als ihre Beinlänge allein ergäbe).</param>
+    private sealed record ProbeArtDaten(string Datei, string[] Varianten, float Huefte, float GehTempo, float TragTempo, float Sitzhoehe, float Hoehe = 0, float Schritt = 1, string[]? Klips = null);
+
+    /// <summary>Die zwei gebackenen Clips der Zugtiere (Reihenfolge der Zeilen in der VAT-Textur): Stehen (2 Bilder/s) und Gehen (24 Bilder/s). Ziehen, Fressen, die Stehen-Varianten
+    /// und Anfahren/Anhalten backt das Spiel nicht (ab Zoom 50 zeigt das Tier dafür Stehen bzw. Gehen): sonst läge der Tierspeicher bei rund 22 statt 12 MB und die
+    /// Passanten über 100 MB; das Skelett (nah) kennt alle Clips.</summary>
+    private static readonly string[] TierKlips = { "Stehen", "Gehen" };
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
@@ -37,20 +49,115 @@ public partial class Stadtansicht
         // der Oger in Sackleinen (ocker)
         new("figuren/probe/passant_probe_ork", new[] { "wams" }, 0.920f, 1.213f, 0.854f, 0.439f),
         new("figuren/probe/passant_probe_oger", new[] { "sack" }, 0.952f, 1.258f, 0.886f, 0.449f),
+        // Zwerge, Elben, Halblinge (Völker-Passanten): Maße aus dem Bericht von passanten_probe.py (hoehe_m, huefte_m, Tempo, Sitzhöhe)
+        new("figuren/probe/passant_probe_zwerg", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.841f, 0.922f, 0.634f, 0.371f, 1.573f),
+        new("figuren/probe/passant_probe_zwergin", new[] { "haube", "gebende", "bettler" }, 0.756f, 0.804f, 0.556f, 0.307f, 1.479f),
+        new("figuren/probe/passant_probe_elb", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.977f, 1.462f, 1.028f, 0.496f, 1.826f, 1.1f),
+        new("figuren/probe/passant_probe_elbin", new[] { "haube", "gebende", "bettler", "offen" }, 0.839f, 1.220f, 0.848f, 0.445f, 1.635f, 1.08f),
+        new("figuren/probe/passant_probe_halbling", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.881f, 1.009f, 0.697f, 0.373f, 1.675f),
+        new("figuren/probe/passant_probe_halblingin", new[] { "haube", "gebende", "bettler" }, 0.781f, 0.850f, 0.601f, 0.313f, 1.532f),
+        // Zugtiere (Karren-Umbau Teil d, Art 4 bis 7): zwei Felle je Tier; Netze „Nah_<tier>“ und „Fern_<tier>“, Tempo des Clips „Gehen“ in m/s
+        new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_ochse_rotbraun", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_ochse_falb", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
     };
+
+    /// <summary>Körpergröße in Metern (Mitte der Spanne, je Figur ±5 cm gestreut): Zwerg 1,30–1,40, Elb 1,80–1,90, Halbling 1,05–1,15; Frauen 5 % kleiner.</summary>
+    private static float ProbeKoerpergroesse(Volk volk, bool frau, int nummer)
+    {
+        var mitte = volk switch { Volk.Zwerg => 1.35f, Volk.Elb => 1.85f, _ => 1.10f };
+        var streu = ((Streuung(nummer, 307) & 0xFFFF) / 65535f - 0.5f) * 0.10f;
+        return (mitte + streu) * (frau ? FrauenGroesse : 1f);
+    }
+
+    /// <summary>Ist die Probefigur ein Zwerg, Elb oder Halbling (Art 4 bis 9, eigene Proportionen und Größe)?</summary>
+    private static bool ProbeKleinesVolk(int art) => art is >= 4 and < ProbeErsteTierart;
+
+    /// <summary>Erbgut der Passanten (fester Startwert aus Volk und Nummer, nichts im Spielstand): daraus Bartform und Bartwuchs.</summary>
+    private static readonly Dictionary<(Volk, int), Erbgut> _probeErbgut = new();
+    private static Erbgut ProbeErbgut(Volk volk, int nummer)
+    {
+        if (!_probeErbgut.TryGetValue((volk, nummer), out var e))
+            _probeErbgut[(volk, nummer)] = e = Erbgut.Wuerfeln(Erbgutvorlage.Standard, 7000 + nummer, volk);
+        return e;
+    }
+
+    /// <summary>
+    /// Bartnetz nach Erbgut (<c>SichtbarerWert("bartwuchs", Geschlecht)</c>, Form aus „bartform“) – nur Zwerge. Männer: Vollbart, geflochten mit einem Zopf
+    /// oder zwei Zöpfen (je ein Drittel der Form). Zwerginnen: meist bartlos (Wert unter 120), ab 120 ein kurzer Bart, ab 180 (selten) geflochten
+    /// – so die Vorgabe des Nutzers; das Spielbuch (erbgut.md) schreibt den Zwerginnen noch häufiger einen Bart zu.
+    /// </summary>
+    private static string? ProbeBartnetzFuer(FigurAussehen a, int nummer)
+    {
+        if (a.Volk != Volk.Zwerg) return null;
+        var gene = ProbeErbgut(a.Volk, nummer);
+        var wuchs = gene.SichtbarerWert("bartwuchs", a.Frau ? Geschlecht.Frau : Geschlecht.Mann);
+        if (a.Frau) return wuchs >= 180 ? "bartzopf" : wuchs >= 120 ? "bartkurz" : null;
+        return (gene.SichtbarerWert("bartform") * 3 / 256) switch { 0 => "bart", 1 => "bartzopf", _ => "bartgabel" };
+    }
+
+    /// <summary>
+    /// Bartton nach Erbgut: etwas dunkler als das Kopfhaar, mit „haar_rot“ röter (Bärte sind oft rötlicher als das Haar); graues Haar bleibt grau,
+    /// nur eine Spur dunkler. Zwerge tragen ihren Bart in diesem Ton, nicht in der Haarfarbe.
+    /// </summary>
+    private static Color ProbeBartton(Color haar, Volk volk, int nummer)
+    {
+        var rot = ProbeErbgut(volk, nummer).SichtbarerWert("haar_rot") / 255f;
+        if (haar == ProbeGrau || haar == GrauesHaar) return new Color(haar.R * 0.92f, haar.G * 0.92f, haar.B * 0.92f);
+        return new Color(Math.Min(1f, haar.R * (0.88f + 0.30f * rot)), haar.G * (0.76f - 0.10f * rot), haar.B * (0.68f - 0.14f * rot));
+    }
+
+    /// <summary>
+    /// Der Bart bekommt im Alpha seiner Eckenfarbe den Abstand von der Oberkante in Vierteln eines Meters (0 = Oberlippe, 1 = 25 cm tiefer): so kann
+    /// der Shader den Übergang zur Haut, die Mundfuge zwischen Schnurrbart und Vollbart und die Strähnen ohne Blender zeichnen
+    /// (<c>figur.gdshader</c>, <c>figur_vat.gdshader</c>).
+    /// </summary>
+    private static Color[] ProbeBartAbstand(Godot.Collections.Array arrays)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var farben = arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var oben = ecken.Max(e => e.Y);
+        return farben.Select((c, i) => new Color(c.R, c.G, c.B, Math.Clamp((oben - ecken[i].Y) / 0.25f, 0f, 1f))).ToArray();
+    }
+
+    private static readonly Dictionary<Mesh, ArrayMesh> _probeBartNetze = new();
+    /// <summary>Das Bartnetz mit dem Abstand im Alpha (einmal je Netz der Datei).</summary>
+    private static Mesh ProbeBartNetz(Mesh netz)
+    {
+        if (_probeBartNetze.TryGetValue(netz, out var fertig)) return fertig;
+        var arrays = netz.SurfaceGetArrays(0);
+        arrays[(int)Mesh.ArrayType.Color] = ProbeBartAbstand(arrays);
+        var neu = new ArrayMesh();
+        neu.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        return _probeBartNetze[netz] = neu;
+    }
+
+    private readonly Dictionary<(ShaderMaterial, Color), ShaderMaterial> _probeBartTonStoffe = new();
+
+    /// <summary>Erste Art der Zugtiere in <see cref="ProbeArten"/> (davor vier Menschen- und sechs Völkerarten).</summary>
+    private const int ProbeErsteTierart = 10;
+
+    /// <summary>Die Clips einer Art: die der Menschen oder die der Zugtiere.</summary>
+    private static string[] ProbeKlipsVon(int art) => ProbeArten[art].Klips ?? ProbeKlips;
 
     /// <summary>Datei der Probe nach Volk und Geschlecht: Orks und Oger haben eigene Dateien (auch Frauen nehmen sie: es gibt nur Männer).</summary>
     /// <summary>Netze der Ork- und Oger-Dateien, die nie gezeigt werden (die Dateien enthalten alle Netze des gemeinsamen Bauskripts).</summary>
     private static readonly HashSet<string> ProbeUnfreiOhne = new(StringComparer.Ordinal) { "Fuss_halb", "Fuss_holz", "Zub_stroh", "Zub_barett", "Zub_eisenhut" };
 
-    private static int ProbeArtVon(FigurAussehen a) => a.Volk switch { Volk.Ork => 2, Volk.Oger => 3, _ => a.Frau ? 1 : 0 };
+    private static int ProbeArtVon(FigurAussehen a) => a.Volk switch
+    {
+        Volk.Ork => 2, Volk.Oger => 3,
+        Volk.Zwerg => a.Frau ? 5 : 4, Volk.Elb => a.Frau ? 7 : 6, Volk.Halbling => a.Frau ? 9 : 8,
+        _ => a.Frau ? 1 : 0,
+    };
 
     /// <summary>Lederwams und Sackleinen der Orks und Oger (sRGB): Leder braun, Sackleinen ungefärbt.</summary>
     private static readonly Color[] ProbeLeder = { new(0.34f, 0.24f, 0.15f), new(0.28f, 0.20f, 0.13f), new(0.40f, 0.30f, 0.19f), new(0.22f, 0.17f, 0.12f) };
     private static readonly Color[] ProbeSackleinen = { new(0.62f, 0.50f, 0.30f), new(0.58f, 0.49f, 0.33f), new(0.66f, 0.55f, 0.36f) }; // hell bis ocker
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
-    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken", "Kauern", "Betteln" };
+    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken", "Kauern", "Betteln", "Ziehen", "Nebenhergehen", "SitzenBock" };
 
     /// <summary>Fußformen (eigene Netze „Fuss_&lt;form&gt;“, nah und fern dieselben): Halbschuh aus Leder, Holzschuh, barfuß (nur Bettler).</summary>
     private static readonly string[] ProbeFussformen = { "halb", "holz", "barfuss" };
@@ -63,8 +170,19 @@ public partial class Stadtansicht
     private const int ProbeVatBilder = 12;
 
     /// <summary>Bilder je Sekunde eines Clips: „Hacken“ ist schnell (bei 12 Bildern/s lag die Axthand zwischen zwei Bildern bis 40 cm daneben)
-    /// und bleibt bei 24, alle übrigen 12.</summary>
-    private static int ProbeVatBilderFuer(string klip) => klip == "Hacken" ? 24 : ProbeVatBilder;
+    /// und bleibt bei 24 (kleine Völker 12). Langsame Clips (Sitzen, Kauern, Betteln, der Bock-Fahrer) brauchen nur 6: ihre Zeilen in der Textur halbieren sich bei
+    /// höchstens 3,5 mm Abweichung (der Shader mischt zwischen zwei Bildern, Messwerte mit <c>--probepruefen=1</c>); so bleiben die Zieher-Clips
+    /// unter 100 MB. Alle übrigen 12, bei Zwergen, Elben und Halblingen (Art 4 bis 9) nur 8: spart etwa ein Drittel der Texturen; die VAT zeigt sie erst ab Zoom 50.</summary>
+    private static double ProbeVatBilderFuer(string klip, int art = 0) => klip switch
+    {
+        "Hacken" => ProbeKleinesVolk(art) ? ProbeVatBilder : 24,
+        "Sitzen" or "Kauern" or "Betteln" or "SitzenBock" => ProbeVatBilder / 2,
+        "Stehen" when art >= ProbeErsteTierart => 1.0 / 3, // das Tier steht und atmet (6 s Schleife): 2 Bilder, der Shader mischt (Dreieckswelle)
+        "Gehen" or "Ziehen" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
+        _ => ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder,
+    };
+
+    private const int ProbeVatBilderKleineVoelker = 8;
 
     private static readonly string? ProbeOption = Wasserarten.Startoption("passantenprobe");
     /// <summary>Sind die Passanten Figuren mit Skelett (Weg A)? Seit Schritt 5 des Vollausbaus der Normalfall; <c>--passantenprobe=0</c> holt die
@@ -74,6 +192,9 @@ public partial class Stadtansicht
     /// steht eine Messzeile im Protokoll.</summary>
     private static readonly bool ProbeErsetztAlle = ProbeOption is not null && ProbeAktiv;
     private static readonly int ProbeMessfigurenZahl = int.TryParse(ProbeOption, out var n) && n > 1 ? n : 0;
+    private static readonly Volk? ProbeVolkErzwingen = Enum.TryParse<Volk>(Wasserarten.Startoption("passantenvolk"), true, out var erzwungenesVolk) ? erzwungenesVolk : null;
+    private static readonly string? ProbeVoelkerMischen = Wasserarten.Startoption("passantenvoelker");
+    private static readonly bool ProbeFrauenErzwingen = Wasserarten.Startoption("passantenfrau") == "1";
     private static readonly string ProbeStufe = Wasserarten.Startoption("probestufe") ?? "auto";
     /// <summary><c>--probeklip=&lt;Clip&gt;</c>: alle Messfiguren mit diesem Clip (z. B. Buecken, Kauern, Betteln), zum Ansehen einzelner Bewegungen.</summary>
     private static readonly string? ProbeKlipOption = Wasserarten.Startoption("probeklip");
@@ -83,7 +204,7 @@ public partial class Stadtansicht
     private bool _probeFern, _probeVatVersucht;
 
     /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer, bool Bart);
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer, bool Bart, int BartFarbe = 0);
 
     /// <summary>Figurstoffe mit Bart (Zone 6 in Haarfarbe), je Stoff ohne Bart einmal angelegt.</summary>
     private readonly Dictionary<ShaderMaterial, ShaderMaterial> _probeBartStoffe = new();
@@ -146,18 +267,30 @@ public partial class Stadtansicht
     /// </summary>
     private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null)
     {
+        // Zum Ansehen: --passantenvolk=<Zwerg|Elb|Halbling|Mensch|Ork|Oger> macht alle Passanten zu diesem Volk, --passantenfrau=1 alle zu Frauen
+        if (ProbeVolkErzwingen is { } erzwungen) aussehen = aussehen with { Volk = erzwungen };
+        if (ProbeFrauenErzwingen) aussehen = aussehen with { Frau = true };
         var art = ProbeArtVon(aussehen);
         var daten = ProbeArten[art];
-        var unfrei = art >= 2; // Orks und Oger
+        var unfrei = art is 2 or 3; // Orks und Oger
         if (Modell(daten.Datei) is not { } szene) return null;
         var bettler = rolle == "Bettler";
         var variante = Array.IndexOf(daten.Varianten, bettler ? "bettler"
             : !aussehen.Frau && rolle == "Mönch" ? "kutte" : !aussehen.Frau && rolle == "Ratsherr" ? "rock" : "");
         if (variante < 0) variante = unfrei ? 0 : ProbeVarianteFuer(aussehen, nummer);
+        // Elbinnen tragen das Haar oft offen (statt Haube), wenn nichts auf dem Kopf sitzt
+        if (art == 7 && daten.Varianten[variante] == "haube" && aussehen.Kopf == Kopfbedeckung.Keine && Streuung(nummer, 311) % 2 == 0)
+            variante = Array.IndexOf(daten.Varianten, "offen");
         var fuss = unfrei ? 2 : ProbeFussFuer(rolle, nummer); // Orks und Oger barfuß
         var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
+        if (ProbeBartnetzFuer(aussehen, nummer) is { } bartnetz) zubehoer = zubehoer.Append(bartnetz).ToArray();
+        // Elben: langes Haar fällt über den Rücken, wo nichts die Haare verdeckt (Kappe der Männer, offene Haare der Elbinnen)
+        if (aussehen.Volk == Volk.Elb && daten.Varianten[variante] is "cotte" or "rock" or "bettler" && !aussehen.Frau || aussehen.Volk == Volk.Elb && daten.Varianten[variante] == "offen")
+            zubehoer = zubehoer.Append("langhaar").ToArray();
         // Bart bzw. Stoppeln (Vorlage 09.11.): zwei von drei Männern, nicht bei Mönchen – Zone 6 der Gesichtshaut in Haarfarbe statt Haut
-        var bart = art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0;
+        var bart = art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0
+            || art == 4 // Zwerge: immer Bartzone auf den Wangen (unter dem Bartnetz)
+            || art == 8 && ProbeErbgut(aussehen.Volk, nummer).SichtbarerWert("bartwuchs", Geschlecht.Mann) >= 55; // Halblinge: nur mit kräftigem Wuchs Stoppeln
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
         var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
         // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
@@ -171,11 +304,14 @@ public partial class Stadtansicht
                 : aussehen.Frau && daten.Varianten[variante] is "haube" or "bettler" ? ProbeHauben[Streuung(nummer, 227) % ProbeHauben.Length]
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
-            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
+            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeKleinesVolk(art) ? Haarfarben(aussehen.Volk)[Streuung(nummer, 239) % Haarfarben(aussehen.Volk).Length]
+                : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
         };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
         // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
         var massstab = huefte / 0.92f * groesse.Y;
+        // Zwerge, Elben, Halblinge: eigenes Modell mit eigenen Proportionen, der Maßstab bringt es auf die Körpergröße des Volks
+        if (ProbeKleinesVolk(art)) massstab = ProbeKoerpergroesse(aussehen.Volk, aussehen.Frau, nummer) / daten.Hoehe;
         var modell = szene.Instantiate<Node3D>();
         modell.Scale = Vector3.One * massstab;
         eltern.AddChild(modell);
@@ -188,7 +324,7 @@ public partial class Stadtansicht
         {
             Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler,
             ProbeRuecklast = zubehoer.Contains("kiepe") || zubehoer.Contains("buendel"),
-            Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
+            Beinfaktor = daten.Huefte / 0.92f * massstab * daten.Schritt, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
         if (bart)
@@ -201,18 +337,32 @@ public partial class Stadtansicht
             }
             stoff = mitBart;
         }
+        var bartton = ProbeBartton(aussehen.Haar, aussehen.Volk, nummer);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
             if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug"
                 && !(name.StartsWith("Zub_") && zubehoer.Contains(name[4..]))) { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
+            if (name.StartsWith("Zub_bart") && teil.Mesh is ArrayMesh bartMesh)
+            {
+                teil.Mesh = ProbeBartNetz(bartMesh);
+                if (!_probeBartTonStoffe.TryGetValue((stoff, bartton), out var bartStoff))
+                {
+                    bartStoff = (ShaderMaterial)stoff.Duplicate();
+                    bartStoff.SetShaderParameter("bartnetz", true);
+                    bartStoff.SetShaderParameter("haar", bartton);
+                    _probeBartTonStoffe[(stoff, bartton)] = bartStoff;
+                }
+                teil.MaterialOverride = bartStoff;
+            }
             if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart);
-        if (_probeVat) modell.Visible = false;
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, bart ? ProbeFarbe(bartton) : 0);
+        ProbeArtAnfordern(art);
+        if (_probeVat && ProbeArtGebacken(art)) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
     }
@@ -225,7 +375,7 @@ public partial class Stadtansicht
     private static int ProbeFussFuer(string? rolle, int nummer) => rolle switch
     {
         "Bettler" => 2,
-        "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" => 1,
+        "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" or "Fuhrmann" => 1,
         null => (int)(Streuung(nummer, 241) % 2),
         _ => 0,
     };
@@ -314,7 +464,7 @@ public partial class Stadtansicht
     {
         var auswahl = !ProbeFarbenNachRolle ? null : rolle switch
         {
-            "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" or "Torwächter" => ProbeFarbenArme,
+            "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" or "Torwächter" or "Fuhrmann" => ProbeFarbenArme,
             "Krämer" => ProbeFarbenHandel,
             _ => null,
         };
@@ -335,7 +485,15 @@ public partial class Stadtansicht
         string klip;
         float probeTakt;
         var daten = ProbeArten[f.ProbeArt];
-        if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
+        if (bewegung is "Ziehen" or "Nebenhergehen" && takt >= ProbeStehenUnterTakt)
+        {
+            // Zieher am Handkarren und Läufer am Ochsen (Karren-Umbau Teil d): Clips aus „Gehen“, dieselbe Schrittweite
+            klip = bewegung;
+            probeTakt = takt * GehenTempo * f.Beinfaktor / (daten.GehTempo * f.Modell.Scale.Y);
+        }
+        else if (bewegung is "Ziehen" or "Nebenhergehen") { klip = "Stehen"; probeTakt = 1; }
+        else if (bewegung == "SitzenBock") { klip = bewegung; probeTakt = 1; } // der Kutscher auf dem Bock (auch beim Halt)
+        else if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
         {
             var grund = bewegung switch { "Eilen" => EilenTempo, "Gebeugt" => GebeugtTempo, "Tragen" => TragenTempo, _ => GehenTempo };
             klip = bewegung == "Tragen" && !f.ProbeRuecklast ? "Tragen" : "Gehen"; // Kiepe und Bündel trägt man auf dem Rücken: die Arme gehen frei
@@ -360,7 +518,7 @@ public partial class Stadtansicht
         f.Dauer = Math.Max(0.1, f.Spieler.GetAnimation(klip).Length);
         f.Phase = (Streuung(f.Nummer, 131) & 0xFFFF) / 65536.0 * f.Dauer;
         f.Neu = true;
-        f.Langsam = klip is "Stehen" or "Sitzen" or "Kauern";
+        f.Langsam = klip is "Stehen" or "Sitzen" or "Kauern" or "SitzenBock";
     }
 
 
@@ -373,6 +531,7 @@ public partial class Stadtansicht
     {
         if (!ProbeAktiv) return;
         ProbeEgoNahSetzen();
+        ProbeNachbacken();
         // Gebacken wird hinter dem Ladebalken (Aufbauen); fehlt das (Tests, Werkzeuge), hier auf einmal
         if (_probeVatNetze is null && !_probeVatVersucht && ProbeStufe != "skelett") ProbeVatBacken();
         var vat = ProbeStufe switch
@@ -388,7 +547,7 @@ public partial class Stadtansicht
         foreach (var f in _probeTrachten.Keys)
         {
             if (!IsInstanceValid(f.Modell)) continue;
-            f.Modell.Visible = !vat;
+            f.Modell.Visible = !(vat && ProbeArtGebacken(f.ProbeArt));
             f.Neu = true; // beim Zurück zum Skelett gleich die richtige Pose
         }
         GD.Print($"[passantenprobe] Stufe {(vat ? "VAT" : "Skelett")} bei Zoom {_kamera.Size:0}");
@@ -411,7 +570,7 @@ public partial class Stadtansicht
     /// <summary>Gebackene Netze, Schlüssel „&lt;Art&gt;:&lt;Netzname&gt;“ (Art 0 Mann, 1 Frau).</summary>
     private Dictionary<string, ProbeVatNetz>? _probeVatNetze;
     /// <summary>Je Art: erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
-    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = ProbeArten.Select(_ => new (int, int)[ProbeKlips.Length]).ToArray();
+    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = ProbeArten.Select(_ => new (int, int)[16]).ToArray();
 
     /// <summary>
     /// Backt alle Netze aller Probedateien auf einmal (Ersatz, falls der Ladebildschirm es nicht schon getan hat, z. B. in Tests); sonst läuft es in
@@ -435,18 +594,157 @@ public partial class Stadtansicht
         _probeVatVersucht = true;
         var uhr = Stopwatch.StartNew();
         _probeVatNetze = new();
+        Array.Clear(_probeArtFertigStatisch);
         _probeVatAusSpeicher = 0;
         _probeVatBytes = 0;
-        for (var art = 0; art < ProbeArten.Length; art++)
+        // Nur Mensch, Ork, Oger und die Zugtiere gleich; Zwerge, Elben und Halblinge (Art 4 bis 9) erst, wenn die erste Figur der Art erscheint (ProbeArtAnfordern)
+        var sofort = Enumerable.Range(0, ProbeArten.Length).Where(ProbeSofort).ToArray();
+        for (var i = 0; i < sofort.Length; i++)
+        {
+            var art = sofort[i];
             foreach (var anteil in ProbeVatBackenArt(art))
-                yield return (art + anteil) / ProbeArten.Length;
+                yield return (i + anteil) / sofort.Length;
+            _probeArtFertig[art] = true;
+            if (Wasserarten.Startoption("probepruefen") is "1") GD.Print($"[passantenprobe] VAT-Speicher nach {ProbeArten[art].Datei}: {_probeVatBytes / 1048576.0:0.0} MB");
+        }
         _probePaletteNeu = true;
         GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, davon {_probeVatAusSpeicher} aus dem Zwischenspeicher, " +
                  $"Texturen {_probeVatBytes / 1048576.0:0.0} MB, {ProbeVatBilder} Bilder/s, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[0][i].Bilder}"))} Bilder)");
     }
 
+    /// <summary>Gebackene Zugtiernetze der ersten Datei einer Tierart, von der zweiten (anderes Fell) mitbenutzt: Schlüssel „&lt;Tier&gt;/&lt;Netz&gt;“.</summary>
+    private readonly Dictionary<string, (Dictionary<(int, int, int, int, int, int), List<int>> Spalten, int Zeilen, ProbeVatDaten Daten, ImageTexture Lage, ImageTexture Richtung)> _tierVatGeteilt = new();
+
+    /// <summary>
+    /// Verschweißt die Ecken eines Tiernetzes, die sich nur in der UV unterscheiden: Lage, Normale, Farbe, Knochen und Gewichte gleich heißt dieselbe Spalte in der VAT-Textur.
+    /// Der Importer von Godot trennt Ecken an jeder UV-Naht (Pferd Nah 16 381 statt 8 713, Fern 2 783 statt 1 360), der Shader <c>tier_vat.gdshader</c> liest aber nur Farbe und
+    /// UV2. Die UV entfällt im Ergebnis. Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
+    /// </summary>
+    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+        var farben = arrays[(int)Mesh.ArrayType.Color].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var knochen = arrays[(int)Mesh.ArrayType.Bones].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
+        var gewichte = arrays[(int)Mesh.ArrayType.Weights].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
+        var index = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
+        var je = knochen is null ? 0 : knochen.Length / ecken.Length; // 4 oder 8 Knochen je Ecke
+        var bekannt = new Dictionary<string, int>();
+        var neu = new List<int>(); // alte Eckennummer des ersten Vorkommens je neuer Ecke
+        var zuNeu = new int[ecken.Length];
+        for (var e = 0; e < ecken.Length; e++)
+        {
+            var sb = new System.Text.StringBuilder(96);
+            void Zahl(float f) => sb.Append(BitConverter.SingleToInt32Bits(f)).Append(',');
+            Zahl(ecken[e].X); Zahl(ecken[e].Y); Zahl(ecken[e].Z);
+            Zahl(normalen[e].X); Zahl(normalen[e].Y); Zahl(normalen[e].Z);
+            if (farben is not null) { Zahl(farben[e].R); Zahl(farben[e].G); Zahl(farben[e].B); Zahl(farben[e].A); }
+            for (var k = 0; k < je; k++) sb.Append(knochen![e * je + k]).Append(',');
+            for (var k = 0; k < je; k++) Zahl(gewichte![e * je + k]);
+            var schluessel = sb.ToString();
+            if (!bekannt.TryGetValue(schluessel, out var nr)) { bekannt[schluessel] = nr = neu.Count; neu.Add(e); }
+            zuNeu[e] = nr;
+        }
+        var ergebnis = new Godot.Collections.Array();
+        ergebnis.Resize((int)Mesh.ArrayType.Max);
+        ergebnis[(int)Mesh.ArrayType.Vertex] = neu.Select(e => ecken[e]).ToArray();
+        ergebnis[(int)Mesh.ArrayType.Normal] = neu.Select(e => normalen[e]).ToArray();
+        if (farben is not null) ergebnis[(int)Mesh.ArrayType.Color] = neu.Select(e => farben[e]).ToArray();
+        if (knochen is not null)
+        {
+            ergebnis[(int)Mesh.ArrayType.Bones] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => knochen[e * je + k])).ToArray();
+            ergebnis[(int)Mesh.ArrayType.Weights] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => gewichte![e * je + k])).ToArray();
+        }
+        ergebnis[(int)Mesh.ArrayType.Index] = index.Select(i => zuNeu[i]).ToArray();
+        return ergebnis;
+    }
+
+    /// <summary>Schlüssel einer Ecke (Ort auf 0,1 mm, Normale auf 0,01): die Importe zweier Dateien gleichen Netzes ordnen die Ecken verschieden an.</summary>
+    private static (int, int, int, int, int, int) EckenSchluessel(Vector3 ort, Vector3 normale) =>
+        ((int)Math.Round(ort.X * 10000), (int)Math.Round(ort.Y * 10000), (int)Math.Round(ort.Z * 10000),
+         (int)Math.Round(normale.X * 100), (int)Math.Round(normale.Y * 100), (int)Math.Round(normale.Z * 100));
+
+    /// <summary>Ordnet jeder Ecke der zweiten Datei die Spalte derselben Ecke in den geteilten Texturen zu; null, wenn eine Ecke fehlt (kommt sie öfter vor als in der ersten Datei, etwa weil das andere Fell eine Farbnaht mehr hat, nimmt sie dieselbe Spalte noch einmal: gleicher Ort, gleiche Normale, gleiche Lage in jedem Bild).</summary>
+    private static float[]? EckenZuordnen(Dictionary<(int, int, int, int, int, int), List<int>> spalten, Vector3[] ecken, Vector3[] normalen)
+    {
+        var aus = new float[ecken.Length];
+        var genommen = new Dictionary<(int, int, int, int, int, int), int>();
+        for (var i = 0; i < ecken.Length; i++)
+        {
+            var schluessel = EckenSchluessel(ecken[i], normalen[i]);
+            if (!spalten.TryGetValue(schluessel, out var liste))
+            {
+                // Das Fernnetz (Decimate) setzt bei dem anderen Fell ab und zu eine Ecke um Millimeter anders: dann nimmt sie die Spalte der nächsten Ecke der ersten Datei (höchstens 2 cm entfernt)
+                var beste = float.MaxValue;
+                foreach (var (k, l) in spalten)
+                {
+                    var d = new Vector3(k.Item1 - schluessel.Item1, k.Item2 - schluessel.Item2, k.Item3 - schluessel.Item3).Length() / 10000f;
+                    if (d < beste) (beste, liste) = (d, l);
+                }
+                if (beste > 0.02f || liste is null) return null;
+                schluessel = spalten.Keys.First(k => ReferenceEquals(spalten[k], liste));
+            }
+            genommen.TryGetValue(schluessel, out var n);
+            genommen[schluessel] = n + 1;
+            aus[i] = liste[n % liste.Count] + 0.5f; // Ecken mit gleichem Ort und gleicher Normale (Haarkarten) sind austauschbar
+        }
+        return aus;
+    }
+
     private int _probeVatAusSpeicher;
     private long _probeVatBytes;
+
+    /// <summary>Die ersten Arten (Mensch, Ork, Oger) backt der Ladebalken; die kleinen Völker folgen nach Bedarf.</summary>
+    private const int ProbeSofortArten = 4;
+    /// <summary>Arten, die beim Laden gebacken werden: Mensch, Ork, Oger und alle Zugtiere (die kleinen Völker erst auf Anforderung).</summary>
+    private static bool ProbeSofort(int art) => art < ProbeSofortArten || art >= ProbeErsteTierart;
+    private static readonly bool[] _probeArtFertigStatisch = new bool[ProbeArten.Length]; // wie _probeVat statisch (FigurBewegen ist statisch)
+    private bool[] _probeArtFertig => _probeArtFertigStatisch;
+    private readonly Queue<int> _probeArtWarteschlange = new();
+    private IEnumerator<float>? _probeArtLauf;
+    private int _probeArtLaeuft = -1;
+    private Stopwatch? _probeArtUhr;
+    /// <summary>Wie viele Millisekunden je Bild höchstens ins Nachbacken einer Art gehen (ein Netz je Schritt, beim Zwischenspeicher fast nichts).</summary>
+    private const double ProbeNachbackenMs = 4.0;
+
+    /// <summary>Ist die Art gebacken (das MultiMesh zeichnet sie)? Vorher bleibt das Skelett sichtbar.</summary>
+    private bool ProbeArtGebacken(int art) => _probeVatNetze is not null && art >= 0 && art < _probeArtFertig.Length && _probeArtFertig[art];
+
+    /// <summary>Merkt eine Art zum Backen vor, sobald die erste Figur von ihr erscheint (Zwerg, Elb, Halbling, je Mann und Frau).</summary>
+    private void ProbeArtAnfordern(int art)
+    {
+        if (!ProbeAktiv || ProbeStufe == "skelett" || ProbeSofort(art) || _probeArtFertig[art] || _probeArtLaeuft == art || _probeArtWarteschlange.Contains(art)) return;
+        _probeArtWarteschlange.Enqueue(art);
+    }
+
+    /// <summary>Jedes Bild: die wartende Art ein Stück weiterbacken (höchstens <see cref="ProbeNachbackenMs"/>), ohne Ruckler.</summary>
+    private void ProbeNachbacken()
+    {
+        if (_probeVatNetze is null) return;
+        var uhr = Stopwatch.StartNew();
+        while (uhr.Elapsed.TotalMilliseconds < ProbeNachbackenMs)
+        {
+            if (_probeArtLauf is null)
+            {
+                if (!_probeArtWarteschlange.TryDequeue(out var art)) return;
+                _probeArtLaeuft = art;
+                _probeArtLauf = ProbeVatBackenArt(art).GetEnumerator();
+                _probeArtUhr = Stopwatch.StartNew();
+                _probeVatAusSpeicher = 0;
+            }
+            if (_probeArtLauf.MoveNext()) continue;
+            var fertig = _probeArtLaeuft;
+            _probeArtLauf.Dispose();
+            _probeArtLauf = null;
+            _probeArtLaeuft = -1;
+            _probeArtFertig[fertig] = true;
+            _probePaletteNeu = true;
+            GD.Print($"[passantenprobe] Art {fertig} ({ProbeArten[fertig].Datei}) nachgebacken in {_probeArtUhr!.ElapsedMilliseconds} ms Gesamtzeit ({_probeVatAusSpeicher} Netze aus dem Zwischenspeicher), Texturen jetzt {_probeVatBytes / 1048576.0:0.0} MB");
+            if (_probeVat)
+                foreach (var f in _probeTrachten.Keys)
+                    if (IsInstanceValid(f.Modell) && f.ProbeArt == fertig && !f.ProbeNah) f.Modell.Visible = false;
+        }
+    }
 
     private IEnumerable<float> ProbeVatBackenArt(int art)
     {
@@ -464,9 +762,12 @@ public partial class Stadtansicht
 
             // Zeilen je Clip (billig); die Knochenhaltungen je Bild erst, wenn ein Netz wirklich gerechnet werden muss
             var zeilen = 0;
-            for (var c = 0; c < ProbeKlips.Length; c++)
+            var klips = ProbeKlipsVon(art);
+            if (art >= ProbeErsteTierart) Zugtierdaten.KlipsEinrichten(spieler, TierNameVon(art)); // Länge = Dauer der Datei (Godot nennt Schleifen um 1/24 s zu lang)
+            foreach (var klip in klips) spieler.GetAnimation(klip).LoopMode = Animation.LoopModeEnum.Linear;
+            for (var c = 0; c < klips.Length; c++)
             {
-                var bilder = Math.Max(1, (int)Math.Round(spieler.GetAnimation(ProbeKlips[c]).Length * ProbeVatBilderFuer(ProbeKlips[c])));
+                var bilder = Math.Max(1, (int)Math.Round(spieler.GetAnimation(klips[c]).Length * ProbeVatBilderFuer(klips[c], art)));
                 _probeKlipZeilen[art][c] = (zeilen, bilder);
                 zeilen += bilder;
             }
@@ -475,10 +776,10 @@ public partial class Stadtansicht
             {
                 if (haltungen is not null) return haltungen;
                 haltungen = new List<Transform3D[]>(zeilen);
-                for (var c = 0; c < ProbeKlips.Length; c++)
+                for (var c = 0; c < klips.Length; c++)
                 {
-                    var anim = spieler.GetAnimation(ProbeKlips[c]);
-                    for (var b = 0; b < _probeKlipZeilen[art][c].Bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilderFuer(ProbeKlips[c]), zuWurzel));
+                    var anim = spieler.GetAnimation(klips[c]);
+                    for (var b = 0; b < _probeKlipZeilen[art][c].Bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilderFuer(klips[c], art), zuWurzel));
                 }
                 return haltungen;
             }
@@ -487,21 +788,35 @@ public partial class Stadtansicht
             var gelesen = ProbeCacheLesen(art, schluessel);
             var geschrieben = new List<ProbeVatDaten>();
             var gerechnet = false;
-            var shader = GD.Load<Shader>("res://assets/shader/figur_vat.gdshader");
+            var tier = art >= ProbeErsteTierart; // Zugtiere: Eckenfarben ohne Zonen und Stoffe (tier_vat.gdshader)
+            var shader = GD.Load<Shader>(tier ? "res://assets/shader/tier_vat.gdshader" : "res://assets/shader/figur_vat.gdshader");
             _passantenEbene ??= NeueEbene();
             var teile = wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()
-                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art >= 2 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
+                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art is 2 or 3 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
             for (var i = 0; i < teile.Count; i++)
             {
                 var teil = teile[i];
                 var netz = (ArrayMesh)teil.Mesh;
                 var skin = teil.Skin!;
                 var arrays = netz.SurfaceGetArrays(0);
+                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
                 var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
                 var name = teil.Name.ToString();
                 ProbeVatDaten daten;
-                if (gelesen is not null && gelesen.TryGetValue(name, out var aus) && aus.Ecken == ecken.Length && aus.Zeilen == zeilen)
+                // Zwei Felle derselben Tierart haben dasselbe Netz und dasselbe Skelett (nur die Eckenfarben unterscheiden sich): Lage und Normale
+                // der zweiten Datei sind die der ersten (Texturen geteilt, kein zweites Mal gerechnet und gezählt): spart die Hälfte des Tierspeichers
+                var teilenSchluessel = art >= ProbeErsteTierart ? $"{TierNameVon(art)}/{name}" : null;
+                ImageTexture? geteilteLage = null, geteilteRichtung = null;
+                float[]? spaltenNummer = null; // Spalte jeder Ecke in den geteilten Texturen (null: die Ecken stehen in eigener Reihenfolge)
+                if (teilenSchluessel is not null && _tierVatGeteilt.TryGetValue(teilenSchluessel, out var geteilt) && geteilt.Zeilen == zeilen && EckenZuordnen(geteilt.Spalten, ecken, normalen) is { } zuordnung)
+                {
+                    daten = geteilt.Daten;
+                    geteilteLage = geteilt.Lage;
+                    geteilteRichtung = geteilt.Richtung;
+                    spaltenNummer = zuordnung;
+                }
+                else if (gelesen is not null && gelesen.TryGetValue(name, out var aus) && aus.Ecken == ecken.Length && aus.Zeilen == zeilen)
                 {
                     daten = aus;
                     _probeVatAusSpeicher++;
@@ -514,29 +829,45 @@ public partial class Stadtansicht
                         ProbeZwischenbildFehler(art, name, arrays, skin, skelett, spieler, zuWurzel);
                 }
                 geschrieben.Add(daten);
-                _probeVatBytes += daten.Lage.Length + daten.Richtung.Length;
+                if (geteilteLage is null) _probeVatBytes += daten.Lage.Length + daten.Richtung.Length;
 
                 // Netz ohne Knochen, Eckennummer in UV2.x
                 var neu = new Godot.Collections.Array();
                 neu.Resize((int)Mesh.ArrayType.Max);
                 neu[(int)Mesh.ArrayType.Vertex] = ecken;
                 neu[(int)Mesh.ArrayType.Normal] = normalen;
-                neu[(int)Mesh.ArrayType.Color] = arrays[(int)Mesh.ArrayType.Color];
-                neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
-                neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(e => new Vector2(e + 0.5f, 0)).ToArray();
+                neu[(int)Mesh.ArrayType.Color] = name.StartsWith("Zub_bart") ? ProbeBartAbstand(arrays) : arrays[(int)Mesh.ArrayType.Color];
+                if (arrays[(int)Mesh.ArrayType.TexUV].VariantType != Variant.Type.Nil) neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
+                neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(e => new Vector2(spaltenNummer?[e] ?? e + 0.5f, 0)).ToArray();
                 neu[(int)Mesh.ArrayType.Index] = arrays[(int)Mesh.ArrayType.Index];
                 var vatNetz = new ArrayMesh();
                 vatNetz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, neu);
                 vatNetz.CustomAabb = daten.Kasten.Grow(0.1f);
 
                 var stoff = new ShaderMaterial { Shader = shader };
-                stoff.SetShaderParameter("lage", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, daten.Lage)));
-                stoff.SetShaderParameter("normale", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, daten.Richtung)));
+                var lageTextur = geteilteLage ?? ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, daten.Lage));
+                var richtungTextur = geteilteRichtung ?? ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, daten.Richtung));
+                if (teilenSchluessel is not null && geteilteLage is null) {
+                    var spalten = new Dictionary<(int, int, int, int, int, int), List<int>>();
+                    for (var e = 0; e < ecken.Length; e++)
+                    {
+                        var eckenKey = EckenSchluessel(ecken[e], normalen[e]);
+                        if (!spalten.TryGetValue(eckenKey, out var liste)) spalten[eckenKey] = liste = new List<int>();
+                        liste.Add(e);
+                    }
+                    _tierVatGeteilt[teilenSchluessel] = (spalten, zeilen, daten, lageTextur, richtungTextur);
+                }
+                stoff.SetShaderParameter("lage", lageTextur);
+                stoff.SetShaderParameter("normale", richtungTextur);
+                if (name.StartsWith("Zub_bart")) stoff.SetShaderParameter("bartnetz", true);
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
-                if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
-                stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
-                stoff.SetShaderParameter("stoff_kachel", stoffe.Select(s => s.Kachel).ToArray());
-                stoff.SetShaderParameter("stoff_mittel", stoffe.Select(s => s.Mittel).ToArray());
+                if (!tier)
+                {
+                    if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
+                    stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
+                    stoff.SetShaderParameter("stoff_kachel", stoffe.Select(s => s.Kachel).ToArray());
+                    stoff.SetShaderParameter("stoff_mittel", stoffe.Select(s => s.Mittel).ToArray());
+                }
                 var mm = new MultiMesh
                 {
                     TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseCustomData = true, Mesh = vatNetz,
@@ -555,7 +886,7 @@ public partial class Stadtansicht
                 yield return (i + 1f) / teile.Count;
             }
             if (gerechnet) ProbeCacheSchreiben(art, schluessel, geschrieben);
-            if (Wasserarten.Startoption("probepruefen") is "1") ProbeVatPruefen(wurzel, skelett, spieler, zuWurzel);
+            if (Wasserarten.Startoption("probepruefen") is "1" && art < ProbeErsteTierart) ProbeVatPruefen(wurzel, skelett, spieler, zuWurzel);
         }
         finally
         {
@@ -642,9 +973,9 @@ public partial class Stadtansicht
         foreach (var stufe in new[] { "gebacken", "24" })
         {
             var teile = new List<string>();
-            foreach (var klip in ProbeKlips)
+            foreach (var klip in ProbeKlipsVon(art))
             {
-                var fps = stufe == "24" ? 24 : ProbeVatBilderFuer(klip);
+                var fps = stufe == "24" ? 24 : ProbeVatBilderFuer(klip, art);
                 var anim = spieler.GetAnimation(klip);
                 var bilder = Math.Max(1, (int)Math.Round(anim.Length * fps));
                 var fehler = new List<float>();
@@ -807,6 +1138,7 @@ public partial class Stadtansicht
             foreach (var p in _passanten.Values)
                 if (p.Figur is { Probe: true, ProbeNah: false } f && p.Knoten.Visible) ProbeVatEintragen(f, p.Knoten.Position);
             foreach (var m in _probeMessfiguren) ProbeVatEintragen(m.Figur, m.Knoten.Position);
+            KarrenVatEintragen(); // Zieher und Zugtiere der Karren (Stadtansicht.Zugtiere.cs)
         }
         var schatten = _passantenSchatten ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
         foreach (var v in _probeVatNetze.Values)
@@ -842,7 +1174,7 @@ public partial class Stadtansicht
         Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
-        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben, haar); // Berufszubehör
+        foreach (var z in tracht.Zubehoer) Eintragen($"{tracht.Art}:Zub_{z}", xf, bild, klip + 16f * tracht.Kopf, farben, z.StartsWith("bart") ? tracht.BartFarbe : haar); // Berufszubehör, Bärte im eigenen Ton
         _probeGezeichnet++;
     }
 
@@ -899,13 +1231,13 @@ public partial class Stadtansicht
             && float.TryParse(blick[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var bx)
             && float.TryParse(blick[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var bz))
             mitte = new Vector3(bx, 0, bz);
-        var seite = (int)Math.Ceiling(Math.Sqrt(ProbeMessfigurenZahl));
+        var seite = ProbeVoelkerMischen == "reihe" ? 4 : (int)Math.Ceiling(Math.Sqrt(ProbeMessfigurenZahl)); // „reihe“: vier Spalten (Mensch, Zwerg, Elb, Halbling)
         for (var i = 0; i < ProbeMessfigurenZahl; i++)
         {
             var nummer = 900000 + i;
             var zeile = i / seite;
             var spalte = i % seite;
-            var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * 1.6f);
+            var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * (ProbeVoelkerMischen == "reihe" ? 2.4f : 1.6f));
             var art = ProbeKlipOption ?? (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
             var richtung = zeile % 2 == 0 ? Vector3.Right : Vector3.Left;
             // nicht ins Wasser, nicht in Gebäude, Stände und den Brunnen (NAS 09.11.: Messfiguren im Brunnenbecken am Heumarkt)
@@ -916,8 +1248,12 @@ public partial class Stadtansicht
             _passantenEbene.AddChild(knoten);
             var aussehen = AussehenAusNummer(i * 4 + (i % 7 == 0 ? 1 : 0)); // meist Menschen, Farben gestreut
             var volk = i % 9 == 4 ? Volk.Ork : i % 23 == 5 ? Volk.Oger : Volk.Mensch; // meist Menschen, einige Orks und Oger
-            aussehen = aussehen with { Volk = volk, Frau = volk == Volk.Mensch && aussehen.Frau, Haut = HautVon(volk), Kopf = i % 3 == 0 ? Kopfbedeckung.Kapuze : aussehen.Kopf };
-            if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
+            // --passantenvoelker=1: bunte Mischung mit Zwergen, Elben und Halblingen (je ein Viertel); =reihe: je Spalte ein Volk (Mensch, Zwerg, Elb, Halbling) zum Größenvergleich
+            if (ProbeVoelkerMischen == "reihe") volk = (spalte % 4) switch { 1 => Volk.Zwerg, 2 => Volk.Elb, 3 => Volk.Halbling, _ => Volk.Mensch };
+            if (ProbeVoelkerMischen == "reihe") aussehen = aussehen with { Frau = zeile % 2 == 1 }; // gerade Reihen Männer, ungerade Frauen
+            else if (ProbeVoelkerMischen == "1") volk = (i % 8) switch { 0 or 1 => Volk.Zwerg, 2 or 3 => Volk.Elb, 4 or 5 => Volk.Halbling, _ => Volk.Mensch };
+            aussehen = aussehen with { Volk = volk, Frau = (volk is Volk.Mensch or Volk.Zwerg or Volk.Elb or Volk.Halbling) && aussehen.Frau || ProbeVoelkerMischen == "reihe" && zeile % 2 == 1, Haut = HautVon(volk), Kopf = i % 3 == 0 && ProbeVoelkerMischen != "reihe" ? Kopfbedeckung.Kapuze : aussehen.Kopf };
+            if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 && ProbeVoelkerMischen != "reihe" ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
             if (!_passantenSchatten) FigurSchatten(figur, false);
             var tempo = art == "Tragen" ? 0.9f : 1.3f;
             _probeMessfiguren.Add(new ProbeMessfigur(knoten, figur, anfang, richtung, Math.Max(strecke, 0.01f), tempo, art));

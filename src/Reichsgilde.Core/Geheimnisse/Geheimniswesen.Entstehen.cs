@@ -150,6 +150,7 @@ public sealed partial class Geheimniswesen
             _w.Familien.StressAendern(p, e.EhepartnerStress, $"{partner.Vorname} weiß vom Ehebruch");
             _w.Melden(Meldungsart.Sonstiges, $"Unfriede im Haus {f.Nachname}: {partner.Vorname} hat den Ehebruch von {p.Vorname} entdeckt. " +
                                               "Das bleibt im Haus – aber die Ehe leidet.", haus: f.Konto, person: p, vertraulich: true, geheimnis: g.Art);
+            _w.Familien.ChronikEintragen(f.Konto, Dynastie.Chronikart.Geheimnis, $"{partner.Vorname} entdeckt den Ehebruch von {p.Vorname}.", p, vertraulich: true);
         }
     }
 
