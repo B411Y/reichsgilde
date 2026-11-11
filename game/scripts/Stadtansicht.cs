@@ -220,6 +220,8 @@ public partial class Stadtansicht : Node3D
         public required Betrieb Betrieb { get; init; }
         /// <summary>Wo Karren losfahren und halten: bei Werkstätten mit Modell dessen „Anker_Karren“ (<see cref="KarrenAnker"/>), sonst der Hof vor dem Tor.</summary>
         public required Vector3 Hof { get; set; }
+        /// <summary>Lage der Hofreihe je Weg und Karrenarten (Stadtansicht.KarrenHof.cs): Querlagen, Versatz auf dem Weg, Fahrtrichtung am Hof.</summary>
+        public Dictionary<(Vector3[] Weg, string Typen), (float[] Quer, float Versatz, Vector3 Achse)> KarrenHofLagen { get; } = new();
         /// <summary>
         /// Der Weg der Karren zum Marktplatz ihres Betriebs. Mit Datenversion 65 der Weg des Kerns (<see cref="Stadtwirtschaft.Karrenverlauf"/>: vom Halteplatz
         /// am Modell über Hof und Zubringer bis zum Halt 3,5 m vor dem Pflaster, <see cref="WegVomKern"/>); sonst über das Gassennetz vom Hof bis zur Mitte

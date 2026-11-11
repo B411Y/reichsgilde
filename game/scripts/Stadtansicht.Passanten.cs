@@ -327,7 +327,7 @@ public partial class Stadtansicht
             // In großen Städten ist das Modell weit außerhalb des Bildes ausgeblendet (kein Schatten, kein Zeichnen); die Figur selbst läuft weiter
             if (p.Figur is { } modell && (!viele || p.Knoten.Visible))
             {
-                var zeigen = (!viele || ImBild(p.Knoten.Position, 30f)) && !(modell.Probe && _probeVat && !modell.ProbeNah); // gebackene Probe: das MultiMesh zeichnet sie (außer nah vor der Ego-Kamera)
+                var zeigen = (!viele || ImBild(p.Knoten.Position, 30f)) && !(modell.Probe && _probeVat && !modell.ProbeNah && ProbeArtGebacken(modell.ProbeArt)); // gebackene Probe: das MultiMesh zeichnet sie (außer nah vor der Ego-Kamera)
                 if (modell.Modell.Visible != zeigen) modell.Modell.Visible = zeigen;
             }
             PassantLichtStellen(p, e); // Laterne oder Fackel im Dunkeln (Stadtansicht.Nachtlichter.cs)
