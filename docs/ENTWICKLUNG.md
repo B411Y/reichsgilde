@@ -97,7 +97,7 @@ Alle Tests zusammen brauchen auf der NAS knapp vier Minuten (3 min 43 s bis 4 mi
 
 Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Hafen-Tests der Bürger-Klassen. Ein Komma trennt Muster; steht im Testnamen selbst ein Komma, an seiner Stelle `*` schreiben. Ein unbekannter Schalter (Tippfehler) bricht mit der Hilfe ab, eine Auswahl ohne Treffer (auch mit `--liste`) mit einem Fehler – so läuft nie aus Versehen „nichts“ grün durch.
 
-**Regel:** Während der Arbeit gezielt testen, vor dem PR (bzw. dem Abschlussbericht eines Mitglieds) **einmal alle Tests ohne Schalter**. Die CI prüft immer alle.
+**Regel (Prüfen vor dem PR):** Lokal Build plus die betroffenen Tests per `--filter` bzw. `--klasse`; der volle Satz läuft in der CI. Betrifft die Änderung **Kern, Spielstand oder Determinismus**, zusätzlich lokal `-- --filter=Gleichheit,Speicherstand` (Gleichheit, Speicherstand). Die CI prüft immer alle Tests, der Export-Job nur bei PRs mit Änderungen unter `game/` (sonst meldet er grün, ohne zu exportieren).
 
 **Langsame Tests:** Ein Test, der allein etwa 3 Sekunden oder länger läuft (mehrjährige Partien, Gleichheitstest, Messungen in Tests), bekommt eine Zeile in `LangsameTests.cs`: Klasse, Muster für den Testnamen (oder `null` für die ganze Klasse) und wie viele Tests die Zeile trifft. Er wird dadurch **nicht** abgeschaltet: Ohne Schalter und in der CI läuft er mit. Wird ein eingetragener Test umbenannt oder nimmt ein Muster plötzlich mehr Tests mit, meldet `TestfilterTests` den Eintrag. Welche Tests gerade langsam sind, zeigt `-- --zeiten=60`.
 
