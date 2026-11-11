@@ -158,6 +158,7 @@ public partial class Hauptszene : Node
     /// <summary>Startoption --spulen: So viele Spielminuten (Ticks) auf einen Schlag ablaufen lassen, sobald nichts mehr zu klicken bleibt.</summary>
     private int _spulen;
     private string? _charakterWartet;
+    private string? _stammbaumWartet;
     /// <summary>Startoption --innen=betrieb:<Name> für eine Werkstatt, die erst durch --bauklick und --spulen entsteht.</summary>
     private string? _innenWartet;
     /// <summary>Startoption --speichern=x.json: Nach --bauklick und --spulen wird die Partie unter diesem Namen gespeichert.</summary>
@@ -609,6 +610,7 @@ public partial class Hauptszene : Node
             _ratskammer.Oeffnen();
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
@@ -1262,6 +1264,11 @@ public partial class Hauptszene : Node
         {
             _entscheidungWartet = null;
             EntscheidungStartoption(entscheidungWunsch);
+        }
+        if (_stammbaumWartet is { } stammbaumWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _stammbaumWartet = null;
+            StammbaumStartoption(stammbaumWunsch);
         }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {
