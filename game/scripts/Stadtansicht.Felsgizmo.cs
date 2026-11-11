@@ -429,6 +429,7 @@ public partial class Stadtansicht
     private void FelsGizmoAktualisieren()
     {
         FelsAuswahlBereinigen();
+        if (_gizmoZug is null) FelsHangGeistAus(FelsHangBesitzer.Zug); // P4b: nach dem Zug (Loslassen, Esc, Werkzeugwechsel) kein Hang-Geist mehr
         if (!FelsGizmoAktiv)
         {
             if (_felsGizmo is { Visible: true }) _felsGizmo.Visible = false;
@@ -706,6 +707,7 @@ public partial class Stadtansicht
             i.Vielfach.SetInstanceTransform(i.Index, FelsLage(b));
             i.Vielfach.SetInstanceCustomData(i.Index, FelsDaten(b));
         }
+        FelsHangZugZeigen(a, vorschau); // P4b: der Hang zeigt, wohin das Gelände wandert (Stadtansicht.Felshang.cs)
     }
 
     /// <summary>Für Startoptionen: wählt Felsstücke (das letzte ist das gewählte).</summary>

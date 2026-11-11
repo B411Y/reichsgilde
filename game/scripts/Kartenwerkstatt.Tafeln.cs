@@ -245,6 +245,7 @@ public partial class Kartenwerkstatt
                 Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück"
                                                  + " · danach steht der Gizmo an den neuen Stücken: Griff ziehen, Pfeiltasten schieben, Strg+D kopiert",
                 Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen (mit Umschalt: radieren) – Vorlage, Dichte, Abstand, Größe, Bereiche und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+                Stadtansicht.FelsArt.Fuellen => "Ecken des Umrisses klicken · Klick auf die erste Ecke oder Enter schließt (ein Klick + Enter: Kreis mit dem Radius) · Rücktaste: letzte Ecke weg · Esc: Umriss weg · rechts „Füllen“ (ein Schritt für Strg+Z)",
                 Stadtansicht.FelsArt.Verteilen => "Mit gedrückter Maus über Felsstücke fahren: die angehakten Werte neu würfeln – Werte, Formen und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
                 _ => "Mit gedrückter Maus radieren (mit „Ausdünnen bis“ nur bis zur Dichte) – Radius, Formen und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             },
