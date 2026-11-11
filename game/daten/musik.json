@@ -1,6 +1,6 @@
 {
- "_hinweis": "Titel der Musikstücke (Suno, vom Nutzer erzeugt), Stand 10.11.2026. lage: tag, nacht, tod oder event; zusatz: Jahreszeit (tag) oder Ereignis (event); volk: nur bei Volksstücken. Dateien unter assets/audio/musik/. Lesen: Musikspieler.cs.",
- "menue": "tag/tag_adels_schmeich.ogg",
+ "_hinweis": "Titel der Musikstücke (Suno, vom Nutzer erzeugt), Stand 11.11.2026. lage: tag, nacht, tod, event oder glaube; zusatz: Jahreszeit (tag) oder Ereignis (event); volk, beruf (Handwerk, Dienstleistung) und glaube (Katholisch, Evangelisch, Ahtnisch): nur bei den Stücken dieser Art. Dateien unter assets/audio/musik/. Lesen: MusikModell.cs, Musikspieler.cs.",
+ "menue": "menue/menue_reichsgilde.ogg",
  "stuecke": [
   {
    "datei": "event/event_aufstand_orks_und_oger.ogg",
@@ -64,7 +64,7 @@
    "lufs": -17.0
   },
   {
-   "datei": "tag/tag_elben.ogg",
+   "datei": "tag/tag_elb_elben.ogg",
    "titel": "Elben",
    "lage": "tag",
    "volk": "Elben",
@@ -72,7 +72,7 @@
    "lufs": -17.0
   },
   {
-   "datei": "tag/tag_halblinge.ogg",
+   "datei": "tag/tag_halbling_halblinge.ogg",
    "titel": "Halblinge",
    "lage": "tag",
    "volk": "Halblinge",
@@ -101,7 +101,7 @@
    "lufs": -17.0
   },
   {
-   "datei": "tag/tag_menschen.ogg",
+   "datei": "tag/tag_mensch_menschen.ogg",
    "titel": "Menschen",
    "lage": "tag",
    "volk": "Menschen",
@@ -109,7 +109,7 @@
    "lufs": -17.0
   },
   {
-   "datei": "tag/tag_zwerge.ogg",
+   "datei": "tag/tag_zwerg_zwerge.ogg",
    "titel": "Zwerge",
    "lage": "tag",
    "volk": "Zwerge",
@@ -175,6 +175,201 @@
    "titel": "Verlorene Seele",
    "lage": "tod",
    "dauer": 183.6,
+   "lufs": -17.0
+  },
+  {
+   "datei": "event/event_dieb_einbruch.ogg",
+   "titel": "Einbruch",
+   "lage": "event",
+   "zusatz": "dieb",
+   "dauer": 93.9,
+   "lufs": -17.1
+  },
+  {
+   "datei": "event/event_geburt_geburt.ogg",
+   "titel": "Geburt",
+   "lage": "event",
+   "zusatz": "geburt",
+   "dauer": 12.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "event/event_gefahr_nahe_bedrohung.ogg",
+   "titel": "Nahe Bedrohung",
+   "lage": "event",
+   "zusatz": "gefahr",
+   "dauer": 147.6,
+   "lufs": -17.1
+  },
+  {
+   "datei": "event/event_levelup_glueckwunsch_v2.ogg",
+   "titel": "Glückwunsch (V2)",
+   "lage": "event",
+   "zusatz": "levelup",
+   "dauer": 21.7,
+   "lufs": -17.0
+  },
+  {
+   "datei": "event/event_levelup_glueckwunsch.ogg",
+   "titel": "Glückwunsch",
+   "lage": "event",
+   "zusatz": "levelup",
+   "dauer": 21.9,
+   "lufs": -17.0
+  },
+  {
+   "datei": "glaube/glaube_ahtnisch.ogg",
+   "titel": "Ahtnisch",
+   "lage": "glaube",
+   "glaube": "Ahtnisch",
+   "dauer": 109.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "glaube/glaube_ahtnisch_v2.ogg",
+   "titel": "Ahtnisch (V2)",
+   "lage": "glaube",
+   "glaube": "Ahtnisch",
+   "dauer": 133.1,
+   "lufs": -17.0
+  },
+  {
+   "datei": "glaube/glaube_evangelisch.ogg",
+   "titel": "Evangelisch",
+   "lage": "glaube",
+   "glaube": "Evangelisch",
+   "dauer": 153.8,
+   "lufs": -17.0
+  },
+  {
+   "datei": "glaube/glaube_katholisch.ogg",
+   "titel": "Katholisch",
+   "lage": "glaube",
+   "glaube": "Katholisch",
+   "dauer": 148.8,
+   "lufs": -17.0
+  },
+  {
+   "datei": "menue/menue_reichsgilde.ogg",
+   "titel": "Reichsgilde",
+   "lage": "menue",
+   "dauer": 298.2,
+   "lufs": -17.1
+  },
+  {
+   "datei": "nacht/nacht_augen_im_dunkeln.ogg",
+   "titel": "Augen im Dunkeln",
+   "lage": "nacht",
+   "dauer": 203.1,
+   "lufs": -17.0
+  },
+  {
+   "datei": "nacht/nacht_herumtreiber.ogg",
+   "titel": "Herumtreiber",
+   "lage": "nacht",
+   "dauer": 268.5,
+   "lufs": -17.1
+  },
+  {
+   "datei": "tag/tag_arbeitruf.ogg",
+   "titel": "Arbeitruf",
+   "lage": "tag",
+   "dauer": 184.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_beruf_dienstleistung.ogg",
+   "titel": "Dienstleistung",
+   "lage": "tag",
+   "beruf": "Dienstleistung",
+   "dauer": 178.5,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_beruf_handwerk.ogg",
+   "titel": "Handwerk",
+   "lage": "tag",
+   "beruf": "Handwerk",
+   "dauer": 178.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_elb_elbengefuehle.ogg",
+   "titel": "Elbengefühle",
+   "lage": "tag",
+   "volk": "Elben",
+   "dauer": 183.1,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_fruehling_neuanfang.ogg",
+   "titel": "Neuanfang",
+   "lage": "tag",
+   "zusatz": "fruehling",
+   "dauer": 268.5,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_halbling_halblingsruh.ogg",
+   "titel": "Halblingsruh",
+   "lage": "tag",
+   "volk": "Halblinge",
+   "dauer": 177.4,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_herbst_erster_laub.ogg",
+   "titel": "Erster Laub",
+   "lage": "tag",
+   "zusatz": "herbst",
+   "dauer": 318.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_mensch_menschenstolz.ogg",
+   "titel": "Menschenstolz",
+   "lage": "tag",
+   "volk": "Menschen",
+   "dauer": 180.0,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_sommer_warme_geduld.ogg",
+   "titel": "Warme Geduld",
+   "lage": "tag",
+   "zusatz": "sommer",
+   "dauer": 268.3,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_winter_frost.ogg",
+   "titel": "Frost",
+   "lage": "tag",
+   "zusatz": "winter",
+   "dauer": 296.9,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_winter_letzter_winter.ogg",
+   "titel": "Letzter Winter",
+   "lage": "tag",
+   "zusatz": "winter",
+   "dauer": 297.1,
+   "lufs": -17.0
+  },
+  {
+   "datei": "tag/tag_zwerg_zwergentreiben.ogg",
+   "titel": "Zwergentreiben",
+   "lage": "tag",
+   "volk": "Zwerge",
+   "dauer": 176.8,
+   "lufs": -17.1
+  },
+  {
+   "datei": "tod/tod_der_tod.ogg",
+   "titel": "Der Tod",
+   "lage": "tod",
+   "dauer": 120.1,
    "lufs": -17.0
   }
  ]

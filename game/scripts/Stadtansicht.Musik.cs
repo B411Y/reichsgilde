@@ -11,6 +11,22 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
+    /// <summary>
+    /// Wo die Kamera für die Musik ist: im Kirchenraum (Innenansicht einer Kirche des Kerns oder des Doms; dann der Glaube der Kirche: ihr Haus, ersatzweise der
+    /// Stadtglaube, sonst null = der des Spielers), in einer eigenen Werkstatt (Innenansicht eines Stadtbetriebs des Spielers) oder draußen. Nur lesend.
+    /// </summary>
+    public (MusikModell.Ort Ort, string? KirchenGlaube) KlangMusikOrt(Stadtwirtschaft w, Konto spieler)
+    {
+        if (_innen is null) return (MusikModell.Ort.Draussen, null);
+        if (_innen is BetriebsAnsicht { Betrieb: var b })
+        {
+            if (b.Art is Betriebsart.Kirche or Betriebsart.Dom or Betriebsart.Kathedrale)
+                return (MusikModell.Ort.Kirche, MusikModell.GlaubeName(w.Glaube.KonfessionVon(b) ?? w.Glaube.Stadtglaube));
+            return b.Konto == spieler && b.InDerStadt ? (MusikModell.Ort.EigeneWerkstatt, null) : (MusikModell.Ort.Draussen, null);
+        }
+        return _innen.Kennung == "Dom" ? (MusikModell.Ort.Kirche, MusikModell.GlaubeName(w.Glaube.Stadtglaube)) : (MusikModell.Ort.Draussen, null);
+    }
+
     /// <summary>Wer gilt als Arbeitskraft ohne Freiheit: Leibeigene sowie Orks und Oger (Volk des Arbeiters).</summary>
     public static bool IstUnfrei(Arbeiter a) => a.Arbeitskraft == "Leibeigener" || a.Volk is Volk.Ork or Volk.Oger;
 
