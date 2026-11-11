@@ -472,6 +472,7 @@ public partial class Hauptszene : Node
             });
         };
 
+        _stadt.GebaeudeDoppelklick += kennung => { if (_auswahlKennung == kennung) AuswahlSchliessen(); }; // Doppelklick: die Kurzübersicht des ersten Klicks wieder zu
         _stadt.GebaeudeAngeklickt += kennung =>
         {
             if (RaumAngeklickt(kennung)) return;
@@ -704,6 +705,8 @@ public partial class Hauptszene : Node
             if (baumWahl == "wohnhaus") _wohnhausBaum.Oeffnen();
             else if (_eigeneGiesserei is { } baumBetrieb) _einrichtenTafel.Oeffnen(baumBetrieb);
         }
+        if (optionen.TryGetValue("innenmessung", out var messWahl)) _stadt.InnenMessungStarten(messWahl == "2"); // Dauer des Betretens je Gebäude ins Log (Stadtansicht.Uebergang.cs)
+        if (optionen.TryGetValue("blendetest", out var blendeKennung)) _stadt.BlendeTestStarten(blendeKennung == "1" ? (_eigeneGiesserei is { } bg ? Stadtansicht.BetriebsKennung(bg) : "Rathaus") : blendeKennung); // Betreten und Verlassen mit Schwarzblende ins Log (Stadtansicht.Uebergang.cs)
         if (optionen.TryGetValue("innen", out var innen))
         {
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
@@ -1333,7 +1336,7 @@ public partial class Hauptszene : Node
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
             else if (_stadt.InnenKennung is not null)
-                _stadt.InnenansichtVerlassen();
+                _stadt.InnenansichtVerlassenMitBlende();
             else if (_berichtTafel.Visible)
                 _berichtTafel.Hide();
             else if (_hafenTafel.Visible)
@@ -1432,9 +1435,9 @@ public partial class Hauptszene : Node
     private void InnenKnopfGedrueckt()
     {
         if (_stadt.InnenKennung is not null)
-            _stadt.InnenansichtVerlassen();
+            _stadt.InnenansichtVerlassenMitBlende();
         else if (_auswahlKennung is { } kennung)
-            _stadt.InnenansichtBetreten(kennung);
+            _stadt.InnenansichtBetretenMitBlende(kennung);
         AuswahlAnzeigen();
     }
 
@@ -1505,7 +1508,7 @@ public partial class Hauptszene : Node
             _raumknoepfe.AddChild(knopf);
         }
         var zurueck = new Button { Text = "Zur Stadt (Esc)", FocusMode = Control.FocusModeEnum.None };
-        zurueck.Pressed += _stadt.InnenansichtVerlassen;
+        zurueck.Pressed += _stadt.InnenansichtVerlassenMitBlende;
         _raumknoepfe.AddChild(zurueck);
         // Breite neu messen, dann wieder in die Ecke setzen
         _raumleiste.ResetSize();

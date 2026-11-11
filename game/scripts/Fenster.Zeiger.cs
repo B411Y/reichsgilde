@@ -28,7 +28,7 @@ public partial class Fenster
         Mauszeiger.Auffrischen();
     }
 
-    /// <summary>Der Zeiger ist ein 3D-Handschuh (<see cref="HandschuhZeiger"/>) statt der 2D-Bilder (Standard an; Schlüssel „handschuh_3d“ im Abschnitt „anzeige“). Fällt bei zu wenig Bildern je Sekunde von selbst zurück.</summary>
+    /// <summary>Der Zeiger ist ein 3D-Handschuh (<see cref="HandschuhZeiger"/>) statt der 2D-Bilder (Standard an; Schlüssel „handschuh_3d“ im Abschnitt „anzeige“). Bleibt auch bei niedriger Bildrate, solange er eingestellt ist.</summary>
     public static bool Handschuh3dAn { get; private set; } = true;
 
     public static void Handschuh3dSetzen(bool an, bool speichern = true)

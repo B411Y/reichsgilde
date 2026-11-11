@@ -379,7 +379,7 @@ public partial class Stadtansicht
                 _raumRahmen.Rahmen = null;
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right, Pressed: true }:
-                InnenansichtVerlassen();
+                InnenansichtVerlassenMitBlende();
                 return true;
         }
         return false;
