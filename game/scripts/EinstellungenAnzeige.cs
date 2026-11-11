@@ -689,7 +689,7 @@ public sealed class EinstellungenAnzeige
             Auffrischen();
         });
         _handschuh3d = Schalter(s, "3D-Handschuh", () => "Der Handschuh ist ein bewegtes 3D-Modell: er atmet, zeigt über Anklickbarem, tippt beim Klick und greift beim Ziehen; die Fingerspitze liegt genau auf dem Klickpunkt. " +
-                                                       "Aus (oder bei zu wenig Bildern je Sekunde, unter etwa 40, von selbst): die gemalten Zeigerbilder. Gilt ab 48 Pixel Zeigergröße und nur beim eigenen Mauszeiger; die Wahl des Handschuhs unten betrifft nur die gemalten Bilder (der 3D-Handschuh hat vorerst eine Lederfarbe).", an =>
+                                                       "Aus: die gemalten Zeigerbilder. Gilt ab 48 Pixel Zeigergröße und nur beim eigenen Mauszeiger; die Wahl des Handschuhs unten betrifft nur die gemalten Bilder (der 3D-Handschuh hat vorerst eine Lederfarbe).", an =>
         {
             Fenster.Handschuh3dSetzen(an);
             Auffrischen();

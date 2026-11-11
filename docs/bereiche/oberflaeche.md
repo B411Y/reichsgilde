@@ -45,7 +45,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3D-Handschuh, Branch phase5/handschuh3d-einbau) Klicktest auf der NAS steht aus, der Entwickler sah nichts im Fenster (nur headless): Spitze exakt auf dem Klickpunkt bei 48/64 px, Zustandswechsel (Ruhe, Zeigen, Tippen, Greifen), ?-Marke nur bei Tooltip, Rückfall unter 40 FPS, Einstellung an/aus, Overlay fängt keine Klicks, Umriss, Leder und Faltenfarbe, Licht und Blickwinkel (Kamera nach der Entwurfsansicht „zeiger“ geschätzt, Lichtstärken nach den Blender-Werten geschätzt), Tippen-Tempo 1,5 und Ziehschwelle 8 px sind Schätzwerte.
 - (3D-Handschuh) Knöchelreihe nicht klar, Rücken weiter weich, Schlaufe unter dem kleinen Finger, Mulde Daumen/Handballen (Restliste v6, `bewertung_v6`); v7 hat dieselben Knochen- und Aktionsnamen, dann nur die .glb tauschen (Protokollzeile, `glb_faltenfarbe.py`). Die Handschuh-Wahl nach Stand (Farben) gilt für den 3D-Handschuh noch nicht: er hat eine Lederfarbe.
 - (3D-Handschuh, Lizenz) Vom Teamleiter geklärt (10.11.2026): „Alle Rechte vorbehalten"; „Built with DINOv3" steht in der Danksagung. Offen nur noch: Steam-KI-Angabe bei Veröffentlichung.
+- (von darstellung, 3D-Handschuh Teil 2) Die Glb hat jetzt die Haltung `Text` (Clip `Text` 2 s Schleife; Übergänge `Uebergang_Ruhe_Text`/`Text_Ruhe` 0,58 s, `Zeigen_Text`/`Text_Zeigen` 0,67 s) und den Zeigerpunkt `Anker_Text` (Knoten unter `wrist.R`, Mitte der Handkante auf Höhe des Mittelfingers). Ausrichtung: Wurzel dreht 180 Grad um Z, in Ansicht „oben" zeigen die Fingerspitzen nach oben, der Stulpen liegt unten; Finger ganz gestreckt, Daumen gestreckt und am Zeigefinger anliegend (Foto der Nutzerhand als Vorlage), Handinnenfläche zeigt nach links (Rollen +76 Grad), Handgelenk leicht abgeknickt. Offen: `HandschuhZeiger.cs` zeigt sie über Textfeldern statt des I-Strich-Zeigers (Hotspot Anker_Text; Kamera so, dass die Kante zum Betrachter zeigt, Ansicht „oben").
+- (von darstellung, 3D-Handschuh Teil 2) Die Glb hat jetzt die Haltung `Text` (Clip `Text` 2 s Schleife; Übergänge `Uebergang_Ruhe_Text`/`Text_Ruhe` 0,58 s, `Zeigen_Text`/`Text_Zeigen` 0,67 s) und den Zeigerpunkt `Anker_Text` (Knoten unter `wrist.R`, Mitte der Handkante auf Höhe des Mittelfingers). Ausrichtung: Wurzel dreht 180 Grad um Z, in Ansicht "oben" zeigen die Fingerspitzen nach oben, der Stulpen liegt unten. Die Haltung hat der Nutzer in Blender selbst eingestellt (Pose aus `text_haltung_fertig.blend`, übernommen mit `tools/modelle/handschuh/text_aus_blend.py`; Übergänge per Quaternion-Slerp, Text-Clip ohne Atmen). Bekannt: Der Daumen steckt teils in Hand und Zeigefinger (Durchdringung Daumen/Hand 39, Daumen/Zeigefinger 57 Paare), in der Seitenansicht zeigt sich ein Buckel. Offen: `HandschuhZeiger.cs` zeigt sie über Textfeldern statt des I-Strich-Zeigers (Hotspot Anker_Text; Kamera so, dass die Kante zum Betrachter zeigt, Ansicht „oben").
 
+- (Leistung) Mit 3D-Handschuh 26,6 statt 37,9 Bilder/s auf Xvfb/Vulkan (rund 4 ms GPU, Messung der NAS); der Nutzer lässt es vorerst so, später auf dem PC messen (Einstellung „3D-Handschuh“ schaltet ab).
+- 3D-Handschuh 3b/3c: Hänger beim ersten und zweiten Betreten, Blende beim Verlassen (2D und 3D), Haltung Text über einem Textfeld und die Klinke-Folge (Bereit über der Tür, Greifen, Drücken, Blende, Loslassen; Schloss unter der Hand, Zeigerpunkt Anker_Schloss) sind im Klicktest der NAS zu prüfen (mit Grafik). Bekannte Schwäche aus 3a: die Faust sitzt auf der Stange, statt sie zu umschließen; im Klicktest ansehen.
 ## Entscheidungen
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
@@ -517,7 +521,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Haltungen | Ruhe, Zeigen (über Anklickbarem), Greifen (Taste gedrückt und mehr als 8 px Weg), Tippen (linker Klick, nur aus Zeigen: aus Ruhe erst Übergang). Clips, Namen und Längen aus der Datei gelesen (`Uebergang_<von>_<nach>`), Ruhe, Zeigen, Greifen als Schleife Linear, Tippen mit Tempo 1,5. Logik ohne Godot in `HandschuhModell.cs`, getestet. Neigung nach Mausgeschwindigkeit (höchstens 11 Grad, Zeitkonstante 0,09 s). | 10.11.2026 |
 | Zeigerpunkt | `Anker_Spitze` (am Knochen `finger2-3.R`) wird je Bild über `Skeleton3D.GetBoneGlobalPose` und die Kamera in Bildpunkte gerechnet, das Bild liegt so, dass sie auf der Mausposition liegt. | 10.11.2026 |
 | Fragezeichen | `Hilfe_Marke` und Umriss nur sichtbar, wenn `Mauszeiger` einen Tooltip meldet (`Tooltips.QuelleFinden`, wie #411). | 10.11.2026 |
-| Einstellung | „3D-Handschuh“ unter „Eigener Mauszeiger“ (Schlüssel `handschuh_3d`, Standard an), Startoption `--handschuh=0/1`. Gilt ab 48 px. Rückfall unter 40 Bildern je Sekunde (Mittel 2 s, Schonzeit 4 s, Rückkehr nach 10 s und ab 52, nach 3 Rückfällen aus), auch bei fehlender Datei. | 10.11.2026 |
+| Einstellung | „3D-Handschuh“ unter „Eigener Mauszeiger“ (Schlüssel `handschuh_3d`, Standard an), Startoption `--handschuh=0/1`. Gilt ab 48 px. Rückfall nur bei fehlender Datei; der Rückfall bei niedriger Bildrate ist wieder entfernt (11.11.2026, siehe unten). | 10.11.2026 |
 | Godot-Import | Befund beim Import (headless, 4.7.2): `COLOR_1` (Faltenfarbe) wird nicht gelesen, nur `COLOR_0` (weiß); darum tauscht `glb_faltenfarbe.py` die Ebenen, und `VertexColorUseAsAlbedo` wird im Code gesetzt (der Import tut es nicht). Knöchelspuren sind Positionsspuren (laut `bewertung_v6`). Das Material hat keine Normalkarte (nur Farbtextur). | 10.11.2026 |
 ### Stammbaum und Hauschronik im Familienbuch (Branch phase5/stammbaum, PR folgt)
 
@@ -533,3 +537,62 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - Designfrage: Frühere Ehen ohne Kinder und die Jahre früherer Hochzeiten, Ämter, Geheimnisse gehen aus der Chronik verloren, sobald sie aus dem Verlauf (500 Meldungen) fallen. Empfehlung: eine kleine, dauerhafte Hauschronik im Kern (nur Hochzeit, Amt, Stand, Geheimnis entdeckt, Entscheidung mit Jahr und Person; wenige Dutzend Zeilen je Haus, eigener Abschnitt im Spielstand wie `Meldungen`, ohne Wirkung auf die Simulation). Das braucht kern (Spielstand), deshalb nicht in diesem PR.
 
+### 3D-Handschuh größer und flinker, kein FPS-Rückfall (Branch phase5/handschuh3d-2)
+
+| Frage | Entscheidung | Stand |
+|---|---|---|
+| Größe | Bildgröße 1,5 auf 2,0 Zeigergrößen, die Hand wächst auf das 1,35-fache und ist so groß wie das 2D-Bild (2D-Hand 44 × 40 px bei 48, 59 × 54 bei 64, 74 × 68 bei 80; Spitze weiter exakt auf dem Klickpunkt) | 11.11.2026 |
+| Fragezeichen | `Hilfe_Marke` und Umriss 1,9-fach um ihre Mitte, ein Stück von der Hand weg gerückt (`MarkeFaktor`, `MarkeVersatz`); Lesbarkeit bei 48 px steht im Klicktest der NAS aus | 11.11.2026 |
+| Tempo | Übergänge 1,0 auf 1,8, Tippen 1,5 auf 2,7, Blend 0,06 auf 0,03 und 0,10 auf 0,05 s, Ziehschwelle 8 auf 5 px; als Konstanten in `HandschuhModell`, Cliplängen weiter aus der Datei | 11.11.2026 |
+| Kein Rückfall nach Bildrate | Der Spieler entscheidet allein über die Einstellung; `HandschuhLeistung` samt Test entfernt, `HandschuhModell.Gilt` mit Test; Rückfall nur bei fehlender Datei | 11.11.2026 |
+
+### Schwarzblende und Haltung Text (3D-Handschuh Teil 3b)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zweck | Das Nachladen beim ersten Betreten eines Innenraums liegt im Schwarzen: Klinke (nur 3D), Blende ins Schwarz 0,4 s, Raum in Schritten aufbauen (je Bild einer), erst herausblenden (0,4 s), wenn der Raum fertig ist **und** 2 Bilder gezeichnet hat; ebenso beim Verlassen. Gilt in 2D und 3D, aus mit `--blende=0`. Zustandsautomat `InnenraumUebergang` ohne Godot mit Tests | 11.11.2026 |
+| Vorladen | Hover über einem betretbaren Gebäude bereitet den Raum vor (`InnenAuffuellen` im verborgenen Raum), aber erst nach dem ersten aufgebauten Raum: der erste kostet etwa 140 ms (Messung headless) und gehört ins Schwarz, nicht in den Hover. Ressourcen sind schon beim Stadtbau geladen (`Vorladen.cs`), die Räume dort gebaut; was beim ersten Betreten bleibt, ist die GPU-Seite (Shader, Puffer), die jetzt unter dem Schwarz liegt (Messung der NAS) | 11.11.2026 |
+| Klinke | Haken `Uebergangsblende.KlinkeStarter` (liefert die Sekunden bis zur Blende oder null) und `KlinkeLoslasser`; angeschlossen in 3c (siehe unten) | 11.11.2026 |
+| Haltung Text | `HandPose.Text` über Steuerelementen mit I-Strich (`Control.GetCursorShape`), Zeigerpunkt `Anker_Text` gleitet von der Fingerspitze (0,08 s); Greifen und Text nur über Ruhe; der System-I-Strich wird bei 3D unsichtbar. Übergangsclips `Uebergang_<von>_<nach>`, ersatzweise `<von>_<nach>` | 11.11.2026 |
+| Eingaben | Die Fläche der Blende fängt Klicks ab, `Stadtansicht._UnhandledInput` ignoriert sie, solange ein Übergang läuft; programmatisches Betreten (Startoptionen, Meldungen, Briefe) bleibt sofort | 11.11.2026 |
+
+### Klinke-Folge des 3D-Handschuhs (3D-Handschuh Teil 3c)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ablauf | Hover über einem betretbaren Gebäude (nur 3D, nicht im Raum): Haltung **Bereit** (`Klinke_bereit`, offene Hand) statt Zeigen, das Türschloss (`tuerschloss_zeiger.glb`) wächst gleitend unter der Hand ein. Doppelklick: `Klinke_greifen`, `Klinke_druecken` (Hand und Schloss-Aktion `Druecken` zugleich), Blende ins Schwarz, sobald 80 % des Drückens vorbei sind (Rest ist Halten); die Hand bleibt gedrückt, bis der Raum offen ist (Beginn des Herausblendens) oder abgebrochen wird, dann `Klinke_loslassen` (endet in Bereit). Ohne 3D-Handschuh gilt der alte Ablauf mit Blende | 11.11.2026 |
+| Zeigerpunkt | Bei Hover über der Tür und in der Folge ist der Zeigerpunkt die Schlossmitte (`Anker_Schloss`), gleitend (0,1 s) von der Fingerspitze überblendet, damit Maus und Hand nicht springen | 11.11.2026 |
+| Lage des Schlosses | Im Handraum bei (0,0419 / −0,090 / −0,0585), um −40° um die Hochachse gedreht (Schnittstelle 3a), im selben SubViewport und Neigungsknoten wie die Hand, damit Tiefe und Neigung stimmen | 11.11.2026 |
+| Klick auf die Tür | Aus der Haltung Bereit tippt die Hand nicht (`HandschuhAblauf`); die Folge startet nur, wenn die Hand schon in Bereit steht (sonst läuft die Blende allein). Klinke-Clips laufen mit Tempo 1, damit sie so lang sind wie die Aktionen am Schloss; Greifen und Bereit liegen nicht nebeneinander (Weg über Ruhe) | 11.11.2026 |
+| Logik und Test | `KlinkeFolge.cs` ohne Godot mit `KlinkeFolgeTests.cs`; Startoption `--klinketest=1` (Log `[klinketest]`, `[klinke]`) | 11.11.2026 |
+
+### Klick-Regel, Haltung Text aufrecht, Schloss daneben (Nach dem NAS-Klicktest des Gesamt-Branchs)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Klick-Regel | Der erste Klick öffnet weiter sofort die Kurzübersicht; erkennt das Spiel den Doppelklick auf ein betretbares Gebäude, schließt es die Tafel wieder (`Stadtansicht.GebaeudeDoppelklick`, `Hauptszene` ruft `AuswahlSchliessen`) und betritt das Haus mit Klinke und Blende. Logik `KlickRegel` mit Tests (Einzelklick bleibt offen; Doppelklick ohne Innenraum zeigt die Tafel; während eines Übergangs zählt kein Klick) | 11.11.2026 |
+| Haltung Text aufrecht | (korrigiert nach NAS-Runde 2: die geratene Drehung um −40° stellte die Hand kopfüber; jetzt wird der Winkel beim Laden aus der Pose berechnet, derzeit etwa 144°, `HandschuhModell.AufrechtDrehungGrad`, Log `[handschuh] Text aufrecht`: Stulpe y 40, Fingerspitze y 9, Anker_Text y 10 im Bild, ohne Drehung Finger unten.) Früher: Im Spiel stand die Hand wegen der 40°-Drehung der Bühnenkamera schräg. Der Neigungsknoten dreht in der Haltung Text mit der Kamera (`HandschuhModell.PoseDrehungGrad`, um die Blickmitte der Bühne, gleitend mit `TextGewicht`); Pose und glb bleiben, der Zeigerpunkt `Anker_Text` zieht mit. Der Rechenbeleg im Test: Finger im Bild 40° bei Zeigen, 0° bei Text. Wie es im Bild aussieht, sieht erst der Klicktest (kein Bild headless) | 11.11.2026 |
+| Schloss und Zeigerpunkt mit der Hand | Der Nutzer hat die Haltungen Bereit/Greifen/Gedrückt selbst in Blender gestellt (Bereit weiter rechts unten): das Overlay versetzt nichts zusätzlich (`SchlossLage` unverändert (0,0419 / −0,090 / −0,0585), −40°). Schloss-Einwachsen (Skala 0 bis 1 um `Anker_Schloss`) und Gleiten des Zeigerpunkts zu `Anker_Schloss` laufen mit `SchlossEinwuchs`: dieselben 7 Bilder bei 24/s = 0,2917 s und dieselbe Smoothstep-Kurve wie die Bereit-Übergänge der Hand, im selben Bild gestartet wie der Übergangsclip (Eintritt 1, Austritt 0, Umkehr mitten drin ohne Sprung). Die Länge kommt aus der Datei. Rechenvorschau (`--klinketest=1`, Zeigergröße 48, ohne Bild): Langschild x 47..59, Hand x 63..91, Klinke frei darüber; beides zu 100 % unverdeckt nach der Kapselnäherung der Hand, im Spiel ungesehen. Beim Drücken verdeckt die Faust das Schloss; die Hand-Clips bleiben, der Nutzer bessert den Daumen selbst nach | 11.11.2026 |
+
+### Auswahlrechteck, Bereit lebt, Handschuh winkt (3D-Handschuh, Nutzerwünsche 11.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auswahlrechteck | Zieht der Spieler in der Welt ein Auswahlrechteck (`Stadtansicht.RahmenZieht`), zeigt der Handschuh Zeigen statt der Ziehen-Faust; Dinge greifen und verschieben (Ware, Fenster, Kamera) bleiben bei der Faust (`HandschuhModell.Wunsch` mit `rahmen`). Ein Klick, der zum Ziehen wird, tippt nicht mehr | 11.11.2026 |
+| Bereit lebt | Schleife `Bereit_atmen` (fehlt sie, bleibt `Klinke_bereit`); zufällig alle 3 bis 6 s der Clip `Bereit_zucken`, nur in Bereit ohne Übergang und Klinke, jeder Klick unterbricht sofort (`BereitZucken`). Zufall nur in der Darstellung (`RandomNumberGenerator`, nicht die Zufallsquelle des Kerns). Die neuen Clips kommen von Teil 3a; bis dahin tut der Code ohne sie nichts | 11.11.2026 |
+| Winken | Nach 60 s ohne Eingabe (Maus, Taste, Rad) dreht sich die Hand zur Kamera und winkt (Clip `Winken`, `Uebergang_<Haltung>_Winken`/`Uebergang_Winken_<Haltung>`), geht zurück in die vorige Haltung, wiederholt sich nach 120 bis 180 s ohne Eingabe; jede Eingabe bricht ab und setzt die Zeit zurück. Überall (auch Hauptmenü, offene Tafeln), außer über oder in Textfeldern und während Blende oder Klinke (`WinkenLogik`). **Nicht abschaltbar** (Nutzer). Prüfhilfe `--winktest=1` | 11.11.2026 |
+| Tempo der Übergänge | Übergangsclips von und nach Bereit und Winken sind schon auf 7 Bilder bei 24/s gebaut und laufen mit Tempo 1 (die älteren mit 1,8); vorher liefen die Bereit-Übergänge fälschlich mit 1,8 und das Schloss wuchs länger als die Hand | 11.11.2026 |
+
+### Klinke oben in Ruhe (NAS-Runde 2)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Klinke beim Einblenden | In `tuerschloss_zeiger.glb` steht der Knoten `Klinke` in der Datei auf −28° (Endlage von `Druecken`), darum stand sie beim Einblenden schon unten. Der Spielcode stellt sie beim Laden auf 0° (Ruhelage oben) und in Bereit, im Übergang und beim Greifen nach (`KlinkeFolge.KlinkeInRuhelage`); `Druecken` läuft nur im Drücken, `Loslassen` im Loslassen. Log `[handschuh] Türschloss: Klinke in der Datei bei -28,0 Grad, gestellt auf 0,0`. Der Rest-Wert des Knotens in der Glb wäre Sache von Teil 3a (Ruhe = 0°, wie in der Schnittstelle beschrieben) | 11.11.2026 |
+
+### Handschuh über Popups (NAS-Runde 2, dritter Fehler)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Unterfenster (`PopupMenu` der OptionButtons, Dialoge) liegen bei eingebetteten Fenstern im Hauptfenster über allen CanvasLayern, also auch über dem Handschuh (Ebene 128); der System-Zeiger ist unsichtbar gestellt, der Zeiger verschwand | 11.11.2026 |
+| Lösung | Jedes Fenster außer dem Hauptfenster bekommt eine eigene Ebene 128 (`HandschuhSpiegel`) mit demselben Bild der Bühne (geteilte Textur), gezeichnet an der Mausposition des Fensters; angelegt über `SceneTree.NodeAdded`, aktiv nur bei sichtbarem Fenster. Kein Systemzeiger als Ersatz. Headless nachgewiesen: 87 Fenster (PopupMenus) bekommen die Ebene (Log `[spiegel]`); Test der Lagerechnung (`HandschuhModell.FensterPosition`). **Kein Spielbild**; auf der NAS zu prüfen: OptionButton Volk in der Charakterwahl offen, PopupMenu, Dialog, Kontextmenü, Tooltip (Hand über dem Popup sichtbar, Fingerspitze genau auf dem Mauspunkt, auch am Rand des Popups) | 11.11.2026 |
+| Offen | Die Mausposition im Popup kommt von `Window.GetMousePosition()`; sie ist nur aktuell, solange das Fenster Mausbewegungen bekommt (Maus über dem Popup). Reicht die Hand über den Rand des Popups hinaus, kann der Teil im Popup einen Moment an der letzten Position stehen; ungesehen | 11.11.2026 |

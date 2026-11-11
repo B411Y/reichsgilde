@@ -174,7 +174,7 @@ public partial class Stadtansicht
                 Auswaehlen(klick.Position, false);
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Right }:
-                InnenansichtVerlassen(); // Rechtsklick verlässt das Haus, in jedem Raum
+                InnenansichtVerlassenMitBlende(); // Rechtsklick verlässt das Haus, in jedem Raum
                 break;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Q }:
                 RaumBlaettern(-1);

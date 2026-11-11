@@ -86,6 +86,9 @@ public partial class Stadtansicht : Node3D
     /// <summary>Wird ausgelöst, wenn ein Gebäude angeklickt wird. Übergeben wird seine Kennung.</summary>
     public event Action<string>? GebaeudeAngeklickt;
 
+    /// <summary>Doppelklick auf ein betretbares Gebäude: die Kurzübersicht des ersten Klicks soll wieder zu (Nutzer, 11.11.2026); danach betritt die Stadt das Haus.</summary>
+    public event Action<string>? GebaeudeDoppelklick;
+
     /// <summary>Wird ausgelöst, wenn eine Innenansicht betreten (Kennung des Gebäudes) oder verlassen (null) wird.</summary>
     public event Action<string?>? InnenansichtGewechselt;
 
@@ -1018,6 +1021,14 @@ public partial class Stadtansicht : Node3D
             zoom = Mathf.Min(zoom, KameraGroessterZoom());
         }
         ziel.Y = 0; // die Höhe trägt die Neigung (KameraHoeheNachfuehren)
+        if (_kameraSprung) // unter der Schwarzblende (Stadtansicht.Uebergang.cs): ohne Fahrt, die Kamera steht sofort am Ziel
+        {
+            _kamerafahrt?.Kill();
+            _kameraDrehung.Position = ziel;
+            _kamera.Size = zoom;
+            KameraHoeheSofort();
+            return;
+        }
         _kamerafahrt?.Kill();
         _kamerafahrt = CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.InOut);
         _kamerafahrt.TweenProperty(_kameraDrehung, "position", ziel, 0.6);
@@ -1171,6 +1182,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _UnhandledInput(InputEvent eingabe)
     {
+        if (UebergangLaeuft) return; // Schwarzblende läuft: keine Eingabe in die Stadt (Stadtansicht.Uebergang.cs)
         // Drücken und Rad nur über freier Welt; das Loslassen darf immer durch (ein begonnenes Ziehen muss enden können).
         if (eingabe is InputEventMouseButton { Pressed: true } && MausUeberOberflaeche) return;
         if (_raum is not null)
@@ -1287,9 +1299,16 @@ public partial class Stadtansicht : Node3D
         }
         if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
         if (KennungBei(mausposition) is not { } kennung) return;
-        GebaeudeAngeklickt?.Invoke(kennung);
-        if (doppelklick && AnsichtZu(kennung) is { } ansicht)
-            Betreten(ansicht);
+        switch (KlickRegel.Entscheide(doppelklick, AnsichtZu(kennung) is { HatInnenraum: true }, UebergangLaeuft))
+        {
+            case KlickFolge.TafelZeigen:
+                GebaeudeAngeklickt?.Invoke(kennung); // der erste Klick öffnet sofort die Kurzübersicht
+                break;
+            case KlickFolge.TafelSchliessenUndBetreten:
+                GebaeudeDoppelklick?.Invoke(kennung); // der Doppelklick schließt sie wieder (Hauptszene), dann Klinke und Blende
+                InnenansichtBetretenMitBlende(kennung);
+                break;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════

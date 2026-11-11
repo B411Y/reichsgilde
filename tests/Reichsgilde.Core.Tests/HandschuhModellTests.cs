@@ -2,7 +2,7 @@ using Reichsgilde;
 
 /// <summary>
 /// Ablauf des 3D-Handschuh-Zeigers ohne Godot (<c>game/scripts/HandschuhModell.cs</c>): Wunsch-Haltung, Reihenfolge von Übergängen und Tippen,
-/// Rückfall bei zu wenig Bildern je Sekunde mit Hysterese, Neigung nach der Mausgeschwindigkeit, Zeigerpunkt.
+/// Geltung des 3D-Handschuhs (nie nach Bildrate), Tempo-Konstanten, Neigung nach der Mausgeschwindigkeit, Zeigerpunkt.
 /// </summary>
 static class HandschuhModellTests
 {
@@ -18,11 +18,6 @@ static class HandschuhModellTests
             a.EinmalFertig();
         }
         return clips;
-    }
-
-    static void Takten(HandschuhLeistung l, double fps, double sekunden, bool dreiD = true)
-    {
-        for (var t = 0.0; t < sekunden; t += 1.0 / fps) l.Takt(1.0 / fps, dreiD);
     }
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -74,50 +69,21 @@ static class HandschuhModellTests
             Pruefe.Wahr(a.Entscheiden(HandPose.Greifen) is null, "das Tippen ist beim Greifen verfallen");
         }),
 
-        ("Handschuh: Rückfall unter 40 Bildern je Sekunde nach der Schonzeit, Rückkehr erst nach Sperre und über 52", () =>
+        ("Handschuh: 3D bleibt bei jeder Bildrate, solange es eingestellt ist; nur Einstellung, Datei und Größe schalten ab", () =>
         {
-            var l = new HandschuhLeistung();
-            Takten(l, 30, 3.0);
-            Pruefe.Wahr(!l.Rueckfall, "in der Schonzeit (Laden) kein Rückfall");
-            Takten(l, 60, 6.0);
-            Pruefe.Wahr(!l.Rueckfall, "60 Bilder je Sekunde: kein Rückfall");
-            Takten(l, 30, 4.5);
-            Pruefe.Wahr(l.Rueckfall, "30 Bilder je Sekunde: Rückfall");
-            Pruefe.Gleich(1, l.Ausfaelle);
-            Takten(l, 60, 4.0);
-            Pruefe.Wahr(l.Rueckfall, "erst nach der Sperre zurück");
-            Takten(l, 45, 14.0);
-            Pruefe.Wahr(l.Rueckfall, "45 liegt zwischen 40 und 52: Hysterese, kein Flackern");
-            Takten(l, 60, 6.0);
-            Pruefe.Wahr(!l.Rueckfall, "60 Bilder je Sekunde nach der Sperre: wieder 3D");
+            // Die Bildrate kommt in der Entscheidung gar nicht mehr vor (Nutzer, 11.11.2026): gleiche Eingaben, gleiche Antwort.
+            Pruefe.Wahr(HandschuhModell.Gilt(true, true, 48), "an, Datei da, 48 Pixel: 3D");
+            Pruefe.Wahr(HandschuhModell.Gilt(true, true, 80), "80 Pixel: 3D");
+            Pruefe.Wahr(!HandschuhModell.Gilt(false, true, 48), "Einstellung aus: 2D");
+            Pruefe.Wahr(!HandschuhModell.Gilt(true, false, 48), "Datei fehlt: 2D");
+            Pruefe.Wahr(!HandschuhModell.Gilt(true, true, 32), "unter 48 Pixel: 2D");
         }),
 
-        ("Handschuh: Ein einzelner Hänger (Karte laden) löst keinen Rückfall aus, dauerhaft langsame Bilder schon", () =>
+        ("Handschuh: Tempo der Übergänge und des Tippens ist höher als in der Datei, Ziehschwelle klein", () =>
         {
-            var l = new HandschuhLeistung();
-            Takten(l, 60, 6.0);
-            l.Takt(3.0, true); // Karte wird geladen
-            Takten(l, 20, 2.5); // gleich danach noch zäh: zählt in der Ruhezeit nicht
-            Pruefe.Wahr(!l.Rueckfall, "ein Hänger ist kein Rückfall");
-            Takten(l, 60, 6.0);
-            Pruefe.Wahr(!l.Rueckfall, "danach wieder flott");
-            Takten(l, 20, 5.0);
-            Pruefe.Wahr(l.Rueckfall, "dauerhaft 20 Bilder je Sekunde: Rückfall");
-        }),
-
-        ("Handschuh: Nach drei Rückfällen bleibt es beim 2D-Zeiger; ohne laufenden 3D-Handschuh kein Rückfall", () =>
-        {
-            var l = new HandschuhLeistung();
-            Takten(l, 20, 10.0, dreiD: false);
-            Pruefe.Wahr(!l.Rueckfall, "ohne 3D wird nichts zurückgenommen");
-            for (var i = 0; i < 3; i++)
-            {
-                Takten(l, 20, 5.0);
-                Pruefe.Wahr(l.Rueckfall, $"Rückfall {i + 1}");
-                Takten(l, 90, 16.0);
-            }
-            Pruefe.Gleich(3, l.Ausfaelle);
-            Pruefe.Wahr(l.Rueckfall, "nach dem dritten Rückfall bleibt es aus");
+            Pruefe.Wahr(HandschuhModell.UebergangTempo >= 1.7 && HandschuhModell.TippenTempo >= 2.5, "Clips laufen etwa 45 % kürzer");
+            Pruefe.Wahr(HandschuhModell.BlendEinmal < 0.06 && HandschuhModell.BlendSchleife < 0.10, "Blendzeiten kürzer als vorher");
+            Pruefe.Wahr(HandschuhModell.ZiehSchwelle <= 6.0 && HandschuhModell.ZiehSchwelle > 0, "Ziehen früher, aber nicht schon beim Zittern");
         }),
 
         ("Handschuh: Neigung ist begrenzt, gleitet unabhängig von der Bildrate und kehrt zurück", () =>
