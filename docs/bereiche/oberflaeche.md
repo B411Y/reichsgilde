@@ -53,11 +53,25 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Entscheidungen
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
+### Neue Partie: Spieler einstellen, KI-Gegner, „Erweitert“ (Branch phase5/neue-partie-ui, PR 2 von 2)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ablauf | Stadt wählen → **Neue Partie** (eine Seite) → Partie beginnen. „Euer Oberhaupt“ ist keine Zwischenseite mehr, sondern über „Oberhaupt gestalten …“ erreichbar (Zurück/Fertig führen zur Seite). Das Volk wählt jetzt die Seite „Neue Partie“ und fehlt auf der Oberhaupt-Seite; das Porträt liest es. Gewählt statt zwei Wege zum Volk, damit Volk, Glaube und Berufswirkung nebeneinander stehen. | 11.11.2026 |
+| Vorschlag | Beim Öffnen: neuer Zufallsstartwert, dann `Partiebesetzung.SpielerWuerfeln`; Name, Wappen, Volk, Glaube, Beruf stehen vorbelegt und sind frei änderbar. Der Vorschlag wird nicht neu gewürfelt, wenn man den Startwert ändert (nur die Züge folgen ihm). Kein eigener Knopf „alles neu würfeln“ (nicht verlangt). | 11.11.2026 |
+| Züge | Drei Persönlichkeitszüge als Medaillons (`CharakterAnzeige.ZugIcon`, jetzt `internal`), Tooltip mit Beschreibung und Wirkung, „Neu würfeln“ über `ZuegeNeuWuerfeln`; `ZugWurf` beginnt bei 0. Ohne Charakterzüge in den Daten verschwindet die Zeile. Nur der Name des Gegenteils fehlt im Tooltip (die Seite hat keine Stadtwirtschaft). | 11.11.2026 |
+| KI | „KI-Gegner“: 0 bis `HoechstensKi`, vorbelegt höchstens 3 (Annahme der Oberfläche, nicht vom Nutzer vorgegeben). „Stärke der KI“ Leicht/Normal/Schwer, Normal vorbelegt, ein Satz Erklärung ohne Zahlen. Die Kartenkachel nennt „höchstens N KI-Gegner“ und die Höfe statt der Rivalen der Startbelegung. | 11.11.2026 |
+| Erweitert | Aufklappbar (Knopf „Erweitert anzeigen/verbergen“, zu Beginn zu). Je KI eine Zeile für Name, Wappen (die 12 Vorlagen), Volk, Glaube, Beruf – leer/„zufällig“ = gewürfelt; sichtbar so viele, wie KI-Gegner gewählt sind. Darunter die alte Schwierigkeit als **„KI-Häuser mit Umland“ (Nein/Ja)**, „Die KI-Häuser spielen“ (Charakter), Hofstelle, Siegbedingung, Endjahr, Zielvermögen, Dauer, Statut, Startvermögen, Aktionspunkte, Zufallsstartwert: also alle bisherigen Einstellungen, nur eine Ebene tiefer. Der Beruf des Spielers steht nicht in „Erweitert“, sondern oben. | 11.11.2026 |
+| Prüfung | `BesetzungProblem` meldet vor dem Start doppelte Namen, Wappen und Berufe (der Spieler zählt mit) und fängt `ArgumentException` des Kerns ab; der Text steht rot unter den Knöpfen. Die Namens- und Wappenprüfung gegen die Rivalen der Startbelegung alter Karten bleibt. | 11.11.2026 |
+| Daten | `Datenvorrat.Lesekopie()`: eine eigene lesende Kopie von `wirtschaft.json` für das Menü, einmal gelesen (rund 0,3 s beim ersten Öffnen der Seite); die Partie holt ihre Daten wie bisher über `Holen()`. | 11.11.2026 |
+| Startoption | `--neuepartie=1` öffnet die Seite (in `docs/STARTOPTIONEN.md`). | 11.11.2026 |
+| Offen | Die Tafel wird beim Aufklappen von „Erweitert“ breiter (etwa 720 → 940 px); Ursache nicht gesucht. Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
+
 ### Rivalenwahl ohne Beruf (Branch phase5/kirchen-koeln, Prediger PR 1c)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Anzeige | Die Zeile „Rivalen“ im Hauptmenü nennt nur noch die Häuser („Eisenbart und Eichwald“), nicht mehr die Werkstatt der Karte in Klammern: Seit der Startaufstellung (Kern, jeder Beruf einmal je Partie) werden Beruf, Volk und Glaube der KI-Häuser zu Partiebeginn gelost, die Klammer stimmte nicht mehr. Tooltip: „Ihr Beruf, Volk und Glauben werden zu Beginn gelost.“ Gewählt statt „(Beruf zufällig)“ hinter jedem Namen, weil das nur Zeilen verlängert. Die Rivalen-Daten der Karten bleiben unberührt. | 11.11.2026 |
+| Anzeige | Die Zeile „Rivalen“ im Hauptmenü nennt nur noch die Häuser („Eisenbart und Eichwald“), nicht mehr die Werkstatt der Karte in Klammern: Seit der Startaufstellung (Kern, jeder Beruf einmal je Partie) werden Beruf, Volk und Glaube der KI-Häuser zu Partiebeginn gelost, die Klammer stimmte nicht mehr. Tooltip: „Ihr Beruf, Volk und Glauben werden zu Beginn gelost.“ Gewählt statt „(Beruf zufällig)“ hinter jedem Namen, weil das nur Zeilen verlängert. Die Rivalen-Daten der Karten bleiben unberührt. (Überholt: Die Zeile „Rivalen“ ist durch „KI-Gegner“ auf der Seite „Neue Partie“ ersetzt, siehe oben.) | 11.11.2026 |
 | Später | Mehrspieler: gewählte Berufe für die anderen sperren über `Startaufstellung.FreieBerufe` (Kern). | 11.11.2026 |
 
 ### Entscheidungsbrief (PR #…)

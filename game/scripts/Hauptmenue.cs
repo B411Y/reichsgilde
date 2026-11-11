@@ -62,7 +62,8 @@ public partial class Hauptmenue : Node
     private SpinBox _aktionspunkte = null!;
     private OptionButton _beruf = null!;
     private OptionButton _hofstelle = null!;
-    private OptionButton _rivalen = null!;
+    private SpinBox _kiAnzahl = null!;
+    private OptionButton _kiStaerke = null!;
     private OptionButton _rivale = null!;
     private OptionButton _schwierigkeit = null!;
     private Label _schwierigkeitHinweis = null!;
@@ -77,9 +78,10 @@ public partial class Hauptmenue : Node
         Datenvorrat.Vorladen(); // wirtschaft.json im Hintergrund, solange das Menü steht (Datenvorrat.cs)
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
+        var neuePartie = OS.GetCmdlineUserArgs().Any(a => a == "--neuepartie=1");
         var danksagung = OS.GetCmdlineUserArgs().Any(a => a is "--danksagung=1" or "--danksagung=lizenzen");
         var feuertest = Feuertest.Angefordert; // auch ohne „--“ davor erkannt (Feuertest.Startargumente)
-        if ((feuertest || KlicktestTreiber.SpielOptionen().Length > 0) && !_startoptionenGenutzt && portraetOption is null && !stadtwahl && !danksagung)
+        if ((feuertest || KlicktestTreiber.SpielOptionen().Length > 0) && !_startoptionenGenutzt && portraetOption is null && !stadtwahl && !neuePartie && !danksagung)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
@@ -115,8 +117,8 @@ public partial class Hauptmenue : Node
         oberflaeche.AddChild(mitte);
         _start = StartTafel();
         _kartenwahl = KartenwahlTafel();
+        _neu = NeuTafel();       // zuerst: Volk, Glaube und Beruf liegen hier, das Oberhaupt-Porträt liest sie
         _oberhaupt = OberhauptTafel();
-        _neu = NeuTafel();
         _laden = LadeTafel();
         _einstellungen = new EinstellungenAnzeige(() => Zeigen(_start));
         _danksagung = new DanksagungAnzeige(() => Zeigen(_start));
@@ -128,6 +130,12 @@ public partial class Hauptmenue : Node
         {
             _startoptionenGenutzt = true;
             KartenwahlZeigen();
+        }
+        if (neuePartie) // --neuepartie=1: gleich die Seite „Neue Partie“ (für Bildschirmfotos)
+        {
+            _startoptionenGenutzt = true;
+            NeuePartieOeffnen();
+            Zeigen(_neu);
         }
         if (danksagung) // für Bildschirmfotos
         {
@@ -225,7 +233,7 @@ public partial class Hauptmenue : Node
     //  Euer Oberhaupt (Porträt, PR #211)
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Die erste Seite der neuen Partie: Volk, Geschlecht und Vorname, Gesicht (5 zur Wahl), Haar- und Augenfarbe, mit großem Porträt.</summary>
+    /// <summary>Die Seite „Euer Oberhaupt“ (von „Neue Partie“ aus): Geschlecht und Vorname, Gesicht (5 zur Wahl), Haar- und Augenfarbe, mit großem Porträt; das Volk wählt „Neue Partie“.</summary>
     private PanelContainer OberhauptTafel()
     {
         var (tafel, spalte) = Tafel(700);
@@ -245,17 +253,6 @@ public partial class Hauptmenue : Node
         var rechts = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         rechts.AddThemeConstantOverride("separation", 8);
         reihe.AddChild(rechts);
-
-        _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        foreach (var volk in Spielbare)
-            _volk.AddItem(volk.Mehrzahl(), (int)volk);
-        _volk.ItemSelected += _ => { VolkHinweisZeigen(); PaletteFuellen(); AussehenZeigen(); };
-        Text(rechts, "Volk", 14, Gold);
-        rechts.AddChild(_volk);
-        _volkHinweis = new Label { CustomMinimumSize = new Vector2(330, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _volkHinweis.AddThemeFontSizeOverride("font_size", 12);
-        _volkHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
-        rechts.AddChild(_volkHinweis);
 
         Text(rechts, "Oberhaupt", 14, Gold);
         var oberhaupt = new HBoxContainer();
@@ -304,10 +301,9 @@ public partial class Hauptmenue : Node
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         spalte.AddChild(knoepfe);
-        Knopf(knoepfe, "Zurück", () => Zeigen(_kartenwahl));
-        Knopf(knoepfe, "Weiter", () => Zeigen(_neu));
+        Knopf(knoepfe, "Zurück", () => Zeigen(_neu));
+        Knopf(knoepfe, "Fertig", () => Zeigen(_neu));
 
-        VolkHinweisZeigen();
         PaletteFuellen();
         AussehenZeigen();
         return tafel;
@@ -389,17 +385,24 @@ public partial class Hauptmenue : Node
         if (teile.Length > 3 && Enum.TryParse<Haarfarbe>(teile[3], true, out var haar) && Aussehenspalette.Haarfarben(gewaehltesVolk).Contains(haar)) _haar = haar;
         if (teile.Length > 4 && Enum.TryParse<Augenfarbe>(teile[4], true, out var augen) && Aussehenspalette.Augenfarben(gewaehltesVolk).Contains(augen)) _augen = augen;
         VolkHinweisZeigen();
+        GlaubeFuellen();
         PaletteFuellen();
         AussehenZeigen();
+        ZuegeZeigen();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Neue Partie
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// „Neue Partie“ (Entscheidung 11.11.2026): oben, was der Spieler einstellt – Wappen, Name, Volk, Glaube, Beruf (vorbelegt mit einem gewürfelten
+    /// Vorschlag des Kerns), seine drei Persönlichkeitszüge (immer gewürfelt, „Neu würfeln“) – darunter die KI-Gegner (Anzahl, Stärke). „Erweitert“
+    /// klappt auf: jede KI einzeln, KI-Häuser mit Umland und alle übrigen Einstellungen (Hauptmenue.Besetzung.cs).
+    /// </summary>
     private PanelContainer NeuTafel()
     {
-        var (tafel, spalte) = Tafel(560);
+        var (tafel, spalte) = Tafel(720);
         Text(spalte, "Neue Partie", 26, Gold, zentriert: true);
         spalte.AddChild(WappenWahl());
         spalte.AddChild(new HSeparator());
@@ -418,100 +421,73 @@ public partial class Hauptmenue : Node
         hausname.CustomMinimumSize = new Vector2(280, 0);
         Zeile(raster, "Name eures Hauses", hausname);
 
+        _volk = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var volk in Spielbare)
+            _volk.AddItem(volk.Mehrzahl(), (int)volk);
+        _volk.ItemSelected += _ => { VolkHinweisZeigen(); GlaubeFuellen(); PaletteFuellen(); AussehenZeigen(); ZuegeZeigen(); };
+        Zeile(raster, "Volk", _volk);
+        _volkHinweis = new Label { CustomMinimumSize = new Vector2(330, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _volkHinweis.AddThemeFontSizeOverride("font_size", 12);
+        _volkHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
+        Zeile(raster, "", _volkHinweis);
+
         _glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _glaube.AddItem("wie das Volk", -1);
-        _glaube.AddItem("katholisch", (int)Konfession.Katholisch);
-        _glaube.AddItem("evangelisch", (int)Konfession.Evangelisch);
-        _glaube.ItemSelected += _ => VolkHinweisZeigen();
         Zeile(raster, "Glaube", _glaube);
 
         _beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _beruf.AddItem("Schmied (Gießerei: Beschlag, Dolch, Silberring)");
-        _beruf.AddItem("Tischler (Tischlerei: Holzzapfen, Schemel, Truhe)");
-        _beruf.AddItem("Steinmetz (Maurerei: Schleifziegel, Grabstein, Mühlstein)");
-        _beruf.AddItem("Alchimist (Tinkturei: Farbe, Kräuterschnaps, Heilsalbe)");
-        _beruf.AddItem("Wirt (Schänke: Gäste bewirten, Dünnbier, Körnermahlzeit)");
-        _beruf.AddItem("Prediger (Kirche: Messe und Ablass, Kerzen und Schriften)");
-        _beruf.AddItem("Dieb (Schmugglerloch: Taschendiebe, Einbruch, Schutzgeld)");
-        _beruf.AddItem("Gardist (Wachhaus: Sold, Streife, Razzia, Kopfgeld)");
-        _beruf.AddItem("Geldleiher (Wechselstube: Kasse, Wechsel, Kredite an Häuser)");
-        _beruf.AddItem("Parfumeur (Siederei: Politur, Blume der Zwietracht, Giftdolch)");
         Zeile(raster, "Startberuf", _beruf);
 
-        _hofstelle = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _hofstelle.TooltipText = "Eine Hofstelle ist Wohnhaus und Werkstatt nebeneinander. Zufall lost eine unter den Startplätzen der Karte; die KI-Häuser bekommen immer geloste Hofstellen.";
-        Zeile(raster, "Hofstelle", _hofstelle);
-        HofstellenWahlFuellen();
-        VolkHinweisZeigen();
+        // Die drei Persönlichkeitszüge des Oberhaupts: immer gewürfelt, nie gewählt.
+        _zuegeReihe = new HFlowContainer();
+        _zuegeReihe.AddThemeConstantOverride("h_separation", 10);
+        var zuegeBox = new HBoxContainer();
+        zuegeBox.AddThemeConstantOverride("separation", 12);
+        zuegeBox.AddChild(_zuegeReihe);
+        _zuegeReihe.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _zuegeNeu = new Button { Text = "Neu würfeln", FocusMode = Control.FocusModeEnum.None, TooltipText = "Würfelt drei andere Persönlichkeitszüge. Gewählt werden sie nicht." };
+        _zuegeNeu.Pressed += ZuegeWuerfelnKlick;
+        zuegeBox.AddChild(_zuegeNeu);
+        _zuegeZeile = Zeile(raster, "Persönlichkeit", zuegeBox);
 
-        _sieg = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        foreach (var (text, wert) in new[] { ("Partie endet in einem Jahr", Siegbedingung.Endjahr), ("Zielvermögen erreichen", Siegbedingung.Zielvermoegen),
-                                             ("Letzte Dynastie gewinnt", Siegbedingung.LetzteDynastie), ("Endlos spielen", Siegbedingung.Endlos) })
-            _sieg.AddItem(text, (int)wert);
-        _sieg.ItemSelected += _ => SiegFelderZeigen();
-        Zeile(raster, "Siegbedingung", _sieg);
+        Knopf(spalte, "Oberhaupt gestalten …", () => Zeigen(_oberhaupt)).TooltipText = "Geschlecht, Vorname, Gesicht, Haar und Augen des Oberhaupts";
 
-        _endjahr = Zahl(Spielzeit.StartJahr + 1, 2000, 1, 1600);
-        _endjahrZeile = Zeile(raster, "Endjahr", _endjahr);
-        _zielvermoegen = Zahl(10_000, 10_000_000, 10_000, 200_000, " Gulden");
-        _zielZeile = Zeile(raster, "Zielvermögen", _zielvermoegen);
+        spalte.AddChild(new HSeparator());
+        var ki = new GridContainer { Columns = 2 };
+        ki.AddThemeConstantOverride("h_separation", 16);
+        ki.AddThemeConstantOverride("v_separation", 8);
+        spalte.AddChild(ki);
+        _kiAnzahl = Zahl(0, 1, 1, 0);
+        _kiAnzahl.TooltipText = "Wie viele KI-Häuser mitspielen – null bis zur Zahl der Höfe der Karte minus eins. Beruf, Volk, Glaube, Name und Wappen werden gewürfelt (jeder Beruf kommt nur einmal vor), es sei denn, ihr legt sie unter „Erweitert“ fest.";
+        _kiAnzahl.ValueChanged += _ => KiZeilenZeigen();
+        Zeile(ki, "KI-Gegner", _kiAnzahl);
+        _kiStaerke = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _kiStaerke.AddItem("Leicht", (int)KiStaerke.Leicht);
+        _kiStaerke.AddItem("Normal", (int)KiStaerke.Normal);
+        _kiStaerke.AddItem("Schwer", (int)KiStaerke.Schwer);
+        _kiStaerke.Select(1);
+        _kiStaerke.ItemSelected += _ => KiStaerkeHinweisZeigen();
+        Zeile(ki, "Stärke der KI", _kiStaerke);
+        _kiStaerkeHinweis = new Label { CustomMinimumSize = new Vector2(330, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _kiStaerkeHinweis.AddThemeFontSizeOverride("font_size", 12);
+        _kiStaerkeHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
+        Zeile(ki, "", _kiStaerkeHinweis);
+        KiStaerkeHinweisZeigen();
 
-        _dauer = Zahl(1, 120, 1, 15, " Min.");
-        Zeile(raster, "Dauer eines Spieljahres", _dauer);
+        _erweitertKnopf = Knopf(spalte, "Erweitert anzeigen", ErweitertUmschalten);
+        _erweitertKnopf.TooltipText = "Jede KI einzeln festlegen, KI-Häuser mit Umland, Siegbedingung, Dauer, Startvermögen und mehr";
+        _erweitert = ErweitertBauen();
+        _erweitert.Visible = false;
+        spalte.AddChild(_erweitert);
 
-        _statut = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        foreach (var statut in Enum.GetValues<Fronstatut>())
-            _statut.AddItem($"{statut.Kuerzel()} – {statut.Name()}", (int)statut);
-        _statut.Select(_statut.GetItemIndex((int)Fronstatut.Bestienfron));
-        Zeile(raster, "Fron- und Sklavenstatut", _statut);
-
-        _startvermoegen = Zahl(1000, 50_000, 500, 4000, " Gulden");
-        Zeile(raster, "Startvermögen", _startvermoegen);
-
-        _aktionspunkte = Zahl(Partieeinstellungen.MinAktionspunkte, Partieeinstellungen.MaxAktionspunkte, 1, Partieeinstellungen.Standard.AktionspunkteProRunde, " AP");
-        _aktionspunkte.TooltipText = "So viele Aktionspunkte bekommt jedes Haus zum Jahreswechsel – für Werben, Rat, Gericht, Hinterzimmer und Üben.";
-        Zeile(raster, "Aktionspunkte je Jahr", _aktionspunkte);
-
-        _rivale = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _rivale.AddItem("Vorsichtig (leichter)", (int)KiCharakter.Vorsichtig);
-        _rivale.AddItem("Ausgewogen", (int)KiCharakter.Ausgewogen);
-        _rivale.AddItem("Wagemutig (schwerer)", (int)KiCharakter.Wagemutig);
-        _rivale.Select(1);
-        Zeile(raster, "Die KI-Häuser spielen", _rivale);
-
-        _rivalen = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        RivalenWahlFuellen();
-        _rivalen.TooltipText = "Welche Häuser mitspielen. Ihr Beruf, Volk und Glauben werden zu Beginn gelost; jeder Beruf kommt nur einmal vor.";
-        Zeile(raster, "Rivalen", _rivalen);
-
-        _schwierigkeit = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _schwierigkeit.AddItem("Normal", (int)Schwierigkeit.Normal);
-        _schwierigkeit.AddItem("Schwer", (int)Schwierigkeit.Schwer);
-        _schwierigkeit.ItemSelected += _ => SchwierigkeitHinweisZeigen();
-        Zeile(raster, "Schwierigkeit", _schwierigkeit);
-        _schwierigkeitHinweis = new Label { CustomMinimumSize = new Vector2(280, 0), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _schwierigkeitHinweis.AddThemeFontSizeOverride("font_size", 12);
-        _schwierigkeitHinweis.AddThemeColorOverride("font_color", new Color(0.72f, 0.72f, 0.72f));
-        Zeile(raster, "", _schwierigkeitHinweis);
-        SchwierigkeitHinweisZeigen();
-
-        var startwertZeile = new HBoxContainer();
-        _startwert = Zahl(0, 999_999, 1, 1400);
-        startwertZeile.AddChild(_startwert);
-        var wuerfeln = new Button { Text = "Würfeln", FocusMode = Control.FocusModeEnum.None };
-        wuerfeln.Pressed += () => _startwert.Value = GD.RandRange(0, 999_999);
-        startwertZeile.AddChild(wuerfeln);
-        Zeile(raster, "Zufallsstartwert", startwertZeile);
-
-        Text(spalte, "Gleicher Startwert und gleiche Entscheidungen ergeben dieselbe Partie.", 12, new Color(0.65f, 0.65f, 0.65f), umbruchBreite: 500);
-        _fehler = Text(spalte, "", 14, Rot, umbruchBreite: 500);
+        _fehler = Text(spalte, "", 14, Rot, umbruchBreite: 640);
 
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         spalte.AddChild(knoepfe);
-        Knopf(knoepfe, "Zurück", () => Zeigen(_oberhaupt));
+        Knopf(knoepfe, "Zurück", () => Zeigen(_kartenwahl));
         Knopf(knoepfe, "Partie beginnen", NeuePartieBeginnen);
 
+        GlaubeFuellen();
         SiegFelderZeigen();
         return tafel;
     }
@@ -609,24 +585,6 @@ public partial class Hauptmenue : Node
 
     /// <summary>Wer am Start in der Stadt lebt: die Belegung der Karte, mit der eine neue Partie beginnt (ohne Karte die eingebaute).</summary>
     private static Startbelegung Startbelegung => Stadtkarten.Startkarte?.Startbelegung ?? Startbelegung.Ersatz;
-
-    /// <summary>
-    /// Die Wahl der Rivalen: die KI-Häuser der Karte in ihrer Reihenfolge – das erste spielt immer mit, jede weitere Zeile nimmt das nächste dazu
-    /// („Eisenbart und Eichwald“). Den Beruf der Rivalen zeigt die Wahl nicht: Die Startaufstellung des Kerns lost ihn (jeder Beruf einmal je Partie),
-    /// die Werkstatt der Karte gilt nicht mehr. Vorgewählt sind alle.
-    /// </summary>
-    private void RivalenWahlFuellen()
-    {
-        var haeuser = Startbelegung.Haeuser;
-        static string Kurz(string name) => name.StartsWith("Haus ") ? name[5..] : name;
-        for (var n = 1; n <= haeuser.Count; n++)
-        {
-            var namen = haeuser.Take(n).Select(h => Kurz(h.Name)).ToList();
-            var text = n == 1 ? haeuser[0].Name : string.Join(", ", namen.SkipLast(1)) + " und " + namen[^1];
-            _rivalen.AddItem(text, n);
-        }
-        if (haeuser.Count > 0) _rivalen.Select(haeuser.Count - 1);
-    }
 
     /// <summary>
     /// Die Wahl der Hofstelle: „Zufall“ (Vorgabe) und je Start-Hofstelle der gewählten Karte ein Eintrag „Heumarkt – 120 m zum Heumarkt“.
@@ -729,6 +687,9 @@ public partial class Hauptmenue : Node
             fehler.Add(wappenFehler);
         if (Aussehenspalette.Verboten((Volk)_volk.GetSelectedId(), GewaehltesAussehen) is { } aussehenFehler)
             fehler.Add(aussehenFehler);
+        var vorgaben = KiVorgabenLesen();
+        if (BesetzungProblem(einstellungen.Zufallsstartwert, vorgaben) is { } besetzungFehler)
+            fehler.Add(besetzungFehler);
         if (fehler.Count > 0)
         {
             _fehler.Text = string.Join("\n", fehler);
@@ -739,11 +700,12 @@ public partial class Hauptmenue : Node
             new NeuePartie(_familie.Text, _startvermoegen.Value, (KiCharakter)_rivale.GetSelectedId(),
                 (Volk)_volk.GetSelectedId(), (Geschlecht)_geschlecht.GetSelectedId(),
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
-                Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
-                Rivalen: _rivalen.GetSelectedId(),
+                Beruf: GewaehlterBeruf(_beruf)!,
+                Rivalen: (int)_kiAnzahl.Value,
                 Hofstelle: _hofstelle.Selected > 0 ? _hofstelle.GetItemMetadata(_hofstelle.Selected).AsString() : null,
-                Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId(),
-                Wappen: _wappen, Aussehen: GewaehltesAussehen));
+                Glaube: (Konfession)_glaube.GetSelectedId(),
+                Wappen: _wappen, Aussehen: GewaehltesAussehen,
+                KiStaerke: (KiStaerke)_kiStaerke.GetSelectedId(), KiVorgaben: vorgaben, ZugWurf: _zugWurf));
         SpielStarten();
     }
 
