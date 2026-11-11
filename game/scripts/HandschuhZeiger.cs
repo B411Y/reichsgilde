@@ -326,8 +326,14 @@ public partial class HandschuhZeiger : CanvasLayer
     private string SchleifenName(HandPose pose) => pose == HandPose.Bereit && _spieler!.HasAnimation("Bereit_atmen") ? "Bereit_atmen" : HandschuhModell.Schleife(pose);
 
     /// <summary>Tempo eines Einmalclips: die Übergänge von und nach Bereit und Winken sind schon auf ihre Zeit gebaut (7 Bilder bei 24/s) und laufen mit 1, die älteren mit <see cref="HandschuhModell.UebergangTempo"/>.</summary>
-    private static float UebergangsTempo(string clip) =>
-        clip == "Tippen" ? (float)HandschuhModell.TippenTempo : clip.Contains("Bereit") || clip.Contains("Winken") ? 1f : (float)HandschuhModell.UebergangTempo;
+    private float UebergangsTempo(string clip)
+    {
+        if (clip == "Tippen") return (float)HandschuhModell.TippenTempo;
+        if (clip.Contains("Bereit") || clip.Contains("Winken")) return 1f;
+        // Übergänge in die Ziehen-Faust und zurück: feste Wunschdauer, Tempo = Cliplänge / Dauer
+        if (clip.StartsWith("Uebergang_") && clip.Contains("Greifen") && !clip.Contains("Text") && Laenge(clip) is var l and > 0) return (float)(l / HandschuhModell.FaustUebergangSekunden);
+        return (float)HandschuhModell.UebergangTempo;
+    }
 
     private void Haltung()
     {

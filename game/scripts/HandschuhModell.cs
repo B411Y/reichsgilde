@@ -20,6 +20,9 @@ public static class HandschuhModell
     /// <summary>Abspieltempo der Einmalclips (1 = wie in der Datei): Übergänge Ruhe/Zeigen/Greifen, etwa 45 % kürzer (vorher 1,0).</summary>
     public const double UebergangTempo = 1.8;
 
+    /// <summary>Wunschdauer (Sekunden) der Übergänge in die Ziehen-Faust und zurück (Greifen; vorher bei Tempo 1,8 etwa 0,69 s Ruhe→Greifen, 0,56 s Greifen→Ruhe, 0,28 s Zeigen↔Greifen); das Tempo wird aus der Cliplänge der Datei berechnet.</summary>
+    public const double FaustUebergangSekunden = 0.12;
+
     /// <summary>Abspieltempo des Klick-Tippens, etwa 45 % kürzer (vorher 1,5).</summary>
     public const double TippenTempo = 2.7;
 

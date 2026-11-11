@@ -182,11 +182,11 @@ public partial class Mauszeiger : Node
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
     }
 
-    /// <summary>48, 64 oder 80 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 48 bei 1080p.</summary>
+    /// <summary>48, 64 oder 80 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 64 bei 1080p (Nutzerwunsch 11.11.2026; 48 nur noch bei kleinem Fenster oder kleiner Oberfläche).</summary>
     private static int GroesseWaehlen()
     {
         var mass = DisplayServer.WindowGetSize().Y / 1080f * Fenster.Oberflaechengroesse / 100f;
-        return mass < 1.35f ? Groessen[0] : mass < 1.8f ? Groessen[1] : Groessen[2];
+        return mass < 0.75f ? Groessen[0] : mass < 1.35f ? Groessen[1] : Groessen[2];
     }
 
     /// <summary>Zeigerpunkt des Hilfe-Zeigers (Spitze des Dreiecks) je Größe 48, 64, 80 (Ausgabe von <c>zeiger_hilfe.py</c>, <c>hotspots.txt</c>).</summary>
