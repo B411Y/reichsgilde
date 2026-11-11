@@ -20,6 +20,8 @@ public static class Vorladen
         {
             "res://assets/texturen/modelle/modelle_farbe_hoehe.webp",
             "res://assets/texturen/modelle/modelle_normal_rauheit.webp",
+            "res://assets/texturen/modelle/relief_farbe_hoehe.webp",   // Relief-Texturen der Modelle (fehlen sie, wird nichts angefordert)
+            "res://assets/texturen/modelle/relief_normal_rauheit_ao.webp",
             boden.Farbe,
             boden.Normale,
             // zwei große Modelle, die beim Laden jeder Stadt und mit den ersten Passanten gebraucht werden (je 0,1 bis 0,2 s auf dem Hauptfaden)

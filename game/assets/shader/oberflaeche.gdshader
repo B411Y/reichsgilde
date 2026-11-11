@@ -56,6 +56,26 @@ const float BIB_MOOS_ANTEIL = 0.45;
 const float BIB_REIHE_KANTE = 0.45;              // Dächer ohne Modellreihen: so viel dunkler an der Unterkante jeder Reihe
 const float BIB_REIHE_NEIGUNG = 0.25;            // … und so weit kippt jede Reihe (Normale), wie die Sägezähne der Modelle
 
+// Relief-Texturen (CC0, Poly Haven und ambientCG; tools/oberflaeche/relief_texturen.py, Block "relief" in materialbibliothek.json): echte Aufnahmen mit
+// Normalen, Rauheit, Verdeckung (AO) und Hoehe, je Schicht der Bibliothek, wo es sie gibt. rel_schicht[b] ist die Schicht im Relief-Array plus 1 (0 = keine,
+// dann gilt die bisherige Textur von oben; das Spiel setzt die Felder nur, wenn die beiden Dateien da sind). Kachel, mittlere Farbe, Projektion und
+// Reihenhoehe stehen dann schon in den bib_-Feldern. Ab bib_stufe 1 (Mittel) mit Normalen, Rauheit und AO, ab 2 (Hoch, Ultra) dazu Parallax (bib_pom = Schritte).
+uniform sampler2DArray rel_farbe : source_color, repeat_enable, filter_linear_mipmap_anisotropic;    // RGB Farbe, A Hoehe (1 oben)
+uniform sampler2DArray rel_nr : repeat_enable, filter_linear_mipmap_anisotropic;                     // RG Normale, B Rauheit, A Verdeckung
+uniform int rel_schicht[BIB_MAX];
+uniform float rel_tiefe[BIB_MAX];                // Tiefe des Reliefs in Metern (Parallax)
+uniform float rel_staerke[BIB_MAX];              // Staerke der Normalen dieser Schicht
+uniform float rel_nass[BIB_MAX];                 // wie viel der Nässe-Abdunkelung gilt (1 = ganz; Pflaster weniger, sonst wird es bei Regen fast schwarz)
+uniform float bib_pixel = 0.0;                  // 1 im Pixel-Look: Relief nur als ruhige Farbe (keine Normale, keine Fugen, kein Parallax), sonst Punktreihen und Schachbrett
+uniform int bib_pom = 0;                         // 0 aus, sonst Schritte der Parallax-Okklusion (Hoch 4, Ultra 8)
+const float REL_AO_UMGEBUNG = 0.25;              // so viel der Verdeckung dunkelt das Umgebungslicht ab (AO_LIGHT_AFFECT bleibt 0: das Direktlicht dunkelt schon die Farbe ab)
+const float REL_AO_FARBE = 0.55;                 // so viel der Verdeckung dunkelt auch das Licht ab (Fugen bleiben lesbar, Godots AO wirkt nur auf Umgebungslicht)
+const float REL_POM_NAH = 0.008;                 // Parallax: voll bis so viele Meter je Bildpunkt, ...
+const float REL_POM_FERN = 0.02;                 // ... aus (Ferne flimmert und waere unsichtbar)
+
+const float REL_FEIN_NAH = 0.08;                 // Feinheiten (Fugen, Ziegelkanten): voll bis 8 cm je Bildpunkt (Zoom 25/50/100 auf 1080p: 2,3/4,6/9,3 cm), ...
+const float REL_FEIN_FERN = 0.20;                // ... darueber gröbere Mip-Stufe und schwächere Normale (Moiré: Punktreihen, Schachbrett, v. a. im Pixel-Look)
+
 // Elf Schichten (tools/oberflaeche/texturen.py): 0–8 die Materialarten 1–9, 9 Pflaster (Mauer von oben), 10 Flecken.
 // R Helligkeit, G Farbton (+ warm, − kühl), B/A Neigung der Fläche in U/V – alle um 128 als „nichts“.
 uniform sampler2DArray strukturen : repeat_enable, filter_linear_mipmap;
@@ -104,6 +124,28 @@ vec4 lesen(vec2 uv, vec2 dx, vec2 dy, float schicht) {
 	return textureGrad(strukturen, vec3(uv, schicht), dx, dy) * (255.0 / 127.0) - (128.0 / 127.0);
 }
 
+// Parallax-Okklusion fuer eine Relief-Schicht: Der Blick dringt in Stufen in die Hoehe (A von rel_farbe, 1 = oben) ein, bis er unter der Oberflaeche
+// liegt, dazwischen linear angenaehert. sicht = Blickrichtung zur Kamera in der Flaeche (x entlang uv.x, y entlang uv.y, z = Normale), gx/gy Ableitungen.
+// Gibt den Versatz der Texturkoordinate zurueck (die Kamera ist orthogonal: eine Richtung gilt fuer die ganze Flaeche).
+vec2 rel_versatz(vec2 uv, vec2 gx, vec2 gy, vec3 sicht, float schicht, float tiefe_uv, int schritte) {
+	if (sicht.z < 0.15) return vec2(0.0);
+	vec2 ganz = sicht.xy / sicht.z * tiefe_uv;            // Versatz bei voller Tiefe
+	float lage = 1.0 / float(schritte);
+	vec2 schritt = ganz * lage;
+	vec2 off = vec2(0.0), off_alt = vec2(0.0);
+	float tiefe = 0.0, tiefe_alt = 0.0;
+	float ist = 1.0 - textureGrad(rel_farbe, vec3(uv, schicht), gx, gy).a, ist_alt = ist;
+	for (int i = 0; i < 16; i++) {
+		if (i >= schritte || tiefe >= ist) break;
+		off_alt = off; tiefe_alt = tiefe; ist_alt = ist;
+		off += schritt; tiefe += lage;
+		ist = 1.0 - textureGrad(rel_farbe, vec3(uv - off, schicht), gx, gy).a;
+	}
+	float danach = ist - tiefe, davor = ist_alt - tiefe_alt;
+	float w = clamp(danach / (danach - davor - 1e-5), 0.0, 1.0);
+	return -mix(off, off_alt, w);
+}
+
 void fragment() {
 	vec3 grund = farbe.rgb;
 	if (eckenfarbe) grund *= eckfarbe;
@@ -117,9 +159,12 @@ void fragment() {
 	}
 	float rau = rauheit;   // Rauheit nach Bibliothek bzw. Modell; das Wetter (Nässe) ändert sie danach
 	float tiefe = 0.5;     // Tiefe der Textur der Bibliothek (0 oben … 1 Fuge, Rinne); das Wetter hält dort das Wasser länger
+	float ao_aus = 1.0;    // Verdeckung der Relief-Textur (AO)
 	int b = (art_aus_uv && v_bib >= 0) ? v_bib : bib;
 	if (b >= 0 && b < BIB_MAX && bib_stufe > 0) {
-		bool normalen = bib_stufe >= 2;
+		int rs = rel_schicht[b] - 1;       // Schicht im Relief-Array, −1: die bisherige Textur
+		bool rel = rs >= 0;
+		bool normalen = bib_stufe >= 2 || (rel && bib_stufe >= 1);
 		float s = 1.0 / bib_kacheln[b];
 		bool bib_dach = bib_projektion[b] >= 1;
 		bool bib_reihen = bib_projektion[b] == 2;
@@ -150,20 +195,49 @@ void fragment() {
 				float fr = pv - r;
 				d = r * 0.0537;
 				float breite = fwidth(pv);            // weich, wo eine Reihe nur wenige Bildpunkte hoch ist (keine flimmernden Linien)
-				kante = 1.0 - BIB_REIHE_KANTE * (1.0 - smoothstep(0.0, 0.12 + breite, fr)) * (1.0 - smoothstep(0.25, 0.6, breite));
-				kippen = BIB_REIHE_NEIGUNG * (1.0 - smoothstep(0.25, 0.6, breite));
+				kante = 1.0 - BIB_REIHE_KANTE * (rel ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.0, 0.12 + breite, fr)) * (1.0 - smoothstep(0.25, 0.6, breite));
+				kippen = BIB_REIHE_NEIGUNG * (rel ? 1.0 - 0.6 * bib_pixel : 1.0) * (1.0 - smoothstep(0.25, 0.6, breite));
 			}
 			uv.x += d * 7.31 + 0.37 * sin(d * 113.0) + 0.23 * sin(d * 271.0);
 			reihe = sin(d * 157.0 + 1.3 * sin(d * 59.0));
 		}
-		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(b)), uv_dx, uv_dy);
-		tiefe = 1.0 - fh.a;
-		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(b)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
-		vec2 t = nr.rg * 2.0 - 1.0;
+		vec4 fh, nr;
+		float staerke = 1.0;
+		float grob = 0.0;   // 0 nah genug fuer Fugen und Normale, 1 zu fern oder Pixel-Look
+		if (rel) {
+			float mpp = max(length(uv_dx), length(uv_dy)) / s * length(MODEL_MATRIX[0].xyz);   // Meter je Bildpunkt
+			grob = smoothstep(REL_FEIN_NAH, REL_FEIN_FERN, mpp);
+			float pix = bib_pixel;   // Pixel-Look: gröbere Mip-Stufe immer, Normale und Fugen gedämpft, nicht weg (sonst glatt), keine harten Reihenlinien   // 0 nah, 1 fern (im Pixel-Look wegen der grossen Bildpunkte schon früh)
+			uv_dx *= 1.0 + 3.0 * max(grob, pix);   // gröbere Mip-Stufe: die Fugen werden Fläche statt Punktreihe
+			uv_dy *= 1.0 + 3.0 * max(grob, pix);
+			staerke = (1.0 - grob) * (1.0 - 0.55 * pix);
+			grob = max(grob, 0.55 * pix);   // Fugenfarbe und AO im Pixel-Look auf 45 %
+			// Parallax (nur Hoch und Ultra, nur ganz nah): die Textur um den Versatz verschieben, ehe Farbe, Normale und AO gelesen werden
+			if (bib_pom > 0 && bib_pixel < 0.5 && bib_stufe >= 2 && rel_tiefe[b] > 0.0) {
+				float weit = 1.0 - smoothstep(REL_POM_NAH, REL_POM_FERN, mpp);
+				if (weit > 0.0) {
+					vec3 vw = normalize(transpose(mat3(MODEL_MATRIX)) * (mat3(INV_VIEW_MATRIX) * VIEW));   // Blick zur Kamera in Objektkoordinaten
+					uv += rel_versatz(uv, uv_dx, uv_dy, vec3(dot(vw, u), -dot(vw, v), dot(vw, n)), float(rs), rel_tiefe[b] * s * weit, bib_pom);
+				}
+			}
+			fh = textureGrad(rel_farbe, vec3(uv, float(rs)), uv_dx, uv_dy);
+			nr = textureGrad(rel_nr, vec3(uv, float(rs)), uv_dx, uv_dy);
+			ao_aus = nr.a;
+			staerke *= rel_staerke[b];
+			// Tiefe fuer die Naesse: Fugen und Senken (Hoehe und AO) halten das Wasser laenger, Rinnen laufen dort
+			tiefe = clamp(0.75 * (1.0 - fh.a) + 0.6 * (1.0 - nr.a), 0.0, 1.0);
+		} else {
+			fh = textureGrad(bib_farbe, vec3(uv, float(b)), uv_dx, uv_dy);
+			tiefe = 1.0 - fh.a;
+			nr = normalen ? textureGrad(bib_nr, vec3(uv, float(b)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
+		}
+		vec2 t = (nr.rg * 2.0 - 1.0) * staerke;
 		vec3 neigung = u * t.x + v * (t.y + kippen);     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
 		vec2 uf = vec2(welt.x + welt.y * 0.6, welt.z - welt.y * 0.4) / FLECKEN_GROESSE;
 		vec4 f = lesen(uf, dFdx(uf), dFdy(uf), 10.0);
-		grund *= fh.rgb / bib_mittel[b] * (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM) * (1.0 + BIB_REIHE_HELL * reihe) * kante;
+		vec3 g_vor = grund;
+		vec3 fl = (1.0 + FLECKEN_HELL * f.r) * (1.0 + FLECKEN_TON * f.g * WARM) * (1.0 + BIB_REIHE_HELL * reihe) * kante;
+		grund *= fh.rgb / bib_mittel[b] * fl;
 		if (bib_reihen && !liegend) {
 			// Verwitterung über die Reihen hinweg, in Dachkoordinaten ohne Versatz (je Haus verschoben): dunkle Laufspuren in
 			// Fallrichtung (die Flecken schmal und lang gezogen) und Moosflecken, mehr auf der Nordseite (−z).
@@ -180,8 +254,13 @@ void fragment() {
 			vec3 sicht = mat3(VIEW_MATRIX) * (mat3(MODEL_MATRIX) * neigung) / length(MODEL_MATRIX[0].xyz);
 			NORMAL = normalize(NORMAL + sicht * BIB_RELIEF);
 		}
+		if (rel) {
+			grund *= mix(1.0, ao_aus, REL_AO_FARBE);
+			grund = mix(grund, g_vor * fl, grob);   // fern: Fugen und Verdeckung weg, die mittlere Helligkeit ist die der Modellfarbe (das Mittel der Schicht enthaelt Verdeckung und Streiflicht)
+			ao_aus = mix(ao_aus, 1.0, grob);
+		}
 		grund = clamp(grund, 0.0, 1.0);
-		rau = normalen ? clamp(nr.b + rauheit - 0.9, 0.04, 1.0) : rauheit;
+		rau = normalen ? clamp(nr.b + rauheit - (rel ? 1.0 : 0.9), 0.04, 1.0) : rauheit;
 	} else {
 		if (v_art >= 1 && v_art <= 9) {   // Art 0 („keine“): nur die Farbe des Modells, etwa wo das Modell Steine schon als Form hat
 			int i = v_art - 1;
@@ -228,12 +307,16 @@ void fragment() {
 		// Dachdeckung (Projektion „reihen“: Ziegel, Schiefer, Schindeln) = 1, „dach“ (Stroh, Kupfer) = 0,5, sonst 0: Der Wetter-Shader zählt eine Deckung auch am
 		// steilen Turmhelm als Dach (nach der Neigung allein wäre sie eine Wand)
 		float dachstoff = (sb >= 0 && sb < BIB_MAX) ? (bib_projektion[sb] == 2 ? 1.0 : (bib_projektion[sb] == 1 ? 0.5 : 0.0)) : 0.0;
+		vec3 trocken = grund;
 		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, dachstoff,
 				tiefe, ort.y * smass, TIME, bib_stufe >= 1);
+		if (sb >= 0 && sb < BIB_MAX && bib_stufe >= 1 && rel_schicht[sb] > 0) grund = mix(trocken, grund, rel_nass[sb]);   // Relief-Stoffe: Nässe je Stoff weniger dunkel
 		EMISSION += gl;
 		if (wnorm_neu != wnorm) NORMAL = normalize(mat3(VIEW_MATRIX) * wnorm_neu);   // Regentropfen auf flachen Flächen
 	}
 	ALBEDO = grund;
+	AO = mix(1.0, ao_aus, REL_AO_UMGEBUNG);
+	AO_LIGHT_AFFECT = 0.0;
 	ROUGHNESS = rau;
 	METALLIC = metall;
 	SPECULAR = glanz;

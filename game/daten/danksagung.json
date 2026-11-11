@@ -153,6 +153,14 @@
           "lizenz": "CC0 1.0",
           "hinweis": "",
           "pflicht": false
+        },
+        {
+          "werk": "Relief-Texturen der Modelle (Dachziegel, Schiefer, Schindeln, Stroh, Mauerwerk, Putz, Holz, Pflaster)",
+          "autor": "Poly Haven (u. a. Rob Tuytel, Dimitrios Savva, Amal Kumar, Dario Barresi, Charlotte Baglioni, Sơn Nguyễn) und ambientCG",
+          "quelle": "https://polyhaven.com und https://ambientcg.com",
+          "lizenz": "CC0 1.0",
+          "hinweis": "Aufnahmen und Materialien, vom Spiel zu einem Texturatlas gepackt und in Farbe und Kontrast angepasst.",
+          "pflicht": false
         }
       ],
       "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Pixal3D (Tencent, MIT) mit dem Bildencoder DINOv3 (Meta, DINOv3 License; Built with DINOv3) und MPFB 2 (CC0) für den 3D-Handschuh des Mauszeigers, Blender und ComfyUI. Schmiedmodell und Handschuh sind KI-Arbeiten."
