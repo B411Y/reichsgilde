@@ -39,7 +39,8 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>
     /// Aufschlag am Hafen auf die Ware dieses Betriebs im Mittel seiner Karren (je Karren <see cref="HandelsortFaktor"/> nach
-    /// <see cref="HandeltAmHafen"/>) – für Vorschauen, die für den ganzen Betrieb rechnen (<see cref="Kalkulation.GewinnJeStueck"/>, Einrichtung).
+    /// <see cref="HandeltAmHafen"/>) – für Vorschauen, die für den ganzen Betrieb rechnen (<see cref="Kalkulation.GewinnJeStueck"/>, Einrichtung),
+    /// und die Gewinnschätzung (<see cref="Kalkulation.GewinnJeArbeitsminute"/> mit Betrieb, <see cref="Kalkulation.ErwarteterJahresgewinn"/> beim Ausbau).
     /// Ohne Karren, ohne Karren zum Hafen oder ohne Aufschlag genau 1.
     /// </summary>
     public double HafenFaktor(Betrieb betrieb, string ware)

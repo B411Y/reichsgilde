@@ -37,18 +37,22 @@ Seit Stufe 2 sagt das Spiel selbst, **welches Haus** eine Meldung betrifft, **we
 
 ## Entscheidungen
 
-Manche Briefe verlangen eine **Antwort** (Stufe 3). Bisher sind es die drei Forderungen der Unterwelt: der **Erpresserbrief** (Schweigegeld zahlen oder nicht), das **Schutzgeld** (zahlen – oder es brennt in der nächsten Nacht) und das **Lösegeld** für eine Geisel (zahlen – oder sie wird in die Fremde verkauft, für immer). Jede offene Frage hat eine **Frist** und eine **Voreinstellung**, die gilt, wenn ihr nicht antwortet:
+Manche Briefe verlangen eine **Antwort** (Stufe 3): die drei Forderungen der Unterwelt – der **Erpresserbrief** (Schweigegeld zahlen oder nicht), das **Schutzgeld** (zahlen – oder es brennt in der nächsten Nacht), das **Lösegeld** für eine Geisel (zahlen – oder sie wird in die Fremde verkauft, für immer) – und vier Fragen aus Haus und Stadt: eine **Krankheit** (Medicus rufen, Kräuterschnaps geben oder nichts tun), das **Erbe** (ist das Oberhaupt alt oder schwer krank und hat mindestens zwei Kinder: wer ins Testament kommt), ein entdecktes **Geheimnis** (anzeigen, erpressen, bloßstellen oder für später merken) und die **Mahnung des Kämmerers** (abwarten, oder zur Bank bzw. zu euren Betrieben). Jede offene Frage hat eine **Frist** und eine **Voreinstellung**, die gilt, wenn ihr nicht antwortet:
 
 | Frage | Frist | Voreinstellung |
 |---|---|---|
 | Erpresserbrief | bis Ende des nächsten Jahres | Ablehnen (Schweigen heißt Nein) |
 | Schutzgeld | bis Ende des nächsten Jahres | Ablehnen (Schweigen heißt Nein) |
 | Lösegeld | bis Ende des nächsten Jahres | **Zahlen, wenn das Geld reicht**, sonst Ablehnen |
+| Krankheit | zwei Spielstunden | **Medicus, wenn bezahlbar**, sonst Kräuterschnaps aus der Hausapotheke, sonst nichts – für jeden Kranken |
+| Erbe | zwei Spielstunden | bei der Erbfolge bleiben (ältestes volljähriges Kind) |
+| Geheimnis | zwei Spielstunden | für später merken |
+| Mahnung | zwei Spielstunden | abwarten |
 
-Antworten könnt ihr wie bisher in der Gauner-Tafel des Hinterzimmers; das erledigt auch die Frage. Schlägt eine Antwort fehl (zu wenig Geld), bleibt die Frage offen. Die Forderungen der Unterwelt bleiben alle offen, bis ihr antwortet oder die Frist abläuft – nichts wird vorzeitig gezahlt oder abgelehnt. Jede beantwortete oder abgelaufene Frage steht als eine Zeile im **Verlauf** („Ihr habt Haus Elster 400 Gulden Schweigegeld gezahlt.“, „… Schweigen galt als Nein.“), nur für euer Haus. Die offenen Fragen stehen im Spielstand; bei einem älteren Spielstand legt das Spiel sie in der ersten Minute aus den Forderungen neu an. KI-Häuser bekommen keine Fragen, sie antworten selbst. Fragen zu Krankheit (Medicus), Erbe und entdeckten Geheimnissen folgen, mit einer Frist von zwei Spielstunden. Den Entscheidungsbrief mit Knöpfen, Fristbalken und „Später“ baut die Oberfläche als Nächstes; dort wählt ihr auch je Art „Entscheidung“ oder „Automatisch“.
+Antworten könnt ihr auch wie bisher an der gewohnten Stelle – Gauner-Tafel, Medicus im Charakterfenster, Testament im Familienbuch, Geheimnis im Charakterfenster, Kredit bei der Bank, Betrieb verkaufen; das erledigt auch die Frage. Nach Krankheit, Erbe, Geheimnis und Mahnung wird zu demselben Anlass nur einmal gefragt (eine Pest, die der Medicus pflegt, bleibt; gefragt wird trotzdem nicht noch einmal). Schlägt eine Antwort fehl (zu wenig Geld), bleibt die Frage offen. Die Forderungen der Unterwelt bleiben alle offen, bis ihr antwortet oder die Frist abläuft – nichts wird vorzeitig gezahlt oder abgelehnt. Von den übrigen Fragen bleiben höchstens **sechs** offen; kommt eine siebte, läuft die älteste aus, deren Voreinstellung nichts kostet (nichts tun, merken, abwarten). Eine Krankheit, bei der die Voreinstellung den Medicus rufen würde, wird so nie verdrängt – dann wartet die neue Frage. Jede beantwortete oder abgelaufene Frage steht als eine Zeile im **Verlauf** („Ihr habt Haus Elster 400 Gulden Schweigegeld gezahlt.“, „… Schweigen galt als Nein.“), nur für euer Haus. Die offenen Fragen stehen im Spielstand; bei einem älteren Spielstand legt das Spiel sie in der ersten Minute aus den Forderungen neu an. KI-Häuser bekommen keine Fragen, sie antworten selbst. Den Entscheidungsbrief mit Knöpfen, Fristbalken und „Später“ baut die Oberfläche als Nächstes; dort wählt ihr auch je Art „Entscheidung“ oder „Automatisch“.
 
 ## Grenzen
 
 Weitere Entscheidungen (Heiratsantrag, Anklage, Brand, Bestechung) folgen später. Im Mehrspielerspiel pausiert nichts.
 
-Zum Ausprobieren: `--meldungen=demo` (Siegel und ein Stillstand) oder `--meldungen=brief` (dazu zwei Briefe), `--einstellungen=1 --reiter=Meldungen`; Geheimnisse: `--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1`.
+Zum Ausprobieren: `--entwickler=1 --entscheidung=Krankheit` (auch Erpresserbrief, Schutzgeld, Loesegeld, Erbe, Geheimnis, Mahnung), `--meldungen=demo` (Siegel und ein Stillstand) oder `--meldungen=brief` (dazu zwei Briefe), `--einstellungen=1 --reiter=Meldungen`; Geheimnisse: `--entwickler=1 --erpresserbrief=Ehebruch --hinterzimmer=1`.
