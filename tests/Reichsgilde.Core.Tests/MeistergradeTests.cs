@@ -172,7 +172,7 @@ static class MeistergradeTests
         ("KI: legt Prüfungen ab und baut ihre Werkstatt aus, sobald der Grad reicht", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var eisenbart = w.Rivalen[0].Konto;
             eisenbart.ErfahrungSammeln("Schmied", 300); // genug für Grad 2 und 3
@@ -184,7 +184,7 @@ static class MeistergradeTests
 
         ("Speichern: Grade, Erfahrung, Ausbau und laufender Umbau überstehen Speichern und Laden; alte Stände beginnen mit Grad 1", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startvermoegen: 20_000));
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startvermoegen: 20_000, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             spieler.GradSetzen("Schmied", 3);
             spieler.ErfahrungSammeln("Schmied", 123.5);

@@ -101,11 +101,11 @@ static class BauenTests
             Pruefe.Gleich(36, k.Wege.Count); // Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 7 Gassen (seit 1.11.2026 Urbanusgasse und Abteigasse in Deutz), 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(46, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55, seit dem Rathaus am Alter Markt (S4 auf dem Bauplatz WB_AlterMarkt1) 54; seit den Hofstellen (9.11.2026: die sechs Werkstatt-Bauplätze und zwei Zonen am Hafen werden Hofstellen) 46
+            Pruefe.Gleich(48, k.Bauzonen.Count); // seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48, vorher 46; seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55, seit dem Rathaus am Alter Markt (S4 auf dem Bauplatz WB_AlterMarkt1) 54; seit den Hofstellen (9.11.2026: die sechs Werkstatt-Bauplätze und zwei Zonen am Hafen werden Hofstellen) 46
             Pruefe.Gleich(0, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_") || z.Nur is not null)); // die Werkstatt-Bauplätze sind seit 9.11.2026 freie Hofstellen (vorher 6, bis zum Rathaus am Alter Markt 7)
             Pruefe.Gleich("S1 S2 S3 S4 S5 S6 S7 S8 | N1 N2 N3 N4 N5 A1 R1 R2", string.Join(" ", k.Hofstellen.Where(h => h.Start).Select(h => h.Kennung))
                 + " | " + string.Join(" ", k.Hofstellen.Where(h => !h.Start).Select(h => h.Kennung))); // acht Start-Hofstellen, sechs frei nahe den Märkten, zwei am Rheinhafen
-            Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12; seit dem Rathaus am Alter Markt (ohne WB_AlterMarkt1) 11; seit den Hofstellen (9.11.2026, A1 und die Hafen-Hofstellen statt Zonen) 8
+            Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 10, vorher 8; um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12; seit dem Rathaus am Alter Markt (ohne WB_AlterMarkt1) 11; seit den Hofstellen (9.11.2026, A1 und die Hafen-Hofstellen statt Zonen) 8
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(16, k.Wohnhausplaetze.Count); // seit den Hofstellen (9.11.2026) je Hofstelle einer, vorher 8
@@ -192,7 +192,7 @@ static class BauenTests
             Pruefe.Wirft(() => sim2.Wirtschaft.KarteSetzen(Karte()));
 
             // Partieaufbau: Spieler, Eisenbart, Eichwald, Kieselbach – in dieser Reihenfolge.
-            var (sim3, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: Karte());
+            var (sim3, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Karte());
             var w3 = sim3.Wirtschaft!;
             Pruefe.Gleich("W1", w3.Bauen.Wohnhaus(spieler)!.Kennung);
             Pruefe.Gleich("W4", w3.Bauen.Wohnhaus(w3.Konten.Single(k => k.Inhaber == Partieaufbau.DritterRivale))!.Kennung);
@@ -499,7 +499,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(83, Daten.Value.Version);
+            Pruefe.Gleich(84, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

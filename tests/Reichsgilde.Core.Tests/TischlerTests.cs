@@ -71,7 +71,7 @@ static class TischlerTests
         ("Berufe: Ein Schmied darf keine Tischlerei kaufen – erst erlernen (4 AP, 500 Gulden Lehrgeld)", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
-                Daten.Value, new NeuePartie(Startvermoegen: 20_000));
+                Daten.Value, new NeuePartie(Startvermoegen: 20_000, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             Pruefe.Wahr(spieler.Berufe.SequenceEqual(new[] { "Schmied" }), string.Join(",", spieler.Berufe));
             w.Ausfuehren(Wohnhaushilfe.MitWohnhaus(w, spieler), new StandErwerben());
@@ -90,7 +90,7 @@ static class TischlerTests
 
         ("Partieaufbau: Startberuf Tischler – Tischlerei am Weinmarkt; drei Rivalen, Haus Eichwald sind Elben und Tischler", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Tischler"));
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Tischler", Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Tischlerei am Weinmarkt", eigene.Name);
@@ -102,15 +102,15 @@ static class TischlerTests
             Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == eichwald).Select(b => b.Art).SequenceEqual(new[] { Betriebsart.Tischlerei }), "Betriebe von Eichwald");
             Pruefe.Wahr(w.FreieLiegenschaften.Any(l => l.Name == "Holzschlag Eichwald" && l.IstPacht), "Holzschlag Eichwald frei");
 
-            var (sim1, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 1));
+            var (sim1, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 1, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich(1, sim1.Wirtschaft!.Rivalen.Count);
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Bäcker")), "„Bäcker“ gibt es nicht");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Bäcker", Aufstellung: Aufstellungsart.Vorgabe)), "„Bäcker“ gibt es nicht");
         }),
 
         ("KI Eichwald: Holzschlag liefert Holz, die Tischlerei verkauft Tischlerwaren – mit Gewinn", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var eichwald = w.Konten.Single(k => k.Inhaber == Partieaufbau.ZweiterRivale);
             for (var j = 0; j < 3; j++) Arbeitstag(sim);
@@ -124,7 +124,7 @@ static class TischlerTests
 
         ("Speichern: Berufe überstehen Speichern und Laden; alte Stände leiten sie aus den Betrieben ab", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startvermoegen: 20_000));
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startvermoegen: 20_000, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             spieler.Aktionspunkte.Setzen(4);
             w.Ausfuehren(spieler, new BerufErlernen("Tischler"));

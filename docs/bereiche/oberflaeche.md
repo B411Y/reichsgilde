@@ -49,6 +49,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Entscheidungen
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
+### Rivalenwahl ohne Beruf (Branch phase5/kirchen-koeln, Prediger PR 1c)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anzeige | Die Zeile „Rivalen“ im Hauptmenü nennt nur noch die Häuser („Eisenbart und Eichwald“), nicht mehr die Werkstatt der Karte in Klammern: Seit der Startaufstellung (Kern, jeder Beruf einmal je Partie) werden Beruf, Volk und Glaube der KI-Häuser zu Partiebeginn gelost, die Klammer stimmte nicht mehr. Tooltip: „Ihr Beruf, Volk und Glauben werden zu Beginn gelost.“ Gewählt statt „(Beruf zufällig)“ hinter jedem Namen, weil das nur Zeilen verlängert. Die Rivalen-Daten der Karten bleiben unberührt. | 11.11.2026 |
+| Später | Mehrspieler: gewählte Berufe für die anderen sperren über `Startaufstellung.FreieBerufe` (Kern). | 11.11.2026 |
+
 ### Entscheidungsbrief (PR #…)
 
 | Thema | Entscheidung | Datum |

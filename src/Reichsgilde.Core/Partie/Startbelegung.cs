@@ -41,6 +41,14 @@ public sealed class Starthaus
     public string Name { get; init; } = "";
 
     public Volk Volk { get; init; }
+
+    /// <summary>
+    /// Glaube des Oberhaupts; null = Startglaube des Volkes (wie vor der Startaufstellung). Die gelosten Häuser einer Partie haben ihn immer
+    /// (<see cref="Startaufstellung"/>).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Glaube.Konfession? Glaube { get; init; }
+
     public Geschlecht Geschlecht { get; init; }
     public Wappen Wappen { get; init; } = Wappen.Vorlagen[0];
 

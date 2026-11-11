@@ -42,7 +42,7 @@ static class BalancingTests
             Pruefe.Gleich(Schwierigkeit.Normal, Partieeinstellungen.Standard.Schwierigkeit);
             foreach (var karte in new[] { null, Stadtkarte.AusDatei(Datenpfad.Karte("greybox")) })
             {
-                var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie(), karte: karte);
+                var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
                 Pruefe.Gleich(3, w.Rivalen.Count);
                 foreach (var ki in w.Rivalen.Select(r => r.Konto))
@@ -66,7 +66,7 @@ static class BalancingTests
 
         ("Schwierigkeit: Schwer – die KI-Häuser beginnen mit Werkstatt und Umlandbetrieb (der Start vor PR #177)", () =>
         {
-            var (sim, _) = Partieaufbau.Erstellen(Endlos(Schwierigkeit.Schwer), Daten.Value, new NeuePartie());
+            var (sim, _) = Partieaufbau.Erstellen(Endlos(Schwierigkeit.Schwer), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             foreach (var ki in w.Rivalen.Select(r => r.Konto))
             {
@@ -81,13 +81,13 @@ static class BalancingTests
         {
             foreach (var s in new[] { Schwierigkeit.Normal, Schwierigkeit.Schwer })
             {
-                var (sim, spieler) = Partieaufbau.Erstellen(Endlos(s), Daten.Value, new NeuePartie());
+                var (sim, spieler) = Partieaufbau.Erstellen(Endlos(s), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
                 var json = Speicherung.Speichern(sim, spieler);
                 var (kopie, _) = Speicherung.Laden(json);
                 Pruefe.Gleich(s, kopie.Einstellungen.Schwierigkeit);
                 Pruefe.Gleich(s == Schwierigkeit.Normal, kopie.Wirtschaft!.FreieLiegenschaften.Any(l => l.Name == "Grube Eisenbart"), s.ToString());
             }
-            var (sim2, spieler2) = Partieaufbau.Erstellen(Endlos(Schwierigkeit.Schwer), Daten.Value, new NeuePartie());
+            var (sim2, spieler2) = Partieaufbau.Erstellen(Endlos(Schwierigkeit.Schwer), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var alt = JsonNode.Parse(Speicherung.Speichern(sim2, spieler2))!;
             Pruefe.Wahr(alt["Einstellungen"]!.AsObject().Remove("Schwierigkeit"), "Feld im Spielstand");
             Pruefe.Gleich(Schwierigkeit.Normal, Speicherung.Laden(alt.ToJsonString()).Simulation.Einstellungen.Schwierigkeit);
@@ -97,7 +97,7 @@ static class BalancingTests
         {
             var d = Daten.Value.Stadt!;
             Pruefe.Gleich(4, d.BezugHaeuser);
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie());
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(4, w.WirtschaftendeHaeuser);
             Pruefe.Ungefaehr(1, w.Markt.Einwohnerfaktor, 1e-12);

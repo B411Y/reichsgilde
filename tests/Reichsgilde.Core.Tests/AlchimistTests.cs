@@ -65,7 +65,7 @@ static class AlchimistTests
 
         ("Partieaufbau: Startberuf Alchimist – Tinkturei am Weinmarkt", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Alchimist"));
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Beruf: "Alchimist", Aufstellung: Aufstellungsart.Vorgabe));
             var eigene = sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Tinkturei am Weinmarkt", eigene.Name);
             Pruefe.Gleich(Betriebsart.Tinkturei, eigene.Art);
@@ -76,7 +76,7 @@ static class AlchimistTests
             foreach (var reich in new[] { false, true })
             {
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 9, Schwierigkeit = Schwierigkeit.Schwer },
-                    Daten.Value, new NeuePartie(Rivalen: 1));
+                    Daten.Value, new NeuePartie(Rivalen: 1, Aufstellung: Aufstellungsart.Vorgabe));
                 var w = sim.Wirtschaft!;
                 var eisenbart = w.Rivalen[0].Konto;
                 // Alle freien Schmiedebetriebe sind schon vergeben – wachsen kann Eisenbart nur in einem fremden Handwerk.

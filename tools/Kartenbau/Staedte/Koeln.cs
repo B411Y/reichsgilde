@@ -22,8 +22,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Märkte (Entscheidung des Nutzers 31.10.2026, ein Stadtmarkt mit drei Plätzen): zwei innerhalb der Mauer an ihren Enden am Rhein – im
 //      Norden hinter dem Kunibertstor, im Süden hinter dem Bayentor, seit 1.11.2026 mit einer Hausreihe zwischen Mauer und Platz (40 m vom Tor
 //      an der Rheingasse, am Südplatz kommt der Malzbüchel von Westen an) –, der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
-//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon, St. Severin,
-//      St. Aposteln, St. Kunibert, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
+//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon,
+//      St. Aposteln, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
 //    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Straßen, die auf die Marktplätze führen, je 36 m vom nächsten (der
 //      Werkstattweg vom Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit): der Spieler und zwei
 //      KI-Häuser am Südplatz, zwei am Nordplatz, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
@@ -86,7 +86,7 @@ public sealed partial class Koeln : Stadtskript
         E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
         E.FiktionHinzufuegen("Das Stapelhaus steht hier schon um 1400 (das echte entstand 1558–61 und hatte Zinnen): eine lange Halle mit Treppengiebeln, Gemeinschaftswerk von Menschen und Zwergen, davor die Stadtwaage. Am Rathaus wird schon der Ratsturm gebaut (1407–1414).");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.");
-        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Kunibert steht westlich des Alter Markts statt nördlich des Doms am Rhein.");
+        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon und St. Aposteln sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Severin und St. Kunibert fehlen: Köln hat im Spiel nur den Dom und drei Kirchen (eine Kirche je Glaube).");
 
         Wasser();
         Gelaende();
@@ -291,17 +291,15 @@ public sealed partial class Koeln : Stadtskript
         // Unter Fettenhennen auf den Werkstatt-Bauplatz WB_AlterMarkt1 (Koeln.Platzierung.cs, Koeln.Bauplaetze.cs).
         Haus("koelner_rathaus", "Rathaus", RathausAmMarkt.X, RathausAmMarkt.Z, 90, "Rathaus");
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
-        // Die fünf romanischen Kirchen als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle mit dem Chor
-        // nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken (Entscheidung des
-        // Nutzers): Groß St. Martin 4 m nach Westen (sonst auf der Rheingasse), St. Gereon 3 m nach Westen (Hohe Straße), St. Severin östlich der
-        // Severinstraße (vorher läge er quer über ihr), St. Aposteln zwischen Ehrenstraße und Hohe Straße (die Ehrenstraße lief durch den Block),
-        // St. Kunibert zwischen Trankgasse und Unter Fettenhennen westlich der Bauplätze – nördlich des Doms passt er zwischen Dom, Alter Markt und
-        // Kunibertswall nicht (13,7 statt 14 m); bei z = −76 bekommt die Restflächen-Füllung weiter Steinmetzplätze und einen Taubenschlag.
+        // Die drei romanischen Kirchen neben dem Dom als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle
+        // mit dem Chor nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken
+        // (Entscheidung des Nutzers): Groß St. Martin 4 m nach Westen (sonst auf der Rheingasse), St. Gereon 3 m nach Westen (Hohe Straße),
+        // St. Aposteln zwischen Ehrenstraße und Hohe Straße (die Ehrenstraße lief durch den Block). St. Severin und St. Kunibert stehen seit
+        // dem 11.11.2026 nicht mehr in Köln (Entscheidung des Nutzers: eine Kirche je Glaube, Köln hat nur den Dom und drei Kirchen); ihre
+        // Flächen an der Severinstraße und an der Trankgasse füllt das Bauzonen-Raster, ihre Modelle bleiben im Katalog für andere Städte.
         Kirche("kirche_gross_st_martin", "Groß St. Martin", 22, -44, "Martin");
         Kirche("kirche_st_gereon", "St. Gereon", -55, -86, "Gereon");
-        Kirche("kirche_st_severin", "St. Severin", 7.5, 96, "Severin");
         Kirche("kirche_st_aposteln", "St. Aposteln", -54, -34, "Aposteln");
-        Kirche("kirche_st_kunibert", "St. Kunibert", -16.6, -76, "Kunibert");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
         // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz

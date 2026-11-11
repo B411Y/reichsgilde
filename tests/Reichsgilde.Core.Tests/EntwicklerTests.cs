@@ -29,7 +29,7 @@ static class EntwicklerTests
     static (Simulation Sim, Konto Spieler) NeuePartie(bool erlaubt = true, int startwert = 1400)
     {
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
-            Daten.Value, new NeuePartie());
+            Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
         for (var i = 0; i < 300; i++) sim.Tick();
         sim.EntwicklerErlaubt = erlaubt;
         return (sim, spieler);

@@ -38,7 +38,7 @@ static class HofstellenPruefungTests
     {
         ("Hofstellen-Prüfung: Eine schräge freie Hofstelle (Köln S8, 2,6°) ist ganz bebaubar – erst das Wohnhaus, dann die Werkstatt; der Nachbarplatz bleibt Bauplatz", () =>
         {
-            var (_, w, spieler) = Partie(Karte("koeln"), new NeuePartie(Startvermoegen: 200_000, Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe));
+            var (_, w, spieler) = Partie(Karte("koeln"), new NeuePartie(Startvermoegen: 200_000, Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe));
             var wohn = w.Bauen.Grundstuecke.Single(g => g.Kennung == "S8_Wohnhaus");
             var werk = w.Bauen.Grundstuecke.Single(g => g.Kennung == "S8_Werkstatt");
             Pruefe.Wahr(wohn.Grundriss.Ueberlappt(werk.Grundriss), "die umschließenden Rechtecke überdecken sich (darum der Befund)");
@@ -54,7 +54,7 @@ static class HofstellenPruefungTests
 
         ("Hofstellen-Prüfung: Eine Werkstatt auf einer freien Hofstelle ist für den Blitz ein Betrieb am Platz; als Bauplatz ist der Platz kein Ziel", () =>
         {
-            var (_, w, spieler) = Partie(Karte("koeln"), new NeuePartie(Startvermoegen: 200_000, Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe), Sofort.Value);
+            var (_, w, spieler) = Partie(Karte("koeln"), new NeuePartie(Startvermoegen: 200_000, Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), Sofort.Value);
             Pruefe.Wahr(w.Blitz.Ziele().All(z => z.Kennung != "S5_Werkstatt"), "Bauplatz: kein Ziel");
             var platz = w.Bauen.Grundstuecke.Single(g => g.Kennung == "S5_Werkstatt");
             var e = w.Ausfuehren(spieler, AufWerkstatt(platz, Betriebsart.Giesserei));
@@ -69,7 +69,7 @@ static class HofstellenPruefungTests
         {
             var karte = Stadtkarte.AusJson(HofstellenTests.OhneHofstellen(File.ReadAllText(Datenpfad.Karte("greybox"))), HofstellenTests.Katalog.Value);
             Pruefe.Gleich(null, karte.HofstelleMit("H2")!.Name);
-            var (_, w, spieler) = Partie(karte, new NeuePartie(Startvermoegen: 200_000, Hofstelle: "H2"));
+            var (_, w, spieler) = Partie(karte, new NeuePartie(Startvermoegen: 200_000, Hofstelle: "H2", Aufstellung: Aufstellungsart.Vorgabe));
             var eigene = w.Betriebe.Single(b => b.Konto == spieler).Name;
             Pruefe.Gleich("Giesserei_Eisenbart", w.Karte!.PlatzVon(eigene)!.Kennung); // Gegenprobe: die eigene Werkstatt steht dort
             spieler.BerufLernen("Tischler");
@@ -84,9 +84,9 @@ static class HofstellenPruefungTests
             var haeuser = json["start"]!["haeuser"]!.AsArray();
             (haeuser[0]!["wohnhaus"], haeuser[1]!["wohnhaus"]) = ("Wohnhaus3", "Wohnhaus2"); // Eisenbart und Eichwald wohnen auf der Hofstelle des anderen
             var karte = Stadtkarte.AusJson(json.ToJsonString(), HofstellenTests.Katalog.Value);
-            Pruefe.WirftMitMeldung(() => Partie(karte, new NeuePartie(Hofstelle: "H2", Startplaetze: Startplatzvergabe.Vorgabe)), "doppelt vergeben");
+            Pruefe.WirftMitMeldung(() => Partie(karte, new NeuePartie(Hofstelle: "H2", Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe)), "doppelt vergeben");
             // Gegenprobe: ohne Wahl genau die Startbelegung, gelost jede Hofstelle einmal – beides lädt
-            foreach (var neu in new[] { new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), new NeuePartie(Hofstelle: "H2") })
+            foreach (var neu in new[] { new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), new NeuePartie(Hofstelle: "H2", Aufstellung: Aufstellungsart.Vorgabe) })
             {
                 var (sim, w, spieler) = Partie(karte, neu);
                 Pruefe.Gleich(0, w.Karte!.Pruefen().Count, string.Join(" | ", w.Karte.Pruefen()));
@@ -117,7 +117,7 @@ static class HofstellenPruefungTests
             foreach (var startwert in new[] { 1, 2, 3 })
             {
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                    Daten.Value, new NeuePartie(Rivalen: 4), karte: karte);
+                    Daten.Value, new NeuePartie(Rivalen: 4, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
                 var ahlbeck = w.Konten.Single(k => k.Inhaber == "Haus Ahlbeck");
                 Pruefe.Gleich("Wohnhaus5", w.Bauen.Wohnhaus(ahlbeck)!.Kennung);
@@ -131,7 +131,7 @@ static class HofstellenPruefungTests
             var json = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("greybox")))!.AsObject();
             json["gebaeude"]!.AsArray().Single(g => (string)g!["kennung"]! == "Wohnhaus4")!["lage"] = "vorstadt";
             var (_, w, _) = Partie(Stadtkarte.AusJson(json.ToJsonString(), HofstellenTests.Katalog.Value),
-                new NeuePartie(Startvermoegen: 500_000, Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe));
+                new NeuePartie(Startvermoegen: 500_000, Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe));
             var vorstadt = w.Bauen.Grundstuecke.Single(g => g.Kennung == "Wohnhaus4");
             Pruefe.Wahr(Bauwesen.IstWohnhausplatz(vorstadt) && vorstadt.Lage == Lage.Vorstadt, $"{vorstadt.Art} {vorstadt.Lage}");
             var gr = vorstadt.Grundriss;
@@ -139,7 +139,7 @@ static class HofstellenPruefungTests
             Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(4, gr.X, gr.Z, gr.Drehung)) is { } nein && nein.Contains("Kernlage"),
                 w.Bauen.PlatzVerboten(new WohnhausBauen(4, gr.X, gr.Z, gr.Drehung)) ?? "erlaubt?");
             // Gegenprobe: ohne die Lage-Änderung (Mauerring) darf dort auch ein Stadtpalais stehen
-            var (_, w2, _) = Partie(Karte("greybox"), new NeuePartie(Startvermoegen: 500_000, Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe));
+            var (_, w2, _) = Partie(Karte("greybox"), new NeuePartie(Startvermoegen: 500_000, Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich(null, w2.Bauen.PlatzVerboten(new WohnhausBauen(4, gr.X, gr.Z, gr.Drehung)));
         }),
     };

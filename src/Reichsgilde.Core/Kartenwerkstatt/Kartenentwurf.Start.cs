@@ -626,9 +626,10 @@ public sealed partial class Kartenentwurf
         var namen = start.Rivalennamen.ToHashSet();
         var familie = new[] { "Hammerschmid", "Probst", "Kartenmacher", "Feldmesser" }.FirstOrDefault(n => !namen.Contains(Partieaufbau.Hausname(n))) ?? "Neubürger";
         var wappen = Wappen.Vorlagen.FirstOrDefault(w => !start.Rivalenwappen.Contains(w)) ?? Wappen.AusName(familie);
-        // Mit Hofstellen ohne Los: jedes Haus, wo die Startbelegung es hinsetzt – so, wie die Karte eingestellt ist (im Spiel wird gelost)
+        // Mit Hofstellen ohne Los, und jedes KI-Haus mit Beruf, Volk und Betrieben der Startbelegung – so, wie die Karte eingestellt ist
+        // (im Spiel wird beides gelost: Hofstellen und Startaufstellung)
         return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(1, start.Haeuser.Count), Wappen: wappen,
-            Startplaetze: Startplatzvergabe.Vorgabe);
+            Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe);
     }
 
     /// <summary>

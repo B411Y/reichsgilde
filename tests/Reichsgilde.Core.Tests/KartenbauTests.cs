@@ -47,17 +47,17 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026, die Hofstellen seit 9.11.2026): 6.569 Felder, Pflicht und Reserve passen – 84 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026, die Hofstellen seit 9.11.2026, Köln mit nur drei Kirchen seit 11.11.2026): 6.835 Felder, Pflicht und Reserve passen – 84 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 6569 Felder, davon fest belegt 0",   // bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
+                "Stadt-Bauzonen: 6835 Felder, davon fest belegt 0",   // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 6.835, vorher 6.569; bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
                 // seit den Hofstellen: 16 Hofstellen, 8 für die Häuser einer Partie mit 8 Häusern, die übrigen 8 nehmen je eine Pflicht-Werkstatt auf (vorher 16 von 16 in den Zonen)
                 "Pflicht Werkstatt: 8 auf freien Hofstellen", "Pflicht Werkstatt: 8 von 8 passen (dazu die freien Hofstellen)",
                 "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 5505 Felder (84%), nach der Reserve: 5041 Felder", // vor den Hofstellen 5.623 (79 %) und 5.159
+                "Frei nach der Pflicht: 5771 Felder (84%), nach der Reserve: 5307 Felder", // vor den Kirchen-Entfernung (11.11.2026) 5.505 und 5.041, vor den Hofstellen 5.623 (79 %) und 5.159
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
             // Die gesetzten Gebäude: alle 76 aus Pflicht und Reserve (vor den Hofstellen 84: acht Werkstätten stehen jetzt auf Hofstellen); feste keine
@@ -76,9 +76,9 @@ static class KartenbauTests
                 // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; seit den Häusern in der Deutzer Südhälfte (1.11.2026) noch einmal, vorher −6.192.870; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343;
                 // seit den Bauzonen aus dem Raster (4.11.2026; Köln unverändert) Greybox vorher 4 / 23 / 714 / −2.170.301, Probestadt vorher 0 / 80 / 1.752 / 7.598.432;
                 // seit den Kirchenmodellen in Köln (9.11.2026) die Prüfsumme neu, vorher −5.342.922; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) noch einmal, vorher −7.195.386, und seit dem Rathaus am Alter Markt, vorher −8.093.550
-                // seit den Hofstellen (9.11.2026): Köln vorher 0 / 84 / 1.976 / −7.853.157 (die sechs Werkstatt-Bauplätze und zwei Hafenzonen sind Hofstellen, 8 Pflicht-Werkstätten
+                // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) Köln vorher 0 / 76 / 1.528 / −5.176.768, die Plätze bleiben gleich; seit den Hofstellen (9.11.2026): Köln vorher 0 / 84 / 1.976 / −7.853.157 (die sechs Werkstatt-Bauplätze und zwei Hafenzonen sind Hofstellen, 8 Pflicht-Werkstätten
                 // stehen auf freien Hofstellen), Messstadt vorher 0 / 80 / 1.752 / 6.597.050 (9 Hofstellen: eine nimmt eine Pflicht-Werkstatt auf)
-                ("koeln", 0, 76, 1528, -5176768L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 79, 1696, 5021759L),
+                ("koeln", 0, 76, 1528, -7275443L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 79, 1696, 5021759L),
             };
             var gemessen = erwartet.Select(x =>
             {

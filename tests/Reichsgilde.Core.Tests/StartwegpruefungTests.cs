@@ -42,7 +42,7 @@ static class StartwegpruefungTests
                 var wege = Startwegpruefung.Rechnen(karte).ToDictionary(w => w.Platz);
                 var haeuser = karte.Start!.Haeuser.Count;
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                    Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), new NeuePartie(Rivalen: haeuser, Beruf: "Schmied"), karte: karte);
+                    Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), new NeuePartie(Rivalen: haeuser, Beruf: "Schmied", Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
                 var verglichen = 0;
                 foreach (var b in w.Betriebe)

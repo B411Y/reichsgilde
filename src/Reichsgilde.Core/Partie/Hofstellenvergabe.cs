@@ -151,7 +151,7 @@ public static class Hofstellenvergabe
             }
             neueHaeuser.Add(new Starthaus
             {
-                Name = h.Name, Volk = h.Volk, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Farbe, Wohnhaus = ziel.Wohnhaus,
+                Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Farbe, Wohnhaus = ziel.Wohnhaus,
                 Betriebe = h.Betriebe.Select(b => b == hw ? new Startbetrieb { Platz = ziel.Werkstatt, Art = b.Art, Produkt = b.Produkt } : b).ToList(),
             });
             if (hw is not null && name is not null) namen.Add((ziel.Werkstatt, name));

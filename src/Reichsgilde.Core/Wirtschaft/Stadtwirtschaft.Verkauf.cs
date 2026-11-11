@@ -92,6 +92,7 @@ public sealed partial class Stadtwirtschaft
         var art = Daten.Art(l.Art);
         if (Daten.Berufe.Count > 0 && konto.Berufe.Count > 0 && !konto.Beherrscht(art.Beruf)) // ohne jedes Handwerk darf man mit jedem anfangen
             return $"{name} ist ein Betrieb der {art.Beruf}. {konto.Inhaber} beherrscht dieses Handwerk nicht – erst erlernen.";
+        if (Kirchenwesen.KirchengrenzeVerboten(konto, l.Art) is { } kirchen) return kirchen; // höchstens eine Kirche je Glaube
         if (l.MindestGrad > 1 && konto.Meistergrad(art.Beruf) < l.MindestGrad)
             return $"{name} ist eine {art.Name} (Stufe {art.Stufe}) – dafür braucht es {art.Beruf} im {l.MindestGrad}. Meistergrad, " +
                    $"{konto.Inhaber} ist im {konto.Meistergrad(art.Beruf)}.";

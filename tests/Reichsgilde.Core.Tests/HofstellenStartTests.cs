@@ -52,12 +52,12 @@ static class HofstellenStartTests
             var spielerPlaetze = new HashSet<string>();
             foreach (var startwert in Enumerable.Range(1, 12))
             {
-                var (sim, _) = Partie(new NeuePartie(), startwert);
+                var (sim, _) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), startwert);
                 var b = Belegung(sim.Wirtschaft!);
                 Pruefe.Wahr(b.All(x => !x.Contains("Werkstatt") && !x.EndsWith(": -")), $"Startwert {startwert}: {string.Join("; ", b)}");
                 var hofstellen = b.Select(x => x[(x.IndexOf(": ", StringComparison.Ordinal) + 2)..]).ToList();
                 Pruefe.Gleich(hofstellen.Count, hofstellen.Distinct().Count(), "jede Hofstelle einmal");
-                var (wieder, _) = Partie(new NeuePartie(), startwert);
+                var (wieder, _) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), startwert);
                 Pruefe.Gleich(string.Join("; ", b), string.Join("; ", Belegung(wieder.Wirtschaft!)), $"Startwert {startwert} zweimal");
                 gesehen.Add(string.Join("; ", b));
                 spielerPlaetze.Add(hofstellen[0]);
@@ -66,8 +66,8 @@ static class HofstellenStartTests
             Pruefe.Wahr(spielerPlaetze.Count >= 3, $"der Spieler lost auf {spielerPlaetze.Count} verschiedene Hofstellen");
             // Zuteilen ist dieselbe Rechnung, ohne Partie
             var karte = Greybox();
-            var (s, h) = Hofstellenvergabe.Zuteilen(karte, new NeuePartie(), 5, karte.Startbelegung.Haeuser);
-            var (sim5, _) = Partie(new NeuePartie(), 5);
+            var (s, h) = Hofstellenvergabe.Zuteilen(karte, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), 5, karte.Startbelegung.Haeuser);
+            var (sim5, _) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), 5);
             Pruefe.Gleich(string.Join(", ", new[] { s }.Concat(h).Select(x => x!.Kennung)),
                 string.Join(", ", Belegung(sim5.Wirtschaft!).Select(x => x[(x.IndexOf(": ", StringComparison.Ordinal) + 2)..])));
         }),
@@ -77,7 +77,7 @@ static class HofstellenStartTests
             var karte = Greybox();
             foreach (var h in karte.Hofstellen)
             {
-                var (sim, spieler) = Partie(new NeuePartie(Hofstelle: h.Kennung), 77);
+                var (sim, spieler) = Partie(new NeuePartie(Hofstelle: h.Kennung, Aufstellung: Aufstellungsart.Vorgabe), 77);
                 var w = sim.Wirtschaft!;
                 Pruefe.Gleich(h.Wohnhaus, w.Bauen.Wohnhaus(spieler)!.Kennung);
                 var werkstatt = w.Betriebe.Single(b => b.Konto == spieler);
@@ -85,28 +85,28 @@ static class HofstellenStartTests
                 Pruefe.Gleich(Hofstellenvergabe.WerkstattnameSpieler(karte, h).Replace("{art}", "Gießerei"), werkstatt.Name);
                 Pruefe.Wahr(w.Konten.Skip(1).All(k => w.Bauen.Wohnhaus(k)!.Kennung != h.Wohnhaus), "kein KI-Haus auf der Hofstelle des Spielers");
             }
-            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Hofstelle: "gibtsnicht")), "gibt es auf dieser Karte nicht");
+            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Hofstelle: "gibtsnicht", Aufstellung: Aufstellungsart.Vorgabe)), "gibt es auf dieser Karte nicht");
             var frei = JsonNode.Parse(GreyboxText.Value)!.AsObject();
             foreach (var h in frei["start"]!["hofstellen"]!.AsArray()) if ((string)h!["kennung"]! == "H4") h["start"] = false;
             var karteFrei = Stadtkarte.AusJson(frei.ToJsonString(), HofstellenTests.Katalog.Value);
-            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Hofstelle: "H4", Rivalen: 2), karte: karteFrei), "kein Startplatz");
+            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Hofstelle: "H4", Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe), karte: karteFrei), "kein Startplatz");
             // Gegenprobe: mit zwei KI-Häusern reichen drei Start-Hofstellen, mit dreien nicht
-            Pruefe.Gleich(3, Partie(new NeuePartie(Rivalen: 2), karte: karteFrei).Sim.Wirtschaft!.Konten.Count);
-            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Rivalen: 3), karte: karteFrei), "zu wenig");
+            Pruefe.Gleich(3, Partie(new NeuePartie(Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe), karte: karteFrei).Sim.Wirtschaft!.Konten.Count);
+            Pruefe.WirftMitMeldung(() => Partie(new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: karteFrei), "zu wenig");
         }),
 
         ("Hofstellen am Start: Ohne Los (Vorgabe) ist die Partie bitgleich mit dem alten Start auf derselben Karte ohne Hofstellen – zwei Spieltage; gelost rechnet sie anders", () =>
         {
-            var (alt, altSpieler) = Partie(new NeuePartie(), 1400, HofstellenTests.AlteKarte("greybox"));
-            var (neu, neuSpieler) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), 1400);
+            var (alt, altSpieler) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), 1400, HofstellenTests.AlteKarte("greybox"));
+            var (neu, neuSpieler) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), 1400);
             Pruefe.Gleich(string.Join("; ", Belegung(alt.Wirtschaft!).Select(x => x.Split(':')[0])), string.Join("; ", Belegung(neu.Wirtschaft!).Select(x => x.Split(':')[0])));
             Pruefe.Gleich(Pruefsumme(alt, altSpieler), Pruefsumme(neu, neuSpieler), "am Start");
             for (var i = 0; i < Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++) { alt.Tick(); neu.Tick(); }
             Pruefe.Gleich(Pruefsumme(alt, altSpieler), Pruefsumme(neu, neuSpieler), "nach einem Spieljahr");
             // Gegenprobe: ein Startwert, der anders lost als die Vorgabe, rechnet anders
-            var startwert = Enumerable.Range(1, 50).First(s => Belegung(Partie(new NeuePartie(), s).Sim.Wirtschaft!)[1] != Belegung(neu.Wirtschaft!)[1]);
-            var (gelost, gelostSpieler) = Partie(new NeuePartie(), startwert);
-            var (vorgabe, vorgabeSpieler) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), startwert);
+            var startwert = Enumerable.Range(1, 50).First(s => Belegung(Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), s).Sim.Wirtschaft!)[1] != Belegung(neu.Wirtschaft!)[1]);
+            var (gelost, gelostSpieler) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), startwert);
+            var (vorgabe, vorgabeSpieler) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), startwert);
             Pruefe.Wahr(Pruefsumme(gelost, gelostSpieler) != Pruefsumme(vorgabe, vorgabeSpieler), "gelost ≠ Vorgabe");
         }),
 
@@ -114,8 +114,8 @@ static class HofstellenStartTests
         {
             foreach (var startwert in new[] { 3, 1400 })
             {
-                var (gelost, _) = Partie(new NeuePartie(), startwert);
-                var (vorgabe, _) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), startwert);
+                var (gelost, _) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), startwert);
+                var (vorgabe, _) = Partie(new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), startwert);
                 string Familien(Simulation s) => string.Join("; ", s.Wirtschaft!.Konten.Select(k => s.Wirtschaft.Familien.Von(k) is { } f
                     ? $"{k.Inhaber} {f.Oberhaupt.Vorname} {f.Oberhaupt.Geburtsjahr} {f.Oberhaupt.Aussehen} {string.Join(",", f.Oberhaupt.Zuege)}" : k.Inhaber));
                 Pruefe.Gleich(Familien(vorgabe), Familien(gelost), $"Startwert {startwert}");
@@ -126,14 +126,14 @@ static class HofstellenStartTests
         {
             string Bauplaetze(Stadtwirtschaft w) => string.Join(", ", w.Bauen.Grundstuecke.Where(g => g.Art == Grundstuecksart.Bauplatz)
                 .Select(g => $"{g.Kennung}{(g.AufWerkstattplatz ? " (Werkstatt)" : "")}"));
-            var (eins, _) = Partie(new NeuePartie(Rivalen: 1, Startplaetze: Startplatzvergabe.Vorgabe));
+            var (eins, _) = Partie(new NeuePartie(Rivalen: 1, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich("Wohnhaus3, Tischlerei_Eichwald (Werkstatt), Wohnhaus4, Maurerei_Kieselbach (Werkstatt)", Bauplaetze(eins.Wirtschaft!));
             Pruefe.Wahr(eins.Wirtschaft!.Bauen.Grundstuecke.Where(g => g.Art == Grundstuecksart.Bauplatz).All(g => Bauwesen.IstWohnhausplatz(g) != Bauwesen.IstWerkstattplatz(g)),
                 "je eins von beiden");
             Pruefe.Gleich(null, eins.Wirtschaft.Karte!.GebaeudeMit("Tischlerei_Eichwald")!.Betrieb); // kein Name ohne Haus
-            var (alle, _) = Partie(new NeuePartie(Rivalen: 3));
+            var (alle, _) = Partie(new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich("", Bauplaetze(alle.Wirtschaft!));
-            var (alt, _) = Partie(new NeuePartie(Rivalen: 1), karte: HofstellenTests.AlteKarte("greybox"));
+            var (alt, _) = Partie(new NeuePartie(Rivalen: 1, Aufstellung: Aufstellungsart.Vorgabe), karte: HofstellenTests.AlteKarte("greybox"));
             Pruefe.Gleich("", Bauplaetze(alt.Wirtschaft!));
             Pruefe.Gleich("Tischlerei Eichwald", alt.Wirtschaft!.Karte!.GebaeudeMit("Tischlerei_Eichwald")!.Betrieb); // Gegenprobe: alte Karte unverändert
         }),
@@ -141,8 +141,8 @@ static class HofstellenStartTests
         ("Hofstellen am Start: Die Werkstatt eines KI-Hauses nimmt ihren Namen mit an die geloste Hofstelle; die Partiekarte steht im Spielstand, die Kartendatei bleibt", () =>
         {
             var karte = Greybox();
-            var startwert = Enumerable.Range(1, 50).First(s => Hofstellenvergabe.Zuteilen(karte, new NeuePartie(), s, karte.Startbelegung.Haeuser).Haeuser[0]!.Kennung != "H2");
-            var (sim, spieler) = Partie(new NeuePartie(), startwert, karte);
+            var startwert = Enumerable.Range(1, 50).First(s => Hofstellenvergabe.Zuteilen(karte, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), s, karte.Startbelegung.Haeuser).Haeuser[0]!.Kennung != "H2");
+            var (sim, spieler) = Partie(new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), startwert, karte);
             var w = sim.Wirtschaft!;
             var eisenbart = w.Konten.Single(k => k.Inhaber == "Haus Eisenbart");
             var ziel = w.Karte!.HofstelleVon(w.Bauen.Wohnhaus(eisenbart)!.Kennung)!;

@@ -55,7 +55,7 @@ static class MarktplaetzeTests
         }
         var karte = e.ZuStadtkarte();
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
-            new NeuePartie(Rivalen: 2), karte: karte);
+            new NeuePartie(Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
         return (sim, spieler, karte);
     }
 
@@ -64,7 +64,7 @@ static class MarktplaetzeTests
     {
         var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
         e.Loeschen(e.Gebaeude.Single(g => g.Katalog == "markt").Kennung);
-        return Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 2),
+        return Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe),
             karte: e.ZuStadtkarte()).Simulation;
     }
 
@@ -173,7 +173,7 @@ static class MarktplaetzeTests
             }
             Pruefe.Gleich(MarktlinienKoeln, Karrennetz.Marktlinien(karte).Count);
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie(Rivalen: 7), karte: karte);
+                Daten.Value, new NeuePartie(Rivalen: 7, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
             var w = sim.Wirtschaft!;
             var werkstaetten = w.Betriebe.Where(b => b.InDerStadt && w.Fahrten(b) is { Hin.Count: > 0 }).ToList();
             Pruefe.Gleich(8, werkstaetten.Count);
@@ -256,9 +256,9 @@ static class MarktplaetzeTests
             var daten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
             daten["logistik"]!.AsObject().Remove("weglaenge");
             var alt = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Wirtschaftsdaten.AusJson(daten.ToJsonString()),
-                new NeuePartie(Rivalen: 7), karte: karte).Simulation.Wirtschaft!;
+                new NeuePartie(Rivalen: 7, Aufstellung: Aufstellungsart.Vorgabe), karte: karte).Simulation.Wirtschaft!;
             Pruefe.Gleich(ohneLinien, alt.Karrennetz!.Groesse);
-            var neu = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 7),
+            var neu = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 7, Aufstellung: Aufstellungsart.Vorgabe),
                 karte: Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value)).Simulation.Wirtschaft!;
             // mit Datenversion 65 kommen alle Wege ins Netz (Gassen, Fußwege) – verglichen wird mit demselben Netz ohne die Linie (Befund der Prüfung
             // 1.11.2026: gegen das Netz nur der Karrenstraßen wäre der Unterschied auch ohne Linie da)

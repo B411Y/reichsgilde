@@ -64,7 +64,7 @@ static class PredigerTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Klosterhof liefert Lumpen und Wachs; Kirche → Dom → Kathedrale; die Hetzschrift braucht Farbe", () =>
+        ("Daten: Klosterhof liefert Lumpen und Wachs; Kapelle → Kirche → Stadtkirche (Kennungen Kirche → Dom → Kathedrale); die Hetzschrift braucht Farbe", () =>
         {
             var d = Daten.Value;
             Pruefe.Wahr(d.Art(Betriebsart.Klosterhof).Rohstoffe.SequenceEqual(new[] { "Lumpen", "Wachs" }), "Klosterhof");
@@ -235,7 +235,7 @@ static class PredigerTests
                 Redselig.Value, new NeuePartie(Beruf: "Prediger", Startvermoegen: 10_000));
             var w = sim.Wirtschaft!;
             var kirche = w.Betriebe.Single(b => b.Konto == spieler && b.IstWerkstatt);
-            Pruefe.Gleich("Kirche am Weinmarkt", kirche.Name);
+            Pruefe.Gleich("Kapelle am Weinmarkt", kirche.Name); // der Name nimmt den Anzeigenamen der Stufe 1 (seit Datenversion 84 „Kapelle“)
             var rivale = w.Konten.First(k => k != spieler);
             Pruefe.Wahr(w.Ausfuehren(rivale, new Schenken(w.Rat.Ratsherren[0].Name, 100)).Erfolg, "Bestechung");
             Pruefe.Wahr(w.Ausfuehren(spieler, new HetzschriftVerbreiten(rivale.Inhaber)).Erfolg, "Hetzschrift");

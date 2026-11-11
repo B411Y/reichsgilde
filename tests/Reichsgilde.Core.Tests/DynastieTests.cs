@@ -69,13 +69,13 @@ static class DynastieTests
                         && d.Volk(Volk.Mensch).Geburtenrate <= d.Volk(Volk.Halbling).Geburtenrate, "Geburtenrate");
             Pruefe.Wahr(d.Volk(Volk.Zwerg).Hochzeit > d.Volk(Volk.Mensch).Hochzeit, "Zwerge verlangen eine hohe Mitgift");
             Pruefe.Wahr(d.Volk(Volk.Elb).Haushalt > d.Volk(Volk.Mensch).Haushalt * 2, "Elben leben teuer");
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Volk: Volk.Ork)), "nicht spielbar");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Volk: Volk.Ork, Aufstellung: Aufstellungsart.Vorgabe)), "nicht spielbar");
         }),
 
         ("Partieaufbau: eigenes Volk, Geschlecht und Vorname; Haus Eisenbart sind Zwerge; beide beginnen ledig", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie("Familie Apfelgrund", Volk: Volk.Halbling, Geschlecht: Geschlecht.Frau, Vorname: "Trudel"));
+                new NeuePartie("Familie Apfelgrund", Volk: Volk.Halbling, Geschlecht: Geschlecht.Frau, Vorname: "Trudel", Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var f = w.Familien.Von(spieler)!;
             Pruefe.Gleich("Trudel Apfelgrund", f.Oberhaupt.Name);
@@ -310,7 +310,7 @@ static class DynastieTests
             foreach (var startwert in new[] { 101, 202, 303, 404, 505, 606, 707, 808, 909, 1010 })
             {
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },
-                    Daten.Value, new NeuePartie());
+                    Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
                 var w = sim.Wirtschaft!;
                 var rivale = w.Konten[1];
                 var f = w.Familien.Von(rivale)!;
@@ -326,7 +326,7 @@ static class DynastieTests
         ("Speichern: Familien, Brautschau, Zuneigung und Chronik überstehen Speichern und Laden", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 202 },
-                Daten.Value, new NeuePartie(Volk: Volk.Elb, Geschlecht: Geschlecht.Frau));
+                Daten.Value, new NeuePartie(Volk: Volk.Elb, Geschlecht: Geschlecht.Frau, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             for (var i = 0; i < 6; i++) JahrBeenden(sim);
             var k = w.Familien.Kandidaten.First(x => w.Familien.WerbenVerboten(spieler, x) is null);

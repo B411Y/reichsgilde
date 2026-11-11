@@ -230,10 +230,10 @@ static class RestflaechenfuellungTests
             }
             var uebersicht = string.Join(", ", mit.Select(e => $"{e.Key} {e.Value}"));
             // Seit den Hofstellen (9.11.2026; neue Restflächen am Hafen und in Deutz) fällt das Los der Themen in Köln auf einen Steinmetzplatz und keinen
-            // Taubenschlag (vorher 2–6 bzw. 1–3 verlangt) – offener Punkt bei der Darstellung (Gewichte in restflaechen.json); hier nur „höchstens“
-            Pruefe.Wahr(mit.GetValueOrDefault("steinmetzplatz") is >= 1 and <= 6, "Köln: einige Steinmetzplätze – " + uebersicht);
+            // Taubenschlag (vorher 2–6 bzw. 1–3 verlangt; seit 11.11.2026 wieder kein Steinmetzplatz, deshalb fest 0) – offener Punkt bei der Darstellung (Gewichte in restflaechen.json)
+            Pruefe.Gleich(0, mit.GetValueOrDefault("steinmetzplatz"));
             Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 0 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
-            foreach (var (thema, zahl) in new[] { ("hof", 4), ("pferch", 4), ("wasserstelle", 2), ("heuschober", 4) })   // bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7; bis zu den Hofstellen 4, 5, 3, 6
+            foreach (var (thema, zahl) in new[] { ("hof", 3), ("pferch", 2), ("wasserstelle", 3), ("heuschober", 6) })   // seit Köln ohne St. Severin und St. Kunibert (11.11.2026; weniger Restflächen, kein Steinmetzplatz mehr) 3, 2, 3, 6; bis zu den Hofstellen 4, 4, 2, 4; bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7; bis zu den Hofstellen 4, 5, 3, 6
                 Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema));
         }),
 

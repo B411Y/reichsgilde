@@ -25,7 +25,7 @@ static class KarrenwegTests
     {
         var haeuser = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Startplaetze: vorgabe ? Startplatzvergabe.Vorgabe : Startplatzvergabe.Gelost),
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Startplaetze: vorgabe ? Startplatzvergabe.Vorgabe : Startplatzvergabe.Gelost, Aufstellung: Aufstellungsart.Vorgabe),
             karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
         return sim.Wirtschaft!;
     }

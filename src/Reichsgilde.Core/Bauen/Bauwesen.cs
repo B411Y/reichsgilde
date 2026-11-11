@@ -414,6 +414,7 @@ public sealed class Bauwesen
                     return $"Eine {art.Name} darf erst bauen, wer mindestens {mindestStand} ist – {konto.Inhaber} ist {_w.StandVon(konto).Name}.";
                 if (_w.Daten.Berufe.Count > 0 && konto.Berufe.Count > 0 && !konto.Beherrscht(art.Beruf))
                     return $"Eine {art.Name} ist ein Betrieb der {art.Beruf}. {konto.Inhaber} beherrscht dieses Handwerk nicht – erst erlernen.";
+                if (_w.Kirchenwesen.KirchengrenzeVerboten(konto, b.Art) is { } kirchen) return kirchen; // höchstens eine Kirche je Glaube
                 var preis = _w.Baupreis(konto, WerkstattPreis(b.Art)); // Baumeister (Lebensweise)
                 if (konto.Vermoegen < preis + art.Fixkosten)
                     return $"Für eine neue {art.Name} braucht es {Zahlenformat.Ganz(preis + art.Fixkosten)} {waehrung} " +

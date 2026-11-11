@@ -95,7 +95,7 @@ static class HafenAufschlagTests
          "des Landhandels); ohne Angabe 0, über 5 % oder negativ ein Fehler", () =>
         {
             var d = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            Pruefe.Gleich(83, d.Version);
+            Pruefe.Gleich(84, d.Version);
             var s = d.Schiffshandel!;
             Pruefe.Ungefaehr(0.03, s.HafenAufschlag, 1e-12);
             var ausfuhr = d.Waren.Keys.Where(s.IstAusfuhrware).OrderBy(x => x, StringComparer.Ordinal).ToList();

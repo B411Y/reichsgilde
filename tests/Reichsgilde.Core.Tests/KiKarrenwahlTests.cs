@@ -34,7 +34,7 @@ static class KiKarrenwahlTests
         var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser), karte: Stadtkarte.AusDatei(pfad));
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(pfad));
         return (sim, sim.Wirtschaft!);
     }
 

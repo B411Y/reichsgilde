@@ -143,7 +143,7 @@ static class PersonalTests
         ("Personal: Die Partie beginnt mit Anfängern – Spieler und KI-Häuser mit einem Lehrling, die Grube („Schwer“) mit einem Knecht (Datenversion 72; die KI füllt sie gleich auf drei)", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich(1, eigene.Belegung.GetValueOrDefault("Lehrling"));

@@ -63,14 +63,14 @@ static class BuergerDichteTests
             Pruefe.Gleich(200, Gewoehnliche(w));
         }),
 
-        ("Bürgerdichte: Mit Karte hat jeder Hausplatz einen Haushalt – Köln (82 Plätze) etwa doppelt so viele Einwohner wie vorher und mehr als doppelt so viele wie die Greybox", () =>
+        ("Bürgerdichte: Mit Karte hat jeder Hausplatz einen Haushalt – Köln (84 Plätze) etwa doppelt so viele Einwohner wie vorher und mehr als doppelt so viele wie die Greybox", () =>
         {
             var (_, koeln) = Partie(Daten(), "koeln");
             var (_, greybox) = Partie(Daten(), "greybox");
             var d = koeln.Einwohnerschaft.Daten;
-            Pruefe.Gleich(82, koeln.Einwohnerschaft.Hausplaetze, "Köln: 68 Einwohnerplätze und 14 Kulissenhäuser");
+            Pruefe.Gleich(84, koeln.Einwohnerschaft.Hausplaetze, "Köln: 69 Einwohnerplätze und 15 Kulissenhäuser (seit Köln ohne St. Severin und St. Kunibert, 11.11.2026; vorher 82)");
             Pruefe.Gleich(40, greybox.Einwohnerschaft.Hausplaetze, "Greybox: 36 Einwohnerplätze und 4 Kulissenhäuser");
-            var frei = 82 - d.Buergerhaeuser - koeln.Rat.Ratsherren.Count;
+            var frei = 84 - d.Buergerhaeuser - koeln.Rat.Ratsherren.Count;
             var n = Gewoehnliche(koeln);
             Pruefe.Wahr(n >= (d.JeHausplatz - 1) * frei && n <= (d.JeHausplatz + 1) * frei,
                         $"Köln: {n} Einwohner für {frei} freie Plätze zu je {d.JeHausplatz} ± 1");

@@ -287,6 +287,7 @@ public sealed class Glaubenswesen
         if (_w.Familien.Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie.";
         if (!ziel.IstKirchlich()) return "Zum Naturglauben bekehrt keine Kirche.";
         if (f.Oberhaupt.Glaube == ziel) return $"Das Haus {f.Nachname} ist schon {ziel.Name()}.";
+        if (_w.Kirchenwesen.KirchengrenzeKonvertieren(konto, ziel) is { } kirchen) return kirchen; // höchstens eine Kirche je Glaube
         if (konto.Vermoegen < Daten.Konvertieren.Gebuehr)
             return $"Unterricht und {(f.Oberhaupt.Glaube.IstKirchlich() ? "Übertritt" : "Taufe")} kosten {Zahlenformat.Ganz(Daten.Konvertieren.Gebuehr)} {_w.Daten.Allgemein.Waehrung}.";
         return null;

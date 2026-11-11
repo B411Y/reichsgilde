@@ -15,7 +15,7 @@ static class BalancingHandgeldTests
          "Datenpfad.WieVorBalancingHandgeld gibt die alten Werte", () =>
         {
             var d = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            Pruefe.Gleich(83, d.Version);
+            Pruefe.Gleich(84, d.Version);
             Pruefe.Ungefaehr(0.009, d.Dieb!.Taschendiebstahl.FangJeStunde, 1e-12);
             Pruefe.Gleich(220.0, d.Waren["Moschusduft"].Grundpreis);
             Pruefe.Gleich(210.0, d.Waren["Fechterduft"].Grundpreis);
