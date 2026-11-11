@@ -254,6 +254,9 @@ public partial class BerichtAnzeige : PanelContainer
             _verlaufListe.AddChild(zeile);
             var punkt = new Punkt { Farbe = Color.FromHtml(Meldungseinstellungen.Ordnung.Thema(m.Art.Thema).Farbe), CustomMinimumSize = new Vector2(10, 18), Hohl = m.Stufe == Meldestufe.Verlauf };
             zeile.AddChild(punkt);
+            // Was aus einer Entscheidung wurde: die Feder vor der Zeile
+            if (m.Art.Id == "Entscheidung")
+                zeile.AddChild(new Federmarke { CustomMinimumSize = new Vector2(18, 18), TooltipText = "Entscheidung – gewählt, nach Fristablauf mit der Voreinstellung oder hinfällig." });
             // Meldung über ein Geheimnis: das kleine Siegel seiner Art vor der Zeile (ohne Datei bleibt nur der Text)
             if (CharakterAnzeige.GeheimnisSiegelBild(m.Kern?.GeheimnisArt, 22, m.Kern?.GeheimnisArt is { } ga ? $"Ein Geheimnis – {ga}" : "") is { } siegel)
             {
@@ -278,6 +281,12 @@ public partial class BerichtAnzeige : PanelContainer
                 };
             }
         }
+    }
+
+    /// <summary>Die kleine Feder vor einer Zeile über eine Entscheidung (Markierung „Entscheidung“ im Verlauf).</summary>
+    private sealed partial class Federmarke : Control
+    {
+        public override void _Draw() => Siegelzeichner.Feder(this, new Vector2(9, 9), 8, 1.6f, new Color(0.86f, 0.70f, 0.50f));
     }
 
     /// <summary>Ein Aufzählungspunkt in der Farbe des Themas; ausgefüllt, wenn die Meldung als Siegel oder Brief kam, sonst nur ein Ring.</summary>

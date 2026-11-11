@@ -12,6 +12,7 @@ Bildschirm). Nur für die Probe: Das Spiel zeigt die Figuren nur mit der Startop
 | Bärte der Zwerge, langes Haar der Elben, offenes Haar der Elbinnen | eigenes Skript | Alle Rechte vorbehalten (`LICENSE-INHALTE.md`) | `tools/modelle/passanten_probe.py` |
 | Skelett und Gewichte | Rig „game_engine“ aus MPFB 2.0.18 | CC0 1.0 | wie oben |
 | Stehen, Gehen, Reden, Sitzen, Kauern (daraus „Betteln“ mit eigener Armhaltung) | Quaternius, Universal Animation Library [Standard]: `Idle_Loop`, `Walk_Loop`, `Idle_Talking_Loop`, `Sitting_Idle_Loop`, `Crouch_Idle_Loop` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library |
+| Schieben, Nebenhergehen, SitzenBock (Zieher am Karren, 10.11.2026) | Eigenbau aus den schon übertragenen Clips Gehen, Stehen und Sitzen (also aus Quaternius UAL 1 `Walk_Loop`, `Idle_Loop`, `Sitting_Idle_Loop`); `Push_Loop` probiert und verworfen, keine neue Quaternius-Datei | Alle Rechte vorbehalten für den Eigenanteil (`LICENSE-INHALTE.md`), Quelle bleibt CC0 1.0 | `tools/modelle/passanten_clips.py`, `docs/assets/prompts/passanten_zieher_clips.md` |
 | Tragen, Hacken, Bücken | Quaternius, Universal Animation Library 2 [Standard]: `Walk_Carry_Loop`, `TreeChopping_Loop`, `Farm_Harvest` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library-2 |
 | Kleidung (Cotte, Gürtel, Gugel mit Zipfel, langer Rock, Kleid, Haube, Gebende mit Schleier, Bettlerkleidung, Kutte), Haar, Halb- und Holzschuhe, Berufszubehör (Strohhut, Barett, Eisenhut, Schürze, Kiepe, Reisigbündel, Tasche, Stab), Kiste, Axt, Zonen | eigenes Skript | Alle Rechte vorbehalten (`LICENSE-INHALTE.md`) | `tools/modelle/passanten_probe.py` |
 | Stoffstruktur (Wolle/Leinen, Leder) | Schichten „tuch“ und „leder“ der Material-Bibliothek des Spiels (nur ihre Nummer steht im Netz, UV.y) | wie die Bibliothek | `game/daten/materialbibliothek.json` |
@@ -25,6 +26,6 @@ verlängert, Kopfbedeckungen aus den Kopfflächen, Zipfel), Bundschuhe als eigen
 und Kanten geschont) und 560 Dreiecke (fern) verkleinert, Skelett auf 23 Knochen mit den Namen von Godots `SkeletonProfileHumanoid` (Finger
 in die Hand gelegt, die Finger vorher locker gekrümmt), die sieben Clips auf dieses Skelett übertragen (Richtung der Arm- und Beinknochen wie
 in der Quelle, Hüfthöhe angeglichen; Oberkörper und Kopf aufgerichtet, Arme hängend und Ellbogen lockerer, Handgelenk gerade, Schrittweite von
-Gehen und Tragen verstärkt), dazu eine Axt aus zwei Quadern für „Hacken“. Nicht benutzt: MakeHuman-Kleidung, Kimodo, Mixamo, Human Generator, Kaufpakete.
+Gehen und Tragen verstärkt), dazu eine Axt aus zwei Quadern für „Hacken“. Die drei Zieher-Clips (Schieben, Nebenhergehen, SitzenBock) hängt `tools/modelle/passanten_clips.py` nach dem Bau an die fertigen Dateien an (nach einem Neubau mit `passanten_probe.py` erneut laufen lassen). Nicht benutzt: MakeHuman-Kleidung, Kimodo, Mixamo, Human Generator, Kaufpakete.
 
 Herkunft je Datei aller Assets: `docs/assets/protokoll.csv`.

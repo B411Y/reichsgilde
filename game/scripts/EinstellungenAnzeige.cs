@@ -262,7 +262,7 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton? _schnittstelle;
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
-    private readonly CheckButton _fahnen, _zeiger;
+    private readonly CheckButton _fahnen, _zeiger, _handschuh3d;
     private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Haende + 1];
     private readonly Label _zeigerName;
     private readonly HSlider _groesse;
@@ -279,6 +279,8 @@ public sealed class EinstellungenAnzeige
     private static readonly string[] StufenNamen = { "Aus", "Nur Verlauf", "Siegel", "Brief" };
     private readonly List<(Meldeart Art, OptionButton Auswahl)> _meldungsWahl = new();
     private readonly CheckButton _siegelBewegung;
+    private readonly CheckButton _entscheidungAnhalten;
+    private readonly List<(string Schluessel, OptionButton Auswahl)> _entscheidungsWahl = new();
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -630,9 +632,26 @@ public sealed class EinstellungenAnzeige
                 _meldungsWahl.Add((a, auswahl));
             }
         }
+        // Entscheidungen (Stufe 3): je Art Brief mit Wahl oder Voreinstellung automatisch
+        Abschnitt(s, "Entscheidungen");
+        Hinweis(s, "Manche Fragen verlangen eine Antwort in Spielzeit. „Entscheidung“: ein Brief mit Knöpfen und Frist. „Automatisch“: es gilt gleich die Voreinstellung, ihr bekommt nur einen Brief mit dem Ergebnis.");
+        _entscheidungAnhalten = Schalter(s, "Bei Entscheidungen anhalten", () => "Solange ein Entscheidungsbrief offen ist, steht die Zeit. Nur im Einzelspiel; im Mehrspieler läuft die Frist weiter. „Später“ im Brief lässt die Zeit weiterlaufen.",
+                                         an => Entscheidungseinstellungen.Anhalten = an);
+        foreach (var (schluessel, name, erklaerung, standard) in Entscheidungseinstellungen.Arten)
+        {
+            var key = schluessel;
+            var tippZeile = Zeile(s, name, () => erklaerung + "\n\nVorgabe: " + (standard ? "Automatisch" : "Entscheidung") + ".", 260);
+            var auswahl = Auswahl(tippZeile, new[] { "Entscheidung", "Automatisch" }, nummer =>
+            {
+                Entscheidungseinstellungen.Setzen(key, nummer == 1);
+                Auffrischen();
+            });
+            _entscheidungsWahl.Add((key, auswahl));
+        }
         var meldungenZurueck = Hauptmenue.Knopf(s, "Auf die Vorgabe zurücksetzen", () =>
         {
             Meldungseinstellungen.Zuruecksetzen();
+            Entscheidungseinstellungen.Zuruecksetzen();
             Auffrischen();
         });
         meldungenZurueck.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
@@ -667,6 +686,12 @@ public sealed class EinstellungenAnzeige
                                                           "über Anklickbarem wird er wärmer, über einem Haus, das ihr betreten könnt, wird er zum Türschloss. Aus: der Zeiger eures Systems.", an =>
         {
             Fenster.EigenerZeigerSetzen(an);
+            Auffrischen();
+        });
+        _handschuh3d = Schalter(s, "3D-Handschuh", () => "Der Handschuh ist ein bewegtes 3D-Modell: er atmet, zeigt über Anklickbarem, tippt beim Klick und greift beim Ziehen; die Fingerspitze liegt genau auf dem Klickpunkt. " +
+                                                       "Aus (oder bei zu wenig Bildern je Sekunde, unter etwa 40, von selbst): die gemalten Zeigerbilder. Gilt ab 48 Pixel Zeigergröße und nur beim eigenen Mauszeiger; die Wahl des Handschuhs unten betrifft nur die gemalten Bilder (der 3D-Handschuh hat vorerst eine Lederfarbe).", an =>
+        {
+            Fenster.Handschuh3dSetzen(an);
             Auffrischen();
         });
         var zeigerZeile = Zeile(s, "Handschuh", () => "Welcher Handschuh euer Zeiger ist. „Auto“ folgt dem Stand des Hauses (Gemeiner bis Reichsgraf); jeder der sechs lässt sich auch fest wählen, dazu die Wache (Plattenhandschuh) und der Dieb (schwarzes Leder), " +
@@ -844,6 +869,8 @@ public sealed class EinstellungenAnzeige
 
         _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
         _zeiger.SetPressedNoSignal(Fenster.EigenerZeigerAn);
+        _handschuh3d.SetPressedNoSignal(Fenster.Handschuh3dAn);
+        _handschuh3d.Disabled = !Fenster.EigenerZeigerAn;
         for (var nummer = 0; nummer < _zeigerKacheln.Length; nummer++)
         {
             _zeigerKacheln[nummer].SetPressedNoSignal(nummer == Fenster.ZeigerStufe);
@@ -858,6 +885,9 @@ public sealed class EinstellungenAnzeige
         _siegelBewegung.SetPressedNoSignal(Meldungseinstellungen.Bewegung);
         foreach (var (art, auswahl) in _meldungsWahl)
             auswahl.Select(Math.Min((int)Meldungseinstellungen.Wirksam(art), auswahl.ItemCount - 1));
+        _entscheidungAnhalten.SetPressedNoSignal(Entscheidungseinstellungen.Anhalten);
+        foreach (var (schluessel, auswahl) in _entscheidungsWahl)
+            auswahl.Select(Entscheidungseinstellungen.Automatisch(schluessel) ? 1 : 0);
         _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
         _sitzung.Select(Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung));
         for (var i = 0; i < _tonRegler.Count; i++)

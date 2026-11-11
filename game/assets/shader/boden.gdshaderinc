@@ -128,6 +128,43 @@ vec3 hang_betont(vec3 n) {
 	return vec3(r.x, sqrt(1.0 - neu * neu), r.y);
 }
 
+
+// Schneetextur gegen sichtbare Wiederholung (Kachelmuster im Winter): Statt einer festen Kachel von schnee_massstab Metern, die sich in einem Raster
+// wiederholt (dazu eine zweite, nur 2,7-mal größere – ihre Raster fielen zusammen und zeichneten Streifen), liegt jede „virtuelle Kachel“ (Zellen
+// aus einem langsamen Rauschen, nicht aus einem Raster) anders gedreht, verschoben und um bis zu 15 % verzoomt; zwei Nachbarn gehen weich ineinander
+// über. Zwei Abtastungen je Bild wie bisher in der Mitte, nur nahe der Zellgrenze beide. Gradienten (dx, dy = Ableitungen von Welt-X/Z) werden mitgedreht,
+// sonst spränge die Mip-Stufe an der Zellgrenze. Rückgabe: f = Farbe (rgb) und 1; n = Neigung (x, z in Welt) mal 0,5 und Rauheit (z).
+void schnee_lesen(vec2 p, vec2 dx, vec2 dy, out vec4 f, out vec3 n) {
+	float k = rausch(p * 0.17 + 31.7) * 8.0;
+	float i = floor(k);
+	float m = fract(k);
+	float va = m > 0.7 ? i + 1.0 : i;
+	float wa = va * 2.39996;
+	mat2 ra = mat2(vec2(cos(wa), sin(wa)), vec2(-sin(wa), cos(wa)));
+	float sa = 1.0 / (schnee_massstab * (0.85 + 0.3 * fract(va * 0.618034)));
+	vec2 ua = ra * p * sa + fract(vec2(0.754877, 0.569840) * va);
+	vec4 fa = textureGrad(schnee_fh, ua, ra * dx * sa, ra * dy * sa);
+	vec4 na = textureGrad(schnee_nr, ua, ra * dx * sa, ra * dy * sa);
+	vec3 farbe = fa.rgb;
+	vec2 t = transpose(ra) * (vec2(na.r, -na.g) * 2.0 - vec2(1.0, -1.0));
+	float rau = na.b;
+	if (m >= 0.3 && m <= 0.7) {
+		float vb = i + 1.0;
+		float wb = vb * 2.39996;
+		mat2 rb = mat2(vec2(cos(wb), sin(wb)), vec2(-sin(wb), cos(wb)));
+		float sb = 1.0 / (schnee_massstab * (0.85 + 0.3 * fract(vb * 0.618034)));
+		vec2 ub = rb * p * sb + fract(vec2(0.754877, 0.569840) * vb);
+		vec4 fb = textureGrad(schnee_fh, ub, rb * dx * sb, rb * dy * sb);
+		vec4 nb = textureGrad(schnee_nr, ub, rb * dx * sb, rb * dy * sb);
+		float w = smoothstep(0.3, 0.7, m);
+		farbe = mix(farbe, fb.rgb, w);
+		t = mix(t, transpose(rb) * (vec2(nb.r, -nb.g) * 2.0 - vec2(1.0, -1.0)), w);
+		rau = mix(rau, nb.b, w);
+	}
+	f = vec4(farbe, 1.0);
+	n = vec3(t.x * 0.5, t.y * 0.5, rau);
+}
+
 void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	welt_n = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
@@ -943,20 +980,11 @@ void fragment() {
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen), Tropfkante und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	// Schneetextur (nur mit den privaten Texturen, schnee_privat; sonst bleibt sch_f.a = 0 und der Schnee wie bisher): zwei Maßstäbe übereinander gegen Wiederholung
+	// Schneetextur (nur mit den privaten Texturen, schnee_privat; sonst bleibt sch_f.a = 0 und der Schnee bekommt sein Rauschen in wetter.gdshaderinc):
+	// Kachel-Brechung wie bei den Bodentexturen (schnee_lesen), ohne feste Wiederholung
 	vec4 sch_f = vec4(0.0);
 	vec3 sch_n = vec3(0.0);
-	if (schnee_privat && wetter_schnee > 0.001) {
-		vec2 sch_u1 = welt / schnee_massstab;
-		vec2 sch_u2 = welt / (schnee_massstab * 2.71) + vec2(0.31, 0.57);
-		vec4 sch_a1 = texture(schnee_fh, sch_u1);
-		vec4 sch_a2 = texture(schnee_fh, sch_u2);
-		vec4 sch_b1 = texture(schnee_nr, sch_u1);
-		vec4 sch_b2 = texture(schnee_nr, sch_u2);
-		sch_f = vec4(mix(sch_a1.rgb, sch_a2.rgb, 0.4), 1.0);
-		vec2 sch_xy = mix(sch_b1.rg, sch_b2.rg, 0.4) * 2.0 - 1.0;
-		sch_n = vec3(sch_xy.x * 0.5, -sch_xy.y * 0.5, mix(sch_b1.b, sch_b2.b, 0.4));
-	}
+	if (schnee_privat && wetter_schnee > 0.001) schnee_lesen(welt, dpx.xz, dpy.xz, sch_f, sch_n);
 	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe, clamp(land, 0.0, 1.0), sch_f, sch_n);
 	ALBEDO = farbe;
 	EMISSION = leuchten;

@@ -283,6 +283,12 @@ public sealed partial class Kartenentwurf
         Geschichte = new Kartengeschichte(this);
         Regeln = Pruefregeln.Fuer(Kennung);
         _kopf = KopfAus(teile);
+        // P4a: Stücke mit eigenem Hang – die wirksame Höhe gleich beim Öffnen (Kartenentwurf.Felsschicht.cs)
+        if (_felsen.Any(f => f.Hang))
+        {
+            SchichtVormerken();
+            SchichtAuffrischen(melden: false);
+        }
     }
 
     /// <summary>
@@ -500,7 +506,8 @@ public sealed partial class Kartenentwurf
     /// Zwischenspeicher, bis sich ein Platz der Startbelegung, ein Marktplatz oder die Startbelegung ändert (dann die Wege: in Köln etwa ein
     /// Zehntel bis ein Viertel der übrigen Prüfung) bzw. ein Weg, ein Gewässer oder eine Fähre (dann auch Karte und Karrennetz, in Köln etwa noch
     /// einmal so lange wie die übrige Prüfung). Andere Gebäude und Geländestriche rechnen nichts neu (die Länge hängt nicht an der Höhe, nur die
-    /// Steigung, die hier nicht zählt). Ließ sich die Karte nicht laden, versucht es die nächste Änderung jeder Art wieder.
+    /// Steigung, die hier nicht zählt). Ließ sich die Karte nicht laden, versucht es die nächste Änderung jeder Art wieder. Nach einer Änderung an
+    /// Startbelegung oder Gebäuden prüft eine <see cref="LadeprobeSchritte">Ladeprobe</see>, ob die Karte noch lädt (sonst kein Netz, keine Wege).
     /// </summary>
     public IReadOnlyList<Startweg> Startwegrechnung()
     {
@@ -516,8 +523,10 @@ public sealed partial class Kartenentwurf
     /// </summary>
     internal IEnumerable<string> StartwegSchritte()
     {
-        while (_startwege is null)
+        while (true)
         {
+            foreach (var t in LadeprobeSchritte()) yield return t;
+            if (_startwege is not null) yield break;
             _startwegLauf ??= StartwegLauf().GetEnumerator();
             bool weiter;
             try
@@ -532,7 +541,7 @@ public sealed partial class Kartenentwurf
             if (!weiter)
             {
                 _startwegLauf = null;
-                yield break;
+                continue; // der Lauf hat die Wege gesetzt – noch eine Ladeprobe, falls eine Änderung in ihn fiel
             }
             yield return _startwegLauf.Current;
         }
@@ -563,9 +572,57 @@ public sealed partial class Kartenentwurf
     /// <summary>Karte und Karrennetz für die Startwege (null, wenn die Karte sich nicht laden lässt oder keinen Marktplatz hat).</summary>
     internal (Stadtkarte Karte, Karrennetz Netz)? Startnetz()
     {
-        foreach (var _ in StartnetzSchritte()) { }
+        do
+        {
+            foreach (var _ in StartnetzSchritte()) { }
+            foreach (var _ in LadeprobeSchritte()) { }
+        } while (!_startnetzGerechnet); // die Probe kann das Netz neu anstoßen
         return _startnetz;
     }
+
+    /// <summary>
+    /// Steht eine Ladeprobe an (<see cref="StartwegeVormerken"/>: Startbelegung oder ein Gebäude geändert, das Netz blieb), schreibt sie die Karte und
+    /// liest sie wie der Leser des Kerns (zwei Häppchen, ohne Gelände und Netz). Lädt sie nicht mehr – etwa weil ein Haus auf einer gelöschten
+    /// Hofstelle saß –, gibt es kein Netz und keine Startwege, genau wie beim ersten Laden (Befund 10.11.2026: vorher blieb das alte Netz stehen und
+    /// die Werkstatt meldete Startwege, die die frisch geöffnete Karte nicht kennt). Eine Änderung mitten in der Probe fängt sie neu an.
+    /// </summary>
+    private IEnumerable<string> LadeprobeSchritte()
+    {
+        // Endete ein Netzlauf ohne Netz (er las eine kaputte Karte), während eine Änderung mitten in ihm die Karte vielleicht reparierte: das Netz
+        // noch einmal rechnen statt proben (Befund der Prüfung; liest der neue Lauf wieder eine kaputte Karte, endet er schon beim Lesen)
+        if (_ladeprobe && _startnetzGerechnet && _startnetz is null)
+            (_ladeprobe, _ladeprobeLauf, _startnetzGerechnet, _startnetzLauf, _startwege, _startplaetze, _startwegLauf) = (false, null, false, null, null, null, null);
+        while (_ladeprobe && _startnetzGerechnet && _startnetz is not null)
+        {
+            _ladeprobeLauf ??= LadeprobeLauf().GetEnumerator();
+            if (_ladeprobeLauf.MoveNext()) yield return _ladeprobeLauf.Current;
+            else _ladeprobeLauf = null;
+        }
+    }
+
+    private IEnumerable<string> LadeprobeLauf()
+    {
+        var ok = true;
+        void Fehler() => ok = false;
+        string? text = null;
+        foreach (var t in Geschuetzt(() => Einmal(() =>
+                 {
+                     var knoten = ZuJsonKnoten();
+                     knoten.Remove("hoehen"); // die Höhen prüft der Leser nicht
+                     text = knoten.ToJsonString();
+                 }), "Startwege: Ladeprobe schreiben", Fehler))
+            yield return t;
+        if (ok)
+            foreach (var t in Geschuetzt(() => Einmal(() => Stadtkarte.AusJson(text!, Katalog)), "Startwege: Ladeprobe lesen", Fehler))
+                yield return t;
+        _ladeprobe = false;
+        if (!ok) (_startnetz, _startwege, _startplaetze, _startwegLauf) = (null, null, null, null); // gerechnet, aber ohne Netz: die nächste Änderung versucht es wieder
+    }
+
+    /// <summary>Steht eine <see cref="LadeprobeSchritte">Ladeprobe</see> an, bzw. ihr angefangener Lauf.</summary>
+    private bool _ladeprobe;
+
+    private IEnumerator<string>? _ladeprobeLauf;
 
     /// <summary>Rechnet das <see cref="Startnetz"/> in Häppchen weiter (oder fängt es an); ist es gerechnet, endet die Folge.</summary>
     private IEnumerable<string> StartnetzSchritte()
@@ -635,12 +692,13 @@ public sealed partial class Kartenentwurf
                     yield return t;
         }
         (_startnetz, _startnetzGerechnet) = (ok && netz is not null ? (karte!, netz) : null, true);
+    }
 
-        static IEnumerable<int> Einmal(Action tun)
-        {
-            tun();
-            yield return 0;
-        }
+    /// <summary>Ein Häppchen, das <paramref name="tun"/> ausführt.</summary>
+    private static IEnumerable<int> Einmal(Action tun)
+    {
+        tun();
+        yield return 0;
     }
 
     /// <summary>
@@ -685,7 +743,9 @@ public sealed partial class Kartenentwurf
         var netzWeg = _startnetzGerechnet && _startnetz is null
                       || a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre
                       || a.Objekt is EntwurfGebaeude { Katalog: Stadtkarte.MarktKatalog };
-        if (netzWeg) (_startnetz, _startnetzGerechnet, _startnetzLauf) = (null, false, null); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt)
+        if (netzWeg) (_startnetz, _startnetzGerechnet, _startnetzLauf, _ladeprobe, _ladeprobeLauf) = (null, false, null, false, null); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt); der neue Lauf lädt selbst
+        // ob die Karte noch lädt, hängt an Startbelegung und Gebäuden (Plätze, Kennungen, Bausteine, Betriebe) – auch, wenn das Netz gerade halb gerechnet ist
+        else if (a.Teil is Kartenteil.Start or Kartenteil.Gebaeude) (_ladeprobe, _ladeprobeLauf) = (true, null);
         if (netzWeg || a.Teil == Kartenteil.Start || _startplaetze is not { } plaetze
             || a.Objekt is EntwurfGebaeude g && (plaetze.Kennungen.Contains(g.Kennung) || plaetze.Gebaeude.Contains(g)))
             (_startwege, _startplaetze, _startwegLauf) = (null, null, null);
@@ -911,7 +971,8 @@ public sealed partial class Kartenentwurf
                     continue;
                 case "hoehen":
                     // nur Kacheln mit Punkten in der Karte (Spielfeld und Rand) und nicht ganz 0; ein flaches Gelände fällt weg
-                    if (_hoehen.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
+                    // gespeichert wird die Grundhöhe: den Hang der Stücke mit „hang“ rechnet der Leser aus den Stücken (P4a)
+                    if (Grundraster.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
                     continue;
                 case "boden":
                     // ebenso: nur Kacheln mit Punkten in der Karte; alles Wiese ohne Deko fällt weg
@@ -1125,18 +1186,21 @@ public sealed partial class Kartenentwurf
     {
         var l = Liste(t);
         l.Insert(Math.Min(index, l.Count), t);
+        if (t is EntwurfFels { Hang: true }) SchichtVormerken(); // P4a: der Hang des Stücks kommt dazu (Kartenentwurf.Felsschicht.cs)
         Vormerken(new Kartenaenderung(Aenderungsart.Gesetzt, t));
     }
 
     internal void Entfernen(EntwurfTeil t)
     {
         Liste(t).RemoveAt(IndexVon(t));
+        if (t is EntwurfFels { Hang: true }) SchichtVormerken();
         Vormerken(new Kartenaenderung(Aenderungsart.Geloescht, t));
     }
 
     internal void Uebernehmen(EntwurfTeil t, EntwurfTeil werte)
     {
         var bettVorher = BettBereich(t); // wo ein Weg oder eine Mauer vorher das Gelände einebnete
+        if (t is EntwurfFels { Hang: true } || werte is EntwurfFels { Hang: true }) SchichtVormerken();
         t.UebernimmTeil(werte);
         if (t is EntwurfGebaeude g) g.Baustein = Katalog.Finde(g.Katalog);
         if (t is EntwurfPflanze p) p.Baustein = Katalog.Finde(p.Katalog);
@@ -1169,12 +1233,14 @@ public sealed partial class Kartenentwurf
         }
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
+        if (a.Objekt is EntwurfKopf && _grund is not null) (_schichtNeu, _schichtStand) = (true, null); // P4a: Größe und Rand begrenzen den Hang (ganz neu)
         _ausstehend.Add(a);
     }
 
     /// <summary>Meldet die Änderungen des letzten Befehls (aus der Geschichte, nachdem sie den Schritt eingetragen hat).</summary>
     internal void MeldungenAusloesen()
     {
+        SchichtAuffrischen(); // P4a: die Hang-Schicht vor dem Melden nachführen (meldet das Gelände mit)
         var liste = _ausstehend.ToList();
         _ausstehend.Clear();
         foreach (var a in liste) Geaendert?.Invoke(a);

@@ -139,7 +139,7 @@ static class GeheimnisTests
          "Fehler fallen auf; ohne Abschnitt keine Geheimnisse", () =>
         {
             var d = Daten.Value.Geheimnisse!;
-            Pruefe.Gleich(80, Daten.Value.Version);
+            Pruefe.Gleich(82, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "aktiv");
             Pruefe.Gleich("Ehebruch,Ketzerei,Schulden,Mord", string.Join(",", d.Arten.Keys.OrderBy(k => k)));
             Pruefe.Gleich("Gulden=2,Ratsstimme=2,Anzeige=2,Blossstellen=1", string.Join(",", Enum.GetValues<Geheimnisnutzung>().Select(n => $"{n}={d.Ap[n]}")));
@@ -266,6 +266,10 @@ static class GeheimnisTests
             Pruefe.Wahr(w.Gesundheit.Erkranken(ko, opfer, "Lungenentzündung", taeter: ft.Oberhaupt), "erkrankt");
             Pruefe.Gleich(ft.Oberhaupt.Nummer, opfer.Krankheit!.Taeter);
             Pruefe.Wahr(w.Gesundheit.Erkranken(kn, natur, "Lungenentzündung"), "erkrankt ohne Täter");
+            // Stufe 3 (Entscheidungen): Der Mensch bekommt eine Frage zur Krankheit; er tut nichts – sonst riefe die Voreinstellung den Medicus.
+            sim.Tick();
+            foreach (var e in w.Entscheidungen.Offen.Where(e => e.Art == Reichsgilde.Core.Entscheidungen.Entscheidungsart.Krankheit).ToList())
+                Pruefe.Wahr(w.Ausfuehren(e.Haus, new EntscheidungTreffen(e.Nummer, Reichsgilde.Core.Entscheidungen.Entscheidungswesen.NichtsTun)).Erfolg, "nichts tun");
             JahrBeenden(sim);
             Pruefe.Wahr(!opfer.Lebt && !natur.Lebt, "beide tot");
             var mord = w.Geheimnisse.Von(ft.Oberhaupt).Single(g => g.Art == Geheimnisart.Mord);

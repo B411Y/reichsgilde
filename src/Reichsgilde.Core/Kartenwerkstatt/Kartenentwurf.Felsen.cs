@@ -46,6 +46,12 @@ public sealed class EntwurfFels : EntwurfTeil
     /// <summary>Höhenversatz in Metern (R2).</summary>
     public double Versatz { get; internal set; }
 
+    /// <summary>Trägt das Stück seinen Hang als eigene Schicht (P4a, „hang“ in der Datei; Kartenentwurf.Felsschicht.cs)?</summary>
+    public bool Hang { get; internal set; }
+
+    /// <summary>Nummer der Gruppe in der Karte (P5, „gruppe“ in der Datei; 0: keine) – Stücke mit derselben Nummer wählt man zusammen (Kartenentwurf.Felsgruppen.cs).</summary>
+    public int Gruppe { get; internal set; }
+
     /// <summary>Hat das Stück Achsen ungleich 1 („achsen“ in der Datei)?</summary>
     private bool HatAchsen => AchseX != 1 || AchseY != 1 || AchseZ != 1;
 
@@ -73,11 +79,11 @@ public sealed class EntwurfFels : EntwurfTeil
     {
         Form = Form, Gestein = Gestein, Punkt = new[] { X, Z }, Drehung = Drehung, Massstab = Massstab, Neigung = Neigung, Einsinken = Einsinken,
         Kippen = KippenX == 0 && KippenZ == 0 ? null : new[] { KippenX, KippenZ },
-        Achsen = HatAchsen ? new[] { AchseX, AchseY, AchseZ } : null, Versatz = Versatz,
+        Achsen = HatAchsen ? new[] { AchseX, AchseY, AchseZ } : null, Versatz = Versatz, Hang = Hang, Gruppe = Gruppe,
     };
 
     /// <summary>Das Stück als Lage (für Felsraum, den Felsboden und die Darstellung).</summary>
-    public Felslage AlsLage() => new(Form, Gestein, X, Z, Drehung, Massstab, Neigung, Einsinken, KippenX, KippenZ, AchseX, AchseY, AchseZ, Versatz);
+    public Felslage AlsLage() => new(Form, Gestein, X, Z, Drehung, Massstab, Neigung, Einsinken, KippenX, KippenZ, AchseX, AchseY, AchseZ, Versatz, Hang);
 
     internal static EntwurfFels Aus(Felsstueck f, JsonObject? vorlage) => new()
     {
@@ -85,19 +91,19 @@ public sealed class EntwurfFels : EntwurfTeil
         Drehung = f.Drehung, Massstab = f.Massstab, Neigung = f.Neigung, Einsinken = f.Einsinken,
         KippenX = f.Kippen is { Length: 2 } k ? k[0] : 0, KippenZ = f.Kippen is { Length: 2 } k2 ? k2[1] : 0,
         AchseX = f.Achsen is { Length: 3 } a ? a[0] : 1, AchseY = f.Achsen is { Length: 3 } a2 ? a2[1] : 1, AchseZ = f.Achsen is { Length: 3 } a3 ? a3[2] : 1,
-        Versatz = f.Versatz, Vorlage = vorlage,
+        Versatz = f.Versatz, Hang = f.Hang, Gruppe = Math.Max(0, f.Gruppe), Vorlage = vorlage,
     };
 
     internal static EntwurfFels Aus(Felslage l) => new()
     {
         Form = l.Form, Gestein = l.Gestein, X = l.X, Z = l.Z, Drehung = l.Drehung, Massstab = l.Massstab, Neigung = l.Neigung, Einsinken = l.Einsinken,
-        KippenX = l.KippenX, KippenZ = l.KippenZ, AchseX = l.AchseX, AchseY = l.AchseY, AchseZ = l.AchseZ, Versatz = l.Versatz,
+        KippenX = l.KippenX, KippenZ = l.KippenZ, AchseX = l.AchseX, AchseY = l.AchseY, AchseZ = l.AchseZ, Versatz = l.Versatz, Hang = l.Hang,
     };
 
     internal override EntwurfTeil KopieTeil() => new EntwurfFels
     {
         Form = Form, Gestein = Gestein, X = X, Z = Z, Drehung = Drehung, Massstab = Massstab, Neigung = Neigung, Einsinken = Einsinken,
-        KippenX = KippenX, KippenZ = KippenZ, AchseX = AchseX, AchseY = AchseY, AchseZ = AchseZ, Versatz = Versatz, Vorlage = Vorlage,
+        KippenX = KippenX, KippenZ = KippenZ, AchseX = AchseX, AchseY = AchseY, AchseZ = AchseZ, Versatz = Versatz, Hang = Hang, Gruppe = Gruppe, Vorlage = Vorlage,
     };
 
     internal override void UebernimmTeil(EntwurfTeil werte)
@@ -105,19 +111,20 @@ public sealed class EntwurfFels : EntwurfTeil
         var o = (EntwurfFels)werte;
         (Form, Gestein, X, Z, Drehung, Massstab, Neigung, Einsinken, KippenX, KippenZ, Vorlage) =
             (o.Form, o.Gestein, o.X, o.Z, o.Drehung, o.Massstab, o.Neigung, o.Einsinken, o.KippenX, o.KippenZ, o.Vorlage);
-        (AchseX, AchseY, AchseZ, Versatz) = (o.AchseX, o.AchseY, o.AchseZ, o.Versatz);
+        (AchseX, AchseY, AchseZ, Versatz, Hang, Gruppe) = (o.AchseX, o.AchseY, o.AchseZ, o.Versatz, o.Hang, o.Gruppe);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfFels o && Form == o.Form && Gestein == o.Gestein && X == o.X
         && Z == o.Z && Drehung == o.Drehung && Massstab == o.Massstab && Neigung == o.Neigung && Einsinken == o.Einsinken && KippenX == o.KippenX
-        && KippenZ == o.KippenZ && AchseX == o.AchseX && AchseY == o.AchseY && AchseZ == o.AchseZ && Versatz == o.Versatz;
+        && KippenZ == o.KippenZ && AchseX == o.AchseX && AchseY == o.AchseY && AchseZ == o.AchseZ && Versatz == o.Versatz && Hang == o.Hang && Gruppe == o.Gruppe;
 
     internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
         ("form", Form), ("gestein", Gestein), ("punkt", JsonPunkt(new Kartenort(X, Z))), ("drehung", Drehung), ("massstab", Massstab),
         ("neigung", Neigung), ("einsinken", Einsinken),
         ("kippen", KippenX == 0 && KippenZ == 0 ? null : new JsonArray(JsonValue.Create(KippenX), JsonValue.Create(KippenZ))),
         ("achsen", HatAchsen ? new JsonArray(JsonValue.Create(AchseX), JsonValue.Create(AchseY), JsonValue.Create(AchseZ)) : null),
-        ("versatz", Versatz == 0 ? null : JsonValue.Create(Versatz)));
+        ("versatz", Versatz == 0 ? null : JsonValue.Create(Versatz)), ("hang", Hang ? JsonValue.Create(true) : null),
+        ("gruppe", Gruppe == 0 ? null : JsonValue.Create(Gruppe)));
 }
 
 /// <summary>Das Grundgestein der Karte als Teil (nur einmal je Karte; für Rückgängig und die Meldung <see cref="Kartenteil.Grundgestein"/>).</summary>
@@ -181,6 +188,9 @@ public sealed partial class Kartenentwurf
         return p.Gestein == _grundgestein.Wirksam ? p with { Gestein = null } : p;
     }
 
+    /// <summary>Ein Gestein gleich dem Grundgestein fällt weg (P5: die Stücke einer eigenen Gruppe bringen ihr Gestein mit; sonst ändert es nichts).</summary>
+    private Felslage GesteinWieKarte(Felslage l) => l.Gestein is { } g && g == _grundgestein.Wirksam ? l with { Gestein = null } : l;
+
     /// <summary>Löscht Felsstücke in einem Schritt; nichts, wenn keins im Entwurf ist.</summary>
     public void FelsenLoeschen(IEnumerable<EntwurfFels> felsen)
     {
@@ -218,7 +228,7 @@ public sealed partial class Kartenentwurf
         if (!Kartengrenzen.Aussen.Enthaelt(ort) || Felsstreuung.Filterfaktor(p, _hoehen, _boden, ort.X, ort.Z) < 0.5) return Array.Empty<Felslage>();
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(ort));
         return Felsstreuung.Treffer(p, zufall, _hoehen, ort.X, ort.Z, drehung is { } d ? Kartenraster.Drehung(d) : null)
-            .Where(l => Kartengrenzen.Aussen.Enthaelt(l.X, l.Z)).ToList();
+            .Where(l => Kartengrenzen.Aussen.Enthaelt(l.X, l.Z)).Select(GesteinWieKarte).ToList();
     }
 
     /// <summary>
@@ -231,22 +241,30 @@ public sealed partial class Kartenentwurf
         BodenStrichBeenden();
         var neue = FelsStempelVorschau(pinsel with { Radierer = false }, ort, drehung, startwert).Select(EntwurfFels.Aus).ToList();
         if (neue.Count == 0) return neue;
+        if (pinsel.Verbinden && neue.Count > 1) FelsGruppeGeben(neue, FelsGruppeNeu()); // P5: die Stücke des Stempels gehören zusammen
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
         var vorher = neue.Select(f => _hoehen.Hoehe(f.X, f.Z)).ToList();
-        if (FelsHangBefehl(neue, pinsel) is { } hang)
+        var gelaende = _hoehen; // das Gelände nach dem Stempel (für den Boden um den Fels)
+        if (pinsel.HangFormen && pinsel.HangSchicht)
+        {
+            // P4a: der Hang als eigene Schicht – die Stücke tragen ihn („hang“), nichts wird fest ins Gelände geschrieben (Kartenentwurf.Felsschicht.cs)
+            if (StempelMitSchicht(neue) is { } danach) gelaende = danach;
+        }
+        else if (FelsHangBefehl(neue, pinsel) is { } hang)
         {
             befehle.Insert(0, hang); // R5: „Hang mitformen“ (Kartenentwurf.Felslage.cs)
+            SchichtAuffrischen(); // gibt es eine Hang-Schicht, steht der feste Hang erst in der Grundhöhe
             // der Hang kann den Boden unter der Mitte eines Stücks mit heben (bilinear aus vier Rasterpunkten): das Stück bleibt dort, wo es stand
             for (var i = 0; i < neue.Count; i++) neue[i].Versatz = Kartenraster.Punkt(neue[i].Versatz - (_hoehen.Hoehe(neue[i].X, neue[i].Z) - vorher[i]));
         }
         if (pinsel.Boden)
         {
             // der Boden zuerst ins Raster, dann als Teil desselben Befehls (sein Ausführen setzt dieselben Kacheln noch einmal)
-            var boden = new Felsbodenstrich(_boden, _hoehen, Kartengrenzen.Aussen);
+            var boden = new Felsbodenstrich(_boden, gelaende, Kartengrenzen.Aussen);
             foreach (var f in neue) boden.Malen(Felsfuss.Von(f));
             if (FelsBodenBefehl(boden, "Boden um den Fels") is { } b) befehle.Add(b);
         }
-        var name = Felsformen.Gruppe(pinsel.Gruppe) is { } g ? $"Gruppe {g.Name}" : neue[0].Bezeichnung;
+        var name = pinsel.Begrenzt().GruppeWirksam is { } g ? $"Gruppe {g.Name}" : neue[0].Bezeichnung;
         Geschichte.Ausfuehren(new Sammelbefehl($"{name} gestempelt", befehle));
         return neue;
     }
@@ -328,7 +346,11 @@ public sealed partial class Kartenentwurf
         {
             (_e, Pinsel, _startwert) = (entwurf, pinsel, startwert);
             if (pinsel.Boden && !pinsel.Radierer && pinsel.Verteilen is null) Boden = new Felsbodenstrich(entwurf._boden, entwurf._hoehen, entwurf.Kartengrenzen.Aussen);
+            // P3b: Gebäude und Wege des Entwurfs, wie sie beim Beginn des Strichs stehen (der Strich ändert sie nicht)
+            if (pinsel.Aussparen && !pinsel.Radierer && pinsel.Verteilen is null) _aussparung = Felsaussparung.Von(entwurf, pinsel.AussparenBauzonen);
         }
+
+        private readonly Felsaussparung? _aussparung;
 
         /// <summary>Die Stücke, die „Neu verteilen“ in diesem Strich schon gewürfelt hat (jedes nur einmal je Strich).</summary>
         private readonly HashSet<EntwurfFels> _verteilt = new(ReferenceEqualityComparer.Instance);
@@ -408,7 +430,7 @@ public sealed partial class Kartenentwurf
             if (p.Verteilen is { } wurf)
             {
                 // in der Reihenfolge der Liste, jedes Stück einmal je Strich – aus der Quelle des Strichs (wie Kartenentwurf.FelsNeuWuerfeln)
-                var neu = p with { Gruppe = null };
+                var neu = p.OhneGruppe;
                 foreach (var f in _e._felsen) // Ändern lässt die Liste, wie sie ist
                 {
                     if (_verteilt.Contains(f) || !Nimmt(f)) continue;
@@ -437,13 +459,32 @@ public sealed partial class Kartenentwurf
                     : Felsstreuung.Filterfaktor(p, _e._hoehen, _e._boden, x, z);
                 if (faktor < 1 && zufall.NextDouble() >= faktor) continue;
                 var lagen = Felsstreuung.Treffer(p, zufall, _e._hoehen, x, z);
-                if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l))) continue;
+                if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l) || _aussparung?.Belegt(l.X, l.Z, l.Radius) == true)) continue;
                 fehl = 0;
+                var nummer = p.Verbinden && lagen.Count > 1 ? _e.FelsGruppeNeu() : 0; // P5: die Stücke eines Treffers gehören zusammen
                 foreach (var l in lagen)
                 {
-                    var neu = EntwurfFels.Aus(l);
+                    var neu = EntwurfFels.Aus(_e.GesteinWieKarte(l));
+                    neu.Gruppe = nummer;
                     var raster = Raster; // vor dem Setzen: es kennt die Stücke bis hier
+                    // P4b: „Hang mitformen“ als Schicht beim Streuen – die Wände tragen „hang“, ihr Versatz gleicht den Boden unter der Mitte aus (wie der Stempel)
+                    var mitHang = p.HangFormen && p.HangSchicht && Felsschicht.HatHang(neu.Form);
+                    var (vorherHoehe, ursprung) = (0.0, 0.0);
+                    if (mitHang)
+                    {
+                        _e.SchichtEinrichten();
+                        _e.SchichtAuffrischen(); // der Stand vor diesem Stück (meldet das Gelände mit; nur, was sich geändert hat)
+                        vorherHoehe = _e._hoehen.Hoehe(neu.X, neu.Z);
+                        ursprung = Felsraum.UrsprungY(neu.AlsLage(), _e._hoehen); // hier steht das Stück; sein Hang rechnet von dort (P4a-Befund)
+                        neu.Hang = true;
+                    }
                     Ausfuehren(new TeilSetzen(neu, _e._felsen.Count));
+                    if (mitHang)
+                    {
+                        _e.SchichtAuffrischen(fest: (neu, ursprung)); // nur um das neue Stück
+                        neu.Versatz = Kartenraster.Punkt(Math.Clamp(neu.Versatz - (_e._hoehen.Hoehe(neu.X, neu.Z) - vorherHoehe), -Felsformen.VersatzMax, Felsformen.VersatzMax));
+                        _e.SchichtVormerken(); // der Versatz ändert die Lage: beim nächsten Nachführen rechnet sein Ursprung wieder aus dem Versatz (dasselbe Ergebnis)
+                    }
                     raster.Dazu(neu);
                     if (ImKreis(l.X, l.Z)) belegt += Math.PI * l.Radius * l.Radius;
                     if (Boden?.Malen(Felsfuss.Von(l)) is { } r) bodenBereich = bodenBereich is { } b

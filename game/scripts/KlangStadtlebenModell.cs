@@ -45,6 +45,8 @@ public static class KlangStadtlebenModell
         public readonly List<Quelle> Wachen = new();
         /// <summary>Ort des Doms (oder der Hauptkirche), von dem die Glocken läuten; null, wenn die Karte keinen hat.</summary>
         public Quelle? Dom;
+        /// <summary>Alle Kirchen mit ihrem Ort (Dom und Pfarrkirchen; Köln hat sechs). Leer: gilt <see cref="Dom"/> allein.</summary>
+        public readonly List<(Quelle Q, bool IstDom)> Kirchen = new();
         /// <summary>Gäste in der Schankstube, in der man gerade ist (Innenansicht des Wirtshauses); −1 = nicht in einer Schankstube.</summary>
         public int InnenGaeste = -1;
         /// <summary>Die Umgebung um den Blickpunkt (Stadt gegen Natur, <see cref="KlangUmweltModell"/>), roh für den Umkreis dieses Bildes; null ohne Karte.</summary>
@@ -58,6 +60,7 @@ public static class KlangStadtlebenModell
             Werkstaetten.Clear();
             Wachen.Clear();
             Dom = null;
+            Kirchen.Clear();
             InnenGaeste = -1;
             Umwelt = null;
             MarktOffen = false;
@@ -104,6 +107,8 @@ public static class KlangStadtlebenModell
         /// <summary>Der Dom: Seite im Bild (−1…+1) und Abstand zum Blickpunkt in Metern; <see cref="HatDom"/> false = unbekannt.</summary>
         public bool HatDom;
         public float DomSeite, DomAbstand = 60f;
+        /// <summary>Alle Kirchen vom Hörer aus (neu in jedem Bild): für die Glocken (<see cref="KlangGlockenModell"/>).</summary>
+        public readonly List<KlangGlockenModell.Quelle> Kirchen = new();
         /// <summary>Die Umgebung (Stadt gegen Natur, Baum, Feld, Wasser), geglättet; ohne Karte <see cref="KlangUmweltModell.Lage.Stadtmitte"/>.</summary>
         public KlangUmweltModell.Lage Umwelt = KlangUmweltModell.Lage.Stadtmitte;
         /// <summary>Nähe zur lautesten Schänke (0–1): dicht davor und herangezoomt klingt sie hell und laut, wie durch die offene Tür.</summary>
@@ -160,6 +165,7 @@ public static class KlangStadtlebenModell
         l.WerkOrte.Clear();
         l.GruppenOrte.Clear();
         l.WachOrte.Clear();
+        l.Kirchen.Clear();
         float Abstand(in Quelle q) => MathF.Sqrt((q.X - m.FokusX) * (q.X - m.FokusX) + (q.Z - m.FokusZ) * (q.Z - m.FokusZ));
 
         float g = 0, gm = 0, gg = 0;
@@ -260,6 +266,8 @@ public static class KlangStadtlebenModell
             l.DomAbstand = Abstand(dom);
         }
         else l.HatDom = false;
+        foreach (var (q, istDom) in m.Kirchen) l.Kirchen.Add(new KlangGlockenModell.Quelle(Abstand(q), q.Seite, istDom));
+        if (l.Kirchen.Count == 0 && m.Dom is { } nurDom) l.Kirchen.Add(new KlangGlockenModell.Quelle(Abstand(nurDom), nurDom.Seite, true));
         return new Ziele(menge, markt, best, seite, Saettigung(werkSumme, 0f, WerkK), gehGewicht, gruppen, Saettigung(wachSumme, 0f, WachK), schenkeNah, schenkeInnen);
     }
 

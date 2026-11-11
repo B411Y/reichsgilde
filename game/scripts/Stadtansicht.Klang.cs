@@ -158,6 +158,15 @@ public partial class Stadtansicht
         // Der Dom (die Glocken läuten von dort) und die Streifen mit der Laterne (das Horn kommt von dort)
         if (_sonderbauten.TryGetValue("Dom", out var dom))
             m.Dom = new KlangStadtlebenModell.Quelle(dom.Mitte.X, dom.Mitte.Z, Seite(dom.Mitte));
+        // Alle Kirchen der Karte (Dom, Kirche, die romanischen Kirchen Kölns): jede läutet von ihrem Ort (KlangGlockenModell)
+        if (m.Dom is { } domQuelle) m.Kirchen.Add((domQuelle, true));
+        foreach (var g in _karte?.Gebaeude ?? new List<Reichsgilde.Core.Bauen.Kartengebaeude>())
+        {
+            if (g.Katalog is "dom" or "koelner_dom") { if (m.Dom is null) m.Kirchen.Add((new KlangStadtlebenModell.Quelle((float)g.Punkt[0], (float)g.Punkt[1], Seite(new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]))), true)); continue; }
+            if (g.Katalog is not "kirche" && !g.Katalog.StartsWith("kirche_")) continue;
+            var ort = new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]);
+            m.Kirchen.Add((new KlangStadtlebenModell.Quelle(ort.X, ort.Z, Seite(ort)), false));
+        }
         foreach (var gang in _wachgaenge.Values)
             if (gang.Sichtbar)
             {

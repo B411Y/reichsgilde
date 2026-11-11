@@ -3052,4 +3052,5 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen,
         o.hide_render = True
 
 
-hauptteil()
+if __name__ == "__main__":      # nicht beim Einbinden (tools/modelle/passanten_clips.py nimmt Funktionen von hier)
+    hauptteil()

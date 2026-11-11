@@ -19,7 +19,7 @@ namespace Reichsgilde;
 /// </summary>
 public static class KlangOberflaeche
 {
-    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief }
+    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief, EntscheidungSiegel }
 
     public const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
     /// <summary>Sekunden nach dem Start, in denen nichts spielt (Fenster, die beim Aufbau auf- und zugehen).</summary>
@@ -43,6 +43,8 @@ public static class KlangOberflaeche
         // Benachrichtigungen (Stufe 1): ein neues Siegel in der Ecke und ein Brief, der kommt oder aufgeschlagen wird – rechnerisch erzeugt (tools/ton/meldungstoene.py, .wav)
         [Ereignis.MeldungSiegel] = (new[] { "siegel_neu_1", "siegel_neu_2" }, -7f, 1.0f, 0.04f),
         [Ereignis.MeldungBrief] = (new[] { "pergament_1", "pergament_2" }, -9f, 1.0f, 0.03f),
+        // Benachrichtigungen (Stufe 3): eine neue Entscheidung – Wachssiegel mit einem Federstrich (rechnerisch erzeugt, tools/ton/meldungstoene.py)
+        [Ereignis.EntscheidungSiegel] = (new[] { "siegel_feder" }, -6f, 1.0f, 0.03f),
     };
 
     /// <summary>Dateien (ohne .ogg, in <see cref="Ordner"/>), Lautstärke in dB und Tonhöhe eines Ereignisses – für den Reiter „Klänge“ des Entwicklerfensters.</summary>

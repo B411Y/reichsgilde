@@ -233,6 +233,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Blitzschlag im Gewitter: Einschlag, Brand, Übersprung und Schaden (braucht die <see cref="Karte"/> und „blitz“).</summary>
     public Gefahren.Blitzwesen Blitz { get; }
 
+    /// <summary>Entscheidungen (Benachrichtigungen Stufe 3): offene Fragen an die Häuser der Menschen mit Frist und Voreinstellung.</summary>
+    public Entscheidungen.Entscheidungswesen Entscheidungen { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -438,6 +441,7 @@ public sealed partial class Stadtwirtschaft
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
         Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
+        Entscheidungen = new Entscheidungen.Entscheidungswesen(this, daten.Entscheidungen);
     }
 
     // ── Einwohner und Nachfrage (PR #177) ───────────────────────────────────
@@ -619,6 +623,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Eine Spielminute. Wird von der Simulation VOR dem Weiterstellen der Uhr aufgerufen.</summary>
     internal void Tick(Spielzeit zeit)
     {
+        Entscheidungen.Minute(zeit); // am Tickanfang, nach den Befehlen dieser Minute: Fragen abgleichen, Fristen ablaufen lassen
         EinwohnerZaehlen();
         Jahreszeiten.Minute(zeit); // Meldungen zur Jahreszeit; im Eis ruhen die Schiffe (vor Karren und Schiffen dieser Minute)
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
@@ -844,6 +849,8 @@ public sealed partial class Stadtwirtschaft
             Familien.StressBuchen(stress); // Stress (Teil 3b): Taten gegen den Charakter, Ventile
         if (ergebnis.Erfolg && frei)
             Befugnisse.AntragGestellt(absender, befehl);
+        if (ergebnis.Erfolg)
+            Entscheidungen.NachBefehl(absender, befehl); // Antwort auf eine Forderung (Gauner-Tafel oder Entscheidung): Die Frage ist erledigt
         return ergebnis;
     }
 
@@ -855,11 +862,13 @@ public sealed partial class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or LebenswegWaehlen or KnotenWaehlen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or LebenswegWaehlen or KnotenWaehlen or ErpressungBeantworten or DiebesforderungBeantworten or EntscheidungTreffen or AusbildungWaehlen or KreditTilgen
                                                                      or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben or HauswaechterSetzen
                                                                      or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
+        if (befehl is EntscheidungTreffen entscheidung)
+            return Entscheidungen.Treffen(absender, entscheidung.Nummer, entscheidung.Wahl);
         if (befehl is StandErwerben)
             return StandErwerbenAusfuehren(absender);
         if (befehl is WohnhausAusbauen)
@@ -1325,6 +1334,7 @@ public sealed partial class Stadtwirtschaft
         Meinungen = Meinungen.Sichern(k => _konten.IndexOf(k)),
         Blitz = Blitz.IstAktiv ? Blitz.Sichern(k => _konten.IndexOf(k)) : null,
         Geheimnisse = Geheimnisse.IstAktiv ? Geheimnisse.Sichern(k => _konten.IndexOf(k)) : null,
+        Entscheidungen = Entscheidungen.Sichern(k => _konten.IndexOf(k)),
     };
 
     /// <summary>
@@ -1403,6 +1413,7 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege.Wiederherstellen(s.Ratsantraege, _konten);
         Befugnisse.Wiederherstellen(s.Befugnisse, _konten);
         Blitz.Wiederherstellen(s.Blitz, _konten); // nach Konten und Betrieben: Ziele per Name und Kontonummer
+        Entscheidungen.Wiederherstellen(s.Entscheidungen, _konten); // alte Spielstände: leer, der Abgleich der ersten Minute legt sie neu an
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();
     }

@@ -831,8 +831,8 @@ public static class KlangUmgebungModell
 
     /// <summary>
     /// Plant die Glocken: Läutet, sobald die Uhr die Zeit einer Glockenart überschreitet. Kein Läuten bei einem Sprung der Uhr (Laden, Jahreswechsel,
-    /// mehr als 20 Spielminuten in einem Bild), im Hintergrund und in der Sprungblende. Ort und Pegel nach dem Dom: Seite im Bild, mit dem
-    /// Abstand zum Blickpunkt leiser (bis −12 dB) und dumpfer (bis 3,5 kHz) – aber noch weit herausgezoomt zu hören.
+    /// mehr als 20 Spielminuten in einem Bild), im Hintergrund und in der Sprungblende. Ort und Pegel nach allen Kirchen (<see cref="KlangGlockenModell"/>):
+    /// Seite im Bild, mit dem Abstand zu jeder Kirche leiser (bis −36 dB) und dumpfer (bis 2,5 kHz), der Dom trägt weiter.
     /// </summary>
     public sealed class GlockenPlaner
     {
@@ -861,6 +861,14 @@ public static class KlangUmgebungModell
             }
         }
 
+        /// <summary>Pegel, Seite und Tiefpass aus allen Kirchen der Lage (ohne Messung eine Pfarrkirche in 40 m); auch zum Nachführen während des Läutens.</summary>
+        public static KlangGlockenModell.Ergebnis Gemischt(KlangStadtlebenModell.Lage lage)
+        {
+            if (!lage.Gemessen) return KlangGlockenModell.Mischen(Array.Empty<KlangGlockenModell.Quelle>());
+            if (lage.Kirchen.Count == 0 && lage.HatDom) return KlangGlockenModell.Mischen(new[] { new KlangGlockenModell.Quelle(lage.DomAbstand, lage.DomSeite, true) });
+            return KlangGlockenModell.Mischen(lage.Kirchen);
+        }
+
         /// <summary>Ein Läuten sofort (Entwicklerreiter, Hörprobe).</summary>
         public Glocke Erzwingen(int art, KlangStadtlebenModell.Lage lage) => Erzeugen(art, lage);
 
@@ -870,11 +878,10 @@ public static class KlangUmgebungModell
             var v = _zufall.Next(g.Varianten);
             if (g.Varianten > 1 && v == _letzteVariante[art]) v = (v + 1) % g.Varianten;
             _letzteVariante[art] = v;
-            var abstand = lage.Gemessen && lage.HatDom ? lage.DomAbstand : 70f;
-            var seite = lage.Gemessen && lage.HatDom ? Math.Clamp(lage.DomSeite, -1f, 1f) * 0.8f : 0f;
-            var db = GlockenDb - 12f * Glatt(25f, 220f, abstand);
-            var tiefpass = 16000f - 12500f * Glatt(40f, 260f, abstand);
-            var spieler = Math.Min(db, 0f) - 20f * MathF.Log10(1f + MathF.Abs(seite));
+            var e = Gemischt(lage);
+            var seite = e.Seite * 0.8f;
+            var spieler = KlangGlockenModell.SpielerDb(e, GlockenDb);
+            var tiefpass = e.Tiefpass;
             return new Glocke(art, $"{g.Datei}_{v + 1}", seite, spieler, tiefpass, 1f + (float)(_zufall.NextDouble() * 0.04 - 0.02));
         }
     }
@@ -1560,9 +1567,9 @@ public static class KlangUmgebungModell
             pruefe(neu.Count == 0, "Läuten bei einem Sprung der Uhr");
             // Ort: Seite links des Doms, leiser und dumpfer mit dem Abstand
             var nahe = new GlockenPlaner(3).Erzwingen(0, new KlangStadtlebenModell.Lage { Gemessen = true, HatDom = true, DomSeite = -0.6f, DomAbstand = 20f });
-            var weit = new GlockenPlaner(3).Erzwingen(0, new KlangStadtlebenModell.Lage { Gemessen = true, HatDom = true, DomSeite = -0.6f, DomAbstand = 200f });
-            pruefe(nahe.Seite < -0.4f && nahe.Db > weit.Db + 6f && nahe.Tiefpass > weit.Tiefpass * 2f, $"Glocke nah {nahe.Db:0.0} dB/{nahe.Tiefpass:0} Hz gegen weit {weit.Db:0.0}/{weit.Tiefpass:0}");
-            log($"UMGEBUNGTEST Glocke: nah {nahe.Db:0.0} dB / {nahe.Tiefpass:0} Hz, 200 m weg {weit.Db:0.0} dB / {weit.Tiefpass:0} Hz");
+            var weit = new GlockenPlaner(3).Erzwingen(0, new KlangStadtlebenModell.Lage { Gemessen = true, HatDom = true, DomSeite = -0.6f, DomAbstand = 400f });
+            pruefe(nahe.Seite < -0.4f && nahe.Db > weit.Db + 6f && nahe.Tiefpass > weit.Tiefpass * 2f, $"Glocke nah {nahe.Db:0.0} dB/{nahe.Tiefpass:0} Hz gegen 400 m weg {weit.Db:0.0}/{weit.Tiefpass:0}");
+            log($"UMGEBUNGTEST Glocke: nah {nahe.Db:0.0} dB / {nahe.Tiefpass:0} Hz, 400 m weg {weit.Db:0.0} dB / {weit.Tiefpass:0} Hz");
         }
 
         // k. Krähen: im Winter im Grünen, nicht in der Stadt, im Sommer kaum

@@ -172,6 +172,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Geheimnisse (ab Datenversion 78, Charaktersystem Teil 3c). Fehlt der Abschnitt, gibt es keine Geheimnisse.</summary>
     public Geheimnisse.GeheimnisDaten? Geheimnisse { get; init; }
 
+    /// <summary>Entscheidungen (ab Datenversion 81, Benachrichtigungen Stufe 3): Obergrenze je Haus und Fristen. Fehlt der Abschnitt, gelten 6 und 120 Minuten.</summary>
+    public Entscheidungen.EntscheidungDaten? Entscheidungen { get; init; }
+
     /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>
     public Dynastie.MeinungDaten? Meinungen { get; init; }
 
@@ -501,6 +504,7 @@ public sealed class Wirtschaftsdaten
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
         Blitz?.Pruefen(f);
+        Entscheidungen?.Pruefen(f);
         Verkauf.Pruefen(f);
         Stadt?.Pruefen(f);
         Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);
