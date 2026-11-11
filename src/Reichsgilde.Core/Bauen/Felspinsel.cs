@@ -68,6 +68,9 @@ public sealed record Felsbereich(double Von, double Bis)
 /// decken; <paramref name="Verteilen"/> – der Strich setzt nichts, sondern würfelt diese Werte der Stücke unter dem Pinsel neu („Reapply“).
 /// P3b: <paramref name="Aussparen"/> – das Streuen setzt kein Stück, dessen Grundfläche ein Gebäude (mit Vorplatz) oder einen Weg berührt (Felsaussparung.cs;
 /// Vorgabe aus, damit alte Striche gleich bleiben – die Tafel schaltet es an); <paramref name="AussparenBauzonen"/> – dazu auch Bauzonen. Stempel und Radierer fragen nicht.
+/// P4a: <paramref name="HangSchicht"/> – mit <paramref name="HangFormen"/> schreibt der Stempel den Hang nicht fest ins Gelände, sondern setzt an den Wänden
+/// das Feld „hang“: Der Hang ist dann eine eigene Schicht und folgt dem Stück beim Verschieben, Drehen und Löschen (Felsschicht.cs). Vorgabe aus, damit
+/// alte Stempel gleich bleiben.
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
@@ -75,7 +78,8 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     Felsbereich? AchseX = null, Felsbereich? AchseY = null, Felsbereich? AchseZ = null, Felsbereich? Drehbereich = null,
     Felsbereich? Kippbereich = null, Felsbereich? Rollbereich = null, Felsbereich? Versatzbereich = null, double? NeigungBis = null,
     bool HangFormen = false, double Abstand = 0, double EinsinkenStreuung = Felspinsel.EinsinkenStreuungVorgabe, Felsbereich? Hoehenbereich = null,
-    bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null, bool Aussparen = false, bool AussparenBauzonen = false)
+    bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null, bool Aussparen = false, bool AussparenBauzonen = false,
+    bool HangSchicht = false)
 {
     /// <summary>Streuung des Einsinkens ohne Angabe (± Anteil der Höhe, wie vor P3).</summary>
     public const double EinsinkenStreuungVorgabe = 0.05;
@@ -193,10 +197,10 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
 
 /// <summary>
 /// Ein Stück, wie es der Pinsel setzen will (gerundet wie in der Datei) – daraus wird ein Stück des Entwurfs. Achsen und Versatz seit R2
-/// (Vorgabe 1 bzw. 0, wie ohne die Felder in der Datei).
+/// (Vorgabe 1 bzw. 0, wie ohne die Felder in der Datei). <paramref name="Hang"/> (P4a): Das Stück trägt seinen Hang als eigene Schicht (Felsschicht.cs).
 /// </summary>
 public sealed record Felslage(string Form, string? Gestein, double X, double Z, double Drehung, double Massstab, double Neigung, double Einsinken,
-    double KippenX, double KippenZ, double AchseX = 1, double AchseY = 1, double AchseZ = 1, double Versatz = 0)
+    double KippenX, double KippenZ, double AchseX = 1, double AchseY = 1, double AchseZ = 1, double Versatz = 0, bool Hang = false)
 {
     /// <summary>Der Radius der Grundfläche (Meter, mit Maßstab und den Achsen der Grundfläche).</summary>
     public double Radius => (Felsformen.Finde(Form)?.Radius ?? 1) * Massstab * Math.Sqrt(AchseX * AchseZ);

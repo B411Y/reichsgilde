@@ -345,10 +345,13 @@ public sealed partial class Kartenentwurf
     private IKartenbefehl? FelsHangBefehl(IReadOnlyList<EntwurfFels> neue, Felspinsel pinsel)
     {
         if (!pinsel.HangFormen) return null;
-        var aenderung = Felshang.Formen(_hoehen, Kartengrenzen.Aussen, neue.Select(f => f.AlsLage()));
+        // in die Grundhöhe (P4a: mit Hang-Schicht ist das ein anderes Raster als die wirksame Höhe)
+        var aenderung = Felshang.Formen(Grundraster, Kartengrenzen.Aussen, neue.Select(f => f.AlsLage()));
         if (aenderung is null) return null;
         var kacheln = aenderung.Kacheln();
-        return kacheln.Count == 0 || aenderung.Bereich is not { } bereich ? null : new GelaendeAendern("Hang hinter dem Fels", kacheln, bereich);
+        if (kacheln.Count == 0 || aenderung.Bereich is not { } bereich) return null;
+        if (_grund is not null) GrundGeaendert(bereich);
+        return new GelaendeAendern("Hang hinter dem Fels", kacheln, bereich);
     }
 
     /// <summary>Die Stücke, die zum Entwurf gehören, jedes einmal, in der Reihenfolge des Entwurfs.</summary>

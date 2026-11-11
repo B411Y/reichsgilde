@@ -95,7 +95,19 @@ static class GleichheitTests
         "Gleichheit: Felspinsel P3 (Abstand, Streuung des Einsinkens, Ausdünnen, Neu verteilen, Radierer nur für Formen, Höhenfilter, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelsP3Pruefen)).Append((
         "Gleichheit: Felspinsel P3b (Streuen mit Gebäuden, Wegen und Bauzonen aussparen, Stempel im Haus) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelsAussparenPruefen));
+        FelsAussparenPruefen)).Append((
+        "Gleichheit: Felspinsel P4a (Hang als eigene Schicht, Hebung ablösen, Verschieben, Drehen, Hang aus, Gelände darunter, Löschen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei und wirksame Höhe",
+        FelsHangPruefen));
+
+    /// <summary>Felspinsel P4a: der Hang als eigene Schicht – gleiche Bytes von Kartendatei und wirksamer Höhe (Zeile „felshang …“ in der Datei der CI).</summary>
+    static void FelsHangPruefen()
+    {
+        var a = Sha256(FelsschichtTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsschichtTests.Ablauf()), "Fels P4a: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsschichtTests.Ablauf())), "Fels P4a: de-DE");
+        Zeilen[-9] = new[] { $"felshang {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felspinsel P3b: Aussparen von Gebäuden, Wegen und Bauzonen – gleiche Bytes (Zeile „felsaus …“ in der Datei der CI).</summary>
     static void FelsAussparenPruefen()

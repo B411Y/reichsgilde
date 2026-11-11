@@ -18,6 +18,7 @@ namespace Reichsgilde.Core.Bauen;
 //  Faktoren auf „massstab“ (Breite, Höhe, Tiefe; je 0,25 … 4, auf 0,01) – und „versatz“, die Höhe in Metern über der Lage aus dem Boden
 //  (± 20 m, auf 5 cm). „kippen“ [x, z] reicht jetzt von −180 bis 180° (vorher ±8°): x ist das Kippen (Pitch), z das Rollen (Roll).
 //  Zusammen mit „drehung“ (Gieren, um die Senkrechte) sind das volle Euler-Winkel in der Reihenfolge Y · X · Z (Bauen/Felsraum.cs).
+//  Seit P4a (10.11.2026) dazu „hang“: true, wenn das Stück seinen Hang als eigene Schicht trägt (Felsschicht.cs) – false fehlt.
 //
 //  Lage im Raum (für die Darstellung, F5): Das Modell hat seinen Ursprung in der Mitte der Grundfläche, y = 0 ist die Unterkante, die Schauseite
 //  zeigt nach +Z. Gedreht wird um die Senkrechte wie Gebäude und Pflanzen (Kartengeometrie.Dreh). „neigung“ (0 … 1) ist der Anteil, um den sich
@@ -63,6 +64,10 @@ public sealed class Felsstueck
     /// <summary>Höhenversatz in Metern (± 20) über der Lage aus Boden und Einsinken – 0 fehlt in der Datei (R2).</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public double Versatz { get; init; }
+
+    /// <summary>Trägt das Stück seinen Hang als eigene Schicht (P4a, Felsschicht.cs)? false fehlt in der Datei.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Hang { get; init; }
 }
 
 /// <summary>Die Felsen der Karte: Grundgestein (null: Vorgabe <see cref="Felsformen.GrundgesteinVorgabe"/>) und die Stücke.</summary>
