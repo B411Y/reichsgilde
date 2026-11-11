@@ -137,17 +137,20 @@ static class HauschronikTests
             Pruefe.Wahr(Zustandspruefsumme.Berechnen(sim) != Zustandspruefsumme.Berechnen(kopie), "die Prüfsumme sieht die Chronik nicht");
         }),
 
-        ("Hauschronik: Ein alter Spielstand ergänzt sie aus dem Verlauf; ein neuer mit leerer Chronik nicht (Gegenprobe); die alte Greybox lädt", () =>
+        ("Hauschronik: Ein alter Spielstand ergänzt sie aus dem Verlauf (ohne Entscheidungen); ein neuer mit leerer Chronik nicht (Gegenprobe); die alte Greybox lädt", () =>
         {
             var (sim, w, konto, f) = Verheiratet();
             w.Melden(Meldungsart.StandAufstieg, "Haus Chronik ist nun Bürger! (Gebühr 500 Gulden)", haus: konto);
             w.Melden(Meldungsart.LagerLeer, "Das Lager ist leer.", haus: konto);
+            w.Melden(Meldungsart.Entscheidung, "Ihr habt das Schweigegeld gezahlt.", haus: konto, vertraulich: true);
             var json = Speicherung.Speichern(sim, konto);
-            // Alt: ohne „Hauschronik“ und „Chronik“ – Heirat und Stand kommen aus dem Verlauf (nur der erste Satz), das Lager nicht.
+            // Alt: ohne „Hauschronik“ und „Chronik“ – Heirat und Stand kommen aus dem Verlauf (nur der erste Satz), das Lager nicht und keine
+            // Entscheidung (ob sie Folgen hatte, sagt die Meldung nicht).
             var (alt, _) = Speicherung.Laden(OhneChronik(json));
             var fa = alt.Wirtschaft!.Familien.Von(alt.Wirtschaft.Konten[w.Konten.ToList().IndexOf(konto)])!;
             Pruefe.Gleich(1, fa.Hauschronik.Count(e => e.Art == Chronikart.Heirat));
             Pruefe.Wahr(fa.Hauschronik.Any(e => e.Art == Chronikart.Amt && e.Text == "Haus Chronik ist nun Bürger!"), Bild(fa));
+            Pruefe.Gleich(0, fa.Hauschronik.Count(e => e.Art == Chronikart.Entscheidung));
             Pruefe.Gleich(2, fa.Hauschronik.Count);
             // Neu, aber mit leerer Chronik: nichts aus dem Verlauf nachtragen.
             f.ChronikListe.Clear();

@@ -123,7 +123,8 @@ public sealed partial class Familienbuch
 
     /// <summary>
     /// Alte Spielstände (ohne Hauschronik): nach dem Laden des Meldungsverlaufs aus ihm ergänzen, soweit er reicht – Heirat, Standesaufstieg,
-    /// Entscheidung, Brand und bloßgestellte Geheimnisse des Hauses, je nur der erste Satz. Ämter stehen im Verlauf ohne Haus und bleiben leer.
+    /// Brand und bloßgestellte Geheimnisse des Hauses, je nur der erste Satz. Ämter stehen im Verlauf ohne Haus und bleiben leer. Entscheidungen
+    /// bleiben weg: Ob eine Folgen hatte (<see cref="Entscheidungen.Entscheidungswesen.HatFolgen"/>), sagt die Meldung nicht.
     /// </summary>
     internal void ChronikAusVerlaufErgaenzen()
     {
@@ -135,7 +136,6 @@ public sealed partial class Familienbuch
             {
                 Meldungsart.Heirat => Chronikart.Heirat,
                 Meldungsart.StandAufstieg => Chronikart.Amt,
-                Meldungsart.Entscheidung => Chronikart.Entscheidung,
                 Meldungsart.Feuer when m.Wichtigkeit >= Meldungswichtigkeit.Hoch => Chronikart.Brand,
                 Meldungsart.Sonstiges when m.GeheimnisArt is not null && !m.Vertraulich && m.Wichtigkeit >= Meldungswichtigkeit.Hoch => Chronikart.Geheimnis,
                 _ => null,
