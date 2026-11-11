@@ -94,6 +94,20 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 
 Die Klänge sind Aufnahmen von freesound.org (CC0, und für Glocke, Frösche und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
 
+## Die Meldungstöne
+
+Die Benachrichtigungen (siehe [Meldungen](meldungen.md)) haben eigene Töne in einer Klangfamilie: ein Glockenspiel aus Metallstäben, weich, mit kurzem Hall, alle Töne im F-Dur-Raum und alle gleich laut gemessen. Gespielt über den Regler „Oberfläche“:
+
+| Anlass | Klang |
+|---|---|
+| Ein neues **Siegel** erscheint in der Ecke | kurzer aufsteigender Lauf von vier Tönen mit leisem Glitzer (0,8 s) |
+| Ein **Brief** kommt, wird aufgeschlagen, Blättern im Stapel | längerer aufsteigender Lauf von sechs Tönen mit Glitzer (1,15 s) |
+| Eine neue **Entscheidung** wartet (Entscheidungsbrief) | Lauf auf und wieder ab mit nachklingendem Grundton, ohne Glitzer, am lautesten der Meldungstöne (1,4 s) |
+| Ein Befehl wird **abgelehnt** („✗“) | zwei gedämpfte Töne abwärts, fast ohne Obertöne (0,65 s) |
+| **Mahnung** des Kämmerers | ein einzelner tiefer, ernster Schlag mit kurzem Glitzer, ohne Wiederholung (0,95 s) |
+
+Die Gefahrenglocke „⚠“ (kleine Glocke) und die Münzen beim Kauf bleiben wie sie waren. Die Töne sind rechnerisch erzeugt (`tools/ton/meldungston_erzeugen.py`, Rezepte in `docs/assets/prompts/meldungston.md`), vom Entwickler-Team nicht abgehört; die Wahl der Fassungen traf der Nutzer nach Hörproben.
+
 ## Ausprobieren
 
 `--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1 --karte=greybox` spielt eine feste Hörprobe von 7 Minuten ab (früher Morgen mit Morgenglocke, Markttreiben mit Gesprächsfetzen und Messglocke, der Weg von der Stadt aufs Land und zum Fluss, Frühlingsabend mit Fröschen, Sommernacht mit Grillen, Winter mit Schnee und Krähen, Abend mit Abendglocke, die Schänke von außen, nah und von innen, Schankschluss mit Feuerglocke, Nacht mit Nachtwächter, Regen und Gewitter; die Menschen kommen dabei aus einem erfundenen Tagesablauf, Wetter und Karte sind echt) und beendet das Spiel. Im Entwicklerfenster steht unter „Umgebung“ eine Zeile mit den Menschen im Umkreis und den Pegeln. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).

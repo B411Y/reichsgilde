@@ -101,9 +101,14 @@ public partial class Hauptszene
 
         // Neue Fragen: der Siegelton; die Pause, sobald der Brief wirklich zu sehen ist (einmal je Frage – „Später“ und Zurückholen halten nicht wieder an)
         var neuGehoert = false;
+        var nurMahnung = true; // die Mahnung des Kämmerers hat ihren eigenen Ton; kommt zugleich eine andere Frage, gilt der Entscheidungston
         foreach (var e in wartend)
-            if (_entscheidungGesehen.Add(e.Nummer)) neuGehoert = true;
-        if (neuGehoert) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.EntscheidungSiegel);
+            if (_entscheidungGesehen.Add(e.Nummer))
+            {
+                neuGehoert = true;
+                if (e.Art != Entscheidungsart.Mahnung) nurMahnung = false;
+            }
+        if (neuGehoert) KlangOberflaeche.Spielen(nurMahnung ? KlangOberflaeche.Ereignis.Mahnung : KlangOberflaeche.Ereignis.EntscheidungSiegel);
         if (!gesperrt && Entscheidungseinstellungen.Anhalten && _simulation.Bote.Verzoegerung == 0)
         {
             var neuSichtbar = false;
