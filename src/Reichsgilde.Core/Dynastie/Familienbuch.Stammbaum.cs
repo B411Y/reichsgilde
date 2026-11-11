@@ -55,30 +55,28 @@ public sealed partial class Familienbuch
         {
             vergeben.Add(p.Nummer);
             var ehepartner = new List<Person>();
-            // Wer das Haus nach dem Witwenrecht übernahm, war der Ehepartner des früheren Oberhaupts – auch ohne gemeinsame Kinder.
-            var ahnIndex = f.Ahnen.ToList().IndexOf(p);
-            if (ahnIndex >= 0)
-            {
-                var nachfolger = ahnIndex + 1 < f.Ahnen.Count ? f.Ahnen[ahnIndex + 1] : f.Oberhaupt;
-                if (nachfolger != p && !HatElternImHaus(nachfolger) && vergeben.Add(nachfolger.Nummer)) ehepartner.Add(nachfolger);
-            }
-            if (p == f.Oberhaupt && f.Ehepartner is { } heute && !HatElternImHaus(heute) && vergeben.Add(heute.Nummer)) ehepartner.Add(heute);
-            // Kinder aus allen Ehen des Blocks; deren andere Elternteile gehören dazu (Zweitehe der Witwe).
             var kinder = new List<Person>();
             var block = new List<Person> { p };
+            void Anhaengen(Person x)
+            {
+                if (!HatElternImHaus(x) && !block.Contains(x) && vergeben.Add(x.Nummer)) { block.Add(x); ehepartner.Add(x); }
+            }
+            // Der Block wächst, bis keine Ehe mehr dazukommt: Jeder im Block kann Ehepartner haben
+            //  - durch gemeinsame Kinder (der andere Elternteil),
+            //  - als Nachfolger nach dem Witwenrecht (folgt auf ein früheres Oberhaupt im Block, auch ohne Kinder, auch über mehrere Ehen),
+            //  - als heutiger Ehepartner des Oberhaupts.
             for (var i = 0; i < block.Count; i++)
             {
-                foreach (var k in kinderVon.GetValueOrDefault(block[i].Nummer) ?? new List<Person>())
+                var q = block[i];
+                var ahnIndex = f.Ahnen.ToList().IndexOf(q);
+                if (ahnIndex >= 0) Anhaengen(ahnIndex + 1 < f.Ahnen.Count ? f.Ahnen[ahnIndex + 1] : f.Oberhaupt);
+                if (q == f.Oberhaupt && f.Ehepartner is { } heute) Anhaengen(heute);
+                foreach (var k in kinderVon.GetValueOrDefault(q.Nummer) ?? new List<Person>())
                 {
                     if (!kinder.Contains(k)) kinder.Add(k);
                     foreach (var eltern in new[] { k.Vater, k.Mutter })
-                        if (eltern is int e && nummern.TryGetValue(e, out var anderer) && !HatElternImHaus(anderer) && !block.Contains(anderer))
-                        {
-                            block.Add(anderer);
-                            if (!ehepartner.Contains(anderer) && vergeben.Add(anderer.Nummer)) ehepartner.Add(anderer);
-                        }
+                        if (eltern is int e && nummern.TryGetValue(e, out var anderer)) Anhaengen(anderer);
                 }
-                if (i == 0) foreach (var x in ehepartner) if (!block.Contains(x)) block.Add(x);
             }
             kinder = kinder.OrderBy(k => k.Geburtsjahr).ThenBy(k => k.Nummer).ToList();
             var unten = new List<StammbaumKnoten>();
@@ -91,6 +89,10 @@ public sealed partial class Familienbuch
         // Zuerst die, die vor allen anderen ins Haus kamen (Reihenfolge der Mitglieder); sie nehmen ihre Ehepartner mit.
         foreach (var p in mitglieder)
             if (!HatElternImHaus(p) && !vergeben.Contains(p.Nummer))
+                wurzeln.Add(Knoten(p));
+        // Wer durch kaputte Eltern-Verweise (Kreise, Verweis auf sich selbst) nirgends hängt, wird nicht verschluckt, sondern eine eigene Wurzel.
+        foreach (var p in mitglieder)
+            if (!vergeben.Contains(p.Nummer))
                 wurzeln.Add(Knoten(p));
         return wurzeln;
     }

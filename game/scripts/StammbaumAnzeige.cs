@@ -384,7 +384,13 @@ public partial class Baumzeichnung : Control
         Beschriften(schrift, p.Vorname, r.Position + new Vector2(6, 76), KarteB - 12, 14, farbe);
         var jahre = tot ? $"{p.Geburtsjahr}–{p.Todesjahr}" : $"* {p.Geburtsjahr} · {p.Alter(_buch!.Jahr)} J.";
         Beschriften(schrift, jahre, r.Position + new Vector2(6, 91), KarteB - 12, 12, tinte * new Color(1, 1, 1, 0.85f));
-        if (k.Bezeichnung != "")
+        if (k.IstErbe)
+        {
+            // Erbe: grünes Band über die Kartenbreite, gut von der Krone des Oberhaupts zu unterscheiden
+            DrawRect(new Rect2(r.Position + new Vector2(3, KarteH - 15), new Vector2(KarteB - 6, 12)), new Color("4f7a2f"));
+            Beschriften(schrift, "ERBE", r.Position + new Vector2(10, KarteH - 5), KarteB - 20, 10, new Color("f2f0dc"));
+        }
+        else if (k.Bezeichnung != "")
             Beschriften(schrift, k.Bezeichnung, r.Position + new Vector2(6, 105), KarteB - 12, 10,
                 k.IstOberhaupt ? new Color("7a5a10") : k.IstErbe ? new Color("3f5a22") : tinte * new Color(1, 1, 1, 0.75f));
 

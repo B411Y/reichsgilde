@@ -97,6 +97,7 @@ public partial class FamilienAnzeige : PanelContainer
         spalte.AddChild(_stammbaum);
         _chronik = new VBoxContainer();
         _chronik.AddThemeConstantOverride("separation", 6);
+        _chronik.CustomMinimumSize = new Vector2(0, 600); // gleiche Höhe wie der Stammbaum, damit das Fenster beim Reiterwechsel nicht springt
         spalte.AddChild(_chronik);
 
         _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite - 50);
