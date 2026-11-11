@@ -257,6 +257,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels P6) „Fläche füllen“: Vorschau nur als Ringe je Stück (keine Geister; alle Ringe in einem Netz), Bilder der Tafel und der Ringe stehen aus (NAS); Leerlauf mit 3000 Stücken nur headless gemessen (Vulkan, Zoom 100 offen).
 - (Fels P5) Messung des Plans (3000 Stücke, Zoom 100, höchstens 5 % langsamer) steht aus: Gruppen ändern die Darstellung nicht (dieselben Stücke wie gestempelte Einzelstücke), darum nicht neu gemessen.
 - (Fels P4b) Der Geist wird bei mehr als 20.000 geänderten Rasterpunkten weggelassen; die Zahl „schwebend“ in der Tafel steht beim Aufbau und zählt nicht mit, wenn das Gelände danach gesenkt wird (der Knopf zählt neu). Die Taste für „Hebung ablösen“ fehlt (nur Knopf).
+- (Fels P3b) Aussparen ohne Randabstand zu Häusern und Wegen (Felsen liegen dicht am Rand); optional laut Plan, nicht gebaut.
+- (Fels P4b) Der Hang-Geist beim Ziehen mit der Maus ist im Klicktest nicht im Bild gesehen (nur die Startoption `gizmo:hangzug`, ohne sichtbaren Unterschied); Bild beim echten Ziehen steht aus.
+- (Fels P6) Bildzeit bei Zoom 100 mit Vulkan (3000 Stücke) nicht gemessen (`--print-fps` gibt im Klicktest nichts aus); Hinweis des Prüfers: sehr dichte rote Vorschau-Ringe wirken wie Rauschen.
 
 ## Entscheidungen
 

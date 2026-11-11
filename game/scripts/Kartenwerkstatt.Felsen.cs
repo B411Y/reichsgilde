@@ -245,9 +245,10 @@ public partial class Kartenwerkstatt
             13, Hell, umbruchBreite: Rechtsbreite - 30);
         if (n > obergrenze || _stadt.FelsFuellSchaetzung > obergrenze)
             Hauptmenue.Text(_eigenschaften, $"Achtung: mehr als {obergrenze} Stücke in einem Befehl – das kann die Karte langsam machen. " +
-                                            (_stadt.FelsFuellBestaetigt ? "Noch einmal drücken füllt trotzdem." : "Füllen fragt einmal nach."), 13, Rot, umbruchBreite: Rechtsbreite - 30);
-        var knoepfe = new HBoxContainer();
-        knoepfe.AddThemeConstantOverride("separation", 8);
+                                            (_stadt.FelsFuellBestaetigt ? "Noch einmal drücken füllt trotzdem." : "Füllen fragt einmal nach."), 13, Rot, umbruchBreite: Rechtsbreite - 70);
+        var knoepfe = new HFlowContainer(); // bricht um, wenn die drei Knöpfe nicht nebeneinander passen
+        knoepfe.AddThemeConstantOverride("h_separation", 8);
+        knoepfe.AddThemeConstantOverride("v_separation", 4);
         _eigenschaften.AddChild(knoepfe);
         Knopf(knoepfe, _stadt.FelsFuellBestaetigt ? $"Wirklich füllen ({n})" : $"Füllen ({n} Stücke)", () => _stadt.FelsFuellenAusfuehren(),
             "Setzt genau die Stücke der Vorschau – ein Schritt für Strg+Z");
@@ -442,11 +443,11 @@ public partial class Kartenwerkstatt
         Hauptmenue.Text(_eigenschaften, "Vorlage", 15, Gold);
         var raster = ZweiSpalten();
         var gruppen = _stadt.FelsKatalog.Alle; // P5: erst die festen, dann die eigenen aus dem gemeinsamen Katalog
-        var vorlage = new OptionButton { FocusMode = Control.FocusModeEnum.None,
+        var vorlage = new OptionButton { FocusMode = Control.FocusModeEnum.None, ClipText = true, CustomMinimumSize = new Vector2(0, 0),
             TooltipText = "Eine feste Gruppe (Wand, Kuppe, Rippe, Große Wand aus 5 bis 8 Stücken), eine eigene Gruppe (gewählte Stücke › „Als Gruppe ablegen“) " +
                           "oder einzelne Stücke aus den Formen darunter" };
         vorlage.AddItem("Einzelstücke");
-        foreach (var g in gruppen) vorlage.AddItem(g.Eigen ? $"Eigene: {g.Name} ({g.Stuecke.Count} Stücke)" : $"Gruppe {g.Name} ({g.Stuecke.Count} Stücke)");
+        foreach (var g in gruppen) vorlage.AddItem(g.Eigen ? $"Eigene: {g.Name} ({g.Stuecke.Count})" : $"Gruppe {g.Name} ({g.Stuecke.Count})");
         vorlage.Selected = gruppe is null ? 0 : gruppen.ToList().FindIndex(g => g.Kennung == gruppe.Kennung) + 1;
         vorlage.ItemSelected += i =>
         {

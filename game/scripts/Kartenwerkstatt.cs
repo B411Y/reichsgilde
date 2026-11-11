@@ -845,6 +845,8 @@ public partial class Kartenwerkstatt : Node
             // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) · P3: ausduennen:<radius>,<dichte>,x1,z1;… ·
             // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… · P5: gruppe:… (siehe FelsBefehl) – <vorlage> ist eine Gruppe (wand, kuppe, rippe, eigen_1 …) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
+            // „fuellvorschau“ braucht das Werkzeug schon vorher: ein späterer Werkzeugwechsel räumt den Umriss weg
+            if (o.TryGetValue("werkstatt-werkzeug", out var fuellWerkzeug) && fuellWerkzeug == "fels:fuellen") KatalogWaehlen(fuellWerkzeug);
             if (o.TryGetValue("werkstatt-fels", out var felsen)) FelsBefehle(felsen.Split('|', StringSplitOptions.RemoveEmptyEntries));
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
             if (o.TryGetValue("werkstatt-rampe", out var rampen))
@@ -883,7 +885,7 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattDrehung = t.Length > 3 ? Zahl(t[3]) : 0;
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
-            if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug)) KatalogWaehlen(werkzeug);
+            if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug) && werkzeug != "fels:fuellen") KatalogWaehlen(werkzeug);
             if (o.TryGetValue("werkstatt-gruppe", out var gruppe)) GruppeOeffnen(gruppe);
             if (o.TryGetValue("werkstatt-ebenen", out var aus))
                 foreach (var name in aus.Split(',', StringSplitOptions.RemoveEmptyEntries))
