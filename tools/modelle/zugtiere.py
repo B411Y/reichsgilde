@@ -771,15 +771,18 @@ def joch(bm, gw, ske, s, ziel_hoehe=1.45):
         if beste is None or abs(z0 + 0.03 - ziel_hoehe) < beste[0]:
             beste = (abs(z0 + 0.03 - ziel_hoehe), p, z0)
     _, p, z0 = beste
-    unter = min((v.co.z for v in bm.verts if gw.summe(v, ["Neck"]) > 0.3 and abs(v.co.x) < 0.1 and abs(v.co.y - p.y) < 0.1), default=p.z - 0.2)
     breite = max(abs(v.co.x) for v in bm.verts if gw.summe(v, ["Neck", "Shoulders"]) > 0.3 and abs(v.co.y - p.y) < 0.1) + 0.04
     rohr(bm, gw, "Shoulders", 7, [Vector((-breite - 0.2, p.y, z0)), Vector((0, p.y, z0 + 0.01)), Vector((breite + 0.2, p.y, z0))],
          [0.046, 0.054, 0.046], n=4)
-    for sx in (-1, 1):                                                # Bügel
-        x = sx * (breite - 0.02)
-        rohr(bm, gw, "Shoulders", 7, [Vector((x, p.y, z0)), Vector((x + sx * 0.012, p.y, (z0 + unter) / 2)), Vector((x, p.y, unter - 0.02))],
+    # Bügel (Runde 12): gerade an der Seite des Halses hinunter statt kurz und frei in der Luft (vorher: "unter" nur aus Halsecken, 5 cm unter dem Joch, die Bügel
+    # standen als kurze Spitzen neben dem Hals). Der Hals ist an dieser Stelle nur 0,11 bis 0,22 m halbbreit: die Bügel liegen 4 cm außerhalb davon, der Querstab
+    # unten (0,42 m unter dem Joch) liegt im Hals und hält die Bügel; sichtbar bleiben die Bügel, die den Hals von beiden Seiten fassen.
+    tief = z0 - 0.42
+    for sx in (-1, 1):
+        x = sx * (breite - 0.05)
+        rohr(bm, gw, "Shoulders", 7, [Vector((x, p.y, z0)), Vector((x + sx * 0.012, p.y, z0 - 0.2)), Vector((x - sx * 0.05, p.y, tief))],
              [0.024, 0.022, 0.020], n=6)
-    rohr(bm, gw, "Shoulders", 7, [Vector((-breite + 0.02, p.y, unter - 0.02)), Vector((breite - 0.02, p.y, unter - 0.02))], [0.016, 0.016], n=6)
+    rohr(bm, gw, "Shoulders", 7, [Vector((-breite + 0.07, p.y, tief)), Vector((breite - 0.07, p.y, tief))], [0.016, 0.016], n=6)
     return Vector((0, p.y, z0 + 0.03))
 
 
@@ -831,8 +834,8 @@ def verlauf(me, ob, plaetze, fell_flaechen, haar_faktor=None, art=None, variante
                 if art == "ochse":
                     f *= 1.0 - 0.20 * min(1.0, kh_)                       # Kopf und Hals dunkler als der Rumpf
                     # Binnenzeichnung (Runde 11): große dunkle Schattierungen (Schulter, Flanke, Hinterhand) und hellere Fläche an Bauch und Beinen, weich ineinander
-                    f *= 1.0 - 0.34 * _weich((_glatt(p * 2.4 + Vector((7.0, 2.0, 1.0))) - 0.52) / 0.10)
-                    f *= 1.0 + 0.16 * _weich((_glatt(p * 3.1 + Vector((1.0, 9.0, 4.0))) - 0.56) / 0.10)
+                    f *= 1.0 - 0.48 * _weich((_glatt(p * 2.4 + Vector((7.0, 2.0, 1.0))) - 0.50) / 0.09)
+                    f *= 1.0 + 0.24 * _weich((_glatt(p * 3.1 + Vector((1.0, 9.0, 4.0))) - 0.54) / 0.09)
                 if art == "pferd" and variante == "schwarzbraun":
                     band = _weich(1.0 - abs(n.z - 0.40) / 0.45)            # Schimmer: Kanten der Muskeln und Flanken fangen Licht
                     f *= 1.0 + 0.55 * band * (0.45 + 0.55 * _glatt(Vector((p.x * 7.0, p.y * 2.2, p.z * 7.0))))

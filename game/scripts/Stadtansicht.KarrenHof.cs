@@ -13,14 +13,17 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Luft (Meter) zwischen zwei Karren am Hof nebeneinander und zwischen Heck und Hindernis.</summary>
+    /// <summary>Luft (Meter) zwischen zwei Karren am Hof nebeneinander.</summary>
     private const float KarrenHofLuft = 0.5f;
+
+    /// <summary>Luft (Meter) zwischen Heck und Sockel: mehr als zwischen den Karren (0,5 m wirkte im Bild noch wie an der Wand geparkt, Runde 12).</summary>
+    private const float KarrenHofSockelLuft = 0.9f;
 
     /// <summary>Seitlich zählt ein Hindernis nur im Streifen des Karrens plus diese Luft (Meter): ein Pfosten daneben schiebt die Reihe nicht nach vorn.</summary>
     private const float KarrenHofSeite = 0.15f;
 
     /// <summary>So weit (Meter) schiebt die Hofreihe höchstens vor den Hof; mehr würde den Karren in die Gasse stellen.</summary>
-    private const float KarrenHofVersatzMax = 3f;
+    private const float KarrenHofVersatzMax = 3.4f;
 
     /// <summary>Breite des Gespanns (Meter, Karren samt Tieren) quer zur Fahrtrichtung, aus den Modellen: Karren 2,38 / 2,08 / 1,50 m, Tiere und Läufer innerhalb bzw. knapp daneben.</summary>
     internal static float KarrenBreite(string typ) => typ switch
@@ -46,7 +49,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wie weit (Meter) die Reihe auf dem Weg nach vorn muss: Jedes Hindernis (<c>X</c> = Lage auf der Fahrtrichtung vom Hof, negativ = dahinter, <c>Y</c> = Querlage)
-    /// im Streifen eines Karrens (Breite plus 0,15 m) darf nicht ins Heck reichen: Versatz ≥ Lage + Heck + Luft. Hindernisse weiter als 0,6 m vor dem Hof zählen nicht (der
+    /// im Streifen eines Karrens (Breite plus 0,15 m) darf nicht ins Heck reichen: Versatz ≥ Lage + Heck + <see cref="KarrenHofSockelLuft"/>. Hindernisse weiter als 0,6 m vor dem Hof zählen nicht (der
     /// Karren steht vor ihnen).
     /// </summary>
     internal static float KarrenHofVersatz(IReadOnlyList<string> typen, IReadOnlyList<float> quer, IEnumerable<Vector2> hindernisse)
@@ -57,7 +60,7 @@ public partial class Stadtansicht
             if (h.X > 0.6f) continue;
             for (var i = 0; i < typen.Count; i++)
                 if (Math.Abs(h.Y - quer[i]) <= KarrenBreite(typen[i]) / 2 + KarrenHofSeite)
-                    v = Math.Max(v, h.X + KarrenGespann(typen[i]).Hinten + KarrenHofLuft);
+                    v = Math.Max(v, h.X + KarrenGespann(typen[i]).Hinten + KarrenHofSockelLuft);
         }
         return Math.Min(v, KarrenHofVersatzMax);
     }
