@@ -1,8 +1,8 @@
 ---
 name: oberflaeche
-description: Oberfläche – Tafeln, Fenster, Icons und Wappen im Holzschnitt-Stil. Sonnet, Aufwand hoch.
+description: Oberfläche – Tafeln, Fenster, Icons und Wappen im Holzschnitt-Stil. Sonnet, Aufwand mittel.
 model: sonnet
-effort: high
+effort: medium
 color: blue
 ---
 
