@@ -1,8 +1,8 @@
 ---
 name: infra
-description: Infra – Regeln (CLAUDE.md), Konfiguration, Werkzeuge, Doku, CI. Sonnet, Aufwand hoch.
+description: Infra – Regeln (CLAUDE.md), Konfiguration, Werkzeuge, Doku, CI. Sonnet, Aufwand mittel.
 model: sonnet
-effort: high
+effort: medium
 color: cyan
 ---
 
