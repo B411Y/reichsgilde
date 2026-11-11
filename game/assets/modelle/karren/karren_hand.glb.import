@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bgqy714p8qsuc"
-path="res://.godot/imported/karren_hand.glb-8f822ae7f5858da14531e91ce96a1536.scn"
+uid="uid://5p6tl1b8ijdm"
+path="res://.godot/imported/karren_hand.glb-04b9cb020b4b9ba1f5402030392fff82.scn"
 
 [deps]
 
-source_file="res://assets/modelle/fahrzeuge/karren_hand.glb"
-dest_files=["res://.godot/imported/karren_hand.glb-8f822ae7f5858da14531e91ce96a1536.scn"]
+source_file="res://assets/modelle/karren/karren_hand.glb"
+dest_files=["res://.godot/imported/karren_hand.glb-04b9cb020b4b9ba1f5402030392fff82.scn"]
 
 [params]
 

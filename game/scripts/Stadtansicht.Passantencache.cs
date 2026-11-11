@@ -37,7 +37,7 @@ public partial class Stadtansicht
         var glb = $"res://assets/modelle/{ProbeArten[art].Datei}.glb";
         var quelle = Godot.FileAccess.FileExists(glb) ? Godot.FileAccess.GetMd5(glb)
                    : Godot.FileAccess.FileExists(glb + ".import") ? Godot.FileAccess.GetMd5(glb + ".import") : "ohne-quelle";
-        var text = $"{ProbeCacheFassung}|{quelle}|{string.Join(",", ProbeKlips.Select(ProbeVatBilderFuer))}|{zeilen}|{string.Join(",", ProbeKlips)}|{(art >= 2 ? string.Join(",", ProbeUnfreiOhne.Order()) : "")}";
+        var text = $"{ProbeCacheFassung}|{quelle}|{string.Join(",", ProbeKlipsVon(art).Select(k => ProbeVatBilderFuer(k, art)))}|{zeilen}|{string.Join(",", ProbeKlipsVon(art))}|{(art is 2 or 3 ? string.Join(",", ProbeUnfreiOhne.Order()) : "")}";
         return Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(text)));
     }
 

@@ -1,23 +1,38 @@
-"""Karren mit Zugtieren und Bewegungen: Handkarren, Ochsenkarren, Pferdekarren.
+"""Karren ohne Zugtier und ohne Figur: Handkarren, Ochsenkarren, Pferdekarren (gemalt-realistisch, Material-Bibliothek).
 
-    blender -b --python tools/modelle/karren.py        oder
-    python tools/modelle/karren.py [--schnell] [--ohne-bilder]
+    blender -b --python tools/modelle/karren.py [-- --ohne-bericht]
+    python tools/modelle/karren.py
 
-Schreibt game/assets/modelle/fahrzeuge/karren_hand.glb, karren_ochse.glb, karren_krieg.glb und Bilder nach docs/modelle/.
+Schreibt game/assets/modelle/karren/karren_hand.glb, karren_ochse.glb und karren_pferd.glb (die alten Dateien in fahrzeuge/ bleiben,
+bis der Spiel-Code umgestellt ist; der alte Bau steht in karren_alt.py). Zugtiere und die Menschen am Karren sind eigene Modelle,
+das Spiel hängt sie an die Anker.
 
-Inhalt je Datei (Blender: Z oben, Fahrtrichtung -Y; im Spiel Y oben, Fahrtrichtung +Z; Ursprung unter der Radachse
-des Wagens auf dem Boden):
-    Skelett         Wurzel (Wagenkasten, wippt), je Radachse ein Knochen (dreht um die Achse), bei Zugtieren je Tier
-                    Rumpf, Kopf, vier Beine, Schwanz. Jeder Teil hängt starr an einem Knochen.
-    Karren          Wagen mit Rädern und Deichsel bzw. Holmen
-    Ochse / Pferd1, Pferd2   Zugtiere (Ochsenkarren / Pferdekarren)
-    Ladung1–3       Kisten, Säcke, Fässer – so viele sichtbar, wie Sorten geladen sind (Handkarren 1, Ochsenkarren 2,
-                    Pferdekarren 3); standardmäßig aus
-    Plane           Plane über der Ladung in der Hausfarbe (Besitzer), mit der Ladung an- und auszuschalten
-    Anker_Zieher (Handkarren: zwischen den Holmen), Anker_Treiber (neben dem Ochsen), Anker_Kutscher (auf dem Bock)
-                    – dort stellt das Spiel die Passanten-Figur hin (Bewegung „Ziehen“, „Gehen“ bzw. „Kutschieren“)
-    Bewegungen      Fahren (Räder drehen, Tiere gehen, Wagen wippt) und Stehen (Tiere nicken, Schwanz schlägt)
-Die Bewegungen laufen am Ort; das Spiel schiebt den Karren. Wie weit eine Schleife „Fahren“ fährt, steht in WEG.
+Maßstab: MPFB-Figur (Mann 1,64 m, Hüfte 0,93 m). Blender: Z oben, Fahrtrichtung −Y (im Spiel Y oben, Fahrtrichtung +Z). Ursprung auf dem Boden
+unter der (hinteren) Radachse, Mitte des Wagens. „Links“ und „rechts“ in Fahrtrichtung: links = +X (Blender und Spiel).
+
+Knoten je Datei (alle auf oberster Ebene):
+    Karren      Wagenkasten aus Bohlen, Pfosten, Eisenbändern, Achsbalken, Langhölzern, Deichsel bzw. Holme (Holz, Holz alt, Eisen)
+    Rad_L, Rad_R (Handkarren, Ochsenkarren) bzw. Rad_VL, Rad_VR, Rad_HL, Rad_HR (Pferdekarren, vorn und hinten)
+                Räder als eigene Teile: der Ursprung des Knotens ist die Achse, gedreht wird um die lokale X-Achse (Querachse). Felgen,
+                Speichen, Nabe und Eisenreifen sind rundum geschlossen (auch die Unterseite), weil sie sich drehen. Extras: „radius“ (m),
+                „drehachse“ = "X". Rollweg je Umdrehung 2π · radius.
+    Ladung1–3   Kisten, Säcke, Fässer (Handkarren 1, Ochsenkarren 2, Pferdekarren 3), Zustand: standardmäßig aus
+    Plane       Plane über der Ladung in der Hausfarbe (Material „Hausfarbe“, eigener Knoten), Zustand: standardmäßig aus
+    Wimpel      Wimpel an einem Pfosten in der Hausfarbe (Ochsen-, Pferdekarren), sichtbar
+    Decke       Sitzdecke in der Hausfarbe auf dem Bock (nur Pferdekarren), sichtbar
+    Waage       Waagscheit am Ende der Deichsel (nur Pferdekarren), sichtbar
+    Stuetze     Stützbock bzw. Stützbeine zum Abstellen (alle), Zustand: standardmäßig aus – zeigen, wenn der Karren steht
+Hausfarbe nur an Plane, Wimpel und Decke. Kein Fahrer, kein Tier im Modell.
+
+Anker (leere Knoten „Anker_…“, Ursprung am Boden bzw. auf der Sitzfläche; alle Blickrichtung Fahrtrichtung; Einbau in Stadtansicht.Karren.cs):
+    Anker_Ziehen             Handkarren: Boden 0,285 m vor der Zugstange, dort steht der Zieher (Blick in Fahrtrichtung, Hände hinter dem Körper)
+    Anker_Zug_L, _R          Handkarren: Zugstange links und rechts (0,22 m aus der Mitte, 0,86 m hoch), dort greifen die Hände
+    Anker_Deichsel           Ochsen- und Pferdekarren: Mitte des Zuggeschirrs (Jochmitte bzw. Mitte zwischen den beiden Pferden) in
+                             Halshöhe; das Spiel setzt den Anker „Geschirr“ des Zugtiers dorthin
+    Anker_Pferd_L, _R        Pferdekarren: Geschirr des linken und rechten Pferds (Abstand ±0,62 m)
+    Anker_Fahrer_Seite       Ochsenkarren: Boden links neben dem Ochsen, auf Höhe der Schulter des Tiers, dort geht der Läufer
+    Anker_Bock               Pferdekarren: Oberkante der Sitzfläche (die Hüfte der sitzenden Figur kommt dorthin; Sitzhöhe 0,446 m über
+                             dem Fußbrett, wie der Clip „Sitzen“ der Passanten)
 """
 
 import math
@@ -26,387 +41,409 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
-import figuren as fg  # noqa: E402
-import landbau as lb  # noqa: E402
-import natur as nt  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
-    "Fell": (0.46, 0.32, 0.20),            # Ochse
-    "Fell hell": (0.78, 0.70, 0.56),
-    "Pferd": (0.36, 0.24, 0.15),
-    "Pferd dunkel": (0.16, 0.12, 0.10),
-    "Horn": (0.86, 0.80, 0.66),
     "Sack": (0.70, 0.62, 0.46),
-    "Geflecht": (0.56, 0.44, 0.27),
-    "Hausfarbe": (0.18, 0.30, 0.58),
 })
 
-FPS = 24
-DAUER = {"Fahren": 1.2, "Stehen": 3.0}
-ARTEN = {
-    # Rad-Halbmesser, Achsen (y), Spur (halbe), Bett (y0, y1, Höhe), Sorten, Tiere
-    "hand": dict(r=0.45, achsen=(0.0,), spur=0.55, bett=(-0.75, 0.75, 0.62), breite=0.5, sorten=1, tiere=()),
-    "ochse": dict(r=0.72, achsen=(0.3,), spur=0.85, bett=(-0.9, 1.5, 0.95), breite=0.75, sorten=2, tiere=("Ochse",)),
-    "krieg": dict(r=0.6, achsen=(-1.1, 1.3), spur=0.85, bett=(-1.6, 1.8, 0.95), breite=0.8, sorten=3,
-                  tiere=("Pferd1", "Pferd2")),
-}
-# Weg je Schleife „Fahren“ (Meter): die Räder drehen genau einmal herum
-WEG = {art: 2 * math.pi * d["r"] for art, d in ARTEN.items()}
+ARTEN = ("hand", "ochse", "pferd")
+ORDNER = "karren"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Skelett
+#  Grundteile
 # ─────────────────────────────────────────────────────────────────────────────
 
-def tier_lage(art, tier):
-    """Mitte des Rumpfs eines Tiers (x, y) und Rumpfhöhe."""
-    if tier == "Ochse":
-        return Vector((0, -3.0, 1.15))
-    return Vector((-0.55 if tier == "Pferd1" else 0.55, -3.6, 1.25))
+def rohr(n, st, a, b, r0, r1, stoff, seiten=8, kappen=(True, True)):
+    """Rundholz als n-eckiger Kegelstumpf von a (Halbmesser r0) nach b (r1)."""
+    a, b = Vector(a), Vector(b)
+    achse = (b - a).normalized()
+    hilf = Vector((1, 0, 0)) if abs(achse.x) < 0.9 else Vector((0, 1, 0))
+    u = achse.cross(hilf).normalized()
+    v = achse.cross(u)
+
+    def ring(p, r):
+        return [p + (u * math.cos(2 * math.pi * k / seiten + math.pi / seiten) + v * math.sin(2 * math.pi * k / seiten + math.pi / seiten)) * r
+                for k in range(seiten)]
+    ra, rb = ring(a, r0), ring(b, r1)
+    for k in range(seiten):
+        j = (k + 1) % seiten
+        q = [ra[k], ra[j], rb[j], rb[k]]
+        n.vieleck_nach(q, sum(q, Vector()) / 4 - (a + b) / 2, st[stoff])
+    if kappen[0]:
+        n.vieleck_nach(ra, -achse, st[stoff])
+    if kappen[1]:
+        n.vieleck_nach(rb, achse, st[stoff])
 
 
-def tier_masse(tier):
-    if tier == "Ochse":
-        return dict(lang=1.0, r=0.42, bein=1.0, hals=0.35, kopf=0.32)
-    return dict(lang=0.9, r=0.34, bein=1.1, hals=0.55, kopf=0.36)
-
-
-def skelett(art):
-    import bpy
-    d = ARTEN[art]
-    arm = bpy.data.armatures.new("Skelett")
-    ob = bpy.data.objects.new("Skelett", arm)
-    bpy.context.scene.collection.objects.link(ob)
-    bpy.context.view_layer.objects.active = ob
-    bpy.ops.object.mode_set(mode="EDIT")
-
-    def knochen(name, kopf, schwanz, eltern=None):
-        b = arm.edit_bones.new(name)
-        b.head, b.tail = kopf, schwanz
-        if eltern:
-            b.parent = arm.edit_bones[eltern]
-
-    knochen("Wurzel", (0, 0, d["r"]), (0, 0, d["r"] + 0.3))
-    for i, y in enumerate(d["achsen"]):
-        knochen(f"Achse{i + 1}", (-d["spur"] - 0.2, y, d["r"]), (d["spur"] + 0.2, y, d["r"]), "Wurzel")
-    for tier in d["tiere"]:
-        m, t = tier_lage(art, tier), tier_masse(tier)
-        knochen(f"{tier}_Rumpf", tuple(m + Vector((0, t["lang"], 0))), tuple(m - Vector((0, t["lang"], 0))))
-        hals = m - Vector((0, t["lang"] * 0.9, -0.15))
-        knochen(f"{tier}_Kopf", tuple(hals), tuple(hals + Vector((0, -t["hals"], t["hals"] * 0.6))), f"{tier}_Rumpf")
-        for vorn, sy in (("V", -1), ("H", 1)):
-            for seite, sx in (("L", 1), ("R", -1)):
-                fuss = m + Vector((sx * t["r"] * 0.6, sy * t["lang"] * 0.78, -t["r"] * 0.5))
-                knochen(f"{tier}_Bein{vorn}{seite}", tuple(fuss), (fuss.x, fuss.y, 0.04), f"{tier}_Rumpf")
-        schwanz = m + Vector((0, t["lang"], 0.1))
-        knochen(f"{tier}_Schwanz", tuple(schwanz), tuple(schwanz + Vector((0, 0.1, -0.7))), f"{tier}_Rumpf")
-    bpy.ops.object.mode_set(mode="OBJECT")
-    for pb in ob.pose.bones:
-        pb.rotation_mode = "XYZ"
-    return ob
+def balken(n, st, a, b, breite, dicke, stoff, quer=(1, 0, 0), ohne=()):
+    """Vierkantholz von a nach b; `dicke` liegt entlang `quer`."""
+    n.stab(a, b, breite, dicke, st[stoff], quer=quer, ohne=ohne)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Teile
+#  Rad
 # ─────────────────────────────────────────────────────────────────────────────
 
-def rad(n, st, x, y, r, dicke=0.09, speichen=8):
-    """Speichenrad in der YZ-Ebene: Felge aus Segmenten, Nabe, Speichen."""
-    seg = 12
-    for k in range(seg):
-        w0, w1 = 2 * math.pi * k / seg, 2 * math.pi * (k + 1) / seg
-        a = Vector((x, y + r * 0.92 * math.cos(w0), r + r * 0.92 * math.sin(w0)))
-        b = Vector((x, y + r * 0.92 * math.cos(w1), r + r * 0.92 * math.sin(w1)))
-        n.stab(a, b, r * 0.14, dicke, st["Holz alt"], quer=(1, 0, 0), mehr=0.02)
-    nt.ast(n, st, (x - dicke, y, r), (x + dicke, y, r), r * 0.16, r * 0.16, stoff="Eisen", n=6)
+def rad_netz(st, name, r, breite, nr=0, segmente=16, speichen=8):
+    """Speichenrad um die X-Achse, Ursprung = Achse. Felge aus Segmenten (Holz, einzelne Segmente „Holz alt“), Eisenreifen (breiter als die
+    Felge), Nabe mit Eisenringen, Speichen. Rundum geschlossen (alle=True), die Unterseite sieht die Kamera nach einer Drehung."""
+    n = bs.Netz(name, alle=True)
+    eisen = 0.03
+    ro = r - eisen
+    ri = ro - (0.085 if r > 0.55 else 0.07)
+    hb = breite / 2
+    tb = hb + 0.008
+    nabe, nabe_l = (0.085 if r > 0.55 else 0.07), breite + 0.1
+
+    def p(rad, w, x):
+        return Vector((x, rad * math.cos(w), rad * math.sin(w)))
+    for k in range(segmente):
+        w0, w1 = 2 * math.pi * k / segmente, 2 * math.pi * (k + 1) / segmente
+        radial = Vector((0, math.cos((w0 + w1) / 2), math.sin((w0 + w1) / 2)))
+        holz = st["Holz alt"] if (k + nr) % 3 == 0 else st["Holz"]
+        n.vieleck_nach([p(ri, w0, -hb), p(ri, w1, -hb), p(ri, w1, hb), p(ri, w0, hb)], -radial, holz)
+        for s in (-1, 1):
+            n.vieleck_nach([p(ri, w0, s * hb), p(ri, w1, s * hb), p(ro, w1, s * hb), p(ro, w0, s * hb)], Vector((s, 0, 0)), holz)
+        n.vieleck_nach([p(r, w0, -tb), p(r, w1, -tb), p(r, w1, tb), p(r, w0, tb)], radial, st["Eisen"])
+        for s in (-1, 1):
+            n.vieleck_nach([p(ro, w0, s * tb), p(ro, w1, s * tb), p(r, w1, s * tb), p(r, w0, s * tb)], Vector((s, 0, 0)), st["Eisen"])
     for k in range(speichen):
-        w = 2 * math.pi * (k + 0.5) / speichen
-        n.stab((x + 0.012 * (k % 2), y, r), (x + 0.012 * (k % 2), y + r * 0.85 * math.cos(w), r + r * 0.85 * math.sin(w)),
-               0.04, 0.035, st["Holz"], quer=(1, 0, 0))
+        w = 2 * math.pi * (k + 0.5 * (nr % 2)) / speichen
+        n.stab(p(nabe * 0.8, w, 0), p(ri + 0.012, w, 0), 0.05, 0.042, st["Holz"], quer=(1, 0, 0), ohne=("+x", "-x"))
+    rohr(n, st, (-nabe_l / 2 + 0.004, 0, 0), (nabe_l / 2 - 0.004, 0, 0), nabe, nabe, "Holz", seiten=8)
+    for s in (-1, 1):
+        rohr(n, st, (s * nabe_l / 2, 0, 0), (s * (nabe_l / 2 - 0.035), 0, 0), nabe + 0.012, nabe + 0.012, "Eisen", seiten=8, kappen=(True, False))
+    return n
 
 
-def karren_bauen(art, st, ske):
-    d = ARTEN[art]
-    t = fg.Teile("Karren")
-    y0, y1, h = d["bett"]
-    b = d["breite"]
-    with t.an("Wurzel") as n:
-        n.quader((0, (y0 + y1) / 2, h), ((b + 0.05) * 2, y1 - y0, 0.08), st["Holz alt"])
-        hoch = 0.35 if art == "hand" else 0.5
-        for sx in (-1, 1):                                          # Seitenbretter
-            n.quader((sx * b, (y0 + y1) / 2, h + hoch / 2), (0.06, y1 - y0, hoch), st["Holz"])
-        for sy, y in ((-1, y0), (1, y1)):
-            n.quader((0, y, h + hoch / 2), (b * 2 - 0.06, 0.06, hoch), st["Holz"])
-        if art == "krieg":                                          # Wehrwagen: hohe Bohlenwände mit Eisenbändern
-            for sx in (-1, 1):
-                n.quader((sx * (b + 0.06), (y0 + y1) / 2, h + 0.75), (0.08, y1 - y0, 0.9), st["Holz alt"])
-                for k in range(4):
-                    yy = y0 + 0.3 + k * (y1 - y0 - 0.6) / 3
-                    n.quader((sx * (b + 0.11), yy, h + 0.75), (0.02, 0.1, 0.92), st["Eisen"])
-                    n.quader((sx * (b + 0.105), yy + 0.4, h + 0.95), (0.012, 0.06, 0.22), st["Loch"])   # Scharten
-            n.quader((0, y1 + 0.05, h + 0.75), (b * 2 + 0.24, 0.08, 0.9), st["Holz alt"])
-            # Bock vorn
-            n.quader((0, y0 - 0.25, h + 0.45), (b * 2 - 0.2, 0.5, 0.08), st["Holz"])
-            n.quader((0, y0 - 0.48, h + 0.2), (b * 2 - 0.2, 0.06, 0.5), st["Holz"])
-        # Deichsel bzw. Holme nach vorn
-        if art == "hand":
-            for sx in (-1, 1):
-                n.stab((sx * (b - 0.1), y0 + 0.1, h + 0.05), (sx * (b - 0.05), y0 - 1.25, 0.88), 0.07, 0.07, st["Holz"])
-            n.stab((-(b - 0.05), y0 - 1.15, 0.86), (b - 0.05, y0 - 1.15, 0.86), 0.05, 0.05, st["Holz"])
-            n.quader((0, y1 - 0.15, (h - 0.04) / 2), (0.06, 0.06, h - 0.04), st["Holz"])           # Stütze hinten
-        else:
-            vorn = tier_lage(art, d["tiere"][0]).y - 0.4
-            n.stab((0, y0, h - 0.1), (0, vorn, 1.0), 0.1, 0.1, st["Holz"])
-            for tier in d["tiere"]:                                  # Joch bzw. Ortscheit
-                m = tier_lage(art, tier)
-                n.stab((m.x - 0.45, m.y - 0.75, m.z + 0.35), (m.x + 0.45, m.y - 0.75, m.z + 0.35), 0.08, 0.08, st["Holz"])
-                for sx in (-1, 1):
-                    n.stab((m.x + sx * 0.38, m.y - 0.75, m.z + 0.1), (m.x + sx * 0.4, y0, h), 0.03, 0.02, st["Leder"])
-    for i, y in enumerate(d["achsen"]):
-        with t.an(f"Achse{i + 1}") as n:
-            for sx in (-1, 1):
-                rad(n, st, sx * d["spur"], y, d["r"])
-            n.stab((-d["spur"], y, d["r"]), (d["spur"], y, d["r"]), 0.07, 0.07, st["Holz"])
-    return t.objekt(ske)
+def rad_objekt(st, name, r, breite, ort, nr=0):
+    o = rad_netz(st, name, r, breite, nr).objekt()
+    o.location = Vector(ort)
+    o["radius"] = r
+    o["drehachse"] = "X"
+    return o
 
 
-def tier_bauen(art, tier, st, ske):
-    t = fg.Teile(tier)
-    m, ms = tier_lage(art, tier), tier_masse(tier)
-    ochse = tier == "Ochse"
-    fell, fell2 = ("Fell", "Fell hell") if ochse else ("Pferd", "Pferd dunkel")
-    lang, r = ms["lang"], ms["r"]
-    with t.an(f"{tier}_Rumpf") as n:
-        nt.ast(n, st, m + Vector((0, lang, 0.02)), m - Vector((0, lang * 0.95, -0.05)), r, r * 1.08, stoff=fell, n=8)
-        nt.ast(n, st, m + Vector((0, lang, 0.02)), m + Vector((0, lang + 0.1, 0.0)), r * 0.98, r * 0.6, stoff=fell, n=8)
-        if ochse:                                                   # Widerrist und Bauch heller
-            nt.ast(n, st, m - Vector((0, lang * 0.5, -r * 0.7)), m - Vector((0, lang * 0.9, -r * 0.75)), r * 0.35, r * 0.3,
-                   stoff=fell, n=6)
-        else:                                                       # Geschirr
-            nt.ast(n, st, m - Vector((0, lang * 0.55, 0)), m - Vector((0, lang * 0.45, 0)), r * 1.12, r * 1.12, stoff="Leder", n=8)
-    hals = m - Vector((0, lang * 0.9, -0.15))
-    with t.an(f"{tier}_Kopf") as n:
-        spitze = hals + Vector((0, -ms["hals"], ms["hals"] * 0.6))
-        nt.ast(n, st, hals, spitze, r * 0.7, r * 0.5, stoff=fell, n=7)
-        kopf_ende = spitze + Vector((0, -ms["kopf"], -ms["kopf"] * (0.7 if ochse else 1.2)))
-        nt.ast(n, st, spitze, kopf_ende, r * 0.42, r * 0.3, stoff=fell, n=7)
-        nt.ast(n, st, kopf_ende, kopf_ende + Vector((0, -0.04, -0.02)), r * 0.31, r * 0.25, stoff=fell2, n=7)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Wagenkasten, Ladung, Plane
+# ─────────────────────────────────────────────────────────────────────────────
+
+def kasten(n, st, halb, y0, y1, zf, hw, bretter, d=0.045, pfosten=True):
+    """Wagenkasten: Boden (Oberkante zf), Seitenwände aus `bretter` übereinanderliegenden Bohlen (jede zweite 6 mm weiter außen, damit sich
+    die Kanten abzeichnen), Stirnwände, Eckpfosten und mittlere Pfosten, senkrechte Eisenbänder."""
+    ym = (y0 + y1) / 2
+    n.quader((0, ym, zf - 0.03), (2 * (halb + d), y1 - y0, 0.06), st["Holz alt"])
+    hb = hw / bretter
+    for sx in (-1, 1):
+        for i in range(bretter):
+            versatz = 0.006 * (i % 2)
+            n.quader((sx * (halb + d / 2 + versatz), ym, zf + hb * i + hb / 2), (d, y1 - y0, hb - 0.004),
+                     st["Bretter"] if i % 2 else st["Holz alt"])
+    for sy, y in ((-1, y0), (1, y1)):
+        for i in range(bretter):
+            versatz = 0.006 * (i % 2)
+            n.quader((0, y + sy * (d / 2 + versatz), zf + hb * i + hb / 2), (2 * (halb + d), d, hb - 0.004),
+                     st["Holz alt"] if i % 2 else st["Bretter"])
+    if pfosten:
+        pz = (zf - 0.04, zf + hw + 0.06)
+        ph = pz[1] - pz[0]
+        mitten = [y0, y1] + ([ym] if (y1 - y0) > 2.0 else [])
         for sx in (-1, 1):
-            if ochse:                                               # Hörner
-                nt.ast(n, st, spitze + Vector((sx * 0.12, 0, 0.1)), spitze + Vector((sx * 0.38, 0.05, 0.25)), 0.05, 0.015,
-                       stoff="Horn", n=5)
-            else:                                                   # Ohren
-                nt.ast(n, st, spitze + Vector((sx * 0.07, 0.05, 0.08)), spitze + Vector((sx * 0.09, 0.08, 0.22)), 0.035,
-                       0.01, stoff=fell, n=4)
-            n.quader(spitze + Vector((sx * r * 0.36, -ms["kopf"] * 0.3, -0.02)), (0.02, 0.05, 0.05), st["Auge"])
-        if not ochse:                                               # Mähne
-            nt.ast(n, st, hals + Vector((0, 0.05, r * 0.6)), spitze + Vector((0, 0.08, r * 0.35)), 0.05, 0.04,
-                   stoff=fell2, n=4)
-    for vorn, sy in (("V", -1), ("H", 1)):
-        for seite, sx in (("L", 1), ("R", -1)):
-            fuss = m + Vector((sx * r * 0.6, sy * lang * 0.78, -r * 0.5))
-            with t.an(f"{tier}_Bein{vorn}{seite}") as n:
-                knie = Vector((fuss.x, fuss.y, (fuss.z + 0.04) / 2))
-                nt.ast(n, st, fuss + Vector((0, 0, 0.12)), knie, r * 0.38, r * 0.24, stoff=fell, n=6)
-                nt.ast(n, st, knie, Vector((fuss.x, fuss.y, 0.12)), r * 0.22, r * 0.2, stoff=fell, n=6)
-                nt.ast(n, st, Vector((fuss.x, fuss.y, 0.12)), Vector((fuss.x, fuss.y - 0.02, 0.0)), r * 0.22, r * 0.25,
-                       stoff=fell2 if not ochse else "Pferd dunkel", n=6)
-    schwanz = m + Vector((0, lang, 0.1))
-    with t.an(f"{tier}_Schwanz") as n:
-        nt.ast(n, st, schwanz, schwanz + Vector((0, 0.1, -0.6)), 0.04, 0.03, stoff=fell, n=4)
-        nt.ast(n, st, schwanz + Vector((0, 0.1, -0.5)), schwanz + Vector((0, 0.12, -0.75)), 0.07, 0.03,
-               stoff=fell2 if not ochse else "Pferd dunkel", n=5)
-    return t.objekt(ske)
+            for y in mitten:
+                yy = y + (-d if y == y0 else d if y == y1 else 0)
+                n.quader((sx * (halb + d + 0.012), yy, pz[0] + ph / 2), (0.07, 0.07, ph), st["Holz"])
+        for sx in (-1, 1):                                          # senkrechte Eisenbänder an den Seitenwänden
+            for y in (y0 + (y1 - y0) * 0.28, y0 + (y1 - y0) * 0.72):
+                n.quader((sx * (halb + d + 0.012), y, zf + hw / 2 - 0.02), (0.012, 0.06, hw + 0.02), st["Eisen"])
+        for sx in (-1, 1):                                          # Eisenwinkel an den vorderen Ecken
+            n.quader((sx * (halb + d + 0.047), y0 - d, zf + hw + 0.05), (0.012, 0.14, 0.03), st["Eisen"])
 
 
-def ladung_bauen(art, i, st, ske):
-    """Ladung einer Sorte: ein Abschnitt des Wagenbetts (vorn, Mitte, hinten)."""
-    d = ARTEN[art]
-    y0, y1, h = d["bett"]
-    abschnitt = (y1 - y0) / d["sorten"]
-    ya, yb = y0 + abschnitt * i + 0.08, y0 + abschnitt * (i + 1) - 0.08
-    ym = (ya + yb) / 2
-    b = d["breite"] - 0.1
-    t = fg.Teile(f"Ladung{i + 1}")
-    with t.an("Wurzel") as n:
-        art_ladung = i % 3
-        if art_ladung == 0:                                         # Kisten
-            for k, (x, dy, hh) in enumerate(((-b / 2, -0.1, 0.42), (b / 2, 0.1, 0.36), (0, 0.0, 0.3))):
-                z = h + 0.04 + (0.0 if k < 2 else 0.4)
-                n.quader((x * 0.9, ym + dy * abschnitt * 0.4, z + hh / 2), (b * 0.85, (yb - ya) * 0.75, hh), st["Holz"])
-                n.quader((x * 0.9, ym + dy * abschnitt * 0.4, z + hh / 2), (b * 0.86, 0.05, hh + 0.01), st["Eisen"])
-        elif art_ladung == 1:                                       # Säcke
-            for k in range(4):
-                x = (-0.5 + (k % 2)) * b * 0.9
-                y = ya + (yb - ya) * (0.3 + 0.4 * (k // 2))
-                lb.saeule(n, st, (x, y, h + 0.04), 0.22, 0, 0.42, "Sack", n=7)
-                nt.krone(n, st, (x, y, h + 0.5), 0.2, 0.08, saat=k, stoffe=("Sack", "Sack"), n=6, flach_unten=0.0)
-        else:                                                       # Fässer
-            for k in range(2):
-                bs.fass(n, st, Vector(((-0.5 + k) * b * 0.9, ym, h + 0.04)), r=min(0.3, b * 0.45), h=0.7)
-    return t.objekt(ske)
+def fass(n, st, fuss, r, h):
+    """Fass: bauchiger Achtkant aus Holz (drei Abschnitte) mit drei Eisenreifen, Deckel oben."""
+    x, y, z = fuss
+    stufen = ((0.0, 0.92), (0.25, 0.99), (0.5, 1.0), (0.75, 0.99), (1.0, 0.92))
+    for (t0, f0), (t1, f1) in zip(stufen, stufen[1:]):
+        rohr(n, st, (x, y, z + h * t0), (x, y, z + h * t1), r * f0, r * f1, "Holz", seiten=8, kappen=(False, t1 == 1.0))
+    for t in (0.14, 0.5, 0.86):
+        f = 0.92 + 0.08 * (1 - abs(t - 0.5) * 2) ** 0.5 if t != 0.5 else 1.0
+        rohr(n, st, (x, y, z + h * t - 0.025), (x, y, z + h * t + 0.025), r * f + 0.012, r * f + 0.012, "Eisen", seiten=8, kappen=(False, False))
 
 
-def plane_bauen(art, st, ske):
-    """Plane über der ganzen Ladung, in der Hausfarbe, mit Stricken."""
-    d = ARTEN[art]
-    y0, y1, h = d["bett"]
-    b = d["breite"] + 0.04
-    t = fg.Teile("Plane")
-    with t.an("Wurzel") as n:
-        z0, z1 = h + 0.55, h + 1.0
-        profil = [(-b, z0), (b, z0), (b * 0.7, z1 - 0.1), (0, z1), (-b * 0.7, z1 - 0.1)]
-        m = Matrix.Rotation(math.radians(90), 4, "Z")
-        n.prisma([(x, z) for x, z in profil], y0 + 0.05, y1 - 0.05, st["Hausfarbe"], matrix=m)
-        for k in range(3):
-            y = y0 + (y1 - y0) * (k + 1) / 4
-            n.stab((-b - 0.01, y, z0), (b + 0.01, y, z0), 0.03, 0.03, st["Seil"])
-    return t.objekt(ske)
+def ladung(art, i, st, maße):
+    """Ladung einer Sorte: ein Abschnitt des Wagenbetts. Sorte 0 Kisten, 1 Säcke, 2 Fässer."""
+    halb, y0, y1, zf, hw = maße
+    abschnitt = (y1 - y0) / ARTEN_SORTEN[art]
+    ya, yb = y0 + abschnitt * i + 0.1, y0 + abschnitt * (i + 1) - 0.1
+    ym, br = (ya + yb) / 2, halb - 0.06
+    n = bs.Netz(f"Ladung{i + 1}")
+    z0 = zf + 0.01
+    if i % 3 == 0:                                                  # Kisten, zwei unten, eine oben
+        tiefe = (yb - ya) * 0.8
+        for k, x in enumerate((-br / 2, br / 2)):
+            n.quader((x, ym, z0 + 0.2), (br * 0.92, tiefe, 0.4), st["Holz"])
+            n.quader((x, ym - tiefe * 0.3, z0 + 0.2), (br * 0.93, 0.05, 0.41), st["Eisen"])
+            n.quader((x, ym + tiefe * 0.3, z0 + 0.2), (br * 0.93, 0.05, 0.41), st["Eisen"])
+        if art != "hand":
+            n.quader((0, ym, z0 + 0.4 + 0.15), (br * 0.8, tiefe * 0.8, 0.3), st["Holz alt"])
+            n.quader((0, ym - tiefe * 0.25, z0 + 0.4 + 0.15), (br * 0.81, 0.04, 0.31), st["Eisen"])
+    elif i % 3 == 1:                                                # Säcke
+        for k in range(4):
+            x = (-0.5 + (k % 2)) * br * 0.95
+            y = ya + (yb - ya) * (0.3 + 0.4 * (k // 2))
+            for a, b, r0, r1 in (((x, y, z0), (x, y, z0 + 0.2), 0.17, 0.24), ((x, y, z0 + 0.2), (x, y, z0 + 0.4), 0.24, 0.22),
+                                 ((x, y, z0 + 0.4), (x, y, z0 + 0.52), 0.22, 0.09)):
+                rohr(n, st, a, b, r0, r1, "Sack", seiten=7, kappen=(False, a[2] == z0 + 0.4))
+        if art == "pferd":
+            for x in (-br * 0.25, br * 0.25):
+                rohr(n, st, (x, ym - 0.2, z0 + 0.5), (x, ym + 0.2, z0 + 0.5), 0.2, 0.2, "Sack", seiten=7)
+    else:                                                           # Fässer
+        for k in range(2):
+            fass(n, st, ((-0.5 + k) * br * 0.95, ym, z0), min(0.3, br * 0.45), 0.72)
+    o = n.objekt()
+    return bs.zustand(o)
 
 
-def anker(art):
-    d = ARTEN[art]
-    y0, y1, h = d["bett"]
-    if art == "hand":
-        return [bs.anker("Anker_Zieher", (0, y0 - 1.0, 0.0), 180.0)]       # Blick in Fahrtrichtung (-Y)
-    if art == "ochse":
-        m = tier_lage(art, "Ochse")
-        return [bs.anker("Anker_Treiber", (1.05, m.y + 0.2, 0.0), 180.0)]
-    return [bs.anker("Anker_Kutscher", (0, y0 - 0.25, h + 0.49), 180.0)]
+def plane(art, st, maße, hoch, verlaengerung=0.04):
+    """Plane (Hausfarbe) über der ganzen Ladung: Gewölbe mit sieben Seiten, rundum zu, nur die Unterseite fehlt."""
+    halb, y0, y1, zf, hw = maße
+    n = bs.Netz("Plane")
+    bw = halb + 0.075
+    z0 = zf + hw - 0.04
+    zr = zf + hoch
+    h = zr - z0
+    profil = [(-bw, z0), (bw, z0), (bw * 0.94, z0 + h * 0.28), (bw * 0.66, z0 + h * 0.74), (0, zr),
+              (-bw * 0.66, z0 + h * 0.74), (-bw * 0.94, z0 + h * 0.28)]
+    m = Matrix.Rotation(math.radians(90), 4, "Z")
+    n.prisma(profil, y0 - verlaengerung, y1 + verlaengerung, st["Hausfarbe"], matrix=m)
+    return bs.zustand(n.objekt())
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Bewegungen
-# ─────────────────────────────────────────────────────────────────────────────
-
-def haltung(art, name, phase):
-    """{Knochen: (x, y, z) Grad}, Wippen des Wagens (m). Räder drehen um ihre Achse (lokales Y = entlang der Achse)."""
-    d = ARTEN[art]
-    s = math.sin(2 * math.pi * phase)
-    r = {}
-    wippen = 0.0
-    if name == "Fahren":
-        for i in range(len(d["achsen"])):
-            r[f"Achse{i + 1}"] = (0, -360 * phase, 0)              # vorwärts (-Y) rollen
-        wippen = 0.015 * abs(math.sin(4 * math.pi * phase))
-        r["Wurzel"] = (0.6 * math.sin(4 * math.pi * phase), 0, 0.5 * s)
-        # Tiere: zwei Schritte je Schleife im Kreuzgang (diagonale Beine gemeinsam)
-        for tier in d["tiere"]:
-            versatz = 0.25 if tier == "Pferd2" else 0.0
-            w = math.sin(2 * math.pi * (2 * phase + versatz))
-            for bein, vz in (("VL", 1), ("HR", 1), ("VR", -1), ("HL", -1)):
-                r[f"{tier}_Bein{bein}"] = (-22 * w * vz, 0, 0)
-            r[f"{tier}_Kopf"] = (6 * math.sin(2 * math.pi * (4 * phase + versatz)), 0, 0)
-            r[f"{tier}_Rumpf"] = (0, 2 * w, 0)
-            r[f"{tier}_Schwanz"] = (0, 0, 12 * math.sin(2 * math.pi * (2 * phase + versatz)))
-    else:                                                           # Stehen
-        for tier in d["tiere"]:
-            versatz = 0.4 if tier == "Pferd2" else 0.0
-            nicken = max(0.0, math.sin(2 * math.pi * (phase + versatz))) ** 3
-            r[f"{tier}_Kopf"] = (-18 * nicken, 0, 6 * math.sin(2 * math.pi * (phase + versatz)))
-            r[f"{tier}_Schwanz"] = (0, 0, 30 * math.sin(2 * math.pi * (3 * phase + versatz)) * (phase % 0.5 < 0.25))
-            r[f"{tier}_BeinHL"] = (4 * nicken, 0, 0)
-    return {k: tuple(math.radians(v) for v in w) for k, w in r.items()}, wippen
+def wimpel(st, fuss, hoehe):
+    """Pfosten am Wagenkasten und Wimpel in der Hausfarbe; der Pfosten gehört zum Wagenkasten (Aufruf in karren_netz), das Tuch ist der Knoten."""
+    n = bs.Netz("Wimpel")
+    f = Vector(fuss)
+    spitze = f + Vector((0, 0, hoehe))
+    a, b, c = spitze, spitze - Vector((0, 0, 0.24)), spitze + Vector((0, 0.62, -0.1))
+    for s in (1, -1):                                         # zwei Lagen im Abstand von 6 mm: Vorder- und Rückseite flimmern nicht
+        v = Vector((s * 0.003, 0, 0))
+        n.vieleck_nach([a + v, b + v, c + v], Vector((s, 0, 0)), st["Hausfarbe"])
+    return n.objekt()
 
 
-def pose_setzen(ob, pose, wippen):
-    for pb in ob.pose.bones:
-        pb.rotation_euler = pose.get(pb.name, (0.0, 0.0, 0.0))
-        pb.location = (0.0, 0.0, 0.0)
-    ob.pose.bones["Wurzel"].location = (0.0, wippen, 0.0)
-
-
-def bewegungen_anlegen(ob, art):
-    import bpy
-    ob.animation_data_create()
-    for name, dauer in DAUER.items():
-        bilder = int(round(dauer * FPS))
-        act = bpy.data.actions.new(name)
-        ob.animation_data.action = act
-        for f in range(0, bilder + 1, 1 if name == "Fahren" else 2):
-            pose_setzen(ob, *haltung(art, name, (f % bilder) / bilder if f < bilder else 1.0 if name == "Fahren" else 0.0))
-            for pb in ob.pose.bones:
-                pb.keyframe_insert("rotation_euler", frame=f + 1)
-            ob.pose.bones["Wurzel"].keyframe_insert("location", frame=f + 1)
-        if name == "Fahren":                                         # Räder gleichmäßig (sonst bremst die Kurve)
-            for fc in _kurven(act):
-                for kp in fc.keyframe_points:
-                    kp.interpolation = "LINEAR"
-        spur = ob.animation_data.nla_tracks.new()
-        spur.name = name
-        spur.strips.new(name, 1, act)
-        ob.animation_data.action = None
-    pose_setzen(ob, *haltung(art, "Stehen", 0.0))
-
-
-def _kurven(act):
-    """F-Kurven einer Aktion (Blender 5: in Ebenen und Streifen)."""
-    if hasattr(act, "fcurves"):
-        return list(act.fcurves)
-    kurven = []
-    for ebene in act.layers:
-        for streifen in ebene.strips:
-            for bag in streifen.channelbags:
-                kurven += list(bag.fcurves)
-    return kurven
+def stange(n, st, fuss, hoehe, stoff="Holz", r=0.022):
+    rohr(n, st, fuss, (fuss[0], fuss[1], fuss[2] + hoehe), r, r * 0.8, stoff, seiten=6)
+    n.quader((fuss[0], fuss[1], fuss[2] + hoehe + 0.012), (0.05, 0.05, 0.024), st["Eisen"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Ausgabe
+#  Die drei Karren
 # ─────────────────────────────────────────────────────────────────────────────
 
-def bauen(art, st):
-    ske = skelett(art)
-    objekte = [ske, karren_bauen(art, st, ske)]
-    for tier in ARTEN[art]["tiere"]:
-        objekte.append(tier_bauen(art, tier, st, ske))
-    for i in range(ARTEN[art]["sorten"]):
-        o = ladung_bauen(art, i, st, ske)
-        o["teil"], o["sichtbar"] = True, False
-        objekte.append(o)
-    o = plane_bauen(art, st, ske)
-    o["teil"], o["sichtbar"] = True, False
-    objekte.append(o)
-    return ske, objekte + anker(art)
+ARTEN_SORTEN = {"hand": 1, "ochse": 2, "pferd": 3}
+
+
+def hand(st):
+    zf, halb, y0, y1, hw = 0.64, 0.46, -0.8, 0.8, 0.30
+    maße = (halb, y0, y1, zf, hw)
+    r, spur = 0.45, 0.62
+    n = bs.Netz("Karren")
+    kasten(n, st, halb, y0, y1, zf, hw, 2)
+    # Achsbalken und Achsnägel
+    balken(n, st, (-spur - 0.09, 0, r), (spur + 0.09, 0, r), 0.08, 0.08, "Holz", quer=(0, 1, 0))
+    for s in (-1, 1):
+        n.quader((s * (spur + 0.115), 0, r), (0.03, 0.05, 0.05), st["Eisen"])
+    # Langhölzer unter dem Boden, vorn als Zugholme nach vorn verlängert (der Handkarren wird gezogen); die Holme steigen auf Griffhöhe
+    # und laufen zur Zugstange zusammen, an der der Zieher steht (Anker_Ziehen)
+    zug_y, zug_z = -2.35, 0.86
+    for s in (-1, 1):
+        balken(n, st, (s * 0.38, y0 + 0.1, 0.545), (s * 0.38, y1, 0.545), 0.07, 0.07, "Holz")
+        balken(n, st, (s * 0.38, y0 + 0.1, 0.545), (s * 0.26, zug_y, zug_z), 0.07, 0.07, "Holz", ohne=("+x",))
+        n.quader((s * 0.38, y1, 0.545), (0.085, 0.04, 0.085), st["Eisen"])
+    # Zugstange quer zwischen den Holmenden (die Hände des Ziehers), Eisenbeschlag an den Enden
+    rohr(n, st, (-0.34, zug_y, zug_z), (0.34, zug_y, zug_z), 0.03, 0.03, "Holz", seiten=8)
+    for s in (-1, 1):
+        rohr(n, st, (s * 0.255, zug_y, zug_z), (s * 0.285, zug_y, zug_z), 0.04, 0.04, "Eisen", seiten=8)
+    # Strebe unter der Zugstange (Quersprosse zwischen den Holmen)
+    rohr(n, st, (-0.33, -1.5, 0.74), (0.33, -1.5, 0.74), 0.027, 0.027, "Holz", seiten=6)
+    # Eisenbänder um die Achsstütze und Winkel am Boden
+    for s in (-1, 1):
+        n.quader((s * 0.38, 0.0, 0.545), (0.085, 0.05, 0.085), st["Eisen"])
+        n.quader((s * 0.38, y0 + 0.1, 0.545), (0.085, 0.04, 0.085), st["Eisen"])
+    karren = n.objekt()
+    objekte = [karren, rad_objekt(st, "Rad_L", r, 0.075, (spur, 0, r), 0), rad_objekt(st, "Rad_R", r, 0.075, (-spur, 0, r), 1)]
+    for i in range(ARTEN_SORTEN["hand"]):
+        objekte.append(ladung("hand", i, st, maße))
+    objekte.append(plane("hand", st, maße, 0.7))
+    # Stützbeine vorn
+    sn = bs.Netz("Stuetze")
+    for s in (-1, 1):
+        balken(sn, st, (s * 0.38, y0 + 0.14, 0.56), (s * 0.38, y0 - 0.08, 0.0), 0.07, 0.07, "Holz", ohne=("+x", "-x"))
+        sn.quader((s * 0.38, y0 - 0.095, 0.015), (0.09, 0.12, 0.03), st["Eisen"])
+    balken(sn, st, (-0.38, y0 + 0.06, 0.25), (0.38, y0 + 0.06, 0.25), 0.05, 0.05, "Holz", quer=(0, 1, 0), ohne=("+x", "-x"))
+    objekte.append(bs.zustand(sn.objekt()))
+    objekte += [bs.anker("Anker_Ziehen", (0, zug_y - 0.285, 0.0), 180.0),
+                bs.anker("Anker_Zug_L", (0.22, zug_y, zug_z), 180.0),
+                bs.anker("Anker_Zug_R", (-0.22, zug_y, zug_z), 180.0)]
+    return objekte
+
+
+def tiefe_deichsel(n, st, x, ya, yb, za, zb, breite=0.09, dicke=0.08):
+    balken(n, st, (x, ya, za), (x, yb, zb), breite, dicke, "Holz", quer=(1, 0, 0))
+
+
+def ochse(st):
+    zf, halb, y0, y1, hw = 0.95, 0.72, -1.2, 1.2, 0.5
+    maße = (halb, y0, y1, zf, hw)
+    r, spur = 0.72, 0.90
+    tip_y, tip_z = -4.7, 1.56          # Höhe des Jochs des Ochsen im Ziehen (tier_ochse_*, anker_ziehen_godot: 1,56 m); 1 m mehr Abstand zum Wagen
+    holm_y, holm_z = tip_y + 0.3, 0.85  # die Holme laufen tief und seitlich (x = ±0,62) am Tier vorbei und enden an Zugsträngen zum Joch
+    n = bs.Netz("Karren")
+    kasten(n, st, halb, y0, y1, zf, hw, 3)
+    balken(n, st, (-spur - 0.1, 0, r), (spur + 0.1, 0, r), 0.1, 0.1, "Holz", quer=(0, 1, 0))
+    for s in (-1, 1):
+        n.quader((s * (spur + 0.125), 0, r), (0.03, 0.06, 0.06), st["Eisen"])
+        n.quader((s * (spur - 0.12), 0, r), (0.06, 0.12, 0.12), st["Eisen"])                 # Achskappen innen
+    # Gabeldeichsel: Langhölzer unter dem Boden, vorn auf Halshöhe des Ochsen hochgezogen, am Ende das Joch
+    for s in (-1, 1):
+        tiefe_deichsel(n, st, s * 0.50, y1 - 0.05, y0, 0.845, 0.845, 0.1, 0.09)
+        balken(n, st, (s * 0.50, y0, 0.845), (s * 0.62, holm_y, holm_z), 0.1, 0.085, "Holz", quer=(1, 0, 0), ohne=("+x",))
+        rohr(n, st, (s * 0.62, holm_y, holm_z), (s * 0.50, tip_y, tip_z), 0.034, 0.034, "Holz alt", seiten=6)      # Zugstrang zum Joch (graubraunes Holz bzw. Hanf, mit Maserung der Bibliothek)
+        n.quader((s * 0.50, y0 - 0.2, 0.9), (0.115, 0.05, 0.12), st["Eisen"])                 # Eisenband am Knick
+        n.quader((s * 0.50, 0.0, 0.845), (0.115, 0.06, 0.115), st["Eisen"])
+    # Querholz zwischen den Gabelarmen
+    balken(n, st, (-0.5, y0 - 0.15, 0.9), (0.5, y0 - 0.15, 0.9), 0.07, 0.07, "Holz", quer=(0, 1, 0))      # dicht am Wagen: Platz für den Schwanz des Ochsen
+    # Wimpelstange am linken vorderen Eckpfosten
+    stange(n, st, (halb + 0.045 + 0.012, y0 - 0.045, zf + hw + 0.06), 0.9)
+    objekte = [n.objekt()]
+    objekte += [rad_objekt(st, "Rad_L", r, 0.1, (spur, 0, r), 0), rad_objekt(st, "Rad_R", r, 0.1, (-spur, 0, r), 1)]
+    for i in range(ARTEN_SORTEN["ochse"]):
+        objekte.append(ladung("ochse", i, st, maße))
+    objekte.append(plane("ochse", st, maße, 0.98))
+    objekte.append(wimpel(st, (halb + 0.045 + 0.012, y0 - 0.045, zf + hw + 0.06 + 0.9 + 0.012), 0.0))
+    # Kein Joch am Karren: Das Nackenjoch gehört zum Zugtier (tier_ochse_*), die Gabel endet an seiner Mitte (Anker_Deichsel).
+    # Stützbock unter der Gabel
+    sn = bs.Netz("Stuetze")
+    for s in (-1, 1):
+        zg = 0.845 + (holm_z - 0.845) * (-2.4 - y0) / (holm_y - y0)
+        balken(sn, st, (s * 0.52, -2.4, zg - 0.03), (s * 0.5, -2.4, 0.0), 0.08, 0.08, "Holz", ohne=("+x", "-x"))
+        sn.quader((s * 0.5, -2.4, 0.015), (0.1, 0.12, 0.03), st["Eisen"])
+    balken(sn, st, (-0.5, -2.4, 0.4), (0.5, -2.4, 0.4), 0.06, 0.06, "Holz", quer=(0, 1, 0), ohne=("+x", "-x"))
+    objekte.append(bs.zustand(sn.objekt()))
+    objekte += [bs.anker("Anker_Deichsel", (0, tip_y, tip_z), 180.0),
+                bs.anker("Anker_Fahrer_Seite", (1.2, tip_y + 0.2, 0.0), 180.0)]
+    return objekte
+
+
+def pferd(st):
+    zf, halb, y0, y1, hw = 1.0, 0.78, -2.45, 0.55, 0.6
+    maße = (halb, y0, y1, zf, hw)
+    r_h, r_v, spur = 0.62, 0.5, 1.0
+    y_vorn = -1.9
+    tip_y, tip_z = -7.6, 1.56          # Höhe des Kummets der Pferde im Ziehen (tier_pferd_*, anker_ziehen_godot: 1,56 m)
+    pole_z = 1.05                      # Höhe von Deichselende und Waagscheit (die Zugstränge steigen von dort zu den Kummeten)
+    pole_y = tip_y + 2.4               # Deichselende und Waagscheit liegen 1,3 m hinter den Kummeten (hinter den Tieren), die Zugstränge laufen an den Flanken entlang
+    n = bs.Netz("Karren")
+    kasten(n, st, halb, y0, y1, zf, hw, 4)
+    for y, r in ((0.0, r_h), (y_vorn, r_v)):
+        balken(n, st, (-spur - 0.1, y, r), (spur + 0.1, y, r), 0.09, 0.09, "Holz", quer=(0, 1, 0))
+        for s in (-1, 1):
+            n.quader((s * (spur + 0.125), y, r), (0.03, 0.06, 0.06), st["Eisen"])
+    # Langhölzer unter dem Boden und Achsstützen
+    for s in (-1, 1):
+        balken(n, st, (s * 0.55, y1 - 0.1, 0.895), (s * 0.55, y0 + 0.05, 0.895), 0.09, 0.09, "Holz", quer=(1, 0, 0))
+    for y, r in ((0.0, r_h), (y_vorn, r_v)):
+        n.quader((0, y, (0.895 + r + 0.045) / 2), (1.3, 0.14, 0.895 - r - 0.045 + 0.0), st["Holz"], ohne=("+z",))
+    # Deichsel von der Vorderachse zum Waagscheit, steigt auf Brusthöhe der Pferde
+    balken(n, st, (0, y_vorn + 0.1, 0.62), (0, pole_y, pole_z), 0.14, 0.12, "Holz", quer=(1, 0, 0))
+    n.quader((0, y_vorn, 0.6), (0.2, 0.18, 0.1), st["Eisen"])
+    # Bock: Fußbrett vorn, Stirnbrett, Sitzbrett auf zwei Pfosten, Lehne
+    boden = 1.0
+    n.quader((0, y0 - 0.6, boden - 0.02), (1.3, 1.15, 0.04), st["Holz alt"])                    # Fußbrett
+    n.quader((0, y0 - 1.17, boden + 0.16), (1.3, 0.04, 0.34), st["Bretter"])                    # Spritzbrett
+    for s in (-1, 1):
+        n.quader((s * 0.66, y0 - 0.6, boden + 0.16), (0.05, 1.15, 0.32), st["Holz alt"])       # Seitenbrett des Bocks
+        n.quader((s * 0.4, y0 - 0.55, boden + 0.2), (0.07, 0.07, 0.42), st["Holz"])             # Sitzpfosten
+        n.quader((s * 0.4, y0 - 0.55, boden + 0.42), (0.1, 0.05, 0.05), st["Eisen"])
+    sitz = boden + 0.446
+    n.quader((0, y0 - 0.55, sitz - 0.03 - 0.0), (0.95, 0.38, 0.06), st["Holz"])
+    n.quader((0, y0 - 0.37, sitz + 0.25), (0.95, 0.045, 0.34), st["Holz alt"])                    # Lehne
+    for s in (-1, 1):
+        n.quader((s * 0.46, y0 - 0.37, sitz + 0.2), (0.05, 0.07, 0.44), st["Holz"])
+    # Wimpelstange links vorn am Kasten
+    stange(n, st, (halb + 0.045 + 0.012, y1 + 0.045, zf + hw + 0.06), 1.0)
+    objekte = [n.objekt()]
+    objekte += [rad_objekt(st, "Rad_HL", r_h, 0.1, (spur, 0, r_h), 0), rad_objekt(st, "Rad_HR", r_h, 0.1, (-spur, 0, r_h), 1),
+                rad_objekt(st, "Rad_VL", r_v, 0.09, (spur, y_vorn, r_v), 2), rad_objekt(st, "Rad_VR", r_v, 0.09, (-spur, y_vorn, r_v), 0)]
+    for i in range(ARTEN_SORTEN["pferd"]):
+        objekte.append(ladung("pferd", i, st, maße))
+    objekte.append(plane("pferd", st, maße, 1.15))
+    objekte.append(wimpel(st, (halb + 0.045 + 0.012, y1 + 0.045, zf + hw + 0.06 + 1.0 + 0.012), 0.0))
+    # Decke auf der Sitzfläche
+    dn = bs.Netz("Decke")
+    dn.quader((0, y0 - 0.55, sitz + 0.0), (0.97, 0.4, 0.024), st["Hausfarbe"])
+    dn.quader((0, y0 - 0.55 - 0.205, sitz - 0.1), (0.97, 0.024, 0.2), st["Hausfarbe"])
+    objekte.append(dn.objekt())
+    # Waagscheit am Deichselende: Querholz mit Eisenkappen, daran die Zugstränge (schwarzes Leder, 5 cm dick, mit Eisenringen) außen an den
+    # Flanken der Pferde entlang zu den Kummeten (Ziehpunkt am Hamen, 0,22 m tiefer als die Kummetmitte)
+    wn = bs.Netz("Waage")
+    ws = 1.10                                    # halbe Länge des Waagscheits: Zugstränge verlaufen außerhalb der Flanken (Pferd 0,62 ± 0,44 m; Zugring am Hamen bei 1,12 m)
+    rohr(wn, st, (-ws, pole_y, pole_z), (ws, pole_y, pole_z), 0.05, 0.05, "Holz", seiten=8)
+    wn.quader((0, pole_y - 0.02, pole_z), (0.16, 0.18, 0.15), st["Eisen"])
+    for s in (-1, 1):
+        wn.quader((s * ws, pole_y, pole_z), (0.07, 0.11, 0.11), st["Eisen"])
+        grund = [(s * ws, pole_y - 0.04, pole_z), (s * 1.13, pole_y - 1.0, pole_z + 0.14), (s * 1.14, tip_y + 0.95, tip_z - 0.22),
+                 (s * 1.14, tip_y + 0.40, tip_z - 0.08), (s * 1.15, tip_y, tip_z)]
+        pfad = []                                                                              # 17 Punkte entlang des Grundwegs, dazu Durchhang (Kettenlinie, 5 cm in der Mitte)
+        for i in range(16):
+            u = i / 15.0
+            f = u * (len(grund) - 1)
+            j = min(len(grund) - 2, int(f))
+            q = [grund[j][k] + (grund[j + 1][k] - grund[j][k]) * (f - j) for k in range(3)]
+            q[2] -= 0.05 * 4 * u * (1 - u)
+            pfad.append(tuple(q))
+        for a_, b_ in zip(pfad[:-1], pfad[1:]):
+            rohr(wn, st, a_, b_, 0.03, 0.03, "Kohle", seiten=6)
+        for q in (pfad[4], pfad[8], pfad[12]):
+            wn.quader(q, (0.075, 0.075, 0.075), st["Eisen"])                                  # Eisenring (Kettenglied)
+        wn.quader(pfad[-1], (0.08, 0.06, 0.08), st["Eisen"])                                 # Haken am Hamen
+    objekte.append(wn.objekt())
+    sn = bs.Netz("Stuetze")
+    for s in (-1, 1):
+        zg = 0.62 + (pole_z - 0.62) * (-4.0 - (y_vorn + 0.1)) / (pole_y - (y_vorn + 0.1))
+        balken(sn, st, (s * 0.1, -4.0, zg - 0.03), (s * 0.12, -4.0, 0.0), 0.08, 0.08, "Holz", ohne=("+x", "-x"))
+        sn.quader((s * 0.12, -4.0, 0.015), (0.1, 0.12, 0.03), st["Eisen"])
+    objekte.append(bs.zustand(sn.objekt()))
+    objekte += [bs.anker("Anker_Deichsel", (0, tip_y, tip_z), 180.0),
+                bs.anker("Anker_Deichselende", (0, pole_y, pole_z), 180.0),
+                bs.anker("Anker_Pferd_L", (0.62, tip_y, tip_z), 180.0),
+                bs.anker("Anker_Pferd_R", (-0.62, tip_y, tip_z), 180.0),
+                bs.anker("Anker_Bock", (0, y0 - 0.55, sitz), 180.0)]
+    return objekte
+
+
+BAUER = {"hand": hand, "ochse": ochse, "pferd": pferd}
+
+
+def bauen(art):
+    bs.neue_szene()
+    return BAUER[art](bs.Stoffe())
 
 
 def main():
-    schnell = "--schnell" in sys.argv
+    bs.unterordner = lambda name: ORDNER                      # eigene Dateien unter assets/modelle/karren/
+    bs.BIBLIOTHEK_JE_FLAECHE = True
+    behalten = set(bs.BENANNTE_STOFFE)
     for art in ARTEN:
-        bs.neue_szene()
-        st = bs.Stoffe()
-        ske, objekte = bauen(art, st)
-        bewegungen_anlegen(ske, art)
-        print(f"\nkarren_{art}: Dreiecke")
-        for o in objekte:
-            if o.type == "MESH":
-                o.data.calc_loop_triangles()
-                print(f"  {o.name:10s} {len(o.data.loop_triangles):5d}")
-        print("geschrieben:", fg.exportieren("karren_" + art, objekte), f"(Weg je Schleife „Fahren“: {WEG[art]:.2f} m)")
-    if "--ohne-bilder" not in sys.argv:
-        vorschau(schnell)
-
-
-def vorschau(schnell):
-    """Oben: alle drei Karren beladen und mit Plane im Stand. Darunter: je Karren vier Phasen „Fahren“, leer."""
-    import bpy
-    bs.neue_szene()
-    st = bs.Stoffe()
-    sichtbar = []
-    for zeile, art in enumerate(ARTEN):
-        for spalte, (name, phase, voll) in enumerate((("Stehen", 0.0, True), ("Fahren", 0.0, False),
-                                                      ("Fahren", 0.25, False), ("Fahren", 0.5, False))):
-            ske, objekte = bauen(art, st)
-            sx, sy = (spalte - 1.5) * 5.5, (1 - zeile) * 7.0
-            ske.location = Vector((sx * 0.7071 - sy * 0.7071, sx * 0.7071 + sy * 0.7071, 0))
-            ske.rotation_euler = (0, 0, math.radians(-90))
-            pose_setzen(ske, *haltung(art, name, phase))
-            for o in objekte:
-                if o.type == "MESH" and (voll or not o.get("teil")):
-                    sichtbar.append(o)
-    bs.vorschau_buehne(None, ziel_hoehe=1.0, ausschnitt=26.0, schnell=schnell)
-    print(bs.rendern("karren", lambda o: o in sichtbar))
+        name = "karren_" + art
+        objekte = bauen(art)
+        if "--ohne-bericht" not in sys.argv:
+            bs.bericht(name, objekte, einzeln=True)
+        vorher, nachher = bs.farben_zusammenlegen(objekte, behalten)
+        print(f"  Materialien: {vorher} → {nachher}")
+        print("geschrieben:", bs.exportieren(name, objekte))
 
 
 if __name__ == "__main__":

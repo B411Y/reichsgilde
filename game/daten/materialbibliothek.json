@@ -22,7 +22,8 @@
     {"name": "fels", "kachel": 6.0, "projektion": "wand", "mittel": [0.25483, 0.23329, 0.19657]},
     {"name": "planken", "kachel": 2.0, "projektion": "wand", "mittel": [0.11998, 0.09072, 0.06466]},
     {"name": "laub", "kachel": 1.5, "projektion": "wand", "mittel": [0.03765, 0.06075, 0.01187]},
-    {"name": "nadeln", "kachel": 1.2, "projektion": "wand", "mittel": [0.02145, 0.03266, 0.01008]}
+    {"name": "nadeln", "kachel": 1.2, "projektion": "wand", "mittel": [0.02145, 0.03266, 0.01008]},
+    {"name": "fell", "kachel": 0.5, "projektion": "wand", "mittel": [0.68004, 0.61856, 0.54644]}
   ],
   "namen": {
     "Bruchstein": "bruchstein",
@@ -109,6 +110,18 @@
     "Bohne": "laub",
     "Rasen": "laub",
     "Schlacke": "fels",
-    "Schlacke rot": "fels"
+    "Schlacke rot": "fels",
+    "pferd_rotbraun Fell": "fell",
+    "pferd_rotbraun Dunkel": "fell",
+    "pferd_rotbraun Haar": "fell",
+    "pferd_schwarzbraun Fell": "fell",
+    "pferd_schwarzbraun Dunkel": "fell",
+    "pferd_schwarzbraun Haar": "fell",
+    "ochse_rotbraun Fell": "fell",
+    "ochse_rotbraun Dunkel": "fell",
+    "ochse_rotbraun Haar": "fell",
+    "ochse_falb Fell": "fell",
+    "ochse_falb Dunkel": "fell",
+    "ochse_falb Haar": "fell"
   }
 }

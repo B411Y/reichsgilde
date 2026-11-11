@@ -10,7 +10,7 @@ namespace Reichsgilde;
 /// unverändert in den Lederfarben, mit weichem weißem Schein außen herum – beide Bilder gleich groß mit durchsichtigem Rand, daher gleicher Zeigerpunkt)
 /// und das <b>Türschloss</b> (Bronze mit S-Griff, ebenfalls ohne hellen Rand und mit Außenschein, denn es erscheint nur über Anklickbarem) über einem Gebäude mit Innenraum, das ein Doppelklick öffnet.
 /// Das Steuerknoten-Objekt hängt in der Hauptszene (liest die Stadt) und im Hauptmenü (nur Stufe 1, normal). Die Größe (48, 64 oder 80 Pixel)
-/// folgt der Fensterhöhe und der Größe der Oberfläche. Dazu der <b>Hilfe-Zeiger</b> (Dreieck mit Fragezeichen aus Messing, <c>hilfe_&lt;px&gt;.png</c>, nach einer Vorlage des Nutzers) für <c>CursorShape.Help</c>. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>.
+/// folgt der Fensterhöhe und der Größe der Oberfläche. Dazu der <b>Hilfe-Zeiger</b> (Dreieck mit Fragezeichen aus Messing, <c>hilfe_&lt;px&gt;.png</c>, nach einer Vorlage des Nutzers) für <c>CursorShape.Help</c>. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>. Ab 48 Pixel zeichnet statt der 2D-Bilder der 3D-Handschuh (<see cref="HandschuhZeiger"/>, Einstellung <see cref="Fenster.Handschuh3dAn"/>); der System-Zeiger wird dann unsichtbar, bei Rückfall oder Abschalten gilt wieder das Bild.
 /// </summary>
 public partial class Mauszeiger : Node
 {
@@ -50,7 +50,8 @@ public partial class Mauszeiger : Node
         Bild(stufe, Art.Normal, 48) is { } bild ? new AtlasTexture { Atlas = bild, Region = new Rect2(Scheinrand[0], Scheinrand[0], 48, 48) } : null;
 
     private static Mauszeiger? _aktiv;
-    private static (int Stufe, Art Art, int Groesse, bool An, bool Hilfe)? _gesetzt;
+    private static (int Stufe, Art Art, int Groesse, bool An, bool Hilfe, bool Drei)? _gesetzt;
+    private HandschuhZeiger? _handschuh;
 
     /// <summary>Stand des Hauses (0 = Gemeiner) oder null (kein Spiel, zum Beispiel im Hauptmenü).</summary>
     public Func<int?>? StandAbfrage { get; set; }
@@ -62,6 +63,7 @@ public partial class Mauszeiger : Node
     {
         _aktiv = this;
         ProcessMode = ProcessModeEnum.Always;
+        AddChild(_handschuh = new HandschuhZeiger()); // 3D-Handschuh obenauf (HandschuhZeiger.cs), zeichnet nur, wenn er gilt
     }
 
     public override void _ExitTree()
@@ -87,11 +89,20 @@ public partial class Mauszeiger : Node
         var groesse = an ? GroesseWaehlen() : 0;
         // Fragezeichen nur genau dort, wo das Steuerelement unter der Maus wirklich einen Tooltip hat; sonst trägt der Hilfe-Platz das Bild des Pfeils.
         var hilfeAn = an && !string.IsNullOrEmpty(Tooltips.QuelleFinden(GetViewport().GuiGetHoveredControl()).Text);
-        if (_gesetzt == (stufe, art, groesse, an, hilfeAn)) return;
-        _gesetzt = (stufe, art, groesse, an, hilfeAn);
+        // 3D-Handschuh (ab 48 Pixel, Einstellung, Datei da, kein Rückfall): die Bühne zeichnet ihn, der System-Zeiger wird unsichtbar; sonst wie bisher der 2D-Zeiger.
+        var drei = an && HandschuhZeiger.Wirksam(groesse);
+        _handschuh?.Setze(drei, groesse, art != Art.Normal, hilfeAn);
+        if (_gesetzt == (stufe, art, groesse, an, hilfeAn, drei)) return;
+        _gesetzt = (stufe, art, groesse, an, hilfeAn, drei);
         if (!an)
         {
             ZeigerEntfernen();
+            return;
+        }
+        if (drei)
+        {
+            UnsichtbarSetzen();
+            GD.Print($"[zeiger] 3D-Handschuh {groesse}px über {Beschreibung()}");
             return;
         }
         var bild = Bild(stufe, art, groesse);
@@ -116,6 +127,19 @@ public partial class Mauszeiger : Node
     /// <summary>Wofür der Zustand gilt, fürs Log (Klicktest): Knopf/Tafel, Kennung des Gebäudes oder „Boden“.</summary>
     private string Beschreibung() =>
         GetViewport().GuiGetHoveredControl() is { } steuerung ? $"Steuerelement {steuerung.GetType().Name}" : Stadt?.KennungUnterDerMaus is { } kennung ? $"Kennung {kennung}" : "freiem Boden";
+
+    /// <summary>Für den 3D-Handschuh: Pfeil, Hand und Hilfe des Systems werden ein durchsichtiges Pünktchen (Zeiger bleibt für Godot „da“, die Form wechselt weiter).</summary>
+    private static void UnsichtbarSetzen()
+    {
+        _leer ??= ImageTexture.CreateFromImage(Image.CreateEmpty(2, 2, false, Image.Format.Rgba8));
+        var vorher = Input.GetCurrentCursorShape();
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Help);
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.PointingHand);
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Arrow);
+        if (Input.GetCurrentCursorShape() != vorher) DisplayServer.CursorSetShape((DisplayServer.CursorShape)(int)vorher);
+    }
+
+    private static ImageTexture? _leer;
 
     private static void ZeigerEntfernen()
     {
