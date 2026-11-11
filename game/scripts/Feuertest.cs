@@ -48,6 +48,10 @@ public partial class Feuertest : Node
         new("Esse", FeuerVorgabe.Esse, 2f, 4f, 1.0f, 3.8f, 1.1f),
         new("Kamin", FeuerVorgabe.Kamin, 3.2f, 5f, 3.6f, 11f, 1.6f),
         new("Gebäudebrand", FeuerVorgabe.Gebaeudebrand, 7.5f, 9f, 3.8f, 24f, 3.6f),
+        // Gebäudebrand neu (Auftrag „Feuer überall“): vier Häuser nebeneinander in den Phasen Anfang, Vollbrand, Ausklingen, Glut; ein Haus im Ablauf; alt neben neu
+        new("Brand-Phasen", FeuerVorgabe.Dachbrand, 21f, 12f, 6f, 46f, 5.5f),
+        new("Brand-Ablauf", FeuerVorgabe.Dachherd, 7f, 10f, 5.5f, 24f, 5.5f),
+        new("Alt gegen neu", FeuerVorgabe.Fensterflammen, 14f, 12f, 5.5f, 34f, 5.5f),
     };
 
     private readonly Dictionary<string, string> _optionen = new();
@@ -65,6 +69,10 @@ public partial class Feuertest : Node
     private const float NahNeigung = 10f, StadtNeigung = 40f;
 
     private readonly List<Feuer> _feuer = new();
+    /// <summary>Die Brandhäuser der neuen Gebäudebrände: das Haus, die feste Zeit seit dem Ausbruch in Minuten (null = läuft im Kreis durch den Ablauf) und die Beschriftung der Phase.</summary>
+    private readonly List<(Gebaeudebrand Haus, float? Minute, Label3D Text)> _brandHaeuser = new();
+    private const float BrennMinuten = 120f, GlimmMinuten = 180f;
+    private float _ablaufMinute;
     private readonly List<Node3D> _wurzeln = new();   // je Feuerart ein Aufbau
     private readonly List<Label3D> _beschriftungen = new();
     private float[] _xPaar = Array.Empty<float>();
@@ -96,6 +104,7 @@ public partial class Feuertest : Node
         double.TryParse(Option("feuerzyklus", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _zyklusSekunden);
         _paar = int.TryParse(Option("feuerpaar", "2"), out var p) ? Math.Clamp(p, 1, Paare.Length) - 1 : 1;
 
+        Feuer.EbeneSetzen(GetTree(), 1u);   // wie der Rauchtest: die Testszene hat keinen Pixel-Look, die Flächen der Feuer gehören auf die Standardebene (Verdacht für fehlende Flammen und Rauch, Feuer.Ebene sonst auf der Teilchenebene)
         StoffeBauen();
         UmgebungBauen();
         AddChild(new Kaminrauch());   // der Kamin zeigt den Rauch aus Ballen wie die Stadt (Kaminrauch.cs)
@@ -107,6 +116,11 @@ public partial class Feuertest : Node
         SichtSetzen();
         if (_zyklusSekunden > 0) ZyklusBauen();
         ZeigenSetzen();
+        GD.Print("[feuer] Brandverlauf (Minute: Phase, Flamme, Glut, Rauch, Licht): " + string.Join("; ", new[] { 0f, 6f, 14f, 30f, 60f, 90f, 105f, 118f, 125f, 150f, 250f, 300f, 330f }.Select(m =>
+        {
+            var s = BrandVerlauf.Rechnen(m, BrennMinuten, GlimmMinuten);
+            return $"{m:0}: {s.Phase}, {s.Flamme:0.00}, {s.Glut:0.00}, {s.Rauch:0.00}, {s.Licht:0.00}";
+        })));
         GD.Print($"[feuer] start sicht={_sicht} zeigen={_zeigen} tag={_tag} licht={_licht} paar={Paare[_paar].Name} fackeln={_fackeln} lichter={(_fackelLichter == int.MaxValue ? "alle" : _fackelLichter)} " +
                  $"renderer={RenderingServer.GetCurrentRenderingMethod()} fenster={GetViewport().GetVisibleRect().Size}");
     }
@@ -354,6 +368,25 @@ public partial class Feuertest : Node
                 Kasten(w, new Vector3(0.45f, 1.3f, 0.45f), new Vector3(0.7f, 1.6f, -0.3f), _stein);
                 FeuerSetzen(w, FeuerVorgabe.Kamin, new Vector3(0.7f, 2.92f, -0.3f), false);
                 break;
+            case FeuerVorgabe.Dachbrand:
+                // vier Häuser: Anfang, Vollbrand, Ausklingen, Glut (Minuten seit dem Ausbruch bei 120 Minuten Brennzeit und 180 Schwelzeit)
+                BrandHausSetzen(w, new Vector3(-15f, 0, 0), "Anfang (Minute 14)", 14f, 11, true);
+                BrandHausSetzen(w, new Vector3(-5f, 0, 0), "Vollbrand (Minute 60)", 60f, 12, true);
+                BrandHausSetzen(w, new Vector3(5f, 0, 0), "Ausklingen (Minute 105)", 105f, 13, true);
+                BrandHausSetzen(w, new Vector3(15f, 0, 0), "Glut (Minute 150)", 150f, 14, true);
+                break;
+            case FeuerVorgabe.Dachherd:
+                BrandHausSetzen(w, Vector3.Zero, "Ablauf", null, 21, true);
+                break;
+            case FeuerVorgabe.Fensterflammen:
+                // links das alte Feuer (ein Feuer schwebt über dem Dach, Flammen stehen vor den Fenstern), rechts das neue im Vollbrand
+                HausBauen(w, 6.5f, 3.6f, 5.5f, true);
+                foreach (var kind in w.GetChildren().OfType<MeshInstance3D>().ToList()) kind.Position += new Vector3(-8f, 0, 0);
+                FeuerSetzen(w, FeuerVorgabe.Gebaeudebrand, new Vector3(-8f, 4.6f, 0));
+                FeuerSetzen(w, FeuerVorgabe.Fensterbrand, new Vector3(-9.8f, 1.3f, 2.85f), false);
+                FeuerSetzen(w, FeuerVorgabe.Fensterbrand, new Vector3(-6.2f, 1.3f, 2.85f), false);
+                BrandHausSetzen(w, new Vector3(6f, 0, 0), "neu (Vollbrand)", 60f, 15, true);
+                break;
             case FeuerVorgabe.Gebaeudebrand:
                 HausBauen(w, 6.5f, 3.6f, 5.5f, true);
                 Kasten(w, new Vector3(0.6f, 1.6f, 0.6f), new Vector3(2.0f, 3.6f, -1.2f), _stein);
@@ -362,6 +395,65 @@ public partial class Feuertest : Node
                 FeuerSetzen(w, FeuerVorgabe.Fensterbrand, new Vector3(1.8f, 1.3f, 2.85f), false);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Ein zweigeschossiges Haus für die neuen Gebäudebrände: Wände, Satteldach (First entlang Z), je drei Fenster in zwei Geschossen vorn, zwei an jeder Seite, Tür.
+    /// Gibt die Fenster und die Dachstellen zurück, wie sie das Spiel aus den Modellen liest.
+    /// </summary>
+    private (List<FensterAnker> Fenster, List<DachAnker> Dach) BrandHausBauen(Node3D w, float breite = 8f, float hoehe = 6.2f, float tiefe = 6.4f)
+    {
+        Kasten(w, new Vector3(breite, hoehe, tiefe), Vector3.Zero, Stoff(new Color(0.5f, 0.42f, 0.33f)));
+        var dachHoehe = breite * 0.3f;
+        var halbDach = (breite + 0.6f) * 0.5f;
+        w.AddChild(new MeshInstance3D { Mesh = new PrismMesh { Size = new Vector3(breite + 0.6f, dachHoehe, tiefe + 0.6f) }, MaterialOverride = _dach, Position = new Vector3(0, hoehe + dachHoehe * 0.5f, 0) });
+        var fenster = new List<FensterAnker>();
+        var stoff = Stoff(new Color(0.1f, 0.11f, 0.14f), 0.2f);
+        foreach (var fy in new[] { 0.9f, hoehe * 0.58f })
+        {
+            foreach (var x in new[] { -breite * 0.3f, 0f, breite * 0.3f })
+            {
+                if (fy < 1.5f && Mathf.Abs(x) < 0.1f) continue; // die Tür
+                Kasten(w, new Vector3(0.9f, 1.2f, 0.06f), new Vector3(x, fy, tiefe * 0.5f - 0.02f), stoff);
+                fenster.Add(new FensterAnker(new Vector3(x, fy + 0.6f, tiefe * 0.5f), Vector3.Back, 0.9f, 1.2f));
+            }
+            foreach (var z in new[] { -tiefe * 0.22f, tiefe * 0.22f })
+                foreach (var s in new[] { -1f, 1f })
+                {
+                    Kasten(w, new Vector3(0.06f, 1.2f, 0.9f), new Vector3(s * (breite * 0.5f - 0.02f), fy, z), stoff);
+                    fenster.Add(new FensterAnker(new Vector3(s * breite * 0.5f, fy + 0.6f, z), new Vector3(s, 0, 0), 0.9f, 1.2f));
+                }
+        }
+        Kasten(w, new Vector3(1.0f, 1.9f, 0.08f), new Vector3(0, 0, tiefe * 0.5f - 0.02f), _holz);
+        // Das Dach: zwei Hänge; Punkte nahe dem First (u = 0,8) und tiefer (u = 0,45), längs des Firsts verteilt
+        var dach = new List<DachAnker>();
+        foreach (var (u, z, s) in new[] { (0.7f, 0.1f, 1f), (0.6f, -0.28f, -1f), (0.75f, 0.3f, -1f), (0.55f, -0.3f, 1f), (0.8f, -0.05f, 1f) })
+        {
+            var punkt = new Vector3(s * halbDach * (1f - u), hoehe + dachHoehe * u, z * tiefe);
+            dach.Add(new DachAnker(punkt, new Vector3(s * dachHoehe, halbDach, 0).Normalized(), 1.0f));
+        }
+        return (fenster, dach);
+    }
+
+    /// <summary>Ein Brandhaus mit seinem Gebäudebrand an der Stelle <paramref name="lage"/> (relativ zu <paramref name="w"/>); <paramref name="minute"/> = feste Zeit seit dem Ausbruch, null = Ablauf im Kreis.</summary>
+    private Gebaeudebrand BrandHausSetzen(Node3D w, Vector3 lage, string name, float? minute, int saat, bool mitLicht)
+    {
+        var haus = new Node3D { Name = "Haus_" + name, Position = lage };
+        w.AddChild(haus);
+        var (fenster, dach) = BrandHausBauen(haus);
+        var brand = Gebaeudebrand.Bauen(fenster.Take(7).ToList(), dach.Take(5).ToList(), saat, mitLicht);
+        haus.AddChild(brand);
+        _feuer.AddRange(brand.Feuerknoten);
+        foreach (var f in brand.Feuerknoten) f.LichtSetzen(_licht);
+        var text = new Label3D
+        {
+            Text = name, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, FixedSize = true, NoDepthTest = true, PixelSize = 0.0011f, FontSize = 30, OutlineSize = 8,
+            Modulate = new Color(1f, 0.85f, 0.5f), OutlineModulate = new Color(0, 0, 0, 0.9f), Position = new Vector3(0, 0.05f, 4.6f), RenderPriority = 10,
+        };
+        haus.AddChild(text);
+        _brandHaeuser.Add((brand, minute, text));
+        brand.Setzen(BrandVerlauf.Rechnen(minute ?? 0f, BrennMinuten, GlimmMinuten));
+        return brand;
     }
 
     /// <summary>Ein einfaches Haus: Wände, Satteldach, dunkle Fenster und Tür vorn (nach +Z).</summary>
@@ -486,7 +578,7 @@ public partial class Feuertest : Node
             l.AddThemeFontSizeOverride("font_size", 16);
             ebene.AddChild(l);
         }
-        _hilfe.Text = "1–7 / Pfeile: Feuerart   V: Sicht (nah, Stadt, fern)   N: Nacht/Tag   T: Feuer an/aus   L: Lichter   B: Beschriftung   Esc: Ende\n" +
+        _hilfe.Text = "1–9, 0 / Pfeile: Feuerart   V: Sicht (nah, Stadt, fern)   N: Nacht/Tag   T: Feuer an/aus   L: Lichter   B: Beschriftung   Esc: Ende\n" +
                       "(1–7, Pfeile und V setzen die freie Kamera auf die Ansicht)";
         AnzeigeAktualisieren(0);
     }
@@ -507,7 +599,8 @@ public partial class Feuertest : Node
             case InputEventKey { Pressed: true, Echo: false } k:
                 switch (k.Keycode)
                 {
-                    case >= Key.Key1 and <= Key.Key7: PaarWaehlen((int)k.Keycode - (int)Key.Key1); break;
+                    case >= Key.Key1 and <= Key.Key9: PaarWaehlen((int)k.Keycode - (int)Key.Key1); break;
+                    case Key.Key0: PaarWaehlen(9); break;
                     case Key.Right: PaarWaehlen((_paar + 1) % Paare.Length); break;
                     case Key.Left: PaarWaehlen((_paar + Paare.Length - 1) % Paare.Length); break;
                     case Key.V: _sicht = (Sicht)(((int)_sicht + 1) % 3); SichtSetzen(); AnzeigeAktualisieren(0); break;
@@ -526,6 +619,20 @@ public partial class Feuertest : Node
         }
     }
 
+    /// <summary>Jedes Bild: die Brandhäuser auf ihren Stand stellen (feste Minute oder im Kreis durch den ganzen Ablauf: 5 Spielminuten je Sekunde) und die Phase beschriften.</summary>
+    private void BrandHaeuserStellen(double delta)
+    {
+        if (_brandHaeuser.Count == 0) return;
+        _ablaufMinute = (_ablaufMinute + (float)delta * 5f) % (BrennMinuten + GlimmMinuten + 20f);
+        foreach (var (haus, minute, text) in _brandHaeuser)
+        {
+            var t = minute ?? _ablaufMinute;
+            var stand = BrandVerlauf.Rechnen(t, BrennMinuten, GlimmMinuten);
+            haus.Setzen(stand);
+            if (minute is null) text.Text = $"Ablauf: {stand.Phase}, Minute {t:0} (Flamme {stand.Flamme:0.00}, Glut {stand.Glut:0.00})";
+        }
+    }
+
     private void PaarWaehlen(int i)
     {
         if (_fackeln > 0) return;
@@ -537,6 +644,7 @@ public partial class Feuertest : Node
     public override void _Process(double delta)
     {
         Feuer.UhrStellen(delta);   // auch die Flammen ohne eigenes Licht laufen im Takt
+        BrandHaeuserStellen(delta);
         if (_zyklus.Count > 0)
         {
             _zyklusZeit += delta;

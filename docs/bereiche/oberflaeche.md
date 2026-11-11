@@ -47,6 +47,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (3D-Handschuh, Lizenz) Vom Teamleiter geklärt (10.11.2026): „Alle Rechte vorbehalten"; „Built with DINOv3" steht in der Danksagung. Offen nur noch: Steam-KI-Angabe bei Veröffentlichung.
 
 ## Entscheidungen
+### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
 ### Entscheidungsbrief (PR #…)
 

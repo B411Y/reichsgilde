@@ -3,7 +3,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>Wie die Flächen der Flamme stehen: immer zur Kamera, nur um die Hochachse zur Kamera, oder zwei feste, gekreuzte Flächen.</summary>
-public enum FeuerAusrichtung { Voll, Hochachse, Gekreuzt }
+public enum FeuerAusrichtung { Voll, Hochachse, Gekreuzt, Wand }
 
 /// <summary>
 /// Ein Feuer: Flamme, Funken, Rauch und auf Wunsch ein flackerndes <see cref="OmniLight3D"/> zu einer <see cref="FeuerArt"/>. Der Knoten sitzt am
@@ -52,6 +52,9 @@ public partial class Feuer : Node3D
 
     /// <summary>0 = Nacht … 1 = Tag: Der Rauch ist unbeleuchtet und wird nachts dunkler (ein Rest bleibt, damit man die Säule im Mondlicht sieht).</summary>
     public static float Umgebung { get; set; } = 1f;
+
+    /// <summary>0 = trocken … 1 = Dauerregen (aus dem Wetter der Stadtansicht): Der Gebäudebrand brennt bei Regen kleiner und dampft mehr (<see cref="Gebaeudebrand"/>).</summary>
+    public static float Regen { get; set; }
 
     /// <summary>
     /// Zuschlag zur Fernausblendung der Lichter (Meter). Die Stadtkamera ist eine Orthokamera in 150 m Abstand: Die Entfernung zur Kamera ist dort nie
@@ -294,7 +297,7 @@ public partial class Feuer : Node3D
     private void LichtAktualisieren()
     {
         if (_licht is null) return;
-        var (energie, farbe) = LichtJetzt();
+        var (energie, farbe) = LichtJetzt(LichtFaktor);
         _licht.LightEnergy = energie;
         _licht.LightColor = farbe;
     }
@@ -304,6 +307,9 @@ public partial class Feuer : Node3D
     {
         if (_licht is not null && Art is not null) _licht.DistanceFadeBegin = Art.LichtAusblendenAb + AusblendenZuschlag;
     }
+
+    /// <summary>Wie stark das Licht gerade ist, mal die Energie der Art (0 = dunkel … 1 = voll): der Gebäudebrand (<see cref="Gebaeudebrand"/>) stellt es nach seiner Phase.</summary>
+    public float LichtFaktor { get; set; } = 1f;
 
     /// <summary>Schaltet das Licht ein oder aus (nur der Schein, nicht die Flamme); für Messungen.</summary>
     public void LichtSetzen(bool an)
@@ -400,7 +406,9 @@ public partial class Feuer : Node3D
         public static SimKennwerte Laden(FeuerFlipbook flipbook)
         {
             if (_geladen.TryGetValue(flipbook, out var k)) return k;
-            var name = flipbook == FeuerFlipbook.Wild ? "wild" : "ruhig";
+            var name = flipbook switch { FeuerFlipbook.Wild => "wild", FeuerFlipbook.Fenster => "fenster", FeuerFlipbook.Dach => "dach", _ => "ruhig" };
+            // Ein Flipbook, das noch nicht gebacken ist (frisch ausgecheckt ohne die großen Bilder): das wilde nehmen, damit nichts leer bleibt
+            if (flipbook is FeuerFlipbook.Fenster or FeuerFlipbook.Dach && !ResourceLoader.Exists($"res://assets/texturen/feuer/flamme_{name}.png")) { GD.PushWarning($"[feuer] Flipbook {name} fehlt, nehme wild"); name = "wild"; }
             k = new SimKennwerte { Atlas = GD.Load<Texture2D>($"res://assets/texturen/feuer/flamme_{name}.png") };
             var pfad = $"res://assets/texturen/feuer/flamme_{name}.json";
             if (Json.ParseString(Godot.FileAccess.GetFileAsString(pfad)).AsGodotDictionary() is { Count: > 0 } d)
@@ -535,7 +543,7 @@ public partial class Feuer : Node3D
                 MaterialOverride = material,
                 Position = lage,
                 Scale = new Vector3(groesse.X, groesse.Y, groesse.X * (1f + kennwert)),
-                RotationDegrees = new Vector3(0, f * 90f + phase * 40f, 0),
+                RotationDegrees = Ausrichtung == FeuerAusrichtung.Wand ? Vector3.Zero : new Vector3(0, f * 90f + phase * 40f, 0),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                 // Die Flamme darf nie weggeschnitten werden, solange ihr Fuß sichtbar ist; der Rauch im Sturm liegt bis zu 5 m neben seiner Fläche (rauch.gdshader)
                 ExtraCullMargin = 6f,

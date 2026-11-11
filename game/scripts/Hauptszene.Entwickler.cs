@@ -22,6 +22,7 @@ public partial class Hauptszene
         _entwickler = new EntwicklerAnzeige();
         _entwickler.Verbinden(_simulation, _spieler, _stadt, TempoSetzen); // vor dem Einhängen: AddChild ruft schon _Ready (Aufbau der Reiter)
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_entwickler);
+        if (optionen.TryGetValue("blitzwahl", out var blitzwahl)) GetTree().CreateTimer(3.0).Timeout += () => { if (IsInstanceValid(_entwickler)) _entwickler!.WahlVorgeben(blitzwahl); };
         if (!optionen.TryGetValue("entwicklerfenster", out var wahl) || wahl == "0") return;
         _entwickler.Oeffnen(int.TryParse(wahl, out var reiter) && reiter > 1 ? reiter - 1 : -1);
     }

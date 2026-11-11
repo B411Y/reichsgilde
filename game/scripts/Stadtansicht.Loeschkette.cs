@@ -18,6 +18,10 @@ public partial class Stadtansicht
     /// <summary>Abstand der Leute in der Kette (Meter).</summary>
     private const float KettenAbstand = 1.7f;
 
+    /// <summary>So viele Leute stehen mindestens in der Kette (zu wenige Passanten: eigene Figuren füllen auf) und so weit stehen sie höchstens auseinander – sonst wäre die Kette bei weitem Wasser nicht zu erkennen.</summary>
+    private const int KettenMindestens = 8;
+    private const float KettenAbstandMax = 3.4f;
+
     /// <summary>So schnell wandert ein Eimer die Kette entlang (Meter je echter Sekunde, bei Tempo 1).</summary>
     private const float EimerTempo = 1.6f;
 
@@ -25,6 +29,10 @@ public partial class Stadtansicht
     {
         public required Node3D Knoten { get; init; }
         public Figur? Figur { get; init; }
+        /// <summary>Der eingezogene Passant (die Figur gehört dann ihm, nicht der Kette); null bei einer eigenen Figur (nur Reserve, wenn zu wenige Passanten in der Nähe sind).</summary>
+        public Passant? Passant { get; init; }
+        /// <summary>Wasserspritzer beim Schütten (nur bei den Schüttern, ein Zeichenaufruf).</summary>
+        public Wasserspritzer? Spritzer { get; set; }
         public required Vector3 Herkunft { get; init; }
         public required Vector3 Platz { get; init; }
         /// <summary>Blickrichtung am Platz (Winkel um die Hochachse).</summary>
@@ -48,6 +56,8 @@ public partial class Stadtansicht
         /// <summary>Die Plätze der Kette vom Wasser (0) zum Haus.</summary>
         public Vector3[] Kette { get; set; } = Array.Empty<Vector3>();
         public float Zeit { get; set; }
+        /// <summary>Abstand der Leute in dieser Kette (Meter): so dicht wie möglich, so weit wie nötig, damit sie das Wasser erreicht.</summary>
+        public float Abstand { get; set; } = KettenAbstand;
         public bool Fertig { get; set; }
     }
 
@@ -92,6 +102,9 @@ public partial class Stadtansicht
         var wasser = NaechstesWasser(haus);
         var saat = (uint)(e.Minute * 2246822519L) ^ (uint)e.Ziel.Kennung.Sum(c => c * 31);
         var anzahl = 6 + (int)(saat % 10); // 6–15
+        // Die Helfer sind echte Passanten aus der Nähe (Wunsch des Nutzers: keine eigenen Figuren); nur wenn kaum jemand unterwegs ist, ergänzen eigene Figuren auf mindestens vier
+        var echte = PassantenFuerKette(haus, anzahl);
+        anzahl = Math.Max(Math.Max(echte.Count, anzahl), KettenMindestens);
         // Die Kette: vom Rand des Hauses (der Seite zum Wasser) zum Wasser; reicht sie nicht, beginnt sie am Haus
         var richtung = new Vector3(wasser.X - haus.X, 0, wasser.Z - haus.Z);
         if (richtung.LengthSquared() < 1) richtung = Vector3.Back;
@@ -100,18 +113,21 @@ public partial class Stadtansicht
         var vorne = haus + richtung * (halb + 1.6f);
         var platz = Mathf.Max(0, weit - halb - 1.6f - 1.2f);
         var glieder = Math.Clamp((int)(platz / KettenAbstand) + 1, 2, anzahl);
+        // Reicht die Kette bei engem Stand nicht bis zum Wasser, stehen die Leute weiter auseinander (bis KettenAbstandMax)
+        var abstand = glieder > 1 ? Mathf.Clamp(platz / (glieder - 1), KettenAbstand, KettenAbstandMax) : KettenAbstand;
+        glieder = Math.Clamp(glieder, 2, anzahl);
         var quer = new Vector3(-richtung.Z, 0, richtung.X);
         var kette = new Vector3[glieder];
         for (var i = 0; i < glieder; i++)
         {
             // vom Wasser (0) zum Haus (glieder − 1); ein leichtes Schlängeln, die Leute stehen nicht wie mit dem Lineal
             var k = glieder - 1 - i;
-            var p = vorne + richtung * (k * KettenAbstand) + quer * (0.35f * Mathf.Sin(k * 1.7f + saat % 7));
+            var p = vorne + richtung * (k * abstand) + quer * (0.35f * Mathf.Sin(k * 1.7f + saat % 7));
             kette[i] = AufFuss(p);
         }
         var wurzel = new Node3D { Name = "Loeschkette_" + e.Ziel.Kennung };
         AddChild(wurzel);
-        var lk = new Loeschkette { Einschlag = e, Wurzel = wurzel, Kette = kette };
+        var lk = new Loeschkette { Einschlag = e, Wurzel = wurzel, Kette = kette, Abstand = abstand };
         // Herkunft: Knoten des Gassennetzes 25–70 m vom Haus, gestreut
         var knoten = Enumerable.Range(0, _netz.Knoten.Count)
             .Select(i => (I: i, D: new Vector2(_netz.Knoten[i].X - haus.X, _netz.Knoten[i].Z - haus.Z).Length()))
@@ -122,15 +138,33 @@ public partial class Stadtansicht
             // die ersten bilden die Kette (vom Haus her), wer übrig ist, schüttet mit am Haus
             var inKette = n < glieder;
             var stelle = inKette ? kette[glieder - 1 - n] : AufFuss(vorne + quer * ((n - glieder) % 2 == 0 ? 1.4f : -1.4f) * (1 + (n - glieder) / 2) - richtung * 0.4f);
-            var schuettet = !inKette || n == 0;
+            var schuettet = !inKette || n <= 1;
             var blick = schuettet ? Mathf.Atan2(-richtung.X, -richtung.Z) : Mathf.Atan2(quer.X, quer.Z) + (n % 2 == 0 ? 0 : Mathf.Pi);
-            var herkunft = _netz.Knoten[knoten[n % knoten.Count]];
-            var knotenFigur = new Node3D { Name = "Helfer" + n, Position = AufFuss(herkunft) };
-            wurzel.AddChild(knotenFigur);
-            var nummer = 90000 + (int)(saat % 5000) * 16 + n;
-            var figur = FigurEinsetzen(knotenFigur, AussehenAusNummer(nummer), nummer);
-            var h = new Helfer { Knoten = knotenFigur, Figur = figur, Herkunft = herkunft, Platz = stelle, Blick = blick, Schuettet = schuettet, Losgehen = 0.4f * n };
-            HelferPfad(h, herkunft, stelle);
+            Helfer h;
+            if (n < echte.Count)
+            {
+                // ein echter Passant: er geht von dort los, wo er gerade ist (mit seiner Figur, Tracht und Nummer)
+                var p = echte[n];
+                p.Eingezogen = true;
+                var hier = new Vector3(p.Knoten.Position.X, 0, p.Knoten.Position.Z);
+                h = new Helfer { Knoten = p.Knoten, Figur = p.Figur, Passant = p, Herkunft = hier, Platz = stelle, Blick = blick, Schuettet = schuettet, Losgehen = 0.4f * n };
+                HelferPfad(h, hier, stelle);
+            }
+            else
+            {
+                var herkunft = _netz.Knoten[knoten[n % knoten.Count]];
+                var knotenFigur = new Node3D { Name = "Helfer" + n, Position = AufFuss(herkunft) };
+                wurzel.AddChild(knotenFigur);
+                var nummer = 90000 + (int)(saat % 5000) * 16 + n;
+                var figur = FigurEinsetzen(knotenFigur, AussehenAusNummer(nummer), nummer);
+                h = new Helfer { Knoten = knotenFigur, Figur = figur, Herkunft = herkunft, Platz = stelle, Blick = blick, Schuettet = schuettet, Losgehen = 0.4f * n };
+                HelferPfad(h, herkunft, stelle);
+            }
+            if (schuettet)
+            {
+                h.Spritzer = new Wasserspritzer { Name = "Spritzer", Visible = false, Position = new Vector3(0, 1.05f, 0.35f), Scale = new Vector3(1f, 1f, 2.2f) };
+                h.Knoten.AddChild(h.Spritzer);
+            }
             lk.Helfer.Add(h);
         }
         for (var i = 0; i < 2 * Math.Max(1, glieder / 2); i++)
@@ -139,8 +173,31 @@ public partial class Stadtansicht
             eimer.Visible = false;
             lk.Eimer.Add(eimer);
         }
-        GD.Print($"[blitz] Löschkette an {e.Ziel.Kennung}: {anzahl} Leute, {glieder} in der Kette, Wasser {wasser} ({weit:0} m)");
+        if (OS.GetCmdlineUserArgs().Contains("--kettenblick=1"))
+        {
+            // Startoption --kettenblick=1: die Kamera auf die Mitte zwischen Haus und Wasser stellen (zum Ansehen der Kette)
+            var mitte = (haus + kette[0]) * 0.5f;
+            KameraSetzen(mitte.X, mitte.Z, Mathf.Clamp(25f + (glieder - 1) * abstand * 0.8f, 30f, 50f));
+        }
+        GD.Print($"[blitz] Kette: Abstand {abstand:0.0} m, erster Platz {kette[0]}, letzter {kette[^1]}, Haus {haus}, {2 * Math.Max(1, glieder / 2)} Eimer, Schütter {lk.Helfer.Count(x => x.Schuettet)}");
+        GD.Print($"[blitz] Löschkette an {e.Ziel.Kennung}: {anzahl} Leute ({echte.Count} echte Passanten), {glieder} in der Kette, Wasser {wasser} ({weit:0} m)");
         return lk;
+    }
+
+    /// <summary>Die sichtbaren Passanten 12–90 m um das Haus, die nächsten zuerst (höchstens <paramref name="anzahl"/>); wer gerade in einer anderen Löschkette steht, zählt nicht.</summary>
+    private List<Passant> PassantenFuerKette(Vector3 haus, int anzahl) =>
+        _passanten.Values
+            .Where(p => !p.Eingezogen && p.Figur is not null && p.Knoten.Visible && IsInstanceValid(p.Knoten) && p.Knoten.IsInsideTree())
+            .Select(p => (P: p, D: new Vector2(p.Knoten.Position.X - haus.X, p.Knoten.Position.Z - haus.Z).Length()))
+            .Where(x => x.D is > 12f and < 90f)
+            .OrderBy(x => x.D).Take(anzahl).Select(x => x.P).ToList();
+
+    /// <summary>Der Helfer ist fertig: ein Passant geht wieder seinen Weg (die Planung der Passanten übernimmt), eine eigene Figur verschwindet.</summary>
+    private static void HelferFreigeben(Helfer h)
+    {
+        if (h.Spritzer is not null && IsInstanceValid(h.Spritzer)) h.Spritzer.Visible = false;
+        if (h.Passant is { } p) p.Eingezogen = false;
+        else h.Knoten.Visible = false;
     }
 
     /// <summary>Der Weg über die Gassen von <paramref name="von"/> zum Platz <paramref name="nach"/>, das letzte Stück quer über den Platz.</summary>
@@ -206,6 +263,13 @@ public partial class Stadtansicht
             }
             if (h.Stand == 3) continue;
             alleFort = false;
+            if (h.Passant is not null && h.Figur is { } pf)
+            {
+                // Die Planung der Passanten überspringt den Helfer, also auch ihre Sichtbarkeit: die Figur zeigen (gebackene Probefiguren zeichnet das MultiMesh)
+                var zeigen = !(pf.Probe && _probeVat && !pf.ProbeNah);
+                if (pf.Modell.Visible != zeigen) pf.Modell.Visible = zeigen;
+            }
+            if (h.Spritzer is { } spritzer) spritzer.Visible = h.Stand == 1 && brennt;
             if (h.Stand == 1)
             {
                 if (h.Figur is { } f)
@@ -240,7 +304,7 @@ public partial class Stadtansicht
             else
             {
                 h.Stand = 3;
-                h.Knoten.Visible = false;
+                HelferFreigeben(h);
             }
         }
         EimerBewegen(lk, brennt);
@@ -254,22 +318,23 @@ public partial class Stadtansicht
     /// </summary>
     private void EimerBewegen(Loeschkette lk, bool brennt)
     {
-        var steht = brennt && lk.Helfer.Count(h => h.Stand == 1) >= Math.Min(lk.Kette.Length, lk.Helfer.Count);
+        var steht = brennt && lk.Helfer.Count(h => h.Stand == 1) >= Math.Max(2, Math.Min(lk.Kette.Length, lk.Helfer.Count) * 2 / 3); // die Eimer wandern, sobald zwei Drittel der Kette stehen (Nachzügler stören nicht)
         var n = lk.Kette.Length;
         for (var i = 0; i < lk.Eimer.Count; i++)
         {
             var eimer = lk.Eimer[i];
             if (!steht || n < 2) { eimer.Visible = false; continue; }
-            var weg = (n - 1) * KettenAbstand;
+            var weg = (n - 1) * lk.Abstand;
             var zurueck = i % 2 == 1; // leer vom Haus zum Wasser, etwas versetzt auf der anderen Seite der Reihe
             var s = (lk.Zeit * EimerTempo + (i / 2) * weg / Math.Max(1, lk.Eimer.Count / 2)) % weg;
             if (zurueck) s = weg - s;
-            var stueck = Mathf.Clamp((int)(s / KettenAbstand), 0, n - 2);
-            var t = Mathf.Clamp(s / KettenAbstand - stueck, 0, 1);
+            var stueck = Mathf.Clamp((int)(s / lk.Abstand), 0, n - 2);
+            var t = Mathf.Clamp(s / lk.Abstand - stueck, 0, 1);
             var p = lk.Kette[stueck].Lerp(lk.Kette[stueck + 1], t);
             var laengs = lk.Kette[stueck + 1] - lk.Kette[stueck];
             var quer = new Vector3(-laengs.Z, 0, laengs.X).Normalized() * (zurueck ? -0.3f : 0.3f);
-            eimer.Position = p + quer + new Vector3(0, 0.6f + 0.18f * Mathf.Sin(t * Mathf.Pi), 0);
+            eimer.Position = p + quer + new Vector3(0, 0.85f + 0.3f * Mathf.Sin(t * Mathf.Pi), 0); // auf Brusthöhe, von Hand zu Hand im Bogen
+            eimer.Scale = Vector3.One * 1.7f;      // deutlich sichtbar (aus der Spielkamera ist ein Eimer von 0,3 m ein Fleck)
             eimer.Rotation = new Vector3(0, Mathf.Atan2(laengs.X, laengs.Z), 0);
             eimer.Visible = true;
         }
@@ -283,6 +348,7 @@ public partial class Stadtansicht
     {
         if (lk.Fertig) return;
         lk.Fertig = true;
+        foreach (var h in lk.Helfer.Where(h => h.Stand != 3)) HelferFreigeben(h); // Passanten gehen wieder ihren Weg (ihre Knoten hängen nicht an der Kette)
         if (IsInstanceValid(lk.Wurzel)) lk.Wurzel.QueueFree();
         GD.Print($"[blitz] Löschkette an {lk.Einschlag.Ziel.Kennung} aufgelöst");
     }

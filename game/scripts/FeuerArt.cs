@@ -6,10 +6,10 @@ namespace Reichsgilde;
 public enum FeuerForm { Flamme, Glut, NurRauch }
 
 /// <summary>Die fertigen Größen: Kerze, Fackel, Laterne, Feuerkorb, Esse, Kamin, Gebäudebrand (Dach) und Fensterbrand (Flammen aus einem Fenster).</summary>
-public enum FeuerVorgabe { Kerze, Fackel, Laterne, Feuerkorb, Esse, Kamin, Gebaeudebrand, Fensterbrand }
+public enum FeuerVorgabe { Kerze, Fackel, Laterne, Feuerkorb, Esse, Kamin, Gebaeudebrand, Fensterbrand, Dachbrand, Dachherd, Fensterflammen }
 
 /// <summary>Welches Flipbook der Blender-Simulation (<c>tools/feuer/flammen_sim.py</c>) die Flamme zeigt: ruhig (alle kleinen Feuer) oder wild mit Stichflammen (Brand).</summary>
-public enum FeuerFlipbook { Ruhig, Wild }
+public enum FeuerFlipbook { Ruhig, Wild, Fenster, Dach }
 
 /// <summary>
 /// Alle Maße und Werte eines Feuers: Größe der Flamme, Tönung, Funken, Rauch und das Licht. Seit Phase 2 (Nutzer 30.10.2026) gibt es nur noch
@@ -159,6 +159,30 @@ public partial class FeuerArt : Resource
             Funken = 3, FunkenHoehe = 2.2f, FunkenGroesse = 0.03f,
             RauchArt = RauchSorte.Fensterbrand, RauchMenge = 0.6f, RauchHoehe = 4.5f, RauchBreite = 1.8f, RauchRuss = 0.8f, RauchGlut = 0.7f,
             LichtEnergie = 0f,
+        },
+        // Dachbrand (neu, Auftrag „Feuer überall“): die Flamme steht mit dem Fuß im Dach und schlägt aus ihm heraus (Flipbook „dach“); die erste Stelle eines Dachs
+        // trägt Rauch (zwei Schichten) und das Licht, weitere Stellen sind „Dachherd“ ohne Rauch und ohne Licht
+        FeuerVorgabe.Dachbrand => new FeuerArt
+        {
+            Bezeichnung = "Dachbrand", Flipbook = FeuerFlipbook.Dach, Hoehe = 4.4f, Breite = 2.2f, Zungen = 1, Tempo = 1.1f, Helligkeit = 1.8f,
+            Funken = 9, FunkenHoehe = 3.2f, FunkenGroesse = 0.045f,
+            RauchArt = RauchSorte.Brand, RauchMenge = 1f, RauchHoehe = 16f, RauchBreite = 6f, RauchRuss = 0.85f, RauchGlut = 0.7f, RauchSchichten = 2,
+            LichtEnergie = 36f, LichtReichweite = 38f, LichtFlackern = 0.4f, LichtAusblendenAb = 160f, LichtAusblendenLaenge = 50f,
+        },
+        FeuerVorgabe.Dachherd => new FeuerArt
+        {
+            Bezeichnung = "Dachherd", Flipbook = FeuerFlipbook.Dach, Hoehe = 3.8f, Breite = 1.9f, Zungen = 1, Tempo = 1.0f, Helligkeit = 1.8f,
+            Funken = 6, FunkenHoehe = 3.0f, FunkenGroesse = 0.04f,
+            RauchArt = RauchSorte.Brand, RauchMenge = 0.6f, RauchHoehe = 12f, RauchBreite = 4f, RauchRuss = 0.8f, RauchGlut = 0.7f,
+            LichtEnergie = 14f, LichtReichweite = 24f, LichtFlackern = 0.4f, LichtAusblendenAb = 120f, LichtAusblendenLaenge = 40f,
+        },
+        // Flammen aus dem Fenster (neu): Flipbook „fenster“ an der Wand; Rauch dünn, Licht klein (nur die ersten Fenster eines Hauses)
+        FeuerVorgabe.Fensterflammen => new FeuerArt
+        {
+            Bezeichnung = "Fensterflammen", Flipbook = FeuerFlipbook.Fenster, Hoehe = 3.0f, Breite = 1.8f, Zungen = 1, Tempo = 1.15f, Helligkeit = 1.8f,
+            Funken = 4, FunkenHoehe = 2.4f, FunkenGroesse = 0.03f,
+            RauchArt = RauchSorte.Fensterbrand, RauchMenge = 0.6f, RauchHoehe = 5f, RauchBreite = 1.8f, RauchRuss = 0.8f, RauchGlut = 0.7f,
+            LichtEnergie = 9f, LichtReichweite = 11f, LichtFlackern = 0.4f, LichtAusblendenAb = 80f, LichtAusblendenLaenge = 25f,
         },
         _ => new FeuerArt(),
     };
