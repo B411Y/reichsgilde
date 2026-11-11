@@ -145,7 +145,7 @@ public partial class Kartenwerkstatt : Node
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
             // ein Werkzeug des Katalogs zeigt seine Tafel unter „Eigenschaften“ (Pinsel); die Wahl eines Platzes gehört zur Tafel „Start“
-            if ((_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz)) || (_karteOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Auswahl)) ReiterWaehlen(false);
+            if ((_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz or Werkstattwerkzeug.Hofstelle)) || (_karteOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Auswahl)) ReiterWaehlen(false);
             EigenschaftenZeigen(neu: true);
             HilfeZeigen();
         };

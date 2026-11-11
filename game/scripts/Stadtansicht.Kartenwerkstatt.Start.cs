@@ -91,7 +91,7 @@ public partial class Stadtansicht
         if (_entwurf is null) return;
         foreach (var g in _entwurf.Gebaeude)
         {
-            if (!_stuecke.TryGetValue(g, out var s) || Equals(s.Belegung, BelegungsanzeigeVon(g))) continue;
+            if (!_stuecke.TryGetValue(g, out var s) || Equals(s.Belegung, BelegungsanzeigeVon(g)) && s.Hof == HofNummerVon(g)) continue;
             StueckEntfernen(g);
             StueckBauen(g);
             if (ReferenceEquals(WerkstattGewaehlt, g)) Auswahl = StueckKennung(g);
