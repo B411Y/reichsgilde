@@ -139,7 +139,7 @@ static class GeheimnisTests
          "Fehler fallen auf; ohne Abschnitt keine Geheimnisse", () =>
         {
             var d = Daten.Value.Geheimnisse!;
-            Pruefe.Gleich(82, Daten.Value.Version);
+            Pruefe.Gleich(83, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "aktiv");
             Pruefe.Gleich("Ehebruch,Ketzerei,Schulden,Mord", string.Join(",", d.Arten.Keys.OrderBy(k => k)));
             Pruefe.Gleich("Gulden=2,Ratsstimme=2,Anzeige=2,Blossstellen=1", string.Join(",", Enum.GetValues<Geheimnisnutzung>().Select(n => $"{n}={d.Ap[n]}")));

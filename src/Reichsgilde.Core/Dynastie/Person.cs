@@ -199,6 +199,7 @@ public sealed class Familie
 {
     internal readonly List<Person> MitgliederListe = new();
     internal readonly List<Person> AhnenListe = new();
+    internal readonly List<Hauschronikeintrag> ChronikListe = new();
 
     public Konto Konto { get; }
 
@@ -221,6 +222,9 @@ public sealed class Familie
 
     /// <summary>Die früheren Oberhäupter, das erste zuerst.</summary>
     public IReadOnlyList<Person> Ahnen => AhnenListe;
+
+    /// <summary>Die gespeicherte Hauschronik, der älteste Eintrag zuerst (lesen über <see cref="Familienbuch.Chronik"/>).</summary>
+    public IReadOnlyList<Hauschronikeintrag> Hauschronik => ChronikListe;
 
     public IEnumerable<Person> Lebende => MitgliederListe.Where(p => p.Lebt);
 

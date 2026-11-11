@@ -12,8 +12,8 @@ namespace Reichsgilde.Core.Dynastie;
 /// <param name="Kinder">Die Kinder aus diesen Ehen, das älteste zuerst.</param>
 public sealed record StammbaumKnoten(Person Person, IReadOnlyList<Person> Ehepartner, IReadOnlyList<StammbaumKnoten> Kinder);
 
-/// <summary>Was ein Eintrag der Hauschronik erzählt (bestimmt Farbe und Zeichen in der Oberfläche).</summary>
-public enum Chronikart { Gruendung, Geburt, Heirat, Tod, Erbe, Amt, Geheimnis, Entscheidung, Sonstiges }
+/// <summary>Was ein Eintrag der Hauschronik erzählt (bestimmt Farbe und Zeichen in der Oberfläche). Steht im Spielstand als Name – neue Werte kommen hinten dazu.</summary>
+public enum Chronikart { Gruendung, Geburt, Heirat, Tod, Erbe, Amt, Geheimnis, Entscheidung, Sonstiges, Brand }
 
 /// <summary>Ein Eintrag der Hauschronik. <paramref name="Person"/> ist die Personennummer, wenn eine Person im Mittelpunkt steht (Porträt, Klick).</summary>
 public sealed record Chronikeintrag(int Jahr, Chronikart Art, string Text, int? Person);
@@ -21,7 +21,7 @@ public sealed record Chronikeintrag(int Jahr, Chronikart Art, string Text, int? 
 public sealed partial class Familienbuch
 {
     // ═════════════════════════════════════════════════════════════════════════
-    //  Stammbaum und Hauschronik (nur lesend, nichts davon wird gespeichert)
+    //  Stammbaum und Hauschronik (nur lesend; gespeichert wird nur Familie.Hauschronik)
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
@@ -102,13 +102,12 @@ public sealed partial class Familienbuch
         wurzeln.Sum(k => 1 + k.Ehepartner.Count + Personenzahl(k.Kinder));
 
     /// <summary>
-    /// Die Hauschronik, die neueste Jahr zuerst. Sie entsteht aus zwei Quellen, ohne dass etwas gespeichert wird:
+    /// Die Hauschronik, das neueste Jahr zuerst. Sie entsteht aus zwei Quellen, beide dauerhaft:
     /// <list type="bullet">
-    /// <item>den Personen selbst – Geburt, Tod, Erbfolge (Todesjahr eines früheren Oberhaupts, Nachfolger) und der Anfang des Hauses –, das bleibt für immer;</item>
-    /// <item>dem Meldungsverlauf der Stadt (die letzten <see cref="Stadtwirtschaft.MeldungsverlaufLaenge"/> Meldungen): Heirat, Ämter und Wahlen,
-    /// Stand, Meisterprüfung, Geheimnisse, Entscheidungen, Anklage und Feuer des Hauses. Älteres davon ist vergessen.</item>
+    /// <item>den Personen selbst – Geburt, Tod, Erbfolge (Todesjahr eines früheren Oberhaupts, Nachfolger) und der Anfang des Hauses;</item>
+    /// <item>der gespeicherten Chronik des Hauses (<see cref="Familie.Hauschronik"/>): Heirat, Amt und Stand, Geheimnis, Brand, Entscheidungen mit Folgen.</item>
     /// </list>
-    /// Meldungen, die nur für das Haus selbst bestimmt sind (<see cref="Meldung.Vertraulich"/>), stehen nur für <paramref name="betrachter"/> = das Haus selbst darin.
+    /// Vertrauliche Einträge (<see cref="Hauschronikeintrag.Vertraulich"/>) stehen nur für <paramref name="betrachter"/> = das Haus selbst darin.
     /// </summary>
     public IReadOnlyList<Chronikeintrag> Chronik(Familie f, Konto betrachter)
     {
@@ -146,23 +145,10 @@ public sealed partial class Familienbuch
                 liste.Add(new Chronikeintrag(jahr, Chronikart.Erbe, $"{erbe.Vorname} {erbe.Familienname} wird Oberhaupt, nach {tot.Vorname}.", erbe.Nummer));
         }
 
-        // Der Meldungsverlauf: nur, was sich aus den Personen nicht ablesen lässt.
-        var hausNummer = _w.Konten.ToList().IndexOf(f.Konto);
-        if (hausNummer >= 0)
-            foreach (var m in _w.Meldungsverlauf)
-            {
-                if (m.Haus != hausNummer || (m.Vertraulich && betrachter != f.Konto)) continue;
-                var art = m.GeheimnisArt is not null ? Chronikart.Geheimnis : m.Art switch
-                {
-                    Meldungsart.Heirat => Chronikart.Heirat,
-                    Meldungsart.Wahl or Meldungsart.StandAufstieg or Meldungsart.Meisterpruefung => Chronikart.Amt,
-                    Meldungsart.Entscheidung => Chronikart.Entscheidung,
-                    _ => Chronikart.Sonstiges,
-                };
-                var aufnehmen = m.GeheimnisArt is not null || m.Art is Meldungsart.Heirat or Meldungsart.Wahl or Meldungsart.StandAufstieg
-                    or Meldungsart.Meisterpruefung or Meldungsart.Entscheidung or Meldungsart.Anklage or Meldungsart.Feuer;
-                if (aufnehmen) liste.Add(new Chronikeintrag(m.Jahr, art, m.Text, m.Person));
-            }
+        // Die gespeicherte Chronik: nur, was sich aus den Personen nicht ablesen lässt.
+        foreach (var e in f.Hauschronik)
+            if (!e.Vertraulich || betrachter == f.Konto)
+                liste.Add(new Chronikeintrag(e.Jahr, e.Art, e.Text, e.Person));
 
         // Neueste zuerst; im selben Jahr: in der Reihenfolge, in der die Einträge entstanden (stabil).
         return liste.Select((e, i) => (e, i)).OrderByDescending(x => x.e.Jahr).ThenBy(x => x.i).Select(x => x.e).ToList();

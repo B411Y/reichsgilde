@@ -113,6 +113,7 @@ public static class Speicherung
                 w.Entwicklerhilfe.Benutzt = stand.MitEntwicklerhilfe;
                 w.Entwicklerhilfe.Erlaubt = stand.EntwicklerErlaubt;
                 w.MeldungenWiederherstellen(stand.Meldungen); // Verlauf der Meldungen (fehlt in alten Spielständen: leer)
+                w.ChronikNachDemLaden(); // Spielstände von vor der Hauschronik: aus dem Verlauf ergänzen
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }

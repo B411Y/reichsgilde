@@ -355,7 +355,7 @@ static class EntscheidungTests
 
         ("Entscheidungen: Daten – fristMinuten nur für Arten ohne Jahresfrist, ab 1 Minute; Obergrenze ab 1; Datenversion 82", () =>
         {
-            Pruefe.Gleich(82, Daten.Value.Version);
+            Pruefe.Gleich(83, Daten.Value.Version);
             Pruefe.Gleich(6, Daten.Value.Entscheidungen!.HoechstOffen);
             Pruefe.Gleich(120, Daten.Value.Entscheidungen.FristFuer(Entscheidungsart.Erpresserbrief), "standard");
             var json = File.ReadAllText(Datenpfad.Wirtschaft());

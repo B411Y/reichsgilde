@@ -71,7 +71,8 @@ static class GleichheitTests
     /// <param name="GeheimMeldungen">Minute, Art und Text jeder Meldung mit Geheimnisart (Siegel) – der Verlauf steht im Spielstand und in der Prüfsumme.</param>
     /// <param name="Entscheidungen">Minute, Nummer, Art und Ausgang jeder Entscheidung des Menschen (Stufe 3: geöffnet, entschieden, Frist, Obergrenze, hinfällig) – sie stehen im Spielstand.</param>
     sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
-        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen, IReadOnlyList<string> Entscheidungen, IReadOnlyDictionary<long, int> OffenAnLadepunkten);
+        int Geheimnisse, int Wissen, IReadOnlyList<string> GeheimMeldungen, IReadOnlyList<string> Entscheidungen, IReadOnlyDictionary<long, int> OffenAnLadepunkten,
+        IReadOnlyList<string> Chronik);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -256,6 +257,10 @@ static class GleichheitTests
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", b.Entscheidungen), "Entscheidungen mit deutscher Ländereinstellung");
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", c.Entscheidungen), "Entscheidungen mit Speichern und Laden");
         Pruefe.Gleich(string.Join(",", a.OffenAnLadepunkten.OrderBy(x => x.Key)), string.Join(",", c.OffenAnLadepunkten.OrderBy(x => x.Key)), "offene Entscheidungen an den Ladepunkten");
+        // Die Hauschronik (Datenversion 83) soll etwas enthalten – sonst prüfte die Prüfsumme sie nicht mit – und in jedem Lauf gleich sein.
+        Pruefe.Wahr(a.Chronik.Count > 0, $"Keine Einträge in den Hauschroniken in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(string.Join("\n", a.Chronik), string.Join("\n", b.Chronik), "Hauschronik mit deutscher Ländereinstellung");
+        Pruefe.Gleich(string.Join("\n", a.Chronik), string.Join("\n", c.Chronik), "Hauschronik mit Speichern und Laden");
         if (p.Startwert == 4711)
         {
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains(" EntscheidungTreffen ok")), $"Kein erfolgreicher Befehl EntscheidungTreffen ({string.Join(" | ", a.Entscheidungen)})");
@@ -285,6 +290,7 @@ static class GleichheitTests
         DateiSchreiben();
         Console.WriteLine($"          Prüfsumme Startwert {p.Startwert}: {a.Ende}");
         Console.WriteLine($"          Entscheidungen Startwert {p.Startwert}: {a.Entscheidungen.Count} Einträge – {string.Join(", ", a.Entscheidungen.Select(z => z.Split(' ')[3]).GroupBy(x => x).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"))}");
+        Console.WriteLine($"          Hauschronik Startwert {p.Startwert}: {a.Chronik.Count} Einträge – {string.Join(", ", a.Chronik.Select(z => z.Split(' ')[2]).GroupBy(x => x).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"))}");
         if (a.Braende.Count > 0) Console.WriteLine($"          Brennende Häuser an Ladepunkten: {string.Join(" | ", a.Braende.Select(z => z.Split(' ')[1] + " " + z.Split(' ')[2]))}");
     }
 
@@ -370,7 +376,12 @@ static class GleichheitTests
                 wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen, entscheidungen, offenAnLadepunkten);
+        // Die Hauschronik aller Häuser am Ende (Datenversion 83) – dieselbe in jedem Lauf, auch über Speichern und Laden.
+        var w = sim.Wirtschaft!;
+        var chronik = w.Konten.Select(w.Familien.Von).OfType<Reichsgilde.Core.Dynastie.Familie>()
+            .SelectMany(f => f.Hauschronik.Select(e => $"{f.Nachname} {e.Minute} {e.Art} {e.Person} {e.Vertraulich} {e.Text}")).ToList();
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen, geheimMeldungen, entscheidungen, offenAnLadepunkten,
+            chronik);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
