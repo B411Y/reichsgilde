@@ -855,6 +855,9 @@ public sealed record FamilienbuchStand
     /// fallen Gene weg, die die Vorlage nicht mehr kennt; fehlende entstehen aus dem Startwert der Person.
     /// </summary>
     public List<string>? ErbgutGene { get; init; }
+
+    /// <summary>Format der Hauschronik (null in Spielständen von vor ihr: Die Chronik wird dann aus dem Meldungsverlauf ergänzt).</summary>
+    public int? Hauschronik { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -981,6 +984,19 @@ public sealed record FamilieStand
     public int? Testament { get; init; }
     public List<int> Mitglieder { get; init; } = new();
     public List<int> Ahnen { get; init; } = new();
+
+    /// <summary>Die dauerhafte Hauschronik (null = leer, oder ein Spielstand von vor ihr – siehe <see cref="FamilienbuchStand.Hauschronik"/>).</summary>
+    public List<ChronikStand>? Chronik { get; init; }
+}
+
+/// <summary>Ein Eintrag der Hauschronik: Art, Spielminute, Person (Nummer) und ein kurzer Satz.</summary>
+public sealed record ChronikStand
+{
+    public Dynastie.Chronikart Art { get; init; }
+    public long Minute { get; init; }
+    public int? Person { get; init; }
+    public string? Text { get; init; }
+    public bool Vertraulich { get; init; }
 }
 
 public sealed record KandidatStand

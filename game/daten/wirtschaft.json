@@ -1,5 +1,5 @@
 {
-  "version": 82,
+  "version": 83,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1791,6 +1791,7 @@
     "heiratsschwelle": 30,
     "heiratsschwelleJeStand": 10,
     "hochzeitJeStand": 0.5,
+    "chronikObergrenze": 400,
     "mischehe": { "fruchtbarkeit": 0.5, "ansehenEigenesVolk": -5, "ansehenPartnervolk": 3 },
     "talente": {
       "hoechstwert": 6,

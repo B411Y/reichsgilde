@@ -300,7 +300,7 @@ static class EntscheidungTeil2Tests
         ("Entscheidungen Teil 2: Daten – Frist je Art 120 Minuten, erbeAbSterberisiko 0,1, Datenversion 82; erbeAbSterberisiko 0 wird abgelehnt", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(82, d.Version);
+            Pruefe.Gleich(83, d.Version);
             foreach (var art in new[] { Entscheidungsart.Krankheit, Entscheidungsart.Erbe, Entscheidungsart.Geheimnis, Entscheidungsart.Mahnung })
                 Pruefe.Gleich(120, d.Entscheidungen!.FristFuer(art), art.ToString());
             Pruefe.Ungefaehr(0.1, d.Entscheidungen!.ErbeAbSterberisiko, 1e-12);
