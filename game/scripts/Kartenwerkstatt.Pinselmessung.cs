@@ -81,6 +81,15 @@ public partial class Kartenwerkstatt
         {
             _stadt.FelsModus = Stadtansicht.FelsArt.Streuen;
             _stadt.FelsGruppe = null;
+            _stadt.FelsAussparen = false; // ohne Aussparen als Vergleich zur nächsten Zeile
+        });
+        // Felspinsel P3b: dieselbe Messung mit Gebäuden und Wegen aussparen (Suchraster je Strich, eine Abfrage je Versuch)
+        await Pinsel("Fels: Streuen mit Aussparen (r 10, Blöcke)", Werkstattwerkzeug.Fels, () =>
+        {
+            _stadt.FelsModus = Stadtansicht.FelsArt.Streuen;
+            _stadt.FelsGruppe = null;
+            _entwurf.Rueckgaengig(); // der Strich oben ist ein Schritt: so liegt dieselbe Stelle wieder frei und der Strich setzt wirklich Stücke
+            _stadt.FelsAussparen = true;
         });
         // Felspinsel P3: neu verteilen und ausdünnen über die gerade gestreuten Stücke, danach radieren wie bisher (dann sind es weniger Stücke)
         await Pinsel("Fels: Neu verteilen (r 10, Größe, Drehung, Einsinken)", Werkstattwerkzeug.Fels, () =>
@@ -98,6 +107,18 @@ public partial class Kartenwerkstatt
             _stadt.FelsModus = Stadtansicht.FelsArt.Radieren;
             _stadt.FelsAusduennen = 0;
         });
+        // Felspinsel P4b: die Hang-Vorschau beim Ziehen am Gizmo (FelsVorschau + FelsHangVorschau + Geist bauen, jedes Bild neu) – wenige und viele Wände mit Hang
+        foreach (var (wande, bezeichnung) in new[] { (3, "3"), (40, "40") })
+        {
+            var name = $"Fels: Hang-Vorschau beim Ziehen ({bezeichnung} große Wände mit Hang, 80 m)";
+            if (Pinselmessung.Gewollt(name)) ergebnisse.Add(await HangZugMessen(name, strich, wande, cx, cz));
+        }
+        // Felspinsel P6: Fläche füllen mit etwa 1500 und 3000 Stücken (Obergrenze und Plan-Messung) – Vorschau, Füllen, Rückgängig, Leerlauf mit den Stücken
+        foreach (var ziel in new[] { Felsfuellung.Obergrenze, 2 * Felsfuellung.Obergrenze })
+        {
+            var name = $"Fels: Fläche füllen (etwa {ziel} Stücke, Blöcke)";
+            if (Pinselmessung.Gewollt(name)) ergebnisse.Add(await FuellenMessen(name, ziel, cx, cz));
+        }
         await Pinsel("Natur: Bäume streuen (r 6)", Werkstattwerkzeug.Pinsel, () => { });
         await Pinsel("Natur: Radierer (r 6)", Werkstattwerkzeug.Radierer, () => { });
         _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
@@ -188,6 +209,84 @@ public partial class Kartenwerkstatt
         var nach = await RuhigWarten();
         GD.Print($"Pinselmessung: {name}: Tupfer im Mittel {Ms(tupfer.Average(b => (double)b.Usec))} ms, Loslassen {Ms(loslassen.Usec)} ms");
         return new Pinselergebnis(name, leer, tupfer, loslassen, nach);
+    }
+
+    /// <summary>
+    /// Felspinsel P4b: Der Zug eines Gizmos an <paramref name="wande"/> großen Wänden mit Hang als Schicht (alle gewählt): je Tupfer ein Bild, in dem der
+    /// Zug um ein Stück weiter ist und die Vorschau (Stücke und Hang) samt Geist neu gerechnet wird – wie das Ziehen mit der Maus. Danach sind die
+    /// Wände wieder weg (Rückgängig), damit die folgenden Messungen auf dem alten Stand laufen.
+    /// </summary>
+    private async Task<Pinselergebnis> HangZugMessen(string name, List<Vector2> strich, int wande, float cx, float cz)
+    {
+        var pinsel = new Felspinsel(Formen: new[] { "wand_gross_1" }, Streuung: 0, Boden: false, HangFormen: true, HangSchicht: true);
+        var schritte = 0;
+        for (var k = 0; k < wande; k++)
+        {
+            var (x, z) = (cx - 130 + (k % 10) * 29, cz - 110 + (k / 10) * 27);
+            if (_stadt.WerkstattFelsStempeln(pinsel, new Kartenort(x, z), 0) > 0) schritte++;
+        }
+        _stadt.WerkstattFelsWaehlen(_entwurf.Felsen.Where(f => f.Hang).ToList());
+        var punkte = 0;
+        await RuhigWarten();
+        var leer = new List<Messbild>();
+        for (var i = 0; i < 10; i++) leer.Add(await BildMessen(Time.GetTicksUsec()));
+        var tupfer = new List<Messbild>();
+        for (var i = 0; i < strich.Count; i++)
+        {
+            var anfang = Time.GetTicksUsec();
+            punkte = _stadt.MessHangZug(strich[i].X - strich[0].X, strich[i].Y - strich[0].Y);
+            tupfer.Add(await BildMessen(anfang));
+        }
+        var los = Time.GetTicksUsec();
+        _stadt.MessHangZugEnde();
+        var loslassen = await BildMessen(los);
+        GD.Print($"Pinselmessung: {name}: {_entwurf.Felsen.Count(f => f.Hang)} Stücke mit Hang, {_entwurf.HangschichtPunkte} Punkte gehoben, Geist zuletzt {punkte} Punkte, Tupfer im Median {Ms(Median(tupfer.Select(b => (double)b.Usec)))} ms");
+        for (var k = 0; k < schritte; k++) _entwurf.Rueckgaengig();
+        var nach = await RuhigWarten();
+        return new Pinselergebnis(name, leer, tupfer, loslassen, nach);
+    }
+
+    /// <summary>
+    /// Felspinsel P6: Ein Quadrat um die Mitte, so groß, dass die Schätzung etwa <paramref name="ziel"/> Blöcke ergibt; fünfmal (Startwert 1 … 5)
+    /// Vorschau (Kern), Füllen (Kern und das Bild danach) und Rückgängig. Im ersten Lauf dazu 20 Bilder Leerlauf mit den Stücken (gegen den Leerlauf vorher).
+    /// Je Füllen ein Bild in der Spalte „je Tupfer“.
+    /// </summary>
+    private async Task<Pinselergebnis> FuellenMessen(string name, int ziel, float cx, float cz)
+    {
+        _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
+        var fuellung = Felsfuellung.Einfach(new Felspinsel(Formen: new[] { "block", "platte" }, Dichte: 0.3));
+        Felsflaeche Quadrat(double s) => new(new[] { new Kartenort(cx - s / 2, cz - s / 2), new Kartenort(cx + s / 2, cz - s / 2), new Kartenort(cx + s / 2, cz + s / 2), new Kartenort(cx - s / 2, cz + s / 2) });
+        var seite = 100.0;
+        seite *= Math.Sqrt(ziel / (double)Math.Max(1, _entwurf.FelsFuellenSchaetzen(fuellung, Quadrat(seite))));
+        var flaeche = Quadrat(seite);
+        await RuhigWarten();
+        var leer = new List<Messbild>();
+        for (var i = 0; i < 20; i++) leer.Add(await BildMessen(Time.GetTicksUsec()));
+        var (vorschau, kern, rueck, leerMit, bilder) = (new List<double>(), new List<double>(), new List<double>(), new List<Messbild>(), new List<Messbild>());
+        var stuecke = 0;
+        var nach = new List<Messbild>();
+        for (var k = 1; k <= 5; k++)
+        {
+            var uhr = System.Diagnostics.Stopwatch.StartNew();
+            stuecke = _entwurf.FelsFuellenVorschau(fuellung, flaeche, k).Count;
+            vorschau.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            var anfang = Time.GetTicksUsec();
+            uhr.Restart();
+            _entwurf.FelsFuellen(fuellung, flaeche, k);
+            kern.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            bilder.Add(await BildMessen(anfang));
+            nach = await RuhigWarten();
+            if (k == 1)
+                for (var i = 0; i < 20; i++) leerMit.Add(await BildMessen(Time.GetTicksUsec()));
+            uhr.Restart();
+            _entwurf.Rueckgaengig();
+            rueck.Add(uhr.Elapsed.TotalMilliseconds * 1000);
+            await RuhigWarten();
+        }
+        GD.Print($"Pinselmessung: {name}: Quadrat {seite:0} m, {stuecke} Stücke; Median Vorschau {Ms(Median(vorschau))} ms, Füllen (Kern) {Ms(Median(kern))} ms, "
+                 + $"Füllen mit Bild {Ms(Median(bilder.Select(b => (double)b.Usec)))} ms, Rückgängig {Ms(Median(rueck))} ms, Füllen + Rückgängig {Ms(Median(kern) + Median(rueck))} ms; "
+                 + $"Leerlauf vorher {Ms(Median(leer.Select(b => (double)b.Usec)))} ms, mit den Stücken {Ms(Median(leerMit.Select(b => (double)b.Usec)))} ms");
+        return new Pinselergebnis(name, leer, bilder, bilder[^1], nach);
     }
 
     private async Task<Pinselergebnis> BefehlMessen(string name, Func<object?> befehl)

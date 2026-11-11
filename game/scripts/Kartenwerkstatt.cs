@@ -137,6 +137,10 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Geaendert += EntwurfGeaendert;
         _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
         _stadt.FelsGizmoGeaendert += FelsGizmoGeaendert;
+        _stadt.FelsFuellungGeaendert += () => // P6: Zahl, Warnung und Knopf der Tafel folgen dem Umriss
+        {
+            if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Fels && _stadt.FelsModus == Stadtansicht.FelsArt.Fuellen && !EingabeOffen()) EigenschaftenZeigen(neu: true);
+        };
         _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
@@ -168,6 +172,7 @@ public partial class Kartenwerkstatt : Node
             if (wieder.Start) ReiterWaehlen(true);
             meldung = "Zurück aus der Probepartie – die Karte ist, wie sie war, mit Rückgängig.";
         }
+        FelsKatalogLaden(optionen.GetValueOrDefault("werkstatt-felskatalog")); // P5: gemeinsamer Katalog der Felsgruppen (Kartenwerkstatt.Felskatalog.cs)
         Auffrischen();
         EigenschaftenZeigen(neu: true);
         if (meldung is not null) Melden(meldung);
@@ -533,6 +538,15 @@ public partial class Kartenwerkstatt : Node
     }
 
     /// <summary>Eine Zahl der Startoptionen (Punkt als Dezimaltrenner; das Minuszeichen „−“ gilt wie „-“).</summary>
+    /// <summary>Eine Protokollzeile zum Hang (Startoptionen <c>gizmo:hang</c>, <c>gizmo:abloesen</c>): Schicht, gehobene Punkte, Wände mit eigenem Hang, Geländehöhe an der Wand.</summary>
+    private string FelsHangProtokoll()
+    {
+        var mitHang = _entwurf.Felsen.Where(f => f.Hang).ToList();
+        var f0 = _stadt.FelsAuswahl.Count > 0 ? _stadt.FelsAuswahl[^1] : null;
+        return $"Schicht {_entwurf.HatHangschicht}, {_entwurf.HangschichtPunkte} Punkte gehoben, {mitHang.Count} Stücke mit hang"
+               + (f0 is null ? "" : $", gewähltes Stück: Grundhöhe {_entwurf.Grundhoehen.Hoehe(f0.X, f0.Z).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} m, wirksam {_entwurf.Hoehen.Hoehe(f0.X, f0.Z).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} m");
+    }
+
     private static double Zahl(string text) => double.Parse(text.Replace('−', '-'), System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Liest eine Höhenkarte aus der Startoption <c>--werkstatt-hoehenkarte</c> ein und meldet den Bericht (oder den Fehler) unten.</summary>
@@ -829,8 +843,10 @@ public partial class Kartenwerkstatt : Node
                 }
             // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:… und gizmo:… (R3/P2, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
             // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) · P3: ausduennen:<radius>,<dichte>,x1,z1;… ·
-            // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… · P5: gruppe:… (siehe FelsBefehl) – <vorlage> ist eine Gruppe (wand, kuppe, rippe, eigen_1 …) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
+            // „fuellvorschau“ braucht das Werkzeug schon vorher: ein späterer Werkzeugwechsel räumt den Umriss weg
+            if (o.TryGetValue("werkstatt-werkzeug", out var fuellWerkzeug) && fuellWerkzeug == "fels:fuellen") KatalogWaehlen(fuellWerkzeug);
             if (o.TryGetValue("werkstatt-fels", out var felsen)) FelsBefehle(felsen.Split('|', StringSplitOptions.RemoveEmptyEntries));
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
             if (o.TryGetValue("werkstatt-rampe", out var rampen))
@@ -869,7 +885,7 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattDrehung = t.Length > 3 ? Zahl(t[3]) : 0;
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
-            if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug)) KatalogWaehlen(werkzeug);
+            if (o.TryGetValue("werkstatt-werkzeug", out var werkzeug) && werkzeug != "fels:fuellen") KatalogWaehlen(werkzeug);
             if (o.TryGetValue("werkstatt-gruppe", out var gruppe)) GruppeOeffnen(gruppe);
             if (o.TryGetValue("werkstatt-ebenen", out var aus))
                 foreach (var name in aus.Split(',', StringSplitOptions.RemoveEmptyEntries))
@@ -959,7 +975,8 @@ public partial class Kartenwerkstatt : Node
             var (vorlage, gestein) = (text.Split('@')[0], text.Contains('@') ? text.Split('@')[1] : null);
             if (gestein is not null && !Felsformen.IstGestein(gestein)) throw new ArgumentException($"Unbekannte Gesteinsart „{gestein}“.");
             var basis = _stadt.FelsPinselWerte with { Gestein = gestein ?? _stadt.FelsGestein }; // alle Werte der Tafel, gleich welche Art eingestellt ist (P3)
-            if (Felsformen.Gruppe(vorlage) is { } g) return basis with { Gruppe = g.Kennung };
+            if (_stadt.FelsKatalog.Finde(vorlage) is { } g)
+                return basis with { Gruppe = g.Kennung, Eigengruppe = g.Eigen ? g : null }; // P5: auch eigene Gruppen (eigen_1 …)
             var formen = vorlage.Split('+');
             if (formen.Any(f => Felsformen.Finde(f) is null)) throw new ArgumentException($"Unbekannte Felsvorlage „{vorlage}“ (wand, kuppe, rippe oder Formen mit +).");
             return basis with { Gruppe = null, Formen = formen };
@@ -1026,6 +1043,21 @@ public partial class Kartenwerkstatt : Node
                 GD.Print($"Neu verteilt unter dem Pinsel: {_entwurf.Geschichte.RueckgaengigText}");
                 break;
             }
+            case "fuellen" or "fuellvorschau": // P6: fuellen:<umriss|steinbruch|schutthalde|felskuppe>,x1,z1;x2,z2;… (eine Ecke: Kreis mit pinsel:radius) – füllt (über 1500 bestätigt);
+                                               // fuellvorschau: dasselbe, der Umriss bleibt geschlossen mit Vorschau und Tafel stehen
+            {
+                var t = rest.Split(',', 2);
+                if (t[0] != Felsfuellung.EinfachKennung && Felsfuellung.Finde(t[0]) is null)
+                    throw new ArgumentException($"{art}: unbekannte Füllung „{t[0]}“ (umriss, steinbruch, schutthalde, felskuppe).");
+                _stadt.FelsFuellKennung = t[0];
+                var ecken = Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList();
+                var flaeche = ecken.Count == 1 ? Felsflaeche.Kreis(ecken[0], Math.Clamp(_stadt.FelsRadius, Felspinsel.MinRadius, Felspinsel.MaxRadius)) : new Felsflaeche(ecken);
+                var schaetzung = _entwurf.FelsFuellenSchaetzen(_stadt.FelsFuellungWirksam, flaeche);
+                var n = _stadt.WerkstattFelsFuellen(ecken, null, art == "fuellvorschau", bestaetigen: true);
+                GD.Print($"Fläche füllen ({t[0]}): Schätzung {schaetzung}, {(art == "fuellvorschau" ? "Vorschau" : "gesetzt")} {n} Stücke"
+                         + (n > Felsfuellung.Obergrenze ? $" – über der Obergrenze {Felsfuellung.Obergrenze} (bestätigt)" : "") + $", jetzt {_entwurf.Felsen.Count}");
+                break;
+            }
             case "pinsel": // pinsel:<feld>=<wert>,… – Werte der Tafel für die folgenden Schritte (P3)
                 foreach (var feld in rest.Split(',', StringSplitOptions.RemoveEmptyEntries))
                 {
@@ -1043,6 +1075,17 @@ public partial class Kartenwerkstatt : Node
                         case "neigung": _stadt.FelsNeigung = Zahl(wert); break;
                         case "ausduennen": _stadt.FelsAusduennen = Zahl(wert); break;
                         case "nurformen": _stadt.FelsNurFormen = wert == "an"; break;
+                        case "hang": _stadt.FelsStreuenHang = wert == "an"; break; // P4b: Streuen formt den Hang der Wände mit (als Schicht)
+                        case "aussparen": _stadt.FelsAussparen = wert == "an"; break; // P3b
+                        case "bauzonen": _stadt.FelsAussparenBauzonen = wert == "an"; break;
+                        case "spiegeln": _stadt.FelsSpiegeln = wert == "an"; break; // P5
+                        case "luecken": _stadt.FelsFuellLuecken = Zahl(wert); break; // P6: Fläche füllen „im Umriss“
+                        case "auffels": _stadt.FelsFuellAufFels = wert == "an"; break;
+                        case "vorlage": // P6: vorlage=einzeln (die Formen) oder eine Gruppe (wand, kuppe, …, eigen_n) für Streuen und Füllen
+                            _stadt.FelsGruppe = wert == "einzeln" ? null
+                                : _stadt.FelsKatalog.Finde(wert) is not null ? wert : throw new ArgumentException($"pinsel: unbekannte Vorlage „{wert}“.");
+                            break;
+                        case "verbinden": _stadt.FelsVerbinden = wert == "an"; break; // P5
                         case "formen":
                             _stadt.FelsFormen.Clear();
                             _stadt.FelsFormen.AddRange(wert.Split('+', StringSplitOptions.RemoveEmptyEntries)
@@ -1052,7 +1095,7 @@ public partial class Kartenwerkstatt : Node
                             _stadt.FelsHoehenbereich = wert == "aus" ? null : new Felsbereich(Zahl(wert.Split('/')[0]), Zahl(wert.Split('/')[1]));
                             break;
                         default:
-                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, formen, hoehe).");
+                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, aussparen, bauzonen, hang, formen, hoehe, luecken, auffels, vorlage).");
                     }
                 }
                 break;
@@ -1078,13 +1121,21 @@ public partial class Kartenwerkstatt : Node
                 _entwurf.FelsTransformieren(new[] { _entwurf.Felsen[nr] }, w);
                 break;
             }
-            case "hang": // hang:an / hang:aus – „Hang mitformen“ für die folgenden Stempel (R5)
-                _stadt.FelsHangFormen = rest switch
+            case "hang": // hang:an / hang:aus – „Hang mitformen“ für die folgenden Stempel (R5); P4b: hang:schicht (als eigene Schicht) und hang:fest (fest ins Gelände, wie an)
+                switch (rest)
                 {
-                    "an" => true,
-                    "aus" => false,
-                    _ => throw new ArgumentException($"hang:{rest} – nur hang:an oder hang:aus."),
-                };
+                    case "an" or "fest": // wie vor P4b: fest ins Gelände (alte Klicktests und Bilder bleiben gleich)
+                        (_stadt.FelsHangFormen, _stadt.FelsHangSchicht) = (true, false);
+                        break;
+                    case "schicht":
+                        (_stadt.FelsHangFormen, _stadt.FelsHangSchicht) = (true, true);
+                        break;
+                    case "aus":
+                        _stadt.FelsHangFormen = false;
+                        break;
+                    default:
+                        throw new ArgumentException($"hang:{rest} – hang:an (fest), hang:schicht oder hang:aus.");
+                }
                 break;
             // wahl:<nr>[+<nr>…] – Felsstücke wählen (Nummer ab 0), das letzte ist das gewählte; der Gizmo (R3) steht dann an ihnen.
             // P2: wahl:rahmen,x1,z1,x2,z2[,dazu] (Rahmen zwischen zwei Orten der Karte, auf den Bildschirm projiziert; läuft 1 s später, siehe FelsBefehle) ·
@@ -1113,6 +1164,25 @@ public partial class Kartenwerkstatt : Node
                 for (var i = 0; i < (rest.Length > 0 ? (int)Zahl(rest) : 1); i++) _entwurf.Rueckgaengig();
                 GD.Print($"Felsen nach Rückgängig: {_entwurf.Felsen.Count}");
                 break;
+            case "gruppe": // P5: gruppe:ablegen,<name> (aus der Auswahl) · gruppe:umbenennen,<kennung>,<name> · gruppe:loeschen,<kennung> · gruppe:waehlen · gruppe:verbinden · gruppe:aufloesen
+            {
+                var t = rest.Split(',');
+                var auswahl = _stadt.FelsAuswahl.ToList();
+                switch (t[0])
+                {
+                    case "ablegen": FelsGruppeAblegen(t.Length > 1 ? t[1].Replace('_', ' ') : "", auswahl); break;
+                    case "umbenennen": FelsGruppeUmbenennen(t[1], t[2].Replace('_', ' ')); break;
+                    case "loeschen": FelsGruppeLoeschen(t[1]); break;
+                    case "waehlen": GD.Print($"Felsgruppe gewählt: {_stadt.FelsGruppeWaehlen()} Stücke"); break;
+                    case "verbinden": GD.Print($"Felsgruppe verbunden: Nummer {_stadt.FelsAuswahlVerbinden()}"); break;
+                    case "aufloesen": GD.Print($"Felsgruppe aufgelöst: {_stadt.FelsAuswahlGruppeAufloesen()}"); break;
+                    default: throw new ArgumentException($"gruppe:{t[0]} – ablegen, umbenennen, loeschen, waehlen, verbinden oder aufloesen.");
+                }
+                GD.Print($"Felsgruppen im Katalog: {string.Join(", ", _stadt.FelsKatalog.Eigene.Select(g => $"{g.Kennung} „{g.Name}“ ({g.Stuecke.Count})"))}; " +
+                         $"Gruppen in der Karte: {_entwurf.FelsGruppenAnzahl(_entwurf.Felsen)}");
+                EigenschaftenZeigen(neu: true);
+                break;
+            }
             case "wahl":
             {
                 var stuecke = rest.Split('+', StringSplitOptions.RemoveEmptyEntries).Select(n => (int)Zahl(n))
@@ -1149,6 +1219,22 @@ public partial class Kartenwerkstatt : Node
                     case "boden":
                         _stadt.FelsAufsetzen(t.Length > 1 && t[1] == "hang");
                         break;
+                    case "hang": // gizmo:hang,an|aus – „Eigener Hang“ der gewählten Stücke (P4b, ein Schritt)
+                        Ok(_stadt.FelsAuswahl.Count > 0);
+                        var hangAn = t[1] == "an";
+                        GD.Print($"Felshang {t[1]}: geändert {_stadt.FelsAuswahlHang(hangAn)}, {FelsHangProtokoll()}");
+                        break;
+                    case "abloesen": // gizmo:abloesen – „Hebung ablösen“ an den gewählten Stücken (P4b, ein Schritt)
+                        Ok(_stadt.FelsAuswahl.Count > 0);
+                        GD.Print($"Felshang ablösen: Hinweis „{_stadt.FelsHebungText()}“, geändert {_stadt.FelsAuswahlHebungAbloesen()}, {FelsHangProtokoll()}");
+                        break;
+                    case "schwebende": // gizmo:schwebende – wählt die schwebenden Stücke (P4b)
+                        GD.Print($"Felsen schwebend: {_stadt.FelsSchwebendeAnzahl()}, gewählt {_stadt.FelsSchwebendeWaehlen()}");
+                        break;
+                    case "hangzug": // gizmo:hangzug,<dx>,<dz> – der Hang-Geist für einen Zug der gewählten Stücke (P4b, ohne Befehl); Protokoll mit der Zahl der Punkte
+                        Ok(_stadt.FelsAuswahl.Count > 0);
+                        GD.Print($"Felshang-Zug: {_stadt.MessHangZug(Zahl(t[1]), Zahl(t[2]))} Punkte im Geist");
+                        break;
                     case "kopie":
                         Ok(_stadt.FelsKopieren(t.Length > 2 ? Zahl(t[1]) : 0, t.Length > 2 ? Zahl(t[2]) : 0));
                         GD.Print($"Felsen nach dem Kopieren: {_entwurf.Felsen.Count}, gewählt {_stadt.FelsAuswahl.Count}"); // für Klicktests ohne Bild
@@ -1166,7 +1252,7 @@ public partial class Kartenwerkstatt : Node
                         break;
                     }
                     default:
-                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen, boden, kopie oder pfeil.");
+                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen, boden, hang, abloesen, schwebende, hangzug, kopie oder pfeil.");
                 }
                 break;
             }

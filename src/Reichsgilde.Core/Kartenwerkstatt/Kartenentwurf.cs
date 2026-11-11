@@ -283,6 +283,12 @@ public sealed partial class Kartenentwurf
         Geschichte = new Kartengeschichte(this);
         Regeln = Pruefregeln.Fuer(Kennung);
         _kopf = KopfAus(teile);
+        // P4a: Stücke mit eigenem Hang – die wirksame Höhe gleich beim Öffnen (Kartenentwurf.Felsschicht.cs)
+        if (_felsen.Any(f => f.Hang))
+        {
+            SchichtVormerken();
+            SchichtAuffrischen(melden: false);
+        }
     }
 
     /// <summary>
@@ -965,7 +971,8 @@ public sealed partial class Kartenentwurf
                     continue;
                 case "hoehen":
                     // nur Kacheln mit Punkten in der Karte (Spielfeld und Rand) und nicht ganz 0; ein flaches Gelände fällt weg
-                    if (_hoehen.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
+                    // gespeichert wird die Grundhöhe: den Hang der Stücke mit „hang“ rechnet der Leser aus den Stücken (P4a)
+                    if (Grundraster.AlsJson(Kartengrenzen.Aussen) is { } hoehen) aus[k] = hoehen;
                     continue;
                 case "boden":
                     // ebenso: nur Kacheln mit Punkten in der Karte; alles Wiese ohne Deko fällt weg
@@ -1179,18 +1186,21 @@ public sealed partial class Kartenentwurf
     {
         var l = Liste(t);
         l.Insert(Math.Min(index, l.Count), t);
+        if (t is EntwurfFels { Hang: true }) SchichtVormerken(); // P4a: der Hang des Stücks kommt dazu (Kartenentwurf.Felsschicht.cs)
         Vormerken(new Kartenaenderung(Aenderungsart.Gesetzt, t));
     }
 
     internal void Entfernen(EntwurfTeil t)
     {
         Liste(t).RemoveAt(IndexVon(t));
+        if (t is EntwurfFels { Hang: true }) SchichtVormerken();
         Vormerken(new Kartenaenderung(Aenderungsart.Geloescht, t));
     }
 
     internal void Uebernehmen(EntwurfTeil t, EntwurfTeil werte)
     {
         var bettVorher = BettBereich(t); // wo ein Weg oder eine Mauer vorher das Gelände einebnete
+        if (t is EntwurfFels { Hang: true } || werte is EntwurfFels { Hang: true }) SchichtVormerken();
         t.UebernimmTeil(werte);
         if (t is EntwurfGebaeude g) g.Baustein = Katalog.Finde(g.Katalog);
         if (t is EntwurfPflanze p) p.Baustein = Katalog.Finde(p.Katalog);
@@ -1223,12 +1233,14 @@ public sealed partial class Kartenentwurf
         }
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
+        if (a.Objekt is EntwurfKopf && _grund is not null) (_schichtNeu, _schichtStand) = (true, null); // P4a: Größe und Rand begrenzen den Hang (ganz neu)
         _ausstehend.Add(a);
     }
 
     /// <summary>Meldet die Änderungen des letzten Befehls (aus der Geschichte, nachdem sie den Schritt eingetragen hat).</summary>
     internal void MeldungenAusloesen()
     {
+        SchichtAuffrischen(); // P4a: die Hang-Schicht vor dem Melden nachführen (meldet das Gelände mit)
         var liste = _ausstehend.ToList();
         _ausstehend.Clear();
         foreach (var a in liste) Geaendert?.Invoke(a);

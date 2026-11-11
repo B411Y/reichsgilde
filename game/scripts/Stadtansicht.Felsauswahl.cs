@@ -93,6 +93,21 @@ public partial class Stadtansicht
         return _felsAuswahl.Count;
     }
 
+    /// <summary>P5: Wählt die ganzen Gruppen der gewählten Stücke (alle Stücke mit derselben Gruppennummer); gibt die Zahl der gewählten zurück.</summary>
+    public int FelsGruppeWaehlen()
+    {
+        if (_entwurf is null || _felsAuswahl.Count == 0 || WerkstattGewaehlt is not EntwurfFels primaer) return 0;
+        var liste = _entwurf.FelsGruppeVon(_felsAuswahl).Where(f => !ReferenceEquals(f, primaer)).Append(primaer).ToList();
+        FelsMehrfachWaehlen(liste, dazu: false);
+        return _felsAuswahl.Count;
+    }
+
+    /// <summary>P5: Verbindet die gewählten Stücke zu einer Gruppe (neue Nummer, ein Schritt); 0, wenn weniger als zwei gewählt sind.</summary>
+    public int FelsAuswahlVerbinden() => _entwurf is null ? 0 : _entwurf.FelsGruppieren(_felsAuswahl.ToList());
+
+    /// <summary>P5: Löst die Gruppen der gewählten Stücke auf (ein Schritt); false, wenn keins in einer Gruppe war.</summary>
+    public bool FelsAuswahlGruppeAufloesen() => _entwurf is not null && _entwurf.FelsGruppeAufloesen(_felsAuswahl.ToList());
+
     /// <summary>
     /// Strg+D (kopieren), Strg+A (alle) und Strg+I (umkehren) – nur mit dem Werkzeug „Auswahl“ bzw. im Felswerkzeug beim Stempeln, nicht während eines
     /// Zugs. True, wenn die Taste den Felsen gehörte.

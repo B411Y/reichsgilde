@@ -591,19 +591,37 @@ public sealed class Stadtkarte
     public double? Rand { get; init; }
 
     /// <summary>
-    /// Das Höhenraster (seit der Kartenwerkstatt, Schritt 5b; <see cref="Hoehenraster"/>) – null oder leer: flach. Steht im Spielstand in
-    /// derselben gepackten Form wie in der Kartendatei.
+    /// Das gespeicherte Höhenraster, die Grundhöhe (seit der Kartenwerkstatt, Schritt 5b; <see cref="Hoehenraster"/>) – null oder leer: flach. Steht
+    /// im Spielstand (Feld „Hoehen“) in derselben gepackten Form wie in der Kartendatei („hoehen“). Den Hang der Felsstücke mit „hang“ (P4a) enthält
+    /// es nicht: Gelesen wird <see cref="Hoehen"/>.
     /// </summary>
+    [JsonPropertyName("Hoehen")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Hoehenraster? Hoehen { get => _hoehen; init => _hoehen = value; }
-
-    private Hoehenraster? _hoehen;
+    public Hoehenraster? Grundhoehen { get => _hoehen; init => _hoehen = value; }
 
     /// <summary>
-    /// Setzt das Höhenraster nachträglich – nur für die Kartenprüfung, die ihre Karte für die Startwege ohne das Feld <c>hoehen</c> liest und das Raster
+    /// Das Gelände, wie es gilt: die Grundhöhe, gehoben durch den Hang der Felsstücke mit „hang“ (Felspinsel P4a, <see cref="Felsschicht"/>) – ohne
+    /// solche Stücke dasselbe Raster wie <see cref="Grundhoehen"/>. Null oder leer: flach.
+    /// </summary>
+    [JsonIgnore]
+    public Hoehenraster? Hoehen
+    {
+        get
+        {
+            if (!_wirksamGerechnet) (_wirksam, _wirksamGerechnet) = (Felsschicht.Wirksam(_hoehen, Felsen, Kartengrenzen.Aussen), true);
+            return _wirksam;
+        }
+        init => _hoehen = value;
+    }
+
+    private Hoehenraster? _hoehen, _wirksam;
+    private bool _wirksamGerechnet;
+
+    /// <summary>
+    /// Setzt das Höhenraster (die Grundhöhe) nachträglich – nur für die Kartenprüfung, die ihre Karte für die Startwege ohne das Feld <c>hoehen</c> liest und das Raster
     /// in einem eigenen Häppchen (Kartenentwurf.StartwegSchritte); vor dem ersten Lesen von Gelände und Wasserplan.
     /// </summary>
-    internal void HoehenSetzen(Hoehenraster? hoehen) => (_hoehen, _gelaendeform, _wasserplan) = (hoehen, null, null);
+    internal void HoehenSetzen(Hoehenraster? hoehen) => (_hoehen, _wirksam, _wirksamGerechnet, _gelaendeform, _wasserplan) = (hoehen, null, false, null, null);
 
     /// <summary>
     /// Die Bodentexturen und die Dichte ihrer Deko (seit der Kartenwerkstatt, Schritt 5e; <see cref="Bodenraster"/>, Deko: <see cref="Bodendeko"/>)

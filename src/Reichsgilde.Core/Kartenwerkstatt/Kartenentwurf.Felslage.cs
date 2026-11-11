@@ -229,7 +229,7 @@ public sealed partial class Kartenentwurf
         var wurf = was ?? WurfVorgabe(pinsel);
         var liste = Geordnet(felsen);
         if (liste.Count == 0) return;
-        var p = FelsBegrenzt(pinsel) with { Gruppe = null, Radierer = false };
+        var p = FelsBegrenzt(pinsel).OhneGruppe with { Radierer = false };
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(liste[0].Punkt));
         var werte = new List<(EntwurfFels, Felswerte)>(liste.Count);
         foreach (var f in liste) werte.Add((f, NeuGewuerfelt(f, p, zufall, wurf)));
@@ -272,6 +272,7 @@ public sealed partial class Kartenentwurf
             neue.Add(kopie);
         }
         if (neue.Count == 0) return neue;
+        FelsGruppenNeuNummern(neue); // P5: die Kopien einer Gruppe bilden eine neue Gruppe (nicht dieselbe wie ihre Vorbilder)
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
         Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke kopiert", befehle));
         return neue;
@@ -345,10 +346,13 @@ public sealed partial class Kartenentwurf
     private IKartenbefehl? FelsHangBefehl(IReadOnlyList<EntwurfFels> neue, Felspinsel pinsel)
     {
         if (!pinsel.HangFormen) return null;
-        var aenderung = Felshang.Formen(_hoehen, Kartengrenzen.Aussen, neue.Select(f => f.AlsLage()));
+        // in die Grundhöhe (P4a: mit Hang-Schicht ist das ein anderes Raster als die wirksame Höhe)
+        var aenderung = Felshang.Formen(Grundraster, Kartengrenzen.Aussen, neue.Select(f => f.AlsLage()));
         if (aenderung is null) return null;
         var kacheln = aenderung.Kacheln();
-        return kacheln.Count == 0 || aenderung.Bereich is not { } bereich ? null : new GelaendeAendern("Hang hinter dem Fels", kacheln, bereich);
+        if (kacheln.Count == 0 || aenderung.Bereich is not { } bereich) return null;
+        if (_grund is not null) GrundGeaendert(bereich);
+        return new GelaendeAendern("Hang hinter dem Fels", kacheln, bereich);
     }
 
     /// <summary>Die Stücke, die zum Entwurf gehören, jedes einmal, in der Reihenfolge des Entwurfs.</summary>
