@@ -25,7 +25,7 @@ public partial class Kartenwerkstatt
         EigenschaftenLeeren();
         _gezeigt = FelsMarke;
         var modus = _stadt.FelsModus;
-        var gruppe = Felsformen.Gruppe(_stadt.FelsGruppe);
+        var gruppe = _stadt.FelsKatalog.Finde(_stadt.FelsGruppe); // P5: feste und eigene Gruppen
         var kopf = new HBoxContainer();
         kopf.AddThemeConstantOverride("separation", 8);
         _eigenschaften.AddChild(kopf);
@@ -336,14 +336,16 @@ public partial class Kartenwerkstatt
     {
         Hauptmenue.Text(_eigenschaften, "Vorlage", 15, Gold);
         var raster = ZweiSpalten();
+        var gruppen = _stadt.FelsKatalog.Alle; // P5: erst die festen, dann die eigenen aus dem gemeinsamen Katalog
         var vorlage = new OptionButton { FocusMode = Control.FocusModeEnum.None,
-            TooltipText = "Eine feste Gruppe (Wand, Kuppe, Rippe, Große Wand aus 5 bis 7 Stücken) oder einzelne Stücke aus den Formen darunter" };
+            TooltipText = "Eine feste Gruppe (Wand, Kuppe, Rippe, Große Wand aus 5 bis 8 Stücken), eine eigene Gruppe (gewählte Stücke › „Als Gruppe ablegen“) " +
+                          "oder einzelne Stücke aus den Formen darunter" };
         vorlage.AddItem("Einzelstücke");
-        foreach (var g in Felsformen.Gruppen) vorlage.AddItem($"Gruppe {g.Name} ({g.Stuecke.Count} Stücke)");
-        vorlage.Selected = gruppe is null ? 0 : Felsformen.Gruppen.ToList().IndexOf(gruppe) + 1;
+        foreach (var g in gruppen) vorlage.AddItem(g.Eigen ? $"Eigene: {g.Name} ({g.Stuecke.Count} Stücke)" : $"Gruppe {g.Name} ({g.Stuecke.Count} Stücke)");
+        vorlage.Selected = gruppe is null ? 0 : gruppen.ToList().FindIndex(g => g.Kennung == gruppe.Kennung) + 1;
         vorlage.ItemSelected += i =>
         {
-            _stadt.FelsGruppe = i == 0 ? null : Felsformen.Gruppen[(int)i - 1].Kennung;
+            _stadt.FelsGruppe = i == 0 ? null : gruppen[(int)i - 1].Kennung;
             EigenschaftenZeigen(neu: true);
         };
         Zeile(raster, "Vorlage", vorlage);
@@ -372,8 +374,25 @@ public partial class Kartenwerkstatt
         };
         Zeile(raster, "Karte", grund);
 
-        if (gruppe is not null) return;
-        FelsFormenGitter();
+        if (gruppe is null)
+        {
+            FelsFormenGitter();
+            return;
+        }
+        if (gruppe.Eigen) FelsVorlageVerwalten(gruppe); // P5: Umbenennen und Löschen (Kartenwerkstatt.Felskatalog.cs)
+        // P5: Spiegeln und Verbinden – nur für Gruppen
+        var spiegeln = new CheckBox { Text = "Zufällig spiegeln", ButtonPressed = _stadt.FelsSpiegeln, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Jede gesetzte Gruppe wird mit halber Wahrscheinlichkeit an ihrer Längsachse gespiegelt (die Lage der Stücke, nicht die Modelle) – " +
+                          "zusammen mit der Drehung fällt die Wiederholung derselben Gruppe weniger auf" };
+        spiegeln.AddThemeFontSizeOverride("font_size", 14);
+        spiegeln.Toggled += an => _stadt.FelsSpiegeln = an;
+        _eigenschaften.AddChild(spiegeln);
+        var verbinden = new CheckBox { Text = "Stücke verbinden (gemeinsam wählen)", ButtonPressed = _stadt.FelsVerbinden, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Die Stücke jeder gesetzten Gruppe bekommen eine gemeinsame Nummer: Mit dem Werkzeug Auswahl wählt „Ganze Gruppe wählen“ sie zusammen, " +
+                          "„Gruppe auflösen“ trennt sie wieder. Die gesetzten Stücke sind danach eigenständig (keine Verknüpfung zur Vorlage)." };
+        verbinden.AddThemeFontSizeOverride("font_size", 14);
+        verbinden.Toggled += an => _stadt.FelsVerbinden = an;
+        _eigenschaften.AddChild(verbinden);
     }
 
     /// <summary>Je Form ein Häkchen (zwei Spalten); nie leer – ohne Haken gilt der Block.</summary>

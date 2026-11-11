@@ -87,6 +87,7 @@ public partial class Kartenwerkstatt
         Knopf(knoepfe, "Kopieren (Strg+D)", () => _stadt.FelsKopieren(), "Kopiert die gewählten Stücke an Ort und Stelle (ein Schritt für Strg+Z); danach sind die Kopien gewählt – mit dem Gizmo wegziehen");
         FelsWurfHaken(_eigenschaften); // was „Neu verteilen“ würfelt (Kartenwerkstatt.Felsen.cs)
         FelsHangTafel(auswahl);
+        FelsGruppeTafel(auswahl); // P5: ablegen im Katalog, Gruppe wählen, verbinden, auflösen (Kartenwerkstatt.Felskatalog.cs)
 
         // Auswahl (P2): alle einer Art, umkehren, alle
         var wahl = new HFlowContainer();

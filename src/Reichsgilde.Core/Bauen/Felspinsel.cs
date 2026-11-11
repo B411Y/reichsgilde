@@ -30,6 +30,12 @@ namespace Reichsgilde.Core.Bauen;
 //  Streuen), Streuung des Einsinkens (vorher fest ± 0,05; derselbe Wurf), Höhenfilter (Geländehöhe von–bis an der Mitte, wie der Filter),
 //  „nur diese Formen“ für Radierer, Ausdünnen und Neu verteilen, Ausdünnen (Radierer bis zur Dichte statt alles) und Neu verteilen
 //  (ein Strich würfelt die Stücke unter dem Pinsel neu, nur die Werte in Verteilen). Alles mit Vorgaben, die alte Striche nicht ändern.
+//
+//  Felspinsel P5 (eigene Gruppen, Felskatalog.cs): Vorlage kann auch eine eigene Gruppe sein (Eigengruppe, die ganze Gruppe im Pinsel – der Kern
+//  kennt keinen Katalog-Speicher). Ihre Stücke bringen Kippen, Rollen, Achsen, Versatz und Gestein mit; ein Bereich des Pinsels („Erweitert“) würfelt
+//  den Wert trotzdem je Stück neu, ein Gestein des Pinsels geht vor. „Spiegeln“ spiegelt jede Gruppe mit Wahrscheinlichkeit ½ an ihrer Längsachse
+//  (x → −x, Drehung und Rollen negiert; die Modelle selbst werden nicht gespiegelt) – ein Wurf je Treffer, nur mit dem Häkchen. „Verbinden“ gibt
+//  den Stücken eines Treffers eine gemeinsame Nummer („gruppe“ am Stück, Kartenentwurf.Felsgruppen.cs). Ohne diese Werte bleiben alte Striche gleich.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>
@@ -71,6 +77,8 @@ public sealed record Felsbereich(double Von, double Bis)
 /// P4a: <paramref name="HangSchicht"/> – mit <paramref name="HangFormen"/> schreibt der Stempel den Hang nicht fest ins Gelände, sondern setzt an den Wänden
 /// das Feld „hang“: Der Hang ist dann eine eigene Schicht und folgt dem Stück beim Verschieben, Drehen und Löschen (Felsschicht.cs). Vorgabe aus, damit
 /// alte Stempel gleich bleiben.
+/// P5: <paramref name="Eigengruppe"/> – eine eigene Gruppe aus dem Katalog als Vorlage (geht vor <paramref name="Gruppe"/>); <paramref name="Spiegeln"/> –
+/// jede Gruppe zufällig gespiegelt; <paramref name="Verbinden"/> – die Stücke eines Treffers bekommen eine gemeinsame Gruppennummer. Vorgaben: alte Striche gleich.
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
@@ -79,8 +87,14 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     Felsbereich? Kippbereich = null, Felsbereich? Rollbereich = null, Felsbereich? Versatzbereich = null, double? NeigungBis = null,
     bool HangFormen = false, double Abstand = 0, double EinsinkenStreuung = Felspinsel.EinsinkenStreuungVorgabe, Felsbereich? Hoehenbereich = null,
     bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null, bool Aussparen = false, bool AussparenBauzonen = false,
-    bool HangSchicht = false)
+    bool HangSchicht = false, Felsgruppe? Eigengruppe = null, bool Spiegeln = false, bool Verbinden = false)
 {
+    /// <summary>Die Gruppe, die der Pinsel setzt: die eigene (P5) oder die feste mit der Kennung <see cref="Gruppe"/> – null: Einzelstücke.</summary>
+    public Felsgruppe? GruppeWirksam => Eigengruppe ?? Felsformen.Gruppe(Gruppe);
+
+    /// <summary>Der Pinsel ohne Gruppe (Einzelstücke aus den Formen) – für Neu verteilen.</summary>
+    public Felspinsel OhneGruppe => this with { Gruppe = null, Eigengruppe = null };
+
     /// <summary>Streuung des Einsinkens ohne Angabe (± Anteil der Höhe, wie vor P3).</summary>
     public const double EinsinkenStreuungVorgabe = 0.05;
 
@@ -97,7 +111,7 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     public bool NimmtForm(string form)
     {
         if (!NurFormen) return true;
-        if (Felsformen.Gruppe(Gruppe) is { } g) return g.Stuecke.Any(s => s.Form == form);
+        if (GruppeWirksam is { } g) return g.Stuecke.Any(s => s.Form == form);
         return FormenWirksam.Any(f => f.Kennung == form);
     }
 
@@ -162,8 +176,8 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
             if (AchseX is not null || AchseZ is not null) s *= Math.Sqrt(Math.Clamp(AchseX?.Von ?? 1, Felsformen.AchseMin, Felsformen.AchseMax)
                                                                        * Math.Clamp(AchseZ?.Von ?? 1, Felsformen.AchseMin, Felsformen.AchseMax));
             double Flaeche(string form, double m) => Felsformen.Finde(form) is { } f ? Math.PI * f.Radius * m * f.Radius * m : 1;
-            return Felsformen.Gruppe(Gruppe) is { } g
-                ? g.Stuecke.Sum(x => Flaeche(x.Form, s * x.Massstab * 0.92))
+            return GruppeWirksam is { } g
+                ? g.Stuecke.Sum(x => Flaeche(x.Form, s * x.Massstab * Math.Sqrt(x.AchseX * x.AchseZ) * 0.92))
                 : FormenWirksam.Min(f => Flaeche(f.Kennung, s));
         }
     }
@@ -172,6 +186,7 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     public Felspinsel Begrenzt() => this with
     {
         Gruppe = Felsformen.Gruppe(Gruppe) is null ? null : Gruppe,
+        Eigengruppe = Felskatalog.Bereinigt(Eigengruppe),
         Gestein = Felsformen.IstGestein(Gestein) ? Gestein : null,
         Radius = Math.Clamp(Radius, MinRadius, MaxRadius),
         Dichte = Math.Clamp(Dichte, 0, 1),
@@ -268,16 +283,20 @@ public static class Felsstreuung
     /// Die Stücke eines Treffers an (x, z): ein Stück aus den Formen des Pinsels oder die ganze Gruppe. Verbraucht die Würfe immer in derselben
     /// Reihenfolge (Form, Größe, Drehung, je Stück Drehung, Größe, Einsinken, Kippen, Rollen – dann nur bei nicht leeren Bereichen Achse x, y, z
     /// und Versatz). <paramref name="drehung"/>: feste Drehung (Stempel mit Q/E) statt der zufälligen bzw. hangabwärts.
+    /// P5: Mit <see cref="Felspinsel.Spiegeln"/> und einer Gruppe kommt nach der Drehung ein Wurf für die Spiegelung dazu; eigene Gruppen nehmen Kippen,
+    /// Rollen, Achsen, Versatz und Gestein ihrer Stücke, wo der Pinsel keinen Bereich bzw. kein Gestein nennt (die Würfe bleiben dieselben).
     /// </summary>
     public static List<Felslage> Treffer(Felspinsel pinsel, Zufallsquelle zufall, Hoehenraster hoehen, double x, double z, double? drehung = null)
     {
         double Plusminus(double weite) => (2 * zufall.NextDouble() - 1) * weite;
         var p = pinsel;
-        var gruppe = Felsformen.Gruppe(p.Gruppe);
+        var gruppe = p.GruppeWirksam;
+        var eigen = gruppe?.Eigen == true;
         var formen = p.FormenWirksam;
         var form = formen[zufall.Next(formen.Count)];
         var groesse = Math.Clamp(p.Groesse * (1 + Plusminus(p.Streuung)), Felsformen.MassstabMin, Felsformen.MassstabMax);
         var wurf = zufall.NextDouble();
+        var spiegeln = p.Spiegeln && gruppe is not null && zufall.NextDouble() < 0.5; // P5: nur mit dem Häkchen ein Wurf mehr – alte Striche bleiben gleich
         var gerichtet = gruppe is not null || form.Gerichtet;
         var hang = p.ZumHang && gerichtet ? Hangabwaerts(hoehen, x, z) : null;
         var grund = drehung ?? (p.Drehbereich is { } db ? (hang ?? 0) + db.Wert(wurf) : hang is { } h ? h + (2 * wurf - 1) * 20 : wurf * 360);
@@ -288,28 +307,31 @@ public static class Felsstreuung
         for (var n = 0; n < stuecke.Count; n++)
         {
             var s = stuecke[n];
+            if (spiegeln) s = s with { X = -s.X, Drehung = -s.Drehung, KippenZ = -s.KippenZ };
             var o = Kartengeometrie.Dreh(s.X * groesse, s.Z * groesse, grund);
-            var eigen = n == 0 ? 0 : Plusminus(6); // das erste Stück (die Mitte der Gruppe) steht genau in der Drehung der Gruppe
+            var eigenDreh = n == 0 ? 0 : Plusminus(6); // das erste Stück (die Mitte der Gruppe) steht genau in der Drehung der Gruppe
             var massstab = n == 0 ? groesse * s.Massstab : groesse * s.Massstab * (1 + Plusminus(0.08));
+            if (eigen) (eigenDreh, massstab) = (0, groesse * s.Massstab); // P5: eine eigene Gruppe kommt genau so wieder, wie sie gebaut war (die Würfe bleiben)
             var einsinken = p.Einsinken * (Felsformen.Finde(s.Form)?.EinsinkenFaktor ?? 1) + s.Einsinken + Plusminus(p.EinsinkenStreuung); // die großen Wände stecken weniger tief (R4); Streuung seit P3 einstellbar (Vorgabe 0,05: derselbe Wurf)
             var (uk, ur) = (zufall.NextDouble(), zufall.NextDouble());
-            var kx = p.Kippbereich is { } kb ? Felsraum.Winkel(kb.Wert(uk)) : Math.Round((2 * uk - 1) * Felsformen.KippenMax, 1) + 0.0;
-            var kz = p.Rollbereich is { } rb ? Felsraum.Winkel(rb.Wert(ur)) : Math.Round((2 * ur - 1) * Felsformen.KippenMax, 1) + 0.0;
-            // neue Würfe (R2) nur bei nicht leeren Bereichen, hinten an: ein alter Strich zieht dieselben Zahlen wie vorher
-            var ax = Achse(p.AchseX, zufall);
-            var ay = Achse(p.AchseY, zufall);
-            var az = Achse(p.AchseZ, zufall);
-            var versatz = p.Versatzbereich is { } vb ? Kartenraster.Punkt(Math.Clamp(vb.Ziehen(zufall), -Felsformen.VersatzMax, Felsformen.VersatzMax)) : 0;
-            aus.Add(new Felslage(s.Form, p.Gestein, Kartenraster.Punkt(x + o.X), Kartenraster.Punkt(z + o.Z), Kartenraster.Drehung(grund + s.Drehung + eigen),
+            var kx = p.Kippbereich is { } kb ? Felsraum.Winkel(kb.Wert(uk)) : eigen ? Felsraum.Winkel(s.KippenX) : Math.Round((2 * uk - 1) * Felsformen.KippenMax, 1) + 0.0;
+            var kz = p.Rollbereich is { } rb ? Felsraum.Winkel(rb.Wert(ur)) : eigen ? Felsraum.Winkel(s.KippenZ) : Math.Round((2 * ur - 1) * Felsformen.KippenMax, 1) + 0.0;
+            // neue Würfe (R2) nur bei nicht leeren Bereichen, hinten an: ein alter Strich zieht dieselben Zahlen wie vorher; ohne Bereich der Wert des Gruppenstücks (fest: 1 bzw. 0)
+            var ax = Achse(p.AchseX, zufall, s.AchseX);
+            var ay = Achse(p.AchseY, zufall, s.AchseY);
+            var az = Achse(p.AchseZ, zufall, s.AchseZ);
+            var versatz = p.Versatzbereich is { } vb ? Kartenraster.Punkt(Math.Clamp(vb.Ziehen(zufall), -Felsformen.VersatzMax, Felsformen.VersatzMax))
+                : s.Versatz != 0 ? Kartenraster.Punkt(Math.Clamp(s.Versatz * groesse, -Felsformen.VersatzMax, Felsformen.VersatzMax)) : 0;
+            aus.Add(new Felslage(s.Form, p.Gestein ?? s.Gestein, Kartenraster.Punkt(x + o.X), Kartenraster.Punkt(z + o.Z), Kartenraster.Drehung(grund + s.Drehung + eigenDreh),
                 Math.Round(Math.Clamp(massstab, Felsformen.MassstabMin, Felsformen.MassstabMax), 2), neigung,
                 Math.Round(Math.Clamp(einsinken, 0, Felsformen.EinsinkenMax), 2), kx, kz, ax, ay, az, versatz));
         }
         return aus;
     }
 
-    /// <summary>Ein Faktor je Achse aus seinem Bereich (gerundet wie in der Datei); ohne Bereich 1, ohne Wurf.</summary>
-    private static double Achse(Felsbereich? bereich, Zufallsquelle zufall) =>
-        bereich is null ? 1 : Math.Round(Math.Clamp(bereich.Ziehen(zufall), Felsformen.AchseMin, Felsformen.AchseMax), 2);
+    /// <summary>Ein Faktor je Achse aus seinem Bereich (gerundet wie in der Datei); ohne Bereich <paramref name="ohne"/> (1, bei eigenen Gruppen der des Stücks), ohne Wurf.</summary>
+    private static double Achse(Felsbereich? bereich, Zufallsquelle zufall, double ohne) =>
+        bereich is null ? ohne : Math.Round(Math.Clamp(bereich.Ziehen(zufall), Felsformen.AchseMin, Felsformen.AchseMax), 2);
 
     /// <summary>
     /// Die Neigung zum Hang (Anteil 0 … 1) mit der Grenze <see cref="Felspinsel.NeigungBis"/>: Ist der Hang steiler, neigt sich das Stück nur so

@@ -39,8 +39,20 @@ public partial class Stadtansicht
 
     public FelsArt FelsModus { get; set; } = FelsArt.Stempeln;
 
-    /// <summary>Vorlage: eine Gruppe (wand, kuppe, rippe) – oder null, dann die Formen in <see cref="FelsFormen"/>.</summary>
+    /// <summary>Vorlage: eine Gruppe (wand, kuppe, rippe, wandgross oder eine eigene „eigen_n“ aus <see cref="FelsKatalog"/>) – oder null, dann die Formen in <see cref="FelsFormen"/>.</summary>
     public string? FelsGruppe { get; set; } = "wand";
+
+    /// <summary>
+    /// P5: der gemeinsame Katalog der Felsgruppen (feste und eigene, Felskatalog.cs) – die Werkstatt lädt ihn beim Start aus <c>user://felsgruppen.json</c>
+    /// und schreibt ihn nach jeder Änderung (Kartenwerkstatt.Felskatalog.cs).
+    /// </summary>
+    public Felskatalog FelsKatalog { get; set; } = Felskatalog.Leer;
+
+    /// <summary>P5: Gruppen beim Stempeln und Streuen zufällig spiegeln (Vorgabe aus: alte Klicktests bleiben gleich).</summary>
+    public bool FelsSpiegeln { get; set; }
+
+    /// <summary>P5: Die Stücke eines Stempels bzw. Treffers bekommen eine gemeinsame Gruppennummer (gemeinsam wählen; Vorgabe aus).</summary>
+    public bool FelsVerbinden { get; set; }
 
     /// <summary>Die Formen für Einzelstücke (zufällig gleich verteilt).</summary>
     public List<string> FelsFormen { get; } = new() { "block" };
@@ -136,7 +148,8 @@ public partial class Stadtansicht
     public Felspinsel FelsPinselWerte => new(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken,
         FelsNeigung, FelsZumHang, FelsFilter, Boden: FelsBoden, AchseX: FelsAchseX, AchseY: FelsAchseY, AchseZ: FelsAchseZ, Drehbereich: FelsDrehbereich,
         Kippbereich: FelsKippbereich, Rollbereich: FelsRollbereich, Versatzbereich: FelsVersatzbereich, NeigungBis: FelsNeigungBis, HangFormen: FelsHangFormen, HangSchicht: FelsHangSchicht,
-        Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen, Aussparen: FelsAussparen, AussparenBauzonen: FelsAussparenBauzonen);
+        Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen, Aussparen: FelsAussparen, AussparenBauzonen: FelsAussparenBauzonen,
+        Eigengruppe: FelsKatalog.IstEigen(FelsGruppe) ? FelsKatalog.Finde(FelsGruppe) : null, Spiegeln: FelsSpiegeln, Verbinden: FelsVerbinden);
 
     /// <summary>Der Radierer mit Radius, Filter, Höhe und Formen (Ausdünnen, wenn eine Dichte eingestellt ist).</summary>
     public Felspinsel FelsRadierer => Felspinsel.Radiergummi(FelsRadius, FelsFilter) with
@@ -148,7 +161,7 @@ public partial class Stadtansicht
     public Felspinsel FelsPinsel => FelsModus switch
     {
         FelsArt.Radieren => FelsRadierer,
-        FelsArt.Verteilen => FelsPinselWerte with { Gruppe = null, Verteilen = FelsVerteilenWurf == Felswurf.Keins ? null : FelsVerteilenWurf },
+        FelsArt.Verteilen => FelsPinselWerte.OhneGruppe with { Verteilen = FelsVerteilenWurf == Felswurf.Keins ? null : FelsVerteilenWurf },
         FelsArt.Streuen => FelsPinselWerte with { HangFormen = FelsStreuenHang, HangSchicht = true }, // P4b: der Hang beim Streuen ist immer die Schicht
         _ => FelsPinselWerte,
     };

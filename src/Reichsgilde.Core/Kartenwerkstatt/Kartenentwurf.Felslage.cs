@@ -229,7 +229,7 @@ public sealed partial class Kartenentwurf
         var wurf = was ?? WurfVorgabe(pinsel);
         var liste = Geordnet(felsen);
         if (liste.Count == 0) return;
-        var p = FelsBegrenzt(pinsel) with { Gruppe = null, Radierer = false };
+        var p = FelsBegrenzt(pinsel).OhneGruppe with { Radierer = false };
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(liste[0].Punkt));
         var werte = new List<(EntwurfFels, Felswerte)>(liste.Count);
         foreach (var f in liste) werte.Add((f, NeuGewuerfelt(f, p, zufall, wurf)));
@@ -272,6 +272,7 @@ public sealed partial class Kartenentwurf
             neue.Add(kopie);
         }
         if (neue.Count == 0) return neue;
+        FelsGruppenNeuNummern(neue); // P5: die Kopien einer Gruppe bilden eine neue Gruppe (nicht dieselbe wie ihre Vorbilder)
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
         Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke kopiert", befehle));
         return neue;

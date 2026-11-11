@@ -168,6 +168,7 @@ public partial class Kartenwerkstatt : Node
             if (wieder.Start) ReiterWaehlen(true);
             meldung = "Zurück aus der Probepartie – die Karte ist, wie sie war, mit Rückgängig.";
         }
+        FelsKatalogLaden(optionen.GetValueOrDefault("werkstatt-felskatalog")); // P5: gemeinsamer Katalog der Felsgruppen (Kartenwerkstatt.Felskatalog.cs)
         Auffrischen();
         EigenschaftenZeigen(neu: true);
         if (meldung is not null) Melden(meldung);
@@ -838,7 +839,7 @@ public partial class Kartenwerkstatt : Node
                 }
             // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:… und gizmo:… (R3/P2, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
             // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) · P3: ausduennen:<radius>,<dichte>,x1,z1;… ·
-            // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… · P5: gruppe:… (siehe FelsBefehl) – <vorlage> ist eine Gruppe (wand, kuppe, rippe, eigen_1 …) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
             if (o.TryGetValue("werkstatt-fels", out var felsen)) FelsBefehle(felsen.Split('|', StringSplitOptions.RemoveEmptyEntries));
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
@@ -968,7 +969,8 @@ public partial class Kartenwerkstatt : Node
             var (vorlage, gestein) = (text.Split('@')[0], text.Contains('@') ? text.Split('@')[1] : null);
             if (gestein is not null && !Felsformen.IstGestein(gestein)) throw new ArgumentException($"Unbekannte Gesteinsart „{gestein}“.");
             var basis = _stadt.FelsPinselWerte with { Gestein = gestein ?? _stadt.FelsGestein }; // alle Werte der Tafel, gleich welche Art eingestellt ist (P3)
-            if (Felsformen.Gruppe(vorlage) is { } g) return basis with { Gruppe = g.Kennung };
+            if (_stadt.FelsKatalog.Finde(vorlage) is { } g)
+                return basis with { Gruppe = g.Kennung, Eigengruppe = g.Eigen ? g : null }; // P5: auch eigene Gruppen (eigen_1 …)
             var formen = vorlage.Split('+');
             if (formen.Any(f => Felsformen.Finde(f) is null)) throw new ArgumentException($"Unbekannte Felsvorlage „{vorlage}“ (wand, kuppe, rippe oder Formen mit +).");
             return basis with { Gruppe = null, Formen = formen };
@@ -1055,6 +1057,8 @@ public partial class Kartenwerkstatt : Node
                         case "hang": _stadt.FelsStreuenHang = wert == "an"; break; // P4b: Streuen formt den Hang der Wände mit (als Schicht)
                         case "aussparen": _stadt.FelsAussparen = wert == "an"; break; // P3b
                         case "bauzonen": _stadt.FelsAussparenBauzonen = wert == "an"; break;
+                        case "spiegeln": _stadt.FelsSpiegeln = wert == "an"; break; // P5
+                        case "verbinden": _stadt.FelsVerbinden = wert == "an"; break; // P5
                         case "formen":
                             _stadt.FelsFormen.Clear();
                             _stadt.FelsFormen.AddRange(wert.Split('+', StringSplitOptions.RemoveEmptyEntries)
@@ -1133,6 +1137,25 @@ public partial class Kartenwerkstatt : Node
                 for (var i = 0; i < (rest.Length > 0 ? (int)Zahl(rest) : 1); i++) _entwurf.Rueckgaengig();
                 GD.Print($"Felsen nach Rückgängig: {_entwurf.Felsen.Count}");
                 break;
+            case "gruppe": // P5: gruppe:ablegen,<name> (aus der Auswahl) · gruppe:umbenennen,<kennung>,<name> · gruppe:loeschen,<kennung> · gruppe:waehlen · gruppe:verbinden · gruppe:aufloesen
+            {
+                var t = rest.Split(',');
+                var auswahl = _stadt.FelsAuswahl.ToList();
+                switch (t[0])
+                {
+                    case "ablegen": FelsGruppeAblegen(t.Length > 1 ? t[1].Replace('_', ' ') : "", auswahl); break;
+                    case "umbenennen": FelsGruppeUmbenennen(t[1], t[2].Replace('_', ' ')); break;
+                    case "loeschen": FelsGruppeLoeschen(t[1]); break;
+                    case "waehlen": GD.Print($"Felsgruppe gewählt: {_stadt.FelsGruppeWaehlen()} Stücke"); break;
+                    case "verbinden": GD.Print($"Felsgruppe verbunden: Nummer {_stadt.FelsAuswahlVerbinden()}"); break;
+                    case "aufloesen": GD.Print($"Felsgruppe aufgelöst: {_stadt.FelsAuswahlGruppeAufloesen()}"); break;
+                    default: throw new ArgumentException($"gruppe:{t[0]} – ablegen, umbenennen, loeschen, waehlen, verbinden oder aufloesen.");
+                }
+                GD.Print($"Felsgruppen im Katalog: {string.Join(", ", _stadt.FelsKatalog.Eigene.Select(g => $"{g.Kennung} „{g.Name}“ ({g.Stuecke.Count})"))}; " +
+                         $"Gruppen in der Karte: {_entwurf.FelsGruppenAnzahl(_entwurf.Felsen)}");
+                EigenschaftenZeigen(neu: true);
+                break;
+            }
             case "wahl":
             {
                 var stuecke = rest.Split('+', StringSplitOptions.RemoveEmptyEntries).Select(n => (int)Zahl(n))

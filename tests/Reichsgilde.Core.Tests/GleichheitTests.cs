@@ -28,7 +28,7 @@ using Reichsgilde.Core.Zeit;
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Dazu der Wasserverbund (Befund 1, 09.11.2026, Zeile „wasserverbund“) und der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
 /// der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl, die Felslage (R2): Zufallsbereiche, Transformieren, Einrasten, Neu würfeln,
-/// das Kopieren von Felsstücken (P2) und die Pinselwerte, Ausdünnen und Neu verteilen (P3).
+/// das Kopieren von Felsstücken (P2), die Pinselwerte, Ausdünnen und Neu verteilen (P3) und die eigenen Felsgruppen (P5).
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -97,7 +97,19 @@ static class GleichheitTests
         "Gleichheit: Felspinsel P3b (Streuen mit Gebäuden, Wegen und Bauzonen aussparen, Stempel im Haus) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelsAussparenPruefen)).Append((
         "Gleichheit: Felspinsel P4a (Hang als eigene Schicht, Hebung ablösen, Verschieben, Drehen, Hang aus, Gelände darunter, Löschen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei und wirksame Höhe",
-        FelsHangPruefen));
+        FelsHangPruefen)).Append((
+        "Gleichheit: Felspinsel P5 (eigene Felsgruppen im Katalog, gedreht, gespiegelt, verbunden gestempelt und gestreut, Kopien, Gruppe auflösen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Katalog- und Kartendatei",
+        FelsgruppenPruefen));
+
+    /// <summary>Felspinsel P5: eigene Felsgruppen – gleiche Bytes von Katalog- und Kartendatei (Zeile „felsgruppen …“ in der Datei der CI).</summary>
+    static void FelsgruppenPruefen()
+    {
+        var a = Sha256(FelsgruppenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsgruppenTests.Ablauf()), "Fels P5: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsgruppenTests.Ablauf())), "Fels P5: de-DE");
+        Zeilen[-10] = new[] { $"felsgruppen {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felspinsel P4a: der Hang als eigene Schicht – gleiche Bytes von Kartendatei und wirksamer Höhe (Zeile „felshang …“ in der Datei der CI).</summary>
     static void FelsHangPruefen()
