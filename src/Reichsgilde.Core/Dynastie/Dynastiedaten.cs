@@ -106,6 +106,9 @@ public sealed class DynastieDaten
     /// <summary>Hochzeitskosten steigen je Stufe des Kandidaten-Standes um diesen Anteil (0,5 = +50 %).</summary>
     public double HochzeitJeStand { get; init; } = 0.5;
 
+    /// <summary>Höchstens so viele gespeicherte Einträge hat die Hauschronik eines Hauses (in einer üblichen Partie weit weg; darüber fällt das Unwichtigste).</summary>
+    public int ChronikObergrenze { get; init; } = 400;
+
     public MischeheDaten Mischehe { get; init; } = new();
 
     public Dictionary<Volk, VolkDaten> Voelker { get; init; } = new();
@@ -125,6 +128,7 @@ public sealed class DynastieDaten
         if (Grundrisiko is < 0 or >= 1 || Kinderrisiko is < 0 or >= 1) f.Add("dynastie: grundrisiko und kinderrisiko müssen zwischen 0 und 1 liegen.");
         if (KinderAbnahme is <= 0 or > 1) f.Add("dynastie.kinderAbnahme muss zwischen 0 (ausschließlich) und 1 liegen.");
         if (Kandidaten < 0) f.Add("dynastie.kandidaten darf nicht negativ sein.");
+        if (ChronikObergrenze < 10) f.Add("dynastie.chronikObergrenze muss mindestens 10 sein.");
         if (KandidatGehtJeJahr is < 0 or > 1) f.Add("dynastie.kandidatGehtJeJahr muss zwischen 0 und 1 liegen.");
         if (ZuneigungVerfall is < 0 or > 1) f.Add("dynastie.zuneigungVerfall muss zwischen 0 und 1 liegen.");
         if (ZuneigungJeGulden <= 0 || ZuneigungJeJahr <= 0) f.Add("dynastie: zuneigungJeGulden und zuneigungJeJahr müssen größer als 0 sein.");

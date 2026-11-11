@@ -171,7 +171,7 @@ public partial class FamilienAnzeige : PanelContainer
         if (buch.Von(Ansicht) is not { } f) { Text(_chronik, "Dieses Haus hat keine Familie.", 15, Grau); return; }
         Hauptmenue.Text(_chronik, $"Chronik des Hauses {f.Nachname}", 22, Gold, zentriert: true);
         var eintraege = buch.Chronik(f, _spieler!);
-        Hauptmenue.Text(_chronik, $"{eintraege.Count} Einträge – Geburten, Todesfälle und Erbfolgen bleiben für immer; Hochzeiten, Ämter, Geheimnisse und Entscheidungen nur, solange sie im Verlauf der Stadt stehen (die letzten 500 Meldungen).",
+        Hauptmenue.Text(_chronik, $"{eintraege.Count} Einträge – nur das Wichtigste, für immer: Geburten, Todesfälle, Erbfolgen, Hochzeiten, Ämter und Stand, Geheimnisse, Brände und Entscheidungen mit Folgen.",
             12, Grau, zentriert: true, umbruchBreite: Breite - 60);
         var zeigen = Math.Min(eintraege.Count, _chronikSeite * ChronikProSeite);
         var jahrDavor = int.MinValue;
@@ -212,13 +212,14 @@ public partial class FamilienAnzeige : PanelContainer
     private static string ChronikName(Chronikart a) => a switch
     {
         Chronikart.Gruendung => "Gründung", Chronikart.Geburt => "Geburt", Chronikart.Heirat => "Hochzeit", Chronikart.Tod => "Tod",
-        Chronikart.Erbe => "Erbfolge", Chronikart.Amt => "Amt, Stand", Chronikart.Geheimnis => "Geheimnis", Chronikart.Entscheidung => "Entscheidung", _ => "Ereignis",
+        Chronikart.Erbe => "Erbfolge", Chronikart.Amt => "Amt, Stand", Chronikart.Geheimnis => "Geheimnis", Chronikart.Entscheidung => "Entscheidung", Chronikart.Brand => "Brand", _ => "Ereignis",
     };
 
     private static Color ChronikFarbe(Chronikart a) => a switch
     {
         Chronikart.Geburt => Gruen, Chronikart.Tod => Grau, Chronikart.Erbe or Chronikart.Gruendung => Gold, Chronikart.Heirat => new Color(0.95f, 0.65f, 0.7f),
-        Chronikart.Geheimnis => Rot, Chronikart.Amt => new Color(0.6f, 0.75f, 0.95f), Chronikart.Entscheidung => new Color(0.8f, 0.65f, 0.95f), _ => Grau,
+        Chronikart.Geheimnis => Rot, Chronikart.Amt => new Color(0.6f, 0.75f, 0.95f), Chronikart.Entscheidung => new Color(0.8f, 0.65f, 0.95f),
+        Chronikart.Brand => new Color(0.95f, 0.6f, 0.25f), _ => Grau,
     };
 
     public void Oeffnen()

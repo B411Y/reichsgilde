@@ -553,8 +553,11 @@ public sealed class Stadtrat
         return Befehlsergebnis.Ok($"{konto.Inhaber} stimmt {(stimme ? "für" : "gegen")} {worum}. Abgestimmt wird am Jahresende.");
     }
 
-    /// <summary>Ein bankrottes Haus verliert sein Amt, seine Bewerbung, seinen Antrag und seine Stimmen; Stimmen für es verfallen.</summary>
-    internal void Ausscheiden(Konto konto)
+    /// <summary>
+    /// Ein bankrottes Haus verliert sein Amt, seine Bewerbung, seinen Antrag und seine Stimmen; Stimmen für es verfallen.
+    /// <paramref name="wie"/>: der Grund für die Hauschronik, wenn ein Amt verloren geht.
+    /// </summary>
+    internal void Ausscheiden(Konto konto, string wie = "Bankrott")
     {
         foreach (var schluessel in _wahlStimmen.Where(s => s.Key.Waehler == konto || s.Value.Haus == konto).Select(s => s.Key).ToList())
             _wahlStimmen.Remove(schluessel);
@@ -563,6 +566,7 @@ public sealed class Stadtrat
         {
             amt.Konto = null;
             Nachruecken(amt);
+            _w.Familien.AmtVerloren(konto, amt.Name, wie);
         }
         _bewerbungen.Remove(konto);
         if (Antrag?.Antragsteller == konto) Antrag = null;
@@ -593,7 +597,7 @@ public sealed class Stadtrat
     /// Erbfall: Das neue Oberhaupt beginnt im Rat von vorn – ohne Amt und ohne Bewerbung. Die Meinungen gelten Personen:
     /// Was die Ratsherren vom alten Oberhaupt hielten, gilt nicht für das neue.
     /// </summary>
-    internal void Neuanfang(Konto konto) => Ausscheiden(konto);
+    internal void Neuanfang(Konto konto) => Ausscheiden(konto, "Tod des Oberhaupts");
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Ratssitzung am Jahresende
@@ -747,9 +751,12 @@ public sealed class Stadtrat
             Nachruecken(altesAmt);
         }
         var vorher = amt.Inhaber;
+        var vorherHaus = amt.Konto;
         amt.Ratsherr = null;
         amt.Konto = gewinner;
         _letzteSitzung.Add($"Wahl {jahr} – {amt.Name}: {gewinner.Inhaber} löst {vorher} ab ({zaehlung}).");
+        if (vorherHaus is not null) _w.Familien.AmtVerloren(vorherHaus, amt.Name, "abgewählt");
+        _w.Familien.AmtErhalten(gewinner, amt.Name);
         return ausgang;
     }
 

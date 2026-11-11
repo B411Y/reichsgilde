@@ -501,7 +501,7 @@ public sealed class Stadtgericht
                     folgen.Add($"Kopfgeld {Zahlenformat.Ganz(kopfgeld)} {waehrung} für die Wache von {v.Anklaeger.Inhaber}");
                 if (d.Amtsverlust && _w.Rat.AmtVon(v.Beklagter) is { } amt)
                 {
-                    _w.Rat.Ausscheiden(v.Beklagter);
+                    _w.Rat.Ausscheiden(v.Beklagter, "verurteilt");
                     folgen.Add($"Verlust des Amtes {amt.Name}");
                 }
                 var pranger = Math.Max(0, d.PrangerJahre - _w.Familien.Lebenswirkung(v.Beklagter).PrangerMinus); // Gnadengesuch

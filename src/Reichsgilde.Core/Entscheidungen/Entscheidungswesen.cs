@@ -469,14 +469,32 @@ public sealed partial class Entscheidungswesen
     private void Schliessen(Entscheidung e, Entscheidungsabschluss grund, int? wahl)
     {
         if (e.Anlass is { } anlass && grund != Entscheidungsabschluss.Hinfaellig && !_erledigt.Contains(anlass)) _erledigt.Add(anlass);
-        var text = Abschlusstext(e, grund, wahl);
-        _w.Melden(Meldungsart.Entscheidung, text, haus: e.Haus, person: e.Person is int n ? _w.Familien.PersonNummer(n) : null, vertraulich: true);
+        var satz = Abschlusssatz(e, grund, wahl);
+        var person = e.Person is int n ? _w.Familien.PersonNummer(n) : null;
+        _w.Melden(Meldungsart.Entscheidung, Abschlusstext(satz, grund, wahl), haus: e.Haus, person: person, vertraulich: true);
+        if (HatFolgen(e, grund, wahl))
+            _w.Familien.ChronikEintragen(e.Haus, Dynastie.Chronikart.Entscheidung, satz, person, vertraulich: true);
         Geschlossen?.Invoke(e, grund);
     }
 
-    private string Abschlusstext(Entscheidung e, Entscheidungsabschluss grund, int? wahl)
+    /// <summary>
+    /// Kommt die Entscheidung in die Hauschronik? Nur mit Folgen: jede Antwort an die Unterwelt (gezahlt, zurückgewiesen, geschwiegen),
+    /// ein geändertes Testament, ein genutztes fremdes Geheimnis (anzeigen, erpressen, bloßstellen). Nicht: Hinfälliges, Krankheit, Mahnung,
+    /// „bei der Erbfolge bleiben“, „Geheimnis für später merken“.
+    /// </summary>
+    internal static bool HatFolgen(Entscheidung e, Entscheidungsabschluss grund, int? wahl) => grund != Entscheidungsabschluss.Hinfaellig && e.Art switch
     {
-        var satz = EntscheidungDaten.HatJahresfrist(e.Art) ? AbschlussUnterwelt(e, grund, wahl) : AbschlussTeil2(e, grund, wahl);
+        Entscheidungsart.Erpresserbrief or Entscheidungsart.Schutzgeld or Entscheidungsart.Loesegeld => true,
+        Entscheidungsart.Erbe => wahl is int w && w != ErbfolgeBelassen,
+        Entscheidungsart.Geheimnis => wahl is Anzeigen or Erpressen or Blossstellen,
+        _ => false,
+    };
+
+    private string Abschlusssatz(Entscheidung e, Entscheidungsabschluss grund, int? wahl) =>
+        EntscheidungDaten.HatJahresfrist(e.Art) ? AbschlussUnterwelt(e, grund, wahl) : AbschlussTeil2(e, grund, wahl);
+
+    private static string Abschlusstext(string satz, Entscheidungsabschluss grund, int? wahl)
+    {
         if (wahl is null) return satz;
         return grund switch
         {
