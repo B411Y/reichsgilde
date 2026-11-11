@@ -1,0 +1,135 @@
+"""Gemeinsame Hilfen: Posen (Achsen aus dem Ruhezustand), Buehne, Rendern. Handraum: Finger +Y, Handruecken +Z, Daumen -X."""
+import bpy, math, os
+import numpy as np
+from mathutils import Vector, Quaternion, Matrix
+
+AX_X = Vector((1, 0, 0)); AX_Y = Vector((0, 1, 0)); AX_Z = Vector((0, 0, 1))
+
+def drehung(rig, knochen, achse, grad):
+    r = rig.data.bones[knochen].matrix_local.to_3x3()
+    lokal = (r.inverted() @ Vector(achse)).normalized()
+    return Quaternion(lokal, math.radians(grad))
+
+def pose_anwenden(rig, d):
+    for pb in rig.pose.bones:
+        pb.rotation_mode = "QUATERNION"; pb.rotation_quaternion = (1, 0, 0, 0); pb.scale = (1, 1, 1); pb.location = (0, 0, 0)
+    for k, liste in d.items():
+        if k.startswith("Knoechel"):      # v5: Hilfsknochen der Knoechelreihe: Winkel w steht fuer eine Verschiebung von KN*w Metern (KN = 0,00014)
+            h = float(os.environ.get("KN", "0.00014")) * liste[0][1]   # v6: Verschiebung (m) Richtung Handruecken statt Skalierung
+            rig.pose.bones[k].location = rig.data.bones[k].matrix_local.to_3x3().inverted() @ Vector((0.0, 0.3 * h, h)); continue
+        q = Quaternion((1, 0, 0, 0))
+        for (ax, w) in liste:
+            q = drehung(rig, k, ax, w) @ q
+        rig.pose.bones[k].rotation_quaternion = q
+
+def pose_keyen(rig, d, frame):
+    pose_anwenden(rig, d)
+    for k in d:
+        rig.pose.bones[k].keyframe_insert("location" if k.startswith("Knoechel") else "rotation_quaternion", frame=frame, group=k)
+
+def mischen(a, b, t):
+    out = {}
+    for k in a:
+        out[k] = [(ax, wa + (wb - wa) * t) for (ax, wa), (_, wb) in zip(a[k], b[k])]
+    return out
+
+def knochenrichtung(rig, name):
+    b = rig.data.bones[name]
+    return (b.tail_local - b.head_local).normalized()
+
+def flexachse(rig, name):
+    """Achse, um die ein Glied zur Handflaeche (-Z) beugt: Richtung x (-Z)."""
+    d = knochenrichtung(rig, name)
+    return d.cross(Vector((0, 0, -1))).normalized()
+
+def kipp(rig, k):
+    """Neigung des Fingers k (Grundglied) gegen +Y in Grad, positiv zur Daumenseite (-X)."""
+    d = knochenrichtung(rig, f"finger{k}-1.R")
+    return math.degrees(math.atan2(-d.x, d.y))
+
+def mc_kipp(rig, k):
+    d = knochenrichtung(rig, f"metacarpal{k-1}.R")
+    return math.degrees(math.atan2(-d.x, d.y))
+
+def finger_pose(rig, d, k, flex, ziel_kipp=None, roll=0.0):
+    """Finger k=2..5: flex = Grad je Glied (Grund, Mittel, End); ziel_kipp = gewuenschte Neigung (Adduktion) des Grundgelenks;
+    roll = Drehung um die Fingerlaengsachse am Grundgelenk (Grad, positiv = Fingerrueckseite zur Daumenseite).
+    v5: Reihenfolge Spreizen -> Rollen -> Beugen (v4 beugte zuerst und spreizte danach: bei gebeugtem Finger drehte das nur um den Finger, die Faust blieb parallel).
+    So haengen Adduktion und Rollung am Beugen: in den Zwischenstellungen zieht die Rollung mit dem Winkel mit."""
+    theta = 0.0 if ziel_kipp is None else (ziel_kipp - kipp(rig, k))
+    d[f"finger{k}-1.R"] = [(AX_Z, theta), (knochenrichtung(rig, f"finger{k}-1.R"), roll), (flexachse(rig, f"finger{k}-1.R"), flex[0])]
+    d[f"finger{k}-2.R"] = [(flexachse(rig, f"finger{k}-2.R"), flex[1])]
+    d[f"finger{k}-3.R"] = [(flexachse(rig, f"finger{k}-3.R"), flex[2])]
+
+def daumen_pose(rig, d, swing=0.0, flex=(0, 0, 0), dreh=(0, 0, 0)):
+    """Daumen: swing um +Z am Grundglied; flex je Glied; dreh = Drehung um die eigene Achse je Glied. Immer gleich viele Eintraege."""
+    for g in (1, 2, 3):
+        n = f"finger1-{g}.R"
+        lst = [(flexachse(rig, n), flex[g - 1]), (knochenrichtung(rig, n), dreh[g - 1]), (AX_Z, swing if g == 1 else 0.0)]
+        d[n] = lst
+
+def leere_pose(rig):
+    d = {}
+    for b in rig.data.bones:
+        d[b.name] = [(AX_X, 0.0)]
+    return d
+
+# ---------------------------------------------------------------- Buehne
+ANSICHTEN = {"daumen": ((-1, 0.0, 0.25), 0.30), "unten_schraeg": ((-0.5, 0.0, -1.0), 0.30), "oben": ((0, 0.001, 1), 0.30), "seite": ((1, 0.0, 0.25), 0.30), "schraeg": ((-0.45, -0.30, 1.0), 0.30), "unten": ((0, 0.001, -1), 0.30), "vorn": ((0, 1, 0.15), 0.30), "vorn_unten": ((-0.35, 1, -0.55), 0.30), "knoechel": ((0.2, 1, 0.5), 0.30)}
+
+def buehne(px=384, hintergrund=False):
+    sc = bpy.context.scene
+    sc.render.engine = "BLENDER_EEVEE"
+    sc.render.resolution_x = sc.render.resolution_y = px
+    sc.render.film_transparent = not hintergrund
+    sc.render.image_settings.file_format = "PNG"; sc.render.image_settings.color_mode = "RGBA"
+    sc.view_settings.view_transform = "Standard"
+    w = bpy.data.worlds.new("W"); w.use_nodes = True
+    bg = w.node_tree.nodes["Background"]; bg.inputs["Color"].default_value = (0.62, 0.60, 0.58, 1); bg.inputs["Strength"].default_value = float(os.environ.get("WELT","1.5"))
+    sc.world = w
+    sun = bpy.data.objects.new("Sonne", bpy.data.lights.new("Sonne", "SUN")); sc.collection.objects.link(sun)
+    sun.data.energy = 2.6; sun.rotation_euler = (math.radians(50), math.radians(10), math.radians(-35))
+    fill = bpy.data.objects.new("Fuell", bpy.data.lights.new("Fuell", "SUN")); sc.collection.objects.link(fill)
+    fill.data.energy = float(os.environ.get("FUELL","2.2")); fill.rotation_euler = (math.radians(135), math.radians(-10), math.radians(40))
+    cam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera")); sc.collection.objects.link(cam)
+    cam.data.type = "ORTHO"; sc.camera = cam
+    return cam
+
+def ansicht_rendern(cam, name, pfad, mitte=Vector((0, 0.03, 0))):
+    d, ortho = ANSICHTEN[name]
+    v = Vector(d).normalized()
+    cam.data.ortho_scale = float(os.environ.get("ORTHO", ortho))
+    cam.location = mitte + v * 1.0
+    cam.rotation_euler = (-v).to_track_quat("-Z", "Y").to_euler()
+    bpy.context.scene.render.filepath = pfad
+    bpy.ops.render.render(write_still=True)
+
+
+
+def ss_(x):
+    x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
+
+def gestaffelt(von, nach, t, schliessen=True, kurz=False):
+    """Pose zwischen von und nach, Finger zeitversetzt (Zeiten aus den Videos: MediaPipe-Kurven + Bildanalyse).
+    Schliessen: Mittel und Klein beginnen zuerst, Ring knapp danach, Zeige etwas spaeter, Klein und Ring brauchen am laengsten, Daumen zuletzt.
+    Oeffnen: Daumen zuerst, dann Zeige, Mittel, Ring, Klein zuletzt."""
+    d = {}
+    SC = {"2": (0.057, 0.77), "3": (0.023, 0.69), "4": (0.0, 0.92), "5": (0.0, 1.0)}   # v5: Anfang/Dauer aus MediaPipe-Kurven (15 %- und 90 %-Zeit je Mittelgelenk), Zeitfenster 1,15 s bis 2,40 s
+    SO = {"2": (0.05, 0.60), "3": (0.12, 0.60), "4": (0.18, 0.62), "5": (0.24, 0.66)}
+    for n in von:
+        if n.startswith("finger1"):
+            s, dur = (0.42, 0.55) if schliessen else (0.0, 0.50)   # v6: Daumen spaeter (Video: bis 1,7 s abgespreizt, legt sich 1,8-2,2 s ueber)
+        elif n.startswith("Knoechel"):
+            s, dur = SC[n[8]]; s, dur = (0.58, 0.42) if (schliessen and not kurz) else (s, dur * (0.8 if not schliessen and not kurz else 1.0))
+            if not schliessen: s, dur = SO[n[8]][0], SO[n[8]][1] * (0.8 if not kurz else 1.0)
+            if kurz and n[8] == "2": s, dur = 0.0, 0.85
+        elif n[:6] == "finger" and n[6] in "2345":
+            s, dur = (SC if schliessen else SO)[n[6]]
+            if schliessen and n[8] == "1" and not kurz: s, dur = 0.58, 0.42     # Grundgelenk folgt den Mittel-/Endgliedern (Video)
+            if (not schliessen) and n[8] == "1" and not kurz: dur = dur * 0.8
+            if kurz and n[0:6] == "finger" and n[6] == "2": s, dur = {"1": (0.0, 0.80), "2": (0.04, 0.80), "3": (0.12, 0.80)}[n[8]]   # v6: Endglied zuletzt (Spitze rollt sich ein, keine Kerbe)   # v5: Zeigefinger kurz (Zeigen<->Greifen): alle Glieder gleichzeitig, sonst hakt die Spitze ein (Wurm)
+        else:
+            s, dur = 0.05, 0.75
+        p = ss_((t - s) / dur)
+        d[n] = [(ax, wa + (wb - wa) * p) for (ax, wa), (_, wb) in zip(von[n], nach[n])]
+    return d

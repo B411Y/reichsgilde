@@ -262,7 +262,7 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton? _schnittstelle;
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
-    private readonly CheckButton _fahnen, _zeiger;
+    private readonly CheckButton _fahnen, _zeiger, _handschuh3d;
     private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Haende + 1];
     private readonly Label _zeigerName;
     private readonly HSlider _groesse;
@@ -688,6 +688,12 @@ public sealed class EinstellungenAnzeige
             Fenster.EigenerZeigerSetzen(an);
             Auffrischen();
         });
+        _handschuh3d = Schalter(s, "3D-Handschuh", () => "Der Handschuh ist ein bewegtes 3D-Modell: er atmet, zeigt über Anklickbarem, tippt beim Klick und greift beim Ziehen; die Fingerspitze liegt genau auf dem Klickpunkt. " +
+                                                       "Aus (oder bei zu wenig Bildern je Sekunde, unter etwa 40, von selbst): die gemalten Zeigerbilder. Gilt ab 48 Pixel Zeigergröße und nur beim eigenen Mauszeiger; die Wahl des Handschuhs unten betrifft nur die gemalten Bilder (der 3D-Handschuh hat vorerst eine Lederfarbe).", an =>
+        {
+            Fenster.Handschuh3dSetzen(an);
+            Auffrischen();
+        });
         var zeigerZeile = Zeile(s, "Handschuh", () => "Welcher Handschuh euer Zeiger ist. „Auto“ folgt dem Stand des Hauses (Gemeiner bis Reichsgraf); jeder der sechs lässt sich auch fest wählen, dazu die Wache (Plattenhandschuh) und der Dieb (schwarzes Leder), " +
                                                       "unabhängig vom eigenen Stand – das ist reine Zierde. Gilt nur beim eigenen Mauszeiger, auch im Hauptmenü und in der Kartenwerkstatt.\n\n" +
                                                       string.Join("\n", ZeigerWahlNamen().Select((n, i) => i == Fenster.ZeigerStufe ? $"» {n} (gewählt)" : n)), einzug: Einzug);
@@ -863,6 +869,8 @@ public sealed class EinstellungenAnzeige
 
         _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
         _zeiger.SetPressedNoSignal(Fenster.EigenerZeigerAn);
+        _handschuh3d.SetPressedNoSignal(Fenster.Handschuh3dAn);
+        _handschuh3d.Disabled = !Fenster.EigenerZeigerAn;
         for (var nummer = 0; nummer < _zeigerKacheln.Length; nummer++)
         {
             _zeigerKacheln[nummer].SetPressedNoSignal(nummer == Fenster.ZeigerStufe);

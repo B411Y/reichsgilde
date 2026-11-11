@@ -28,17 +28,30 @@ public partial class Fenster
         Mauszeiger.Auffrischen();
     }
 
+    /// <summary>Der Zeiger ist ein 3D-Handschuh (<see cref="HandschuhZeiger"/>) statt der 2D-Bilder (Standard an; Schlüssel „handschuh_3d“ im Abschnitt „anzeige“). Fällt bei zu wenig Bildern je Sekunde von selbst zurück.</summary>
+    public static bool Handschuh3dAn { get; private set; } = true;
+
+    public static void Handschuh3dSetzen(bool an, bool speichern = true)
+    {
+        Handschuh3dAn = an;
+        if (speichern) Speichern("handschuh_3d", an);
+        Mauszeiger.Auffrischen();
+    }
+
     private static void ZeigerLaden(ConfigFile datei, bool geladen)
     {
+        Handschuh3dAn = !geladen || datei.GetValue("anzeige", "handschuh_3d", true).AsBool();
         EigenerZeigerAn = !geladen || datei.GetValue("anzeige", "eigener_zeiger", true).AsBool();
         ZeigerStufe = geladen ? Math.Clamp(datei.GetValue("anzeige", "zeiger_stufe", 0).AsInt32(), 0, Mauszeiger.Haende) : 0;
     }
 
-    /// <summary>Startoptionen <c>--zeiger=0|1</c> (nur für diesen Start) und <c>--zeigerstufe=1..8</c> (Handschuh fest, statt des Standes des Hauses; 7 Wache, 8 Dieb).</summary>
+    /// <summary>Startoptionen <c>--zeiger=0|1</c>, <c>--handschuh=0|1</c> (3D-Handschuh nur für diesen Start aus/an) (nur für diesen Start) und <c>--zeigerstufe=1..8</c> (Handschuh fest, statt des Standes des Hauses; 7 Wache, 8 Dieb).</summary>
     private static void ZeigerStartoptionen(Dictionary<string, string> optionen)
     {
         if (optionen.TryGetValue("zeiger", out var wert))
             EigenerZeigerSetzen(!(wert == "0" || wert.Equals("Aus", StringComparison.OrdinalIgnoreCase)), speichern: false);
+        if (optionen.TryGetValue("handschuh", out var drei))
+            Handschuh3dSetzen(!(drei == "0" || drei.Equals("Aus", StringComparison.OrdinalIgnoreCase)), speichern: false);
         if (optionen.TryGetValue("zeigerstufe", out var stufe) && int.TryParse(stufe, out var nummer))
             Mauszeiger.StufeFest = Math.Clamp(nummer, 1, Mauszeiger.Haende);
     }

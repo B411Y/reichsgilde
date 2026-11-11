@@ -49,5 +49,7 @@
     <Compile Include="..\..\game\scripts\KlangUmweltModell.cs" Link="Umgebung\KlangUmweltModell.cs" />
     <!-- Die Rechnung der dynamischen Musik kennt kein Godot – MusikTests.cs -->
     <Compile Include="..\..\game\scripts\MusikModell.cs" Link="Musik\MusikModell.cs" />
+    <!-- Ablauf, Hysterese und Neigung des 3D-Handschuh-Zeigers (Haltungen, Clip-Reihenfolge, FPS-Rückfall) kennen kein Godot – HandschuhModellTests.cs -->
+    <Compile Include="..\..\game\scripts\HandschuhModell.cs" Link="Handschuh\HandschuhModell.cs" />
   </ItemGroup>
 </Project>

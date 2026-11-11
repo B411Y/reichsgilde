@@ -155,7 +155,7 @@
           "pflicht": false
         }
       ],
-      "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Blender und ComfyUI. Das Schmiedmodell ist eine KI-Arbeit."
+      "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Pixal3D (Tencent, MIT) mit dem Bildencoder DINOv3 (Meta, DINOv3 License; Built with DINOv3) und MPFB 2 (CC0) für den 3D-Handschuh des Mauszeigers, Blender und ComfyUI. Schmiedmodell und Handschuh sind KI-Arbeiten."
     },
     {
       "name": "Schriften",
