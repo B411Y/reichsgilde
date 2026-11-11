@@ -123,8 +123,8 @@ static class KartenformatTests
 
         ("Start: Die Greybox führt dieselben drei Häuser wie der Ersatz ohne Karte – gleiche Konten, Betriebe, Völker und Wappen", () =>
         {
-            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(), karte: Greybox());
-            var (ohne, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie());
+            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
+            var (ohne, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var (w1, w2) = (mit.Wirtschaft!, ohne.Wirtschaft!);
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")), string.Join(", ", w1.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")));
             Pruefe.Gleich(string.Join(", ", w2.Betriebe.Select(b => $"{b.Name}/{b.Art}/{b.Konto.Inhaber}/{b.Produkt}/{b.Arbeiter.Count}")),
@@ -157,7 +157,7 @@ static class KartenformatTests
 
             // ohne Los (Hofstellen, 9.11.2026): jedes Haus genau, wie die Startbelegung es setzt
             var (sim, spieler) = Partieaufbau.Erstellen(Endlos with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value,
-                new NeuePartie(Beruf: "Steinmetz", Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
+                new NeuePartie(Beruf: "Steinmetz", Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich("Haus Hammerschmid, Haus Steinhauer, Haus Eichwald", string.Join(", ", w.Konten.Select(k => k.Inhaber)));
             var steinhauer = w.Konten[1];
@@ -170,12 +170,12 @@ static class KartenformatTests
             Pruefe.Gleich("Maurerei am Probeplatz", w.Betriebe.Single(b => b.Konto == spieler).Name);
             Pruefe.Gleich("Probeplatz", w.Bauen.PlatzVon("Maurerei am Probeplatz")!.Gebaeude!.Kennung);
 
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Rivalen: 3), karte: karte), "ein bis zwei KI-Häuser");
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Steinhauer"), karte: karte), "Name eines Rivalen");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "ein bis zwei KI-Häuser");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Steinhauer", Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "Name eines Rivalen");
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value,
-                new NeuePartie(Wappen: new Wappen(Teilung.Geteilt, Tinktur.Rot, Tinktur.Silber, Figur.Turm)), karte: karte), "KI-Haus");
+                new NeuePartie(Wappen: new Wappen(Teilung.Geteilt, Tinktur.Rot, Tinktur.Silber, Figur.Turm), Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "KI-Haus");
             // „Haus Eisenbart“ gibt es in dieser Karte nicht mehr – der Name ist frei.
-            Pruefe.Gleich("Haus Eisenbart", Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Eisenbart", Rivalen: 1), karte: karte).Spieler.Inhaber);
+            Pruefe.Gleich("Haus Eisenbart", Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Eisenbart", Rivalen: 1, Aufstellung: Aufstellungsart.Vorgabe), karte: karte).Spieler.Inhaber);
         }),
 
         ("Start: Fehler in der Karte werden gemeldet – Platz unbekannt, falsche Betriebsart, Wappen doppelt, kein Wohnhausplatz, Platz doppelt", () =>
@@ -199,7 +199,7 @@ static class KartenformatTests
 
         ("Spielstand: Karte mit Katalog und Start liegt im Spielstand und wird beim Laden wieder aufgelöst", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(), karte: Greybox());
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
             var json = Speicherung.Speichern(sim, spieler);
             var (geladen, _) = Speicherung.Laden(json);
             var k = geladen.Wirtschaft!.Karte!;
@@ -211,7 +211,7 @@ static class KartenformatTests
 
         ("Alter Spielstand: Karte in Format 1 wird durch die Kartendatei derselben Stadt ersetzt; Grundstücke bleiben", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(), karte: Greybox());
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
             var stand = JsonNode.Parse(Speicherung.Speichern(sim, spieler))!;
             // So sah die Karte im Spielstand bis Format 1 aus (gekürzt): feste Bauten statt Gebäude, kein Katalog.
             stand["Karte"] = JsonNode.Parse("""
@@ -231,7 +231,7 @@ static class KartenformatTests
 
         ("Alter Spielstand: Eine Werkstatt ohne Platz in der Karte bekommt beim Laden ein Grundstück in einer Bauzone – bei jedem Laden dasselbe", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Startvermoegen: 50_000), karte: Greybox());
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Startvermoegen: 50_000, Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
             var w = sim.Wirtschaft!;
             // Bis PR #162 gab es „Schänke an der Ostgasse“ als Werkstatt zum Kauf – die Karte hat keinen Platz mehr dafür.
             w.BetriebEroeffnen("Schänke an der Ostgasse", Betriebsart.Schaenke, spieler);
@@ -261,7 +261,7 @@ static class KartenformatTests
             var daten = JsonNode.Parse(Datenpfad.OhneAktionspunkte())!;
             daten["liegenschaften"]!.AsArray().Add(new JsonObject { ["name"] = "Gießerei an der Südgasse", ["art"] = "Giesserei", ["kaufpreis"] = 3000 });
             var alteDaten = Wirtschaftsdaten.AusJson(daten.ToJsonString());
-            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, alteDaten, new NeuePartie(), karte: Greybox());
+            var (sim, spieler) = Partieaufbau.Erstellen(Endlos, alteDaten, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
             Pruefe.Wahr(sim.Wirtschaft!.FreieLiegenschaften.Any(l => l.Name == "Gießerei an der Südgasse"), "vor dem Laden zu haben");
 
             var (geladen, ich) = Speicherung.Laden(Speicherung.Speichern(sim, spieler), Greybox());

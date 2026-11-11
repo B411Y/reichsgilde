@@ -19,7 +19,7 @@ static class AnsagenErkennungTests
     static (Simulation Sim, Konto Spieler, Konto Rivale, List<Meldung> Meldungen) Partie()
     {
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
-            Daten.Value, new NeuePartie());
+            Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
         for (var i = 0; i < 300; i++) sim.Tick();
         sim.EntwicklerErlaubt = true;
         var meldungen = new List<Meldung>();

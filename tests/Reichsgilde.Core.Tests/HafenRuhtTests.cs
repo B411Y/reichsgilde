@@ -74,7 +74,7 @@ static class HafenRuhtTests
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
-            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe), karte: GreyboxVorDenFairenHofstellen()); // ohne Los wie vor den Hofstellen
+            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: GreyboxVorDenFairenHofstellen()); // ohne Los wie vor den Hofstellen
         var w = sim.Wirtschaft!;
         var kauf = w.Ausfuehren(spieler, new SchiffKaufen());
         if (kauf.Erfolg && w.Schiffahrt.SchiffeVon(spieler).FirstOrDefault() is { } schiff
@@ -122,7 +122,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(83, d.Version);
+            Pruefe.Gleich(84, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");
@@ -198,7 +198,7 @@ static class HafenRuhtTests
             {
                 var (sim, _) = Partieaufbau.Erstellen(
                     Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                    Wirtschaftsdaten.AusJson(json), new NeuePartie(Startvermoegen: 15_000, Rivale: KiCharakter.Wagemutig), karte: Karte("greybox"));
+                    Wirtschaftsdaten.AusJson(json), new NeuePartie(Startvermoegen: 15_000, Rivale: KiCharakter.Wagemutig, Aufstellung: Aufstellungsart.Vorgabe), karte: Karte("greybox"));
                 var w = sim.Wirtschaft!;
                 var gekauft = 0;
                 w.Meldung += m => { if (m.Contains(" kauft ") && m.Contains("Flussschiff")) gekauft++; };

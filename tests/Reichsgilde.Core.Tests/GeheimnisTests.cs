@@ -139,7 +139,7 @@ static class GeheimnisTests
          "Fehler fallen auf; ohne Abschnitt keine Geheimnisse", () =>
         {
             var d = Daten.Value.Geheimnisse!;
-            Pruefe.Gleich(83, Daten.Value.Version);
+            Pruefe.Gleich(84, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "aktiv");
             Pruefe.Gleich("Ehebruch,Ketzerei,Schulden,Mord", string.Join(",", d.Arten.Keys.OrderBy(k => k)));
             Pruefe.Gleich("Gulden=2,Ratsstimme=2,Anzeige=2,Blossstellen=1", string.Join(",", Enum.GetValues<Geheimnisnutzung>().Select(n => $"{n}={d.Ap[n]}")));
@@ -750,7 +750,7 @@ static class GeheimnisTests
          "die Partie läuft gleich weiter", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 41 },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             JahrBeenden(sim);
             var w = sim.Wirtschaft!;
             spieler.Aktionspunkte.Setzen(12);
@@ -786,7 +786,7 @@ static class GeheimnisTests
         ("Geheimnisse: Spielstand ohne Geheimnisse (Daten ohne Abschnitt) lädt, läuft ein Jahr, speichert und lädt gleich – kein Feld", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 42 },
-                Ohne.Value, new NeuePartie());
+                Ohne.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var json = Speicherung.Speichern(sim, spieler);
             var (geladen, geladenerSpieler) = Speicherung.Laden(json);
             Pruefe.Wahr(!geladen.Wirtschaft!.Geheimnisse.IstAktiv, "keine Geheimnisse");
@@ -798,7 +798,7 @@ static class GeheimnisTests
             Pruefe.Gleich(nachJahr, Speicherung.Speichern(wieder, wiederSpieler, zeitpunkt));
             // Gegenprobe: mit Abschnitt steht das Feld da
             var (mit, mitSpieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 42 },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Wahr(GeheimnisseImSpielstand(Speicherung.Speichern(mit, mitSpieler)), "mit Abschnitt ein Feld");
         }),
 

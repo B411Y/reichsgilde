@@ -24,7 +24,7 @@ static class KiUmlandTests
     static (Stadtwirtschaft W, KiRivale Ki) Partie(string karte, Wirtschaftsdaten? daten = null)
     {
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, daten ?? Daten.Value,
-            new NeuePartie(Rivalen: 3), karte: Stadtkarte.AusDatei(Datenpfad.Karte(karte))); // mit drei Häusern sind Grube Overstolz, Holzschlag Hardevust und Steinbruch Lyskirchen frei
+            new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(Datenpfad.Karte(karte))); // mit drei Häusern sind Grube Overstolz, Holzschlag Hardevust und Steinbruch Lyskirchen frei
         var w = sim.Wirtschaft!;
         return (w, w.Rivalen[0]);
     }
@@ -46,7 +46,7 @@ static class KiUmlandTests
             var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
             var (sim, _) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie(Rivalen: haeuser), karte: Stadtkarte.AusDatei(pfad));
+                Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(pfad));
             var w = sim.Wirtschaft!;
             var holz = w.Betriebe.Single(b => b.Name == "Holzschlag Hardevust");
             var ki = w.Rivalen.Single(r => r.Konto == holz.Konto);

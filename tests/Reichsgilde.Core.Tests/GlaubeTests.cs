@@ -66,15 +66,15 @@ static class GlaubeTests
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"Mensch\": { \"Katholisch\": 0.6, \"Evangelisch\": 0.4 }",
                 "\"Mensch\": { \"Katholisch\": 0.6, \"Naturglaube\": 0.4 }")), "Naturglaube");
 
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie());
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(Konfession.Katholisch, w.Glaube.GlaubeVon(spieler));
             Pruefe.Gleich(Konfession.Evangelisch, w.Glaube.GlaubeVon(w.Konten.Single(k => k.Inhaber == "Haus Eisenbart")));
             Pruefe.Gleich(Konfession.Katholisch, w.Glaube.GlaubeVon(w.Konten.Single(k => k.Inhaber == "Haus Eichwald")));
             Pruefe.Gleich(Konfession.Evangelisch, w.Glaube.GlaubeVon(w.Konten.Single(k => k.Inhaber == "Haus Kieselbach")));
-            var (sim2, spieler2) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Glaube: Konfession.Evangelisch));
+            var (sim2, spieler2) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Glaube: Konfession.Evangelisch, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich(Konfession.Evangelisch, sim2.Wirtschaft!.Glaube.GlaubeVon(spieler2));
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Glaube: Konfession.Naturglaube)), "Orks und Ogern");
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Glaube: Konfession.Naturglaube, Aufstellung: Aufstellungsart.Vorgabe)), "Orks und Ogern");
         }),
 
         ("Rat: Glaubensbruder +5, andere Konfession −3, Heide −8 – als Grund der Meinung in den Wahlpunkten (PR #231)", () =>
@@ -241,7 +241,7 @@ static class GlaubeTests
         ("Speichern: Glaube der Personen, Anteile, Stadtglaube, Antrag und Konvertiten überstehen Speichern und Laden; Startglaube evangelisch", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
-                Daten.Value, new NeuePartie(Beruf: "Prediger", Glaube: Konfession.Evangelisch, Startvermoegen: 10_000));
+                Daten.Value, new NeuePartie(Beruf: "Prediger", Glaube: Konfession.Evangelisch, Startvermoegen: 10_000, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             spieler.Aktionspunkte.Setzen(12);
             Pruefe.Wahr(w.Ausfuehren(spieler, new Bekehrungspredigt()).Erfolg, "Predigt");

@@ -115,7 +115,7 @@ static class WarenumbenennungTests
             var karte = Stadtkarte.AusJson(alt, katalog); // würfe bei einem Fehler der Prüfung
             var start = karte.Startbelegung.Haeuser.SelectMany(h => h.Betriebe).Where(b => b.Produkt is not null).ToList();
             Pruefe.Wahr(start.Count > 0 && start.All(b => b.Produkt == "Dolch"), "Startbelegung der Karte");
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, daten, new NeuePartie(), karte: karte);
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, daten, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
             Pruefe.Wahr(sim.Wirtschaft!.Betriebe.Any(b => b.Art == Betriebsart.Giesserei && b.Produkt == "Dolch"), "Gießerei des KI-Hauses stellt Dolche her");
 
             var entwurf = Kartenentwurf.AusJson(alt, katalog);

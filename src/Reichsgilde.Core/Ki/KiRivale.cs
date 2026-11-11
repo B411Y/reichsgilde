@@ -597,6 +597,7 @@ public sealed partial class KiRivale
             .Concat(Neubauten())
             .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
             .Where(a => !Gesperrt(a.Art))
+            .Where(a => _w.Kirchenwesen.KirchengrenzeVerboten(Konto, a.Art) is null) // Andockstelle kern: höchstens eine Kirche je Glaube
             // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
             // Ein Umlandbetrieb gilt so viel weniger, wie seine Karren auf dem echten Weg nicht wegbringen (KiRivale.Umland.cs).
             .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf, Leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)))

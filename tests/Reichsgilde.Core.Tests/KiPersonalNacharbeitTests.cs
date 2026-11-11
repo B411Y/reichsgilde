@@ -75,7 +75,7 @@ static class KiPersonalNacharbeitTests
                 var pfad = Datenpfad.Karte("koeln");
                 var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400, Schwierigkeit = Schwierigkeit.Schwer },
-                    daten, new NeuePartie(Rivalen: haeuser), karte: Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(pfad));
+                    daten, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(pfad));
                 var w = sim.Wirtschaft!;
                 var b = w.Betriebe.Single(x => x.Name == "Holzschlag Hardevust"); // nur Holz, Lager 40
                 b.KarrenHinzufuegen("Pferdekarren"); // lädt 75, das Lager gibt 40 her – mehr Lager lädt mehr

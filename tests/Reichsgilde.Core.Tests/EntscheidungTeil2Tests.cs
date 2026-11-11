@@ -297,10 +297,10 @@ static class EntscheidungTeil2Tests
             Pruefe.Gleich(2, w2.Entscheidungen.OffenFuer(spieler!).Count, "das gemerkte Geheimnis kommt nicht wieder");
         }),
 
-        ("Entscheidungen Teil 2: Daten – Frist je Art 120 Minuten, erbeAbSterberisiko 0,1, Datenversion 82; erbeAbSterberisiko 0 wird abgelehnt", () =>
+        ("Entscheidungen Teil 2: Daten – Frist je Art 120 Minuten, erbeAbSterberisiko 0,1, Datenversion 84; erbeAbSterberisiko 0 wird abgelehnt", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(83, d.Version);
+            Pruefe.Gleich(84, d.Version);
             foreach (var art in new[] { Entscheidungsart.Krankheit, Entscheidungsart.Erbe, Entscheidungsart.Geheimnis, Entscheidungsart.Mahnung })
                 Pruefe.Gleich(120, d.Entscheidungen!.FristFuer(art), art.ToString());
             Pruefe.Ungefaehr(0.1, d.Entscheidungen!.ErbeAbSterberisiko, 1e-12);

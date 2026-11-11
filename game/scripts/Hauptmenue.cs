@@ -481,6 +481,7 @@ public partial class Hauptmenue : Node
 
         _rivalen = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         RivalenWahlFuellen();
+        _rivalen.TooltipText = "Welche Häuser mitspielen. Ihr Beruf, Volk und Glauben werden zu Beginn gelost; jeder Beruf kommt nur einmal vor.";
         Zeile(raster, "Rivalen", _rivalen);
 
         _schwierigkeit = new OptionButton { FocusMode = Control.FocusModeEnum.None };
@@ -611,19 +612,18 @@ public partial class Hauptmenue : Node
 
     /// <summary>
     /// Die Wahl der Rivalen: die KI-Häuser der Karte in ihrer Reihenfolge – das erste spielt immer mit, jede weitere Zeile nimmt das nächste dazu
-    /// („Eisenbart und Eichwald (Tischlerei)“; in Klammern die Werkstatt des neuen Hauses). Vorgewählt sind alle.
+    /// („Eisenbart und Eichwald“). Den Beruf der Rivalen zeigt die Wahl nicht: Die Startaufstellung des Kerns lost ihn (jeder Beruf einmal je Partie),
+    /// die Werkstatt der Karte gilt nicht mehr. Vorgewählt sind alle.
     /// </summary>
     private void RivalenWahlFuellen()
     {
-        var karte = Stadtkarten.Startkarte;
         var haeuser = Startbelegung.Haeuser;
         static string Kurz(string name) => name.StartsWith("Haus ") ? name[5..] : name;
         for (var n = 1; n <= haeuser.Count; n++)
         {
             var namen = haeuser.Take(n).Select(h => Kurz(h.Name)).ToList();
             var text = n == 1 ? haeuser[0].Name : string.Join(", ", namen.SkipLast(1)) + " und " + namen[^1];
-            var werkstatt = haeuser[n - 1].Betriebe.FirstOrDefault() is { } b ? karte?.GebaeudeMit(b.Platz)?.Betrieb?.Split(' ')[0] : null;
-            _rivalen.AddItem(werkstatt is null ? text : $"{text} ({werkstatt})", n);
+            _rivalen.AddItem(text, n);
         }
         if (haeuser.Count > 0) _rivalen.Select(haeuser.Count - 1);
     }

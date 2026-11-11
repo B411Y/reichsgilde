@@ -56,7 +56,7 @@ static class SteinmetzTests
         ("Partieaufbau: Startberuf Steinmetz – Maurerei am Weinmarkt; drei Rivalen, Haus Kieselbach sind Halblinge und Steinmetze", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value,
-                new NeuePartie(Beruf: "Steinmetz"));
+                new NeuePartie(Beruf: "Steinmetz", Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
             Pruefe.Gleich("Maurerei am Weinmarkt", eigene.Name);
@@ -66,17 +66,17 @@ static class SteinmetzTests
             Pruefe.Gleich(Partieaufbau.DritterRivaleVolk, w.Familien.Von(kieselbach)!.Volk);
             Pruefe.Wahr(w.Betriebe.Where(b => b.Konto == kieselbach).Select(b => b.Name).OrderBy(n => n)
                 .SequenceEqual(new[] { "Maurerei Kieselbach", "Steinbruch Kieselbach" }), "Betriebe von Kieselbach");
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Familienname: "Haus Kieselbach")),
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Familienname: "Haus Kieselbach", Aufstellung: Aufstellungsart.Vorgabe)),
                 "schon der Name eines Rivalen");
-            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 4)), "ein bis drei");
-            var (sim2, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 2));
+            Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 4, Aufstellung: Aufstellungsart.Vorgabe)), "ein bis drei");
+            var (sim2, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Wahr(sim2.Wirtschaft!.Konten.All(k => k.Inhaber != Partieaufbau.DritterRivale), "mit zwei Rivalen ohne Kieselbach");
         }),
 
         ("KI Kieselbach: Steinbruch liefert Stein, die Maurerei verkauft Steinmetzwaren – mit Gewinn", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var kieselbach = w.Konten.Single(k => k.Inhaber == Partieaufbau.DritterRivale);
             for (var j = 0; j < 3; j++) Arbeitstag(sim);

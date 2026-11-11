@@ -1,4 +1,5 @@
 using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Glaube;
 using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -69,6 +70,13 @@ public sealed class KirchenDaten
 
     public HetzschriftDaten Hetzschrift { get; init; } = new();
 
+    /// <summary>
+    /// Höchstens so viele Kirchen (gleich welcher Stufe, Baustellen eingeschlossen) je Glaube in der Stadt (Nutzer, 11.11.2026: eine).
+    /// Neubau, Kauf und Konvertieren mit Kirche werden darüber abgewiesen; was schon steht, bleibt (Bestandsschutz). 0 = keine Grenze
+    /// (Daten vor Version 84). Der Stadt-Dom der Karte ist kein Betrieb und zählt nicht.
+    /// </summary>
+    public int KirchenJeGlaube { get; init; }
+
     public void Pruefen(List<string> f, IReadOnlyDictionary<string, WareDaten> waren, IReadOnlyDictionary<string, BerufDaten> berufe)
     {
         if (berufe.Count > 0 && !berufe.ContainsKey(Beruf)) f.Add($"kirche.beruf: Den Beruf „{Beruf}“ gibt es nicht.");
@@ -79,6 +87,7 @@ public sealed class KirchenDaten
         if (AnziehungJeStufe.Count == 0 || AnziehungJeStufe.Any(a => a <= 0)) f.Add("kirche.anziehungJeStufe: Werte größer als 0.");
         if (Beichte.Chance is < 0 or > 1) f.Add("kirche.beichte.chance muss zwischen 0 und 1 liegen.");
         if (LehrschriftBis <= 0) f.Add("kirche.lehrschriftBis muss größer als 0 sein.");
+        if (KirchenJeGlaube < 0) f.Add("kirche.kirchenJeGlaube darf nicht negativ sein (0 = keine Grenze).");
         if (Ablass.Grundpreis < 0 || Ablass.AnteilTat < 0 || Hetzschrift.Ansehen < 0) f.Add("kirche: Preise und Ansehen dürfen nicht negativ sein.");
     }
 }
@@ -121,8 +130,59 @@ public sealed class Kirchenwesen
     public bool IstAktiv => _d is not null;
     public KirchenDaten Daten => _d ?? throw new InvalidOperationException("Es gibt keine Kirchen (kirche fehlt in den Daten).");
 
-    /// <summary>Eine Werkstatt des Predigers (Kirche, Dom, Kathedrale).</summary>
+    /// <summary>
+    /// Eine Werkstatt des Predigers. Die Stufen heißen intern <see cref="Betriebsart.Kirche"/>, <see cref="Betriebsart.Dom"/> und
+    /// <see cref="Betriebsart.Kathedrale"/> (so stehen sie im Spielstand), angezeigt werden sie seit Datenversion 84 als Kapelle, Kirche und
+    /// Stadtkirche. <see cref="Betriebsart.Dom"/> ist hier Stufe 2 – nicht der Stadt-Dom der Karte.
+    /// </summary>
     public bool IstKirche(Betrieb b) => IstAktiv && b.IstWerkstatt && b.Artdaten.Beruf == Daten.Beruf;
+
+    /// <summary>Ist diese Betriebsart eine Kirche (Werkstatt des Predigers, gleich welcher Stufe)?</summary>
+    public bool IstKirchenart(Betriebsart art) =>
+        IstAktiv && _w.Daten.KenntArt(art) && _w.Daten.Art(art) is { IstWerkstatt: true } a && a.Beruf == Daten.Beruf;
+
+    // ── Höchstens eine Kirche je Glaube (Datenwert kirchenJeGlaube) ──────────
+
+    /// <summary>
+    /// Wie viele Kirchen dieses Glaubens in der Stadt stehen oder gebaut werden: Kirchen aller Stufen (auch ohne Personal) und Kirchen-Baustellen
+    /// von Häusern im Spiel, deren Oberhaupt diesen Glauben hat.
+    /// </summary>
+    public int KirchenDesGlaubens(Glaube.Konfession glaube)
+    {
+        if (!IstAktiv) return 0;
+        var gw = _w.Glaube;
+        var stehend = _w.Betriebe.Count(b => IstKirche(b) && b.Konto.IstAktiv && gw.GlaubeVon(b.Konto) == glaube);
+        var imBau = !_w.Bauen.IstAktiv ? 0 : _w.Bauen.Grundstuecke.Count(g => g is { Arbeit: Bauen.Bauarbeit.Neubau, Betriebsart: { } art, Besitzer: { IstAktiv: true } k }
+                                                                            && IstKirchenart(art) && gw.GlaubeVon(k) == glaube);
+        return stehend + imBau;
+    }
+
+    /// <summary>
+    /// Warum dieses Haus keine Kirche dieser Art bauen oder kaufen darf, weil schon genug Kirchen seines Glaubens in der Stadt stehen – oder null
+    /// (auch, wenn die Art keine Kirche ist, es keine Grenze gibt oder der Glaube keine Rolle spielt).
+    /// </summary>
+    public string? KirchengrenzeVerboten(Konto konto, Betriebsart art)
+    {
+        if (!IstKirchenart(art) || Daten.KirchenJeGlaube <= 0 || _w.Glaube.GlaubeVon(konto) is not { } glaube) return null;
+        return KirchenDesGlaubens(glaube) >= Daten.KirchenJeGlaube
+            ? $"In der Stadt steht schon {KirchenText(glaube)} – mehr erlaubt der Bischof nicht." : null;
+    }
+
+    /// <summary>
+    /// Warum dieses Haus nicht zum Glauben <paramref name="ziel"/> übertreten darf: Es hat eine Kirche (oder baut eine), und von diesem Glauben
+    /// stehen schon genug Kirchen in der Stadt – oder null.
+    /// </summary>
+    public string? KirchengrenzeKonvertieren(Konto konto, Glaube.Konfession ziel)
+    {
+        if (!IstAktiv || Daten.KirchenJeGlaube <= 0) return null;
+        var eigene = _w.Betriebe.Any(b => b.Konto == konto && IstKirche(b))
+                     || _w.Bauen.IstAktiv && _w.Bauen.Grundstuecke.Any(g => g is { Arbeit: Bauen.Bauarbeit.Neubau, Betriebsart: { } art } && g.Besitzer == konto && IstKirchenart(art));
+        if (!eigene || KirchenDesGlaubens(ziel) < Daten.KirchenJeGlaube) return null;
+        return $"In der Stadt steht schon {KirchenText(ziel)}, und mehr erlaubt der Bischof nicht. Verkauft erst eure Kirche.";
+    }
+
+    private string KirchenText(Glaube.Konfession glaube) =>
+        Daten.KirchenJeGlaube == 1 ? $"eine Kirche der {glaube.Gemeinde()}" : $"{Daten.KirchenJeGlaube} Kirchen der {glaube.Gemeinde()}";
 
     /// <summary>Kirchen, in denen gepredigt wird: Haus im Spiel, Personal da.</summary>
     public IEnumerable<Betrieb> Kirchen => _w.Betriebe.Where(b => IstKirche(b) && b.Konto.IstAktiv && b.Belegt > 0);

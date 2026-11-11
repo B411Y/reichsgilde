@@ -2788,3 +2788,43 @@ Häuser von Menschen bekommen Fragen mit Frist und Voreinstellung (Einzelheiten 
 Der passive Spieler heiratet nicht; in allen Partien lebt am Ende nur das Oberhaupt, in beiden Läufen. Der Medicus heilt also nur das Oberhaupt; er kostet in 20 Jahren 330 Gulden, das Reinvermögen sinkt um 241 (etwas weniger als die Kosten, weil das geheilte Oberhaupt seine Talente früher zurückhat).
 
 Ergebnis: Die Voreinstellungen ändern die Balance der KI-Häuser nicht. Ein Spieler, der keine Frage beantwortet, hat nach 20 Jahren im Mittel 1,8 % weniger Reinvermögen (−241 Gulden), fast ganz durch den Medicus (330 Gulden für 2,8 Rufe).
+
+## Kirchen begrenzt: eine Kirche je Glaube (Datenversion 84, 11.11.2026)
+
+Regel (Nutzer, 11.11.2026): In jeder Stadt steht höchstens eine Kirche eines Hauses je Glaube (`kirche.kirchenJeGlaube` = 1, gleich welcher Stufe, Baustellen zählen mit). Neubau, Kauf und Konvertieren mit eigener Kirche werden darüber abgewiesen; was steht, bleibt. Dazu die Anzeigenamen Kapelle → Kirche → Stadtkirche (Kennungen `Kirche`/`Dom`/`Kathedrale` unverändert). Messe und Kollekte rechnen wie bisher.
+
+Messung `messen bericht 20 20` (900 Partien), gemessen auf main 12198f41 gegen main 12198f41 + diesen Branch:
+
+| Abschnitt | vorher | nachher | Bemerkung |
+|---|---|---|---|
+| Völker, Startfairness, 1/3/5/8 Häuser, KI-Stärke, Gauner/Wache/Bank | – | – | Zahl für Zahl gleich |
+| Berufe statisch, Einrichtung statisch, Statut C | – | – | gleiche Zahlen, nur die Namen Kapelle/Kirche/Stadtkirche |
+| Prediger (Spieler KI-geführt), Reinvermögen Jahr 10 | 12.941 ± 567 | 13.170 ± 612 | +1,8 %, im Fehler |
+| Prediger, Reinvermögen Jahr 20 | 34.151 ± 2.141 | 36.557 ± 2.199 | +7,0 %, gut eine Fehlerspanne |
+| Prediger, Gewinn Jahr 20 | 4.660 ± 386 | 4.493 ± 364 | −3,6 %, im Fehler |
+| KI-Häuser in den Prediger-Partien, Jahr 20 | 82.195 ± 3.028 | 82.359 ± 3.025 | gleich |
+| Einrichtung des Predigers (simuliert), Mehrgewinn | 57 | 42 | im Rauschen (Streuung 233/255) |
+| Steuer je Jahr eines Prediger-Betriebs (Hafen und Kasse) | 320 | 312 | im Rauschen |
+
+Nur Partien mit einem Prediger weichen ab, und erst nach Jahr 5: Dort erwirbt kein Haus desselben Glaubens mehr eine zweite Kirche, und mit Kirche tritt niemand zu einem Glauben über, der schon eine hat. Alle anderen Berufe sind gleich; ihr Abstand zum Mittel der zehn Berufe ändert sich nur, weil der Prediger im Mittel steckt (z. B. Schmied Jahr 20 +4,4 % → +3,6 %). Keine Partie mit Fehler.
+
+## Startaufstellung: jeder Beruf einmal, KI-Häuser gelost (11.11.2026, Datenversion 84 mit der Kirchengrenze)
+
+Regel (Nutzer, 11.11.2026): Jeder Beruf höchstens einmal je Partie (Spieler und KI-Häuser zusammen); jedes KI-Haus bekommt Volk, Glauben und Beruf gelost (eigene Zufallsquelle aus dem Startwert, drei Würfe je Haus), nur aus den freien Berufen. Damit spielen die KI-Häuser auch Dieb, Gardist, Geldleiher, Prediger und Parfumeur, und auf „Schwer“ fehlt einem Haus ohne passenden Umland-Startplatz der Umlandbetrieb (die Karten haben keine Start-Duftgärten, -Klosterhöfe, -Wachtürme).
+
+Messung `messen bericht 20 20` (900 Partien), gemessen auf main fd6861b8 + PR 1a/1b (Branch-Kopf 4d9104d5) gegen 4d9104d5 + diesen PR:
+
+| Abschnitt | vorher | nachher | Bemerkung |
+|---|---|---|---|
+| Berufe simuliert (Spieler KI-geführt, ein Betrieb), außerhalb ±15 % | Gardist −21 % | Steinmetz +16 %, Prediger +23 %, Dieb −16 %, Gardist −26 % | Mittel 31.672 → 32.705; die Mitspieler sind jetzt andere Berufe |
+| Jahre bis Bürger, Ø aller Berufe | 8,9 | 8,6 | Schmied 8,9 → 8,3, Steinmetz 10,5 → 8,3, Dieb 7,5 → 8,2 |
+| Völker Schmied / Parfumeur (gegen Menschen) | 0 … +11 % / −6 … +3 % | 0 … +21 % / 0 … +14 % | die KI-Nachbarn wechseln je Startwert; Rauschen |
+| Startfairness greybox / probestadt | −2 … +2 % / −1 … +1 % | −2 … +2 % / −2 … +2 % | Hofstellen bleiben fair |
+| 8 Häuser (Messstadt), Vermögen je KI-Haus | 48.972 (−39 % gegen allein) | 57.383 (−3 %) | ohne doppelte Berufe kaum noch Gedränge auf einem Markt |
+| KI-Stärke greybox, KI ÷ Bezug (Median) | 1,18 | 0,92 | davongezogen 5/60 → 0/60, abgeschlagen 1/60 → 3/60 |
+| KI-Stärke „Schwer“, KI ÷ Bezug (Median) | 1,86 | 1,03 | davongezogen 23/60 → 1/60; Umland fehlt den neuen Berufen oft |
+| Gaunerei der KI (Diebstahl je Jahr) | 0,44 | 0,36 | |
+| Raub und Schaden je KI-Haus und Jahr | 325 | 245 | |
+| Berufe statisch, Einrichtung statisch, Statut C | – | – | Rechnungen fast gleich (Startpreise mit anderen Mitspielern) |
+
+Keine Partie mit Fehler. Die KI-Häuser sind im Mittel schwächer, weil sie jetzt auch Berufe führen, die die KI schlechter spielt (Dieb, Gardist), und auf „Schwer“ ohne Umland beginnen, wenn ihr Beruf keinen Umland-Startplatz hat. Der Bezugsspieler (gleiche Strategie wie die KI, Schmied) wird reicher, weil kein zweiter Schmied mehr neben ihm verkauft.

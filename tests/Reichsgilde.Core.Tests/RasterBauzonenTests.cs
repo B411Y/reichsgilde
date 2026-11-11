@@ -204,7 +204,7 @@ static class RasterBauzonenTests
             }
             var koeln = Oeffnen("koeln");
             Pruefe.Gleich(0, koeln.Bauzonen.Count(z => !z.Berechnet), "keine Zone von Hand (bis zu den Hofstellen 6 Werkstatt-Bauplätze, bis zum Rathaus am Alter Markt 7)");
-            Pruefe.Gleich(46, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46
+            Pruefe.Gleich(48, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48
             Pruefe.Gleich(0, koeln.Start.Hofstellen.Count(h => h.Kennung.StartsWith("WB_")), "die Werkstatt-Bauplätze heißen als Hofstellen N1–N5 und A1");
             Pruefe.Wahr(koeln.Restflaechen.Count > 0, "Köln hat Restflächen");
         }),

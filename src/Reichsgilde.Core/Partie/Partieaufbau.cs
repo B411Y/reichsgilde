@@ -26,6 +26,8 @@ namespace Reichsgilde.Core.Partie;
 /// null = gelost (Knopf „Zufall“). Ohne Hofstellen ohne Wirkung.</param>
 /// <param name="Startplaetze">Gelost (wie im Spiel: die KI-Häuser bekommen geloste Hofstellen) oder Vorgabe (jedes Haus, wo die Startbelegung
 /// der Karte es hinsetzt – für Tests und Vergleiche).</param>
+/// <param name="Aufstellung">Gelost (wie im Spiel: Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf einmal, <see cref="Startaufstellung"/>) oder
+/// Vorgabe (jedes KI-Haus wie in der Startbelegung der Karte – nur für Tests und Vergleiche).</param>
 public sealed record NeuePartie(
     string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
@@ -39,7 +41,8 @@ public sealed record NeuePartie(
     Wappen? Wappen = null,
     Aussehen? Aussehen = null,
     string? Hofstelle = null,
-    Startplatzvergabe Startplaetze = Startplatzvergabe.Gelost);
+    Startplatzvergabe Startplaetze = Startplatzvergabe.Gelost,
+    Aufstellungsart Aufstellung = Aufstellungsart.Gelost);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -56,6 +59,8 @@ public enum KiCharakter
 /// KI-Häuser aus dem Abschnitt „start“ der Karte (<see cref="Startbelegung"/>), alle von der KI geführt. Ohne Karte gilt
 /// <see cref="Startbelegung.Ersatz"/>: Haus Eisenbart (Zwerge, Schmiede: Gießerei und Grube), Haus Eichwald (Elben, Tischler:
 /// Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge, Steinmetze: Maurerei und Steinbruch). Alle Oberhäupter beginnen ledig.
+/// Im Spiel (<see cref="Aufstellungsart.Gelost"/>) lost die <see cref="Startaufstellung"/> Beruf, Volk und Glauben jedes KI-Hauses neu – jeder Beruf
+/// höchstens einmal je Partie; Name, Wappen, Farbe, Geschlecht und Plätze bleiben die der Karte.
 /// </summary>
 public static class Partieaufbau
 {
@@ -108,10 +113,23 @@ public static class Partieaufbau
             throw new ArgumentException(start.Haeuser.Count == 1 ? "Hier spielt genau ein KI-Haus mit."
                 : $"Es spielen ein bis {Zahlwort(start.Haeuser.Count)} KI-Häuser mit.");
 
+        // Startaufstellung (11.11.2026): Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf höchstens einmal je Partie – vor den Hofstellen,
+        // denn die Werkstatt eines Hauses zieht mit ihrem Namen auf seine Hofstelle.
+        var rivalen = neu.Rivalen;
+        IReadOnlyList<(string Name, Betriebsart Art)> freiesUmland = Array.Empty<(string, Betriebsart)>();
+        string? aufstellungsmeldung = null;
+        if (neu.Aufstellung == Aufstellungsart.Gelost)
+        {
+            var spielerglaube = neu.Glaube ?? daten.Glaube?.Startglaube(neu.Volk) ?? Konfession.Katholisch;
+            var a = Startaufstellung.Losen(karte, start, daten, neu.Beruf, spielerglaube, Mitspielend(start, daten, rivalen), einstellungen.Zufallsstartwert);
+            (start, karte, freiesUmland, aufstellungsmeldung) = (a.Belegung, a.Karte ?? karte, a.Frei, a.Meldung);
+            rivalen = start.Haeuser.Count;
+        }
+
         // Hofstellen (09.11.2026): Die Partie spielt auf der Partiekarte – die Startbelegung auf den gewählten bzw. gelosten Hofstellen.
         if (karte is { HatHofstellen: true })
         {
-            karte = Hofstellenvergabe.Belegen(karte, daten, neu, einstellungen.Zufallsstartwert, Mitspielend(start, daten, neu.Rivalen));
+            karte = Hofstellenvergabe.Belegen(karte, daten, neu, einstellungen.Zufallsstartwert, Mitspielend(start, daten, rivalen));
             start = karte.Startbelegung;
         }
 
@@ -135,7 +153,7 @@ public static class Partieaufbau
 
         // Die KI-Häuser in der Reihenfolge der Karte; das erste spielt immer mit. Sein Konto entsteht noch vor der Familie des Spielers
         // (so war die Reihenfolge schon vor der Karte – die Zufallszahlen der Familien bleiben dieselben).
-        var haeuser = Mitspielend(start, daten, neu.Rivalen);
+        var haeuser = Mitspielend(start, daten, rivalen);
         var konten = new Dictionary<Starthaus, Konto>();
         Konto KontoVon(Starthaus h)
         {
@@ -153,6 +171,10 @@ public static class Partieaufbau
         w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
         foreach (var h in haeuser)
             HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
+        // Umland-Startplätze, die bei der Aufstellung niemand bekommen hat, stehen frei zur Pacht (wie bei „Normal“ der Umlandbetrieb eines KI-Hauses)
+        foreach (var (frei, art) in freiesUmland)
+            w.StartbetriebFreigeben(frei, art);
+        if (aufstellungsmeldung is not null) w.Melden(aufstellungsmeldung);
         w.Bauen.FreieHofstellenFreigeben(); // was niemand bekommen hat, ist ab jetzt Bauplatz (nur mit Hofstellen)
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
         return (simulation, spieler);
@@ -175,10 +197,11 @@ public static class Partieaufbau
         KiCharakter charakter, Schwierigkeit schwierigkeit)
     {
         if (w.Familien.IstAktiv)
-            w.Familien.Gruenden(konto, h.Volk, h.Geschlecht);
+            w.Familien.Gruenden(konto, h.Volk, h.Geschlecht, glaube: h.Glaube);
+        var startbetriebe = h.Betriebe;
         // Bei „Normal“ nur die erste Werkstatt (hat ein Haus keine in der Stadt: seinen ersten Betrieb).
-        var erste = h.Betriebe.FirstOrDefault(b => daten.Art(b.Art).InDerStadt) ?? h.Betriebe.FirstOrDefault();
-        foreach (var b in h.Betriebe)
+        var erste = startbetriebe.FirstOrDefault(b => daten.Art(b.Art).InDerStadt) ?? startbetriebe.FirstOrDefault();
+        foreach (var b in startbetriebe)
         {
             var art = daten.Art(b.Art);
             var name = karte?.GebaeudeMit(b.Platz)?.Betrieb ?? (b.ErsatzName ?? "{art} " + Familie.NachnameAus(h.Name)).Replace("{art}", art.Name);

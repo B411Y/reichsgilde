@@ -120,8 +120,8 @@ public sealed partial class Koeln
     /// <summary>
     /// Ein Startgrundstück an fester Stelle, wenn neben der Werkstatt kein Wohnhaus passt (seit den Freien Startplätzen, PR #209, darf das Wohnhaus
     /// abseits stehen): S4 am Alter Markt seit dem Rathaus am Markt (9.11.2026) – die Werkstatt an Unter Fettenhennen auf dem früheren Werkstatt-
-    /// Bauplatz WB_AlterMarkt1 (Vorderseite nach Norden zur Straße), das Wohnhaus dahinter an der Trankgasse zwischen St. Kunibert und den
-    /// Einwohnerplätzen.
+    /// Bauplatz WB_AlterMarkt1 (Vorderseite nach Norden zur Straße), das Wohnhaus dahinter an der Trankgasse (bis 11.11.2026 zwischen St. Kunibert
+    /// und den Einwohnerplätzen; die Kirche steht nicht mehr in Köln).
     /// </summary>
     private void StartgrundstueckFest(int n, string strasse, Kartenort werkstatt, double dWerkstatt, Kartenort wohnhaus, double dWohnhaus)
     {
@@ -220,8 +220,10 @@ public sealed partial class Koeln
             ("Rheingasse", false, 150 + R - MarktVonMauer, 300, 1), ("Rheingasse", true, 150 + R - MarktVonMauer, 300, 2),
             ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 2),   // Südseite seit dem Rathaus am Markt (9.11.2026) höchstens 2: dort stand bis dahin das Rathaus, so bleibt es bei 82 Hausplätzen
             // seit den Kirchenmodellen (9.11.2026) an der Hammergasse und am Kunibertswall je Seite mehr: St. Aposteln steht an der Südseite der
-            // Hammergasse, St. Kunibert an der Trankgasse; die Karte behält so ihre 82 Hausplätze (67 Einwohnerplätze und 15 Kulissenhäuser
-            // statt 68 und 14: an der Engelspforte passt jetzt das Kulissenhaus)
+            // Hammergasse, St. Kunibert an der Trankgasse; die Karte behielt so ihre 82 Hausplätze (67 Einwohnerplätze und 15 Kulissenhäuser
+            // statt 68 und 14: an der Engelspforte passt jetzt das Kulissenhaus). Seit St. Kunibert und St. Severin aus Köln entfernt sind
+            // (11.11.2026), gibt es 69 Einwohnerplätze und 15 Kulissenhäuser (84 Hausplätze): die freie Fläche an der Trankgasse nimmt zwei
+            // Plätze mehr auf (Höchstzahlen unverändert), der Rest wird Bauzone
             ("Hammergasse", true, 0, 200, 4), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
             ("Kunibertswall", true, 0, 1000, 6), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })

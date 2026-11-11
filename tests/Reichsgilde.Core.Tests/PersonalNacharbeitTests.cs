@@ -73,7 +73,7 @@ static class PersonalNacharbeitTests
     {
         ("Jede Wirkung: Datenversion 79, werkstatt.jedeWirkungRechnen steht an; ohne die Angabe aus (ältere Daten)", () =>
         {
-            Pruefe.Gleich(83, Daten.Value.Version);
+            Pruefe.Gleich(84, Daten.Value.Version);
             Pruefe.Wahr(Daten.Value.Werkstatt!.JedeWirkungRechnen, "an");
             Pruefe.Wahr(!OhneSchalter.Value.Werkstatt!.JedeWirkungRechnen, "ohne Angabe aus");
         }),

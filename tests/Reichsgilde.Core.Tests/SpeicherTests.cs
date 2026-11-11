@@ -13,7 +13,7 @@ static class SpeicherTests
     static (Simulation Sim, Konto Spieler) NeuePartie(int startwert = 1400, KiCharakter rivale = KiCharakter.Ausgewogen,
         Schwierigkeit schwierigkeit = Schwierigkeit.Normal) =>
         Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = schwierigkeit },
-            Daten.Value, new NeuePartie(Rivale: rivale));
+            Daten.Value, new NeuePartie(Rivale: rivale, Aufstellung: Aufstellungsart.Vorgabe));
 
     static void Ticken(Simulation sim, long minuten)
     {
@@ -105,7 +105,7 @@ static class SpeicherTests
         ("Partieaufbau: Unter Statut A arbeiten Bergleute statt Orks in der Grube", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Schwierigkeit = Schwierigkeit.Schwer },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var grube = sim.Wirtschaft!.Betriebe.Single(b => b.Name == "Grube Eisenbart");
             Pruefe.Gleich(3, grube.Belegung.GetValueOrDefault("Knecht")); // Anfänger im Umland (PR #224)
         }),
@@ -113,11 +113,11 @@ static class SpeicherTests
         ("Partieaufbau: eigener Familienname und Startvermögen, Rivalenname ist vergeben", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie("  Haus Glockengießer ", 6000));
+                new NeuePartie("  Haus Glockengießer ", 6000, Aufstellung: Aufstellungsart.Vorgabe));
             Pruefe.Gleich("Haus Glockengießer", spieler.Inhaber);
             Pruefe.Ungefaehr(6000, spieler.Vermoegen, 1e-9);
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie(Partieaufbau.Rivalenname)), "Name eines Rivalen");
+                new NeuePartie(Partieaufbau.Rivalenname, Aufstellung: Aufstellungsart.Vorgabe)), "Name eines Rivalen");
         }),
     };
 }

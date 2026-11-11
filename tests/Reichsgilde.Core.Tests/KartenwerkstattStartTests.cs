@@ -522,7 +522,7 @@ static class KartenwerkstattStartTests
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             // „Karte ausprobieren“ lost nicht (Hofstellen, 9.11.2026): wie die Datei ohne Los
             var (simDatei, spielerDatei) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
             var (w, wd) = (sim.Wirtschaft!, simDatei.Wirtschaft!);
             Folge(wd.Konten.Select(k => k.Inhaber).ToArray(), w.Konten.Select(k => k.Inhaber).ToArray());
             Folge(wd.Konten.Select(k => k.Wappen).ToArray(), w.Konten.Select(k => k.Wappen).ToArray());

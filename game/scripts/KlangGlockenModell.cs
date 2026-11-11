@@ -85,8 +85,8 @@ public static class KlangGlockenModell
     {
         var fehler = new List<string>();
         void Pruefe(bool gut, string was) { if (!gut) fehler.Add(was); }
-        // Kirchen Kölns (game/karten/koeln.json): Dom, Groß St. Martin, St. Gereon, St. Severin, St. Aposteln, St. Kunibert
-        var kirchen = new (float X, float Z, bool Dom)[] { (6, -112, true), (22, -44, false), (-55, -86, false), (7.5f, 96, false), (-54, -34, false), (-16.6f, -76, false) };
+        // Kirchen Kölns (game/karten/koeln.json): Dom, Groß St. Martin, St. Gereon, St. Aposteln (seit 11.11.2026 ohne St. Severin und St. Kunibert)
+        var kirchen = new (float X, float Z, bool Dom)[] { (6, -112, true), (22, -44, false), (-55, -86, false), (-54, -34, false) };
         var orte = new (string Name, float X, float Z)[] { ("Stadtmitte (0|0)", 0, 0), ("Stadtrand (0|200)", 0, 200), ("Umland (0|400)", 0, 400), ("fernes Umland (0|800)", 0, 800) };
         List<Quelle> Von(float x, float z, Func<(float X, float Z, bool Dom), bool> wahl) => kirchen.Where(wahl)
             .Select(k => new Quelle(MathF.Sqrt((k.X - x) * (k.X - x) + (k.Z - z) * (k.Z - z)), (k.X - x) / 200f, k.Dom)).ToList();

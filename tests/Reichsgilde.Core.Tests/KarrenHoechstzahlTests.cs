@@ -28,7 +28,7 @@ static class KarrenHoechstzahlTests
         var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser), karte: Stadtkarte.AusDatei(pfad));
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(pfad));
         return (sim, sim.Wirtschaft!);
     }
 
@@ -37,7 +37,7 @@ static class KarrenHoechstzahlTests
         ("Karren-Höchstzahl: Daten ab 66 – Werkstatt 3, Umland 5; Prüfung meldet unbekannte Orte und Werte unter 1", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(83, d.Version);
+            Pruefe.Gleich(84, d.Version);
             Pruefe.Gleich(3, d.Logistik.HoechstKarren(Arbeitsort.Werkstatt));
             Pruefe.Gleich(5, d.Logistik.HoechstKarren(Arbeitsort.Umland));
             Pruefe.Wirft(() => DatenMit(j => j["logistik"]!["karrenHoechstens"]!["Umland"] = 0));

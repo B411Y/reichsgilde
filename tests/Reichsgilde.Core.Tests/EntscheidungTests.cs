@@ -353,9 +353,9 @@ static class EntscheidungTests
             Pruefe.Gleich(Reichsgilde.Core.Mehrspieler.Zustandspruefsumme.Berechnen(sim), Reichsgilde.Core.Mehrspieler.Zustandspruefsumme.Berechnen(abgespielt));
         }),
 
-        ("Entscheidungen: Daten – fristMinuten nur für Arten ohne Jahresfrist, ab 1 Minute; Obergrenze ab 1; Datenversion 82", () =>
+        ("Entscheidungen: Daten – fristMinuten nur für Arten ohne Jahresfrist, ab 1 Minute; Obergrenze ab 1; Datenversion 84", () =>
         {
-            Pruefe.Gleich(83, Daten.Value.Version);
+            Pruefe.Gleich(84, Daten.Value.Version);
             Pruefe.Gleich(6, Daten.Value.Entscheidungen!.HoechstOffen);
             Pruefe.Gleich(120, Daten.Value.Entscheidungen.FristFuer(Entscheidungsart.Erpresserbrief), "standard");
             var json = File.ReadAllText(Datenpfad.Wirtschaft());

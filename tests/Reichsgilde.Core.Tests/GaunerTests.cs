@@ -262,7 +262,7 @@ static class GaunerTests
         ("KI wagemutig: heuert gegen das führende Haus Banden an; die KI stellt nach einem Angriff Wächter ein", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7 },
-                Daten.Value, new NeuePartie(Rivale: KiCharakter.Wagemutig));
+                Daten.Value, new NeuePartie(Rivale: KiCharakter.Wagemutig, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             var rivale = w.Konten[1];
             var auftraege = 0;
@@ -273,7 +273,7 @@ static class GaunerTests
             // Der Spieler bricht beim Rivalen ein – danach stellt die KI einen Wächter ein. In einer frischen Partie nach zwei Jahren:
             // Nach sechs Jahren ist das Haus des Spielers je nach Würfeln schon erloschen (seit den Charakterzügen, PR #227, bei Startwert 7).
             (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7 },
-                Daten.Value, new NeuePartie(Rivale: KiCharakter.Wagemutig));
+                Daten.Value, new NeuePartie(Rivale: KiCharakter.Wagemutig, Aufstellung: Aufstellungsart.Vorgabe));
             w = sim.Wirtschaft!;
             rivale = w.Konten[1];
             for (var i = 0; i < 2; i++) JahrBeenden(sim);
@@ -288,7 +288,7 @@ static class GaunerTests
         ("KI vorsichtig: heuert nie eine Bande an", () =>
         {
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 7 },
-                Daten.Value, new NeuePartie(Rivale: KiCharakter.Vorsichtig));
+                Daten.Value, new NeuePartie(Rivale: KiCharakter.Vorsichtig, Aufstellung: Aufstellungsart.Vorgabe));
             var w = sim.Wirtschaft!;
             for (var i = 0; i < 6; i++) JahrBeenden(sim);
             Pruefe.Gleich(0, w.Justiz.SpurenVon(w.Konten[1]).Count(s => s.Art != Vergehen.Bestechung));

@@ -14,7 +14,7 @@ static class BefehlsboteTests
 
     static (Simulation Sim, Konto Spieler) NeuePartie(int startwert = 1400) =>
         Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
-            Daten.Value, new NeuePartie());
+            Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
 
     static void Ticken(Simulation sim, long minuten)
     {
@@ -368,7 +368,7 @@ static class BefehlsboteTests
         ("Befehlsbote: Spielende verwirft wartende Befehle mit Meldung; die Siegbedingung lässt das Protokoll vollständig, Beenden nicht", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 9, Siegbedingung = Siegbedingung.Endjahr, Endjahr = 1401 },
-                Daten.Value, new NeuePartie());
+                Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var werkstatt = Werkstatt(sim, spieler).Name;
             Ticken(sim, Spielzeit.MinutenProTag - 50);
             sim.Bote.AufzeichnungBeginnen();
