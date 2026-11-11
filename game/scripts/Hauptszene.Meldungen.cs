@@ -90,7 +90,7 @@ public partial class Hauptszene
         if (e.Verwerfen) return; // Geheimnisse anderer Häuser: der Kern meldet sie an alle, der Spieler soll sie nicht lesen
         var stufe = Meldungsordnung.Stufe(e.Art, e.Bezug, e.Text, Meldungseinstellungen.Wahl(e.Art.Id));
         if (stufe == Meldestufe.Aus) return;
-        if (w is not null) KlangOberflaeche.Meldung(meldung, w.Daten.Allgemein.Waehrung, glocke: false); // Holzklopfer („✗“) oder Münzen; Siegel und Briefe haben eigene Töne
+        if (w is not null) KlangOberflaeche.Meldung(meldung, w.Daten.Allgemein.Waehrung, glocke: false); // Fehlerton („✗“) oder Münzen; Siegel und Briefe haben eigene Töne
 
         var posten = new Meldungsposten
         {

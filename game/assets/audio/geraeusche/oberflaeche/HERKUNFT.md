@@ -1,15 +1,15 @@
 # Herkunft: Oberflächenklänge
 
-29 Klänge der Oberfläche (Klick, Blättern, Fenster, Münzen, Holzklopfer, Glocke, Siegel, Bauen, Tempo), **unverändert** übernommen
+26 Klänge der Oberfläche (Klick, Blättern, Fenster, Münzen, Glocke, Siegel, Bauen, Tempo), **unverändert** übernommen
 (Format OGG Vorbis, wie geliefert; Lautstärke und Tonhöhe stellt `game/scripts/KlangOberflaeche.cs` ein). Lizenz beider Pakete: **CC0 1.0 Universal**
 (Public Domain Dedication, Namensnennung nicht verlangt). Urheber: **Kenney** (https://kenney.nl).
 
 | Paket | Version | Seite | Original-ZIP (SHA-256, Größe) | Dateien |
 |---|---|---|---|---|
 | RPG Audio | 1.0 vom 17.03.2014 | https://kenney.nl/assets/rpg-audio | kenney_rpg-audio.zip, 6DBEAF8544DA958D8F2ADCB4A4A4B76C1ADE34A05F8AB9EDCCD327DA7375F38B, 964837 Bytes | `belt_handle_1`, `book_close`, `book_flip_1..3`, `book_open`, `book_place_1..2`, `chop`, `cloth_1..4`, `drop_leather`, `handle_coins`, `handle_coins_2`, `handle_small_leather`, `handle_small_leather_2`, `metal_click`, `metal_latch` |
-| Impact Sounds | 1.0 vom 19.12.2019 | https://kenney.nl/assets/impact-sounds | kenney_impact-sounds.zip, 029D734AF1582474EDF3A694D1B0CEBC97C1C152F2F39FA34D4C2BAFC5DE77F8, 800850 Bytes | `impact_bell_heavy_002..004`, `impact_plank_medium_000..002`, `impact_wood_medium_000..002` |
+| Impact Sounds | 1.0 vom 19.12.2019 | https://kenney.nl/assets/impact-sounds | kenney_impact-sounds.zip, 029D734AF1582474EDF3A694D1B0CEBC97C1C152F2F39FA34D4C2BAFC5DE77F8, 800850 Bytes | `impact_bell_heavy_002..004`, `impact_plank_medium_000..002` |
 
-**Bezugsquelle:** Original-Downloads von kenney.nl, geladen am 29.10.2026 über den Download-Knopf der Seiten. Alle 29 Dateien wurden per SHA-256 mit
+**Bezugsquelle:** Original-Downloads von kenney.nl, geladen am 29.10.2026 über den Download-Knopf der Seiten. Alle ursprünglich übernommenen 29 Dateien (drei Holzklopfer `impact_wood_medium_*` sind inzwischen entfernt, siehe unten) wurden per SHA-256 mit
 dem Inhalt der ZIP-Dateien verglichen: byte-gleich, nur umbenannt. Die `License.txt` beider Pakete liegt unverändert (bis auf Zeilenenden, Git speichert LF) daneben
 (`LICENSE-kenney-rpg-audio.txt`, `LICENSE-kenney-impact-sounds.txt`).
 
@@ -41,9 +41,6 @@ dem Inhalt der ZIP-Dateien verglichen: byte-gleich, nur umbenannt. Die `License.
 | impact_plank_medium_000.ogg | impactPlank_medium_000.ogg | 8403CD7A043F0391… |
 | impact_plank_medium_001.ogg | impactPlank_medium_001.ogg | D7C304319F8BEAC6… |
 | impact_plank_medium_002.ogg | impactPlank_medium_002.ogg | F6A14DA459942296… |
-| impact_wood_medium_000.ogg | impactWood_medium_000.ogg | 1723A9FD25103ED4… |
-| impact_wood_medium_001.ogg | impactWood_medium_001.ogg | 15271DBE8E2872DB… |
-| impact_wood_medium_002.ogg | impactWood_medium_002.ogg | 3F3F1917428B828F… |
 | metal_click.ogg | metalClick.ogg | 9851A69D0C613E13… |
 | metal_latch.ogg | metalLatch.ogg | BA9BA60B172B3EBC… |
 
@@ -56,5 +53,7 @@ Herkunft je Datei: `docs/assets/protokoll.csv`.
 
 ## Eigene Töne (nicht Kenney)
 
-`siegel_neu_1.wav`, `siegel_neu_2.wav`, `pergament_1.wav`, `pergament_2.wav` (Benachrichtigungen, 05.11.2026) sind **rein rechnerisch erzeugt** mit `tools/ton/meldungstoene.py`
-(keine Aufnahme, keine KI, keine fremde Quelle). Lizenz: Alle Rechte vorbehalten (Inhalte des Projekts, `LICENSE-INHALTE.md`); Beschreibung in `docs/assets/prompts/meldungstoene.md`.
+`meldung_siegel.ogg`, `meldung_brief.ogg`, `meldung_entscheidung.ogg`, `meldung_fehler.ogg`, `meldung_mahnung.ogg` (Meldungstöne, 11.11.2026) sind **rein rechnerisch erzeugt**
+mit `tools/ton/meldungston_erzeugen.py` (numpy; keine Aufnahme, keine KI, keine fremde Quelle, nichts aus dem Original-Spiel). Sie ersetzen die früheren eigenen WAV
+`siegel_neu_1/2`, `pergament_1/2`, `siegel_feder` und die Kenney-Holzklopfer `impact_wood_medium_000..002` (Fehler). Lizenz: Alle Rechte vorbehalten
+(Inhalte des Projekts, `LICENSE-INHALTE.md`); Beschreibung und Rezepte in `docs/assets/prompts/meldungston.md`.

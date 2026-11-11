@@ -11,7 +11,7 @@ namespace Reichsgilde;
 ///   • <see cref="Einrichten"/> hängt sich an <see cref="SceneTree.NodeAdded"/> und gibt jedem Knopf seinen Klick (Reiter einer Knopfgruppe:
 ///     Blättern; Knöpfe mit dem Hinweis <c>klang</c> = „still“ spielen selbst (Pause und Tempo, auch per Taste)),
 ///   • <see cref="Fensterrahmen"/> spielt Öffnen und Schließen jedes Fensters,
-///   • <c>Hauptszene.Protokollieren</c> ruft <see cref="Meldung"/>: abgelehnt „✗“ = Holzklopfer, Gefahr „⚠“ = Glocke, Kauf oder Zahlung = Münzen;
+///   • <c>Hauptszene.Protokollieren</c> ruft <see cref="Meldung"/>: abgelehnt „✗“ = zwei gedämpfte Töne abwärts, Gefahr „⚠“ = Glocke, Kauf oder Zahlung = Münzen;
 ///     neue Siegel und Briefe der Benachrichtigungen spielen <see cref="Ereignis.MeldungSiegel"/> und <see cref="Ereignis.MeldungBrief"/>,
 ///   • Bauen, Siegel (Rat) und Tempo rufen <see cref="Spielen"/> an ihrer Stelle.
 /// Eine Sperre je Ereignis verhindert Gepolter, wenn viele Tafeln auf einmal auf- oder zugehen; die ersten Sekunden nach dem Start sind still.
@@ -19,7 +19,7 @@ namespace Reichsgilde;
 /// </summary>
 public static class KlangOberflaeche
 {
-    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief, EntscheidungSiegel }
+    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief, EntscheidungSiegel, Mahnung }
 
     public const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
     /// <summary>Sekunden nach dem Start, in denen nichts spielt (Fenster, die beim Aufbau auf- und zugehen).</summary>
@@ -35,16 +35,17 @@ public static class KlangOberflaeche
         [Ereignis.FensterAuf] = (new[] { "book_open", "cloth_1", "cloth_2" }, -6f, 1.0f, 0.04f),
         [Ereignis.FensterZu] = (new[] { "book_close", "cloth_3", "cloth_4" }, -7f, 0.95f, 0.04f),
         [Ereignis.Muenzen] = (new[] { "handle_coins", "handle_coins_2" }, -6f, 1.0f, 0.05f),
-        [Ereignis.Fehler] = (new[] { "impact_wood_medium_000", "impact_wood_medium_001", "impact_wood_medium_002" }, -4f, 0.85f, 0.03f),
+        [Ereignis.Fehler] = (new[] { "meldung_fehler" }, -5f, 1.0f, 0.02f), // abgelehnt „✗“: zwei gedämpfte Töne abwärts (rechnerisch, tools/ton/meldungston_erzeugen.py)
         [Ereignis.Meldung] = (new[] { "impact_bell_heavy_002", "impact_bell_heavy_003", "impact_bell_heavy_004" }, -12f, 1.5f, 0.03f),
         [Ereignis.Siegel] = (new[] { "drop_leather", "book_place_1", "book_place_2" }, -5f, 0.9f, 0.03f),
         [Ereignis.Bauen] = (new[] { "impact_plank_medium_000", "impact_plank_medium_001", "impact_plank_medium_002", "chop" }, -5f, 1.0f, 0.05f),
         [Ereignis.Tempo] = (new[] { "metal_click", "metal_latch" }, -9f, 1.0f, 0.04f),
-        // Benachrichtigungen (Stufe 1): ein neues Siegel in der Ecke und ein Brief, der kommt oder aufgeschlagen wird – rechnerisch erzeugt (tools/ton/meldungstoene.py, .wav)
-        [Ereignis.MeldungSiegel] = (new[] { "siegel_neu_1", "siegel_neu_2" }, -7f, 1.0f, 0.04f),
-        [Ereignis.MeldungBrief] = (new[] { "pergament_1", "pergament_2" }, -9f, 1.0f, 0.03f),
-        // Benachrichtigungen (Stufe 3): eine neue Entscheidung – Wachssiegel mit einem Federstrich (rechnerisch erzeugt, tools/ton/meldungstoene.py)
-        [Ereignis.EntscheidungSiegel] = (new[] { "siegel_feder" }, -6f, 1.0f, 0.03f),
+        // Meldungstöne (Stab-Glockenspiel, rechnerisch erzeugt mit tools/ton/meldungston_erzeugen.py, Lautheit je Datei gleich; Tonfolgen, darum kleine Streuung der Tonhöhe):
+        // Siegel in der Ecke, Brief (kommt, aufgeschlagen, Blättern), neue Entscheidung, Mahnung des Kämmerers
+        [Ereignis.MeldungSiegel] = (new[] { "meldung_siegel" }, -6f, 1.0f, 0.03f),
+        [Ereignis.MeldungBrief] = (new[] { "meldung_brief" }, -5f, 1.0f, 0.02f),
+        [Ereignis.EntscheidungSiegel] = (new[] { "meldung_entscheidung" }, -3f, 1.0f, 0.02f),
+        [Ereignis.Mahnung] = (new[] { "meldung_mahnung" }, -3f, 1.0f, 0.02f),
     };
 
     /// <summary>Dateien (ohne .ogg, in <see cref="Ordner"/>), Lautstärke in dB und Tonhöhe eines Ereignisses – für den Reiter „Klänge“ des Entwicklerfensters.</summary>
@@ -120,7 +121,7 @@ public static class KlangOberflaeche
     // ── Meldungen ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Klang zu einer Meldung der Stadt: „✗“ (abgelehnt) = dumpfer Holzklopfer, „⚠“ (Gefahr) = kleine Glocke, ein gelungener Kauf, Verkauf
+    /// Klang zu einer Meldung der Stadt: „✗“ (abgelehnt) = zwei gedämpfte Töne abwärts, „⚠“ (Gefahr) = kleine Glocke, ein gelungener Kauf, Verkauf
     /// oder eine Zahlung (Satz mit Betrag in <paramref name="waehrung"/> und Kauf-Verb) = Münzen. Alles andere bleibt still.
     /// </summary>
     public static void Meldung(string meldung, string waehrung, bool glocke = true)

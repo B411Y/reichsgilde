@@ -207,7 +207,18 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Töne | Vier neue Töne rein rechnerisch erzeugt (`tools/ton/meldungstoene.py`, Standardbibliothek): `siegel_neu_1/2.wav` (weicher Wachsklopfer) und `pergament_1/2.wav` (Rascheln); Ereignisse `MeldungSiegel`, `MeldungBrief` in `KlangOberflaeche`, die jetzt auch `.wav` lädt. Brief bei Gefahr dazu die leise Glocke, „✗“ bleibt der Holzklopfer. Lizenz „Alle Rechte vorbehalten“, Protokollzeile und `docs/assets/prompts/meldungstoene.md`. Nicht abgehört (Hörurteil offen). | 05.11.2026 |
+| Töne (ersetzt am 11.11.2026, siehe „Meldungstöne neu“) | Vier neue Töne rein rechnerisch erzeugt (`tools/ton/meldungstoene.py`, Standardbibliothek): `siegel_neu_1/2.wav` (weicher Wachsklopfer) und `pergament_1/2.wav` (Rascheln); Ereignisse `MeldungSiegel`, `MeldungBrief` in `KlangOberflaeche`, die jetzt auch `.wav` lädt. Brief bei Gefahr dazu die leise Glocke, „✗“ bleibt der Holzklopfer. Lizenz „Alle Rechte vorbehalten“, Protokollzeile und `docs/assets/prompts/meldungstoene.md`. Nicht abgehört (Hörurteil offen). | 05.11.2026 |
+
+### Meldungstöne neu: Glockenspiel statt Wachsklopfer und Pergament (Wahl des Nutzers, 11.11.2026, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wahl | Nach vier Hörrunden: Siegel = `siegel_a_tief2_weich` (Runde 2), Brief = `brief_2`, Entscheidung = `entscheidung_3`, Fehler = `fehler_2` (Runde 3), Mahnung = `mahnung_neu_1` (Runde 4). Im Spiel `meldung_siegel/brief/entscheidung/fehler/mahnung.ogg` | 11.11.2026 |
+| Zuordnung | Siegel-Ecke → `MeldungSiegel`; Brief kommt, aufgeschlagen, Blättern → `MeldungBrief`; neue Entscheidung → `EntscheidungSiegel`; „✗“ → `Fehler`; Mahnung des Kämmerers → neues Ereignis `Mahnung` (`Hauptszene.Entscheidungsbrief`: gilt, wenn alle neuen Fragen Mahnungen sind; kommt zugleich eine andere Frage, spielt `EntscheidungSiegel`). Die Gefahrenglocke `Meldung` bleibt (−12 dB) | 11.11.2026 |
+| Pegel (dB in der Tabelle) | Siegel −6, Brief −5, Entscheidung −3, Mahnung −3, Fehler −5; Streuung der Tonhöhe 0,02 bis 0,03, Tonhöhe 1,0 (Tonfolgen klingen bei stärkerer Verstimmung schief); Bus Oberflaeche unverändert. Jede Datei liegt bei −20,0 LUFS (Spitze 400 ms); wirksam damit etwa −26/−25/−23/−23/−25 wie die früheren Töne, Entscheidung und Mahnung treten hervor | 11.11.2026 |
+| Entfernt | `siegel_neu_1/2`, `pergament_1/2`, `siegel_feder` (WAV, eigen) und die drei Holzklopfer `impact_wood_medium_*` (Kenney; sonst nirgends gebraucht); das Skript `tools/ton/meldungstoene.py` und sein Prompt entfallen. Das Rats-Siegel (`drop_leather`, `book_place`) bleibt | 11.11.2026 |
+| Erzeugung | `tools/ton/meldungston_erzeugen.py` (numpy) baut alle fünf; die WAV sind bitgleich zu den Klangrunden (Kurzhash), das OGG ist wegen des Ogg-Containers nicht bytegleich. Protokollzeile und `docs/assets/prompts/meldungston.md` | 11.11.2026 |
+| Offen | Nicht abgehört im Spiel: Hörprobe und Klicktest an Siegel-Ecke, Brief, Entscheidungsbrief, „✗“ und Mahnung samt Pegelvergleich zu Klick, Münzen und Glocke (Nutzer) | 11.11.2026 |
 
 ### Dynamische Musik (Suno, 23 Stücke, PR #…)
 
