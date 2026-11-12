@@ -474,7 +474,7 @@ public sealed partial class Kartenentwurf
     /// gesehen), beide in der Drehung <paramref name="drehung"/>; (x, z) ist die Mitte des Ganzen (16 + 8 = 24 m breit, 14 m tief). Kennung „H1“,
     /// „H2“ …, die Plätze „H1_Werkstatt“ und „H1_Wohnhaus“. Ein Schritt (Rückgängig nimmt alles zurück).
     /// </summary>
-    public EntwurfHofstelle HofstelleSetzen(double x, double z, double drehung = 0, bool start = false)
+    public EntwurfHofstelle HofstelleSetzen(double x, double z, double drehung = 0, bool start = false, int? nummer = null)
     {
         var bw = Katalog.Finde("werkstattplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Werkstattplatz.");
         var bh = Katalog.Finde("wohnhausplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Wohnhausplatz.");
@@ -492,7 +492,7 @@ public sealed partial class Kartenentwurf
             Kennung = $"{kennung}_Wohnhaus", Katalog = "wohnhausplatz", Name = $"Hofstelle {kennung}", Baustein = bh,
             X = Kartenraster.Punkt(ph.X), Z = Kartenraster.Punkt(ph.Z), Drehung = d,
         };
-        var hof = new EntwurfHofstelle(kennung, null, werkstatt.Kennung, wohnhaus.Kennung, start);
+        var hof = new EntwurfHofstelle(kennung, null, werkstatt.Kennung, wohnhaus.Kennung, start || nummer is not null) { Nummer = nummer };
         var befehle = new List<IKartenbefehl> { new TeilSetzen(werkstatt, _gebaeude.Count), new TeilSetzen(wohnhaus, _gebaeude.Count + 1) };
         if (Aenderung(_start, t => t.HofstellenSetzen(t.Hofstellen.Append(hof))) is { } eintrag) befehle.Add(eintrag);
         Geschichte.Ausfuehren(new Sammelbefehl($"Hofstelle {kennung} gesetzt", befehle));
