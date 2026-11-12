@@ -35,8 +35,21 @@ public static class Hofstellenvergabe
 
     internal static Zufallsquelle Losquelle(int zufallsstartwert) => new(Zugwuerfel.Mischen(zufallsstartwert, LosSchluessel, 89));
 
-    /// <summary>Die Hofstellen, die als Startplatz taugen, in der Reihenfolge der Karte.</summary>
-    public static IReadOnlyList<Hofstelle> Startplaetze(Stadtkarte karte) => karte.Hofstellen.Where(h => h.Start).ToList();
+    /// <summary>
+    /// Die Hofstellen, die als Startplatz taugen, in der Reihenfolge der Karte. Hat die Karte nummerierte Höfe (<see cref="Hofstelle.Nummer"/>),
+    /// nur diese – nach der Nummer, je Nummer der erste, höchstens <see cref="Partiebesetzung.HoechstensHoefe"/> (Nummern außerhalb 1 … 8 zählen nicht).
+    /// </summary>
+    public static IReadOnlyList<Hofstelle> Startplaetze(Stadtkarte karte) => Startplaetze(karte.Hofstellen);
+
+    internal static IReadOnlyList<Hofstelle> Startplaetze(IReadOnlyList<Hofstelle> hofstellen) => Nummeriert(hofstellen)
+        ? hofstellen.Where(h => h.Nummer is >= 1 and <= Partiebesetzung.HoechstensHoefe)
+            .GroupBy(h => h.Nummer!.Value).OrderBy(g => g.Key).Select(g => g.First()).ToList()
+        : hofstellen.Where(h => h.Start).ToList();
+
+    /// <summary>Hat die Karte nummerierte Höfe (mindestens eine Hofstelle mit <see cref="Hofstelle.Nummer"/>)?</summary>
+    public static bool Nummeriert(Stadtkarte karte) => Nummeriert(karte.Hofstellen);
+
+    private static bool Nummeriert(IReadOnlyList<Hofstelle> hofstellen) => hofstellen.Any(h => h.Nummer is not null);
 
     /// <summary>Die Werkstatt eines KI-Hauses, die auf seine Hofstelle gehört: der erste Startbetrieb auf einem Werkstattplatz (null: keiner).</summary>
     internal static Startbetrieb? Hofwerkstatt(Stadtkarte karte, Starthaus h) =>
@@ -78,7 +91,7 @@ public static class Hofstellenvergabe
         {
             if (neu.Hofstelle is not { } k) return null;
             var h = karte.HofstelleMit(k) ?? throw new ArgumentException($"Die Hofstelle „{k}“ gibt es auf dieser Karte nicht.");
-            return h.Start ? h : throw new ArgumentException($"„{h.Anzeigename}“ ist kein Startplatz – dort wird erst später gebaut.");
+            return plaetze.Contains(h) ? h : throw new ArgumentException($"„{h.Anzeigename}“ ist kein Startplatz – dort wird erst später gebaut.");
         }
         var gewaehlt = Gewaehlt();
 
@@ -103,8 +116,10 @@ public static class Hofstellenvergabe
         if (plaetze.Count < 1 + anzahl)
             throw new ArgumentException($"Die Karte hat {plaetze.Count} Startplätze (Hofstellen) – für den Spieler und {anzahl} KI-Häuser zu wenig.");
         var frei = plaetze.ToList();
+        // Nummerierte Höfe (11.11.2026): ohne Los nach der Nummer – Hof 1 der Spieler (oder seine Wahl), die KI-Häuser die übrigen der Reihe nach.
+        var nachNummer = Nummeriert(karte);
         var los = Losquelle(zufallsstartwert);
-        var eigene = gewaehlt ?? frei[los.Next(frei.Count)];
+        var eigene = gewaehlt ?? frei[nachNummer ? 0 : los.Next(frei.Count)];
         frei.Remove(eigene);
         var gelost = new List<Hofstelle?>();
         foreach (var mitLos in losen)
@@ -114,7 +129,7 @@ public static class Hofstellenvergabe
                 gelost.Add(null);
                 continue;
             }
-            var h = frei[los.Next(frei.Count)];
+            var h = frei[nachNummer ? 0 : los.Next(frei.Count)];
             frei.Remove(h);
             gelost.Add(h);
         }

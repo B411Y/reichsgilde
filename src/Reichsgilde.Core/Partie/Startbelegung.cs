@@ -60,6 +60,13 @@ public sealed class Starthaus
 
     /// <summary>Die Startbetriebe in dieser Reihenfolge (zuerst die Werkstatt).</summary>
     public List<Startbetrieb> Betriebe { get; init; } = new();
+
+    /// <summary>
+    /// Ein Haus, das nicht in der Karte steht, sondern für einen freien Hof gewürfelt wird (<see cref="Partiebesetzung"/>): Name, Beruf, Volk
+    /// und Glaube würfelt die <see cref="Startaufstellung"/>; Wappen, Farbe und Geschlecht hat es schon. Nur während des Aufbaus.
+    /// </summary>
+    [JsonIgnore]
+    internal bool Gewuerfelt { get; init; }
 }
 
 /// <summary>Wo der Spieler anfängt: der Platz der ersten Werkstatt und ihr Name.</summary>

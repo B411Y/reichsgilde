@@ -61,15 +61,30 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
     }
 
     /// <summary>Ein zufälliges, gut lesbares Wappen (je ein Metall und eine Farbe), das keinem KI-Haus gehört.</summary>
-    public static Wappen Zufall(Random zufall)
+    public static Wappen Zufall(Random zufall) => Zufall((von, bis) => von == 0 ? zufall.Next(bis) : zufall.Next(von, bis)); // dieselben Aufrufe wie bisher
+
+    /// <summary>
+    /// Dasselbe aus einer <see cref="Zufallsquelle"/> (Neue Partie, 11.11.2026): ein Wappen, das keinem KI-Haus der Vorlagen gehört und nicht
+    /// in <paramref name="belegt"/> steht. Je Versuch genau fünf Würfe.
+    /// </summary>
+    public static Wappen Zufall(Zufallsquelle zufall, IReadOnlyCollection<Wappen>? belegt = null)
     {
         while (true)
         {
-            var metall = zufall.Next(2) == 0 ? Tinktur.Gold : Tinktur.Silber;
-            var farbe = (Tinktur)zufall.Next(2, 7);
-            var (f1, f2) = zufall.Next(3) == 0 ? (metall, farbe) : (farbe, metall);
-            var w = new Wappen((Teilung)zufall.Next(Enum.GetValues<Teilung>().Length), f1, f2,
-                (Figur)zufall.Next(Enum.GetValues<Figur>().Length));
+            var w = Zufall((von, bis) => von + zufall.Next(bis - von));
+            if (belegt is null || !belegt.Contains(w)) return w;
+        }
+    }
+
+    private static Wappen Zufall(Func<int, int, int> next)
+    {
+        while (true)
+        {
+            var metall = next(0, 2) == 0 ? Tinktur.Gold : Tinktur.Silber;
+            var farbe = (Tinktur)next(2, 7);
+            var (f1, f2) = next(0, 3) == 0 ? (metall, farbe) : (farbe, metall);
+            var w = new Wappen((Teilung)next(0, Enum.GetValues<Teilung>().Length), f1, f2,
+                (Figur)next(0, Enum.GetValues<Figur>().Length));
             if (!Rivalenwappen.Contains(w)) return w;
         }
     }

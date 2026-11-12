@@ -263,6 +263,12 @@ public sealed class Wirtschaftsdaten
     public Reichsgilde.Core.Ki.KiDaten? Ki { get; init; }
 
     /// <summary>
+    /// Stärke der KI-Gegner (Leicht, Normal, Schwer; Datenversion 85, <see cref="Partie.KiStaerke"/>): Startgeld und Vorsicht der KI-Häuser je Stufe.
+    /// „Normal“ steht nicht in den Daten – es rechnet immer wie bisher. Fehlt der Abschnitt, spielt jede Stufe wie „Normal“.
+    /// </summary>
+    public Reichsgilde.Core.Partie.KiStaerkeDaten? KiStaerke { get; init; }
+
+    /// <summary>
     /// Einwohner und Nachfrage der Stadt (ab Datenversion 48, PR #177): Die Nachfrage richtet sich nach den Einwohnern, und die wachsen
     /// mit den Häusern. Fehlt der Abschnitt, ist die Nachfrage fest wie in „waren“.
     /// </summary>
@@ -480,6 +486,7 @@ public sealed class Wirtschaftsdaten
         Gastwirtschaft?.Pruefen(f, Waren, Berufe);
         Buerger?.Pruefen(f);
         Ki?.Pruefen(f);
+        KiStaerke?.Pruefen(f);
         if (Buerger is { Kopplung.Schaenke: > 0 } bk && Gastwirtschaft is { } gw &&
             bk.Handlungen.TryGetValue(Reichsgilde.Core.Buerger.Handlung.Einkehren, out var einkehr) && einkehr.Von != gw.OeffnetUm)
             f.Add($"buerger.handlungen.Einkehren.von ({einkehr.Von}) muss bei Kopplung an die Schänke gastwirtschaft.oeffnetUm ({gw.OeffnetUm}) sein.");

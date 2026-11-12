@@ -2828,3 +2828,15 @@ Messung `messen bericht 20 20` (900 Partien), gemessen auf main fd6861b8 + PR 1a
 | Berufe statisch, Einrichtung statisch, Statut C | – | – | Rechnungen fast gleich (Startpreise mit anderen Mitspielern) |
 
 Keine Partie mit Fehler. Die KI-Häuser sind im Mittel schwächer, weil sie jetzt auch Berufe führen, die die KI schlechter spielt (Dieb, Gardist), und auf „Schwer“ ohne Umland beginnen, wenn ihr Beruf keinen Umland-Startplatz hat. Der Bezugsspieler (gleiche Strategie wie die KI, Schmied) wird reicher, weil kein zweiter Schmied mehr neben ihm verkauft.
+
+## KI-Stärke Leicht / Normal / Schwer (Datenversion 85, 11.11.2026)
+
+Neue Gruppe `kiStaerke` (Nutzerentscheidung „Neue Partie und Höfe“): je Stufe Faktoren auf das Startgeld der KI-Häuser (`allgemein.startvermoegen`) und auf ihr Profil (`KiProfil.Reserve`, `Vorsicht`, `MaxAmortisationJahre`). **Normal** steht nicht in den Daten und rechnet genau wie bisher (Test: Verlauf mit und ohne Abschnitt gleich) – alle bisherigen Messungen gelten weiter.
+
+| Stufe | Startgeld | Reserve | Vorsicht | Amortisation | Sinn |
+|---|---|---|---|---|---|
+| leicht | × 0,75 | × 1,5 | × 1,25 | × 0,75 | weniger Geld, plant vorsichtiger |
+| normal | – | – | – | – | wie bisher |
+| schwer | × 1,25 | × 0,75 | × 0,8 | × 1,25 | mehr Geld, greift Chancen schneller auf |
+
+Maßvoll gewählt, noch nicht gemessen (Messung mit `messen bericht` steht aus, siehe `docs/bereiche/kern.md`). Die Prüfung der Daten verlangt, dass „leicht“ nicht mehr Geld hat und nicht wagemutiger ist als Normal, „schwer“ umgekehrt.
