@@ -76,7 +76,7 @@ static class KartenwerkstattHofKnopfTests
             Pruefe.Gleich("H1,H2", string.Join(",", Hofstellenvergabe.Startplaetze(karte).Select(h => h.Kennung)));
         }),
 
-        ("Hof-Knopf: Die Greybox lässt sich mit dem Umbau-Weg nummerieren (H1–H4 = Hof 1–4): Vergabe nach Nummer, Prüfung ohne Fehler; die Karten des Spiels sind bis zur Entscheidung des Teamleiters unnummeriert", () =>
+        ("Hof-Knopf: Die Greybox lässt sich mit dem Umbau-Weg nummerieren (H1–H4 = Hof 1–4): Vergabe nach Nummer, Prüfung ohne Fehler; Greybox, Köln und Probestadt sind nummeriert, die Messstadt nicht (12.11.2026)", () =>
         {
             var e = Kartenentwurf.AusJson(HofstellenTests.OhneHofstellen(File.ReadAllText(Datenpfad.Karte("greybox"))), HofstellenTests.Katalog.Value);
             var n = 0;
@@ -85,8 +85,15 @@ static class KartenwerkstattHofKnopfTests
             Pruefe.Wahr(Hofstellenvergabe.Nummeriert(karte), "nummeriert");
             Pruefe.Gleich("H1=1,H2=2,H3=3,H4=4", string.Join(",", Hofstellenvergabe.Startplaetze(karte).Select(h => $"{h.Kennung}={h.Nummer}")));
             Pruefe.Gleich(0, karte.Pruefen().Count, "ohne Fehler");
-            foreach (var kennung in new[] { "greybox", "koeln", "probestadt", "messstadt" })
-                Pruefe.Wahr(!Hofstellenvergabe.Nummeriert(Stadtkarte.AusDatei(Datenpfad.Karte(kennung))), $"{kennung} noch ohne Nummern");
+            Pruefe.Gleich(string.Join(",", Hofstellenvergabe.Startplaetze(karte).Select(h => $"{h.Kennung}={h.Nummer}")), string.Join(",", Hofstellenvergabe.Startplaetze(Stadtkarte.AusDatei(Datenpfad.Karte("greybox"))).Select(h => $"{h.Kennung}={h.Nummer}")), "die Datei hat dieselben Nummern");
+            foreach (var (kennung, hoefe) in new[] { ("greybox", 4), ("koeln", 8), ("probestadt", 3) })
+            {
+                var k = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                Pruefe.Wahr(Hofstellenvergabe.Nummeriert(k), $"{kennung} nummeriert");
+                Pruefe.Gleich(hoefe, Hofstellenvergabe.Startplaetze(k).Count, $"{kennung}: Höfe");
+                Pruefe.Gleich(0, k.Pruefen().Count, $"{kennung}: ohne Fehler");
+            }
+            Pruefe.Wahr(!Hofstellenvergabe.Nummeriert(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"))), "messstadt ohne Nummern");
         }),
     };
 }

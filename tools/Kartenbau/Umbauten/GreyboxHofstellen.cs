@@ -17,7 +17,7 @@ public sealed class GreyboxHofstellen : Umbau
 {
     public override string Kennung => "hofstellen-greybox";
     public override string Karte => "greybox";
-    public override string Beschreibung => "Hofstellen H1–H4 aus den vier Startpaaren, mit Namen nach der Lage";
+    public override string Beschreibung => "Hofstellen H1–H4 aus den vier Startpaaren, mit Namen nach der Lage und den Hofnummern 1–4";
 
     /// <summary>Die Namen der Hofstellen (Kennung → Lage): der Spieler am Weinmarkt, die KI-Häuser nach ihrer Straße.</summary>
     public static readonly IReadOnlyDictionary<string, string> Namen = new Dictionary<string, string>
@@ -28,13 +28,17 @@ public sealed class GreyboxHofstellen : Umbau
         ["H4"] = "an der Ringgasse",              // Maurerei Kieselbach
     };
 
+    /// <summary>Hofnummern (12.11.2026): H1 bis H4 sind Hof 1 bis 4; Hof 1 bekommt Spieler 1 (Weinmarkt).</summary>
+    public static readonly IReadOnlyDictionary<string, int> Nummern = new Dictionary<string, int> { ["H1"] = 1, ["H2"] = 2, ["H3"] = 3, ["H4"] = 4 };
+
     public override void Anwenden(Kartenentwurf e, TextWriter aus)
     {
         foreach (var h in e.Start.Hofstellen.ToList())
         {
             if (Namen.TryGetValue(h.Kennung, out var name) && h.Name != name) e.HofstelleUmbenennen(h.Kennung, name);
+            if (Nummern.TryGetValue(h.Kennung, out var nummer) && h.Nummer != nummer) e.HofstelleNummerSetzen(h.Kennung, nummer);
             var jetzt = e.Start.HofstelleMit(h.Kennung)!;
-            aus.WriteLine($"   {jetzt.Kennung} „{jetzt.Name ?? "–"}“: Werkstatt {jetzt.Werkstatt}, Wohnhaus {jetzt.Wohnhaus}{(jetzt.Start ? ", Start" : "")}");
+            aus.WriteLine($"   {jetzt.Kennung} „{jetzt.Name ?? "–"}“: Werkstatt {jetzt.Werkstatt}, Wohnhaus {jetzt.Wohnhaus}{(jetzt.Start ? ", Start" : "")}{(jetzt.Nummer is { } n ? $", Hof {n}" : "")}");
         }
     }
 }

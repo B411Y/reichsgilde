@@ -18,7 +18,9 @@ static class KartenwerkstattStartTests
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
-    static string Text(string kennung) => File.ReadAllText(Datenpfad.Karte(kennung));
+    // Die Karten des Spiels haben seit 12.11.2026 Hofnummern (Greybox 1–4, Köln 1–8): Diese Tests prüfen das Bearbeiten der Startbelegung und
+    // lesen die Karten deshalb ohne Nummern – sonst wären nur die nummerierten Höfe Startplätze (Nummern: KartenwerkstattHofKnopfTests).
+    static string Text(string kennung) => System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(Datenpfad.Karte(kennung)), ", \"nummer\": \\d+", "");
     static Kartenentwurf Oeffnen(string kennung) => Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
 
     static Kartenentwurf GreyboxMit(Action<JsonObject> aenderung)
@@ -522,7 +524,7 @@ static class KartenwerkstattStartTests
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             // „Karte ausprobieren“ lost nicht (Hofstellen, 9.11.2026): wie die Datei ohne Los
             var (simDatei, spielerDatei) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusJson(Text("greybox"), Katalog.Value));
             var (w, wd) = (sim.Wirtschaft!, simDatei.Wirtschaft!);
             Folge(wd.Konten.Select(k => k.Inhaber).ToArray(), w.Konten.Select(k => k.Inhaber).ToArray());
             Folge(wd.Konten.Select(k => k.Wappen).ToArray(), w.Konten.Select(k => k.Wappen).ToArray());
