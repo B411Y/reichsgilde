@@ -18,7 +18,7 @@ static class VoelkerbonusDreiTests
         ("Völkerboni ±3 %: Datenversion 76, jeder Bonus eines Berufs mit Ware ist ±3 %, ohne Ware ±2 %, Vermächtnis 0,2", () =>
         {
             var d = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            Pruefe.Gleich(85, d.Version);
+            Pruefe.Gleich(86, d.Version);
             Pruefe.Ungefaehr(0.2, d.Lebensweise!.Vermaechtnis, 1e-12);
             var anzahl = 0;
             foreach (var (beruf, b) in d.Berufe.OrderBy(x => x.Key, StringComparer.Ordinal))

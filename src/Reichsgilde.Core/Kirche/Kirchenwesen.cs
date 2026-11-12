@@ -77,7 +77,7 @@ public sealed class KirchenDaten
     /// </summary>
     public int KirchenJeGlaube { get; init; }
 
-    /// <summary>Der Stadt-Dom als Amt auf Zeit (Datenversion 85, siehe <see cref="Domamt"/>); null = kein Amt, alles wie früher.</summary>
+    /// <summary>Der Stadt-Dom als Amt auf Zeit (Datenversion 86, siehe <see cref="Domamt"/>); null = kein Amt, alles wie früher.</summary>
     public DomDaten? Dom { get; init; }
 
     public void Pruefen(List<string> f, IReadOnlyDictionary<string, WareDaten> waren, IReadOnlyDictionary<string, BerufDaten> berufe)

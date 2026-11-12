@@ -231,7 +231,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
     public Kirche.Kirchenwesen Kirchenwesen { get; }
 
-    /// <summary>Der Stadt-Dom als Amt auf Zeit: der Domprediger (Datenversion 85; ohne <c>kirche.dom</c> kein Amt).</summary>
+    /// <summary>Der Stadt-Dom als Amt auf Zeit: der Domprediger (Datenversion 86; ohne <c>kirche.dom</c> kein Amt).</summary>
     public Kirche.Domamt Domamt { get; }
 
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>

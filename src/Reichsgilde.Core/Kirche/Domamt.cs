@@ -6,7 +6,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde.Core.Kirche;
 
 /// <summary>
-/// Der Stadt-Dom als Amt auf Zeit (Abschnitt <c>kirche.dom</c>, ab Datenversion 85; Nutzer, 11.11.2026). Fehlt der Abschnitt, gibt es kein Amt.
+/// Der Stadt-Dom als Amt auf Zeit (Abschnitt <c>kirche.dom</c>, ab Datenversion 86; Nutzer, 11.11.2026). Fehlt der Abschnitt, gibt es kein Amt.
 /// </summary>
 public sealed class DomDaten
 {

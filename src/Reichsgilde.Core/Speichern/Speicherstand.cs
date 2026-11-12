@@ -689,7 +689,7 @@ public sealed record KirchenStand
     /// <summary>Konto-Nummer → bis zu diesem Jahr wirkt eine Hetzschrift.</summary>
     public Dictionary<string, int> GehetztBis { get; init; } = new();
 
-    /// <summary>Das Amt des Dompredigers (Datenversion 85) – null in alten Spielständen und solange das Amt nie besetzt war (frei, ohne Wahl).</summary>
+    /// <summary>Das Amt des Dompredigers (Datenversion 86) – null in alten Spielständen und solange das Amt nie besetzt war (frei, ohne Wahl).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public DomStand? Dom { get; init; }
 }
@@ -1191,7 +1191,7 @@ public sealed record BilanzStand
     /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
     public double Handgeld { get; init; }
 
-    /// <summary>Kollekte als Domprediger (Datenversion 85; 0 in alten Spielständen, 0 wird nicht geschrieben).</summary>
+    /// <summary>Kollekte als Domprediger (Datenversion 86; 0 in alten Spielständen, 0 wird nicht geschrieben).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public double Domkollekte { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();

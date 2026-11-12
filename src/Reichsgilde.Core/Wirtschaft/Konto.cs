@@ -32,7 +32,7 @@ public sealed class Jahresbilanz
     /// <summary>Einkommen aus einem Amt im Stadtrat (nicht Teil des Betriebsgewinns).</summary>
     public double Amtseinkommen { get; internal set; }
 
-    /// <summary>Kollekte im Dom als Domprediger (Datenversion 85; steuerfrei, kein Betrieb – nicht Teil des Betriebsgewinns).</summary>
+    /// <summary>Kollekte im Dom als Domprediger (Datenversion 86; steuerfrei, kein Betrieb – nicht Teil des Betriebsgewinns).</summary>
     public double Domkollekte { get; internal set; }
 
     /// <summary>Geschenke an Ratsherren (nicht Teil des Betriebsgewinns).</summary>

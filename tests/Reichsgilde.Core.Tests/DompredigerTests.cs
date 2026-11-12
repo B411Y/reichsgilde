@@ -8,7 +8,7 @@ using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Der Domprediger (Nutzer, 11.11.2026; Datenversion 85, Abschnitt kirche.dom): Der Stadt-Dom ist ein Amt auf Zeit. Der Rat wählt,
+/// Der Domprediger (Nutzer, 11.11.2026; Datenversion 86, Abschnitt kirche.dom): Der Stadt-Dom ist ein Amt auf Zeit. Der Rat wählt,
 /// 3 Jahre Amtszeit mit Wiederwahl, kein Gehalt, 60 % der Gemeinde seiner Konfession; nur Prediger mit eigener Kirche (F1),
 /// Absetzen nach Verurteilung (F2). Jeder Test mit Gegenprobe.
 /// </summary>
@@ -17,7 +17,7 @@ static class DompredigerTests
     static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
-    /// <summary>Dieselben Daten ohne Dom-Amt (wie vor Datenversion 85) – für die Gegenprobe.</summary>
+    /// <summary>Dieselben Daten ohne Dom-Amt (wie vor Datenversion 86) – für die Gegenprobe.</summary>
     static readonly Lazy<Wirtschaftsdaten> OhneDom = new(() => Wirtschaftsdaten.AusJson(Json.Replace(DomZeile, "")));
 
     const string DomZeile = ",\n    \"dom\": { \"anteil\": 0.6, \"amtsjahre\": 3, \"predigtFaktor\": 1.5, \"gunst\": 3 }";
@@ -97,7 +97,7 @@ static class DompredigerTests
             Pruefe.Gleich(3, d.Amtsjahre);
             Pruefe.Gleich(1.5, d.PredigtFaktor);
             Pruefe.Gleich(3.0, d.Gunst);
-            Pruefe.Gleich(85, Daten.Value.Version);
+            Pruefe.Gleich(86, Daten.Value.Version);
             Pruefe.Gleich(1, Daten.Value.Aktionspunkte!.KostenFuer(new DomBewerben()));
             Pruefe.Gleich(0, Daten.Value.Aktionspunkte!.KostenFuer(new DomStimme(null)));
             Pruefe.Wahr(Json.Contains(DomZeile), "Die Zeile für die Gegenprobe passt nicht mehr zu wirtschaft.json.");
@@ -363,7 +363,7 @@ static class DompredigerTests
             Pruefe.Gleich(22.0, geladen.Domamt.DiesesJahr.Kollekte);
             Pruefe.Gleich(22.0, a2.Laufend.Domkollekte);
 
-            // Ein alter Stand ohne Dom (wie vor Datenversion 85): das Amt ist frei.
+            // Ein alter Stand ohne Dom (wie vor Datenversion 86): das Amt ist frei.
             var alt = System.Text.Json.Nodes.JsonNode.Parse(json)!;
             Pruefe.Wahr(EntferneDom(alt), "Feld Dom gefunden");
             var altGeladen = Speicherung.Laden(alt.ToJsonString()).Simulation.Wirtschaft!;
