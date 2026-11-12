@@ -2272,6 +2272,10 @@
     "schiffe": { "hoechstens": 1, "mindestGewinnJeFahrt": 100, "auslastung": 0.5, "hoechstensJahre": 4, "charakterJahre": 1, "reserveFaktor": 2 },
     "jahreszeiten": { "vorratAbStunde": 17 }
   },
+  "kiStaerke": {
+    "leicht": { "startgeld": 0.75, "reserve": 1.5, "vorsicht": 1.25, "amortisation": 0.75 },
+    "schwer": { "startgeld": 1.25, "reserve": 0.75, "vorsicht": 0.8, "amortisation": 1.25 }
+  },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "schiffshandel": {
     "aktiv": false,

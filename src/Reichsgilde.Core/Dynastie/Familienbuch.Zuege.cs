@@ -113,6 +113,21 @@ public sealed partial class Familienbuch
         ZuegeAlsErwachsener(p);
     }
 
+    /// <summary>
+    /// Ein Oberhaupt mit vorgegebenen Persönlichkeitszügen (Neue Partie): angeborene Züge wie bei jedem Erwachsenen, die Persönlichkeit aus
+    /// <paramref name="zuege"/> – höchstens <see cref="CharakterzuegeDaten.JePerson"/>, nur Persönlichkeitszüge, nie zwei Gegenteile.
+    /// </summary>
+    private void ZuegeVorgeben(Person p, IReadOnlyList<Charakterzug> zuege)
+    {
+        if (ZugDaten is not { } d) return;
+        if (zuege.Count > d.JePerson || zuege.Any(z => z.Art != Zugart.Persoenlichkeit)
+            || zuege.Any(z => zuege.Any(x => x.Kennung == z.Gegenteil)) || zuege.Distinct().Count() != zuege.Count)
+            throw new ArgumentException($"Vorgegeben werden höchstens {d.JePerson} verschiedene Persönlichkeitszüge ohne Gegenteile.", nameof(zuege));
+        ZuegeBeiGeburt(p);
+        p.TalentHoechstwert = _d.Talente.Hoechstwert;
+        foreach (var z in zuege) p.ZugHinzufuegen(z);
+    }
+
     private static string Aufzaehlung(IReadOnlyList<Charakterzug> zuege) => zuege.Count switch
     {
         0 => "",

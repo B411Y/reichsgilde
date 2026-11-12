@@ -28,6 +28,11 @@ namespace Reichsgilde.Core.Partie;
 /// der Karte es hinsetzt – für Tests und Vergleiche).</param>
 /// <param name="Aufstellung">Gelost (wie im Spiel: Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf einmal, <see cref="Startaufstellung"/>) oder
 /// Vorgabe (jedes KI-Haus wie in der Startbelegung der Karte – nur für Tests und Vergleiche).</param>
+/// <param name="KiStaerke">Stärke der KI-Gegner (11.11.2026): Leicht, Normal (wie bisher), Schwer – Startgeld und Profil (<see cref="Partiebesetzung.Profil"/>).</param>
+/// <param name="KiVorgaben">„Erweitert“ (11.11.2026): je KI-Haus in Kontoreihenfolge, was festgelegt ist (Name, Wappen, Volk, Glaube, Beruf);
+/// null oder ein null-Eintrag = alles gewürfelt. Nur mit <see cref="Aufstellungsart.Gelost"/>.</param>
+/// <param name="ZugWurf">Die Persönlichkeitszüge des Spielers aus dem Startbildschirm: Wurf Nummer n (<see cref="Partiebesetzung.SpielerZuege"/>,
+/// Befehl <see cref="ZuegeNeuWuerfeln"/>); null = gewürfelt wie bei jedem Erwachsenen (wie vor dem 11.11.2026).</param>
 public sealed record NeuePartie(
     string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
@@ -42,7 +47,10 @@ public sealed record NeuePartie(
     Aussehen? Aussehen = null,
     string? Hofstelle = null,
     Startplatzvergabe Startplaetze = Startplatzvergabe.Gelost,
-    Aufstellungsart Aufstellung = Aufstellungsart.Gelost);
+    Aufstellungsart Aufstellung = Aufstellungsart.Gelost,
+    KiStaerke KiStaerke = KiStaerke.Normal,
+    IReadOnlyList<Hausvorgabe?>? KiVorgaben = null,
+    int? ZugWurf = null);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -109,9 +117,15 @@ public static class Partieaufbau
             throw new ArgumentException(wappenFehler);
         if (start.Rivalenwappen.Contains(wappen))
             throw new ArgumentException("Dieses Wappen führt schon ein KI-Haus.");
-        if (neu.Rivalen < 1 || neu.Rivalen > start.Haeuser.Count)
-            throw new ArgumentException(start.Haeuser.Count == 1 ? "Hier spielt genau ein KI-Haus mit."
-                : $"Es spielen ein bis {Zahlwort(start.Haeuser.Count)} KI-Häuser mit.");
+        // KI-Gegner (11.11.2026): 0 bis Höfe − 1; ohne Los nur die Häuser der Startbelegung
+        var hoechstens = Partiebesetzung.HoechstensKi(karte, neu.Aufstellung);
+        if (neu.Rivalen < 0 || neu.Rivalen > hoechstens)
+            throw new ArgumentException(hoechstens == 0 ? "Hier spielt kein KI-Haus mit."
+                : hoechstens == 1 ? "Hier spielt höchstens ein KI-Haus mit."
+                : $"Es spielen null bis {Zahlwort(hoechstens)} KI-Häuser mit.");
+        if (neu.KiVorgaben is { Count: > 0 } && neu.Aufstellung != Aufstellungsart.Gelost)
+            throw new ArgumentException("KI-Häuser einzeln festlegen geht nur mit gewürfelter Aufstellung.");
+        if (neu.ZugWurf is < 0) throw new ArgumentException("Der Wurf der Züge zählt ab 0.");
 
         // Startaufstellung (11.11.2026): Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf höchstens einmal je Partie – vor den Hofstellen,
         // denn die Werkstatt eines Hauses zieht mit ihrem Namen auf seine Hofstelle.
@@ -121,7 +135,9 @@ public static class Partieaufbau
         if (neu.Aufstellung == Aufstellungsart.Gelost)
         {
             var spielerglaube = neu.Glaube ?? daten.Glaube?.Startglaube(neu.Volk) ?? Konfession.Katholisch;
-            var a = Startaufstellung.Losen(karte, start, daten, neu.Beruf, spielerglaube, Mitspielend(start, daten, rivalen), einstellungen.Zufallsstartwert);
+            var mitspielend = Partiebesetzung.KiHaeuser(karte, start, daten, rivalen, wappen, neu.KiVorgaben, einstellungen.Zufallsstartwert);
+            if (neu.KiVorgaben is { } vorgaben) Partiebesetzung.VorgabenPruefen(daten, vorgaben, mitspielend, name, wappen, neu.Beruf);
+            var a = Startaufstellung.Losen(karte, start, daten, neu.Beruf, spielerglaube, mitspielend, einstellungen.Zufallsstartwert, neu.KiVorgaben, name);
             (start, karte, freiesUmland, aufstellungsmeldung) = (a.Belegung, a.Karte ?? karte, a.Frei, a.Meldung);
             rivalen = start.Haeuser.Count;
         }
@@ -158,19 +174,20 @@ public static class Partieaufbau
         Konto KontoVon(Starthaus h)
         {
             if (konten.TryGetValue(h, out var k)) return k;
-            k = konten[h] = w.KontoEroeffnen(h.Name);
+            k = konten[h] = w.KontoEroeffnen(h.Name, startvermoegen: Partiebesetzung.Startgeld(daten, neu.KiStaerke));
             k.Wappen = h.Wappen;
             return k;
         }
         if (haeuser.Count > 0) KontoVon(haeuser[0]);
         if (w.Familien.IstAktiv)
-            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube, aussehen: neu.Aussehen);
+            w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube, aussehen: neu.Aussehen,
+                zuege: neu.ZugWurf is { } zugWurf ? Partiebesetzung.SpielerZuege(daten, einstellungen.Zufallsstartwert, neu.Volk, zugWurf) : null);
         // Erst nach der Familie, damit die Arbeiter das Volk des Hauses kennen (Einstellen würfelt nicht mit dem Zufall der Partie).
         // Mit „personal“ (PR #224) beginnt jedes Haus mit Anfängern (Lehrlingen), sonst mit zwei Gesellen wie früher; wie viele, sagt
         // personal.startJeBetrieb (ab Datenversion 72: einer, für Spieler und KI-Häuser gleich).
         w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
         foreach (var h in haeuser)
-            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
+            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit, neu.KiStaerke);
         // Umland-Startplätze, die bei der Aufstellung niemand bekommen hat, stehen frei zur Pacht (wie bei „Normal“ der Umlandbetrieb eines KI-Hauses)
         foreach (var (frei, art) in freiesUmland)
             w.StartbetriebFreigeben(frei, art);
@@ -184,7 +201,7 @@ public static class Partieaufbau
     private static List<Starthaus> Mitspielend(Startbelegung start, Wirtschaftsdaten daten, int rivalen) =>
         start.Haeuser.Take(rivalen).Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
 
-    private static string Zahlwort(int n) => n switch { 2 => "zwei", 3 => "drei", 4 => "vier", 5 => "fünf", 6 => "sechs", 7 => "sieben", _ => n.ToString() };
+    private static string Zahlwort(int n) => n switch { 2 => "zwei", 3 => "drei", 4 => "vier", 5 => "fünf", 6 => "sechs", 7 => "sieben", 8 => "acht", _ => n.ToString() };
 
     /// <summary>
     /// Ein KI-Haus mit seinen Startbetrieben, ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
@@ -194,7 +211,7 @@ public static class Partieaufbau
     /// vorher drei). Wie viele Leute jeder Startbetrieb hat, sagt <see cref="PersonalDaten.StartJeBetrieb"/>.
     /// </summary>
     private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, Stadtkarte? karte, Starthaus h, Konto konto, string? umlandKraft,
-        KiCharakter charakter, Schwierigkeit schwierigkeit)
+        KiCharakter charakter, Schwierigkeit schwierigkeit, KiStaerke staerke)
     {
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(konto, h.Volk, h.Geschlecht, glaube: h.Glaube);
@@ -217,6 +234,6 @@ public static class Partieaufbau
             else
                 w.Einstellen(betrieb, umlandKraft ?? w.Personal.AnfaengerFuer(b.Art, "Altknecht"), w.Personal.StartAnzahl(b.Art, 3));
         }
-        w.KiAnmelden(konto, ProfilFuer(charakter));
+        w.KiAnmelden(konto, Partiebesetzung.Profil(ProfilFuer(charakter), daten, staerke));
     }
 }
