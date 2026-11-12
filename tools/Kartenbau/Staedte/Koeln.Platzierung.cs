@@ -166,6 +166,8 @@ public sealed partial class Koeln
         };
         for (var n = 1; n <= namen.Length; n++)
             E.HofstelleBilden($"S{n}_Werkstatt", $"S{n}_Wohnhaus", start: true, name: namen[n - 1], kennung: $"S{n}");
+        // Hofnummern (12.11.2026): S1 … S8 sind Hof 1 … 8; die Partie vergibt sie nach der Nummer statt durch das Los
+        for (var n = 1; n <= namen.Length; n++) E.HofstelleNummerSetzen($"S{n}", n);
     }
 
     // ── Reihen von Häusern an einer Straße ───────────────────────────────────
