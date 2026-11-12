@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Partie;
 
 namespace Reichsgilde;
 
@@ -131,17 +132,16 @@ public partial class Hauptmenue
         return platz;
     }
 
-    /// <summary>„2 Rivalen · 18 Werkstattplätze · Fluss · Hafen · 400 × 300 m“ – was man vor der Wahl wissen will.</summary>
+    /// <summary>„höchstens 2 KI-Gegner · 18 Werkstattplätze · Fluss · Hafen · 400 × 300 m“ – was man vor der Wahl wissen will.</summary>
     internal static string Kennzahlen(Stadtkarte karte)
     {
         var teile = new List<string>();
-        var rivalen = karte.Startbelegung.Haeuser.Count;
-        teile.Add(rivalen == 1 ? "1 Rivale" : $"{rivalen} Rivalen");
+        var ki = Partiebesetzung.HoechstensKi(karte);
+        teile.Add(ki == 0 ? "kein KI-Gegner" : ki == 1 ? "höchstens 1 KI-Gegner" : $"höchstens {ki} KI-Gegner");
         if (karte.HatHofstellen)
         {
-            var start = karte.Hofstellen.Count(h => h.Start);
-            var frei = karte.Hofstellen.Count - (rivalen + 1); // der Spieler und die Rivalen sitzen beim Start auf je einer
-            teile.Add($"Hofstellen: {start} zum Start, {Math.Max(0, frei)} frei");
+            var hoefe = Partiebesetzung.Hoefe(karte);
+            teile.Add($"Höfe: {hoefe} zum Start, {Math.Max(0, karte.Hofstellen.Count - hoefe)} weitere Hofstellen");
         }
         else
         {
@@ -155,7 +155,7 @@ public partial class Hauptmenue
         return string.Join(" · ", teile);
     }
 
-    /// <summary>„Weiter“: merkt die Wahl, richtet die Rivalen der Karte ein und geht zu „Euer Oberhaupt“.</summary>
+    /// <summary>„Weiter“: merkt die Wahl, richtet die Seite „Neue Partie“ auf die Karte ein und geht zu „Neue Partie“.</summary>
     private void KarteUebernehmen()
     {
         if (_kartenAuswahl is null) return;
@@ -164,10 +164,8 @@ public partial class Hauptmenue
         einstellungen.Load("user://einstellungen.cfg");
         einstellungen.SetValue("spiel", "karte", _kartenAuswahl);
         einstellungen.Save("user://einstellungen.cfg");
-        _rivalen.Clear(); // die Rivalen gehören zur Karte
-        RivalenWahlFuellen();
-        HofstellenWahlFuellen();
-        Zeigen(_oberhaupt);
+        NeuePartieOeffnen(); // KI-Zahl, Hofstellen und der gewürfelte Vorschlag gehören zur Karte
+        Zeigen(_neu);
     }
 
     private static string LetzteKarte()

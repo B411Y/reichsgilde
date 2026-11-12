@@ -283,7 +283,7 @@ public partial class CharakterAnzeige : PanelContainer
     /// erworben Eisen; Hammerschlag, Kerben je Zug an anderer Stelle – schon im Bild). Fehlt das Bild, zeichnet das Fenster einen
     /// schlichten, abgeschrägten Ring in derselben Farbe mit dem Anfangsbuchstaben.
     /// </summary>
-    private sealed partial class ZugIcon : Control
+    internal sealed partial class ZugIcon : Control
     {
         private const int Seite = 64;
         private const float Ring = 4f;
