@@ -675,8 +675,9 @@ public partial class Stadtansicht
     private readonly Dictionary<BaseMaterial3D, Material> _russStoffe = new();
 
     /// <summary>
-    /// Das rußige Dachmaterial: die Farbe dunkler (wie bisher) und darüber eine zweite Schicht (<c>russ.gdshader</c>) mit Kohle und hellen
-    /// Ascheschlieren – auch auf dunklem Schiefer sichtbar (Blitzschlag, 2.11.2026). Je Vorlage einmal.
+    /// Das rußige Dachmaterial: die Farbe dunkler (wie bisher), stumpf, und darüber eine zweite Schicht (<c>russ.gdshader</c>): schwarzer
+    /// Schleier mit großen weichen Wolken ohne Vorzugsrichtung (Blitzschlag, 2.11.2026; Ascheschlieren 12.11.2026 entfernt, sie zeichneten
+    /// senkrechte Streifen). Je Vorlage einmal.
     /// </summary>
     private Material RussStoff(BaseMaterial3D stoff)
     {
@@ -684,6 +685,7 @@ public partial class Stadtansicht
         _russSchicht ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/russ.gdshader"), RenderPriority = 1 };
         var kopie = (BaseMaterial3D)stoff.Duplicate();
         kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, 0.3f);
+        kopie.Roughness = Mathf.Max(stoff.Roughness, 0.92f); // Ruß glänzt nicht
         kopie.NextPass = _russSchicht;
         return _russStoffe[stoff] = kopie;
     }
