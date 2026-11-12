@@ -155,7 +155,7 @@ public partial class Hauptszene
     }
 
     /// <summary>
-    /// Startoptionen für Klicktests: <c>--sitzungzeigen=&lt;immer|betroffen|nie&gt;</c> gilt nur für diesen Start. <c>--sitzung=1</c> bereitet eine Sitzung mit
+    /// Startoptionen für Klicktests: <c>--sitzungzeigen=&lt;immer|betroffen|nie&gt;</c> gilt nur für diesen Start. <c>--domwahl=1</c> lässt alle geeigneten Häuser (auch den Spieler) sich um das Amt des Dompredigers bewerben (mit <c>--sitzung=1</c> kommt der Dom-Punkt in die Sitzung). <c>--sitzung=1</c> bereitet eine Sitzung mit
     /// dem Spieler im Rat vor – ohne <c>--amt</c> bekommt er ein Amt der untersten Stufe und bewirbt sich um eines darüber (eine Wahl; braucht den Stand Bürger,
     /// also <c>--aufsteigen=1 --vermoegen=30000</c>), ohne <c>--antrag</c> wird ein Rivale Kämmerer und beantragt ein Fest (darüber stimmt der Spieler live ab; dafür bekommt er
     /// Aktionspunkte) –
@@ -168,6 +168,14 @@ public partial class Hauptszene
         {
             if (Enum.TryParse<RatssitzungZeigen>(zeigen, true, out var wert)) Fenster.RatssitzungSetzen(wert, speichern: false);
             else Protokollieren($"--sitzungzeigen={zeigen}: gemeint ist immer, betroffen oder nie.");
+        }
+        if (optionen.TryGetValue("domwahl", out var domwahl) && domwahl == "1" && _simulation.Wirtschaft is { } dw && dw.Domamt.IstAktiv)
+        {
+            // Prediger und Dom: alle geeigneten Häuser bewerben sich um das Amt (steht der Spieler selbst zur Wahl, stimmt er nicht mit)
+            foreach (var kandidat in dw.Konten.Where(k => k.IstAktiv))
+                if (dw.Domamt.EignungVerboten(kandidat) is null)
+                    _simulation.Bote.Einreihen(kandidat, new DomBewerben(), e => GD.Print($"--domwahl: {kandidat.Inhaber}: {e.Meldung}"));
+                else GD.Print($"--domwahl: {kandidat.Inhaber} nicht geeignet: {dw.Domamt.EignungVerboten(kandidat)}");
         }
         if (!optionen.TryGetValue("sitzung", out var sitzung) || sitzung is not ("1" or "letzte")) return;
         if (_simulation.Wirtschaft is not { } w || _spieler is null || !w.Rat.IstAktiv) return;

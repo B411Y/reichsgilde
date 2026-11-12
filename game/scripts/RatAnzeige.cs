@@ -213,6 +213,7 @@ public partial class RatAnzeige : PanelContainer
         }
 
         WahlStimmenAbschnitt(rat, waehrung);
+        DomAbschnitt(w); // RatAnzeige.Dom.cs
         TagesordnungAbschnitt(w); // RatAnzeige.Antraege.cs
 
         // ── Antrag zum Statut ──

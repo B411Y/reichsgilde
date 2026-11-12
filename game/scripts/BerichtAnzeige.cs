@@ -189,6 +189,7 @@ public partial class BerichtAnzeige : PanelContainer
             zeilen.Add($"  Umsatz {Zahlenformat.Ganz(v.Umsatz)} − Zutaten {Zahlenformat.Ganz(v.Zutaten)} − Löhne {Zahlenformat.Ganz(v.Personal)} − Unterhalt {Zahlenformat.Ganz(v.Fixkosten)}"
                       + (v.Handgeld > 0 ? $" − Handgeld {Zahlenformat.Ganz(v.Handgeld)}" : "")
                       + $" − Steuer {Zahlenformat.Ganz(v.Steuer)} − Fahrten {Zahlenformat.Ganz(v.Transport)} − Schaden {Zahlenformat.Ganz(v.Schaden)}");
+            if (v.Domkollekte > 0) zeilen.Add($"  Domkollekte (als Domprediger, steuerfrei): +{Zahlenformat.Ganz(v.Domkollekte)} {waehrung}");
             if (v.Raubwert > 0) zeilen.Add($"  Geraubt: {Zahlenformat.Ganz(v.Raubwert)} {waehrung}");
         }
         else zeilen.Add("Jahresrechnung: erst nach dem ersten Jahr.");

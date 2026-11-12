@@ -618,3 +618,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Größe | Nutzerwunsch: der Zeiger ist bei 1080p jetzt 64 statt 48 Pixel (`Mauszeiger.GroesseWaehlen`: unter 0,75 → 48, unter 1,35 → 64, sonst 80). Bühne, Zeigerpunkt, Spiegel-Ebenen und „?“ leiten sich aus der Größe ab und wachsen mit | 11.11.2026 |
 | Prüfung | Ohne Klicktest auf Wunsch des Nutzers | 11.11.2026 |
 | Faust | Übergänge in die Ziehen-Faust und zurück (`Uebergang_*_Greifen`, `Greifen_*`) auf 0,12 s gekürzt: Tempo = Cliplänge der Datei / 0,12 (`HandschuhModell.FaustUebergangSekunden`), glb unverändert. Vorher (Tempo 1,8): Ruhe→Greifen 0,69 s, Greifen→Ruhe 0,56 s, Zeigen↔Greifen 0,28 s | 11.11.2026 |
+
+### Domprediger-Oberfläche (Branch phase5/domprediger-ui, Prediger und Dom PR 3)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Abschnitt „Domprediger“ im Rathaus, Reiter Rat (`RatAnzeige.Dom.cs`), nach den Ämterwahlen: Inhaber, Konfession, Amtszeit bis, Bewerber, Knopf „Als Domprediger bewerben“ (Grund des Kerns grau daneben und als Tooltip), Kandidaten mit Punkten, eigene Stimme als Auswahl mit Vorgabe. Zusätzlich Zeile und Knopf in der Kirchenstube der eigenen Kirche. Gewählt statt eines eigenen Fensters, weil der Rat schon alle Wahlen zeigt. | 12.11.2026 |
+| Punkte | „Punkte“ ist der Schnitt von `Domamt.Punkte` über alle Ratsherren der Stadt (der Kern kennt keinen Gesamtwert); in der Sitzung als Tooltip am Wahlknopf. Annahme der Oberfläche. | 12.11.2026 |
+| Kollekte | Die Domkollekte steht im Jahresbericht unter „Außerdem“ (wie das Amtseinkommen) und in der Jahresrechnung der Berichtstafel, nicht in der Zeile „Gewinn“ (der Kern zählt sie nicht dazu). | 12.11.2026 |
+| Startoption | `--domwahl=1` lässt die geeigneten Häuser (auch den Spieler) sich bewerben (in `docs/STARTOPTIONEN.md`). | 12.11.2026 |
+| Offen | Infotafel am Stadt-Dom mit dem Domprediger und eigene Siegel für Wahl und Amtsende gehören zu darstellung bzw. Meldungen (der Kern meldet über `Meldungsart.Wahl`, Thema „Rat und Wahlen“). Das Amtssymbol gibt es nicht. | 12.11.2026 |

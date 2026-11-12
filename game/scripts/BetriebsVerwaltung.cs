@@ -73,6 +73,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     private Label _kirchenText = null!;
     private VBoxContainer _beichtKnoepfe = null!;
     private Button _bekehrenKnopf = null!;
+    private Button _domKnopf = null!; // „Als Domprediger bewerben“ (Prediger und Dom)
     private string _beichtPlan = "";
     private HBoxContainer _ausbauZeile = null!;
     private Label _ausbauText = null!;
@@ -200,6 +201,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _bekehrenKnopf.AddThemeFontSizeOverride("font_size", 13);
         _bekehrenKnopf.Pressed += () => Befehlen(new Bekehrungspredigt());
         _kirchenstube.AddChild(_bekehrenKnopf);
+        _domKnopf = new Button { Text = "Als Domprediger bewerben", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+        _domKnopf.AddThemeFontSizeOverride("font_size", 13);
+        _domKnopf.Pressed += () => Befehlen(new DomBewerben());
+        _kirchenstube.AddChild(_domKnopf);
         _beichtKnoepfe = new VBoxContainer();
         _kirchenstube.AddChild(_beichtKnoepfe);
         _bardeKnopf = new Button { FocusMode = FocusModeEnum.None };
@@ -662,6 +667,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
                 zeilen.Add($"Stadtglaube ist {gw.Stadtglaube!.Value.Name()} – eure Messe ist Ketzerei: Am Jahresende eine Spur, die {gw.Stadtglaube.Value.Gemeinde()} haben sie gesehen.");
         }
         zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(kw.ErwarteteGlaeubige(b))} Gläubige und {Zahlenformat.Ganz(kw.ErwarteteKollekte(b))} {waehrung} Kollekte im Jahr (Stufe, Ansehen und Rhetorik ziehen an).");
+        if (w.Domamt.IstAktiv) zeilen.Add(RatAnzeige.DomAmtZeile(w));
         zeilen.Add($"Ablass: Andere Häuser kaufen hier ihre Taten frei – ab {Zahlenformat.Ganz(d.Ablass.Grundpreis)} {waehrung}, das Geld geht an euch.");
         var wissen = w.Konten.Where(k => k != b.Konto && k.IstAktiv)
             .Select(k => (Haus: k, Taten: kw.Beichtwissen(b.Konto, k).Count())).Where(x => x.Taten > 0).ToList();
@@ -681,6 +687,15 @@ public partial class BetriebsVerwaltung : VBoxContainer
                                                   $"+{Zahlenformat.Ganz(gw.Daten.Bekehrung.Gunst)} Meinung bei jedem Ratsherrn eures Glaubens. Einmal im Jahr." +
                                                   (gw.Stadtglaube is { } sg && sg != gw.GlaubeVon(_spieler!) ? " Gegen den Stadtglauben ist das Ketzerei!" : "");
             UiHilfe.ApKosten(_bekehrenKnopf, w, _spieler!, new Bekehrungspredigt());
+        }
+
+        _domKnopf.Visible = w.Domamt.IstAktiv && b.Konto == _spieler;
+        if (_domKnopf.Visible)
+        {
+            var domGrund = w.Domamt.BewerbenVerboten(_spieler!);
+            _domKnopf.Disabled = domGrund is not null;
+            _domKnopf.TooltipText = domGrund ?? $"Der Rat wählt in der Sitzung am Jahresende; {w.Domamt.Daten.Amtsjahre} Jahre Amtszeit, kein Gehalt, aber die Kollekte des Doms.";
+            UiHilfe.ApKosten(_domKnopf, w, _spieler!, new DomBewerben());
         }
 
         var plan = string.Join("|", wissen.Select(x => $"{x.Haus.Inhaber}:{x.Taten}"));
