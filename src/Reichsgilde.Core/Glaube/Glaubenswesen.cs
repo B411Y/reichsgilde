@@ -302,6 +302,7 @@ public sealed class Glaubenswesen
         konto.Familienkosten(Daten.Konvertieren.Gebuehr);
         foreach (var p in f.Lebende) p.Glaube = ziel;
         _konvertiertBis[konto] = Jahr + 1;
+        _w.Domamt.Ausscheiden(konto, "Übertritt"); // ein Domprediger, der übertritt, verliert das Amt
         foreach (var p in _w.Familien.Hauptpersonen(f)) _w.Geheimnisse.Glaubenswechsel(p); // heimlich beim alten Glauben? (Ketzerei, Teil 3c)
         var wie = vorher.IstKirchlich() ? $"tritt zum {ziel.Glaube()} über" : $"lässt sich {ziel.Name()} taufen";
         _w.Melden($"Das Haus {f.Nachname} {wie}.");
@@ -316,7 +317,7 @@ public sealed class Glaubenswesen
     public string? BekehrenVerboten(Konto konto)
     {
         if (!IstAktiv) return "In dieser Stadt spielt der Glaube keine Rolle.";
-        if (KanzelVon(konto) is null) return "Bekehrungspredigten hält nur ein Prediger – in einer eigenen Kirche mit Personal.";
+        if (KanzelVon(konto) is null && !_w.Domamt.IstDomprediger(konto)) return "Bekehrungspredigten hält nur ein Prediger – in einer eigenen Kirche mit Personal.";
         if (GlaubeVon(konto) is not { } g || !g.IstKirchlich()) return "Wer selbst kein Christ ist, bekehrt niemanden.";
         if (_bekehrtIm.GetValueOrDefault(konto) == Jahr) return "Dieses Jahr hat das Haus schon eine Bekehrungspredigt gehalten.";
         if (Anteil(g) >= 1 - Daten.MindestAnteil * (_anteile.Count - 1) - 1e-9) return $"Mehr {g.Gemeinde()} gibt es in der Stadt nicht.";
@@ -325,7 +326,8 @@ public sealed class Glaubenswesen
 
     /// <summary>Wie viele Punkte Anteil eine Bekehrungspredigt dieses Hauses jetzt bringt.</summary>
     public double Bekehrungskraft(Konto konto) =>
-        Daten.Bekehrung.Anteil * (1 + _w.Familien.Talent(konto, Talent.Rhetorik) * Daten.Bekehrung.JeRhetorik);
+        Daten.Bekehrung.Anteil * (1 + _w.Familien.Talent(konto, Talent.Rhetorik) * Daten.Bekehrung.JeRhetorik)
+        * (_w.Domamt.IstDomprediger(konto) ? _w.Domamt.Daten.PredigtFaktor : 1); // im Dom predigt es sich stärker
 
     internal Befehlsergebnis Bekehrungspredigt(Konto konto)
     {
@@ -339,9 +341,10 @@ public sealed class Glaubenswesen
         var ketzer = Stadtglaube is { } s && s != g;
         if (ketzer)
             _w.Justiz.TatMelden(konto, Vergehen.Ketzerei, "die Stadt", Daten.Stadtglaube.Ketzerpredigt);
-        var kanzel = KanzelVon(konto)!;
-        _w.Melden($"In {kanzel.Name} predigt {konto.Inhaber} für den {g.Glaube()}.");
-        return Befehlsergebnis.Ok($"Bekehrungspredigt in {kanzel.Name}: {g.Gemeinde()} jetzt {Prozent(Anteil(g))} der Stadt (vorher {Prozent(vorher)}). " +
+ // Der Domprediger predigt im Dom (auch ohne eigene Kanzel), sonst in der eigenen Kirche.
+        var kanzel = _w.Domamt.IstDomprediger(konto) ? "im Dom" : $"in {KanzelVon(konto)!.Name}";
+        _w.Melden($"{(_w.Domamt.IstDomprediger(konto) ? "Im Dom" : $"In {KanzelVon(konto)!.Name}")} predigt {konto.Inhaber} für den {g.Glaube()}.");
+        return Befehlsergebnis.Ok($"Bekehrungspredigt {kanzel}: {g.Gemeinde()} jetzt {Prozent(Anteil(g))} der Stadt (vorher {Prozent(vorher)}). " +
                                   $"{ratsherren.Count} Ratsherren eures Glaubens sind angetan (+{Zahlenformat.Ganz(Daten.Bekehrung.Gunst)} Gunst)." +
                                   (ketzer ? " Gegen den Stadtglauben ist das Ketzerei – ein Vergehen." : ""));
     }
@@ -457,7 +460,11 @@ public sealed class Glaubenswesen
         var angenommen = Stadtrat.IstAngenommen(ja, nein, buergermeister);
         protokoll($"Ratssitzung {jahr}: Antrag von {antrag.Antragsteller.Inhaber} auf Stadtglauben „{KonfessionTexte.StadtglaubeText(antrag.Glaube)}“ " +
                   $"{(angenommen ? "ANGENOMMEN" : "abgelehnt")} ({ja} dafür, {nein} dagegen{(ja == nein ? ", der Bürgermeister entscheidet" : "")}).");
-        if (angenommen) Stadtglaube = antrag.Glaube;
+        if (angenommen)
+        {
+            Stadtglaube = antrag.Glaube;
+            _w.Domamt.StadtglaubeGeaendert(protokoll); // folgt der Domprediger ihm nicht, ist das Amt frei
+        }
         return (ja, nein, enthaltung, buergermeister, angenommen);
     }
 

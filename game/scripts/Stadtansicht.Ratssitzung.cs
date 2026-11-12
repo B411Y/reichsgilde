@@ -268,13 +268,13 @@ public partial class Stadtansicht
         {
             GesteSetzen(platz, Geste.Keine);
             // Bei einer Wahl sitzen die Kandidaten mit am Tisch, stimmen aber nicht mit
-            var kandidat = punkt.Thema == Sitzungsthema.Wahl
+            var kandidat = punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger
                 && punkt.Kandidaten.Any(k => (k.Haus is not null && k.Haus == platz.Haus) || k.Name == platz.Inhaber);
             StimmeSchreiben(platz, kandidat ? "kandidiert" : "", StimmeEnthalten);
         }
         RatssitzungAmZug(null);
         RednerSetzen(punkt.Antragsteller);
-        if (_ratssaal?.Antrag is { } rolle) rolle.Visible = punkt.Thema != Sitzungsthema.Wahl; // die versiegelte Rolle liegt vor, solange über einen Antrag gesprochen wird
+        if (_ratssaal?.Antrag is { } rolle) rolle.Visible = punkt.Thema is not (Sitzungsthema.Wahl or Sitzungsthema.Domprediger); // die versiegelte Rolle liegt vor, solange über einen Antrag gesprochen wird
     }
 
     /// <summary>Der Redner geht an seinen Platz zurück (die Abstimmung beginnt).</summary>
