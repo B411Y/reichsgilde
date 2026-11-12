@@ -416,8 +416,8 @@ public partial class Kartenwerkstatt
 
         // Gebäude
         Gruppe("gebaeude");
-        Kopf("Hofstelle");
-        Eintrag("hofstelle", "Hofstelle", "Werkstattplatz (16 × 14 m) und Wohnhausplatz (8 × 10 m) nebeneinander, vorn bündig – das Zuhause eines Hauses. Klick setzt, Q/E dreht; die Plätze bleiben danach einzeln beweglich. Die Einträge Werkstattplatz und Wohnhausplatz unten dienen dem Feinsetzen.",
+        Kopf("Hof");
+        Eintrag("hofstelle", "Hof setzen", "Ein Hof = Wohnhaus (8 × 10 m) und Betrieb (16 × 14 m) nebeneinander, vorn bündig. Jeder Klick setzt den nächsten Hof: Hof 1 ist Spieler 1, Hof 2 Spieler 2 …, höchstens 8. Q/E dreht; die Plätze bleiben danach einzeln beweglich. Die Einträge Werkstattplatz und Wohnhausplatz unten dienen dem Feinsetzen.",
             Werkstattwerkzeug.Hofstelle, "gebaeude");
         foreach (var (titel, arten) in Katalogteile.Where(t => t.Arten[0] != Bausteinart.Berg))
         {

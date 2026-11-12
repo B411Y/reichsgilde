@@ -128,6 +128,9 @@ public partial class Stadtansicht
 
         /// <summary>Wer den Platz am Start nutzt, wie das Stück es zeigt (null: niemand) – ändert sich das, wird das Stück neu gebaut.</summary>
         public Belegungsanzeige? Belegung { get; init; }
+
+        /// <summary>Die Nummer des Hofes, zu dem der Platz gehört (0: keine) – ändert sie sich, wird das Stück neu gebaut (Hof-Knopf).</summary>
+        public int Hof { get; init; }
     }
 
     /// <summary>Kennung der Klickfläche eines Stücks (Präfix „stueck:“, damit sie sich nicht mit dem Spiel mischt).</summary>
@@ -547,12 +550,14 @@ public partial class Stadtansicht
         var hoehe = Mathf.Clamp(MasseImModell(modell).End.Y, 2, 30);
         var kennung = StueckKennung(g);
         StueckKlickflaeche(kennung, modell, wurzel);
-        var name = Beschriftung(belegung is { } bel ? $"{g.Name}\n{bel.Text}" : g.Name, new Vector3(0, hoehe + 4, 0), 44, wurzel, kennung);
+        var hof = HofNummerVon(g); // Stadtansicht.Kartenwerkstatt.Hofstelle.cs
+        var name = Beschriftung((belegung is { } bel ? $"{g.Name}\n{bel.Text}" : g.Name) + (hof > 0 ? $"\nHof {hof}" : ""), new Vector3(0, hoehe + 4, 0), 44, wurzel, kennung);
         if (belegung is { } farbig) name.Modulate = farbig.Farbe.Lightened(0.55f);
+        else if (hof > 0) name.Modulate = new Color(0.98f, 0.82f, 0.3f); // ein Hof ohne Belegung: die Nummer in Gold
 
         var (markierung, rahmen, fuellung) = MarkierungBauen(groesse, wurzel);
         if (belegung is { } anzeige) BelegungsfahneBauen(groesse, anzeige, wurzel); // Stadtansicht.Kartenwerkstatt.Start.cs
-        var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung, Belegung = belegung };
+        var stueck = new Stueck { Wurzel = wurzel, Modell = modell, Markierung = markierung, Rahmen = rahmen, Fuellung = fuellung, Belegung = belegung, Hof = hof };
         _stuecke[g] = stueck;
         // nur aus fertigen Befunden: Sonst rechnete das Bauen eines Gebäudes die ganze Prüfung in einem Bild – die Fehlerfarbe kommt dann mit FehlerZeigen,
         // sobald die Prüfung in Häppchen fertig ist (_wsFehlerNeu)

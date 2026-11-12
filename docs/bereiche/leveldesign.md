@@ -207,3 +207,14 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Hofstellen | Alle 16 Hofstellen (S1–S8, N1–N5, A1, R1, R2) und die Startplätze unverändert; Kartenprüfung 0 Fehler, 4 Hinweise wie vorher | 11.11.2026 |
 | Tests | Neue Zahlen in `BauenTests`, `RasterBauzonenTests`, `KartenbauTests` (Kapazität, Prüfsumme), `BuergerDichteTests` (84 Plätze), `RestflaechenfuellungTests` (kein Steinmetzplatz mehr, 0 erlaubt) | 11.11.2026 |
 | Blitz | `blitz.hoehen` in `wirtschaft.json` behält die Schlüssel der beiden Kirchen (harmlos, die Modelle bleiben im Katalog); keine Änderung der geschützten Datei | 11.11.2026 |
+
+### Hof-Knopf in der Kartenwerkstatt (Branch phase5/hof-knopf, Neue Partie PR 3)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Nutzerwunsch 11.11.2026: ein einfacher Hof-Knopf; ein Klick setzt einen Hof (Wohnhaus + Betrieb), drehbar; der erste ist Hof 1 = Spieler 1, höchstens 8; die Karte speichert nur Lage, Drehung und Nummer; Name, Wappen, Beruf würfelt jede Partie; die ausführliche Bearbeitung bleibt unter „Erweitert“. | 11.11.2026 |
+| Wo | Tafel „Start“: oben „Höfe (n von 8)“ mit „Hof setzen“ (wählt das vorhandene Hofstellen-Werkzeug, das jetzt `HofSetzen` ruft; Palette „Gebäude“: Eintrag „Hof setzen“), je Hof eine Zeile (Nummer, −15°, +15°, Löschen); darunter „Erweitert“ mit dem bisherigen Inhalt (Spieler, KI-Häuser). Nummer in Gold über dem Betrieb (Beschriftung des Stücks). | 11.11.2026 |
+| Kern (klein, selbst getroffen) | Neue Datei `Kartenentwurf.Hoefe.cs`: `HofSetzen`, `HofDrehen`, `HofLoeschen` (Nummern rücken nach, ein Schritt), `FreieHofnummer`, `NummerierteHoefe`, `HofMitte`; `HofstelleSetzen` bekam den Parameter `nummer`. Grund: Setzen mit Nummer, Löschen mit Nachrücken und Drehen als je EIN Schritt für Rückgängig – mit den vorhandenen Befehlen wären es zwei bzw. keiner. `HofstelleLoeschen` blieb unverändert. | 11.11.2026 |
+| Karten (nicht geändert, Frage) | Die vorhandenen Karten bleiben ohne Nummern: Mit Nummern schlagen Tests um (Probe: Greybox → 7 Tests der Hofstellen und der Startbelegung, Köln/Probestadt → „Neue Partie: alte Karten im ausführlichen Format … keine Nummern“); Messstadt hat neun Startplätze, mit Nummern zählten acht. Nach Auftrag nicht geändert, sondern gemeldet. Eine Zeile je Hof im Kartenskript (Köln, Probestadt) bzw. ein Umbau (Greybox) genügt. | 11.11.2026 |
+| Erweitert | Steht ohne nummerierte Höfe offen (so erscheinen die vorhandenen Karten wie bisher), mit nummerierten Höfen zu; der Zustand merkt sich die Werkstatt, bis sie schließt. | 11.11.2026 |
+

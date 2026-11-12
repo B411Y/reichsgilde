@@ -119,26 +119,34 @@ public partial class Kartenwerkstatt
         UiHilfe.KinderEntfernen(_startTafel);
         if (_startHaus >= Start.Haeuser.Count) _startHaus = Start.Haeuser.Count - 1;
         if (_neuerBetrieb is { } nb && (nb.Haus >= Start.Haeuser.Count || _entwurf.GebaeudeMit(nb.Platz) is null)) _neuerBetrieb = null;
-        Hauptmenue.Text(_startTafel, "Wer am Start wo wohnt und arbeitet. Plätze wählt ihr mit einem Klick in die Karte; dort tragen die Häuser die Hausfarbe und eine hohe Fahne: "
-            + "KI-Häuser in ihrer Farbe, der Spieler weiß mit goldenem Rand und Schwalbenschwanz.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
-        SpielerTeil();
+        HoefeTeil(); // Kartenwerkstatt.Hoefe.cs: der Hof-Knopf
         _startTafel.AddChild(new HSeparator());
-        var kopf = new HBoxContainer();
-        kopf.AddThemeConstantOverride("separation", 8);
-        _startTafel.AddChild(kopf);
-        var titel = Hauptmenue.Text(kopf, $"KI-Häuser ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
-        titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        var dazu = Knopf(kopf, "Haus hinzufügen", () =>
+        var tafel = _startTafel;
+        _startTafel = ErweitertTeil(); // die ausführliche Bearbeitung baut in den Behälter unter „Erweitert“
+        try
         {
-            var neu = _entwurf.HausHinzufuegen();
-            if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
-            StartZeigen();
-        }, "Ein neues KI-Haus mit freiem Namen, freier Farbe, freiem Wappen und dem ersten freien Wohnhausplatz");
-        dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
-        if (Start.Haeuser.Count == 0)
-            Hauptmenue.Text(_startTafel, "Noch keins – ohne eigene Häuser spielt die Karte mit den drei Häusern des Spiels (Eisenbart, Eichwald, Kieselbach).",
-                12, Grau, umbruchBreite: Rechtsbreite - 44);
-        for (var i = 0; i < Start.Haeuser.Count; i++) HausZeile(i);
+            Hauptmenue.Text(_startTafel, "Wer am Start wo wohnt und arbeitet. Plätze wählt ihr mit einem Klick in die Karte; dort tragen die Häuser die Hausfarbe und eine hohe Fahne: "
+                + "KI-Häuser in ihrer Farbe, der Spieler weiß mit goldenem Rand und Schwalbenschwanz.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
+            SpielerTeil();
+            _startTafel.AddChild(new HSeparator());
+            var kopf = new HBoxContainer();
+            kopf.AddThemeConstantOverride("separation", 8);
+            _startTafel.AddChild(kopf);
+            var titel = Hauptmenue.Text(kopf, $"KI-Häuser ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
+            titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            var dazu = Knopf(kopf, "Haus hinzufügen", () =>
+            {
+                var neu = _entwurf.HausHinzufuegen();
+                if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
+                StartZeigen();
+            }, "Ein neues KI-Haus mit freiem Namen, freier Farbe, freiem Wappen und dem ersten freien Wohnhausplatz");
+            dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
+            if (Start.Haeuser.Count == 0)
+                Hauptmenue.Text(_startTafel, "Noch keins – ohne eigene Häuser spielt die Karte mit den drei Häusern des Spiels (Eisenbart, Eichwald, Kieselbach).",
+                    12, Grau, umbruchBreite: Rechtsbreite - 44);
+            for (var i = 0; i < Start.Haeuser.Count; i++) HausZeile(i);
+        }
+        finally { _startTafel = tafel; }
     }
 
     // ── Spieler ──────────────────────────────────────────────────────────────

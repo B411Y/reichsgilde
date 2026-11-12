@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
+using Reichsgilde.Core.Partie;
 
 namespace Reichsgilde;
 
@@ -17,6 +18,9 @@ public partial class Stadtansicht
     private StandardMaterial3D? _wsHofWohnFarbe, _wsHofWohnKoerper;
     private (double X, double Z, double Drehung)? _wsHofGeprueft;
     private bool _wsHofWohnFehler, _wsHofWohnHinweis;
+
+    /// <summary>Die Nummer des Hofes (1 … 8), zu dem dieser Platz gehört – 0, wenn er zu keinem nummerierten Hof gehört.</summary>
+    private int HofNummerVon(EntwurfGebaeude g) => _entwurf?.Start.HofstelleVon(g.Kennung)?.Nummer ?? 0;
 
     /// <summary>Die Mitten beider Plätze für eine Hofstelle bei (x, z) – die Rechnung des Kerns (<see cref="Kartenentwurf.HofstelleLagen"/>).</summary>
     private ((double X, double Z) Werkstatt, (double X, double Z) Wohnhaus, double Drehung) HofstelleLagen(double x, double z, double drehung)
@@ -69,7 +73,7 @@ public partial class Stadtansicht
         var k = (MeshInstance3D)_wsHofWohn.GetNode("Koerper");
         ((BoxMesh)k.Mesh).Size = new Vector3(Mathf.Max(0.4f, groesse.X - 0.4f), hoehe, Mathf.Max(0.4f, groesse.Y - 0.4f));
         k.Position = new Vector3(0, hoehe / 2, 0);
-        if (_wsText is not null) _wsText.Text = "Hofstelle – " + (_wsGrund ?? (_wsHinweis is not null ? "Hinweis: " + _wsHinweis : _wsHofWohnFehler ? "Wohnhausplatz passt nicht" : "passt"));
+        if (_wsText is not null) _wsText.Text = (_entwurf.FreieHofnummer() is { } nr ? $"Hof {nr} – " : "Alle 8 Höfe gesetzt – ") + (_wsGrund ?? (_wsHinweis is not null ? "Hinweis: " + _wsHinweis : _wsHofWohnFehler ? "Wohnhausplatz passt nicht" : "passt"));
     }
 
     /// <summary>Blendet beide Umrisse der Hofstelle aus (anderes Werkzeug, Maus außerhalb).</summary>
@@ -85,7 +89,10 @@ public partial class Stadtansicht
         if (_entwurf is null) return;
         var (x, z) = _wsOrt is null && boden is { } b ? Einrasten(b.X, b.Y) : _wsUmriss is { Visible: true } u ? Hofmitte(u.Position) : (double.NaN, 0);
         if (double.IsNaN(x)) return;
-        if (Befehl(() => _entwurf.HofstelleSetzen(x, z, WerkstattDrehung)) is { } h) WerkstattWaehlen(h.Werkstatt);
+        if (Befehl(() => _entwurf.HofSetzen(x, z, WerkstattDrehung)) is not null) // der Hof-Knopf: nächste freie Nummer, höchstens 8
+        {
+            if (_entwurf.FreieHofnummer() is null) WerkstattMeldung?.Invoke($"{Partiebesetzung.HoechstensHoefe} von {Partiebesetzung.HoechstensHoefe} Höfen gesetzt – mehr gehen nicht.", false);
+        }
     }
 
     /// <summary>Die Mitte des Ganzen aus der Lage des Werkstattumrisses (der Umriss steht auf dem Werkstattplatz, links von der Mitte).</summary>

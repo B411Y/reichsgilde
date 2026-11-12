@@ -68,6 +68,7 @@ public partial class Kartenwerkstatt
             if (jetzt is not null && (string.IsNullOrEmpty(text) ? null : text) != jetzt.Name) HofBefehl(() => _entwurf.HofstelleUmbenennen(kennung, string.IsNullOrEmpty(text) ? null : text));
         };
         Zeile(raster, "Name", _hofName);
+        if (h.Nummer is { } nr) Zeile(raster, "Hof", Wert($"Hof {nr} (Spieler {nr})"));
         Zeile(raster, "Werkstatt", Wert(h.Werkstatt));
         Zeile(raster, "Wohnhaus", Wert(h.Wohnhaus));
         _hofStart = Haken("Startplatz", h.Start, an => HofBefehl(() => _entwurf.HofstelleStartSetzen(kennung, an)),
@@ -77,7 +78,7 @@ public partial class Kartenwerkstatt
         knoepfeZeile.AddThemeConstantOverride("separation", 8);
         _hofBox.AddChild(knoepfeZeile);
         Knopf(knoepfeZeile, "Hofstelle auflösen", () => HofBefehl(() => _entwurf.HofstelleAufloesen(kennung)), "Die Hofstelle fällt weg, beide Plätze bleiben stehen");
-        Knopf(knoepfeZeile, "Hofstelle löschen", () => HofBefehl(() => _entwurf.HofstelleLoeschen(kennung)), "Die Hofstelle mit Werkstatt- und Wohnhausplatz aus der Karte nehmen");
+        Knopf(knoepfeZeile, "Hofstelle löschen", () => HofBefehl(() => _entwurf.HofLoeschen(kennung)), "Die Hofstelle mit Werkstatt- und Wohnhausplatz aus der Karte nehmen (nummerierte Höfe: die höheren Nummern rücken nach)");
     }
 
     /// <summary>Nach einer Änderung der Startbelegung: Gruppe neu bauen, wenn sich die Zugehörigkeit änderte, sonst nur Name und Haken nachziehen.</summary>
