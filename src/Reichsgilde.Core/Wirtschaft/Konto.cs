@@ -32,6 +32,9 @@ public sealed class Jahresbilanz
     /// <summary>Einkommen aus einem Amt im Stadtrat (nicht Teil des Betriebsgewinns).</summary>
     public double Amtseinkommen { get; internal set; }
 
+    /// <summary>Kollekte im Dom als Domprediger (Datenversion 85; steuerfrei, kein Betrieb – nicht Teil des Betriebsgewinns).</summary>
+    public double Domkollekte { get; internal set; }
+
     /// <summary>Geschenke an Ratsherren (nicht Teil des Betriebsgewinns).</summary>
     public double Geschenke { get; internal set; }
 
@@ -190,6 +193,7 @@ public sealed class Konto
     internal void Investition(double betrag) { Vermoegen -= betrag; Laufend.Investitionen += betrag; }
     internal void Standesgebuehr(double betrag) { Vermoegen -= betrag; Laufend.Standesgebuehren += betrag; }
     internal void Amtseinkommen(double betrag) { Vermoegen += betrag; Laufend.Amtseinkommen += betrag; }
+    internal void Domkollekte(double betrag) { Vermoegen += betrag; Laufend.Domkollekte += betrag; }
     internal void Geschenk(double betrag) { Vermoegen -= betrag; Laufend.Geschenke += betrag; }
     internal void Familienkosten(double betrag) { Vermoegen -= betrag; Laufend.Familie += betrag; }
     internal void Gerichtskosten(double betrag) { Vermoegen -= betrag; Laufend.Gericht += betrag; }
@@ -263,7 +267,7 @@ public sealed class Konto
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
         Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie, Gericht = b.Gericht, Gaunerei = b.Gaunerei,
-        Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe, Handgeld = b.Handgeld,
+        Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe, Handgeld = b.Handgeld, Domkollekte = b.Domkollekte,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -274,7 +278,7 @@ public sealed class Konto
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
             Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie, Gericht = s.Gericht, Gaunerei = s.Gaunerei,
-            Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe, Handgeld = s.Handgeld,
+            Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe, Handgeld = s.Handgeld, Domkollekte = s.Domkollekte,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;

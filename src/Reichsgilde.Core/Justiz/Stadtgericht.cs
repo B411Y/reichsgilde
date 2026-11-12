@@ -499,6 +499,11 @@ public sealed class Stadtgericht
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
                 if (_w.Wache.KopfgeldNachUrteil(v.Anklaeger, busse) is var kopfgeld and > 0)
                     folgen.Add($"Kopfgeld {Zahlenformat.Ganz(kopfgeld)} {waehrung} für die Wache von {v.Anklaeger.Inhaber}");
+                if (_w.Domamt.Inhaber == v.Beklagter) // der Domprediger wird nach jeder Verurteilung abgesetzt (Nutzer, 11.11.2026)
+                {
+                    _w.Domamt.Ausscheiden(v.Beklagter, "verurteilt");
+                    folgen.Add($"Verlust des Amtes {Kirche.Domamt.Amtsname}");
+                }
                 if (d.Amtsverlust && _w.Rat.AmtVon(v.Beklagter) is { } amt)
                 {
                     _w.Rat.Ausscheiden(v.Beklagter, "verurteilt");

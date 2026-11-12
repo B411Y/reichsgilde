@@ -1618,10 +1618,12 @@ public sealed partial class KiRivale
     /// Wer dem Haus geschadet hat (es hält Beweise für eine Tat gegen sich), gilt immer als der Gefährlichste.
     /// Die KI sieht dabei nur, was auch der Spieler sieht: Reinvermögen der Häuser und die eigenen Beweise.
     /// </summary>
-    public Konto? Wahlstimme(Amt amt, IReadOnlyList<Konto?> kandidaten)
+    public Konto? Wahlstimme(Amt amt, IReadOnlyList<Konto?> kandidaten) => Wahlstimme(amt.Ratsherr is not null ? null : amt.Konto, kandidaten);
+
+    /// <summary>Dieselbe Wahl ohne Ratsamt (Domprediger): <paramref name="inhaber"/> ist das Haus im Amt (null = Ratsherr bzw. frei).</summary>
+    public Konto? Wahlstimme(Konto? inhaber, IReadOnlyList<Konto?> kandidaten)
     {
         if (kandidaten.Count == 0) return null;
-        var inhaber = amt.Ratsherr is not null ? null : amt.Konto;
         if (Profil.Gaunerei <= 0 && kandidaten.Contains(inhaber) && (inhaber is null || !HatGeschadet(inhaber)))
             return inhaber;
         var auswahl = kandidaten.ToList();
@@ -1713,6 +1715,10 @@ public sealed partial class KiRivale
             if (Befehlen(new Konvertieren(stadt),
                     $"tritt zum {stadt.Glaube()} über – der Stadtglaube kostet sonst {Zahlenformat.Ganz(gw.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr."))
                 eigener = stadt;
+
+        // Domprediger (Andockstelle, Kern PR „Domprediger“): bewerben, wenn erlaubt und die Aktionspunkte reichen.
+        if (_w.Domamt.BewerbenVerboten(Konto) is null && _w.ApReichen(Konto, new DomBewerben()))
+            Befehlen(new DomBewerben(), "bewirbt sich um das Amt des Dompredigers (Kollekte im Dom).");
 
         if (_w.Rat.IstAktiv && _w.Rat.AmtVon(Konto) is not null && gw.Antrag is null && gw.Stadtglaube != eigener && eigener.IstKirchlich())
         {

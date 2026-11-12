@@ -688,6 +688,28 @@ public sealed record KirchenStand
 
     /// <summary>Konto-Nummer → bis zu diesem Jahr wirkt eine Hetzschrift.</summary>
     public Dictionary<string, int> GehetztBis { get; init; } = new();
+
+    /// <summary>Das Amt des Dompredigers (Datenversion 85) – null in alten Spielständen und solange das Amt nie besetzt war (frei, ohne Wahl).</summary>
+    public DomStand? Dom { get; init; }
+}
+
+/// <summary>Das Amt des Dompredigers (<see cref="Kirche.Domamt"/>): Konten als Nummern, alles nach Konto-Nummer geordnet.</summary>
+public sealed record DomStand
+{
+    /// <summary>Konto-Nummer des Dompredigers (null = frei).</summary>
+    public int? Inhaber { get; init; }
+
+    /// <summary>Das letzte Amtsjahr (0, wenn frei).</summary>
+    public int Bis { get; init; }
+
+    /// <summary>Konto-Nummern der Bewerber dieses Jahres.</summary>
+    public List<int> Bewerbungen { get; init; } = new();
+
+    /// <summary>Konto-Nummer des Wählers → Konto-Nummer des Kandidaten.</summary>
+    public Dictionary<string, int> Stimmen { get; init; } = new();
+
+    public Kirche.Kirchenbuch DiesesJahr { get; init; } = new(0, 0, 0, 0);
+    public Kirche.Kirchenbuch? Vorjahr { get; init; }
 }
 
 public sealed record GastwirtschaftStand
@@ -1167,6 +1189,9 @@ public sealed record BilanzStand
 
     /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
     public double Handgeld { get; init; }
+
+    /// <summary>Kollekte als Domprediger (Datenversion 85; 0 in alten Spielständen).</summary>
+    public double Domkollekte { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
