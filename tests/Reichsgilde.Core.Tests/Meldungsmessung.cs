@@ -90,7 +90,8 @@ static class Meldungsmessung
                           || m.StartsWith("Ausbruch in ", StringComparison.Ordinal) || m.StartsWith("Aufstand in ", StringComparison.Ordinal)),
         ("Rat", m => m.StartsWith("Ratssitzung ", StringComparison.Ordinal) || m.StartsWith("Wahl ", StringComparison.Ordinal)
                      || m.Contains(" in den Rat nach", StringComparison.Ordinal) || m.StartsWith("Der Rat ", StringComparison.Ordinal)
-                     || m.StartsWith("Am Stammtisch ", StringComparison.Ordinal) || m.Contains("Statut", StringComparison.Ordinal)),
+                     || m.StartsWith("Am Stammtisch ", StringComparison.Ordinal) || m.Contains("Statut", StringComparison.Ordinal)
+                     || m.Contains("Domprediger", StringComparison.Ordinal)),
         ("Jahreszeit", m => m.StartsWith("Festmarkt: ", StringComparison.Ordinal) || m.Contains(" ist zugefroren!", StringComparison.Ordinal)
                             || m.StartsWith("Eisgang ", StringComparison.Ordinal) || Jahresmeldung.IsMatch(m)),
         ("Karren", m => m.Contains(") am Markt: ", StringComparison.Ordinal) || m.Contains("Handelsauftrag verfällt", StringComparison.Ordinal)),

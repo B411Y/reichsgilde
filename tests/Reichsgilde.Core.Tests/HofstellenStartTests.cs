@@ -15,7 +15,8 @@ using Reichsgilde.Core.Wirtschaft;
 static class HofstellenStartTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
-    static readonly Lazy<string> GreyboxText = new(() => File.ReadAllText(Datenpfad.Karte("greybox")));
+    static readonly Lazy<string> GreyboxText = new(() => System.Text.RegularExpressions.Regex.Replace(
+        File.ReadAllText(Datenpfad.Karte("greybox")), ", \"nummer\": \\d+", "")); // seit 12.11.2026 hat die Greybox Hofnummern; diese Tests prüfen das Los, also ohne
 
     static Stadtkarte Greybox() => Stadtkarte.AusJson(GreyboxText.Value, HofstellenTests.Katalog.Value);
 

@@ -129,9 +129,10 @@ public abstract class Stadtskript
     /// Der Spieler und jedes KI-Haus bekommen als Start-Hofstelle („S1“, „S2“ …) ihren Wohnhausplatz und den Werkstattplatz ihres ersten
     /// Startbetriebs; <paramref name="name"/> nennt die Lage (Name der Hofstelle, nach dem die Werkstatt des Spielers heißt: „Gießerei am Markt“).
     /// Mit <paramref name="freie"/> bildet jeder übrige Werkstattplatz mit dem nächsten freien Wohnhausplatz eine freie Hofstelle („H1“ …).
-    /// Nach der Startbelegung aufrufen.
+    /// Mit <paramref name="nummern"/> bekommen die Start-Hofstellen die Hofnummern 1, 2 … (Hof 1 = Spieler 1, 12.11.2026); ohne bleiben sie
+    /// unnummeriert (Messstadt). Nach der Startbelegung aufrufen.
     /// </summary>
-    protected void HofstellenAusStart(Func<EntwurfGebaeude, string?> name, bool freie = false)
+    protected void HofstellenAusStart(Func<EntwurfGebaeude, string?> name, bool freie = false, bool nummern = false)
     {
         var start = E.Start;
         var paare = new List<(string Werkstatt, string Wohnhaus)>();
@@ -142,6 +143,7 @@ public abstract class Stadtskript
         var n = 0;
         foreach (var (werkstatt, wohnhaus) in paare)
             E.HofstelleBilden(werkstatt, wohnhaus, start: true, name: name(E.GebaeudeMit(werkstatt)!), kennung: $"S{++n}");
+        if (nummern) for (var i = 1; i <= n; i++) E.HofstelleNummerSetzen($"S{i}", i);
         if (!freie) return;
         var belegt = paare.SelectMany(p => new[] { p.Werkstatt, p.Wohnhaus }).ToHashSet();
         var wohnhaeuser = E.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz && !belegt.Contains(g.Kennung)).ToList();

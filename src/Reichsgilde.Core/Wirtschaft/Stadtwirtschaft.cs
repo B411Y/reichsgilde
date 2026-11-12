@@ -231,6 +231,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Messe und Kollekte, Ablass, Beichte, Lehr- und Hetzschriften.</summary>
     public Kirche.Kirchenwesen Kirchenwesen { get; }
 
+    /// <summary>Der Stadt-Dom als Amt auf Zeit: der Domprediger (Datenversion 86; ohne <c>kirche.dom</c> kein Amt).</summary>
+    public Kirche.Domamt Domamt { get; }
+
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
     public Buerger.Einwohnerschaft Einwohnerschaft { get; }
 
@@ -443,6 +446,7 @@ public sealed partial class Stadtwirtschaft
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
         Personal = new Personalwesen(this, daten.Personal);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
+        Domamt = new Kirche.Domamt(this, daten.Kirche?.Dom);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
         Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
         Entscheidungen = new Entscheidungen.Entscheidungswesen(this, daten.Entscheidungen);
@@ -743,6 +747,7 @@ public sealed partial class Stadtwirtschaft
         Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
         Glaube.Jahresende();        // Ketzerkirchen (mit dem Kirchenbuch des Jahres), Anteile kehren zurück
         Kirchenwesen.Jahresende();  // die Beichten des Jahres, neues Kirchenbuch
+        Domamt.Jahresende();        // Gunst für den Domprediger vor der Ratssitzung, neues Kirchenbuch des Doms
         var sitzung = Rat.SitzungBeginnen(_zufall, neuesJahr - 1);
         if (sitzung is { IstBeendet: false, Anzahl: > 0 } && RatssitzungAnhalten?.Invoke(sitzung) == true)
             return false; // die Oberfläche zeigt die Sitzung Punkt für Punkt
@@ -860,7 +865,7 @@ public sealed partial class Stadtwirtschaft
 
     private Befehlsergebnis Bearbeiten(Konto absender, Befehl befehl)
     {
-        if (Rat.LaufendeSitzung is not null && befehl is not (WahlStimme or StatutStimme or StadtglaubeStimme or PflasterStimme or RatsantragStimme))
+        if (Rat.LaufendeSitzung is not null && befehl is not (WahlStimme or StatutStimme or StadtglaubeStimme or PflasterStimme or RatsantragStimme or DomStimme))
             return Befehlsergebnis.Abgelehnt("Die Ratssitzung läuft – jetzt wird nur abgestimmt.");
         if (absender.IstBankrott)
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
@@ -1006,6 +1011,10 @@ public sealed partial class Stadtwirtschaft
             return Glaube.Beantragen(absender, glaubensantrag.Glaube);
         if (befehl is StadtglaubeStimme glaubensStimme)
             return Glaube.StimmeFestlegen(absender, glaubensStimme.Ja);
+        if (befehl is DomBewerben)
+            return Domamt.Bewerben(absender);
+        if (befehl is DomStimme domStimme)
+            return Domamt.StimmeFestlegen(absender, domStimme.Kandidat);
         if (befehl is GegengiftGeben gegengift)
             return Gesundheit.IstAktiv ? Gesundheit.GegengiftGeben(absender, gegengift.Person) : Befehlsergebnis.Abgelehnt("In dieser Stadt wird niemand krank.");
         if (befehl is Razzia razzia)

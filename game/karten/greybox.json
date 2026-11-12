@@ -573,10 +573,10 @@
    }
   ],
   "hofstellen": [
-   {"kennung": "H1", "name": "Weinmarkt", "werkstatt": "Weinmarkt", "wohnhaus": "Wohnhaus1", "start": true},
-   {"kennung": "H2", "name": "an der Ostgasse (Süd)", "werkstatt": "Giesserei_Eisenbart", "wohnhaus": "Wohnhaus2", "start": true},
-   {"kennung": "H3", "name": "an der Ostgasse (Nord)", "werkstatt": "Tischlerei_Eichwald", "wohnhaus": "Wohnhaus3", "start": true},
-   {"kennung": "H4", "name": "an der Ringgasse", "werkstatt": "Maurerei_Kieselbach", "wohnhaus": "Wohnhaus4", "start": true}
+   {"kennung": "H1", "name": "Weinmarkt", "werkstatt": "Weinmarkt", "wohnhaus": "Wohnhaus1", "start": true, "nummer": 1},
+   {"kennung": "H2", "name": "an der Ostgasse (Süd)", "werkstatt": "Giesserei_Eisenbart", "wohnhaus": "Wohnhaus2", "start": true, "nummer": 2},
+   {"kennung": "H3", "name": "an der Ostgasse (Nord)", "werkstatt": "Tischlerei_Eichwald", "wohnhaus": "Wohnhaus3", "start": true, "nummer": 3},
+   {"kennung": "H4", "name": "an der Ringgasse", "werkstatt": "Maurerei_Kieselbach", "wohnhaus": "Wohnhaus4", "start": true, "nummer": 4}
   ]
  },
  "kamera": {"punkt": [24, -6], "zoom": 95, "drehung": 0},

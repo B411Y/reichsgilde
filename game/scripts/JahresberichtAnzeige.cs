@@ -102,6 +102,7 @@ public partial class JahresberichtAnzeige : PanelContainer
             if (bilanz.Verkaeufe > 0) nebenbei.Add($"Verkäufe +{Zahlenformat.Ganz(bilanz.Verkaeufe)}");
             if (bilanz.Standesgebuehren > 0) nebenbei.Add($"Standesgebühren {Zahlenformat.Ganz(bilanz.Standesgebuehren)}");
             if (bilanz.Amtseinkommen > 0) nebenbei.Add($"Amtseinkommen +{Zahlenformat.Ganz(bilanz.Amtseinkommen)}");
+            if (bilanz.Domkollekte > 0) nebenbei.Add($"Domkollekte +{Zahlenformat.Ganz(bilanz.Domkollekte)}"); // als Domprediger, steuerfrei
             if (bilanz.Geschenke > 0) nebenbei.Add($"Geschenke an Ratsherren {Zahlenformat.Ganz(bilanz.Geschenke)}");
             if (bilanz.Familie > 0) nebenbei.Add($"Haushalt, Brautwerbung und Hochzeit {Zahlenformat.Ganz(bilanz.Familie)}");
             if (Math.Abs(bilanz.Gaunerei) > 0.5)

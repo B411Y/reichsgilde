@@ -431,11 +431,15 @@ public partial class RatssitzungAnzeige : Control
         _wahl.Visible = true;
         _wahlFrage.Text = $"Eure Stimme als {stimme.Sitz.Name}:";
         Setzen(_aktuell, ""); // die Knöpfe zeigen die eigene Stimme
-        if (punkt.Thema == Sitzungsthema.Wahl)
+        if (punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger) // der Domprediger wird gewählt wie ein Amt (ohne Amt im Rat)
         {
             foreach (var kandidat in punkt.Kandidaten)
-                WahlKnopf(kandidat.Name + (kandidat.IstAmtsinhaber ? " (bisher)" : ""), stimme.Kandidat == kandidat.Name,
-                    () => Stimmen(new WahlStimme(punkt.Amt!.Name, kandidat.Name)));
+            {
+                var knopf = WahlKnopf(kandidat.Name + (kandidat.IstAmtsinhaber ? " (bisher)" : ""), stimme.Kandidat == kandidat.Name,
+                    () => Stimmen(punkt.Amt is { } amt ? new WahlStimme(amt.Name, kandidat.Name) : new DomStimme(kandidat.Name)));
+                if (punkt.Thema == Sitzungsthema.Domprediger && _simulation?.Wirtschaft is { } w && RatAnzeige.PunkteImSchnitt(w, kandidat) is { } p)
+                    knopf.TooltipText = $"Im Schnitt {Zahlenformat.Kommazahl(p)} Punkte bei den Ratsherren (Ansehen, Meinung, Rhetorik" + (kandidat.IstAmtsinhaber ? ", Amtsbonus" : "") + ").";
+            }
         }
         else
         {
@@ -445,13 +449,14 @@ public partial class RatssitzungAnzeige : Control
         Setzen(_hinweis, "„Weiter“ gibt die Stimme ab (vorausgewählt: eure Stimme von vorab).");
     }
 
-    private void WahlKnopf(string text, bool gedrueckt, Action aktion)
+    private Button WahlKnopf(string text, bool gedrueckt, Action aktion)
     {
         var knopf = new Button { Text = text, ToggleMode = true, ButtonPressed = gedrueckt, FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(0, 32) };
         knopf.AddThemeFontSizeOverride("font_size", 14);
         if (gedrueckt) knopf.AddThemeColorOverride("font_pressed_color", Gold);
         knopf.Pressed += aktion;
         _wahlKnoepfe.AddChild(knopf);
+        return knopf;
     }
 
     private static Befehl AntragsStimme(Sitzungspunkt punkt, bool? ja) => punkt.Thema switch
@@ -486,7 +491,7 @@ public partial class RatssitzungAnzeige : Control
             Setzen(_ergebnis, "");
             return;
         }
-        if (punkt.Thema == Sitzungsthema.Wahl)
+        if (punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger)
         {
             var zaehlung = string.Join(", ", e.Zaehlung.Select(z => $"{z.Kandidat} {z.Stimmen}"));
             Setzen(_ergebnis, (e.Gewaehlt is { } g ? $"Gewählt: {g}" : "Niemand gewählt") + (e.Stichentscheid ? " – Gleichstand, das Los entschied" : "")

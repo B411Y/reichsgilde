@@ -83,9 +83,12 @@ public sealed partial class KiRivale
     };
 
     /// <summary>Warum die KI bei der Wahl so stimmt – nach denselben Schritten wie <see cref="Wahlstimme"/>.</summary>
-    internal string GrundWahl(Amt amt, IReadOnlyList<Konto?> kandidaten, Konto? wahl)
+    internal string GrundWahl(Amt amt, IReadOnlyList<Konto?> kandidaten, Konto? wahl) =>
+        GrundWahl(amt.Ratsherr is not null ? null : amt.Konto, kandidaten, wahl);
+
+    /// <summary>Dieselbe Begründung ohne Ratsamt (Domprediger): <paramref name="inhaber"/> ist das Haus im Amt.</summary>
+    internal string GrundWahl(Konto? inhaber, IReadOnlyList<Konto?> kandidaten, Konto? wahl)
     {
-        var inhaber = amt.Ratsherr is not null ? null : amt.Konto;
         var feind = kandidaten.FirstOrDefault(k => k is not null && HatGeschadet(k));
         var ueberFeind = feind is not null && feind != wahl ? $" {feind.Inhaber} hat dem Haus geschadet." : "";
         if (Profil.Gaunerei <= 0 && wahl == inhaber && kandidaten.Contains(inhaber) && (inhaber is null || !HatGeschadet(inhaber)))

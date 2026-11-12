@@ -338,6 +338,18 @@ public sealed record StadtglaubeBeantragen(Reichsgilde.Core.Glaube.Konfession? G
 public sealed record StadtglaubeStimme(bool? Ja) : Befehl;
 
 /// <summary>
+/// Bewerbung um das Amt des Dompredigers (nur mit eigener Kirche und dem Stadtglauben; wenn das Amt frei ist oder im letzten Amtsjahr).
+/// Der Rat wählt am Jahresende. Prüfung vorab: <see cref="Kirche.Domamt.BewerbenVerboten"/>.
+/// </summary>
+public sealed record DomBewerben : Befehl;
+
+/// <summary>
+/// Stimme bei der Wahl des Dompredigers festlegen (frei, bis zur Ratssitzung änderbar): der Hausname eines Kandidaten aus
+/// <see cref="Kirche.Domamt.Kandidaten"/>; null nimmt die Stimme zurück – dann gilt die Vorgabe (der bisherige Inhaber).
+/// </summary>
+public sealed record DomStimme(string? Kandidat) : Befehl;
+
+/// <summary>
 /// Handel von Hand: Der Karren Nr. <paramref name="Karren"/> (0 = erster) lädt die Verkaufsware aus dem Lager, fährt zum Markt,
 /// verkauft sie und kauft die Einkäufe (Marktpreis + Händlerspanne, jedes Stück hebt den Preis). Nur wenn er am Betrieb
 /// wartet und der Markt bei seiner Ankunft offen hat.
