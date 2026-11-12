@@ -52,7 +52,7 @@ public partial class Stadtansicht
     /// <param name="Variante">1 bis 3 zeigt nur diese Variante; 0 lässt alle Varianten stehen.</param>
     /// <param name="Geruest">Gerüst vor dem Haus (Ausbau, Sanierung, Brand).</param>
     /// <param name="Leerstand">Bretter vor Tür und Fenstern, dunkles Glas statt Fensterlicht, ohne Wappen und Fahne.</param>
-    /// <param name="Brand">Rußige Dachmaterialien.</param>
+    /// <param name="Brand">Brandschaden: rußiges Dach, verkohltes Holz, Rußfahnen an den Wänden.</param>
     /// <param name="Besitzer">Farbe des Besitzers für „Hausfarbe“, Wappen und Fahne; ohne Besitzer verwittertes Holz.</param>
     private sealed record ModellZustand(int Stufe = 0, int Variante = 0, bool Geruest = false, bool Leerstand = false, bool Brand = false, Color? Besitzer = null);
 
@@ -70,7 +70,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Setzt das Modell <paramref name="datei"/> als Kind von <paramref name="eltern"/> an die Stelle <paramref name="lage"/> (lokal im Elternknoten):
     /// blendet die Zustandsknoten nach <paramref name="zustand"/> ein oder aus, tauscht das Material „Hausfarbe“ gegen die Besitzerfarbe,
-    /// färbt nach einem Brand das Dach rußig, belebt die Fahne, meldet die Fenster fürs Nachtlicht (<see cref="FensterlichtSetzen"/>) und
+    /// zeigt nach einem Brand den Brandschaden, belebt die Fahne, meldet die Fenster fürs Nachtlicht (<see cref="FensterlichtSetzen"/>) und
     /// merkt sich „Anker_Tuer“ und „Anker_Karren“ unter <paramref name="ankerKennung"/> (<see cref="TuerAnker"/>, <see cref="KarrenAnker"/>).
     /// Null, wenn die Datei fehlt.
     /// </summary>
@@ -145,9 +145,7 @@ public partial class Stadtansicht
                         glut.Add(kopie);
                         break;
                     default:
-                        if (zustand.Brand && Dachstoffe.Contains(stoff.ResourceName))
-                            teil.SetSurfaceOverrideMaterial(i, RussStoff(stoff));
-                        break;
+                        break; // der Brandschaden (Dach, Holz, Wand) kommt unten (BrandschadenSetzen)
                 }
             }
         }
@@ -164,6 +162,7 @@ public partial class Stadtansicht
         Ladezeit.Dazu("Schattenproxys", proxyUhr);
         var instanz = new ModellInstanz(modell, glut.ToArray(), glutAn, fenster.ToArray());
         ModellMerken(instanz); // für den Blitzschlag: welches Modell steht wo (Stadtansicht.Blitzbrand.cs)
+        if (zustand.Brand) BrandschadenSetzen(instanz, true); // Rußfahnen, verkohltes Holz, geschwärztes Dach (Stadtansicht.Brandschaden.cs)
         return instanz;
     }
 

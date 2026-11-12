@@ -671,20 +671,27 @@ public partial class Stadtansicht
         return (min, max);
     }
 
-    private static ShaderMaterial? _russSchicht;
     private readonly Dictionary<BaseMaterial3D, Material> _russStoffe = new();
 
     /// <summary>
-    /// Das rußige Dachmaterial: die Farbe dunkler (wie bisher) und darüber eine zweite Schicht (<c>russ.gdshader</c>) mit Kohle und hellen
-    /// Ascheschlieren – auch auf dunklem Schiefer sichtbar (Blitzschlag, 2.11.2026). Je Vorlage einmal.
+    /// Das rußige Dachmaterial: die Farbe dunkler, stumpf, und darüber eine zweite Schicht (<see cref="RussSchicht"/>; nicht auf Kanten und First, <see cref="Dachkante"/>): schwarzer Schleier mit großen
+    /// weichen Rußwolken, Brandflecken und grauen Aschefeldern, ohne Vorzugsrichtung (Ascheschlieren 12.11.2026 entfernt, sie zeichneten senkrechte
+    /// Streifen). Stroh (Wohnhäuser) wird kräftig geschwärzt: braunschwarze Grundfarbe, deckender Schleier, kaum Asche. Je Vorlage einmal.
     /// </summary>
     private Material RussStoff(BaseMaterial3D stoff)
     {
         if (_russStoffe.TryGetValue(stoff, out var fertig)) return fertig;
-        _russSchicht ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/russ.gdshader"), RenderPriority = 1 };
+        var stroh = Strohstoffe.Contains(stoff.ResourceName);
+        var kante = Dachkante(stoff.ResourceName);
         var kopie = (BaseMaterial3D)stoff.Duplicate();
-        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, 0.3f);
-        kopie.NextPass = _russSchicht;
+        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, kante ? 0.6f : stroh ? 0.55f : 0.3f);
+        kopie.Roughness = Mathf.Max(stoff.Roughness, 0.92f); // Ruß glänzt nicht
+        if (!kante)
+        {
+            var schicht = RussSchicht(stroh);
+            kopie.NextPass = schicht;
+            if (_oberflaeche?.Ableiten(kopie) is { } abgeleitet) abgeleitet.NextPass = schicht; // die Oberflächendetails zeichnen ihr abgeleitetes Material (Stadtansicht.Brandschaden.cs)
+        }
         return _russStoffe[stoff] = kopie;
     }
 
@@ -711,19 +718,6 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Färbt das Dach eines Werkstattmodells rußig (nach einem Brand, bis die Reparatur fertig ist) oder gibt ihm seine Farbe zurück.</summary>
-    private void DachRussSetzen(ModellInstanz modell, bool russ)
-    {
-        if (OS.GetEnvironment("RG_DACHSTOFF") == "1") DachStoffLogen(modell, russ ? "vor dem Ruß" : "vor dem Abnehmen des Ruß");
-        foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
-        {
-            if (teil.Mesh is not { } netz) continue;
-            for (var i = 0; i < netz.GetSurfaceCount(); i++)
-                if (netz.SurfaceGetMaterial(i) is BaseMaterial3D stoff && Dachstoffe.Contains(stoff.ResourceName))
-                    teil.SetSurfaceOverrideMaterial(i, russ ? RussStoff(stoff) : null);
-        }
-    }
-
     /// <summary>
     /// Jedes Bild für jede Werkstatt: Steigen die Reparaturminuten (Kern: <see cref="Betrieb.SabotageMinuten"/>), ist gerade ein Feuer ausgebrochen;
     /// beim ersten Blick (nach dem Laden) gilt ein laufender Schaden als alter Brand (nur Ruß, keine Flammen). Mit <c>--brand</c> brennt die Werkstatt
@@ -746,7 +740,7 @@ public partial class Stadtansicht
         if (russ != _russDach.Contains(b))
         {
             if (russ) _russDach.Add(b); else _russDach.Remove(b);
-            DachRussSetzen(modell, russ);
+            BrandschadenSetzen(modell, russ);
         }
     }
 
@@ -775,6 +769,8 @@ public partial class Stadtansicht
             if (!IsInstanceValid(brand.Wurzel) || t >= brennMinuten + GlimmMinuten)
             {
                 (fertig ??= new()).Add(kennung);
+                if (IsInstanceValid(brand.Wurzel) && brand.Wurzel.GetParent() is { } ende && ende.HasMeta("rg_brandwand") && ende.GetMeta("rg_brandwand").As<ShaderMaterial>() is { } endStoff)
+                    endStoff.SetShaderParameter("fahnen_wuchs", 1f);
                 continue;
             }
             var stand = BrandVerlauf.Rechnen(t, brennMinuten, GlimmMinuten);
@@ -785,6 +781,9 @@ public partial class Stadtansicht
             }
             brand.Flammen = stand.Flamme > 0.02f;
             brand.Haus?.Setzen(stand);
+            // Die Wandfahnen des Brandschadens (Stadtansicht.Brandschaden.cs) wachsen mit dem Brand ein: voll am Ende der Flammen
+            if (brand.Wurzel.GetParent() is { } modellKnoten && modellKnoten.HasMeta("rg_brandwand") && modellKnoten.GetMeta("rg_brandwand").As<ShaderMaterial>() is { } wandStoff)
+                wandStoff.SetShaderParameter("fahnen_wuchs", Mathf.Clamp(t / Mathf.Max(brennMinuten, 1f), 0f, 1f));
         }
         if (fertig is null) return;
         foreach (var kennung in fertig)

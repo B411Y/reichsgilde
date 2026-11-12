@@ -8,7 +8,7 @@ namespace Reichsgilde;
 /// <list type="bullet">
 /// <item><b>Fenster</b>: die Scheiben, die <see cref="ModellEinsetzen"/> gemerkt hat (<see cref="ModellInstanz.Fenster"/>: Teil und Fläche); je Scheibe die Mitte, die
 /// waagerechte Normale und die Maße (<see cref="Bauteile"/>).</item>
-/// <item><b>Dach</b>: die Dreiecke der Flächen, deren Material in <see cref="Dachstoffe"/> steht (dieselbe Erkennung wie der Ruß, <see cref="DachRussSetzen"/>), mit
+/// <item><b>Dach</b>: die Dreiecke der Flächen, deren Material in <see cref="Dachstoffe"/> steht (dieselbe Erkennung wie der Ruß, <see cref="BrandschadenSetzen"/>), mit
 /// Normale nach oben; gewählt werden Punkte im oberen Teil des Dachs, weit genug auseinander.</item>
 /// </list>
 /// Ohne Fenster oder ohne Dachflächen (Kulissenblöcke): ein Dachpunkt über der Mitte der obersten Fläche. Knoten „Anker_Fenster…“ und „Anker_Dach…“ im Modell

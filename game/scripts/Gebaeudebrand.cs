@@ -71,7 +71,6 @@ public sealed partial class Gebaeudebrand : Node3D
     {
         public Feuer? Feuer;
         public MeshInstance3D? Flaeche;     // Ã–ffnung (Fenster) oder Brandfleck (Dach)
-        public MeshInstance3D? Russ;        // nur Fenster
         public float Schwelle;
         public float Staerke = -1f;
         public bool Fenster;
@@ -79,7 +78,7 @@ public sealed partial class Gebaeudebrand : Node3D
     }
 
     private readonly List<Stelle> _stellen = new();
-    private ShaderMaterial _fleck = null!, _oeffnung = null!, _russ = null!;
+    private ShaderMaterial _fleck = null!, _oeffnung = null!;
     private BrandStand _stand = new(0, 0, 0, 0, "Anfang");
 
     public BrandStand Stand => _stand;
@@ -110,7 +109,6 @@ public sealed partial class Gebaeudebrand : Node3D
         var brand = new Gebaeudebrand { Name = "Brand" };
         brand._fleck = Material(0);
         brand._oeffnung = Material(1);
-        brand._russ = Material(2);
         brand._stellen.AddRange(Enumerable.Empty<Stelle>());
         for (var k = 0; k < fenster.Count; k++) brand.FensterBauen(fenster[k], k, saat, mitLicht && k < 2);
         for (var k = 0; k < dach.Count; k++) brand.DachBauen(dach[k], k, saat, mitLicht && k < 3);
@@ -137,13 +135,6 @@ public sealed partial class Gebaeudebrand : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ExtraCullMargin = 2f, Basis = basis, Position = a.Mitte + a.Normale * 0.035f, Visible = false,
         };
         AddChild(offen);
-        var russ = new MeshInstance3D
-        {
-            Name = "Russ", Mesh = new QuadMesh { Size = new Vector2(a.Breite * 1.5f, a.Hoehe * 1.9f) }, MaterialOverride = _russ,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ExtraCullMargin = 2f, Basis = basis,
-            Position = a.Mitte + a.Normale * 0.03f + new Vector3(0, a.Hoehe * 1.0f, 0), Visible = false,
-        };
-        AddChild(russ);
         var feuer = Feuer.Neu(FeuerVorgabe.Fensterflammen, licht, phase, groesse);
         feuer.Ausrichtung = FeuerAusrichtung.Wand;
         feuer.Aussen = true;
@@ -153,7 +144,6 @@ public sealed partial class Gebaeudebrand : Node3D
         AddChild(feuer);
         stelle.Feuer = feuer;
         stelle.Flaeche = offen;
-        stelle.Russ = russ;
         _stellen.Add(stelle);
     }
 
@@ -188,7 +178,7 @@ public sealed partial class Gebaeudebrand : Node3D
     public void Setzen(BrandStand s)
     {
         _stand = s;
-        foreach (var m in new[] { _fleck, _oeffnung, _russ })
+        foreach (var m in new[] { _fleck, _oeffnung })
         {
             m.SetShaderParameter("zeit", (float)Feuer.Zeit);
             m.SetShaderParameter("staerke", s.Flamme);
@@ -235,13 +225,6 @@ public sealed partial class Gebaeudebrand : Node3D
                     st.Staerke = glimm;
                     flaeche.Scale = new Vector3(1f, 1f, 1f + glimm); // Tiefe: die StÃ¤rke dieser Ã–ffnung (der Shader liest das VerhÃ¤ltnis)
                 }
-            }
-            if (st.Russ is { } russ)
-            {
-                var r = Mathf.Clamp(Mathf.Max(f, s.Glut * 0.6f), 0f, 1f);
-                var sichtbar = r > 0.04f;
-                if (russ.Visible != sichtbar) russ.Visible = sichtbar;
-                russ.Scale = new Vector3(1f, 1f, 1f + r);
             }
             if (st.Fenster) fensterNr++;
         }
