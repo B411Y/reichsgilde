@@ -114,7 +114,7 @@ public sealed class Probestadt : Stadtskript
         var giesser = E.HausHinzufuegen("Haus Brendel");
         E.BetriebHinzufuegen(giesser, werkstaetten[3].Kennung, Betriebsart.Giesserei);
         // Hofstellen (seit 9.11.2026): die drei Startpaare sind Start-Hofstellen, die vierte Werkstatt mit dem nächsten freien Wohnhausplatz eine freie
-        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nord" : "Süd")}{(w.X < 0 ? "west" : "ost")})", freie: true);
+        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nord" : "Süd")}{(w.X < 0 ? "west" : "ost")})", freie: true, nummern: true);
 
         // ── Gelände: sanfter Hang an der östlichen Vorstadt, Hügel im Randstreifen, Unebenheit im Rand ──
         Huegel(P(280, 0), 220, 6);          // höchstens 1,5 · 6 / 220 ≈ 4 % – die Mauer bei x = 70 liegt am Fuß
