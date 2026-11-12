@@ -431,11 +431,11 @@ public partial class RatssitzungAnzeige : Control
         _wahl.Visible = true;
         _wahlFrage.Text = $"Eure Stimme als {stimme.Sitz.Name}:";
         Setzen(_aktuell, ""); // die Knöpfe zeigen die eigene Stimme
-        if (punkt.Thema == Sitzungsthema.Wahl)
+        if (punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger) // der Domprediger wird gewählt wie ein Amt (ohne Amt im Rat)
         {
             foreach (var kandidat in punkt.Kandidaten)
                 WahlKnopf(kandidat.Name + (kandidat.IstAmtsinhaber ? " (bisher)" : ""), stimme.Kandidat == kandidat.Name,
-                    () => Stimmen(new WahlStimme(punkt.Amt!.Name, kandidat.Name)));
+                    () => Stimmen(punkt.Amt is { } amt ? new WahlStimme(amt.Name, kandidat.Name) : new DomStimme(kandidat.Name)));
         }
         else
         {
@@ -486,7 +486,7 @@ public partial class RatssitzungAnzeige : Control
             Setzen(_ergebnis, "");
             return;
         }
-        if (punkt.Thema == Sitzungsthema.Wahl)
+        if (punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger)
         {
             var zaehlung = string.Join(", ", e.Zaehlung.Select(z => $"{z.Kandidat} {z.Stimmen}"));
             Setzen(_ergebnis, (e.Gewaehlt is { } g ? $"Gewählt: {g}" : "Niemand gewählt") + (e.Stichentscheid ? " – Gleichstand, das Los entschied" : "")

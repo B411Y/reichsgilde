@@ -77,6 +77,9 @@ public sealed class KirchenDaten
     /// </summary>
     public int KirchenJeGlaube { get; init; }
 
+    /// <summary>Der Stadt-Dom als Amt auf Zeit (Datenversion 86, siehe <see cref="Domamt"/>); null = kein Amt, alles wie früher.</summary>
+    public DomDaten? Dom { get; init; }
+
     public void Pruefen(List<string> f, IReadOnlyDictionary<string, WareDaten> waren, IReadOnlyDictionary<string, BerufDaten> berufe)
     {
         if (berufe.Count > 0 && !berufe.ContainsKey(Beruf)) f.Add($"kirche.beruf: Den Beruf „{Beruf}“ gibt es nicht.");
@@ -88,6 +91,7 @@ public sealed class KirchenDaten
         if (Beichte.Chance is < 0 or > 1) f.Add("kirche.beichte.chance muss zwischen 0 und 1 liegen.");
         if (LehrschriftBis <= 0) f.Add("kirche.lehrschriftBis muss größer als 0 sein.");
         if (KirchenJeGlaube < 0) f.Add("kirche.kirchenJeGlaube darf nicht negativ sein (0 = keine Grenze).");
+        Dom?.Pruefen(f);
         if (Ablass.Grundpreis < 0 || Ablass.AnteilTat < 0 || Hetzschrift.Ansehen < 0) f.Add("kirche: Preise und Ansehen dürfen nicht negativ sein.");
     }
 }
@@ -207,9 +211,18 @@ public sealed class Kirchenwesen
     /// Wie sich die Gläubigen eines Jahres auf diese Kirchen verteilen: (Gläubige, Kollekte) je Kirche.
     /// Ohne Glauben nach Anziehung. Mit Glauben bekommt jede Konfession ihren Anteil an der Stadt und verteilt ihn
     /// auf die Kirchen ihrer Konfession; gibt es keine, gehen ihre Gläubigen in fremde Kirchen und spenden weniger.
+    /// Hat der Dom einen Domprediger (<see cref="Domamt"/>), zählt er als Kirche seiner Konfession: Er nimmt fest
+    /// <see cref="DomDaten.Anteil"/> der Gemeinde, in die er geht (alles, wenn dort keine andere Kirche steht); die übrigen Kirchen teilen
+    /// sich den Rest nach Anziehung. Eine Gemeinde ohne eigene Kirche geht auch in den Dom – als fremde Kirche, mit der halben Spende.
     /// </summary>
-    public Dictionary<Betrieb, (double Glaeubige, double Kollekte)> Verteilen(IEnumerable<Betrieb> kirchen)
+    public Dictionary<Betrieb, (double Glaeubige, double Kollekte)> Verteilen(IEnumerable<Betrieb> kirchen) => Verteilen(kirchen, out _);
+
+    /// <summary>Wie <see cref="Verteilen(IEnumerable{Betrieb})"/>, dazu der Anteil des Doms (0, wenn das Amt frei ist).</summary>
+    public Dictionary<Betrieb, (double Glaeubige, double Kollekte)> Verteilen(IEnumerable<Betrieb> kirchen, out (double Glaeubige, double Kollekte) dom)
     {
+        dom = (0, 0);
+        var domamt = _w.Domamt;
+        var domGlaube = domamt.IstAktiv ? domamt.Konfession : null; // null = kein Domprediger, der Dom zählt nicht
         var liste = kirchen.ToList();
         var ergebnis = liste.ToDictionary(b => b, _ => (Glaeubige: 0.0, Kollekte: 0.0));
         var gw = _w.Glaube;
@@ -221,16 +234,25 @@ public sealed class Kirchenwesen
             // Eine Kirche ohne Familie (keine Konfession) nimmt jeden auf.
             var eigene = konfession is null ? liste : liste.Where(b => gw.KonfessionVon(b) is null || gw.KonfessionVon(b) == konfession).ToList();
             var faktor = 1.0;
-            if (eigene.Count == 0)
+            var domDabei = domGlaube is { } dg && (konfession is null || konfession == dg); // der Dom ist eine Kirche dieser Gemeinde
+            if (eigene.Count == 0 && !domDabei)
             {
                 eigene = liste;
                 faktor = gw.Daten.FremdeKirche;
+                domDabei = domGlaube is not null; // keine eigene Kirche: auch in den Dom, als fremde Kirche
+            }
+            var gemeinde = Daten.GlaeubigeJeJahr * anteil;
+            if (domDabei)
+            {
+                var teil = eigene.Count == 0 ? 1 : domamt.Daten.Anteil;
+                dom = (dom.Glaeubige + gemeinde * teil, dom.Kollekte + gemeinde * teil * Daten.SpendeJeGlaeubigem * faktor);
+                gemeinde *= 1 - teil;
             }
             var summe = eigene.Sum(Anziehung);
             if (summe <= 0) continue;
             foreach (var b in eigene)
             {
-                var glaeubige = Daten.GlaeubigeJeJahr * anteil * Anziehung(b) / summe;
+                var glaeubige = gemeinde * Anziehung(b) / summe;
                 var (g, k) = ergebnis[b];
                 ergebnis[b] = (g + glaeubige, k + glaeubige * Daten.SpendeJeGlaeubigem * faktor);
             }
@@ -251,7 +273,10 @@ public sealed class Kirchenwesen
         // Bürger-KI: Wie viele Einwohner zur Messe in den Kirchen waren, verschiebt Gläubige und Kollekte (Faktor um 1).
         // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.kirche" fehlt) ist der Faktor genau 1.
         var faktor = _w.Einwohnerschaft.Messefaktor();
-        foreach (var (b, (g0, k0)) in Verteilen(Kirchen))
+        var verteilung = Verteilen(Kirchen, out var dom);
+        if (dom.Glaeubige > 0) // der Anteil des Doms an den Domprediger (Domkollekte, steuerfrei)
+            _w.Domamt.KollekteBuchen(faktor == 1 ? dom.Glaeubige : dom.Glaeubige * faktor, faktor == 1 ? dom.Kollekte : dom.Kollekte * faktor);
+        foreach (var (b, (g0, k0)) in verteilung)
         {
             var (glaeubige, kollekte) = faktor == 1 ? (g0, k0) : (g0 * faktor, k0 * faktor);
             if (glaeubige <= 0) continue;
@@ -481,6 +506,7 @@ public sealed class Kirchenwesen
         Beichtwissen = _beichtwissen.OrderBy(x => nr(x.Prediger)).ThenBy(x => x.Spur).Select(x => new[] { nr(x.Prediger), x.Spur }).ToList(),
         Gelesen = _gelesen.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
         GehetztBis = _gehetztBis.OrderBy(x => nr(x.Key)).ToDictionary(x => nr(x.Key).ToString(), x => x.Value),
+        Dom = _w.Domamt.Sichern(nr),
     };
 
     internal void Wiederherstellen(KirchenStand s, IReadOnlyList<Konto> konten)
@@ -491,5 +517,6 @@ public sealed class Kirchenwesen
         foreach (var x in s.Beichtwissen) _beichtwissen.Add((konten[x[0]], x[1]));
         foreach (var (k, v) in s.Gelesen) _gelesen[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.GehetztBis) _gehetztBis[konten[int.Parse(k)]] = v;
+        _w.Domamt.Wiederherstellen(s.Dom, konten);
     }
 }

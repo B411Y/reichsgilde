@@ -574,6 +574,7 @@ public sealed class Stadtrat
         _w.Wegebau.Ausscheiden(konto);
         _w.Ratsantraege.Ausscheiden(konto);
         _w.Befugnisse.Ausscheiden(konto);
+        _w.Domamt.Ausscheiden(konto, wie); // auch das Amt des Dompredigers
     }
 
     /// <summary>Ein Ratsherr ist verurteilt (Geheimnisse, Teil 3c): Er verliert seinen Sitz, ein anderer rückt nach.</summary>
@@ -650,6 +651,7 @@ public sealed class Stadtrat
         _bewerbungen.Clear();
         _wahlStimmen.Clear(); // neues Jahr, neue Wahl
         _w.Geheimnisse.SitzungVorbei(); // erpresste Stimmen sind abgegeben (Teil 3c)
+        if (LaufendeSitzung is { } laufend) _w.Domamt.SitzungVorbei(laufend.Jahr); // Bewerbungen und Stimmen zum Dom verfallen
 
         foreach (var eintrag in _letzteSitzung)
             _w.Melden(eintrag.StartsWith("Wahl ", StringComparison.Ordinal) ? Meldungsart.Wahl

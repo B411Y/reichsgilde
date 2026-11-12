@@ -12,6 +12,10 @@ public enum Sitzungsthema
     Steuersatz,
     Bauvorhaben,
     Fest,
+
+    /// <summary>Wahl des Dompredigers (<see cref="Kirche.Domamt"/>): nach den Anträgen, vor den Ämterwahlen. Abstimmen wie bei einer Wahl,
+    /// mit dem Befehl <c>DomStimme</c>; <see cref="Sitzungspunkt.Amt"/> ist null.</summary>
+    Domprediger,
     Wahl,
 }
 
@@ -155,6 +159,11 @@ public sealed class Ratssitzung
             foreach (var a in w.Ratsantraege.Antraege)
                 _schritte.Add(new(Thema(a.Art), null, null));
         _schritte.Add(new(null, null, w.Ratsantraege.SitzungAbschliessen));
+        if (w.Domamt.IstAktiv)
+        {
+            if (w.Domamt.KandidatenListe(jahr).Count > 0) _schritte.Add(new(Sitzungsthema.Domprediger, null, null));
+            _schritte.Add(new(null, null, () => w.Domamt.AmtszeitPruefen(jahr))); // Amtszeit um, niemand gewählt: das Amt wird frei
+        }
         foreach (var amt in rat.Aemter.OrderByDescending(a => a.Stufe).ThenBy(a => a.Name, StringComparer.Ordinal))
             if (rat.KandidatenListe(amt).Count > 0)
                 _schritte.Add(new(Sitzungsthema.Wahl, amt, null));
@@ -186,7 +195,19 @@ public sealed class Ratssitzung
         var protokoll = (Action<string>)rat.Protokollieren;
 
         Sitzungspunkt punkt;
-        if (schritt.Thema == Sitzungsthema.Wahl)
+        if (schritt.Thema == Sitzungsthema.Domprediger)
+        {
+            var ausgang = _w.Domamt.Waehlen(_zufall!, Jahr);
+            punkt = MitWahlergebnis(vorher, ausgang, Neu(zeilen));
+            foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>())
+                foreach (var (waehler, wahl, _) in ausgang?.Stimmen ?? Array.Empty<(Amt, Konto?, bool)>())
+                    _w.Meinungen.StimmeGemerkt(waehler, bewerber, wahl == bewerber);
+            if (ausgang is not null)
+                foreach (var k in vorher.Kandidaten.Where(k => k.Haus is not null && k.Haus != ausgang.Gewinner))
+                    _w.Familien.StressRat(k.Haus!, r => r.WahlVerloren,
+                        k.IstAmtsinhaber ? $"Amt {Kirche.Domamt.Amtsname} verloren" : $"Wahl zum {Kirche.Domamt.Amtsname} verloren");
+        }
+        else if (schritt.Thema == Sitzungsthema.Wahl)
         {
             var ausgang = rat.Waehlen(schritt.Amt!, _zufall!, Jahr);
             punkt = MitWahlergebnis(vorher, ausgang, Neu(zeilen));
@@ -262,6 +283,7 @@ public sealed class Ratssitzung
         Sitzungsthema.Stadtglaube => _w.Glaube.StimmeVerboten(konto),
         Sitzungsthema.Pflaster => _w.Wegebau.StimmeVerboten(konto),
         Sitzungsthema.Wahl => _w.Rat.WahlStimmeVerboten(konto, amt!),
+        Sitzungsthema.Domprediger => _w.Domamt.StimmeVerboten(konto),
         _ => _w.Ratsantraege.StimmeVerboten(konto, thema switch
         {
             Sitzungsthema.Steuersatz => Antragsart.Steuersatz,
@@ -277,7 +299,54 @@ public sealed class Ratssitzung
     // ═════════════════════════════════════════════════════════════════════════
 
     private Sitzungspunkt Punkt(Schritt s, int nummer) =>
-        s.Thema == Sitzungsthema.Wahl ? Wahlpunkt(s.Amt!, nummer) : Antragspunkt(s.Thema!.Value, nummer);
+        s.Thema == Sitzungsthema.Wahl ? Wahlpunkt(s.Amt!, nummer)
+        : s.Thema == Sitzungsthema.Domprediger ? Dompunkt(nummer)
+        : Antragspunkt(s.Thema!.Value, nummer);
+
+    /// <summary>Der Punkt „Domprediger“: wie eine Wahl, die Wähler sind alle Sitze außer den Kandidaten (<see cref="Kirche.Domamt"/>).</summary>
+    private Sitzungspunkt Dompunkt(int nummer)
+    {
+        var dom = _w.Domamt;
+        var rat = _w.Rat;
+        var kandidaten = dom.KandidatenListe(Jahr);
+        var namen = kandidaten.Select(k => new Wahlkandidat(k.Inhaber, k, k == dom.Inhaber)).ToList();
+        var zaehlung = kandidaten.Select(_ => 0).ToArray();
+        var stimmen = new List<Sitzungsstimme>();
+        var los = false;
+        foreach (var sitz in kandidaten.Count == 0 ? new List<Amt>() : dom.Waehler(kandidaten))
+        {
+            var gleichauf = dom.StimmeVonSitz(sitz, kandidaten);
+            var wahl = gleichauf[0];
+            zaehlung[kandidaten.IndexOf(wahl)]++;
+            los |= gleichauf.Count > 1;
+            var stimmSitz = rat.StimmSitz(sitz);
+            string grund;
+            if (stimmSitz != sitz)
+                grund = $"Erpresst von {rat.Erpresser(sitz)!.Inhaber} – stimmt wie {rat.Erpresser(sitz)!.Inhaber}.";
+            else if (sitz.Ratsherr is { } r)
+                grund = gleichauf.Count > 1
+                    ? $"Gleichstand zwischen {string.Join(" und ", gleichauf.Select(k => k.Inhaber))} ({Zahlenformat.Ganz(dom.Punkte(r, wahl))} Punkte) – das Los entscheidet."
+                    : $"{wahl.Inhaber}: Ansehen, Meinung und Rhetorik{(wahl == dom.Inhaber ? ", dazu der Amtsbonus" : "")} – {Zahlenformat.Ganz(dom.Punkte(r, wahl))} Punkte.";
+            else if (KiVon(sitz.Konto!) is { } ki)
+                grund = ki.GrundWahl(dom.Inhaber, kandidaten.Select(k => (Konto?)k).ToList(), wahl);
+            else
+                grund = dom.HatStimme(sitz.Konto!, kandidaten) ? "Stimme des Hauses."
+                    : $"Keine Stimme gesetzt – die Vorgabe: {(wahl == dom.Inhaber ? "der bisherige Domprediger" : "der erste Bewerber")}.";
+            var frei = sitz.Konto is { } haus && !IstKi(haus) && dom.StimmeVerboten(haus) is null;
+            stimmen.Add(new Sitzungsstimme(sitz, sitz.Inhaber, sitz.Konto, null, wahl.Inhaber, gleichauf.Count > 1, grund, frei));
+        }
+        var hoechste = zaehlung.DefaultIfEmpty(0).Max();
+        var spitze = Enumerable.Range(0, kandidaten.Count).Where(i => zaehlung[i] == hoechste).ToList();
+        var vorschau = new Sitzungsergebnis(0, 0, 0, null, spitze.Count > 1 || los, false,
+            spitze.Count == 1 ? kandidaten[spitze[0]].Inhaber : null,
+            kandidaten.Select((k, i) => new Wahlzaehlung(k.Inhaber, k, zaehlung[i])).ToList(), Array.Empty<string>());
+        var bewerber = kandidaten.Where(k => k != dom.Inhaber).Select(k => k.Inhaber).ToList();
+        var bisher = dom.Inhaber is { } inhaber ? $" – bisher im Amt: {inhaber.Inhaber} (bis Ende {dom.Bis})" : " – das Amt ist frei";
+        var begruendung = bewerber.Count == 0 ? $"Niemand bewirbt sich{bisher}."
+            : $"{(bewerber.Count == 1 ? "Es bewirbt sich" : "Es bewerben sich")} {string.Join(", ", bewerber)}{bisher}.";
+        return new Sitzungspunkt(nummer, Sitzungsthema.Domprediger, $"Wahl zum {Kirche.Domamt.Amtsname}",
+            $"{Kirche.Domamt.Amtsname} ({_w.Domamt.Daten.Amtsjahre} Jahre, Kollekte im Dom)", null, begruendung, null, namen, stimmen, vorschau, null);
+    }
 
     private Sitzungspunkt Antragspunkt(Sitzungsthema thema, int nummer)
     {
@@ -417,7 +486,6 @@ public sealed class Ratssitzung
     {
         if (ausgang is null)
             return vorher with { Ergebnis = new Sitzungsergebnis(0, 0, 0, null, false, false, null, Array.Empty<Wahlzaehlung>(), protokoll) };
-        var amt = vorher.Amt!;
         string NameVon(Konto? k) => k?.Inhaber ?? vorher.Kandidaten.FirstOrDefault(x => x.Haus is null)?.Name ?? "—";
         var stimmen = vorher.Stimmen.Select(s =>
             ausgang.Stimmen.FirstOrDefault(x => x.Waehler == s.Sitz) is { Waehler: not null } x && x.Los
