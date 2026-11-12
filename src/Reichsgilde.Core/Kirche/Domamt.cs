@@ -127,7 +127,6 @@ public sealed class Domamt
     {
         if (BewerbenVerboten(konto) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         _bewerbungen.Add(konto);
-        _w.Melden(Meldungsart.Wahl, $"{konto.Inhaber} bewirbt sich um das Amt des Dompredigers.", haus: konto);
         return Befehlsergebnis.Ok($"{konto.Inhaber} bewirbt sich um das Amt des Dompredigers. Der Rat wählt am Jahresende.");
     }
 
