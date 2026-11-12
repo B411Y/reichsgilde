@@ -60,6 +60,13 @@ public partial class Stadtansicht
 
     private const float RussKachel = 13.2f; // Meter je Kachel des Rußmusters (vier große Zellen zu je 3,3 m)
 
+    private static uint NameHash(string text)
+    {
+        var h = 2166136261u;
+        foreach (var c in text) h = (h ^ c) * 16777619u; // FNV: .NET-GetHashCode ist je Start anders
+        return h;
+    }
+
     private static float Hash01(uint x, uint y, uint saat)
     {
         var h = x * 374761393u + y * 668265263u + saat * 2246822519u;
@@ -167,10 +174,10 @@ public partial class Stadtansicht
     }
 
     /// <summary>Die Textur mit den Öffnungen für <c>brand_gemein.gdshaderinc</c> (Spalte je Öffnung; Zeile 0 Mitte und Breite, Zeile 1 Normale und Höhe).</summary>
-    private static ImageTexture OeffnungenTextur(IReadOnlyList<FensterAnker> o)
+    private static ImageTexture OeffnungenTextur(IReadOnlyList<FensterAnker> o, string haus)
     {
         var breite = Mathf.Max(o.Count, 1);
-        var daten = new float[breite * 8];
+        var daten = new float[breite * 12];
         for (var i = 0; i < o.Count; i++)
         {
             var a = o[i];
@@ -178,10 +185,12 @@ public partial class Stadtansicht
             var z1 = (breite + i) * 4;
             (daten[z0], daten[z0 + 1], daten[z0 + 2], daten[z0 + 3]) = (a.Mitte.X, a.Mitte.Y, a.Mitte.Z, a.Breite);
             (daten[z1], daten[z1 + 1], daten[z1 + 2], daten[z1 + 3]) = (a.Normale.X, a.Normale.Y, a.Normale.Z, a.Hoehe);
+            // Länge der Fahne: nur Darstellung, fest je Haus und Öffnung (Name und Nummer gehasht, kein Zufall zur Laufzeit): 0,6- bis 2,4-fach
+            daten[(2 * breite + i) * 4] = 0.6f + 1.8f * Hash01(NameHash(haus), (uint)i, 17);
         }
         var bytes = new byte[daten.Length * sizeof(float)];
         Buffer.BlockCopy(daten, 0, bytes, 0, bytes.Length);
-        return ImageTexture.CreateFromImage(Image.CreateFromData(breite, 2, false, Image.Format.Rgbaf, bytes));
+        return ImageTexture.CreateFromImage(Image.CreateFromData(breite, 3, false, Image.Format.Rgbaf, bytes));
     }
 
     /// <summary>
@@ -205,11 +214,18 @@ public partial class Stadtansicht
             modell.Wurzel.SetMeta(merke, true);
             var oeffnungen = OeffnungenSuchen(modell);
             wand = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/brand_wand.gdshader"), RenderPriority = 1 };
-            wand.SetShaderParameter("oeffnungen", OeffnungenTextur(oeffnungen));
+            wand.SetShaderParameter("oeffnungen", OeffnungenTextur(oeffnungen, modell.Wurzel.Name + "@" + modell.Wurzel.GlobalPosition));
             wand.SetShaderParameter("oeffnungen_anzahl", oeffnungen.Count);
+            // Brennt das Haus gerade, wachsen die Fahnen während des Brandes ein (BraendeAktualisieren), sonst stehen sie ganz
+            wand.SetShaderParameter("fahnen_wuchs", _braende.Values.Any(b => IsInstanceValid(b.Wurzel) && b.Wurzel.GetParent() == modell.Wurzel) ? 0f : 1f);
+            modell.Wurzel.SetMeta("rg_brandwand", wand);
             if (OS.GetEnvironment("RG_DACHSTOFF") == "1") GD.Print($"[brandschaden] {modell.Wurzel.Name} bei {modell.Wurzel.GlobalPosition}: {oeffnungen.Count} Öffnungen: " + string.Join("; ", oeffnungen.Select(o => $"{o.Mitte} n {o.Normale} b {o.Breite:0.0} h {o.Hoehe:0.0}")));
         }
-        else modell.Wurzel.RemoveMeta(merke);
+        else
+        {
+            modell.Wurzel.RemoveMeta(merke);
+            if (modell.Wurzel.HasMeta("rg_brandwand")) modell.Wurzel.RemoveMeta("rg_brandwand");
+        }
         var waende = new Dictionary<BaseMaterial3D, BaseMaterial3D>(); // je Ausgangsmaterial eine Kopie mit Wandschicht (je Haus)
         foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {

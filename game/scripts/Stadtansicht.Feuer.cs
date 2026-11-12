@@ -769,6 +769,8 @@ public partial class Stadtansicht
             if (!IsInstanceValid(brand.Wurzel) || t >= brennMinuten + GlimmMinuten)
             {
                 (fertig ??= new()).Add(kennung);
+                if (IsInstanceValid(brand.Wurzel) && brand.Wurzel.GetParent() is { } ende && ende.HasMeta("rg_brandwand") && ende.GetMeta("rg_brandwand").As<ShaderMaterial>() is { } endStoff)
+                    endStoff.SetShaderParameter("fahnen_wuchs", 1f);
                 continue;
             }
             var stand = BrandVerlauf.Rechnen(t, brennMinuten, GlimmMinuten);
@@ -779,6 +781,9 @@ public partial class Stadtansicht
             }
             brand.Flammen = stand.Flamme > 0.02f;
             brand.Haus?.Setzen(stand);
+            // Die Wandfahnen des Brandschadens (Stadtansicht.Brandschaden.cs) wachsen mit dem Brand ein: voll am Ende der Flammen
+            if (brand.Wurzel.GetParent() is { } modellKnoten && modellKnoten.HasMeta("rg_brandwand") && modellKnoten.GetMeta("rg_brandwand").As<ShaderMaterial>() is { } wandStoff)
+                wandStoff.SetShaderParameter("fahnen_wuchs", Mathf.Clamp(t / Mathf.Max(brennMinuten, 1f), 0f, 1f));
         }
         if (fertig is null) return;
         foreach (var kennung in fertig)

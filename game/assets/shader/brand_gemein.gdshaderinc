@@ -1,9 +1,10 @@
 // Gemeinsames der Brandspuren am Gebäude (Brandschaden): Rauschen, Zellmuster (Krokodilhaut) und die Rußfahnen über allen Öffnungen.
 // Die Öffnungen eines Hauses liegen in einer kleinen Float-Textur: Spalte i, Zeile 0 = Mitte (xyz, Weltlage) und Breite (w),
-// Zeile 1 = waagerechte Normale (xyz) und Höhe (w). So braucht kein Haus eine Reihe Einzelwerte, und die Zahl ist nicht begrenzt.
+// Zeile 1 = waagerechte Normale (xyz) und Höhe (w), Zeile 2 = Längenfaktor (x). So braucht kein Haus eine Reihe Einzelwerte, und die Zahl ist nicht begrenzt.
 
 uniform sampler2D oeffnungen : filter_nearest, repeat_disable;
 uniform int oeffnungen_anzahl = 0;
+uniform float fahnen_wuchs = 1.0; // 0 bis 1: die Fahnen wachsen während des Brandes ein (Länge und Deckung)
 
 float b_hash(vec3 p) {
 	p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
@@ -47,6 +48,7 @@ float b_fahnen(vec3 p, vec3 n, float rausch) {
 		vec3 d = p - a.xyz;
 		if (dot(d, d) > 40.0) continue; // weiter als etwa 6 m weg: keine Fahne mehr
 		vec4 b = texelFetch(oeffnungen, ivec2(i, 1), 0);
+		float lang = texelFetch(oeffnungen, ivec2(i, 2), 0).x; // Längenfaktor der Fahne (je Haus und Öffnung fest gewürfelt)
 		float dn = dot(d, b.xyz);
 		if (abs(dn) > 0.9 || dot(n, b.xyz) < 0.25) continue;
 		float dx = dot(d.xz, vec2(-b.z, b.x));
@@ -57,7 +59,7 @@ float b_fahnen(vec3 p, vec3 n, float rausch) {
 		float saum = (1.0 - smoothstep(0.0, 0.28 + 0.12 * rausch, length(rand))) * 0.9;
 		// Fahne über dem Sturz
 		float hoch = d.y - halbh * 0.8;
-		float laenge = b.w * 2.6 + 0.9;
+		float laenge = (b.w * 2.6 + 0.9) * lang * (0.3 + 0.7 * fahnen_wuchs);
 		float t = hoch / laenge;
 		float fahne = 0.0;
 		if (t > -0.12 && t < 1.0) {
@@ -65,9 +67,9 @@ float b_fahnen(vec3 p, vec3 n, float rausch) {
 			float quer = abs(dx) / halb;
 			float seite = 1.0 - smoothstep(0.45 + 0.25 * rausch, 1.0 + 0.15 * rausch, quer);
 			float oben = 1.0 - smoothstep(0.25, 1.0 - 0.3 * rausch, max(t, 0.0));
-			fahne = clamp(seite * oben * (1.0 + 0.7 * (rausch - 0.4)), 0.0, 1.0);
+			fahne = seite * oben * 0.92; // überall gleich kräftig; nur der Rand ist unregelmäßig
 		}
-		best = max(best, max(saum, fahne));
+		best = max(best, max(saum, fahne) * fahnen_wuchs);
 	}
 	return clamp(best, 0.0, 1.0);
 }
