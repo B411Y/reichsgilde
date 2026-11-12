@@ -70,6 +70,7 @@ namespace Reichsgilde;
 ///   --rathaus=amt      das Rathaus mit diesem Reiter auswählen (stadtkasse, rat, amt) – alle vier in Hauptszene.Rat.cs
 ///   --sitzung=1        eine Ratssitzung mit dem Spieler im Rat vorbereiten und bis zum Jahresende vorspulen (=letzte: ohne Halt, danach das Rathaus mit dem Knopf
 ///                      „Letzte Ratssitzung ansehen“); --sitzungzeigen=<immer|betroffen|nie> nur für diesen Start – beide in Hauptszene.Ratssitzung.cs
+///   --domwahl=1        alle geeigneten Häuser bewerben sich um das Amt des Dompredigers (Hauptszene.Ratssitzung.cs; mit --sitzung=1 steht der Dom-Punkt in der Sitzung)
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
 ///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
