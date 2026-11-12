@@ -84,7 +84,7 @@ public partial class Stadtansicht
                 if (!a.Russ && jetzt >= e.Minute)
                 {
                     a.Russ = true;
-                    DachRussSetzen(modell, true);
+                    BrandschadenSetzen(modell, true);
                 }
             }
             if (a.Kette is { } kette) LoeschketteAktualisieren(kette, jetzt + bruchteil, delta);
@@ -98,7 +98,7 @@ public partial class Stadtansicht
         if (_blitze.Count == noch.Count && _blitze.Keys.All(noch.Contains)) return;
         foreach (var (e, a) in _blitze.Where(x => !noch.Contains(x.Key)).ToList())
         {
-            if (a.Russ && a.Modell is { } m && IsInstanceValid(m.Wurzel)) DachRussSetzen(m, false);
+            if (a.Russ && a.Modell is { } m && IsInstanceValid(m.Wurzel)) BrandschadenSetzen(m, false);
             if (a.Kette is not null) LoeschketteEntfernen(a.Kette);
             _blitze.Remove(e);
         }
