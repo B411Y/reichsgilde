@@ -94,6 +94,10 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 
 Die Klänge sind Aufnahmen von freesound.org (CC0, und für Glocke, Frösche und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
 
+## Die Tür beim Betreten und Verlassen
+
+Beim Betreten eines Gebäudes (Doppelklick auf die Tür) klingt eine schwere Holztür, die aufgeht; beim Hinausgehen fällt sie mit einem harten Schlag zu. Die Türklänge laufen über den Regler „Oberfläche“ und sind so laut wie die übrigen Klänge der Oberfläche. Die Tür öffnet sich in dem Moment, in dem der Übergang beginnt: mit dem 3D-Handschuh, sobald die Hand die Klinke drückt, ohne ihn mit dem Start der Blende ins Schwarz. „Tür auf“ ist eine eigene Aufnahme des Entwicklers, „Tür zu“ stammt aus der freien Klangbibliothek Freesound (CC0). Nicht abgehört im Spiel.
+
 ## Die Meldungstöne
 
 Die Benachrichtigungen (siehe [Meldungen](meldungen.md)) haben eigene Töne in einer Klangfamilie: ein Glockenspiel aus Metallstäben, weich, mit kurzem Hall, alle Töne im F-Dur-Raum und alle gleich laut gemessen. Gespielt über den Regler „Oberfläche“:

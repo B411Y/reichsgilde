@@ -19,7 +19,7 @@ namespace Reichsgilde;
 /// </summary>
 public static class KlangOberflaeche
 {
-    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief, EntscheidungSiegel, Mahnung }
+    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief, EntscheidungSiegel, Mahnung, TuerAuf, TuerZu }
 
     public const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
     /// <summary>Sekunden nach dem Start, in denen nichts spielt (Fenster, die beim Aufbau auf- und zugehen).</summary>
@@ -46,6 +46,9 @@ public static class KlangOberflaeche
         [Ereignis.MeldungBrief] = (new[] { "meldung_brief" }, -5f, 1.0f, 0.02f),
         [Ereignis.EntscheidungSiegel] = (new[] { "meldung_entscheidung" }, -3f, 1.0f, 0.02f),
         [Ereignis.Mahnung] = (new[] { "meldung_mahnung" }, -3f, 1.0f, 0.02f),
+        // Tür beim Betreten (eigene Aufnahme des Nutzers) und Verlassen (Freesound CC0) eines Innenraums, auf -18 LUFS wie die übrigen Klänge (tools/ton/tuer_einbauen.py); Auslöser: Uebergangsblende.Starten
+        [Ereignis.TuerAuf] = (new[] { "tuer_auf" }, -5f, 1.0f, 0.02f),
+        [Ereignis.TuerZu] = (new[] { "tuer_zu" }, -5f, 1.0f, 0.02f),
     };
 
     /// <summary>Dateien (ohne .ogg, in <see cref="Ordner"/>), Lautstärke in dB und Tonhöhe eines Ereignisses – für den Reiter „Klänge“ des Entwicklerfensters.</summary>
