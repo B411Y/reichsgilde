@@ -175,9 +175,16 @@ static class NeuePartieTests
             Pruefe.Gleich((int?)8, Stadtkarte.AusJson(e.ZuJson(), Katalog.Value).HofstelleMit(frei)!.Nummer, "Nummer wird geschrieben und gelesen");
         }),
 
-        ("Neue Partie: alte Karten im ausführlichen Format laden wie bisher – Häuser der Karte mit ihren Namen, Höfe und KI-Höchstzahl unverändert, keine Nummern", () =>
+        ("Neue Partie: alte Karten im ausführlichen Format laden wie bisher – Häuser der Karte mit ihren Namen, Höfe und KI-Höchstzahl unverändert, Messstadt ohne Nummern, die anderen Karten nummeriert", () =>
         {
-            foreach (var (kennung, hoefe, ki) in new[] { ("greybox", 4, 3), ("koeln", 8, 7), ("messstadt", 9, 8), ("probestadt", 3, 2) })
+            // Hofnummern (12.11.2026): Köln, Probestadt und Greybox sind nummeriert, die Messstadt bleibt die alte, unnummerierte Karte
+            foreach (var (kennung, hoefe) in new[] { ("greybox", 4), ("koeln", 8), ("probestadt", 3) })
+            {
+                var nummeriert = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                Pruefe.Wahr(Hofstellenvergabe.Nummeriert(nummeriert), kennung);
+                Pruefe.Gleich(hoefe, Partiebesetzung.Hoefe(nummeriert), kennung);
+            }
+            foreach (var (kennung, hoefe, ki) in new[] { ("messstadt", 9, 8) })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
                 Pruefe.Wahr(!Hofstellenvergabe.Nummeriert(karte), kennung);
@@ -192,6 +199,7 @@ static class NeuePartieTests
             Pruefe.Gleich(3, Partiebesetzung.HoechstensKi(null));
             // Gegenprobe: dieselbe alte Karte nimmt kein Haus mehr, als sie Startplätze hat
             Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")), new NeuePartie(Rivalen: 4)), "null bis drei");
+            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")), new NeuePartie(Rivalen: 9)), "null bis acht");
         }),
 
         ("Neue Partie: ohne KI-Gegner – null Rivalen gehen, der Spieler ist allein; Gegenprobe −1 wird abgewiesen", () =>
