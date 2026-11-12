@@ -29,6 +29,19 @@ public static class Datenvorrat
         return vorab?.Result ?? Lesen(Godot.FileAccess.GetFileAsString(Hauptszene.WirtschaftsdatenPfad));
     }
 
+    private static Wirtschaftsdaten? _lesekopie;
+
+    /// <summary>
+    /// Eine eigene, nur lesende Kopie der Daten für das Hauptmenü („Neue Partie“: Berufe, Würfeln des Vorschlags, Charakterzüge). Wird einmal gelesen
+    /// (rund 0,3 s beim ersten Öffnen) und angefasst nichts: Die Partie bekommt weiter ihre eigene Lesung über <see cref="Holen"/>. Null, wenn die Datei fehlt oder fehlerhaft ist.
+    /// </summary>
+    public static Wirtschaftsdaten? Lesekopie()
+    {
+        if (_lesekopie is null)
+            _lesekopie = Lesen(Godot.FileAccess.GetFileAsString(Hauptszene.WirtschaftsdatenPfad)).Daten;
+        return _lesekopie;
+    }
+
     private static (Wirtschaftsdaten? Daten, WirtschaftsdatenFehler? Fehler, bool Leer) Lesen(string json)
     {
         if (string.IsNullOrEmpty(json)) return (null, null, true);
