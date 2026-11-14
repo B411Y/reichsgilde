@@ -20,7 +20,8 @@ public partial class Mauszeiger : Node
     /// <summary>Alle wählbaren Handschuhe: die sechs Stände, dazu 7 Wache und 8 Dieb (nur freie Wahl, nie nach Stand).</summary>
     public const int Haende = 8;
 
-    public enum Art { Normal, Klick, Schloss }
+    /// <summary>Verschieben: eine Fläche, die sich mit gedrückter Taste verschieben lässt (Stammbaum; Form <c>Move</c> oder <c>Drag</c>): der 3D-Handschuh zeigt dort die Windrose, die 2D-Hand bleibt normal.</summary>
+    public enum Art { Normal, Klick, Schloss, Verschieben }
 
     /// <summary>Handstufe fest nur für diesen Start (Startoption <c>--zeigerstufe</c> 1..8, schlägt die Wahl in den Einstellungen); 0 = die Wahl der Einstellungen
     /// (<see cref="Fenster.ZeigerStufe"/>), und deren 0 heißt: nach dem Stand des Hauses.</summary>
@@ -93,7 +94,7 @@ public partial class Mauszeiger : Node
         // 3D-Handschuh (ab 48 Pixel, Einstellung, Datei da): die Bühne zeichnet ihn, der System-Zeiger wird unsichtbar; sonst wie bisher der 2D-Zeiger.
         var drei = an && HandschuhZeiger.Wirksam(groesse);
         Stadt?.InnenSchweben(an && art == Art.Schloss ? Stadt.KennungUnterDerMaus : null); // Vorladen des Raums unter der Maus (Stadtansicht.Uebergang.cs)
-        _handschuh?.Setze(drei, groesse, art != Art.Normal, hilfeAn, an && TextUnterMaus(), art == Art.Schloss, Stadt?.RahmenZieht ?? false, GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit);
+        _handschuh?.Setze(drei, groesse, art != Art.Normal, hilfeAn, an && TextUnterMaus(), art == Art.Schloss, Stadt?.RahmenZieht ?? false, GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit, art == Art.Verschieben);
         if (_gesetzt == (stufe, art, groesse, an, hilfeAn, drei)) return;
         _gesetzt = (stufe, art, groesse, an, hilfeAn, drei);
         if (!an)
@@ -118,15 +119,17 @@ public partial class Mauszeiger : Node
         if (hilfe is not null) Input.SetCustomMouseCursor(hilfe, Input.CursorShape.Help, HilfePunkte[nr]);
         else Input.SetCustomMouseCursor(bild, Input.CursorShape.Help, hotspot);
         // „Zeigefinger“ (Knöpfe mit Handform) immer klick.
-        var klick = art == Art.Normal ? Bild(stufe, Art.Klick, groesse) : bild;
+        var klick = art is Art.Normal or Art.Verschieben ? Bild(stufe, Art.Klick, groesse) : bild;
         if (klick is not null) Input.SetCustomMouseCursor(klick, Input.CursorShape.PointingHand, hotspot);
         // Pfeil = der gewählte Zustand.
         Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Move); // 2D: das Verschieben-Zeichen des Systems (mit dem 3D-Handschuh waren diese Formen unsichtbar)
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Drag);
         if (Input.GetCurrentCursorShape() != vorher) DisplayServer.CursorSetShape((DisplayServer.CursorShape)(int)vorher);
         GD.Print($"[zeiger] Stufe {stufe} {art.ToString().ToLowerInvariant()} {groesse}px bei {GetViewport().GetMousePosition()} über {Beschreibung()}");
     }
 
-    /// <summary>Steht die Maus über einem Textfeld (der Zeiger dort wäre der I-Strich)? Dann nimmt der 3D-Handschuh die Haltung Text.</summary>
+    /// <summary>Steht die Maus über einem Textfeld (der Zeiger dort wäre der I-Strich)? Dann weicht der 3D-Handschuh dem Messing-I (<see cref="SymbolWechsel"/>).</summary>
     private bool TextUnterMaus() =>
         GetViewport().GuiGetHoveredControl() is { } steuerung && steuerung.GetCursorShape(steuerung.GetLocalMousePosition()) == Control.CursorShape.Ibeam;
 
@@ -140,7 +143,9 @@ public partial class Mauszeiger : Node
         _leer ??= ImageTexture.CreateFromImage(Image.CreateEmpty(2, 2, false, Image.Format.Rgba8));
         var vorher = Input.GetCurrentCursorShape();
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.Help);
-        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Ibeam); // der I-Strich des Systems fällt weg: über Textfeldern zeichnet der Handschuh die Haltung Text
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Ibeam); // der I-Strich des Systems fällt weg: über Textfeldern zeichnet die Bühne das Messing-I
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Move); // verschiebbare Fläche (Stammbaum): die Bühne zeigt Zeigehand und Windrose
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Drag);
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.PointingHand);
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.Arrow);
         if (Input.GetCurrentCursorShape() != vorher) DisplayServer.CursorSetShape((DisplayServer.CursorShape)(int)vorher);
@@ -154,6 +159,8 @@ public partial class Mauszeiger : Node
         Input.SetCustomMouseCursor(null, Input.CursorShape.PointingHand);
         Input.SetCustomMouseCursor(null, Input.CursorShape.Help);
         Input.SetCustomMouseCursor(null, Input.CursorShape.Ibeam);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Move);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Drag);
     }
 
     private static Texture2D? HilfeBild(int groesse)
@@ -174,12 +181,26 @@ public partial class Mauszeiger : Node
         if (steuerung is not null)
         {
             var anklickbar = steuerung is BaseButton { Disabled: false } || steuerung.MouseDefaultCursorShape == Control.CursorShape.PointingHand;
-            return anklickbar ? Art.Klick : Art.Normal;
+            return anklickbar ? Art.Klick : FormUnterMaus(steuerung) is Control.CursorShape.Move or Control.CursorShape.Drag ? Art.Verschieben : Art.Normal;
         }
         if (Stadt is null) return Art.Normal;
         if (Stadt.KennungUnterDerMaus is { } kennung)
             return Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung) ? Art.Schloss : Art.Klick;
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
+    }
+
+    /// <summary>
+    /// Die Zeigerform, die Godot für dieses Steuerelement zeigen würde: wie im Viewport von unten nach oben, solange die Form der Pfeil ist und das Element
+    /// die Maus durchreicht (die Zeichnung des Stammbaums reicht durch, die Fläche darüber trägt <c>Drag</c> bzw. <c>Move</c>).
+    /// </summary>
+    private static Control.CursorShape FormUnterMaus(Control steuerung)
+    {
+        for (Control? c = steuerung; c is not null; c = c.GetParentControl())
+        {
+            var form = c.GetCursorShape(c.GetLocalMousePosition());
+            if (form != Control.CursorShape.Arrow || c.MouseFilter == Control.MouseFilterEnum.Stop) return form;
+        }
+        return Control.CursorShape.Arrow;
     }
 
     /// <summary>48, 64 oder 80 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 64 bei 1080p (Nutzerwunsch 11.11.2026; 48 nur noch bei kleinem Fenster oder kleiner Oberfläche).</summary>

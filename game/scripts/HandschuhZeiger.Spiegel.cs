@@ -12,6 +12,19 @@ public partial class HandschuhZeiger
     /// <summary>Das Bild der Bühne (für die Spiegel in den Unterfenstern).</summary>
     public Texture2D Textur => _bild.GetTexture();
 
+    private bool _textImFenster;
+
+    /// <summary>Ein Spiegel meldet ein Textfeld unter der Maus in seinem Unterfenster (Dialog, Popup): das Messing-I gilt auch dort; gelesen und gelöscht im nächsten Bild.</summary>
+    public void TextImFensterMelden() => _textImFenster = true;
+
+    /// <summary>Textfeld in einem Unterfenster seit dem letzten Bild? Liest und löscht die Meldung der Spiegel.</summary>
+    private bool TextImFensterNehmen()
+    {
+        var war = _textImFenster;
+        _textImFenster = false;
+        return war;
+    }
+
     private void SpiegelAnmelden()
     {
         GetTree().NodeAdded += FensterPruefen;
@@ -87,5 +100,9 @@ public partial class HandschuhSpiegel : CanvasLayer
         _flaeche.Position = position;
         _flaeche.Size = groesse;
         _flaeche.Visible = true;
+        // Textfeld im Unterfenster (das Hauptfenster sieht seine Steuerelemente nicht): dem Handschuh melden, er wechselt zum Messing-I
+        if (_fenster.GuiGetHoveredControl() is { } steuerung && _fenster.GetVisibleRect().HasPoint(_fenster.GetMousePosition())
+            && steuerung.GetCursorShape(steuerung.GetLocalMousePosition()) == Control.CursorShape.Ibeam)
+            _quelle.TextImFensterMelden();
     }
 }
