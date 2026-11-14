@@ -38,8 +38,7 @@ public partial class RatAnzeige
         var waehrung = w.Daten.Allgemein.Waehrung;
         _inhalt.AddChild(new HSeparator());
         Hauptmenue.Text(_inhalt, "Anträge zu Steuer, Bau und Fest", 16);
-        Hauptmenue.Text(_inhalt, $"Stadtkasse: {Zahlenformat.Ganz(w.Kasse.Stand)} {waehrung} · Umsatzsteuer {w.Kasse.SteuersatzProzent} % · " +
-                                 "Bau und Fest werden bei der Abstimmung aus der Kasse bezahlt.", 13, null, umbruchBreite: 670);
+        Hauptmenue.Text(_inhalt, "Bau und Fest werden bei der Abstimmung aus der Kasse bezahlt.", 13, null, umbruchBreite: 670);
         if (w.Befugnisse.FreierAntragOffen(_spieler!))
             Hauptmenue.Text(_inhalt, "Als Bürgermeister stellt ihr einen Antrag in diesem Jahr ohne Aktionspunkte – er ist noch offen.", 13, Gruen, umbruchBreite: 670);
         else if (w.Befugnisse.HatAmt(_spieler!, Amtsbefugnisse.Buergermeister))

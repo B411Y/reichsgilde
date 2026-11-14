@@ -513,6 +513,17 @@ public sealed partial class Stadtwirtschaft
     }
 
     /// <summary>Kann das Haus sich diesen Befehl an Aktionspunkten leisten?</summary>
+    /// <summary>
+    /// Wird der Befehl wegen fehlender Aktionspunkte abgelehnt? Genau die Sperre aus <see cref="Ausfuehren"/>: nur mit Kosten,
+    /// nur für aktive Häuser, nicht im Kerker. <paramref name="kosten"/> = was der Befehl dieses Haus kostet.
+    /// </summary>
+    internal bool ApFehlen(Konto konto, Befehl befehl, out int kosten)
+    {
+        kosten = ApKosten(konto, befehl);
+        return kosten > 0 && konto.IstAktiv && !konto.Aktionspunkte.Reicht(kosten)
+               && !(Justiz.IstAktiv && Justiz.ImKerker(konto));
+    }
+
     public bool ApReichen(Konto konto, Befehl befehl) => konto.Aktionspunkte.Reicht(ApKosten(konto, befehl));
 
     /// <summary>Neue Runde: Jedes Haus bekommt seine AP, höchstens bis zum Vorrat aus den Daten – der Rest verfällt.</summary>
@@ -842,9 +853,7 @@ public sealed partial class Stadtwirtschaft
         if (befehl is Entwickler.EntwicklerBefehl entwickler)
             return Entwicklerhilfe.Ausfuehren(absender, entwickler);
         // Aktionspunkte: erst prüfen, nur bei Erfolg abbuchen – ein abgelehnter Befehl kostet nichts.
-        var kosten = ApKosten(absender, befehl);
-        if (kosten > 0 && absender.IstAktiv && !absender.Aktionspunkte.Reicht(kosten)
-            && !(Justiz.IstAktiv && Justiz.ImKerker(absender)))
+        if (ApFehlen(absender, befehl, out var kosten))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
         var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
         var stress = Familien.StressVorschau(absender, befehl); // vorher: was der Befehl bewirkt, hängt am Stand davor (Ausbau zum …)
@@ -925,10 +934,12 @@ public sealed partial class Stadtwirtschaft
             return BerufErlernenAusfuehren(absender, lehre.Beruf);
         if (befehl is MeisterpruefungAblegen pruefung)
             return MeisterpruefungAusfuehren(absender, pruefung.Beruf);
-        if (befehl is AmtBewerben or Schenken or StatutBeantragen or WahlStimme or StatutStimme && !Rat.IstAktiv)
+        if (befehl is AmtBewerben or BewerbungZurueckziehen or Schenken or StatutBeantragen or WahlStimme or StatutStimme && !Rat.IstAktiv)
             return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Stadtrat.");
         if (befehl is AmtBewerben bewerbung)
             return Rat.Bewerben(absender, bewerbung.Amt);
+        if (befehl is BewerbungZurueckziehen zurueck)
+            return Rat.BewerbungZurueckziehen(absender, zurueck.Amt);
         if (befehl is Schenken geschenk)
             return Rat.Schenken(absender, geschenk.Ratsherr, geschenk.Betrag);
         if (befehl is StatutBeantragen antrag)

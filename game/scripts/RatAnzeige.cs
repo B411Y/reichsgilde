@@ -8,23 +8,40 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Ratskammer: alle Ämter mit Inhabern, Haltung zum Statut und ihrer Meinung über euch bei jedem Ratsherrn –
-/// dazu Bewerbung, Geschenke und Anträge zum Statut, jeweils mit einer Prognose nach heutigem Stand.
+/// Die Ratskammer mit vier Reitern (PR „Ratskammer mit Reitern“):
+/// <list type="bullet">
+/// <item><b>Ämter</b>: der Ratsbaum (<see cref="RatBaumAnzeige"/>) mit der Tafel zum gewählten Amt – Bewerben mit den Voraussetzungen, Bewerberreihe und Stimme,
+/// „Euer Amt“, Geschenke an die Ratsherren (RatAnzeige.Baum.cs) – und der Domprediger (RatAnzeige.Dom.cs).</item>
+/// <item><b>Anträge</b>: Tagesordnung, Antrag zum Fron- und Sklavenstatut, Wegbau, die letzte Sitzung (RatAnzeige.Antraege.cs).</item>
+/// <item><b>Stadtglaube</b>: der geltende Glaube und der Antrag dazu (nur mit Glaubenssystem).</item>
+/// <item><b>Kasse</b>: Stand und Haushalt der Stadt, Bauten, Fest und die Anträge zu Steuer, Bau und Fest (RatAnzeige.Kasse.cs, nur mit Stadtkasse).</item>
+/// </list>
 /// Wer im Rat sitzt, legt hier auch seine Stimme bei den Wahlen und den Anträgen vorab fest (bis zur Sitzung am Jahresende änderbar).
-/// Mit Stadtkasse (PR #200) dazu die Tagesordnung und die Anträge zu Steuer, Bau und Fest (RatAnzeige.Antraege.cs).
+///
+/// <b>Aussehen und Logik sind getrennt:</b> Farben, Schriften, Ränder und Abstände stammen aus dem Thema <c>res://scenes/rat_thema.tres</c>
+/// (<see cref="RatStil"/>). Der Reiter „Ämter“ und die Kurzübersicht sind schon ganz auf das Thema umgestellt; die Reiter „Anträge“, „Stadtglaube“ und „Kasse“
+/// rufen noch <c>Hauptmenue.Text</c> mit Größe und Farbe auf und wandern mit dem Fable-Neudesign ins Thema.
 ///
 /// Wie alle Bedienfelder ändert sie nichts selbst, sondern schickt Befehle an die Stadtwirtschaft.
 /// </summary>
 public partial class RatAnzeige : PanelContainer
 {
-    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
-    private static readonly Color Grau = new(0.72f, 0.72f, 0.72f);
-    private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
-    private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
+    /// <summary>Die Reiter in ihrer Reihenfolge (auch für <c>--rat=&lt;reiter&gt;</c> und die Knöpfe der Kurzübersicht).</summary>
+    public enum Reiter { Aemter, Antraege, Stadtglaube, Kasse }
+
+    // Farben nur für Textstellen, die sich nach dem Zustand richten – sie kommen aus dem Thema, nicht aus dem Code.
+    private static Color Gold => RatStil.Farbe("gold");
+    private static Color Grau => RatStil.Farbe("grau");
+    private static Color Gruen => RatStil.Farbe("gruen");
+    private static Color Rot => RatStil.Farbe("rot");
 
     private Simulation? _simulation;
     private Konto? _spieler;
+    /// <summary>Die Seite des Reiters, die gerade aufgebaut wird – alle Abschnitte hängen ihre Zeilen hier ein.</summary>
     private VBoxContainer _inhalt = null!;
+    private TabContainer _reiter = null!;
+    private VBoxContainer _kopf = null!;
+    private readonly Dictionary<Reiter, VBoxContainer> _seiten = new();
     /// <summary>Nur der Betrag wird gemerkt – das Zahlenfeld entsteht bei jedem Aufbau neu (siehe FamilienAnzeige).</summary>
     private double _geschenkBetrag = 200;
     private Label _meldung = null!;
@@ -32,29 +49,31 @@ public partial class RatAnzeige : PanelContainer
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
+    private static readonly Dictionary<Reiter, string> Reitername = new()
+    {
+        [Reiter.Aemter] = "Ämter", [Reiter.Antraege] = "Anträge", [Reiter.Stadtglaube] = "Stadtglaube", [Reiter.Kasse] = "Kasse",
+    };
+
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(720, 0);
-        AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        RatStil.Anwenden(this);
+        ThemeTypeVariation = "RatTafel";
+        CustomMinimumSize = new Vector2(RatStil.Mass("kammer_breite"), 0);
+        var rand = RatStil.Container<MarginContainer>(this, "RatRand");
+        var spalte = RatStil.Container<VBoxContainer>(rand, "RatSpalte");
+
+        _kopf = RatStil.Container<VBoxContainer>(spalte, "RatSpalte");
+        _reiter = new TabContainer { ThemeTypeVariation = "RatReiter", FocusMode = FocusModeEnum.None, ClipTabs = false };
+        spalte.AddChild(_reiter);
+        foreach (var r in Enum.GetValues<Reiter>())
         {
-            BgColor = new Color(0.12f, 0.11f, 0.10f, 1f),
-            BorderColor = Gold * new Color(1, 1, 1, 0.8f),
-            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
-        });
-        var rand = new MarginContainer();
-        foreach (var seite in new[] { "left", "right", "top", "bottom" })
-            rand.AddThemeConstantOverride($"margin_{seite}", 22);
-        AddChild(rand);
-        var spalte = new VBoxContainer();
-        spalte.AddThemeConstantOverride("separation", 8);
-        rand.AddChild(spalte);
+            var seite = new VBoxContainer { Name = Reitername[r], ThemeTypeVariation = "RatSpalte" };
+            _reiter.AddChild(seite);
+            _seiten[r] = seite;
+        }
+        _inhalt = _seiten[Reiter.Aemter];
 
-        _inhalt = new VBoxContainer();
-        _inhalt.AddThemeConstantOverride("separation", 8);
-        spalte.AddChild(_inhalt);
-
-        _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: 670);
+        _meldung = RatStil.Text(spalte, "", "RatHinweis", umbrechen: true);
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
@@ -68,9 +87,11 @@ public partial class RatAnzeige : PanelContainer
         _spieler = spieler;
     }
 
-    public void Oeffnen()
+    /// <summary>Öffnet die Kammer auf einem Reiter (ohne Angabe: der Reiter, der zuletzt offen war, beim ersten Mal „Ämter“).</summary>
+    public void Oeffnen(Reiter? reiter = null)
     {
         _meldung.Text = "";
+        if (reiter is { } r) _reiter.CurrentTab = _reiter.GetTabIdxFromControl(_seiten[r]);
         Aufbauen();
         Show();
     }
@@ -80,140 +101,49 @@ public partial class RatAnzeige : PanelContainer
         UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
         {
             _meldung.Text = UiHilfe.MeldungText(ergebnis);
-            _meldung.AddThemeColorOverride("font_color", ergebnis.Erfolg ? Gruen : Rot);
+            _meldung.ThemeTypeVariation = ergebnis.Erfolg ? "RatGut" : "RatSchlecht";
             if (ergebnis.Erfolg) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Siegel); // Antrag oder Stimme ist besiegelt
             Gemeldet?.Invoke(_meldung.Text);
             Aufbauen(); // Gunst, Prognosen und Knöpfe haben sich geändert
         });
     }
 
-    /// <summary>Baut den Inhalt neu auf – beim Öffnen und nach jedem Befehl.</summary>
+    /// <summary>Baut den Inhalt neu auf – beim Öffnen und nach jedem Befehl. Der gewählte Reiter bleibt.</summary>
     public void Aufbauen()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         var rat = w.Rat;
-        var waehrung = w.Daten.Allgemein.Waehrung;
-        UiHilfe.KinderEntfernen(_inhalt);
 
-        Hauptmenue.Text(_inhalt, rat.Daten.Kammer, 26, Gold, zentriert: true);
-        Hauptmenue.Text(_inhalt, $"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}", 15, null, zentriert: true);
-        if (w.Glaube.IstAktiv)
-            Hauptmenue.Text(_inhalt, $"Stadtglaube: {KonfessionTexte.StadtglaubeText(w.Glaube.Stadtglaube)}" +
-                                     (w.Glaube.Stadtglaube is null ? "" : $" – Andersgläubige zahlen {Zahlenformat.Ganz(w.Glaube.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr"),
-                15, null, zentriert: true);
+        var fokusAmt = _baum?.IsInsideTree() == true ? _baum.FokusAmt() : null; // die Tastaturauswahl bleibt am Knoten
+        UiHilfe.KinderEntfernen(_kopf);
+        RatStil.Text(_kopf, rat.Daten.Kammer, "RatTitel", zentriert: true);
+        RatStil.Text(_kopf, $"Geltendes Fron- und Sklavenstatut: {w.Statut.Kuerzel()} – {w.Statut.Name()}", "RatText", zentriert: true);
 
-        // ── Die Ämter ──
-        var geschenkZeile = new HBoxContainer();
-        _inhalt.AddChild(geschenkZeile);
-        Hauptmenue.Text(geschenkZeile, "Geschenk je Klick:", 14);
-        var geschenk = new Zahlfeld { MinValue = 10, MaxValue = 5000, Step = 10, Value = _geschenkBetrag, Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-        geschenkZeile.AddChild(geschenk);
-        // Wie viel Gunst ein Geschenk bringt, hängt von den Charakterzügen des Ratsherrn ab (Rat.GunstJeGulden) – die Zahl steht am Knopf.
-        string Hinweis() => $"   (Meinung je nach Ratsherr, verblasst um {Zahlenformat.Ganz(rat.Daten.Gunst.VerfallJeJahr * 100)} % im Jahr)";
-        var hinweis = Hauptmenue.Text(geschenkZeile, Hinweis(), 12, Grau);
-        var gunstVorschau = new List<Action>();
-        geschenk.ValueChanged += wert => { _geschenkBetrag = wert; hinweis.Text = Hinweis(); foreach (var a in gunstVorschau) a(); };
+        // Reiter ohne Grundlage verschwinden (kein Glaubenssystem, keine Stadtkasse)
+        _reiter.SetTabHidden(_reiter.GetTabIdxFromControl(_seiten[Reiter.Stadtglaube]), !w.Glaube.IstAktiv);
+        _reiter.SetTabHidden(_reiter.GetTabIdxFromControl(_seiten[Reiter.Kasse]), !w.Kasse.IstAktiv);
+        if (_reiter.IsTabHidden(_reiter.CurrentTab)) _reiter.CurrentTab = 0;
 
-        var raster = new Streifenraster { Columns = 7 };
-        raster.AddThemeConstantOverride("h_separation", 14);
-        raster.AddThemeConstantOverride("v_separation", 6);
-        _inhalt.AddChild(raster);
-        var kopfTipps = new[] { "", "Rang des Amtes: höhere Ämter entscheiden mehr.", "Das Amt mit seinem Einkommen im Jahr.", "Wer das Amt innehat: ein Haus (Wappen) oder ein Ratsherr.", "Wofür ein Ratsherr eintritt; danach stimmt er bei Anträgen.", "Was der Ratsherr von euch hält (−100 … +100): Charakterzüge, Volk, Glaube, Stand, Geschenke und mehr. Zählt bei Wahlen und Anträgen. Ein Klick auf sein Porträt zeigt alle Gründe und die Aktivitäten.", "" };
-        var kopfNr = 0;
-        foreach (var kopf in new[] { "", "Stufe", "Amt", "Inhaber", "Haltung", "Meinung", "" })
-            Hauptmenue.Text(raster, kopf, 12, Grau).TooltipText = kopfTipps[kopfNr++];
-        foreach (var amt in rat.Aemter)
+        foreach (var (reiter, seite) in _seiten)
         {
-            var eigenes = amt.Konto == _spieler;
-            var farbe = eigenes ? Gold : (Color?)null;
-            var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein); // der Inhaber (PR #211)
-            if (bild.ZeigenAmt(w, amt)) raster.AddChild(bild);
-            else raster.AddChild(new Control { CustomMinimumSize = new Vector2(PortraetAnzeige.Klein, PortraetAnzeige.Klein) }); // freier Sitz
-            Hauptmenue.Text(raster, amt.Stufe.ToString(), 14, farbe).TooltipText = $"Stufe {amt.Stufe} der Ämter.";
-            Hauptmenue.Text(raster, $"{amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr)", 14, farbe).TooltipText = $"{amt.Name}: Einkommen {Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung} im Jahr.";
-            var glaube = !w.Glaube.IstAktiv ? null : amt.Ratsherr is { } rg ? w.Glaube.GlaubeVon(rg) : amt.Konto is { } hk ? w.Glaube.GlaubeVon(hk) : null;
-            var kurz = glaube switch { Konfession.Katholisch => ", kath.", Konfession.Evangelisch => ", ev.", Konfession.Naturglaube => ", Heide", _ => "" };
-            var inhaber = UiHilfe.MitWappen(raster, amt.Ratsherr is null ? amt.Konto?.Wappen : null, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
-            if (amt.Ratsherr is { } rn && w.Glaube.IstAktiv)
+            UiHilfe.KinderEntfernen(seite);
+            _inhalt = seite;
+            switch (reiter)
             {
-                // Die Glaubensnähe steckt in der Meinung (PR #231) – hier nur der Glaube, die Punkte zeigt der Tooltip der Spalte „Meinung“
-                inhaber.TooltipText = $"{rn.Name} ist {w.Glaube.GlaubeVon(rn).Name()} – der Glaube zählt in seiner Meinung über Euch.";
-                inhaber.MouseFilter = MouseFilterEnum.Stop;
-            }
-            if (amt.Ratsherr is { } ratsherr)
-            {
-                Hauptmenue.Text(raster, $"{ratsherr.Haltung.Kuerzel()} – {ratsherr.Haltung.Name()}", 13).TooltipText = $"{ratsherr.Name} stimmt nach der Haltung {ratsherr.Haltung.Name()}.";
-                var meinung = rat.Meinung(ratsherr, _spieler);
-                Hauptmenue.Text(raster, Zahlenformat.MitVorzeichen(meinung), 14, MeinungsHilfe.Farbe(meinung)).TooltipText = MeinungsHilfe.Tipp(w, ratsherr, _spieler);
-                var knoepfe = new HBoxContainer();
-                knoepfe.AddThemeConstantOverride("separation", 4);
-                raster.AddChild(knoepfe);
-                var knopf = new Button { Text = "Beschenken", FocusMode = FocusModeEnum.None };
-                knopf.Pressed += () => Befehlen(new Schenken(ratsherr.Name, _geschenkBetrag));
-                void Vorschau() { if (!knopf.Disabled) knopf.TooltipText = $"{Zahlenformat.MitVorzeichen(_geschenkBetrag * rat.GunstJeGulden(ratsherr, _spieler))} Meinung bei {ratsherr.Name} (weitere Geschenke in diesem Jahr wirken weniger)"; } // nach dem AP-Hinweis nicht überschreiben
-                Vorschau();
-                gunstVorschau.Add(Vorschau);
-                UiHilfe.ApKosten(knopf, w, _spieler, new Schenken("", 0));
-                knoepfe.AddChild(knopf);
-                if (w.Duft.IstAktiv)
-                {
-                    var duft = w.Duft;
-                    var preis = duft.Preis(_spieler, duft.Daten.Moschus.Ware);
-                    var moschus = new Button { Text = "Moschus", FocusMode = FocusModeEnum.None };
-                    var grund = duft.MoschusRatsherrVerboten(_spieler, ratsherr.Name);
-                    moschus.Disabled = grund is not null;
-                    moschus.TooltipText = grund ?? $"{duft.Daten.Moschus.Ware} schenken ({(preis > 0 ? $"{Zahlenformat.Ganz(preis)} {waehrung} am Markt" : "aus dem Lager")}): " +
-                                                   $"+{Zahlenformat.Ganz(duft.Daten.Moschus.Gunst)} Meinung – ein Duft ist keine Bestechung. Einmal im Jahr je Ratsherr.";
-                    moschus.Pressed += () => Befehlen(new MoschusRatsherr(ratsherr.Name));
-                    UiHilfe.ApKosten(moschus, w, _spieler, new MoschusRatsherr(""));
-                    knoepfe.AddChild(moschus);
-                }
-            }
-            else
-            {
-                Hauptmenue.Text(raster, amt.Konto is null ? "" : "Haus", 13, Grau);
-                Hauptmenue.Text(raster, "", 14);
-                Hauptmenue.Text(raster, "", 14);
+                case Reiter.Aemter: AemterSeite(w); break;
+                case Reiter.Antraege: AntraegeSeite(w); break;
+                case Reiter.Stadtglaube: if (w.Glaube.IstAktiv) StadtglaubeSeite(w); break;
+                case Reiter.Kasse: if (w.Kasse.IstAktiv) KasseSeite(w); break;
             }
         }
+        if (fokusAmt is not null) _baum.CallDeferred(RatBaumAnzeige.MethodName.FokusAuf, fokusAmt);
+    }
 
-        // ── Laufbahn ──
-        _inhalt.AddChild(new HSeparator());
-        var eigenesAmt = rat.AmtVon(_spieler);
-        Hauptmenue.Text(_inhalt, $"Eure Laufbahn: {w.StandVon(_spieler).Name}, {(eigenesAmt is null ? "noch ohne Amt" : $"im Amt als {eigenesAmt.Name}")}", 16);
-        if (rat.Bewerbungen.TryGetValue(_spieler, out var beworben) && rat.AmtNamens(beworben) is { } ziel)
-        {
-            Hauptmenue.Text(_inhalt, $"Ihr bewerbt euch als {ziel.Name}. Gewählt wird am Jahresende.", 14);
-            PrognoseZeigen(rat, ziel);
-        }
-        else
-        {
-            var waehlbar = rat.WaehlbareAemter(_spieler).ToList();
-            if (waehlbar.Count == 0)
-            {
-                var naechste = (eigenesAmt?.Stufe ?? 0) + 1;
-                var noetig = rat.Aemter.Where(a => a.Stufe == naechste).Select(a => a.Daten.MindestStand).FirstOrDefault();
-                Hauptmenue.Text(_inhalt, noetig is null ? "Höher geht es nicht – ihr habt das höchste Amt der Stadt."
-                    : $"Für die nächste Stufe braucht ihr mindestens den Stand {noetig}.", 14, Grau);
-            }
-            else
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
-                foreach (var a in waehlbar) auswahl.AddItem($"{a.Name} ({Zahlenformat.Ganz(a.Daten.Einkommen)} {waehrung}/Jahr)");
-                zeile.AddChild(auswahl);
-                var bewerben = new Button { Text = "Bewerben", FocusMode = FocusModeEnum.None };
-                bewerben.Pressed += () => Befehlen(new AmtBewerben(waehlbar[auswahl.Selected].Name));
-                UiHilfe.ApKosten(bewerben, w, _spieler, new AmtBewerben(""));
-                zeile.AddChild(bewerben);
-                foreach (var a in waehlbar) PrognoseZeigen(rat, a, $"{a.Name}: ");
-            }
-        }
-
-        WahlStimmenAbschnitt(rat, waehrung);
-        DomAbschnitt(w); // RatAnzeige.Dom.cs
+    /// <summary>Reiter „Anträge“: Tagesordnung, Antrag zum Statut, Wegbau, letzte Sitzung.</summary>
+    private void AntraegeSeite(Stadtwirtschaft w)
+    {
+        var rat = w.Rat;
+        var eigenesAmt = rat.AmtVon(_spieler!);
         TagesordnungAbschnitt(w); // RatAnzeige.Antraege.cs
 
         // ── Antrag zum Statut ──
@@ -254,11 +184,6 @@ public partial class RatAnzeige : PanelContainer
         if (w.Wegebau.IstAktiv)
             WegbauAbschnitt(w, rat, eigenesAmt);
 
-        if (w.Glaube.IstAktiv)
-            StadtglaubeAbschnitt(w, eigenesAmt);
-
-        KassenAntraegeAbschnitt(w, eigenesAmt); // Steuer, Bau, Fest (RatAnzeige.Antraege.cs)
-
         // ── Letzte Sitzung ──
         if (rat.LetzteSitzung.Count > 0)
         {
@@ -267,6 +192,16 @@ public partial class RatAnzeige : PanelContainer
             foreach (var eintrag in rat.LetzteSitzung)
                 Hauptmenue.Text(_inhalt, "• " + eintrag, 13, null, umbruchBreite: 670);
         }
+    }
+
+    /// <summary>Reiter „Stadtglaube“: der geltende Glaube mit Glaubenszins und der Antrag dazu.</summary>
+    private void StadtglaubeSeite(Stadtwirtschaft w)
+    {
+        var waehrung = w.Daten.Allgemein.Waehrung;
+        RatStil.Text(_inhalt, $"Stadtglaube: {KonfessionTexte.StadtglaubeText(w.Glaube.Stadtglaube)}" +
+                              (w.Glaube.Stadtglaube is null ? "" : $" – Andersgläubige zahlen {Zahlenformat.Ganz(w.Glaube.Daten.Stadtglaube.Abgabe)} {waehrung} Glaubenszins im Jahr"),
+            "RatAbschnitt", umbrechen: true);
+        StadtglaubeAbschnitt(w, w.Rat.AmtVon(_spieler!));
     }
 
     /// <summary>Wegbau der Stadt (Schritt 5d): die Wegekasse und der Antrag „Weg pflastern“ dieses Jahres (gestellt wird er an der Wegtafel: Weg anklicken).</summary>
@@ -334,57 +269,6 @@ public partial class RatAnzeige : PanelContainer
                                  "Gilt ein Stadtglaube, ist jede Messe und Bekehrungspredigt anderen Glaubens Ketzerei.", 12, Grau, umbruchBreite: 670);
     }
 
-    /// <summary>
-    /// Die Stimme des Spielers bei den Ämterwahlen: je Wahl eine Auswahl der Kandidaten, die Vorgabe zuerst.
-    /// Wer nicht abstimmen darf, sieht den Grund des Kerns in grau; ohne Wahl in der Stadt entfällt der Abschnitt.
-    /// </summary>
-    private void WahlStimmenAbschnitt(Stadtrat rat, string waehrung)
-    {
-        var wahlen = rat.Aemter.Where(a => rat.Kandidaten(a).Count > 0).Select(a => (Amt: a, Grund: rat.WahlStimmeVerboten(_spieler!, a))).ToList();
-        if (wahlen.Count == 0) return;
-        _inhalt.AddChild(new HSeparator());
-        Hauptmenue.Text(_inhalt, "Eure Stimme bei den Wahlen", 16);
-        if (wahlen.All(x => x.Grund is not null && x.Grund == wahlen[0].Grund))
-        {
-            // Derselbe Grund für alle Wahlen (z. B. kein Mitglied des Rates): einmal sagen genügt.
-            Hauptmenue.Text(_inhalt, $"Dieses Jahr wird gewählt: {string.Join(", ", wahlen.Select(x => x.Amt.Name))}. {wahlen[0].Grund}", 13, Grau, umbruchBreite: 670);
-            return;
-        }
-        Hauptmenue.Text(_inhalt, "Ihr legt die Stimme vorab fest und ändert sie bis zur Ratssitzung am Jahresende, wann ihr wollt. " +
-                                 "Ohne Stimme gilt die Vorgabe: der bisherige Inhaber.", 12, Grau, umbruchBreite: 670);
-        foreach (var (amt, grund) in wahlen)
-        {
-            var kandidaten = rat.Kandidaten(amt);
-            if (grund is not null)
-            {
-                Hauptmenue.Text(_inhalt, $"{amt.Name}: {grund}", 13, Grau, umbruchBreite: 670);
-                continue;
-            }
-            var zeile = new HBoxContainer();
-            zeile.AddThemeConstantOverride("separation", 10);
-            _inhalt.AddChild(zeile);
-            var name = Hauptmenue.Text(zeile, $"{amt.Name}:", 14);
-            name.CustomMinimumSize = new Vector2(120, 0);
-            var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
-            var vorgabe = rat.VorgabeStimme(amt);
-            auswahl.AddItem($"Vorgabe: {vorgabe?.Name}");
-            foreach (var k in kandidaten)
-                auswahl.AddItem(k.Haus is null ? $"{k.Name} (Ratsherr im Amt)" : k.IstAmtsinhaber ? $"{k.Name} (bisheriger Inhaber)" : k.Name);
-            var gewaehlt = rat.WahlStimmeVon(_spieler!, amt);
-            auswahl.Selected = gewaehlt is null ? 0 : kandidaten.ToList().FindIndex(k => k.Name == gewaehlt.Name) + 1;
-            auswahl.TooltipText = $"Zur Wahl für {amt.Name} ({Zahlenformat.Ganz(amt.Daten.Einkommen)} {waehrung}/Jahr) stehen {kandidaten.Count}. Eure Stimme zählt in der Prognose und in der Sitzung.";
-            auswahl.ItemSelected += index => Befehlen(new WahlStimme(amt.Name, index == 0 ? null : kandidaten[(int)index - 1].Name));
-            zeile.AddChild(auswahl);
-            // Stand der Bewerber nach heutigem Stand – zählt die festgelegte Stimme schon mit.
-            var stand = kandidaten.Where(k => k.Haus is not null).Select(k =>
-            {
-                var (sicher, unsicher, waehler) = rat.WahlPrognose(amt, k.Haus!);
-                return $"{k.Name} {sicher}{(unsicher > 0 ? $" (+{unsicher} offen)" : "")} von {waehler}";
-            });
-            Hauptmenue.Text(_inhalt, "Stimmen heute: " + string.Join(" · ", stand), 12, Grau, umbruchBreite: 670);
-        }
-    }
-
     /// <summary>Die Stimme zu einem Antrag (Statut oder Stadtglaube): Dafür / Dagegen / Enthaltung, oder der Grund, warum nicht.</summary>
     private void AntragStimme(string? verboten, bool? aktuell, Action<bool?> setzen)
     {
@@ -405,14 +289,5 @@ public partial class RatAnzeige : PanelContainer
             zeile.AddChild(knopf);
         }
         Hauptmenue.Text(zeile, "  (bis zur Sitzung änderbar, Vorgabe: Enthaltung)", 12, Grau);
-    }
-
-    private void PrognoseZeigen(Stadtrat rat, Amt amt, string vorsatz = "")
-    {
-        var (sicher, unsicher, waehler) = rat.WahlPrognose(amt, _spieler!);
-        var mehrheit = waehler / 2 + 1;
-        var text = $"{vorsatz}Stand heute {sicher} sichere Stimme{(sicher == 1 ? "" : "n")}{(unsicher > 0 ? $" und {unsicher} unentschieden" : "")} " +
-                   $"von {waehler} – für die Mehrheit braucht ihr {mehrheit}.";
-        Hauptmenue.Text(_inhalt, text, 13, sicher >= mehrheit ? Gruen : Grau, umbruchBreite: 670);
     }
 }
