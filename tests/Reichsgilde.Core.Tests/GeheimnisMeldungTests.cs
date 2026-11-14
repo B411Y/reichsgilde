@@ -19,7 +19,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class GeheimnisMeldungTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
     static readonly DateTime Zeitpunkt = new(2026, 11, 9, 12, 0, 0);
 
     /// <summary>Kein Zufall bei den Geheimnissen (wie in den Geheimnistests): keine Ratsherren-Geheimnisse, kein Gerede, keine Beichte, kein Ehepartner, keine Ehebrüche und Ketzer.</summary>

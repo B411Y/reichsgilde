@@ -11,7 +11,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für die Meinungen und Aktivitäten (Charaktersystem Teil 2, PR #231).</summary>
 static class MeinungTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
 
     /// <summary>Dieselben Daten ohne den Abschnitt "meinungen" – wie ein Spielstand von vor PR #231.</summary>
@@ -80,7 +80,7 @@ static class MeinungTests
         ("Meinungen: Daten – Datenversion 61, sechs Aktivitäten (eine davon das Geschenk), Fehler fallen auf", () =>
         {
             var d = Daten.Value.Meinungen!;
-            Pruefe.Gleich(86, Daten.Value.Version);
+            Pruefe.Gleich(87, Daten.Value.Version);
             Pruefe.Gleich("Geschenk,Gastmahl,Zechen,Messe,Brettspiel,Jagd", string.Join(",", d.Aktivitaeten.Keys));
             Pruefe.Wahr(d.Aktivitaeten["Geschenk"].Geschenk, "Geschenk");
             Pruefe.Gleich(2, d.Aktivitaeten["Jagd"].Ap);

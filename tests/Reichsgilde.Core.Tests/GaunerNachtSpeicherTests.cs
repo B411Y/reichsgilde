@@ -10,7 +10,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class GaunerNachtSpeicherTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()));
     static readonly DateTime Zeitpunkt = new(2026, 10, 29, 12, 0, 0);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]

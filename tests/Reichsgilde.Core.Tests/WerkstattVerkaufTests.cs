@@ -9,7 +9,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für das Verkaufen von Werkstätten und das Kündigen von Pachten – und den Wiederkauf mit Stufe.</summary>
 static class WerkstattVerkaufTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()));
 
     static Simulation NeueSimulation() =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);

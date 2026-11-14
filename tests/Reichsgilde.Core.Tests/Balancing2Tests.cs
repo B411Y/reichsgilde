@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 
 static class Balancing2Tests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
 
     static Simulation NeueSimulation(Wirtschaftsdaten daten) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten);
