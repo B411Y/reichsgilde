@@ -276,7 +276,40 @@ public partial class CharakterAnzeige : PanelContainer
         if (z.Wirkungstext != "") tipp += "\nWirkung: " + z.Wirkungstext;
         if (z.Meinungstext != "") tipp += "\nMeinung: " + z.Meinungstext;
         if (z.Gegenteil is { } g) tipp += $"\nGegenteil: {w.Familien.Zug(g)?.Name ?? g}";
+        if (z.IstVersehrung) tipp += VersehrungText(w, z);
         return tipp + "\nMehr zu [[charakterzuege|Charakterzügen]].";
+    }
+
+    /// <summary>
+    /// Bleibende Versehrung: woher sie kommt (die Anlässe und ihre Chancen aus den Daten des Kerns), dass sie bleibt, und was sie verdrängt.
+    /// Die Zahlen färbt der Tooltip selbst.
+    /// </summary>
+    private static string VersehrungText(Stadtwirtschaft w, Charakterzug z)
+    {
+        var ursachen = z.Daten.Anlaesse.Select(a => $"{AnlassName(w, a.Key)} {Zahlenformat.Ganz(a.Value * 100)} %").ToList();
+        var text = ursachen.Count > 0 ? $"\nUrsache: {string.Join(", ", ursachen)}." : "";
+        text += "\nBleibt fürs Leben.";
+        if (z.Daten.Verdraengt.Count > 0) text += $" Nimmt {string.Join(", ", z.Daten.Verdraengt.Select(k => w.Familien.Zug(k)?.Name ?? k))}.";
+        if (z.Daten.Anlaesse.ContainsKey("ueberstanden:Knochenbruch")) text += " Ein Medicus beim Knochenbruch verhindert es.";
+        return text;
+    }
+
+    private static string AnlassName(Stadtwirtschaft w, string anlass)
+    {
+        var teile = anlass.Split(':', 2);
+        var wert = teile.Length > 1 ? teile[1] : "";
+        return teile[0] switch
+        {
+            "jahr" => "mit den Jahren",
+            "einbruch" => "Einbruch ins Wohnhaus",
+            "brand" => "Brandstiftung am Wohnhaus",
+            "blitz" => "Brand durch Blitz",
+            "kerker" => "Kerker",
+            "entfuehrung" => "Entführung (frei gegen Lösegeld)",
+            "ueberstanden" => wert == "Knochenbruch" ? "Knochenbruch ohne Medicus geheilt" : $"{wert} überstanden",
+            "unglueck" => wert == "Zechen" ? "Rauferei beim Zechen" : $"Unglück bei {wert}",
+            _ => anlass,
+        };
     }
 
     /// <summary>

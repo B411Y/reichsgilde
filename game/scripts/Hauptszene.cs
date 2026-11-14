@@ -624,6 +624,7 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
+        if (optionen.TryGetValue("zug", out var zugWert)) _zugWartet = zugWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
         if (optionen.TryGetValue("erpresserbrief", out var briefWert)) _erpresserbriefWartet = briefWert; // ebenso (Siegel der Geheimnisse)
         if (optionen.TryGetValue("entscheidung", out var entscheidungWert)) _entscheidungWartet = entscheidungWert; // ebenso (Benachrichtigungen Stufe 3)
@@ -1268,6 +1269,11 @@ public partial class Hauptszene : Node
         {
             _stressWartet = null;
             StressStartoption(stressWunsch); // vor --charakter, damit das Fenster den neuen Stress zeigt
+        }
+        if (_zugWartet is { } zugWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _zugWartet = null;
+            ZugStartoption(zugWunsch); // vor --charakter, damit das Fenster den Zug zeigt
         }
         if (_geheimnisWartet is { } geheimnisWunsch && _bauAutoKlick == 0 && _spulen == 0)
         {

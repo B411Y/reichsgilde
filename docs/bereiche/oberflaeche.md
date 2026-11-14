@@ -54,6 +54,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Versehrungen in der Oberfläche (Branch phase5/versehrt-oberflaeche, PR 2 zu #468)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Medaillons | Vier neue Zug-Medaillons `entstellt`, `einaeugig`, `lahm`, `verkrueppelt` (128 px, Eisenring „erworben“, kräftig gemalt wie die übrigen). Bilder mit der **lokalen Bild-KI** (ComfyUI, Qwen-Image, nicht Gemini), Ring mit `tools/zugmedaillons/schmiede.gd` (dort die vier Kennungen bei „eisen“ ergänzt). Motive und Läufe: `docs/assets/prompts/zug_medaillons_versehrt.md`; Protokollzeile steht. Die Narbe hatte schon ihr Medaillon. | 14.11.2026 |
+| Anzeige | Kein neuer Baustein: Die Versehrungen erscheinen im Charakterfenster in der Gruppe „Erworben“ und im Lexikon „Charakterzüge“ (Bilderreihe und Liste) wie alle Züge. Der Tooltip (`CharakterAnzeige.ZugTipp`) ergänzt für `Charakterzug.IstVersehrung` eine Zeile „Ursache: …“ (die Anlässe und Chancen aus `CharakterzugDaten.Anlaesse`, in Worte gefasst), „Bleibt fürs Leben.“ und was der Zug nimmt (`Verdraengt`, bei Entstellt „Schön“). Die Zahlen färbt der Tooltip selbst gold. Keine festen Farben oder Größen im Code. | 14.11.2026 |
+| Medicus | Beim Knochenbruch (Gesundheitsabschnitt im Familienfenster) nennt der Tooltip des Medicus-Knopfs „Verhindert ‚Lahm‘ (sonst 25 % Gefahr)“ – die Zahl aus den Zugdaten. Beim Entscheidungsbrief „Krankheit“ stehen die Knöpfe und ihre Texte im Kern; dort ist nichts ergänzt (Vorschlag an kern, falls gewünscht). | 14.11.2026 |
+| Prüfhilfe | Neue Startoption `--zug=<Kennung[,Kennung…]>[:oberhaupt|ehepartner|Nummer]` (nur mit `--entwickler=1`, über den vorhandenen Entwicklerbefehl `EntwicklerZug`), in `docs/STARTOPTIONEN.md`. | 14.11.2026 |
+
 ### Ratsbaum (Branch phase5/ratsbaum, PR 3 der Ratssitzung)
 
 | Thema | Entscheidung | Datum |
