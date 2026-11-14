@@ -68,7 +68,7 @@ static class LebensweiseTests
         ("Lebensweise: Daten – fünf Pfade (einer je Talent) mit 3 × 3 Knoten, voller Baum 1.350 Erfahrung, Datenversion 74", () =>
         {
             var d = Daten.Value.Lebensweise!;
-            Pruefe.Gleich(86, Daten.Value.Version);
+            Pruefe.Gleich(87, Daten.Value.Version);
             Pruefe.Gleich(5, d.Pfade.Count);
             Pruefe.Wahr(TalentTexte.Alle.All(d.Pfade.ContainsKey), "jedes Talent hat einen Pfad");
             Pruefe.Gleich(45, d.AlleKnoten.Count());
@@ -134,7 +134,8 @@ static class LebensweiseTests
             Zuege(w, o, "Grosszuegig", "Gelehrt");
             Pruefe.Ungefaehr(0.88, w.Familien.ErfahrungFaktor(o, Talent.Verhandeln), 1e-12);
             Pruefe.Ungefaehr(1.1, w.Familien.ErfahrungFaktor(o, Talent.Kampf), 1e-12);
-            konto.WohnhausEinrichtungHinzufuegen("Bibliothek");
+            konto.WohnhausStufe = 1; // die Bibliothek ist seit Datenversion 87 ein Raum zur Wahl
+            konto.WohnhausRaumHinzufuegen("Bibliothek");
             Pruefe.Ungefaehr(1.21, w.Familien.ErfahrungFaktor(o, Talent.Kampf), 1e-12);
         }),
 

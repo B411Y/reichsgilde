@@ -149,6 +149,7 @@ public partial class Stadtansicht
                 }
             }
         }
+        NeubauEinkleiden(datei, modell); // Neubau der Gebäude: Trim-Sheet-Shader und Farben je Haus (Stadtansicht.Neubau.cs); andere Modelle unberührt
         TraufenMelden(modell, fenster); // Tropfen an der Dachkante bei Regen, Schutz der Wände unter Traufe und Fensterbänken (Stadtansicht.Traufen.cs)
         BaumMarkerEinsetzen(modell, modell); // Kit-Bäume an den Markern „Baum_…“ (Stadtansicht.Natur.cs)
         KronenMelden(modell); // Laubkrone im Sommer, kahle Äste im Winter (Stadtansicht.Natur.cs)

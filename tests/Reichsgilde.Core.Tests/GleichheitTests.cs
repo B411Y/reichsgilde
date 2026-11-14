@@ -37,12 +37,14 @@ static class GleichheitTests
     static long Minute(int jahr, int stunde, int minute = 0) => jahr * (long)Spielzeit.MinutenProTag + (stunde * 60 + minute - Spielzeit.TagesbeginnMinute);
 
     /// <summary>Eine Partie des Tests: Startwert, Schwierigkeit, Charakter der KI, Beruf des Menschen, Karte und Länge.</summary>
-    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf, string Karte = "greybox", int Jahre = 10);
+    /// <param name="OhneRaeume">Daten ohne Räume im Wohnhaus (Datenversion 87, <see cref="Datenpfad.OhneRaeume"/>): Jedes Haus hat ein Hinterzimmer.</param>
+    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf, string Karte = "greybox", int Jahre = 10, bool OhneRaeume = false);
 
     static readonly Partie[] Partien =
     {
         new(1400, Schwierigkeit.Normal, KiCharakter.Ausgewogen, "Schmied"),
-        new(4711, Schwierigkeit.Schwer, KiCharakter.Wagemutig, "Tischler"),
+        // ohne Räume im Wohnhaus (Datenversion 87): Hier schreibt ein KI-Haus aus dem Fachwerkhaus dem Menschen Erpresserbriefe – der Weg der Entscheidungen
+        new(4711, Schwierigkeit.Schwer, KiCharakter.Wagemutig, "Tischler", OhneRaeume: true),
         // bis zur gemeinsamen Strecke von Kern und Bild (31.10.2026) 2026 – dort stirbt seither das Oberhaupt des Menschen im Jahr 1 ohne Erben, das Skript hätte nichts abzugeben
         new(2027, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
         // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
@@ -312,7 +314,7 @@ static class GleichheitTests
     static Lauf Spielen(Partie p, bool laden)
     {
         // Daten und Karte frisch aus der Datei: Die Partie verändert ihre Karte (Bauten), jeder Lauf beginnt wie neu.
-        var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+        var daten = p.OhneRaeume ? Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()) : Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var karte = Stadtkarte.AusDatei(Datenpfad.Karte(p.Karte));
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = p.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = p.Schwierigkeit },

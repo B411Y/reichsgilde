@@ -17,7 +17,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class StressTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
 
     /// <summary>Dieselben Daten ohne den Abschnitt "stress" – wie vor Teil 3b (alte Spielstände bringen solche Daten mit).</summary>
@@ -88,7 +88,7 @@ static class StressTests
          "neue erworbene Züge Schwermütig und Reizbar ohne Anlass", () =>
         {
             var d = Daten.Value.Stress!;
-            Pruefe.Gleich(86, Daten.Value.Version);
+            Pruefe.Gleich(87, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "Stress aktiv");
             Pruefe.Gleich("angespannt:40,zermürbt:70", string.Join(",", d.Stufen.Select(s => $"{s.Name}:{s.Ab}")));
             Pruefe.Gleich(100.0, d.Hoechstwert);

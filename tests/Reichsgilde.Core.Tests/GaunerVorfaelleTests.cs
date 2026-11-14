@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class GaunerVorfaelleTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()));
 
     /// <summary>
     /// Wie im Gleichheitstest und im Nachtzustand: Startwert 4711, KI wagemutig und schwer – viele Banden und Einbrüche. Dazu ein Haus mit
