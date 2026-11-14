@@ -228,6 +228,31 @@ static class StimmrundeTests
             Pruefe.Gleich(ohne.Nein + 1, mitNein.Nein);
         }),
 
+        ("Stimmrunde: Nach RatsantragStimme zeigt Stimmrunde(spieler) sofort die neue Stimme (Ja, Nein, zurück zur Enthaltung); Gegenprobe: die KI bleibt", () =>
+        {
+            var (sim, w, spieler, reformer, _) = Aufbau();
+            var ki = w.Rivalen.Single().Konto;
+            StadtkasseTests.KasseAuf(w, 2200);
+            Ok(w, reformer, new SteuersatzBeantragen(6));
+            BisStimmrunde(sim);
+            Sitzungsstimme Eigene() => StimmeVon(w.Rat.Stimmrunde(spieler).Single(p => p.Thema == Sitzungsthema.Steuersatz), spieler);
+            bool? KiStimme() => StimmeVon(w.Rat.Sitzungsvorschau().Single(p => p.Thema == Sitzungsthema.Steuersatz), ki).Ja;
+            var kiVorher = KiStimme();
+            Pruefe.Gleich<bool?>(null, Eigene().Ja, "ohne Befehl Enthaltung");
+            Pruefe.Wahr(Eigene().Begruendung.Contains("Enthaltung"), Eigene().Begruendung);
+            Ok(w, spieler, new RatsantragStimme(Antragsart.Steuersatz, true));
+            Pruefe.Gleich<bool?>(true, Eigene().Ja, "Ja");
+            Pruefe.Gleich("Stimme des Hauses.", Eigene().Begruendung);
+            Ok(w, spieler, new RatsantragStimme(Antragsart.Steuersatz, false));
+            Pruefe.Gleich<bool?>(false, Eigene().Ja, "Nein");
+            Ok(w, spieler, new RatsantragStimme(Antragsart.Steuersatz, null));
+            Pruefe.Gleich<bool?>(null, Eigene().Ja, "wieder Enthaltung");
+            Pruefe.Gleich(kiVorher, KiStimme(), "die KI stimmt weiter selbst");
+            // Gegenprobe über den Boten wie die Tafel (Einzelspiel: wirkt sofort beim Einreihen).
+            sim.Bote.Einreihen(spieler, new RatsantragStimme(Antragsart.Steuersatz, true));
+            Pruefe.Gleich<bool?>(true, Eigene().Ja, "Ja über den Boten");
+        }),
+
         ("Stimmrunde: Mehrspieler – zwei Menschen stimmen über den Boten mit Verzögerung, zwei Rechner kommen zur selben Prüfsumme; Gegenprobe mit anderer Stimme", () =>
         {
             string Lauf(bool andersrum)

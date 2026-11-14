@@ -509,6 +509,7 @@ public sealed record WegebauStand
     /// Kontonummer (als Text) → Stimme zum vorliegenden Antrag „Weg pflastern“ aus der Stimmrunde vor der Ratssitzung (true = dafür;
     /// null = keine; ältere Spielstände: keine – Enthaltung).
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, bool>? PflasterStimmen { get; init; }
 }
 
