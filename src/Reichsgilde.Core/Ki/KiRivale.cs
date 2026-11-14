@@ -232,6 +232,7 @@ public sealed partial class KiRivale
         }
         EinrichtungKaufen();
         WohnhausEinrichtungKaufen(); // PR #224, KiRivale.Personal.cs
+        RaumAnbauen(); // Räume im Wohnhaus (Datenversion 87), KiRivale.Raeume.cs
         WegAusbauen();
         SchiffKaufen();
     }

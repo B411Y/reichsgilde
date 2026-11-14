@@ -7,9 +7,10 @@ namespace Reichsgilde.Core.Wohnen;
 //
 //  Nutzerentscheidung 14.11.2026, nach der Mechanik aus „Die Gilde 1“ (nur die Mechanik):
 //    Stufe 1 (Fachwerkhaus): nur die Wohnstube.
-//    Stufe 2 (Bürgerhaus):  dazu das Hinterzimmer.
-//    Stufe 3 (Steinhaus):   dazu ein freier Platz – ein Raum zur Wahl (Befehl RaumAnbauen).
-//  Höhere Stufen ohne eigenen Eintrag haben die Räume der letzten eingetragenen Stufe.
+//    Stufe 2 (Bürgerhaus):  ein freier Platz – Hinterzimmer, Festsaal oder Bibliothek (Befehl RaumAnbauen, kostet Gulden, endgültig).
+//    Stufe 3 (Steinhaus):   ein zweiter freier Platz, wieder aus diesen dreien, außer dem schon gewählten.
+//  Höhere Stufen ohne eigenen Eintrag haben die Räume der letzten eingetragenen Stufe (keine weiteren Plätze).
+//  Ausnahme Dieb (berufStattRaum): Wer einen Betrieb dieses Berufs hat, gibt die Befehle des Raums auch ohne ihn – von seinem Betrieb aus.
 //  Jeder Raum schaltet vorhandene Befehle, Aktivitäten oder Einrichtungsstücke frei – fehlt er, sind sie gesperrt, für Spieler und KI.
 //  Fehlt der Abschnitt, hat jedes Haus jeden Raum (alles wie vorher).
 // ═════════════════════════════════════════════════════════════════════════════
@@ -31,8 +32,11 @@ public sealed class WohnraumDaten
     /// <summary>Aktivitäten (Kennung aus „meinungen.aktivitaeten“, z. B. „Gastmahl“), die nur mit diesem Raum gehen.</summary>
     public List<string> Aktivitaeten { get; init; } = new();
 
-    /// <summary>Einrichtungsstücke (Kennung aus „wohnen.einrichtung“), die man nur mit diesem Raum kaufen kann.</summary>
-    public List<string> Einrichtung { get; init; } = new();
+    /// <summary>Was der Raum bewirkt, solange das Haus ihn hat – wie ein Stück Einrichtung (Bibliothek: Ausbildung der Kinder × 1,25).</summary>
+    public EinrichtungWirkung Wirkung { get; init; } = new();
+
+    /// <summary>Wer einen Betrieb dieses Berufs hat (z. B. „Dieb“), gibt die <see cref="Befehle"/> des Raums auch ohne ihn (null = niemand).</summary>
+    public string? BerufStattRaum { get; init; }
 }
 
 /// <summary>Die Räume einer Stufe des Wohnhauses: feste Räume und freie Plätze für Räume zur Wahl.</summary>
@@ -58,7 +62,8 @@ public sealed class RaeumeDaten
 
     public WohnraumDaten? Art(string kennung) => Arten.FirstOrDefault(a => a.Kennung == kennung);
 
-    internal void Pruefen(List<string> f, int anzahlStufen, IEnumerable<EinrichtungDaten> einrichtung, IEnumerable<string>? aktivitaeten)
+    internal void Pruefen(List<string> f, int anzahlStufen, IEnumerable<EinrichtungDaten> einrichtung, IReadOnlyDictionary<string, WareDaten> waren,
+        IEnumerable<string>? aktivitaeten, IEnumerable<string>? berufe)
     {
         const string p = "wohnen.raeume";
         foreach (var doppelt in Arten.GroupBy(a => a.Kennung).Where(g => g.Count() > 1))
@@ -73,15 +78,17 @@ public sealed class RaeumeDaten
                 f.Add($"{p}.arten: Die Kennung „{a.Kennung}“ darf nur Buchstaben und Ziffern ohne Umlaute haben.");
             if (string.IsNullOrWhiteSpace(a.Name)) f.Add($"{wo} braucht einen Namen.");
             if (a.Preis < 0) f.Add($"{wo}.preis darf nicht negativ sein.");
+            if (a.BerufStattRaum is { } beruf && berufe is not null && !berufe.Contains(beruf)) f.Add($"{wo}.berufStattRaum: Einen Beruf „{beruf}“ gibt es nicht.");
             foreach (var b in a.Befehle.Where(b => !befehlsarten.Contains(b))) f.Add($"{wo}.befehle: Einen Befehl „{b}“ gibt es nicht.");
-            foreach (var e in a.Einrichtung.Where(e => !stuecke.Contains(e))) f.Add($"{wo}.einrichtung: „{e}“ steht nicht unter wohnen.einrichtung.");
+            // Ein Raum und ein Stück Einrichtung mit derselben Kennung gäbe es doppelt (die Bibliothek ist seit Datenversion 87 ein Raum).
+            if (stuecke.Contains(a.Kennung)) f.Add($"{wo}: „{a.Kennung}“ ist schon ein Stück unter wohnen.einrichtung – ein Raum oder ein Stück, nicht beides.");
+            a.Wirkung.Pruefen(f, $"{wo}.wirkung", waren);
             if (aktiv is not null) // ohne Abschnitt „meinungen“ gibt es keine Aktivitäten – dann sperrt der Raum keine
                 foreach (var x in a.Aktivitaeten.Where(x => !aktiv.Contains(x))) f.Add($"{wo}.aktivitaeten: „{x}“ steht nicht unter meinungen.aktivitaeten.");
         }
         // Jede Sache gehört höchstens einem Raum – sonst wäre unklar, welcher sie freischaltet.
         foreach (var d in Arten.SelectMany(a => a.Befehle).GroupBy(x => x).Where(g => g.Count() > 1)) f.Add($"{p}: Der Befehl „{d.Key}“ steht bei mehreren Räumen.");
         foreach (var d in Arten.SelectMany(a => a.Aktivitaeten).GroupBy(x => x).Where(g => g.Count() > 1)) f.Add($"{p}: Die Aktivität „{d.Key}“ steht bei mehreren Räumen.");
-        foreach (var d in Arten.SelectMany(a => a.Einrichtung).GroupBy(x => x).Where(g => g.Count() > 1)) f.Add($"{p}: Das Stück „{d.Key}“ steht bei mehreren Räumen.");
         if (Stufen.Count > anzahlStufen) f.Add($"{p}.stufen: Es gibt nur {anzahlStufen} Stufen des Wohnhauses, nicht {Stufen.Count}.");
         for (var i = 0; i < Stufen.Count; i++)
         {
@@ -170,15 +177,19 @@ public sealed partial class Wohnungswesen
 
     /// <summary>Warum dieses Haus den Befehl ohne den passenden Raum nicht geben kann – oder null (Raum da, oder der Befehl braucht keinen).</summary>
     public string? BefehlOhneRaum(Konto k, Befehl befehl) =>
-        RaumFuerBefehl(befehl) is { } art && !HatRaum(k, art.Kennung) ? Fehlt(k, art) : null;
+        RaumFuerBefehl(befehl) is { } art && !HatRaum(k, art.Kennung) && !BerufStattRaum(k, art) ? Fehlt(k, art) : null;
+
+    /// <summary>Ausnahme Dieb: Hat das Haus einen Betrieb des Berufs <see cref="WohnraumDaten.BerufStattRaum"/>, gehen die Befehle des Raums von dort aus.</summary>
+    private bool BerufStattRaum(Konto k, WohnraumDaten art) =>
+        art.BerufStattRaum is { } beruf && _w.Betriebe.Any(b => b.Konto == k && b.Artdaten.Beruf == beruf);
 
     /// <summary>Warum dieses Haus die Aktivität ohne den passenden Raum nicht unternehmen kann – oder null.</summary>
     public string? AktivitaetOhneRaum(Konto k, string aktivitaet) =>
         Daten?.Raeume?.Arten.FirstOrDefault(a => a.Aktivitaeten.Contains(aktivitaet)) is { } art && !HatRaum(k, art.Kennung) ? Fehlt(k, art) : null;
 
-    /// <summary>Warum dieses Haus das Einrichtungsstück ohne den passenden Raum nicht kaufen kann – oder null.</summary>
-    public string? EinrichtungOhneRaum(Konto k, string kennung) =>
-        Daten?.Raeume?.Arten.FirstOrDefault(a => a.Einrichtung.Contains(kennung)) is { } art && !HatRaum(k, art.Kennung) ? Fehlt(k, art) : null;
+    /// <summary>Die Räume dieses Hauses mit ihren Daten (leer ohne Raumregeln) – für ihre Wirkung.</summary>
+    public IEnumerable<WohnraumDaten> Raumdaten(Konto k) =>
+        Daten?.Raeume is { } r ? Raeume(k).Select(r.Art).OfType<WohnraumDaten>() : Enumerable.Empty<WohnraumDaten>();
 
     /// <summary>„Dafür braucht das Wohnhaus von … den Raum Hinterzimmer (ab Bürgerhaus).“</summary>
     private string Fehlt(Konto k, WohnraumDaten art)
