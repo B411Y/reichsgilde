@@ -46,6 +46,8 @@ public enum Meldungsart
     Ratssitzung,
     /// <summary>Eine Entscheidung (Stufe 3) ist gefallen – gewählt, mit der Voreinstellung nach Fristablauf oder hinfällig. Nur für das betroffene Haus.</summary>
     Entscheidung,
+    /// <summary>Gefahr durch die Wache: Die Wache eines Hauses macht eine Razzia bei diesem Haus (betroffen ist das durchsuchte Haus).</summary>
+    Bedrohung,
 }
 
 /// <summary>Wie wichtig eine Meldung aus Sicht des Kerns ist. Was die Oberfläche daraus macht (Verlauf, Siegel, Brief), entscheidet sie selbst.</summary>
@@ -105,7 +107,7 @@ public sealed record Meldung(Meldungsart Art, string Text)
     {
         Meldungsart.TodOberhaupt or Meldungsart.Feuer or Meldungsart.Pest => Meldungswichtigkeit.Dringend,
         Meldungsart.TodFamilie or Meldungsart.Geburt or Meldungsart.Heirat or Meldungsart.Diebstahl or Meldungsart.Ueberfall or Meldungsart.Anklage
-            or Meldungsart.Schulden or Meldungsart.Meisterpruefung or Meldungsart.StandAufstieg or Meldungsart.Wahl => Meldungswichtigkeit.Hoch,
+            or Meldungsart.Schulden or Meldungsart.Meisterpruefung or Meldungsart.StandAufstieg or Meldungsart.Wahl or Meldungsart.Bedrohung => Meldungswichtigkeit.Hoch,
         Meldungsart.Krankheit or Meldungsart.KasseKnapp or Meldungsart.LagerLeer or Meldungsart.LagerVoll or Meldungsart.Ratssitzung
             or Meldungsart.Entscheidung => Meldungswichtigkeit.Normal,
         _ => Meldungswichtigkeit.Gering,

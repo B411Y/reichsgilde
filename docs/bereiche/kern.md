@@ -86,8 +86,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Neue Partie) Die Karten (Greybox, Köln, Probestadt, Messstadt) haben noch keine Nummern – sie laufen als „Erweitert“ mit ihren Häusern weiter. Nummern setzen: Leveldesign bzw. Kartenwerkstatt (PR 3). Die Messstadt hat neun Startplätze (acht KI): ohne Nummern zählt die Obergrenze acht nicht.
 - (Neue Partie) Mehrspieler: `ZugWurf` und `SpielerWuerfeln` gelten für den einen Menschen (Hof 1); für mehrere Menschen braucht es je Platz einen Wurf (wie bei `NeuePartie.Hofstelle`, siehe oben).
 
-- (von Sound) **Gefahrenmeldung der Wache mit Art:** `Wachwesen` (Razzia, Streife) meldet nur Text (`_w.Melden(text)`, Art `Sonstiges`); die Musik („Nahe Bedrohung“) kann „Gefahrenmeldung der Wache beim Spieler“ deshalb nicht erkennen. Vorschlag: eine eigene `Meldungsart.Bedrohung` (Wichtigkeit hoch, `Haus` = Betroffener) für Warnungen der Wache vor einer Tat am eigenen Haus; die Musik hängt sie dann an Anlass Gefahr. Der Kampf (Überfall abgewehrt, Wächter vereitelt Einbruch, Dieb gestellt) läuft schon über `Vorfallbuch.Neu`, braucht nichts.
-
 ## Entscheidungen
 
 ## Messungen
@@ -303,6 +301,16 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Reihenfolge | Das `Remove` in `_bewerbungen` ändert keine Ergebnisse: Alle Leser ordnen selbst (`KandidatenListe` nach Namen, `BewerberFuer` nach Konten) oder rechnen reihenfolgefrei (`WahlPrognose`, `KiRivale.WahlKosten` zählen bzw. nehmen das Maximum). | 14.11.2026 |
 | Tests | `AmtsbaumTests` (8, je mit Gegenprobe): Baum samt umgehängter Daten, alle Zeilen der Prüfung grün und rot, Gleichlauf Prüfung/Befehl (48 Fälle), Bewerber nach Kontonummer, Zurückziehen (keine Erstattung, nur eigene, nicht in der Sitzung), Rückzug verhindert die Wahl, Dom-Bewerbung bleibt, Speichern und Laden. | 14.11.2026 |
 
+### Gefahrenmeldung der Wache: Meldungsart.Bedrohung (Branch fix/kleinkram-1411)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Was zählt | Die Wache meldet keine Warnungen; ihre einzige Meldung ist die Razzia. Nutzer: Eine Razzia beim Spieler zählt als Gefahr | 14.11.2026 |
+| Art | `Meldungsart.Bedrohung` hinten am Enum (Zahl 20; alle alten Werte gleich, der Spielstand speichert die Art als Name). Vorgabe-Wichtigkeit Hoch | 14.11.2026 |
+| Razzia | `Wachwesen.Razzia` meldet `Bedrohung` mit `Haus` = durchsuchtes Haus (vorher `Sonstiges` ohne Haus), Text unverändert. Stress, Hauschronik, Ansage des Haushofmeisters und Einordnung der Oberfläche (`meldungen.json`, Textmuster „Razzia “) reagieren nicht auf die neue Art – unverändert | 14.11.2026 |
+| Musik | `MusikModell.AnlassAusMeldung`: `Bedrohung` beim eigenen Haus = Gefahr, beim fremden nichts; alle anderen Meldungen wie bisher über `AnlassAusAnsage` (`Hauptszene.Musik.cs` ruft sie) | 14.11.2026 |
+| Spielstand und Prüfsumme | Keine geschützte Datei, keine Datenversion. Alte Stände laden unverändert (dort bleibt die Razzia `Sonstiges`). Neue Razzien stehen im Abschnitt `Meldungen` mit `Art: Bedrohung`, `Wichtigkeit`, `Haus`; damit ändert sich der Inhalt der Zustandsprüfsumme, sobald eine Razzia vorkommt. Es gibt keine festen Gleichheitswerte, die das berühren: `GleichheitTests` vergleicht Läufe untereinander (bleibt grün), `AlterSpielstandSollwertTests` und `HafenRuhtTests` vergleichen ohne „Meldungen“ – keine Zeile angepasst | 14.11.2026 |
+| Test | `RazziaBedrohungTests` (5): Enum-Zahlen, Razzia beim Spieler = Bedrohung/Hoch/Haus und Gefahr ohne Ansage, Razzia beim KI-Haus keine Gefahr für den Spieler, alle anderen Arten und Wichtigkeiten gleicher Anlass wie vorher, Speichern und Laden | 14.11.2026 |
 ### Spiel und Tests schneller: Platzsuche, Fahrten, Wasserlauf (Branch perf/bauorte-wasserlauf, Auftrag Nutzer 14.11.2026)
 
 | Thema | Entscheidung | Datum |

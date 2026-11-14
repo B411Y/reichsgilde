@@ -81,7 +81,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Prüfung | `BesetzungProblem` meldet vor dem Start doppelte Namen, Wappen und Berufe (der Spieler zählt mit) und fängt `ArgumentException` des Kerns ab; der Text steht rot unter den Knöpfen. Die Namens- und Wappenprüfung gegen die Rivalen der Startbelegung alter Karten bleibt. | 11.11.2026 |
 | Daten | `Datenvorrat.Lesekopie()`: eine eigene lesende Kopie von `wirtschaft.json` für das Menü, einmal gelesen (rund 0,3 s beim ersten Öffnen der Seite); die Partie holt ihre Daten wie bisher über `Holen()`. | 11.11.2026 |
 | Startoption | `--neuepartie=1` öffnet die Seite (in `docs/STARTOPTIONEN.md`). | 11.11.2026 |
-| Offen | Die Tafel wird beim Aufklappen von „Erweitert“ breiter (etwa 720 → 940 px); Ursache nicht gesucht. Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
+| Offen | Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
 
 ### Rivalenwahl ohne Beruf (Branch phase5/kirchen-koeln, Prediger PR 1c)
 
@@ -645,6 +645,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Startoption | `--domwahl=1` lässt die geeigneten Häuser (auch den Spieler) sich bewerben (in `docs/STARTOPTIONEN.md`). | 12.11.2026 |
 | Offen | Infotafel am Stadt-Dom mit dem Domprediger und eigene Siegel für Wahl und Amtsende gehören zu darstellung bzw. Meldungen (der Kern meldet über `Meldungsart.Wahl`, Thema „Rat und Wahlen“). Das Amtssymbol gibt es nicht. | 12.11.2026 |
 
+### Neue Partie: „Erweitert“ verbreitert die Tafel nicht mehr (Branch fix/kleinkram-1411)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Die Wappenwahl je KI-Haus (`Hauptmenue.Besetzung.cs`, `KiZeilenBauen`) ist ein `OptionButton` mit `ClipText`, aber `FitToLongestItem` (Godot-Vorgabe an): Die längste Wappenbeschreibung setzte ihre Mindestbreite auf 672 px, die Zeile auf 920 px | 14.11.2026 |
+| Behebung | `FitToLongestItem = false` nur an dieser Wappenwahl; sie bleibt mindestens 120 px und füllt die Zeile (ExpandFill), lange Beschreibungen werden abgeschnitten. Sonst nichts geändert | 14.11.2026 |
+| Beleg | Headless-Messung (temporär, nicht eingecheckt) mit `--neuepartie=1`, Mindestbreite des Tafelinhalts vor/nach „Erweitert anzeigen“: vorher 716 → 972 px, jetzt 716 → 716 px. Kein Spielbild | 14.11.2026 |
 ### Ratskammer mit Reitern (Branch phase5/ratskammer, Ratssitzung und Ratsbaum PR 2)
 
 | Thema | Entscheidung | Datum |
