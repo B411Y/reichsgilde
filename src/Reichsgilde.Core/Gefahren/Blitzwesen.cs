@@ -473,6 +473,7 @@ public sealed class Blitzwesen
             var grund = _w.Gauner.IstAktiv && _w.Gauner.Daten.Wohnhaus is not null ? _w.Gauner.Brandschaden(k) : 0;
             var reparatur = Math.Round(Math.Max(d.WohnhausReparatur, Anteil(d.WohnhausAnteil, e.Schwere) * grund) * _w.Wohnen.BrandFaktor(k));
             if (reparatur > 0) k.Schaden(reparatur);
+            _w.Familien.ZugAnlass(k, "blitz"); // Brand durch Blitz: Narbe, vielleicht entstellt (Versehrungen; eigener Anlass, damit ältere Daten ohne ihn bleiben, wie sie waren)
             return " Bis es instand gesetzt ist, fehlt das Ansehen des Hauses." +
                    (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}." : "");
         }

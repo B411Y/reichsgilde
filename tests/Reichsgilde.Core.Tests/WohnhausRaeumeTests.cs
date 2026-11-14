@@ -42,7 +42,7 @@ static class WohnhausRaeumeTests
         ("Wohnhaus-Räume: Daten – Fachwerkhaus Wohnstube, Bürgerhaus 1 und Steinhaus 2 Plätze zur Wahl, je 700 Gulden, Dieb ohne Hinterzimmer; Datenversion 87", () =>
         {
             var r = Daten.Value.Wohnen!.Raeume!;
-            Pruefe.Gleich(87, Daten.Value.Version);
+            Pruefe.Gleich(88, Daten.Value.Version);
             Pruefe.Gleich("Wohnstube,Hinterzimmer,Bibliothek,Festsaal", Liste(r.Arten.Select(a => a.Kennung)));
             Pruefe.Gleich("Wohnstube|Wohnstube|Wohnstube", string.Join("|", r.Stufen.Select(s => Liste(s.Feste))));
             Pruefe.Gleich("0,1,2", Liste(r.Stufen.Select(s => s.Frei.ToString())));
