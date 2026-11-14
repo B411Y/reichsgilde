@@ -214,7 +214,8 @@ static class MeldungTests
             for (var i = 1; i < diese.Count; i++)
                 Pruefe.Wahr(diese[i].Minute >= diese[i - 1].Minute, $"Spielminuten steigen ({karte})");
             }
-            Pruefe.Wahr(gemeldet.Count > 200, $"genug Meldungen ({gemeldet.Count})");
+            // seit den Räumen im Wohnhaus (Datenversion 87) heuern nur Häuser mit Hinterzimmer Banden an – etwas weniger Meldungen als die früheren 200
+            Pruefe.Wahr(gemeldet.Count > 150, $"genug Meldungen ({gemeldet.Count})");
             Pruefe.Wahr(abweichungen.Count == 0, $"{abweichungen.Count} Abweichungen, etwa: {string.Join("\n    ", abweichungen.Take(5))}");
             Pruefe.Wahr(angesagt > 20, $"genug Ansagen verglichen ({angesagt})");
             var arten = gemeldet.Select(m => m.Art).Distinct().Count();

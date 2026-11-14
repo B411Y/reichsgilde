@@ -24,7 +24,7 @@ static class StartlehrlingTests
         ("Startlehrling: Daten personal.startJeBetrieb = 1 (Datenversion 72); 0 lehnt die Prüfung ab", () =>
         {
             var d = Daten();
-            Pruefe.Gleich(86, d.Version);
+            Pruefe.Gleich(87, d.Version);
             Pruefe.Gleich(1, d.Personal!.StartJeBetrieb ?? 0);
             Pruefe.Wahr(OhneAngabe().Personal!.StartJeBetrieb is null, "ohne Angabe null");
             var falsch = false;
