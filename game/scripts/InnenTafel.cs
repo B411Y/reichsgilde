@@ -86,12 +86,26 @@ public abstract class InnenTafel
             return;
         }
         _seitAufbau += delta;
-        var stand = Stand(w, b);
+        var stand = Stand(w, b) + "|" + PreiseStand(w, b); // Marktpreise gehören dazu: die Waren-Tooltips zeigen sie
         if (stand == _stand || _seitAufbau < 0.2) return;
+        if (PopupOffen(Inhalt)) return; // eine offene Auswahlliste (z. B. die Produktauswahl) bleibt stehen; der Neuaufbau folgt, sobald sie zu ist
         _stand = stand;
         _seitAufbau = 0;
+        var pfad = Tooltips.QuellePfad(Inhalt); // ein offener Tooltip bleibt am neuen Steuerelement derselben Stelle hängen
         Leeren();
         Aufbauen(w, b);
+        Tooltips.QuelleWiederfinden(Inhalt, pfad);
+    }
+
+    /// <summary>Die Marktpreise der Waren dieses Betriebs, auf Zehntel gerundet – ändert sich einer, zeigen die Tooltips neue Zahlen.</summary>
+    private static string PreiseStand(Stadtwirtschaft w, Betrieb b) =>
+        string.Join(",", b.Artdaten.Produkte.Concat(b.Zutaten.Keys).Distinct().Where(x => w.Daten.Waren.ContainsKey(x)).Select(x => (int)Math.Round(w.Markt[x].Preis * 10)));
+
+    private static bool PopupOffen(Node knoten)
+    {
+        foreach (var kind in knoten.GetChildren())
+            if (kind is PopupMenu { Visible: true } || PopupOffen(kind)) return true;
+        return false;
     }
 
     /// <summary>Räumt den Inhalt vor dem Neuaufbau weg (die Karrentafel behält ihr Bedienfeld).</summary>
@@ -186,10 +200,16 @@ public abstract class InnenTafel
         {
             var r = Kalkulation.GewinnJeStueck(w, b, ware);
             string G(double x) => Zahlenformat.Kommazahl(x);
-            zeilen.Add($"Gewinn je Stück: {G(r.Gewinn)} {waehrung}");
-            zeilen.Add($"  Preis {G(r.Preis)} − Steuer {G(r.Steuer)}");
-            zeilen.Add($"  − Zutaten {G(r.Zutaten)} − Lohn {G(r.Lohn)}");
-            zeilen.Add($"  − Unterhalt {G(r.Unterhalt)}");
+            var stueck = r.StueckeProJahr > 0 ? Zahlenformat.Ganz(r.StueckeProJahr) : "–";
+            zeilen.Add($"Gewinn je Stück: {{{{{G(r.Gewinn)}}}}} {waehrung}");
+            var erloes = $"  Erlös {G(r.Preis)} = Marktpreis {G(r.Marktpreis)} × {Zahlenformat.Knapp(Math.Round(r.Verkaufsfaktor, 3))} (Verhandeln und Lebensweg des Oberhaupts)";
+            if (Math.Abs(r.Hafenfaktor - 1) > 1e-9) erloes += $" × {Zahlenformat.Knapp(Math.Round(r.Hafenfaktor, 3))} (Hafenaufschlag)";
+            zeilen.Add(erloes);
+            zeilen.Add($"  − Steuer {G(r.Steuer)} (Umsatzsteuer des Hauses auf den Erlös)");
+            zeilen.Add($"  − Zutaten {G(r.Zutaten)} (zum Marktpreis)");
+            zeilen.Add($"  − Lohn {G(r.Lohn)} (Löhne im Jahr {Zahlenformat.Ganz(r.Jahreslohn)} ÷ {stueck} Stück im Jahr)");
+            zeilen.Add($"  − Unterhalt {G(r.Unterhalt)} (Unterhalt im Jahr {Zahlenformat.Ganz(r.Jahresunterhalt)} ÷ {stueck} Stück im Jahr)");
+            zeilen.Add("  Stück im Jahr: so viele schafft der Betrieb von dieser Ware, wenn alle Arbeitskräfte nur sie herstellen; Lohn und Unterhalt werden so auf das Stück umgelegt.");
             if (b.Belegt == 0) zeilen.Add("  (ohne Personal: gerechnet mit einem Gesellen)");
         }
         return string.Join("\n", zeilen);

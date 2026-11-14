@@ -29,6 +29,8 @@
     <!-- Zäune der Umlandstellen als Kisten der Ego-Perspektive (Zaun blockiert, Tor und Lücke offen) – EgoZaunTests.cs -->
     <Compile Include="..\..\game\scripts\EgoZaun.cs" Link="Gehtempo\EgoZaun.cs" />
     <Compile Include="..\..\game\scripts\Taschendiebgang.cs" Link="Gehtempo\Taschendiebgang.cs" />
+    <Compile Include="..\..\game\scripts\TooltipLage.cs" Link="Tooltips\TooltipLage.cs" />
+    <Compile Include="..\..\game\scripts\BetriebsKnoepfe.cs" Link="Tooltips\BetriebsKnoepfe.cs" />
     <!-- Einbruch und Banden bei Nacht (Wachen und Diebe, Paket P4) – NachtgangTests.cs -->
     <Compile Include="..\..\game\scripts\Nachtgang.cs" Link="Gehtempo\Nachtgang.cs" />
     <!-- Diebe weichen der Streife aus (Fenster und Bahn, nur Bild) – AusweichgangTests.cs -->

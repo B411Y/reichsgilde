@@ -207,7 +207,7 @@
   "kennung": "unterhalt",
   "titel": "Unterhalt",
   "gruppe": "Wirtschaft",
-  "text": "Laufende Kosten eines Betriebs oder [[wohnhaus|Wohnhauses]], die in die [[jahresrechnung]] eingehen. Beim Wohnhaus wächst er mit der Stufe: vom Bürgerhaus ({wert:haus_unterhalt_2} {wert:waehrung} im Jahr) bis zum Stadthof ({wert:haus_unterhalt_5})."
+  "text": "Laufende Kosten eines Betriebs oder [[wohnhaus|Wohnhauses]], die in die [[jahresrechnung]] eingehen. In der Tooltip-Rechnung „Gewinn je Stück“ einer Ware wird der Jahresunterhalt der Werkstatt auf das Stück umgelegt: Jahresunterhalt ÷ Stück, die der Betrieb im Jahr von dieser Ware schafft. Beim Wohnhaus wächst er mit der Stufe: vom Bürgerhaus ({wert:haus_unterhalt_2} {wert:waehrung} im Jahr) bis zum Stadthof ({wert:haus_unterhalt_5})."
  },
  {
   "kennung": "liegenschaft",

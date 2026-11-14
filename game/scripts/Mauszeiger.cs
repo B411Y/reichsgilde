@@ -63,6 +63,7 @@ public partial class Mauszeiger : Node
     {
         _aktiv = this;
         ProcessMode = ProcessModeEnum.Always;
+        GetTree().NodeAdded += PopupMerken; // Auswahllisten (OptionButton) sind Popup-Fenster, die der Zeiger sonst nicht als anklickbar kennt
         AddChild(_handschuh = new HandschuhZeiger()); // 3D-Handschuh obenauf (HandschuhZeiger.cs), zeichnet nur, wenn er gilt
         if (OS.GetCmdlineUserArgs().Contains("--klinketest=1")) _handschuh.KlinkeTestStarten(); // Hover über einer Tür und Klinke-Folge vortäuschen, Log [klinketest]
     }
@@ -122,6 +123,8 @@ public partial class Mauszeiger : Node
         if (klick is not null) Input.SetCustomMouseCursor(klick, Input.CursorShape.PointingHand, hotspot);
         // Pfeil = der gewählte Zustand.
         Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Move); // 2D-Hand hat kein Ziehbild: das ✥ des Systems gilt (3D: Faust)
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Drag);
         if (Input.GetCurrentCursorShape() != vorher) DisplayServer.CursorSetShape((DisplayServer.CursorShape)(int)vorher);
         GD.Print($"[zeiger] Stufe {stufe} {art.ToString().ToLowerInvariant()} {groesse}px bei {GetViewport().GetMousePosition()} über {Beschreibung()}");
     }
@@ -140,6 +143,8 @@ public partial class Mauszeiger : Node
         _leer ??= ImageTexture.CreateFromImage(Image.CreateEmpty(2, 2, false, Image.Format.Rgba8));
         var vorher = Input.GetCurrentCursorShape();
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.Help);
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Move); // ✥ der Stammbaum-Fläche: mit dem Handschuh zeigt die Faust das Ziehen
+        Input.SetCustomMouseCursor(_leer, Input.CursorShape.Drag);
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.Ibeam); // der I-Strich des Systems fällt weg: über Textfeldern zeichnet der Handschuh die Haltung Text
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.PointingHand);
         Input.SetCustomMouseCursor(_leer, Input.CursorShape.Arrow);
@@ -154,6 +159,8 @@ public partial class Mauszeiger : Node
         Input.SetCustomMouseCursor(null, Input.CursorShape.PointingHand);
         Input.SetCustomMouseCursor(null, Input.CursorShape.Help);
         Input.SetCustomMouseCursor(null, Input.CursorShape.Ibeam);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Move);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Drag);
     }
 
     private static Texture2D? HilfeBild(int groesse)
@@ -167,9 +174,31 @@ public partial class Mauszeiger : Node
         return bild;
     }
 
+    private static readonly List<PopupMenu> Popups = new();
+
+    private static void PopupMerken(Node knoten)
+    {
+        if (knoten is not PopupMenu popup || Popups.Contains(popup)) return;
+        Popups.Add(popup);
+        popup.TreeExited += () => Popups.Remove(popup);
+    }
+
+    /// <summary>Steht die Maus auf einer offenen Auswahlliste (PopupMenu, z. B. der Produktauswahl)? Ihre Einträge sind keine Steuerelemente, die Maus liegt aber auf etwas Anklickbarem.</summary>
+    private bool PopupUnterMaus()
+    {
+        foreach (var popup in Popups)
+        {
+            if (!IsInstanceValid(popup) || !popup.Visible) continue;
+            var maus = popup.IsEmbedded() ? GetViewport().GetMousePosition() : (Vector2)DisplayServer.MouseGetPosition();
+            if (new Rect2(popup.Position, popup.Size).HasPoint(maus)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Was liegt unter der Maus? Tafeln und Knöpfe zuerst, dann die Stadt.</summary>
     private Art ArtErmitteln()
     {
+        if (PopupUnterMaus()) return Art.Klick;
         var steuerung = GetViewport().GuiGetHoveredControl();
         if (steuerung is not null)
         {
@@ -181,6 +210,12 @@ public partial class Mauszeiger : Node
             return (Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung)) || Stadt.IstAusgangstuer(kennung) ? Art.Schloss : Art.Klick; // auch die Haustür von innen (Stadtansicht.Neubau.cs)
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
     }
+    /// <summary>Wo der Zeiger gerade liegt, relativ zur Mausposition (für die Lage der Tooltips, <see cref="TooltipLage"/>): das Bild des 3D-Handschuhs, sonst das Bild des 2D-Zeigers ab seinem Zeigerpunkt; null ohne eigenen Zeiger.</summary>
+    public static Rect2? ZeigerBereich() =>
+        _gesetzt is not { An: true } g ? null
+        : g.Drei && HandschuhZeiger.BildRelativ is { } hand ? hand
+        : new Rect2(-4, -4, g.Groesse, g.Groesse);
+
 
     /// <summary>48, 64 oder 80 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 64 bei 1080p (Nutzerwunsch 11.11.2026; 48 nur noch bei kleinem Fenster oder kleiner Oberfläche).</summary>
     private static int GroesseWaehlen()

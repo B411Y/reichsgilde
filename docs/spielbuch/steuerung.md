@@ -23,7 +23,7 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 
 | Nr. | Was | Wozu |
 |---|---|---|
-| **1** | **Dein Haus** (Kopfzeile) | Wappen, Geld, Stand und Aktionspunkte (AP, hier 4 von 12). Darunter steht, wohin die Kamera blickt. Ein Klick öffnet das **Wohnhaus** mit Stand, Familie, Handwerk, Geld und Hinterzimmer. |
+| **1** | **Dein Haus** (Kopfzeile) | Wappen, Geld, Stand und Aktionspunkte (AP, hier 4 von 12). Darunter steht, wohin die Kamera blickt. Ein Klick öffnet das **Familienfenster** (das Wohnhaus öffnest du mit einem Klick auf das Gebäude). |
 | **2** | **Zeitstrahl** | Jahreszeit, Jahr, Uhrzeit und Tageszeit, dazu das Wetter mit Aussicht. Das Band darunter zeigt den Spieltag von 4 bis 23 Uhr (Zunftglocke, Hoher Mittag, Vesper, Nacht); die Sonne wandert darauf, nachts der Mond. Wann das Band dunkel wird und der Mond erscheint, richtet sich nach den Sonnenzeiten der Jahreszeit (Tabelle im Kapitel „Stadt und Ansicht“, der Tooltip nennt sie). |
 | **3** | **Pause und Tempo** | Pause (Leertaste) und Tempo 1×, 2×, 4× und 8× (Tasten **1** bis **4**). |
 | **4** | **Betriebsleiste** | Ein Knopf je eigenem Betrieb mit seinem Zustand („läuft“, „steht“, „Karren unterwegs“). Ein **Klick** fährt hin und zeigt die Kurzübersicht, ein **Doppelklick** geht hinein. Bei vielen Betrieben rollt die Leiste. |
@@ -127,6 +127,8 @@ Im Wege-Modus sind nur Wege anklickbar, Gebäude und Boden nicht.
 
 ## Fenster und Tooltips
 
+
+**Tooltip bleibt stehen.** Ein offener Tooltip bleibt auch dann offen, wenn sich die Tafel darunter neu aufbaut, und zeigt neue Zahlen sofort. Er liegt nie auf dem Handschuh: Er erscheint rechts neben der Hand, am Rand darunter oder links. Zahlen, auf die es ankommt (etwa „+12 %“), stehen in einer eigenen Farbe.
 ### Fenster
 
 Jede Tafel hat oben rechts ein **✕** und lässt sich am **oberen Rand ziehen**. Jedes Fenster öffnet **in der Bildschirmmitte** (zwischen Zeitstrahl und Betriebsleiste), auch wenn du es vorher verschoben hattest; festgehaltene Fenster, die zugleich offen sind, liegen leicht versetzt. Nur die kleine Auswahl am Mauszeiger und die Tafeln beim Bauen bleiben an ihrem Platz. Ein Klick holt ein Fenster nach vorn, **Esc** schließt das oberste, **X** schließt alle. Der Knopf mit der **Nadel** („Festhalten“, bei Rat, Familie, Markt, Wohnhaus, Bericht, Hafen …) lässt ein Fenster offen, wenn eine andere Tafel aufgeht. So liegen mehrere nebeneinander, etwa Markt und Betrieb zum Vergleichen.

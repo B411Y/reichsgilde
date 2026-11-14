@@ -488,7 +488,7 @@ public partial class Hauptszene : Node
             _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
-            if (Stadtansicht.IstMarktplatz(kennung)) MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+            if (Stadtansicht.IstMarktplatz(kennung)) { MarktOeffnen(); AuswahlSchliessen(); } // wie im Original: ein Klick auf den Markt öffnet die Preistafel; die Kurzinfo daneben entfällt
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {

@@ -331,6 +331,18 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Gleiches Bild | `Simulation.Aktualisieren` rechnet keinen weiteren Tick, sobald ein Ereignis des Bildes die Zeit anhält (`JahrBeendet` setzt den Grund) – kein Tick des neuen Jahres vor Szene oder Jahresbericht. `Vorspulen` (Entwickler, Klicktest) rechnet weiter durch | 14.11.2026 |
 | Mehrspieler | Gesetzt nur im Einzelspiel (`Bote.Verzoegerung == 0`, die Hauptszene entscheidet); eine gemeinsame Pause per Abstimmung oder Gastgeber ist nicht gebaut | 14.11.2026 |
 | Reihenfolge mit Stimmrunde | Nutzer, 14.11.2026: `Zeit/Zeithalt.cs` (`Gruende`, `Abgleichen`) legt die Gründe in fester Reihenfolge fest: **Stimmrunde** (bis „Fertig“) → **Ratssitzung** → **Jahresbericht** → weiter im alten Tempo; wartet der Bericht auf die Sitzung, hält die Sitzung an. Nur Einzelspiel; im Mehrspieler kein Grund (die Stimmrunde läuft dort bei laufender Zeit wie in #459). `Abgleichen` hält erst an, dann gibt es frei (keine Lücke), und liefert die Wechsel fürs Log. Tests in `ZeithaltTests` mit Gegenproben | 14.11.2026 |
+### Fehlerpaket 1: Stückrechnung mit Beschriftungswerten, Wappen (Branch fix/testbefunde-1)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stückrechnung | `Stueckrechnung` trägt jetzt Marktpreis, Verkaufsfaktor, Hafenfaktor, Jahresunterhalt, Jahreslohn und Stück im Jahr (Vorgabewerte, nichts ändert sich an Preis, Lohn, Unterhalt). Der Tooltip beschriftet damit: Unterhalt je Stück = Jahresunterhalt ÷ Stück im Jahr (`Kalkulation.GewinnJeStueck`, gleiche Verteilung nach Herstellzeit wie bisher). Test in `StueckrechnungTests`. | 14.11.2026 |
+| Wappen | Gewürfelte Häuser bekommen schon heute nie ein Wappen, das ein anderes Haus trägt (Spieler und KI, `Wappen.Zufall` mit Liste der vergebenen); `WappenEindeutigTests` prüft vier Karten × Startwerte 1 bis 200 mit der höchsten KI-Zahl ohne ein Duplikat. Ein doppeltes Wappen entsteht nur, wenn jemand eines vorgibt, das ein festes Haus der Karte trägt (Köln trägt sieben der zwölf Menü-Vorlagen): `Partiebesetzung.VorgabenPruefen` nennt dann die beiden Häuser. | 14.11.2026 |
+
+### Wappen-Sperrmenge für das Menü (Branch fix/testbefunde-1)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| `Partiebesetzung.VergebeneWappen` | Nur lesend: liefert für eine KI-Zeile (oder -1 für den Spieler) die vergebenen Wappen samt Hausnamen aus Karte (erste n Häuser der Startbelegung, solange ihre Zeile kein eigenes Wappen wählt), Wahl der anderen Zeilen und Spieler. Test in `WappenEindeutigTests` (Gegenprobe Kartenhaus gesperrt, freies nicht, altes Wappen wird frei). | 14.11.2026 |
 ### Räume je Stufe des Wohnhauses (Branch phase5/wohnhaus-raeume, Nutzer 14.11.2026)
 
 | Thema | Entscheidung | Datum |

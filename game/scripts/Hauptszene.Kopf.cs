@@ -6,7 +6,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Oben im Bild (PR #197) – ein Teil der <c>partial class Hauptszene</c>: links die <b>Kopfzeile</b> (Wappen, Geld, Stand, Aktionspunkte; ein Klick
-/// öffnet das Wohnhaus), in der Mitte der <b>Zeitstrahl</b> (Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht, darunter das Band des Tages mit
+/// öffnet das Familienfenster), in der Mitte der <b>Zeitstrahl</b> (Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht, darunter das Band des Tages mit
 /// Sonne bzw. Mond, darunter Pause und Tempo). Beide sitzen in einer Reihe über die ganze Breite: Ist das Fenster schmal, rückt der Zeitstrahl aus
 /// der Mitte nach rechts, statt die Kopfzeile zu überdecken.
 /// </summary>
@@ -59,10 +59,10 @@ public partial class Hauptszene
         _kopfzeile.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         _kopfzeile.MouseFilter = Control.MouseFilterEnum.Stop;
         _kopfzeile.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
-        _kopfzeile.TooltipText = "Euer Haus – ein Klick öffnet das Wohnhaus (Stand, Familie, Handwerk, Geld, Hinterzimmer)";
+        _kopfzeile.TooltipText = "Euer Haus – ein Klick öffnet die Familie (Oberhaupt, Ehepartner, Kinder, Stammbaum)";
         _kopfzeile.GuiInput += eingabe =>
         {
-            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) WohnhausOeffnen(WohnhausAnzeige.Reiter.Haus);
+            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) FamilieOeffnen();
         };
         _obenReihe.AddChild(_kopfzeile);
         var kopfSpalte = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
