@@ -112,6 +112,7 @@ public partial class Stadtansicht
             ((Camera3D?)_freieKamera ?? _kamera).MakeCurrent(); // zurück zur freien Kamera, wenn sie lief (Stadtansicht.FreieKamera.cs)
             _raum = null;
         }
+        NeubauInnenAbgleichen(); // Probe: der Innenraum im Haus selbst geht beim Verlassen aus (Stadtansicht.Neubau.cs)
     }
 
     /// <summary>
@@ -122,6 +123,11 @@ public partial class Stadtansicht
     {
         if (_innen?.Innen is not { } innen) return;
         _raum = r;
+        if (NeubauInnenAbgleichen()) // Probe: die Wohnstube liegt im Haus in der Stadt, die Kamera steht dort (Stadtansicht.Neubau.cs)
+        {
+            if (melden) RaumGewechselt?.Invoke(r.Kennung);
+            return;
+        }
         if (r.Blicke is { Count: > 0 } blicke)
         {
             BlickSetzen(blicke[0], true); // Raum aus einem Modell: die Kamera steht auf dem Blickpunkt 0

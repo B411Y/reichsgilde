@@ -471,6 +471,7 @@ public partial class Stadtansicht : Node3D
             FreienPlatzZeigen(frei);
         Ladezeit.Marke("Szene: freie Plätze");
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
+        NeubauProbeStarten(); // nur mit Startoption: Häuserreihe und Messung der Neubau-Probe (Stadtansicht.Neubau.cs)
         Ladezeit.Marke("Szene: Räume des Wohnhauses");
         WohnhaeuserPruefen(); // die Wohnhäuser der Karte, wie sie der Kern vergeben hat (sonst erst im ersten Aktualisieren)
         GrundstueckeAktualisieren(); // Baustellen und Bauplätze (Stadtansicht.Bauen.cs)
