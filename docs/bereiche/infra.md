@@ -93,7 +93,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Schutzregel | `main`: nur per PR, 3 Pflichtprüfungen; „Require review from Code Owners“ ist seit 08.11.2026 aus, `.github/CODEOWNERS` bleibt als Kennzeichnung | 08.11.2026 |
 | Konto | Alles über das Konto des Nutzers (B411Y); das Bot-Konto ist gesperrt, kein Ersatz-Bot (überholt die Bot-Token-Zeilen aus PR #249; `BOT_TOKEN` in `prs-aktuell.yml` bleibt als Rückfall-Schalter, ohne Token gilt der Rückfall). Nur der Push-Agent (haiku, mittel) führt push, `gh pr create` und `gh pr merge` aus | 08.11.2026 |
 
-### CI schneller (PR #…)
+### CI schneller (PR #466)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
