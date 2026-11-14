@@ -1121,6 +1121,7 @@ public partial class Stadtansicht : Node3D
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
+        _beschriftungen.RemoveAll(label => !IsInstanceValid(label)); // Sicherung: ein freigegebenes Schild darf nie wieder das ganze Bild (Kamera, Raum, Pixel-Look) lahmlegen
         foreach (var label in _beschriftungen)
             label.Scale = Vector3.One * massstab;
         BeschriftungenZeigen();

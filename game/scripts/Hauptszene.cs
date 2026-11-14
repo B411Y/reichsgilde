@@ -711,6 +711,7 @@ public partial class Hauptszene : Node
             else if (_eigeneGiesserei is { } baumBetrieb) _einrichtenTafel.Oeffnen(baumBetrieb);
         }
         if (optionen.TryGetValue("innenmessung", out var messWahl)) _stadt.InnenMessungStarten(messWahl == "2"); // Dauer des Betretens je Gebäude ins Log (Stadtansicht.Uebergang.cs)
+        if (optionen.TryGetValue("blendeschleife", out var schleife) && schleife.Split(',') is { Length: 2 or 3 } sl && int.TryParse(sl[1], out var schleifeN)) _stadt.BlendeSchleifeStarten(sl[0] == "1" ? (_eigeneGiesserei is { } sg ? Stadtansicht.BetriebsKennung(sg) : "Rathaus") : sl[0], schleifeN, sl.Length == 3); // viele Wechsel mit Zählern ins Log (Stadtansicht.Uebergang.cs)
         if (optionen.TryGetValue("blendetest", out var blendeKennung)) _stadt.BlendeTestStarten(blendeKennung == "1" ? (_eigeneGiesserei is { } bg ? Stadtansicht.BetriebsKennung(bg) : "Rathaus") : blendeKennung); // Betreten und Verlassen mit Schwarzblende ins Log (Stadtansicht.Uebergang.cs)
         if (optionen.TryGetValue("innen", out var innen))
         {
