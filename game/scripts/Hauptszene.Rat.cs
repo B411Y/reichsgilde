@@ -41,8 +41,8 @@ public partial class Hauptszene
     /// <summary>
     /// Startoptionen für Klicktests (vor <c>--rat=1</c> ausgewertet):
     /// <c>--amt=&lt;Amt&gt;</c> setzt den Spieler in dieses Amt (wie nach einer Wahl; Leerzeichen als _), <c>--kasse=&lt;Gulden&gt;</c> setzt den Stand der
-    /// Stadtkasse, <c>--antrag=steuer:&lt;Prozent&gt;|bau:&lt;Kennung&gt;|fest</c> stellt einen Antrag (mehrere mit Komma), <c>--rathaus=&lt;reiter&gt;</c>
-    /// wählt das Rathaus mit diesem Reiter (stadtkasse, rat, amt).
+    /// Stadtkasse, <c>--antrag=steuer:&lt;Prozent&gt;|bau:&lt;Kennung&gt;|fest</c> stellt einen Antrag (mehrere mit Komma), <c>--rathaus=1</c>
+    /// wählt das Rathaus (Kurzübersicht).
     /// </summary>
     private void RatStartoptionen(Dictionary<string, string> optionen)
     {
@@ -79,15 +79,8 @@ public partial class Hauptszene
                 _simulation.Bote.Einreihen(_spieler, befehl, ergebnis =>
                     Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : $"✗ --antrag={antrag}: {ergebnis.Meldung}"));
             }
-        if (optionen.TryGetValue("rathaus", out var reiterName))
-        {
-            if (Enum.TryParse<RathausTafel.Reiter>(reiterName, true, out var reiter))
-            {
-                _auswahlKennung = "Rathaus";
-                _rathausTafel.ReiterWaehlen(reiter);
-            }
-            else Protokollieren($"--rathaus={reiterName}: gemeint ist stadtkasse, rat oder amt.");
-        }
+        if (optionen.TryGetValue("rathaus", out var rathaus) && rathaus != "")
+            _auswahlKennung = "Rathaus";
     }
 
     /// <summary>

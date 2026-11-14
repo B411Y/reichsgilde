@@ -92,6 +92,31 @@ public partial class Stadtansicht
         bool Verlassen() { InnenansichtVerlassenMitBlende(); return UebergangLaeuft; }
     }
 
+    /// <summary><c>--blendeschleife=Kennung,n[,drin]</c>: betritt und verlässt das Gebäude n-mal mit der Schwarzblende und schreibt nach jedem Durchgang Zeichenaufrufe, Objekt-, Knoten- und Waisenknotenzahl sowie den Zustand (Innenansicht, Raum, aktive Kamera) ins Log (<c>[schleife]</c>).</summary>
+    public async void BlendeSchleifeStarten(string kennung, int durchgaenge, bool amEndeDrinnen = false)
+    {
+        void Zeile(string was, int nr)
+        {
+            var kamera = GetViewport().GetCamera3D();
+            GD.Print($"[schleife] {nr} {was}: Zeichenaufrufe {(long)Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame)}, Objekte {(long)Performance.GetMonitor(Performance.Monitor.ObjectCount)}, Knoten {(long)Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)}, Waisen {(long)Performance.GetMonitor(Performance.Monitor.ObjectOrphanNodeCount)}, innen={(InnenKennung ?? "nein")}, raum={(_raum?.Kennung ?? "nein")}, kamera={kamera?.Name}");
+        }
+        for (var i = 0; i < 30; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        Zeile("Start", 0);
+        for (var nr = 1; nr <= durchgaenge; nr++)
+        {
+            var ok = InnenansichtBetretenMitBlende(kennung);
+            while (UebergangLaeuft) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            for (var i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Zeile($"drinnen (angenommen={ok})", nr);
+            if (amEndeDrinnen && nr == durchgaenge) break;
+            InnenansichtVerlassenMitBlende();
+            while (UebergangLaeuft) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            for (var i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Zeile("draußen", nr);
+        }
+        GD.Print("[schleife] Ende");
+    }
+
     /// <summary>
     /// <c>--innenmessung=1</c> (ohne Vorbereitung) oder <c>=2</c> (mit Vorbereitung beim Hover): betritt jedes Gebäude mit Innenraum zweimal und
     /// schreibt je Gebäude die Dauer des Betretens auf dem Hauptfaden und die längste Bildzeit der folgenden Bilder ins Log (<c>[innenmessung]</c>).

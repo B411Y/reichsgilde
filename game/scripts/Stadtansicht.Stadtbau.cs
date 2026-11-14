@@ -47,7 +47,7 @@ public partial class Stadtansicht
         var kennzeichen = string.Join(",", ra.Baustellen.Select(b => b.Kennung + StadtbauStufe(w, b, minute))) + "|" + string.Join(",", ra.Gebaut) + "|" + ra.FestLaeuft;
         if (kennzeichen == _stadtbauKennzeichen) return;
         _stadtbauKennzeichen = kennzeichen;
-        _stadtbau?.QueueFree();
+        if (_stadtbau is not null) KnotenEntfernen(_stadtbau); // vergisst auch die Beschriftungen darin (sonst wirft jedes Bild ein Label3D-Fehler, Stadtansicht.cs ProzessBild)
         _stadtbau = new Node3D { Name = "Stadtbau" };
         AddChild(_stadtbau);
         foreach (var b in ra.Baustellen)
