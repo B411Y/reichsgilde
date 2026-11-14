@@ -14,6 +14,8 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 
 > [!TIP]
 > Die Zeit läuft auch weiter, während eine Tafel offen ist. Drück vor einer größeren Entscheidung die **Leertaste**: In der Pause kannst du in Ruhe lesen und rechnen.
+>
+> Ausnahme am Jahresende (Einzelspiel): Während der Stimmrunde (bis „Fertig“), der Ratssitzung und danach des Jahresberichts steht die Zeit immer, Leertaste und Tempotasten wirken dann nicht. Erst wenn der Jahresbericht zu ist, läuft sie im alten Tempo weiter.
 
 ## Der Bildschirm
 

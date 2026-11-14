@@ -238,7 +238,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, HinsehenZiel = HinsehenZiel, Hinsehen = MeldungAnsteuern };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, Ziel = VerlaufZiel, Ansteuern = VerlaufAnsteuern };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -369,7 +369,7 @@ public partial class Hauptszene : Node
         _berichtTafel.JahresberichtGewuenscht += () =>
         {
             if (_spieler is null || _spieler.Vorjahr is null) return;
-            _pauseVorBericht ??= _simulation.Takt.IstPausiert;
+            _pauseVorBericht ??= _simulation.Takt.Spielerpause;
             _simulation.Takt.IstPausiert = true;
             _jahresbericht.Zeigen(_simulation, _spieler);
         };
@@ -446,10 +446,12 @@ public partial class Hauptszene : Node
             if (_sitzungsTafel.Laeuft || SitzungVormerken(jahr))
             {
                 _jahresberichtWartet = true; // erst nach der Szene der Ratssitzung (Hauptszene.Ratssitzung.cs)
+                ZeitHalteAbgleichen(); // Einzelspiel: hält noch in diesem Bild an, kein Tick des neuen Jahres vor der Szene
                 return;
             }
             _jahresbericht.Zeigen(_simulation, _spieler);
-            if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
+            if (BeiJahresberichtPausieren && !DarfAnhalten) _simulation.Takt.IstPausiert = true;
+            ZeitHalteAbgleichen(); // Einzelspiel: Haltegrund „Jahresbericht“
         };
         _simulation.PartieBeendet += () =>
         {
@@ -459,8 +461,10 @@ public partial class Hauptszene : Node
         _jahresbericht.Geschlossen += () =>
         {
             if (_simulation.IstBeendet) SpielmenueOeffnen(); // Partie vorbei: Laden, Hauptmenü oder Beenden
-            else _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
+            else if (_pauseVorBericht is not null || !DarfAnhalten)
+                _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
             _pauseVorBericht = null;
+            ZeitHalteAbgleichen(); // Einzelspiel: der Haltegrund geht, die Zeit läuft wie vor dem Jahreswechsel
         };
         _aktionKnopf.Pressed += () =>
         {
@@ -1136,7 +1140,7 @@ public partial class Hauptszene : Node
 
     private void SpielmenueOeffnen()
     {
-        _warPausiertVorMenue = _simulation.Takt.IstPausiert;
+        _warPausiertVorMenue = _simulation.Takt.Spielerpause; // ohne Haltegründe: die gehen von selbst
         _simulation.Takt.IstPausiert = true;
         _menueListe.Visible = false;
         _spielmenue.Show();
@@ -1296,6 +1300,7 @@ public partial class Hauptszene : Node
         }
         if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
         RatssitzungPruefen(); // steht die Partie vor der Ratssitzung: in den Ratssaal
+        ZeitHalteAbgleichen(); // Einzelspiel: Sitzung und Jahresbericht halten die Zeit an (Hauptszene.Ratssitzung.cs)
 
         Anzeigen();
         LeisteAnzeigen(delta);
@@ -1314,6 +1319,8 @@ public partial class Hauptszene : Node
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
         _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
         _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
+        _einblendung.AbstandUnten = _brief.AbstandUnten;
+        _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible; // große Fenster: die neuen Meldungen warten
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
@@ -1420,8 +1427,17 @@ public partial class Hauptszene : Node
         GetViewport().SetInputAsHandled();
     }
 
+    /// <summary>Hält ein Haltegrund die Zeit an (Ratssitzung, Jahresbericht im Einzelspiel), sind Pause und Tempo wirkungslos – auch über die Tasten.</summary>
+    private bool ZeitGesperrt()
+    {
+        if (!_simulation.Takt.IstAngehalten) return false;
+        GD.Print($"Zeit: Taste wirkungslos – Haltegründe: {string.Join(", ", _simulation.Takt.Haltegruende)}");
+        return true;
+    }
+
     private void PauseUmschalten()
     {
+        if (ZeitGesperrt()) return;
         _simulation.Takt.PauseUmschalten();
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Leertaste
         Protokollieren(_simulation.Takt.IstPausiert ? "Pause." : "Weiter geht's.");
@@ -1429,7 +1445,7 @@ public partial class Hauptszene : Node
 
     private void TempoSetzen(double tempo)
     {
-        if (tempo <= 0) return;
+        if (tempo <= 0 || ZeitGesperrt()) return;
         _simulation.Takt.Tempo = tempo;
         _simulation.Takt.IstPausiert = false;
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Zifferntaste

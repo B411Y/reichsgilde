@@ -116,7 +116,7 @@ public partial class Hauptszene
                 if (_entscheidungAngehalten.Add(e.Nummer)) neuSichtbar = true;
             if (neuSichtbar)
             {
-                _pauseVorEntscheidung ??= _simulation.Takt.IstPausiert;
+                _pauseVorEntscheidung ??= _simulation.Takt.Spielerpause; // ohne Haltegründe (Sitzung, Jahresbericht): die gehen von selbst
                 _simulation.Takt.IstPausiert = true;
             }
         }
