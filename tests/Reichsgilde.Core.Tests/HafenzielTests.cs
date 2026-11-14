@@ -44,18 +44,8 @@ static class HafenzielTests
         return (sim, w, k);
     }
 
-    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt (hin + zurück) zum Hafen, an dem der Hafen näher ist als jeder Marktplatz.</summary>
-    static readonly Lazy<WerkstattBauen> NahAmHafen = new(() =>
-    {
-        var (_, w, k) = Koeln(Json.Value, Minute(1, 9));
-        int Rund(int? hin, int? zurueck) => (hin ?? 9999) + (zurueck ?? 9999);
-        return w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()
-            .Select(o => (Ort: o, Hafen: Rund(w.FahrzeitZumHafenAmBauort(o, Hand), w.FahrzeitZumHafenAmBauort(o, Hand, false)),
-                Markt: Rund(w.FahrzeitAmBauort(o, Hand), w.FahrzeitAmBauort(o, Hand, false))))
-            .Where(x => x.Hafen < x.Markt)
-            .OrderBy(x => x.Hafen).ThenBy(x => x.Ort.X).ThenBy(x => x.Ort.Z).ThenBy(x => x.Ort.Drehung)
-            .First().Ort;
-    });
+    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt (hin + zurück) zum Hafen, an dem der Hafen näher ist als jeder Marktplatz – gerechnet in <see cref="HafenAufschlagTests"/> (einmal für alle Hafen-Tests).</summary>
+    static Lazy<WerkstattBauen> NahAmHafen => HafenAufschlagTests.NahAmHafen;
 
     /// <summary>Köln mit einer Gießerei am Bauort nahe dem Hafen (ohne Zutaten: ihr Karren bricht gleich zum Einkauf auf).</summary>
     static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb B, Karren Karren) Werkstatt(string json, long minute)

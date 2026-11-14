@@ -31,18 +31,34 @@ static class HafenAufschlagTests
 
     internal static long Minute(int jahr, int stunde) => jahr * (long)Spielzeit.MinutenProTag + stunde * 60 - Spielzeit.TagesbeginnMinute;
 
-    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt (hin + zurück) zum Hafen, an dem der Hafen näher ist als jeder Marktplatz.</summary>
-    internal static readonly Lazy<WerkstattBauen> NahAmHafen = new(() =>
+    /// <summary>
+    /// Jeder Bauort einer Gießerei in Köln (Sommer, 9 Uhr) mit der Fahrt (hin + zurück) des Handkarrens zum Hafen und zum Marktplatz – einmal für
+    /// alle Hafen-Tests gerechnet (Hafenaufschlag, Hafenziel, Erlös-Vorschau, Gewinnschätzung): Die Suche über alle Bauorte ist das Teuerste
+    /// an diesen Tests und war vorher in jeder Klasse eigens gerechnet, mit denselben Daten (Aufschlag 0,03 wie in wirtschaft.json).
+    /// </summary>
+    static readonly Lazy<List<(WerkstattBauen Ort, int Hafen, int Markt)>> KoelnBauorte = new(() =>
     {
         var (_, w, k) = Koeln(Daten(0.03), Minute(1, 9));
         int Rund(int? hin, int? zurueck) => (hin ?? 9999) + (zurueck ?? 9999);
         return w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()
             .Select(o => (Ort: o, Hafen: Rund(w.FahrzeitZumHafenAmBauort(o, Hand), w.FahrzeitZumHafenAmBauort(o, Hand, false)),
                 Markt: Rund(w.FahrzeitAmBauort(o, Hand), w.FahrzeitAmBauort(o, Hand, false))))
+            .ToList();
+    });
+
+    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt (hin + zurück) zum Hafen, an dem der Hafen näher ist als jeder Marktplatz.</summary>
+    internal static readonly Lazy<WerkstattBauen> NahAmHafen = new(() =>
+        KoelnBauorte.Value
             .Where(x => x.Hafen < x.Markt)
             .OrderBy(x => x.Hafen).ThenBy(x => x.Ort.X).ThenBy(x => x.Ort.Z).ThenBy(x => x.Ort.Drehung)
-            .First().Ort;
-    });
+            .First().Ort);
+
+    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt zum Marktplatz, an dem der Marktplatz näher ist als der Hafen (Karren zum Hafen an).</summary>
+    internal static readonly Lazy<WerkstattBauen> NahAmMarkt = new(() =>
+        KoelnBauorte.Value
+            .Where(x => x.Markt < x.Hafen)
+            .OrderBy(x => x.Markt).ThenBy(x => x.Ort.X).ThenBy(x => x.Ort.Z).ThenBy(x => x.Ort.Drehung)
+            .First().Ort);
 
     internal static (Simulation Sim, Stadtwirtschaft W, Konto K) Koeln(string json, long minute)
     {
