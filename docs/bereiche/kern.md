@@ -372,7 +372,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Alte Stände | Spielstand mit Daten 87 (Festsaal unter `waehlbar`): beim Laden `AltenFestsaalUmstellen` (Festsaal aus der Wahl, `erstMit` gesetzt), danach `RaeumeNachDemLaden`: jeder Festsaal am Konto weg, Platz frei, Preis aus den Daten (700) zurück, gebucht als Verkauf, Meldung „Den Festsaal gibt es im Wohnhaus nicht mehr …“. Einmalig (danach steht kein Festsaal mehr am Konto). Der Baumeister-Rabatt beim damaligen Bau ist nicht gespeichert – erstattet wird der volle Datenpreis. Stände ohne Festsaal am Konto: Häuser unverändert; die Datenversion im Spielstand bleibt 87 | 14.11.2026 |
 | Tests | `WohnhausOhneFestsaalTests` (5) neu; `WohnhausRaeumeTests` angepasst (Festsaal → Bibliothek, KI-Regel, Gastmahl gesperrt mit Gegenprobe); Datenversion in den Tests 87 → 88 | 14.11.2026 |
 
-### Versehrungen (PR #…)
+### Versehrungen (PR #468)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
