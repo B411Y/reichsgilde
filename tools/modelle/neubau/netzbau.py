@@ -27,9 +27,13 @@ class Teil:
     def dreiecke(self):
         return sum(len(f[0]) - 2 for f in self.flaechen)
 
+    def dazu(self, anderes):
+        """Uebernimmt alle Flaechen eines anderen Teils (z. B. die Scheiben ins Atlas-Netz)."""
+        self.flaechen.extend(anderes.flaechen)
+
     # ── Grundformen ────────────────────────────────────────────────────────────────────────────────────────────────
 
-    def vieleck(self, stoff, punkte, uvs, weg_von=None, zu=None, farbe=SCHWARZ):
+    def vieleck(self, stoff, punkte, uvs, weg_von=None, zu=None, farbe=SCHWARZ, glatt=False):
         """Flaeche aus 3 oder 4 Punkten. `weg_von`/`zu`: Punkt, von dem die Sichtseite weg- bzw. zu dem sie hinzeigt."""
         punkte = [Vector(p) for p in punkte]
         n = (punkte[1] - punkte[0]).cross(punkte[2] - punkte[0])
@@ -39,7 +43,7 @@ class Teil:
         if zu is not None: drehen = n.dot(Vector(zu) - mitte) < 0
         if drehen:
             punkte = punkte[::-1]; uvs = uvs[::-1]
-        self.flaechen.append((punkte, list(uvs), stoff, farbe))
+        self.flaechen.append((punkte, list(uvs), stoff, farbe, glatt))
 
     def rechteck(self, stoff, o, eu, ev, b, h, band, laengs="u", u0=None, anteil=(0.0, 1.0), u_bereich=None, **kw):
         """Rechteck o + s*eu + t*ev (s bis b, t bis h) auf dem Band `band`.
@@ -148,8 +152,10 @@ class Teil:
                 for p, richtung, laenge in ((o + eu * s0 + ez * za, eu, s1 - s0), (o + eu * s0 + ez * zb, eu, s1 - s0), (o + eu * s0 + ez * za, ez, zb - za), (o + eu * s1 + ez * za, ez, zb - za)):
                     self.rechteck(ls, p, richtung, -n, laenge, laibung_tiefe, lb, zu=mitte, anteil=(0.0, 0.6))
 
-    def dreh(self, stoff, mitte, profil, band, seiten=6, deckel=True, u_bereich=None, anteil=(0.0, 1.0)):
-        """Drehkoerper um die Z-Achse durch `mitte`: profil = [(radius, hoehe), ...] von unten nach oben."""
+    def dreh(self, stoff, mitte, profil, band, seiten=6, deckel=True, u_bereich=None, anteil=(0.0, 1.0), gedreht=False, glatt=True):
+        """Drehkoerper um die Z-Achse durch `mitte`: profil = [(radius, hoehe), ...] von unten nach oben. Die Flaechen werden weich
+        schattiert (`glatt`), so wirkt ein Krug mit wenigen Seiten rund. `gedreht`: die Textur laeuft entlang der Hoehe statt um den
+        Koerper (Fassdauben: jede Seite fuellt quer das ganze Band)."""
         mitte = Vector(mitte)
         v0, v1, m = self.baender[band]
         ua, ub = u_bereich if u_bereich else (0.0, 1.0)
@@ -163,9 +169,12 @@ class Teil:
                 k2 = (k + 1) % seiten
                 x0 = ua + (ub - ua) * k / seiten; x1 = ua + (ub - ua) * (k + 1) / seiten
                 pts = [a[k], a[k2], b[k2], b[k]]; uvs = [(x0, t0), (x1, t0), (x1, t1), (x0, t1)]
+                if gedreht:
+                    h0, h1 = ua + (z0 - profil[0][1]) / m, ua + (z1 - profil[0][1]) / m
+                    uvs = [(h0, vu), (h0, vo), (h1, vo), (h1, vu)]
                 if r1 < 1e-5: pts, uvs = pts[:3], uvs[:3]
                 elif r0 < 1e-5: pts, uvs = [a[k], b[k2], b[k]], [uvs[0], uvs[2], uvs[3]]
-                self.vieleck(stoff, pts, uvs, weg_von=mitte + Vector((0, 0, (z0 + z1) / 2)))
+                self.vieleck(stoff, pts, uvs, weg_von=mitte + Vector((0, 0, (z0 + z1) / 2)), glatt=glatt)
         if deckel and profil[-1][0] > 1e-5:
             r, z = profil[-1]
             a = ring(r, z)
@@ -179,7 +188,9 @@ class Teil:
         """Baut das Objekt: Ecken je Flaeche, UV-Kanal `UVMap`, Eckenfarbe `Col`. Gleiche Ecken werden danach verschmolzen."""
         ecken, flaechen, uvs, farben, mats = [], [], [], [], []
         namen = []
-        for pts, uv, stoff, farbe in self.flaechen:
+        glatt = []
+        for pts, uv, stoff, farbe, weich in self.flaechen:
+            glatt.append(weich)
             start = len(ecken)
             ecken.extend(tuple(p) for p in pts)
             flaechen.append(tuple(range(start, start + len(pts))))
@@ -190,6 +201,7 @@ class Teil:
         netz.from_pydata(ecken, [], flaechen)
         for n in namen: netz.materials.append(stoffe[n])
         netz.polygons.foreach_set("material_index", mats)
+        netz.polygons.foreach_set("use_smooth", glatt)
         kanal = netz.uv_layers.new(name="UVMap")
         for i, (u, v) in enumerate(uvs): kanal.data[i].uv = (u, 1.0 - v)
         if mit_farbe:

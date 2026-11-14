@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsymfom5sr4j"
-path="res://.godot/imported/wohnhaus_mensch_s1_g1_innen_ao.png-7b7378d17a48f430639e99c06b5975d9.ctex"
+uid="uid://fmpnpu4xiwrd"
+path="res://.godot/imported/bodenfleck.png-635571ec042143490ef96a8d0f90aa9a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/neubau/wohnhaus_mensch_s1_g1_innen_ao.png"
-dest_files=["res://.godot/imported/wohnhaus_mensch_s1_g1_innen_ao.png-7b7378d17a48f430639e99c06b5975d9.ctex"]
+source_file="res://assets/texturen/neubau/bodenfleck.png"
+dest_files=["res://.godot/imported/bodenfleck.png-635571ec042143490ef96a8d0f90aa9a.ctex"]
 
 [params]
 

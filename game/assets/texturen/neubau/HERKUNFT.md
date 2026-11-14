@@ -21,4 +21,6 @@
 
 Nachbearbeitung (alles im Skript): auf Bandhöhe zugeschnitten und waagerecht gekachelt; Holz um 90° gedreht (Maserung entlang des Bandes, Normale mitgedreht); auf eine Zielfarbe je Band umgefärbt (Zeichnung der Aufnahme bleibt); gemalte Ränder (Schatten unter der Strohstufe, Fase an den Balken, Spritzwasserrand am Putz); Alpha der Strohfransen aus einem Zufallsprofil. Keine Bild-KI.
 
-Die Karten `wohnhaus_mensch_s1_g1_ao.png` und `…_innen_ao.png` (512 × 512) sind keine Fremdtexturen: gebackene Verdeckung des Modells auf UV2 (Blender Cycles, `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py`).
+`bodenfleck.png` (512 × 512, mit Alpha; Decal unter den Häusern) entsteht im selben Skript aus `brown_mud_dry` (umgefärbt, weicher Rand).
+
+Die Atlanten `wohnhaus_mensch_ao_atlas.png` und `wohnhaus_mensch_innen_ao_atlas.png` (2048 × 2048, 4 × 4 Zellen) sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py`; Platz je Modell in `tools/modelle/neubau/ao_atlas.json`).

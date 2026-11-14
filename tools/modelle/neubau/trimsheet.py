@@ -10,6 +10,8 @@ Laeuft in Blender, weil dort numpy und ein Bildlader dabei sind (kein Pillow noe
     <blatt>_normal.png  Normale (OpenGL, wie Godot)
     <blatt>_orm.png     R Verdeckung, G Rauheit, B Metall
 
+dazu bodenfleck.png (512 x 512, sRGB mit Alpha): der Bodenuebergang unter dem Haus fuer die Decal-Node (Style-Guide 5.1).
+
 Die Baender laufen waagerecht und kacheln waagerecht (UV.x darf ueber 1 gehen). UV.y = 0 ist die oberste Bildzeile (wie in Godot).
 Die Bandgrenzen stehen in BAENDER_AUSSEN / BAENDER_INNEN; das Hausskript (wohnhaus.py) liest sie von hier.
 """
@@ -31,7 +33,8 @@ BAENDER_AUSSEN = {
     "balken_b":     (0.3333, 0.4167, 4.0),
     "balken_c":     (0.4167, 0.5000, 4.0),   # dunkler, verwittert (Schwellen, Sparrenkoepfe)
     "putz":         (0.5000, 0.7000, 8.0),
-    "planken":      (0.7000, 0.8500, 4.0),   # senkrechte Bretter, Bandhoehe = Brettlaenge
+    "planken":      (0.7000, 0.7750, 4.0),   # Bretter liegen im Band (entlang UV.x); am Haus stehen sie durch gedrehte UV-Inseln senkrecht
+    "farbholz":     (0.7750, 0.8500, 4.0),   # gestrichenes, helles Holz: nimmt die Akzentfarbe an (Fensterlaeden, Luke)
     "bruchstein":   (0.8500, 0.9500, 4.0),
     "eisen":        (0.9500, 1.0000, 2.0),
 }
@@ -238,10 +241,13 @@ def baue_aussen(quellen):
     f, n, arm = putz.streifen(e - a, ab=200)
     blatt.setze(B["putz"], faerbe(f, (0.87, 0.84, 0.77), kontrast=0.75, eigenfarbe=0.1), n, arm)
     blatt.verlauf(B["putz"], 0.93, 0.80, 60)              # unten Spritzwasser, oben leichter Schatten
-    planken = Quelle(quellen, "old_planks_02", kante=512)
+    planken = Quelle(quellen, "old_planks_02", kante=512, gedreht=True)
     a, e = blatt.zeilen(B["planken"])
-    f, n, arm = planken.streifen(e - a, ab=512 - (e - a))  # unterer Teil mit den Nagelreihen
-    blatt.setze(B["planken"], faerbe(f, (0.50, 0.42, 0.34), kontrast=1.1, eigenfarbe=0.3), n, arm)
+    f, n, arm = planken.streifen(e - a, ab=8)              # zwei Bretter von 15 cm je Bandhoehe
+    blatt.setze(B["planken"], faerbe(f, (0.44, 0.36, 0.28), kontrast=1.1, eigenfarbe=0.3), n, arm)
+    a, e = blatt.zeilen(B["farbholz"])
+    f, n, arm = planken.streifen(e - a, ab=154, versatz=190)
+    blatt.setze(B["farbholz"], faerbe(f, (0.82, 0.80, 0.75), kontrast=0.55, eigenfarbe=0.05), n, arm)   # hell und fast grau: die Akzentfarbe wird aufmultipliziert
     stein = Quelle(quellen, "stone_wall")
     a, e = blatt.zeilen(B["bruchstein"])
     f, n, arm = stein.streifen(e - a, ab=380)
@@ -291,6 +297,31 @@ def baue_innen(quellen):
     blatt.speichere("innen_trim")
 
 
+def baue_bodenfleck(quellen, kante=512):
+    """Bodenuebergang unter dem Haus (Style-Guide 5.1: Decal mit weicher Matsch-Textur): festgetretene Erde, zum Rand hin weich und
+    unregelmaessig auslaufend. Eine Datei bodenfleck.png (sRGB mit Alpha) fuer alle Haeuser."""
+    q = Quelle(quellen, "brown_mud_dry", kante=kante)
+    farbe = faerbe(q.farbe, (0.40, 0.33, 0.25), kontrast=0.8, eigenfarbe=0.3)
+    y, x = np.mgrid[0:kante, 0:kante].astype(np.float32) / (kante - 1) * 2 - 1
+    z = np.random.default_rng(17)
+    grob = z.random((9, 9)).astype(np.float32)
+    gy, gx = (y + 1) * 4, (x + 1) * 4
+    iy, ix = np.clip(gy.astype(int), 0, 7), np.clip(gx.astype(int), 0, 7)
+    ty, tx = gy - iy, gx - ix
+    welle = (grob[iy, ix] * (1 - ty) * (1 - tx) + grob[iy + 1, ix] * ty * (1 - tx) + grob[iy, ix + 1] * (1 - ty) * tx + grob[iy + 1, ix + 1] * ty * tx)
+    rand = np.maximum(np.abs(x), np.abs(y)) * 0.6 + np.sqrt(x * x + y * y) * 0.4 / 1.2          # zwischen Rechteck und Kreis
+    alpha = np.clip((0.98 - rand - 0.22 * (welle - 0.5)) / 0.32, 0, 1)
+    alpha = alpha * alpha * (3 - 2 * alpha) * 0.9
+    bild = bpy.data.images.new("bodenfleck", kante, kante, alpha=True)
+    voll = np.ones((kante, kante, 4), dtype=np.float32)
+    voll[..., :3] = farbe; voll[..., 3] = alpha        # sRGB-Werte direkt (8 Bit, als sRGB gespeichert)
+    bild.colorspace_settings.name = "Non-Color"
+    bild.pixels.foreach_set(voll[::-1].ravel())
+    os.makedirs(ZIEL, exist_ok=True)
+    bild.filepath_raw = os.path.join(ZIEL, "bodenfleck.png"); bild.file_format = "PNG"; bild.save()
+    print("geschrieben", bild.filepath_raw)
+
+
 if __name__ == "__main__":
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict(a[2:].split("=", 1) for a in args if a.startswith("--") and "=" in a)
@@ -298,3 +329,5 @@ if __name__ == "__main__":
         baue_aussen(opt["quellen"])
     if opt.get("nur", "innen") == "innen" or "nur" not in opt:
         baue_innen(opt["quellen"])
+    if opt.get("nur", "bodenfleck") == "bodenfleck":
+        baue_bodenfleck(opt["quellen"])

@@ -169,7 +169,8 @@ def baue_haus():
             h.brett(holz, (s * 1.25, y, Z_TRAUFE), (s * 1.25, y, dach_z(1.25) - 0.12), 0.15, n, "balken_a", laengs="v")
             h.brett(holz, (s * (xk - 0.15), y, zk + 0.1), (s * 0.12, y, Z_FIRST - 0.75), 0.12, n, "balken_a", tiefe=0.04)
             h.brett(holz, (s * (OX + 0.02), y, Z_TRAUFE - 0.02), (s * 0.02, y, Z_FIRST - 0.02), 0.16, n, "balken_c", tiefe=0.07)
-    h.brett("Fachwerk", (-0.33, OVORN, 5.62), (0.33, OVORN, 5.62), 0.84, (0, -1, 0), "planken", tiefe=0.06, farbe=ROT)
+    for x in (-0.165, 0.165):
+        h.brett("Fachwerk", (x, OVORN, 5.20), (x, OVORN, 6.04), 0.33, (0, -1, 0), "farbholz", tiefe=0.06, farbe=ROT)
     h.brett(holz, (-0.42, OVORN, 5.15), (0.42, OVORN, 5.15), 0.11, (0, -1, 0), "balken_b", tiefe=0.07)
 
     # ── Tuer, Fensterkreuze, Laeden ──────────────────────────────────────────────────────────────────────────────────
@@ -182,7 +183,8 @@ def baue_haus():
         eg = wand.endswith("_eg")
         if art == "tuer":
             # Tuerblatt 8 cm zurueckgesetzt, Rahmen und Sturz, zwei Eisenbaender, Steinstufe davor
-            h.rechteck(holz, P(s0, z0, -0.08), (ex, ey, 0), (0, 0, 1), s1 - s0, z1 - z0, "planken", u0=0.11, weg_von=MITTE)
+            for i in range(3):   # drei Bahnen zu je zwei Brettern, Maserung senkrecht
+                h.rechteck(holz, P(s0 + i * (s1 - s0) / 3, z0, -0.08), (ex, ey, 0), (0, 0, 1), (s1 - s0) / 3, z1 - z0, "planken", laengs="v", weg_von=MITTE)
             for s in (s0 - 0.07, s1 + 0.07):
                 h.brett(holz, P(s, z0), P(s, z1 + 0.14), 0.14, n3, "balken_c", laengs="v")
             h.brett(holz, P(s0 - 0.2, z1 + 0.08), P(s1 + 0.2, z1 + 0.08), 0.17, n3, "balken_c", tiefe=0.07)
@@ -209,7 +211,7 @@ def baue_haus():
         for f0, f1 in fluegel:
             if f0 < 0.02 or f1 > breite - 0.02: continue
             vor = 0.085 if not eg else 0.04
-            h.rechteck(holz, P(f0, z0 - 0.02, vor), (ex, ey, 0), (0, 0, 1), f1 - f0, z1 - z0 + 0.04, "planken", u0=0.03 + 0.2 * f0, weg_von=MITTE, farbe=ROT)
+            h.rechteck(holz, P(f0, z0 - 0.02, vor), (ex, ey, 0), (0, 0, 1), f1 - f0, z1 - z0 + 0.04, "farbholz", laengs="v", weg_von=MITTE, farbe=ROT)
             for z in (z0 + 0.12, z1 - 0.12):
                 h.rechteck(stein, P(f0, z - 0.03, vor + 0.006), (ex, ey, 0), (0, 0, 1), f1 - f0, 0.06, "eisen", weg_von=MITTE)
 
@@ -238,8 +240,8 @@ def baue_haus():
     # Scheitholz an der rechten Seitenwand unter der Auskragung, Regenfass an der linken vorderen Ecke
     for i, (y, z) in enumerate([(0.55 + 0.19 * k, 0.09) for k in range(5)] + [(0.64 + 0.19 * k, 0.26) for k in range(4)] + [(0.74 + 0.19 * k, 0.43) for k in range(3)]):
         h.stab(holz, (BX + 0.03, y, z), (BX + 0.62, y + 0.02 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)
-        h.rechteck(holz, (BX + 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "planken", weg_von=MITTE, anteil=(0.1, 0.3))
-    h.dreh(holz, (-BX - 0.36, VORN + 0.45, 0.0), [(0.25, 0.0), (0.31, 0.3), (0.31, 0.5), (0.26, 0.8)], "planken", seiten=8, deckel=False, u_bereich=(0.0, 0.5))
+        h.rechteck(holz, (BX + 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=MITTE, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
+    h.dreh(holz, (-BX - 0.36, VORN + 0.45, 0.0), [(0.25, 0.0), (0.31, 0.3), (0.31, 0.5), (0.26, 0.8)], "planken", seiten=10, deckel=False, gedreht=True)
     h.dreh(stein, (-BX - 0.36, VORN + 0.45, 0.72), [(0.255, 0.0), (0.0, 0.0)], "eisen", seiten=8, deckel=False, anteil=(0.0, 0.3))
     for z in (0.18, 0.62):
         h.dreh(stein, (-BX - 0.36, VORN + 0.45, z), [(0.305 if z < 0.5 else 0.30, 0.0), (0.305 if z < 0.5 else 0.295, 0.05)], "eisen", seiten=8, deckel=False)
@@ -343,15 +345,24 @@ def baue_dach():
     return d
 
 
+def scheibe(teil, stoff, wand, a0, a1, z0, z1, raus, **kw):
+    """Scheibe in der Oeffnung; UV in Metern (x entlang der Wand ab der linken Kante der Oeffnung, y ab der Fensterbank):
+    Danach teilt der Butzen-Shader die Scheibe – innen und aussen gleich, weil beide dieselbe Wandkoordinate benutzen."""
+    (ox, oy), (ex, ey), _, _ = WAENDE[wand]
+    start = ox if ex else oy
+    b, hoch = a1 - a0, z1 - z0
+    pts = [punkt(wand, a0 - start, z0, raus), punkt(wand, a1 - start, z0, raus), punkt(wand, a1 - start, z1, raus), punkt(wand, a0 - start, z1, raus)]
+    teil.vieleck(stoff, pts, [(0, 1), (b, 1), (b, 1 - hoch), (0, 1 - hoch)], **kw)   # objekt() spiegelt v: im Spiel ist UV.y die Hoehe ueber der Bank
+
+
 def baue_scheiben():
-    """Die Scheiben mit dem Material „Fenster“ (Fensterlicht bei Nacht, Fensterstellen fuer den Brand): eigener Knoten,
-    den die Innenansicht ausblendet (von innen sieht man durch die Oeffnung nach draussen)."""
+    """Die Scheiben mit dem Material „Fenster“ (Fensterlicht bei Nacht, Fensterstellen fuer den Brand) und davor das Bleinetz der
+    Butzenscheiben: eigener Knoten, den die Innenansicht ausblendet (von innen zeichnet das Glas der Innenansicht dieselbe Teilung)."""
     s = Teil("Scheiben", BAENDER_AUSSEN, saat=5)
     for wand, (a0, a1), (z0, z1), art in FENSTER:
         if art != "fenster": continue
-        (ox, oy), (ex, ey), _, _ = WAENDE[wand]
-        start = ox if ex else oy
-        s.rechteck("Fenster", punkt(wand, a0 - start, z0, -T / 2), (ex, ey, 0), (0, 0, 1), a1 - a0, z1 - z0, "eisen", weg_von=MITTE)
+        scheibe(s, "Fenster", wand, a0, a1, z0, z1, -T / 2, weg_von=MITTE)
+        scheibe(s, "Bleinetz", wand, a0, a1, z0, z1, -T / 2 + 0.006, weg_von=MITTE)
     return s
 
 
@@ -395,6 +406,22 @@ def baue_raum():
     r.rechteck(S, (-IX, IV, Z_BODEN), (1, 0, 0), (0, 1, 0), 2 * IX, IH - IV, "lehmboden", zu=(0, 0, 99), u0=0.0)
     for (x0, y0, lx, ly) in ((-1.15, -2.0, 1.9, 1.75), (-0.5, 0.75, 1.6, 1.0)):
         r.rechteck(S, (x0, y0, Z_BODEN + 0.012), (1, 0, 0), (0, 1, 0), lx, ly, "stroh", zu=(0, 0, 99))
+    # Fenster von innen: dasselbe Kreuz wie aussen (gleiche Lage in der Wandmitte, gleiche Breite), Rahmen und Bank auf der Innenwand
+    for wand, (a0, a1), (z0, z1), art in FENSTER:
+        if art != "fenster": continue
+        (ox, oy), (ex, ey), _, (nx, ny) = WAENDE[wand]
+        start = ox if ex else oy
+        s0, s1 = a0 - start, a1 - start
+        sm, zm = (s0 + s1) / 2, (z0 + z1) / 2
+        ziel = punkt(wand, sm, zm, -2.0)                                        # ein Punkt im Raum vor dem Fenster
+        r.rechteck(S, punkt(wand, sm - 0.025, z0, -T / 2 - 0.012), (ex, ey, 0), (0, 0, 1), 0.05, z1 - z0, "balken", laengs="v", zu=ziel, anteil=(0.2, 0.6))
+        r.rechteck(S, punkt(wand, s0, zm - 0.025, -T / 2 - 0.012), (ex, ey, 0), (0, 0, 1), s1 - s0, 0.05, "balken", zu=ziel, anteil=(0.2, 0.6))
+        n_innen = (-nx, -ny, 0)
+        for a, b, breite in ((punkt(wand, s0 - 0.10, z0 - 0.04, -T), punkt(wand, s1 + 0.10, z0 - 0.04, -T), 0.08),      # Bank
+                             (punkt(wand, s0 - 0.10, z1 + 0.04, -T), punkt(wand, s1 + 0.10, z1 + 0.04, -T), 0.08),      # Sturz
+                             (punkt(wand, s0 - 0.05, z0, -T), punkt(wand, s0 - 0.05, z1, -T), 0.10),
+                             (punkt(wand, s1 + 0.05, z0, -T), punkt(wand, s1 + 0.05, z1, -T), 0.10)):
+            r.brett(S, a, b, breite, n_innen, "balken", tiefe=0.035)
     # Tuerblatt von innen (Bretter), Tuersturz
     for wand, (a0, a1), (z0, z1), art in FENSTER:
         if art == "tuer":
@@ -451,10 +478,7 @@ def baue_raum():
 def baue_glas():
     g = Teil("Glas", BAENDER_INNEN, saat=7)
     for wand, (a0, a1), (z0, z1), art in FENSTER:
-        if art != "fenster": continue
-        (ox, oy), (ex, ey), _, _ = WAENDE[wand]
-        start = ox if ex else oy
-        g.rechteck("Innenglas", punkt(wand, a0 - start, z0, -T / 2 - 0.004), (ex, ey, 0), (0, 0, 1), a1 - a0, z1 - z0, "kleinteile", u_bereich=feld("eisen"), zu=RAUM)
+        if art == "fenster": scheibe(g, "Innenglas", wand, a0, a1, z0, z1, -T / 2 - 0.004, zu=RAUM)
     return g
 
 
@@ -465,8 +489,9 @@ def baue_herd():
     x0, x1, y0, y1 = KAMIN
     hy0, hy1 = y0 - 0.3, y1 + 0.3
     c.kasten(S, (1.0, hy0, Z_BODEN), (IX, hy1, 0.5), "bruchstein", ohne=("-z", "+x"), laengs="y")
-    for ya, yb in ((hy0, hy0 + 0.2), (hy1 - 0.2, hy1)):
-        c.kasten(S, (x0 - 0.1, ya, 0.5), (IX, yb, 1.7), "bruchstein", ohne=("-z", "+z", "+x"), laengs="z")
+    c.kasten(S, (x0 - 0.1, hy0, 0.5), (IX, hy0 + 0.2, 1.7), "bruchstein", ohne=("-z", "+z", "+x"), laengs="z")   # Wange zur Gassenwand
+    # zum Raum hin offen: die Haube ruht vorn auf einem Pfosten, so sieht man das Feuer vom Tisch und von hinten im Raum
+    c.kasten(S, (x0 - 0.12, hy1 - 0.14, 0.5), (x0 + 0.02, hy1, 1.7), "balken", ohne=("-z", "+z"), laengs="z")
     c.kasten(S, (x0 - 0.16, hy0 - 0.04, 1.7), (IX, hy1 + 0.04, 1.9), "balken", ohne=("+x",), laengs="y")
     c.rechteck(S, (x0 - 0.1, hy0 + 0.2, 0.5), (0, 1, 0), (0, 0, 1), hy1 - hy0 - 0.4, 1.2, "kleinteile", u_bereich=feld("russ"), zu=RAUM)   # verrusste Rueckwand
     c.rechteck(S, (IX - 0.01, hy0 + 0.2, 0.5), (0, 1, 0), (0, 0, 1), hy1 - hy0 - 0.4, 1.2, "bruchstein", zu=RAUM)
@@ -524,9 +549,9 @@ def baue_tisch():
         for y in (y0 + 0.25, y1 - 0.25):
             for sx in (-1, 1):
                 c.stab(S, (bx + sx * 0.13, y, Z_BODEN), (bx + sx * 0.08, y, zs - 0.045), 0.05, "balken")
-    krug = [(0.055, 0.0), (0.085, 0.05), (0.09, 0.13), (0.05, 0.2), (0.058, 0.25)]
-    c.dreh(S, (tx + 0.08, -1.55, zt), krug, "kleinteile", seiten=6, u_bereich=feld("ton"))
-    c.dreh(S, (tx - 0.15, -0.8, zt), [(0.04, 0.0), (0.055, 0.04), (0.05, 0.11)], "kleinteile", seiten=6, u_bereich=feld("ton"))
+    krug = [(0.05, 0.0), (0.075, 0.03), (0.09, 0.09), (0.082, 0.15), (0.05, 0.2), (0.046, 0.235), (0.058, 0.26)]
+    c.dreh(S, (tx + 0.08, -1.55, zt), krug, "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (tx - 0.15, -0.8, zt), [(0.036, 0.0), (0.05, 0.035), (0.052, 0.08), (0.047, 0.11)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
     for (px, py) in ((tx - 0.18, -1.5), (tx + 0.17, -1.05), (tx - 0.14, -1.12)):
         c.dreh(S, (px, py, zt), [(0.06, 0.0), (0.1, 0.022)], "bohlen", seiten=7, deckel=True, u_bereich=(0.1, 0.16), anteil=(0.2, 0.6))
     return c
@@ -579,12 +604,185 @@ def baue_truhe():
     ym = (y0 + y1) / 2
     c.vieleck(S, [(x1 + 0.008, ym - 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk + 0.0), (x1 + 0.008, ym - 0.05, zk + 0.0)], [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)], weg_von=(xm, ym, zb))
     # Tonkruege und Besen in der Ecke neben der Truhe
-    c.dreh(S, (-IX + 0.3, -1.0, Z_BODEN), [(0.09, 0.0), (0.16, 0.1), (0.17, 0.27), (0.08, 0.4), (0.095, 0.47)], "kleinteile", seiten=7, u_bereich=feld("ton"))
-    c.dreh(S, (-IX + 0.62, -1.12, Z_BODEN), [(0.07, 0.0), (0.11, 0.07), (0.115, 0.17), (0.06, 0.26), (0.07, 0.3)], "kleinteile", seiten=6, u_bereich=feld("ton"))
-    fuss, kopf = Vector((-IX + 0.2, IV + 0.3, Z_BODEN + 0.3)), Vector((-IX + 0.08, IV + 0.1, Z_BODEN + 1.55))
+    c.dreh(S, (-IX + 0.3, -1.0, Z_BODEN), [(0.09, 0.0), (0.14, 0.06), (0.17, 0.17), (0.16, 0.28), (0.09, 0.39), (0.08, 0.44), (0.097, 0.48)], "kleinteile", seiten=9, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (-IX + 0.62, -1.12, Z_BODEN), [(0.07, 0.0), (0.105, 0.06), (0.115, 0.15), (0.07, 0.25), (0.062, 0.28), (0.074, 0.31)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    fuss, kopf = Vector((-IX + 0.24, -0.62, Z_BODEN + 0.3)), Vector((-IX + 0.05, -0.6, Z_BODEN + 1.55))      # Besen an der linken Wand
     c.stab(S, fuss, kopf, 0.03, "balken")
-    c.dreh(S, (-IX + 0.22, IV + 0.33, Z_BODEN), [(0.13, 0.0), (0.09, 0.2), (0.03, 0.34)], "stroh", seiten=6, deckel=False, u_bereich=(0.0, 0.3))
+    c.dreh(S, (-IX + 0.27, -0.62, Z_BODEN), [(0.13, 0.0), (0.09, 0.2), (0.03, 0.34)], "stroh", seiten=6, deckel=False, u_bereich=(0.0, 0.3))
     return c
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+#  Besitz und Zustand aussen (Knotennamen wie bei den bisherigen Haeusern: Stadtansicht.Modelle.cs, Stadtansicht.Fahnen.cs)
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+SCHILD = [(-0.34, 0.42), (0.34, 0.42), (0.34, -0.02), (0.0, -0.44), (-0.34, -0.02)]   # Umriss wie bausteine.SCHILD
+
+
+def prisma(teil, stoff, umriss, o, eu, ev, n, t0, t1, band, farbe_uv=(0.1, 0.2), **kw):
+    """Platte mit dem Umriss `umriss` (in der Ebene o + x*eu + y*ev), von t0 bis t1 entlang n: Vorderseite und Rand."""
+    o, eu, ev, n = Vector(o), Vector(eu), Vector(ev), Vector(n)
+    v0, v1, m = teil.baender[band]
+    P = lambda x, y, t: o + eu * x + ev * y + n * t
+    mitte = P(0, 0, (t0 + t1) / 2)
+    uv = lambda x, y: (farbe_uv[0] + x / m, v1 - (0.5 + y) * 0.5 * (v1 - v0))
+    teil.vieleck(stoff, [P(x, y, t1) for x, y in umriss], [uv(x, y) for x, y in umriss], weg_von=P(0, 0, t0), **kw)
+    for (ax, ay), (bx, by) in zip(umriss, umriss[1:] + umriss[:1]):
+        teil.vieleck(stoff, [P(ax, ay, t0), P(bx, by, t0), P(bx, by, t1), P(ax, ay, t1)], [uv(ax, ay), uv(bx, by), uv(bx, by), uv(ax, ay)], weg_von=mitte, **kw)
+
+
+def baue_wappen():
+    """Wappenschild an der Gassenwand zwischen Fenster und Tuer: Rahmen aus Holz, Schild im Material „Hausfarbe“ (das Spiel
+    faerbt es in der Farbe des Besitzers), Eisenhaken. Nur mit Besitzer sichtbar."""
+    w = Teil("Wappen", BAENDER_AUSSEN, saat=61)
+    g = 0.62
+    o = (0.13, VORN, 1.52)
+    eu, ev, n = (1, 0, 0), (0, 0, 1), (0, -1, 0)
+    prisma(w, "Fachwerk", [(x * 1.16 * g, y * 1.12 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.045, "balken_c")
+    prisma(w, "Hausfarbe", [(x * g, y * g) for x, y in SCHILD], o, eu, ev, n, 0.045, 0.075, "farbholz", farbe=(1.0, 1.0, 1.0, 1.0))   # weisse Eckenfarbe: Godot multipliziert sie auf die Hausfarbe
+    w.kasten("Bruchstein", (0.13 - 0.02, VORN - 0.05, 1.52 + 0.47 * g), (0.13 + 0.02, VORN, 1.52 + 0.58 * g), "eisen", ohne=("+y",))
+    return w
+
+
+def baue_fahne():
+    """Fahne des Besitzers auf dem First ueber dem Giebel zur Gasse: Mast „Holz“, Knauf „Eisen“, Tuch „Hausfarbe“ als flaches Prisma
+    mit Schwalbenschwanz – genau der Aufbau, den Stadtansicht.Fahnen.cs erwartet (das Spiel ersetzt das Tuch durch ein wehendes)."""
+    f = Teil("Fahne", BAENDER_AUSSEN, saat=67)
+    x, y, z = 0.0, DACH_VORN + 0.55, Z_FIRST + 0.25
+    hoehe = 2.3
+    f.stab("Holz", (x, y, z), (x, y, z + hoehe), 0.08, "balken_a")
+    f.kasten("Eisen", (x - 0.07, y - 0.07, z + hoehe - 0.02), (x + 0.07, y + 0.07, z + hoehe + 0.12), "eisen")
+    tuch = [(0, 0), (1.25, 0.05), (0.98, 0.38), (1.25, 0.72), (0, 0.72)]
+    o = Vector((x + 0.04, y, z + hoehe - 0.85))
+    for t, sicht in ((-0.015, -1), (0.015, 1)):
+        pts = [o + Vector((u, t, v)) for u, v in tuch]
+        f.vieleck("Hausfarbe", pts, [(0.1, 0.8)] * 5, weg_von=o + Vector((0.6, -t, 0.36)))
+    for (au, av), (bu, bv) in zip(tuch, tuch[1:] + tuch[:1]):
+        f.vieleck("Hausfarbe", [o + Vector((au, -0.015, av)), o + Vector((bu, -0.015, bv)), o + Vector((bu, 0.015, bv)), o + Vector((au, 0.015, av))],
+                  [(0.1, 0.8)] * 4, weg_von=o + Vector((0.6, 0, 0.36)))
+    return f
+
+
+def baue_leerstand():
+    """Leerstand: Tuer und Fenster mit gekreuzten Brettern vernagelt (Knoten „Leerstand“, im Spiel nur bei leerem Haus sichtbar)."""
+    l = Teil("Leerstand", BAENDER_AUSSEN, saat=71)
+    for wand, (a0, a1), (z0, z1), art in FENSTER:
+        (ox, oy), (ex, ey), _, n = WAENDE[wand]
+        start = ox if ex else oy
+        s0, s1 = a0 - start, a1 - start
+        n3 = (n[0], n[1], 0)
+        if art == "tuer":
+            for z in (z0 + 0.55, z0 + 1.05, z0 + 1.5):
+                l.brett("Fachwerk", punkt(wand, s0 - 0.16, z - 0.06), punkt(wand, s1 + 0.16, z + 0.07), 0.17, n3, "planken", tiefe=0.10)
+        else:
+            l.brett("Fachwerk", punkt(wand, s0 - 0.1, z0 + 0.05), punkt(wand, s1 + 0.1, z1 - 0.08), 0.15, n3, "planken", tiefe=0.11)
+            l.brett("Fachwerk", punkt(wand, s0 - 0.1, z1 - 0.02), punkt(wand, s1 + 0.1, z0 + 0.12), 0.15, n3, "planken", tiefe=0.135)
+    return l
+
+
+def baue_geruest():
+    """Baugeruest vor der Gassenseite (Knoten „Geruest“: Ausbau, Sanierung, nach einem Brand): Stangen, zwei Laufebenen, Leiter."""
+    g = Teil("Geruest", BAENDER_AUSSEN, saat=73)
+    yi, ya = OVORN - 0.22, OVORN - 1.05
+    xs = (-OX - 0.1, 0.0, OX + 0.1)
+    for x in xs:
+        g.stab("Fachwerk", (x, yi, 0), (x, yi, 4.5), 0.09, "balken_a")
+        g.stab("Fachwerk", (x, ya, 0), (x, ya, 5.3), 0.09, "balken_a")
+    for z in (1.9, 3.9):
+        for x in xs:
+            g.stab("Fachwerk", (x, yi - 0.05, z - 0.07), (x, ya + 0.05, z - 0.07), 0.08, "balken_b")
+        g.kasten("Fachwerk", (xs[0] - 0.15, ya + 0.08, z), (xs[-1] + 0.15, yi - 0.08, z + 0.05), "planken", laengs="x")
+        g.stab("Fachwerk", (xs[0], ya, z + 0.95), (xs[-1], ya, z + 0.95), 0.06, "balken_a")
+    g.stab("Fachwerk", (xs[0], ya, 0.1), (xs[1], ya, 1.85), 0.07, "balken_c")
+    g.stab("Fachwerk", (xs[1], ya, 2.0), (xs[2], ya, 3.85), 0.07, "balken_c")
+    fuss, kopf = Vector((1.75, ya - 0.55, 0)), Vector((1.75, ya + 0.02, 2.5))
+    for dx in (-0.2, 0.2):
+        g.stab("Fachwerk", fuss + Vector((dx, 0, 0)), kopf + Vector((dx, 0, 0)), 0.05, "balken_a")
+    for i in range(7):
+        p = fuss.lerp(kopf, (i + 0.7) / 7.6)
+        g.stab("Fachwerk", p + Vector((-0.2, 0, 0)), p + Vector((0.2, 0, 0)), 0.04, "balken_b")
+    return g
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+#  Einrichtung des Wohnhauses, die man kauft oder hat (game/daten/wirtschaft.json, wohnen.einrichtung): je Stueck ein Knoten
+#  „Einrichtung_<Kennung>“, im Spiel erst sichtbar, wenn das Haus das Stueck hat. Hier die drei Stuecke der Stufe 1.
+# ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+def baue_hausapotheke():
+    """Hausapotheke (hat jedes Haus): Wandbord an der Gassenwand zwischen Fenster und Tuer mit Kraeuterschnaps, Salbentiegeln,
+    Moerser und einem Buendel Heilkraut."""
+    c = Teil("Einrichtung_Hausapotheke", BAENDER_INNEN, saat=81)
+    S = "Innen"
+    x0, x1, y = -0.22, 0.48, IV
+    for z in (1.38, 1.72):
+        c.kasten(S, (x0, y, z), (x1, y + 0.17, z + 0.03), "bohlen", ohne=("-y",), laengs="x")
+    for x in (x0 + 0.03, x1 - 0.03):
+        c.kasten(S, (x - 0.02, y, 1.20), (x + 0.02, y + 0.15, 1.92), "balken", ohne=("-y",), laengs="z")
+    flasche = [(0.036, 0.0), (0.04, 0.09), (0.015, 0.14), (0.015, 0.185), (0.0, 0.19)]
+    for i, (x, z, farbe, hoch) in enumerate(((x0 + 0.12, 1.41, "kraut", 1.0), (x0 + 0.26, 1.41, "ton", 0.8), (x0 + 0.54, 1.41, "kraut", 1.15), (x0 + 0.2, 1.75, "ton", 0.7), (x0 + 0.44, 1.75, "zwiebel_gelb", 0.9))):
+        c.dreh(S, (x, y + 0.085, z), [(r, h * hoch) for r, h in flasche], "kleinteile", seiten=6, deckel=False, u_bereich=feld(farbe))
+    c.dreh(S, (x0 + 0.39, y + 0.09, 1.41), [(0.03, 0.0), (0.055, 0.025), (0.06, 0.07), (0.05, 0.075)], "bruchstein", seiten=7, deckel=True, anteil=(0.2, 0.5), u_bereich=(0.1, 0.16))   # Moerser
+    c.stab(S, (x0 + 0.39, y + 0.09, 1.46), (x0 + 0.43, y + 0.11, 1.56), 0.018, "balken")                                                                                       # Stoessel
+    c.dreh(S, (x1 + 0.1, y + 0.07, 1.42), [(0.0, 0.0), (0.07, 0.06), (0.045, 0.24), (0.012, 0.34)], "kleinteile", seiten=6, deckel=False, u_bereich=feld("kraut"))               # Heilkraut am Nagel
+    c.stab(S, (x1 + 0.1, y + 0.07, 1.76), (x1 + 0.1, y + 0.01, 1.84), 0.012, "stroh")
+    return c
+
+
+def baue_hauswaechter():
+    """Hauswaechter (angestellt): sein Platz an der Gassenwand links vom Fenster – Hellebarde in der Ecke, Laterne am Wandhaken,
+    Schemel mit Knueppel unter dem Fenster."""
+    c = Teil("Einrichtung_Hauswaechter", BAENDER_INNEN, saat=83)
+    S = "Innen"
+    ue = feld("eisen")
+    k0, k1, _ = BAENDER_INNEN["kleinteile"]
+    fuss, kopf = Vector((-IX + 0.16, IV + 0.20, Z_BODEN + 0.46)), Vector((-IX + 0.05, IV + 0.05, Z_BODEN + 2.3))   # steht hinter der Truhe in der Ecke
+    c.stab(S, fuss, kopf, 0.035, "balken")
+    achse = (kopf - fuss).normalized()
+    quer = Vector((1, 0, 0))
+    blatt = kopf - achse * 0.38
+    for pts in ([blatt, blatt + quer * 0.20 + achse * 0.06, blatt + quer * 0.22 + achse * 0.22, blatt + achse * 0.26],     # Beil
+                [blatt + achse * 0.08, blatt - quer * 0.10 + achse * 0.12, blatt + achse * 0.17],                           # Haken
+                [kopf - achse * 0.1, kopf + achse * 0.22, kopf - achse * 0.1 + quer * 0.035]):                              # Stossklinge
+        for vorn in (1, -1):
+            versetzt = [p + Vector((0, 0.004 * vorn, 0)) for p in pts]
+            c.vieleck(S, versetzt, [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)][:len(pts)], zu=versetzt[0] + Vector((0, vorn, 0)))
+    # Laterne am Wandhaken: Eisenrahmen, Hornscheiben mit Lichtschein
+    lx, ly, lz = -1.66, IV + 0.13, 1.52
+    c.stab(S, (lx, IV, lz + 0.42), (lx, ly, lz + 0.42), 0.02, "kleinteile", u_bereich=ue)
+    c.stab(S, (lx, ly, lz + 0.42), (lx, ly, lz + 0.3), 0.012, "kleinteile", u_bereich=ue)
+    c.kasten(S, (lx - 0.06, ly - 0.06, lz + 0.05), (lx + 0.06, ly + 0.06, lz + 0.24), "kleinteile", ohne=("-z", "+z"), laengs="z")
+    ug = feld("glut")
+    for fl in c.flaechen[-4:]:
+        fl[1][:] = [(ug[0], k1), (ug[1], k1), (ug[1], k0), (ug[0], k0)]
+    c.kasten(S, (lx - 0.075, ly - 0.075, lz), (lx + 0.075, ly + 0.075, lz + 0.05), "balken")
+    c.dreh(S, (lx, ly, lz + 0.24), [(0.085, 0.0), (0.03, 0.06), (0.0, 0.07)], "kleinteile", seiten=4, deckel=False, u_bereich=ue, glatt=False)
+    # Schemel und Knueppel unter dem Fenster
+    sx, sy = -1.05, IV + 0.27
+    c.dreh(S, (sx, sy, Z_BODEN + 0.40), [(0.17, 0.0), (0.17, 0.045)], "bohlen", seiten=8, deckel=True, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
+    c.dreh(S, (sx, sy, Z_BODEN + 0.40), [(0.17, 0.0), (0.0, 0.0)], "bohlen", seiten=8, deckel=False, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
+    for w in (30, 150, 270):
+        c.stab(S, (sx + 0.17 * math.cos(math.radians(w)), sy + 0.17 * math.sin(math.radians(w)), Z_BODEN), (sx + 0.09 * math.cos(math.radians(w)), sy + 0.09 * math.sin(math.radians(w)), Z_BODEN + 0.40), 0.04, "balken")
+    c.stab(S, (sx - 0.2, sy - 0.03, Z_BODEN + 0.475), (sx + 0.24, sy + 0.04, Z_BODEN + 0.48), 0.055, "balken", kappen=True)   # Knueppel quer auf dem Schemel
+    return c
+
+
+def baue_hauswappen():
+    """Wappen ueber der Tuer (gekauft, „Ansehen“): geschnitzter Schild in der Hausfarbe innen ueber der Haustuer, mit Rahmen."""
+    c = Teil("Einrichtung_Hauswappen", BAENDER_INNEN, saat=87)
+    tuer = next(f for f in FENSTER if f[3] == "tuer")
+    xm = (tuer[1][0] + tuer[1][1]) / 2
+    g = 0.9
+    o = (xm, JV, 3.25)
+    eu, ev, n = (-1, 0, 0), (0, 0, 1), (0, 1, 0)
+    prisma(c, "Innen", [(x * 1.2 * g, y * 1.14 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.05, "balken")
+    prisma(c, "Hausfarbe", [(x * g, y * g) for x, y in SCHILD], o, eu, ev, n, 0.05, 0.085, "bohlen")
+    # Zierleiste: zwei gekreuzte Staebe hinter dem Schild und ein Balken, auf dem er sitzt
+    for sx in (-1, 1):
+        c.stab("Innen", (xm + sx * 0.5, JV + 0.03, 2.82), (xm - sx * 0.5, JV + 0.03, 3.75), 0.035, "balken")
+    c.kasten("Innen", (xm - 0.5, JV, 2.78), (xm + 0.5, JV + 0.1, 2.86), "balken", ohne=("-y",), laengs="x")
+    return c
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -617,10 +815,26 @@ def verschmelzen(obj):
     bm.to_mesh(obj.data); bm.free()
 
 
-def uv2_und_ao(objekte, datei, groesse=512, mit_ao=True, verdecker=()):
-    """UV2 (Smart UV Project, Rand 0,02, alle Objekte in einem Atlas) und die Verdeckung dorthin backen (Cycles)."""
+def atlas_platz(gruppe, modell):
+    """Platz eines Modells im AO-Atlas seiner Gruppe (ao_atlas.json): (Datei, Kante in Pixeln, Zellen je Seite, Spalte, Zeile).
+    Alle Haeuser einer Gruppe teilen sich eine AO-Textur – so genuegt im Spiel ein Material je Gruppe (Style-Guide Abschnitt 4)."""
+    import json
+    daten = json.load(open(os.path.join(HIER, "ao_atlas.json"), encoding="utf-8"))[gruppe]
+    nummer = daten["plaetze"][modell]
+    n = daten["zellen"]
+    return daten["datei"], daten["kante"], n, nummer % n, nummer // n
+
+
+def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
+    """UV2 (Smart UV Project, Rand 0,02; alle Objekte des Modells in einer Zelle des Atlas) und die Verdeckung dorthin backen (Cycles).
+    `gruppen`: Liste aus (Objekte, Verdecker) – jede wird fuer sich gebacken (das Geruest soll das Haus nicht verschatten)."""
+    import numpy as np
+    datei, kante, n, spalte, zeile = atlas_platz(gruppe, modell)
+    zelle = kante // n
+    objekte = [o for objs, _ in gruppen for o in objs]
     bpy.ops.object.select_all(action="DESELECT")
     for o in objekte:
+        o.hide_set(False); o.hide_viewport = False
         verschmelzen(o)
         uv2 = o.data.uv_layers.new(name="UV2")
         o.data.uv_layers.active = uv2
@@ -630,43 +844,57 @@ def uv2_und_ao(objekte, datei, groesse=512, mit_ao=True, verdecker=()):
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.02, area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
     bpy.ops.object.mode_set(mode="OBJECT")
-    if not mit_ao:
-        for o in objekte: o.data.uv_layers.active = o.data.uv_layers["UVMap"]
-        return
-    bild = bpy.data.images.new(os.path.basename(datei), groesse, groesse, alpha=False)
-    bild.colorspace_settings.name = "Non-Color"
-    bild.generated_color = (1, 1, 1, 1)
-    szene = bpy.context.scene
-    szene.render.engine = "CYCLES"
-    szene.cycles.device = "CPU"
-    szene.cycles.samples = 96
-    szene.render.bake.margin = 6
-    szene.render.bake.use_clear = False
-    if szene.world is None: szene.world = bpy.data.worlds.new("Welt")
-    szene.world.light_settings.distance = 1.1          # nur Kontaktschatten (Dachueberstand, Balken, Moebel), kein dunkler Raum
-    for o in bpy.data.objects:
-        o.hide_render = o not in objekte and o not in verdecker
+    bild = None
+    if mit_ao:
+        bild = bpy.data.images.new("AO-Zelle", zelle, zelle, alpha=False)
+        bild.colorspace_settings.name = "Non-Color"
+        bild.generated_color = (1, 1, 1, 1)
+        szene = bpy.context.scene
+        szene.render.engine = "CYCLES"
+        szene.cycles.device = "CPU"
+        szene.cycles.samples = 96
+        szene.render.bake.margin = 6
+        szene.render.bake.use_clear = False
+        if szene.world is None: szene.world = bpy.data.worlds.new("Welt")
+        szene.world.light_settings.distance = 1.1          # nur Kontaktschatten (Dachueberstand, Balken, Moebel), kein dunkler Raum
+        for objs, verdecker in gruppen:
+            for o in bpy.data.objects:
+                o.hide_render = o not in objs and o not in verdecker
+            for o in objs:
+                for m in o.data.materials:
+                    knoten = m.node_tree.nodes
+                    ziel = knoten.get("AO-Ziel") or knoten.new("ShaderNodeTexImage")
+                    ziel.name = "AO-Ziel"; ziel.image = bild
+                    knoten.active = ziel
+            for o in objs:
+                bpy.ops.object.select_all(action="DESELECT")
+                o.select_set(True); bpy.context.view_layer.objects.active = o
+                bpy.ops.object.bake(type="AO", uv_layer="UV2")
+        # weich zeichnen: die Karte soll nur Kontaktschatten tragen
+        feld = np.empty(zelle * zelle * 4, dtype=np.float32); bild.pixels.foreach_get(feld)
+        grau = feld.reshape(zelle, zelle, 4)[..., 0]
+        grau = np.clip((grau + np.roll(grau, 1, 0) + np.roll(grau, -1, 0) + np.roll(grau, 1, 1) + np.roll(grau, -1, 1)) / 5, 0, 1)
+        # in den Atlas legen (vorhandene Zellen anderer Modelle bleiben)
+        pfad = os.path.join(ZIEL_TEXTUR, datei)
+        if os.path.exists(pfad):
+            alt = bpy.data.images.load(pfad); alt.colorspace_settings.name = "Non-Color"
+            ganz = np.empty(kante * kante * 4, dtype=np.float32); alt.pixels.foreach_get(ganz)
+            ganz = ganz.reshape(kante, kante, 4).copy(); bpy.data.images.remove(alt)
+        else:
+            ganz = np.ones((kante, kante, 4), dtype=np.float32)
+        ganz[zeile * zelle:(zeile + 1) * zelle, spalte * zelle:(spalte + 1) * zelle, :3] = grau[..., None]
+        ganz[..., 3] = 1
+        atlas = bpy.data.images.new("AO-Atlas", kante, kante, alpha=False)
+        atlas.colorspace_settings.name = "Non-Color"
+        atlas.pixels.foreach_set(ganz.ravel())
+        atlas.filepath_raw = pfad; atlas.file_format = "PNG"; atlas.save()
+        print("geschrieben", pfad, "Zelle", spalte, zeile)
+    # UV2 in die Zelle des Atlas schieben (mit etwas Rand zur Nachbarzelle)
+    rand = 3.0 / zelle
     for o in objekte:
-        for m in o.data.materials:
-            knoten = m.node_tree.nodes
-            ziel = knoten.get("AO-Ziel") or knoten.new("ShaderNodeTexImage")
-            ziel.name = "AO-Ziel"; ziel.image = bild
-            knoten.active = ziel
-    for o in objekte:
-        bpy.ops.object.select_all(action="DESELECT")
-        o.select_set(True); bpy.context.view_layer.objects.active = o
-        bpy.ops.object.bake(type="AO", uv_layer="UV2")
-    # weich zeichnen und aufhellen: die Karte soll nur Kontaktschatten tragen
-    import numpy as np
-    feld = np.empty(groesse * groesse * 4, dtype=np.float32); bild.pixels.foreach_get(feld)
-    feld = feld.reshape(groesse, groesse, 4)
-    grau = feld[..., 0]
-    weich = (grau + np.roll(grau, 1, 0) + np.roll(grau, -1, 0) + np.roll(grau, 1, 1) + np.roll(grau, -1, 1)) / 5
-    feld[..., 0] = feld[..., 1] = feld[..., 2] = np.clip(weich, 0, 1); feld[..., 3] = 1
-    bild.pixels.foreach_set(feld.ravel())
-    bild.filepath_raw = datei; bild.file_format = "PNG"; bild.save()
-    print("geschrieben", datei)
-    for o in objekte:
+        kanal = o.data.uv_layers["UV2"]
+        for d in kanal.data:
+            d.uv = ((spalte + rand + d.uv[0] * (1 - 2 * rand)) / n, (zeile + rand + d.uv[1] * (1 - 2 * rand)) / n)
         for m in o.data.materials:
             knoten = m.node_tree.nodes
             if knoten.get("AO-Ziel"): knoten.remove(knoten["AO-Ziel"])
@@ -726,16 +954,34 @@ def main():
     aussen_stoffe = {
         "Stroh": stoff("Stroh", "trim"), "Strohkante": stoff("Strohkante", "trim", schere=True), "Fachwerk": stoff("Fachwerk", "trim"),
         "Lehmputz": stoff("Lehmputz", "trim"), "Bruchstein": stoff("Bruchstein", "trim"),
-        "Fenster": stoff("Fenster", farbe=(0.09, 0.11, 0.14), rauheit=0.2),
+        "Fenster": stoff("Fenster", farbe=(0.09, 0.11, 0.14), rauheit=0.2), "Bleinetz": stoff("Bleinetz", farbe=(0.1, 0.1, 0.11), alpha=0.5),
+        "Hausfarbe": stoff("Hausfarbe", farbe=(0.55, 0.12, 0.10)), "Holz": stoff("Holz", farbe=(0.30, 0.22, 0.15)), "Eisen": stoff("Eisen", farbe=(0.12, 0.12, 0.13), rauheit=0.5),
     }
-    innen_stoffe = {"Innen": stoff("Innen", "innen_trim"), "Innenglas": stoff("Innenglas", farbe=(0.55, 0.62, 0.6), alpha=0.16, rauheit=0.15)}
-    teile_aussen = [baue_haus(), baue_dach(), baue_scheiben()]
-    teile_innen = [baue_raum(), baue_herd(), baue_vorrat(), baue_tisch(), baue_schlafplatz(), baue_truhe(), baue_glas()]
-    print("DREIECKE aussen:", {t.name: t.dreiecke() for t in teile_aussen}, "Summe", sum(t.dreiecke() for t in teile_aussen))
-    print("DREIECKE innen:", {t.name: t.dreiecke() for t in teile_innen}, "Summe", sum(t.dreiecke() for t in teile_innen))
-    aussen = [t.objekt(aussen_stoffe, mit_farbe=t.name != "Scheiben") for t in teile_aussen]
-    innen = [t.objekt(innen_stoffe, mit_farbe=False) for t in teile_innen]
-    glas = innen[-1]
+    innen_stoffe = {"Innen": stoff("Innen", "innen_trim"), "Innenglas": stoff("Innenglas", farbe=(0.55, 0.62, 0.6), alpha=0.16, rauheit=0.15),
+                    "Hausfarbe": aussen_stoffe["Hausfarbe"]}
+    huelle = [baue_haus(), baue_dach()]                                            # zaehlt zum Budget des Style-Guides
+    scheiben = baue_scheiben()
+    zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]                     # Besitz und Zustand, wie bei den bisherigen Haeusern
+    fahne = baue_fahne()
+    raum = [baue_raum(), baue_herd(), baue_vorrat(), baue_tisch(), baue_schlafplatz(), baue_truhe()]
+    einrichtung = [baue_hausapotheke(), baue_hauswaechter(), baue_hauswappen()]
+    glas_teil = baue_glas()
+    zaehle = lambda teile: {t.name: t.dreiecke() for t in teile}
+    print("DREIECKE aussen:", zaehle(huelle + [scheiben]), "Summe", sum(t.dreiecke() for t in huelle + [scheiben]))
+    print("DREIECKE Zustand und Besitz:", zaehle(zusatz + [fahne]))
+    print("DREIECKE innen:", zaehle(raum + [glas_teil]), "Summe", sum(t.dreiecke() for t in raum + [glas_teil]))
+    print("DREIECKE Einrichtung:", zaehle(einrichtung))
+    o_huelle = [t.objekt(aussen_stoffe) for t in huelle]
+    o_zusatz = [t.objekt(aussen_stoffe) for t in zusatz]
+    o_scheiben = scheiben.objekt(aussen_stoffe, mit_farbe=False)
+    o_fahne = fahne.objekt(aussen_stoffe, mit_farbe=False)
+    o_raum = [t.objekt(innen_stoffe, mit_farbe=False) for t in raum]
+    o_einrichtung = [t.objekt(innen_stoffe, mit_farbe=False) for t in einrichtung]
+    o_glas = glas_teil.objekt(innen_stoffe, mit_farbe=False)
+    for o in o_zusatz[1:]:                          # Leerstand und Geruest: Zustandsknoten, im Spiel nach Bedarf sichtbar
+        o["zustand"] = True; o["sichtbar"] = False
+    aussen = o_huelle + [o_scheiben] + o_zusatz + [o_fahne]
+    innen = o_raum + o_einrichtung + [o_glas]
 
     # Boden nur fuers Backen und fuers Kontrollbild
     bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0))
@@ -743,8 +989,8 @@ def main():
     boden.data.materials.append(stoff("Kontrollboden", farbe=(0.33, 0.3, 0.24)))
 
     mit_ao = "ohne-ao" not in opt
-    uv2_und_ao(aussen[:2], os.path.join(ZIEL_TEXTUR, f"{NAME}_ao.png"), mit_ao=mit_ao, verdecker=[boden])
-    uv2_und_ao(innen[:-1], os.path.join(ZIEL_TEXTUR, f"{NAME}_innen_ao.png"), mit_ao=mit_ao)
+    uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], "wohnhaus_mensch", NAME, mit_ao=mit_ao)
+    uv2_und_ao([(o_raum, []), (o_einrichtung, o_raum)], "wohnhaus_mensch_innen", NAME, mit_ao=mit_ao)
 
     tuer = next(f for f in FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = KAMIN
@@ -753,10 +999,15 @@ def main():
         anker("Anker_Schornstein", ((x0 + x1) / 2, (y0 + y1) / 2, Z_FIRST - 0.35 + 0.2)),
     ]
     anker_innen = [
-        anker("Blick_Auge", (0.6, IH - 0.3, Z_BODEN + 1.55)),                                         # steht hinten unter der Galerie ...
-        anker("Blick_Ziel", (-0.3, IV, Z_BODEN + 1.55)),                                               # ... und schaut zur Gassenwand mit Tuer und Fenster
+        anker("Blick_Auge", (0.6, IH - 0.3, Z_BODEN + 1.55)),                                           # steht hinten unter der Galerie ...
+        anker("Blick_Ziel", (-0.3, IV, Z_BODEN + 1.55)),                                                # ... und schaut zur Gassenwand mit Tuer und Fenster
         anker("Licht_Herd", ((x0 + x1) / 2 - 0.25, (y0 + y1) / 2, 0.95)),
         anker("Licht_Raum", (-0.3, -1.2, 3.6)),
+        anker("Feuer_Herd", ((x0 + x1) / 2 - 0.18, (y0 + y1) / 2, 0.53)),                               # Fuss der Flamme auf der Herdplatte
+        # Plaetze der Familie (Stadtansicht.Neubau.cs): Oberhaupt und Kinder auf den Baenken, Ehepartner am Kessel, ein Kind spielt auf der Matte
+        anker("Platz_Oberhaupt", (0.42, -1.5, Z_BODEN)), anker("Platz_Partner", (0.72, -1.4, Z_BODEN)),
+        anker("Platz_Kind_1", (-0.82, -1.55, Z_BODEN)), anker("Platz_Kind_2", (-0.82, -0.85, Z_BODEN)),
+        anker("Platz_Kind_3", (0.42, -0.75, Z_BODEN)), anker("Platz_Kind_4", (0.2, 1.15, Z_BODEN)),
     ]
     exportiere(aussen + anker_aussen, os.path.join(ZIEL_MODELL, f"{NAME}.glb"))
     exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))
@@ -764,6 +1015,7 @@ def main():
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         namen_innen = [x.name for x in innen]
+        namen_innen += ["Leerstand", "Geruest"]
         kontrollbild(os.path.join(o, "blender_aussen_vorn.jpg"), (-8.5, -12.5, 9.5), (0, 0, 3.6), verbergen=namen_innen)
         kontrollbild(os.path.join(o, "blender_aussen_hinten.jpg"), (9.5, 11.0, 8.0), (0, 0, 3.6), verbergen=namen_innen)
         lampe = bpy.data.objects.new("Kontrolllampe", bpy.data.lights.new("Kontrolllampe", "POINT"))

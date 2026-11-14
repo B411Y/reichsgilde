@@ -186,7 +186,8 @@
           "hinweis": "Aufnahmen und Materialien, vom Spiel zu Texturbändern gepackt und umgefärbt.",
           "pflicht": false,
           "deckt": [
-            "game/assets/texturen/neubau/*trim_"
+            "game/assets/texturen/neubau/*trim_",
+            "game/assets/texturen/neubau/bodenfleck"
           ]
         }
       ],

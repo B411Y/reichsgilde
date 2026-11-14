@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l8pk5agc7uh3"
-path="res://.godot/imported/wohnhaus_mensch_s1_g1_ao.png-cf9744008cbf95b602ef639c12047b6c.ctex"
+uid="uid://6fcec5673min"
+path="res://.godot/imported/wohnhaus_mensch_innen_ao_atlas.png-90c7c2bf7e1ed8447d97625ccedffd01.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/neubau/wohnhaus_mensch_s1_g1_ao.png"
-dest_files=["res://.godot/imported/wohnhaus_mensch_s1_g1_ao.png-cf9744008cbf95b602ef639c12047b6c.ctex"]
+source_file="res://assets/texturen/neubau/wohnhaus_mensch_innen_ao_atlas.png"
+dest_files=["res://.godot/imported/wohnhaus_mensch_innen_ao_atlas.png-90c7c2bf7e1ed8447d97625ccedffd01.ctex"]
 
 [params]
 

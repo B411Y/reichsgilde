@@ -7,8 +7,10 @@ Keine Bild-KI und keine Image-to-3D-KI. Modell, UV und Texturen entstehen aus Sk
 **Ablauf**
 
 1. `tools/modelle/neubau/trimsheet.py` (in Blender, numpy): packt zwölf CC0-Texturen von Poly Haven zu zwei Trim-Sheets (außen, innen). Quellen, Urheber und Nachbearbeitung: `game/assets/texturen/neubau/HERKUNFT.md`. Der Prompt aus Abschnitt 4.2 des Style-Guides (Trim-Sheet aus einer Bild-KI) wurde **nicht** benutzt: Fotografierte CC0-Materialien kacheln sauber und bringen Normale und Rauheit mit.
-2. `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py` (Blender 5.2.2, `-b`): baut Hülle und Innenraum aus denselben Maßen (`netzbau.py` legt jede Fläche auf ihr Band), Smart UV Project als UV2 (Rand 0,02), backt die Verdeckung (Cycles, 96 Proben, Reichweite 1,1 m) und schreibt zwei GLB ohne Bilder.
+2. `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py` (Blender 5.2.2, `-b`): baut Hülle und Innenraum aus denselben Maßen (`netzbau.py` legt jede Fläche auf ihr Band), Smart UV Project als UV2 (Rand 0,02), backt die Verdeckung in die Zelle des AO-Atlas (Cycles, 96 Proben, Reichweite 1,1 m) und schreibt zwei GLB ohne Bilder.
 3. Im Spiel setzt `Stadtansicht.Neubau.cs` Trim-Sheet, Shader und Farben.
+
+**Zweite Runde (14.11.2026, nach Rückmeldung des Nutzers):** Fahne, Wappen, Leerstand und Gerüst wie bei den bisherigen Häusern; Fensterkreuze und Rahmen innen; Butzenscheiben als eigene Shader (`butzen.gdshaderinc`, `butzenglas.gdshader`, `bleinetz.gdshader`; Recherche und Quellen in `docs/bereiche/darstellung.md`); Teilband „gestrichenes Holz“; AO-Atlas je Gruppe (`ao_atlas.json`); Einrichtungsstücke der Stufe 1 (Hausapotheke, Hauswächter, Hauswappen); `bodenfleck.png` fürs Decal. Weiter ohne Bild- oder 3D-KI.
 
 **Aufruf**
 
