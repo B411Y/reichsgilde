@@ -24,6 +24,7 @@ uniform float ao_uv2_strength : hint_range(0.0, 1.0) = 0.75;
 uniform float pixel_look = 0.0;                 // 1 im Pixel-Look
 uniform float pixel_mip = 2.5;                  // um so viele Mip-Stufen gröber im Pixel-Look
 uniform float ao_grund : hint_range(0.0, 1.0) = 0.68;   // Grundmaß der Verdeckung: so dunkel wie die übrigen Modelle im Schatten und bei Nacht (Umgebungslicht)
+uniform float ao_stroh : hint_range(0.0, 1.0) = 0.6;
 uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Regen im Haus)
 
 // Pro Gebäude-Instanz in Godot variierbar (ohne neues Material!):
@@ -76,13 +77,13 @@ void fragment() {
 		bool stroh = UV.y < 0.25;
 		vec3 wn = normalize(welt_normale);
 		// Das steile Strohdach (52°) hält den Schnee wie die flacheren Dächer der übrigen Häuser: Normale für das Wetter etwas aufgerichtet
-		if (stroh && wn.y > 0.2) wn = normalize(wn + vec3(0.0, 0.45, 0.0));
+		if (stroh && wn.y > 0.2) wn = normalize(wn + vec3(0.0, 0.45 + 0.9 * step(0.001, wetter_dach), 0.0));   // bei Schnee wie ein flaches Dach: geschlossene Decke
 		vec3 wn_neu = wn;
 		vec2 dach = vec2(UV.x * 4.0, (0.1875 - UV.y) / 0.1875 * 1.55);
 		vec3 trocken = final_color;
 		wetter_flaeche(final_color, rauheit, wn_neu, schimmer, wn, wn, welt_ort, dach, 1.55, stroh ? 1.0 : 0.0, 1.0 - orm.r, fuss_hoehe, TIME, false);
 		if (wn_neu != wn) NORMAL = normalize(mat3(VIEW_MATRIX) * wn_neu);
-		if (wetter_schnee > 0.001) schnee = smoothstep(0.03, 0.3, dot(final_color - trocken, vec3(0.3, 0.59, 0.11)));
+		if (wetter_dach > 0.001) schnee = smoothstep(0.03, 0.3, dot(final_color - trocken, vec3(0.3, 0.59, 0.11)));
 	}
 
 	ALBEDO = final_color;
@@ -91,7 +92,9 @@ void fragment() {
 	EMISSION = schimmer;
 
 	// Kombiniert Trim-Sheet-AO mit der individuellen Haus-AO (UV2)
-	AO = ao_grund * mix(orm.r, 1.0, schnee) * mix(1.0, house_ao, ao_uv2_strength);
+	// Stroh nimmt weniger Umgebungslicht an (ao_stroh): sonst sind die Dächer nachts heller als die übrigen Strohdächer; Schnee hebt das auf
+	float grund = mix(ao_grund * (UV.y < 0.25 ? ao_stroh : 1.0), 1.0, schnee);
+	AO = grund * mix(orm.r, 1.0, schnee) * mix(1.0, house_ao, ao_uv2_strength * (1.0 - schnee));
 	ROUGHNESS = rauheit;
 	METALLIC = orm.b;
 }

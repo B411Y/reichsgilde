@@ -593,8 +593,8 @@ def baue_tisch():
         c.stab(S, (tx - 0.25, y, Z_BODEN + 0.3), (tx + 0.25, y, Z_BODEN + 0.3), 0.05, "balken")
     c.stab(S, (tx, y0 + 0.22, Z_BODEN + 0.3), (tx, y1 - 0.22, Z_BODEN + 0.3), 0.05, "balken")
     zs = Z_BODEN + SITZ_HOEHE
-    c.kasten(S, (BANK_X - 0.15, y0 + 0.05, zs - 0.045), (BANK_X + 0.15, y1 - 0.05, zs), "bohlen", laengs="y")
-    for y in (y0 + 0.25, y1 - 0.25):
+    c.kasten(S, (BANK_X - 0.15, y0 + 0.32, zs - 0.045), (BANK_X + 0.15, y1 - 0.05, zs), "bohlen", laengs="y")   # vorn kuerzer: dort steht die Truhe
+    for y in (y0 + 0.47, y1 - 0.2):
         for sx in (-1, 1):
             c.stab(S, (BANK_X + sx * 0.14, y, Z_BODEN), (BANK_X + sx * 0.09, y, zs - 0.045), 0.05, "balken")
     sx_, sy_ = SCHEMEL
@@ -603,9 +603,9 @@ def baue_tisch():
     for w in (30, 150, 270):
         c.stab(S, (sx_ + 0.17 * math.cos(math.radians(w)), sy_ + 0.17 * math.sin(math.radians(w)), Z_BODEN), (sx_ + 0.09 * math.cos(math.radians(w)), sy_ + 0.09 * math.sin(math.radians(w)), zs - 0.045), 0.04, "balken")
     krug = [(0.05, 0.0), (0.075, 0.03), (0.09, 0.09), (0.082, 0.15), (0.05, 0.2), (0.046, 0.235), (0.058, 0.26)]
-    c.dreh(S, (tx - 0.12, y0 + 0.4, zt), krug, "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
-    c.dreh(S, (tx + 0.14, y0 + 0.62, zt), [(0.036, 0.0), (0.05, 0.035), (0.052, 0.08), (0.047, 0.11)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
-    for (px, py) in ((tx + 0.12, y0 + 0.35), (tx + 0.14, y0 + 0.85)):
+    c.dreh(S, (tx - 0.16, y0 + 0.13, zt), krug, "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (tx + 0.2, y0 + 0.12, zt), [(0.036, 0.0), (0.05, 0.035), (0.052, 0.08), (0.047, 0.11)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    for (px, py) in ():   # die Teller sind dem Familienbuch und der Geldkassette gewichen
         c.dreh(S, (px, py, zt), [(0.06, 0.0), (0.1, 0.022)], "bohlen", seiten=7, deckel=True, u_bereich=(0.1, 0.16), anteil=(0.2, 0.6), glatt=False)
     return c
 
@@ -632,7 +632,7 @@ def baue_schlafplatz():
 
 
 def baue_truhe():
-    """Truhe (Gegenstand: Einrichtung kaufen): eisenbeschlagene Truhe an der linken Wand unter der Galerie, Schloss zum Raum."""
+    """Truhe (Gegenstand: Einrichtung kaufen): eisenbeschlagene Truhe an der Gassenwand unter dem Fenster, Schloss zum Raum."""
     c = Teil("Gegenstand_Truhe", BAENDER_INNEN, saat=53)
     S = "Innen"
     x0, x1, y0, y1 = -IX + 0.05, -IX + 0.6, 0.80, 1.75
@@ -656,6 +656,10 @@ def baue_truhe():
             c.vieleck(S, pts, [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)], weg_von=(xm, y, zb))
     ym = (y0 + y1) / 2
     c.vieleck(S, [(x1 + 0.008, ym - 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk + 0.0), (x1 + 0.008, ym - 0.05, zk + 0.0)], [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)], weg_von=(xm, ym, zb))
+    # laengs einer Seitenwand gebaut: um 90 Grad drehen (Schloss zeigt in den Raum) und unter das Fenster stellen
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    cx, cy = -0.72, IV + 0.05 + (x1 - x0) / 2
+    c.flaechen = [([Vector((cx - (q.y - my), cy + (q.x - mx), q.z)) for q in pts], uvs, stoff_, farbe, glatt) for pts, uvs, stoff_, farbe, glatt in c.flaechen]
     return c
 
 
@@ -678,7 +682,7 @@ def baue_familienbuch():
     S = "Innen"
     x0, x1, y0, y1 = TISCH
     tx, zt = (x0 + x1) / 2, Z_BODEN + TISCH_HOEHE
-    bx, by = tx + 0.02, y1 - 0.3
+    bx, by = tx + 0.02, y1 - 0.62
     c.kasten(S, (bx - 0.14, by - 0.19, zt), (bx + 0.14, by + 0.19, zt + 0.018), "kleinteile", laengs="y")            # Deckel unten
     c.kasten(S, (bx - 0.13, by - 0.18, zt + 0.018), (bx + 0.125, by + 0.18, zt + 0.075), "sackleinen", ohne=("-z", "+z"), laengs="y")   # Buchblock
     c.kasten(S, (bx - 0.14, by - 0.19, zt + 0.075), (bx + 0.14, by + 0.19, zt + 0.093), "kleinteile", laengs="y")    # Deckel oben
@@ -690,8 +694,8 @@ def baue_familienbuch():
     for dy in (-0.1, 0.1):                                                                                           # Schliessen
         c.kasten(S, (bx + 0.10, by + dy - 0.015, zt + 0.01), (bx + 0.147, by + dy + 0.015, zt + 0.096), "kleinteile", ohne=("-x", "-z"), laengs="z")
         for fl in c.flaechen[-4:]: fl[1][:] = [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)]
-    c.dreh(S, (bx + 0.05, by + 0.3, zt), [(0.025, 0.0), (0.035, 0.03), (0.02, 0.07)], "kleinteile", seiten=6, deckel=True, u_bereich=feld("russ"))   # Tintenhorn
-    c.stab(S, (bx + 0.05, by + 0.3, zt + 0.06), (bx + 0.12, by + 0.36, zt + 0.26), 0.008, "stroh")                    # Federkiel
+    c.dreh(S, (bx + 0.05, by - 0.3, zt), [(0.025, 0.0), (0.035, 0.03), (0.02, 0.07)], "kleinteile", seiten=6, deckel=True, u_bereich=feld("russ"))   # Tintenhorn
+    c.stab(S, (bx + 0.05, by - 0.3, zt + 0.06), (bx + 0.12, by - 0.36, zt + 0.26), 0.008, "stroh")                    # Federkiel
     return c
 
 
@@ -751,7 +755,7 @@ def baue_geldkassette():
     S = "Innen"
     x0, x1, y0, y1 = TISCH
     tx, zt = (x0 + x1) / 2, Z_BODEN + TISCH_HOEHE
-    kx, ky = tx - 0.13, y0 + 0.2
+    kx, ky = tx - 0.1, y1 - 0.18          # vorderes Tischende (zum Raum hin)
     c.kasten(S, (kx - 0.1, ky - 0.14, zt), (kx + 0.1, ky + 0.14, zt + 0.13), "bohlen", ohne=("-z",), laengs="y")
     c.kasten(S, (kx - 0.105, ky - 0.145, zt + 0.13), (kx + 0.105, ky + 0.145, zt + 0.16), "bohlen", ohne=("-z",), laengs="y")
     ue = feld("eisen"); k0, k1, _ = BAENDER_INNEN["kleinteile"]
@@ -761,7 +765,7 @@ def baue_geldkassette():
     c.kasten(S, (kx + 0.1, ky - 0.02, zt + 0.07), (kx + 0.115, ky + 0.02, zt + 0.12), "kleinteile", ohne=("-x",)); 
     for fl in c.flaechen[-5:]: fl[1][:] = [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)]
     ug = feld("zwiebel_gelb")
-    for (mx_, my_, hoch) in ((kx + 0.2, ky - 0.05, 0.02), (kx + 0.24, ky + 0.03, 0.008), (kx + 0.19, ky + 0.09, 0.012)):   # Muenzen
+    for (mx_, my_, hoch) in ((kx + 0.21, ky - 0.06, 0.02), (kx + 0.25, ky + 0.02, 0.008), (kx + 0.2, ky + 0.08, 0.012)):   # Muenzen
         c.dreh(S, (mx_, my_, zt), [(0.022, 0.0), (0.022, hoch)], "kleinteile", seiten=6, deckel=True, u_bereich=ug, glatt=False)
     return c
 
@@ -1192,9 +1196,9 @@ def main():
         anker("Tuer_Innen", ((tuer[1][0] + tuer[1][1]) / 2, IV, Z_BODEN + TUER_HOCH / 2)),              # Mitte der Haustuer auf der Innenwand (Klick: hinaus)
         # Plaetze der Familie (Stadtansicht.Neubau.cs; Vorbereitung fuer den Figuren-Baukasten): Lage = Fusspunkt am Boden,
         # Drehung = Blickrichtung, extras haltung (sitzt, ruehrt, spielt), rolle und bei Sitzenden die Sitzhoehe
-        anker("Platz_Oberhaupt", (BANK_X, TISCH[2] + 0.30, Z_BODEN), "west", haltung="sitzt", rolle="oberhaupt", sitzhoehe=SITZ_HOEHE),
+        anker("Platz_Oberhaupt", (BANK_X, TISCH[2] + 0.52, Z_BODEN), "west", haltung="sitzt", rolle="oberhaupt", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Partner", (1.3, y0 - 0.3 - 0.42, Z_BODEN), "nord", haltung="ruehrt", rolle="partner"),   # vor der offenen Stirnseite des Herds
-        anker("Platz_Kind_1", (BANK_X, TISCH[2] + 0.80, Z_BODEN), "west", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
+        anker("Platz_Kind_1", (BANK_X, TISCH[2] + 0.90, Z_BODEN), "west", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Kind_2", (SCHEMEL[0], SCHEMEL[1], Z_BODEN), "sued", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Kind_3", (HERDSCHEMEL[0], HERDSCHEMEL[1], Z_BODEN), "ost", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Kind_4", (0.2, 1.4, Z_BODEN), "nord", haltung="spielt", rolle="kind"),
