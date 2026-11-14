@@ -50,9 +50,23 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (Leistung) Mit 3D-Handschuh 26,6 statt 37,9 Bilder/s auf Xvfb/Vulkan (rund 4 ms GPU, Messung der NAS); der Nutzer lässt es vorerst so, später auf dem PC messen (Einstellung „3D-Handschuh“ schaltet ab).
 - 3D-Handschuh 3b/3c: Hänger beim ersten und zweiten Betreten, Blende beim Verlassen (2D und 3D), Haltung Text über einem Textfeld und die Klinke-Folge (Bereit über der Tür, Greifen, Drücken, Blende, Loslassen; Schloss unter der Hand, Zeigerpunkt Anker_Schloss) sind im Klicktest der NAS zu prüfen (mit Grafik). Bekannte Schwäche aus 3a: die Faust sitzt auf der Stange, statt sie zu umschließen; im Klicktest ansehen.
-- **Ratskammer ins Thema umstellen:** Die älteren Abschnitte (Raster der Ämter, Wahlstimme, Statutantrag, Domprediger, Tagesordnung) und die Amtsbefugnisse der Kurzübersicht rufen noch `Hauptmenue.Text(…, Größe, Farbe)` auf; sie wandern mit dem Amtsbaum (PR 3) in Varianten von `rat_thema.tres`.
+- **Ratskammer ins Thema umstellen:** Der Reiter „Ämter“ (Ratsbaum) und die Kurzübersicht sind im Thema `rat_thema.tres`. Die Abschnitte der Reiter „Anträge“, „Stadtglaube“ und „Kasse“ und der Domprediger (`RatAnzeige.Antraege.cs`, `.Kasse.cs`, `.Dom.cs`, Statutantrag und Stadtglaube in `RatAnzeige.cs`) rufen noch `Hauptmenue.Text(…, Größe, Farbe)` auf; sie wandern im Fable-Neudesign in Varianten.
+- Ratsbaum: Ein **freies Amt** (Schatten mit „?“) ließ sich im Klicktest nicht zeigen: Alle Sitze sind zu Beginn besetzt (Nachrücker). Der Schatten ist gebaut, aber nur im Spiel nach einem Rücktritt oder Tod zu sehen.
 
 ## Entscheidungen
+
+### Ratsbaum (Branch phase5/ratsbaum, PR 3 der Ratssitzung)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Baum | Der Reiter „Ämter“ zeigt die Ämter als Baum nach `vorgesetzt` (`RatBaumAnzeige`); das Raster, der Block „Eure Laufbahn“ und der Block „Wahlstimmen“ entfallen. Layout: Blätter links nach rechts, Eltern mittig, Zeile = Tiefe; Linien in `_Draw` mit dunklem Umriss; Knoten sind Knöpfe (Tab, Pfeile, Eingabe) | 14.11.2026 |
+| Tafel zum Amt | Ein Klick auf einen Knoten öffnet unter dem Baum die Tafel zum Amt: Befugnis, Inhaber, bei Ratsherren Haltung, Meinung, Geschenk, Moschus; eigenes Amt: „Euer Amt“ mit den Befugnis-Knöpfen (F7, `AmtBefugnisAnzeige`); sonst die Voraussetzungen aus `BewerbungPruefen` (Erfülltes grün „+“, Fehlendes rot „–“) und „Bewerben“ (F2) | 14.11.2026 |
+| Bewerberreihe und Stimme | Porträts der Kandidaten; Klick = `WahlStimme`, gesetzte Stimme mit Siegel, zweiter Klick nimmt sie zurück (Vorgabe). Bewerbung zurückziehen (F8) am Knoten und in der Laufbahnzeile | 14.11.2026 |
+| Wähler | Beim Darüberfahren oder Fokussieren leuchten alle Inhaber höherer Stufen auf (F4); die Wahlregel bleibt wie sie ist | 14.11.2026 |
+| Theme | Alles über `rat_thema.tres`: neue Varianten `RatKnoten…`, `RatBewerber`, `RatKurz…`, `RatAuswahl`, `RatGold`, Farben `linie…`, Maße `knoten_…`, `bewerber_…`; `RatStil.Text` bekommt den Parameter `breite`, `RatStil.Container` nimmt jeden `Node` als Eltern | 14.11.2026 |
+| Kurzübersicht | „Euer Amt“ zeigt nur Amt und Einkommen mit Knopf „Euer Amt ansehen“ (öffnet die Ratskammer am eigenen Knoten); die Befugnis zog an den Knoten um. Im Rathaustext entfällt die Liste der Ämter (der Baum zeigt sie). Dadurch passt die Kurzübersicht ohne Scrollen in die Auswahltafel (Befund aus PR 2) | 14.11.2026 |
+| Geschenkbetrag | Das Zahlfeld „Geschenk je Klick“ steht bei den Beschenken-Knöpfen des gewählten Ratsherrn statt über dem Baum | 14.11.2026 |
+| Startoption | `--ratamt=<Amt>` wählt mit `--rat=` einen Knoten vor | 14.11.2026 |
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
 ### Neue Partie: Spieler einstellen, KI-Gegner, „Erweitert“ (Branch phase5/neue-partie-ui, PR 2 von 2)

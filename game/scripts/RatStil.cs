@@ -35,14 +35,14 @@ public static class RatStil
         return knoten;
     }
 
-    /// <summary>Beschriftung in einer Variante („RatTitel“, „RatAbschnitt“, „RatText“, „RatHinweis“, „RatGut“, „RatSchlecht“); <paramref name="umbrechen"/> bricht bei der Textbreite des Themas um.</summary>
-    public static Label Text(Container eltern, string text, string variante = "RatText", bool umbrechen = false, bool zentriert = false)
+    /// <summary>Beschriftung in einer Variante („RatTitel“, „RatAbschnitt“, „RatText“, „RatHinweis“, „RatGut“, „RatSchlecht“); <paramref name="umbrechen"/> bricht bei der Breite um, die <paramref name="breite"/> im Thema nennt („text_breite“ in der Kammer, „kurz_breite“ in der Kurzübersicht).</summary>
+    public static Label Text(Container eltern, string text, string variante = "RatText", bool umbrechen = false, bool zentriert = false, string breite = "text_breite")
     {
         var label = new Label { Text = text, ThemeTypeVariation = variante, MouseFilter = Control.MouseFilterEnum.Pass };
         if (umbrechen)
         {
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            label.CustomMinimumSize = new Vector2(Mass("text_breite"), 0); // Godot kennt beim ersten Aufbau die Breite noch nicht (siehe Hauptmenue.Text)
+            label.CustomMinimumSize = new Vector2(Mass(breite), 0); // Godot kennt beim ersten Aufbau die Breite noch nicht (siehe Hauptmenue.Text)
         }
         if (zentriert) label.HorizontalAlignment = HorizontalAlignment.Center;
         eltern.AddChild(label);
@@ -59,7 +59,7 @@ public static class RatStil
     }
 
     /// <summary>Ein Container in einer Variante („RatSpalte“, „RatZeile“, „RatRaster“ …), gleich eingehängt.</summary>
-    public static T Container<T>(Container eltern, string variante) where T : Container, new()
+    public static T Container<T>(Node eltern, string variante) where T : Container, new()
     {
         var c = new T { ThemeTypeVariation = variante };
         eltern.AddChild(c);

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=12 format=3]
+[gd_resource type="Theme" load_steps=28 format=3]
 
 ; Das zentrale Thema der Ratskammer und der Rathaus-Kurzübersicht (PR Ratskammer, 14.11.2026).
 ; Aussehen steht NUR hier, Logik in RatAnzeige*.cs / RathausTafel.cs / RatStil.cs.
@@ -134,6 +134,263 @@ content_margin_top = 4.0
 content_margin_right = 12.0
 content_margin_bottom = 4.0
 
+[sub_resource type="StyleBoxFlat" id="KnotenNormal"]
+bg_color = Color(0.17, 0.145, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.38, 0.27, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenUeber"]
+bg_color = Color(0.24, 0.2, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenGewaehlt"]
+bg_color = Color(0.27, 0.22, 0.14, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenEigen"]
+bg_color = Color(0.3, 0.23, 0.12, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenEigenUeber"]
+bg_color = Color(0.38, 0.29, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.93, 0.6, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenZiel"]
+bg_color = Color(0.19, 0.16, 0.11, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenFrei"]
+bg_color = Color(0.1, 0.09, 0.08, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.34, 0.31, 0.26, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenFreiUeber"]
+bg_color = Color(0.14, 0.125, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.6, 0.52, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenWaehler"]
+bg_color = Color(0.3, 0.26, 0.15, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenFokus"]
+bg_color = Color(0, 0, 0, 0)
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.95, 0.78, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="KnotenSchatten"]
+bg_color = Color(0.06, 0.055, 0.05, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.23, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxFlat" id="BewerberNormal"]
+bg_color = Color(0.17, 0.145, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.38, 0.27, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="BewerberUeber"]
+bg_color = Color(0.24, 0.2, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="BewerberGewaehlt"]
+bg_color = Color(0.3, 0.23, 0.12, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="BewerberGesperrt"]
+bg_color = Color(0.13, 0.12, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.27, 0.22, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="AuswahlNormal"]
+bg_color = Color(0.18, 0.15, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.38, 0.27, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 8.0
+content_margin_top = 3.0
+content_margin_right = 8.0
+content_margin_bottom = 3.0
+
 [resource]
 ; ── Familie: Farben und Maße (abgefragt mit GetThemeColor/GetThemeConstant, Typ „RatFarben“ bzw. „RatMasse“) ──
 RatFarben/colors/gold = Color(0.95, 0.82, 0.45, 1)
@@ -143,6 +400,22 @@ RatFarben/colors/rot = Color(0.95, 0.45, 0.4, 1)
 RatFarben/colors/schrift = Color(0.92, 0.88, 0.8, 1)
 RatMasse/constants/text_breite = 670
 RatMasse/constants/kammer_breite = 720
+RatFarben/colors/linie = Color(0.62, 0.52, 0.36, 1)
+RatFarben/colors/linie_tinte = Color(0.03, 0.025, 0.02, 1)
+RatFarben/colors/linie_gold = Color(0.95, 0.82, 0.45, 1)
+RatMasse/constants/kurz_breite = 300
+RatMasse/constants/knoten_breite = 300
+RatMasse/constants/knoten_hoehe = 84
+RatMasse/constants/knoten_abstand_x = 24
+RatMasse/constants/knoten_abstand_y = 22
+RatMasse/constants/knoten_portraet = 64
+RatMasse/constants/knoten_wappen = 20
+RatMasse/constants/linie_breite = 2
+RatMasse/constants/linie_tinte_breite = 5
+RatMasse/constants/bewerber_portraet = 48
+RatMasse/constants/bewerber_breite = 140
+RatMasse/constants/bewerber_hoehe = 132
+RatMasse/constants/zahlfeld_breite = 150
 
 ; ── Container ──
 RatTafel/base_type = &"PanelContainer"
@@ -206,3 +479,94 @@ RatAmtknopf/font_sizes/font_size = 14
 RatAmtknopf/colors/font_color = Color(0.92, 0.88, 0.8, 1)
 RatAmtknopf/colors/font_hover_color = Color(1, 0.95, 0.78, 1)
 RatAmtknopf/colors/font_disabled_color = Color(0.55, 0.52, 0.47, 1)
+
+; ── Ratsbaum: Knoten (Knöpfe), Linien (Farben und Maße der Familie oben), Bewerberreihe ──
+RatKnoten/base_type = &"Button"
+RatKnoten/styles/normal = SubResource("KnotenNormal")
+RatKnoten/styles/hover = SubResource("KnotenUeber")
+RatKnoten/styles/pressed = SubResource("KnotenGewaehlt")
+RatKnoten/styles/hover_pressed = SubResource("KnotenGewaehlt")
+RatKnoten/styles/focus = SubResource("KnotenFokus")
+RatKnoten/styles/disabled = SubResource("KnotenNormal")
+RatKnotenEigen/base_type = &"Button"
+RatKnotenEigen/styles/normal = SubResource("KnotenEigen")
+RatKnotenEigen/styles/hover = SubResource("KnotenEigenUeber")
+RatKnotenEigen/styles/pressed = SubResource("KnotenEigenUeber")
+RatKnotenEigen/styles/hover_pressed = SubResource("KnotenEigenUeber")
+RatKnotenEigen/styles/focus = SubResource("KnotenFokus")
+RatKnotenEigen/styles/disabled = SubResource("KnotenEigen")
+RatKnotenZiel/base_type = &"Button"
+RatKnotenZiel/styles/normal = SubResource("KnotenZiel")
+RatKnotenZiel/styles/hover = SubResource("KnotenUeber")
+RatKnotenZiel/styles/pressed = SubResource("KnotenGewaehlt")
+RatKnotenZiel/styles/hover_pressed = SubResource("KnotenGewaehlt")
+RatKnotenZiel/styles/focus = SubResource("KnotenFokus")
+RatKnotenZiel/styles/disabled = SubResource("KnotenZiel")
+RatKnotenFrei/base_type = &"Button"
+RatKnotenFrei/styles/normal = SubResource("KnotenFrei")
+RatKnotenFrei/styles/hover = SubResource("KnotenFreiUeber")
+RatKnotenFrei/styles/pressed = SubResource("KnotenFreiUeber")
+RatKnotenFrei/styles/hover_pressed = SubResource("KnotenFreiUeber")
+RatKnotenFrei/styles/focus = SubResource("KnotenFokus")
+RatKnotenFrei/styles/disabled = SubResource("KnotenFrei")
+RatKnotenWaehler/base_type = &"Button"
+RatKnotenWaehler/styles/normal = SubResource("KnotenWaehler")
+RatKnotenWaehler/styles/hover = SubResource("KnotenWaehler")
+RatKnotenWaehler/styles/pressed = SubResource("KnotenWaehler")
+RatKnotenWaehler/styles/hover_pressed = SubResource("KnotenWaehler")
+RatKnotenWaehler/styles/focus = SubResource("KnotenFokus")
+RatKnotenWaehler/styles/disabled = SubResource("KnotenWaehler")
+RatBewerber/base_type = &"Button"
+RatBewerber/styles/normal = SubResource("BewerberNormal")
+RatBewerber/styles/hover = SubResource("BewerberUeber")
+RatBewerber/styles/pressed = SubResource("BewerberGewaehlt")
+RatBewerber/styles/hover_pressed = SubResource("BewerberGewaehlt")
+RatBewerber/styles/focus = SubResource("KnotenFokus")
+RatBewerber/styles/disabled = SubResource("BewerberGesperrt")
+RatKnotenRand/base_type = &"MarginContainer"
+RatKnotenRand/constants/margin_left = 6
+RatKnotenRand/constants/margin_top = 6
+RatKnotenRand/constants/margin_right = 6
+RatKnotenRand/constants/margin_bottom = 6
+RatKnotenSpalte/base_type = &"VBoxContainer"
+RatKnotenSpalte/constants/separation = 0
+RatKnotenNamenszeile/base_type = &"HBoxContainer"
+RatKnotenNamenszeile/constants/separation = 5
+RatKnotenSchatten/base_type = &"PanelContainer"
+RatKnotenSchatten/styles/panel = SubResource("KnotenSchatten")
+RatKnotenFrage/base_type = &"Label"
+RatKnotenFrage/font_sizes/font_size = 38
+RatKnotenFrage/colors/font_color = Color(0.4, 0.36, 0.3, 1)
+RatKnotenAmt/base_type = &"Label"
+RatKnotenAmt/font_sizes/font_size = 15
+RatKnotenAmt/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatKnotenName/base_type = &"Label"
+RatKnotenName/font_sizes/font_size = 14
+RatKnotenName/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatKnotenInfo/base_type = &"Label"
+RatKnotenInfo/font_sizes/font_size = 12
+RatKnotenInfo/colors/font_color = Color(0.72, 0.72, 0.72, 1)
+RatKnotenGut/base_type = &"Label"
+RatKnotenGut/font_sizes/font_size = 12
+RatKnotenGut/colors/font_color = Color(0.55, 0.85, 0.5, 1)
+RatKnotenSchlecht/base_type = &"Label"
+RatKnotenSchlecht/font_sizes/font_size = 12
+RatKnotenSchlecht/colors/font_color = Color(0.95, 0.45, 0.4, 1)
+RatBewerberSpalte/base_type = &"VBoxContainer"
+RatBewerberSpalte/constants/separation = 2
+RatGold/base_type = &"Label"
+RatGold/font_sizes/font_size = 15
+RatGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatAuswahl/base_type = &"OptionButton"
+RatAuswahl/styles/normal = SubResource("AuswahlNormal")
+RatAuswahl/styles/hover = SubResource("KnotenUeber")
+RatAuswahl/font_sizes/font_size = 14
+RatAuswahl/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+
+; ── Kurzübersicht im Rathaus: schmale Schrift (Breite „kurz_breite“) ──
+RatKurzHinweis/base_type = &"Label"
+RatKurzHinweis/font_sizes/font_size = 12
+RatKurzHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
+RatKurzGold/base_type = &"Label"
+RatKurzGold/font_sizes/font_size = 14
+RatKurzGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)

@@ -65,7 +65,7 @@ namespace Reichsgilde;
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
 ///   --hofstelle=S3     Hofstelle des Spielers (Kennung aus der Karte, z. B. S3 in Köln; zufall oder ohne Angabe: gelost)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
-///   --rat=1            gleich zu Beginn die Ratskammer öffnen
+///   --rat=1            gleich zu Beginn die Ratskammer öffnen (--ratamt=Zöllner wählt dazu einen Knoten im Ratsbaum)
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
 ///   --rathaus=1        das Rathaus auswählen (Kurzübersicht) – alle vier in Hauptszene.Rat.cs
 ///   --sitzung=1        eine Ratssitzung mit dem Spieler im Rat vorbereiten und bis zum Jahresende vorspulen (=letzte: ohne Halt, danach das Rathaus mit dem Knopf
@@ -355,11 +355,10 @@ public partial class Hauptszene : Node
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
+        _ratskammer.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }; // „Euer Amt“ am eigenen Knoten des Ratsbaums
+        _ratskammer.MarktGewuenscht += MarktOeffnen;
         _charakter.Gemeldet += Protokollieren;
-        _rathausTafel.Gemeldet += Protokollieren;
         _rathausTafel.RatGewuenscht += reiter => RatOeffnen(reiter);
-        _rathausTafel.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
-        _rathausTafel.MarktGewuenscht += MarktOeffnen;
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;
         _gerichtKnopf.Pressed += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
@@ -610,6 +609,7 @@ public partial class Hauptszene : Node
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat != "")
         {
+            if (optionen.GetValueOrDefault("ratamt") is { } ratAmt && ratAmt != "") _ratskammer.AmtWaehlen(ratAmt.Replace('_', ' ')); // --ratamt=Kämmerer: Knoten im Ratsbaum vorwählen
             if (rat == "1") _ratskammer.Oeffnen();
             else if (Enum.TryParse<RatAnzeige.Reiter>(rat, true, out var ratReiter)) _ratskammer.Oeffnen(ratReiter);
             else Protokollieren($"--rat={rat}: gemeint ist 1, aemter, antraege, stadtglaube oder kasse.");
@@ -784,6 +784,8 @@ public partial class Hauptszene : Node
     {
         if (_simulation.Wirtschaft?.Rat.IstAktiv != true) return;
         TafelnSchliessen();
+        if (reiter == RatAnzeige.Reiter.Aemter && _spieler is not null && _simulation.Wirtschaft?.Rat.AmtVon(_spieler) is { } eigenes)
+            _ratskammer.AmtWaehlen(eigenes.Name); // „Euer Amt ansehen“ der Kurzübersicht: der eigene Knoten im Ratsbaum
         _ratskammer.Oeffnen(reiter);
     }
 
@@ -1832,7 +1834,7 @@ public partial class Hauptszene : Node
         return string.Join("\n", zeilen);
     }
 
-    /// <summary>Im Rathaus: Ständeordnung, Rangliste und das geltende Statut.</summary>
+    /// <summary>Im Rathaus: Ständeordnung und das geltende Statut (die Ämter zeigt der Ratsbaum, die Kasse und die Sitzung die Kurzübersicht, <see cref="RathausTafel"/>).</summary>
     private string RathausText(Stadtwirtschaft w)
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
@@ -1850,7 +1852,7 @@ public partial class Hauptszene : Node
             zeilen.Add($"Ihr steht bis {pranger} am Pranger (−{Zahlenformat.Ganz(w.Justiz.Daten.PrangerAnsehen)} Ansehen).");
         if (w.Rat.IstAktiv)
         {
-            zeilen.Add("Ämter:\n" + string.Join("\n", w.Rat.Aemter.Select(a => $"  {a.Name}: {a.Inhaber}")));
+            // Die Liste der Ämter steht im Ratsbaum der Ratskammer; hier bliebe sie nur lang und schöbe die Kurzübersicht aus der Tafel.
             if (w.Rat.Antrag is { } antrag && !w.Ratsantraege.IstAktiv) // mit Stadtkasse steht er in der Tagesordnung (Reiter „Rat“)
                 zeilen.Add($"Antrag liegt vor: Statut {antrag.Statut.Kuerzel()} ({antrag.Antragsteller.Inhaber})");
         }

@@ -37,7 +37,7 @@ Startoptionen (nach `--`):
 - `--wegantrag=<weg>,<von>,<bis>` (Ratsantrag „Weg pflastern“)
 - `--drehung=<1–3>`
 - `--vermoegen=<Gulden>`
-- `--rat=1|aemter|antraege|stadtglaube|kasse` (Ratskammer öffnen; `1` = Reiter Ämter, sonst gleich auf diesem Reiter)
+- `--rat=1|aemter|antraege|stadtglaube|kasse` (Ratskammer öffnen; `1` = Reiter Ämter, sonst gleich auf diesem Reiter); `--ratamt=<Amt>` dazu wählt diesen Knoten im Ratsbaum vor (Leerzeichen als `_`, z. B. `--rat=aemter --ratamt=Zöllner`)
 - `--amt=<Amt>` (der Spieler hält dieses Amt, z. B. `Kämmerer`, `Stadtrichter`, `Gefängniswärter`; Leerzeichen als `_`)
 - `--kasse=<Gulden>` (Stand der Stadtkasse)
 - `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1440` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
