@@ -11,22 +11,35 @@ namespace Reichsgilde;
 ///
 /// Aussehen und Zeiten stehen nur im Thema der Meldungen (<c>res://scenes/meldung_thema.tres</c>, Varianten <c>MeldungEinblendungSiegel…</c>/<c>…Brief…</c>,
 /// Maße <c>einblendung_…</c>); dieser Code kennt nur ihre Namen. Mehrere Meldungen kommen nacheinander; stehen schon zu viele an
-/// (<c>einblendung_hoechstens_wartend</c>), geht die nächste ohne Einblendung gleich in die Ecke. Solange große Fenster offen sind (<see cref="Ruht"/>),
-/// wartet die Reihe.
+/// (<c>einblendung_hoechstens_wartend</c>), geht die nächste ohne Einblendung gleich in die Ecke. Solange große Fenster oder ein Brief offen sind (<see cref="Ruht"/>),
+/// ist die Einblendung unsichtbar, eine laufende hält an und geht danach weiter (Logik ohne Godot: <see cref="Einblendungsreihe{T}"/>).
 /// </summary>
 public sealed partial class EinblendungAnzeige : Control
 {
     private sealed record Eintrag(string Art, string Text, Meldethema Thema, Meldestufe Stufe, Func<Vector2?> Ziel, Action Ankunft);
 
-    private readonly Queue<Eintrag> _warten = new();
-    private bool _laeuft;
-    private PanelContainer? _tafel;
+    private readonly Einblendungsreihe<Eintrag> _reihe = new();
+    /// <summary>Der Tween der laufenden Einblendung (Einblenden/Stehen bzw. Wandern) – angehalten, solange etwas ruht.</summary>
+    private Tween? _tween;
 
     /// <summary>Abstand über der Betriebsleiste (z. B. 40 über der Raumleiste), setzt die Hauptszene jedes Bild.</summary>
     public float AbstandUnten { get; set; }
 
-    /// <summary>Große Fenster sind offen (Innentafel, Ratssitzung, Jahresbericht, Entscheidungsbrief): Die Einblendung ist unsichtbar, die Reihe wartet.</summary>
-    public bool Ruht { get; set; }
+    /// <summary>
+    /// Ein großes Fenster oder ein Brief ist offen (setzt die Hauptszene jedes Bild): Die Einblendung ist unsichtbar, eine laufende hält an und geht
+    /// danach weiter, keine neue beginnt (<see cref="Einblendungsreihe{T}"/>).
+    /// </summary>
+    public bool Ruht
+    {
+        get => _reihe.Ruht;
+        set
+        {
+            if (!_reihe.RuhtSetzen(value)) return;
+            Visible = _reihe.Sichtbar;
+            if (value) _tween?.Pause();
+            else _tween?.Play();
+        }
+    }
 
     public override void _Ready()
     {
@@ -41,35 +54,25 @@ public sealed partial class EinblendungAnzeige : Control
     /// </summary>
     public void Einblenden(string art, string text, Meldethema thema, Meldestufe stufe, Func<Vector2?> ziel, Action ankunft)
     {
-        if (stufe < Meldestufe.Siegel || _warten.Count >= MeldungStil.Mass("einblendung_hoechstens_wartend"))
+        if (stufe < Meldestufe.Siegel || !_reihe.Einreihen(new Eintrag(art, text, thema, stufe, ziel, ankunft), MeldungStil.Mass("einblendung_hoechstens_wartend")))
         {
             ankunft(); // Verlauf oder Flut: ohne Einblendung
             return;
         }
-        _warten.Enqueue(new Eintrag(art, text, thema, stufe, ziel, ankunft));
-        if (!_laeuft && !Ruht) Naechste();
+        Naechste();
     }
 
-    public override void _Process(double delta)
-    {
-        if (Visible == Ruht) Visible = !Ruht;
-        if (!_laeuft && !Ruht && _warten.Count > 0) Naechste();
-    }
+    public override void _Process(double delta) => Naechste();
 
     private static double Sekunden(string mass) => MeldungStil.Mass(mass) / 1000.0;
 
+    /// <summary>Beginnt die nächste Meldung, wenn keine läuft und nichts ruht.</summary>
     private async void Naechste()
     {
-        if (!_warten.TryDequeue(out var e))
-        {
-            _laeuft = false;
-            return;
-        }
-        _laeuft = true;
+        if (_reihe.Beginnen() is not { } e) return;
         var stufe = e.Stufe == Meldestufe.Brief ? "Brief" : "Siegel";
         var klein = stufe.ToLowerInvariant();
         var tafel = new PanelContainer { ThemeTypeVariation = "MeldungEinblendung" + stufe, MouseFilter = MouseFilterEnum.Ignore, Modulate = Colors.Transparent };
-        _tafel = tafel;
         var reihe = new HBoxContainer { ThemeTypeVariation = "MeldungEinblendungReihe", MouseFilter = MouseFilterEnum.Ignore };
         tafel.AddChild(reihe);
         var siegelGroesse = MeldungStil.Mass("einblendung_siegel_" + klein);
@@ -99,11 +102,19 @@ public sealed partial class EinblendungAnzeige : Control
                                      Size.Y - Rollbereich.LeistenHoehe - AbstandUnten - MeldungStil.Mass("einblendung_abstand_unten") - tafel.Size.Y);
 
         var bewegt = Meldungseinstellungen.Bewegung;
-        var tw = tafel.CreateTween();
+        var tw = Merken(tafel.CreateTween());
         if (bewegt) tw.TweenProperty(tafel, "modulate:a", 1.0, Sekunden("einblendung_einblenden_ms"));
         else tafel.Modulate = Colors.White;
         tw.TweenInterval(Sekunden("einblendung_stehen_" + klein + "_ms"));
         tw.TweenCallback(Callable.From(() => Wandern(tafel, e, bewegt)));
+    }
+
+    /// <summary>Merkt sich den Tween der laufenden Einblendung; ruht gerade etwas, beginnt er angehalten.</summary>
+    private Tween Merken(Tween tw)
+    {
+        _tween = tw;
+        if (Ruht) tw.Pause();
+        return tw;
     }
 
     /// <summary>Verkleinert in die Ecke (bzw. ohne Bewegung: weg), dann Ankunft und die nächste Meldung.</summary>
@@ -116,7 +127,7 @@ public sealed partial class EinblendungAnzeige : Control
         }
         var dauer = Sekunden("einblendung_wandern_ms");
         var massstab = MeldungStil.Mass("einblendung_endgroesse_prozent") / 100f;
-        var tw = tafel.CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In);
+        var tw = Merken(tafel.CreateTween().SetParallel().SetTrans(Tween.TransitionType.Sine).SetEase(Tween.EaseType.In));
         tw.TweenProperty(tafel, "position", ziel - tafel.Size / 2, dauer);
         tw.TweenProperty(tafel, "scale", new Vector2(massstab, massstab), dauer);
         tw.TweenProperty(tafel, "modulate:a", 0.0, dauer);
@@ -126,10 +137,10 @@ public sealed partial class EinblendungAnzeige : Control
     private void Fertig(PanelContainer tafel, Eintrag e)
     {
         tafel.QueueFree();
-        if (_tafel == tafel) _tafel = null;
+        _tween = null;
         e.Ankunft();
-        _laeuft = false;
-        if (!Ruht) Naechste();
+        _reihe.Fertig(e);
+        Naechste();
     }
 
     /// <summary>Das Siegel des Themas, wie es in der Ecke steht (gezeichnet wie dort).</summary>
