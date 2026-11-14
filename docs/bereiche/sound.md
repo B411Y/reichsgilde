@@ -277,3 +277,13 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Nachführen | Während des Läutens (bis 30 s) folgen Pegel (12 dB/s), Seite und Tiefpass (6 kHz/s) dem Blickpunkt; Zeiten und Auslöser unverändert | 10.11.2026 |
 | Werte (Köln, sechs Kirchen) | Stadtmitte (0\|0) −1,2 dB, Stadtrand (0\|200) −13,5 dB, Umland (0\|400) −22,7 dB, fernes Umland (0\|800) −30,8 dB; nur eine Kirche (Martin) −6,4/−27,3/−35,0/−36,0; nur der Dom −5,1/−18,4/−24,8/−32,3 | 10.11.2026 |
 | Prüfung | `--glockentest=1` (dB-Werte, Tiefpass), Tests `KlangGlockenTests` (Kurve, Dom, Summe, Mindestpegel, Seite), der Selbsttest der Umgebung prüft nah gegen 400 m. **Nicht gehört** (kein Fenster, keine Ohren): Hörurteil des Nutzers zu Pegel im Umland (−23 dB gewollt „leise“?) und zum Stadtrand steht aus | 10.11.2026 |
+
+### Wolfsheulen bei Einbruch der Nacht (Branch phase5/wolfsheulen, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wunsch | Einmal je Nacht beim Wechsel zur Nacht, das ganze Jahr, fern, von außerhalb der Stadt; keine weiteren Wolfslaute, kein Rudel, keine Einstellung (Nutzer) | 14.11.2026 |
+| Klang | `rufe/wolf_nacht.ogg`: NaturesTemper 398430 (CC0), Ausschnitt „wolf_k1“, vom Nutzer gewählt; −26 LUFS, ohne Begrenzer, Spitze −15,8 dBFS | 14.11.2026 |
+| Auslöser | `KlangUmgebungModell.WolfPlaner`: Die Bezugsstunde des Lichts steigt über 21 („dunkel“, folgt der Jahreszeit: 18:45 Frühling, 21:00 Sommer, 18:30 Herbst, 16:35 Winter). Höchstens einmal je Spieltag (Tageszeichen fällt erst vor 12 Uhr), nicht bei der ersten Messung (Laden), nicht im Hintergrund, nicht in der Sprungblende, nicht bei mehr als 20 Spielminuten je Bild (Spulen); bei 32x genau eine Überquerung | 14.11.2026 |
+| Wiedergabe | Eigener Spieler auf dem Fernbus der Rufe (`UmgebungRufFern`, unter Draußen: in Räumen leiser und dumpf wie die übrigen Außenklänge); Seite zufällig 0,5–0,9 links oder rechts, −4 dB mit Panner-Ausgleich, Tonhöhe ±2 % | 14.11.2026 |
+| Prüfung | `KlangWolfTests` (7 Tests, alle Jahreszeiten: einmal, nicht früher, nicht nach Laden, nicht doppelt, Zeitraffer, Sprung/Blende/Hintergrund); `--umgebungfahrt=6` headless: eine Zeile `UMGEBUNG WOLF` bei 18:45, beim Rückspulen am selben Abend keine zweite. `--klangtest=1` gehört nur den Oberflächenklängen und zeigt das Ereignis nicht (dafür `--umgebungfahrt=6`). **Nicht gehört** (Pegel im Nachthintergrund: Nutzerurteil) | 14.11.2026 |
