@@ -177,49 +177,19 @@ static class InnenraumUebergangTests
             for (var i = 0; i <= 20; i++) { var y = InnenraumUebergang.Sanft(i / 20.0); Pruefe.Wahr(y >= letzte, "monoton"); letzte = y; }
         }),
 
-        // ── Haltung Text ──
-        ("Handschuh Text: Wunsch – Ziehen schlägt Text, Text schlägt Zeigen", () =>
+        // ── ohne Haltung Text (über Textfeldern steht jetzt das Messing-I, ZeigerSymboleTests.cs) ──
+        ("Handschuh: Wunsch ohne Text – Ziehen schlägt Tür, Tür schlägt Zeigen", () =>
         {
-            Pruefe.Gleich(HandPose.Text, HandschuhModell.Wunsch(false, false, true));
-            Pruefe.Gleich(HandPose.Text, HandschuhModell.Wunsch(false, true, true));
+            Pruefe.Gleich(HandPose.Bereit, HandschuhModell.Wunsch(false, true, true));
             Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, false, true));
             Pruefe.Gleich(HandPose.Zeigen, HandschuhModell.Wunsch(false, true, false));
             Pruefe.Gleich(HandPose.Ruhe, HandschuhModell.Wunsch(false, false));
         }),
-        ("Handschuh Text: Übergänge Ruhe<->Text und Zeigen<->Text direkt, Greifen<->Text über Ruhe", () =>
+        ("Handschuh: kurzer Name der Übergangsclips", () =>
         {
-            var a = new HandschuhAblauf();
-            Pruefe.Gleich("Uebergang_Ruhe_Text", a.Entscheiden(HandPose.Text));
-            a.EinmalFertig();
-            Pruefe.Gleich(HandPose.Text, a.Pose);
-            Pruefe.Gleich("Uebergang_Text_Zeigen", a.Entscheiden(HandPose.Zeigen));
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Zeigen_Text", a.Entscheiden(HandPose.Text));
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Text_Ruhe", a.Entscheiden(HandPose.Greifen)); // kein Clip Text->Greifen: erst Ruhe
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Ruhe_Greifen", a.Entscheiden(HandPose.Greifen));
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Greifen_Ruhe", a.Entscheiden(HandPose.Text)); // und zurück über Ruhe
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Ruhe_Text", a.Entscheiden(HandPose.Text));
-        }),
-        ("Handschuh Text: Tippen aus der Haltung Text geht erst über Zeigen", () =>
-        {
-            var a = new HandschuhAblauf();
-            a.Entscheiden(HandPose.Text); a.EinmalFertig();
-            a.TippenMerken();
-            Pruefe.Gleich("Uebergang_Text_Zeigen", a.Entscheiden(HandPose.Text));
-            a.EinmalFertig();
-            Pruefe.Gleich("Tippen", a.Entscheiden(HandPose.Text));
-        }),
-        ("Handschuh Text: kurzer Name der Übergangsclips und Gleiten des Zeigerpunkts", () =>
-        {
-            Pruefe.Gleich("Ruhe_Text", HandschuhModell.UebergangKurz(HandPose.Ruhe, HandPose.Text));
-            Pruefe.Gleich("Text", HandschuhModell.Schleife(HandPose.Text));
-            var w = 0.0;
-            for (var i = 0; i < 12; i++) w = HandschuhModell.Gleiten(w, 1.0, 1.0 / 60, HandschuhModell.TextGewichtZeit);
-            Pruefe.Wahr(w is > 0.8 and < 1.0, $"nach 0,2 s fast am Ziel, war {w}");
+            Pruefe.Gleich("Ruhe_Zeigen", HandschuhModell.UebergangKurz(HandPose.Ruhe, HandPose.Zeigen));
+            Pruefe.Gleich("Zeigen", HandschuhModell.Schleife(HandPose.Zeigen));
+            Pruefe.Wahr(!Enum.GetNames<HandPose>().Contains("Text"), "keine Haltung Text mehr");
         }),
     };
 }

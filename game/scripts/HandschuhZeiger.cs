@@ -9,7 +9,8 @@ namespace Reichsgilde;
 /// Haltungen: Ruhe (Schleife), Zeigen (über Anklickbarem), Greifen (Ziehen mit gedrückter Taste), dazu Tippen beim Klick; dazwischen laufen die Übergangsclips
 /// (Ablauf: <see cref="HandschuhAblauf"/>). Die Neigung folgt der Mausgeschwindigkeit mit Trägheit.
 /// <b>Zeigerpunkt:</b> die Spitze des Zeigefingers in der Haltung Zeigen (Knoten <c>Anker_Spitze</c> der .glb) wird jedes Bild mit dem Gerüst und der Neigung durch die Kamera projiziert und das Bild so gelegt,
-/// dass sie genau auf der Mausposition liegt. Das Fragezeichen (<c>Hilfe_Marke</c>) erscheint nur, wenn <see cref="Mauszeiger"/> einen echten Tooltip meldet.
+/// dass sie genau auf der Mausposition liegt. Das Fragezeichen (<c>Hilfe_Marke</c>) erscheint nur, wenn <see cref="Mauszeiger"/> einen echten Tooltip meldet; über verschiebbaren Flächen
+/// steht dort die Windrose, über Textfeldern weicht die Hand dem Messing-I (<c>HandschuhZeiger.Symbole.cs</c>).
 /// <b>Eingabe:</b> nichts hier fängt Mausereignisse ab (<c>MouseFilter Ignore</c>, <see cref="SubViewport"/> ohne Eingabe, kein <c>_Input</c>); die Klickweitergabe
 /// (<c>Stadtansicht.MausUeberOberflaeche</c>) bleibt unberührt. Aus: Einstellung „3D-Handschuh“ (<see cref="Fenster.Handschuh3dAn"/>), <c>--handschuh=0</c>, oder fehlende Datei
 /// (<see cref="HandschuhModell.Gilt"/>); die Bildrate schaltet nie ab, der Spieler entscheidet allein. Dann zeichnet <see cref="Mauszeiger"/> wie bisher den 2D-Zeiger.
@@ -33,7 +34,7 @@ public partial class HandschuhZeiger : CanvasLayer
 
     private const double MaxNeigungGrad = 11.0;
 
-    /// <summary>Blickpunkt der Kamera in der Bühne (etwa Handmitte); die Drehung der Haltung Text geht um die Hochachse durch diesen Punkt.</summary>
+    /// <summary>Blickpunkt der Kamera in der Bühne (etwa Handmitte).</summary>
     private static readonly Vector3 BuehnenMitte = new(0, 0, -0.045f);
 
     private static bool _ausgefallen;
@@ -45,7 +46,7 @@ public partial class HandschuhZeiger : CanvasLayer
     /// <summary>Soll der 3D-Handschuh jetzt gezeichnet werden (Einstellung an, Datei da, kein Rückfall, Größe ab 48 Pixel)?</summary>
     public static bool Wirksam(int groesse) => HandschuhModell.Gilt(Fenster.Handschuh3dAn, Verfuegbar, groesse);
 
-    private bool _an, _hilfe, _anklickbar, _text, _rahmen, _textEingabe;
+    private bool _an, _hilfe, _anklickbar, _text, _rahmen, _textEingabe; // _text: Textfeld unter der Maus (dann das Messing-I statt der Hand)
 
     /// <summary>Das Bild der Hand relativ zur Mausposition (null, wenn der 3D-Handschuh nicht gezeichnet wird); die Tooltips bleiben außerhalb davon (<see cref="TooltipLage"/>).</summary>
     public static Rect2? BildRelativ { get; private set; }
@@ -63,9 +64,6 @@ public partial class HandschuhZeiger : CanvasLayer
     /// <summary>Log der Zustände von Zucken und Winken.</summary>
     public static bool LebenLog { get; set; } = WinkTest || OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--klinketest="));
     private bool _tuer;
-    private double _textGewicht; // 0 = Zeigerpunkt ist die Fingerspitze, 1 = Anker_Text (Haltung Text)
-    private Transform3D? _textLokal; // Anker_Text in der Haltung Text, im Raum des Skeletts
-    private Node3D? _ankerText;
     private int _groesse;
     private bool _geladen;
     private SubViewport _bild = null!;
@@ -95,8 +93,9 @@ public partial class HandschuhZeiger : CanvasLayer
         ProcessPriority = 1000; // nach den Animationen der Hand dieses Knotens und nach Mauszeiger.Anwenden
     }
 
-    /// <summary>Von <see cref="Mauszeiger"/> jedes Bild: ob der 3D-Handschuh gilt, Zeigergröße, ob über Anklickbarem und ob ein Tooltip da ist (Fragezeichen).</summary>
-    public void Setze(bool an, int groesse, bool anklickbar, bool hilfe, bool text = false, bool tuer = false, bool rahmen = false, bool textEingabe = false)
+    /// <summary>Von <see cref="Mauszeiger"/> jedes Bild: ob der 3D-Handschuh gilt, Zeigergröße, ob über Anklickbarem, ob ein Tooltip da ist (Fragezeichen), ob ein Textfeld
+    /// unter der Maus ist (Messing-I) und ob die Fläche verschiebbar ist (Windrose).</summary>
+    public void Setze(bool an, int groesse, bool anklickbar, bool hilfe, bool text = false, bool tuer = false, bool rahmen = false, bool textEingabe = false, bool verschieben = false)
     {
         _an = an;
         _groesse = groesse;
@@ -105,6 +104,7 @@ public partial class HandschuhZeiger : CanvasLayer
         _text = text;
         _rahmen = rahmen; // Auswahlrechteck in der Welt: Zeigen statt Ziehen-Faust
         _textEingabe = textEingabe; // ein Textfeld hat den Fokus: kein Winken
+        _verschieben = verschieben; // verschiebbare Fläche (Stammbaum): Windrose, die Hand zeigt auch beim Ziehen
         _tuer = tuer || TestTuer; // Tür: betretbares Gebäude unter der Maus (Haltung Bereit, Schloss darunter; HandschuhZeiger.Klinke.cs)
     }
 
@@ -204,20 +204,13 @@ public partial class HandschuhZeiger : CanvasLayer
         // ruhig unter der Maus, statt zu springen; in Ruhe und beim Tippen weicht die echte Spitze um wenige Pixel ab.
         if (_spieler.HasAnimation("Zeigen")) { _spieler.Play("Zeigen"); _spieler.Seek(0, true); _spieler.Advance(0); }
         _spitzeLokal = _skelett.GetBoneGlobalPose(_knochen) * _anker.Transform;
-        // Haltung Text: Anker_Text (Teil 2) auf dieselbe Art festhalten; fehlt er oder der Clip, bleibt die Hand beim Zeigen.
-        _ankerText = wurzel.FindChild("Anker_Text", true, false) as Node3D;
-        if (_ankerText?.GetParent() is BoneAttachment3D textHalter && _spieler.HasAnimation("Text") && _skelett.FindBone(textHalter.BoneName) is var textKnochen and >= 0)
-        {
-            _spieler.Play("Text"); _spieler.Seek(0, true); _spieler.Advance(0);
-            _textLokal = _skelett.GetBoneGlobalPose(textKnochen) * _ankerText.Transform;
-            TextAufrichten(textKnochen); // Drehung für aufrechte Hand aus der Pose berechnen (HandschuhZeiger.Text.cs)
-        }
         _spieler.Stop();
+        SymboleLaden(); // Windrose und Messing-I (HandschuhZeiger.Symbole.cs); die Clips der früheren Haltung Text bleiben in der Datei, werden aber nicht mehr gespielt
         // Schleifen: Linear; Längen und Namen stehen in der Datei (HandschuhModell.Schleife / Uebergang), hier nichts Festes.
         foreach (var name in _spieler.GetAnimationList())
         {
             var clip = _spieler.GetAnimation(name);
-            clip.LoopMode = name is "Ruhe" or "Zeigen" or "Greifen" or "Text" or "Klinke_bereit" or "Bereit_atmen" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+            clip.LoopMode = name is "Ruhe" or "Zeigen" or "Greifen" or "Klinke_bereit" or "Bereit_atmen" ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
         }
         _spieler.AnimationFinished += _ => _ablauf.EinmalFertig();
         GD.Print($"[handschuh] Modell geladen: {_spieler.GetAnimationList().Length} Clips, {_skelett.GetBoneCount()} Knochen, Ruhe {Laenge("Ruhe"):0.00} s, Ruhe->Greifen {Laenge("Uebergang_Ruhe_Greifen"):0.00} s");
@@ -281,8 +274,7 @@ public partial class HandschuhZeiger : CanvasLayer
         SchlossAktualisieren(dt);
         Haltung();
         Neigung(dt);
-        if (_marke is not null) _marke.Visible = _hilfe;
-        if (_markeUmriss is not null) _markeUmriss.Visible = _hilfe;
+        SymboleAktualisieren(dt); // Wechsel Hand/I, Windrose oder Fragezeichen (HandschuhZeiger.Symbole.cs)
         _bild.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
         Platzieren(maus);
         _flaeche.Visible = true;
@@ -307,10 +299,11 @@ public partial class HandschuhZeiger : CanvasLayer
         {
             _druckStart = maus;
             _ziehen = false;
+            _verschiebenFest = _verschieben; // Ziehen auf der Stammbaum-Fläche: Windrose und Zeigehand bleiben bis zum Loslassen, auch wenn die Maus die Fläche verlässt
             if (links) _ablauf.TippenMerken();
         }
         if (gedrueckt && !_ziehen && maus.DistanceTo(_druckStart) > HandschuhModell.ZiehSchwelle) _ziehen = true;
-        if (!gedrueckt) _ziehen = false;
+        if (!gedrueckt) _ziehen = _verschiebenFest = false;
         _gedrueckt = gedrueckt;
     }
 
@@ -336,7 +329,7 @@ public partial class HandschuhZeiger : CanvasLayer
         if (clip == "Tippen") return (float)HandschuhModell.TippenTempo;
         if (clip.Contains("Bereit") || clip.Contains("Winken")) return 1f;
         // Übergänge in die Ziehen-Faust und zurück: feste Wunschdauer, Tempo = Cliplänge / Dauer
-        if (clip.StartsWith("Uebergang_") && clip.Contains("Greifen") && !clip.Contains("Text") && Laenge(clip) is var l and > 0) return (float)(l / HandschuhModell.FaustUebergangSekunden);
+        if (clip.StartsWith("Uebergang_") && clip.Contains("Greifen") && Laenge(clip) is var l and > 0) return (float)(l / HandschuhModell.FaustUebergangSekunden);
         return (float)HandschuhModell.UebergangTempo;
     }
 
@@ -345,11 +338,12 @@ public partial class HandschuhZeiger : CanvasLayer
         var spieler = _spieler!;
         if (_ziehen) _ablauf.TippenVerwerfen(); // aus dem Klick wurde ein Ziehen (Auswahlrechteck, Greifen): kein Tippen mehr
         if (_klinke.Laeuft) { _zucken.Schritt(_letztesDt, false, true); KlinkeHaltung(); return; } // die Klinke-Folge führt die Hand (HandschuhZeiger.Klinke.cs)
-        var wunsch = HandschuhModell.Wunsch(_ziehen, _anklickbar, _text && _textLokal is not null, _tuer && _schlossBereit, _rahmen, _winkenAktiv && _winkenClip && !_ziehen);
+        // Ziehen auf einer verschiebbaren Fläche (Stammbaum) wie beim Auswahlrechteck: die Hand zeigt weiter, keine Faust
+        var wunsch = HandschuhModell.Wunsch(_ziehen, _anklickbar, _tuer && _schlossBereit, _rahmen || _verschiebenFest, _winkenAktiv && _winkenClip && !_ziehen);
         if (!_ablauf.EinmalLaeuft)
         {
             var clip = _ablauf.Entscheiden(wunsch);
-            if (clip is not null && !spieler.HasAnimation(clip) && clip.StartsWith("Uebergang_") && spieler.HasAnimation(clip["Uebergang_".Length..])) clip = clip["Uebergang_".Length..]; // kürzere Namen (Ruhe_Text)
+            if (clip is not null && !spieler.HasAnimation(clip) && clip.StartsWith("Uebergang_") && spieler.HasAnimation(clip["Uebergang_".Length..])) clip = clip["Uebergang_".Length..]; // kürzere Namen (Ruhe_Zeigen)
             if (clip is not null) SchlossAufUebergang(clip);
             if (clip is not null)
             {
@@ -407,7 +401,7 @@ public partial class HandschuhZeiger : CanvasLayer
             {
                 _winkenAktiv = false;
                 _winken.Beendet();
-                if (LebenLog) GD.Print($"[winken] Ende nach {_winkZeit:0.00} s, Hand geht zurück in die vorige Haltung (Wunsch {HandschuhModell.Wunsch(_ziehen, _anklickbar, _text, _tuer, _rahmen, false)})");
+                if (LebenLog) GD.Print($"[winken] Ende nach {_winkZeit:0.00} s, Hand geht zurück in die vorige Haltung (Wunsch {HandschuhModell.Wunsch(_ziehen, _anklickbar, _tuer, _rahmen, false)})");
             }
         }
     }
@@ -420,27 +414,16 @@ public partial class HandschuhZeiger : CanvasLayer
         _rollWinkel = HandschuhModell.Gleiten(_rollWinkel, rolle, dt, 0.09);
         _nickWinkel = HandschuhModell.Gleiten(_nickWinkel, nick, dt, 0.09);
         var achsen = _kamera.GlobalTransform.Basis;
-        var neigung = new Basis(achsen.Z.Normalized(), Mathf.DegToRad((float)_rollWinkel)) * new Basis(achsen.X.Normalized(), Mathf.DegToRad((float)_nickWinkel));
-        // Haltung Text: die Hand steht aufrecht (wie in der Ansicht des Blender-Vergleichs): sie dreht mit der Kamera (-40 Grad um die Hochachse), um die Blickmitte der Bühne
-        var haltung = new Basis(Vector3.Up, Mathf.DegToRad((float)HandschuhModell.PoseDrehungGrad(_textGewicht, _textDrehung)));
-        _neigung.Basis = neigung * haltung;
-        _neigung.Position = neigung * (BuehnenMitte - haltung * BuehnenMitte);
+        _neigung.Basis = new Basis(achsen.Z.Normalized(), Mathf.DegToRad((float)_rollWinkel)) * new Basis(achsen.X.Normalized(), Mathf.DegToRad((float)_nickWinkel));
     }
 
-    /// <summary>Zeigerpunkt: Spitze des Zeigefingers (Anker_Spitze) durch die Kamera auf Bildpunkte gelegt und auf die Mausposition geschoben.</summary>
+    /// <summary>Zeigerpunkt: Spitze des Zeigefingers (Anker_Spitze) bzw. über Textfeldern die Mitte des Messing-I, durch die Kamera auf Bildpunkte gelegt und auf die Mausposition geschoben.</summary>
     private void Platzieren(Vector2 maus)
     {
-        // Zeigerpunkt: Fingerspitze, in der Haltung Text (und im Übergang dorthin) gleitend der Textpunkt Anker_Text
-        var ziel = _textLokal is not null && _text && !_ziehen ? 1.0 : 0.0;
-        _textGewicht = HandschuhModell.Gleiten(_textGewicht, ziel, _letztesDt, HandschuhModell.TextGewichtZeit);
         var skala = _flaeche.Size.X / _bild.Size.X;
         var spitze = _skelett!.GlobalTransform * _spitzeLokal;
-        var imBild = _kamera.UnprojectPosition(spitze.Origin) * skala;
-        if (_textLokal is { } textPunkt && _textGewicht > 0.001)
-        {
-            var textBild = _kamera.UnprojectPosition((_skelett.GlobalTransform * textPunkt).Origin) * skala;
-            imBild = imBild.Lerp(textBild, (float)_textGewicht);
-        }
+        // Fingerspitze; sobald die Hand ganz weg ist, die Mitte des I-Balkens (gewechselt wird in dem Augenblick, in dem nichts zu sehen ist)
+        var imBild = SymbolZeigerpunkt(skala) ?? _kamera.UnprojectPosition(spitze.Origin) * skala;
         if (_schlossAnker is not null && _schlossGewicht > 0.001) // über der Tür und in der Klinke-Folge: Zeigerpunkt ist die Mitte des Schlosses, weich überblendet
             imBild = imBild.Lerp(_kamera.UnprojectPosition(_schlossAnker.GlobalPosition) * skala, (float)_schlossGewicht);
         var (x, y) = HandschuhModell.BildEcke(maus.X, maus.Y, imBild.X, imBild.Y);

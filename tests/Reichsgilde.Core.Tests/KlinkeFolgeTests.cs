@@ -109,15 +109,14 @@ static class KlinkeFolgeTests
             while (u.Phase == UebergangPhase.Klinke && t < 5) { g++; u.Schritt(Bild, g); t += Bild; }
             Pruefe.Wahr(Math.Abs(t - InnenraumUebergang.KlinkeSekunden) < 0.03, $"Vorgabe {InnenraumUebergang.KlinkeSekunden}, war {t}");
         }),
-        ("Haltung Bereit: Tür schlägt Zeigen, Text und Ziehen schlagen die Tür", () =>
+        ("Haltung Bereit: Tür schlägt Zeigen, Ziehen schlägt die Tür", () =>
         {
-            Pruefe.Gleich(HandPose.Bereit, HandschuhModell.Wunsch(false, true, false, true));
-            Pruefe.Gleich(HandPose.Zeigen, HandschuhModell.Wunsch(false, true, false, false));
-            Pruefe.Gleich(HandPose.Text, HandschuhModell.Wunsch(false, true, true, true));
-            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, true, false, true));
-            Pruefe.Gleich(HandPose.Ruhe, HandschuhModell.Wunsch(false, false, false, false));
+            Pruefe.Gleich(HandPose.Bereit, HandschuhModell.Wunsch(false, true, true));
+            Pruefe.Gleich(HandPose.Zeigen, HandschuhModell.Wunsch(false, true, false));
+            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, true, true));
+            Pruefe.Gleich(HandPose.Ruhe, HandschuhModell.Wunsch(false, false, false));
         }),
-        ("Haltung Bereit: Übergänge aus Ruhe, Zeigen, Text direkt, aus Greifen über Ruhe; Schleife heißt Klinke_bereit", () =>
+        ("Haltung Bereit: Übergänge aus Ruhe und Zeigen direkt, aus Greifen über Ruhe; Schleife heißt Klinke_bereit", () =>
         {
             var a = new HandschuhAblauf();
             Pruefe.Gleich("Uebergang_Ruhe_Bereit", a.Entscheiden(HandPose.Bereit));
@@ -126,10 +125,6 @@ static class KlinkeFolgeTests
             Pruefe.Gleich("Uebergang_Bereit_Zeigen", a.Entscheiden(HandPose.Zeigen));
             a.EinmalFertig();
             Pruefe.Gleich("Uebergang_Zeigen_Bereit", a.Entscheiden(HandPose.Bereit));
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Bereit_Text", a.Entscheiden(HandPose.Text));
-            a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Text_Bereit", a.Entscheiden(HandPose.Bereit));
             a.EinmalFertig();
             Pruefe.Gleich("Uebergang_Bereit_Ruhe", a.Entscheiden(HandPose.Greifen)); // kein Clip Bereit->Greifen
             a.EinmalFertig();
@@ -162,16 +157,6 @@ static class KlinkeFolgeTests
             Pruefe.Gleich(KlickFolge.TafelZeigen, KlickRegel.Entscheide(true, false, false));
             Pruefe.Gleich(KlickFolge.Nichts, KlickRegel.Entscheide(true, true, true));
             Pruefe.Gleich(KlickFolge.Nichts, KlickRegel.Entscheide(false, true, true));
-        }),
-        ("Handschuh Text: Hand steht aufrecht – Drehung gleicht die Kamera aus, Zeigen bleibt schräg", () =>
-        {
-            Pruefe.Gleich(0.0, HandschuhModell.PoseDrehungGrad(0));
-            Pruefe.Gleich(-40.0, HandschuhModell.PoseDrehungGrad(1));
-            Pruefe.Gleich(-40.0, HandschuhModell.PoseDrehungGrad(3)); // Gewicht wird begrenzt
-            Pruefe.Gleich(40.0, HandschuhModell.FingerBildwinkelGrad(HandschuhModell.KameraDrehungGrad, HandschuhModell.PoseDrehungGrad(0)));
-            Pruefe.Gleich(0.0, HandschuhModell.FingerBildwinkelGrad(HandschuhModell.KameraDrehungGrad, HandschuhModell.PoseDrehungGrad(1)));
-            var halb = HandschuhModell.FingerBildwinkelGrad(HandschuhModell.KameraDrehungGrad, HandschuhModell.PoseDrehungGrad(0.5));
-            Pruefe.Ungefaehr(20.0, halb, 1e-9); // beim Gleiten stetig
         }),
         ("Schlosseinwuchs: dauert genau die Übergangszeit der Hand (7 Bilder bei 24/s) und folgt Smoothstep", () =>
         {
@@ -212,7 +197,7 @@ static class KlinkeFolgeTests
             Pruefe.Wahr(SchlossEinwuchs.ZielFuerClip("Uebergang_Ruhe_Zeigen") is null, "Ruhe_Zeigen");
             Pruefe.Wahr(SchlossEinwuchs.ZielFuerClip("Tippen") is null, "Tippen");
             Pruefe.Gleich(1.0, SchlossEinwuchs.ZielFuerClip("Uebergang_Ruhe_Bereit")!.Value);
-            Pruefe.Gleich(1.0, SchlossEinwuchs.ZielFuerClip("Uebergang_Text_Bereit")!.Value);
+            Pruefe.Gleich(1.0, SchlossEinwuchs.ZielFuerClip("Uebergang_Winken_Bereit")!.Value);
             Pruefe.Gleich(0.0, SchlossEinwuchs.ZielFuerClip("Uebergang_Bereit_Zeigen")!.Value);
             Pruefe.Gleich(0.0, SchlossEinwuchs.ZielFuerClip("Uebergang_Bereit_Ruhe")!.Value);
         }),
@@ -235,24 +220,6 @@ static class KlinkeFolgeTests
             Pruefe.Gleich("Loslassen", k.SchlossAktion);
             Bis(k, () => k.Phase == KlinkePhase.Aus);
             Pruefe.Wahr(k.KlinkeInRuhelage, "danach wieder oben");
-        }),
-        ("Text aufrecht: Drehung für Finger nach oben – aus jeder Ausgangslage, auch kopfüber", () =>
-        {
-            foreach (var ausgang in new[] { 0.0, 40.0, -40.0, 90.0, 180.0, -135.0 })
-            {
-                // Richtung Stulpe -> Fingerspitze im Bild, y nach unten: bei Drehung g um die Hochachse dreht die Richtung mit; bei g = -ausgang zeigt sie nach oben
-                (double X, double Y) Richtung(double g) { var w = (g + ausgang) * Math.PI / 180.0; return (Math.Sin(w), -Math.Cos(w)); }
-                var diff = Math.Abs(((HandschuhModell.AufrechtDrehungGrad(Richtung) + ausgang) % 360.0 + 540.0) % 360.0 - 180.0);
-                Pruefe.Wahr(diff < 0.1, $"Ausgangslage {ausgang}: Abweichung {diff}");
-            }
-        }),
-        ("Text aufrecht: Gegenprobe – kopfüber (Finger unten) wird nicht für aufrecht gehalten", () =>
-        {
-            (double X, double Y) KopfUeber(double g) => (0.0, 1.0); // zeigt immer nach unten: bester Fehler ist 180 Grad, der Löser findet keine bessere Drehung als irgendeine
-            (double X, double Y) Dreht(double g) { var w = g * Math.PI / 180.0; return (Math.Sin(w), Math.Cos(w)); } // bei 0 nach unten
-            var g0 = HandschuhModell.AufrechtDrehungGrad(Dreht);
-            Pruefe.Wahr(Math.Abs(Math.Abs(g0) - 180.0) < 0.1, $"nach unten bei 0, aufrecht erst bei 180 Grad, war {g0}");
-            Pruefe.Gleich(1.0, KopfUeber(0).Y);
         }),
         ("Haltung Bereit: PoseSetzen stellt die Haltung ohne Clip (nach dem Loslassen)", () =>
         {

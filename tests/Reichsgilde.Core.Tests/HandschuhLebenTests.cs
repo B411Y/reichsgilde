@@ -17,10 +17,10 @@ static class HandschuhLebenTests
     {
         ("Auswahlrechteck: Rechteck ziehen gibt Zeigen, Ware/Fenster/Kamera ziehen gibt die Faust", () =>
         {
-            Pruefe.Gleich(HandPose.Zeigen, HandschuhModell.Wunsch(true, false, false, false, true, false));
-            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, false, false, false, false, false));
-            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, true, false, true, false, false));
-            Pruefe.Gleich(HandPose.Ruhe, HandschuhModell.Wunsch(false, false, false, false, true, false)); // ohne Ziehen nichts Besonderes
+            Pruefe.Gleich(HandPose.Zeigen, HandschuhModell.Wunsch(true, false, false, true, false));
+            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, false, false, false, false));
+            Pruefe.Gleich(HandPose.Greifen, HandschuhModell.Wunsch(true, true, true, false, false));
+            Pruefe.Gleich(HandPose.Ruhe, HandschuhModell.Wunsch(false, false, false, true, false)); // ohne Ziehen nichts Besonderes
         }),
         ("Auswahlrechteck: ein Klick, der zum Ziehen wird, tippt nicht mehr", () =>
         {
@@ -97,9 +97,9 @@ static class HandschuhLebenTests
             w.Beendet();
             Pruefe.Wahr(Math.Abs(BisStart(w, 10) - 5.0) < 0.1, "5 s");
         }),
-        ("Winken: Haltung – Wunsch Winken hat Vorrang; Übergänge aus Ruhe, Zeigen, Text, Bereit direkt, auch aus Greifen", () =>
+        ("Winken: Haltung – Wunsch Winken hat Vorrang; Übergänge aus Ruhe, Zeigen, Bereit direkt, auch aus Greifen", () =>
         {
-            Pruefe.Gleich(HandPose.Winken, HandschuhModell.Wunsch(false, true, true, true, false, true));
+            Pruefe.Gleich(HandPose.Winken, HandschuhModell.Wunsch(false, true, true, false, true));
             var a = new HandschuhAblauf();
             Pruefe.Gleich("Uebergang_Ruhe_Winken", a.Entscheiden(HandPose.Winken)); a.EinmalFertig();
             Pruefe.Gleich("Winken", HandschuhModell.Schleife(a.Pose));
@@ -107,8 +107,8 @@ static class HandschuhLebenTests
             Pruefe.Gleich("Uebergang_Zeigen_Winken", a.Entscheiden(HandPose.Winken)); a.EinmalFertig();
             Pruefe.Gleich("Uebergang_Winken_Greifen", a.Entscheiden(HandPose.Greifen)); a.EinmalFertig(); // Greifen und Winken haben einen eigenen Clip
             Pruefe.Gleich("Uebergang_Greifen_Winken", a.Entscheiden(HandPose.Winken)); a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Winken_Text", a.Entscheiden(HandPose.Text)); a.EinmalFertig();
-            Pruefe.Gleich("Uebergang_Text_Ruhe", a.Entscheiden(HandPose.Greifen)); // Text und Greifen: über Ruhe
+            Pruefe.Gleich("Uebergang_Winken_Bereit", a.Entscheiden(HandPose.Bereit)); a.EinmalFertig();
+            Pruefe.Gleich("Uebergang_Bereit_Ruhe", a.Entscheiden(HandPose.Greifen)); // Bereit und Greifen: über Ruhe
         }),
         ("Winken: Gegenprobe – aus dem Tippen heraus nicht starten: erst wenn der Tipp-Clip durch ist, kommt der Übergang aus Zeigen", () =>
         {

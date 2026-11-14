@@ -63,5 +63,7 @@
     <!-- Zuordnung Übergang zu Türklang – KlangTuerTests.cs -->
     <Compile Include="..\..\game\scripts\KlangTuerModell.cs" Link="Handschuh\KlangTuerModell.cs" />
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
+    <!-- Wechsel Hand/Messing-I und Windrose des 3D-Zeigers – ZeigerSymboleTests.cs -->
+    <Compile Include="..\..\game\scripts\ZeigerSymbole.cs" Link="Handschuh\ZeigerSymbole.cs" />
   </ItemGroup>
 </Project>
