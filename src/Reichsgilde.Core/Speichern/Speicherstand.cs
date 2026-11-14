@@ -1259,6 +1259,10 @@ public sealed record BetriebStand
 
     /// <summary>Gesparte Zutaten des Vorarbeiters „Sparsam“, noch kein ganzes Stück (PR #224; null: nichts).</summary>
     public Dictionary<string, double>? RohstoffErsparnis { get; init; }
+
+    /// <summary>Spieltag, an dem der Verwalter schon „kauft nur das Nötigste“ gemeldet hat – nur wenn es der laufende ist (sonst null, alte Stände: null).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? KasseKnappAm { get; init; }
 }
 
 /// <summary>Ein Arbeiter eines Betriebs (siehe <see cref="Wirtschaft.Arbeiter"/>).</summary>
