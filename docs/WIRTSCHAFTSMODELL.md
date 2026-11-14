@@ -2840,3 +2840,24 @@ Neue Gruppe `kiStaerke` (Nutzerentscheidung „Neue Partie und Höfe“): je Stu
 | schwer | × 1,25 | × 0,75 | × 0,8 | × 1,25 | mehr Geld, greift Chancen schneller auf |
 
 Maßvoll gewählt, noch nicht gemessen (Messung mit `messen bericht` steht aus, siehe `docs/bereiche/kern.md`). Die Prüfung der Daten verlangt, dass „leicht“ nicht mehr Geld hat und nicht wagemutiger ist als Normal, „schwer“ umgekehrt.
+
+## Versehrungen (Datenversion 88, 14.11.2026)
+
+Vier neue erworbene Züge (Entstellt, Einäugig, Lahm, Verkrüppelte Hand; Werte und Anlässe in `docs/bereiche/kern.md`, „Versehrungen“). Sie wirken nur über Talente (höchstens −1 Stern) und Meinung, kommen selten und nur aus Anlässen.
+
+Gemessen auf main 8b57ef72 + diesen Branch (fcd76d02) gegen main 8b57ef72, `messen bericht 20 20` (900 Partien je Lauf, 4 Kerne, nice 19). Reinvermögen nach 20 Jahren, ein Betrieb, KI-geführt:
+
+| Beruf | main | mit Versehrungen | Abstand |
+|---|---|---|---|
+| Schmied | 40.674 | 40.614 | −0,1 % |
+| Tischler | 35.792 | 36.679 | +2,5 % |
+| Steinmetz | 40.358 | 42.462 | +5,2 % |
+| Alchimist | 40.673 | 40.746 | +0,2 % |
+| Wirt | 40.320 | 39.262 | −2,6 % |
+| Prediger | 42.281 | 41.444 | −2,0 % |
+| Dieb | 34.412 | 33.707 | −2,0 % |
+| Parfumeur | 42.358 | 42.474 | +0,3 % |
+| Geldleiher | 41.705 | 42.177 | +1,1 % |
+| Gardist | 33.533 | 33.533 | 0,0 % |
+
+Alles im Rauschen (die Streuung je Beruf liegt bei 20 Startwerten im Bereich weniger Prozent; der Gardist rechnet ohne Zufall der Züge). Außerhalb ±15 % gegen das Mittel: main Gardist −16 %, mit Versehrungen Dieb −16 % und Gardist −16 % (der Dieb lag schon knapp darunter). KI ÷ Bezug Median 0,88 → 0,84, bei „Schwer“ 0,91 → 0,91; Einbruch ins Wohnhaus 0,50 → 0,46 im Jahr. Dateien: `docs/messungen/balancing-2026-11-14-versehrt-vorher.json`, `…-nachher.json`.
