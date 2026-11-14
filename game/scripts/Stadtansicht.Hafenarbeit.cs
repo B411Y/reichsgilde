@@ -71,6 +71,20 @@ public partial class Stadtansicht
     private Vector3 StegPunkt(Node3D steg, Vector3 lokal) => ToLocal(steg.ToGlobal(lokal));
 
     /// <summary>Wo die Gassen am Hafen enden: auf dem Kai hinter dem Fuß des Stegs. Dorthin gehen die Einwohner mit Ort Hafen, von dort übernimmt die Hafenarbeit.</summary>
+    private bool _hafenAngeschlossen;
+
+    /// <summary>
+    /// Hängt den Kai einmal mit einem Stück an das Gassennetz (Kollisionsprobe 14.11.2026: bisher war er ein Knoten für sich, der Weg dorthin war leer,
+    /// und die Hafenarbeiter gingen die Gerade quer durch die Stadt).
+    /// </summary>
+    private Vector3 HafenAnschliessen(Vector3 kai)
+    {
+        if (!KollisionsFix || _hafenAngeschlossen) return kai;
+        _hafenAngeschlossen = true;
+        AnWegAnschliessen(kai, ueberDenMarkt: false);
+        return kai;
+    }
+
     private Vector3? HafenLandpunkt() => HafenSteg() is { } steg ? AufFuss(StegPunkt(steg, new Vector3(0, 0.25f, 3.5f))) : null;
 
     /// <summary>
@@ -264,20 +278,54 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Schritt zum Ziel (Meter je Spielminute <paramref name="tempo"/>); false, wenn sie schon dort steht.</summary>
+    /// <summary>Der nächste vorhandene Knoten des Gassennetzes (anders als <see cref="Gassennetz.KnotenBei"/> legt er keinen neuen Knoten an).</summary>
+    private int NaechsterNetzknoten(Vector3 p)
+    {
+        var best = 0; var bestD = float.MaxValue;
+        for (var i = 0; i < _netz.Knoten.Count; i++)
+        {
+            var d = new Vector2(_netz.Knoten[i].X - p.X, _netz.Knoten[i].Z - p.Z).LengthSquared();
+            if (d < bestD) (best, bestD) = (i, d);
+        }
+        return best;
+    }
+
     private bool HinGehen(Passant p, Figur figur, Vector3 ziel, float dminute, float tempo, double ticksJeSekunde)
     {
-        var d = ziel - p.Knoten.Position;
-        d.Y = 0;
-        var abstand = d.Length();
+        // Von weit her geht sie über das Gassennetz (Kollisionsprobe 14.11.2026: vorher die Gerade quer durch die Häuser); die letzten Meter gerade
+        var wohin = ziel;
+        var fern = KollisionsFix && new Vector2(ziel.X - p.Knoten.Position.X, ziel.Z - p.Knoten.Position.Z).Length() > 8f;
+        if (!fern) p.HafenRoute = null;
+        else
+        {
+            if (p.HafenRoute is null || p.HafenRouteZiel.DistanceTo(ziel) > 1.5f)
+            {
+                var weg = _netz.Pfad(NaechsterNetzknoten(p.Knoten.Position), NaechsterNetzknoten(ziel));
+                p.HafenRoute = weg.Length > 1 ? weg.ToList() : new List<Vector3>();
+                p.HafenRouteZiel = ziel;
+                p.HafenRouteNaechster = 0;
+                // der erste Punkt, der vor ihr liegt: nicht zurück zum Knoten hinter ihr
+                var best = 0; var bestD = float.MaxValue;
+                for (var i = 0; i < p.HafenRoute.Count; i++) { var d = p.HafenRoute[i].DistanceTo(p.Knoten.Position) + p.HafenRoute[i].DistanceTo(ziel) * 0.5f; if (d < bestD) (best, bestD) = (i, d); }
+                p.HafenRouteNaechster = best;
+            }
+            while (p.HafenRoute.Count > p.HafenRouteNaechster
+                   && new Vector2(p.HafenRoute[p.HafenRouteNaechster].X - p.Knoten.Position.X, p.HafenRoute[p.HafenRouteNaechster].Z - p.Knoten.Position.Z).Length() < 0.4f)
+                p.HafenRouteNaechster++;
+            if (p.HafenRoute.Count > p.HafenRouteNaechster) wohin = p.HafenRoute[p.HafenRouteNaechster];
+        }
+        var d2 = wohin - p.Knoten.Position;
+        d2.Y = 0;
+        var abstand = d2.Length();
         if (abstand < 0.05f)
         {
-            p.Knoten.Position = ziel;
-            return false;
+            if (wohin == ziel) { p.Knoten.Position = ziel; return false; }
+            return true;
         }
         var schritt = Mathf.Min(abstand, tempo * Mathf.Max(dminute, 0));
-        var neu = p.Knoten.Position + d / abstand * schritt;
-        p.Knoten.Position = new Vector3(neu.X, ziel.Y + (p.Knoten.Position.Y - ziel.Y) * (abstand - schritt) / abstand, neu.Z);
-        p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(d.X, d.Z), 0);
+        var neu = p.Knoten.Position + d2 / abstand * schritt;
+        p.Knoten.Position = new Vector3(neu.X, wohin.Y + (p.Knoten.Position.Y - wohin.Y) * (abstand - schritt) / abstand, neu.Z);
+        p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(d2.X, d2.Z), 0);
         var mps = tempo * (float)ticksJeSekunde;
         BewegungSetzen(figur, mps > EilenAb * figur.Beinfaktor ? "Eilen" : "Gehen", mps / ((mps > EilenAb * figur.Beinfaktor ? EilenTempo : GehenTempo) * figur.Beinfaktor));
         return true;

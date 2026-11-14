@@ -453,7 +453,14 @@ public partial class Stadtansicht
         foreach (var platz in _maerkte)
             if (platz.Halb > 0 && MarktKnoten(platz) < 0)
                 AnWegAnschliessen(platz.Mitte, ueberDenMarkt: false);
-        foreach (var tor in _tore) AnWegAnschliessen(tor.Ort);
+        foreach (var tor in _tore)
+        {
+            // Das Tor hängt senkrecht durch die Torburg (8 m nach innen) am Weg, nicht schräg zum nächsten Wegpunkt: der schnitt die Türme (Kollisionsprobe 14.11.2026)
+            if (!KollisionsFix) { AnWegAnschliessen(tor.Ort); continue; }
+            var innen = tor.Ort - tor.Aussen.Normalized() * TorTiefe;
+            AnWegAnschliessen(innen);
+            _netz.Weg(tor.Ort, innen);
+        }
         if (TuerAnker("Rathaus") is { } rathaus) _rathausTuer = _netz.Knoten[AnWegAnschliessen(rathaus)];
         if (TuerAnker("Dom") is { } dom) _domTuer = _netz.Knoten[AnWegAnschliessen(dom)];
         foreach (var platz in karte.GebaeudeDerArt(Bausteinart.Werkstattplatz))
@@ -488,7 +495,8 @@ public partial class Stadtansicht
     {
         p.Y = 0;
         var (naechster, abstand) = NaechsterWegpunkt(p);
-        if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand)
+        // nur ein kurzes Stück über das Pflaster (Markthalle, Haus am Platz): Ein Feld oder Gatter weit draußen hing sonst mit einer Geraden quer durch die Stadt an der Marktmitte
+        if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand && (markt.Abstand(p) < MarktAnschlussWeit || !KollisionsFix))
         {
             _netz.Weg(p, markt.Mitte);
             return _netz.KnotenBei(p);
@@ -502,6 +510,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>Der nächste Punkt auf einem Weg der Karte und sein Abstand (null ohne Wege).</summary>
+    /// <summary>Weiter als so viele Meter vom Pflaster hängt ein Punkt nicht mehr über den Markt an (Anschluss ans nächste Wegstück).</summary>
+    private const float MarktAnschlussWeit = 8f;
+
+    /// <summary>So weit nach innen (Meter) führt das Netz gerade durch die Torburg, ehe es an den nächsten Weg anschließt.</summary>
+    private const float TorTiefe = 8f;
+
     private (Vector3? Punkt, float Abstand) NaechsterWegpunkt(Vector3 p)
     {
         Vector3? beste = null;
