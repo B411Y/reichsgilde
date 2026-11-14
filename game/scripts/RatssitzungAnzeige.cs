@@ -133,8 +133,11 @@ public partial class RatssitzungAnzeige : Control
 
         _kopf = RatStil.Text(spalte, "", "RatHinweis", umbrechen: true, breite: "spruchband_breite");
         _kopf.TooltipText = "Die Ratssitzung am Jahresende: Der Rat entscheidet über Anträge und Wahlen, die Mehrheit zählt, der Bürgermeister gibt bei Gleichstand den Ausschlag.";
-        _titel = RatStil.Text(spalte, "", "RatSpruchbandTitel", umbrechen: true, breite: "spruchband_breite");
-        _titel.TooltipText = "Der Punkt der Tagesordnung, über den gerade verhandelt wird.";
+        // Der Tagesordnungspunkt steht auf dem Holzschnitt-Spruchband (leeres Band, Schrift dunkel aus dem Thema), mittig über dem Text
+        var titelband = RatStil.Spruchband(spalte, "", out _titel);
+        titelband.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        titelband.MouseFilter = MouseFilterEnum.Pass; // damit der Tooltip erscheint
+        titelband.TooltipText = "Der Punkt der Tagesordnung, über den gerade verhandelt wird.";
         _text = RatStil.Text(spalte, "", "RatSpruchbandText", umbrechen: true, breite: "spruchband_breite");
         _zeile = RatStil.Text(spalte, "", "RatText", umbrechen: true, breite: "spruchband_breite");
         _zeile.TooltipText = "Was gerade gesagt wird: der Aufruf, die Rede, die Abstimmung oder die Zählung.";
@@ -284,7 +287,7 @@ public partial class RatssitzungAnzeige : Control
         _kopf.Text = _wiederholung is null
             ? $"Ratssitzung {_jahr} · Punkt {punkt.Nummer} von {_anzahl}"
             : $"Letzte Ratssitzung {_jahr} (Wiederholung) · Punkt {punkt.Nummer} von {_anzahl}";
-        _titel.Text = punkt.Titel;
+        RatStil.SpruchTitel(_titel, punkt.Titel); // umbrechen, bei Bedarf kleinere Schrift
         _text.Text = punkt.Text;
         Setzen(_zeile, "Der Bürgermeister ruft den Punkt auf.");
         Setzen(_ergebnis, "");
