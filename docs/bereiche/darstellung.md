@@ -293,8 +293,21 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Die Zuhörerbank ist aus Boxen gebaut, Nachrücker-Ratsherren auf den freien Stühlen 8 bis 12 fehlen; ein Modell mit Bank-Anker (Wunsch an den Modell-Agenten) würde den Bau im Spiel ersetzen
 - Die 3D-Beschriftungen (Zahlen, Stimmen, Namen) sind weiter Schrift im Code (Welt, nicht Oberfläche), Farben dort nicht im Thema
 - Die Szene hat noch keinen Ton (Glocke, Hammer, Stuhlrücken: Ton-PR); Ratsbuch und Spruchband brauchen die Holzschnitt-Grafik (Grafik-PC)
+- (Wasser, Strömungsfeld) Schaum am Ufer und an Pfeilern, Mündungslinien und Eisbrei treiben weiter linear mit der Strömung des Bandes in Laufachsen (`stroemung`), nicht mit dem Feld; der Prahm der Fähre (bewegt) und Fährlinien sind kein Hindernis des Feldes; die Kartenwerkstatt zeigt kein Feld; Seen, Teiche und Hafenbecken haben keins (stilles Wasser). Das Kehrwasser färbt nichts (B der Karte ist frei für Schaum hinter Pfeilern, falls der Nutzer ihn will).
 
 ## Entscheidungen
+
+### Strömungsfeld fürs Wasser (Branch phase5/wasser-flowfield, Auftrag des Nutzers 14.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Echtes Flowfield: ein Vektorfeld je Punkt, damit das Wasser um Brückenpfeiler, Kähne am Kai, Ufervorsprünge und Inseln herumströmt, dahinter Kehrwasser mit kleinen Wirbeln bildet und am Ufer langsamer wird; nur Darstellung, Kern unverändert | 14.11.2026 |
+| Rechnung | `Stroemungsfeld.cs` (ohne Godot-Typen): Raster in Weltachsen über dem Band eines Laufs, Zelle 1 m (Bach unter 24 m Breite: 0,5 m; Rhein 123 × 1168 Zellen). Strömung des Bandes (Richtung der Mittellinie, Profil des Kerns `1 − 0,5 · (quer/halbe Breite)²`) · Grenzschicht am Ufer (0,45 → 1 über 3,5 m) · vor Hindernissen wird der Anteil auf die Fläche zu über 5 m abgebaut (Gefälle des Abstandsfeldes als Normale), an den Flanken bis +55 % schneller · hinter Hindernissen Kehrwasser: gegen die Strömung zurück bis zum nächsten Hindernis (bis etwa 1,2 Bandbreiten, mindestens 10 m), Faktor `1 − 1,5 · Schatten` (im Kern gegenläufig), Zufluss von der Seite aus dem Gefälle des geglätteten Schattens · vor Kaimauern bis −85 %. Eine einfache Umströmung, keine Strömungslösung | 14.11.2026 |
+| Hindernisse | Pfeiler und Joche der Brücken (`_wasserPfeiler`), Kähne der Häfen (`_haefen`, mit `KahnQuer`/`KahnLaengs`), Boden über dem Spiegel mitten im Band (mindestens 1 m vom Rand: Inseln, Ufervorsprünge; die Karten haben bisher keine) | 14.11.2026 |
+| Wann | Einmal im ersten Bild nach den Flächen (dann stehen die Brücken), neu, wenn sich die Kähne ändern (höchstens alle 2 s) oder die Eingaben eines Laufs; ein Wechsel der Wasserstufe rechnet nichts neu (Feld je Lauf gemerkt). Die Kartenwerkstatt baut kein Feld (das Wasser dort wird bei jedem Pinselstrich neu gebaut) | 14.11.2026 |
+| Textur und Shader | RGBA8 `strom_karte`: R, G = Unterschied zur Strömung des Bandes in Weltachsen (± `strom_skala` m/s), B = Kehrwasser; je Lauf eine, im Stoff des Laufs (`strom_ort`, `strom_skala`, `strom_aktiv`). Der Shader addiert den Unterschied zu `strom_welt` und schiebt die Normalkarten wie bisher in zwei Phasen (Vlachos), also ohne Pumpen; gleich für alle Grafikstufen, Pixel-Look, Nacht, Regen und Winter, weil nur die Verschiebung der Normalkarten ändert | 14.11.2026 |
+| Startoptionen | `--stromfeld=0` (aus, für Vorher-Nachher), `--stromfeld=bild` (Feld als Bild nach `user://`) | 14.11.2026 |
+| Eigene Entscheidungen | Zelle 1 m statt 0,5 m für breite Flüsse (0,5 m kostete am Rhein etwa 3,5 s statt 1,2 s beim Aufbau); keine Rechnung in der Werkstatt (Pinselstriche); Schaum und Eisbrei laufen weiter linear in Laufachsen (siehe Offen) | 14.11.2026 |
 
 ### Brandschaden am Gebäude (Branch fix/russ-schlieren, Nutzerwunsch 12.11.2026)
 
