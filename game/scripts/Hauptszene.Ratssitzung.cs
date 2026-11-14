@@ -10,7 +10,7 @@ namespace Reichsgilde;
 ///
 /// Am Jahresende fragt der Kern, ob die Partie vor der Sitzung anhalten soll (<see cref="Stadtwirtschaft.RatssitzungAnhalten"/>); das entscheidet die
 /// Einstellung „Ratssitzung zeigen“ (<see cref="Fenster.Ratssitzung"/>: immer, wenn der Spieler im Rat sitzt oder betroffen ist, nie). Hält sie an, geht die
-/// Ansicht in den Ratssaal, die Tafel <see cref="RatssitzungAnzeige"/> führt durch die Punkte, und die Stadtansicht zeigt jeden Schritt
+/// Ansicht in den Ratssaal, die Oberfläche <see cref="RatssitzungAnzeige"/> (Spruchband unten, Ratsbuch rechts) führt durch die Punkte, und die Stadtansicht zeigt jeden Schritt
 /// (Stadtansicht.Ratssitzung.cs). Während der Sitzung ruhen Raumleiste, Meldungen und Tastenkürzel; Esc öffnet das Spielmenü, Speichern ist dort gesperrt
 /// (<see cref="Spielstaende.Speichern"/>). Der Jahresbericht, den der Kern nach dem letzten Punkt auslöst, erscheint erst, wenn die Tafel zu ist.
 ///
@@ -35,6 +35,7 @@ public partial class Hauptszene
         _sitzungsTafel.RedeBeendet += _stadt.RatssitzungRednerFort;
         _sitzungsTafel.AmZug += amt => _stadt.RatssitzungAmZug(amt);
         _sitzungsTafel.StimmeGezeigt += stimme => _stadt.RatssitzungStimme(stimme);
+        _sitzungsTafel.Gezaehlt += (stimme, nummer, stand) => _stadt.RatssitzungGezaehlt(stimme, nummer, stand);
         _sitzungsTafel.ErgebnisGezeigt += punkt =>
         {
             _stadt.RatssitzungErgebnis(punkt);
@@ -158,7 +159,7 @@ public partial class Hauptszene
     /// dem Spieler im Rat vor – ohne <c>--amt</c> bekommt er ein Amt der untersten Stufe und bewirbt sich um eines darüber (eine Wahl; braucht den Stand Bürger,
     /// also <c>--aufsteigen=1 --vermoegen=30000</c>), ohne <c>--antrag</c> wird ein Rivale Kämmerer und beantragt ein Fest (darüber stimmt der Spieler live ab; dafür bekommt er
     /// Aktionspunkte) –
-    /// und spult bis zum Jahresende vor (die Partie hält dann vor dem ersten Punkt). <c>--sitzung=letzte</c> spult ebenso vor, hält aber nicht an und zeigt
+    /// und spult bis zum Jahresende vor (die Partie hält dann vor dem ersten Punkt). <c>--ohneamt=1</c> (zusätzlich) lässt den Spieler ohne Amt und ohne Sitz im Rat: Er bewirbt sich um ein Amt der Stufe 1 und wartet auf der Zuhörerbank. <c>--sitzung=letzte</c> spult ebenso vor, hält aber nicht an und zeigt
     /// danach das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“. Nach <see cref="RatStartoptionen"/> ausgewertet.
     /// </summary>
     private void RatssitzungStartoptionen(Dictionary<string, string> optionen)
@@ -178,8 +179,11 @@ public partial class Hauptszene
         }
         if (!optionen.TryGetValue("sitzung", out var sitzung) || sitzung is not ("1" or "letzte")) return;
         if (_simulation.Wirtschaft is not { } w || _spieler is null || !w.Rat.IstAktiv) return;
-        if (w.Rat.AmtVon(_spieler) is null && w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name).FirstOrDefault() is { } unten)
+        var ohneAmt = optionen.TryGetValue("ohneamt", out var oa) && oa == "1"; // der Spieler sitzt nicht im Rat: Er wartet als Bewerber auf der Zuhörerbank
+        if (!ohneAmt && w.Rat.AmtVon(_spieler) is null && w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name).FirstOrDefault() is { } unten)
             AmtFuerKlicktest(w, unten);
+        if (ohneAmt && w.Rat.AmtVon(_spieler) is null && w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name).FirstOrDefault() is { } erstes)
+            _simulation.Bote.Einreihen(_spieler, new AmtBewerben(erstes.Name), e => Melden("Bewerbung um " + erstes.Name, e));
         if (w.Rat.AmtVon(_spieler) is { } amt && w.Rat.Aemter.Where(a => a.Stufe == amt.Stufe + 1).OrderBy(a => a.Name).FirstOrDefault() is { } hoeher)
             _simulation.Bote.Einreihen(_spieler, new AmtBewerben(hoeher.Name), e => Melden("Bewerbung um " + hoeher.Name, e));
         // Ein Rivale wird Kämmerer und beantragt ein Fest: Darüber stimmt der Spieler live ab

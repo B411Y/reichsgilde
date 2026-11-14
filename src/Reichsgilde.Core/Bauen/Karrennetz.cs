@@ -452,7 +452,33 @@ public sealed class Karrennetz
     /// </summary>
     public Netzfahrt FahrtMitVerlauf(Kartenort von, Kartenort nach) => Suchen(von, nach, true);
 
+    /// <summary>
+    /// Gemerkte Fahrten (14.11.2026: die KI fragt in Köln für jeden möglichen Bauort und jeden Hafen dieselben Wege): Schlüssel sind die Bits der
+    /// beiden Orte, damit nur genau dieselbe Frage dieselbe Antwort bekommt. Das Netz ändert sich nach dem Aufbau nicht – eine neue Karte oder
+    /// ein geänderter Weg gibt ein neues Netz mit leerem Speicher. Nur nachgeschlagen, nie der Reihe nach gelesen; nicht im Spielstand.
+    /// </summary>
+    private readonly Dictionary<(long, long, long, long, bool), Netzfahrt> _fahrten = new();
+
+    /// <summary>So viele Fahrten merkt sich das Netz höchstens; dann beginnt es von vorn (das Ergebnis bleibt dasselbe, nur der Speicher wächst nicht).</summary>
+    private const int HoechstGemerkt = 50_000;
+
     private Netzfahrt Suchen(Kartenort von, Kartenort nach, bool vonNurAnschluss)
+    {
+        var schluessel = (BitConverter.DoubleToInt64Bits(von.X), BitConverter.DoubleToInt64Bits(von.Z),
+            BitConverter.DoubleToInt64Bits(nach.X), BitConverter.DoubleToInt64Bits(nach.Z), vonNurAnschluss);
+        lock (_fahrten)
+            if (_fahrten.TryGetValue(schluessel, out var bekannt)) return bekannt;
+        var fahrt = SuchenOhneSpeicher(von, nach, vonNurAnschluss);
+        lock (_fahrten)
+        {
+            if (_fahrten.Count >= HoechstGemerkt) _fahrten.Clear();
+            _fahrten[schluessel] = fahrt;
+        }
+        return fahrt;
+    }
+
+    /// <summary>Die Suche von <see cref="Suchen"/> ohne Speicher (für den Vergleich im Test auch direkt).</summary>
+    internal Netzfahrt SuchenOhneSpeicher(Kartenort von, Kartenort nach, bool vonNurAnschluss)
     {
         if (Anhaengen(von, vonNurAnschluss) is not { } start || Anhaengen(nach) is not { } ziel) return Netzfahrt.Leer;
         var (s, z) = (_kanten[start.Kante], _kanten[ziel.Kante]);
