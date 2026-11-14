@@ -207,7 +207,7 @@ public partial class Mauszeiger : Node
         }
         if (Stadt is null) return Art.Normal;
         if (Stadt.KennungUnterDerMaus is { } kennung)
-            return Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung) ? Art.Schloss : Art.Klick;
+            return (Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung)) || Stadt.IstAusgangstuer(kennung) ? Art.Schloss : Art.Klick; // auch die Haustür von innen (Stadtansicht.Neubau.cs)
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
     }
     /// <summary>Wo der Zeiger gerade liegt, relativ zur Mausposition (für die Lage der Tooltips, <see cref="TooltipLage"/>): das Bild des 3D-Handschuhs, sonst das Bild des 2D-Zeigers ab seinem Zeigerpunkt; null ohne eigenen Zeiger.</summary>

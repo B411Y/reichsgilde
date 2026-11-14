@@ -798,6 +798,7 @@ public partial class Hauptszene : Node
 
     private void HinterzimmerOeffnen()
     {
+        if (Stadtansicht.NeubauOhneHinterzimmer(_spieler)) return; // Neubau-Probe: das Haus der Stufe 1 hat kein Hinterzimmer
         TafelnSchliessen();
         _hinterzimmer.Oeffnen();
     }
@@ -1457,8 +1458,41 @@ public partial class Hauptszene : Node
     /// Gerichtssaal und Kerker → Stadtgericht, Wohnstube → Familie. Amtsstube und Kontor zeigen ihr Fenster ohnehin
     /// (siehe <see cref="AuswahlImRaum"/>). Gibt false zurück, wenn die Kennung kein Raum ist.
     /// </summary>
+    /// <summary>Ein Gegenstand in der Wohnstube hat die Wohnhaus-Tafel geöffnet: Sie bleibt dort stehen, bis man sie schließt (sonst zeigt sie sich im eigenen Haus nur im Kontor).</summary>
+    private bool _wohnhausVomGegenstand, _wohnhausHaken;
+
+    private void WohnhausVomGegenstand(WohnhausAnzeige.Reiter reiter)
+    {
+        if (!_wohnhausHaken)
+        {
+            _wohnhausHaken = true;
+            _wohnhaus.VisibilityChanged += () => { if (!_wohnhaus.Visible) _wohnhausVomGegenstand = false; };
+        }
+        _wohnhausVomGegenstand = true;
+        WohnhausOeffnen(reiter);
+        _wohnhausVomGegenstand = true; // das Schließen der vorigen Tafel hat das Kennzeichen gelöscht
+        if (!_wohnhaus.Visible) _wohnhaus.Zeigen(reiter);
+    }
+
     private bool RaumAngeklickt(string kennung)
     {
+        if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
+        {
+            _stadt.InnenansichtVerlassenDurchTuer();
+            return true;
+        }
+        if (Stadtansicht.NeubauGegenstandVon(kennung) is { } gegenstand) // Gegenstände im Raum statt Reiterfenster (Neubau-Probe)
+        {
+            switch (gegenstand)
+            {
+                case "Familienbuch": FamilieOeffnen(); break;
+                case "Truhe": TafelnSchliessen(); _wohnhausBaum.Oeffnen(); break;
+                case "Bauplan": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Haus); break;
+                case "Werkzeug": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Handwerk); break;
+                case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
+            }
+            return true;
+        }
         var w = _simulation.Wirtschaft;
         switch (kennung)
         {
@@ -1573,7 +1607,7 @@ public partial class Hauptszene : Node
             if (_auswahl.Visible) _auswahl.Hide();
             _uebersicht.Zeigen(null);
             // Im eigenen Wohnhaus nur im Kontor (wie früher das Kontor), aus einem anderen Gebäude heraus (Kopfzeile, F) überall
-            var zeigen = RechtsFrei && (AuswahlImRaum || _stadt.InnenKennung != EigenesWohnhaus);
+            var zeigen = RechtsFrei && (AuswahlImRaum || _wohnhausVomGegenstand || _stadt.InnenKennung != EigenesWohnhaus);
             if (_wohnhaus.Visible != zeigen)
             {
                 if (zeigen) _wohnhaus.Zeigen(WohnhausAnzeige.Reiter.Haus);

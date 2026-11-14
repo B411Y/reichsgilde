@@ -189,6 +189,12 @@ public sealed record EigenschaftWaehlen(string Betrieb, int Arbeiter, string Eig
 /// <summary>Ein Stück Einrichtung fürs eigene Wohnhaus kaufen (Kennung aus „wohnen.einrichtung“, PR #224). Vorab: <see cref="Wohnen.Wohnungswesen.EinrichtungVerboten"/>.</summary>
 public sealed record WohnhausEinrichtungKaufen(string Kennung) : Befehl;
 
+/// <summary>
+/// Einen freien Platz im eigenen Wohnhaus mit einem Raum zur Wahl belegen (Kennung aus „wohnen.raeume.waehlbar“), für immer.
+/// Vorab: <see cref="Wohnen.Wohnungswesen.RaumAnbauenVerboten"/> und <see cref="Wohnen.Wohnungswesen.WaehlbareRaeume"/>.
+/// </summary>
+public sealed record RaumAnbauen(string Raum) : Befehl;
+
 /// <summary>Wie gut die Werkstatt zahlt: Faktor auf den Lohn, Ziel für die Laune.</summary>
 public sealed record LohnstufeSetzen(string Betrieb, Lohnstufe Stufe) : BetriebsBefehl(Betrieb);
 

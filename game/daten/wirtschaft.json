@@ -1,5 +1,5 @@
 {
-  "version": 86,
+  "version": 87,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1042,11 +1042,24 @@
       { "kennung": "Kueche", "name": "Küche", "preis": 900, "spalte": "Haushalt", "abStufe": 3, "voraussetzung": "Vorratskammer", "wirkung": { "krankheitFaktor": 0.75 } },
       { "kennung": "Hauswappen", "name": "Wappen über der Tür", "preis": 250, "spalte": "Ansehen", "abStufe": 1, "wirkung": { "ansehenPlus": 2 } },
       { "kennung": "Stube", "name": "Gute Stube", "preis": 700, "spalte": "Ansehen", "abStufe": 2, "voraussetzung": "Hauswappen", "wirkung": { "werbeFaktor": 1.25 } },
-      { "kennung": "Bibliothek", "name": "Bibliothek", "preis": 1500, "spalte": "Ansehen", "abStufe": 3, "voraussetzung": "Stube", "wirkung": { "ausbildungFaktor": 1.25 } },
       { "kennung": "Hauswaechter", "name": "Hauswächter", "preis": 0, "spalte": "Schutz", "abStufe": 1, "vorhanden": "Hauswaechter" },
       { "kennung": "Riegel", "name": "Eiserne Riegel", "preis": 150, "spalte": "Schutz", "abStufe": 2, "wirkung": { "einbruchFaktor": 0.5 } },
       { "kennung": "Hund", "name": "Hofhund", "preis": 350, "spalte": "Schutz", "abStufe": 3, "voraussetzung": "Riegel", "wirkung": { "einbruchFaktor": 0.75, "brandFaktor": 0.75 } }
-    ]
+    ],
+    "raeume": {
+      "arten": [
+        { "kennung": "Wohnstube", "name": "Wohnstube" },
+        { "kennung": "Hinterzimmer", "name": "Hinterzimmer", "preis": 700, "befehle": ["Beauftragen", "Erpressen"], "berufStattRaum": "Dieb" },
+        { "kennung": "Bibliothek", "name": "Bibliothek", "preis": 700, "befehle": ["LehrschriftLesen"], "wirkung": { "ausbildungFaktor": 1.25 } },
+        { "kennung": "Festsaal", "name": "Festsaal", "preis": 700, "aktivitaeten": ["Gastmahl"] }
+      ],
+      "stufen": [
+        { "feste": ["Wohnstube"] },
+        { "feste": ["Wohnstube"], "frei": 1 },
+        { "feste": ["Wohnstube"], "frei": 2 }
+      ],
+      "waehlbar": ["Hinterzimmer", "Bibliothek", "Festsaal"]
+    }
   },
   "schulden": {
     "jahreBisBankrott": 3

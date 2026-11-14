@@ -57,7 +57,7 @@ public sealed partial class Familienbuch
         }
         if (FamilieVon(p) is { } f)
             foreach (var (kennung, wf) in d.Wohnhaus)
-                if (f.Konto.WohnhausEinrichtung.Contains(kennung)) faktor *= wf;
+                if (f.Konto.WohnhausEinrichtung.Contains(kennung) || _w.Wohnen.Raeume(f.Konto).Contains(kennung)) faktor *= wf; // Stück oder Raum (Bibliothek, Datenversion 87)
         return faktor;
     }
 

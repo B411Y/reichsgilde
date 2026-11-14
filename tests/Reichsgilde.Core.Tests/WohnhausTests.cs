@@ -109,7 +109,9 @@ static class WohnhausTests
             k.IstBankrott = true;
             Pruefe.Wahr(w.Wohnen.Leerstand.Contains(k), "Leerstand nach Bankrott");
 
-            var ohne = Wirtschaftsdaten.AusJson(Regex.Replace(Json, @"""wohnen"": \{.*?\]\s*\},", "", RegexOptions.Singleline));
+            var ohneKnoten = System.Text.Json.Nodes.JsonNode.Parse(Json)!;
+            ohneKnoten.AsObject().Remove("wohnen");
+            var ohne = Wirtschaftsdaten.AusJson(ohneKnoten.ToJsonString());
             Pruefe.Wahr(ohne.Wohnen is null, "Abschnitt nicht entfernt");
             var w2 = NeueSimulation(ohne).Wirtschaft!;
             var k2 = w2.KontoEroeffnen("Haus Alt", startvermoegen: 12_000);

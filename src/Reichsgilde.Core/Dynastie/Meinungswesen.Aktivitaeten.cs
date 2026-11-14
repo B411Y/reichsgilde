@@ -136,6 +136,7 @@ public sealed partial class Meinungswesen
         if (mit.Kennung == ich.Kennung) return "Mit sich selbst unternimmt man nichts.";
         if (mit is Person p && (!p.Lebt || _w.Diebe.IstGeisel(p))) return $"{p.Name} ist nicht da.";
         if (!IstWichtig(mit)) return $"{mit.Name} gehört nicht zu den wichtigen Personen der Stadt.";
+        if (_w.Wohnen.AktivitaetOhneRaum(konto, art) is { } ohneRaum) return ohneRaum; // Räume je Stufe: z. B. Gastmahl nur mit Festsaal
         if (!a.Geschenk && _diesesJahr.ContainsKey((art, mit.Kennung, ich.Kennung)))
             return $"{a.Name} mit {mit.Name} gab es in diesem Jahr schon – im nächsten Jahr wieder.";
         if (a.GleicherGlaube && _w.Glaube.IstAktiv && GlaubeVon(mit) != ich.Glaube)
