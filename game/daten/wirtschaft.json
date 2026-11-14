@@ -1,5 +1,5 @@
 {
-  "version": 86,
+  "version": 87,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1046,7 +1046,21 @@
       { "kennung": "Hauswaechter", "name": "Hauswächter", "preis": 0, "spalte": "Schutz", "abStufe": 1, "vorhanden": "Hauswaechter" },
       { "kennung": "Riegel", "name": "Eiserne Riegel", "preis": 150, "spalte": "Schutz", "abStufe": 2, "wirkung": { "einbruchFaktor": 0.5 } },
       { "kennung": "Hund", "name": "Hofhund", "preis": 350, "spalte": "Schutz", "abStufe": 3, "voraussetzung": "Riegel", "wirkung": { "einbruchFaktor": 0.75, "brandFaktor": 0.75 } }
-    ]
+    ],
+    "raeume": {
+      "arten": [
+        { "kennung": "Wohnstube", "name": "Wohnstube" },
+        { "kennung": "Hinterzimmer", "name": "Hinterzimmer", "befehle": ["Beauftragen", "Erpressen"] },
+        { "kennung": "Bibliothek", "name": "Bibliothek", "einrichtung": ["Bibliothek"] },
+        { "kennung": "Festsaal", "name": "Festsaal", "aktivitaeten": ["Gastmahl"] }
+      ],
+      "stufen": [
+        { "feste": ["Wohnstube"] },
+        { "feste": ["Wohnstube", "Hinterzimmer"] },
+        { "feste": ["Wohnstube", "Hinterzimmer"], "frei": 1 }
+      ],
+      "waehlbar": ["Hinterzimmer", "Bibliothek", "Festsaal"]
+    }
   },
   "schulden": {
     "jahreBisBankrott": 3

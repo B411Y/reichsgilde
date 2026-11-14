@@ -44,8 +44,12 @@ public sealed class WohnenDaten
 
     public EinrichtungDaten? Stueck(string kennung) => Einrichtung.FirstOrDefault(e => e.Kennung == kennung);
 
-    internal void Pruefen(List<string> f, int anzahlStaende, IReadOnlyDictionary<string, WareDaten> waren)
+    /// <summary>Räume je Stufe (ab Datenversion 87, Wohnungswesen.Raeume.cs). Fehlt der Abschnitt, hat jedes Haus jeden Raum.</summary>
+    public RaeumeDaten? Raeume { get; init; }
+
+    internal void Pruefen(List<string> f, int anzahlStaende, IReadOnlyDictionary<string, WareDaten> waren, IEnumerable<string>? aktivitaeten = null)
     {
+        Raeume?.Pruefen(f, Stufen.Count, Einrichtung, aktivitaeten);
         foreach (var doppelt in Einrichtung.GroupBy(e => e.Kennung).Where(g => g.Count() > 1))
             f.Add($"wohnen.einrichtung: „{doppelt.Key}“ ist doppelt eingetragen.");
         foreach (var e in Einrichtung)
@@ -93,7 +97,7 @@ public sealed class WohnenDaten
 /// Gauner (Abschnitt gauner.wohnhaus): Einbruch holt Bargeld, Brand kostet Reparatur und das Ansehen des Hauses,
 /// bis es instand gesetzt ist – die Stufe und damit der Stand sind nie in Gefahr. Ein Hauswächter schützt wie im Betrieb.
 /// </summary>
-public sealed class Wohnungswesen
+public sealed partial class Wohnungswesen
 {
     private readonly Stadtwirtschaft _w;
     public WohnenDaten? Daten { get; }
@@ -267,6 +271,7 @@ public sealed class Wohnungswesen
         if (k.WohnhausEinrichtung.Contains(kennung)) return $"{k.Inhaber} hat schon: {e.Name}.";
         var stufe = k.WohnhausStufe + 1;
         if (stufe < e.AbStufe) return $"{e.Name} passt erst in ein {d.Stufen[e.AbStufe - 1].Name} – {k.Inhaber} wohnt im {d.Stufen[k.WohnhausStufe].Name}.";
+        if (EinrichtungOhneRaum(k, kennung) is { } ohneRaum) return ohneRaum; // Räume je Stufe: z. B. die Bibliothek nur mit dem Raum Bibliothek
         if (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor)) return $"Erst braucht es: {vor.Name}.";
         if (k.Vermoegen < _w.Baupreis(k, e.Preis)) return $"{e.Name} kostet {Zahlenformat.Ganz(_w.Baupreis(k, e.Preis))} {_w.Daten.Allgemein.Waehrung}.";
         return null;
@@ -309,7 +314,7 @@ public sealed class Wohnungswesen
         {
             var da = HatEinrichtung(k, e);
             var verboten = da ? null : EinrichtungVerboten(k, e.Kennung);
-            var gesperrt = stufe < e.AbStufe || (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor));
+            var gesperrt = stufe < e.AbStufe || EinrichtungOhneRaum(k, e.Kennung) is not null || (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor));
             var jaehrlich = e.Vorhanden == "Hauswaechter";
             var preis = jaehrlich ? _w.Daten.Gauner?.WaechterKosten ?? 0 : e.Preis;
             var mehr = MehrgewinnJeJahr(k, e.Kennung);

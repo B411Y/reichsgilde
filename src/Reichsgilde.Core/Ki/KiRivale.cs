@@ -266,6 +266,7 @@ public sealed partial class KiRivale
     private bool Befehlen(Befehl befehl, string begruendung)
     {
         if (!_w.ApReichen(Konto, befehl)) return false; // keine Aktionspunkte mehr – still verzichten statt Fehlversuch
+        if (_w.Wohnen.BefehlOhneRaum(Konto, befehl) is not null) return false; // Räume je Stufe: ohne Hinterzimmer keine Banden – still verzichten
         if (StressMeiden(befehl)) return false; // angespannt: nichts, was dem Oberhaupt Stress bringt (KiRivale.Stress.cs) – still, ohne Meldung
         var ergebnis = _w.Ausfuehren(Konto, befehl);
         Entscheiden(ergebnis.Erfolg ? begruendung : $"wollte, durfte aber nicht: {ergebnis.Meldung}");

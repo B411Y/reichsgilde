@@ -162,6 +162,13 @@ public sealed class Konto
 
     internal void WohnhausEinrichtungHinzufuegen(string kennung) => _wohnhausEinrichtung.Add(kennung);
 
+    private readonly List<string> _wohnhausRaeume = new();
+
+    /// <summary>Räume zur Wahl, die das Haus angebaut hat (Kennungen aus „wohnen.raeume“, in der Reihenfolge der Wahl). Sie gehören dem Haushalt.</summary>
+    public IReadOnlyList<string> WohnhausRaeume => _wohnhausRaeume;
+
+    internal void WohnhausRaumHinzufuegen(string raum) => _wohnhausRaeume.Add(raum);
+
     /// <summary>Wohin Steuern und Abgaben fließen (gesetzt von der Stadtwirtschaft; null: nirgendwohin, z. B. in Tests ohne Stadt).</summary>
     internal Action<Politik.Kassenposten, double>? Stadtkasse { get; set; }
 
@@ -229,6 +236,7 @@ public sealed class Konto
         Aktionspunkte = Aktionspunkte.Vorrat,
         WohnhausStufe = WohnhausStufe, WohnhausFertigAb = WohnhausFertigAb, WohnhausInstandBis = WohnhausInstandBis, Hauswaechter = Hauswaechter,
         WohnhausEinrichtung = _wohnhausEinrichtung.Count > 0 ? _wohnhausEinrichtung.ToList() : null,
+        WohnhausRaeume = _wohnhausRaeume.Count > 0 ? _wohnhausRaeume.ToList() : null,
         Berufe = _berufe.ToList(),
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
         Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
@@ -252,6 +260,7 @@ public sealed class Konto
         konto.Hauswaechter = s.Hauswaechter;
         konto.EntwicklerAnsehen = s.EntwicklerAnsehen;
         foreach (var kennung in s.WohnhausEinrichtung ?? new List<string>()) konto._wohnhausEinrichtung.Add(kennung);
+        konto._wohnhausRaeume.AddRange(s.WohnhausRaeume ?? new List<string>()); // alte Spielstände: keine Räume zur Wahl
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);
         foreach (var (beruf, grad) in s.Meistergrade ?? new Dictionary<string, int>())
