@@ -50,18 +50,21 @@ OX = BX + KRAG              # halbe Breite des Obergeschosses
 OVORN = VORN - KRAG
 Z_FIRST = Z_TRAUFE + OX * NEIGUNG          # Unterseite des Dachs am First
 GALERIE_AB = 0.6            # die Schlafgalerie liegt ueber dem hinteren Teil (y ab hier)
-KAMIN = (1.38, 1.98, -1.75, -1.05)        # Schlot (x0, x1, y0, y1): innen an der rechten Wand, oben durchs Dach
+KAMIN = (1.38, 1.98, -0.30, 0.40)         # Schlot (x0, x1, y0, y1): innen an der rechten Wand hinter der Raummitte (die Tuer bleibt frei), oben durchs Dach
+Z_HAUBE = 1.95                            # Unterkante der Herdhaube: 1,80 m ueber dem Fussboden
+TUER_HOCH = 2.00                          # lichte Hoehe der Haustuer ueber dem Fussboden (Figur 1,75 m)
+OG_FENSTER = (3.50, 4.30)                 # Bruestung 0,83 m ueber dem Galerieboden
 
 # Oeffnungen: Wand, (a0, a1) entlang der Wand in Weltkoordinaten (x bei vorn/hinten, y bei links/rechts), (z0, z1), Art
 FENSTER = [
-    ("vorn_eg", (0.62, 1.58), (Z_BODEN, 2.10), "tuer"),
+    ("vorn_eg", (0.62, 1.58), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),
     ("vorn_eg", (-1.35, -0.35), (1.05, 2.00), "fenster"),
     ("links_eg", (-0.50, 0.40), (1.10, 1.95), "fenster"),
-    ("vorn_og", (-1.45, -0.75), (3.35, 4.20), "fenster"),
-    ("vorn_og", (0.75, 1.45), (3.35, 4.20), "fenster"),
-    ("links_og", (-1.90, -1.20), (3.35, 4.20), "fenster"),
-    ("rechts_og", (1.00, 1.70), (3.35, 4.20), "fenster"),
-    ("hinten_og", (-0.35, 0.35), (3.35, 4.20), "fenster"),
+    ("vorn_og", (-1.45, -0.75), OG_FENSTER, "fenster"),
+    ("vorn_og", (0.75, 1.45), OG_FENSTER, "fenster"),
+    ("links_og", (-1.90, -1.20), OG_FENSTER, "fenster"),
+    ("rechts_og", (1.00, 1.70), OG_FENSTER, "fenster"),
+    ("hinten_og", (-0.35, 0.35), OG_FENSTER, "fenster"),
 ]
 # Waende: Name -> (Ursprung aussen, Richtung, Breite, Normale nach aussen); innen liegt dieselbe Wand um T nach innen versetzt
 WAENDE = {
@@ -97,6 +100,19 @@ def dach_z(x, oben=False):
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 #  Aussen
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+def fensterstock(teil, stoff, wand, s0, s1, z0, z1, band):
+    """Echter Fensterstock in der Oeffnung: Holzrahmen rundum (5 cm breit, 7 cm tief) und Holzkreuz in der Mitte (4,5 x 5,5 cm),
+    mittig in der Wand – von aussen und von innen dasselbe Holz; das Glas liegt in der Mitte dahinter bzw. davor."""
+    _, _, _, n = WAENDE[wand]
+    n3 = (n[0], n[1], 0)
+    P = lambda s, z: punkt(wand, s, z, -T / 2)
+    sm, zm = (s0 + s1) / 2, (z0 + z1) / 2
+    for a, b in ((P(s0, z0 + 0.025), P(s1, z0 + 0.025)), (P(s0, z1 - 0.025), P(s1, z1 - 0.025)), (P(s0 + 0.025, z0 + 0.05), P(s0 + 0.025, z1 - 0.05)), (P(s1 - 0.025, z0 + 0.05), P(s1 - 0.025, z1 - 0.05))):
+        teil.stab(stoff, a, b, 0.07, band, breite=0.05, oben=n3)
+    teil.stab(stoff, P(sm, z0 + 0.05), P(sm, z1 - 0.05), 0.055, band, breite=0.045, oben=n3)
+    teil.stab(stoff, P(s0 + 0.05, zm), P(s1 - 0.05, zm), 0.055, band, breite=0.045, oben=n3)
+
 
 def baue_haus():
     h = Teil("Haus", BAENDER_AUSSEN, saat=11)
@@ -153,7 +169,7 @@ def baue_haus():
         for s in sorted(pfosten):
             h.brett(holz, P(s, Z_OG + 0.20), P(s, Z_TRAUFE - 0.18), bw, n3, "balken_a", laengs="v")
         # Brustriegel durchlaufend, Sturzriegel ueber den Fenstern
-        zr = 3.35 - 0.07
+        zr = OG_FENSTER[0] - 0.07
         h.brett(holz, P(bw, zr), P(breite - bw, zr), 0.14, n3, "balken_b", tiefe=0.045)
         for s0, s1, _, zb, _ in l:
             h.brett(holz, P(s0 - bw, zb + 0.07), P(s1 + bw, zb + 0.07), 0.14, n3, "balken_b", tiefe=0.045)
@@ -198,13 +214,7 @@ def baue_haus():
             h.brett(holz, P(s0 - 0.12, z1 + 0.06), P(s1 + 0.12, z1 + 0.06), 0.12, n3, "balken_c", tiefe=0.06)
             for s in (s0 - 0.06, s1 + 0.06):
                 h.brett(holz, P(s, z0), P(s, z1), 0.12, n3, "balken_c", laengs="v")
-        else:
-            # im Fachwerk sitzt ein schmaler Blendrahmen in der Oeffnung
-            for a, b in ((P(s0 + 0.025, z0, -0.03), P(s0 + 0.025, z1, -0.03)), (P(s1 - 0.025, z0, -0.03), P(s1 - 0.025, z1, -0.03)), (P(s0, z1 - 0.025, -0.03), P(s1, z1 - 0.025, -0.03))):
-                h.brett(holz, a, b, 0.05, n3, "balken_b", tiefe=0.03, seiten=False)
-        sm, zm = (s0 + s1) / 2, (z0 + z1) / 2
-        h.rechteck(holz, P(sm - 0.025, z0, -T / 2 + 0.012), (ex, ey, 0), (0, 0, 1), 0.05, z1 - z0, "balken_c", laengs="v", weg_von=MITTE, anteil=(0.2, 0.6))
-        h.rechteck(holz, P(s0, zm - 0.025, -T / 2 + 0.012), (ex, ey, 0), (0, 0, 1), s1 - s0, 0.05, "balken_c", weg_von=MITTE, anteil=(0.2, 0.6))
+        fensterstock(h, holz, wand, s0, s1, z0, z1, "balken_c")   # Rahmen und Kreuz als Kantholz, kein aufgelegtes Kreuz
         # Laeden: vorn zwei Fluegel, sonst einer; offen an der Wand, Eckenfarbe Rot = Akzentfarbe je Haus
         lb = (s1 - s0) / 2
         fluegel = [(s0 - lb - 0.03, s0 - 0.03), (s1 + 0.03, s1 + lb + 0.03)] if wand.startswith("vorn") else [(s1 + 0.03, s1 + 2 * lb * 0.55 + 0.03)]
@@ -404,9 +414,9 @@ def baue_raum():
         r.rechteck(S, (a[0], a[1], Z_OG), (1, 0, 0), (0, 1, 0), b[0] - a[0], b[1] - a[1], "balken", laengs="u" if b[0] - a[0] > b[1] - a[1] else "v", zu=(0, 0, 99))
     # Boden: gestampfter Lehm, zwei Binsenmatten
     r.rechteck(S, (-IX, IV, Z_BODEN), (1, 0, 0), (0, 1, 0), 2 * IX, IH - IV, "lehmboden", zu=(0, 0, 99), u0=0.0)
-    for (x0, y0, lx, ly) in ((-1.15, -2.0, 1.9, 1.75), (-0.5, 0.75, 1.6, 1.0)):
+    for (x0, y0, lx, ly) in ((-0.6, -1.7, 1.5, 1.6), (-0.4, 0.95, 1.5, 1.0)):
         r.rechteck(S, (x0, y0, Z_BODEN + 0.012), (1, 0, 0), (0, 1, 0), lx, ly, "stroh", zu=(0, 0, 99))
-    # Fenster von innen: dasselbe Kreuz wie aussen (gleiche Lage in der Wandmitte, gleiche Breite), Rahmen und Bank auf der Innenwand
+    # Fenster von innen: Rahmen und Bank auf der Innenwand; der Fensterstock mit dem Holzkreuz (fensterstock, in der Huelle) ist von innen derselbe
     for wand, (a0, a1), (z0, z1), art in FENSTER:
         if art != "fenster": continue
         (ox, oy), (ex, ey), _, (nx, ny) = WAENDE[wand]
@@ -414,19 +424,33 @@ def baue_raum():
         s0, s1 = a0 - start, a1 - start
         sm, zm = (s0 + s1) / 2, (z0 + z1) / 2
         ziel = punkt(wand, sm, zm, -2.0)                                        # ein Punkt im Raum vor dem Fenster
-        r.rechteck(S, punkt(wand, sm - 0.025, z0, -T / 2 - 0.012), (ex, ey, 0), (0, 0, 1), 0.05, z1 - z0, "balken", laengs="v", zu=ziel, anteil=(0.2, 0.6))
-        r.rechteck(S, punkt(wand, s0, zm - 0.025, -T / 2 - 0.012), (ex, ey, 0), (0, 0, 1), s1 - s0, 0.05, "balken", zu=ziel, anteil=(0.2, 0.6))
         n_innen = (-nx, -ny, 0)
         for a, b, breite in ((punkt(wand, s0 - 0.10, z0 - 0.04, -T), punkt(wand, s1 + 0.10, z0 - 0.04, -T), 0.08),      # Bank
                              (punkt(wand, s0 - 0.10, z1 + 0.04, -T), punkt(wand, s1 + 0.10, z1 + 0.04, -T), 0.08),      # Sturz
                              (punkt(wand, s0 - 0.05, z0, -T), punkt(wand, s0 - 0.05, z1, -T), 0.10),
                              (punkt(wand, s1 + 0.05, z0, -T), punkt(wand, s1 + 0.05, z1, -T), 0.10)):
             r.brett(S, a, b, breite, n_innen, "balken", tiefe=0.035)
-    # Tuerblatt von innen (Bretter), Tuersturz
+    # Haustuer von innen, genau in der Oeffnung der Huelle: Blatt aus sechs Brettern, zwei Querriegel und Strebe aufgedoppelt,
+    # eiserne Langbaender an der Bandseite, Riegel mit Griff an der Schlossseite, Rahmen auf der Innenwand
     for wand, (a0, a1), (z0, z1), art in FENSTER:
-        if art == "tuer":
-            r.rechteck(S, (a0, VORN + 0.10, z0), (1, 0, 0), (0, 0, 1), a1 - a0, z1 - z0, "bohlen", laengs="v", zu=RAUM)
-            r.kasten(S, (a0 - 0.1, IV - 0.02, z1), (a1 + 0.1, IV + 0.05, z1 + 0.14), "balken", ohne=("-y",))
+        if art != "tuer": continue
+        yd = VORN + 0.10
+        for i in range(3):
+            r.rechteck(S, (a0 + i * (a1 - a0) / 3, yd, z0), (1, 0, 0), (0, 0, 1), (a1 - a0) / 3, z1 - z0, "bohlen", laengs="v", zu=RAUM)
+        for z in (z0 + 0.35, z1 - 0.35):
+            r.brett(S, (a0 + 0.04, yd, z), (a1 - 0.04, yd, z), 0.14, (0, 1, 0), "balken", tiefe=0.035)
+        r.brett(S, (a0 + 0.12, yd, z0 + 0.44), (a1 - 0.12, yd, z1 - 0.44), 0.12, (0, 1, 0), "balken", tiefe=0.03)
+        ue = feld("eisen")
+        for z in (z0 + 0.35, z1 - 0.35):
+            r.rechteck(S, (a0 + 0.01, yd + 0.04, z - 0.03), (1, 0, 0), (0, 0, 1), 0.5, 0.06, "kleinteile", u_bereich=ue, zu=RAUM)
+        r.kasten(S, (a1 - 0.3, yd, z0 + 1.02), (a1 - 0.02, yd + 0.05, z0 + 1.08), "kleinteile", ohne=("-y",), laengs="x")          # Riegel
+        for fl in r.flaechen[-5:]:
+            k0, k1, _ = BAENDER_INNEN["kleinteile"]
+            fl[1][:] = [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)]
+        r.stab(S, (a1 - 0.2, yd + 0.05, z0 + 1.05), (a1 - 0.2, yd + 0.12, z0 + 1.05), 0.03, "kleinteile", u_bereich=ue, kappen=True)   # Griff
+        for sx_ in (a0 - 0.06, a1 + 0.06):
+            r.brett(S, (sx_, IV, z0), (sx_, IV, z1 + 0.12), 0.12, (0, 1, 0), "balken", tiefe=0.04)
+        r.brett(S, (a0 - 0.12, IV, z1 + 0.06), (a1 + 0.12, IV, z1 + 0.06), 0.12, (0, 1, 0), "balken", tiefe=0.05)
     # Sichtbares Fachwerk innen: Eckstaender, Staender an den Seitenwaenden, Raehm unter dem Absatz
     bw = 0.16
     for sx in (-1, 1):
@@ -434,7 +458,7 @@ def baue_raum():
             sy = 1 if y == IV else -1
             r.kasten(S, (min(sx * IX, sx * (IX - bw)), min(y, y + sy * bw), Z_BODEN), (max(sx * IX, sx * (IX - bw)), max(y, y + sy * bw), Z_OG), "balken", ohne=("-z", "+z"), laengs="z")
         for y in (-0.85, 0.75):
-            if sx > 0 and KAMIN[2] - 0.2 < y < KAMIN[3] + 0.2: continue
+            if sx > 0 and KAMIN[2] - 0.4 < y < KAMIN[3] + 0.4: continue
             r.kasten(S, (min(sx * IX, sx * (IX - 0.07)), y - bw / 2, Z_BODEN), (max(sx * IX, sx * (IX - 0.07)), y + bw / 2, Z_OG), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
         r.kasten(S, (min(sx * IX, sx * (IX - 0.09)), IV, Z_OG - 0.18), (max(sx * IX, sx * (IX - 0.09)), IH, Z_OG), "balken", ohne=("+z", "+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
         # Staender im Obergeschoss
@@ -449,15 +473,16 @@ def baue_raum():
     r.stab(S, (-0.95, GALERIE_AB + 0.06, Z_GALERIE + 0.85), (JX, GALERIE_AB + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
     for x in (-0.95, 0.6, JX - 0.05):
         r.stab(S, (x, GALERIE_AB + 0.06, Z_GALERIE), (x, GALERIE_AB + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
-    # Leiter zur Galerie (links)
-    fuss, kopf = Vector((-1.5, GALERIE_AB - 0.95, Z_BODEN)), Vector((-1.5, GALERIE_AB - 0.02, Z_GALERIE + 0.35))
-    for dx in (-0.24, 0.24):
-        r.stab(S, fuss + Vector((dx, 0, 0)), kopf + Vector((dx, 0, 0)), 0.06, "balken", breite=0.09, kappen=True)
-    for i in range(8):
-        p = fuss.lerp(kopf, (i + 0.8) / 9.2)
-        r.stab(S, p + Vector((-0.24, 0, 0)), p + Vector((0.24, 0, 0)), 0.045, "bohlen")
+    # Leiter zur Galerie: lehnt links vor der Galeriekante, laeuft an ihr entlang (der Raum davor bleibt frei); 74 Grad, zehn Sprossen
+    yl = GALERIE_AB - 0.10
+    fuss, kopf = Vector((-1.90, yl, Z_BODEN)), Vector((-1.10, yl, Z_GALERIE + 0.35))
+    for dy in (-0.24, 0.24):
+        r.stab(S, fuss + Vector((0, dy, 0)), kopf + Vector((0, dy, 0)), 0.06, "balken", breite=0.09, kappen=True)
+    for i in range(10):
+        p = fuss.lerp(kopf, (i + 0.9) / 11.4)
+        r.stab(S, p + Vector((0, -0.24, 0)), p + Vector((0, 0.24, 0)), 0.045, "bohlen")
     # Dachstuhl: fuenf Sparrenpaare, Firstpfette, zwei Kehlbalken
-    for y in (JV + 0.3, -1.45, -0.3, 0.9, IH - 0.3):
+    for y in (JV + 0.3, -1.45, -0.62, 0.9, IH - 0.3):
         for sx in (-1, 1):
             r.stab(S, (sx * JX, y, zw - 0.07), (0, y, Z_FIRST - 0.07), 0.12, "balken", breite=0.10)
     r.stab(S, (0, JV, Z_FIRST - 0.12), (0, IH, Z_FIRST - 0.12), 0.14, "balken")
@@ -466,7 +491,7 @@ def baue_raum():
         r.stab(S, (-(OX - 1.45 / NEIGUNG) + 0.1, y, zk), ((OX - 1.45 / NEIGUNG) - 0.1, y, zk), 0.12, "balken")
     # Schlot: Bruchstein von der Herdhaube bis durchs Dach (gleiche Lage wie der Schornstein aussen)
     x0, x1, y0, y1 = KAMIN
-    z = 1.9
+    z = Z_HAUBE + 0.2
     zo = dach_z(x0) + 0.05
     while z < zo - 1e-3:
         zn = min(z + 0.6, zo)
@@ -483,77 +508,92 @@ def baue_glas():
 
 
 def baue_herd():
-    """Herd-Set: offene Bruchstein-Herdstelle mit Dreibein-Kessel, Zwiebelzoepfen, Kraeuterbuendeln und Hackklotz."""
+    """Herd-Set: offene Bruchstein-Herdstelle mit Dreibein-Kessel. Die Herdstelle liegt an der rechten Wand hinter der Mitte des
+    Raums – die Haustuer und der Weg von ihr in den Raum bleiben frei. Unter der Haube steht man aufrecht (1,80 m licht)."""
     c = Teil("Herd_Set", BAENDER_INNEN, saat=41)
     S = "Innen"
     x0, x1, y0, y1 = KAMIN
     hy0, hy1 = y0 - 0.3, y1 + 0.3
+    yc = (y0 + y1) / 2
+    zh = Z_HAUBE
     c.kasten(S, (1.0, hy0, Z_BODEN), (IX, hy1, 0.5), "bruchstein", ohne=("-z", "+x"), laengs="y")
-    c.kasten(S, (x0 - 0.1, hy0, 0.5), (IX, hy0 + 0.2, 1.7), "bruchstein", ohne=("-z", "+z", "+x"), laengs="z")   # Wange zur Gassenwand
-    # zum Raum hin offen: die Haube ruht vorn auf einem Pfosten, so sieht man das Feuer vom Tisch und von hinten im Raum
-    c.kasten(S, (x0 - 0.12, hy1 - 0.14, 0.5), (x0 + 0.02, hy1, 1.7), "balken", ohne=("-z", "+z"), laengs="z")
-    c.kasten(S, (x0 - 0.16, hy0 - 0.04, 1.7), (IX, hy1 + 0.04, 1.9), "balken", ohne=("+x",), laengs="y")
-    c.rechteck(S, (x0 - 0.1, hy0 + 0.2, 0.5), (0, 1, 0), (0, 0, 1), hy1 - hy0 - 0.4, 1.2, "kleinteile", u_bereich=feld("russ"), zu=RAUM)   # verrusste Rueckwand
-    c.rechteck(S, (IX - 0.01, hy0 + 0.2, 0.5), (0, 1, 0), (0, 0, 1), hy1 - hy0 - 0.4, 1.2, "bruchstein", zu=RAUM)
+    c.kasten(S, (x0 - 0.1, hy1 - 0.2, 0.5), (IX, hy1, zh), "bruchstein", ohne=("-z", "+z", "+x"), laengs="z")   # Wange nach hinten (zur Galerie)
+    # zur Tuer und zum Raum hin offen: die Haube ruht vorn auf einem Pfosten, so sieht man das Feuer aus dem ganzen Raum
+    c.kasten(S, (x0 - 0.12, hy0, 0.5), (x0 + 0.02, hy0 + 0.14, zh), "balken", ohne=("-z", "+z"), laengs="z")
+    c.kasten(S, (x0 - 0.16, hy0 - 0.04, zh), (IX, hy1 + 0.04, zh + 0.2), "balken", ohne=("+x",), laengs="y")
+    c.rechteck(S, (IX - 0.012, hy0, 0.5), (0, 1, 0), (0, 0, 1), hy1 - hy0 - 0.2, zh - 0.5, "kleinteile", u_bereich=feld("russ"), zu=RAUM)   # verrusste Rueckwand
     ua, ub = feld("glut")
     v0, v1, _ = BAENDER_INNEN["kleinteile"]
-    c.vieleck(S, [(1.22, -1.68, 0.512), (1.78, -1.68, 0.512), (1.78, -1.12, 0.512), (1.22, -1.12, 0.512)], [(ua, v1), (ub, v1), (ub, v0), (ua, v0)], zu=(0, 0, 99))
-    for a, b in (((1.25, -1.62, 0.56), (1.75, -1.2, 0.58)), ((1.3, -1.15, 0.56), (1.72, -1.6, 0.62)), ((1.15, -1.4, 0.55), (1.8, -1.42, 0.6))):
+    c.vieleck(S, [(1.22, yc - 0.28, 0.512), (1.78, yc - 0.28, 0.512), (1.78, yc + 0.28, 0.512), (1.22, yc + 0.28, 0.512)], [(ua, v1), (ub, v1), (ub, v0), (ua, v0)], zu=(0, 0, 99))
+    for a, b in (((1.25, yc - 0.22, 0.56), (1.75, yc + 0.2, 0.58)), ((1.3, yc + 0.25, 0.56), (1.72, yc - 0.2, 0.62)), ((1.15, yc, 0.55), (1.8, yc - 0.02, 0.6))):
         c.stab(S, a, b, 0.09, "balken")
     # Dreibein mit Kessel
-    spitze = Vector((1.5, -1.4, 1.45))
+    spitze = Vector((1.5, yc, 1.45))
     for w in (90, 210, 330):
-        c.stab(S, (1.5 + 0.34 * math.cos(math.radians(w)), -1.4 + 0.34 * math.sin(math.radians(w)), 0.5), spitze, 0.03, "kleinteile", u_bereich=feld("eisen"))
+        c.stab(S, (1.5 + 0.34 * math.cos(math.radians(w)), yc + 0.34 * math.sin(math.radians(w)), 0.5), spitze, 0.03, "kleinteile", u_bereich=feld("eisen"))
     ue = feld("eisen")
-    c.dreh(S, (1.5, -1.4, 0.78), [(0.0, 0.0), (0.13, 0.03), (0.19, 0.14), (0.17, 0.27), (0.19, 0.30)], "kleinteile", seiten=6, deckel=False, u_bereich=ue)
-    c.dreh(S, (1.5, -1.4, 1.06), [(0.17, 0.0), (0.0, 0.01)], "kleinteile", seiten=6, deckel=False, u_bereich=feld("russ"))
-    c.stab(S, (1.5, -1.4, 1.08), spitze, 0.02, "kleinteile", u_bereich=feld("eisen"))
+    c.dreh(S, (1.5, yc, 0.78), [(0.0, 0.0), (0.13, 0.03), (0.19, 0.14), (0.17, 0.27), (0.19, 0.30)], "kleinteile", seiten=8, deckel=False, u_bereich=ue)
+    c.dreh(S, (1.5, yc, 1.06), [(0.17, 0.0), (0.0, 0.01)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("russ"))
+    c.stab(S, (1.5, yc, 1.08), spitze, 0.02, "kleinteile", u_bereich=feld("eisen"))
     return c
 
 
 def baue_vorrat():
-    """Vorrat-Set: Zwiebelzoepfe und Kraeuterbuendel an der Wand neben dem Herd, Hackklotz mit Scheiten."""
+    """Vorrat-Set: Zwiebelzoepfe und Kraeuterbuendel an der rechten Wand zwischen Tuer und Herd, darunter zwei Tonkruege;
+    Hackklotz mit Scheiten hinter dem Herd."""
     c = Teil("Vorrat_Set", BAENDER_INNEN, saat=59)
     S = "Innen"
     x0, x1, y0, y1 = KAMIN
     hy0, hy1 = y0 - 0.3, y1 + 0.3
-    # Zwiebelzoepfe und Kraeuterbuendel an der Wand neben dem Herd
-    for (y, farbe, n) in ((hy1 + 0.22, "zwiebel_rot", 4), (hy1 + 0.42, "zwiebel_gelb", 4)):
+    for (y, farbe, n) in ((hy0 - 0.3, "zwiebel_rot", 4), (hy0 - 0.5, "zwiebel_gelb", 4)):
         for i in range(n):
             m = Vector((IX - 0.055 - 0.02 * (i % 2), y + 0.028 * ((i % 2) * 2 - 1), 2.0 - 0.082 * i))
             c.dreh(S, m, [(0.0, -0.045), (0.03, -0.035), (0.046, -0.005), (0.034, 0.028), (0.0, 0.052)], "kleinteile", seiten=5, deckel=False, u_bereich=feld(farbe))
         c.stab(S, (IX - 0.06, y, 2.03), (IX - 0.03, y, 2.25), 0.015, "stroh")
-    for y in (hy0 - 0.3, hy0 - 0.55):
+    for y in (hy0 - 0.85, hy0 - 1.1):
         c.dreh(S, (IX - 0.09, y, 1.72), [(0.0, 0.0), (0.085, 0.07), (0.05, 0.3), (0.012, 0.42)], "kleinteile", seiten=5, deckel=False, u_bereich=feld("kraut"))
-    # Hackklotz mit Scheiten
-    c.dreh(S, (1.55, -0.45, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"))
-    for a, b in (((1.2, -0.72, Z_BODEN + 0.05), (1.75, -0.74, Z_BODEN + 0.05)), ((1.25, -0.62, Z_BODEN + 0.14), (1.78, -0.66, Z_BODEN + 0.14))):
+    # Hackklotz mit Scheiten hinter dem Herd (unter der Galerie)
+    c.dreh(S, (1.6, hy1 + 0.42, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
+    for a, b in (((1.25, hy1 + 0.82, Z_BODEN + 0.05), (1.85, hy1 + 0.84, Z_BODEN + 0.05)), ((1.3, hy1 + 0.94, Z_BODEN + 0.05), (1.86, hy1 + 0.97, Z_BODEN + 0.05)), ((1.28, hy1 + 0.88, Z_BODEN + 0.14), (1.84, hy1 + 0.9, Z_BODEN + 0.14))):
         c.stab(S, a, b, 0.1, "balken", kappen=True)
     return c
 
 
+# Esstisch an der linken Wand: Platte, Bank zum Raum hin, Schemel am hinteren Tischende (Masse fuer eine Figur von 1,75 m)
+TISCH = (-IX + 0.05, -IX + 0.73, -2.05, -0.60)      # x0, x1, y0, y1
+TISCH_HOEHE, SITZ_HOEHE = 0.74, 0.44
+BANK_X = -0.96                                       # Mitte der Bank
+SCHEMEL = (-1.58, -0.33)
+
+
 def baue_tisch():
-    """Esstisch-Set: grober Brettertisch mit zwei Baenken, Tonkruege und Holzteller."""
+    """Esstisch-Set: grober Brettertisch an der Wand mit Bank und Schemel, Tonkrug, Becher und Holzteller."""
     c = Teil("Esstisch_Set", BAENDER_INNEN, saat=43)
     S = "Innen"
-    tx, y0, y1, zt = -0.2, -1.9, -0.4, Z_BODEN + 0.74
-    c.kasten(S, (tx - 0.37, y0, zt - 0.05), (tx + 0.37, y1, zt), "bohlen", laengs="y")
+    x0, x1, y0, y1 = TISCH
+    tx = (x0 + x1) / 2
+    zt = Z_BODEN + TISCH_HOEHE
+    c.kasten(S, (x0, y0, zt - 0.05), (x1, y1, zt), "bohlen", laengs="y")
     for y in (y0 + 0.22, y1 - 0.22):
         for sx in (-1, 1):
-            c.stab(S, (tx + sx * 0.33, y, Z_BODEN), (tx + sx * 0.2, y, zt - 0.05), 0.07, "balken")
-        c.stab(S, (tx - 0.27, y, Z_BODEN + 0.3), (tx + 0.27, y, Z_BODEN + 0.3), 0.05, "balken")
+            c.stab(S, (tx + sx * 0.3, y, Z_BODEN), (tx + sx * 0.2, y, zt - 0.05), 0.07, "balken")
+        c.stab(S, (tx - 0.25, y, Z_BODEN + 0.3), (tx + 0.25, y, Z_BODEN + 0.3), 0.05, "balken")
     c.stab(S, (tx, y0 + 0.22, Z_BODEN + 0.3), (tx, y1 - 0.22, Z_BODEN + 0.3), 0.05, "balken")
-    for bx in (tx - 0.62, tx + 0.62):
-        zs = Z_BODEN + 0.44
-        c.kasten(S, (bx - 0.14, y0 + 0.05, zs - 0.045), (bx + 0.14, y1 - 0.05, zs), "bohlen", laengs="y")
-        for y in (y0 + 0.25, y1 - 0.25):
-            for sx in (-1, 1):
-                c.stab(S, (bx + sx * 0.13, y, Z_BODEN), (bx + sx * 0.08, y, zs - 0.045), 0.05, "balken")
+    zs = Z_BODEN + SITZ_HOEHE
+    c.kasten(S, (BANK_X - 0.15, y0 + 0.05, zs - 0.045), (BANK_X + 0.15, y1 - 0.05, zs), "bohlen", laengs="y")
+    for y in (y0 + 0.25, y1 - 0.25):
+        for sx in (-1, 1):
+            c.stab(S, (BANK_X + sx * 0.14, y, Z_BODEN), (BANK_X + sx * 0.09, y, zs - 0.045), 0.05, "balken")
+    sx_, sy_ = SCHEMEL
+    c.dreh(S, (sx_, sy_, zs - 0.045), [(0.17, 0.0), (0.17, 0.045)], "bohlen", seiten=8, deckel=True, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
+    c.dreh(S, (sx_, sy_, zs - 0.045), [(0.17, 0.0), (0.0, 0.0)], "bohlen", seiten=8, deckel=False, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
+    for w in (30, 150, 270):
+        c.stab(S, (sx_ + 0.17 * math.cos(math.radians(w)), sy_ + 0.17 * math.sin(math.radians(w)), Z_BODEN), (sx_ + 0.09 * math.cos(math.radians(w)), sy_ + 0.09 * math.sin(math.radians(w)), zs - 0.045), 0.04, "balken")
     krug = [(0.05, 0.0), (0.075, 0.03), (0.09, 0.09), (0.082, 0.15), (0.05, 0.2), (0.046, 0.235), (0.058, 0.26)]
-    c.dreh(S, (tx + 0.08, -1.55, zt), krug, "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
-    c.dreh(S, (tx - 0.15, -0.8, zt), [(0.036, 0.0), (0.05, 0.035), (0.052, 0.08), (0.047, 0.11)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
-    for (px, py) in ((tx - 0.18, -1.5), (tx + 0.17, -1.05), (tx - 0.14, -1.12)):
-        c.dreh(S, (px, py, zt), [(0.06, 0.0), (0.1, 0.022)], "bohlen", seiten=7, deckel=True, u_bereich=(0.1, 0.16), anteil=(0.2, 0.6))
+    c.dreh(S, (tx - 0.12, y0 + 0.4, zt), krug, "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (tx + 0.12, y1 - 0.5, zt), [(0.036, 0.0), (0.05, 0.035), (0.052, 0.08), (0.047, 0.11)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    for (px, py) in ((tx + 0.12, y0 + 0.35), (tx + 0.14, y0 + 0.8), (tx + 0.1, y1 - 0.25)):
+        c.dreh(S, (px, py, zt), [(0.06, 0.0), (0.1, 0.022)], "bohlen", seiten=7, deckel=True, u_bereich=(0.1, 0.16), anteil=(0.2, 0.6), glatt=False)
     return c
 
 
@@ -562,7 +602,7 @@ def baue_schlafplatz():
     c = Teil("Schlafplatz_Set", BAENDER_INNEN, saat=47)
     S = "Innen"
     z = Z_GALERIE
-    for (x0, x1) in ((-2.05, -0.3), (0.3, 2.05)):
+    for (x0, x1) in ((-2.10, -0.20), (0.20, 2.10)):     # 1,90 m lang
         y0, y1 = 1.2, 2.08
         c.kasten(S, (x0, y0, z), (x1, y1, z + 0.2), "bohlen", ohne=("-z", "+z"), laengs="x")
         for px in (x0 + 0.04, x1 - 0.04):
@@ -572,14 +612,15 @@ def baue_schlafplatz():
         kopf = x0 if x0 < 0 else x1
         r = 1 if x0 < 0 else -1
         c.kasten(S, (min(kopf + r * 0.1, kopf + r * 0.5), y0 + 0.14, z + 0.33), (max(kopf + r * 0.1, kopf + r * 0.5), y1 - 0.14, z + 0.42), "sackleinen", ohne=("-z",), laengs="y")
-        c.kasten(S, (min(kopf + r * 0.62, kopf + r * 1.72), y0 + 0.02, z + 0.31), (max(kopf + r * 0.62, kopf + r * 1.72), y1 - 0.02, z + 0.37), "wolle", ohne=("-z",), laengs="x")
+        c.kasten(S, (min(kopf + r * 0.62, kopf + r * 1.86), y0 + 0.02, z + 0.31), (max(kopf + r * 0.62, kopf + r * 1.86), y1 - 0.02, z + 0.37), "wolle", ohne=("-z",), laengs="x")
         # Stroh quillt am Fussende heraus
-        c.rechteck(S, (kopf + r * 1.7 if r > 0 else kopf + r * 1.74, y0 + 0.1, z + 0.2), (1, 0, 0), (0, 1, 0), 0.04, y1 - y0 - 0.2, "stroh", zu=(0, 0, 99))
+        c.rechteck(S, (kopf + r * 1.85 if r > 0 else kopf + r * 1.89, y0 + 0.1, z + 0.2), (1, 0, 0), (0, 1, 0), 0.04, y1 - y0 - 0.2, "stroh", zu=(0, 0, 99))
     return c
 
 
 def baue_truhe():
-    """Truhen-Set: eisenbeschlagene Truhe, zwei Tonkruege, Reisigbesen."""
+    """Truhen-Set: eisenbeschlagene Truhe unter der Leiter (hinter ihr, unter der Galerie), zwei Tonkruege in der Ecke rechts
+    neben der Haustuer, Reisigbesen an der linken Wand."""
     c = Teil("Truhe_Set", BAENDER_INNEN, saat=53)
     S = "Innen"
     x0, x1, y0, y1 = -IX + 0.05, -IX + 0.6, -2.25, -1.3
@@ -603,12 +644,16 @@ def baue_truhe():
             c.vieleck(S, pts, [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)], weg_von=(xm, y, zb))
     ym = (y0 + y1) / 2
     c.vieleck(S, [(x1 + 0.008, ym - 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk - 0.13), (x1 + 0.008, ym + 0.05, zk + 0.0), (x1 + 0.008, ym - 0.05, zk + 0.0)], [(ue[0], k1), (ue[1], k1), (ue[1], k0), (ue[0], k0)], weg_von=(xm, ym, zb))
-    # Tonkruege und Besen in der Ecke neben der Truhe
-    c.dreh(S, (-IX + 0.3, -1.0, Z_BODEN), [(0.09, 0.0), (0.14, 0.06), (0.17, 0.17), (0.16, 0.28), (0.09, 0.39), (0.08, 0.44), (0.097, 0.48)], "kleinteile", seiten=9, deckel=False, u_bereich=feld("ton"))
-    c.dreh(S, (-IX + 0.62, -1.12, Z_BODEN), [(0.07, 0.0), (0.105, 0.06), (0.115, 0.15), (0.07, 0.25), (0.062, 0.28), (0.074, 0.31)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
-    fuss, kopf = Vector((-IX + 0.24, -0.62, Z_BODEN + 0.3)), Vector((-IX + 0.05, -0.6, Z_BODEN + 1.55))      # Besen an der linken Wand
+    # die Truhe wurde laengs einer Wand gebaut: um 90 Grad drehen und unter die Leiter stellen (Schloss zum Raum)
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    ziel = Vector((-1.20, GALERIE_AB + 0.28, 0))
+    c.flaechen = [([Vector((ziel.x + (q.y - my), ziel.y - (q.x - mx), q.z)) for q in pts], uvs, stoff_, farbe, glatt) for pts, uvs, stoff_, farbe, glatt in c.flaechen]
+    # Tonkruege in der Ecke rechts neben der Tuer, Besen an der linken Wand unter der Galerie
+    c.dreh(S, (IX - 0.24, IV + 0.26, Z_BODEN), [(0.09, 0.0), (0.14, 0.06), (0.17, 0.17), (0.16, 0.28), (0.09, 0.39), (0.08, 0.44), (0.097, 0.48)], "kleinteile", seiten=10, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (IX - 0.2, IV + 0.62, Z_BODEN), [(0.07, 0.0), (0.105, 0.06), (0.115, 0.15), (0.07, 0.25), (0.062, 0.28), (0.074, 0.31)], "kleinteile", seiten=9, deckel=False, u_bereich=feld("ton"))
+    fuss, kopf = Vector((-IX + 0.24, 1.45, Z_BODEN + 0.3)), Vector((-IX + 0.05, 1.5, Z_BODEN + 1.55))
     c.stab(S, fuss, kopf, 0.03, "balken")
-    c.dreh(S, (-IX + 0.27, -0.62, Z_BODEN), [(0.13, 0.0), (0.09, 0.2), (0.03, 0.34)], "stroh", seiten=6, deckel=False, u_bereich=(0.0, 0.3))
+    c.dreh(S, (-IX + 0.27, 1.45, Z_BODEN), [(0.13, 0.0), (0.09, 0.2), (0.03, 0.34)], "stroh", seiten=6, deckel=False, u_bereich=(0.0, 0.3))
     return c
 
 
@@ -632,15 +677,15 @@ def prisma(teil, stoff, umriss, o, eu, ev, n, t0, t1, band, farbe_uv=(0.1, 0.2),
 
 
 def baue_wappen():
-    """Wappenschild an der Gassenwand zwischen Fenster und Tuer: Rahmen aus Holz, Schild im Material „Hausfarbe“ (das Spiel
+    """Wappenschild im mittleren Gefach des Obergeschosses, zwischen den beiden Fenstern (dort verdeckt es nichts): Rahmen aus Holz, Schild im Material „Hausfarbe“ (das Spiel
     faerbt es in der Farbe des Besitzers), Eisenhaken. Nur mit Besitzer sichtbar."""
     w = Teil("Wappen", BAENDER_AUSSEN, saat=61)
     g = 0.62
-    o = (0.13, VORN, 1.52)
+    o = (0.0, OVORN, 3.93)                      # mittleres Gefach der Gassenseite: zwischen den Laeden ist die Wand frei
     eu, ev, n = (1, 0, 0), (0, 0, 1), (0, -1, 0)
     prisma(w, "Fachwerk", [(x * 1.16 * g, y * 1.12 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.045, "balken_c")
     prisma(w, "Hausfarbe", [(x * g, y * g) for x, y in SCHILD], o, eu, ev, n, 0.045, 0.075, "farbholz", farbe=(1.0, 1.0, 1.0, 1.0))   # weisse Eckenfarbe: Godot multipliziert sie auf die Hausfarbe
-    w.kasten("Bruchstein", (0.13 - 0.02, VORN - 0.05, 1.52 + 0.47 * g), (0.13 + 0.02, VORN, 1.52 + 0.58 * g), "eisen", ohne=("+y",))
+    w.kasten("Bruchstein", (-0.02, OVORN - 0.05, 3.93 + 0.47 * g), (0.02, OVORN, 3.93 + 0.58 * g), "eisen", ohne=("+y",))
     return w
 
 
@@ -731,12 +776,12 @@ def baue_hausapotheke():
 
 def baue_hauswaechter():
     """Hauswaechter (angestellt): sein Platz an der Gassenwand links vom Fenster – Hellebarde in der Ecke, Laterne am Wandhaken,
-    Schemel mit Knueppel unter dem Fenster."""
+    Schemel mit Knueppel unter dem Wandbord."""
     c = Teil("Einrichtung_Hauswaechter", BAENDER_INNEN, saat=83)
     S = "Innen"
     ue = feld("eisen")
     k0, k1, _ = BAENDER_INNEN["kleinteile"]
-    fuss, kopf = Vector((-IX + 0.16, IV + 0.20, Z_BODEN + 0.46)), Vector((-IX + 0.05, IV + 0.05, Z_BODEN + 2.3))   # steht hinter der Truhe in der Ecke
+    fuss, kopf = Vector((-IX + 0.16, IV + 0.20, Z_BODEN)), Vector((-IX + 0.05, IV + 0.05, Z_BODEN + 2.15))   # steht in der Ecke hinter dem Tischende
     c.stab(S, fuss, kopf, 0.035, "balken")
     achse = (kopf - fuss).normalized()
     quer = Vector((1, 0, 0))
@@ -758,7 +803,7 @@ def baue_hauswaechter():
     c.kasten(S, (lx - 0.075, ly - 0.075, lz), (lx + 0.075, ly + 0.075, lz + 0.05), "balken")
     c.dreh(S, (lx, ly, lz + 0.24), [(0.085, 0.0), (0.03, 0.06), (0.0, 0.07)], "kleinteile", seiten=4, deckel=False, u_bereich=ue, glatt=False)
     # Schemel und Knueppel unter dem Fenster
-    sx, sy = -1.05, IV + 0.27
+    sx, sy = 0.14, IV + 0.27          # unter der Hausapotheke, links neben der Tuer
     c.dreh(S, (sx, sy, Z_BODEN + 0.40), [(0.17, 0.0), (0.17, 0.045)], "bohlen", seiten=8, deckel=True, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
     c.dreh(S, (sx, sy, Z_BODEN + 0.40), [(0.17, 0.0), (0.0, 0.0)], "bohlen", seiten=8, deckel=False, u_bereich=(0.1, 0.2), anteil=(0.2, 0.7), glatt=False)
     for w in (30, 150, 270):
@@ -768,26 +813,48 @@ def baue_hauswaechter():
 
 
 def baue_hauswappen():
-    """Wappen ueber der Tuer (gekauft, „Ansehen“): geschnitzter Schild in der Hausfarbe innen ueber der Haustuer, mit Rahmen."""
+    """Wappen (gekauft, „Ansehen“): geschnitzter Schild in der Hausfarbe an der Gassenwand, mittig zwischen den beiden Fenstern
+    des Obergeschosses, mit Rahmen, gekreuzten Staeben und Tragbalken."""
     c = Teil("Einrichtung_Hauswappen", BAENDER_INNEN, saat=87)
-    tuer = next(f for f in FENSTER if f[3] == "tuer")
-    xm = (tuer[1][0] + tuer[1][1]) / 2
-    g = 0.9
-    o = (xm, JV, 3.25)
+    g = 0.8
+    zc = (OG_FENSTER[0] + OG_FENSTER[1]) / 2
+    o = (0.0, JV, zc)
     eu, ev, n = (-1, 0, 0), (0, 0, 1), (0, 1, 0)
     prisma(c, "Innen", [(x * 1.2 * g, y * 1.14 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.05, "balken")
     prisma(c, "Hausfarbe", [(x * g, y * g) for x, y in SCHILD], o, eu, ev, n, 0.05, 0.085, "bohlen")
-    # Zierleiste: zwei gekreuzte Staebe hinter dem Schild und ein Balken, auf dem er sitzt
     for sx in (-1, 1):
-        c.stab("Innen", (xm + sx * 0.5, JV + 0.03, 2.82), (xm - sx * 0.5, JV + 0.03, 3.75), 0.035, "balken")
-    c.kasten("Innen", (xm - 0.5, JV, 2.78), (xm + 0.5, JV + 0.1, 2.86), "balken", ohne=("-y",), laengs="x")
+        c.stab("Innen", (sx * 0.42, JV + 0.03, zc - 0.40), (-sx * 0.42, JV + 0.03, zc + 0.42), 0.035, "balken")
+    c.kasten("Innen", (-0.45, JV, zc - 0.47), (0.45, JV + 0.1, zc - 0.40), "balken", ohne=("-y",), laengs="x")
     return c
-
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 #  Blender: Materialien, UV2, Verdeckung backen, Export
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+def baue_massfigur():
+    """Massfiguren von 1,75 m nur fuers Kontrollbild (nicht im Export): vor der Haustuer, innen neben der Tuer, vor der Leiter,
+    auf der Galerie und sitzend auf der Bank (Sitzhoehe 0,44 m, Scheitel 1,33 m)."""
+    f = Teil("Massfigur", BAENDER_INNEN, saat=99)
+    def figur(x, y, z, sitzt=False, blick=(0, -1)):
+        if sitzt:
+            f.kasten("Massfigur", (x - 0.2, y - 0.16, z), (x + 0.2, y + 0.16, z + 0.60), "balken")          # Rumpf ab Sitzflaeche
+            bx, by = blick
+            f.kasten("Massfigur", (min(x, x + bx * 0.42) - 0.17 * abs(by), min(y, y + by * 0.42) - 0.17 * abs(bx), z - 0.14), (max(x, x + bx * 0.42) + 0.17 * abs(by), max(y, y + by * 0.42) + 0.17 * abs(bx), z), "balken")   # Oberschenkel
+            f.dreh("Massfigur", (x, y, z + 0.63), [(0.0, 0.0), (0.1, 0.05), (0.11, 0.14), (0.08, 0.23), (0.0, 0.26)], "balken", seiten=8, deckel=False)
+            return
+        f.kasten("Massfigur", (x - 0.15, y - 0.1, z), (x + 0.15, y + 0.1, z + 0.88), "balken")
+        f.kasten("Massfigur", (x - 0.22, y - 0.12, z + 0.88), (x + 0.22, y + 0.12, z + 1.46), "balken")
+        f.dreh("Massfigur", (x, y, z + 1.49), [(0.0, 0.0), (0.1, 0.05), (0.11, 0.14), (0.08, 0.23), (0.0, 0.26)], "balken", seiten=8, deckel=False)
+    tuer = next(t for t in FENSTER if t[3] == "tuer")
+    xm = (tuer[1][0] + tuer[1][1]) / 2
+    figur(xm, VORN - 0.75, 0.0)                         # auf der Gasse vor der Tuer
+    figur(xm, IV + 0.55, Z_BODEN)                       # innen neben der Tuer
+    figur(-1.35, GALERIE_AB - 0.55, Z_BODEN)            # vor der Leiter
+    figur(0.9, 1.3, Z_GALERIE)                          # auf der Galerie
+    figur(BANK_X, TISCH[2] + 0.74, Z_BODEN + SITZ_HOEHE, sitzt=True, blick=(-1, 0))   # auf der Bank am Tisch
+    return f
+
 
 def stoff(name, blatt=None, farbe=(0.5, 0.5, 0.5), alpha=1.0, schere=False, rauheit=0.8):
     """Material fuer Kontrollbild und Export. Die Trim-Texturen haengen nur fuers Kontrollbild daran; die GLB bekommt keine Bilder
@@ -941,7 +1008,7 @@ def kontrollbild(datei, auge, ziel, brennweite=35, verbergen=()):
     szene.render.filepath = datei
     szene.render.image_settings.file_format = "JPEG"
     for o in bpy.data.objects: o.hide_render = o.name in verbergen
-    bpy.ops.render.render(write_still=True)
+    bpy.ops.render.render(write_still=True)   # die Massfiguren (falls gebaut) sind in den Kontrollbildern zu sehen
     for o in bpy.data.objects: o.hide_render = False
 
 
@@ -981,6 +1048,8 @@ def main():
     for o in o_zusatz[1:]:                          # Leerstand und Geruest: Zustandsknoten, im Spiel nach Bedarf sichtbar
         o["zustand"] = True; o["sichtbar"] = False
     aussen = o_huelle + [o_scheiben] + o_zusatz + [o_fahne]
+    o_mass = baue_massfigur().objekt({"Massfigur": stoff("Massfigur", farbe=(0.85, 0.35, 0.1))}, mit_farbe=False) if "bilder" in opt else None
+    if o_mass: o_mass.hide_render = True
     innen = o_raum + o_einrichtung + [o_glas]
 
     # Boden nur fuers Backen und fuers Kontrollbild
@@ -999,15 +1068,17 @@ def main():
         anker("Anker_Schornstein", ((x0 + x1) / 2, (y0 + y1) / 2, Z_FIRST - 0.35 + 0.2)),
     ]
     anker_innen = [
-        anker("Blick_Auge", (0.6, IH - 0.3, Z_BODEN + 1.55)),                                           # steht hinten unter der Galerie ...
-        anker("Blick_Ziel", (-0.3, IV, Z_BODEN + 1.55)),                                                # ... und schaut zur Gassenwand mit Tuer und Fenster
+        anker("Blick_Auge", (0.0, IH - 0.3, Z_BODEN + 1.60)),                                           # Augenhoehe einer Figur von 1,75 m, hinten unter der Galerie ...
+        anker("Blick_Ziel", (0.45, IV, Z_BODEN + 1.50)),                                                # ... Blick zur Gassenwand: links der Herd, geradeaus die Haustuer, rechts Tisch und Leiter
         anker("Licht_Herd", ((x0 + x1) / 2 - 0.25, (y0 + y1) / 2, 0.95)),
         anker("Licht_Raum", (-0.3, -1.2, 3.6)),
         anker("Feuer_Herd", ((x0 + x1) / 2 - 0.18, (y0 + y1) / 2, 0.53)),                               # Fuss der Flamme auf der Herdplatte
-        # Plaetze der Familie (Stadtansicht.Neubau.cs): Oberhaupt und Kinder auf den Baenken, Ehepartner am Kessel, ein Kind spielt auf der Matte
-        anker("Platz_Oberhaupt", (0.42, -1.5, Z_BODEN)), anker("Platz_Partner", (0.72, -1.4, Z_BODEN)),
-        anker("Platz_Kind_1", (-0.82, -1.55, Z_BODEN)), anker("Platz_Kind_2", (-0.82, -0.85, Z_BODEN)),
-        anker("Platz_Kind_3", (0.42, -0.75, Z_BODEN)), anker("Platz_Kind_4", (0.2, 1.15, Z_BODEN)),
+        anker("Tuer_Innen", ((tuer[1][0] + tuer[1][1]) / 2, IV, Z_BODEN + TUER_HOCH / 2)),              # Mitte der Haustuer auf der Innenwand (Klick: hinaus)
+        # Plaetze der Familie (Stadtansicht.Neubau.cs): Oberhaupt und zwei Kinder auf der Bank, ein Kind auf dem Schemel,
+        # Ehepartner an der Stirnseite des Herds (nicht im Blick zur Tuer), ein Kind spielt auf der Matte unter der Galerie
+        anker("Platz_Oberhaupt", (BANK_X, TISCH[2] + 0.32, Z_BODEN)), anker("Platz_Partner", (1.3, y0 - 0.3 - 0.42, Z_BODEN)),     # vor der offenen Stirnseite des Herds, Blick zum Kessel
+        anker("Platz_Kind_1", (BANK_X, TISCH[2] + 0.74, Z_BODEN)), anker("Platz_Kind_2", (BANK_X, TISCH[2] + 1.16, Z_BODEN)),
+        anker("Platz_Kind_3", (SCHEMEL[0], SCHEMEL[1], Z_BODEN)), anker("Platz_Kind_4", (0.3, 1.45, Z_BODEN)),
     ]
     exportiere(aussen + anker_aussen, os.path.join(ZIEL_MODELL, f"{NAME}.glb"))
     exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))
@@ -1016,13 +1087,15 @@ def main():
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         namen_innen = [x.name for x in innen]
         namen_innen += ["Leerstand", "Geruest"]
-        kontrollbild(os.path.join(o, "blender_aussen_vorn.jpg"), (-8.5, -12.5, 9.5), (0, 0, 3.6), verbergen=namen_innen)
-        kontrollbild(os.path.join(o, "blender_aussen_hinten.jpg"), (9.5, 11.0, 8.0), (0, 0, 3.6), verbergen=namen_innen)
+        fest = namen_innen + ["Leerstand", "Geruest"]
+        kontrollbild(os.path.join(o, "blender_aussen_vorn.jpg"), (-7.5, -13.0, 7.5), (0.3, 0, 3.4), verbergen=fest)
+        kontrollbild(os.path.join(o, "blender_aussen_tuer.jpg"), (3.2, -8.5, 2.2), (0.6, -2.6, 1.6), brennweite=40, verbergen=fest)
         lampe = bpy.data.objects.new("Kontrolllampe", bpy.data.lights.new("Kontrolllampe", "POINT"))
-        lampe.data.energy = 220; lampe.location = (-0.3, -0.6, 2.3)
+        lampe.data.energy = 260; lampe.location = (-0.3, -0.6, 2.3)
         bpy.context.scene.collection.objects.link(lampe)
-        kontrollbild(os.path.join(o, "blender_innen_blick.jpg"), (0.55, IH - 0.32, Z_BODEN + 1.62), (-0.35, IV, Z_BODEN + 1.25), brennweite=15, verbergen=["Haus", "Dach", "Scheiben"])
-        kontrollbild(os.path.join(o, "blender_innen_oben.jpg"), (-1.6, -2.3, 5.6), (0.6, 0.6, 1.2), brennweite=17, verbergen=["Haus", "Dach", "Scheiben"])
+        huelle_weg = ["Dach", "Scheiben", "Wappen", "Fahne", "Leerstand", "Geruest"]
+        kontrollbild(os.path.join(o, "blender_innen_blick.jpg"), (0.0, IH - 0.3, Z_BODEN + 1.60), (0.45, IV, Z_BODEN + 1.50), brennweite=14, verbergen=huelle_weg)
+        kontrollbild(os.path.join(o, "blender_innen_oben.jpg"), (1.2, -2.2, 6.4), (-0.4, 0.3, 1.0), brennweite=16, verbergen=huelle_weg)
 
 
 if __name__ == "__main__":
