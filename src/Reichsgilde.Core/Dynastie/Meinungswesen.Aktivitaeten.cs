@@ -177,6 +177,7 @@ public sealed partial class Meinungswesen
             TatEintragen(person.Kennung, ich.Kennung, art + ":unglueck", a.Unglueck, a.UnglueckWirkung);
             var verletzt = a.Verletzung is { } krankheit && a.VerletzungChance > 0 && _zufall.NextDouble() < a.VerletzungChance
                            && _w.Gesundheit.Erkranken(konto, ich, krankheit);
+            _w.Familien.ZugAnlass(konto, ich, $"unglueck:{art}"); // Rauferei beim Zechen → vielleicht ein Auge verloren (Versehrungen)
             return Befehlsergebnis.Ok($"{a.Name} mit {person.Name}{kosten}: {a.Unglueck}! Meinung {Zahlenformat.MitVorzeichen(a.UnglueckWirkung)}, " +
                                       $"jetzt {Zahlenformat.Ganz(Meinung(person, ich))}." + (verletzt ? $" {ich.Vorname} hat sich verletzt: {a.Verletzung}." : ""));
         }

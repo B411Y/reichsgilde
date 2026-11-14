@@ -278,7 +278,11 @@ public sealed class Betrieb
     /// <summary>Warum die Produktion gerade stillsteht (null = sie läuft).</summary>
     public string? Stillstand { get; private set; }
 
-    /// <summary>An welchem Spieltag der Verwalter zuletzt gemeldet hat, dass er wegen knapper Kasse nur das Nötigste kauft (nicht im Spielstand: nach dem Laden höchstens eine Meldung mehr).</summary>
+    /// <summary>
+    /// An welchem Spieltag der Verwalter zuletzt gemeldet hat, dass er wegen knapper Kasse nur das Nötigste kauft. Im Spielstand nur, wenn es
+    /// der laufende Spieltag ist (`BetriebStand.KasseKnappAm`) – sonst gäbe es nach dem Laden am selben Tag eine Meldung mehr, und der Verlauf
+    /// der Meldungen (in der Prüfsumme) liefe auseinander.
+    /// </summary>
     internal long KasseKnappGemeldetAm { get; set; } = -1;
 
     /// <summary>Arbeitsminuten mit Stillstand im laufenden Jahr (fehlende Zutat, volles Lager) – Umbau und Reparatur nach einem Anschlag zählen nicht.</summary>
@@ -989,7 +993,7 @@ public sealed class Betrieb
 
     // ── Speichern ───────────────────────────────────────────────────────────
 
-    internal BetriebStand Sichern(int kontoNummer) => new()
+    internal BetriebStand Sichern(int kontoNummer, long heute = -1) => new()
     {
         Name = Name, Art = Art, Konto = kontoNummer,
         Belegung = new(_belegung), Lager = new(_lager), Produkt = _produkt, Silberanteil = _silberanteil,
@@ -1005,6 +1009,7 @@ public sealed class Betrieb
         LohnFaktorSumme = _lohnFaktorSumme, LohnMinuten = _lohnMinuten,
         Einrichtung = _einrichtung.Count > 0 ? _einrichtung.ToList() : null, UnfallLauneBis = UnfallLauneBis,
         RohstoffErsparnis = _rohstoffErsparnis.Count > 0 ? new(_rohstoffErsparnis) : null,
+        KasseKnappAm = KasseKnappGemeldetAm >= 0 && KasseKnappGemeldetAm == heute ? KasseKnappGemeldetAm : null,
     };
 
     internal void Wiederherstellen(BetriebStand s)
@@ -1054,6 +1059,7 @@ public sealed class Betrieb
         _lohnFaktorSumme = s.LohnFaktorSumme;
         _lohnMinuten = s.LohnMinuten;
         UnfallLauneBis = s.UnfallLauneBis;
+        KasseKnappGemeldetAm = s.KasseKnappAm ?? -1;
         foreach (var kennung in s.Einrichtung ?? new())
             EinrichtungHinzufuegen(AlteKennungen.GetValueOrDefault(kennung, kennung));
         if (s.Rechnung is { } r) Laufend = Betriebsrechnung.Laden(r); // alte Spielstände: ab dem Laden, kein ganzes Jahr

@@ -625,6 +625,7 @@ public sealed class Diebeswesen
             if (art == Diebesbriefart.Loesegeld)
             {
                 var name = Geiselname(brief);
+                if (Geisel(brief) is { } geisel) _w.Familien.ZugAnlass(opfer, geisel, "entfuehrung"); // die Entführer waren nicht zimperlich (Versehrungen)
                 _w.Gauner.Melden(null, $"{opfer.Inhaber} zahlt Lösegeld – {name} ist wieder frei.");
                 return Befehlsergebnis.Ok($"Ihr zahlt {Zahlenformat.Ganz(brief.Betrag)} {waehrung}. {name} kehrt nach Hause zurück.");
             }
