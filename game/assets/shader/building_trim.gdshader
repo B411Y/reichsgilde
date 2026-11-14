@@ -8,7 +8,8 @@
 // - Wetter wie in oberflaeche.gdshader (wetter.gdshaderinc): nasses Dach und nasse Wände bei Regen, Schutz unter der Traufe,
 //   Schnee auf dem Dach. Welche Fläche Dach ist, sagt das Band (UV.y unter 0,25 = Stroh).
 // - Pixel-Look (pixel_look = 1, setzt das Spiel): gröbere Mip-Stufe der Farbe und flachere Normale – ruhige Flächen wie die
-//   Pixel-Fassung der Material-Bibliothek statt flimmernder Halme.
+//   Pixel-Fassung der Material-Bibliothek statt flimmernder Halme. Das Stroh bekommt dafür gezeichnete Halmstriche: Bahnen
+//   von 14 cm Breite und etwa einem halben Meter Länge in drei Helligkeiten, die auch in groben Bildpunkten lesbar bleiben.
 shader_type spatial;
 
 #include "res://assets/shader/wetter.gdshaderinc"
@@ -47,6 +48,15 @@ void fragment() {
 	float house_ao = texture(ao_uv2_tex, UV2).r;
 
 	vec3 final_color = tex.rgb;
+
+	// Pixel-Look: Halmstriche im Stroh (nur die Dachfläche, nicht der Fransenstreifen)
+	if (pixel_look > 0.5 && UV.y < 0.1875) {
+		float bahn = floor(UV.x * 4.0 / 0.14);
+		float versatz = fract(sin(bahn * 12.9898) * 43758.5453);
+		float stueck = floor(UV.y / 0.1875 * 1.55 / 0.55 + versatz);
+		float zufall = fract(sin(dot(vec2(bahn, stueck), vec2(127.1, 311.7))) * 43758.5453);
+		final_color *= 0.82 + 0.18 * floor(zufall * 3.0);   // drei Stufen: dunkel, mittel, hell
+	}
 
 	// 1. Variation über Trim-Sheet-Bänder (UV.y)
 	if (UV.y >= 0.25 && UV.y < 0.50) {

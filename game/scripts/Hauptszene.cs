@@ -1449,6 +1449,11 @@ public partial class Hauptszene : Node
     /// </summary>
     private bool RaumAngeklickt(string kennung)
     {
+        if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
+        {
+            _stadt.InnenansichtVerlassenDurchTuer();
+            return true;
+        }
         var w = _simulation.Wirtschaft;
         switch (kennung)
         {

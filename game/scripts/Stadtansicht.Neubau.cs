@@ -91,7 +91,15 @@ public partial class Stadtansicht
     private void NeubauPixelSetzen(bool an)
     {
         foreach (var stoff in _neubauStoffe.Values) stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
+        // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
+        if (_neubauGrund.TryGetValue("trim/Strohkante", out var kante)) kante.AlphaScissorThreshold = an ? 1.01f : 0.5f;
     }
+
+    /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
+    public const string NeubauAusgang = "neubau:haustuer";
+
+    /// <summary>Ist das die Haustür von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
+    public bool IstAusgangstuer(string? kennung) => kennung == NeubauAusgang && NeubauInnenAktiv;
 
     private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
 
@@ -121,7 +129,7 @@ public partial class Stadtansicht
         {
             // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Alpha Scissor 0,5, von beiden Seiten sichtbar
             stoff.Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor;
-            stoff.AlphaScissorThreshold = 0.5f;
+            stoff.AlphaScissorThreshold = Fenster.PixelLookAn ? 1.01f : 0.5f; // im Pixel-Look aus, siehe NeubauPixelSetzen
             stoff.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
         }
         return _neubauGrund[schluessel] = stoff;
@@ -241,7 +249,7 @@ public partial class Stadtansicht
         if (_wohnhausAnsicht?.Innen is { } unten) unten.Visible = false; // die alte Wohnstube 200 m unter der Stadt wird nicht gebraucht
         _sonne.Visible = true;                // draußen ist Tag oder Nacht wie in der Stadt
         _raumKamera.Environment = null;       // Himmel, Nebel und Licht der Stadt statt des dunklen Raumhintergrunds
-        _raumKamera.Fov = 72;
+        _raumKamera.Fov = 66;
         if (wurzel.FindChild("Blick_Auge", true, false) is Node3D auge && wurzel.FindChild("Blick_Ziel", true, false) is Node3D ziel)
             _raumKamera.LookAtFromPosition(auge.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
     }
@@ -278,15 +286,24 @@ public partial class Stadtansicht
             foreach (var dz in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
                 FlammeAnlegen(a, feuer + new Vector3(-0.18f, 0, dz) - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
         // Klick in den Raum öffnet die Familie wie bisher; die Fläche liegt vor der Kamera (ein Strahl aus dem Inneren eines Körpers trifft ihn nicht)
-        var klick = Klickflaeche(RaumWohnstube, new Vector3(0, 1.3f, 0.6f), new Vector3(3.9f, 2.4f, 3.5f), wurzel);
-        klick.Disabled = true;
+        // (und sie bleibt niedrig und links: Der Blick zur Haustür geht darüber hinweg)
+        var klick = Klickflaeche(RaumWohnstube, new Vector3(-0.78f, 0.65f, 0.7f), new Vector3(2.35f, 1.0f, 3.3f), wurzel);
+        klick.Disabled = false; // der Raum wird beim Betreten angelegt: gleich scharf; beim Verlassen schaltet RaumansichtUmschalten alle Raumklicks ab
         a.Raumklicks.Add(klick);
+        // Die Haustür von innen: Klick führt hinaus, mit Klinke und Schloss wie beim Betreten (Mauszeiger.cs, Hauptszene.cs)
+        if (Ort("Tuer_Innen") is { } tuer)
+        {
+            var hinaus = Klickflaeche(NeubauAusgang, tuer + new Vector3(0, 0, -0.08f), new Vector3(1.0f, 2.0f, 0.3f), wurzel);
+            hinaus.Disabled = false;
+            a.Raumklicks.Add(hinaus);
+        }
 
         var plaetze = new[]
         {
-            ("Platz_Oberhaupt", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Partner", Ost, Bewegung.Ruehren, Werkzeug.Kelle, false),
-            ("Platz_Kind_1", Ost, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_2", Ost, Bewegung.Beten, Werkzeug.Keins, true),
-            ("Platz_Kind_3", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_4", Nord, Bewegung.Spielen, Werkzeug.Keins, false),
+            // der Tisch steht an der linken Wand (−X): wer auf der Bank sitzt, schaut nach Westen; der Schemel steht am hinteren Tischende
+            ("Platz_Oberhaupt", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Partner", Nord, Bewegung.Ruehren, Werkzeug.Kelle, false),
+            ("Platz_Kind_1", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_2", West, Bewegung.Beten, Werkzeug.Keins, true),
+            ("Platz_Kind_3", Sued, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_4", Nord, Bewegung.Spielen, Werkzeug.Keins, false),
         }.Select(p => new Arbeitsplatz(Ort(p.Item1) ?? Vector3.Zero, p.Item2, p.Item3, p.Item4, p.Item5)).ToArray();
         var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
         var familienStand = "";
