@@ -284,6 +284,28 @@ public static class Partiebesetzung
     internal static Zufallsquelle Namensquelle(int zufallsstartwert) => Besetzungsquelle(zufallsstartwert, ZweckNamen);
 
     /// <summary>
+    /// Welche Wappen für ein Haus des Menüs „Erweitert“ schon vergeben sind (nur lesend, für die Sperre im Wappenfeld): die der Häuser der Karte (die ersten
+    /// <paramref name="rivalen"/> der Startbelegung, solange ihre Zeile kein eigenes Wappen wählt), die gewählten der anderen Zeilen und das des Spielers.
+    /// <paramref name="zeile"/> ist die Zeile (0 …), für die gefragt wird; sie selbst zählt nicht mit, -1 fragt für den Spieler (dessen Wappen zählt dann nicht mit).
+    /// Wählt eine andere Zeile ein anderes Wappen, ist ihr altes (Kartenhaus) wieder frei.
+    /// </summary>
+    /// <param name="wahl">Das gewählte Wappen je Zeile (null = gewürfelt).</param>
+    public static IReadOnlyList<(Wappen Wappen, string Haus)> VergebeneWappen(Startbelegung start, int rivalen, Wappen spielerWappen, string spielername,
+        IReadOnlyList<Wappen?> wahl, int zeile)
+    {
+        var liste = new List<(Wappen, string)>();
+        if (zeile >= 0) liste.Add((spielerWappen, spielername));
+        for (var j = 0; j < rivalen; j++)
+        {
+            if (j == zeile) continue;
+            var karte = j < start.Haeuser.Count ? start.Haeuser[j] : null;
+            var wappen = (j < wahl.Count ? wahl[j] : null) ?? karte?.Wappen;
+            if (wappen is not null) liste.Add((wappen, karte is { Name.Length: > 0 } ? karte.Name : $"KI-Haus {j + 1}"));
+        }
+        return liste;
+    }
+
+    /// <summary>
     /// Prüft die KI-Vorgaben („Erweitert“) gegen den Spieler und die mitspielenden Häuser: nicht mehr Vorgaben als KI-Häuser, Namen und Wappen
     /// eindeutig (auch gegen die Häuser der Karte, die nicht vorgegeben sind), gültige Wappen, Berufe eindeutig und nicht der des Spielers.
     /// Volk und Glaube prüft die <see cref="Startaufstellung"/> beim Würfeln.
@@ -298,11 +320,13 @@ public static class Partiebesetzung
             .OfType<string>().Prepend(spielername).ToList();
         if (namen.GroupBy(n => n).FirstOrDefault(g => g.Count() > 1) is { } doppelt)
             throw new ArgumentException($"„{doppelt.Key}“ heißen zwei Häuser.");
-        var wappen = mitspielend.Select((h, i) => V(i)?.Wappen ?? (h.Gewuerfelt ? null : h.Wappen)).OfType<Wappen>().Prepend(spielerWappen).ToList();
-        foreach (var w in wappen)
+        var wappen = mitspielend.Select((h, i) => (Haus: V(i)?.Name is { } vn ? Partieaufbau.Hausname(vn) : h.Gewuerfelt ? $"KI-Haus {i + 1}" : h.Name,
+                                                   Wappen: V(i)?.Wappen ?? (h.Gewuerfelt ? null : h.Wappen)))
+            .Where(x => x.Wappen is not null).Select(x => (x.Haus, Wappen: x.Wappen!)).Prepend((Haus: spielername, Wappen: spielerWappen)).ToList();
+        foreach (var (_, w) in wappen)
             if (w.Fehler() is { } fehler) throw new ArgumentException(fehler);
-        if (wappen.Count != wappen.Distinct().Count())
-            throw new ArgumentException("Zwei Häuser führen dasselbe Wappen.");
+        if (wappen.GroupBy(x => x.Wappen).FirstOrDefault(g => g.Count() > 1) is { } gleich)
+            throw new ArgumentException($"Zwei Häuser führen dasselbe Wappen ({string.Join(" und ", gleich.Select(x => x.Haus))}).");
         var vergeben = new List<string> { spielerberuf };
         foreach (var b in vorgaben.Select(v => v?.Beruf).OfType<string>())
             if (Startaufstellung.BerufVergeben(daten, vergeben, b) is { } grund) throw new ArgumentException(grund);

@@ -322,6 +322,18 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Messung | Gemessen auf main 6aaba4f8 gegen main 6aaba4f8 + diesen Branch, vorher und nachher abwechselnd, Idle-Priorität, Windows-Rechner der Außenstelle (6 Fäden; nebenher lief ein fremder Prozess, daher Streuung). `messen tempo 15 2` (Köln, 2 × 15 Jahre): 13,7 s (13,5–13,8) → 10,7 s (10,5–10,9), −22 %, Prüfsumme gleich. `messen pruefung koeln` (ganzer Lauf): 9,0 s (8,6–9,7) → 7,3 s (7,1–7,6), −19 %. Alle Tests `--parallel`: 83,2 s (82,1–83,9; 1912 grün) → 81,2 s (79,0–82,4; 1919 grün, mit den 7 neuen) – kaum schneller, die Tests hängen an anderen Stellen. Je Stelle (Profil, Anteil am Hauptfaden → Sekunden): Bauorte 41 % → 24 % (4,8 → 2,5 s), `Karrennetz.Suchen` 13 % → 7 % (1,5 → 0,7 s, der Rest sind erste Fragen), `HafenFaktor` 8 % → 7 %, `Wasserlauf.Naechste` in der Prüfung 23 % → 10 % (1,8 → 0,8 s). | 14.11.2026 |
 | Tests | `ZwischenspeicherTests` (7): Wasserlauf gegen die alte Suche (52.000 Punkte auf vier Karten, auch Stützpunkte mit Gleichstand), gemerkte gegen neu gesuchte Fahrten samt neuem Netz ohne Weg, Bauorte gegen frische Platzsuche über eine Greybox-Partie (drei Jahre) mit Bau, Umzug und Abriss sowie eine Köln-Partie (zwei Jahre), Bau des Spielers, `PlatzVerboten` mit und ohne Platzsuche an 52.000 Stellen, Platzsuche gilt nur für ihre Karte. Gegenproben von Hand: ohne Ungültig-Machung bzw. mit falschem Gleichstand scheitern die Tests. Zwei Partietests in `LangsameTests`, damit die Klasse früh beginnt. | 14.11.2026 |
 
+### Fehlerpaket 1: Stückrechnung mit Beschriftungswerten, Wappen (Branch fix/testbefunde-1)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stückrechnung | `Stueckrechnung` trägt jetzt Marktpreis, Verkaufsfaktor, Hafenfaktor, Jahresunterhalt, Jahreslohn und Stück im Jahr (Vorgabewerte, nichts ändert sich an Preis, Lohn, Unterhalt). Der Tooltip beschriftet damit: Unterhalt je Stück = Jahresunterhalt ÷ Stück im Jahr (`Kalkulation.GewinnJeStueck`, gleiche Verteilung nach Herstellzeit wie bisher). Test in `StueckrechnungTests`. | 14.11.2026 |
+| Wappen | Gewürfelte Häuser bekommen schon heute nie ein Wappen, das ein anderes Haus trägt (Spieler und KI, `Wappen.Zufall` mit Liste der vergebenen); `WappenEindeutigTests` prüft vier Karten × Startwerte 1 bis 200 mit der höchsten KI-Zahl ohne ein Duplikat. Ein doppeltes Wappen entsteht nur, wenn jemand eines vorgibt, das ein festes Haus der Karte trägt (Köln trägt sieben der zwölf Menü-Vorlagen): `Partiebesetzung.VorgabenPruefen` nennt dann die beiden Häuser. | 14.11.2026 |
+
+### Wappen-Sperrmenge für das Menü (Branch fix/testbefunde-1)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| `Partiebesetzung.VergebeneWappen` | Nur lesend: liefert für eine KI-Zeile (oder -1 für den Spieler) die vergebenen Wappen samt Hausnamen aus Karte (erste n Häuser der Startbelegung, solange ihre Zeile kein eigenes Wappen wählt), Wahl der anderen Zeilen und Spieler. Test in `WappenEindeutigTests` (Gegenprobe Kartenhaus gesperrt, freies nicht, altes Wappen wird frei). | 14.11.2026 |
 ### Räume je Stufe des Wohnhauses (Branch phase5/wohnhaus-raeume, Nutzer 14.11.2026)
 
 | Thema | Entscheidung | Datum |

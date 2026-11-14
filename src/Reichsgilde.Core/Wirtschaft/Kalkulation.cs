@@ -303,7 +303,10 @@ public static class Kalkulation
     public static Stueckrechnung GewinnJeStueck(Stadtwirtschaft w, Betrieb b, string ware)
     {
         var daten = w.Daten.Waren[ware];
-        var preis = w.Markt[ware].Preis * w.Familien.VerkaufsFaktor(b.Konto) * w.HafenFaktor(b, ware); // Aufschlag am Hafen wie die Abrechnung
+        var marktpreis = w.Markt[ware].Preis;
+        var verkaufsfaktor = w.Familien.VerkaufsFaktor(b.Konto);
+        var hafenfaktor = w.HafenFaktor(b, ware); // Aufschlag am Hafen wie die Abrechnung
+        var preis = marktpreis * verkaufsfaktor * hafenfaktor;
         var steuer = preis * w.SteuersatzMarkt(b.Konto);
         var zutaten = daten.Zutaten.Sum(z => w.Markt[z.Key].Preis * z.Value);
         var minuten = b.IstWerkstatt ? b.MinutenJeStueck(ware) : daten.Zeit;
@@ -318,7 +321,8 @@ public static class Kalkulation
         }
         var unterhalt = b.Unterhalt + (b.Waechter && w.Daten.Gauner is { } g ? g.WaechterKosten : 0);
         var jeMinute = leistung > 0 ? 1 / (leistung * b.Arbeitsminuten) : 0; // Anteil an den Jahreskosten je Arbeitsminute eines Gesellen
-        return new Stueckrechnung(preis, steuer, zutaten, lohn * jeMinute * minuten, unterhalt * jeMinute * minuten, minuten);
+        var stueckeProJahr = minuten > 0 && leistung > 0 ? leistung * b.Arbeitsminuten / minuten : 0; // so viele Stück schafft der Betrieb im Jahr
+        return new Stueckrechnung(preis, steuer, zutaten, lohn * jeMinute * minuten, unterhalt * jeMinute * minuten, minuten, marktpreis, verkaufsfaktor, hafenfaktor, unterhalt, lohn, stueckeProJahr);
     }
 
     /// <summary>Was eine volle Ladung dieses Karrens ungefähr wert ist (mit den Waren, die der Betrieb verkauft).</summary>
@@ -338,7 +342,14 @@ public static class Kalkulation
 /// <param name="Lohn">Anteil der Löhne an der Herstellzeit.</param>
 /// <param name="Unterhalt">Anteil von Unterhalt bzw. Pacht (und Wächter) an der Herstellzeit.</param>
 /// <param name="Minuten">Arbeitsminuten eines Gesellen je Stück (mit der Einrichtung).</param>
-public sealed record Stueckrechnung(double Preis, double Steuer, double Zutaten, double Lohn, double Unterhalt, double Minuten)
+/// <param name="Marktpreis">Marktpreis der Ware jetzt (ohne Faktoren).</param>
+/// <param name="Verkaufsfaktor">Faktor aus Verhandeln und Lebensweg des Oberhaupts (<see cref="Dynastie.Familienbuch.VerkaufsFaktor"/>).</param>
+/// <param name="Hafenfaktor">Aufschlag für Ausfuhrware am Hafen (1 = keiner).</param>
+/// <param name="Jahresunterhalt">Unterhalt bzw. Pacht des Betriebs im Jahr (mit Wächter).</param>
+/// <param name="Jahreslohn">Löhne des Betriebs im Jahr (bzw. eines Gesellen, wenn niemand arbeitet).</param>
+/// <param name="StueckeProJahr">So viele Stück dieser Ware schafft der Betrieb im Jahr; Lohn und Unterhalt je Stück sind der Jahresbetrag ÷ diese Zahl.</param>
+public sealed record Stueckrechnung(double Preis, double Steuer, double Zutaten, double Lohn, double Unterhalt, double Minuten,
+    double Marktpreis = 0, double Verkaufsfaktor = 1, double Hafenfaktor = 1, double Jahresunterhalt = 0, double Jahreslohn = 0, double StueckeProJahr = 0)
 {
     /// <summary>Was ein Stück nach Steuer, Zutaten, Lohn und Unterhalt bringt.</summary>
     public double Gewinn => Preis - Steuer - Zutaten - Lohn - Unterhalt;
