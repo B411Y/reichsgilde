@@ -1,0 +1,208 @@
+[gd_resource type="Theme" load_steps=12 format=3]
+
+; Das zentrale Thema der Ratskammer und der Rathaus-Kurzübersicht (PR Ratskammer, 14.11.2026).
+; Aussehen steht NUR hier, Logik in RatAnzeige*.cs / RathausTafel.cs / RatStil.cs.
+; Aufbau und Namen: docs/spielbuch/stand-rat-und-glaube.md, Abschnitt „Das Thema der Ratskammer“.
+; Typ-Varianten (Rat…) erben von einem Godot-Typ; die Farben, Maße und Schriften der Familie stehen unter den Pseudo-Typen RatFarben und RatMasse.
+
+[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
+
+; ── Flächen ──
+[sub_resource type="StyleBoxFlat" id="Tafel"]
+bg_color = Color(0.12, 0.11, 0.1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="ReiterAktiv"]
+bg_color = Color(0.22, 0.18, 0.13, 1)
+border_width_left = 1
+border_width_top = 2
+border_width_right = 1
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="ReiterPassiv"]
+bg_color = Color(0.15, 0.13, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_color = Color(0.4, 0.34, 0.24, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="ReiterUeber"]
+bg_color = Color(0.3, 0.24, 0.15, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 14.0
+content_margin_top = 6.0
+content_margin_right = 14.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="Seite"]
+bg_color = Color(0.1, 0.09, 0.08, 1)
+border_width_left = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.34, 0.24, 1)
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="KurzTafel"]
+bg_color = Color(0.14, 0.12, 0.1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.34, 0.24, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="AmtKnopf"]
+bg_color = Color(0.26, 0.2, 0.13, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="AmtKnopfUeber"]
+bg_color = Color(0.36, 0.28, 0.17, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.82, 0.45, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="AmtKnopfGesperrt"]
+bg_color = Color(0.15, 0.14, 0.13, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.34, 0.31, 0.26, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 4.0
+content_margin_right = 12.0
+content_margin_bottom = 4.0
+
+[resource]
+; ── Familie: Farben und Maße (abgefragt mit GetThemeColor/GetThemeConstant, Typ „RatFarben“ bzw. „RatMasse“) ──
+RatFarben/colors/gold = Color(0.95, 0.82, 0.45, 1)
+RatFarben/colors/grau = Color(0.72, 0.72, 0.72, 1)
+RatFarben/colors/gruen = Color(0.55, 0.85, 0.5, 1)
+RatFarben/colors/rot = Color(0.95, 0.45, 0.4, 1)
+RatFarben/colors/schrift = Color(0.92, 0.88, 0.8, 1)
+RatMasse/constants/text_breite = 670
+RatMasse/constants/kammer_breite = 720
+
+; ── Container ──
+RatTafel/base_type = &"PanelContainer"
+RatTafel/styles/panel = SubResource("Tafel")
+RatKurzTafel/base_type = &"PanelContainer"
+RatKurzTafel/styles/panel = SubResource("KurzTafel")
+RatRand/base_type = &"MarginContainer"
+RatRand/constants/margin_left = 22
+RatRand/constants/margin_top = 22
+RatRand/constants/margin_right = 22
+RatRand/constants/margin_bottom = 22
+RatSpalte/base_type = &"VBoxContainer"
+RatSpalte/constants/separation = 8
+RatZeile/base_type = &"HBoxContainer"
+RatZeile/constants/separation = 10
+RatRaster/base_type = &"GridContainer"
+RatRaster/constants/h_separation = 14
+RatRaster/constants/v_separation = 2
+
+; ── Reiter ──
+RatReiter/base_type = &"TabContainer"
+RatReiter/styles/panel = SubResource("Seite")
+RatReiter/styles/tab_selected = SubResource("ReiterAktiv")
+RatReiter/styles/tab_unselected = SubResource("ReiterPassiv")
+RatReiter/styles/tab_hovered = SubResource("ReiterUeber")
+RatReiter/colors/font_selected_color = Color(0.95, 0.82, 0.45, 1)
+RatReiter/colors/font_unselected_color = Color(0.72, 0.72, 0.72, 1)
+RatReiter/colors/font_hovered_color = Color(1, 0.95, 0.78, 1)
+RatReiter/font_sizes/font_size = 16
+RatReiter/constants/side_margin = 0
+
+; ── Schrift ──
+RatTitel/base_type = &"Label"
+RatTitel/fonts/font = ExtResource("1_titel")
+RatTitel/font_sizes/font_size = 26
+RatTitel/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatAbschnitt/base_type = &"Label"
+RatAbschnitt/font_sizes/font_size = 17
+RatAbschnitt/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatText/base_type = &"Label"
+RatText/font_sizes/font_size = 15
+RatText/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatHinweis/base_type = &"Label"
+RatHinweis/font_sizes/font_size = 14
+RatHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
+RatGut/base_type = &"Label"
+RatGut/font_sizes/font_size = 15
+RatGut/colors/font_color = Color(0.55, 0.85, 0.5, 1)
+RatSchlecht/base_type = &"Label"
+RatSchlecht/font_sizes/font_size = 15
+RatSchlecht/colors/font_color = Color(0.95, 0.45, 0.4, 1)
+
+; ── Knöpfe ──
+RatAmtknopf/base_type = &"Button"
+RatAmtknopf/styles/normal = SubResource("AmtKnopf")
+RatAmtknopf/styles/hover = SubResource("AmtKnopfUeber")
+RatAmtknopf/styles/pressed = SubResource("AmtKnopfUeber")
+RatAmtknopf/styles/hover_pressed = SubResource("AmtKnopfUeber")
+RatAmtknopf/styles/disabled = SubResource("AmtKnopfGesperrt")
+RatAmtknopf/font_sizes/font_size = 14
+RatAmtknopf/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatAmtknopf/colors/font_hover_color = Color(1, 0.95, 0.78, 1)
+RatAmtknopf/colors/font_disabled_color = Color(0.55, 0.52, 0.47, 1)

@@ -67,7 +67,7 @@ namespace Reichsgilde;
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
-///   --rathaus=amt      das Rathaus mit diesem Reiter auswählen (stadtkasse, rat, amt) – alle vier in Hauptszene.Rat.cs
+///   --rathaus=1        das Rathaus auswählen (Kurzübersicht) – alle vier in Hauptszene.Rat.cs
 ///   --sitzung=1        eine Ratssitzung mit dem Spieler im Rat vorbereiten und bis zum Jahresende vorspulen (=letzte: ohne Halt, danach das Rathaus mit dem Knopf
 ///                      „Letzte Ratssitzung ansehen“); --sitzungzeigen=<immer|betroffen|nie> nur für diesen Start – beide in Hauptszene.Ratssitzung.cs
 ///   --domwahl=1        alle geeigneten Häuser bewerben sich um das Amt des Dompredigers (Hauptszene.Ratssitzung.cs; mit --sitzung=1 steht der Dom-Punkt in der Sitzung)
@@ -357,7 +357,7 @@ public partial class Hauptszene : Node
         _ratskammer.Gemeldet += Protokollieren;
         _charakter.Gemeldet += Protokollieren;
         _rathausTafel.Gemeldet += Protokollieren;
-        _rathausTafel.RatGewuenscht += RatOeffnen;
+        _rathausTafel.RatGewuenscht += reiter => RatOeffnen(reiter);
         _rathausTafel.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); };
         _rathausTafel.MarktGewuenscht += MarktOeffnen;
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
@@ -608,8 +608,12 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Ochsenkarren" : umlandWert);
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
-        if (optionen.TryGetValue("rat", out var rat) && rat == "1")
-            _ratskammer.Oeffnen();
+        if (optionen.TryGetValue("rat", out var rat) && rat != "")
+        {
+            if (rat == "1") _ratskammer.Oeffnen();
+            else if (Enum.TryParse<RatAnzeige.Reiter>(rat, true, out var ratReiter)) _ratskammer.Oeffnen(ratReiter);
+            else Protokollieren($"--rat={rat}: gemeint ist 1, aemter, antraege, stadtglaube oder kasse.");
+        }
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
         if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
@@ -773,11 +777,14 @@ public partial class Hauptszene : Node
         _berichtTafel.Zeigen(reiter);
     }
 
-    private void RatOeffnen()
+    private void RatOeffnen() => RatOeffnen(null);
+
+    /// <summary>Öffnet die Ratskammer, auf Wunsch gleich auf einem Reiter (Knöpfe der Rathaus-Kurzübersicht).</summary>
+    private void RatOeffnen(RatAnzeige.Reiter? reiter)
     {
         if (_simulation.Wirtschaft?.Rat.IstAktiv != true) return;
         TafelnSchliessen();
-        _ratskammer.Oeffnen();
+        _ratskammer.Oeffnen(reiter);
     }
 
     private void FamilieOeffnen()

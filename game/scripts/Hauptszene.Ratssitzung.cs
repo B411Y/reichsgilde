@@ -86,7 +86,6 @@ public partial class Hauptszene
             _wiederholungWartet = false;
             _jahresbericht.Hide(); // nur in diesem Klicktest: der Bericht des vorgespulten Jahres läge über dem Rathaus (die Partie bleibt angehalten)
             _auswahlKennung = "Rathaus";
-            _rathausTafel.ReiterWaehlen(RathausTafel.Reiter.Rat);
         }
         if (_simulation.Ratssitzung is null || _sitzungsTafel.Laeuft) return;
         SaalVorbereiten();

@@ -50,6 +50,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (Leistung) Mit 3D-Handschuh 26,6 statt 37,9 Bilder/s auf Xvfb/Vulkan (rund 4 ms GPU, Messung der NAS); der Nutzer lässt es vorerst so, später auf dem PC messen (Einstellung „3D-Handschuh“ schaltet ab).
 - 3D-Handschuh 3b/3c: Hänger beim ersten und zweiten Betreten, Blende beim Verlassen (2D und 3D), Haltung Text über einem Textfeld und die Klinke-Folge (Bereit über der Tür, Greifen, Drücken, Blende, Loslassen; Schloss unter der Hand, Zeigerpunkt Anker_Schloss) sind im Klicktest der NAS zu prüfen (mit Grafik). Bekannte Schwäche aus 3a: die Faust sitzt auf der Stange, statt sie zu umschließen; im Klicktest ansehen.
+- **Ratskammer ins Thema umstellen:** Die älteren Abschnitte (Raster der Ämter, Wahlstimme, Statutantrag, Domprediger, Tagesordnung) und die Amtsbefugnisse der Kurzübersicht rufen noch `Hauptmenue.Text(…, Größe, Farbe)` auf; sie wandern mit dem Amtsbaum (PR 3) in Varianten von `rat_thema.tres`.
+
 ## Entscheidungen
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
@@ -628,3 +630,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kollekte | Die Domkollekte steht im Jahresbericht unter „Außerdem“ (wie das Amtseinkommen) und in der Jahresrechnung der Berichtstafel, nicht in der Zeile „Gewinn“ (der Kern zählt sie nicht dazu). | 12.11.2026 |
 | Startoption | `--domwahl=1` lässt die geeigneten Häuser (auch den Spieler) sich bewerben (in `docs/STARTOPTIONEN.md`). | 12.11.2026 |
 | Offen | Infotafel am Stadt-Dom mit dem Domprediger und eigene Siegel für Wahl und Amtsende gehören zu darstellung bzw. Meldungen (der Kern meldet über `Meldungsart.Wahl`, Thema „Rat und Wahlen“). Das Amtssymbol gibt es nicht. | 12.11.2026 |
+
+### Ratskammer mit Reitern (Branch phase5/ratskammer, Ratssitzung und Ratsbaum PR 2)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Reiter | Die Ratskammer hat vier Reiter: Ämter (vorerst das alte Raster mit Laufbahn, Wahlstimme und Domprediger; der Baum kommt in PR 3), Anträge (Tagesordnung, Statut, Wegbau, letzte Sitzung), Stadtglaube (nur mit Glaubenssystem), Kasse (nur mit Stadtkasse; Haushalt, Bauten, Fest, Anträge zu Steuer, Bau, Fest). Der Reiter bleibt beim Aufbau erhalten. `Oeffnen(Reiter?)`, `--rat=1\|aemter\|antraege\|stadtglaube\|kasse`. | 14.11.2026 |
+| Kurzübersicht | Die RathausTafel hat keine Reiter mehr, sondern drei Felder: Stadtkasse (Stand, Steuersatz, Knopf „Kasse ansehen“), Nächste Ratssitzung (Zahl der Anträge, Knopf „Anträge und Stimmen“, „Letzte Ratssitzung ansehen“), Euer Amt (die Befugnis wie bisher, bis der Baum sie in PR 3 an den eigenen Knoten holt, F7). Der Haushalt und die Bauten der Stadt zogen in den Reiter Kasse. `--rathaus=1` wählt das Rathaus (der Reitername entfällt). | 14.11.2026 |
+| Bewerbung zurückziehen | Knopf „Bewerbung zurückziehen“ unter der eigenen Bewerbung (Befehl `BewerbungZurueckziehen`, ohne AP-Erstattung, der Tooltip sagt es). | 14.11.2026 |
+| Zentrales Thema | Aussehen steht in `game/scenes/rat_thema.tres` mit Typ-Varianten (RatTafel, RatReiter, RatTitel, RatAmtknopf …), `RatStil.cs` ist die Brücke; Aufbau in ARCHITEKTUR.md, Abschnitt „Das Thema der Ratskammer“. Gilt für alle neuen Elemente; die älteren Abschnitte der Ratskammer sind noch nicht umgestellt. | 14.11.2026 |

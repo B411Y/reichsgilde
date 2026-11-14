@@ -37,11 +37,11 @@ Startoptionen (nach `--`):
 - `--wegantrag=<weg>,<von>,<bis>` (Ratsantrag „Weg pflastern“)
 - `--drehung=<1–3>`
 - `--vermoegen=<Gulden>`
-- `--rat=1`
+- `--rat=1|aemter|antraege|stadtglaube|kasse` (Ratskammer öffnen; `1` = Reiter Ämter, sonst gleich auf diesem Reiter)
 - `--amt=<Amt>` (der Spieler hält dieses Amt, z. B. `Kämmerer`, `Stadtrichter`, `Gefängniswärter`; Leerzeichen als `_`)
 - `--kasse=<Gulden>` (Stand der Stadtkasse)
 - `--antrag=steuer:<Prozent>|bau:<Kennung>|fest` (Antrag im Rat stellen, mehrere mit Komma, z. B. `bau:brunnen,fest`; braucht ein Amt, z. B. `--amt=Bürgermeister`; Kennungen: `brunnen`, `mauer`, `hafen`, `marktplatz`). Die Ratssitzung ist am Jahresende: mit `--startstunde=5 --spulen=1440` steht man mittags im nächsten Jahr (Baustelle, Fest), die Lage der Baustelle steht im Log
-- `--rathaus=<stadtkasse|rat|amt>` (das Rathaus auswählen, Tafel auf diesem Reiter); eine Baustelle der Stadt: `--auswahl=stadtbau:<Kennung>`
+- `--rathaus=1` (das Rathaus auswählen, zeigt die Kurzübersicht); eine Baustelle der Stadt: `--auswahl=stadtbau:<Kennung>`
 - `--sitzung=1` (sichtbare Ratssitzung vorbereiten: ohne `--amt` ein Amt der untersten Stufe und eine Bewerbung eine Stufe höher – dafür `--aufsteigen=1 --vermoegen=30000 --startstunde=6` –, ohne `--antrag` wird ein Rivale Kämmerer und beantragt ein Fest; dann bis zum Jahresende vorspulen, die Partie hält vor dem ersten Punkt). `--sitzung=letzte`: ebenso, aber ohne Halt; danach steht das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“
 - `--domwahl=1` (Prediger und Dom: alle geeigneten Häuser, also Prediger mit eigener Kirche und Stadtglauben, auch der Spieler, bewerben sich um das Amt des Dompredigers; wer nicht geeignet ist, steht mit dem Grund im Log. Mit `--sitzung=1` kommt der Punkt „Domprediger“ in die Ratssitzung, im Rathaus Reiter Rat steht der Abschnitt „Domprediger“)
 - `--sitzungzeigen=<immer|betroffen|nie>` (Einstellung „Ratssitzung zeigen“ nur für diesen Start)
