@@ -82,6 +82,7 @@ public static class Speicherung
     {
         var stand = Lesen(json);
         stand.Daten?.Logistik.AlteKarrenartenUmstellen(); // Spielstand von vor dem 04.11.2026: Kriegskarren → Pferdekarren
+        stand.Daten?.Wohnen?.Raeume?.AltenFestsaalUmstellen(); // Datenversion 87: Festsaal nicht mehr im Wohnhaus (erst mit der Stadtvilla)
 
         if (stand.Daten is { } daten && daten.Pruefen() is { Count: > 0 } fehler)
             throw new SpielstandFehler("Die Wirtschaftsdaten im Spielstand sind fehlerhaft:\n  • " + string.Join("\n  • ", fehler));
@@ -114,6 +115,7 @@ public static class Speicherung
                 w.Entwicklerhilfe.Erlaubt = stand.EntwicklerErlaubt;
                 w.MeldungenWiederherstellen(stand.Meldungen); // Verlauf der Meldungen (fehlt in alten Spielständen: leer)
                 w.ChronikNachDemLaden(); // Spielstände von vor der Hauschronik: aus dem Verlauf ergänzen
+                w.Wohnen.RaeumeNachDemLaden(w.Konten); // nach den Meldungen: Festsaal im Wohnhaus zurückbauen und erstatten (Datenversion 87)
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }

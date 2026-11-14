@@ -7,7 +7,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>
 /// „Verwalter kauft nur das Nötigste“ kommt höchstens einmal am Spieltag – auch über Speichern und Laden. Vorher stand der Tag der letzten
 /// Meldung nicht im Spielstand: Nach dem Laden kam sie am selben Tag ein zweites Mal, und der Verlauf der Meldungen (in der Prüfsumme) lief
-/// gegen die durchgehende Partie auseinander (Gleichheit 4711, gefunden mit den Versehrungen, Datenversion 88).
+/// gegen die durchgehende Partie auseinander (Gleichheit 4711, gefunden mit den Versehrungen, Datenversion 89).
 /// </summary>
 static class VerwalterMeldungLadenTests
 {

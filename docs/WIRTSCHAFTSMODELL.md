@@ -2841,7 +2841,7 @@ Neue Gruppe `kiStaerke` (Nutzerentscheidung „Neue Partie und Höfe“): je Stu
 
 Maßvoll gewählt, noch nicht gemessen (Messung mit `messen bericht` steht aus, siehe `docs/bereiche/kern.md`). Die Prüfung der Daten verlangt, dass „leicht“ nicht mehr Geld hat und nicht wagemutiger ist als Normal, „schwer“ umgekehrt.
 
-## Versehrungen (Datenversion 88, 14.11.2026)
+## Versehrungen (Datenversion 89, 14.11.2026)
 
 Vier neue erworbene Züge (Entstellt, Einäugig, Lahm, Verkrüppelte Hand; Werte und Anlässe in `docs/bereiche/kern.md`, „Versehrungen“). Sie wirken nur über Talente (höchstens −1 Stern) und Meinung, kommen selten und nur aus Anlässen.
 

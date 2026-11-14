@@ -8,7 +8,7 @@ using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Versehrungen (Datenversion 88): bleibende Verletzungen als erworbene Züge mit dem Feld „versehrung“ – Narbe, Entstellt, Einäugig,
+/// Versehrungen (Datenversion 89): bleibende Verletzungen als erworbene Züge mit dem Feld „versehrung“ – Narbe, Entstellt, Einäugig,
 /// Lahm, Verkrüppelte Hand. Sie entstehen nur aus Anlässen des Spiels (Einbruch, Brand auch durch Blitz, Rauferei beim Zechen,
 /// Knochenbruch ohne Medicus, Kerker, Lösegeld), bleiben und werden nicht vererbt.
 /// </summary>
@@ -59,7 +59,7 @@ static class VersehrtTests
         ("Versehrungen: Daten – fünf Versehrungen, alle erworben, ohne Gegenteil und Vererbung, mit Kennung fürs Bild; Lahm mag die Jagd nicht", () =>
         {
             var d = Daten.Value.Charakterzuege!;
-            Pruefe.Gleich(88, Daten.Value.Version);
+            Pruefe.Gleich(89, Daten.Value.Version);
             var bild = new Dictionary<string, string>
                 { ["Narbe"] = "narbe", ["Entstellt"] = "brandmal", ["Einaeugig"] = "augenklappe", ["Lahm"] = "hinken", ["Verkrueppelt"] = "hand" };
             Pruefe.Gleich(string.Join(",", Versehrungen), string.Join(",", d.Alle.Where(z => z.IstVersehrung).Select(z => z.Kennung)));

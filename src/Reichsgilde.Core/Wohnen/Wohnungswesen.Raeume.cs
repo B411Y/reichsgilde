@@ -7,8 +7,11 @@ namespace Reichsgilde.Core.Wohnen;
 //
 //  Nutzerentscheidung 14.11.2026, nach der Mechanik aus „Die Gilde 1“ (nur die Mechanik):
 //    Stufe 1 (Fachwerkhaus): nur die Wohnstube.
-//    Stufe 2 (Bürgerhaus):  ein freier Platz – Hinterzimmer, Festsaal oder Bibliothek (Befehl RaumAnbauen, kostet Gulden, endgültig).
-//    Stufe 3 (Steinhaus):   ein zweiter freier Platz, wieder aus diesen dreien, außer dem schon gewählten.
+//    Stufe 2 (Bürgerhaus):  ein freier Platz – Hinterzimmer oder Bibliothek (Befehl RaumAnbauen, kostet Gulden, endgültig).
+//    Stufe 3 (Steinhaus):   ein zweiter freier Platz – der andere der beiden.
+//  Den Festsaal gibt es im Wohnhaus nicht mehr (Nutzerentscheidung 14.11.2026, Datenversion 88): Er kommt später mit der Stadtvilla
+//  („erstMit“). Er bleibt als Raum in den Daten, damit das Gastmahl an ihn gebunden bleibt – bis dahin geht kein Gastmahl.
+//  Alte Spielstände mit Festsaal im Wohnhaus: beim Laden zurückgebaut, Platz frei, Preis aus den Daten erstattet (RaeumeNachDemLaden).
 //  Höhere Stufen ohne eigenen Eintrag haben die Räume der letzten eingetragenen Stufe (keine weiteren Plätze).
 //  Ausnahme Dieb (berufStattRaum): Wer einen Betrieb dieses Berufs hat, gibt die Befehle des Raums auch ohne ihn – von seinem Betrieb aus.
 //  Jeder Raum schaltet vorhandene Befehle, Aktivitäten oder Einrichtungsstücke frei – fehlt er, sind sie gesperrt, für Spieler und KI.
@@ -37,6 +40,9 @@ public sealed class WohnraumDaten
 
     /// <summary>Wer einen Betrieb dieses Berufs hat (z. B. „Dieb“), gibt die <see cref="Befehle"/> des Raums auch ohne ihn (null = niemand).</summary>
     public string? BerufStattRaum { get; init; }
+
+    /// <summary>Diesen Raum gibt es nicht im Wohnhaus, erst mit diesem Gebäude (z. B. „Stadtvilla“); null = im Wohnhaus (Datenversion 88).</summary>
+    public string? ErstMit { get; init; }
 }
 
 /// <summary>Die Räume einer Stufe des Wohnhauses: feste Räume und freie Plätze für Räume zur Wahl.</summary>
@@ -62,6 +68,26 @@ public sealed class RaeumeDaten
 
     public WohnraumDaten? Art(string kennung) => Arten.FirstOrDefault(a => a.Kennung == kennung);
 
+    /// <summary>
+    /// Daten aus einem Spielstand mit Datenversion 87: Dort stand der Festsaal noch unter <see cref="Waehlbar"/>. Seit Datenversion 88 gibt es
+    /// ihn erst mit der Stadtvilla (Nutzerentscheidung 14.11.2026) – er verschwindet aus der Wahl und bekommt „erstMit“. Ohne Festsaal in der
+    /// Wahl ändert sich nichts (die Reihenfolge der übrigen Einträge bleibt).
+    /// </summary>
+    internal void AltenFestsaalUmstellen()
+    {
+        const string festsaal = "Festsaal";
+        if (!Waehlbar.Contains(festsaal)) return;
+        Waehlbar.Remove(festsaal);
+        var i = Arten.FindIndex(a => a.Kennung == festsaal);
+        if (i < 0 || Arten[i].ErstMit is not null) return;
+        var alt = Arten[i];
+        Arten[i] = new WohnraumDaten
+        {
+            Kennung = alt.Kennung, Name = alt.Name, Preis = alt.Preis, Befehle = alt.Befehle, Aktivitaeten = alt.Aktivitaeten,
+            Wirkung = alt.Wirkung, BerufStattRaum = alt.BerufStattRaum, ErstMit = "Stadtvilla",
+        };
+    }
+
     internal void Pruefen(List<string> f, int anzahlStufen, IEnumerable<EinrichtungDaten> einrichtung, IReadOnlyDictionary<string, WareDaten> waren,
         IEnumerable<string>? aktivitaeten, IEnumerable<string>? berufe)
     {
@@ -78,6 +104,7 @@ public sealed class RaeumeDaten
                 f.Add($"{p}.arten: Die Kennung „{a.Kennung}“ darf nur Buchstaben und Ziffern ohne Umlaute haben.");
             if (string.IsNullOrWhiteSpace(a.Name)) f.Add($"{wo} braucht einen Namen.");
             if (a.Preis < 0) f.Add($"{wo}.preis darf nicht negativ sein.");
+            if (a.ErstMit is not null && string.IsNullOrWhiteSpace(a.ErstMit)) f.Add($"{wo}.erstMit darf nicht leer sein.");
             if (a.BerufStattRaum is { } beruf && berufe is not null && !berufe.Contains(beruf)) f.Add($"{wo}.berufStattRaum: Einen Beruf „{beruf}“ gibt es nicht.");
             foreach (var b in a.Befehle.Where(b => !befehlsarten.Contains(b))) f.Add($"{wo}.befehle: Einen Befehl „{b}“ gibt es nicht.");
             // Ein Raum und ein Stück Einrichtung mit derselben Kennung gäbe es doppelt (die Bibliothek ist seit Datenversion 87 ein Raum).
@@ -95,9 +122,11 @@ public sealed class RaeumeDaten
             var s = Stufen[i];
             if (s.Frei < 0) f.Add($"{p}.stufen[{i}].frei darf nicht negativ sein.");
             foreach (var r in s.Feste.Where(r => Art(r) is null)) f.Add($"{p}.stufen[{i}].feste: Einen Raum „{r}“ gibt es nicht.");
+            foreach (var r in s.Feste.Where(r => Art(r)?.ErstMit is not null)) f.Add($"{p}.stufen[{i}].feste: „{r}“ gibt es erst mit {Art(r)!.ErstMit}, nicht im Wohnhaus.");
             if (s.Frei > 0 && Waehlbar.Count == 0) f.Add($"{p}.stufen[{i}]: Freie Plätze brauchen Räume unter {p}.waehlbar.");
         }
         foreach (var r in Waehlbar.Where(r => Art(r) is null)) f.Add($"{p}.waehlbar: Einen Raum „{r}“ gibt es nicht.");
+        foreach (var r in Waehlbar.Where(r => Art(r)?.ErstMit is not null)) f.Add($"{p}.waehlbar: „{r}“ gibt es erst mit {Art(r)!.ErstMit}, nicht im Wohnhaus.");
     }
 }
 
@@ -145,6 +174,7 @@ public sealed partial class Wohnungswesen
     {
         if (!HatRaumregeln || Daten!.Raeume!.Art(raum) is not { } art) return $"Einen Raum „{raum}“ gibt es im Wohnhaus nicht.";
         if (!k.IstAktiv) return $"{k.Inhaber} ist nicht mehr im Spiel.";
+        if (art.ErstMit is { } erst) return $"Einen {art.Name} gibt es im Wohnhaus nicht – erst mit der {erst}.";
         if (!Daten.Raeume.Waehlbar.Contains(raum)) return $"{art.Name} kann man nicht wählen.";
         if (HatRaum(k, raum)) return $"{k.Inhaber} hat schon: {art.Name}.";
         if (FreiePlaetze(k) == 0)
@@ -167,6 +197,29 @@ public sealed partial class Wohnungswesen
         return Befehlsergebnis.Ok(preis > 0
             ? $"{k.Inhaber} baut am Wohnhaus an: {art.Name} ({Zahlenformat.Ganz(preis)} {_w.Daten.Allgemein.Waehrung})."
             : $"{k.Inhaber} richtet im Wohnhaus ein: {art.Name}.");
+    }
+
+    /// <summary>
+    /// Nach dem Laden (Konten und Meldungen stehen): Räume, die es im Wohnhaus nicht gibt (<see cref="WohnraumDaten.ErstMit"/>, alte Spielstände
+    /// mit Festsaal), werden zurückgebaut – der Platz ist wieder frei, der Preis aus den Daten kommt zurück (als Verkauf gebucht), mit Meldung.
+    /// Danach hat kein Haus mehr einen solchen Raum; ein zweites Laden ändert nichts. Gibt die Zahl der zurückgebauten Räume zurück.
+    /// </summary>
+    internal int RaeumeNachDemLaden(IEnumerable<Konto> konten)
+    {
+        if (Daten?.Raeume is not { } r) return 0;
+        var zahl = 0;
+        foreach (var k in konten)
+            foreach (var raum in k.WohnhausRaeume.ToList())
+            {
+                if (r.Art(raum) is not { ErstMit: { } erst } art) continue;
+                k.WohnhausRaumEntfernen(raum);
+                if (art.Preis > 0) k.Verkauf(art.Preis);
+                zahl++;
+                _w.Melden(Meldungsart.Sonstiges,
+                    $"Den {art.Name} gibt es im Wohnhaus nicht mehr – erst mit der {erst}. {k.Inhaber} bekommt {Zahlenformat.Ganz(art.Preis)} " +
+                    $"{_w.Daten.Allgemein.Waehrung} zurück, der Platz ist wieder frei.", haus: k, wohnhaus: true);
+            }
+        return zahl;
     }
 
     // ── Sperren: Was ein Raum freischaltet ─────────────────────────────────
@@ -197,6 +250,7 @@ public sealed partial class Wohnungswesen
         var r = Daten!.Raeume!;
         var fest = r.Stufen.FindIndex(s => s.Feste.Contains(art.Kennung));
         var wahl = r.Waehlbar.Contains(art.Kennung) ? r.Stufen.FindIndex(s => s.Frei > 0) : -1;
+        if (art.ErstMit is { } erst) return $"Dafür braucht {k.Inhaber} den Raum „{art.Name}“ – den gibt es erst mit der {erst}, nicht im Wohnhaus.";
         var ab = fest >= 0 && (wahl < 0 || fest <= wahl) ? $" (ab {Daten.Stufen[fest].Name})"
             : wahl >= 0 ? $" (zur Wahl ab {Daten.Stufen[wahl].Name})" : "";
         return $"Dafür braucht das Wohnhaus von {k.Inhaber} den Raum „{art.Name}“{ab}.";

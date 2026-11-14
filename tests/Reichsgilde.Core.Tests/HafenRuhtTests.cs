@@ -54,7 +54,7 @@ static class HafenRuhtTests
     /// Schiff und schickt es mit dem Vorschlag der Tafel los, der Auftrag wiederholt sich. Ergebnis: SHA-256 des Spielstands ohne Daten und Karte
     /// nach jedem Jahr. (Dieselbe Rechnung lief für die Sollwerte mit dem Kern vor dem Schalter.)
     /// </summary>
-    /// <summary>Die Daten ohne die Versehrungen (Datenversion 88): die vier neuen Züge, die Narbe ohne Blitz und Bild, die Jagd ohne „Lahm“.</summary>
+    /// <summary>Die Daten ohne die Versehrungen (Datenversion 89): die vier neuen Züge, die Narbe ohne Blitz und Bild, die Jagd ohne „Lahm“.</summary>
     internal static void VersehrteEntfernen(JsonNode knoten)
     {
         var zuege = knoten["charakterzuege"]!["zuege"]!.AsObject();
@@ -83,7 +83,7 @@ static class HafenRuhtTests
         knoten.AsObject().Remove("geheimnisse"); // Geheimnisse (Datenversion 78) ebenso wenig
         knoten["werkstatt"]!.AsObject().Remove("jedeWirkungRechnen"); // Gulden-Rechnung jeder Wirkung (Datenversion 79) ebenso wenig
         knoten["wohnen"]!.AsObject().Remove("raeume"); // Räume im Wohnhaus (Datenversion 87) ebenso wenig
-        VersehrteEntfernen(knoten); // Versehrungen (Datenversion 88) ebenso wenig
+        VersehrteEntfernen(knoten); // Versehrungen (Datenversion 89) ebenso wenig
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
@@ -135,7 +135,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(88, d.Version);
+            Pruefe.Gleich(89, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");
