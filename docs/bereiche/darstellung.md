@@ -12,6 +12,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Passanten-Kollision) Rest in Köln (nicht null): (1) der Kai hängt durch das Lagerhaus des Hafens (Klickfläche Nr. 10 bei 44–55 m, −54 m) – Hafenarbeiter gehen die letzten Meter durch das Hafenmodell; ein Anschluss um das Haus herum oder ein Kai-Punkt auf der freien Seite fehlt; (2) die Tore: 1 m tief im Mauerstück neben dem Torbogen (Mauer Nr. 12, 38, 56; Durchfahrt 5 m der Ego-Kollision ist breiter als der Bogen); (3) Gäste an Haustüren stehen kurz im Klickquader (Tür 0,3–1 m im Haus, gewollt); (4) Kulissenhäuser und Dom/Stadtbauten nur als Klickflächen, nicht als Hausnetz; Figuren an Ständen, Karren und Bäumen weicht nur die Marktfläche aus, die Wandprüfung kennt sie nicht
+- (Passanten-Kollision) Die Hafenarbeiter kommen über die längere Strecke später am Kai an; `tempoMin` in `Stadtansicht.Hafenarbeit.cs` rechnet noch mit der Luftlinie
 - (Fell) Im Godot-Fenster nicht gesehen (NAS: Pferd und Ochse Zoom 25/50, Tag/Nacht/Regen). Mögliche Ursache der „Ringe“ im NAS-Bild: `oberflaeche.gdshader` projiziert Wandschichten je Fragment aus der geglätteten Normalen (Rahmen u/v dreht sich über den runden Körper, kippt bei n.y > 0,7 um); für Tiere wäre eine dreiseitige Projektion in Objektkoordinaten (wie `figur_vat.gdshader`) robuster – Vorschlag, nicht gebaut (Shader ohne Fenster nicht prüfbar). Falbe Pferde und Fesselbehang nicht gebaut.
 
 - (Umland) Böschung am Hang: Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf dem Netz (nur wenige dm Unterschied, im Klicktest nicht sichtbar); der Erdsaum ist nur Erdfarbe, ohne Farbverlauf zum Gras im Netz
@@ -282,6 +284,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Feuer) Brandschaden: Dächer und Wände anderer Modelle als Rathaus und Fachwerkhaus (Ziegel, Palast, Dom) und Brände in Köln sind nicht angesehen. `brand_oeffnung.gdshader` Modus 2 (alte Rußfahne) ist ungenutzt und kann beim nächsten Aufräumen aus dem Shader.
 
 ## Entscheidungen
+
+### Passanten gehen nicht durch Häuser und Mauern (Branch fix/passanten-kollision, Nutzerwunsch 14.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wunsch | Erst Wege reparieren (a), dann das kleine Raster (b); an Engstellen zusammenrücken (bis 0,1 m an die Wand, nie hinein); keine Godot-Navigation; Kern unberührt. | 14.11.2026 |
+| Ursachen (gemessen, Köln und Probestadt, `--kollisionsprobe=1`) | (1) Hafenarbeiter gingen die Gerade zum Kai (`HinGehen`), und der Kai war ein Knoten ohne Verbindung zum Gassennetz. (2) Ein Umland-Ziel ohne Stelle der Karte (z. B. „Feld“ in der Probestadt) endete im Netz an der Marktmitte, der Rest war eine Gerade quer durch die Stadt (40 m und mehr). (3) Stand die Figur auf einem anderen Markt als dem ihres Hauses, begann der Netzweg am falschen Markt (167-m-Gerade Neumarkt–Heumarkt). (4) Gatter und Kai hingen über das Pflaster an der Marktmitte, wenn das näher war als jeder Weg. (5) Das Tor hing schräg am nächsten Wegpunkt und schnitt die Türme. (6) Die Spur hatte keinen Wandabstand (`Passantenspur.Wandabstand` war nie benutzt). | 14.11.2026 |
+| Wege (a) | `Anlaeufe`: Markt und Umland ohne Stelle beginnen am Netzknoten bei der wirklichen Stelle der Figur (`PfadBauen` fragt zuerst die Enden, dann den Netzweg); `HinGehen` läuft über `Gassennetz.Pfad` zu Knoten (`NaechsterNetzknoten`, legt keine neuen Knoten an); `HafenAnschliessen` hängt den Kai einmal an den nächsten Wegpunkt, zu dem die Gerade kein Haus schneidet; `MarktAnschlussWeit` 8 m; `TorTiefe` 8 m senkrecht durch die Torburg. `--kollisionsfix=0` schaltet das ab. | 14.11.2026 |
+| Raster (b) | `Begehbarkeit.cs` (ohne Godot-Typen, 6 Tests): gedrehte Rechtecke im 8-m-Gitter aus Klickflächen, gebauten Wohnhäusern (Netze) und Mauerteilen; Abstand in Mikrosekunden. `Laufen` rückt die seitliche Lage zur Mittellinie zusammen, bis Körper 0,22 m + Spalt 0,1 m; liegt die Mittellinie selbst an der Wand (Tür), bleibt es dabei. Der Brunnen zählt nicht (Marktfläche regelt ihn, Rechteck ist größer als das Becken). `PfadBauen` prüft jeden Pfad (`[begehbar]`, Türenden 2,5 m zählen nicht). | 14.11.2026 |
+| Messung (NAS unter Last, Vulkan, Tempo 4, 10 Uhr) | Köln, Bild 600: Figuren im Hindernis Ø 2,08 (höchstens 10) vorher, 0,78 (höchstens 5) nachher; berührende Figuren-Ereignisse außerhalb der Türzone (4 m um Anfang und Ende des Pfades) bis Bild 960: 94 (11 Figuren) vorher, 14 (8 Figuren) nachher. Probestadt (Bild 960): Ø im Hindernis 2,56 → 1,77 (Türzonen zählen mit), außerhalb der Türzone 207 Ereignisse (23 Figuren) → 4 (1 Figur, Hafenarbeiter am Lagerhaus); 209 Zusammenrückungen in 37 726 Prüfungen, Pfade mit Verstoß 20 von 655. Das Ziel „0 Figuren“ ist nicht erreicht: der Rest steht unter Offen. Rechenzeit der Wandprüfung 0,004–0,013 ms je Bild (gemessen bei 80–220 sichtbaren Figuren, der Aufwand wächst nur mit der Zahl der Figuren, für 400 etwa das Doppelte), Aufbau der Sperrflächen 12–21 ms einmal; Ziel unter 0,1 ms erfüllt. | 14.11.2026 |
 
 ### Brandschaden am Gebäude (Branch fix/russ-schlieren, Nutzerwunsch 12.11.2026)
 

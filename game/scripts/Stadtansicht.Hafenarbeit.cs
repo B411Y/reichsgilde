@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core.Wirtschaft;
@@ -81,7 +82,23 @@ public partial class Stadtansicht
     {
         if (!KollisionsFix || _hafenAngeschlossen) return kai;
         _hafenAngeschlossen = true;
-        AnWegAnschliessen(kai, ueberDenMarkt: false);
+        // Der nächste Wegpunkt, zu dem die Gerade kein Haus schneidet (das Lagerhaus am Kai steht oft dazwischen); sonst der nächste überhaupt
+        var kandidaten = new List<(Vector3 Punkt, float Abstand)>();
+        foreach (var (von, bis, _) in _wegStrecken)
+        {
+            var q = Geometry3D.GetClosestPointToSegment(kai with { Y = 0 }, von, bis);
+            kandidaten.Add((q, q.DistanceTo(kai with { Y = 0 })));
+        }
+        kandidaten.Sort((x, y) => x.Abstand.CompareTo(y.Abstand));
+        Vector3? wahl = null;
+        foreach (var (punkt, _) in kandidaten.Take(60))
+            if (_begehbar is null || _begehbar.Verletzt(kai.X, kai.Z, punkt.X, punkt.Z, (kai.X, kai.Z), (punkt.X, punkt.Z), out _, out _) < 0.3f) { wahl = punkt; break; }
+        if (wahl is not { } ziel && kandidaten.Count > 0) wahl = kandidaten[0].Punkt;
+        if (wahl is { } q2)
+        {
+            _netz.Weg(kai with { Y = 0 }, q2);
+            _anschlussStrecken.Add((kai with { Y = 0 }, q2, TuerwegBreite));
+        }
         return kai;
     }
 
