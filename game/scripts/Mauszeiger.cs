@@ -178,7 +178,7 @@ public partial class Mauszeiger : Node
         }
         if (Stadt is null) return Art.Normal;
         if (Stadt.KennungUnterDerMaus is { } kennung)
-            return Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung) ? Art.Schloss : Art.Klick;
+            return (Stadt.RaumKennung is null && Stadt.HatInnenansicht(kennung)) || Stadt.IstAusgangstuer(kennung) ? Art.Schloss : Art.Klick; // auch die Haustür von innen (Stadtansicht.Neubau.cs)
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
     }
 

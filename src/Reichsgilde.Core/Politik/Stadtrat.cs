@@ -722,6 +722,30 @@ public sealed class Stadtrat
     /// <summary>Die zuletzt abgehaltene Ratssitzung mit dem Ergebnis je Punkt (null = seit Start oder Laden noch keine; nicht im Spielstand).</summary>
     public Ratssitzung? LetzteRatssitzung { get; private set; }
 
+    // ── Stimmrunde vor der Sitzung (Ratssitzung PR 8, Entscheidung F5) ──────────────────────────────────────────────
+    //
+    // Die Menschen stimmen vor der Sitzung ab, nicht in ihr: in den letzten Minuten des Jahres (Frist „standard“ der Entscheidungen,
+    // 120 Minuten = 21 bis 23 Uhr am letzten Tag) mit den üblichen Befehlen. Die Zeit läuft dabei weiter – im Mehrspieler wartet niemand.
+    // Am Jahresende hält der Kern die ganze Sitzung in einem Zug ab; das Ergebnis steht dann fest (LetzteRatssitzung), und die Szene
+    // spielt es nur noch ab. Wer nicht abstimmt, behält seine Voreinstellung (gesetzte Stimme, sonst Enthaltung bzw. Vorgabe bei Wahlen).
+    // Die Stimmrunde hat keinen eigenen Zustand: Ob sie läuft, folgt aus der Uhr.
+
+    /// <summary>Die Spielminute, mit der das Jahr endet und die Ratssitzung abgehalten wird – das Ende der Stimmrunde.</summary>
+    public long StimmrundeFrist => (long)(_w.Uhr.Jahr - Zeit.Spielzeit.StartJahr + 1) * Zeit.Spielzeit.MinutenProTag;
+
+    /// <summary>Die Spielminute, mit der die Stimmrunde beginnt (<see cref="StimmrundeFrist"/> minus die Frist „standard“ der Entscheidungen).</summary>
+    public long StimmrundeBeginn => StimmrundeFrist - _w.Entscheidungen.Daten.FristStandard;
+
+    /// <summary>Läuft gerade die Stimmrunde vor der Ratssitzung? (nur mit Rat)</summary>
+    public bool StimmrundeLaeuft => IstAktiv && LaufendeSitzung is null && _w.Uhr.VergangeneMinuten >= StimmrundeBeginn;
+
+    /// <summary>
+    /// Die Punkte der kommenden Sitzung, zu denen dieses Haus in der Stimmrunde noch stimmen darf (eigene Stimme mit <see cref="Sitzungsstimme.Frei"/>),
+    /// mit der Stimme, die ohne weiteren Befehl gilt. Leer außerhalb der Stimmrunde.
+    /// </summary>
+    public IReadOnlyList<Sitzungspunkt> Stimmrunde(Konto konto) =>
+        StimmrundeLaeuft ? Sitzungsvorschau().Where(p => p.Stimmen.Any(s => s.Haus == konto && s.Frei)).ToList() : Array.Empty<Sitzungspunkt>();
+
     /// <summary>
     /// Die Tagesordnung der nächsten Ratssitzung mit den voraussichtlichen Stimmen und Begründungen – nach dem heutigen Stand.
     /// Läuft gerade eine Sitzung, ihre Punkte (abgehaltene mit Ergebnis). Leer ohne Rat oder ohne Anträge und Wahlen.

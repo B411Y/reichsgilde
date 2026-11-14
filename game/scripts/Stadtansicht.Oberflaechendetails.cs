@@ -80,6 +80,7 @@ public partial class Stadtansicht
         if (_oberflaeche is null) return;
         _oberflaeche.Stufe = (int)Fenster.AktuelleBodenqualitaet;
         _oberflaeche.Pixel = Fenster.PixelLookAn;   // Pixel-Look: Relief nur als ruhige Farbe
+        NeubauPixelSetzen(Fenster.PixelLookAn);     // Neubau-Häuser: gröbere Mip-Stufe des Trim-Sheets (Stadtansicht.Neubau.cs)
         // Parallax der Relief-Texturen nur in Boden Hoch (Voreinstellungen Hoch und Ultra): 4 Schritte, in Ultra 8
         _oberflaeche.Parallax = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch ? (Fenster.AktuelleVoreinstellung == Voreinstellung.Ultra ? 8 : 4) : 0;
     }

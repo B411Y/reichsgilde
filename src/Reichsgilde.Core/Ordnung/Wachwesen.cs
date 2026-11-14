@@ -423,7 +423,7 @@ public sealed class Wachwesen
                            beweise > 0 ? $"{beweise} {(beweise == 1 ? "Beweis" : "Beweise")}" : null,
                            beschlagnahmt > 0 ? $"Diebesgut für {Zahlenformat.Ganz(beschlagnahmt)} {_w.Daten.Allgemein.Waehrung} beschlagnahmt" : null,
                        }.Where(x => x is not null)) + ".");
-        _w.Melden(text);
+        _w.Melden(Meldungsart.Bedrohung, text, haus: ziel); // Gefahr für das durchsuchte Haus (Musik „Gefahr“ beim eigenen Haus)
         return Befehlsergebnis.Ok(text);
     }
 

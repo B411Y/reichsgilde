@@ -2,19 +2,19 @@
 
 namespace Reichsgilde;
 
-/// <summary>Ein Fenster eines Hauses (im Raum des Hauses): Mitte der Scheibe, Richtung nach auÃŸen (waagerecht) und MaÃŸe in Metern.</summary>
+/// <summary>Ein Fenster eines Hauses (im Raum des Hauses): Mitte der Scheibe, Richtung nach außen (waagerecht) und Maße in Metern.</summary>
 public sealed record FensterAnker(Vector3 Mitte, Vector3 Normale, float Breite, float Hoehe);
 
-/// <summary>Ein Punkt auf dem Dach (im Raum des Hauses): die Stelle auf der DachflÃ¤che, ihre Normale (nach oben auÃŸen) und eine GrÃ¶ÃŸe der Flamme (1 = Normalfall).</summary>
+/// <summary>Ein Punkt auf dem Dach (im Raum des Hauses): die Stelle auf der Dachfläche, ihre Normale (nach oben außen) und eine Größe der Flamme (1 = Normalfall).</summary>
 public sealed record DachAnker(Vector3 Punkt, Vector3 Normale, float Groesse = 1f);
 
-/// <summary>Wie weit ein Brand ist: FlammenstÃ¤rke (0â€“1), Glut (0â€“1), Rauch (0â€“1), Licht (0â€“1) und der Name der Phase (Anfang, Vollbrand, Ausklingen, Glut).</summary>
+/// <summary>Wie weit ein Brand ist: Flammenstärke (0–1), Glut (0–1), Rauch (0–1), Licht (0–1) und der Name der Phase (Anfang, Vollbrand, Ausklingen, Glut).</summary>
 public readonly record struct BrandStand(float Flamme, float Glut, float Rauch, float Licht, string Phase);
 
 /// <summary>
-/// Der Ablauf eines GebÃ¤udebrands aus der Zeit seit dem Ausbruch (Spielminuten): <b>Anfang</b> (Rauch quillt, Glut im Dach, die ersten Fenster zÃ¼ngeln),
+/// Der Ablauf eines Gebäudebrands aus der Zeit seit dem Ausbruch (Spielminuten): <b>Anfang</b> (Rauch quillt, Glut im Dach, die ersten Fenster züngeln),
 /// <b>Vollbrand</b> (alle Fenster lodern, das Dach bricht durch), <b>Ausklingen</b> (die Flammen sinken, das Dach zuerst), <b>Glut</b> (nach dem Ende der
-/// Flammen: kein Flammenbild mehr, aber Brandflecken und Fenster glÃ¼hen, schwacher Rauch). Die Zeiten kommen vom Kern (Beginn, Ende der Flammen,
+/// Flammen: kein Flammenbild mehr, aber Brandflecken und Fenster glühen, schwacher Rauch). Die Zeiten kommen vom Kern (Beginn, Ende der Flammen,
 /// Dauer des Schwelens); hier steckt nur die Form der Kurve. Reine Rechnung ohne Godot-Objekte.
 /// </summary>
 public static class BrandVerlauf
@@ -51,26 +51,25 @@ public static class BrandVerlauf
 }
 
 /// <summary>
-/// Der Brand eines Hauses (Auftrag â€žFeuer Ã¼berallâ€œ, 30.10.2026): Flammen lodern <b>aus den Fenstern</b> und <b>aus dem Dach</b>, nicht als FlÃ¤che davor
-/// oder darÃ¼ber. Die Stellen kommen als Anker (<see cref="FensterAnker"/>, <see cref="DachAnker"/>) von auÃŸen: das Spiel findet sie im Modell
+/// Der Brand eines Hauses (Auftrag „Feuer überall“, 30.10.2026): Flammen lodern <b>aus den Fenstern</b> und <b>aus dem Dach</b>, nicht als Fläche davor
+/// oder darüber. Die Stellen kommen als Anker (<see cref="FensterAnker"/>, <see cref="DachAnker"/>) von außen: das Spiel findet sie im Modell
 /// (<c>Stadtansicht.Gebaeudebrand.cs</c>), die Testszene setzt sie von Hand.
 /// <list type="bullet">
-/// <item><b>Fenster</b>: eine wandparallele FlÃ¤che mit dem Flipbook â€žfensterâ€œ (<see cref="FeuerFlipbook.Fenster"/>: die Flamme klebt an der Fassade und
-/// schlÃ¤gt aus der Ã–ffnung nach oben), dahinter die glÃ¼hende Ã–ffnung (<c>brand_oeffnung.gdshader</c>, Modus 1) und ein RuÃŸstreifen Ã¼ber der Scheibe
-/// (Modus 2).</item>
-/// <item><b>Dach</b>: je Stelle eine Flamme (Flipbook â€ždachâ€œ, FuÃŸ im Dach) mit einem Brandfleck auf der DachflÃ¤che (Modus 0: Kohle mit glÃ¼henden Rissen), Funken
+/// <item><b>Fenster</b>: eine wandparallele Fläche mit dem Flipbook „fenster“ (<see cref="FeuerFlipbook.Fenster"/>: die Flamme klebt an der Fassade und
+/// schlägt aus der Öffnung nach oben), dahinter die glühende Öffnung (<c>brand_oeffnung.gdshader</c>, Modus 1).</item>
+/// <item><b>Dach</b>: je Stelle eine Flamme (Flipbook „dach“, Fuß im Dach) mit einem Brandfleck auf der Dachfläche (Modus 0: Kohle mit glühenden Rissen), Funken
 /// und, an der ersten Stelle, dem Rauch und dem Licht.</item>
-/// <item><b>Ablauf</b>: <see cref="Setzen"/> bekommt den Stand (<see cref="BrandVerlauf"/>) und lÃ¤sst jede Stelle bei ihrer Schwelle anspringen und weich
-/// wachsen; nach dem Ende der Flammen glÃ¼hen Ã–ffnungen und Flecken weiter.</item>
+/// <item><b>Ablauf</b>: <see cref="Setzen"/> bekommt den Stand (<see cref="BrandVerlauf"/>) und lässt jede Stelle bei ihrer Schwelle anspringen und weich
+/// wachsen; nach dem Ende der Flammen glühen Öffnungen und Flecken weiter.</item>
 /// </list>
-/// Alles hÃ¤ngt an diesem Knoten; er gehÃ¶rt ins Modell (geht mit ihm). Keine Grafikstufen: dieselbe Fassung Ã¼berall.
+/// Alles hängt an diesem Knoten; er gehört ins Modell (geht mit ihm). Keine Grafikstufen: dieselbe Fassung überall.
 /// </summary>
 public sealed partial class Gebaeudebrand : Node3D
 {
     private sealed class Stelle
     {
         public Feuer? Feuer;
-        public MeshInstance3D? Flaeche;     // Ã–ffnung (Fenster) oder Brandfleck (Dach)
+        public MeshInstance3D? Flaeche;     // Öffnung (Fenster) oder Brandfleck (Dach)
         public float Schwelle;
         public float Staerke = -1f;
         public bool Fenster;
@@ -85,12 +84,12 @@ public sealed partial class Gebaeudebrand : Node3D
     public int Fenster => _stellen.Count(s => s.Fenster);
     public int Daecher => _stellen.Count(s => !s.Fenster);
 
-    /// <summary>Alle Feuer des Brands (Fenster und Dach); fÃ¼r Wechsel der Ebene und Messungen.</summary>
+    /// <summary>Alle Feuer des Brands (Fenster und Dach); für Wechsel der Ebene und Messungen.</summary>
     public IEnumerable<Feuer> Feuerknoten => _stellen.Where(s => s.Feuer is not null).Select(s => s.Feuer!);
 
     private static ShaderMaterial Material(int modus)
     {
-        var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/brand_oeffnung.gdshader"), RenderPriority = modus == 2 ? 1 : 2 };
+        var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/brand_oeffnung.gdshader"), RenderPriority = 2 };
         m.SetShaderParameter("modus", modus);
         m.SetShaderParameter("rausch", GD.Load<Texture2D>("res://assets/texturen/feuer/rauschen.png"));
         return m;
@@ -103,7 +102,7 @@ public sealed partial class Gebaeudebrand : Node3D
         return h;
     }
 
-    /// <summary>Baut den Brand: bis zu die HÃ¤lfte der Fenster-Anker, alle Dach-Anker. <paramref name="mitLicht"/>: Dachlicht und Fensterlichter (nur die ersten beiden Fenster).</summary>
+    /// <summary>Baut den Brand: bis zu die Hälfte der Fenster-Anker, alle Dach-Anker. <paramref name="mitLicht"/>: Dachlicht und Fensterlichter (nur die ersten beiden Fenster).</summary>
     public static Gebaeudebrand Bauen(IReadOnlyList<FensterAnker> fenster, IReadOnlyList<DachAnker> dach, int saat, bool mitLicht = true)
     {
         var brand = new Gebaeudebrand { Name = "Brand" };
@@ -128,7 +127,7 @@ public sealed partial class Gebaeudebrand : Node3D
         var phase = (Hash(saat, k * 7 + 1) & 0xFFFF) / 65535f;
         var groesse = Mathf.Clamp(a.Breite / 0.9f, 0.75f, 1.5f);
         var stelle = new Stelle { Fenster = true, Schwelle = 0.02f + 0.06f * k };
-        // Die Ã–ffnung: ein glÃ¼hender Innenraum in der Scheibe (knapp davor), die Flamme schlÃ¤gt oben und vor der Wand heraus
+        // Die Öffnung: ein glühender Innenraum in der Scheibe (knapp davor), die Flamme schlägt oben und vor der Wand heraus
         var offen = new MeshInstance3D
         {
             Name = "Oeffnung", Mesh = new QuadMesh { Size = new Vector2(a.Breite * 0.92f, a.Hoehe * 0.92f) }, MaterialOverride = _oeffnung,
@@ -160,7 +159,7 @@ public sealed partial class Gebaeudebrand : Node3D
         feuer.Scale = Vector3.One * 0.001f;
         AddChild(feuer);
         stelle.Feuer = feuer;
-        // Der Brandfleck liegt der DachflÃ¤che an: ein Quadrat flach (Normale +Y), gedreht auf die Dachnormale
+        // Der Brandfleck liegt der Dachfläche an: ein Quadrat flach (Normale +Y), gedreht auf die Dachnormale
         var fleck = new MeshInstance3D
         {
             Name = "Brandfleck", Mesh = new QuadMesh { Size = new Vector2(1.9f, 1.4f) * a.Groesse * (0.7f + 0.55f * (Hash(saat, k * 3 + 9) & 0xFF) / 255f), Orientation = PlaneMesh.OrientationEnum.Y }, MaterialOverride = _fleck,
@@ -174,7 +173,7 @@ public sealed partial class Gebaeudebrand : Node3D
 
     private static float Weich(float x) { x = Mathf.Clamp(x, 0f, 1f); return x * x * (3f - 2f * x); }
 
-    /// <summary>Stellt den Brand auf diesen Stand: Flammen wachsen je Stelle Ã¼ber ihre Schwelle, Glut, Rauch und Licht folgen.</summary>
+    /// <summary>Stellt den Brand auf diesen Stand: Flammen wachsen je Stelle über ihre Schwelle, Glut, Rauch und Licht folgen.</summary>
     public void Setzen(BrandStand s)
     {
         _stand = s;
@@ -200,7 +199,7 @@ public sealed partial class Gebaeudebrand : Node3D
         {
             var f = Weich((s.Flamme - st.Schwelle) / (st.Fenster ? 0.12f : 0.2f)); // Fenster springen schnell an: schon im Anfang sieht man Flammen
             var gross = 0.55f + 0.67f * Weich((s.Flamme - 0.45f) / 0.5f); // der Vollbrand ist deutlich größer als der Anfang
-            // Die FlÃ¤che (Ã–ffnung oder Brandfleck) glimmt schon, bevor die Flamme kommt, und glÃ¼ht nach dem Feuer weiter
+            // Die Fläche (Öffnung oder Brandfleck) glimmt schon, bevor die Flamme kommt, und glüht nach dem Feuer weiter
             var glimm = Mathf.Clamp(Mathf.Max(f, s.Glut * st.Glutanteil * (st.Fenster ? 0.8f : 1f) * (1f - 0.35f * nass)), 0f, 1f);
             if (st.Feuer is { } feuer)
             {
@@ -209,7 +208,7 @@ public sealed partial class Gebaeudebrand : Node3D
                 var skala = Mathf.Max(f * gross * fern, 0.001f);
                 if (!Mathf.IsEqualApprox(feuer.Scale.X, skala)) feuer.Scale = Vector3.One * skala;
                 feuer.LichtFaktor = s.Licht * (st.Fenster ? 1f : 1f);
-                // Rauch: aus dem Fenster dÃ¼nn, ehe die Flamme da ist; schwÃ¤cher, wenn nur noch Glut ist
+                // Rauch: aus dem Fenster dünn, ehe die Flamme da ist; schwächer, wenn nur noch Glut ist
                 var rauch = (st.Fenster ? s.Rauch * Mathf.Clamp(0.3f + f, 0f, 1f) * (fensterNr < 2 ? 1f : 0.6f) : s.Rauch * Mathf.Clamp(0.25f + 0.75f * Mathf.Max(f, s.Glut * 0.3f), 0f, 1f)) * nah * tag * (1f + 0.3f * nass);
                 if (Mathf.Abs(feuer.RauchStaerke - rauch) > 0.01f) feuer.RauchStaerke = rauch;
             }
@@ -219,11 +218,11 @@ public sealed partial class Gebaeudebrand : Node3D
                 if (flaeche.Visible != sichtbar) flaeche.Visible = sichtbar;
                 var g = Mathf.Max(glimm, 0.001f);
                 if (!Mathf.IsEqualApprox(flaeche.Scale.X, st.Fenster ? 1f : g)) flaeche.Scale = st.Fenster ? Vector3.One : new Vector3(g, 1f, g);
-                // Die Ã–ffnung leuchtet nach der StÃ¤rke ihrer Stelle (im Shader: staerke = gemeinsame Flamme; hier die eigene Ã¼ber die Deckkraft in der Tiefe der FlÃ¤che)
+                // Die Öffnung leuchtet nach der Stärke ihrer Stelle (im Shader: staerke = gemeinsame Flamme; hier die eigene über die Deckkraft in der Tiefe der Fläche)
                 if (st.Fenster && !Mathf.IsEqualApprox(st.Staerke, glimm))
                 {
                     st.Staerke = glimm;
-                    flaeche.Scale = new Vector3(1f, 1f, 1f + glimm); // Tiefe: die StÃ¤rke dieser Ã–ffnung (der Shader liest das VerhÃ¤ltnis)
+                    flaeche.Scale = new Vector3(1f, 1f, 1f + glimm); // Tiefe: die Stärke dieser Öffnung (der Shader liest das Verhältnis)
                 }
             }
             if (st.Fenster) fensterNr++;
