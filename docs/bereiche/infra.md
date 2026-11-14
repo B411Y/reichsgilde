@@ -92,3 +92,13 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Verboten | `--admin`, `--auto`, `--delete-branch` (Hook `~/.claude/hooks/github_sperre.py`), Force-Push, `gh api`, Schleifen um `gh` | 08.11.2026 |
 | Schutzregel | `main`: nur per PR, 3 Pflichtprüfungen; „Require review from Code Owners“ ist seit 08.11.2026 aus, `.github/CODEOWNERS` bleibt als Kennzeichnung | 08.11.2026 |
 | Konto | Alles über das Konto des Nutzers (B411Y); das Bot-Konto ist gesperrt, kein Ersatz-Bot (überholt die Bot-Token-Zeilen aus PR #249; `BOT_TOKEN` in `prs-aktuell.yml` bleibt als Rückfall-Schalter, ohne Token gilt der Rückfall). Nur der Push-Agent (haiku, mittel) führt push, `gh pr create` und `gh pr merge` aus | 08.11.2026 |
+
+### CI schneller (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Export gleichzeitig | Der Job „Spiel exportieren (Windows + Linux)“ hat kein `needs: tests` mehr: Er holt den Code selbst, baut den C#-Teil über Godot und braucht nichts aus den Test-Jobs. Die Prüfung, ob `game/` betroffen ist, bleibt unverändert | 14.11.2026 |
+| Windows nur Gleichheit | Unter Windows läuft nach dem Bauen nur `--klasse=GleichheitTests` (vorhandener Schalter der Testauswahl, `Program.cs` unverändert); sie liefert wie bisher das Artefakt `gleichheit-windows-latest` für „Gleichheit Linux/Windows“. Der volle Testsatz läuft nur unter Linux | 14.11.2026 |
+| Jobnamen | Unverändert, weil die Schutzregel („main schützen“, Regelsatz) vier Pflichtprüfungen verlangt: „Build & Tests (ubuntu-latest)“, „Build & Tests (windows-latest)“, „Spiel exportieren (Windows + Linux)“, „Gleichheit Linux/Windows“ | 14.11.2026 |
+| Rauchtest-Wiederholung | `anmerken` endet mit `\|\| true`: Bei mehr als 80 Fundzeilen brach `grep … \| head -80` mit „Broken pipe“ unter `pipefail` den Schritt ab, bevor der zweite Versuch lief (Lauf 43618890805 auf main, 14.11.2026; der Fund selbst war ein sporadischer RID-Fehler aus `HandschuhZeiger.ModellLaden`) | 14.11.2026 |
+| Dauer | Geschätzt (nicht gemessen) etwa 10–11 statt 20 Minuten: Linux voll ~9,5 min, Windows Bauen plus Gleichheitstest ~3 min, Export ~7 min, danach Gleichheit-Job ~5 s | 14.11.2026 |

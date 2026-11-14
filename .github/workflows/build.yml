@@ -2,9 +2,9 @@
 #  Automatische Prüfung für Reichsgilde (GitHub Actions)
 #
 #  Läuft bei jedem Pull Request und jeder Änderung auf "main":
-#    1. Bauen + Tests auf Windows UND Linux
+#    1. Bauen auf Windows UND Linux; alle Tests unter Linux, unter Windows nur der Gleichheitstest
 #    2. Gleichheit: Beide Systeme müssen im Gleichheitstest dieselben Prüfsummen ergeben (Mehrspieler)
-#    3. Das Spiel für Windows und Linux exportieren und kurz starten
+#    3. Das Spiel für Windows und Linux exportieren und kurz starten (gleichzeitig mit 1.)
 #
 #  Ergebnis: grüner Haken = alles in Ordnung, rotes Kreuz = etwas ist kaputt.
 #  Die fertigen Spiel-Builds liegen danach unter "Actions" → Lauf → "Artifacts".
@@ -62,8 +62,10 @@ jobs:
       - name: Projektmappe bauen
         run: dotnet build Reichsgilde.sln --configuration Debug
 
+      # Den vollen Testsatz braucht es nur einmal: Er läuft unter Linux. Windows führt nur den Gleichheitstest aus
+      # (--klasse=GleichheitTests), denn dessen Prüfsummen vergleicht der Job „Gleichheit Linux/Windows“ mit denen von Linux.
       - name: Tests ausführen
-        run: dotnet run --project tests/Reichsgilde.Core.Tests --no-build
+        run: dotnet run --project tests/Reichsgilde.Core.Tests --no-build ${{ matrix.os == 'windows-latest' && '-- --klasse=GleichheitTests' || '' }}
         env:
           # Der Gleichheitstest (Mehrspieler M1, GleichheitTests.cs) schreibt seine Prüfsummen hierher.
           GLEICHHEIT_PRUEFSUMME_DATEI: ${{ runner.temp }}/gleichheit-pruefsumme.txt
@@ -105,7 +107,8 @@ jobs:
 
   export:
     name: Spiel exportieren (Windows + Linux)
-    needs: tests
+    # Ohne „needs“: Der Export holt sich den Code selbst und baut den C#-Teil über Godot; er braucht nichts aus den
+    # Test-Jobs und läuft deshalb gleichzeitig mit ihnen. Rot werden Tests und Export weiterhin je für sich.
     runs-on: ubuntu-24.04   # fest, siehe oben bei den Tests
     steps:
       - name: Code holen
@@ -267,9 +270,11 @@ jobs:
           MUSTER="ERROR|Unhandled exception|leaked"
           # Fundstellen mit Folgezeilen als Anmerkung (Stufe $1): Sie stehen oben in der Zusammenfassung des Laufs
           # und sind über die API lesbar, ohne das ganze Protokoll zu laden.
+          # „|| true“: Hat grep mehr als 80 Zeilen, schließt head die Leitung, grep endet mit „Broken pipe“ (Rückgabewert 2),
+          # und pipefail brach den Schritt ab, bevor der zweite Versuch lief (Lauf 43618890805, 14.11.2026).
           anmerken() {
             grep -E -B1 -A6 "$MUSTER|=== zweiter Start|=== dritter Start" start.log | head -80 \
-              | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt
+              | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN { ORS = "%0A" } { print }' > anmerkung.txt || true
             echo "::$1 title=$2::$(cat anmerkung.txt)"
           }
           rauchtest || absturz
