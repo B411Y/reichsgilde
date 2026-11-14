@@ -1156,6 +1156,10 @@ public sealed record KontoStand
     /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
     public List<string>? WohnhausEinrichtung { get; init; }
 
+    /// <summary>Angebaute Räume zur Wahl (Kennungen aus „wohnen.raeume“, in der Reihenfolge der Wahl; fehlt = keine, auch in alten Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? WohnhausRaeume { get; init; }
+
     /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (fehlt = 0, nur geschrieben, wenn gesetzt).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public double EntwicklerAnsehen { get; init; }

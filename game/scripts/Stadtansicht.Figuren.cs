@@ -257,7 +257,7 @@ public partial class Stadtansicht
         var schatten = _kamera.Size <= PassantenSchattenBisZoom || PassantenSchattenArt == FigurSchattenArt.Echt;
         if (schatten != _passantenSchatten) { _passantenSchatten = schatten; foreach (var p in _passanten.Values) if (p.Figur is { } f) FigurSchatten(f, schatten); }
         _stadtLage = GlobalTransform;
-        _stadtVerdeckt = _raum is not null; // in der Raumansicht sieht man die Stadt nicht
+        _stadtVerdeckt = _raum is not null && !NeubauInnenAktiv; // in der Raumansicht sieht man die Stadt nicht
         _figurenBild++;
     }
 

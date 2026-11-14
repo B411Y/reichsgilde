@@ -144,7 +144,7 @@ public partial class CharakterAnzeige : PanelContainer
 
         daten.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         Hauptmenue.Text(daten, "Talente", 17, Gold);
-        foreach (var t in TalentTexte.Alle) TalentZeile(daten, p, t);
+        foreach (var t in TalentTexte.Alle) TalentZeile(daten, w, p, t);
 
         if (buch.HatLebensweg(p)) ReiterBauen(buch, p); // Reiter „Züge und Familie“ / „Lebensweg“ (Lebensweise, Teil 3a)
 
@@ -181,7 +181,7 @@ public partial class CharakterAnzeige : PanelContainer
         eltern.AddChild(spalte);
     }
 
-    private void TalentZeile(Container eltern, Person p, Talent t)
+    private void TalentZeile(Container eltern, Stadtwirtschaft w, Person p, Talent t)
     {
         var anlage = p.Anlage(t);
         var jetzt = p.Talent(t);
@@ -197,7 +197,7 @@ public partial class CharakterAnzeige : PanelContainer
             diff > 0.01 ? Gruen : diff < -0.01 ? Rot : null);
         zahl.MouseFilter = MouseFilterEnum.Ignore;
 
-        var tipp = $"{t.Name()}: {TalentTexte.Sterne(jetzt)} von 6 Sternen\nAnlage {TalentTexte.Sterne(anlage)}";
+        var tipp = TalentTipp.Text(w, p, t) + $"\nAnlage {TalentTexte.Sterne(anlage)}";
         foreach (var z in p.Zuege.Where(z => Math.Abs(z.Talent(t)) > 1e-9))
             tipp += $"\n{z.Name} {(z.Talent(t) > 0 ? "+" : "−")}{TalentTexte.Sterne(Math.Abs(z.Talent(t)))}";
         if (p.Krankheit is { } k && k.Abzug(t) > 0) tipp += $"\n{k.Name} −{TalentTexte.Sterne(k.Abzug(t))}";
@@ -274,6 +274,7 @@ public partial class CharakterAnzeige : PanelContainer
         var tipp = $"{z.Name} ({z.Artname})";
         if (z.Beschreibung != "") tipp += "\n" + z.Beschreibung;
         if (z.Wirkungstext != "") tipp += "\nWirkung: " + z.Wirkungstext;
+        if (z.Meinungstext != "") tipp += "\nMeinung: " + z.Meinungstext;
         if (z.Gegenteil is { } g) tipp += $"\nGegenteil: {w.Familien.Zug(g)?.Name ?? g}";
         return tipp + "\nMehr zu [[charakterzuege|Charakterzügen]].";
     }

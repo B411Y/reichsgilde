@@ -238,7 +238,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, HinsehenZiel = HinsehenZiel, Hinsehen = MeldungAnsteuern };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, Ziel = VerlaufZiel, Ansteuern = VerlaufAnsteuern };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -369,7 +369,7 @@ public partial class Hauptszene : Node
         _berichtTafel.JahresberichtGewuenscht += () =>
         {
             if (_spieler is null || _spieler.Vorjahr is null) return;
-            _pauseVorBericht ??= _simulation.Takt.IstPausiert;
+            _pauseVorBericht ??= _simulation.Takt.Spielerpause;
             _simulation.Takt.IstPausiert = true;
             _jahresbericht.Zeigen(_simulation, _spieler);
         };
@@ -446,10 +446,12 @@ public partial class Hauptszene : Node
             if (_sitzungsTafel.Laeuft || SitzungVormerken(jahr))
             {
                 _jahresberichtWartet = true; // erst nach der Szene der Ratssitzung (Hauptszene.Ratssitzung.cs)
+                ZeitHalteAbgleichen(); // Einzelspiel: hält noch in diesem Bild an, kein Tick des neuen Jahres vor der Szene
                 return;
             }
             _jahresbericht.Zeigen(_simulation, _spieler);
-            if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
+            if (BeiJahresberichtPausieren && !DarfAnhalten) _simulation.Takt.IstPausiert = true;
+            ZeitHalteAbgleichen(); // Einzelspiel: Haltegrund „Jahresbericht“
         };
         _simulation.PartieBeendet += () =>
         {
@@ -459,8 +461,10 @@ public partial class Hauptszene : Node
         _jahresbericht.Geschlossen += () =>
         {
             if (_simulation.IstBeendet) SpielmenueOeffnen(); // Partie vorbei: Laden, Hauptmenü oder Beenden
-            else _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
+            else if (_pauseVorBericht is not null || !DarfAnhalten)
+                _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
             _pauseVorBericht = null;
+            ZeitHalteAbgleichen(); // Einzelspiel: der Haltegrund geht, die Zeit läuft wie vor dem Jahreswechsel
         };
         _aktionKnopf.Pressed += () =>
         {
@@ -484,7 +488,7 @@ public partial class Hauptszene : Node
             _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
-            if (Stadtansicht.IstMarktplatz(kennung)) MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+            if (Stadtansicht.IstMarktplatz(kennung)) { MarktOeffnen(); AuswahlSchliessen(); } // wie im Original: ein Klick auf den Markt öffnet die Preistafel; die Kurzinfo daneben entfällt
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {
@@ -798,6 +802,7 @@ public partial class Hauptszene : Node
 
     private void HinterzimmerOeffnen()
     {
+        if (Stadtansicht.NeubauOhneHinterzimmer(_spieler)) return; // Neubau-Probe: das Haus der Stufe 1 hat kein Hinterzimmer
         TafelnSchliessen();
         _hinterzimmer.Oeffnen();
     }
@@ -1136,7 +1141,7 @@ public partial class Hauptszene : Node
 
     private void SpielmenueOeffnen()
     {
-        _warPausiertVorMenue = _simulation.Takt.IstPausiert;
+        _warPausiertVorMenue = _simulation.Takt.Spielerpause; // ohne Haltegründe: die gehen von selbst
         _simulation.Takt.IstPausiert = true;
         _menueListe.Visible = false;
         _spielmenue.Show();
@@ -1296,6 +1301,7 @@ public partial class Hauptszene : Node
         }
         if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
         RatssitzungPruefen(); // steht die Partie vor der Ratssitzung: in den Ratssaal
+        ZeitHalteAbgleichen(); // Einzelspiel: Sitzung und Jahresbericht halten die Zeit an (Hauptszene.Ratssitzung.cs)
 
         Anzeigen();
         LeisteAnzeigen(delta);
@@ -1314,6 +1320,10 @@ public partial class Hauptszene : Node
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
         _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
         _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
+        _einblendung.AbstandUnten = _brief.AbstandUnten;
+        // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
+        _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
+                            || _stimmrunde.Visible || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
@@ -1420,8 +1430,17 @@ public partial class Hauptszene : Node
         GetViewport().SetInputAsHandled();
     }
 
+    /// <summary>Hält ein Haltegrund die Zeit an (Ratssitzung, Jahresbericht im Einzelspiel), sind Pause und Tempo wirkungslos – auch über die Tasten.</summary>
+    private bool ZeitGesperrt()
+    {
+        if (!_simulation.Takt.IstAngehalten) return false;
+        GD.Print($"Zeit: Taste wirkungslos – Haltegründe: {string.Join(", ", _simulation.Takt.Haltegruende)}");
+        return true;
+    }
+
     private void PauseUmschalten()
     {
+        if (ZeitGesperrt()) return;
         _simulation.Takt.PauseUmschalten();
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Leertaste
         Protokollieren(_simulation.Takt.IstPausiert ? "Pause." : "Weiter geht's.");
@@ -1429,7 +1448,7 @@ public partial class Hauptszene : Node
 
     private void TempoSetzen(double tempo)
     {
-        if (tempo <= 0) return;
+        if (tempo <= 0 || ZeitGesperrt()) return;
         _simulation.Takt.Tempo = tempo;
         _simulation.Takt.IstPausiert = false;
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Zifferntaste
@@ -1457,8 +1476,41 @@ public partial class Hauptszene : Node
     /// Gerichtssaal und Kerker → Stadtgericht, Wohnstube → Familie. Amtsstube und Kontor zeigen ihr Fenster ohnehin
     /// (siehe <see cref="AuswahlImRaum"/>). Gibt false zurück, wenn die Kennung kein Raum ist.
     /// </summary>
+    /// <summary>Ein Gegenstand in der Wohnstube hat die Wohnhaus-Tafel geöffnet: Sie bleibt dort stehen, bis man sie schließt (sonst zeigt sie sich im eigenen Haus nur im Kontor).</summary>
+    private bool _wohnhausVomGegenstand, _wohnhausHaken;
+
+    private void WohnhausVomGegenstand(WohnhausAnzeige.Reiter reiter)
+    {
+        if (!_wohnhausHaken)
+        {
+            _wohnhausHaken = true;
+            _wohnhaus.VisibilityChanged += () => { if (!_wohnhaus.Visible) _wohnhausVomGegenstand = false; };
+        }
+        _wohnhausVomGegenstand = true;
+        WohnhausOeffnen(reiter);
+        _wohnhausVomGegenstand = true; // das Schließen der vorigen Tafel hat das Kennzeichen gelöscht
+        if (!_wohnhaus.Visible) _wohnhaus.Zeigen(reiter);
+    }
+
     private bool RaumAngeklickt(string kennung)
     {
+        if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
+        {
+            _stadt.InnenansichtVerlassenDurchTuer();
+            return true;
+        }
+        if (Stadtansicht.NeubauGegenstandVon(kennung) is { } gegenstand) // Gegenstände im Raum statt Reiterfenster (Neubau-Probe)
+        {
+            switch (gegenstand)
+            {
+                case "Familienbuch": FamilieOeffnen(); break;
+                case "Truhe": TafelnSchliessen(); _wohnhausBaum.Oeffnen(); break;
+                case "Bauplan": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Haus); break;
+                case "Werkzeug": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Handwerk); break;
+                case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
+            }
+            return true;
+        }
         var w = _simulation.Wirtschaft;
         switch (kennung)
         {
@@ -1573,7 +1625,7 @@ public partial class Hauptszene : Node
             if (_auswahl.Visible) _auswahl.Hide();
             _uebersicht.Zeigen(null);
             // Im eigenen Wohnhaus nur im Kontor (wie früher das Kontor), aus einem anderen Gebäude heraus (Kopfzeile, F) überall
-            var zeigen = RechtsFrei && (AuswahlImRaum || _stadt.InnenKennung != EigenesWohnhaus);
+            var zeigen = RechtsFrei && (AuswahlImRaum || _wohnhausVomGegenstand || _stadt.InnenKennung != EigenesWohnhaus);
             if (_wohnhaus.Visible != zeigen)
             {
                 if (zeigen) _wohnhaus.Zeigen(WohnhausAnzeige.Reiter.Haus);

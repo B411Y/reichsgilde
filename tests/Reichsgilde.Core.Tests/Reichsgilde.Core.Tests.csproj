@@ -20,6 +20,8 @@
     <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
     <!-- Die Zuordnung der Textmeldungen zu Arten und Stufen (Benachrichtigungen Stufe 1) kennt ebenfalls kein Godot – MeldungsordnungTests.cs -->
     <Compile Include="..\..\game\scripts\Meldungsordnung.cs" Link="Ansagen\Meldungsordnung.cs" />
+    <!-- Die Reihe der zentralen Einblendung (ruht hinter Fenstern und Briefen) kennt kein Godot – EinblendungsreiheTests.cs -->
+    <Compile Include="..\..\game\scripts\Einblendungsreihe.cs" Link="Ansagen\Einblendungsreihe.cs" />
     <!-- Was man Arbeitern im Innenraum ansieht (Stufe, Volk, Geschlecht, Haar; Personal PR #224) – ArbeitertrachtTests.cs -->
     <Compile Include="..\..\game\scripts\Arbeitertracht.cs" Link="Arbeitertracht\Arbeitertracht.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
@@ -27,6 +29,8 @@
     <!-- Zäune der Umlandstellen als Kisten der Ego-Perspektive (Zaun blockiert, Tor und Lücke offen) – EgoZaunTests.cs -->
     <Compile Include="..\..\game\scripts\EgoZaun.cs" Link="Gehtempo\EgoZaun.cs" />
     <Compile Include="..\..\game\scripts\Taschendiebgang.cs" Link="Gehtempo\Taschendiebgang.cs" />
+    <Compile Include="..\..\game\scripts\TooltipLage.cs" Link="Tooltips\TooltipLage.cs" />
+    <Compile Include="..\..\game\scripts\BetriebsKnoepfe.cs" Link="Tooltips\BetriebsKnoepfe.cs" />
     <!-- Einbruch und Banden bei Nacht (Wachen und Diebe, Paket P4) – NachtgangTests.cs -->
     <Compile Include="..\..\game\scripts\Nachtgang.cs" Link="Gehtempo\Nachtgang.cs" />
     <!-- Diebe weichen der Streife aus (Fenster und Bahn, nur Bild) – AusweichgangTests.cs -->

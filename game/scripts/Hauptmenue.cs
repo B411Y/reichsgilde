@@ -574,6 +574,7 @@ public partial class Hauptmenue : Node
     private void WappenZeigen()
     {
         _wappenVorschau.Wappen = _wappen;
+        KiWappenSperren(); // das Wappen des Spielers ist für die KI-Zeilen vergeben
         _farbe1.Select(_farbe1.GetItemIndex((int)_wappen.Farbe1));
         _farbe2.Select(_farbe2.GetItemIndex((int)_wappen.Farbe2));
         var problem = WappenProblem();

@@ -47,6 +47,9 @@ public partial class HandschuhZeiger : CanvasLayer
     public static bool Wirksam(int groesse) => HandschuhModell.Gilt(Fenster.Handschuh3dAn, Verfuegbar, groesse);
 
     private bool _an, _hilfe, _anklickbar, _text, _rahmen, _textEingabe; // _text: Textfeld unter der Maus (dann das Messing-I statt der Hand)
+
+    /// <summary>Das Bild der Hand relativ zur Mausposition (null, wenn der 3D-Handschuh nicht gezeichnet wird); die Tooltips bleiben außerhalb davon (<see cref="TooltipLage"/>).</summary>
+    public static Rect2? BildRelativ { get; private set; }
     private double _letztesDt;
     private Vector2 _imBildLetzte; // Zeigerpunkt im Bild (Zeichenflächeneinheiten des Hauptfensters), für die Spiegel in Popups
     private readonly RandomNumberGenerator _zufall = new(); // nur für die Darstellung (Zucken, Winken); der Kern hat seine eigene Zufallsquelle
@@ -251,6 +254,7 @@ public partial class HandschuhZeiger : CanvasLayer
         if (!_an || !ModellLaden())
         {
             _flaeche.Visible = false;
+            BildRelativ = null;
             _bild.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
             _hatMaus = false;
             _gedrueckt = false;
@@ -259,6 +263,7 @@ public partial class HandschuhZeiger : CanvasLayer
         if (!sichtbar)
         {
             _flaeche.Visible = false;
+            BildRelativ = null;
             _bild.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
             _hatMaus = false;
             return;
@@ -424,5 +429,6 @@ public partial class HandschuhZeiger : CanvasLayer
         var (x, y) = HandschuhModell.BildEcke(maus.X, maus.Y, imBild.X, imBild.Y);
         _flaeche.Position = new Vector2((float)x, (float)y);
         _imBildLetzte = imBild;
+        BildRelativ = new Rect2(-imBild, _flaeche.Size); // für die Lage der Tooltips: wo das Bild der Hand liegt, von der Maus aus gesehen
     }
 }

@@ -507,7 +507,7 @@ public sealed class Wirtschaftsdaten
         Handel?.Pruefen(f);
         Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
         Jahreszeiten?.Pruefen(f, Waren, Betriebsarten);
-        Wohnen?.Pruefen(f, Staende.Count, Waren);
+        Wohnen?.Pruefen(f, Staende.Count, Waren, Meinungen?.Aktivitaeten.Keys, Betriebsarten.Count > 0 ? Betriebsarten.Values.Select(a => a.Beruf) : null);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
         Blitz?.Pruefen(f);

@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 
 static class Balancing2Tests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
 
     static Simulation NeueSimulation(Wirtschaftsdaten daten) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten);
@@ -119,7 +119,7 @@ static class Balancing2Tests
 
         ("Spitzel der KI: nur gegen ein Haus vor ihr (oder einen Feind), höchstens jedes zweite Jahr; vorn ohne Feind keiner", () =>
         {
-            var daten = Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte());
+            var daten = Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte(Datenpfad.OhneRaeume())); // ohne Räume: der Anbau (700) verschöbe das Geld für den Spitzel
             var sim = NeueSimulation(daten);
             var w = sim.Wirtschaft!;
             Konto Haus(string name, double geld, int stand = 1)
