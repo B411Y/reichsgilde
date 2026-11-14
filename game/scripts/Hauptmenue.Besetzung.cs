@@ -163,6 +163,7 @@ public partial class Hauptmenue
             var tipp = $"{z.Name} ({z.Artname})";
             if (z.Beschreibung != "") tipp += "\n" + z.Beschreibung;
             if (z.Wirkungstext != "") tipp += "\nWirkung: " + z.Wirkungstext;
+            if (z.Meinungstext != "") tipp += "\nMeinung: " + z.Meinungstext;
             _zuegeReihe.AddChild(new CharakterAnzeige.ZugIcon(z, tipp));
         }
     }
@@ -209,6 +210,7 @@ public partial class Hauptmenue
             wappen.AddItem("zufällig", -1);
             for (var w = 0; w < Wappen.Vorlagen.Count; w++)
                 wappen.AddItem(Wappen.Vorlagen[w].Beschreibung(), w);
+            wappen.ItemSelected += _ => KiWappenSperren();
             oben.AddChild(wappen);
             wurzel.AddChild(oben);
 
@@ -233,12 +235,43 @@ public partial class Hauptmenue
         KiZeilenZeigen();
     }
 
+    /// <summary>Das gewählte Wappen je KI-Zeile (null = zufällig); nur die gezeigten Zeilen.</summary>
+    private List<Wappen?> KiWappenWahl() =>
+        _kiZeilen.Take((int)_kiAnzahl.Value).Select(z => z.Wappen.GetSelectedId() < 0 ? null : (Wappen?)Wappen.Vorlagen[z.Wappen.GetSelectedId()]).ToList();
+
+    /// <summary>Welche Wappen für die Zeile (-1 = Spieler) schon vergeben sind (Kern, nur lesend).</summary>
+    private IReadOnlyList<(Wappen Wappen, string Haus)> VergebeneWappenLesen(int zeile) =>
+        Partiebesetzung.VergebeneWappen(Stadtkarten.Startkarte?.Startbelegung ?? Startbelegung.Ersatz, (int)_kiAnzahl.Value, _wappen,
+            Partieaufbau.Hausname(_familie.Text), KiWappenWahl(), zeile);
+
+    /// <summary>
+    /// Im Wappenfeld jeder KI-Zeile sind die Vorlagen ausgegraut, die schon ein Haus der Karte, ein anderes Haus der Partie oder der Spieler trägt (Tooltip
+    /// „Schon vergeben an …“). Wird bei jeder Wahl, jeder Änderung der KI-Zahl und jedem Wappen des Spielers neu gesetzt.
+    /// </summary>
+    private void KiWappenSperren()
+    {
+        if (_kiZeilen.Count == 0 || _kiAnzahl is null) return;
+        for (var i = 0; i < _kiZeilen.Count && i < (int)_kiAnzahl.Value; i++)
+        {
+            var vergeben = VergebeneWappenLesen(i);
+            var feld = _kiZeilen[i].Wappen;
+            for (var w = 0; w < Wappen.Vorlagen.Count; w++)
+            {
+                var index = feld.GetItemIndex(w);
+                var haus = vergeben.FirstOrDefault(x => x.Wappen == Wappen.Vorlagen[w]);
+                feld.SetItemDisabled(index, haus.Haus is not null);
+                feld.SetItemTooltip(index, haus.Haus is not null ? $"Schon vergeben an {haus.Haus}" : "");
+            }
+        }
+    }
+
     /// <summary>Nur so viele Zeilen zeigen, wie KI-Gegner gewählt sind.</summary>
     private void KiZeilenZeigen()
     {
         var n = (int)_kiAnzahl.Value;
         for (var i = 0; i < _kiZeilen.Count; i++) _kiZeilen[i].Wurzel.Visible = i < n;
         _kiListeKopf.Visible = n > 0;
+        KiWappenSperren();
     }
 
     /// <summary>Die einzeln festgelegten KI-Häuser (je Feld null = gewürfelt); null, wenn nichts festgelegt ist.</summary>
@@ -274,6 +307,8 @@ public partial class Hauptmenue
         var wappen = kis.Select(v => v.Wappen).OfType<Wappen>().Prepend(_wappen).ToList();
         if (wappen.Count != wappen.Distinct().Count())
             fehler.Add("Zwei Häuser führen dasselbe Wappen.");
+        else if (VergebeneWappenLesen(-1).FirstOrDefault(x => x.Wappen == _wappen) is { Haus: not null } kartenhaus)
+            fehler.Add($"Das Wappen führt schon {kartenhaus.Haus}."); // ein Haus der Karte (Daten der Karte, nur gelesen)
         var berufe = kis.Select(v => v.Beruf).OfType<string>().Prepend(GewaehlterBeruf(_beruf) ?? "").ToList();
         if (berufe.GroupBy(b => b).FirstOrDefault(g => g.Count() > 1) is { } doppelterBeruf)
             fehler.Add($"Den Beruf „{doppelterBeruf.Key}“ hat nur ein Haus – jeder Beruf kommt einmal vor.");

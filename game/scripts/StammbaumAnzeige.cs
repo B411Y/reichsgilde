@@ -41,7 +41,7 @@ public partial class StammbaumAnzeige : VBoxContainer
         _fenster = new Control
         {
             CustomMinimumSize = new Vector2(FensterBreite, FensterHoehe), ClipContents = true, MouseFilter = MouseFilterEnum.Stop,
-            MouseDefaultCursorShape = CursorShape.Drag,
+            MouseDefaultCursorShape = CursorShape.Move, // ✥ beim Verschieben (System-Zeiger; mit 3D-Handschuh die Faust)
         };
         _fenster.GuiInput += FensterEingabe;
         AddChild(_fenster);

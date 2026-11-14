@@ -37,11 +37,13 @@ public partial class Tooltips : Node
     private const double VerweisVerzoegerung = 0.2;
     /// <summary>Sekunden, die ein Tooltip nach dem Weggehen der Maus bleibt – so lange braucht die Maus von der Quelle in den Tooltip.</summary>
     private const double Nachlauf = 0.4;
-    private const int MaxBreite = 340;
-    private const int Schriftgroesse = 16;
 
-    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
-    private static readonly Color Hell = new(0.92f, 0.88f, 0.80f);
+    private static Theme Thema => _thema ??= GD.Load<Theme>("res://scenes/tooltip_thema.tres");
+    private static Theme? _thema;
+    private static Color Gold => Thema.GetColor("gold", "TooltipFarben");
+    private static int MaxBreite => Thema.GetConstant("breite", "TooltipMasse");
+    private static int Schriftgroesse => Thema.GetConstant("schrift", "TooltipMasse");
+    private static Color Hell => Thema.GetColor("hell", "TooltipFarben");
 
     private sealed class Tipp
     {
@@ -53,6 +55,7 @@ public partial class Tooltips : Node
         public Control? Quelle;
         public Tipp? Eltern;
         public List<Tipp> Kinder = new();
+        public string Roh = "";
         public string? Kennung;
         public bool Fest, Gezogen;
         public double Fuellung, Inaktiv;
@@ -218,6 +221,10 @@ public partial class Tooltips : Node
                     BegriffOeffnen(t, kennung, maus, fest: false);
             }
 
+            // Live: Liefert die Quelle jetzt einen anderen Text (Zahlen, die sich ändern), wird er im offenen Tooltip ersetzt
+            if (t.Eltern is null && t.Quelle is { } lebendig && IsInstanceValid(lebendig) && lebendig.IsInsideTree()
+                && lebendig.GetTooltip(lebendig.GetLocalMousePosition()) is { Length: > 0 } frisch && frisch != t.Roh) Auffrischen(t, frisch);
+
             if (t.Fest) continue;
 
             var imTipp = t.Tafel.GetGlobalRect().HasPoint(maus);
@@ -256,6 +263,45 @@ public partial class Tooltips : Node
             if (c.MouseFilter == Control.MouseFilterEnum.Stop || c.TopLevel) break;
         }
         return (null, "");
+    }
+
+    /// <summary>Setzt den Text eines offenen Tooltips neu (gleiche Aufbereitung wie beim Öffnen); Breite und Höhe passen sich an.</summary>
+    private void Auffrischen(Tipp t, string roh)
+    {
+        t.Roh = roh;
+        if (VerweiseErgaenzen is { } ergaenzen) roh = ergaenzen(roh, t.Kennung);
+        var bbcode = Aufbereiten(roh, out var schlicht);
+        var breite = Schriften.Text.GetMultilineStringSize(schlicht, HorizontalAlignment.Left, MaxBreite, Schriftgroesse).X;
+        t.Text.CustomMinimumSize = new Vector2(Math.Min(MaxBreite, MathF.Ceiling(breite) + 6), 0);
+        t.Text.Text = bbcode;
+        t.Tafel.ResetSize();
+    }
+
+    /// <summary>
+    /// Für Tafeln, die sich neu aufbauen: der Weg (Kindnummern) von <paramref name="wurzel"/> zum Steuerelement, dessen Tooltip gerade offen ist, sonst null.
+    /// Nach dem Neuaufbau gibt <see cref="QuelleWiederfinden"/> dem Tooltip das neue Steuerelement an derselben Stelle – er bleibt offen und frischt sich auf.
+    /// </summary>
+    public static int[]? QuellePfad(Node wurzel)
+    {
+        if (_instanz?._quelle is not { } quelle || !IsInstanceValid(quelle) || !wurzel.IsAncestorOf(quelle)) return null;
+        var pfad = new List<int>();
+        for (Node n = quelle; n != wurzel; n = n.GetParent()) pfad.Add(n.GetIndex());
+        pfad.Reverse();
+        return pfad.ToArray();
+    }
+
+    public static void QuelleWiederfinden(Node wurzel, int[]? pfad)
+    {
+        if (pfad is null || _instanz is not { } t || t._quelle is not { } alt) return;
+        Node? n = wurzel;
+        foreach (var i in pfad)
+        {
+            if (n is null || i >= n.GetChildCount()) return;
+            n = n.GetChild(i);
+        }
+        if (n is not Control neu || neu == alt) return;
+        foreach (var tipp in t._tipps.Where(x => x.Quelle == alt)) tipp.Quelle = neu;
+        t._quelle = neu;
     }
 
     private void QuelleAktualisieren(Control? unter, double delta)
@@ -299,7 +345,7 @@ public partial class Tooltips : Node
         eltern?.Kinder.Add(t);
 
         t.Tafel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, Modulate = new Color(1, 1, 1, 0) };
-        t.Tafel.AddThemeStyleboxOverride("panel", Stil(false));
+        t.Tafel.AddThemeStyleboxOverride("panel", Thema.GetStylebox("lose", "TooltipTafel"));
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 8);
         t.Tafel.AddChild(zeile);
@@ -309,11 +355,12 @@ public partial class Tooltips : Node
         if (!string.IsNullOrEmpty(titel))
         {
             var kopf = new Label { Text = titel };
-            kopf.AddThemeFontSizeOverride("font_size", 20); // ab 20 nimmt Schriften.cs die Überschriftschrift
+            kopf.AddThemeFontSizeOverride("font_size", Thema.GetConstant("titel", "TooltipMasse")); // ab 20 nimmt Schriften.cs die Überschriftschrift
             kopf.AddThemeColorOverride("font_color", Gold);
             t.Spalte.AddChild(kopf);
         }
 
+        t.Roh = roh; // der Text, wie ihn die Quelle liefert (zum Vergleichen beim Auffrischen)
         if (VerweiseErgaenzen is { } ergaenzen) roh = ergaenzen(roh, kennung);
         var bbcode = Aufbereiten(roh, out var schlicht);
         t.Text = new RichTextLabel
@@ -368,21 +415,11 @@ public partial class Tooltips : Node
         t.Kreis.DrawArc(mitte, radius, 0, Mathf.Tau, 28, new Color(Gold, 0.9f), 1.5f, true);
     }
 
-    private static StyleBoxFlat Stil(bool fest) => new()
-    {
-        BgColor = new Color(0.12f, 0.11f, 0.10f, 0.97f),
-        BorderColor = fest ? Gold : Gold * new Color(1, 1, 1, 0.7f),
-        BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-        CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
-        ShadowColor = new Color(0, 0, 0, 0.5f), ShadowSize = fest ? 10 : 6,
-        ContentMarginLeft = 12, ContentMarginRight = 10, ContentMarginTop = 9, ContentMarginBottom = 10,
-    };
-
     private void Festmachen(Tipp t)
     {
         if (t.Fest) return;
         t.Fest = true;
-        t.Tafel.AddThemeStyleboxOverride("panel", Stil(true));
+        t.Tafel.AddThemeStyleboxOverride("panel", Thema.GetStylebox("fest", "TooltipTafel"));
         t.Kreis.QueueFree();
         t.Rechts.CustomMinimumSize = Vector2.Zero;
         var zu = Kreuz.Knopf(Kreuz.Art.Kreuz, "Schließen (Esc)");
@@ -422,13 +459,13 @@ public partial class Tooltips : Node
 
     // ── Hilfen ──────────────────────────────────────────────────────────────
 
-    /// <summary>Neben der Maus; passt es nicht ins Bild, nach links bzw. über die Maus.</summary>
+    /// <summary>Neben der Maus, nie auf dem Mauszeiger (<see cref="TooltipLage"/>); passt es nicht ins Bild, wechselt die Seite.</summary>
     internal static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar)
     {
-        var p = anker + new Vector2(14, 22);
-        if (p.X + groesse.X > sichtbar.X - 4) p.X = Math.Max(4, anker.X - groesse.X - 14);
-        if (p.Y + groesse.Y > sichtbar.Y - 4) p.Y = Math.Max(4, anker.Y - groesse.Y - 12);
-        return p;
+        Rechteck? hand = null;
+        if (Mauszeiger.ZeigerBereich() is { } z) hand = new Rechteck(anker.X + z.Position.X, anker.Y + z.Position.Y, z.Size.X, z.Size.Y); // der Zeiger stand beim Öffnen am Anker
+        var (x, y) = TooltipLage.Berechnen(anker.X, anker.Y, groesse.X, groesse.Y, sichtbar.X, sichtbar.Y, hand);
+        return new Vector2((float)x, (float)y);
     }
 
     /// <summary>
@@ -450,10 +487,32 @@ public partial class Tooltips : Node
         new(Math.Clamp(p.X, 0, Math.Max(0, sichtbar.X - groesse.X)), Math.Clamp(p.Y, 0, Math.Max(0, sichtbar.Y - groesse.Y)));
 
     /// <summary>
-    /// Wandelt den Text in BBCode: <c>[[kennung|Text]]</c> wird ein unterstrichener Verweis (nur wenn das Lexikon die Kennung kennt), alle anderen
-    /// eckigen Klammern werden entschärft. <paramref name="schlicht"/> ist der Text ohne Auszeichnung (zum Messen der Breite).
+    /// Wandelt den Text in BBCode: <c>{{Wert}}</c> wird in der Wertfarbe des Themas gesetzt (z. B. <c>{{+12 %}}</c>), <c>[[kennung|Text]]</c> ein unterstrichener
+    /// Verweis (nur wenn das Lexikon die Kennung kennt); alle anderen eckigen Klammern werden entschärft, fremdes BBCode wirkt also nicht.
+    /// <paramref name="schlicht"/> ist der Text ohne Auszeichnung (zum Messen der Breite).
     /// </summary>
     internal static string Aufbereiten(string roh, out string schlicht)
+    {
+        var bb = new StringBuilder();
+        var pl = new StringBuilder();
+        var farbe = Thema.GetColor("wert", "TooltipFarben").ToHtml(false);
+        var i = 0;
+        while (i < roh.Length)
+        {
+            var anfang = roh.IndexOf("{{", i, StringComparison.Ordinal);
+            var ende = anfang < 0 ? -1 : roh.IndexOf("}}", anfang + 2, StringComparison.Ordinal);
+            if (anfang < 0 || ende < 0) { bb.Append(Verweise(roh[i..], out var rest)); pl.Append(rest); break; }
+            bb.Append(Verweise(roh[i..anfang], out var vor)); pl.Append(vor);
+            var wert = roh[(anfang + 2)..ende];
+            bb.Append("[color=#").Append(farbe).Append(']').Append(Entschaerfen(wert)).Append("[/color]");
+            pl.Append(wert);
+            i = ende + 2;
+        }
+        schlicht = pl.ToString();
+        return bb.ToString();
+    }
+
+    private static string Verweise(string roh, out string schlicht)
     {
         var bb = new StringBuilder();
         var pl = new StringBuilder();
@@ -474,7 +533,7 @@ public partial class Tooltips : Node
             var anzeige = trenner < 0 ? kennung : inhalt[(trenner + 1)..];
             if (kennung != "" && !kennung.Contains('[') && !kennung.Contains(']') && Suchen(kennung) is not null)
             {
-                bb.Append("[color=#f0d070][url=").Append(kennung).Append(']').Append(Entschaerfen(anzeige)).Append("[/url][/color]");
+                bb.Append("[color=#").Append(Thema.GetColor("verweis", "TooltipFarben").ToHtml(false)).Append("][url=").Append(kennung).Append(']').Append(Entschaerfen(anzeige)).Append("[/url][/color]");
                 pl.Append(anzeige);
             }
             else Anhaengen(bb, pl, anzeige);

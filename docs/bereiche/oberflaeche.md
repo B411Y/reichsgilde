@@ -660,3 +660,41 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kurzübersicht | Die RathausTafel hat keine Reiter mehr, sondern drei Felder: Stadtkasse (Stand, Steuersatz, Knopf „Kasse ansehen“), Nächste Ratssitzung (Zahl der Anträge, Knopf „Anträge und Stimmen“, „Letzte Ratssitzung ansehen“), Euer Amt (die Befugnis wie bisher, bis der Baum sie in PR 3 an den eigenen Knoten holt, F7). Der Haushalt und die Bauten der Stadt zogen in den Reiter Kasse. `--rathaus=1` wählt das Rathaus (der Reitername entfällt). | 14.11.2026 |
 | Bewerbung zurückziehen | Knopf „Bewerbung zurückziehen“ unter der eigenen Bewerbung (Befehl `BewerbungZurueckziehen`, ohne AP-Erstattung, der Tooltip sagt es). | 14.11.2026 |
 | Zentrales Thema | Aussehen steht in `game/scenes/rat_thema.tres` mit Typ-Varianten (RatTafel, RatReiter, RatTitel, RatAmtknopf …), `RatStil.cs` ist die Brücke; Aufbau in ARCHITEKTUR.md, Abschnitt „Das Thema der Ratskammer“. Gilt für alle neuen Elemente; die älteren Abschnitte der Ratskammer sind noch nicht umgestellt. | 14.11.2026 |
+
+### Tooltips der Talente mit Zahlen (Branch fix/attribut-tooltips)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Was „Attribut“ ist | Die Attribute des Charakters sind die fünf **Talente** (Verhandeln, Handwerkskunst, Bei Nacht und Nebel, Kampf, Rhetorik). Jedes hat im Charakterfenster und in der Familienübersicht (Oberhaupt-Zeile, je Talent ein eigenes Feld) einen Tooltip mit einem Satz, der Wirkung je Stern und der Wirkung beim jetzigen Stand („+3 % je Stern (jetzt 4 Sterne: +12 %)“). | 14.11.2026 |
+| Woher die Zahlen | Keine Zahl ist abgeschrieben: `Talentwirkungen.Zeilen` (Kern, nur lesend) liefert sie aus denselben Daten, mit denen `Familienbuch`, Geheimnis-, Glaubens- und Kirchenwesen rechnen; `TalentTipp` (Oberfläche) setzt den Text. Ein Test (`TalentwirkungenTests`) hält Tooltip und Simulation gleich. Wirken tut nur das Talent des Oberhaupts; bei anderen Personen steht „Als Oberhaupt: …“. | 14.11.2026 |
+| Was nicht „Qualität“ ist | Handwerkskunst erhöht die **Leistung** (Arbeitstempo) aller Arbeitskräfte, nicht die Warenqualität; der Tooltip sagt es so. | 14.11.2026 |
+| Charakterzüge | Der Tooltip hatte schon Beschreibung und Wirkungstext aus den Daten; neu steht die Meinungswirkung (`Charakterzug.Meinungstext`: Punkte über Träger desselben Zugs, des Gegenteils und bei allen anderen) dabei. | 14.11.2026 |
+| Aussehen | Die Tooltips laufen über den Autoload `Tooltips` (Tafel, Schrift, Festheften). Es gibt kein Tooltip-Theme; Zahlen werden nicht farbig hervorgehoben, weil `Tooltips` BBCode entschärft. Eine Hervorhebung wäre eine Änderung am Autoload, nicht an der Anzeige. | 14.11.2026 |
+
+### Fehlerpaket 1: Testbefunde des Nutzers (Branch fix/testbefunde-1)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wertmarkierung | Im Tooltip-Text färbt `{{+12 %}}` den Wert in der Wertfarbe des neuen Tooltip-Themas `game/scenes/tooltip_thema.tres` (Pseudo-Typen `TooltipTafel`, `TooltipFarben`, `TooltipMasse`: Flächen, Farben `gold`, `hell`, `verweis`, `wert`, Maße Schrift, Titel, Breite). `Tooltips.cs` entschärft weiter alles andere; nur dieses Zeichenpaar und `[[…]]` werden Auszeichnung. Die Talent- und Beförderungs-Tooltips nutzen es. | 14.11.2026 |
+| Innentafeln bauen sich neu | Ursache: `InnenTafel.Aktualisieren` baut die Tafel neu, sobald sich ihr Stand-Text ändert (Produktion: Fortschritt in Zwanzigsteln; Personal: Laune u. a.): gemessen headless mit `--tempo=8 --startstunde=9` rund 2,4 Neuaufbauten je Sekunde (Produktion) und 2,0 (Personal). Jeder Neuaufbau gab alle Steuerelemente frei – Tooltips, Hover und die offene Produktauswahl verschwanden. Jetzt: Neuaufbau wartet, solange eine Auswahlliste (PopupMenu) offen ist; ein offener Tooltip wird nach dem Neuaufbau an das Steuerelement derselben Stelle gehängt (`Tooltips.QuellePfad`/`QuelleWiederfinden`) und frischt seinen Text jedes Bild aus der Quelle auf (`Auffrischen`); die Marktpreise der Waren stehen im Stand, damit Waren-Tooltips neue Zahlen bekommen. Der Mauszeiger kennt offene Auswahllisten als anklickbar (`Mauszeiger.PopupUnterMaus`). | 14.11.2026 |
+| Tooltip und Handschuh | `TooltipLage` (ohne Godot, getestet) hält den Tooltip außerhalb des Zeigers: rechts neben dem Bild der Hand, sonst darunter, links, darüber. Das Rechteck kommt aus `HandschuhZeiger.BildRelativ` (Bild der Hand, Zeigergröße × 2, relativ zur Maus) bzw. beim 2D-Zeiger aus der Zeigergröße; es ist das ganze Bild, also vorsichtig groß. | 14.11.2026 |
+| Marktplatz | Der Klick öffnet das Marktfenster und schließt die Kurzinfo daneben (`AuswahlSchliessen`). | 14.11.2026 |
+| Kopfleiste | Ein Klick auf Porträt und Leiste öffnet das Familienfenster; das Wohnhaus öffnet man über das Gebäude. | 14.11.2026 |
+| Stammbaum | Die Fläche hat `CursorShape.Move` (✥ des Systems). Mit 3D-Handschuh blendet `Mauszeiger.UnsichtbarSetzen` Move und Drag aus: dort zeigt die vorhandene Faust (Greifen) das Ziehen. Die 2D-Hand hat kein Ziehbild. | 14.11.2026 |
+| Beförderung | Der Knopf nennt die AP („· 1 AP“, aus `aktionspunkte.kosten`), der Tooltip „Kostet 1 Aktionspunkt“; zu wenige AP sperren ihn mit Hinweis (`UiHilfe.ApKosten`). | 14.11.2026 |
+| Knopf „…“ | Nicht entfernt: Er ist der einzige Weg zu Ausbau, Verkaufen bzw. Pacht kündigen (und bei Umlandbetrieben zu Personal, Förderung, Karren). | 14.11.2026 |
+| Waren-Tooltip Gewinn je Stück | Zeigt die Rechnung des Kerns: Erlös = Marktpreis × Verkaufsfaktor (Verhandeln und Lebensweg) [× Hafenaufschlag], Lohn und Unterhalt je Stück = Jahresbetrag ÷ Stück im Jahr. Lexikon „Unterhalt“ erklärt die Umlage. | 14.11.2026 |
+
+### Erweitert: vergebene Wappen gesperrt (Branch fix/testbefunde-1, Antwort des Nutzers)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Sperre | Im Wappenfeld jeder KI-Zeile von „Erweitert“ sind die Vorlagen ausgegraut (Tooltip „Schon vergeben an <Haus>“), die ein Haus der Karte, ein anderes Haus der Partie oder der Spieler trägt. Sie wird bei jeder Wahl, jeder Änderung der KI-Zahl und jedem Wappen des Spielers neu gesetzt (`KiWappenSperren`); wählt ein anderes Haus ein anderes Wappen, ist das alte Kartenwappen wieder frei. Die Vorabprüfung kennt die Kartenhäuser jetzt auch für den Spieler („Das Wappen führt schon …“). Die Meldung des Kerns bei einem trotzdem auftretenden Duplikat bleibt. | 14.11.2026 |
+| Knopf „…“ (Punkt 8) | Noch offen: hinter „…“ liegt nicht nur Ausbau und Verkaufen, sondern die ganze Verwaltung (Personal mit Einstellen, Förderregler, Karrenliste, Gaststube, Wache, Geldleihe, Diebe, Kirche, Domprediger); das sind keine einzelnen Knöpfe. Empfehlung siehe Bericht. | 14.11.2026 |
+
+### Ausbau und Verkaufen als Knöpfe der Kurzübersicht (Branch fix/testbefunde-1, Entscheidung Nutzer Variante a)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Knöpfe | „Ausbau: …“ und „Verkaufen …“ bzw. „Pacht kündigen …“ stehen als zweite Knopfreihe unter „Hineingehen · Einrichtung · …“ (`BetriebsVerwaltung.KnoepfeAuslagern`); sie sind dieselben Knöpfe wie vorher im Untermenü (gleiche Rückfrage, gleiche Sperren und Tooltips) und stehen dort nicht mehr. Welche erscheinen, regelt `BetriebsKnoepfe` (ohne Godot, `BetriebsKnoepfeTests`): Ausbau nur in der Stadt, mit Meistergraden und wenn die Art einen Ausbau hat; Verkaufen immer. Die Zeile „Stufe …“ des Ausbaus bleibt als Auskunft unter „…“. „…“ bleibt für den Rest der Verwaltung; die volle Aufteilung kommt mit dem Neudesign. | 14.11.2026 |
+| Breite | Die Kurzübersicht ist rund 394 px breit. Reihe 1 (Hineingehen, Einrichtung, …) braucht mindestens 277 px; beide Knöpfe in einer Reihe passten nicht, darum Reihe 2. Die Texte sind mit `ClipText` gekürzt (Mindestbreite je Knopf 20 px), Entschieden (Nutzer): Der Ausbau-Knopf heißt „Ausbau (2.500 Gulden)“ (Betrag aus den Daten), der Stufenname steht als erste Tooltip-Zeile „Ausbau zu: …“. Gemessen headless: längste Beschriftung („Ausbau (12.500 Gulden)“, größter Betrag der Daten ist 5.000) 134 px bei Schrift 14, Knopfbreite 193 px: passt. | 14.11.2026 |

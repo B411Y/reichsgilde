@@ -78,7 +78,11 @@ public sealed class PersonalAnzeige : InnenTafel
             var knopfTipp = z.BefoerderungVerboten
                 ?? (z.BriefKosten is { } kosten ? $"Beförderung auf {z.NaechsteStufe}: der Brief kostet {Zahlenformat.Ganz(kosten)} {waehrung}." : null);
             var bk = Knopf(rechts, befoerdern, () => Befehlen(new ArbeiterBefoerdern(b.Name, z.Nummer)), z.BefoerderungVerboten);
+            var befoerderung = new ArbeiterBefoerdern(b.Name, z.Nummer);
+            var ap = w.ApKosten(Spieler, befoerderung); // aus den Daten (aktionspunkte.kosten), nicht abgeschrieben
+            if (z.BefoerderungVerboten is null && ap > 0) knopfTipp = (knopfTipp is null ? "" : knopfTipp + "\n") + $"Kostet {{{{{ap}}}}} {(ap == 1 ? "Aktionspunkt" : "Aktionspunkte")} (AP).";
             if (z.BefoerderungVerboten is null && knopfTipp is not null) Tipp(bk, knopfTipp);
+            UiHilfe.ApKosten(bk, w, Spieler, befoerderung); // „· n AP“ am Knopf; zu wenige AP sperren ihn mit Hinweis
             Knopf(rechts, $"Prämie {Zahlenformat.Ganz(s.PraemieKosten(b, z.Nummer))}", () => Befehlen(new PraemieZahlen(b.Name, z.Nummer)), s.PraemieVerboten(b, z.Nummer));
             Knopf(rechts, "Entlassen", () => Befehlen(new ArbeiterEntlassen(b.Name, z.Nummer)));
 
