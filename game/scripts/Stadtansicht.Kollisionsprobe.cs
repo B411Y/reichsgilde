@@ -86,11 +86,13 @@ public partial class Stadtansicht
         var drinJetzt = 0; var figuren = 0;
         foreach (var (nr, p) in _passanten)
         {
-            if (!p.Knoten.Visible) continue;
+            if (!p.Knoten.Visible || !ImBild(p.Knoten.Position, 3f)) continue; // nur was man sieht
             figuren++;
             var pos = new Vector2(p.Knoten.Position.X, p.Knoten.Position.Z);
             var art = KpArt(pos, out var idx, out var tiefe);
-            if (art == "" || tiefe < EgoKamera.Radius - Koerper) continue; // Körper der Figur berührt das Hindernis
+            if (art == "" || tiefe < EgoKamera.Radius - Koerper) continue;
+            if (_begehbar is { } bg && art is "Haus" or "Mauer" or "Wohnhaus" && bg.Abstand(pos.X, pos.Y) >= Koerper + 0.03f) continue; // Zweitmeinung: Hafen und Torbögen sind frei
+ // Körper der Figur berührt das Hindernis
             drinJetzt++;
             _kpJeFigur[nr] = _kpJeFigur.GetValueOrDefault(nr) + 1;
             if (Wasserarten.Startoption("kollisionsbild") is { } ordner && _kpBildWarte < 0 && _kpBildNr < 8 && _kpZeit > _kpBildSperre && tiefe - EgoKamera.Radius + Koerper > 0.5f)

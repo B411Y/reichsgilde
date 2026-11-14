@@ -82,6 +82,7 @@ public partial class Stadtansicht
     {
         if (!KollisionsFix || _hafenAngeschlossen) return kai;
         _hafenAngeschlossen = true;
+        if (Wasserarten.Startoption("kollisionsprobe") is "1") GD.Print($"[kp] Kai bei {kai.X:0.0},{kai.Z:0.0}, nächstes Hindernis {(_begehbar?.Naechstes(kai.X, kai.Z).ToString() ?? "-")}");
         // Der nächste Wegpunkt, zu dem die Gerade kein Haus schneidet (das Lagerhaus am Kai steht oft dazwischen); sonst der nächste überhaupt
         var kandidaten = new List<(Vector3 Punkt, float Abstand)>();
         foreach (var (von, bis, _) in _wegStrecken)
@@ -287,7 +288,7 @@ public partial class Stadtansicht
             var weg = HafenWeg(steg, plan.TraegerPlatz[next.Stueck], spur);
             warten = s.Entladen ? weg[0] : weg[^1];
             var bleibt = (float)(GangBeginn(s, next) - minute);
-            if (bleibt > 0.05f) tempoMin = Mathf.Max(HafenGehen, p.Knoten.Position.DistanceTo(warten) / bleibt);
+            if (bleibt > 0.05f) tempoMin = Mathf.Max(HafenGehen, HafenRestweg(p, warten) / bleibt);
         }
         else warten = land;
         if (!HinGehen(p, figur, warten, dminute, tempoMin, ticksJeSekunde)) BewegungSetzen(figur, "Stehen");
@@ -305,6 +306,15 @@ public partial class Stadtansicht
             if (d < bestD) (best, bestD) = (i, d);
         }
         return best;
+    }
+
+    /// <summary>Die Länge des Weges, den sie noch zu gehen hat: über die Gassen der Route (sobald berechnet), sonst die Luftlinie.</summary>
+    private static float HafenRestweg(Passant p, Vector3 ziel)
+    {
+        if (p.HafenRoute is not { Count: > 0 } route || p.HafenRouteZiel.DistanceTo(ziel) > 1.5f || p.HafenRouteNaechster >= route.Count) return p.Knoten.Position.DistanceTo(ziel);
+        var summe = p.Knoten.Position.DistanceTo(route[p.HafenRouteNaechster]);
+        for (var i = p.HafenRouteNaechster; i + 1 < route.Count; i++) summe += route[i].DistanceTo(route[i + 1]);
+        return summe + route[^1].DistanceTo(ziel);
     }
 
     private bool HinGehen(Passant p, Figur figur, Vector3 ziel, float dminute, float tempo, double ticksJeSekunde)

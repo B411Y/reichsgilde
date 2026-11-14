@@ -644,7 +644,7 @@ public partial class Stadtansicht
             if (p.ImBummel && strecke < 1.2f && p.Knoten.Visible) drehung = Mathf.LerpAngle(p.Knoten.Rotation.Y, drehung, (float)Math.Min(1, _bildSekunden * 6));
             p.Knoten.Rotation = new Vector3(0, drehung, 0);
             // Wandabstand (14.11.2026): die seitliche Lage rückt zur Mittellinie zusammen, wenn der Körper sonst näher als 0,1 m an eine Wand käme
-            if (_begehbar is { } begehbar && versatz.LengthSquared() > 1e-6f)
+            if (KollisionsFix && _begehbar is { } begehbar && versatz.LengthSquared() > 1e-6f)
             {
                 var t0 = System.Diagnostics.Stopwatch.GetTimestamp();
                 var wandAnteil = begehbar.Anteil(hier.X, hier.Z, hier.X + versatz.X, hier.Z + versatz.Z);

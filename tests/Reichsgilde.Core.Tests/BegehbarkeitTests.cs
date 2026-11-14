@@ -58,6 +58,20 @@ static class BegehbarkeitTests
             var tief = b.Verletzt(0, 6, 0, 0, (0, 6), (0, 0), out _, out var erstesZ);
             Pruefe.Wahr(tief > 0.5f && erstesZ < 3.3f, "ins Haus hinein gezählt, erste Stelle an der Wand");
         }),
+        ("Begehbarkeit: ein Kreis (Baum) wird gemessen; ein Durchgang macht Mauerteile frei, andere Häuser nicht", () =>
+        {
+            var b = new Begehbarkeit();
+            b.HinzuRund(10, 10, 1);
+            Pruefe.Ungefaehr(2, b.Abstand(13, 10), 1e-4);
+            Pruefe.Ungefaehr(-1, b.Abstand(10, 10), 1e-4);
+            b.Hinzu(0, 0, 1, 0, 0, 1, 5, 1, "Mauerstück", false, true); // Mauer von x −5 bis 5 an z 0
+            b.Hinzu(0, 20, 1, 0, 0, 1, 5, 1, "Haus"); // ein Haus dahinter, nicht Mauer
+            Pruefe.Wahr(b.Abstand(0, 0) < 0, "ohne Durchgang liegt die Mitte in der Mauer");
+            b.Durchgang(0, 0, 0, 1, 1.6f, 9f); // Gang in z-Richtung
+            Pruefe.Wahr(b.Abstand(0, 0) > 1, "im Durchgang zählt die Mauer nicht");
+            Pruefe.Wahr(b.Abstand(4, 0) < 0, "neben dem Durchgang bleibt sie ein Hindernis");
+            Pruefe.Wahr(b.Abstand(0, 20) < 0, "Häuser bleiben Hindernisse");
+        }),
         ("Begehbarkeit: viele Häuser – eine Anfrage bleibt billig (Gitter) und richtig", () =>
         {
             var b = new Begehbarkeit();
