@@ -410,7 +410,9 @@ public partial class Stadtansicht
             var felder = netz.SurfaceGetArrays(i);
             var ecken = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var dreiecke = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? [] : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
-            felder[(int)Mesh.ArrayType.Color] = FensterKennungen(ecken, dreiecke);
+            var (farben, flaechenUv) = FensterKennungen(ecken, dreiecke);
+            felder[(int)Mesh.ArrayType.Color] = farben;
+            felder[(int)Mesh.ArrayType.TexUV2] = flaechenUv; // Ort in der Scheibe (0–1) für die Silhouetten der Bewohner (Stadtansicht.Fenstersilhouetten.cs)
             var hilfe = new ArrayMesh();
             hilfe.AddSurfaceFromArrays(netz.SurfaceGetPrimitiveType(i), felder);
             var neu = hilfe.Get("_surfaces").AsGodotArray()[0].AsGodotDictionary();
@@ -429,7 +431,7 @@ public partial class Stadtansicht
     /// Eine Eckenfarbe je Scheibe: Ecken desselben Dreiecks und Ecken an derselben Stelle gehören zusammen (Union-Find). Rot und Grün sind
     /// zwei Zufallsbytes aus der Mitte der Scheibe – fest, bei jedem Laden gleich.
     /// </summary>
-    private static Color[] FensterKennungen(Vector3[] ecken, int[] dreiecke)
+    private static (Color[] Farben, Vector2[] Uv2) FensterKennungen(Vector3[] ecken, int[] dreiecke)
     {
         var wurzel = Enumerable.Range(0, ecken.Length).ToArray();
         int Finden(int i)
@@ -459,15 +461,60 @@ public partial class Stadtansicht
             var (summe, anzahl) = mitten.GetValueOrDefault(w);
             mitten[w] = (summe + ecken[i], anzahl + 1);
         }
+        var masse = ScheibenMasse(ecken, Finden);
         var farben = new Color[ecken.Length];
+        var uv2 = new Vector2[ecken.Length];
         for (var i = 0; i < ecken.Length; i++)
         {
-            var (summe, anzahl) = mitten[Finden(i)];
+            var w = Finden(i);
+            var (summe, anzahl) = mitten[w];
             var mitte = summe / anzahl;
             var h = Streuung(Millimeter(mitte.X) / 10, Millimeter(mitte.Y) / 10, Millimeter(mitte.Z) / 10);
-            farben[i] = new Color((h & 0xFF) / 255f, ((h >> 8) & 0xFF) / 255f, 0, 1);
+            // Blau und Alpha: Breite und Höhe der Scheibe in halben Metern (Byte 1–254; 255 = keine Maße, dann zeigt der Shader keine Silhouette)
+            var m = masse[w];
+            var breite = Mathf.Clamp(Mathf.Round(m.Breite / 2f * 255f), 1, 254) / 255f;
+            var hoehe = Mathf.Clamp(Mathf.Round(m.Hoehe / 2f * 255f), 1, 254) / 255f;
+            farben[i] = new Color((h & 0xFF) / 255f, ((h >> 8) & 0xFF) / 255f, breite, hoehe);
+            uv2[i] = new Vector2((new Vector2(ecken[i].X, ecken[i].Z).Dot(m.Richtung) - m.Links) / Mathf.Max(m.Breite, 1e-4f),
+                                 (ecken[i].Y - m.Unten) / Mathf.Max(m.Hoehe, 1e-4f));
         }
-        return farben;
+        return (farben, uv2);
+
+        // Breite, Höhe und Lage einer senkrechten Scheibe: waagerechte Richtung aus der Hauptachse der Ecken im Grundriss
+        static Dictionary<int, (Vector2 Richtung, float Links, float Breite, float Unten, float Hoehe)> ScheibenMasse(Vector3[] ecken, Func<int, int> finden)
+        {
+            var gruppen = new Dictionary<int, List<int>>();
+            for (var i = 0; i < ecken.Length; i++)
+            {
+                var w = finden(i);
+                if (!gruppen.TryGetValue(w, out var liste)) gruppen[w] = liste = new List<int>();
+                liste.Add(i);
+            }
+            var ergebnis = new Dictionary<int, (Vector2, float, float, float, float)>();
+            foreach (var (w, liste) in gruppen)
+            {
+                Vector2 mittelpunkt = Vector2.Zero;
+                foreach (var i in liste) mittelpunkt += new Vector2(ecken[i].X, ecken[i].Z);
+                mittelpunkt /= liste.Count;
+                float sxx = 0, szz = 0, sxz = 0;
+                foreach (var i in liste)
+                {
+                    var d = new Vector2(ecken[i].X, ecken[i].Z) - mittelpunkt;
+                    sxx += d.X * d.X; szz += d.Y * d.Y; sxz += d.X * d.Y;
+                }
+                var winkel = 0.5f * Mathf.Atan2(2 * sxz, sxx - szz);
+                var richtung = new Vector2(Mathf.Cos(winkel), Mathf.Sin(winkel));
+                float lMin = float.MaxValue, lMax = float.MinValue, yMin = float.MaxValue, yMax = float.MinValue;
+                foreach (var i in liste)
+                {
+                    var l = new Vector2(ecken[i].X, ecken[i].Z).Dot(richtung);
+                    lMin = Mathf.Min(lMin, l); lMax = Mathf.Max(lMax, l);
+                    yMin = Mathf.Min(yMin, ecken[i].Y); yMax = Mathf.Max(yMax, ecken[i].Y);
+                }
+                ergebnis[w] = (richtung, lMin, lMax - lMin, yMin, yMax - yMin);
+            }
+            return ergebnis;
+        }
 
         static int Millimeter(float meter) => (int)Mathf.Round(meter * 1000);
         static uint Streuung(int x, int y, int z)

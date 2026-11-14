@@ -1201,3 +1201,15 @@ Nachgestellt mit dem Spielstand „Haus Hammerschmid, Herbst 1422“ (`--laden`,
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | `brand_oeffnung.gdshader` Modus 2 entfernt | Die alte Rußfahne über dem Fenster setzt seit dem Umbau der Rußfahnen (#450) niemand mehr (`Gebaeudebrand.Material` nur mit 0 und 1, grep über `game/`); der Zweig ist gelöscht, Modus 1 ist jetzt das `else`. `RenderPriority` ist fest 2 (die 1 galt nur für Modus 2). Kein Spielbild: Fleck und Öffnung rechnen unverändert | 14.11.2026 |
+
+### Silhouetten der Bewohner hinter den Fenstern (Branch phase5/fenster-silhouetten, Nutzerwunsch)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wunsch | Nachts in erleuchteten Fenstern hin und wieder ein dunkler Schattenriss eines Bewohners: stehen, langsam vorbeigehen, sitzen. Nur Darstellung, keine Kern-Änderung. | 14.11.2026 |
+| Umsetzung | Im Shader `fenster.gdshader`, nicht als Karte oder Modell: Je leuchtendem Fenster zeichnet er aus Ellipsen Kopf, Hals, Schultern und Rumpf (Frauen mit Haarknoten und Haar um die Wangen) dunkel über das Licht. Kein Zeichenaufruf, keine Lichtquelle, keine Zufallsquelle des Kerns; der Takt kommt aus `TIME` und einem Hash der Fensterkennung (wie das Flackern). Je Fenster alle 28–58 s ein Besuch mit Chance 40 %: Stehen 40 %, Gehen 35 % (4 s quer durch die Scheibe), Sitzen 25 % (9 s, Kopf tiefer). | 14.11.2026 |
+| Scheibenmaße | `FensterNetz` schreibt je Scheibe zusätzlich Ort in der Scheibe (UV2, 0–1) und Breite und Höhe in halben Metern (Eckenfarbe Blau und Alpha, Byte 255 = keine Maße, dann keine Silhouette); die Hauptachse im Grundriss gibt die waagerechte Richtung. Netze mit Blendshapes bleiben ohne Maße. | 14.11.2026 |
+| Wer | `Stadtansicht.Fenstersilhouetten.cs`: Wohnhäuser der Einwohnerschaft (`Einwohnerschaft.ImHaus`, nur lesend); bis zu zwei Bewohner, die gerade zu Hause sind, gehen als Instanz-Uniforms `person_a` und `person_b` ins Haus (Größe aus der Hüfthöhe der Figur (`FigurMasse`, Hüfte mal 1,9), Schulterbreite und Kopfradius nach Volk, Frau schmaler); das Material bleibt je Gruppe eines. Das Fenster wählt per Hash eine der beiden Personen. Brüstungshöhe 0,9 m: Halblinge und Zwerge zeigen nur den Kopf oder gar nichts, große Völker Kopf und Brust. | 14.11.2026 |
+| Wann und wo | Nur bei Nacht (Fensterlicht über 0,5), nur bei Zoom bis 75 m (`SilhouettenMaxZoom`, Zoom 25 und 50 zeigen sie, 100 nicht), nur für Häuser im Umkreis von 1,25 mal Zoom um die Bildmitte, nicht in der Innenansicht; die Abfrage läuft alle 0,4 s Echtzeit und setzt Uniforms nur bei Änderung. | 14.11.2026 |
+| Grenzen | Werkstätten, Wirtshäuser und Kirchen zeigen keine Silhouetten (der Kern führt dort keine Bewohner, nur Arbeiter ohne Namen im Haus); Kulissenhäuser auch nicht. Die Neubau-Häuser nutzen dasselbe Fenstermaterial (`FensterNetz` gilt für alle Modelle) und zeigen sie damit auch, sobald sie in der Stadt stehen. | 14.11.2026 |
+
