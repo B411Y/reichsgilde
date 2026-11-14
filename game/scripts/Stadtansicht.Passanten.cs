@@ -101,6 +101,10 @@ public partial class Stadtansicht
         // Markt v3 (Stadtansicht.Marktbummel.cs): von Ziel zu Ziel über den Platz
         /// <summary>Geht sie gerade auf dem Markt von einer Stelle zur nächsten (ein Weg der Darstellung, nicht des Kerns)?</summary>
         public bool ImBummel { get; set; }
+        /// <summary>Hafenarbeit (Stadtansicht.Hafenarbeit.cs): der Weg über das Gassennetz zum Ziel von <see cref="HinGehen"/> (Wegpunkte), das Ziel, für das er gilt, und der nächste Punkt.</summary>
+        public List<Vector3>? HafenRoute { get; set; }
+        public Vector3 HafenRouteZiel { get; set; }
+        public int HafenRouteNaechster { get; set; }
         /// <summary>Wann (Spielminute) sie am Markt angekommen ist (−1 = noch nicht), das wievielte Ziel sie hat, bis wann die Pause dauert, seit wann sie an der Stelle steht und seit wann allein in der Gruppe (−1 = nicht allein).</summary>
         public long BummelAnkunft { get; set; } = -1;
         public int BummelZaehler { get; set; }
@@ -363,6 +367,8 @@ public partial class Stadtansicht
         PassantNahFolgen(delta); // nur mit --passantnah (Stadtansicht.Passantnah.cs)
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
+        BegehbarkeitPflegen(delta);
+        KollisionsprobeTakt(delta);
         _passantenBilder++;
         _profilBilder++;
         if (ProfilMessen)
@@ -637,6 +643,14 @@ public partial class Stadtansicht
             // v3: beim Losgehen von einer Stelle auf dem Markt dreht sie sich in die Gehrichtung, statt herumzuspringen
             if (p.ImBummel && strecke < 1.2f && p.Knoten.Visible) drehung = Mathf.LerpAngle(p.Knoten.Rotation.Y, drehung, (float)Math.Min(1, _bildSekunden * 6));
             p.Knoten.Rotation = new Vector3(0, drehung, 0);
+            // Wandabstand (14.11.2026): die seitliche Lage rückt zur Mittellinie zusammen, wenn der Körper sonst näher als 0,1 m an eine Wand käme
+            if (KollisionsFix && _begehbar is { } begehbar && versatz.LengthSquared() > 1e-6f)
+            {
+                var t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+                var wandAnteil = begehbar.Anteil(hier.X, hier.Z, hier.X + versatz.X, hier.Z + versatz.Z);
+                if (wandAnteil < 1) { versatz *= wandAnteil; _begehbarGekuerzt++; }
+                _begehbarTicks += System.Diagnostics.Stopwatch.GetTimestamp() - t0; _begehbarAufrufe++;
+            }
             p.VersatzJetzt = versatz;
             p.RechtsJetzt = rechts;
             p.Geschwindigkeit = vorwaerts * wirklich;
@@ -863,7 +877,7 @@ public partial class Stadtansicht
             Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort,
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.TryGetValue(s, out var u) => Punkt3(u.Punkt),
             Stadtort.Markt => MarktFuer(e)?.Mitte ?? _markt,
-            Stadtort.Hafen when HafenLandpunkt() is { } kai => kai, // Hafenarbeit (Stadtansicht.Hafenarbeit.cs)
+            Stadtort.Hafen when HafenLandpunkt() is { } kai => HafenAnschliessen(kai), // Hafenarbeit (Stadtansicht.Hafenarbeit.cs)
             _ => _markt,
         };
         return _netz.KnotenBei(punkt);
@@ -875,7 +889,7 @@ public partial class Stadtansicht
     /// (Netzweg plus Reststück entlang der Gasse). So läuft der ganze Weg auf Gassen, und die letzten Meter gehen nur an der Gasse entlang.
     /// Beide Enden auf demselben Stück: gerade am Stück entlang. Wird nur beim Planen gebaut; die Netzwege sind gemerkt.
     /// </summary>
-    private List<Vector3> GassenPfad(Weg weg, Einwohner e)
+    private List<Vector3> GassenPfad(Weg weg, Einwohner e, Vector3? vonEnde = null, Vector3? nachEnde = null)
     {
         var abmarsch = AbmarschZeit(weg, e);
         if (weg.Von.Ort == Stadtort.Gasse && weg.Nach.Ort == Stadtort.Gasse
@@ -883,8 +897,8 @@ public partial class Stadtansicht
             && (a.Von.IsEqualApprox(b.Von) && a.Bis.IsEqualApprox(b.Bis) || !SpurV1 && _netz.KanteBei(a.Punkt) is { } ka && ka == _netz.KanteBei(b.Punkt)))
             return new List<Vector3> { a.Punkt, b.Punkt }; // dasselbe Stück: das Netz wird nicht gebraucht
 
-        var anfaenge = Anlaeufe(weg.Von, e, abmarsch);
-        var enden = Anlaeufe(weg.Nach, e, weg.Ankunft);
+        var anfaenge = Anlaeufe(weg.Von, e, abmarsch, vonEnde);
+        var enden = Anlaeufe(weg.Nach, e, weg.Ankunft, nachEnde);
         if (!SpurV1) return _netz.PfadZwischen(anfaenge, enden)?.Pfad.ToList() ?? new List<Vector3>(); // alle Kombinationen in einem Durchgang
         List<Vector3>? beste = null;
         var bestes = float.MaxValue;
@@ -906,8 +920,21 @@ public partial class Stadtansicht
     /// Platz in der Gasse die beiden Enden des Wegstücks, auf dem man steht – des Stücks, wie das Netz jetzt ist (<see cref="Gassennetz.KanteBei"/>):
     /// Die gemerkten Gassen sind oft später an einer Einmündung geteilt worden, und über ihr fernes Ende ginge die Figur am Ziel erst vorbei und dann zurück.
     /// </summary>
-    private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt)
+    private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt, Vector3? ende = null)
     {
+        // Steht die Figur auf einem anderen Platz als dem ihres Hauses (alte Stelle, Rundgang), beginnt der Netzweg an dem Platz, auf dem sie wirklich steht –
+        // sonst entstünde eine Gerade quer durch die Stadt (Kollisionsprobe, 14.11.2026)
+        if (KollisionsFix && a.Ort == Stadtort.Markt && ende is { } punkt && NaechsterMarkt(punkt) is { } platz && platz != MarktFuer(e))
+            return new() { (_netz.KnotenBei(platz.Mitte), 0f) };
+        // Eine Umland-Stelle, die die Karte nicht hat (kein Feld, kein Wald), endet irgendwo auf einer Gasse (Verweilpunkt): Der Netzweg führt dorthin und nicht
+        // bis zur Marktmitte mit einer Geraden von dort (Kollisionsprobe 14.11.2026)
+        if (KollisionsFix && a.Ort == Stadtort.Umland && ende is { } umland && !(a.Stelle is { } stelle && _umlandstellen.ContainsKey(stelle)))
+        {
+            if (_netz.KanteBei(umland) is { } ku)
+                return new() { (ku.A, umland.DistanceTo(_netz.Knoten[ku.A])), (ku.B, umland.DistanceTo(_netz.Knoten[ku.B])) };
+            var nah = NaechsterNetzknoten(umland);
+            return new() { (nah, umland.DistanceTo(_netz.Knoten[nah])) };
+        }
         if (a.Ort != Stadtort.Gasse || GassenLage(e, zeitpunkt) is not { } lage) return new() { (Anlaufknoten(a, e), 0f) };
         if (!SpurV1 && _netz.KanteBei(lage.Punkt) is { } kante)
             return new() { (kante.A, lage.Punkt.DistanceTo(_netz.Knoten[kante.A])), (kante.B, lage.Punkt.DistanceTo(_netz.Knoten[kante.B])) };
@@ -940,17 +967,23 @@ public partial class Stadtansicht
     /// </summary>
     private Vector3[] PfadBauen(Weg weg, Einwohner e, Passant p, double abmarsch, double ankunft)
     {
-        var pfad = GassenPfad(weg, e);
+        Vector3? vonEnde = Draussen(weg.Von) ? StreckenEnde(weg.Von, e, p.AlteMarktstelle, AbmarschZeit(weg, e), abmarsch) : null;
+        Vector3? nachEnde = Draussen(weg.Nach) ? StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft) : null;
+        var pfad = GassenPfad(weg, e, vonEnde, nachEnde);
+        if (Wasserarten.Startoption("kollisionsprobe") is "1" && pfad.Count <= 2 && vonEnde is { } v0 && nachEnde is { } n0 && v0.DistanceTo(n0) > 25f)
+            GD.Print($"[kp] KURZ Netzpfad {pfad.Count} Punkte ({string.Join(" ", pfad.Select(q => $"{q.X:0},{q.Z:0}"))}) von {v0.X:0},{v0.Z:0} nach {n0.X:0},{n0.Z:0}, {weg.Von.Ort}>{weg.Nach.Ort} {weg.Nach.Stelle}; Anlauf Nach {string.Join(" ", Anlaeufe(weg.Nach, e, weg.Ankunft, nachEnde).Select(a => $"{_netz.Knoten[a.Knoten].X:0},{_netz.Knoten[a.Knoten].Z:0}"))}");
         if (pfad.Count == 0) return Array.Empty<Vector3>();
-        if (Draussen(weg.Von)) pfad.Insert(0, StreckenEnde(weg.Von, e, p.AlteMarktstelle, AbmarschZeit(weg, e), abmarsch));
+        if (vonEnde is { } vorn) pfad.Insert(0, vorn);
         else if (TuerVon(weg.Von) is { } ausgang) pfad.Insert(0, ausgang); // kommt aus der Tür des Modells (mit der Höhe der Stufen)
-        if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft));
+        if (nachEnde is { } hinten) pfad.Add(hinten);
         else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
         if (!SpurV1) pfad = OhneUmkehr(pfad); // nirgends bis zu einem Knoten und auf derselben Linie zurück (Stadtansicht.Passantenwege.cs)
         // Markt v3: Der Weg über den Platz wird erst kurz vor dem Losgehen gesucht (PlatzNachplanen) – zur vollen Stunde bekommen sonst alle zugleich einen Weg
         p.PlatzOffen = !MarktV2 && BeruehrtPlatz(pfad);
         p.PfadBeginntAufPlatz = p.PlatzOffen && AufDemPflaster(pfad[0]);
-        return p.PlatzOffen ? pfad.ToArray() : UeberDenPlatz(pfad, p.Nummer).ToArray();
+        var ergebnis = p.PlatzOffen ? pfad.ToArray() : UeberDenPlatz(pfad, p.Nummer).ToArray();
+        PfadPruefen(ergebnis, p.Nummer);
+        return ergebnis;
     }
 
     /// <summary>
