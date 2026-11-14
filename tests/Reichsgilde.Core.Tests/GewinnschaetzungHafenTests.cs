@@ -12,19 +12,8 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class GewinnschaetzungHafenTests
 {
-    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt zum Marktplatz, an dem der Marktplatz näher ist als der Hafen (Karren zum Hafen an).</summary>
-    static readonly Lazy<WerkstattBauen> NahAmMarkt = new(() =>
-    {
-        const string hand = "Handkarren";
-        var (_, w, k) = HafenAufschlagTests.Koeln(HafenAufschlagTests.Daten(0.03), HafenAufschlagTests.Minute(1, 9));
-        int Rund(int? hin, int? zurueck) => (hin ?? 9999) + (zurueck ?? 9999);
-        return w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()
-            .Select(o => (Ort: o, Hafen: Rund(w.FahrzeitZumHafenAmBauort(o, hand), w.FahrzeitZumHafenAmBauort(o, hand, false)),
-                Markt: Rund(w.FahrzeitAmBauort(o, hand), w.FahrzeitAmBauort(o, hand, false))))
-            .Where(x => x.Markt < x.Hafen)
-            .OrderBy(x => x.Markt).ThenBy(x => x.Ort.X).ThenBy(x => x.Ort.Z).ThenBy(x => x.Ort.Drehung)
-            .First().Ort;
-    });
+    /// <summary>Der Bauort in Köln mit der kürzesten Fahrt zum Marktplatz, an dem der Marktplatz näher ist als der Hafen (Karren zum Hafen an) – gerechnet in <see cref="HafenAufschlagTests"/> (einmal für alle Hafen-Tests).</summary>
+    static Lazy<WerkstattBauen> NahAmMarkt => HafenAufschlagTests.NahAmMarkt;
 
     /// <summary>Faktoren auf den Marktpreis einer Probe: Schätzung, Vorschau (Gewinn je Stück) und Buchung; dazu Jahresgewinn mit und ohne Betrieb.</summary>
     readonly record struct Faktoren(double Schaetzung, double Vorschau, double Buchung, double JahrMit, double JahrOhne, double WertMit, double WertOhne,

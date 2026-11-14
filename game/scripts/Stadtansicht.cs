@@ -471,6 +471,7 @@ public partial class Stadtansicht : Node3D
             FreienPlatzZeigen(frei);
         Ladezeit.Marke("Szene: freie Plätze");
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
+        NeubauProbeStarten(); // nur mit Startoption: Häuserreihe und Messung der Neubau-Probe (Stadtansicht.Neubau.cs)
         Ladezeit.Marke("Szene: Räume des Wohnhauses");
         WohnhaeuserPruefen(); // die Wohnhäuser der Karte, wie sie der Kern vergeben hat (sonst erst im ersten Aktualisieren)
         GrundstueckeAktualisieren(); // Baustellen und Bauplätze (Stadtansicht.Bauen.cs)
@@ -1298,7 +1299,7 @@ public partial class Stadtansicht : Node3D
                 WegAngeklickt?.Invoke(wegNr, wegStelle);
             return;
         }
-        if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
+        if (_raum is null && VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs); in der Raumansicht trifft kein Klick die Stadt draußen
         if (KennungBei(mausposition) is not { } kennung) return;
         switch (KlickRegel.Entscheide(doppelklick, AnsichtZu(kennung) is { HatInnenraum: true }, UebergangLaeuft))
         {

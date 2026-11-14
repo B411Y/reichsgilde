@@ -38,7 +38,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>Spielerwunsch (Rechtsklick, Esc, Knopf „Zur Stadt“): Haus verlassen, mit Blende.</summary>
-    public void InnenansichtVerlassenMitBlende()
+    public void InnenansichtVerlassenMitBlende() => InnenansichtVerlassenMitBlende(false);
+
+    /// <summary>Klick auf die Haustür von innen (Stadtansicht.Neubau.cs): hinaus wie hinein – die Hand greift die Klinke, dann die Blende.</summary>
+    public void InnenansichtVerlassenDurchTuer() => InnenansichtVerlassenMitBlende(true);
+
+    private void InnenansichtVerlassenMitBlende(bool klinke)
     {
         if (_innen is null || UebergangLaeuft) return;
         if (!Uebergangsblende.Aktiv) { InnenansichtVerlassen(); return; }
@@ -46,7 +51,7 @@ public partial class Stadtansicht
         {
             ("Verlassen", () => { _kameraSprung = true; try { InnenansichtVerlassen(); } finally { _kameraSprung = false; } }),
         };
-        Blende().Starten(UebergangRichtung.Verlassen, null, schritte);
+        Blende().Starten(UebergangRichtung.Verlassen, null, schritte, klinke);
     }
 
     /// <summary>Hover: die Maus steht über dem betretbaren Gebäude <paramref name="kennung"/> (null = über nichts Betretbarem). Der Raum wird einmal vorbereitet, bevor der Doppelklick kommt.</summary>

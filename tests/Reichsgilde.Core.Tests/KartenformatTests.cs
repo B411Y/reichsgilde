@@ -71,6 +71,8 @@ static class KartenformatTests
             fehlen.RemoveAll(d => d.StartsWith("zeiger/"));
             // Ohne Katalog: die Baukästen der Restflächen-Füllung (props/fuellung_*, props_fuellung_kit); sie stellt die Stadtansicht nach restflaechen.json, nicht die Karte.
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
+            // Ohne Katalog: die Probe zum Neubau der Gebäude (gebaeude/neubau/); sie steht nur mit Startoption (--neubauprobe, Stadtansicht.Neubau.cs), bis der Nutzer den Tausch freigibt.
+            fehlen.RemoveAll(d => d.StartsWith("gebaeude/neubau/"));
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 

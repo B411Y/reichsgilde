@@ -507,7 +507,7 @@ public sealed class Wirtschaftsdaten
         Handel?.Pruefen(f);
         Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
         Jahreszeiten?.Pruefen(f, Waren, Betriebsarten);
-        Wohnen?.Pruefen(f, Staende.Count, Waren);
+        Wohnen?.Pruefen(f, Staende.Count, Waren, Meinungen?.Aktivitaeten.Keys, Betriebsarten.Count > 0 ? Betriebsarten.Values.Select(a => a.Beruf) : null);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
         Blitz?.Pruefen(f);
@@ -546,7 +546,8 @@ public sealed class Wirtschaftsdaten
         Glaube?.Pruefen(f, Politik.Ratsherren);
         Dynastie.Pruefen(f, StandStufe);
         Charakterzuege?.Pruefen(f, Dynastie.Talente.Ausbildungen.Keys,
-            (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList());
+            (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList(),
+            Meinungen?.Aktivitaeten.Keys);
         foreach (var r in Politik.Ratsherren)
         {
             if (r.Zuege is not { } fest) continue;

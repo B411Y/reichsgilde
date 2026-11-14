@@ -145,14 +145,15 @@ static class EinrichtungsbaumTests
             Pruefe.Gleich(0, w.Werkstaetten.Baum(m).Stuecke.Count);
         }),
 
-        ("Wohnhaus-Einrichtung: Daten – Haushalt (Hausapotheke, Vorratskammer, Küche), Ansehen (Wappen, Stube, Bibliothek), Schutz (Hauswächter, Riegel, Hund)", () =>
+        ("Wohnhaus-Einrichtung: Daten – Haushalt (Hausapotheke, Vorratskammer, Küche), Ansehen (Wappen, Stube; Bibliothek ist ein Raum), Schutz (Hauswächter, Riegel, Hund)", () =>
         {
             var d = Daten.Value.Wohnen!;
             Pruefe.Gleich("Haushalt|Ansehen|Schutz", string.Join("|", d.Spalten));
             Pruefe.Gleich("Hausapotheke Vorratskammer Kueche", string.Join(" ", d.Einrichtung.Where(e => e.Spalte == "Haushalt").Select(e => e.Kennung)));
-            Pruefe.Gleich("Hauswappen Stube Bibliothek", string.Join(" ", d.Einrichtung.Where(e => e.Spalte == "Ansehen").Select(e => e.Kennung)));
+            // die Bibliothek ist seit Datenversion 87 ein Raum zur Wahl (WohnhausRaeumeTests), kein Stück mehr
+            Pruefe.Gleich("Hauswappen Stube", string.Join(" ", d.Einrichtung.Where(e => e.Spalte == "Ansehen").Select(e => e.Kennung)));
             Pruefe.Gleich("Hauswaechter Riegel Hund", string.Join(" ", d.Einrichtung.Where(e => e.Spalte == "Schutz").Select(e => e.Kennung)));
-            Pruefe.Gleich("1 2 3 1 2 3 1 2 3", string.Join(" ", d.Spalten.SelectMany(s => d.Einrichtung.Where(e => e.Spalte == s)).Select(e => e.AbStufe)));
+            Pruefe.Gleich("1 2 3 1 2 1 2 3", string.Join(" ", d.Spalten.SelectMany(s => d.Einrichtung.Where(e => e.Spalte == s)).Select(e => e.AbStufe)));
             Pruefe.Gleich("Hausapotheke", d.Stueck("Hausapotheke")!.Vorhanden);
             Pruefe.Gleich("Hauswaechter", d.Stueck("Hauswaechter")!.Vorhanden);
         }),

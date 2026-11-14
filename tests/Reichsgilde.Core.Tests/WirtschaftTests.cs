@@ -74,6 +74,26 @@ static class Datenpfad
             : throw new InvalidDataException("Schalter „schiffshandel.karrenZumHafen“ steht nicht wie erwartet in den Daten – Datenpfad.OhneHafenziel anpassen.");
     }
 
+    /// <summary>
+    /// Die Daten ohne Räume im Wohnhaus (<c>wohnen.raeume</c>, Datenversion 87): Jedes Haus hat jeden Raum, wie bis Datenversion 86 – für Tests
+    /// der Gaunerei, Erpressung und Aktivitäten, deren Häuser im Fachwerkhaus wohnen. Die Räume selbst prüft <c>WohnhausRaeumeTests</c>.
+    /// (Als Text, damit die Form der Datei bleibt und spätere Ersetzungen noch greifen.)
+    /// </summary>
+    public static string OhneRaeume(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        var start = json.IndexOf("\"raeume\": {", StringComparison.Ordinal);
+        if (start < 0) return json;
+        var komma = json.LastIndexOf(',', start);
+        var tiefe = 0;
+        for (var i = json.IndexOf('{', start); i < json.Length; i++)
+        {
+            if (json[i] == '{') tiefe++;
+            else if (json[i] == '}' && --tiefe == 0) return json[..komma] + json[(i + 1)..];
+        }
+        throw new InvalidDataException("Abschnitt „wohnen.raeume“ ist nicht geschlossen – Datenpfad.OhneRaeume anpassen.");
+    }
+
     /// <summary>Die Daten mit diesem Handgeld (<c>personal.handgeld</c>, Datenversion 73; 0 = keins, wie bis Datenversion 72).</summary>
     public static string MitHandgeld(string? json, double handgeld)
     {

@@ -504,6 +504,13 @@ public sealed record WegebauStand
 
     /// <summary>Kontonummer → bis zu welchem Jahr das Ansehen aus einem Antrag „Weg pflastern“ gilt.</summary>
     public Dictionary<string, int> AnsehenBis { get; init; } = new();
+
+    /// <summary>
+    /// Kontonummer (als Text) → Stimme zum vorliegenden Antrag „Weg pflastern“ aus der Stimmrunde vor der Ratssitzung (true = dafür;
+    /// null = keine; ältere Spielstände: keine – Enthaltung).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, bool>? PflasterStimmen { get; init; }
 }
 
 /// <summary><see cref="Anzahl"/> Stücke hintereinander mit gleichen Werten.</summary>
@@ -1149,6 +1156,10 @@ public sealed record KontoStand
     /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
     public List<string>? WohnhausEinrichtung { get; init; }
 
+    /// <summary>Angebaute Räume zur Wahl (Kennungen aus „wohnen.raeume“, in der Reihenfolge der Wahl; fehlt = keine, auch in alten Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? WohnhausRaeume { get; init; }
+
     /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (fehlt = 0, nur geschrieben, wenn gesetzt).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public double EntwicklerAnsehen { get; init; }
@@ -1248,6 +1259,10 @@ public sealed record BetriebStand
 
     /// <summary>Gesparte Zutaten des Vorarbeiters „Sparsam“, noch kein ganzes Stück (PR #224; null: nichts).</summary>
     public Dictionary<string, double>? RohstoffErsparnis { get; init; }
+
+    /// <summary>Spieltag, an dem der Verwalter schon „kauft nur das Nötigste“ gemeldet hat – nur wenn es der laufende ist (sonst null, alte Stände: null).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? KasseKnappAm { get; init; }
 }
 
 /// <summary>Ein Arbeiter eines Betriebs (siehe <see cref="Wirtschaft.Arbeiter"/>).</summary>

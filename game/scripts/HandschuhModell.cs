@@ -1,7 +1,7 @@
 namespace Reichsgilde;
 
-/// <summary>Die vier Haltungen des 3D-Handschuhs (Text: die Kante der flachen Hand zeigt zum Betrachter, über Textfeldern) (Namen = Namen der Schleifen in der .glb).</summary>
-public enum HandPose { Ruhe, Zeigen, Greifen, Text, Bereit, Winken }
+/// <summary>Die Haltungen des 3D-Handschuhs (Namen = Namen der Schleifen in der .glb). Über Textfeldern gibt es keine eigene Haltung mehr: dort weicht die Hand dem Messing-I (<see cref="SymbolWechsel"/>).</summary>
+public enum HandPose { Ruhe, Zeigen, Greifen, Bereit, Winken }
 
 /// <summary>
 /// Die reine Ablauflogik des 3D-Handschuhs (<see cref="HandschuhZeiger"/>) ohne Godot, damit sie sich testen lässt (<c>HandschuhModellTests.cs</c>):
@@ -35,58 +35,28 @@ public static class HandschuhModell
     /// <summary>Welche Haltung gewünscht ist: Ziehen = Greifen, sonst über Anklickbarem Zeigen, sonst Ruhe.</summary>
     public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem) => Wunsch(ziehen, ueberAnklickbarem, false);
 
-    /// <summary>Wie oben, mit Text: über einem Textfeld (heute der I-Strich-Zeiger) steht die Hand in der Haltung Text, außer beim Ziehen.</summary>
-    public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem, bool ueberText) => Wunsch(ziehen, ueberAnklickbarem, ueberText, false);
-
     /// <summary>Wie oben, mit Tür: über einem betretbaren Gebäude steht die Hand in der Haltung Bereit (offene Hand über dem Türschloss) statt Zeigen.</summary>
-    public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem, bool ueberText, bool ueberTuer) => Wunsch(ziehen, ueberAnklickbarem, ueberText, ueberTuer, false, false);
+    public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem, bool ueberTuer) => Wunsch(ziehen, ueberAnklickbarem, ueberTuer, false, false);
 
     /// <summary>
-    /// Wie oben, mit Auswahlrechteck und Winken: Zieht der Spieler ein <b>Auswahlrechteck</b> (<paramref name="rahmen"/>), zeigt der Handschuh Zeigen statt der Ziehen-Faust; Dinge greifen und verschieben (Ware, Fenster, Kamera) bleiben bei der Faust.
-    /// <paramref name="winken"/> (Easter Egg, <see cref="WinkenLogik"/>) hat Vorrang vor allem.
+    /// Wie oben, mit Auswahlrechteck und Winken: Zieht der Spieler ein <b>Auswahlrechteck</b> oder auf einer verschiebbaren Fläche wie dem Stammbaum (<paramref name="rahmen"/>), zeigt der Handschuh Zeigen statt der Ziehen-Faust;
+    /// Dinge greifen und verschieben (Ware, Fenster, Kamera) bleiben bei der Faust. <paramref name="winken"/> (Easter Egg, <see cref="WinkenLogik"/>) hat Vorrang vor allem.
     /// </summary>
-    public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem, bool ueberText, bool ueberTuer, bool rahmen, bool winken) =>
-        winken ? HandPose.Winken : ziehen && rahmen ? HandPose.Zeigen : ziehen ? HandPose.Greifen : ueberText ? HandPose.Text : ueberTuer ? HandPose.Bereit : ueberAnklickbarem ? HandPose.Zeigen : HandPose.Ruhe;
+    public static HandPose Wunsch(bool ziehen, bool ueberAnklickbarem, bool ueberTuer, bool rahmen, bool winken) =>
+        winken ? HandPose.Winken : ziehen && rahmen ? HandPose.Zeigen : ziehen ? HandPose.Greifen : ueberTuer ? HandPose.Bereit : ueberAnklickbarem ? HandPose.Zeigen : HandPose.Ruhe;
 
-    /// <summary>Gibt es einen Übergangsclip zwischen den Haltungen? Greifen liegt nicht neben Text und Bereit (Weg über Ruhe), mit Winken schon.</summary>
+    /// <summary>Gibt es einen Übergangsclip zwischen den Haltungen? Greifen liegt nicht neben Bereit (Weg über Ruhe), mit Winken schon.</summary>
     public static bool HatUebergang(HandPose von, HandPose nach) =>
-        von != nach && !(von == HandPose.Greifen && nach is HandPose.Text or HandPose.Bereit) && !(nach == HandPose.Greifen && von is HandPose.Text or HandPose.Bereit);
+        von != nach && !(von == HandPose.Greifen && nach == HandPose.Bereit) && !(nach == HandPose.Greifen && von == HandPose.Bereit);
 
-    /// <summary>Zweiter Name eines Übergangsclips (<c>Ruhe_Text</c> statt <c>Uebergang_Ruhe_Text</c>), falls die Datei die Aktionen kürzer nennt.</summary>
+    /// <summary>Zweiter Name eines Übergangsclips (<c>Ruhe_Zeigen</c> statt <c>Uebergang_Ruhe_Zeigen</c>), falls die Datei die Aktionen kürzer nennt.</summary>
     public static string UebergangKurz(HandPose von, HandPose nach) => $"{von}_{nach}";
-
-    /// <summary>Zeitkonstante (Sekunden), mit der der Zeigerpunkt von der Fingerspitze zum Textpunkt gleitet (und zurück), damit die Hand beim Wechsel nicht springt.</summary>
-    public const double TextGewichtZeit = 0.08;
 
     /// <summary>Position der Zeichenfläche des Handschuhs in einem Unterfenster: Mausposition des Fensters minus Zeigerpunkt im Bild (beides in Einheiten dieses Fensters), damit die Fingerspitze genau auf der Maus liegt.</summary>
     public static (double X, double Y) FensterPosition(double mausX, double mausY, double imBildX, double imBildY) => (mausX - imBildX, mausY - imBildY);
 
     /// <summary>Drehung der Bühnenkamera um die Hochachse (Grad): der Zeigefinger steht im Spielbild schräg nach links oben (Haltung Zeigen, Ruhe, Greifen).</summary>
     public const double KameraDrehungGrad = -40.0;
-
-    /// <summary>Eigene Drehung der Hand je Haltung (Grad um die Hochachse, <paramref name="textGewicht"/> 0 = andere Haltungen, 1 = Text): in der Haltung Text dreht die Hand mit der Kamera, damit sie aufrecht steht (die Pose selbst bleibt, wie der Nutzer sie gebaut hat).</summary>
-    public static double PoseDrehungGrad(double textGewicht, double textDrehungGrad = KameraDrehungGrad) => textDrehungGrad * Math.Clamp(textGewicht, 0.0, 1.0);
-
-    /// <summary>
-    /// Sucht die Drehung der Hand um die Hochachse (Grad, -180 bis 180), bei der <paramref name="richtung"/> (Bildrichtung von Handgelenk zu Fingerspitze bei dieser Drehung, y nach unten) genau nach oben zeigt:
-    /// Stulpe unten, Finger oben. Grob in 1-Grad-Schritten über den ganzen Kreis, dann fein (0,05 Grad).
-    /// </summary>
-    public static double AufrechtDrehungGrad(Func<double, (double X, double Y)> richtung)
-    {
-        static double Fehler((double X, double Y) v)
-        {
-            var laenge = Math.Sqrt(v.X * v.X + v.Y * v.Y);
-            return laenge < 1e-9 ? double.MaxValue : Math.Acos(Math.Clamp(-v.Y / laenge, -1.0, 1.0)); // Winkel zur Richtung nach oben (0, -1)
-        }
-        var beste = 0.0;
-        var fehler = double.MaxValue;
-        for (var g = -180.0; g <= 180.0; g += 1.0) { var f = Fehler(richtung(g)); if (f < fehler) { fehler = f; beste = g; } }
-        for (var g = beste - 1.0; g <= beste + 1.0; g += 0.05) { var f = Fehler(richtung(g)); if (f < fehler) { fehler = f; beste = g; } }
-        return beste;
-    }
-
-    /// <summary>Wie schräg (Grad) die Finger im Bild stehen, bei Kameradrehung und Handdrehung um die Hochachse: 0 = aufrecht.</summary>
-    public static double FingerBildwinkelGrad(double kameraGrad, double handGrad) => Math.Abs(handGrad - kameraGrad);
 
     public static string Schleife(HandPose pose) => pose == HandPose.Bereit ? KlinkeFolge.ClipBereit : pose.ToString();
 
@@ -144,7 +114,7 @@ public sealed class HandschuhAblauf
             return Starten("Tippen", HandPose.Zeigen);
         }
         if (Pose == wunsch) return null;
-        // Greifen und Text haben keinen gemeinsamen Clip: erst zurück in Ruhe, dann weiter
+        // Greifen und Bereit haben keinen gemeinsamen Clip: erst zurück in Ruhe, dann weiter
         var ziel = HandschuhModell.HatUebergang(Pose, wunsch) ? wunsch : HandPose.Ruhe;
         return Starten(HandschuhModell.Uebergang(Pose, ziel), ziel);
     }

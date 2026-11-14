@@ -1,0 +1,14 @@
+{
+  "wohnhaus_mensch": {
+    "datei": "wohnhaus_mensch_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 4,
+    "plaetze": {"wohnhaus_mensch_s1_g1": 0}
+  },
+  "wohnhaus_mensch_innen": {
+    "datei": "wohnhaus_mensch_innen_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 4,
+    "plaetze": {"wohnhaus_mensch_s1_g1": 0}
+  }
+}

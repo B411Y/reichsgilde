@@ -304,7 +304,7 @@ static class RatssitzungTests
                 (aemter[0].Ratsherr, aemter[0].Konto) = (null, spieler);
                 (aemter[1].Ratsherr, aemter[1].Konto) = (null, nachbar);
                 Ok(w, spieler, new WegPflasterBeantragen(nr, 0, 40));
-                Abgelehnt(w, nachbar, new PflasterStimme(false), "erst in der Ratssitzung");
+                Abgelehnt(w, nachbar, new PflasterStimme(false), "erst in der Stimmrunde");
                 Abgelehnt(w, spieler, new PflasterStimme(false), "stimmt ohnehin dafür");
                 w.RatssitzungAnhalten = _ => true;
                 BisJahresende(sim);

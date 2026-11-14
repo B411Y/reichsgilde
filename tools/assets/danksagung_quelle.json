@@ -177,6 +177,18 @@
           "deckt": [
             "game/assets/texturen/modelle/relief_"
           ]
+        },
+        {
+          "werk": "Trim-Sheets der neuen Gebäude (Stroh, Balken, Putz, Planken, Bruchstein, Eisen, Einrichtung)",
+          "autor": "Poly Haven (Rob Tuytel, Dimitrios Savva, Dario Barresi, Charlotte Baglioni, Amal Kumar, colormass, Rico Cilliers)",
+          "quelle": "https://polyhaven.com",
+          "lizenz": "CC0 1.0",
+          "hinweis": "Aufnahmen und Materialien, vom Spiel zu Texturbändern gepackt und umgefärbt.",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/texturen/neubau/*trim_",
+            "game/assets/texturen/neubau/bodenfleck"
+          ]
         }
       ],
       "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Pixal3D (Tencent, MIT) mit dem Bildencoder DINOv3 (Meta, DINOv3 License; Built with DINOv3) und MPFB 2 (CC0) für den 3D-Handschuh des Mauszeigers, Blender und ComfyUI. Schmiedmodell und Handschuh sind KI-Arbeiten.",

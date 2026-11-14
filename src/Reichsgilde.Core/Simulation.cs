@@ -120,7 +120,8 @@ public sealed class Simulation
             return 0;
 
         var ticks = Takt.Voranschreiten(echtzeitSekunden);
-        for (var i = 0; i < ticks && !IstBeendet && Ratssitzung is null; i++)
+        // Hält ein Ereignis dieses Bildes die Zeit an (Pause, Haltegrund am Jahresende), rechnet es keinen weiteren Tick mehr.
+        for (var i = 0; i < ticks && !IstBeendet && Ratssitzung is null && !Takt.IstPausiert; i++)
             Tick();
         return ticks;
     }

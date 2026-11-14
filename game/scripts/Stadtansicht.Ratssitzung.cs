@@ -7,8 +7,14 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die sichtbare Ratssitzung im Ratssaal (PR #202) – Teil der <c>partial class Stadtansicht</c>. Die Oberfläche (<see cref="RatssitzungAnzeige"/>) führt
+/// Die sichtbare Ratssitzung im Ratssaal (PR #202, Szene Teil 1 14.11.2026) – Teil der <c>partial class Stadtansicht</c>. Die Oberfläche (<see cref="RatssitzungAnzeige"/>) führt
 /// durch die Punkte; die Hauptszene reicht jeden Schritt hierher weiter. Die Darstellung liest nur, was ihr gezeigt wird.
+///
+/// Die Auszählung sieht man im Saal: Alle, die dafür sind (oder einen Kandidaten wählen), heben <i>gleichzeitig</i> die Hand, die Neinstimmen schütteln den Kopf;
+/// dann zählt der Stadtschreiber am Pult die Hände einzeln, über jeder erscheint eine Zahl (<see cref="RatssitzungGezaehlt"/>), sein Zwischenstand steht über ihm,
+/// und die Oberfläche führt das Ratsbuch. Die Plätze sind nach Ast geordnet (<see cref="SitzOrdnung"/>: je Zweig des Amtsbaums eine Tischseite), Bewerber ohne Ratssitz
+/// sitzen auf der Zuhörerbank (<see cref="ZuhoererSetzen"/>, gebaut in <see cref="RatssaalModellBauen"/>). Alle Figuren der Sitzung entstehen über
+/// <see cref="SitzungsFigur"/>: Das ist die eine Stelle, an der der Figuren-Baukasten sie später austauscht.
 ///
 /// Am Ratstisch sitzt je besetztem Amt eine Figur (die Figuren aus Blender, Stadtansicht.Figuren.cs): Häuser in ihrer Farbe, Ratsherren der Stadt in Ratsrot,
 /// der Bürgermeister mit goldenem Barett auf dem erhöhten Stuhl. Über jedem Platz steht klein der Name (beim Bürgermeister mit Amt; die Ämter nennt die Tafel),
@@ -20,7 +26,7 @@ namespace Reichsgilde;
 ///
 /// Die Plätze kommen vorerst aus dem Ratssaal aus Grundkörpern (Stadtansicht.Sonderbauten.cs, Hufeisentisch mit sieben Stühlen). Während der Sitzung
 /// sind dessen Figuren aus, die Eingabe im Raum ruht (kein Raumwechsel, kein Hinausgehen), und zwei Kerzenlichter erhellen den Tisch –
-/// die Sitzung ist um fünf Uhr früh, nach dem Jahreswechsel.
+/// die Sitzung ist am Jahresende, vor Sonnenaufgang, und danach kommt der Jahresbericht.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -34,6 +40,8 @@ public partial class Stadtansicht
         public required Node3D Halter { get; init; }
         public required Label3D Schild { get; init; }
         public required Label3D Stimme { get; init; }
+        /// <summary>Die Zahl des Schreibers über der Hand, wenn sie gezählt ist.</summary>
+        public required Label3D Zahl { get; init; }
         /// <summary>Sitzhöhe des Stuhls (Meter): Die Hüfte der Figur kommt darauf.</summary>
         public float Sitzhoehe { get; init; } = 0.46f;
         /// <summary>Wer hier sitzt (Name des Inhabers) – ändert er sich durch eine Wahl, wird die Figur neu gebaut.</summary>
@@ -60,6 +68,19 @@ public partial class Stadtansicht
         public SitzungsPlatz? RednerPlatz { get; set; }
         public SitzungsPlatz? AmZug { get; set; }
         public Figur? SchreiberFigur { get; set; }
+        /// <summary>Der Zwischenstand der Zählung über dem Schreiber.</summary>
+        public Label3D? SchreiberZahl { get; set; }
+        /// <summary>Die Bewerber auf der Zuhörerbank (ohne Sitz am Tisch).</summary>
+        public List<Zuhoerer> Zuhoerer { get; } = new();
+    }
+
+    /// <summary>Ein Bewerber auf der Zuhörerbank: Halter an der Bank, Figur, Namensschild.</summary>
+    private sealed class Zuhoerer
+    {
+        public required Node3D Halter { get; init; }
+        public required string Name { get; init; }
+        public required Label3D Schild { get; init; }
+        public Figur? Figur { get; set; }
     }
 
     /// <summary>Die Rathaus-Ansicht und die sieben Sitze des alten Ratssaals (Lage relativ zur Gebäudemitte, Bürgermeister zuerst) – gesetzt in RathausBauen.</summary>
@@ -84,6 +105,8 @@ public partial class Stadtansicht
         public List<Stuhl> Stuehle { get; } = new();
         public Stuhl? Redner { get; set; }
         public Stuhl? Schreiber { get; set; }
+        /// <summary>Die Plätze der Zuhörerbank (Anker, Blick zum Tisch): Bewerber ohne Ratssitz warten dort auf ihre Wahl.</summary>
+        public List<Stuhl> Bank { get; } = new();
         public Node3D? Antrag { get; set; }
         /// <summary>Blickpunkt vom Podest zurück (<c>Blick_Rat_R2</c>): der Redner von vorn.</summary>
         public Node3D? RednerBlick { get; set; }
@@ -113,7 +136,7 @@ public partial class Stadtansicht
             _raumKamera.LookAtFromPosition(saal.Wurzel.ToGlobal(SaalAuge), saal.Wurzel.ToGlobal(SaalZiel), Vector3.Up);
         // Vom Podest aus stünden die Schilder der nahen Plätze riesig im Bild: Solange der Redner spricht, sind sie aus
         if (_ratssitzung is { } s)
-            foreach (var platz in s.Plaetze) platz.Schild.Visible = platz.Stimme.Visible = !redner;
+            foreach (var platz in s.Plaetze) platz.Schild.Visible = platz.Stimme.Visible = platz.Zahl.Visible = !redner;
     }
 
     /// <summary>Kamera während der Sitzung im alten Ratssaal (relativ zu seiner Mitte): vorn erhöht, Blick schräg hinab auf den Tisch.</summary>
@@ -176,10 +199,35 @@ public partial class Stadtansicht
             return;
         }
         if (m.Antrag is not null) m.Antrag.Visible = false;
+        ZuhoererbankBauen(m);
         m.Stuehle.Add(buergermeister);
         m.Stuehle.AddRange(sitze.OrderBy(x => x.Platz).Select(x => x.Stuhl));
         _ratssaal = m;
         a.Raeume.Add(new Raum(RaumSitzung, "Ratssaal", ort, new Vector3(10, 4.4f, 11), () => _ratssitzung is not null));
+    }
+
+    /// <summary>Wo die Zuhörerbank steht (x, relativ zum Ursprung des Saals): an der linken Wand, Blick zum Tisch.</summary>
+    private const float BankX = -3.3f;
+    private const int BankPlaetze = 4;
+
+    /// <summary>
+    /// Die Zuhörerbank: Das Modell hat keine (kein Anker), deshalb baut das Spiel eine schlichte Holzbank an die Wand – für Bewerber ohne Ratssitz.
+    /// Plätze entlang der Bank, die Figuren blicken mit +Z zum Tisch (+X).
+    /// </summary>
+    private void ZuhoererbankBauen(Ratssaalmodell m)
+    {
+        var holz = new StandardMaterial3D { AlbedoColor = new Color(0.34f, 0.23f, 0.14f), Roughness = 0.85f };
+        const float laenge = 3.6f, mitteZ = 0.3f;
+        void Brett(Vector3 groesse, Vector3 ort) => m.Wurzel.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = groesse }, MaterialOverride = holz, Position = ort });
+        Brett(new Vector3(0.5f, 0.06f, laenge), new Vector3(BankX, 0.42f, mitteZ)); // Sitz
+        Brett(new Vector3(0.06f, 0.5f, laenge), new Vector3(BankX - 0.27f, 0.72f, mitteZ)); // Lehne
+        foreach (var z in new[] { mitteZ - laenge / 2 + 0.15f, mitteZ + laenge / 2 - 0.15f })
+            Brett(new Vector3(0.44f, 0.4f, 0.1f), new Vector3(BankX, 0.2f, z)); // Füße
+        for (var i = 0; i < BankPlaetze; i++)
+        {
+            var z = mitteZ - laenge / 2 + laenge / BankPlaetze * (i + 0.5f);
+            m.Bank.Add(new Stuhl(m.Wurzel, new Transform3D(new Basis(Vector3.Up, Mathf.Pi / 2), new Vector3(BankX, 0, z)), 0.45f));
+        }
     }
 
     /// <summary>Eine Kommazahl aus den „extras“ eines Knotens, sonst der Vorgabewert.</summary>
@@ -224,7 +272,9 @@ public partial class Stadtansicht
                     Schild = SitzungsSchild(halter, new Vector3(0, i == 0 ? 2.1f : 1.75f, 0), 28),
                     // Die Stimme liegt vor dem Platz auf dem Tisch: Die Stühle an den Seiten stehen im Bild dicht hintereinander, ihre Köpfe fast übereinander
                     Stimme = SitzungsSchild(halter, new Vector3(0, 1.05f, _ratssaal is null ? 0.8f : 0.74f), 44),
+                    Zahl = SitzungsSchild(halter, new Vector3(0, 1.42f, 0), 40),
                 };
+                platz.Zahl.Modulate = StimmeKandidat;
                 if (_ratssaal is { } saal && i > 0)
                 {
                     // Am langen Tisch des Modells liegt die Stimme bis an die Mitte und läuft zur eigenen Seite hin aus – die gegenüber überdeckt sie so nie
@@ -267,12 +317,15 @@ public partial class Stadtansicht
         foreach (var platz in s.Plaetze)
         {
             GesteSetzen(platz, Geste.Keine);
+            platz.Zahl.Text = "";
             // Bei einer Wahl sitzen die Kandidaten mit am Tisch, stimmen aber nicht mit
             var kandidat = punkt.Thema is Sitzungsthema.Wahl or Sitzungsthema.Domprediger
                 && punkt.Kandidaten.Any(k => (k.Haus is not null && k.Haus == platz.Haus) || k.Name == platz.Inhaber);
             StimmeSchreiben(platz, kandidat ? "kandidiert" : "", StimmeEnthalten);
         }
         RatssitzungAmZug(null);
+        if (s.SchreiberZahl is { } stand) stand.Text = "";
+        ZuhoererSetzen(punkt);
         RednerSetzen(punkt.Antragsteller);
         if (_ratssaal?.Antrag is { } rolle) rolle.Visible = punkt.Thema is not (Sitzungsthema.Wahl or Sitzungsthema.Domprediger); // die versiegelte Rolle liegt vor, solange über einen Antrag gesprochen wird
     }
@@ -315,17 +368,91 @@ public partial class Stadtansicht
     /// </summary>
     public void RatssitzungErgebnis(Sitzungspunkt punkt)
     {
-        if (_ratssitzung is not { } s || _simulation?.Wirtschaft is not { } w || punkt.Thema != Sitzungsthema.Wahl || punkt.Amt is null) return;
+        if (_ratssitzung is not { } s || _simulation?.Wirtschaft is not { } w || punkt.Thema is not (Sitzungsthema.Wahl or Sitzungsthema.Domprediger)) return;
         PlaetzeBesetzen(w, punkt);
-        if (s.Plaetze.FirstOrDefault(p => p.Amt == punkt.Amt) is { } platz && punkt.Ergebnis?.Gewaehlt is { } gewaehlt)
+        ZuhoererSetzen(punkt); // der Abgewählte geht zur Bank, der Gewählte hat sich an seinen Stuhl gesetzt
+        if (punkt.Ergebnis?.Gewaehlt is not { } gewaehlt) return;
+        if (punkt.Amt is not null && s.Plaetze.FirstOrDefault(p => p.Amt == punkt.Amt) is { } platz)
         {
             GesteSetzen(platz, Geste.Keine);
             StimmeSchreiben(platz, "gewählt: " + Kurzname(gewaehlt), StimmeKandidat);
         }
+        else if (s.Zuhoerer.FirstOrDefault(z => z.Name == gewaehlt) is { } dom) // der Domprediger ist kein Ratsamt: Er bleibt auf der Bank, gekennzeichnet
+            dom.Schild.Text = "gewählt: " + Kurzname(gewaehlt);
     }
 
-    /// <summary>Die Ämter in der Reihenfolge der Stühle (Bürgermeister zuerst) – wie die Figuren außerhalb der Sitzung.</summary>
-    private static List<Amt> SitzOrdnung(Stadtwirtschaft w) => w.Rat.Aemter.OrderByDescending(a => a.Stufe).ToList();
+    /// <summary>
+    /// Der Schreiber hat eine Hand gezählt: Die Zahl steht über dem Sitz (laufende Nummer in der Zeile des Ratsbuchs), der Zwischenstand über dem Schreiber.
+    /// </summary>
+    public void RatssitzungGezaehlt(Sitzungsstimme stimme, int nummer, string stand)
+    {
+        if (_ratssitzung is not { } s) return;
+        if (s.Plaetze.FirstOrDefault(p => p.Amt == stimme.Sitz) is { } platz) platz.Zahl.Text = nummer.ToString();
+        if (s.SchreiberZahl is { } zahl) zahl.Text = stand;
+    }
+
+    /// <summary>
+    /// Die Zuhörerbank bei einer Wahl: Wer sich bewirbt und keinen Sitz am Tisch hat, sitzt dort (mit seinem Namen); sitzt er nach der Wahl am Tisch, ist er von der Bank weg,
+    /// der Abgewählte ist dafür dort. Ohne Bank im Modell (alter Ratssaal) bleibt sie leer.
+    /// </summary>
+    private void ZuhoererSetzen(Sitzungspunkt punkt)
+    {
+        if (_ratssitzung is not { } s || _simulation?.Wirtschaft is not { } w) return;
+        foreach (var alt in s.Zuhoerer)
+        {
+            s.AnAnkern.Remove(alt.Halter);
+            KnotenEntfernen(alt.Halter);
+        }
+        s.Zuhoerer.Clear();
+        if (_ratssaal is not { } saal || punkt.Thema is not (Sitzungsthema.Wahl or Sitzungsthema.Domprediger)) return;
+        var warten = punkt.Kandidaten.Where(k => !s.Plaetze.Any(p => p.Figur is not null && ((k.Haus is not null && k.Haus == p.Haus) || k.Name == p.Inhaber))).ToList();
+        for (var i = 0; i < warten.Count && i < saal.Bank.Count; i++)
+        {
+            var bank = saal.Bank[i];
+            var halter = new Node3D { Transform = bank.Lage };
+            bank.Eltern.AddChild(halter);
+            s.AnAnkern.Add(halter);
+            var schild = SitzungsSchild(halter, new Vector3(0, 1.6f, 0), 28);
+            schild.Text = Kurzname(warten[i].Name);
+            schild.Modulate = warten[i].Haus is not null && warten[i].Haus == _spielerKonto ? StimmeKandidat : new Color(0.78f, 0.74f, 0.66f);
+            s.Zuhoerer.Add(new Zuhoerer
+            {
+                Halter = halter, Name = warten[i].Name, Schild = schild,
+                Figur = SitzungsFigur(halter, RatsherrAussehen(w, warten[i].Name, warten[i].Haus, false), 820 + i, "Sitzen", bank.Sitzhoehe, 0.9f + i * 0.05f),
+            });
+        }
+    }
+
+    /// <summary>
+    /// Die Ämter in der Reihenfolge der Stühle: der Bürgermeister (die Wurzel des Amtsbaums) zuerst, dann je Zweig eine Tischseite – die Stühle im Modell stehen
+    /// abwechselnd links und rechts, vom Podest zur Tür. Der erste Zweig (in der Reihenfolge der Daten) sitzt also links, der zweite rechts, in jedem steht das
+    /// höchste Amt vorn (Stadtrichter, Stadthauptmann, Gefängniswärter links; Kämmerer, Marktmeister, Zöllner rechts). Die Ordnung folgt allein
+    /// <see cref="Stadtrat.Untergebene"/>: Ändern die Daten den Baum, ändert sich die Saalordnung. Ämter ohne Anschluss an den Baum kommen zuletzt (nach Stufe).
+    /// </summary>
+    private static List<Amt> SitzOrdnung(Stadtwirtschaft w)
+    {
+        var liste = new List<Amt>();
+        var aeste = new List<List<Amt>>();
+        foreach (var wurzel in w.Rat.Wurzelaemter())
+        {
+            liste.Add(wurzel);
+            foreach (var kind in w.Rat.Untergebene(wurzel)) aeste.Add(Ast(w, kind));
+        }
+        for (var tiefe = 0; aeste.Any(a => tiefe < a.Count); tiefe++)
+            foreach (var ast in aeste)
+                if (tiefe < ast.Count) liste.Add(ast[tiefe]);
+        foreach (var amt in w.Rat.Aemter.OrderByDescending(a => a.Stufe))
+            if (!liste.Contains(amt)) liste.Add(amt);
+        return liste;
+    }
+
+    /// <summary>Ein Zweig des Amtsbaums von oben nach unten: das Amt, dann seine Untergebenen (in der Reihenfolge der Daten, tiefer zuerst, wo es sich verzweigt).</summary>
+    private static List<Amt> Ast(Stadtwirtschaft w, Amt amt)
+    {
+        var liste = new List<Amt> { amt };
+        foreach (var kind in w.Rat.Untergebene(amt)) liste.AddRange(Ast(w, kind));
+        return liste;
+    }
 
     /// <summary>
     /// Wer zu diesem Punkt auf dem Stuhl eines Amtes sitzt (Name null: niemand): nach einer Wahl der Gewählte, sonst wer dort abstimmt, bei einer Wahl der bisherige
@@ -364,11 +491,9 @@ public partial class Stadtansicht
             platz.Schild.Text = name is null ? $"{amt.Name} (unbesetzt)" : i == 0 ? $"{amt.Name} {name}" : name;
             platz.Schild.Modulate = s.AmZug == platz ? AmZugFarbe : SchildFarbe(platz);
             if (name is null) continue;
-            if (FigurEinsetzen(platz.Halter, RatsherrAussehen(w, name, haus, i == 0), 700 + i) is not { } figur) continue;
-            figur.Modell.Position = new Vector3(0, platz.Sitzhoehe + 0.04f - figur.Kniehoehe, 0); // die Hüfte auf dem Stuhl (Kniehöhe des Menschen 0,50 m auf 0,46 m)
-            BewegungSetzen(figur, "Sitzen", 0.9f + i * 0.04f);
+            if (SitzungsFigur(platz.Halter, RatsherrAussehen(w, name, haus, i == 0), 700 + i, "Sitzen", platz.Sitzhoehe, 0.9f + i * 0.04f) is not { } figur) continue;
             platz.Figur = figur;
-            platz.Skelett = figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
+            platz.Skelett = SitzungsSkelett(figur);
         }
     }
 
@@ -418,18 +543,13 @@ public partial class Stadtansicht
         var haare = Haarfarben(volk);
         var aussehen = new FigurAussehen(volk, oberhaupt?.Geschlecht == Geschlecht.Frau, Besitzerfarbe(antragsteller), Beinkleidfarben[2], HautVon(volk),
             haare[0], new Color(0.12f, 0.10f, 0.10f), Kopfbedeckung.Barett);
-        if (FigurEinsetzen(halter, aussehen, 790) is { } figur)
-        {
-            BewegungSetzen(figur, "Reden");
-            s.RednerFigur = figur;
-        }
+        s.RednerFigur = SitzungsFigur(halter, aussehen, 790, "Reden");
         s.Redner = halter;
         // Sitzt er selbst im Rat, ist sein Stuhl leer, solange er vorn steht
         s.RednerPlatz = s.Plaetze.FirstOrDefault(p => p.Haus == antragsteller);
         if (s.RednerPlatz?.Figur is { } sitzend) sitzend.Modell.Visible = false;
     }
 
-    /// <summary>Schreibt die Stimme vor den Platz; Namen (Wahlen) etwas kleiner als Ja und Nein – die Stühle hinten stehen nur 1,2 m auseinander.</summary>
     /// <summary>Der Stadtschreiber am Pult des Modells: ein Mensch in dunklem Blau mit Barett, schreibt das Protokoll mit.</summary>
     private void SchreiberSetzen(Sitzungsbild s, Stuhl pult)
     {
@@ -438,12 +558,28 @@ public partial class Stadtansicht
         s.AnAnkern.Add(halter);
         var aussehen = new FigurAussehen(Volk.Mensch, false, new Color(0.22f, 0.26f, 0.36f), Beinkleidfarben[1], HautVon(Volk.Mensch), GrauesHaar,
             new Color(0.12f, 0.10f, 0.10f), Kopfbedeckung.Barett);
-        if (FigurEinsetzen(halter, aussehen, 795) is not { } figur) return;
-        figur.Modell.Position = new Vector3(0, pult.Sitzhoehe + 0.04f - figur.Kniehoehe, 0);
-        BewegungSetzen(figur, "Schreiben");
-        s.SchreiberFigur = figur;
+        s.SchreiberFigur = SitzungsFigur(halter, aussehen, 795, "Schreiben", pult.Sitzhoehe);
+        s.SchreiberZahl = SitzungsSchild(halter, new Vector3(0, 1.75f, 0), 36); // der Zwischenstand der Zählung über ihm
+        s.SchreiberZahl.Modulate = StimmeKandidat;
     }
 
+    /// <summary>
+    /// <b>Die eine Stelle für die Figuren der Sitzung</b> (Ratsherren, Redner, Schreiber, Zuhörer): setzt eine Figur an den Halter, bei <paramref name="sitzhoehe"/> sitzend
+    /// (die Hüfte auf dem Stuhl, Kniehöhe des Menschen 0,50 m auf 0,46 m), sonst stehend, und startet die Bewegung. Der Figuren-Baukasten (Szene Teil 2) tauscht nur diese
+    /// Methode und <see cref="SitzungsSkelett"/> aus.
+    /// </summary>
+    private Figur? SitzungsFigur(Node3D halter, FigurAussehen aussehen, int nummer, string bewegung, float? sitzhoehe = null, float takt = 1)
+    {
+        if (FigurEinsetzen(halter, aussehen, nummer) is not { } figur) return null;
+        if (sitzhoehe is { } hoehe) figur.Modell.Position = new Vector3(0, hoehe + 0.04f - figur.Kniehoehe, 0);
+        BewegungSetzen(figur, bewegung, takt);
+        return figur;
+    }
+
+    /// <summary>Das Skelett einer Sitzungsfigur, an dem das Spiel die Gesten dreht (Hand heben, Kopf schütteln); siehe <see cref="SitzungsFigur"/>.</summary>
+    private static Skeleton3D? SitzungsSkelett(Figur figur) => figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
+
+    /// <summary>Schreibt die Stimme vor den Platz; Namen (Wahlen) etwas kleiner als Ja und Nein – die Stühle hinten stehen nur 1,2 m auseinander.</summary>
     private static void StimmeSchreiben(SitzungsPlatz platz, string text, Color farbe)
     {
         platz.Stimme.Text = text;
@@ -491,6 +627,8 @@ public partial class Stadtansicht
         }
         if (s.RednerFigur is { } redner) FigurBewegen(redner, delta);
         if (s.SchreiberFigur is { } schreiber) FigurBewegen(schreiber, delta);
+        foreach (var zuhoerer in s.Zuhoerer)
+            if (zuhoerer.Figur is { } figur) FigurBewegen(figur, delta);
     }
 
     /// <summary>

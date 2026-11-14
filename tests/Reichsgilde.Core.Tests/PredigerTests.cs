@@ -169,6 +169,8 @@ static class PredigerTests
             var f = w.Familien.Gruenden(k, Volk.Mensch, Geschlecht.Mann, alter: 30);
             f.Oberhaupt.TalentSetzen(Talent.Rhetorik, 1);
             f.Oberhaupt.TalentSetzen(Talent.Handwerk, 2.75);
+            k.WohnhausStufe = 1; // Lesen nur mit Bibliothek (Datenversion 87, Gegenprobe in WohnhausRaeumeTests)
+            k.WohnhausRaumHinzufuegen("Bibliothek");
             var ap = k.Aktionspunkte.Vorrat;
             var vorher = k.Vermoegen;
             var preis = w.Markt["Lehrschrift"].Preis;

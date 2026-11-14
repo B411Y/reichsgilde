@@ -83,6 +83,9 @@ public sealed class EntscheidungDaten
     public int FristFuer(Entscheidungsart art) =>
         FristMinuten.TryGetValue(art.ToString(), out var m) ? m : FristMinuten.TryGetValue(Standard, out var s) ? s : 120;
 
+    /// <summary>Die Frist „standard“ in Spielminuten (ohne Eintrag 120) – auch die Länge der Stimmrunde vor der Ratssitzung (<see cref="Politik.Stadtrat.StimmrundeLaeuft"/>).</summary>
+    public int FristStandard => FristMinuten.TryGetValue(Standard, out var s) ? s : 120;
+
     internal void Pruefen(List<string> f)
     {
         if (HoechstOffen < 1) f.Add("entscheidungen.hoechstOffen muss mindestens 1 sein.");

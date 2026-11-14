@@ -433,7 +433,7 @@ public sealed class Bauwesen
     /// Wie <see cref="PlatzVerboten(BauBefehl)"/>; <paramref name="suche"/> (aus <see cref="FreieOrte"/>, für viele Stellen hintereinander) spart das
     /// Vorbereiten der Rechtecke je Stelle. Ohne sie wird sie für diesen einen Aufruf gebaut – das Ergebnis ist dasselbe.
     /// </summary>
-    private string? PlatzVerboten(BauBefehl befehl, Platzsuche? suche)
+    internal string? PlatzVerboten(BauBefehl befehl, Platzsuche? suche)
     {
         if (!IstAktiv) return "In dieser Stadt wird nicht gebaut.";
         if (Mass(befehl) is not { } mass) return "Dieses Gebäude kann man nicht bauen.";
@@ -475,13 +475,20 @@ public sealed class Bauwesen
                 return $"Ein {name} steht nur {LagenText(mass.Lagen)}.";
             return null;
         }
-        foreach (var fest in karte.Gebaeude)
+        // vergebener Startplatz (bzw. Platz einer Hofstelle, auch frei als Bauplatz): als Grundstück geprüft
+        bool AlsGrundstueck(Kartengebaeude fest) =>
+            fest.Art is Bausteinart.Wohnhausplatz or Bausteinart.Werkstattplatz && _grundstuecke.Any(x => x.Kennung == fest.Kennung);
+        if (suche is null)
         {
-            // vergebener Startplatz (bzw. Platz einer Hofstelle, auch frei als Bauplatz): als Grundstück geprüft
-            if (fest.Art is Bausteinart.Wohnhausplatz or Bausteinart.Werkstattplatz && _grundstuecke.Any(x => x.Kennung == fest.Kennung)) continue;
-            if (fest.Grundriss is { } fg && g.Ueberlappt(fg))
-                return $"Hier steht {(fest.Name != "" ? fest.Name : "ein fester Bau")}.";
+            foreach (var fest in karte.Gebaeude)
+            {
+                if (AlsGrundstueck(fest)) continue;
+                if (fest.Grundriss is { } fg && g.Ueberlappt(fg))
+                    return $"Hier steht {(fest.Name != "" ? fest.Name : "ein fester Bau")}.";
+            }
         }
+        else if (suche.ErsterFesterBau(g, AlsGrundstueck) is { } fest) // dieselbe Antwort, nur über das Raster der Bauten
+            return $"Hier steht {(fest.Name != "" ? fest.Name : "ein fester Bau")}.";
 
         foreach (var feld in felder)
         {
@@ -516,14 +523,39 @@ public sealed class Bauwesen
     public IReadOnlyList<BauBefehl> Bauorte(Konto konto, BauBefehl vorlage) =>
         BauherrVerboten(konto, vorlage) is not null ? Array.Empty<BauBefehl>() : FreieOrte(vorlage);
 
-    /// <summary>Wie <see cref="Bauorte"/>, aber ohne Bauherrn: nur die Prüfung des Platzes (<see cref="PlatzVerboten"/>).</summary>
-    private IReadOnlyList<BauBefehl> FreieOrte(BauBefehl vorlage)
+    /// <summary>
+    /// Wie <see cref="Bauorte"/>, aber ohne Bauherrn: nur die Prüfung des Platzes (<see cref="PlatzVerboten"/>). Die Rechnung steht in
+    /// <see cref="FreieOrteRechnen"/>; hier kommt die gemerkte <see cref="Platzsuche"/> der Karte dazu.
+    /// </summary>
+    internal IReadOnlyList<BauBefehl> FreieOrte(BauBefehl vorlage)
     {
-        if (!IstAktiv || Mass(vorlage) is not { } mass) return Array.Empty<BauBefehl>();
+        if (!IstAktiv) return Array.Empty<BauBefehl>();
+        lock (_platzsucheSperre)
+        {
+            if (_platzsuche is null || !_platzsuche.Fuer(Karte!)) _platzsuche = new Platzsuche(Karte!);
+            return FreieOrteRechnen(vorlage, _platzsuche);
+        }
+    }
+
+    /// <summary>
+    /// Die Platzsuche der Karte, über alle Abfragen behalten (14.11.2026): Sie merkt sich je Feld die Bauzonen und ob es an der Straße liegt und
+    /// hält ein Raster der festen Bauten – alles hängt nur an der Karte, nicht an Grundstücken, Neubauten oder Häusern. Die Karte wird einmal
+    /// gesetzt und in der Partie nicht verändert; zur Sicherheit prüft <see cref="Platzsuche.Fuer"/> vor jeder Abfrage, ob es noch dieselbe Karte
+    /// mit gleich vielen Bauzonen, Wegen und Bauten ist, sonst entsteht eine neue. Nicht im Spielstand (nach dem Laden neu).
+    /// </summary>
+    private Platzsuche? _platzsuche;
+
+    private readonly object _platzsucheSperre = new();
+
+    /// <summary>Die Rechnung von <see cref="FreieOrte"/> mit einer frischen Platzsuche (für den Vergleich im Test).</summary>
+    internal List<BauBefehl> FreieOrteRechnen(BauBefehl vorlage) => FreieOrteRechnen(vorlage, IstAktiv ? new Platzsuche(Karte!) : null);
+
+    private List<BauBefehl> FreieOrteRechnen(BauBefehl vorlage, Platzsuche? suche)
+    {
+        if (!IstAktiv || Mass(vorlage) is not { } mass || suche is null) return new List<BauBefehl>();
         var d = Daten!;
         var orte = new List<BauBefehl>();
         var geprueft = new HashSet<(double, double, int)>();
-        var suche = new Platzsuche(Karte!); // Karte und Daten ändern sich während dieses Aufrufs nicht
         void Pruefen(BauBefehl b)
         {
             if (geprueft.Add((b.X, b.Z, b.Drehung)) && PlatzVerboten(b, suche) is null) orte.Add(b);
@@ -560,7 +592,7 @@ public sealed class Bauwesen
         bool Bebaubar(double fx, double fz)
         {
             if (!bebaubar.TryGetValue((fx, fz), out var ja))
-                bebaubar[(fx, fz)] = ja = freie.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(z => Platzsuche.InZone(z.Zone, z.Rahmen, fx, fz));
+                bebaubar[(fx, fz)] = ja = freie.Any(p => p.Grundriss.Enthaelt(fx, fz)) || suche.ZonenBei(fx, fz).Any(z => mass.Lagen.Contains(z.Art));
             return ja;
         }
         for (var ez = z0; ez < z1; ez += r)
@@ -582,18 +614,102 @@ public sealed class Bauwesen
     /// Für viele Platzprüfungen hintereinander (<see cref="FreieOrte"/>): die umschließenden Rechtecke der Bauzonen und Wege. Ein Punkt außerhalb
     /// eines Rechtecks braucht so nicht erst das ganze Vieleck bzw. jede Strecke des Wegs – das Ergebnis ist genau das von
     /// <see cref="Bauzone.Enthaelt"/> und <see cref="Kartenweg.Abstand"/> (Begründung an <see cref="InZone"/> und <see cref="AnDerStrasse"/>).
-    /// Gilt nur, solange sich die Karte nicht ändert – darum nur innerhalb eines Aufrufs (in Köln je Bauorte-Abfrage etwa 6.000 Stellen).
+    /// Gilt nur, solange sich die Karte nicht ändert (in Köln je Bauorte-Abfrage etwa 6.000 Stellen). Seit 14.11.2026 merkt sie sich je Punkt
+    /// die Zonen und die Antwort „an der Straße“ (Schlüssel: die Bits der Zahlen), dazu ein Raster der festen Bauten, und bleibt in
+    /// <see cref="Bauwesen"/> über alle Abfragen erhalten, solange <see cref="Fuer"/> gilt. Alles hängt nur an der Karte; Grundstücke prüft
+    /// <see cref="PlatzVerboten"/> selbst.
     /// </summary>
     internal sealed class Platzsuche
     {
+        private readonly Stadtkarte _karte;
+        private readonly int _anzahlZonen, _anzahlWege;
         private readonly List<(Bauzone Zone, (double X0, double Z0, double X1, double Z1) Rahmen)> _zonen;
         private readonly List<(Kartenweg Weg, (double X0, double Z0, double X1, double Z1) Rahmen)> _wege;
 
+        // Gemerkte Antworten – nur nachgeschlagen, nie der Reihe nach gelesen; bei sehr vielen beginnt der Speicher von vorn.
+        private readonly Dictionary<(long, long), Bauzone[]> _zonenBei = new();
+        private readonly Dictionary<(long, long, long, bool), bool> _anDerStrasse = new();
+        private const int HoechstGemerkt = 500_000;
+
         public Platzsuche(Stadtkarte karte)
         {
+            (_karte, _anzahlZonen, _anzahlWege, _anzahlBauten) = (karte, karte.Bauzonen.Count, karte.Wege.Count, karte.Gebaeude.Count);
             _zonen = karte.Bauzonen.Select(z => (z, Rahmen(z.Flaeche))).ToList();
             _wege = karte.Wege.Select(w => (w, Rahmen(w.Verlauf))).ToList();
         }
+
+        /// <summary>Legt <see cref="_feste"/> und <see cref="_festRaster"/> beim ersten Bedarf an (eine einzelne Prüfung für die Vorschau braucht sie nicht).</summary>
+        private (Kartengebaeude Bau, Grundriss Grundriss)[] Feste()
+        {
+            if (_feste is { } fertig) return fertig;
+            var feste = _karte.Gebaeude.Where(b => b.Grundriss is not null).Select(b => (b, b.Grundriss!.Value)).ToArray();
+            for (var n = 0; n < feste.Length; n++)
+            {
+                var (i0, i1, j0, j1) = Zellen(feste[n].Item2);
+                for (var i = i0; i <= i1; i++)
+                    for (var j = j0; j <= j1; j++)
+                    {
+                        if (!_festRaster.TryGetValue((i, j), out var liste)) _festRaster[(i, j)] = liste = new List<int>();
+                        liste.Add(n); // aufsteigend: in der Reihenfolge der Karte
+                    }
+            }
+            return _feste = feste;
+        }
+
+        // Die festen Bauten der Karte mit Grundriss (in Kartenreihenfolge) und ein Raster von 16 m darüber: je Zelle die Bauten, deren Rechteck sie
+        // berührt (nur nachgeschlagen, nie der Reihe nach gelesen).
+        private readonly int _anzahlBauten;
+        private (Kartengebaeude Bau, Grundriss Grundriss)[]? _feste;
+        private readonly Dictionary<(long, long), List<int>> _festRaster = new();
+        private const double Zelle = 16;
+
+        private static (long I0, long I1, long J0, long J1) Zellen(Grundriss g) =>
+            ((long)Math.Floor((g.X - g.HalbX) / Zelle), (long)Math.Floor((g.X + g.HalbX) / Zelle),
+             (long)Math.Floor((g.Z - g.HalbZ) / Zelle), (long)Math.Floor((g.Z + g.HalbZ) / Zelle));
+
+        /// <summary>
+        /// Der erste feste Bau der Karte (in ihrer Reihenfolge), den <paramref name="g"/> überdeckt und der nicht <paramref name="ausgenommen"/> ist –
+        /// wie die Schleife über <see cref="Stadtkarte.Gebaeude"/> in <see cref="PlatzVerboten(BauBefehl, Platzsuche?)"/>. Überdecken sich zwei
+        /// Rechtecke, liegt ein gemeinsamer Punkt in einer Zelle, die beide berühren – also ist der Bau unter den Kandidaten.
+        /// </summary>
+        public Kartengebaeude? ErsterFesterBau(Grundriss g, Func<Kartengebaeude, bool> ausgenommen)
+        {
+            var feste = Feste();
+            var (i0, i1, j0, j1) = Zellen(g);
+            var kandidaten = new List<int>();
+            for (var i = i0; i <= i1; i++)
+                for (var j = j0; j <= j1; j++)
+                    if (_festRaster.TryGetValue((i, j), out var liste)) kandidaten.AddRange(liste);
+            kandidaten.Sort();
+            var vorher = -1;
+            foreach (var n in kandidaten)
+            {
+                if (n == vorher) continue;
+                vorher = n;
+                var (bau, fg) = feste[n];
+                if (g.Ueberlappt(fg) && !ausgenommen(bau)) return bau;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Alle Bauzonen der Karte, die den Punkt enthalten (in ihrer Reihenfolge; gemerkt) – <see cref="InZone"/> für jede Zone. Die erste ist
+        /// <see cref="ZoneBei"/>.
+        /// </summary>
+        public Bauzone[] ZonenBei(double x, double z)
+        {
+            var schluessel = (BitConverter.DoubleToInt64Bits(x), BitConverter.DoubleToInt64Bits(z));
+            if (_zonenBei.TryGetValue(schluessel, out var bekannt)) return bekannt;
+            if (_zonenBei.Count >= HoechstGemerkt) _zonenBei.Clear();
+            var liste = new List<Bauzone>();
+            foreach (var (zone, rahmen) in _zonen)
+                if (InZone(zone, rahmen, x, z)) liste.Add(zone);
+            return _zonenBei[schluessel] = liste.ToArray();
+        }
+
+        /// <summary>Gehört die Suche zu dieser Karte (dieselbe Karte, gleich viele Bauzonen, Wege und Bauten – als Wache gegen eine veränderte Karte)?</summary>
+        public bool Fuer(Stadtkarte karte) => ReferenceEquals(karte, _karte) && karte.Bauzonen.Count == _anzahlZonen && karte.Wege.Count == _anzahlWege
+                                              && karte.Gebaeude.Count == _anzahlBauten;
 
         /// <summary>Das umschließende Rechteck der Punkte (leer: ein Rechteck, das nichts enthält).</summary>
         public static (double X0, double Z0, double X1, double Z1) Rahmen(IReadOnlyList<double[]> punkte)
@@ -612,12 +728,7 @@ public sealed class Bauwesen
             z >= r.Z0 && z < r.Z1 && x >= r.X0 - 1 && x <= r.X1 + 1 && zone.Enthaelt(x, z);
 
         /// <summary>Die erste Bauzone der Karte, die den Punkt enthält – wie <c>Bauzonen.FirstOrDefault(z =&gt; z.Enthaelt(x, z))</c>.</summary>
-        public Bauzone? ZoneBei(double x, double z)
-        {
-            foreach (var (zone, rahmen) in _zonen)
-                if (InZone(zone, rahmen, x, z)) return zone;
-            return null;
-        }
+        public Bauzone? ZoneBei(double x, double z) => ZonenBei(x, z) is { Length: > 0 } zonen ? zonen[0] : null;
 
         /// <summary>
         /// Liegt der Punkt höchstens <paramref name="abstand"/> von einer Karrenstraße (für ein Wohnhaus auch einer Gasse) entfernt? Wie
@@ -625,6 +736,14 @@ public sealed class Bauwesen
         /// des Verlaufs, ist er sicher weiter weg (jede Strecke liegt im Rechteck).
         /// </summary>
         public bool AnDerStrasse(double x, double z, double abstand, bool werkstatt)
+        {
+            var schluessel = (BitConverter.DoubleToInt64Bits(x), BitConverter.DoubleToInt64Bits(z), BitConverter.DoubleToInt64Bits(abstand), werkstatt);
+            if (_anDerStrasse.TryGetValue(schluessel, out var bekannt)) return bekannt;
+            if (_anDerStrasse.Count >= HoechstGemerkt) _anDerStrasse.Clear();
+            return _anDerStrasse[schluessel] = AnDerStrasseRechnen(x, z, abstand, werkstatt);
+        }
+
+        private bool AnDerStrasseRechnen(double x, double z, double abstand, bool werkstatt)
         {
             var rand = abstand + 1;
             foreach (var (weg, r) in _wege)

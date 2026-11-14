@@ -267,15 +267,27 @@ public sealed partial class Siegelecke : Control
 
     public IReadOnlyList<Siegel> Alle => _siegel;
 
+    /// <summary>Der Knopf „Verlauf“ rechts in der Ecke: alle Meldungen, auch die gelesenen und beiseitegelegten, im Bericht nachlesen.</summary>
+    public event Action? VerlaufGewuenscht;
+
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
+        Theme = MeldungStil.Thema;
         _reihe.AddThemeConstantOverride("separation", 6);
         _reihe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(_reihe);
+        // Der Knopf „Verlauf“ steht immer ganz rechts (Siegel kommen links dazu) – auch wenn keine Siegel mehr da sind
+        var verlauf = new Button
+        {
+            Text = "Verlauf", ThemeTypeVariation = "MeldungVerlaufKnopf", FocusMode = FocusModeEnum.None, SizeFlagsVertical = SizeFlags.ShrinkEnd,
+            TooltipText = "Alle Meldungen nachlesen, auch gelesene und beiseitegelegte (Bericht, Reiter „Verlauf“) – mit Datum und Art; ein Klick auf eine Zeile führt hin.",
+        };
+        verlauf.Pressed += () => VerlaufGewuenscht?.Invoke();
+        _reihe.AddChild(verlauf);
         // Unten rechts, über der Betriebsleiste; wächst nach links
         SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, 16);
-        CustomMinimumSize = new Vector2(Siegel.Groesse * (Hoechstens + 1) + 6 * Hoechstens, Siegel.Groesse + 6); // Platz für die dauerhafte Feder
+        CustomMinimumSize = new Vector2(Siegel.Groesse * (Hoechstens + 1) + 6 * (Hoechstens + 1) + MeldungStil.Mass("verlauf_breite"), Siegel.Groesse + 6); // Platz für die dauerhafte Feder und den Knopf
         OffsetLeft = -16 - CustomMinimumSize.X;
         OffsetRight = -16;
         Hoehe(Rollbereich.LeistenHoehe);

@@ -118,8 +118,21 @@ public sealed class Wasserlauf
     public double Laenge => Punkte.Count == 0 ? 0 : Punkte[^1].Stelle;
 
     private readonly double _breitesteHalbe;
-    private readonly Dictionary<(int, int), List<int>> _raster = new();
+    private readonly Dictionary<(int, int), Rasterzelle> _raster = new();
     private const double Feld = 16;
+
+    /// <summary>
+    /// Je <see cref="Blocklaenge"/> aufeinanderfolgende Stücke das Rechteck um ihre Enden (ohne Breite und Ufer): Kein Punkt eines dieser Stücke
+    /// liegt näher am Suchpunkt als das Rechteck – so überspringt <see cref="Naechste"/> ganze Blöcke, ohne ein Stück anzusehen.
+    /// </summary>
+    private readonly (double X0, double Z0, double X1, double Z1)[] _bloecke;
+    private const int Blocklaenge = 8;
+
+    /// <summary>
+    /// Eine Zelle des Rasters: die Stücke, deren Ufer sie berühren kann, aufsteigend (<see cref="Stuecke"/>), und darin die Läufe aus demselben
+    /// Block (<see cref="LaufAnfang"/>: wo ein Lauf beginnt, mit einem Eintrag mehr fürs Ende; <see cref="LaufBlock"/>: sein Block).
+    /// </summary>
+    private sealed record Rasterzelle(int[] Stuecke, int[] LaufAnfang, int[] LaufBlock);
 
     internal Wasserlauf(int nummer, string name, string art, double stroemung, IReadOnlyList<Wasserpunkt> punkte, IReadOnlyList<int> abschnitte,
         double einschnitt, Kartenort einschnittOrt)
@@ -128,6 +141,7 @@ public sealed class Wasserlauf
         (GroessterEinschnitt, EinschnittOrt) = (einschnitt, einschnittOrt);
         _breitesteHalbe = punkte.Count == 0 ? 0 : punkte.Max(p => p.Breite / 2 + Wasserform.Uferbreite(p.Breite));
         Bereich = (Kartenrechteck.Um(punkte.Select(p => p.Ort)) ?? default).Vergroessert(_breitesteHalbe);
+        var listen = new Dictionary<(int, int), List<int>>();
         for (var k = 0; k + 1 < punkte.Count; k++)
         {
             var (a, b) = (punkte[k].Ort, punkte[k + 1].Ort);
@@ -135,9 +149,28 @@ public sealed class Wasserlauf
             for (var i = (int)Math.Floor((Math.Min(a.X, b.X) - r) / Feld); i <= (int)Math.Floor((Math.Max(a.X, b.X) + r) / Feld); i++)
                 for (var j = (int)Math.Floor((Math.Min(a.Z, b.Z) - r) / Feld); j <= (int)Math.Floor((Math.Max(a.Z, b.Z) + r) / Feld); j++)
                 {
-                    if (!_raster.TryGetValue((i, j), out var liste)) _raster[(i, j)] = liste = new List<int>();
+                    if (!listen.TryGetValue((i, j), out var liste)) listen[(i, j)] = liste = new List<int>();
                     liste.Add(k);
                 }
+        }
+        // Blöcke und Läufe (14.11.2026, schneller bei breiten Flüssen: eine Zelle am Rhein kennt bis zu Hunderte Stücke). Nur nachgeschlagen, nie der Reihe
+        // nach gelesen – die Reihenfolge des Wörterbuchs spielt keine Rolle.
+        var stuecke = Math.Max(0, punkte.Count - 1);
+        _bloecke = new (double, double, double, double)[(stuecke + Blocklaenge - 1) / Blocklaenge];
+        for (var blk = 0; blk < _bloecke.Length; blk++)
+        {
+            var (x0, z0, x1, z1) = (double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
+            for (var k = blk * Blocklaenge; k < Math.Min(stuecke, (blk + 1) * Blocklaenge) + 1; k++)
+                (x0, z0, x1, z1) = (Math.Min(x0, punkte[k].Ort.X), Math.Min(z0, punkte[k].Ort.Z), Math.Max(x1, punkte[k].Ort.X), Math.Max(z1, punkte[k].Ort.Z));
+            _bloecke[blk] = (x0, z0, x1, z1);
+        }
+        foreach (var (zelle, liste) in listen)
+        {
+            var (anfang, block) = (new List<int>(), new List<int>());
+            for (var i = 0; i < liste.Count; i++)
+                if (i == 0 || liste[i] / Blocklaenge != liste[i - 1] / Blocklaenge) { anfang.Add(i); block.Add(liste[i] / Blocklaenge); }
+            anfang.Add(liste.Count);
+            _raster[zelle] = new Rasterzelle(liste.ToArray(), anfang.ToArray(), block.ToArray());
         }
     }
 
@@ -145,20 +178,49 @@ public sealed class Wasserlauf
     /// Die nächste Stelle der Mittellinie zum Punkt: Stück k (zwischen Punkt k und k + 1), Anteil t darauf und Abstand – nur, wenn der Punkt im
     /// Fluss oder seinem Ufer liegen kann (sonst null).
     /// </summary>
+    /// <remarks>
+    /// Das Ergebnis ist Bit für Bit das der einfachen Suche über alle Stücke der Rasterzelle (bis 14.11.2026): das Stück mit dem kleinsten Abstand,
+    /// bei Gleichstand das mit der kleinsten Nummer. Gerechnet wird jedes Stück genauso; nur Blöcke, deren Rechteck (<see cref="_bloecke"/>) sicher
+    /// weiter weg liegt als das beste Stück bisher (mit 1 µm Rand gegen Rundung), werden übersprungen. Zuerst der Block mit dem nächsten Rechteck.
+    /// </remarks>
     internal (int K, double T, double Abstand)? Naechste(Kartenort p)
     {
-        if (Punkte.Count < 2 || !_raster.TryGetValue(((int)Math.Floor(p.X / Feld), (int)Math.Floor(p.Z / Feld)), out var liste)) return null;
+        if (Punkte.Count < 2 || !_raster.TryGetValue(((int)Math.Floor(p.X / Feld), (int)Math.Floor(p.Z / Feld)), out var zelle)) return null;
         var best = (K: -1, T: 0.0, Abstand: double.MaxValue);
-        foreach (var k in liste)
+        var laeufe = zelle.LaufBlock.Length;
+        Span<double> untergrenze = laeufe <= 256 ? stackalloc double[laeufe] : new double[laeufe];
+        var erster = 0;
+        for (var r = 0; r < laeufe; r++)
         {
-            var (a, b) = (Punkte[k].Ort, Punkte[k + 1].Ort);
-            var (dx, dz) = (b.X - a.X, b.Z - a.Z);
-            var l2 = dx * dx + dz * dz;
-            var t = l2 == 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / l2, 0, 1);
-            var d = p.Abstand(new Kartenort(a.X + t * dx, a.Z + t * dz));
-            if (d < best.Abstand) best = (k, t, d);
+            var (x0, z0, x1, z1) = _bloecke[zelle.LaufBlock[r]];
+            var ex = p.X < x0 ? x0 - p.X : p.X > x1 ? p.X - x1 : 0;
+            var ez = p.Z < z0 ? z0 - p.Z : p.Z > z1 ? p.Z - z1 : 0;
+            untergrenze[r] = ex * ex + ez * ez; // Quadrat des Abstands zum Rechteck
+            if (untergrenze[r] < untergrenze[erster]) erster = r;
+        }
+        Lauf(erster);
+        for (var r = 0; r < laeufe; r++)
+        {
+            if (r == erster) continue;
+            var schranke = best.Abstand + 1e-6;
+            if (untergrenze[r] > schranke * schranke) continue; // jedes Stück des Blocks liegt weiter weg als das beste
+            Lauf(r);
         }
         return best.K < 0 ? null : best;
+
+        void Lauf(int r)
+        {
+            for (var i = zelle.LaufAnfang[r]; i < zelle.LaufAnfang[r + 1]; i++)
+            {
+                var k = zelle.Stuecke[i];
+                var (a, b) = (Punkte[k].Ort, Punkte[k + 1].Ort);
+                var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+                var l2 = dx * dx + dz * dz;
+                var t = l2 == 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / l2, 0, 1);
+                var d = p.Abstand(new Kartenort(a.X + t * dx, a.Z + t * dz));
+                if (d < best.Abstand || d == best.Abstand && k < best.K) best = (k, t, d);
+            }
+        }
     }
 
     /// <summary>Der Punkt auf Stück k beim Anteil t (Ort, Stelle, Breite, Tiefe, Spiegel linear, die Richtung des Stücks).</summary>

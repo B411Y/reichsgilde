@@ -103,7 +103,7 @@ public sealed class Wegebau
 
     private (Konto Antragsteller, int Weg, double Von, double Bis)? _antrag;
 
-    /// <summary>Stimmen zum Antrag „Weg pflastern“, nur während der Ratssitzung gesetzt (fehlt = Enthaltung; nicht im Spielstand).</summary>
+    /// <summary>Stimmen zum Antrag „Weg pflastern“, gesetzt in der Stimmrunde vor der Ratssitzung (fehlt = Enthaltung; im Spielstand seit Ratssitzung PR 8).</summary>
     private readonly Dictionary<Konto, bool> _stimmen = new();
 
     /// <summary>Der Belag hat sich geändert (Jahreswechsel, fertige Baustelle, neuer Auftrag) – die Darstellung zeichnet neu.</summary>
@@ -537,8 +537,8 @@ public sealed class Wegebau
         : null;
 
     /// <summary>
-    /// Darf dieses Haus zum Antrag „Weg pflastern“ stimmen? (null = ja, sonst der Grund) Anders als bei den übrigen Anträgen nur live
-    /// in der laufenden Ratssitzung – vorher enthält sich das Haus.
+    /// Darf dieses Haus zum Antrag „Weg pflastern“ stimmen? (null = ja, sonst der Grund) Anders als bei den übrigen Anträgen erst in der
+    /// Stimmrunde vor der Ratssitzung (<see cref="Politik.Stadtrat.StimmrundeLaeuft"/>) oder in einer angehaltenen Sitzung – vorher enthält sich das Haus.
     /// </summary>
     public string? StimmeVerboten(Konto konto)
     {
@@ -546,14 +546,15 @@ public sealed class Wegebau
         if (_w.Rat.StimmeVerboten(konto) is { } grund) return grund;
         if (Antrag is not { } antrag) return "Dieses Jahr liegt kein Antrag auf Pflaster vor.";
         if (antrag.Antragsteller == konto) return $"{konto.Inhaber} hat den Antrag gestellt und stimmt ohnehin dafür.";
-        if (_w.Rat.LaufendeSitzung is null) return "Über das Pflaster stimmt man erst in der Ratssitzung ab – bis dahin gilt Enthaltung.";
+        if (_w.Rat.LaufendeSitzung is null && !_w.Rat.StimmrundeLaeuft)
+            return "Über das Pflaster stimmt man erst in der Stimmrunde vor der Ratssitzung ab – bis dahin gilt Enthaltung.";
         return null;
     }
 
     /// <summary>Die Stimme dieses Hauses zum vorliegenden Antrag (true = dafür, false = dagegen, null = Enthaltung).</summary>
     public bool? StimmeVon(Konto konto) => StimmeVerboten(konto) is null && _stimmen.TryGetValue(konto, out var ja) ? ja : null;
 
-    /// <summary>Stimme zum Antrag „Weg pflastern“ in der Ratssitzung setzen (true/false) oder sich enthalten (null).</summary>
+    /// <summary>Stimme zum Antrag „Weg pflastern“ in der Stimmrunde setzen (true/false) oder sich enthalten (null).</summary>
     internal Befehlsergebnis StimmeFestlegen(Konto konto, bool? ja)
     {
         if (StimmeVerboten(konto) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
@@ -716,6 +717,7 @@ public sealed class Wegebau
         AntragKonto = Antrag is { } a ? nummer(a.Antragsteller) : null,
         AntragWeg = Antrag?.Weg ?? 0, AntragVon = Antrag?.Von ?? 0, AntragBis = Antrag?.Bis ?? 0,
         AnsehenBis = _ansehenBis.OrderBy(x => nummer(x.Key)).ToDictionary(x => nummer(x.Key).ToString(), x => x.Value),
+        PflasterStimmen = _stimmen.Count == 0 ? null : _stimmen.OrderBy(x => nummer(x.Key)).ToDictionary(x => nummer(x.Key).ToString(), x => x.Value),
     };
 
     /// <summary>
@@ -748,5 +750,9 @@ public sealed class Wegebau
         Antrag = s.AntragKonto is int ak && s.AntragWeg >= 0 && s.AntragWeg < wege.Length ? (konten[ak], s.AntragWeg, s.AntragVon, s.AntragBis) : null;
         foreach (var (nummer, bis) in s.AnsehenBis)
             _ansehenBis[konten[int.Parse(nummer)]] = bis;
+        // Erst nach dem Antrag (sein Setzen leert die Stimmen); alte Spielstände ohne Feld: Enthaltung.
+        if (Antrag is not null)
+            foreach (var (nummer, ja) in s.PflasterStimmen ?? new())
+                _stimmen[konten[int.Parse(nummer)]] = ja;
     }
 }

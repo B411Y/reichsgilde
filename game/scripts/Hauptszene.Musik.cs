@@ -17,7 +17,7 @@ public partial class Hauptszene
         if (_probepartie) return;
         w.Gemeldet += meldung =>
         {
-            var anlass = MusikModell.AnlassAusAnsage(KlangAnsagenErkennung.Erkennen(meldung, w, spieler));
+            var anlass = MusikModell.AnlassAusMeldung(meldung, w, spieler);
             if (anlass != MusikModell.Anlass.Keiner) Musikspieler.Melden(anlass);
         };
         w.Gauner.Vorfaelle.Neu += v =>

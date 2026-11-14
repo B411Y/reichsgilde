@@ -318,7 +318,7 @@ public static class MusikModell
     /// <summary>
     /// Welcher Anlass gehört zu einer Meldung oder einem Ereignis des eigenen Hauses (<see cref="KlangAnsagenErkennung.Erkennen"/> hat Art und Haus schon geprüft)?
     /// Tod im Haus, Heirat, Geburt (Kind im Haus), Einbruch (Diebstahl, der gelingt), Brand und Überfall, die gelingen, ergeben Gefahr; Aufstieg im Stand,
-    /// Meisterbrief und gewonnene Wahl (Amt) ergeben Aufstieg. „Gefahrenmeldung der Wache“ meldet der Kern noch nicht (offen, siehe Bereichsdatei).
+    /// Meisterbrief und gewonnene Wahl (Amt) ergeben Aufstieg. Die Gefahrenmeldung der Wache (Razzia) hat keine Ansage: siehe <see cref="AnlassAusMeldung"/>.
     /// </summary>
     public static Anlass AnlassAusAnsage(string? ansageKennung) => ansageKennung switch
     {
@@ -330,6 +330,15 @@ public static class MusikModell
         KlangAnsagenErkennung.Id.StandAufstieg or KlangAnsagenErkennung.Id.Meisterpruefung or KlangAnsagenErkennung.Id.WahlGewonnen => Anlass.Aufstieg,
         _ => Anlass.Keiner,
     };
+
+    /// <summary>
+    /// Der Anlass zu einer Meldung des Kerns (<c>Stadtwirtschaft.Gemeldet</c>): eine <see cref="Meldungsart.Bedrohung"/> (Razzia der Wache, Nutzer 14.11.2026)
+    /// beim <b>eigenen Haus</b> ergibt Gefahr – sie hat keine Ansage des Haushofmeisters; alles andere wie <see cref="AnlassAusAnsage"/>.
+    /// </summary>
+    public static Anlass AnlassAusMeldung(Meldung m, Stadtwirtschaft w, Konto spieler) =>
+        m.Art == Meldungsart.Bedrohung
+            ? (w.HausVon(m) == spieler ? Anlass.Gefahr : Anlass.Keiner)
+            : AnlassAusAnsage(KlangAnsagenErkennung.Erkennen(m, w, spieler));
 
     /// <summary>
     /// <b>Kampf</b> (Nutzer, 11.11.2026), aus den Vorfällen des Kerns (<c>Vorfallbuch.Neu</c>, nur lesend), nur wenn das eigene Haus beteiligt ist:

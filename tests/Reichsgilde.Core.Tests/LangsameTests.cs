@@ -38,6 +38,8 @@ static class LangsameTests
         ("HafenAufschlagTests", "verkauft Silberringe", 1),                             // 4 s: sechs Kölner Fahrten mit und ohne Aufschlag
         ("HofstellenHaeppchenTests", "ein halber Lauf der Kapazität und der Startwege", 1), // 6–13 s: Köln, je Paar Kapazität, Startwege und Prüfung frisch
         ("HofstellenHaeppchenTests", "nach je 12 zufälligen Änderungen an Hofstellen", 1), // 4 s: volle Prüfung frisch geöffnet nach jeder Änderung
+        ("ZwischenspeicherTests", "Bauorte in einer Greybox-Partie", 1),               // 3 s: drei Jahre, Bauorte ohne Speicher alle vier Stunden (14.11.2026)
+        ("ZwischenspeicherTests", "Bauorte in einer Köln-Partie", 1),                  // 3 s: zwei Jahre Köln, Bauorte ohne Speicher zweimal am Tag
     };
 
     public static bool IstLangsam(Testfall test) =>

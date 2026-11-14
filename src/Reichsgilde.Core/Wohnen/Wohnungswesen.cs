@@ -44,8 +44,12 @@ public sealed class WohnenDaten
 
     public EinrichtungDaten? Stueck(string kennung) => Einrichtung.FirstOrDefault(e => e.Kennung == kennung);
 
-    internal void Pruefen(List<string> f, int anzahlStaende, IReadOnlyDictionary<string, WareDaten> waren)
+    /// <summary>Räume je Stufe (ab Datenversion 87, Wohnungswesen.Raeume.cs). Fehlt der Abschnitt, hat jedes Haus jeden Raum.</summary>
+    public RaeumeDaten? Raeume { get; init; }
+
+    internal void Pruefen(List<string> f, int anzahlStaende, IReadOnlyDictionary<string, WareDaten> waren, IEnumerable<string>? aktivitaeten = null, IEnumerable<string>? berufe = null)
     {
+        Raeume?.Pruefen(f, Stufen.Count, Einrichtung, waren, aktivitaeten, berufe);
         foreach (var doppelt in Einrichtung.GroupBy(e => e.Kennung).Where(g => g.Count() > 1))
             f.Add($"wohnen.einrichtung: „{doppelt.Key}“ ist doppelt eingetragen.");
         foreach (var e in Einrichtung)
@@ -93,7 +97,7 @@ public sealed class WohnenDaten
 /// Gauner (Abschnitt gauner.wohnhaus): Einbruch holt Bargeld, Brand kostet Reparatur und das Ansehen des Hauses,
 /// bis es instand gesetzt ist – die Stufe und damit der Stand sind nie in Gefahr. Ein Hauswächter schützt wie im Betrieb.
 /// </summary>
-public sealed class Wohnungswesen
+public sealed partial class Wohnungswesen
 {
     private readonly Stadtwirtschaft _w;
     public WohnenDaten? Daten { get; }
@@ -228,26 +232,29 @@ public sealed class Wohnungswesen
         Daten is not { } d || k.WohnhausEinrichtung.Count == 0 ? Enumerable.Empty<EinrichtungDaten>()
             : d.Einrichtung.Where(e => e.Vorhanden is null && k.WohnhausEinrichtung.Contains(e.Kennung));
 
+    /// <summary>Wirkungen der gekauften Einrichtung und der Räume (Datenversion 87) – erst die Stücke, dann die Räume, in der Reihenfolge der Daten.</summary>
+    private IEnumerable<EinrichtungWirkung> Wirkungen(Konto k) => Einrichtungsstuecke(k).Select(e => e.Wirkung).Concat(Raumdaten(k).Select(r => r.Wirkung));
+
     /// <summary>Faktor auf Haushalt und Unterhalt der Familie (Vorratskammer).</summary>
-    public double HaushaltFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.HaushaltFaktor);
+    public double HaushaltFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.HaushaltFaktor);
 
     /// <summary>Faktor auf die Chance der Familie zu erkranken (Küche).</summary>
-    public double KrankheitFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.KrankheitFaktor);
+    public double KrankheitFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.KrankheitFaktor);
 
     /// <summary>So viel Ansehen mehr (Wappen über der Tür).</summary>
-    public double EinrichtungAnsehen(Konto k) => Einrichtungsstuecke(k).Sum(e => e.Wirkung.AnsehenPlus);
+    public double EinrichtungAnsehen(Konto k) => Wirkungen(k).Sum(w => w.AnsehenPlus);
 
     /// <summary>Faktor auf die Zuneigung je Gulden beim Werben (Stube).</summary>
-    public double WerbeFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.WerbeFaktor);
+    public double WerbeFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.WerbeFaktor);
 
     /// <summary>Faktor auf die Talente aus der Ausbildung der Kinder (Bibliothek).</summary>
-    public double AusbildungFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.AusbildungFaktor);
+    public double AusbildungFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.AusbildungFaktor);
 
     /// <summary>Faktor auf die Erfolgschance von Einbruch ins Wohnhaus (Riegel, Hund).</summary>
-    public double EinbruchFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.EinbruchFaktor);
+    public double EinbruchFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.EinbruchFaktor);
 
     /// <summary>Faktor auf die Erfolgschance von Brand am Wohnhaus (Hund).</summary>
-    public double BrandFaktor(Konto k) => Einrichtungsstuecke(k).Aggregate(1.0, (f, e) => f * e.Wirkung.BrandFaktor);
+    public double BrandFaktor(Konto k) => Wirkungen(k).Aggregate(1.0, (f, w) => f * w.BrandFaktor);
 
     /// <summary>Ist dieses Stück im Haus? Hausapotheke immer, Hauswächter, wenn einer angestellt ist, sonst gekauft.</summary>
     public bool HatEinrichtung(Konto k, EinrichtungDaten e) => e.Vorhanden switch

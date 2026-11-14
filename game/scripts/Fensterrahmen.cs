@@ -163,6 +163,9 @@ public partial class Fensterrahmen : Node
     /// <summary>Ist irgendein schließbares Fenster offen?</summary>
     public static bool IrgendeinesOffen => Alle.Any(r => r._schliessbar && r._tafel.IsVisibleInTree());
 
+    /// <summary>Ist ein großes Fenster in der Bildmitte offen (<see cref="Mittig"/>: Ratskammer, Familienbuch, Markt …)? Dann ruht die Einblendung neuer Meldungen.</summary>
+    public static bool MittigOffen => Alle.Any(r => r.Mittig && r._tafel.IsVisibleInTree());
+
     public override void _EnterTree()
     {
         if (!Alle.Contains(this)) Alle.Add(this); // auch nach dem Umhängen in die Fensterebene

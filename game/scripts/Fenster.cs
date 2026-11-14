@@ -377,6 +377,35 @@ public partial class Fenster : Node
         einstellungen.Save(Datei);
     }
 
+    /// <summary>Gelesene Einstellung „Tempo der Sitzung“ (0: noch nicht aus der Datei gelesen).</summary>
+    private static int _sitzungsTempo;
+
+    /// <summary>
+    /// Einstellung „Tempo der Sitzung“: womit die Ratssitzung beginnt, 1, 2 oder 4 (der Knopf „Schneller“ der Sitzung ändert nur diese Sitzung).
+    /// Gemerkt in <c>user://einstellungen.cfg</c> (Abschnitt „spiel“, Schlüssel „sitzungstempo“); fehlt er, gilt 1.
+    /// </summary>
+    public static int SitzungsTempo
+    {
+        get
+        {
+            if (_sitzungsTempo != 0) return _sitzungsTempo;
+            var einstellungen = new ConfigFile();
+            var wert = einstellungen.Load(Datei) == Error.Ok ? einstellungen.GetValue("spiel", "sitzungstempo", 1).AsInt32() : 1;
+            _sitzungsTempo = wert is 2 or 4 ? wert : 1;
+            return _sitzungsTempo;
+        }
+    }
+
+    /// <summary>Setzt „Tempo der Sitzung“ (1, 2 oder 4; anderes wird 1).</summary>
+    public static void SitzungsTempoSetzen(int tempo)
+    {
+        _sitzungsTempo = tempo is 2 or 4 ? tempo : 1;
+        var einstellungen = new ConfigFile();
+        einstellungen.Load(Datei);
+        einstellungen.SetValue("spiel", "sitzungstempo", _sitzungsTempo);
+        einstellungen.Save(Datei);
+    }
+
     private static void Speichern(string schluessel, Variant wert)
     {
         var einstellungen = new ConfigFile();

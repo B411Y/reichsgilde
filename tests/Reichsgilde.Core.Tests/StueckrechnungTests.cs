@@ -58,6 +58,13 @@ static class StueckrechnungTests
             Pruefe.Ungefaehr(b.Lohnkosten, r.Lohn * stueck, 1e-6);
             Pruefe.Ungefaehr(b.Artdaten.Fixkosten, r.Unterhalt * stueck, 1e-6);
 
+            // Die Beschriftung im Tooltip: Erlös = Marktpreis × Verkaufsfaktor × Hafenfaktor; Unterhalt je Stück = Jahresunterhalt ÷ Stück im Jahr
+            Pruefe.Ungefaehr(w.Markt[ware].Preis, r.Marktpreis, 1e-9);
+            Pruefe.Ungefaehr(r.Preis, r.Marktpreis * r.Verkaufsfaktor * r.Hafenfaktor, 1e-9);
+            Pruefe.Ungefaehr(stueck, r.StueckeProJahr, 1e-6);
+            Pruefe.Ungefaehr(r.Unterhalt, r.Jahresunterhalt / r.StueckeProJahr, 1e-9);
+            Pruefe.Ungefaehr(r.Lohn, r.Jahreslohn / r.StueckeProJahr, 1e-9);
+
             // … und so viele stellt die Werkstatt im Jahr wirklich her (die Laune der Arbeiter ändert das Tempo ein wenig).
             var vorher = b.ImLager(ware);
             var jahr = sim.Zeit.Jahr;

@@ -112,6 +112,7 @@ public partial class Stadtansicht
             ((Camera3D?)_freieKamera ?? _kamera).MakeCurrent(); // zurück zur freien Kamera, wenn sie lief (Stadtansicht.FreieKamera.cs)
             _raum = null;
         }
+        NeubauInnenAbgleichen(); // Probe: der Innenraum im Haus selbst geht beim Verlassen aus (Stadtansicht.Neubau.cs)
     }
 
     /// <summary>
@@ -122,6 +123,11 @@ public partial class Stadtansicht
     {
         if (_innen?.Innen is not { } innen) return;
         _raum = r;
+        if (NeubauInnenAbgleichen()) // Probe: die Wohnstube liegt im Haus in der Stadt, die Kamera steht dort (Stadtansicht.Neubau.cs)
+        {
+            if (melden) RaumGewechselt?.Invoke(r.Kennung);
+            return;
+        }
         if (r.Blicke is { Count: > 0 } blicke)
         {
             BlickSetzen(blicke[0], true); // Raum aus einem Modell: die Kamera steht auf dem Blickpunkt 0
@@ -489,8 +495,13 @@ public partial class Stadtansicht
 
     private static string PersonenText(int anzahl) => anzahl == 1 ? "1 Person" : $"{anzahl} Personen";
 
-    /// <summary>Setzt die Familie in die Wohnstube: Oberhaupt am Tisch (nur abends), Ehepartner am Herd, bis zu vier Kinder.</summary>
-    private void FamilieSetzen(InnenAnsicht a, Vector3 s, Familie familie, Familienbuch buch, List<(Arbeiterfigur, bool)> figuren, Color farbe)
+    /// <summary>
+    /// Setzt die Familie in die Wohnstube: Oberhaupt am Tisch (nur abends), Ehepartner am Herd, bis zu vier Kinder.
+    /// Mit <paramref name="eltern"/> und <paramref name="eigenePlaetze"/> (Oberhaupt, Ehepartner, dann die Kinder; Orte im Elternknoten)
+    /// sitzt sie in einem anderen Raum – der Wohnstube im neu gebauten Haus (Stadtansicht.Neubau.cs).
+    /// </summary>
+    private void FamilieSetzen(InnenAnsicht a, Vector3 s, Familie familie, Familienbuch buch, List<(Arbeiterfigur, bool)> figuren, Color farbe,
+                               Node3D? eltern = null, Arbeitsplatz[]? eigenePlaetze = null)
     {
         Arbeiterfigur Figur(Person p, Arbeitsplatz platz, Color gewand, int nummer)
         {
@@ -499,17 +510,17 @@ public partial class Stadtansicht
             var erwachsen = buch.IstVolljaehrig(p);
             var kopf = p.Geschlecht == Geschlecht.Frau && erwachsen ? Kopfputz.Kappe : Kopfputz.Keiner; // Haube
             var haut = p.Volk is Volk.Ork or Volk.Oger ? new Color(0.36f, 0.50f, 0.28f) : Haut;
-            var figur = FigurBauen(a.Innen!, a.Mitte + platz.Ort, platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite), gewand, haut,
+            var figur = FigurBauen(eltern ?? a.Innen!, eigenePlaetze is null ? a.Mitte + platz.Ort : platz.Ort, platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite), gewand, haut,
                 null, kopf, platz.Werkzeug, platz.Art, nummer * 0.8f, platz.Sitzt, bart && erwachsen && p.Geschlecht == Geschlecht.Mann);
             a.Besucher.Add(figur);
             return figur;
         }
 
         var nummer = 0;
-        figuren.Add((Figur(familie.Oberhaupt, new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), farbe, nummer++), true));
+        figuren.Add((Figur(familie.Oberhaupt, eigenePlaetze?[0] ?? new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), farbe, nummer++), true));
         if (familie.Ehepartner is { Lebt: true } partner)
-            figuren.Add((Figur(partner, new Arbeitsplatz(s + new Vector3(-2.3f, 0, -1.5f), West, Bewegung.Ruehren, Werkzeug.Kelle), Gewandfarben[4], nummer++), false));
-        var plaetze = new[]
+            figuren.Add((Figur(partner, eigenePlaetze?[1] ?? new Arbeitsplatz(s + new Vector3(-2.3f, 0, -1.5f), West, Bewegung.Ruehren, Werkzeug.Kelle), Gewandfarben[4], nummer++), false));
+        var plaetze = eigenePlaetze?[2..] ?? new[]
         {
             new Arbeitsplatz(s + new Vector3(-0.3f, 0, 0.95f), Nord, Bewegung.Beten, Werkzeug.Keins, true),
             new Arbeitsplatz(s + new Vector3(1.1f, 0, 0.95f), Nord, Bewegung.Beten, Werkzeug.Keins, true),

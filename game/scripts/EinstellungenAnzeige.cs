@@ -105,6 +105,9 @@ public sealed class EinstellungenAnzeige
         (RatssitzungZeigen.Nie, "Nie", "Die Sitzung läuft ohne Halt im Hintergrund; das Ergebnis steht im Protokoll und in den Meldungen."),
     };
 
+    /// <summary>Die Wahl „Tempo der Sitzung“: womit die Ratssitzung beginnt.</summary>
+    private static readonly int[] Sitzungstempi = { 1, 2, 4 };
+
     private static readonly int[] Bildraten = { 30, 60, 90, 120, 144, 0 };
     private static readonly int[] Zielraten = { 0, 30, 45, 60, 90, 120, 144 };
 
@@ -274,6 +277,7 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _tooltipTaste;
     // Spiel
     private readonly OptionButton _sitzung;
+    private readonly OptionButton _sitzungsTempoWahl;
     private readonly OptionButton _musikHaeufigkeit;
     // Meldungen
     private static readonly string[] StufenNamen = { "Aus", "Nur Verlauf", "Siegel", "Brief" };
@@ -577,6 +581,15 @@ public sealed class EinstellungenAnzeige
         _sitzung = Auswahl(zeile, Sitzungswahl.Select(w => w.Name), nummer =>
         {
             Fenster.RatssitzungSetzen(Sitzungswahl[nummer].Wert);
+            Auffrischen();
+        });
+        zeile = Zeile(s, "Tempo der Sitzung", () => Liste("Womit die Ratssitzung beginnt: 1× ist das gemächliche Tempo, 2× und 4× laufen schneller. " +
+                                                          "In der Sitzung ändert der Knopf „Schneller“ das Tempo nur für diese Sitzung.",
+                                                          Sitzungstempi.Select(x => ($"{x}×", x == 1 ? "Jeder Schritt in Ruhe." : $"Jeder Schritt {x}-mal so schnell.")),
+                                                          Array.IndexOf(Sitzungstempi, Fenster.SitzungsTempo)));
+        _sitzungsTempoWahl = Auswahl(zeile, Sitzungstempi.Select(x => $"{x}×"), nummer =>
+        {
+            Fenster.SitzungsTempoSetzen(Sitzungstempi[nummer]);
             Auffrischen();
         });
 
@@ -890,6 +903,7 @@ public sealed class EinstellungenAnzeige
             auswahl.Select(Entscheidungseinstellungen.Automatisch(schluessel) ? 1 : 0);
         _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
         _sitzung.Select(Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung));
+        _sitzungsTempoWahl.Select(Array.IndexOf(Sitzungstempi, Fenster.SitzungsTempo));
         for (var i = 0; i < _tonRegler.Count; i++)
         {
             WertSetzen(_tonRegler[i].Regler, _tonRegler[i].Wert, KlangDienst.Prozent(i), " %");
