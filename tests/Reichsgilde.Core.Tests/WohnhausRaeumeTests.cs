@@ -9,9 +9,10 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Räume je Stufe des Wohnhauses (Nutzer, 14.11.2026; Datenversion 87, Abschnitt wohnen.raeume): Fachwerkhaus nur Wohnstube, Bürgerhaus ein
-/// Platz zur Wahl (Hinterzimmer, Festsaal, Bibliothek), Steinhaus ein zweiter ohne Doppelung; Anbauen kostet 700 Gulden, endgültig.
-/// Ohne Hinterzimmer keine Banden und Erpresserbriefe – außer für den Dieb (von seinem Betrieb aus); Gastmahl nur mit Festsaal; die Lehrschrift
+/// Räume je Stufe des Wohnhauses (Nutzer, 14.11.2026; Datenversion 87/88, Abschnitt wohnen.raeume): Fachwerkhaus nur Wohnstube, Bürgerhaus ein
+/// Platz zur Wahl (Hinterzimmer oder Bibliothek), Steinhaus der andere; Anbauen kostet 700 Gulden, endgültig. Den Festsaal gibt es erst mit der
+/// Stadtvilla (Datenversion 88), also bis dahin kein Gastmahl (WohnhausOhneFestsaalTests).
+/// Ohne Hinterzimmer keine Banden und Erpresserbriefe – außer für den Dieb (von seinem Betrieb aus); die Lehrschrift
 /// (Buchweg, 1 AP) nur mit Bibliothek, die auch die frühere Wirkung des Einrichtungsstücks trägt. Für Spieler und KI.
 /// </summary>
 static class WohnhausRaeumeTests
@@ -39,14 +40,15 @@ static class WohnhausRaeumeTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Wohnhaus-Räume: Daten – Fachwerkhaus Wohnstube, Bürgerhaus 1 und Steinhaus 2 Plätze zur Wahl, je 700 Gulden, Dieb ohne Hinterzimmer; Datenversion 87", () =>
+        ("Wohnhaus-Räume: Daten – Fachwerkhaus Wohnstube, Bürgerhaus 1 und Steinhaus 2 Plätze zur Wahl, je 700 Gulden, Dieb ohne Hinterzimmer; Datenversion 88", () =>
         {
             var r = Daten.Value.Wohnen!.Raeume!;
-            Pruefe.Gleich(87, Daten.Value.Version);
+            Pruefe.Gleich(88, Daten.Value.Version);
             Pruefe.Gleich("Wohnstube,Hinterzimmer,Bibliothek,Festsaal", Liste(r.Arten.Select(a => a.Kennung)));
             Pruefe.Gleich("Wohnstube|Wohnstube|Wohnstube", string.Join("|", r.Stufen.Select(s => Liste(s.Feste))));
             Pruefe.Gleich("0,1,2", Liste(r.Stufen.Select(s => s.Frei.ToString())));
-            Pruefe.Gleich("Hinterzimmer,Bibliothek,Festsaal", Liste(r.Waehlbar));
+            Pruefe.Gleich("Hinterzimmer,Bibliothek", Liste(r.Waehlbar));
+            Pruefe.Gleich("Stadtvilla", r.Art("Festsaal")!.ErstMit);
             foreach (var raum in r.Waehlbar) Pruefe.Gleich(700.0, r.Art(raum)!.Preis, raum);
             Pruefe.Gleich("Beauftragen,Erpressen", Liste(r.Art("Hinterzimmer")!.Befehle));
             Pruefe.Gleich("Dieb", r.Art("Hinterzimmer")!.BerufStattRaum);
@@ -67,24 +69,24 @@ static class WohnhausRaeumeTests
                 Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.ToJsonString()), teil);
         }),
 
-        ("Wohnhaus-Räume: Stufe 1 nur Wohnstube; Stufe 2 wählt einen Raum (700 Gulden); Stufe 3 einen zweiten ohne Doppelung; danach kein Platz, kein Umbau", () =>
+        ("Wohnhaus-Räume: Stufe 1 nur Wohnstube; Stufe 2 wählt einen Raum (700 Gulden); Stufe 3 den anderen; danach kein Platz, kein Umbau", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var eins = Haus(w, "Haus Eins", 0);
             Pruefe.Gleich("Wohnstube", Liste(w.Wohnen.Raeume(eins)));
             Pruefe.Wahr(!w.Wohnen.HatRaum(eins, "Hinterzimmer"), "Fachwerkhaus ohne Hinterzimmer");
             Pruefe.Gleich(0, w.Wohnen.WaehlbareRaeume(eins).Count);
-            var nein = w.Ausfuehren(eins, new RaumAnbauen("Festsaal"));
+            var nein = w.Ausfuehren(eins, new RaumAnbauen("Hinterzimmer"));
             Pruefe.Wahr(!nein.Erfolg && nein.Meldung.Contains("erst im Bürgerhaus"), nein.Meldung);
 
             var zwei = Haus(w, "Haus Zwei", 1);
             Pruefe.Gleich("Wohnstube", Liste(w.Wohnen.Raeume(zwei)));
             Pruefe.Wahr(!w.Wohnen.HatRaum(zwei, "Hinterzimmer"), "Bürgerhaus: das Hinterzimmer ist kein fester Raum");
-            Pruefe.Gleich("Hinterzimmer,Bibliothek,Festsaal", Liste(w.Wohnen.WaehlbareRaeume(zwei)));
+            Pruefe.Gleich("Hinterzimmer,Bibliothek", Liste(w.Wohnen.WaehlbareRaeume(zwei)));
             Pruefe.Wahr(!w.Ausfuehren(zwei, new RaumAnbauen("Wohnstube")).Erfolg, "nicht zur Wahl");
             Pruefe.Wahr(!w.Ausfuehren(zwei, new RaumAnbauen("Keller")).Erfolg, "gibt es nicht");
             var arm = Haus(w, "Haus Arm", 1, geld: 600);
-            var teuer = w.Ausfuehren(arm, new RaumAnbauen("Festsaal"));
+            var teuer = w.Ausfuehren(arm, new RaumAnbauen("Bibliothek"));
             Pruefe.Wahr(!teuer.Erfolg && teuer.Meldung.Contains("700"), teuer.Meldung);
             var vorher = zwei.Vermoegen;
             var ja = w.Ausfuehren(zwei, new RaumAnbauen("Hinterzimmer"));
@@ -95,14 +97,14 @@ static class WohnhausRaeumeTests
             var voll = w.Ausfuehren(zwei, new RaumAnbauen("Bibliothek"));
             Pruefe.Wahr(!voll.Erfolg && voll.Meldung.Contains("kein Platz"), voll.Meldung);
 
-            // Ausbau zum Steinhaus: ein zweiter Platz, das Hinterzimmer steht nicht mehr zur Wahl.
+            // Ausbau zum Steinhaus: ein zweiter Platz – zur Wahl steht nur noch der andere Raum, die Bibliothek.
             zwei.WohnhausStufe = 2;
-            Pruefe.Gleich("Bibliothek,Festsaal", Liste(w.Wohnen.WaehlbareRaeume(zwei)));
+            Pruefe.Gleich("Bibliothek", Liste(w.Wohnen.WaehlbareRaeume(zwei)));
             var doppelt = w.Ausfuehren(zwei, new RaumAnbauen("Hinterzimmer"));
             Pruefe.Wahr(!doppelt.Erfolg && doppelt.Meldung.Contains("schon"), doppelt.Meldung);
-            Pruefe.Wahr(w.Ausfuehren(zwei, new RaumAnbauen("Festsaal")).Erfolg, "zweiter Raum");
-            Pruefe.Gleich("Wohnstube,Hinterzimmer,Festsaal", Liste(w.Wohnen.Raeume(zwei)));
-            Pruefe.Wahr(!w.Ausfuehren(zwei, new RaumAnbauen("Bibliothek")).Erfolg, "kein dritter Platz im Steinhaus");
+            Pruefe.Wahr(w.Ausfuehren(zwei, new RaumAnbauen("Bibliothek")).Erfolg, "zweiter Raum");
+            Pruefe.Gleich("Wohnstube,Hinterzimmer,Bibliothek", Liste(w.Wohnen.Raeume(zwei)));
+            Pruefe.Gleich(0, w.Wohnen.WaehlbareRaeume(zwei).Count);
             // Stadtpalais und Stadthof: keine weiteren Plätze.
             zwei.WohnhausStufe = 4;
             Pruefe.Gleich(0, w.Wohnen.FreiePlaetze(zwei));
@@ -112,7 +114,7 @@ static class WohnhausRaeumeTests
         ("Wohnhaus-Räume: Banden und Erpresserbriefe nur mit Hinterzimmer; Briefe beantworten geht immer", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            var ohne = Haus(w, "Haus Ohne", 2, 50_000, "Festsaal", "Bibliothek");
+            var ohne = Haus(w, "Haus Ohne", 2, 50_000, "Bibliothek");
             var mit = Haus(w, "Haus Mit", 1, 50_000, "Hinterzimmer");
             var ziel = Haus(w, "Haus Ziel", 0);
             foreach (var befehl in new Befehl[] { new Beauftragen(ziel.Inhaber, Gaunerstueck.Hauseinbruch), new Erpressen(ziel.Inhaber, 100) })
@@ -147,19 +149,25 @@ static class WohnhausRaeumeTests
             Pruefe.Wahr(w.Meinungen.Aktivitaet(dieb, w.Rat.Ratsherren[0], "Gastmahl")!.Sperrgrund?.Contains("Festsaal") == true, "Gastmahl");
         }),
 
-        ("Wohnhaus-Räume: Gastmahl nur mit Festsaal (Sperrgrund für Tafel und KI)", () =>
+        ("Wohnhaus-Räume: Gastmahl nur mit Festsaal (Sperrgrund für Tafel und KI) – den gibt es erst mit der Stadtvilla, also kein Gastmahl", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
-            var k = Haus(w, "Haus Gast", 1);
+            var k = Haus(w, "Haus Gast", 2);
             w.Familien.Gruenden(k, Volk.Mensch, Geschlecht.Mann, alter: 30);
             var r = w.Rat.Ratsherren[0];
             var gesperrt = w.Meinungen.Aktivitaet(k, r, "Gastmahl")!;
-            Pruefe.Wahr(gesperrt.Sperrgrund?.Contains("„Festsaal“ (zur Wahl ab Bürgerhaus)") == true, gesperrt.Sperrgrund ?? "frei");
+            Pruefe.Wahr(gesperrt.Sperrgrund?.Contains("„Festsaal“ – den gibt es erst mit der Stadtvilla") == true, gesperrt.Sperrgrund ?? "frei");
             Pruefe.Gleich(null, w.Meinungen.Aktivitaet(k, r, "Brettspiel")!.Sperrgrund); // andere Aktivitäten brauchen keinen Raum
             Pruefe.Wahr(!w.Ausfuehren(k, new Aktivitaet("Gastmahl", r.Kennung)).Erfolg, "ohne Festsaal");
-            Pruefe.Wahr(w.Ausfuehren(k, new RaumAnbauen("Festsaal")).Erfolg, "Festsaal");
-            Pruefe.Gleich(null, w.Meinungen.Aktivitaet(k, r, "Gastmahl")!.Sperrgrund);
-            Pruefe.Wahr(w.Ausfuehren(k, new Aktivitaet("Gastmahl", r.Kennung)).Erfolg, "mit Festsaal");
+            // Auch mit beiden Räumen des Steinhauses bleibt das Gastmahl gesperrt.
+            Pruefe.Wahr(w.Ausfuehren(k, new RaumAnbauen("Hinterzimmer")).Erfolg, "Hinterzimmer");
+            Pruefe.Wahr(w.Ausfuehren(k, new RaumAnbauen("Bibliothek")).Erfolg, "Bibliothek");
+            Pruefe.Wahr(!w.Ausfuehren(k, new Aktivitaet("Gastmahl", r.Kennung)).Erfolg, "mit Hinterzimmer und Bibliothek");
+            // Gegenprobe: Hätte das Haus einen Festsaal (später mit der Stadtvilla), ginge das Gastmahl – die Bindung bleibt.
+            var frei = Haus(w, "Haus Saal", 1, 50_000, "Festsaal");
+            w.Familien.Gruenden(frei, Volk.Mensch, Geschlecht.Mann, alter: 30);
+            Pruefe.Gleich(null, w.Meinungen.Aktivitaet(frei, r, "Gastmahl")!.Sperrgrund);
+            Pruefe.Wahr(w.Ausfuehren(frei, new Aktivitaet("Gastmahl", r.Kennung)).Erfolg, "mit Festsaal");
         }),
 
         ("Wohnhaus-Räume: Lehrschrift (Buchweg, 1 AP) nur mit Bibliothek – Üben (2 AP) immer; die Bibliothek trägt Ausbildung × 1,25 und Erfahrung × 1,1", () =>
@@ -205,11 +213,11 @@ static class WohnhausRaeumeTests
                 return auftraege;
             }
             Pruefe.Gleich(0, Anheuern());
-            Pruefe.Gleich(0, Anheuern("Festsaal"));
+            Pruefe.Gleich(0, Anheuern("Bibliothek"));
             Pruefe.Wahr(Anheuern("Hinterzimmer") >= 1, "mit Hinterzimmer heuert die KI an");
         }),
 
-        ("Wohnhaus-Räume: Die KI wählt zum Jahresende – Gaunerei → Hinterzimmer, Politik → Festsaal, sonst Bibliothek; nur über der Reserve", () =>
+        ("Wohnhaus-Räume: Die KI wählt zum Jahresende – Gaunerei → Hinterzimmer, sonst Bibliothek, nie den Festsaal; nur über der Reserve", () =>
         {
             string Wahl(KiProfil profil, double geld = 20_000, int stufe = 1, params string[] schon)
             {
@@ -220,9 +228,10 @@ static class WohnhausRaeumeTests
                 return Liste(w.Wohnen.Raeume(k));
             }
             Pruefe.Gleich("Wohnstube,Hinterzimmer", Wahl(new KiProfil(Gaunerei: 1)));
-            Pruefe.Gleich("Wohnstube,Festsaal", Wahl(new KiProfil(Gaunerei: 0)));
+            Pruefe.Gleich("Wohnstube,Bibliothek", Wahl(new KiProfil(Gaunerei: 0))); // wirbt Ratsstimmen – früher Festsaal
             Pruefe.Gleich("Wohnstube,Bibliothek", Wahl(new KiProfil(Gaunerei: 0, PolitikAnteil: 0)));
-            Pruefe.Gleich("Wohnstube,Hinterzimmer,Festsaal", Wahl(new KiProfil(Gaunerei: 1), stufe: 2, schon: "Hinterzimmer"));
+            Pruefe.Gleich("Wohnstube,Hinterzimmer,Bibliothek", Wahl(new KiProfil(Gaunerei: 1), stufe: 2, schon: "Hinterzimmer"));
+            Pruefe.Gleich("Wohnstube,Bibliothek,Hinterzimmer", Wahl(new KiProfil(Gaunerei: 0), stufe: 2, schon: "Bibliothek"));
             Pruefe.Gleich("Wohnstube", Wahl(new KiProfil(Gaunerei: 1), geld: 2_000)); // 2.000 − 700 unter der Reserve von 1.500
             Pruefe.Gleich("Wohnstube", Wahl(new KiProfil(Gaunerei: 1), stufe: 0));
         }),
