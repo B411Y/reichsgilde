@@ -886,6 +886,52 @@ public static class KlangUmgebungModell
         }
     }
 
+    // ── Wolfsheulen ────────────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Ein Wolfsheulen, das der Planer abspielen lässt: Datei unter <c>rufe/</c>, Seite (Panner), Pegel (dB) und Tonhöhe.</summary>
+    public readonly record struct Wolf(string Datei, float Seite, float Db, float Tonhoehe);
+
+    /// <summary>
+    /// Plant das Wolfsheulen: **einmal je Spieltag**, wenn die Nacht einbricht (die Bezugsstunde des Lichts steigt über <see cref="WolfBezug"/> = „dunkel“;
+    /// sie folgt der Jahreszeit, also gilt es das ganze Jahr), fern, von außerhalb der Stadt (Seite zufällig, Fernbus). Nie nach dem Laden (die erste
+    /// Messung zählt nur als Ausgangspunkt), nie im Hintergrund, bei einem Sprung der Uhr (mehr als <see cref="GlockenPlaner.SprungMinuten"/> in einem Bild:
+    /// Spulen, Überspringen) oder in der Sprungblende. Das Tageszeichen fällt erst am nächsten Vormittag (vor 12 Uhr) wieder: Wer die Uhr am selben Abend
+    /// zurückdreht, hört es nicht ein zweites Mal; bei 32x gibt es genau eine Überquerung, also ein Heulen.
+    /// </summary>
+    public sealed class WolfPlaner
+    {
+        public const string Datei = "wolf_nacht";
+        public const float WolfBezug = 21f, WolfDb = -4f, TagesendeMinute = 12f * 60f;
+        private readonly Random _zufall;
+        private float _letzteUhr = float.NaN, _letzterBezug = float.NaN;
+        private bool _heute;
+
+        public WolfPlaner(int saat) => _zufall = new Random(saat);
+
+        public void Schritt(in Eingaben e, Ausgabe aus, List<Wolf> neu)
+        {
+            var uhr = e.UhrMinute;
+            var (vorherUhr, vorherBezug) = (_letzteUhr, _letzterBezug);
+            (_letzteUhr, _letzterBezug) = (uhr, e.Bezug);
+            if (uhr < TagesendeMinute) _heute = false; // ein neuer Spieltag
+            if (float.IsNaN(vorherUhr) || e.Hintergrund || aus.Sprungblende) return;
+            var d = uhr - vorherUhr;
+            if (d <= 0 || d > GlockenPlaner.SprungMinuten || _heute) return;
+            if (!(vorherBezug < WolfBezug && e.Bezug >= WolfBezug)) return;
+            _heute = true;
+            neu.Add(Erzeugen());
+        }
+
+        /// <summary>Ein Heulen sofort (Hörprobe, Entwicklerreiter): ohne das Tageszeichen zu setzen.</summary>
+        public Wolf Erzwingen() => Erzeugen();
+
+        private Wolf Erzeugen()
+        {
+            var seite = (_zufall.Next(2) == 0 ? -1f : 1f) * (0.5f + (float)_zufall.NextDouble() * 0.4f);
+            return new Wolf(Datei, seite, WolfDb, 1f + (float)(_zufall.NextDouble() * 0.04 - 0.02));
+        }
+    }
+
     /// <summary>Pegel einer Glocke aus nächster Nähe (am Spieler vor dem Abstand); die Dateien liegen bei −20 LUFS.</summary>
     public const float GlockenDb = -3f;
 
@@ -1601,7 +1647,7 @@ public static class KlangUmgebungModell
     /// <summary>Bezugsstunde im Frühling wie Stadtansicht.Licht.cs (für den Test; dort ist sie privat).</summary>
     public static float BezugFruehling(float stunde) => BezugsStunde(stunde, Sonnenzeiten.Fuer(Jahreszeit.Fruehling));
 
-    private static float BezugsStunde(float stunde, Sonnenlauf lauf)
+    public static float BezugsStunde(float stunde, Sonnenlauf lauf)
     {
         float daemmerung = lauf.Daemmerung / 60f, aufgang = lauf.Aufgang / 60f, untergang = lauf.Untergang / 60f, dunkel = lauf.Dunkel / 60f;
         var vollerTag = Math.Min(aufgang + 1.5f, (aufgang + untergang) / 2);
