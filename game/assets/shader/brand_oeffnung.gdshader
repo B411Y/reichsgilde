@@ -1,8 +1,7 @@
 // Brand am Haus (Gebaeudebrand.cs, Auftrag „Feuer überall“): die Flächen, die zu den Flammen gehören – nicht die Flammen selbst (flamme_sim.gdshader).
 //   modus 0  Brandfleck auf dem Dach: schwarze Kohle mit glühenden Rissen und verkohltem Rand (liegt flach auf der Dachfläche)
 //   modus 1  Öffnung eines Fensters: Gluthitze hinter der Scheibe – unten dunkelrot, in der Mitte gelb bis weiß, oben ruhiger; flackert
-//   modus 2  Rußstreifen über dem Fenster: schwarzbraun, nach oben breiter und durchsichtig (Rußfahne)
-// Die Stärke der Stelle (Öffnung, Ruß) steckt in der Tiefe der flachen Fläche (Skalierung Z / X − 1), wie bei den Flammen: kein Instanz-Uniform.
+// Die Stärke der Stelle (Öffnung) steckt in der Tiefe der flachen Fläche (Skalierung Z / X − 1), wie bei den Flammen: kein Instanz-Uniform.
 // „staerke“ ist die Flammenstärke des ganzen Brands (0–1), „glut“ die Glut nach dem Feuer (0–1); „umgebung“ 0 = Nacht … 1 = Tag.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
@@ -45,8 +44,8 @@ void fragment() {
 		float leucht = ring * smoothstep(0.4, 0.7, n2) * hitze * atmen * flackern * 0.8;
 		rgb = vec3(0.04, 0.032, 0.028) + vec3(0.9, 0.22, 0.05) * leucht;
 		a = clamp(russ * (0.35 + 0.35 * n2) + leucht * 0.5, 0.0, 0.7);
-	} else if (modus == 1) {
-		// Öffnung: glühendes Innere des Fensters
+	} else {
+		// Öffnung (modus 1): glühendes Innere des Fensters
 		float k = clamp(eigen, 0.0, 1.0);
 		vec2 p = uv;
 		float n = texture(rausch, vec2(p.x * 1.6 + s, p.y * 0.9 - zeit * 0.25)).r;
@@ -59,18 +58,6 @@ void fragment() {
 		// Kante: Fensterrahmen bleibt dunkel
 		float rahmen = smoothstep(0.0, 0.08, p.x) * smoothstep(1.0, 0.92, p.x) * smoothstep(0.0, 0.06, p.y) * smoothstep(1.0, 0.94, p.y);
 		a = clamp(0.35 + 0.65 * k, 0.0, 1.0) * rahmen;
-	} else {
-		// Rußfahne über dem Fenster: unten (am Sturz) am dunkelsten und so breit wie das Fenster, nach oben breiter (umgekehrter Kegel,
-		// der Rauch zieht beim Steigen Luft mit) und dabei dünner – wie die V-Muster an echten Brandfassaden
-		float k = clamp(eigen, 0.0, 1.0);
-		float n = texture(rausch, uv * vec2(1.2, 1.6) + vec2(s, 0.0)).r;
-		// UV.y der QuadMesh läuft von oben (0) nach unten (1); der Sturz liegt bei etwa 0,76 (Fläche ab Fenstermitte, 1,9 Fensterhöhen hoch).
-		// Vorher stand die Fahne verkehrt herum: oben am dunkelsten, zum Fenster hin verblassend.
-		float unten = uv.y;
-		float breite = mix(0.5, 0.3, unten);
-		float quer = 1.0 - smoothstep(breite * 0.6, breite, abs(uv.x - 0.5) + (n - 0.5) * 0.25);
-		a = quer * smoothstep(0.0, 0.75, unten) * (0.35 + 0.4 * n) * k;
-		rgb = vec3(0.025, 0.02, 0.016);
 	}
 	// Bei Tag nichts zu dämpfen; die Glut selbst leuchtet nachts wie tags (unshaded, HDR für den Bloom)
 	ALBEDO = rgb;
