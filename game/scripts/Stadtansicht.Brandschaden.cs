@@ -226,7 +226,7 @@ public partial class Stadtansicht
             modell.Wurzel.RemoveMeta(merke);
             if (modell.Wurzel.HasMeta("rg_brandwand")) modell.Wurzel.RemoveMeta("rg_brandwand");
         }
-        var waende = new Dictionary<BaseMaterial3D, BaseMaterial3D>(); // je Ausgangsmaterial eine Kopie mit Wandschicht (je Haus)
+        var waende = new Dictionary<Material, Material>(); // je Ausgangsmaterial eine Kopie mit Wandschicht (je Haus)
         foreach (var teil in modell.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
@@ -249,14 +249,16 @@ public partial class Stadtansicht
                 Material? neu = null;
                 if (Dachstoffe.Contains(name) || Strohstoffe.Contains(name)) neu = RussStoff(stoff);
                 else if (Holzstoffe.Contains(name)) neu = VerkohltStoff();
-                else if (Wandstoffe.Contains(name) && (aktuell ?? stoff) is BaseMaterial3D grund)
+                else if (Wandstoffe.Contains(name) && (aktuell ?? stoff) is BaseMaterial3D or ShaderMaterial)
                 {
+                    // Neubau-Häuser tragen den Trim-Shader als Override (Stadtansicht.Neubau.cs): auch er bekommt die Wandschicht als zweiten Durchgang
+                    var grund = aktuell ?? stoff;
                     if (!waende.TryGetValue(grund, out var kopie))
                     {
-                        waende[grund] = kopie = (BaseMaterial3D)grund.Duplicate();
+                        waende[grund] = kopie = (Material)grund.Duplicate();
                         kopie.NextPass = wand;
                         // Die Oberflächendetails zeichnen statt des Materials ihr abgeleitetes (Mauerwerk, Putz): die Schicht muss auch dort hängen
-                        if (_oberflaeche?.Ableiten(kopie) is { } abgeleitet) abgeleitet.NextPass = wand;
+                        if (kopie is BaseMaterial3D standard && _oberflaeche?.Ableiten(standard) is { } abgeleitet) abgeleitet.NextPass = wand;
                     }
                     neu = kopie;
                 }
