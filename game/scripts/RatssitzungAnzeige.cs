@@ -26,6 +26,7 @@ namespace Reichsgilde;
 /// „Überspringen“ hält alle übrigen Punkte ohne Bild ab (<see cref="Simulation.RatssitzungAbschliessen"/>), „Gründe“ listet im Ratsbuch, warum jeder so stimmte.
 ///
 /// Wiederholung (<see cref="WiederholungZeigen"/>): dieselbe Oberfläche zeigt die letzte Sitzung aus ihren abgehaltenen Punkten, ohne Stimmrecht und ohne den Kern zu fragen.
+/// Seit der Stimmrunde (Ratssitzung PR 8) ist das auch der Weg am Jahresende: Der Kern hat schon abgestimmt, die Szene ist eine Wiedergabe.
 /// </summary>
 public partial class RatssitzungAnzeige : Control
 {
@@ -50,6 +51,8 @@ public partial class RatssitzungAnzeige : Control
     /// <summary>Wiederholung der letzten Sitzung: die Punkte mit Ergebnis (null: die laufende Sitzung).</summary>
     private List<Sitzungspunkt>? _wiederholung;
     private int _wiederholungNummer;
+    /// <summary>Die Wiedergabe zeigt die eben abgehaltene Sitzung (Kopfzeile ohne „Wiederholung“).</summary>
+    private bool _gerade;
     private int _jahr;
     private int _anzahl;
 
@@ -210,15 +213,17 @@ public partial class RatssitzungAnzeige : Control
     }
 
     /// <summary>Zeigt eine abgehaltene Sitzung noch einmal (Knopf „Letzte Sitzung“ im Rathaus).</summary>
-    public void WiederholungZeigen(Ratssitzung sitzung)
+    /// <param name="gerade">Die eben am Jahresende abgehaltene Sitzung (Szene als Wiedergabe, PR 8) statt „Letzte Ratssitzung ansehen“.</param>
+    public void WiederholungZeigen(Ratssitzung sitzung, bool gerade = false)
     {
         if (sitzung.Abgehalten.Count == 0) return;
         _wiederholung = sitzung.Abgehalten.ToList();
         _wiederholungNummer = 0;
         _jahr = sitzung.Jahr;
         _anzahl = _wiederholung.Count;
-        _ueberspringen.Text = "Schließen";
-        _ueberspringen.TooltipText = "Die Wiederholung beenden";
+        _gerade = gerade;
+        _ueberspringen.Text = gerade ? "Überspringen" : "Schließen";
+        _ueberspringen.TooltipText = gerade ? "Die übrigen Punkte nicht mehr zeigen – das Ergebnis steht schon fest" : "Die Wiederholung beenden";
         Beginnen();
         PunktBeginnen(_wiederholung[0]);
     }
@@ -283,6 +288,7 @@ public partial class RatssitzungAnzeige : Control
         _zeit = 0;
         _kopf.Text = _wiederholung is null
             ? $"Ratssitzung {_jahr} · Punkt {punkt.Nummer} von {_anzahl}"
+            : _gerade ? $"Ratssitzung {_jahr} · Punkt {punkt.Nummer} von {_anzahl}"
             : $"Letzte Ratssitzung {_jahr} (Wiederholung) · Punkt {punkt.Nummer} von {_anzahl}";
         _titel.Text = punkt.Titel;
         _text.Text = punkt.Text;

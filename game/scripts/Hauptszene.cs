@@ -443,9 +443,9 @@ public partial class Hauptszene : Node
             if (_spieler is null || _simulation.IstBeendet) return;
             // Automatisch speichern – überschreibt jedes Jahr denselben Spielstand (nicht in einer Probepartie der Kartenwerkstatt).
             if (!_probepartie && Spielstaende.Speichern(_simulation, _spieler, Spielstaende.AutoDatei) is (null, var meldung)) Protokollieren(meldung);
-            if (_sitzungsTafel.Laeuft)
+            if (_sitzungsTafel.Laeuft || SitzungVormerken(jahr))
             {
-                _jahresberichtWartet = true; // erst nach dem Ergebnis des letzten Punktes (Hauptszene.Ratssitzung.cs)
+                _jahresberichtWartet = true; // erst nach der Szene der Ratssitzung (Hauptszene.Ratssitzung.cs)
                 return;
             }
             _jahresbericht.Zeigen(_simulation, _spieler);
