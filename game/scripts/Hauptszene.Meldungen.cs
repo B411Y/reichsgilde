@@ -14,7 +14,8 @@ namespace Reichsgilde;
 /// sie ein (<see cref="Meldungsordnung"/>, Zuordnung in <c>game/daten/meldungen.json</c>: die Art des Kerns, sonst wie in Stufe 1 der Text) und verteilt sie nach
 /// <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
 /// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (<see cref="BriefAnzeige"/>, hält nie die Zeit an).
-/// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“).
+/// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“);
+/// jedes neue Siegel und jeder Brief erscheint vorher groß mittig unten und wandert in die Ecke (<see cref="EinblendungAnzeige"/>).
 /// Siegel und Brief zeigen das Porträt des Betroffenen (<see cref="PortraetFuer"/>), bei einer Meldung über ein Geheimnis dazu das Siegel seiner Art
 /// (<see cref="Meldung.GeheimnisArt"/>, <see cref="CharakterAnzeige.GeheimnisSiegelBild"/>); „Hinsehen“ fährt zu Betrieb, Wohnhaus oder Ort und öffnet die Auswahl bzw.
 /// das Charakterfenster (<see cref="MeldungAnsteuern"/>). Nach dem Laden kommt der Verlauf aus dem Spielstand (<see cref="VerlaufAusSpielstand"/>).
@@ -38,6 +39,8 @@ public partial class Hauptszene
 
     private Siegelecke _ecke = null!;
     private BriefAnzeige _brief = null!;
+    /// <summary>Neue Siegel und Briefe erscheinen erst groß mittig unten und wandern dann in die Ecke.</summary>
+    private EinblendungAnzeige _einblendung = null!;
     /// <summary>Alle Meldungen der Sitzung, die neueste zuerst (Reiter „Verlauf“ im Bericht).</summary>
     private readonly List<Meldungsposten> _verlauf = new();
     private readonly List<Meldungsposten> _jahresSammler = new(), _nachtSammler = new();
@@ -54,6 +57,9 @@ public partial class Hauptszene
         _ecke = new Siegelecke();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_ecke);
         _ecke.Angeklickt += SiegelGelesen;
+        _ecke.VerlaufGewuenscht += () => BerichtOeffnen(BerichtAnzeige.Reiter.Protokoll);
+        _einblendung = new EinblendungAnzeige();
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(_einblendung);
         _brief = new BriefAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_brief);
         _brief.ZielGewaehlt += BriefZiel;
@@ -188,6 +194,31 @@ public partial class Hauptszene
         _ecke.Finden("thema:" + thema.Id)?.BildSetzen(SiegelBild(posten)); // das Porträt des Neuesten (oder keins)
         if (neu || !fehler) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
         _ecke.TippsAuffrischen();
+        SiegelEinblenden("thema:" + thema.Id, thema, posten, neu);
+    }
+
+    /// <summary>
+    /// Die zentrale Einblendung zum Siegel: Das Siegel steht schon in der Ecke (Stapel, Zähler, Klick), ein neues bleibt aber unsichtbar, bis die
+    /// Einblendung dort ankommt; dann springt es auf.
+    /// </summary>
+    private void SiegelEinblenden(string schluessel, Meldethema thema, Meldungsposten posten, bool neu)
+    {
+        var siegel = _ecke.Finden(schluessel);
+        if (siegel is null) return;
+        if (neu)
+        {
+            siegel.Modulate = Colors.Transparent;
+            siegel.MouseFilter = Control.MouseFilterEnum.Ignore; // unsichtbar auch nicht anklickbar
+        }
+        _einblendung.Einblenden(posten.Art.Name, posten.Art.Id == "Fehler" ? posten.Text.TrimStart('✗', ' ') : posten.Text, thema, Meldestufe.Siegel,
+            () => IsInstanceValid(siegel) && siegel.IsInsideTree() ? siegel.GetGlobalRect().GetCenter() : null,
+            () =>
+            {
+                if (!IsInstanceValid(siegel)) return;
+                siegel.Modulate = Colors.White;
+                siegel.MouseFilter = Control.MouseFilterEnum.Stop;
+                siegel.Aufleben();
+            });
     }
 
     /// <summary>Der Brief zu einem Siegel: bei einem Stapel alle Meldungen (neueste oben), bei einem Stillstand der Stand von jetzt.</summary>
@@ -357,6 +388,25 @@ public partial class Hauptszene
         else GebaeudeZeigen(Stadtansicht.WohnhausKennung(haus));
     }
 
+    /// <summary>
+    /// Wohin ein Klick auf eine Zeile im Verlauf führt: dorthin, wohin die Meldung selbst führt – „Hinsehen“ (Ort, Haus, Person der Meldung des Kerns),
+    /// sonst der Knopf ihres Briefs (eigener Betrieb, Personalbuch, Familienbuch, Ratskammer, Jahresrechnung nach der Art). Null: nirgends hin.
+    /// </summary>
+    private string? VerlaufZiel(Meldungsposten p)
+    {
+        if (p.Kern is { } k && HinsehenZiel(k) is { } hinsehen) return hinsehen;
+        return VerlaufBrief(p) is { } b && BriefAnzeige.ZielText(b) is { Length: > 0 } knopf ? knopf : null;
+    }
+
+    private void VerlaufAnsteuern(Meldungsposten p)
+    {
+        if (p.Kern is { } k && HinsehenZiel(k) is not null) MeldungAnsteuern(k);
+        else if (VerlaufBrief(p) is { } b) BriefZiel(b);
+    }
+
+    /// <summary>Das Ziel des Briefs, den die Meldung als Siegel oder Brief bekäme (Art und eigener Betrieb), ohne ihn zu zeigen.</summary>
+    private static Brief? VerlaufBrief(Meldungsposten p) => p.Art.Ziel == "" ? null : new Brief { Ziel = p.Art.Ziel, Betrieb = p.Betrieb };
+
     /// <summary>Wie ein Klick auf das Gebäude: Auswahl rechts, die Kamera fährt hin.</summary>
     private void GebaeudeZeigen(string kennung)
     {
@@ -370,7 +420,11 @@ public partial class Hauptszene
     {
         if (gefahr) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Meldung); // leise Glocke bei Gefahr
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
-        _brief.Einreihen(brief);
+        // Erst groß mittig unten, dann wandert er nach rechts unten, wo das Brief-Fenster aufgeht
+        var text = brief.Zeilen.Count == 0 ? brief.Fuss : brief.Zeilen[0].Text + (brief.Zeilen.Count > 1 ? $" (und {brief.Zeilen.Count - 1} mehr)" : "");
+        _einblendung.Einblenden(brief.Titel, text, Ordnung.Thema(brief.Thema), Meldestufe.Brief,
+            () => _ecke.IsInsideTree() ? _ecke.GetGlobalRect().End - new Vector2(_ecke.Size.Y, _ecke.Size.Y) / 2 : null,
+            () => _brief.Einreihen(brief));
     }
 
     /// <summary>Die Jahresabrechnung ist durch: Was sich dabei angesammelt hat, kommt als ein Brief „Jahresbericht“.</summary>
@@ -457,6 +511,7 @@ public partial class Hauptszene
             {
                 _ecke.Hinzufuegen(schluessel, Ordnung.Thema("handel"), posten, SiegelBrief);
                 KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
+                SiegelEinblenden(schluessel, Ordnung.Thema("handel"), posten, neu: true);
                 siegel = _ecke.Finden(schluessel)!;
             }
             siegel.Posten[0] = posten;

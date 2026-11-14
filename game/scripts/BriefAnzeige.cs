@@ -256,7 +256,8 @@ public sealed partial class BriefAnzeige : PanelContainer
         else fuss.AddChild(new SiegelBild { Farbe = b.Farbe, Thema = b.Thema, CustomMinimumSize = new Vector2(52, 52) });
     }
 
-    private static string ZielText(Brief b) => b.Ziel switch
+    /// <summary>Die Beschriftung des Knopfs unten im Brief („Zu …“, „Familienbuch“ …); leer: kein Knopf. Auch der Verlauf nutzt sie.</summary>
+    public static string ZielText(Brief b) => b.Ziel switch
     {
         "betrieb" when b.Betrieb is not null => "Zu " + b.Betrieb,
         "personal" => "Zum Personalbuch",
