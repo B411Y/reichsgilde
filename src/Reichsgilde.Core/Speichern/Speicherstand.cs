@@ -504,6 +504,12 @@ public sealed record WegebauStand
 
     /// <summary>Kontonummer → bis zu welchem Jahr das Ansehen aus einem Antrag „Weg pflastern“ gilt.</summary>
     public Dictionary<string, int> AnsehenBis { get; init; } = new();
+
+    /// <summary>
+    /// Kontonummer (als Text) → Stimme zum vorliegenden Antrag „Weg pflastern“ aus der Stimmrunde vor der Ratssitzung (true = dafür;
+    /// null = keine; ältere Spielstände: keine – Enthaltung).
+    /// </summary>
+    public Dictionary<string, bool>? PflasterStimmen { get; init; }
 }
 
 /// <summary><see cref="Anzahl"/> Stücke hintereinander mit gleichen Werten.</summary>
