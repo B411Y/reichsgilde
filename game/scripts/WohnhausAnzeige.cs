@@ -24,6 +24,7 @@ public partial class WohnhausAnzeige : PanelContainer
 
     private Simulation? _simulation;
     private Konto? _spieler;
+    private BaseButton? _hinterKnopf;
 
     private TabContainer _reiter = null!;
     private Label _titel = null!;
@@ -174,6 +175,7 @@ public partial class WohnhausAnzeige : PanelContainer
         var hinterKnopf = KleinerKnopf(hinterzimmer, () => HinterzimmerGewuenscht?.Invoke());
         hinterKnopf.Text = "Ins Hinterzimmer (H)";
         hinterKnopf.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        _hinterKnopf = hinterKnopf;
 
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Wohnhaus", () => { Hide(); Geschlossen?.Invoke(); }, festhaltbar: true);
@@ -304,8 +306,12 @@ public partial class WohnhausAnzeige : PanelContainer
         _vermoegen.AddThemeColorOverride("font_color", _spieler.Reinvermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         Setzen(_vermoegenTeile, VermoegenTeile(_spieler, waehrung));
         KreditAktualisieren(w);
-        Setzen(_hinterzimmerText, "Im Hinterzimmer heuert ihr Banden an, schreibt Erpresserbriefe und stellt Wächter vor eure Häuser. "
-                                  + "Die Banden ziehen ab 20 Uhr los.");
+        var ohneHinterzimmer = Stadtansicht.NeubauOhneHinterzimmer(_spieler); // Neubau-Probe: Stufe 1 ist ein einziger Raum
+        if (_hinterKnopf is not null) _hinterKnopf.Disabled = ohneHinterzimmer;
+        Setzen(_hinterzimmerText, ohneHinterzimmer
+            ? "Euer Haus hat kein Hinterzimmer. Das gibt es erst ab dem Bürgerhaus (Reiter „Haus“: Ausbauen)."
+            : "Im Hinterzimmer heuert ihr Banden an, schreibt Erpresserbriefe und stellt Wächter vor eure Häuser. "
+              + "Die Banden ziehen ab 20 Uhr los.");
     }
 
     /// <summary>Setzt einen Text nur, wenn er sich ändert (spart das Neuvermessen der Tafel).</summary>

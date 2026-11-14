@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -97,6 +98,27 @@ public partial class Stadtansicht
 
     /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
     public const string NeubauAusgang = "neubau:haustuer";
+
+    /// <summary>Vorsatz der Klickflächen auf den Gegenständen im Raum („neubau:gegenstand:Familienbuch“).</summary>
+    public const string NeubauGegenstand = "neubau:gegenstand:";
+
+    /// <summary>
+    /// Welcher Gegenstand im Raum angeklickt wurde (null: keiner). Jeder öffnet genau eine Tafel (Hauptszene.RaumAngeklickt):
+    /// Familienbuch → Familie, Truhe → Einrichtung kaufen, Bauplan → Haus (Ausbau, Hauswächter), Werkzeug → Handwerk, Geld → Geld und Kredit.
+    /// </summary>
+    public static string? NeubauGegenstandVon(string kennung) => kennung.StartsWith(NeubauGegenstand) ? kennung[NeubauGegenstand.Length..] : null;
+
+    private static readonly Dictionary<string, string> NeubauGegenstandTitel = new()
+    {
+        ["Familienbuch"] = "Familienbuch", ["Truhe"] = "Truhe · Einrichtung", ["Bauplan"] = "Bauplan · Haus und Ausbau",
+        ["Werkzeug"] = "Werkzeug · Handwerk", ["Geld"] = "Geldkassette · Geld und Kredit",
+    };
+
+    /// <summary>
+    /// Räume je Stufe (Nutzer, 14.11.2026): Das Haus der Stufe 1 (im Kern <c>WohnhausStufe</c> 0) ist ein einziger Raum, ohne
+    /// Hinterzimmer und ohne Kontor. Gilt in der Probe; für alle Häuser entscheidet es der Kern (offen, docs/bereiche/darstellung.md).
+    /// </summary>
+    public static bool NeubauOhneHinterzimmer(Konto? konto) => NeubauProbeAn && konto is { WohnhausStufe: 0 };
 
     /// <summary>Ist das die Haustür von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
     public bool IstAusgangstuer(string? kennung) => kennung == NeubauAusgang && NeubauInnenAktiv;
@@ -252,6 +274,8 @@ public partial class Stadtansicht
         _raumKamera.Fov = 66;
         if (wurzel.FindChild("Blick_Auge", true, false) is Node3D auge && wurzel.FindChild("Blick_Ziel", true, false) is Node3D ziel)
             _raumKamera.LookAtFromPosition(auge.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
+        _neubauBlickGrund = _raumKamera.GlobalTransform;
+        (_neubauGier, _neubauNick, _neubauGierZiel, _neubauNickZiel) = (0, 0, 0, 0);
     }
 
     /// <summary>
@@ -285,11 +309,39 @@ public partial class Stadtansicht
         if (Ort("Feuer_Herd") is { } feuer)
             foreach (var dz in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
                 FlammeAnlegen(a, feuer + new Vector3(-0.18f, 0, dz) - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
-        // Klick in den Raum öffnet die Familie wie bisher; die Fläche liegt vor der Kamera (ein Strahl aus dem Inneren eines Körpers trifft ihn nicht)
-        // (und sie bleibt niedrig und links: Der Blick zur Haustür geht darüber hinweg)
-        var klick = Klickflaeche(RaumWohnstube, new Vector3(-0.78f, 0.65f, 0.7f), new Vector3(2.35f, 1.0f, 3.3f), wurzel);
-        klick.Disabled = false; // der Raum wird beim Betreten angelegt: gleich scharf; beim Verlassen schaltet RaumansichtUmschalten alle Raumklicks ab
-        a.Raumklicks.Add(klick);
+        // Gegenstände statt Reiterfenster: jeder Knoten „Gegenstand_<Name>“ bekommt eine Klickfläche um sein Netz, ein Namensschild
+        // und leuchtet auf, solange die Maus darüber steht; der Klick öffnet seine Tafel (NeubauGegenstandVon, Hauptszene.RaumAngeklickt)
+        var gegenstaende = new List<(string Kennung, MeshInstance3D Teil, Label3D Schild)>();
+        foreach (var teil in wurzel.FindChildren("Gegenstand_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = teil.Name.ToString()["Gegenstand_".Length..];
+            var kasten = teil.GetAabb();
+            var mitte = wurzel.ToLocal(teil.ToGlobal(kasten.GetCenter()));
+            var groesse = new Vector3(Mathf.Max(kasten.Size.X + 0.06f, 0.14f), Mathf.Max(kasten.Size.Y + 0.06f, 0.14f), Mathf.Max(kasten.Size.Z + 0.06f, 0.14f));
+            var flaeche = Klickflaeche(NeubauGegenstand + name, mitte, groesse, wurzel);
+            flaeche.Disabled = false; // der Raum wird beim Betreten angelegt: gleich scharf; beim Verlassen schaltet RaumansichtUmschalten alle Raumklicks ab
+            a.Raumklicks.Add(flaeche);
+            var schild = new Label3D
+            {
+                Text = NeubauGegenstandTitel.GetValueOrDefault(name, name), Position = mitte + new Vector3(0, groesse.Y / 2 + 0.14f, 0),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true, PixelSize = 0.0017f, FontSize = 64, OutlineSize = 14,
+                Modulate = new Color(1f, 0.93f, 0.72f), OutlineModulate = new Color(0.12f, 0.08f, 0.05f), Visible = false,
+            };
+            wurzel.AddChild(schild);
+            gegenstaende.Add((NeubauGegenstand + name, teil, schild));
+        }
+        _neubauGlanz ??= new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            BlendMode = BaseMaterial3D.BlendModeEnum.Add, AlbedoColor = new Color(1f, 0.82f, 0.42f, 0.30f),
+        };
+        // Stufe 1 ist ein einziger Raum: das Kontor (bisher der zweite Raum des Wohnhauses) ist hier nicht zugänglich
+        if (a.Raeume.Count > 1 && !_neubauKontorGeregelt)
+        {
+            _neubauKontorGeregelt = true;
+            var vorher = a.Raeume[1].Zugaenglich;
+            a.Raeume[1] = a.Raeume[1] with { Zugaenglich = () => !NeubauOhneHinterzimmer(_spielerKonto) && (vorher?.Invoke() ?? true) };
+        }
         // Die Haustür von innen: Klick führt hinaus, mit Klinke und Schloss wie beim Betreten (Mauszeiger.cs, Hauptszene.cs)
         if (Ort("Tuer_Innen") is { } tuer)
         {
@@ -298,18 +350,31 @@ public partial class Stadtansicht
             a.Raumklicks.Add(hinaus);
         }
 
-        var plaetze = new[]
+        // Plätze der Familie aus dem Modell: Lage und Blickrichtung des Ankers, Haltung aus seinen extras („sitzt“, „ruehrt“,
+        // „spielt“). Der Figuren-Baukasten braucht nur diese Liste (Reihenfolge: Oberhaupt, Ehepartner, Kinder).
+        var plaetze = new[] { "Platz_Oberhaupt", "Platz_Partner", "Platz_Kind_1", "Platz_Kind_2", "Platz_Kind_3", "Platz_Kind_4" }.Select(name =>
         {
-            // der Tisch steht an der linken Wand (−X): wer auf der Bank sitzt, schaut nach Westen; der Schemel steht am hinteren Tischende
-            ("Platz_Oberhaupt", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Partner", Nord, Bewegung.Ruehren, Werkzeug.Kelle, false),
-            ("Platz_Kind_1", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_2", West, Bewegung.Beten, Werkzeug.Keins, true),
-            ("Platz_Kind_3", Sued, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_4", Nord, Bewegung.Spielen, Werkzeug.Keins, false),
-        }.Select(p => new Arbeitsplatz(Ort(p.Item1) ?? Vector3.Zero, p.Item2, p.Item3, p.Item4, p.Item5)).ToArray();
+            if (wurzel.FindChild(name, true, false) is not Node3D anker) return new Arbeitsplatz(Vector3.Zero, Nord, Bewegung.Beten, Werkzeug.Keins);
+            var lage = wurzel.GlobalTransform.AffineInverse() * anker.GlobalTransform;
+            return ExtraText(anker, "haltung") switch
+            {
+                "ruehrt" => new Arbeitsplatz(lage.Origin, lage.Basis.GetEuler().Y, Bewegung.Ruehren, Werkzeug.Kelle),
+                "spielt" => new Arbeitsplatz(lage.Origin, lage.Basis.GetEuler().Y, Bewegung.Spielen, Werkzeug.Keins),
+                _ => new Arbeitsplatz(lage.Origin, lage.Basis.GetEuler().Y, Bewegung.Beten, Werkzeug.Keins, true),
+            };
+        }).ToArray();
         var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
         var familienStand = "";
         a.Raumzustaende.Add((zeit, arbeitszeit) =>
         {
             if (!IsInstanceValid(wurzel) || _neubauInnen != wurzel) return;
+            foreach (var (kennung, teil, schild) in gegenstaende)
+            {
+                var an = _unterDerMaus == kennung;
+                if (schild.Visible == an) continue;
+                schild.Visible = an;
+                teil.MaterialOverlay = an ? _neubauGlanz : null;
+            }
             var w = _simulation?.Wirtschaft;
             var konto = _spielerKonto;
             var farbe = konto is not null ? Besitzerfarbe(konto) : OhneHausfarbe;
@@ -327,6 +392,38 @@ public partial class Stadtansicht
             }
             foreach (var (f, nurAbends) in figuren) f.Koerper.Visible = !nurAbends || !arbeitszeit;
         });
+    }
+
+    private StandardMaterial3D? _neubauGlanz;
+    private bool _neubauKontorGeregelt;
+
+    // Umschauen wie in den Modellräumen, aber stufenlos: Steht die Maus am Bildrand, dreht sich die Raumkamera dorthin –
+    // sanft, begrenzt (zur Seite je 55°, nach oben 35°, nach unten 25°), um den festen Standpunkt.
+    private const float NeubauBlickTempo = 0.9f, NeubauGierMax = 0.96f, NeubauNickOben = 0.61f, NeubauNickUnten = -0.44f;
+    private Transform3D _neubauBlickGrund;
+    private float _neubauGier, _neubauNick, _neubauGierZiel, _neubauNickZiel;
+
+    /// <summary>Je Bild in der Raumansicht (aus <see cref="RaumBildAktualisieren"/>): true, wenn der Raum im neuen Haus gezeigt wird.</summary>
+    private bool NeubauUmschauen(double delta)
+    {
+        if (!NeubauInnenAktiv) return false;
+        var fenster = GetViewport();
+        var maus = fenster.GetMousePosition();
+        var bild = fenster.GetVisibleRect().Size;
+        var frei = !UnterTafel && fenster.GuiGetHoveredControl() is null && maus.X >= 0 && maus.Y >= 0 && maus.X <= bild.X && maus.Y <= bild.Y;
+        if (frei)
+        {
+            var seite = maus.X < RandZone ? 1f : maus.X > bild.X - RandZone ? -1f : 0f;
+            var hoehe = maus.Y < RandZone ? 1f : maus.Y > bild.Y - RandZone ? -1f : 0f;
+            _neubauGierZiel = Mathf.Clamp(_neubauGierZiel + seite * NeubauBlickTempo * (float)delta, -NeubauGierMax, NeubauGierMax);
+            _neubauNickZiel = Mathf.Clamp(_neubauNickZiel + hoehe * NeubauBlickTempo * 0.7f * (float)delta, NeubauNickUnten, NeubauNickOben);
+        }
+        var t = 1f - Mathf.Exp(-6f * (float)delta);
+        _neubauGier = Mathf.Lerp(_neubauGier, _neubauGierZiel, t);
+        _neubauNick = Mathf.Lerp(_neubauNick, _neubauNickZiel, t);
+        var basis = new Basis(Vector3.Up, _neubauGier) * _neubauBlickGrund.Basis * new Basis(Vector3.Right, _neubauNick);
+        _raumKamera.GlobalTransform = new Transform3D(basis, _neubauBlickGrund.Origin);
+        return true;
     }
 
     /// <summary>Innenraum aus: unsichtbar und ohne Verarbeitung; Scheiben, Raumkamera und Sonne wie vorher.</summary>

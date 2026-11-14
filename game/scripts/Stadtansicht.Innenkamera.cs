@@ -224,6 +224,7 @@ public partial class Stadtansicht
 
     private void RaumBildAktualisieren(double delta)
     {
+        if (NeubauUmschauen(delta)) return; // Raum im neuen Haus: stufenloses Umschauen am Bildrand (Stadtansicht.Neubau.cs)
         if (_raum?.Blicke is null) return;
         var ueberOberflaeche = UnterTafel || GetViewport().GuiGetHoveredControl() is not null;
         RaumKameraNachfuehren(delta);

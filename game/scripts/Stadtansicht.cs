@@ -1298,7 +1298,7 @@ public partial class Stadtansicht : Node3D
                 WegAngeklickt?.Invoke(wegNr, wegStelle);
             return;
         }
-        if (VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs)
+        if (_raum is null && VogelAufscheuchen(mausposition)) return; // Klick auf einen Vogel (Stadtansicht.Voegel.cs); in der Raumansicht trifft kein Klick die Stadt draußen
         if (KennungBei(mausposition) is not { } kennung) return;
         switch (KlickRegel.Entscheide(doppelklick, AnsichtZu(kennung) is { HatInnenraum: true }, UebergangLaeuft))
         {
