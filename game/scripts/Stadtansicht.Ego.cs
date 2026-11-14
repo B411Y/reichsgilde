@@ -309,9 +309,9 @@ public partial class Stadtansicht
     /// <summary>Merkt die Teile einer Mauer als Hindernisse (Mauerstücke, Mauertürme, Ecktürme im Maß ihres Netzes; Tore nur als zwei Seitenstücke, die Durchfahrt bleibt frei).</summary>
     private void EgoMauerMerken(Mauerteile teile, Mauerplan plan)
     {
-        foreach (var s in plan.Stuecke) EgoMauerTeil(teile.Stueck.GetAabb(), new Transform3D(MauerStueckBasis(s), MauerOrt(s)));
-        foreach (var t in plan.Tuerme) EgoMauerTeil(teile.Turm.GetAabb(), new Transform3D(MauerBasis(t), MauerOrt(t)));
-        foreach (var t in plan.Ecktuerme) EgoMauerTeil(teile.Eckturm.GetAabb(), new Transform3D(MauerBasis(t), MauerOrt(t)));
+        foreach (var s in plan.Stuecke) EgoMauerTeil(teile.Stueck.GetAabb(), new Transform3D(MauerStueckBasis(s), MauerOrt(s)), "Mauerstück");
+        foreach (var t in plan.Tuerme) EgoMauerTeil(teile.Turm.GetAabb(), new Transform3D(MauerBasis(t), MauerOrt(t)), "Mauerturm");
+        foreach (var t in plan.Ecktuerme) EgoMauerTeil(teile.Eckturm.GetAabb(), new Transform3D(MauerBasis(t), MauerOrt(t)), "Eckturm");
         foreach (var tor in plan.Tore)
         {
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
@@ -322,7 +322,7 @@ public partial class Stadtansicht
             foreach (var vorzeichen in new[] { -1f, 1f })
             {
                 var mitte = new Vector3(a.GetCenter().X + vorzeichen * (EgoTorDurchfahrt / 2f + seite / 2f), a.GetCenter().Y, a.GetCenter().Z);
-                EgoMauerTeil(new Aabb(mitte - new Vector3(seite / 2f, a.Size.Y / 2f, a.Size.Z / 2f), new Vector3(seite, a.Size.Y, a.Size.Z)), lage);
+                EgoMauerTeil(new Aabb(mitte - new Vector3(seite / 2f, a.Size.Y / 2f, a.Size.Z / 2f), new Vector3(seite, a.Size.Y, a.Size.Z)), lage, $"Torseite {tor.Name} (Burg {a.Size.X:0.0} breit, {a.Size.Z:0.0} tief)");
             }
         }
     }
@@ -330,7 +330,12 @@ public partial class Stadtansicht
     /// <summary>Breite (m) der Durchfahrt einer Torburg, die als Gasse frei bleibt.</summary>
     private const float EgoTorDurchfahrt = 5f;
 
-    private void EgoMauerTeil(Aabb netz, Transform3D lage) => _egoMauern.Add(EgoHindernisVon(lage * new Transform3D(Basis.Identity, netz.GetCenter()), netz.Size / 2f));
+    private readonly List<string> _egoMauerNamen = new();
+    private void EgoMauerTeil(Aabb netz, Transform3D lage, string name = "")
+    {
+        _egoMauern.Add(EgoHindernisVon(lage * new Transform3D(Basis.Identity, netz.GetCenter()), netz.Size / 2f));
+        _egoMauerNamen.Add(name);
+    }
 
     /// <summary>Gebäude oder Mauer an dieser Stelle (Kreis mit dem Halbmesser der Figur, Füße auf Höhe <paramref name="fussY"/>)?</summary>
     private bool EgoHindernisBei(Vector2 p, float fussY)

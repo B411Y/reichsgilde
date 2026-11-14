@@ -169,6 +169,9 @@ public sealed class Konto
 
     internal void WohnhausRaumHinzufuegen(string raum) => _wohnhausRaeume.Add(raum);
 
+    /// <summary>Nimmt einen Raum zur Wahl wieder heraus (alte Spielstände mit Festsaal, <see cref="Wohnen.Wohnungswesen.RaeumeNachDemLaden"/>).</summary>
+    internal void WohnhausRaumEntfernen(string raum) => _wohnhausRaeume.Remove(raum);
+
     /// <summary>Wohin Steuern und Abgaben fließen (gesetzt von der Stadtwirtschaft; null: nirgendwohin, z. B. in Tests ohne Stadt).</summary>
     internal Action<Politik.Kassenposten, double>? Stadtkasse { get; set; }
 

@@ -100,7 +100,7 @@ public static class KlickRegel
 /// </summary>
 public sealed class SchlossEinwuchs
 {
-    /// <summary>Dauer der Übergänge Ruhe/Zeigen/Text nach Bereit und zurück (7 Bilder bei 24/s); gelesen wird die Länge aus der Datei, das hier gilt als Vorgabe.</summary>
+    /// <summary>Dauer der Übergänge Ruhe/Zeigen nach Bereit und zurück (7 Bilder bei 24/s); gelesen wird die Länge aus der Datei, das hier gilt als Vorgabe.</summary>
     public const double UebergangSekunden = 7.0 / 24.0;
 
     /// <summary>Fortschritt 0..1 (linear in der Zeit).</summary>
