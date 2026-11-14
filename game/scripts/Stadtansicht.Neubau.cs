@@ -43,10 +43,7 @@ public partial class Stadtansicht
     // Putz- und Akzentfarben aus dem Style-Guide (5.3); fest je Standort
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
     private static readonly Color[] NeubauAkzent = { new(0.22f, 0.35f, 0.55f), new(0.25f, 0.42f, 0.28f), new(0.55f, 0.22f, 0.20f), new(0.45f, 0.36f, 0.28f) };
-    /// <summary>Der Shader multipliziert die Akzentfarbe auf dunkles Holz; ohne Ausgleich würden die Läden fast schwarz.</summary>
-    private const float NeubauAkzentAusgleich = 2.6f;
-
-    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // je Modell (eigene AO-Karte) ein Material
+    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // je Gruppe (Trim-Sheet und AO-Atlas) ein Material
     private readonly Dictionary<string, StandardMaterial3D> _neubauGrund = new(); // benannte Grundmaterialien fürs Netz
     private readonly HashSet<Mesh> _neubauNetze = new();
     private readonly Dictionary<string, Node3D> _neubauHaeuser = new();          // Kennung (wohnhaus:…) → Wurzel des Modells
@@ -59,19 +56,47 @@ public partial class Stadtansicht
 
     private static T NeubauTextur<T>(string name) where T : Resource => GD.Load<T>(NeubauTexturen + name);
 
-    /// <summary>Das Trim-Material eines Modells: Trim-Sheet der Gruppe (außen oder innen) und die AO-Karte dieses Modells.</summary>
+    /// <summary>
+    /// Die Gruppe eines Modells: der Dateiname ohne Stufe und Grundform („wohnhaus_mensch_s1_g1“ → „wohnhaus_mensch“), innen mit
+    /// „_innen“. Alle Häuser einer Gruppe liegen im selben AO-Atlas (<c>tools/modelle/neubau/ao_atlas.json</c>) und teilen ein Material.
+    /// </summary>
+    private static string NeubauGruppe(string datei)
+    {
+        var name = datei[(datei.LastIndexOf('/') + 1)..];
+        var innen = name.EndsWith("_innen");
+        if (innen) name = name[..^"_innen".Length];
+        name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
+        return innen ? name + "_innen" : name;
+    }
+
+    /// <summary>Das Trim-Material einer Gruppe: Trim-Sheet (außen oder innen) und der AO-Atlas der Gruppe.</summary>
     private ShaderMaterial NeubauStoff(string datei)
     {
-        if (_neubauStoffe.TryGetValue(datei, out var stoff)) return stoff;
-        var blatt = datei.EndsWith("_innen") ? "innen_trim" : "trim";
+        var gruppe = NeubauGruppe(datei);
+        if (_neubauStoffe.TryGetValue(gruppe, out var stoff)) return stoff;
+        var innen = gruppe.EndsWith("_innen");
+        var blatt = innen ? "innen_trim" : "trim";
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
-        stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + datei[(datei.LastIndexOf('/') + 1)..] };
+        stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + gruppe };
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
         stoff.SetShaderParameter("normal_tex", NeubauTextur<Texture2D>(blatt + "_normal.png"));
         stoff.SetShaderParameter("orm_tex", NeubauTextur<Texture2D>(blatt + "_orm.png"));
-        stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<Texture2D>(datei[(datei.LastIndexOf('/') + 1)..] + "_ao.png"));
-        return _neubauStoffe[datei] = stoff;
+        stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<Texture2D>(gruppe + "_ao_atlas.png"));
+        stoff.SetShaderParameter("wetter_an", innen ? 0f : 1f);      // im Haus regnet und schneit es nicht
+        stoff.SetShaderParameter("pixel_look", Fenster.PixelLookAn ? 1f : 0f);
+        return _neubauStoffe[gruppe] = stoff;
     }
+
+    /// <summary>Pixel-Look an oder aus: die Trim-Materialien lesen eine gröbere Mip-Stufe (aus Stadtansicht.Oberflaechendetails.cs).</summary>
+    private void NeubauPixelSetzen(bool an)
+    {
+        foreach (var stoff in _neubauStoffe.Values) stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
+    }
+
+    private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
+
+    /// <summary>Das Bleinetz der Butzenscheiben außen vor der Scheibe mit dem Fensterlicht (bleinetz.gdshader).</summary>
+    private ShaderMaterial NeubauBleinetz() => _neubauBleinetz ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/bleinetz.gdshader"), ResourceName = "Bleinetz" };
 
     /// <summary>
     /// Das benannte Standardmaterial im Netz (für alles, was nach dem Materialnamen sucht, und als Grundlage des
@@ -115,10 +140,11 @@ public partial class Stadtansicht
         var ort = modell.GlobalPosition;
         var saat = (uint)HashCode.Combine(Mathf.RoundToInt(ort.X * 2), Mathf.RoundToInt(ort.Z * 2));
         var putz = NeubauPutz[saat % (uint)NeubauPutz.Length];
-        var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length] * NeubauAkzentAusgleich;
+        var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
+            if (teil.Name == "Fahne" || teil.GetParent()?.Name == "Fahne") continue; // Mast und wehendes Tuch: Stadtansicht.Fahnen.cs
             var neu = _neubauNetze.Add(netz);
             for (var i = 0; i < netz.GetSurfaceCount(); i++)
             {
@@ -127,6 +153,11 @@ public partial class Stadtansicht
                 {
                     case "Fenster":
                         break; // Fensterlicht: ModellEinsetzen hat das Material der Gruppe schon gesetzt
+                    case "Hausfarbe" or "Holz" or "Eisen":
+                        break; // Wappen und Fahne: die Farbe des Besitzers setzt ModellEinsetzen wie bei den bisherigen Häusern
+                    case "Bleinetz":
+                        if (neu) netz.SurfaceSetMaterial(i, NeubauBleinetz());
+                        break;
                     case "Innenglas":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
                         break;
@@ -143,19 +174,21 @@ public partial class Stadtansicht
             teil.SetInstanceShaderParameter("plaster_tint", putz);
             teil.SetInstanceShaderParameter("accent_tint", akzent);
         }
+        if (innen || modell.HasNode("Bodenfleck")) return;
+        // Bodenübergang (Style-Guide 5.1): festgetretene Erde rund ums Haus als Decal, nur dünn über dem Boden (trifft keine Wände)
+        modell.AddChild(new Decal
+        {
+            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, -0.2f), Size = new Vector3(8.6f, 0.36f, 8.2f),
+            TextureAlbedo = NeubauTextur<Texture2D>("bodenfleck.png"), AlbedoMix = 0.85f, NormalFade = 0.6f, UpperFade = 0.6f, LowerFade = 0.6f,
+            DistanceFadeEnabled = true, DistanceFadeBegin = 160, DistanceFadeLength = 40,
+        });
     }
 
-    private StandardMaterial3D? _neubauGlas;
-
-    /// <summary>Das Glas der Innenansicht: fast klar, damit man die Gasse sieht (die Scheiben außen sind solange ausgeblendet).</summary>
-    private StandardMaterial3D NeubauGlas() => _neubauGlas ??= new StandardMaterial3D
-    {
-        ResourceName = "Innenglas",
-        AlbedoColor = new Color(0.62f, 0.70f, 0.66f, 0.13f),
-        Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-        Roughness = 0.12f,
-        CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-    };
+    /// <summary>
+    /// Das Glas der Innenansicht: Butzenscheiben in Blei (butzenglas.gdshader) – grünliches Waldglas mit Schleuderringen, durch das
+    /// man die Gasse verzogen und getönt sieht (die Scheiben außen sind solange ausgeblendet).
+    /// </summary>
+    private ShaderMaterial NeubauGlas() => _neubauButzenglas ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/butzenglas.gdshader"), ResourceName = "Innenglas" };
 
     /// <summary>Merkt das Haus zu seiner Kennung (aus <see cref="SpielhausModell"/>), damit die Innenansicht es findet.</summary>
     private void NeubauMerken(string? kennung, string datei, ModellInstanz? instanz)
@@ -193,9 +226,10 @@ public partial class Stadtansicht
             wurzel.Name = "InteriorRoot";
             haus.AddChild(wurzel);
             NeubauEinkleiden(NeubauWohnhaus + "_innen", wurzel);
+            NeubauInnenBeleben(wurzel);
             // Herdfeuer und ein schwaches Grundlicht unter dem Dach (ohne Schatten): sonst ist der Raum hinter den kleinen Fenstern schwarz
             if (wurzel.FindChild("Licht_Herd", true, false) is Node3D herd)
-                herd.AddChild(new OmniLight3D { LightColor = new Color(1.0f, 0.62f, 0.30f), LightEnergy = 2.6f, OmniRange = 6f, ShadowEnabled = true, OmniAttenuation = 1.2f });
+                herd.AddChild(new OmniLight3D { LightColor = new Color(1.0f, 0.62f, 0.30f), LightEnergy = 3.4f, OmniRange = 6.5f, ShadowEnabled = true, OmniAttenuation = 1.1f });
             if (wurzel.FindChild("Licht_Raum", true, false) is Node3D raum)
                 raum.AddChild(new OmniLight3D { LightColor = new Color(0.95f, 0.88f, 0.76f), LightEnergy = 1.3f, OmniRange = 8f, ShadowEnabled = false });
         }
@@ -210,6 +244,72 @@ public partial class Stadtansicht
         _raumKamera.Fov = 72;
         if (wurzel.FindChild("Blick_Auge", true, false) is Node3D auge && wurzel.FindChild("Blick_Ziel", true, false) is Node3D ziel)
             _raumKamera.LookAtFromPosition(auge.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
+    }
+
+    /// <summary>
+    /// Was im Raum lebt, über dieselben Wege wie in der alten Wohnstube (Stadtansicht.Raeume.cs): die gekaufte Einrichtung
+    /// (Knoten „Einrichtung_&lt;Kennung&gt;“, sichtbar, wenn das Haus das Stück hat), die Hausfarbe, die Familie an den Plätzen
+    /// „Platz_…“, das Herdfeuer und die Klickfläche für die Familientafel. Einmal je Innenraum.
+    /// </summary>
+    private void NeubauInnenBeleben(Node3D wurzel)
+    {
+        if (_wohnhausAnsicht is not { } a) return;
+        var stuecke = new Dictionary<string, MeshInstance3D>();
+        var hausfarben = new List<StandardMaterial3D>();
+        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = teil.Name.ToString();
+            if (name.StartsWith("Einrichtung_"))
+            {
+                stuecke[name["Einrichtung_".Length..]] = teil;
+                teil.Visible = false;
+            }
+            for (var i = 0; i < (teil.Mesh?.GetSurfaceCount() ?? 0); i++)
+                if (teil.Mesh!.SurfaceGetMaterial(i) is StandardMaterial3D { ResourceName: "Hausfarbe" } stoff)
+                {
+                    var kopie = (StandardMaterial3D)stoff.Duplicate();
+                    kopie.VertexColorUseAsAlbedo = false;
+                    teil.SetSurfaceOverrideMaterial(i, kopie);
+                    hausfarben.Add(kopie);
+                }
+        }
+        Vector3? Ort(string name) => wurzel.FindChild(name, true, false) is Node3D n ? wurzel.ToLocal(n.GlobalPosition) : null;
+        if (Ort("Feuer_Herd") is { } feuer)
+            foreach (var dz in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
+                FlammeAnlegen(a, feuer + new Vector3(-0.18f, 0, dz) - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
+        // Klick in den Raum öffnet die Familie wie bisher; die Fläche liegt vor der Kamera (ein Strahl aus dem Inneren eines Körpers trifft ihn nicht)
+        var klick = Klickflaeche(RaumWohnstube, new Vector3(0, 1.3f, 0.6f), new Vector3(3.9f, 2.4f, 3.5f), wurzel);
+        klick.Disabled = true;
+        a.Raumklicks.Add(klick);
+
+        var plaetze = new[]
+        {
+            ("Platz_Oberhaupt", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Partner", Ost, Bewegung.Ruehren, Werkzeug.Kelle, false),
+            ("Platz_Kind_1", Ost, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_2", Ost, Bewegung.Beten, Werkzeug.Keins, true),
+            ("Platz_Kind_3", West, Bewegung.Beten, Werkzeug.Keins, true), ("Platz_Kind_4", Nord, Bewegung.Spielen, Werkzeug.Keins, false),
+        }.Select(p => new Arbeitsplatz(Ort(p.Item1) ?? Vector3.Zero, p.Item2, p.Item3, p.Item4, p.Item5)).ToArray();
+        var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
+        var familienStand = "";
+        a.Raumzustaende.Add((zeit, arbeitszeit) =>
+        {
+            if (!IsInstanceValid(wurzel) || _neubauInnen != wurzel) return;
+            var w = _simulation?.Wirtschaft;
+            var konto = _spielerKonto;
+            var farbe = konto is not null ? Besitzerfarbe(konto) : OhneHausfarbe;
+            foreach (var (kennung, knoten) in stuecke)
+                knoten.Visible = konto is not null && w?.Wohnen.Daten?.Stueck(kennung) is { } stueck && w.Wohnen.HatEinrichtung(konto, stueck);
+            foreach (var stoff in hausfarben) stoff.AlbedoColor = farbe;
+            var familie = konto is not null ? w?.Familien.Von(konto) : null;
+            var stand = familie is null ? "" : farbe + string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
+            if (stand != familienStand)
+            {
+                foreach (var (f, _) in figuren) { a.Besucher.Remove(f); KnotenEntfernen(f.Koerper); }
+                figuren.Clear();
+                if (familie is not null) FamilieSetzen(a, Vector3.Zero, familie, w!.Familien, figuren, farbe, wurzel, plaetze);
+                familienStand = stand;
+            }
+            foreach (var (f, nurAbends) in figuren) f.Koerper.Visible = !nurAbends || !arbeitszeit;
+        });
     }
 
     /// <summary>Innenraum aus: unsichtbar und ohne Verarbeitung; Scheiben, Raumkamera und Sonne wie vorher.</summary>
@@ -236,7 +336,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Startoptionen der Probe, einmal nach dem Aufbau der Stadt.
     /// <c>--neubaureihe=alt|neu|beide[@x,z]</c>: 16 Häuser im Raster 4 × 4 um die Stelle x,z (beide: links acht alte, rechts acht neue);
-    /// <c>--neubaubrand=1</c>: jedes vierte davon mit Brandschaden. <c>--neubaumessung=&lt;Sekunden Vorlauf&gt;</c>: misst Zeichenaufrufe
+    /// <c>--neubaubrand=1</c>: je Viererreihe ein Haus mit Brandschaden, eins mit Brandschaden und Gerüst, eins im Leerstand. <c>--neubaumessung=&lt;Sekunden Vorlauf&gt;</c>: misst Zeichenaufrufe
     /// und GPU-Zeit vor dem Betreten, im Haus, nach dem Verlassen und zum Vergleich ohne den Knoten im Baum, schreibt sie ins Protokoll
     /// und beendet das Spiel.
     /// </summary>
@@ -257,17 +357,18 @@ public partial class Stadtansicht
                 var mitte = ort + new Vector3((spalte - 1.5f) * 8.5f, 0, (zeile - 1.5f) * 11f);
                 var g = new Node3D { Name = $"Neubaureihe_{i}", Position = AufFundament(mitte, 0, new Vector2(8, 10)) };
                 AddChild(g);
-                ModellEinsetzen(datei, g, new Vector3(0, 0, 0), new ModellZustand(Brand: brand && i % 4 is 1 or 2, Besitzer: i % 3 == 0 ? Spieler : Rivale));
+                GruppenSockel(g, 0, new Vector2(8, 10)); // am Hang ein Bruchsteinsockel wie bei den Spielhäusern (Stadtansicht.Gelaende.cs)
+                ModellEinsetzen(datei, g, new Vector3(0, 0, 0), new ModellZustand(Brand: brand && i % 4 is 1 or 2, Geruest: brand && i % 4 == 2, Leerstand: brand && i % 4 == 3, Besitzer: i % 3 == 0 ? Spieler : Rivale));
             }
         }
         if (NeubauOption("--neubaumessung") is { Length: > 0 } vorlauf)
             NeubauMessungStarten(float.TryParse(vorlauf, System.Globalization.CultureInfo.InvariantCulture, out var s) ? s : 15f);
     }
 
-    // Messung der Probe: Abschnitte mit je 80 Bildern; Median und Mittel ins Protokoll. Die Stadt lebt (Passanten, Uhrzeit), deshalb
+    // Messung der Probe: Abschnitte mit je 300 Bildern; Median und Mittel ins Protokoll. Die Stadt lebt (Passanten, Uhrzeit), deshalb
     // schwanken die Werte von Abschnitt zu Abschnitt etwas. Ob der ausgeschaltete Innenraum etwas kostet, zeigt der Vergleich der drei
     // letzten Abschnitte: ausgeschaltet im Baum – ganz aus dem Baum genommen – wieder ausgeschaltet im Baum.
-    private const int NeubauMessBilder = 80;
+    private const int NeubauMessBilder = 300;
     private static readonly string[] NeubauAbschnitte =
         { "vor dem Betreten", "im Haus", "nach dem Verlassen (InteriorRoot aus)", "InteriorRoot aus dem Baum genommen", "InteriorRoot wieder im Baum, aus" };
     private readonly List<(double Aufrufe, double Gpu, double Objekte, double Ecken)> _neubauWerte = new();
