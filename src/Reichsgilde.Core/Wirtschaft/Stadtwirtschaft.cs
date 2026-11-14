@@ -885,6 +885,8 @@ public sealed partial class Stadtwirtschaft
                                                                      or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
+        if (Wohnen.BefehlOhneRaum(absender, befehl) is { } ohneRaum) // Räume je Stufe: z. B. Banden nur mit Hinterzimmer
+            return Befehlsergebnis.Abgelehnt(ohneRaum);
         if (befehl is EntscheidungTreffen entscheidung)
             return Entscheidungen.Treffen(absender, entscheidung.Nummer, entscheidung.Wahl);
         if (befehl is StandErwerben)
@@ -895,6 +897,8 @@ public sealed partial class Stadtwirtschaft
             return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
         if (befehl is WohnhausEinrichtungKaufen wohnEinrichtung)
             return Wohnen.EinrichtungKaufen(absender, wohnEinrichtung.Kennung);
+        if (befehl is RaumAnbauen raum)
+            return Wohnen.RaumAnbauen(absender, raum.Raum);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is BauBefehl bau)
