@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=28 format=3]
+[gd_resource type="Theme" load_steps=30 format=3]
 
 ; Das zentrale Thema der Ratskammer und der Rathaus-Kurzübersicht (PR Ratskammer, 14.11.2026).
 ; Aussehen steht NUR hier, Logik in RatAnzeige*.cs / RathausTafel.cs / RatStil.cs.
@@ -85,6 +85,40 @@ content_margin_left = 10.0
 content_margin_top = 8.0
 content_margin_right = 10.0
 content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="Spruchband"]
+; Platzhalter, bis das Holzschnitt-Spruchband (9-Slice-Bild) aus dem Grafik-PC kommt: dann nur diese Fläche tauschen
+bg_color = Color(0.14, 0.12, 0.1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.656, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+
+[sub_resource type="StyleBoxFlat" id="Ratsbuch"]
+; Platzhalter für die Pergamentseite des Ratsbuchs
+bg_color = Color(0.2, 0.17, 0.12, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.34, 0.24, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="AmtKnopf"]
 bg_color = Color(0.26, 0.2, 0.13, 1)
@@ -570,3 +604,30 @@ RatKurzHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
 RatKurzGold/base_type = &"Label"
 RatKurzGold/font_sizes/font_size = 14
 RatKurzGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+
+; ── Ratssitzung als Szene (PR Szene Teil 1): Spruchband unten, Ratsbuch rechts ──
+RatMasse/constants/spruchband_breite = 860
+RatMasse/constants/ratsbuch_breite = 250
+RatSitzungRand/base_type = &"MarginContainer"
+RatSitzungRand/constants/margin_left = 14
+RatSitzungRand/constants/margin_top = 14
+RatSitzungRand/constants/margin_right = 14
+RatSitzungRand/constants/margin_bottom = 14
+RatSpruchband/base_type = &"PanelContainer"
+RatSpruchband/styles/panel = SubResource("Spruchband")
+RatsbuchTafel/base_type = &"PanelContainer"
+RatsbuchTafel/styles/panel = SubResource("Ratsbuch")
+RatSpruchbandTitel/base_type = &"Label"
+RatSpruchbandTitel/fonts/font = ExtResource("1_titel")
+RatSpruchbandTitel/font_sizes/font_size = 20
+RatSpruchbandTitel/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatSpruchbandText/base_type = &"Label"
+RatSpruchbandText/font_sizes/font_size = 17
+RatSpruchbandText/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatsbuchStrich/base_type = &"Label"
+RatsbuchStrich/fonts/font = ExtResource("1_titel")
+RatsbuchStrich/font_sizes/font_size = 22
+RatsbuchStrich/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatsbuchName/base_type = &"Label"
+RatsbuchName/font_sizes/font_size = 15
+RatsbuchName/colors/font_color = Color(0.92, 0.88, 0.8, 1)
