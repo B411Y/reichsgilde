@@ -79,6 +79,12 @@ public sealed record LiegenschaftErwerben(string Name) : Befehl;
 /// <summary>Bewerbung um ein Amt im Stadtrat (eine pro Jahr, gewählt wird am Jahresende).</summary>
 public sealed record AmtBewerben(string Amt) : Befehl;
 
+/// <summary>
+/// Die eigene Bewerbung um ein Amt zurückziehen (bis zur Ratssitzung). Die AP der Bewerbung werden nicht erstattet;
+/// eine neue Bewerbung kostet wieder. Prüfung der Bewerbung vorab: <see cref="Politik.Stadtrat.BewerbungPruefen"/>.
+/// </summary>
+public sealed record BewerbungZurueckziehen(string Amt) : Befehl;
+
 /// <summary>Ein Geschenk an einen Ratsherrn – kostet Gulden, hebt seine Meinung über das Oberhaupt (Grund „Geschenke“). Bestechung.</summary>
 public sealed record Schenken(string Ratsherr, double Betrag) : Befehl;
 

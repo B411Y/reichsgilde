@@ -70,6 +70,9 @@ public partial class KlangUmgebung : Node
     private readonly List<M.Ruf> _neueRufe = new();
     private readonly M.GlockenPlaner _glocken = new((int)((Time.GetTicksUsec() >> 3) & 0x7fffffff));
     private readonly List<M.Glocke> _neueGlocken = new();
+    private M.WolfPlaner _wolf = new((int)((Time.GetTicksUsec() >> 5) & 0x7fffffff));
+    private readonly List<M.Wolf> _neueWoelfe = new();
+    private AudioStreamPlayer _wolfSpieler = null!;
     private AudioStreamPlayer _rufNah = null!, _rufFern = null!, _rufGespraech = null!, _glockenSpieler = null!;
     private AudioEffectPanner? _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner;
     private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke, _tiefpassDonner;
@@ -79,6 +82,7 @@ public partial class KlangUmgebung : Node
     private float _blitzVorher = -1;
     private bool _laeuft, _beendet;
     private int _logStufe;
+    private bool _wolfFahrt;
     private bool _fahrt, _kurzeFahrt, _gewitterFahrt, _einschlagFahrt, _einschlagGeschehen, _regenFahrt;
     private double _zeit, _logUhr, _fahrtZeit;
     private int _fahrtRuf;
@@ -120,6 +124,7 @@ public partial class KlangUmgebung : Node
             if (arg == "--umgebungfahrt=3") (_fahrt, _gewitterFahrt) = (true, true);
             if (arg == "--umgebungfahrt=4") (_fahrt, _einschlagFahrt) = (true, true);
             if (arg == "--umgebungfahrt=5") (_fahrt, _regenFahrt) = (true, true);
+            if (arg == "--umgebungfahrt=6") (_fahrt, _wolfFahrt) = (true, true);
         }
         if (_fahrt)
         {
@@ -138,16 +143,19 @@ public partial class KlangUmgebung : Node
         foreach (var s in M.Schichten) Anfordern(s.Name, SchichtPfad(s.Name));
         foreach (var r in M.Rufarten)
             foreach (var d in RufDateien(r)) Anfordern(d, RufPfad(d));
+        Anfordern(M.WolfPlaner.Datei, RufPfad(M.WolfPlaner.Datei));
         foreach (var g in M.Glockenarten)
             for (var v = 1; v <= g.Varianten; v++) Anfordern($"{g.Datei}_{v}", GlockenPfad($"{g.Datei}_{v}"));
         _rufNah = new AudioStreamPlayer { Name = "RufNah", Bus = KlangDienst.BusUmgebungRufNah };
         _rufFern = new AudioStreamPlayer { Name = "RufFern", Bus = KlangDienst.BusUmgebungRufFern };
         _rufGespraech = new AudioStreamPlayer { Name = "RufGespraech", Bus = KlangDienst.BusUmgebungGespraech };
         _glockenSpieler = new AudioStreamPlayer { Name = "Glocke", Bus = KlangDienst.BusUmgebungGlocke };
+        _wolfSpieler = new AudioStreamPlayer { Name = "Wolf", Bus = KlangDienst.BusUmgebungRufFern }; // fern wie die fernen Rufe, unter Draußen (in Räumen leiser und dumpfer)
         AddChild(_rufNah);
         AddChild(_rufFern);
         AddChild(_rufGespraech);
         AddChild(_glockenSpieler);
+        AddChild(_wolfSpieler);
         _busDraussen = AudioServer.GetBusIndex(KlangDienst.BusUmgebungDraussen);
         _busStadt = AudioServer.GetBusIndex(KlangDienst.BusUmgebungStadt);
         _tiefpassDraussen = _busDraussen >= 0 ? AudioServer.GetBusEffect(_busDraussen, 0) as AudioEffectLowPassFilter : null;
@@ -222,6 +230,7 @@ public partial class KlangUmgebung : Node
         _rufFern.Stop();
         _rufGespraech.Stop();
         _glockenSpieler.Stop();
+        _wolfSpieler.Stop();
         _laeuft = false;
         if (_logStufe >= 2) GD.Print($"UMGEBUNG Ende: alle Schleifen blenden in {sekunden:0.0} s aus");
     }
@@ -298,6 +307,10 @@ public partial class KlangUmgebung : Node
         if (!_fahrt || _fahrtZeit >= FahrtZufallAb) _glocken.Schritt(eingaben, aus, _neueGlocken);
         foreach (var g in _neueGlocken) GlockeSpielen(g);
         if (_neueGlocken.Count == 0) GlockeNachfuehren(eingaben.Lage, delta);
+        // Wolfsheulen: einmal je Nacht beim Einbruch der Dunkelheit, fern (nicht in der Hörprobe außer der Wolffahrt)
+        _neueWoelfe.Clear();
+        if (!_fahrt || _wolfFahrt) _wolf.Schritt(eingaben, aus, _neueWoelfe);
+        foreach (var w in _neueWoelfe) WolfSpielen(w);
         if (_logStufe >= 2 && _zeit >= _logUhr)
         {
             _logUhr = Math.Floor(_zeit) + 1;
@@ -401,6 +414,23 @@ public partial class KlangUmgebung : Node
         var fern = r.FernAb <= 0 || LetzteEingaben.Zoom >= r.FernAb;
         Abspielen(_planer.Erzwingen(art, fern, LetzteEingaben.Zoom));
     }
+
+    /// <summary>Ein Wolfsheulen spielen: Seite zufällig (außerhalb der Stadt), auf dem Fernbus der Rufe (Panner geteilt, Pegel mit Ausgleich für den Panner).</summary>
+    private void WolfSpielen(M.Wolf w)
+    {
+        if (!_toene.TryGetValue(w.Datei, out var ton)) return;
+        if (_panFern is not null) _panFern.Pan = w.Seite;
+        _wolfSpieler.Stream = ton;
+        _wolfSpieler.VolumeDb = Math.Min(w.Db, 0f) - 20f * MathF.Log10(1f + Math.Min(Math.Abs(w.Seite), 1f));
+        _wolfSpieler.PitchScale = w.Tonhoehe;
+        _wolfSpieler.Play();
+        LetzterRuf = $"Wolf: {w.Datei}, fern, Seite {w.Seite:+0.00;-0.00}, {w.Db:0.0} dB (bei {_zeit:0} s)";
+        if (_logStufe >= 2)
+            GD.Print($"UMGEBUNG WOLF t={_zeit:0.00} datei={w.Datei} seite={w.Seite:0.00} db={w.Db:0.0} tonhoehe={w.Tonhoehe:0.000} laenge={ton.GetLength():0.00} uhr={UhrText(LetzteEingaben.UhrMinute)} b={LetzteEingaben.Bezug:0.00}");
+    }
+
+    /// <summary>Ein Wolfsheulen jetzt (Entwicklerreiter, Hörprobe).</summary>
+    public void JetztHeulen() => WolfSpielen(_wolf.Erzwingen());
 
     /// <summary>Ein Läuten spielen: Seite des Doms, Pegel und Tiefpass nach dem Abstand (das Modell hat sie gerechnet).</summary>
     private void GlockeSpielen(M.Glocke g)
@@ -542,6 +572,17 @@ public partial class KlangUmgebung : Node
         new(48.01f, 14.5f, 24, -24, 10, 5), new(62, 14.6f, 36, 0, 0, 5), new(80, 14.8f, 90, 20, 0, 5),
     };
     public const float FahrtEndeRegen = 80f;
+
+    /// <summary>
+    /// Die Hörprobe <c>--umgebungfahrt=6</c> (40 s, Wolfsheulen): Frühlingsabend am Stadtrand, die Uhr gleitet von 17,8 auf 19,6 Uhr (das Heulen bei Einbruch der Nacht um 18:45, etwa bei 13 s),
+    /// springt bei 24 s zurück auf 18,2 Uhr und gleitet wieder über „dunkel“ (zweites Mal am selben Tag: kein Heulen; <c>UMGEBUNG WOLF</c> darf nur einmal im Log stehen).
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkteWolf =
+    {
+        new(0, 17.8f, 40, 175, 10), new(24, 19.6f, 40, 175, 10),
+        new(24.01f, 18.2f, 40, 175, 10), new(40, 19.6f, 40, 175, 10),
+    };
+    public const float FahrtEndeWolf = 40f;
     /// <summary>Das Wetter des Tons bei Wetter 5 der Hörprobe: starker Regen ohne Blitze (die Stadtansicht zeigt dazu die Lage Regen).</summary>
     public static readonly M.KlangWetter FahrtStarkerRegen = new(1f, 0f, 0.6f, 0f, 0.05f);
 
@@ -568,8 +609,8 @@ public partial class KlangUmgebung : Node
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
         _fahrtZeit += delta;
-        var punkte = _regenFahrt ? FahrtPunkteRegen : _einschlagFahrt ? FahrtPunkteEinschlag : _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
-        if (_fahrtZeit >= (_regenFahrt ? FahrtEndeRegen : _einschlagFahrt ? FahrtEndeEinschlag : _gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
+        var punkte = _wolfFahrt ? FahrtPunkteWolf : _regenFahrt ? FahrtPunkteRegen : _einschlagFahrt ? FahrtPunkteEinschlag : _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
+        if (_fahrtZeit >= (_wolfFahrt ? FahrtEndeWolf : _regenFahrt ? FahrtEndeRegen : _einschlagFahrt ? FahrtEndeEinschlag : _gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
         {
             GD.Print("UMGEBUNG Fahrt fertig");
             GetTree().Quit();
@@ -596,7 +637,7 @@ public partial class KlangUmgebung : Node
         if (_einschlagFahrt && !_einschlagGeschehen && t >= EinschlagBei) { _einschlagGeschehen = true; EinschlagVorgeben?.Invoke(); }
         if (_einschlagFahrt) GewitterVorgeben?.Invoke(0.5f); // über der Stadt: die nächsten normalen Blitze (ab 1 km)
         if (_gewitterFahrt) GewitterVorgeben?.Invoke(t >= GewitterVon ? Math.Clamp((t - GewitterVon) / (GewitterBis - GewitterVon), 0f, 1f) : null);
-        while (!_kurzeFahrt && !_gewitterFahrt && !_einschlagFahrt && !_regenFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
+        while (!_wolfFahrt && !_kurzeFahrt && !_gewitterFahrt && !_einschlagFahrt && !_regenFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));

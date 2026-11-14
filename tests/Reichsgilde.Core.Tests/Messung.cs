@@ -72,6 +72,9 @@ static class Messung
         // [--wiederholen=N] – siehe Pruefschrittmessung.cs
         if (args.Length > 0 && args[0] == "pruefung")
             return Pruefschrittmessung.Erstellen(args[1..]);
+        // Rechenzeit einer Partie (14.11.2026): … -- messen tempo [Jahre] [Startwerte] [--karte=koeln] – siehe Tempomessung.cs
+        if (args.Length > 0 && args[0] == "tempo")
+            return Tempomessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

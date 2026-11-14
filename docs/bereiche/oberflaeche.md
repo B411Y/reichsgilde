@@ -50,7 +50,23 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (Leistung) Mit 3D-Handschuh 26,6 statt 37,9 Bilder/s auf Xvfb/Vulkan (rund 4 ms GPU, Messung der NAS); der Nutzer lässt es vorerst so, später auf dem PC messen (Einstellung „3D-Handschuh“ schaltet ab).
 - 3D-Handschuh 3b/3c: Hänger beim ersten und zweiten Betreten, Blende beim Verlassen (2D und 3D), Haltung Text über einem Textfeld und die Klinke-Folge (Bereit über der Tür, Greifen, Drücken, Blende, Loslassen; Schloss unter der Hand, Zeigerpunkt Anker_Schloss) sind im Klicktest der NAS zu prüfen (mit Grafik). Bekannte Schwäche aus 3a: die Faust sitzt auf der Stange, statt sie zu umschließen; im Klicktest ansehen.
+- **Ratskammer ins Thema umstellen:** Der Reiter „Ämter“ (Ratsbaum) und die Kurzübersicht sind im Thema `rat_thema.tres`. Die Abschnitte der Reiter „Anträge“, „Stadtglaube“ und „Kasse“ und der Domprediger (`RatAnzeige.Antraege.cs`, `.Kasse.cs`, `.Dom.cs`, Statutantrag und Stadtglaube in `RatAnzeige.cs`) rufen noch `Hauptmenue.Text(…, Größe, Farbe)` auf; sie wandern im Fable-Neudesign in Varianten.
+- Ratsbaum: Ein **freies Amt** (Schatten mit „?“) ließ sich im Klicktest nicht zeigen: Alle Sitze sind zu Beginn besetzt (Nachrücker). Der Schatten ist gebaut, aber nur im Spiel nach einem Rücktritt oder Tod zu sehen.
+
 ## Entscheidungen
+
+### Ratsbaum (Branch phase5/ratsbaum, PR 3 der Ratssitzung)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Baum | Der Reiter „Ämter“ zeigt die Ämter als Baum nach `vorgesetzt` (`RatBaumAnzeige`); das Raster, der Block „Eure Laufbahn“ und der Block „Wahlstimmen“ entfallen. Layout: Blätter links nach rechts, Eltern mittig, Zeile = Tiefe; Linien in `_Draw` mit dunklem Umriss; Knoten sind Knöpfe (Tab, Pfeile, Eingabe) | 14.11.2026 |
+| Tafel zum Amt | Ein Klick auf einen Knoten öffnet unter dem Baum die Tafel zum Amt: Befugnis, Inhaber, bei Ratsherren Haltung, Meinung, Geschenk, Moschus; eigenes Amt: „Euer Amt“ mit den Befugnis-Knöpfen (F7, `AmtBefugnisAnzeige`); sonst die Voraussetzungen aus `BewerbungPruefen` (Erfülltes grün „+“, Fehlendes rot „–“) und „Bewerben“ (F2) | 14.11.2026 |
+| Bewerberreihe und Stimme | Porträts der Kandidaten; Klick = `WahlStimme`, gesetzte Stimme mit Siegel, zweiter Klick nimmt sie zurück (Vorgabe). Bewerbung zurückziehen (F8) am Knoten und in der Laufbahnzeile | 14.11.2026 |
+| Wähler | Beim Darüberfahren oder Fokussieren leuchten alle Inhaber höherer Stufen auf (F4); die Wahlregel bleibt wie sie ist | 14.11.2026 |
+| Theme | Alles über `rat_thema.tres`: neue Varianten `RatKnoten…`, `RatBewerber`, `RatKurz…`, `RatAuswahl`, `RatGold`, Farben `linie…`, Maße `knoten_…`, `bewerber_…`; `RatStil.Text` bekommt den Parameter `breite`, `RatStil.Container` nimmt jeden `Node` als Eltern | 14.11.2026 |
+| Kurzübersicht | „Euer Amt“ zeigt nur Amt und Einkommen mit Knopf „Euer Amt ansehen“ (öffnet die Ratskammer am eigenen Knoten); die Befugnis zog an den Knoten um. Im Rathaustext entfällt die Liste der Ämter (der Baum zeigt sie). Dadurch passt die Kurzübersicht ohne Scrollen in die Auswahltafel (Befund aus PR 2) | 14.11.2026 |
+| Geschenkbetrag | Das Zahlfeld „Geschenk je Klick“ steht bei den Beschenken-Knöpfen des gewählten Ratsherrn statt über dem Baum | 14.11.2026 |
+| Startoption | `--ratamt=<Amt>` wählt mit `--rat=` einen Knoten vor | 14.11.2026 |
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
 
 ### Neue Partie: Spieler einstellen, KI-Gegner, „Erweitert“ (Branch phase5/neue-partie-ui, PR 2 von 2)
@@ -65,7 +81,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Prüfung | `BesetzungProblem` meldet vor dem Start doppelte Namen, Wappen und Berufe (der Spieler zählt mit) und fängt `ArgumentException` des Kerns ab; der Text steht rot unter den Knöpfen. Die Namens- und Wappenprüfung gegen die Rivalen der Startbelegung alter Karten bleibt. | 11.11.2026 |
 | Daten | `Datenvorrat.Lesekopie()`: eine eigene lesende Kopie von `wirtschaft.json` für das Menü, einmal gelesen (rund 0,3 s beim ersten Öffnen der Seite); die Partie holt ihre Daten wie bisher über `Holen()`. | 11.11.2026 |
 | Startoption | `--neuepartie=1` öffnet die Seite (in `docs/STARTOPTIONEN.md`). | 11.11.2026 |
-| Offen | Die Tafel wird beim Aufklappen von „Erweitert“ breiter (etwa 720 → 940 px); Ursache nicht gesucht. Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
+| Offen | Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
 
 ### Rivalenwahl ohne Beruf (Branch phase5/kirchen-koeln, Prediger PR 1c)
 
@@ -628,3 +644,19 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Kollekte | Die Domkollekte steht im Jahresbericht unter „Außerdem“ (wie das Amtseinkommen) und in der Jahresrechnung der Berichtstafel, nicht in der Zeile „Gewinn“ (der Kern zählt sie nicht dazu). | 12.11.2026 |
 | Startoption | `--domwahl=1` lässt die geeigneten Häuser (auch den Spieler) sich bewerben (in `docs/STARTOPTIONEN.md`). | 12.11.2026 |
 | Offen | Infotafel am Stadt-Dom mit dem Domprediger und eigene Siegel für Wahl und Amtsende gehören zu darstellung bzw. Meldungen (der Kern meldet über `Meldungsart.Wahl`, Thema „Rat und Wahlen“). Das Amtssymbol gibt es nicht. | 12.11.2026 |
+
+### Neue Partie: „Erweitert“ verbreitert die Tafel nicht mehr (Branch fix/kleinkram-1411)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Die Wappenwahl je KI-Haus (`Hauptmenue.Besetzung.cs`, `KiZeilenBauen`) ist ein `OptionButton` mit `ClipText`, aber `FitToLongestItem` (Godot-Vorgabe an): Die längste Wappenbeschreibung setzte ihre Mindestbreite auf 672 px, die Zeile auf 920 px | 14.11.2026 |
+| Behebung | `FitToLongestItem = false` nur an dieser Wappenwahl; sie bleibt mindestens 120 px und füllt die Zeile (ExpandFill), lange Beschreibungen werden abgeschnitten. Sonst nichts geändert | 14.11.2026 |
+| Beleg | Headless-Messung (temporär, nicht eingecheckt) mit `--neuepartie=1`, Mindestbreite des Tafelinhalts vor/nach „Erweitert anzeigen“: vorher 716 → 972 px, jetzt 716 → 716 px. Kein Spielbild | 14.11.2026 |
+### Ratskammer mit Reitern (Branch phase5/ratskammer, Ratssitzung und Ratsbaum PR 2)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Reiter | Die Ratskammer hat vier Reiter: Ämter (vorerst das alte Raster mit Laufbahn, Wahlstimme und Domprediger; der Baum kommt in PR 3), Anträge (Tagesordnung, Statut, Wegbau, letzte Sitzung), Stadtglaube (nur mit Glaubenssystem), Kasse (nur mit Stadtkasse; Haushalt, Bauten, Fest, Anträge zu Steuer, Bau, Fest). Der Reiter bleibt beim Aufbau erhalten. `Oeffnen(Reiter?)`, `--rat=1\|aemter\|antraege\|stadtglaube\|kasse`. | 14.11.2026 |
+| Kurzübersicht | Die RathausTafel hat keine Reiter mehr, sondern drei Felder: Stadtkasse (Stand, Steuersatz, Knopf „Kasse ansehen“), Nächste Ratssitzung (Zahl der Anträge, Knopf „Anträge und Stimmen“, „Letzte Ratssitzung ansehen“), Euer Amt (die Befugnis wie bisher, bis der Baum sie in PR 3 an den eigenen Knoten holt, F7). Der Haushalt und die Bauten der Stadt zogen in den Reiter Kasse. `--rathaus=1` wählt das Rathaus (der Reitername entfällt). | 14.11.2026 |
+| Bewerbung zurückziehen | Knopf „Bewerbung zurückziehen“ unter der eigenen Bewerbung (Befehl `BewerbungZurueckziehen`, ohne AP-Erstattung, der Tooltip sagt es). | 14.11.2026 |
+| Zentrales Thema | Aussehen steht in `game/scenes/rat_thema.tres` mit Typ-Varianten (RatTafel, RatReiter, RatTitel, RatAmtknopf …), `RatStil.cs` ist die Brücke; Aufbau in ARCHITEKTUR.md, Abschnitt „Das Thema der Ratskammer“. Gilt für alle neuen Elemente; die älteren Abschnitte der Ratskammer sind noch nicht umgestellt. | 14.11.2026 |

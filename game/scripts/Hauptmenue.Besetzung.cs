@@ -204,7 +204,8 @@ public partial class Hauptmenue
             var name = new LineEdit { PlaceholderText = "zufällig", CustomMinimumSize = new Vector2(150, 0) };
             oben.AddChild(name);
             oben.AddChild(new Label { Text = "Wappen" });
-            var wappen = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
+            // FitToLongestItem aus: sonst bestimmt die längste Wappenbeschreibung die Mindestbreite (trotz ClipText) und „Erweitert“ machte die Tafel breiter.
+            var wappen = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, FitToLongestItem = false, CustomMinimumSize = new Vector2(120, 0) };
             wappen.AddItem("zufällig", -1);
             for (var w = 0; w < Wappen.Vorlagen.Count; w++)
                 wappen.AddItem(Wappen.Vorlagen[w].Beschreibung(), w);

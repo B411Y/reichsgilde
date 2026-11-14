@@ -87,6 +87,27 @@ public sealed class Amt
 /// <param name="IstAmtsinhaber">Hält das Amt bisher (Ratsherr oder Haus).</param>
 public sealed record Wahlkandidat(string Name, Konto? Haus, bool IstAmtsinhaber);
 
+/// <summary>Welche Voraussetzung einer Bewerbung um ein Amt geprüft wird (<see cref="Stadtrat.BewerbungPruefen"/>).</summary>
+public enum Bewerbungsbedingung
+{
+    /// <summary>Das Amt gibt es (steht nur bei einem unbekannten Namen in der Liste, dann nach den Aktionspunkten als letzte Zeile).</summary>
+    Amt,
+    /// <summary>Die Aktionspunkte für den Befehl <see cref="AmtBewerben"/> reichen.</summary>
+    Aktionspunkte,
+    /// <summary>Das Haus hat sich dieses Jahr noch nicht beworben (eine Bewerbung pro Jahr).</summary>
+    NochNichtBeworben,
+    /// <summary>Der Mindeststand des Amtes ist erreicht.</summary>
+    Stand,
+    /// <summary>Das Amt liegt genau eine Stufe über dem eigenen (ohne Amt: Stufe 1).</summary>
+    Stufe,
+}
+
+/// <summary>
+/// Eine geprüfte Voraussetzung einer Bewerbung: erfüllt (grün) oder nicht (rot), mit Text für die Anzeige.
+/// Ist sie nicht erfüllt, ist <see cref="Text"/> zugleich die Begründung, mit der der Befehl abgelehnt wird.
+/// </summary>
+public sealed record Bewerbungsvoraussetzung(Bewerbungsbedingung Bedingung, bool Erfuellt, string Text);
+
 /// <summary>
 /// Der Stadtrat: sieben Ämter in einer Pyramide, Wahlen, Gunst und Abstimmungen über das Statut.
 ///
@@ -217,6 +238,76 @@ public sealed class Stadtrat
     {
         var stufe = (AmtVon(konto)?.Stufe ?? 0) + 1;
         return _aemter.Where(a => a.Stufe == stufe && konto.Stand >= _w.Daten.StandStufe(a.Daten.MindestStand));
+    }
+
+    /// <summary>
+    /// Alle Voraussetzungen einer Bewerbung um dieses Amt, erfüllt oder nicht – in der Reihenfolge, in der der Befehl
+    /// <see cref="AmtBewerben"/> sie prüft (Aktionspunkte, schon beworben, Stand, Stufe). Anzeige und Befehl nutzen dieselbe Liste.
+    /// Bei einem unbekannten Amt folgt auf die Aktionspunkte nur die Zeile <see cref="Bewerbungsbedingung.Amt"/> (nicht erfüllt).
+    /// </summary>
+    public IReadOnlyList<Bewerbungsvoraussetzung> BewerbungPruefen(Konto konto, string amtName)
+    {
+        var liste = new List<Bewerbungsvoraussetzung>(4);
+
+        // Zuerst die Aktionspunkte: Stadtwirtschaft.Ausfuehren prüft sie vor allen Regeln des Rates.
+        var apFehlt = _w.ApFehlen(konto, new AmtBewerben(amtName), out var kosten);
+        liste.Add(new(Bewerbungsbedingung.Aktionspunkte, !apFehlt,
+            apFehlt ? $"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {konto.Inhaber} hat noch {konto.Aktionspunkte.Vorrat}."
+            : kosten == 0 ? "Kostet keine Aktionspunkte." : $"Kostet {kosten} AP ({konto.Inhaber} hat noch {konto.Aktionspunkte.Vorrat})."));
+
+        if (AmtNamens(amtName) is not { } amt)
+        {
+            liste.Add(new(Bewerbungsbedingung.Amt, false, $"Ein Amt „{amtName}“ gibt es nicht."));
+            return liste;
+        }
+
+        var beworben = _bewerbungen.TryGetValue(konto, out var schon);
+        liste.Add(new(Bewerbungsbedingung.NochNichtBeworben, !beworben, beworben
+            ? $"{konto.Inhaber} hat sich dieses Jahr schon beworben (als {schon}). Nur eine Bewerbung pro Jahr."
+            : "Dieses Jahr noch nicht beworben."));
+
+        var staende = _w.Daten.Staende;
+        var eigenerStand = staende.Count == 0 ? "" : staende[Math.Clamp(konto.Stand, 0, staende.Count - 1)].Name;
+        var standOk = konto.Stand >= _w.Daten.StandStufe(amt.Daten.MindestStand);
+        liste.Add(new(Bewerbungsbedingung.Stand, standOk, standOk
+            ? $"Stand {amt.Daten.MindestStand} erreicht ({konto.Inhaber}: {eigenerStand})."
+            : $"Für das Amt {amt.Name} braucht es mindestens den Stand {amt.Daten.MindestStand} ({konto.Inhaber}: {eigenerStand})."));
+
+        var eigenesAmt = AmtVon(konto);
+        var eigene = eigenesAmt?.Stufe ?? 0;
+        var stufeOk = amt.Stufe == eigene + 1;
+        liste.Add(new(Bewerbungsbedingung.Stufe, stufeOk,
+            stufeOk ? (eigene == 0 ? "Ein Amt der Stufe 1 – die Laufbahn beginnt unten." : $"Eine Stufe über dem eigenen Amt {eigenesAmt!.Name}.")
+            : eigene == 0
+                ? $"Die Laufbahn beginnt unten: zuerst ein Amt der Stufe 1 ({string.Join(" oder ", _aemter.Where(a => a.Stufe == 1).Select(a => a.Name))})."
+                : $"Bewerben geht nur eine Stufe höher – {konto.Inhaber} ist {eigenesAmt!.Name} (Stufe {eigene})."));
+
+        return liste;
+    }
+
+    /// <summary>Wer sich dieses Jahr um das Amt beworben hat – geordnet nach der Nummer des Hauses (Reihenfolge der Konten).</summary>
+    public IReadOnlyList<Konto> BewerberFuer(Amt amt)
+    {
+        var liste = new List<Konto>();
+        foreach (var k in _w.Konten) // Kontenreihenfolge = Kontonummer, nicht die Reihenfolge des Wörterbuchs
+            if (_bewerbungen.TryGetValue(k, out var name) && name == amt.Name)
+                liste.Add(k);
+        return liste;
+    }
+
+    /// <summary>Die Ämter ohne Vorgesetzten (Wurzeln des Amtsbaums, heute nur der Bürgermeister) – in der Reihenfolge der Daten.</summary>
+    public IReadOnlyList<Amt> Wurzelaemter() => AemterNachDaten(d => d.Vorgesetzt is null);
+
+    /// <summary>Die Ämter direkt unter diesem (deren <c>vorgesetzt</c> es ist) – in der Reihenfolge der Daten.</summary>
+    public IReadOnlyList<Amt> Untergebene(Amt amt) => AemterNachDaten(d => d.Vorgesetzt == amt.Name);
+
+    private List<Amt> AemterNachDaten(Func<AmtDaten, bool> passt)
+    {
+        var liste = new List<Amt>();
+        foreach (var d in _daten.Aemter)
+            if (passt(d) && AmtNamens(d.Name) is { } amt)
+                liste.Add(amt);
+        return liste;
     }
 
     /// <summary>Wer über dieses Amt abstimmt: die Inhaber höherer Ämter, beim höchsten Amt alle übrigen.</summary>
@@ -469,20 +560,26 @@ public sealed class Stadtrat
 
     internal Befehlsergebnis Bewerben(Konto konto, string amtName)
     {
-        if (AmtNamens(amtName) is not { } amt)
-            return Befehlsergebnis.Abgelehnt($"Ein Amt „{amtName}“ gibt es nicht.");
-        if (_bewerbungen.TryGetValue(konto, out var schon))
-            return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} hat sich dieses Jahr schon beworben (als {schon}). Nur eine Bewerbung pro Jahr.");
-        var stand = _w.Daten.StandStufe(amt.Daten.MindestStand);
-        if (konto.Stand < stand)
-            return Befehlsergebnis.Abgelehnt($"Für das Amt {amt.Name} braucht es mindestens den Stand {amt.Daten.MindestStand}.");
-        var eigene = AmtVon(konto)?.Stufe ?? 0;
-        if (amt.Stufe != eigene + 1)
-            return Befehlsergebnis.Abgelehnt(eigene == 0
-                ? $"Die Laufbahn beginnt unten: zuerst ein Amt der Stufe 1 ({string.Join(" oder ", _aemter.Where(a => a.Stufe == 1).Select(a => a.Name))})."
-                : $"Bewerben geht nur eine Stufe höher – {konto.Inhaber} ist {AmtVon(konto)!.Name} (Stufe {eigene}).");
+        // Dieselbe Prüfung wie in der Anzeige (Amtsbaum): die erste nicht erfüllte Voraussetzung ist der Grund.
+        if (BewerbungPruefen(konto, amtName).FirstOrDefault(v => !v.Erfuellt) is { } fehlt)
+            return Befehlsergebnis.Abgelehnt(fehlt.Text);
+        var amt = AmtNamens(amtName)!;
         _bewerbungen[konto] = amt.Name;
         return Befehlsergebnis.Ok($"{konto.Inhaber} bewirbt sich um das Amt {amt.Name}. Gewählt wird am Jahresende.");
+    }
+
+    /// <summary>
+    /// Zieht die Bewerbung um ein Amt zurück (bis zur Ratssitzung). Die AP der Bewerbung bleiben ausgegeben; wer sich danach
+    /// neu bewirbt, zahlt wieder.
+    /// </summary>
+    internal Befehlsergebnis BewerbungZurueckziehen(Konto konto, string amtName)
+    {
+        if (AmtNamens(amtName) is not { } amt)
+            return Befehlsergebnis.Abgelehnt($"Ein Amt „{amtName}“ gibt es nicht.");
+        if (!_bewerbungen.TryGetValue(konto, out var beworben) || beworben != amt.Name)
+            return Befehlsergebnis.Abgelehnt($"{konto.Inhaber} hat sich nicht um das Amt {amt.Name} beworben.");
+        _bewerbungen.Remove(konto);
+        return Befehlsergebnis.Ok($"{konto.Inhaber} zieht die Bewerbung um das Amt {amt.Name} zurück. Die Aktionspunkte sind verbraucht.");
     }
 
     /// <summary>
@@ -624,6 +721,30 @@ public sealed class Stadtrat
 
     /// <summary>Die zuletzt abgehaltene Ratssitzung mit dem Ergebnis je Punkt (null = seit Start oder Laden noch keine; nicht im Spielstand).</summary>
     public Ratssitzung? LetzteRatssitzung { get; private set; }
+
+    // ── Stimmrunde vor der Sitzung (Ratssitzung PR 8, Entscheidung F5) ──────────────────────────────────────────────
+    //
+    // Die Menschen stimmen vor der Sitzung ab, nicht in ihr: in den letzten Minuten des Jahres (Frist „standard“ der Entscheidungen,
+    // 120 Minuten = 21 bis 23 Uhr am letzten Tag) mit den üblichen Befehlen. Die Zeit läuft dabei weiter – im Mehrspieler wartet niemand.
+    // Am Jahresende hält der Kern die ganze Sitzung in einem Zug ab; das Ergebnis steht dann fest (LetzteRatssitzung), und die Szene
+    // spielt es nur noch ab. Wer nicht abstimmt, behält seine Voreinstellung (gesetzte Stimme, sonst Enthaltung bzw. Vorgabe bei Wahlen).
+    // Die Stimmrunde hat keinen eigenen Zustand: Ob sie läuft, folgt aus der Uhr.
+
+    /// <summary>Die Spielminute, mit der das Jahr endet und die Ratssitzung abgehalten wird – das Ende der Stimmrunde.</summary>
+    public long StimmrundeFrist => (long)(_w.Uhr.Jahr - Zeit.Spielzeit.StartJahr + 1) * Zeit.Spielzeit.MinutenProTag;
+
+    /// <summary>Die Spielminute, mit der die Stimmrunde beginnt (<see cref="StimmrundeFrist"/> minus die Frist „standard“ der Entscheidungen).</summary>
+    public long StimmrundeBeginn => StimmrundeFrist - _w.Entscheidungen.Daten.FristStandard;
+
+    /// <summary>Läuft gerade die Stimmrunde vor der Ratssitzung? (nur mit Rat)</summary>
+    public bool StimmrundeLaeuft => IstAktiv && LaufendeSitzung is null && _w.Uhr.VergangeneMinuten >= StimmrundeBeginn;
+
+    /// <summary>
+    /// Die Punkte der kommenden Sitzung, zu denen dieses Haus in der Stimmrunde noch stimmen darf (eigene Stimme mit <see cref="Sitzungsstimme.Frei"/>),
+    /// mit der Stimme, die ohne weiteren Befehl gilt. Leer außerhalb der Stimmrunde.
+    /// </summary>
+    public IReadOnlyList<Sitzungspunkt> Stimmrunde(Konto konto) =>
+        StimmrundeLaeuft ? Sitzungsvorschau().Where(p => p.Stimmen.Any(s => s.Haus == konto && s.Frei)).ToList() : Array.Empty<Sitzungspunkt>();
 
     /// <summary>
     /// Die Tagesordnung der nächsten Ratssitzung mit den voraussichtlichen Stimmen und Begründungen – nach dem heutigen Stand.
