@@ -36,6 +36,17 @@ public static class TalentTexte
         _ => "Rhetorik",
     };
 
+    /// <summary>Ein kurzer Satz, was das Talent bewirkt (die Zahlen dazu liefert <see cref="Talentwirkungen"/>).</summary>
+    public static string Satz(this Talent t) => t switch
+    {
+        Talent.Verhandeln => "Bessere Preise beim Handel.",
+        Talent.Handwerk => "Mehr Leistung in jeder Werkstatt.",
+        Talent.NachtUndNebel => "Mehr Erfolg und weniger Zeugen bei dunklen Geschäften.",
+        Talent.Kampf => "Stärkere Wegelagerer und besser geschützte Karren.",
+        Talent.Rhetorik => "Überzeugt Rat, Gericht, Braut und Gemeinde.",
+        _ => "",
+    };
+
     /// <summary>„2½" statt „2,5" – Sterne in halben Schritten.</summary>
     public static string Sterne(double wert)
     {

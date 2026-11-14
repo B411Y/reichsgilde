@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=30 format=3]
+[gd_resource type="Theme" load_steps=42 format=3]
 
 ; Das zentrale Thema der Ratskammer und der Rathaus-Kurzübersicht (PR Ratskammer, 14.11.2026).
 ; Aussehen steht NUR hier, Logik in RatAnzeige*.cs / RathausTafel.cs / RatStil.cs.
@@ -6,6 +6,16 @@
 ; Typ-Varianten (Rat…) erben von einem Godot-Typ; die Farben, Maße und Schriften der Familie stehen unter den Pseudo-Typen RatFarben und RatMasse.
 
 [ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_buergermeister.png" id="2_amt_buergermeister"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_stadtrichter.png" id="3_amt_stadtrichter"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_kaemmerer.png" id="4_amt_kaemmerer"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_stadthauptmann.png" id="5_amt_stadthauptmann"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_marktmeister.png" id="6_amt_marktmeister"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_gefaengniswaerter.png" id="7_amt_gefaengniswaerter"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/amt_zoellner.png" id="8_amt_zoellner"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/ratsbaum_pergament.png" id="9_ratsbaum_pergament"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/ratsbaum_spruchband.png" id="10_ratsbaum_spruchband"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/ratsbaum/ratsbaum_linie.png" id="11_ratsbaum_linie"]
 
 ; ── Flächen ──
 [sub_resource type="StyleBoxFlat" id="Tafel"]
@@ -425,6 +435,17 @@ content_margin_top = 3.0
 content_margin_right = 8.0
 content_margin_bottom = 3.0
 
+[sub_resource type="StyleBoxTexture" id="Pergament"]
+texture = ExtResource("9_ratsbaum_pergament")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
+content_margin_left = 16.0
+content_margin_top = 20.0
+content_margin_right = 16.0
+content_margin_bottom = 20.0
+
 [resource]
 ; ── Familie: Farben und Maße (abgefragt mit GetThemeColor/GetThemeConstant, Typ „RatFarben“ bzw. „RatMasse“) ──
 RatFarben/colors/gold = Color(0.95, 0.82, 0.45, 1)
@@ -434,18 +455,17 @@ RatFarben/colors/rot = Color(0.95, 0.45, 0.4, 1)
 RatFarben/colors/schrift = Color(0.92, 0.88, 0.8, 1)
 RatMasse/constants/text_breite = 670
 RatMasse/constants/kammer_breite = 720
-RatFarben/colors/linie = Color(0.62, 0.52, 0.36, 1)
-RatFarben/colors/linie_tinte = Color(0.03, 0.025, 0.02, 1)
-RatFarben/colors/linie_gold = Color(0.95, 0.82, 0.45, 1)
 RatMasse/constants/kurz_breite = 300
 RatMasse/constants/knoten_breite = 300
 RatMasse/constants/knoten_hoehe = 84
 RatMasse/constants/knoten_abstand_x = 24
 RatMasse/constants/knoten_abstand_y = 22
 RatMasse/constants/knoten_portraet = 64
+RatMasse/constants/knoten_amtszeichen = 40
+RatMasse/constants/knoten_amtszeichen_rand = 4
+RatMasse/constants/knoten_frei_zeichen = 72
+RatMasse/constants/knoten_frei_blass = 45
 RatMasse/constants/knoten_wappen = 20
-RatMasse/constants/linie_breite = 2
-RatMasse/constants/linie_tinte_breite = 5
 RatMasse/constants/bewerber_portraet = 48
 RatMasse/constants/bewerber_breite = 140
 RatMasse/constants/bewerber_hoehe = 132
@@ -570,7 +590,9 @@ RatKnotenSchatten/base_type = &"PanelContainer"
 RatKnotenSchatten/styles/panel = SubResource("KnotenSchatten")
 RatKnotenFrage/base_type = &"Label"
 RatKnotenFrage/font_sizes/font_size = 38
-RatKnotenFrage/colors/font_color = Color(0.4, 0.36, 0.3, 1)
+RatKnotenFrage/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatKnotenFrage/colors/font_outline_color = Color(0.03, 0.025, 0.02, 1)
+RatKnotenFrage/constants/outline_size = 6
 RatKnotenAmt/base_type = &"Label"
 RatKnotenAmt/font_sizes/font_size = 15
 RatKnotenAmt/colors/font_color = Color(0.95, 0.82, 0.45, 1)
@@ -604,6 +626,32 @@ RatKurzHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
 RatKurzGold/base_type = &"Label"
 RatKurzGold/font_sizes/font_size = 14
 RatKurzGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+
+; ── Holzschnitt-Grafiken des Ratsbaums (PR 4): Bilder der Familie „RatBilder“, abgefragt mit RatStil.Grafik(name) ──
+RatBilder/icons/amt_buergermeister = ExtResource("2_amt_buergermeister")
+RatBilder/icons/amt_stadtrichter = ExtResource("3_amt_stadtrichter")
+RatBilder/icons/amt_kaemmerer = ExtResource("4_amt_kaemmerer")
+RatBilder/icons/amt_stadthauptmann = ExtResource("5_amt_stadthauptmann")
+RatBilder/icons/amt_marktmeister = ExtResource("6_amt_marktmeister")
+RatBilder/icons/amt_gefaengniswaerter = ExtResource("7_amt_gefaengniswaerter")
+RatBilder/icons/amt_zoellner = ExtResource("8_amt_zoellner")
+RatBilder/icons/ratsbaum_pergament = ExtResource("9_ratsbaum_pergament")
+RatBilder/icons/ratsbaum_spruchband = ExtResource("10_ratsbaum_spruchband")
+RatBilder/icons/ratsbaum_linie = ExtResource("11_ratsbaum_linie")
+RatFarben/colors/seil = Color(1, 1, 1, 1)
+RatFarben/colors/seil_gold = Color(1, 0.85, 0.5, 1)
+RatFarben/colors/spruch = Color(0.16, 0.11, 0.07, 1)
+RatMasse/constants/seil_breite = 14
+RatMasse/constants/spruchband_grafik_breite = 360
+RatMasse/constants/spruch_rand_prozent = 13
+RatMasse/constants/spruch_schrift_min = 12
+RatMasse/constants/spruch_zeilen_max = 2
+RatBaumFlaeche/base_type = &"PanelContainer"
+RatBaumFlaeche/styles/panel = SubResource("Pergament")
+RatSpruch/base_type = &"Label"
+RatSpruch/fonts/font = ExtResource("1_titel")
+RatSpruch/font_sizes/font_size = 17
+RatSpruch/colors/font_color = Color(0.16, 0.11, 0.07, 1)
 
 ; ── Ratssitzung als Szene (PR Szene Teil 1): Spruchband unten, Ratsbuch rechts ──
 RatMasse/constants/spruchband_breite = 860

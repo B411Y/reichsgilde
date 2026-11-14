@@ -101,6 +101,29 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>Der Spieler will den Betrieb verkaufen bzw. die Pacht kündigen (öffnet die Rückfrage).</summary>
     public event Action<Betrieb>? VerkaufGewuenscht;
     private Button _verkaufKnopf = null!;
+
+    /// <summary>Die Knöpfe „Ausbau“ und „Verkaufen“/„Pacht kündigen“: die Kurzübersicht setzt sie neben „Einrichtung“ in ihre Leiste (Fehlerpaket 1, Punkt 8).</summary>
+    public Button AusbauKnopf => _ausbauKnopf;
+    public Button VerkaufKnopf => _verkaufKnopf;
+
+    /// <summary>Nimmt beide Knöpfe aus der Verwaltung und setzt sie vor Kind <paramref name="index"/> in <paramref name="ziel"/>; die Zeile des Verkaufens bleibt dann leer und entfällt, der Stufentext des Ausbaus bleibt als Auskunft.</summary>
+    public void KnoepfeAuslagern(Container ziel, int index)
+    {
+        var verkaufZeile = _verkaufKnopf.GetParent<Control>();
+        _ausbauKnopf.Reparent(ziel, false);
+        _verkaufKnopf.Reparent(ziel, false);
+        ziel.MoveChild(_ausbauKnopf, index);
+        ziel.MoveChild(_verkaufKnopf, index + 1);
+        verkaufZeile.Visible = false;
+    }
+
+    /// <summary>Hält die beiden herausgenommenen Knöpfe auf dem Stand (die übrige Verwaltung aktualisiert sich nur, solange „…“ offen ist).</summary>
+    public void KnoepfeAktualisieren()
+    {
+        if (_betrieb is not { } b || _simulation?.Wirtschaft is not { } w) return;
+        AusbauAktualisieren(b, w);
+        VerkaufAktualisieren(b, w);
+    }
     private Label _verkaufText = null!;
 
     public override void _Ready()
@@ -721,6 +744,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
     /// <summary>„Stufe 1: Gießerei" und der Knopf zum Ausbau – gesperrt mit Begründung, solange Grad oder Geld fehlen.</summary>
     private void AusbauAktualisieren(Betrieb b, Stadtwirtschaft w)
     {
+        _ausbauKnopf.Visible = BetriebsKnoepfe.Ausbau(b.InDerStadt, w.Daten.Meistergrade is not null, b.Artdaten.Ausbau is not null);
         _ausbauZeile.Visible = b.InDerStadt && w.Daten.Meistergrade is not null;
         if (!_ausbauZeile.Visible) return;
         var waehrung = w.Daten.Allgemein.Waehrung;
@@ -733,12 +757,13 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (b.Artdaten.Ausbau is { } ziel)
         {
             var neu = w.Daten.Art(ziel);
-            var knopf = $"Ausbau: {neu.Name} ({Zahlenformat.Ganz(b.Artdaten.AusbauKosten)} {waehrung})";
+            var knopf = BetriebsKnoepfe.AusbauText(Zahlenformat.Ganz(b.Artdaten.AusbauKosten), waehrung);
             if (_ausbauKnopf.Text != knopf) _ausbauKnopf.Text = knopf;
             var grund = w.AusbauVerboten(_spieler, b);
             _ausbauKnopf.Disabled = grund is not null;
             var neueWaren = neu.Produkte.Where(p => !b.Artdaten.Produkte.Contains(p));
             var tipp = (grund is not null ? grund + "\n\n" : "")
+                       + BetriebsKnoepfe.AusbauTipp(neu.Name)
                        + $"Stufe {neu.Stufe}, ab {w.Daten.Meistergrade!.GradFuerStufe(neu.Stufe)}. Meistergrad: {neu.Plaetze} Arbeitsplätze, "
                        + $"neue Waren {string.Join(", ", neueWaren)}; Unterhalt {Zahlenformat.Ganz(neu.Fixkosten)} {waehrung} im Jahr.\n"
                        + $"Erwarteter Mehrgewinn bei voller Belegung ≈ {Zahlenformat.MitVorzeichen(Kalkulation.AusbauMehrgewinn(w, b))} {waehrung} im Jahr. "

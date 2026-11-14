@@ -19,6 +19,7 @@ public partial class BetriebsUebersicht : VBoxContainer
     private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
     private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
     private const int Breite = 300;
+    private HBoxContainer _knoepfe2 = null!;
 
     private Simulation? _simulation;
     private Konto? _spieler;
@@ -98,7 +99,7 @@ public partial class BetriebsUebersicht : VBoxContainer
         einrichten.Pressed += () => { if (_betrieb is not null) EinrichtungGewuenscht?.Invoke(_betrieb); };
         knoepfe.AddChild(einrichten);
         _mehrKnopf = new Button { Text = "…", ToggleMode = true, FocusMode = FocusModeEnum.None, CustomMinimumSize = new Vector2(44, 0),
-                                  TooltipText = "Mehr: Ausbau, Verkaufen bzw. Pacht kündigen" };
+                                  TooltipText = "Mehr: Auskünfte und weitere Verwaltung des Betriebs" };
         _mehrKnopf.Toggled += an => _verwaltung.Visible = an && _betrieb is not null;
         knoepfe.AddChild(_mehrKnopf);
 
@@ -107,6 +108,14 @@ public partial class BetriebsUebersicht : VBoxContainer
         _verwaltung.Gemeldet += t => Gemeldet?.Invoke(t);
         _verwaltung.HandelGewuenscht += b => HandelGewuenscht?.Invoke(b);
         _verwaltung.VerkaufGewuenscht += b => VerkaufGewuenscht?.Invoke(b);
+        // Ausbau und Verkaufen (bzw. Pacht kündigen) als eigene Knöpfe in einer zweiten Reihe unter „Hineingehen“ (die Leiste ist nur 300 px breit); im „…“-Menü stehen sie nicht mehr
+        var knoepfe2 = new HBoxContainer();
+        knoepfe2.AddThemeConstantOverride("separation", 8);
+        AddChild(knoepfe2);
+        MoveChild(knoepfe2, knoepfe.GetIndex() + 1);
+        _verwaltung.KnoepfeAuslagern(knoepfe2, 0);
+        foreach (var k in new[] { _verwaltung.AusbauKnopf, _verwaltung.VerkaufKnopf }) { k.SizeFlagsHorizontal = SizeFlags.ExpandFill; k.ClipText = true; }
+        _knoepfe2 = knoepfe2;
         Visible = false;
     }
 
@@ -232,9 +241,10 @@ public partial class BetriebsUebersicht : VBoxContainer
         _angaben.MouseFilter = MouseFilterEnum.Stop;
 
         if (_hinein.Visible != innen) _hinein.Visible = innen;
-        var mehrTipp = innen ? "Mehr: Ausbau, Verkaufen bzw. Pacht kündigen" : "Mehr: Personal, Förderung, Karren, Ausbau, Verkaufen bzw. Pacht kündigen";
+        var mehrTipp = innen ? "Mehr: Auskünfte und weitere Verwaltung des Betriebs" : "Mehr: Personal, Förderung, Karren und weitere Verwaltung des Betriebs";
         if (_mehrKnopf.TooltipText != mehrTipp) _mehrKnopf.TooltipText = mehrTipp;
         _verwaltung.MitInnenansicht = innen;
+        _verwaltung.KnoepfeAktualisieren();
         _verwaltung.Aktualisieren();
     }
 

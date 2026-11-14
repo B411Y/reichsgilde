@@ -44,11 +44,15 @@ public partial class StimmrundeAnzeige : Control
         RatStil.Text(spalte, "Stimmrunde vor der Ratssitzung", "RatTitel", zentriert: true);
         _frist = RatStil.Text(spalte, "", "RatHinweis", umbrechen: true, breite: "kurz_breite");
         _liste = RatStil.Container<VBoxContainer>(spalte, "RatSpalte");
-        RatStil.Amtsknopf(spalte, "Fertig", () =>
-        {
-            Visible = false;
-            Geschlossen?.Invoke();
-        }, "Die Tafel schließen. Wer nicht abstimmt, behält die angezeigte Stimme.");
+        RatStil.Amtsknopf(spalte, "Fertig", FertigDruecken, "Die Tafel schließen. Wer nicht abstimmt, behält die angezeigte Stimme.");
+    }
+
+    /// <summary>„Fertig“: Die Tafel schließt (die Stimmen bleiben, wie sie sind); auch für die Startoption <c>--stimmrundefertig</c>.</summary>
+    public void FertigDruecken()
+    {
+        if (!Visible) return;
+        Visible = false;
+        Geschlossen?.Invoke();
     }
 
     public void Verbinden(Simulation simulation, Konto spieler)

@@ -66,10 +66,42 @@ public sealed class Taktgeber
         }
     }
 
-    /// <summary>Ist das Spiel pausiert? Pause ist immer erlaubt – im Einzel- und Mehrspielermodus.</summary>
-    public bool IstPausiert { get; set; }
+    private readonly List<string> _haltegruende = new();
 
-    public void PauseUmschalten() => IstPausiert = !IstPausiert;
+    /// <summary>
+    /// Steht die Zeit? Lesen: die Pause des Spielers (<see cref="Spielerpause"/>) <b>oder</b> ein Haltegrund (<see cref="IstAngehalten"/>).
+    /// Schreiben setzt nur die Pause des Spielers – einen Haltegrund hebt weder die Leertaste noch eine Tempotaste auf.
+    /// Pause ist immer erlaubt – im Einzel- und Mehrspielermodus.
+    /// </summary>
+    public bool IstPausiert
+    {
+        get => Spielerpause || IstAngehalten;
+        set => Spielerpause = value;
+    }
+
+    /// <summary>Die Pause, die der Spieler (Leertaste, Knopf, Spielmenü, Entscheidungsbrief) gesetzt hat – ohne die Haltegründe.</summary>
+    public bool Spielerpause { get; private set; }
+
+    public void PauseUmschalten() => Spielerpause = !Spielerpause;
+
+    /// <summary>
+    /// Haltepunkt: Die Zeit steht, solange mindestens ein Grund gesetzt ist (z. B. „Ratssitzung“, „Jahresbericht“ im Einzelspiel), unabhängig von der
+    /// Pause des Spielers. Ist der letzte Grund frei, läuft die Zeit so weiter wie vorher (Spielerpause und Tempo bleiben unberührt).
+    /// Gehört zur Echtzeit wie die Pause, nicht zur Simulation: kein Befehl, kein Spielstand, ändert keinen Tick.
+    /// </summary>
+    public void Anhalten(string grund)
+    {
+        if (!_haltegruende.Contains(grund)) _haltegruende.Add(grund);
+    }
+
+    /// <summary>Nimmt einen Haltegrund zurück (ohne ihn: nichts).</summary>
+    public void Freigeben(string grund) => _haltegruende.Remove(grund);
+
+    /// <summary>Ist mindestens ein Haltegrund gesetzt?</summary>
+    public bool IstAngehalten => _haltegruende.Count > 0;
+
+    /// <summary>Die gesetzten Haltegründe in der Reihenfolge, in der sie kamen.</summary>
+    public IReadOnlyList<string> Haltegruende => _haltegruende;
 
     /// <summary>Spielminuten pro echter Sekunde bei den aktuellen Einstellungen.</summary>
     public double TicksProSekunde => Spielzeit.MinutenProTag / RundenDauerSekunden * Tempo;

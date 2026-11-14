@@ -311,9 +311,19 @@ public partial class FamilienAnzeige : PanelContainer
                       (o.Krankheit is { } krank ? $" · krank ({krank.Name})" : ""), 16);
         if (buch.HatTalente)
         {
-            var talente = Text(_inhalt, "Talente: " + TalentText(o) + "   ⓘ", 14, Gold);
-            talente.TooltipText = Talentwirkung(w, buch);
-            talente.MouseFilter = MouseFilterEnum.Stop;
+            var talente = new HBoxContainer();
+            talente.AddThemeConstantOverride("separation", 6);
+            _inhalt.AddChild(talente);
+            var talenteKopf = Text(talente, "Talente:", 14, Gold);
+            talenteKopf.TooltipText = Talentwirkung(w, buch);
+            talenteKopf.MouseFilter = MouseFilterEnum.Stop;
+            // Jedes Talent ein eigenes Feld mit eigenem Tooltip: Satz, Wirkung je Stern und jetzt (aus dem Kern gelesen).
+            foreach (var t in TalentTexte.Alle)
+            {
+                var feld = Text(talente, $"{t.Kurz()} {TalentTexte.Sterne(o.Talent(t))}" + (t == TalentTexte.Alle[^1] ? "" : " ·"), 14, Gold);
+                feld.TooltipText = TalentTipp.Text(w, o, t);
+                feld.MouseFilter = MouseFilterEnum.Stop;
+            }
             if (w.HatAktionspunkte && !_spieler!.IstErloschen)
             {
                 UebenZeile(w, buch);

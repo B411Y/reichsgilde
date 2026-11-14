@@ -206,6 +206,20 @@ public sealed class Charakterzug
     /// <summary>„Verhandeln +1, Rhetorik −½. Haushalt −15 %. Als KI-Haus: …“ – für den Tooltip.</summary>
     public string Wirkungstext { get; }
 
+    /// <summary>Wie der Zug die Meinung anderer färbt (aus <see cref="CharakterzugDaten.Meinung"/>); leer, wenn er sie nicht färbt.</summary>
+    public string Meinungstext
+    {
+        get
+        {
+            var m = Daten.Meinung;
+            var teile = new List<string>();
+            if (Math.Abs(m.Gleich) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Gleich)} über Träger desselben Zugs");
+            if (Math.Abs(m.Gegenteil) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Gegenteil)} über Träger des Gegenteils");
+            if (Math.Abs(m.Allgemein) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Allgemein)} bei allen anderen über ihn");
+            return string.Join(", ", teile);
+        }
+    }
+
     /// <summary>„Persönlichkeit“, „angeboren“ oder „erworben“.</summary>
     public string Artname => Art switch
     {

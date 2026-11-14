@@ -2,6 +2,7 @@ using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
@@ -13,8 +14,9 @@ namespace Reichsgilde;
 /// immer in einem Zug ab (kein Halt mehr, <see cref="Stadtwirtschaft.RatssitzungAnhalten"/> bleibt leer). Danach zeigt die Szene das feste Ergebnis als
 /// Wiedergabe – nach der Einstellung „Ratssitzung zeigen“ (<see cref="Fenster.Ratssitzung"/>: immer, wenn der Spieler im Rat sitzt oder betroffen ist, nie):
 /// Die Ansicht geht in den Ratssaal, die Oberfläche <see cref="RatssitzungAnzeige"/> (Spruchband unten, Ratsbuch rechts) führt durch die Punkte, und die
-/// Stadtansicht zeigt jeden Schritt (Stadtansicht.Ratssitzung.cs). Im Einzelspiel ruht die Zeit währenddessen (wie bei den Entscheidungen nur ohne
-/// Befehlsverzögerung), im Mehrspieler läuft sie weiter. Während der Szene ruhen Raumleiste, Meldungen und Tastenkürzel; Esc öffnet das Spielmenü.
+/// Stadtansicht zeigt jeden Schritt (Stadtansicht.Ratssitzung.cs). Im Einzelspiel ruht die Zeit vom Jahreswechsel an zwingend über die Haltegründe
+/// des Takts (<see cref="ZeitHalteAbgleichen"/>: Sitzung → Jahresbericht → weiter, auch Leertaste und Tempotasten heben das nicht auf), im Mehrspieler
+/// läuft sie weiter. Während der Szene ruhen Raumleiste, Meldungen und Tastenkürzel; Esc öffnet das Spielmenü.
 /// Der Jahresbericht erscheint erst, wenn die Tafel zu ist.
 ///
 /// „Letzte Sitzung“ im Rathaus (Reiter Rat) zeigt die abgehaltene Sitzung noch einmal im Ratssaal; die Partie steht so lange.
@@ -30,8 +32,8 @@ public partial class Hauptszene
     private StimmrundeAnzeige _stimmrunde = null!;
     /// <summary>Für welches Jahr die Stimmrunde schon geöffnet wurde (sie öffnet sich je Jahr einmal von selbst).</summary>
     private int _stimmrundeJahr;
-    /// <summary>Pause vor der Stimmrunde (null: die Stimmrunde hat nicht angehalten).</summary>
-    private bool? _pauseVorStimmrunde;
+    /// <summary>Startoption <c>--stimmrundefertig=&lt;Sekunden&gt;</c>: „Fertig“ der Stimmrunde nach so vielen echten Sekunden von selbst drücken.</summary>
+    private double? _stimmrundeFertigNach;
     /// <summary>Die eben abgehaltene Sitzung, die als Wiedergabe gezeigt wird, sobald nicht mehr vorgespult wird.</summary>
     private Ratssitzung? _sitzungZuZeigen;
     /// <summary>Die laufende Wiedergabe ist die der Jahresend-Sitzung (danach kommt der Jahresbericht), nicht „Letzte Ratssitzung ansehen“.</summary>
@@ -69,20 +71,17 @@ public partial class Hauptszene
             if (_jahresberichtWartet && _spieler is not null && !_simulation.IstBeendet)
             {
                 _jahresbericht.Zeigen(_simulation, _spieler);
-                if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
+                if (BeiJahresberichtPausieren && !DarfAnhalten) _simulation.Takt.IstPausiert = true; // Einzelspiel: der Haltegrund „Jahresbericht“ (ZeitHalteAbgleichen)
             }
             _jahresberichtWartet = false;
+            ZeitHalteAbgleichen(); // erst hält der Jahresbericht an, dann gibt die Sitzung frei – kein Tick dazwischen
         };
         _rathausTafel.LetzteSitzungGewuenscht += WiederholungStarten;
 
         _stimmrunde = new StimmrundeAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_stimmrunde);
         _stimmrunde.Gemeldet += Protokollieren;
-        _stimmrunde.Geschlossen += () =>
-        {
-            if (_pauseVorStimmrunde is { } vorher) _simulation.Takt.IstPausiert = vorher;
-            _pauseVorStimmrunde = null;
-        };
+        _stimmrunde.Geschlossen += ZeitHalteAbgleichen; // „Fertig“: der Haltegrund „Stimmrunde“ geht, die Zeit läuft bis zur Sitzung
     }
 
     /// <summary>Verbindet Sitzungstafel und Stimmrunde mit der Partie (bei jeder neuen oder geladenen). Der Kern hält nie vor der Sitzung an.</summary>
@@ -115,6 +114,24 @@ public partial class Hauptszene
     /// <summary>Ohne Befehlsverzögerung (Einzelspiel) hält die Zeit für Stimmrunde und Szene an; im Mehrspieler läuft sie weiter.</summary>
     private bool DarfAnhalten => _simulation.Bote.Verzoegerung == 0;
 
+    /// <summary>
+    /// Jedes Bild (und sofort bei Stimmrunde, Jahreswechsel, Ende der Sitzung, Schließen des Berichts): die Haltegründe des Takts nach dem, was offen
+    /// ist (Regel im Kern: <see cref="Zeithalt"/>) – im Einzelspiel zwingend, in fester Reihenfolge: <b>Stimmrunde</b> (bis „Fertig“) →
+    /// <b>Ratssitzung</b> (vom Jahreswechsel bis zum Ende der Szene) → <b>Jahresbericht</b> (solange er offen ist oder auf die Sitzung wartet) → die Zeit
+    /// läuft wie vorher weiter (Tempo und eigene Pause bleiben). Leertaste und Tempotasten heben einen Haltegrund nicht auf.
+    /// Den Gerichtstag hält der Kern in der Jahresabrechnung ab, er hat keine eigene Szene: sein Ergebnis steht im Jahresbericht.
+    /// Im Mehrspieler kein Haltegrund: die Stimmrunde läuft bei laufender Zeit (eine gemeinsame Pause per Abstimmung oder Gastgeber ist nicht gebaut).
+    /// </summary>
+    private void ZeitHalteAbgleichen()
+    {
+        var gruende = Zeithalt.Gruende(einzelspiel: DarfAnhalten && !_simulation.IstBeendet, stimmrundeOffen: _stimmrunde.Visible,
+            sitzung: _sitzungZuZeigen is not null || _wiedergabeJahresende && _sitzungsTafel.Laeuft,
+            berichtOffen: _jahresbericht.Visible, berichtWartet: _jahresberichtWartet);
+        var takt = _simulation.Takt;
+        foreach (var wechsel in Zeithalt.Abgleichen(takt, gruende)) // Log für den Klicktest: Reihenfolge der Pausengründe
+            GD.Print($"Zeit: {wechsel} · {_simulation.Zeit.DatumText} {_simulation.Zeit.UhrzeitText}, Tempo {takt.Tempo}×{(takt.Spielerpause ? ", eigene Pause" : "")}");
+    }
+
     /// <summary>Sitzt der Spieler im Rat, hat er etwas beantragt oder bewirbt er sich um ein Amt?</summary>
     private static bool SitzungBetrifft(Ratssitzung sitzung, Konto spieler) =>
         sitzung.Punkte.Any(p => p.Antragsteller == spieler || p.Stimmen.Any(s => s.Haus == spieler) || p.Kandidaten.Any(k => k.Haus == spieler));
@@ -133,8 +150,7 @@ public partial class Hauptszene
         if (_sitzungZuZeigen is { } gezeigt && !_sitzungsTafel.Laeuft && _spulen == 0)
         {
             _sitzungZuZeigen = null;
-            _pauseVorWiederholung = _simulation.Takt.IstPausiert;
-            if (DarfAnhalten) _simulation.Takt.IstPausiert = true;
+            _pauseVorWiederholung = _simulation.Takt.Spielerpause; // die Zeit hält der Haltegrund „Ratssitzung“ an (seit dem Jahreswechsel)
             _wiedergabeJahresende = true;
             SaalVorbereiten();
             _sitzungsTafel.WiederholungZeigen(gezeigt, gerade: true);
@@ -158,10 +174,16 @@ public partial class Hauptszene
         if (!w.Rat.StimmrundeLaeuft || w.Rat.Stimmrunde(_spieler).Count == 0) return;
         _stimmrundeJahr = w.Jahr;
         _stimmrunde.Zeigen();
-        Protokollieren("Die Stimmrunde vor der Ratssitzung beginnt – bis 23 Uhr könnt ihr eure Stimmen abgeben.");
-        if (!DarfAnhalten) return;
-        _pauseVorStimmrunde = _simulation.Takt.IstPausiert;
-        _simulation.Takt.IstPausiert = true;
+        Protokollieren(DarfAnhalten
+            ? "Die Stimmrunde vor der Ratssitzung beginnt – die Zeit steht, bis ihr „Fertig“ drückt."
+            : "Die Stimmrunde vor der Ratssitzung beginnt – bis 23 Uhr könnt ihr eure Stimmen abgeben.");
+        ZeitHalteAbgleichen(); // Einzelspiel: Haltegrund „Stimmrunde“ bis „Fertig“; Mehrspieler: die Zeit läuft weiter
+        if (_stimmrundeFertigNach is { } sekunden) // Startoption --stimmrundefertig (Klicktest ohne Maus)
+            GetTree().CreateTimer(sekunden, processAlways: true).Timeout += () =>
+            {
+                GD.Print("--stimmrundefertig: „Fertig“ gedrückt");
+                _stimmrunde.FertigDruecken();
+            };
     }
 
     /// <summary>Zeigt die letzte abgehaltene Sitzung noch einmal (Knopf „Letzte Ratssitzung ansehen“ im Rathaus).</summary>
@@ -173,7 +195,7 @@ public partial class Hauptszene
             Protokollieren("Seit Spielbeginn (oder dem Laden) gab es keine Ratssitzung, die sich zeigen ließe – das Protokoll steht im Bericht.");
             return;
         }
-        _pauseVorWiederholung = _simulation.Takt.IstPausiert;
+        _pauseVorWiederholung = _simulation.Takt.Spielerpause;
         _simulation.Takt.IstPausiert = true;
         SaalVorbereiten();
         _sitzungsTafel.WiederholungZeigen(letzte);
@@ -245,6 +267,8 @@ public partial class Hauptszene
                     _simulation.Bote.Einreihen(kandidat, new DomBewerben(), e => GD.Print($"--domwahl: {kandidat.Inhaber}: {e.Meldung}"));
                 else GD.Print($"--domwahl: {kandidat.Inhaber} nicht geeignet: {dw.Domamt.EignungVerboten(kandidat)}");
         }
+        if (optionen.TryGetValue("stimmrundefertig", out var fertig) && double.TryParse(fertig, System.Globalization.CultureInfo.InvariantCulture, out var sekunden))
+            _stimmrundeFertigNach = sekunden;
         if (!optionen.TryGetValue("sitzung", out var sitzung) || sitzung is not ("1" or "letzte")) return;
         if (_simulation.Wirtschaft is not { } w || _spieler is null || !w.Rat.IstAktiv) return;
         var ohneAmt = optionen.TryGetValue("ohneamt", out var oa) && oa == "1"; // der Spieler sitzt nicht im Rat: Er wartet als Bewerber auf der Zuhörerbank
