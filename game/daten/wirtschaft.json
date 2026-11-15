@@ -859,6 +859,10 @@
       "furtMinuten": 5,
       "faehreMinuten": 30
     },
+    "klappbruecke": {
+      "gewaesser": "Rhein",
+      "oeffnungMinuten": 20
+    },
     "weglaenge": {
       "mindestMinuten": 10,
       "hoechstMinuten": 360

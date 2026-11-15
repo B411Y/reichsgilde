@@ -2862,6 +2862,18 @@ Gemessen auf main 8b57ef72 + diesen Branch (fcd76d02) gegen main 8b57ef72, `mess
 
 Alles im Rauschen (die Streuung je Beruf liegt bei 20 Startwerten im Bereich weniger Prozent; der Gardist rechnet ohne Zufall der Züge). Außerhalb ±15 % gegen das Mittel: main Gardist −16 %, mit Versehrungen Dieb −16 % und Gardist −16 % (der Dieb lag schon knapp darunter). KI ÷ Bezug Median 0,88 → 0,84, bei „Schwer“ 0,91 → 0,91; Einbruch ins Wohnhaus 0,50 → 0,46 im Jahr. Dateien: `docs/messungen/balancing-2026-11-14-versehrt-vorher.json`, `…-nachher.json`.
 
+## Klappbrücke über den Rhein (Datenversion 90, 15.11.2026)
+
+Die Rheinbrücke in Köln öffnet für das Zierschiff von und nach flussauf, jeweils 20 Minuten (`logistik.klappbruecke`). Ein Karren, der die Brücke offen findet, wartet, bis sie zugeht. Gemessen mit `messen klappbruecke 10 3` auf main 56b439f2 + Branch phase5/klappbruecke-kern. Kern und Daten sind gleich wie main bef78a05. Je Lauf 3 Startwerte, 10 Jahre, „Schwer“ mit allen KI-Häusern. Die Prüfkarte ist Köln ohne den Neumarkt, so fahren die Häuser in Deutz über den Rhein.
+
+| Lauf | Querungen | gewartet | Anteil | Wartezeit gesamt | je Wartefall | Fahrten Deutz je Jahr | Reinvermögen Deutz |
+|---|---|---|---|---|---|---|---|
+| Köln | 0 | 0 | 0 % | 0 min | – | 26,4 | 63.359 |
+| Prüfkarte mit Klappbrücke | 1.758 | 71 | 4,0 % | 678 min | 9,5 min | 10,1 | 9.454 |
+| Prüfkarte ohne Abschnitt | – | 0 | – | 0 min | – | 10,4 | 9.773 |
+
+In Köln wirkt die Brücke heute nicht, weil kein Karren den Rhein quert. Auf der Prüfkarte wartet jede 25. Querung, im Mittel knapp 10 Minuten. Die Häuser in Deutz fahren dadurch etwa 3 % seltener und haben 3 % weniger Reinvermögen, das liegt im Rauschen von 3 Startwerten. Der große Abstand zwischen Köln und der Prüfkarte kommt von den langen Wegen über die Brücke zum Heumarkt bzw. Alter Markt, nicht von der Klappbrücke. Ohne den Abschnitt zählt die Messung keine Querungen, weil es dann keine Klappbrücke gibt.
+
 ## Erntejahr und Härte der Zeit (Datenversion 91, 15.11.2026)
 
 Jede Ernte im Herbstjahr ist gut, gewöhnlich, mager oder eine Missernte und verschiebt bis zur nächsten Ernte die Grundversorgung von Gerste und Roggen (voll) sowie Körnermahlzeit, Dünnbier, Starkbier und Festbier (halb). Preis nach der Formel des Markts (Elastizität 0,5, nur NPC-Angebot): Missernte Gerste +41 %, mager +15 %, gut −11 %. Werte und Stufen in `docs/bereiche/kern.md`, „Erntejahr und Härte der Zeit“.

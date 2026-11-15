@@ -190,6 +190,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>„Härte der Zeit“ der Partie (aus den <see cref="Partie.Partieeinstellungen"/>): wie oft und wie stark gute und schlechte Ernten kommen.</summary>
     public HaerteDerZeit HaerteDerZeit { get; init; } = HaerteDerZeit.Ueberliefert;
 
+    /// <summary>Die Klappbrücke über den Rhein: offen für das Zierschiff, Karren darüber warten (Abschnitt „logistik.klappbruecke“, Datenversion 90).</summary>
+    public Klappbruecke Klappbruecke { get; }
+
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
     public Bauen.Stadtkarte? Karte { get; private set; }
 
@@ -448,6 +451,7 @@ public sealed partial class Stadtwirtschaft
         Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
         Jahreszeiten = new Jahreszeitenwesen(this, daten.Jahreszeiten, zufallsstartwert);
         Ernte = new Erntewesen(this, daten.Ernte, zufallsstartwert);
+        Klappbruecke = new Klappbruecke(this);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
