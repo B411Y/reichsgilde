@@ -432,6 +432,7 @@ public sealed class Kirchenwesen
     public string? LesenVerboten(Konto konto, Talent talent)
     {
         if (!IstAktiv) return "In dieser Stadt gibt es keine Schriften.";
+        if (_w.Wohnen.BefehlOhneRaum(konto, new LehrschriftLesen(talent)) is { } ohneRaum) return ohneRaum; // Buchweg nur mit Bibliothek (Datenversion 87)
         if (!_w.Familien.HatTalente || _w.Familien.Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie, die lesen könnte.";
         if (_gelesen.GetValueOrDefault(konto) == Jahr) return $"{f.Oberhaupt.Vorname} hat dieses Jahr schon eine Lehrschrift gelesen.";
         if (f.Oberhaupt.Anlage(talent) >= Math.Min(Daten.LehrschriftBis, _w.Familien.Daten.Talente.Hoechstwert) - 1e-9)

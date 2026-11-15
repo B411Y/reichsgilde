@@ -8,7 +8,8 @@ namespace Reichsgilde;
 /// Der Bericht (Knopf „Bericht“ in der Betriebsleiste, PR #197): rechts eine Tafel mit vier Reitern – <b>Jahresrechnung</b> (dieses Jahr bisher und das
 /// Vorjahr, dazu der Knopf zum ganzen Jahresbericht), <b>Rivalen</b> (alle anderen Häuser mit Vermögen, Stand und letztem Zug), <b>Umsätze</b> (jeder
 /// eigene Betrieb mit Umsatz und Gewinn) und <b>Verlauf</b> (alle Meldungen der Sitzung über die Jahre, die neueste oben, mit Filter „Alles“, „Mein Haus“,
-/// „Rivalen“; Aufzählungspunkt in der Farbe des Themas). Reine Anzeige; zweimal je Sekunde neu beschriftet.
+/// „Rivalen“; Aufzählungspunkt in der Farbe des Themas, je Zeile Datum, Art und Text, Klick führt dorthin, wohin die Meldung führt; auch über den
+/// Knopf „Verlauf“ an der Siegel-Ecke). Reine Anzeige; zweimal je Sekunde neu beschriftet.
 /// </summary>
 public partial class BerichtAnzeige : PanelContainer
 {
@@ -37,9 +38,10 @@ public partial class BerichtAnzeige : PanelContainer
     /// <summary>Liefert den Verlauf (alle Meldungen der Sitzung), die neueste zuerst – die Hauptszene sammelt sie.</summary>
     public Func<IReadOnlyList<Meldungsposten>> Meldungen { get; set; } = () => Array.Empty<Meldungsposten>();
 
-    /// <summary>Wohin ein Klick auf eine Zeile des Verlaufs führt (Tooltip; null: nirgends hin) und was er tut – setzt die Hauptszene (Stufe 2, „Hinsehen“).</summary>
-    public Func<Reichsgilde.Core.Wirtschaft.Meldung, string?> HinsehenZiel { get; set; } = _ => null;
-    public Action<Reichsgilde.Core.Wirtschaft.Meldung>? Hinsehen { get; set; }
+    /// <summary>Wohin ein Klick auf eine Zeile des Verlaufs führt (Tooltip; null: nirgends hin) und was er tut – setzt die Hauptszene: dorthin, wohin
+    /// die Meldung selbst führt („Hinsehen“ bzw. der Knopf ihres Briefs).</summary>
+    public Func<Meldungsposten, string?> Ziel { get; set; } = _ => null;
+    public Action<Meldungsposten>? Ansteuern { get; set; }
 
     /// <summary>Der Spieler will den ganzen Jahresbericht des Vorjahres sehen (Fenster in der Bildmitte).</summary>
     public event Action? JahresberichtGewuenscht;
@@ -264,21 +266,22 @@ public partial class BerichtAnzeige : PanelContainer
                 siegel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
                 zeile.AddChild(siegel);
             }
-            var text = Hauptmenue.Text(zeile, $"{m.Jahr} · {m.Zeit}  {m.Text}", 13, m.Warnung ? Rot : m.Bezug == Betroffenheit.Fremd ? Grau : null, umbruchBreite: Breite - 24);
+            var text = Hauptmenue.Text(zeile, $"{m.Jahr} · {m.Zeit} · {m.Art.Name}:  {m.Text}", 13, m.Warnung ? Rot : m.Bezug == Betroffenheit.Fremd ? Grau : null, umbruchBreite: Breite - 24);
             text.TooltipText = $"{m.Art.Name} · " + m.Stufe switch
             {
                 Meldestufe.Brief => "kam als Brief",
                 Meldestufe.Siegel => "kam als Siegel in die Ecke",
                 _ => "nur im Verlauf",
             } + (m.Bezug == Betroffenheit.Fremd ? " · betrifft ein anderes Haus" : "");
-            if (m.Kern is { } kern && HinsehenZiel(kern) is { } ziel)
+            if (Ziel(m) is { } ziel)
             {
+                var posten = m;
                 text.TooltipText += "\nKlick: " + ziel;
                 text.MouseFilter = MouseFilterEnum.Stop;
                 text.MouseDefaultCursorShape = CursorShape.PointingHand;
                 text.GuiInput += e =>
                 {
-                    if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) Hinsehen?.Invoke(kern);
+                    if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) Ansteuern?.Invoke(posten);
                 };
             }
         }

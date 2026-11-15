@@ -51,7 +51,7 @@ public partial class Hauptmenue
         _fehler.Text = "";
         _zugWurf = 0;
         _startwert.Value = GD.RandRange(0, 999_999);
-        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte);
+        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         _kiAnzahl.MaxValue = hoechstens;
         _kiAnzahl.Value = Math.Min(3, hoechstens);
         HofstellenWahlFuellen();
@@ -163,6 +163,7 @@ public partial class Hauptmenue
             var tipp = $"{z.Name} ({z.Artname})";
             if (z.Beschreibung != "") tipp += "\n" + z.Beschreibung;
             if (z.Wirkungstext != "") tipp += "\nWirkung: " + z.Wirkungstext;
+            if (z.Meinungstext != "") tipp += "\nMeinung: " + z.Meinungstext;
             _zuegeReihe.AddChild(new CharakterAnzeige.ZugIcon(z, tipp));
         }
     }
@@ -206,19 +207,20 @@ public partial class Hauptmenue
             oben.AddChild(new Label { Text = "Wappen" });
             // FitToLongestItem aus: sonst bestimmt die längste Wappenbeschreibung die Mindestbreite (trotz ClipText) und „Erweitert“ machte die Tafel breiter.
             var wappen = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, FitToLongestItem = false, CustomMinimumSize = new Vector2(120, 0) };
-            wappen.AddItem("zufällig", -1);
+            wappen.AddItem("zufällig", Zufaellig);
             for (var w = 0; w < Wappen.Vorlagen.Count; w++)
                 wappen.AddItem(Wappen.Vorlagen[w].Beschreibung(), w);
+            wappen.ItemSelected += _ => KiWappenSperren();
             oben.AddChild(wappen);
             wurzel.AddChild(oben);
 
             var unten = new HBoxContainer();
             unten.AddThemeConstantOverride("separation", 6);
             var volk = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
-            volk.AddItem("Volk: zufällig", -1);
+            volk.AddItem("Volk: zufällig", Zufaellig);
             foreach (var v in Startaufstellung.KiVoelker) volk.AddItem(v.Mehrzahl(), (int)v);
             var glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
-            glaube.AddItem("Glaube: zufällig", -1);
+            glaube.AddItem("Glaube: zufällig", Zufaellig);
             foreach (var g in new[] { Konfession.Katholisch, Konfession.Evangelisch }) glaube.AddItem(GlaubeName(g), (int)g);
             var beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
             BerufFuellen(beruf, true);
@@ -233,12 +235,52 @@ public partial class Hauptmenue
         KiZeilenZeigen();
     }
 
+    /// <summary>
+    /// Kennung des Eintrags „zufällig“ in den Feldern einer KI-Zeile. Nicht -1: Godot vergibt bei <c>AddItem(text, -1)</c> den Index als Kennung,
+    /// „zufällig“ hatte so die 0 und galt als erste Vorlage (Wappen), Mensch (Volk) bzw. katholisch (Glaube) – alle KI-Häuser trugen dasselbe Wappen.
+    /// </summary>
+    private const int Zufaellig = 1_000_000;
+
+    /// <summary>Die gewählte Kennung eines Feldes der KI-Zeile, null bei „zufällig“ (oder ohne Wahl).</summary>
+    private static int? Gewaehlt(OptionButton feld) => feld.Selected < 0 || feld.GetSelectedId() == Zufaellig ? null : feld.GetSelectedId();
+
+    /// <summary>Das gewählte Wappen je KI-Zeile (null = zufällig); nur die gezeigten Zeilen.</summary>
+    private List<Wappen?> KiWappenWahl() =>
+        _kiZeilen.Take((int)_kiAnzahl.Value).Select(z => Gewaehlt(z.Wappen) is { } w ? Wappen.Vorlagen[w] : null).ToList();
+
+    /// <summary>Welche Wappen für die Zeile (-1 = Spieler) schon vergeben sind (Kern, nur lesend).</summary>
+    private IReadOnlyList<(Wappen Wappen, string Haus)> VergebeneWappenLesen(int zeile) =>
+        Partiebesetzung.VergebeneWappen(Stadtkarten.Startkarte?.Startbelegung ?? Startbelegung.Ersatz, (int)_kiAnzahl.Value, _wappen,
+            Partieaufbau.Hausname(_familie.Text), KiWappenWahl(), zeile);
+
+    /// <summary>
+    /// Im Wappenfeld jeder KI-Zeile sind die Vorlagen ausgegraut, die schon ein Haus der Karte, ein anderes Haus der Partie oder der Spieler trägt (Tooltip
+    /// „Schon vergeben an …“). Wird bei jeder Wahl, jeder Änderung der KI-Zahl und jedem Wappen des Spielers neu gesetzt.
+    /// </summary>
+    private void KiWappenSperren()
+    {
+        if (_kiZeilen.Count == 0 || _kiAnzahl is null) return;
+        for (var i = 0; i < _kiZeilen.Count && i < (int)_kiAnzahl.Value; i++)
+        {
+            var vergeben = VergebeneWappenLesen(i);
+            var feld = _kiZeilen[i].Wappen;
+            for (var w = 0; w < Wappen.Vorlagen.Count; w++)
+            {
+                var index = feld.GetItemIndex(w);
+                var haus = vergeben.FirstOrDefault(x => x.Wappen == Wappen.Vorlagen[w]);
+                feld.SetItemDisabled(index, haus.Haus is not null);
+                feld.SetItemTooltip(index, haus.Haus is not null ? $"Schon vergeben an {haus.Haus}" : "");
+            }
+        }
+    }
+
     /// <summary>Nur so viele Zeilen zeigen, wie KI-Gegner gewählt sind.</summary>
     private void KiZeilenZeigen()
     {
         var n = (int)_kiAnzahl.Value;
         for (var i = 0; i < _kiZeilen.Count; i++) _kiZeilen[i].Wurzel.Visible = i < n;
         _kiListeKopf.Visible = n > 0;
+        KiWappenSperren();
     }
 
     /// <summary>Die einzeln festgelegten KI-Häuser (je Feld null = gewürfelt); null, wenn nichts festgelegt ist.</summary>
@@ -251,9 +293,9 @@ public partial class Hauptmenue
             var name = z.Name.Text.Trim();
             var v = new Hausvorgabe(
                 Name: name == "" ? null : name,
-                Wappen: z.Wappen.GetSelectedId() < 0 ? null : Wappen.Vorlagen[z.Wappen.GetSelectedId()],
-                Volk: z.Volk.GetSelectedId() < 0 ? null : (Volk)z.Volk.GetSelectedId(),
-                Glaube: z.Glaube.GetSelectedId() < 0 ? null : (Konfession)z.Glaube.GetSelectedId(),
+                Wappen: Gewaehlt(z.Wappen) is { } w ? Wappen.Vorlagen[w] : null,
+                Volk: Gewaehlt(z.Volk) is { } vk ? (Volk)vk : null,
+                Glaube: Gewaehlt(z.Glaube) is { } g ? (Konfession)g : null,
                 Beruf: GewaehlterBeruf(z.Beruf));
             liste.Add(v == new Hausvorgabe(null, null, null, null, null) ? null : v);
         }
@@ -273,7 +315,7 @@ public partial class Hauptmenue
             fehler.Add($"„{doppelt.Key}“ heißen zwei Häuser.");
         var wappen = kis.Select(v => v.Wappen).OfType<Wappen>().Prepend(_wappen).ToList();
         if (wappen.Count != wappen.Distinct().Count())
-            fehler.Add("Zwei Häuser führen dasselbe Wappen.");
+            fehler.Add("Zwei Häuser führen dasselbe Wappen."); // nur selbst gewählte; Häuser der Karte weichen dem Spieler aus (Kern)
         var berufe = kis.Select(v => v.Beruf).OfType<string>().Prepend(GewaehlterBeruf(_beruf) ?? "").ToList();
         if (berufe.GroupBy(b => b).FirstOrDefault(g => g.Count() > 1) is { } doppelterBeruf)
             fehler.Add($"Den Beruf „{doppelterBeruf.Key}“ hat nur ein Haus – jeder Beruf kommt einmal vor.");
@@ -357,6 +399,14 @@ public partial class Hauptmenue
         _endjahrZeile = Zeile(raster, "Endjahr", _endjahr);
         _zielvermoegen = Zahl(10_000, 10_000_000, 10_000, 200_000, " Gulden");
         _zielZeile = Zeile(raster, "Zielvermögen", _zielvermoegen);
+
+        _haerte = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var h in Partieeinstellungen.HaertenZurWahl)
+            _haerte.AddItem(Partieeinstellungen.HaerteText(h), (int)h);
+        _haerte.Select(_haerte.GetItemIndex((int)Partieeinstellungen.Standard.HaerteDerZeit));
+        _haerte.TooltipText = "Wie oft und wie stark gute und schlechte Ernten kommen. Der Preis der Getreidewaren folgt der Ernte; eine Ansage vorab gibt es nicht.\n" +
+                              "Milde Jahre: Missernten sind selten und schwach.\nWie überliefert: Häufigkeit und Stärke nach der Überlieferung.\nHarte Jahre: Missernten sind häufiger und stärker.";
+        Zeile(raster, "Härte der Zeit", _haerte);
 
         _dauer = Zahl(1, 120, 1, 15, " Min.");
         Zeile(raster, "Dauer eines Spieljahres", _dauer);

@@ -593,12 +593,19 @@ public sealed class Stadtgericht
         SpurenEntfernen(s => s.Jahr <= jahr + 1 - d.VerjaehrungJahre);
         foreach (var k in _prangerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())
             _prangerBis.Remove(k);
-        foreach (var k in _kerkerBis.Where(p => p.Value <= jahr).Select(p => p.Key).ToList())
-            _kerkerBis.Remove(k);
+        foreach (var k in _kerkerBis.Where(p => p.Value <= jahr).Select(p => p.Key).OrderBy(k => _w.Konten.ToList().IndexOf(k)).ToList()) // feste Reihenfolge: jeder Freigelassene würfelt
+            Freilassen(k);
     }
 
-    /// <summary>Der Gefängniswärter lässt das Oberhaupt gegen Kaution vorzeitig frei (PR #200).</summary>
-    internal void Freilassen(Konto konto) => _kerkerBis.Remove(konto);
+    /// <summary>
+    /// Das Oberhaupt kommt aus dem Kerker – nach seiner Zeit oder vorzeitig gegen Kaution beim Gefängniswärter (PR #200).
+    /// Der Kerker hinterlässt vielleicht eine Versehrung (Anlass „kerker“).
+    /// </summary>
+    internal void Freilassen(Konto konto)
+    {
+        if (!_kerkerBis.Remove(konto)) return;
+        _w.Familien.ZugAnlass(konto, "kerker");
+    }
 
     /// <param name="fuer">Spitzelbericht und Gerüchte: nur für dieses Haus bestimmt (vertraulich).</param>
     /// <param name="geheimnis">Handelt der Eintrag von einem Geheimnis (Urteil nach einer Anzeige, Spitzelbericht): seine Art für das Siegel der Meldung.</param>

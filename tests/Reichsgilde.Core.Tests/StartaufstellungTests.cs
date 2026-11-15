@@ -64,12 +64,12 @@ static class StartaufstellungTests
             // Ganze Partien (Spieler und KI-Häuser mit ihren Betrieben, „Schwer“: auch das Umland), Messstadt mit acht KI-Häusern
             for (var s = 1; s <= 10; s++)
             {
-                var w = Partie(Messstadt.Value, new NeuePartie(Beruf: berufe[s % berufe.Count], Rivalen: 8), s, Schwierigkeit.Schwer);
+                var w = Partie(Messstadt.Value, new NeuePartie(Beruf: berufe[s % berufe.Count], Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe), s, Schwierigkeit.Schwer);
                 Pruefe.Gleich(9, w.Konten.Count);
                 Pruefe.Wahr(OhneDoppel(BerufeDerHaeuser(w)), $"Startwert {s}: {string.Join(", ", BerufeDerHaeuser(w))}");
             }
             // Gegenprobe: ohne die Regel (Vorgabe = Karte wie geschrieben) beginnen zwei Häuser als Schmiede
-            var v = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8, Aufstellung: Aufstellungsart.Vorgabe), 1);
+            var v = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), 1);
             Pruefe.Wahr(!OhneDoppel(BerufeDerHaeuser(v)), "ohne Regel Doppelungen: " + string.Join(", ", BerufeDerHaeuser(v)));
         }),
 
@@ -198,7 +198,7 @@ static class StartaufstellungTests
             {
                 var e = Losen(Messstadt.Value, "Schmied", 8, s);
                 if (e.Frei.Count == 0) continue;
-                var w = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8), s, Schwierigkeit.Schwer);
+                var w = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe), s, Schwierigkeit.Schwer);
                 foreach (var (name, art) in e.Frei)
                     Pruefe.Wahr(w.FreieLiegenschaften.Any(l => l.Name == name && l.Art == art), $"Startwert {s}: {name} frei");
                 return;

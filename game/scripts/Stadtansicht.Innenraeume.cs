@@ -1123,7 +1123,7 @@ public partial class Stadtansicht
         var platz = ansicht.Plaetze[nummer];
         var (schuerze, kopf, gewand) = Tracht(ansicht.Stil);
         return FigurBauen(ansicht.Innen!, ansicht.Mitte + platz.Ort, platz.Drehung, Vector3.One * groesse, gewand ?? kleidung, haut,
-            schuerze, kopf, platz.Werkzeug, platz.Art, nummer * 1.3f, platz.Sitzt);
+            schuerze, kopf, platz.Werkzeug, platz.Art, nummer * 1.3f, platz.Sitzt, volk: kraft == "Ork" ? Volk.Ork : Volk.Mensch, nummer: 600 + nummer);
     }
 
     /// <summary>Gast, Gläubiger, Kunde oder Gefangener – Volk und Gewand ergeben sich aus der Nummer (jede Partie gleich).</summary>
@@ -1132,15 +1132,20 @@ public partial class Stadtansicht
         var (groesse, breite, bart) = Voelker[nummer % Voelker.Length];
         var kleidung = Gewandfarben[nummer * 3 % Gewandfarben.Length];
         var figur = FigurBauen(a.Innen!, a.Mitte + platz.Ort, platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite), kleidung, Haut,
-            null, nummer % 5 == 2 ? Kopfputz.Barett : Kopfputz.Keiner, platz.Werkzeug, platz.Art, nummer * 0.9f, platz.Sitzt, bart);
+            null, nummer % 5 == 2 ? Kopfputz.Barett : Kopfputz.Keiner, platz.Werkzeug, platz.Art, nummer * 0.9f, platz.Sitzt, bart,
+            volk: (nummer % Voelker.Length) switch { 1 => Volk.Zwerg, 2 => Volk.Elb, 3 => Volk.Halbling, _ => Volk.Mensch }, nummer: 650 + nummer);
         figur.Koerper.Visible = false;
         a.Besucher.Add(figur);
         return figur;
     }
 
     private Arbeiterfigur FigurBauen(Node3D eltern, Vector3 ort, float drehung, Vector3 masse, Color kleidung, Color haut, Color? schuerze,
-        Kopfputz kopf, Werkzeug werkzeug, Bewegung art, float takt, bool sitzt = false, bool bart = false)
+        Kopfputz kopf, Werkzeug werkzeug, Bewegung art, float takt, bool sitzt = false, bool bart = false, Volk volk = Volk.Mensch, int nummer = 0)
     {
+        // Ein Baukasten für alle Figuren (Nutzer 15.11.2026): statt der Kapsel die Figur mit Passanten-Skelett (Volk, Gewand, Kopfbedeckung der Kapsel),
+        // im Clip der Bewegung; nur mit --passantenprobe=0 die Kapsel
+        if (ProbeAktiv && KapselAlsBaukasten(eltern, ort, drehung, kleidung, schuerze, kopf, werkzeug, art, takt, sitzt, volk, nummer) is { } baukasten)
+            return baukasten;
         // Wer sitzt, sinkt ein Stück ein – Bank und Tisch verdecken den Rest.
         var koerper = new Node3D { Position = ort + (sitzt ? new Vector3(0, -0.42f * masse.Y, 0) : Vector3.Zero), Rotation = new Vector3(0, drehung, 0), Scale = masse };
         eltern.AddChild(koerper);
@@ -1168,6 +1173,41 @@ public partial class Stadtansicht
         arm.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.12f, 0.12f, 0.6f) }, MaterialOverride = Material(haut), Position = new Vector3(0, 0, -0.3f) });
         WerkzeugBauen(koerper, arm, werkzeug);
         return new Arbeiterfigur(koerper, arm, takt, art, arm.Position);
+    }
+
+    /// <summary>Clip der Baukasten-Figur für eine Bewegung der Kapsel (nächstpassender, wo es keinen gleichnamigen gibt: Meißeln → Behauen,
+    /// Schenken → Zapfen, Spielen → Laute; stehendes Beten → Stehen, das Beten der Clips ist sitzend).</summary>
+    private static string KapselClip(Bewegung art, bool sitzt) => art switch
+    {
+        Bewegung.Haemmern => "Haemmern", Bewegung.Meisseln => "Behauen", Bewegung.Saegen => "Saegen", Bewegung.Ruehren => "Ruehren",
+        Bewegung.Schreiben => "Schreiben", Bewegung.Schenken => "Zapfen", Bewegung.Beten => sitzt ? "Beten" : "Stehen", Bewegung.Spielen => "Laute",
+        _ => sitzt ? "Sitzen" : "Stehen",
+    };
+
+    /// <summary>Kapsel als Figur aus dem Baukasten (Passanten-Skelett, immer gestellt über <c>_sitzende</c>); null, wenn das Modell fehlt.</summary>
+    private Arbeiterfigur? KapselAlsBaukasten(Node3D eltern, Vector3 ort, float drehung, Color kleidung, Color? schuerze, Kopfputz kopf, Werkzeug werkzeug,
+        Bewegung art, float takt, bool sitzt, Volk volk, int nummer)
+    {
+        var haare = Haarfarben(volk);
+        var aussehen = new FigurAussehen(volk, false, kleidung, Beinkleidfarben[nummer % Beinkleidfarben.Length], HautVon(volk), haare[nummer % haare.Length],
+            new Color(0.12f, 0.10f, 0.10f),
+            kopf switch { Kopfputz.Helm => Kopfbedeckung.Eisenhut, Kopfputz.Kapuze => Kopfbedeckung.Kapuze, Kopfputz.Barett => Kopfbedeckung.Barett, _ => Kopfbedeckung.Keine },
+            werkzeug == Werkzeug.Speer ? Last.Hellebarde : Last.Keine, schuerze is not null);
+        var koerper = new Node3D { Position = ort, Rotation = new Vector3(0, FigurenBaukasten.Modelldrehung(drehung), 0) };
+        eltern.AddChild(koerper);
+        if (FigurEinsetzen(koerper, aussehen, nummer) is not { Probe: true } figur)
+        {
+            koerper.QueueFree();
+            return null;
+        }
+        var clip = KapselClip(art, sitzt);
+        BewegungSetzen(figur, clip, 0.9f + nummer % 7 * 0.04f);
+        if (sitzt) koerper.Position += new Vector3(0, clip == "Sitzen" ? SitzHoehe(figur, FigurenBaukasten.Sitzflaeche, false) : SitzKniehoehe - figur.Kniehoehe, 0);
+        if (clip == "Sitzen") SitzVersatz(figur, 0.30f);
+        _sitzende[koerper] = figur;
+        var arm = new Node3D();
+        koerper.AddChild(arm);
+        return new Arbeiterfigur(koerper, arm, takt, Bewegung.Stehen, Vector3.Zero);
     }
 
     private static void WerkzeugBauen(Node3D koerper, Node3D arm, Werkzeug werkzeug)

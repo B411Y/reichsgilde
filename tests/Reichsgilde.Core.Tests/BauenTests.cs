@@ -78,9 +78,15 @@ static class BauenTests
         k.Stand = stand;
         k.WohnhausStufe = stufe;
         k.BerufLernen(beruf);
+        // Seit „nur noch Bauzonen“ (15.11.2026) bekommt ein Konto keinen Wohnhausplatz der Karte mehr: Das Haus steht (wie nach dem Startortlos)
+        // auf einem Grundstück in der Kernzone – das n-te Haus an der Hauptstraße bei x = 36 − 8 n (8 × 10, Eingang nach Norden).
+        if (w.Bauen.IstAktiv && Startflaeche(w.Konten.Count - 1) is { } flaeche) w.Bauen.StartwohnhausSetzen(k, flaeche);
         w.Wohnen.HauswertAktualisieren(k);
         return k;
     }
+
+    /// <summary>Wo das n-te Haus der Tests wohnt: in K1 an der Hauptstraße, von Osten her (x = 36, 28, 20 …) – null, wenn die Reihe voll ist.</summary>
+    static Grundriss? Startflaeche(int n) => n is >= 0 and < 10 ? new Grundriss(36 - 8 * n, 9, 8, 10, 2) : null;
 
     static void Ticken(Simulation sim, int minuten)
     {
@@ -167,35 +173,34 @@ static class BauenTests
             Pruefe.Gleich(2, Grundriss.DrehungZu(0, -3));
         }),
 
-        ("Bauen: Startplätze der Karte in Konto-Reihenfolge – auch, wenn die Karte erst nach den Häusern kommt", () =>
+        ("Bauen: Kein Haus bekommt mehr einen Platz der Karte (nur noch Bauzonen) – die Partie lost Wohnhaus und Werkstatt jedes Hauses in die Bauzonen", () =>
         {
             var (_, w) = MitKarte();
-            var konten = Enumerable.Range(1, 5).Select(i => w.KontoEroeffnen($"Haus {i}")).ToList();
-            for (var i = 0; i < 4; i++)
-            {
-                var g = w.Bauen.Wohnhaus(konten[i])!;
-                Pruefe.Gleich($"W{i + 1}", g.Kennung);
-                Pruefe.Gleich(-30.0 + 20 * i, g.Grundriss.X);
-                Pruefe.Gleich(0, g.Grundriss.Drehung);
-                Pruefe.Gleich(Bauzustand.Bewohnt, g.Zustand);
-            }
-            Pruefe.Wahr(w.Bauen.Wohnhaus(konten[4]) is null, "Für das fünfte Haus hat die Karte keinen Platz");
-            Pruefe.Gleich(Lage.Mauerring, w.Bauen.Wohnhaus(konten[1])!.Lage); // aus der Karte („lage“)
-            Pruefe.Gleich(Lage.Kern, w.Bauen.Wohnhaus(konten[0])!.Lage);      // ohne Angabe: die nächste Bauzone
+            var konten = Enumerable.Range(1, 3).Select(i => w.KontoEroeffnen($"Haus {i}")).ToList();
+            Pruefe.Wahr(konten.All(k => w.Bauen.Wohnhaus(k) is null) && w.Bauen.Grundstuecke.Count == 0, "ein Konto allein bekommt kein Grundstück");
+            Pruefe.Wirft(() => w.KarteSetzen(Karte()));
 
-            var sim2 = NeueSimulation();
-            var a = sim2.Wirtschaft!.KontoEroeffnen("Haus A");
-            var b = sim2.Wirtschaft.KontoEroeffnen("Haus B");
-            sim2.Wirtschaft.KarteSetzen(Karte());
-            Pruefe.Gleich("W1", sim2.Wirtschaft.Bauen.Wohnhaus(a)!.Kennung);
-            Pruefe.Gleich("W2", sim2.Wirtschaft.Bauen.Wohnhaus(b)!.Kennung);
-            Pruefe.Wirft(() => sim2.Wirtschaft.KarteSetzen(Karte()));
-
-            // Partieaufbau: Spieler, Eisenbart, Eichwald, Kieselbach – in dieser Reihenfolge.
-            var (sim3, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Karte());
+            // Partieaufbau: In die Kernzone passen drei Häuser (je Wohnhaus und Werkstatt an der Hauptstraße) – der Spieler und zwei KI-Häuser.
+            var karte = Karte();
+            Pruefe.Gleich(3, Startortlos.Haeuser(karte, Daten.Value));
+            Pruefe.Gleich(2, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value));
+            var (sim3, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 2), karte: karte);
             var w3 = sim3.Wirtschaft!;
-            Pruefe.Gleich("W1", w3.Bauen.Wohnhaus(spieler)!.Kennung);
-            Pruefe.Gleich("W4", w3.Bauen.Wohnhaus(w3.Konten.Single(k => k.Inhaber == Partieaufbau.DritterRivale))!.Kennung);
+            Pruefe.Gleich(3, w3.Konten.Count);
+            foreach (var k in w3.Konten)
+            {
+                var haus = w3.Bauen.Wohnhaus(k)!;
+                Pruefe.Wahr(haus.Kennung is null && haus.Zustand == Bauzustand.Bewohnt && haus.Lage == Lage.Kern, $"{k.Inhaber}: Wohnhaus in der Kernzone, kein Platz der Karte");
+                var betrieb = w3.Betriebe.First(b => b.Konto == k && b.InDerStadt);
+                Pruefe.Wahr(w3.Bauen.PlatzVon(betrieb.Name) is { Gebaeude: null, Grundstueck: { Art: Grundstuecksart.Werkstatt, Kennung: null, Zustand: Bauzustand.Werkstatt } },
+                    $"{betrieb.Name}: auf einem Grundstück");
+            }
+            Pruefe.Gleich(6, w3.Bauen.Grundstuecke.Count);
+            var flaechen = w3.Bauen.Grundstuecke.Select(g => g.Grundriss).ToList();
+            Pruefe.Wahr(flaechen.All(a => flaechen.All(b => a == b || !a.Ueberlappt(b))), "nichts überdeckt sich");
+            Pruefe.Wahr(w3.Bauen.Wohnhaus(spieler) is not null && w3.Bauen.StartwahlVon(spieler) is null, "der Spieler ohne Startwahl ist gelost wie die KI");
+            // Gegenprobe: ein Haus mehr passt nicht
+            Pruefe.Wirft(() => Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 3), karte: Karte()));
 
             // Ohne Karte gibt es kein Bauwesen.
             var ohne = NeueSimulation().Wirtschaft!;
@@ -212,7 +217,8 @@ static class BauenTests
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -24, 11, 0))!.Contains("Karrenstraße"), "Rücken zur Straße");
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -23, 11, 2))!.Contains("Raster"), "neben dem Raster");
             Pruefe.Gleich(new WerkstattBauen(Betriebsart.Giesserei, -24, 11, 2), b.Einrasten(new WerkstattBauen(Betriebsart.Giesserei, -23.4, 10.2, 2)));
-            Pruefe.Gleich("Hier steht Weinmarkt.", b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, 25, 2)));
+            // Der Werkstattplatz „Weinmarkt“ der Karte versperrt nichts mehr (15.11.2026) – an dieser Stelle fehlt nur die Straße vor der Tür.
+            Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, 25, 2))!.Contains("Karrenstraße"), "auf dem alten Werkstattplatz: nur die Straße fehlt");
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -24, -31, 0))!.Contains("keine Bauzone"), "nördlich der Straße ist keine Zone");
             Pruefe.Gleich("Im Umland wird nicht gebaut.", b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 80, 11, 2)));
             Pruefe.Wahr(b.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 34, 11, 2))!.Contains("keine Bauzone"), "ragt aus der Zone");
@@ -224,10 +230,10 @@ static class BauenTests
             Pruefe.Gleich("Ein Stadthof steht nur in Kernlage oder am Mauerring.", b.PlatzVerboten(new WohnhausBauen(4, -49, 32, 3)));
             Pruefe.Gleich(null, b.PlatzVerboten(new WohnhausBauen(4, -24, 11, 2))); // in Kernlage an der Hauptstraße
 
-            // Wohnhausplätze und Baustellen sind belegt.
+            // Wohnhäuser und Baustellen sind belegt; ein Wohnhausplatz der Karte außerhalb der Zonen ist nicht mehr bebaubar.
             var k = Haus(w, "Haus Bau", stand: 1, stufe: 1, vermoegen: 20_000);
-            Pruefe.Gleich("Hier steht schon das Wohnhaus von Haus Bau.", b.PlatzVerboten(new WohnhausBauen(1, -30, -9, 0)));
-            Pruefe.Wahr(b.PlatzVerboten(new WohnhausBauen(1, 10, -9, 0))!.Contains("Wohnhausplatz 3"), "unvergebener Startplatz bleibt frei");
+            Pruefe.Gleich("Hier steht schon das Wohnhaus von Haus Bau.", b.PlatzVerboten(new WohnhausBauen(1, 36, 9, 2)));
+            Pruefe.Wahr(b.PlatzVerboten(new WohnhausBauen(1, 10, -9, 0))!.Contains("keine Bauzone"), "der Wohnhausplatz W3 liegt in keiner Bauzone");
             Pruefe.Wahr(w.Ausfuehren(k, new WerkstattBauen(Betriebsart.Giesserei, -24, 11, 2)).Erfolg, "Werkstatt bauen");
             Pruefe.Gleich("Hier steht schon die Baustelle von Gießerei an der Hauptstraße.", b.PlatzVerboten(new WohnhausBauen(1, -20, 9, 2)));
             Pruefe.Gleich(null, b.PlatzVerboten(new WohnhausBauen(1, -12, 9, 2))); // direkt daneben
@@ -294,7 +300,7 @@ static class BauenTests
             Pruefe.Wahr(w.Bauen.BauherrVerboten(reich, befehl) is null, "Bürger mit Handwerk und Geld darf");
         }),
 
-        ("Bauen: Wohnhaus neu – Hauswert der Zielstufe minus altes Haus, zwei Jahre ab Steinhaus, dann Umzug und das alte wird Bauplatz", () =>
+        ("Bauen: Wohnhaus neu – Hauswert der Zielstufe minus altes Haus, zwei Jahre ab Steinhaus, dann Umzug und das alte wird abgerissen (die Stelle ist wieder Bauzone)", () =>
         {
             var (sim, w) = MitKarte();
             var k = Haus(w, "Haus Stein", stand: 1, stufe: 1, vermoegen: 6_000); // Bürger im Bürgerhaus (Hauswert 1.500)
@@ -327,7 +333,8 @@ static class BauenTests
             Pruefe.Gleich((-24.0, 9.0), (neu.Grundriss.X, neu.Grundriss.Z));
             Pruefe.Gleich(Bauzustand.Bewohnt, neu.Zustand);
             Pruefe.Gleich(alt, abgerissen);
-            Pruefe.Gleich(Bauzustand.Bauplatz, alt.Zustand);
+            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(alt) && !w.Bauen.Bauplaetze.Any(), "das alte Haus ist weg – kein Grundstück, kein Bauplatz");
+            Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WohnhausBauen(1, alt.Grundriss.X, alt.Grundriss.Z, alt.Grundriss.Drehung))); // wieder Bauzone
             Pruefe.Gleich(null, w.Bauen.UmzugZiel(k));
             Pruefe.Gleich(null, w.Wohnen.StandVerboten(k, 2));
         }),
@@ -363,7 +370,7 @@ static class BauenTests
             Pruefe.Gleich(3, k.WohnhausStufe);
             Pruefe.Gleich(palais, w.Bauen.Wohnhaus(k));
             Pruefe.Gleich(Bauzustand.Bewohnt, palais.Zustand);
-            Pruefe.Gleich(Bauzustand.Bauplatz, altesHaus.Zustand);
+            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(altesHaus), "das alte Haus ist abgerissen");
             Pruefe.Gleich(15_500.0, k.Hauswert);
         }),
 
@@ -380,7 +387,7 @@ static class BauenTests
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandKaufen("Haus Niemand")).Meldung.Contains("gibt es nicht"), "unbekanntes Haus");
         }),
 
-        ("Bauen: Leerstand abreißen – Kauf + Abriss (mindestens 100), danach ein Bauplatz, auf dem wieder gebaut werden darf", () =>
+        ("Bauen: Leerstand abreißen – Kauf + Abriss (mindestens 100), danach ist die Stelle wieder Bauzone (kein Bauplatz mehr)", () =>
         {
             var (sim, w) = MitKarte();
             var tot = Haus(w, "Haus Hütte", stand: 0, stufe: 0, vermoegen: 0); // Fachwerkhaus: Hauswert 0
@@ -394,25 +401,18 @@ static class BauenTests
             Pruefe.Wahr(!w.Wohnen.Leerstand.Contains(tot), "kein Leerstand mehr");
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Meldung.Contains("nicht mehr leer"), "nur einmal");
             Ticken(sim, 241);
-            Pruefe.Gleich(Bauzustand.Bauplatz, huette.Zustand);
-            Pruefe.Wahr(w.Bauen.Bauplaetze.Contains(huette), "Bauplatz");
-            Pruefe.Gleich(Lage.Kern, huette.Lage); // außerhalb der Zonen – die nächste ist K1
+            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(huette) && !w.Bauen.Bauplaetze.Any(), "abgerissen: kein Grundstück, kein Bauplatz");
 
-            // Ein Wohnhausplatz (außerhalb jeder Bauzone) nimmt jedes Wohnhaus auf – eingepasst in seine Fläche und Drehung, keine Werkstatt.
-            var befehl = w.Bauen.Einrasten(new WohnhausBauen(1, -27, -10, 2));
-            Pruefe.Gleich(new WohnhausBauen(1, -30, -9, 0), befehl);
-            Pruefe.Gleich(new Grundriss(-30, -9, 16, 10, 0), w.Bauen.Grundriss(befehl));
+            // Die Stelle liegt in der Kernzone und ist wieder bebaubar wie jede andere – auf dem Raster, für Wohnhaus und Werkstatt.
+            var stelle = huette.Grundriss;
+            var befehl = new WohnhausBauen(1, stelle.X, stelle.Z, stelle.Drehung);
             Pruefe.Gleich(null, w.Bauen.BauVerboten(k, befehl));
-            Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WohnhausBauen(4, -30, -9, 0))); // auch ein Stadthof, eingepasst (Lage Kern)
-            Pruefe.Gleich(new Grundriss(-30, -9, 16, 10, 0), w.Bauen.Vorschau(k, new WohnhausBauen(4, -30, -9, 0)).Grundriss);
-            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(1, -32, -9, 0))!.Contains("genau auf den Wohnhausplatz"), "halb darauf");
-            Pruefe.Gleich("Auf einem Wohnhausplatz stehen nur Wohnhäuser.", w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -30, -9, 0)));
-            Pruefe.Gleich(new WerkstattBauen(Betriebsart.Giesserei, -30, -9, 0), w.Bauen.Einrasten(new WerkstattBauen(Betriebsart.Giesserei, -29.5, -9.3, 0))); // Werkstatt: nur aufs Raster
-            Grundstueck? bebaut = null;
-            w.Bauen.BauplatzBebaut += g => bebaut = g;
-            Pruefe.Wahr(w.Ausfuehren(k, befehl).Erfolg, "auf dem Bauplatz bauen");
-            Pruefe.Gleich(huette, bebaut);
-            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(huette), "Bauplatz ist vergeben");
+            Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WohnhausBauen(0, stelle.X, stelle.Z, stelle.Drehung)));
+            // Gegenprobe: Ein Wohnhausplatz der Karte (außerhalb jeder Bauzone) rastet nicht mehr ein und nimmt nichts mehr auf.
+            Pruefe.Gleich(new WohnhausBauen(1, -28, -11, 2), w.Bauen.Einrasten(new WohnhausBauen(1, -27, -10, 2)));
+            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(1, -30, -9, 0))!.Contains("keine Bauzone"), "W1 liegt in keiner Bauzone");
+            Pruefe.Wahr(w.Ausfuehren(k, befehl).Erfolg, "an der alten Stelle bauen");
+            Pruefe.Gleich(Bauarbeit.Neubau, w.Bauen.Umzug(k)!.Arbeit);
         }),
 
         ("Bauen: Grundstücke und Baustellen überstehen Speichern und Laden – samt Karte; alte Spielstände bekommen die Startplätze", () =>
@@ -499,7 +499,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(86, Daten.Value.Version);
+            Pruefe.Gleich(93, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof
@@ -592,7 +592,7 @@ static class BauenTests
             Pruefe.Wahr(w.Bauen.Grundstuecke.All(g => g.LeerSeit is null || g.Besitzer is { IstAktiv: false } && g.Arbeit is null), "nur Leerstand hat einen Zeitpunkt");
         }),
 
-        ("Bauen: Bauorte – zuerst die Bauplätze, dann die Rasterstellen; alle gültig, fest geordnet; wer nicht bauen darf, bekommt keine", () =>
+        ("Bauen: Bauorte – die Rasterstellen der Bauzonen (keine Bauplätze mehr); alle gültig, fest geordnet; wer nicht bauen darf, bekommt keine", () =>
         {
             var (sim, w) = MitKarte();
             var tot = Haus(w, "Haus Hütte", stand: 0, stufe: 0, vermoegen: 0);
@@ -606,15 +606,20 @@ static class BauenTests
             Pruefe.Wahr(vorher.Zip(vorher.Skip(1)).All(p => p.First.Z - w.Bauen.Grundriss(p.First).HalbZ <= p.Second.Z - w.Bauen.Grundriss(p.Second).HalbZ),
                 "von Norden nach Süden (nach der nordwestlichen Ecke)");
 
-            // Ein Wohnhausplatz wird frei: Er steht vorn, eingepasst in seine Drehung.
+            // Ein Haus wird abgerissen: Seine Stelle ist wieder Bauzone – es kommen genau die Bauorte dazu, die es versperrt hat, kein Bauplatz.
+            var alteStelle = w.Bauen.Wohnhaus(tot)!.Grundriss;
+            var klein = new WohnhausBauen(1, 0, 0, 0); // ein Bürgerhaus (8 × 10) passt genau auf die alte Stelle, ein Stadtpalais (12 × 10) nicht
+            var vorherKlein = w.Bauen.Bauorte(k, klein);
             tot.IstBankrott = true;
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
             Ticken(sim, 241);
             var nachher = w.Bauen.Bauorte(k, vorlage);
-            Pruefe.Gleich<BauBefehl>(new WohnhausBauen(3, -30, -9, 0), nachher[0]);
-            Pruefe.Gleich(vorher.Count + 1, nachher.Count);
-            Pruefe.Wahr(w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).All(o => !w.Bauen.Grundriss(o).Ueberlappt(w.Bauen.Bauplaetze.Single().Grundriss)),
-                "keine Werkstatt auf dem Wohnhausplatz");
+            var nachherKlein = w.Bauen.Bauorte(k, klein);
+            Pruefe.Wahr(nachherKlein.Count > vorherKlein.Count, $"{nachherKlein.Count} statt {vorherKlein.Count} Bauorte für ein Bürgerhaus");
+            Pruefe.Wahr(vorherKlein.All(nachherKlein.Contains) && vorher.All(nachher.Contains), "die alten Bauorte bleiben");
+            Pruefe.Wahr(nachherKlein.Except(vorherKlein).All(o => w.Bauen.Grundriss(o).Ueberlappt(alteStelle)), "neu sind nur Bauorte über der alten Stelle");
+            Pruefe.Wahr(nachherKlein.Contains(new WohnhausBauen(1, alteStelle.X, alteStelle.Z, alteStelle.Drehung)), "genau an der alten Stelle");
+            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "kein Bauplatz");
 
             // Ein Gebäude belegt Bauorte; wer nicht bauen darf (Stand, Geld, schon ein Neubau), bekommt keine.
             Pruefe.Wahr(w.Ausfuehren(k, nachher[1]).Erfolg, "bauen");

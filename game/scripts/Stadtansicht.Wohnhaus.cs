@@ -38,6 +38,7 @@ public partial class Stadtansicht
         var kontor = new Vector3(RaumAbstand, 0, 0);
         WohnstubeEinrichten(a, stube, haus);
         KontorEinrichten(a, kontor, Putz, haus);
+        WohnraeumeAnmelden(a); // Neubau-Probe: Hinterzimmer und Bibliothek im Haus, wenn gebaut (Stadtansicht.Wohnraeume.cs)
         WohnhausSchmuck(a, stube, kontor, konto);
         _sonderbauten[kennung] = a;
         _wohnhausAnsicht = a;

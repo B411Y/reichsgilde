@@ -21,6 +21,7 @@ namespace Reichsgilde;
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
+///   --startwert=12     Zufallsstartwert der Partie (mit --startrunde=4 bzw. 5: Gruben 1404 schlecht, Ansage 1403), nur für Bilder
 ///   --startrunde=4     Partie beginnt in der 4. Runde (Winter), nur für Bilder
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
 ///   --zierminute=133.4,0.1  Zierschiff am Hafen zeigt diese Spielminute seit Spielbeginn, danach 0,1 Minuten je Sekunde (Zeitlupe; ohne Rate steht es; nur Darstellung, Stadtansicht.Kranladen.cs)
@@ -39,7 +40,6 @@ namespace Reichsgilde;
 ///   --bauort=-96,-3,0  mit --bauen=<Gebäude>: der Umriss sitzt an dieser Stelle (x,z in Metern, Drehung 0–3), bis die Maus bewegt wird
 ///   --bauklick=1       mit --bauort: die Rückfrage öffnen (=2: gleich bauen; auch bei --leerstand: gleich kaufen bzw. abreißen)
 ///   --leerstand=kaufen mit --auswahl=wohnhaus:<Inhaber>: die Rückfrage zum Kauf des leeren Hauses öffnen (=abreissen: zum Abriss; Leerzeichen als _)
-///   --kischmied=alle   Passanten mit dem KI-Schmied aus TRELLIS: aus, wenige (Standard: Knechte und Tagelöhner, jeder zweite) oder alle Männer
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
@@ -238,7 +238,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, HinsehenZiel = HinsehenZiel, Hinsehen = MeldungAnsteuern };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, Ziel = VerlaufZiel, Ansteuern = VerlaufAnsteuern };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -369,7 +369,7 @@ public partial class Hauptszene : Node
         _berichtTafel.JahresberichtGewuenscht += () =>
         {
             if (_spieler is null || _spieler.Vorjahr is null) return;
-            _pauseVorBericht ??= _simulation.Takt.IstPausiert;
+            _pauseVorBericht ??= _simulation.Takt.Spielerpause;
             _simulation.Takt.IstPausiert = true;
             _jahresbericht.Zeigen(_simulation, _spieler);
         };
@@ -446,10 +446,12 @@ public partial class Hauptszene : Node
             if (_sitzungsTafel.Laeuft || SitzungVormerken(jahr))
             {
                 _jahresberichtWartet = true; // erst nach der Szene der Ratssitzung (Hauptszene.Ratssitzung.cs)
+                ZeitHalteAbgleichen(); // Einzelspiel: hält noch in diesem Bild an, kein Tick des neuen Jahres vor der Szene
                 return;
             }
             _jahresbericht.Zeigen(_simulation, _spieler);
-            if (BeiJahresberichtPausieren) _simulation.Takt.IstPausiert = true;
+            if (BeiJahresberichtPausieren && !DarfAnhalten) _simulation.Takt.IstPausiert = true;
+            ZeitHalteAbgleichen(); // Einzelspiel: Haltegrund „Jahresbericht“
         };
         _simulation.PartieBeendet += () =>
         {
@@ -459,8 +461,10 @@ public partial class Hauptszene : Node
         _jahresbericht.Geschlossen += () =>
         {
             if (_simulation.IstBeendet) SpielmenueOeffnen(); // Partie vorbei: Laden, Hauptmenü oder Beenden
-            else _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
+            else if (_pauseVorBericht is not null || !DarfAnhalten)
+                _simulation.Takt.IstPausiert = _pauseVorBericht ?? false; // selbst geöffnet: Pause wie vorher, nach dem Jahreswechsel: weiter
             _pauseVorBericht = null;
+            ZeitHalteAbgleichen(); // Einzelspiel: der Haltegrund geht, die Zeit läuft wie vor dem Jahreswechsel
         };
         _aktionKnopf.Pressed += () =>
         {
@@ -484,7 +488,7 @@ public partial class Hauptszene : Node
             _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
-            if (Stadtansicht.IstMarktplatz(kennung)) MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+            if (Stadtansicht.IstMarktplatz(kennung)) { MarktOeffnen(); AuswahlSchliessen(); } // wie im Original: ein Klick auf den Markt öffnet die Preistafel; die Kurzinfo daneben entfällt
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {
@@ -570,7 +574,6 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("einschlag", out var einschlagSek) && double.TryParse(einschlagSek, System.Globalization.CultureInfo.InvariantCulture, out var einschlagNach))
             _einschlagNach = einschlagNach;
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
-        if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
         if (optionen.TryGetValue("nachtnebel", out var nachtnebel)) _stadt.Nachtnebel = nachtnebel is not ("aus" or "0"); // Nebel bei Nacht (Stadtansicht.Bodennebel.cs)
         if (optionen.TryGetValue("morgennebel", out var morgennebel) && float.TryParse(morgennebel, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nebelTag))
@@ -622,6 +625,7 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
+        if (optionen.TryGetValue("zug", out var zugWert)) _zugWartet = zugWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
         if (optionen.TryGetValue("erpresserbrief", out var briefWert)) _erpresserbriefWartet = briefWert; // ebenso (Siegel der Geheimnisse)
         if (optionen.TryGetValue("entscheidung", out var entscheidungWert)) _entscheidungWartet = entscheidungWert; // ebenso (Benachrichtigungen Stufe 3)
@@ -717,6 +721,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("blendetest", out var blendeKennung)) _stadt.BlendeTestStarten(blendeKennung == "1" ? (_eigeneGiesserei is { } bg ? Stadtansicht.BetriebsKennung(bg) : "Rathaus") : blendeKennung); // Betreten und Verlassen mit Schwarzblende ins Log (Stadtansicht.Uebergang.cs)
         if (optionen.TryGetValue("innen", out var innen))
         {
+            if (innen == "wohnhaus" && EigenesWohnhaus is { } eigenes) innen = eigenes; // Prüfhilfe: --innen=wohnhaus = das eigene Wohnhaus
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
             else if (innen != "1" && !_stadt.InnenansichtBetreten(innen)) _innenWartet = innen; // Rathaus oder Dom; ein Betrieb, den es noch nicht gibt (--bauklick), kommt später
             if (optionen.TryGetValue("raum", out var raum) && int.TryParse(raum, out var raumNummer))
@@ -1060,6 +1065,8 @@ public partial class Hauptszene : Node
         einstellungen ??= Partieeinstellungen.Standard;
         if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
             einstellungen = einstellungen with { Schwierigkeit = schwierigkeit }; // --schwierigkeit=Schwer: nur für diesen Start
+        if (optionen.TryGetValue("startwert", out var sw) && int.TryParse(sw, out var startwert))
+            einstellungen = einstellungen with { Zufallsstartwert = startwert }; // --startwert=12: Zufallsstartwert (z. B. eine schlechte Lage der Gruben 1404), nur für Bilder
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen, daten, neu, start, karte);
         SimulationVerbinden(simulation, spieler);
         return simulation;
@@ -1139,7 +1146,7 @@ public partial class Hauptszene : Node
 
     private void SpielmenueOeffnen()
     {
-        _warPausiertVorMenue = _simulation.Takt.IstPausiert;
+        _warPausiertVorMenue = _simulation.Takt.Spielerpause; // ohne Haltegründe: die gehen von selbst
         _simulation.Takt.IstPausiert = true;
         _menueListe.Visible = false;
         _spielmenue.Show();
@@ -1267,6 +1274,11 @@ public partial class Hauptszene : Node
             _stressWartet = null;
             StressStartoption(stressWunsch); // vor --charakter, damit das Fenster den neuen Stress zeigt
         }
+        if (_zugWartet is { } zugWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _zugWartet = null;
+            ZugStartoption(zugWunsch); // vor --charakter, damit das Fenster den Zug zeigt
+        }
         if (_geheimnisWartet is { } geheimnisWunsch && _bauAutoKlick == 0 && _spulen == 0)
         {
             _geheimnisWartet = null;
@@ -1299,6 +1311,7 @@ public partial class Hauptszene : Node
         }
         if (_innenWartet is not null && _bauAutoKlick == 0 && _spulen == 0 && _stadt.InnenansichtBetreten(_innenWartet)) _innenWartet = null;
         RatssitzungPruefen(); // steht die Partie vor der Ratssitzung: in den Ratssaal
+        ZeitHalteAbgleichen(); // Einzelspiel: Sitzung und Jahresbericht halten die Zeit an (Hauptszene.Ratssitzung.cs)
 
         Anzeigen();
         LeisteAnzeigen(delta);
@@ -1317,6 +1330,10 @@ public partial class Hauptszene : Node
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
         _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
         _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
+        _einblendung.AbstandUnten = _brief.AbstandUnten;
+        // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
+        _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
+                            || _stimmrunde.Visible || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
@@ -1423,8 +1440,17 @@ public partial class Hauptszene : Node
         GetViewport().SetInputAsHandled();
     }
 
+    /// <summary>Hält ein Haltegrund die Zeit an (Ratssitzung, Jahresbericht im Einzelspiel), sind Pause und Tempo wirkungslos – auch über die Tasten.</summary>
+    private bool ZeitGesperrt()
+    {
+        if (!_simulation.Takt.IstAngehalten) return false;
+        GD.Print($"Zeit: Taste wirkungslos – Haltegründe: {string.Join(", ", _simulation.Takt.Haltegruende)}");
+        return true;
+    }
+
     private void PauseUmschalten()
     {
+        if (ZeitGesperrt()) return;
         _simulation.Takt.PauseUmschalten();
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Leertaste
         Protokollieren(_simulation.Takt.IstPausiert ? "Pause." : "Weiter geht's.");
@@ -1432,7 +1458,7 @@ public partial class Hauptszene : Node
 
     private void TempoSetzen(double tempo)
     {
-        if (tempo <= 0) return;
+        if (tempo <= 0 || ZeitGesperrt()) return;
         _simulation.Takt.Tempo = tempo;
         _simulation.Takt.IstPausiert = false;
         KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Zifferntaste
@@ -1479,6 +1505,7 @@ public partial class Hauptszene : Node
     private bool RaumAngeklickt(string kennung)
     {
         if (_stadt.RathausWegAngeklickt(kennung)) return true; // neues Rathaus: Tür, Treppe oder Leiter in den nächsten Raum (Stadtansicht.Rathausneubau.cs)
+        if (_stadt.WohnraumTuerAngeklickt(kennung)) return true; // Zimmertür im Wohnhaus (Neubau-Probe): Klinke, Blende, anderer Raum (Stadtansicht.Wohnraeume.cs)
         if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
         {
             _stadt.InnenansichtVerlassenDurchTuer();
@@ -1493,6 +1520,8 @@ public partial class Hauptszene : Node
                 case "Bauplan": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Haus); break;
                 case "Werkzeug": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Handwerk); break;
                 case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
+                case "Kartentisch": TafelnSchliessen(); _hinterzimmer.Oeffnen(); break; // Hinterzimmer: Banden, Erpresserbriefe, Wächter (die Tafel von Reiter und Taste H; den Tisch gibt es nur im gebauten Raum)
+                case "Lesepult": TafelnSchliessen(); _familientafel.Oeffnen(FamilienAnzeige.Reiter.Familie); break; // Bibliothek: Familienbuch mit den Lehrschriften
             }
             // Neues Rathaus: Gegenstand → Tafel nach RathausGegenstaende (im Test geprüft)
             switch (RathausGegenstaende.ZielVon(gegenstand))

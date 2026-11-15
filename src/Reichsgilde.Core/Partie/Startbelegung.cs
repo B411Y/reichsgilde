@@ -120,6 +120,15 @@ public sealed class Startbelegung
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<Hofstelle>? Hofstellen { get; internal set; }
 
+    /// <summary>
+    /// Die Belegung einer Partie seit „nur noch Bauzonen“ (15.11.2026, <see cref="Stadtkarte.OhneStadtplaetze"/>): Sie nennt nur noch, wer
+    /// mitspielt (Name, Wappen, Farbe, Umlandbetriebe). Wo die Häuser in der Stadt wohnen und arbeiten, steht als Grundstück im Spielstand –
+    /// die Plätze hier (Wohnhaus, Werkstatt) gelten nicht und werden nicht geprüft. Nie in einer Kartendatei.
+    /// </summary>
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool OhnePlaetze { get; internal set; }
+
     /// <summary>Die Namen aller KI-Häuser (für das Menü: Diesen Namen darf der Spieler nicht nehmen).</summary>
     [JsonIgnore]
     public IReadOnlyList<string> Rivalennamen => Haeuser.Select(h => h.Name).ToList();

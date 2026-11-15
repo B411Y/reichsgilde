@@ -7,7 +7,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Neubau der Gebäude, Probe (Wohnhaus Mensch, Stufe 1, Grundform 1) – Teil der <c>partial class Stadtansicht</c>.
+/// Neubau der Gebäude: Wohnhaus Mensch, Stufe 1, in vier Grundformen (Probe und Paket 1) – Teil der <c>partial class Stadtansicht</c>.
 ///
 /// Die neuen Häuser (<c>assets/modelle/gebaeude/neubau/</c>, gebaut von <c>tools/modelle/neubau/</c>) folgen dem Style-Guide
 /// „3D-Asset-Pipeline“: ein gemeinsames Trim-Sheet (<c>assets/texturen/neubau/trim_*.png</c>) mit dem Shader
@@ -25,13 +25,15 @@ namespace Reichsgilde;
 /// Fensteröffnungen die echte Stadt samt Passanten (die Scheiben mit dem Fensterlicht sind solange ausgeblendet). Beim
 /// Verlassen wird „InteriorRoot“ unsichtbar und nimmt nicht mehr an der Verarbeitung teil.
 ///
-/// Alles hier ist nur mit Startoption aktiv (<c>docs/STARTOPTIONEN.md</c>): <c>--neubauprobe=1</c>, <c>--neubaureihe=…</c>,
+/// Alles hier ist nur mit Startoption aktiv (<c>docs/STARTOPTIONEN.md</c>): <c>--neubauprobe=1</c>, <c>--neubauform=…</c>, <c>--neubaureihe=…</c>,
 /// <c>--neubaumessung=…</c>. Ohne sie steht überall das bisherige <c>fachwerkhaus.glb</c>.
 /// </summary>
 public partial class Stadtansicht
 {
     private const string NeubauOrdner = "gebaeude/neubau/";
     private const string NeubauWohnhaus = NeubauOrdner + "wohnhaus_mensch_s1_g1";
+    /// <summary>Grundformen des Wohnhauses der Stufe 1 (Nutzer, 14.11.2026): 1 schmal und hoch, 2 breit, 3 mit Schuppen, 4 mit Laube.</summary>
+    private const int NeubauGrundformen = 4;
     private const string AltesWohnhaus = "gebaeude/fachwerkhaus";
     private const string NeubauTexturen = "res://assets/texturen/neubau/";
 
@@ -44,7 +46,7 @@ public partial class Stadtansicht
     // Putz- und Akzentfarben aus dem Style-Guide (5.3); fest je Standort
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
     private static readonly Color[] NeubauAkzent = { new(0.22f, 0.35f, 0.55f), new(0.25f, 0.42f, 0.28f), new(0.55f, 0.22f, 0.20f), new(0.45f, 0.36f, 0.28f) };
-    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // je Gruppe (Trim-Sheet und AO-Atlas) ein Material
+    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // je Gruppe und Trim-Sheet („gruppe|blatt“) ein Material
     private readonly Dictionary<string, StandardMaterial3D> _neubauGrund = new(); // benannte Grundmaterialien fürs Netz
     private readonly HashSet<Mesh> _neubauNetze = new();
     private readonly Dictionary<string, Node3D> _neubauHaeuser = new();          // Kennung (wohnhaus:…) → Wurzel des Modells
@@ -52,8 +54,50 @@ public partial class Stadtansicht
     private Node3D? _neubauInnen;      // der sichtbare „InteriorRoot“ (null: niemand ist drinnen)
     private bool NeubauInnenAktiv => _neubauInnen is not null;
 
-    /// <summary>Welche Datei für das Wohnhaus eingesetzt wird: mit <c>--neubauprobe=1</c> das neue Haus statt des Fachwerkhauses.</summary>
-    private static string NeubauModell(string datei) => NeubauProbeAn && datei == AltesWohnhaus ? NeubauWohnhaus : datei;
+    /// <summary>Startoption <c>--neubauform=1…4</c>: alle neuen Wohnhäuser in dieser Grundform (ohne Angabe fest zufällig je Platz).</summary>
+    private static readonly int NeubauFormFest = int.TryParse(NeubauOption("--neubauform"), out var form) && form is >= 1 and <= NeubauGrundformen ? form : 0;
+
+    /// <summary>Die Datei des neuen Wohnhauses einer Grundform und Stufe (1 Fachwerkhaus, 2 Bürgerhaus, 3 Steinhaus).</summary>
+    private static string NeubauWohnhausForm(int form, int stufe = 1) => NeubauOrdner + $"wohnhaus_mensch_s{stufe}_g{form}";
+
+    /// <summary>
+    /// Startoption <c>--neubaustufe=1…3</c> (mit <c>--neubauprobe=1</c>): alle neuen Wohnhäuser zeigen das Modell dieser Stufe, gleich welche
+    /// Stufe der Kern ihnen gibt – nur für Bilder und Klicktests (Einrichtung, Räume und Befehle richten sich weiter nach dem Kern).
+    /// </summary>
+    private static readonly int NeubauStufeFest = int.TryParse(NeubauOption("--neubaustufe"), out var nstufe) && nstufe is >= 1 and <= 3 ? nstufe : 0;
+
+    /// <summary>Die bisherigen Wohnhausmodelle des Katalogs und die Stufe ihres Neubaus (Stufen 2 und 3: Branch phase5/neubau-mensch-st23).</summary>
+    private static readonly Dictionary<string, int> NeubauStufen = new() { [AltesWohnhaus] = 1, ["gebaeude/buergerhaus"] = 2, ["gebaeude/steinhaus"] = 3 };
+
+    /// <summary>
+    /// Feste Zufallszahl eines Platzes (auf einen halben Meter gerundet): in jeder Partie und auf jedem Rechner dieselbe, anders
+    /// als <c>HashCode.Combine</c>, das je Programmstart anders würfelt. Nur Darstellung – der Kern kennt die Grundform nicht.
+    /// </summary>
+    private static uint NeubauPlatzSaat(Vector3 ort)
+    {
+        unchecked
+        {
+            var h = (uint)Mathf.RoundToInt(ort.X * 2) * 0x9E3779B1u ^ ((uint)Mathf.RoundToInt(ort.Z * 2) + 0x7F4A7C15u) * 0x85EBCA6Bu;
+            h ^= h >> 15; h *= 0xC2B2AE35u; h ^= h >> 13;
+            return h;
+        }
+    }
+
+    /// <summary>Die Grundform des Wohnhauses auf einem Platz: mit <c>--neubauform</c> die gewählte, sonst fest zufällig aus dem Platz.</summary>
+    private static int NeubauGrundform(Vector3 platz) => NeubauFormFest > 0 ? NeubauFormFest : 1 + (int)(NeubauPlatzSaat(platz) % NeubauGrundformen);
+
+    /// <summary>
+    /// Welche Datei für das Wohnhaus eingesetzt wird: mit <c>--neubauprobe=1</c> das neue Haus in der Grundform des Platzes und der Stufe
+    /// des Katalogmodells (Fachwerkhaus, Bürgerhaus, Steinhaus) statt des bisherigen Modells.
+    /// </summary>
+    /// Stufen 2 und 3: nur, wenn die Grundform schon gebaut ist (sonst bleibt das bisherige Modell).
+    private static string NeubauModell(string datei, Vector3 platz)
+    {
+        if (!NeubauProbeAn || !NeubauStufen.TryGetValue(datei, out var stufe)) return datei;
+        if (NeubauStufeFest > 0) stufe = NeubauStufeFest;
+        var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe);
+        return stufe == 1 || ResourceLoader.Exists($"res://assets/modelle/{neu}.glb") ? neu : datei;
+    }
 
     private static T NeubauTextur<T>(string name) where T : Resource => GD.Load<T>(NeubauTexturen + name);
 
@@ -64,20 +108,38 @@ public partial class Stadtansicht
     private static string NeubauGruppe(string datei)
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
+        if (WohnraumGruppe(name) is { } raeume) return raeume; // Hinterzimmer, Bibliothek: eigene Gruppe (Stadtansicht.Wohnraeume.cs)
         var innen = name.EndsWith("_innen");
         if (name.StartsWith("rathaus")) return innen ? "rathaus_innen" : "rathaus"; // Rathaus: Hülle und sieben Räume (Stadtansicht.Rathausneubau.cs)
         if (innen) name = name[..^"_innen".Length];
+        var stufe = System.Text.RegularExpressions.Regex.Match(name, "_s(\\d+)_g\\d+$") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
-        return innen ? name + "_innen" : name;
+        // die Hüllen von Bürgerhaus und Steinhaus haben je einen eigenen AO-Atlas mit größeren Zellen (tools/modelle/neubau/ao_atlas.json)
+        return innen ? name + "_innen" : stufe >= 2 ? $"{name}_s{stufe}" : name;
     }
 
-    /// <summary>Das Trim-Material einer Gruppe: Trim-Sheet (außen oder innen) und der AO-Atlas der Gruppe.</summary>
+    /// <summary>
+    /// Das Trim-Sheet eines Modells: Stufe 1 <c>trim</c> bzw. <c>innen_trim</c>, Stufen 2 und 3 <c>trim_s2</c>, <c>trim_s3</c> bzw.
+    /// <c>innen_trim_s23</c> (gleiche Bänder, Ziegel bzw. Schiefer statt Stroh; tools/modelle/neubau/trimsheet_stufen.py), die Räume
+    /// <c>raeume_innen_trim</c> (Stadtansicht.Wohnraeume.cs). Der AO-Atlas bleibt der der Gruppe.
+    /// </summary>
+    private static string NeubauBlatt(string datei)
+    {
+        var name = datei[(datei.LastIndexOf('/') + 1)..];
+        if (WohnraumGruppe(name) is not null) return "raeume_innen_trim";
+        if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
+        var innen = name.EndsWith("_innen");
+        var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
+        return stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}";
+    }
+
+    /// <summary>Das Trim-Material einer Gruppe und eines Trim-Sheets: Trim-Sheet (außen oder innen) und der AO-Atlas der Gruppe.</summary>
     private ShaderMaterial NeubauStoff(string datei)
     {
         var gruppe = NeubauGruppe(datei);
-        if (_neubauStoffe.TryGetValue(gruppe, out var stoff)) return stoff;
-        var innen = gruppe.EndsWith("_innen");
         var blatt = NeubauBlatt(datei);
+        if (_neubauStoffe.TryGetValue(gruppe + "|" + blatt, out var stoff)) return stoff;
+        var innen = gruppe.EndsWith("_innen");
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
         stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + gruppe };
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
@@ -91,15 +153,7 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("stein_baender", new Vector4(stein.A0, stein.A1, stein.B0, stein.B1));
         if (float.TryParse(NeubauOption("--steinmip"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var steinMip))
             stoff.SetShaderParameter("stein_mip", steinMip);                             // Prüfhilfe: Mip-Zuschlag der Steinbänder vergleichen (Standard im Shader 1)
-        return _neubauStoffe[gruppe] = stoff;
-    }
-
-    /// <summary>Das Trim-Sheet eines Modells: Wohnhäuser „trim“/„innen_trim“, das Rathaus seine eigenen (Schiefer, Quader, Steinplatten).</summary>
-    private static string NeubauBlatt(string datei)
-    {
-        var gruppe = NeubauGruppe(datei);
-        var innen = gruppe.EndsWith("_innen");
-        return gruppe.StartsWith("rathaus") ? (innen ? "rathaus_innen_trim" : "rathaus_trim") : (innen ? "innen_trim" : "trim");
+        return _neubauStoffe[gruppe + "|" + blatt] = stoff;
     }
 
     /// <summary>Pixel-Look an oder aus: die Trim-Materialien lesen eine gröbere Mip-Stufe (aus Stadtansicht.Oberflaechendetails.cs).</summary>
@@ -135,8 +189,8 @@ public partial class Stadtansicht
     /// </summary>
     public static bool NeubauOhneHinterzimmer(Konto? konto) => NeubauProbeAn && konto is { WohnhausStufe: 0 };
 
-    /// <summary>Ist das die Haustür von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
-    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstRathausTuer(kennung);
+    /// <summary>Ist das die Haustür (oder eine Zimmertür, Stadtansicht.Wohnraeume.cs; oder eine Rathaustür) von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
+    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstWohnraumTuer(kennung) || IstRathausTuer(kennung);
 
     private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
 
@@ -183,7 +237,7 @@ public partial class Stadtansicht
         var blatt = NeubauBlatt(datei);
         var trim = NeubauStoff(datei);
         var ort = modell.GlobalPosition;
-        var saat = (uint)HashCode.Combine(Mathf.RoundToInt(ort.X * 2), Mathf.RoundToInt(ort.Z * 2));
+        var saat = NeubauPlatzSaat(ort);
         var putz = NeubauPutz[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
@@ -236,11 +290,17 @@ public partial class Stadtansicht
     /// </summary>
     private ShaderMaterial NeubauGlas() => _neubauButzenglas ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/butzenglas.gdshader"), ResourceName = "Innenglas" };
 
+    private const string NeubauDateiMeta = "neubau_datei";
+
     /// <summary>Merkt das Haus zu seiner Kennung (aus <see cref="SpielhausModell"/>), damit die Innenansicht es findet.</summary>
     private void NeubauMerken(string? kennung, string datei, ModellInstanz? instanz)
     {
         if (kennung is null || instanz is null) return;
-        if (datei.StartsWith(NeubauOrdner)) _neubauHaeuser[kennung] = instanz.Wurzel;
+        if (datei.StartsWith(NeubauOrdner))
+        {
+            _neubauHaeuser[kennung] = instanz.Wurzel;
+            instanz.Wurzel.SetMeta(NeubauDateiMeta, datei); // welche Grundform hier steht: ihr Innenraum ist „<datei>_innen“
+        }
         else _neubauHaeuser.Remove(kennung);
     }
 
@@ -260,9 +320,11 @@ public partial class Stadtansicht
             return true;
         }
         Node3D? haus = null;
-        var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && _raum == _innen.Raeume[0]
+        var wohnraum = IstWohnraum(_raum?.Kennung); // Hinterzimmer oder Bibliothek (Stadtansicht.Wohnraeume.cs)
+        var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && (_raum == _innen.Raeume[0] || wohnraum)
                    && _neubauHaeuser.TryGetValue(_innen.Kennung, out haus) && IsInstanceValid(haus);
-        if (soll) NeubauInnenAn(haus!);
+        if (soll && wohnraum) WohnraumAn(haus!, _raum!.Kennung);
+        else if (soll) NeubauInnenAn(haus!);
         else NeubauInnenAus();
         return soll;
     }
@@ -272,11 +334,13 @@ public partial class Stadtansicht
         var wurzel = haus.GetNodeOrNull<Node3D>("InteriorRoot");
         if (wurzel is null)
         {
-            if (Modell(NeubauWohnhaus + "_innen") is not { } szene) return;
+            var innenDatei = (haus.HasMeta(NeubauDateiMeta) ? haus.GetMeta(NeubauDateiMeta).AsString() : NeubauWohnhaus) + "_innen"; // der Raum der Grundform dieses Hauses
+            if (Modell(innenDatei) is not { } szene) return;
             wurzel = szene.Instantiate<Node3D>();
             wurzel.Name = "InteriorRoot";
             haus.AddChild(wurzel);
-            NeubauEinkleiden(NeubauWohnhaus + "_innen", wurzel);
+            GD.Print($"[neubau] Wohnstube aus {innenDatei}");
+            NeubauEinkleiden(innenDatei, wurzel);
             NeubauInnenBeleben(wurzel);
             // Herdfeuer und ein schwaches Grundlicht unter dem Dach (ohne Schatten): sonst ist der Raum hinter den kleinen Fenstern schwarz
             if (wurzel.FindChild("Licht_Herd", true, false) is Node3D herd)
@@ -334,8 +398,14 @@ public partial class Stadtansicht
         }
         Vector3? Ort(string name) => wurzel.FindChild(name, true, false) is Node3D n ? wurzel.ToLocal(n.GlobalPosition) : null;
         if (Ort("Feuer_Herd") is { } feuer)
-            foreach (var dz in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
-                FlammeAnlegen(a, feuer + new Vector3(-0.18f, 0, dz) - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
+        {
+            // Der Herd steht je Grundform an einer anderen Wand: „Licht_Herd“ liegt vom Feuer aus zum Raum hin
+            var zumRaum = Ort("Licht_Herd") is { } licht ? new Vector3(licht.X - feuer.X, 0, licht.Z - feuer.Z) : Vector3.Left;
+            zumRaum = zumRaum.LengthSquared() > 1e-6f ? zumRaum.Normalized() : Vector3.Left;
+            var quer = new Vector3(-zumRaum.Z, 0, zumRaum.X);
+            foreach (var d in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
+                FlammeAnlegen(a, feuer + zumRaum * 0.18f + quer * d - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
+        }
         // Gegenstände statt Reiterfenster: jeder Knoten „Gegenstand_<Name>“ bekommt eine Klickfläche um sein Netz, ein Namensschild
         // und leuchtet auf, solange die Maus darüber steht; der Klick öffnet seine Tafel (NeubauGegenstandVon, Hauptszene.RaumAngeklickt)
         var gegenstaende = new List<(string Kennung, MeshInstance3D Teil, Label3D Schild)>();
@@ -376,6 +446,7 @@ public partial class Stadtansicht
             hinaus.Disabled = false;
             a.Raumklicks.Add(hinaus);
         }
+        WohnraumTuerenAnlegen(a, wurzel); // Zimmertüren zu Hinterzimmer und Bibliothek, nur wenn gebaut (Stadtansicht.Wohnraeume.cs)
 
         // Plätze der Familie aus dem Modell: Lage und Blickrichtung des Ankers, Haltung aus seinen extras („sitzt“, „ruehrt“,
         // „spielt“). Der Figuren-Baukasten braucht nur diese Liste (Reihenfolge: Oberhaupt, Ehepartner, Kinder).
@@ -497,8 +568,10 @@ public partial class Stadtansicht
             for (var i = 0; i < 16; i++)
             {
                 var (spalte, zeile) = (i % 4, i / 4);
-                var datei = teile[0] switch { "neu" => NeubauWohnhaus, "beide" => spalte < 2 ? AltesWohnhaus : NeubauWohnhaus, _ => AltesWohnhaus };
                 var mitte = ort + new Vector3((spalte - 1.5f) * 8.5f, 0, (zeile - 1.5f) * 11f);
+                // Ohne --neubauform steht je Spalte eine Grundform (1 bis 4), bei „beide“ in den zwei neuen Spalten je Haus die nächste
+                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1, NeubauStufeFest > 0 ? NeubauStufeFest : 1);
+                var datei = teile[0] switch { "neu" => neu, "beide" => spalte < 2 ? AltesWohnhaus : neu, _ => AltesWohnhaus };
                 var g = new Node3D { Name = $"Neubaureihe_{i}", Position = AufFundament(mitte, 0, new Vector2(8, 10)) };
                 AddChild(g);
                 GruppenSockel(g, 0, new Vector2(8, 10)); // am Hang ein Bruchsteinsockel wie bei den Spielhäusern (Stadtansicht.Gelaende.cs)

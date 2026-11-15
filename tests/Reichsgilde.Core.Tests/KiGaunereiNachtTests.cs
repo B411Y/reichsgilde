@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class KiGaunereiNachtTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneRaeume());
     static readonly Lazy<Wirtschaftsdaten> Echt = new(() => Wirtschaftsdaten.AusJson(Json.Value));
     static readonly Lazy<Wirtschaftsdaten> EinVersuch = new(() => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(Json.Value)));
 

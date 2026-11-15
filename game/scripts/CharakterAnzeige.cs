@@ -144,7 +144,7 @@ public partial class CharakterAnzeige : PanelContainer
 
         daten.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         Hauptmenue.Text(daten, "Talente", 17, Gold);
-        foreach (var t in TalentTexte.Alle) TalentZeile(daten, p, t);
+        foreach (var t in TalentTexte.Alle) TalentZeile(daten, w, p, t);
 
         if (buch.HatLebensweg(p)) ReiterBauen(buch, p); // Reiter „Züge und Familie“ / „Lebensweg“ (Lebensweise, Teil 3a)
 
@@ -181,7 +181,7 @@ public partial class CharakterAnzeige : PanelContainer
         eltern.AddChild(spalte);
     }
 
-    private void TalentZeile(Container eltern, Person p, Talent t)
+    private void TalentZeile(Container eltern, Stadtwirtschaft w, Person p, Talent t)
     {
         var anlage = p.Anlage(t);
         var jetzt = p.Talent(t);
@@ -197,7 +197,7 @@ public partial class CharakterAnzeige : PanelContainer
             diff > 0.01 ? Gruen : diff < -0.01 ? Rot : null);
         zahl.MouseFilter = MouseFilterEnum.Ignore;
 
-        var tipp = $"{t.Name()}: {TalentTexte.Sterne(jetzt)} von 6 Sternen\nAnlage {TalentTexte.Sterne(anlage)}";
+        var tipp = TalentTipp.Text(w, p, t) + $"\nAnlage {TalentTexte.Sterne(anlage)}";
         foreach (var z in p.Zuege.Where(z => Math.Abs(z.Talent(t)) > 1e-9))
             tipp += $"\n{z.Name} {(z.Talent(t) > 0 ? "+" : "−")}{TalentTexte.Sterne(Math.Abs(z.Talent(t)))}";
         if (p.Krankheit is { } k && k.Abzug(t) > 0) tipp += $"\n{k.Name} −{TalentTexte.Sterne(k.Abzug(t))}";
@@ -274,8 +274,42 @@ public partial class CharakterAnzeige : PanelContainer
         var tipp = $"{z.Name} ({z.Artname})";
         if (z.Beschreibung != "") tipp += "\n" + z.Beschreibung;
         if (z.Wirkungstext != "") tipp += "\nWirkung: " + z.Wirkungstext;
+        if (z.Meinungstext != "") tipp += "\nMeinung: " + z.Meinungstext;
         if (z.Gegenteil is { } g) tipp += $"\nGegenteil: {w.Familien.Zug(g)?.Name ?? g}";
+        if (z.IstVersehrung) tipp += VersehrungText(w, z);
         return tipp + "\nMehr zu [[charakterzuege|Charakterzügen]].";
+    }
+
+    /// <summary>
+    /// Bleibende Versehrung: woher sie kommt (die Anlässe und ihre Chancen aus den Daten des Kerns), dass sie bleibt, und was sie verdrängt.
+    /// Die Zahlen färbt der Tooltip selbst.
+    /// </summary>
+    private static string VersehrungText(Stadtwirtschaft w, Charakterzug z)
+    {
+        var ursachen = z.Daten.Anlaesse.Select(a => $"{AnlassName(w, a.Key)} {Zahlenformat.Ganz(a.Value * 100)} %").ToList();
+        var text = ursachen.Count > 0 ? $"\nUrsache: {string.Join(", ", ursachen)}." : "";
+        text += "\nBleibt fürs Leben.";
+        if (z.Daten.Verdraengt.Count > 0) text += $" Nimmt {string.Join(", ", z.Daten.Verdraengt.Select(k => w.Familien.Zug(k)?.Name ?? k))}.";
+        if (z.Daten.Anlaesse.ContainsKey("ueberstanden:Knochenbruch")) text += " Ein Medicus beim Knochenbruch verhindert es.";
+        return text;
+    }
+
+    private static string AnlassName(Stadtwirtschaft w, string anlass)
+    {
+        var teile = anlass.Split(':', 2);
+        var wert = teile.Length > 1 ? teile[1] : "";
+        return teile[0] switch
+        {
+            "jahr" => "mit den Jahren",
+            "einbruch" => "Einbruch ins Wohnhaus",
+            "brand" => "Brandstiftung am Wohnhaus",
+            "blitz" => "Brand durch Blitz",
+            "kerker" => "Kerker",
+            "entfuehrung" => "Entführung (frei gegen Lösegeld)",
+            "ueberstanden" => wert == "Knochenbruch" ? "Knochenbruch ohne Medicus geheilt" : $"{wert} überstanden",
+            "unglueck" => wert == "Zechen" ? "Rauferei beim Zechen" : $"Unglück bei {wert}",
+            _ => anlass,
+        };
     }
 
     /// <summary>

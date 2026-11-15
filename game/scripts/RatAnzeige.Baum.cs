@@ -55,8 +55,10 @@ public partial class RatAnzeige
         }
 
         // ── Der Baum ──
-        _baum = new RatBaumAnzeige { SizeFlagsHorizontal = SizeFlags.ShrinkCenter };
-        _inhalt.AddChild(_baum);
+        _baum = new RatBaumAnzeige();
+        var flaeche = RatStil.Pergament(_inhalt); // der Baum liegt auf Pergament (Holzschnitt)
+        flaeche.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        flaeche.AddChild(_baum);
         _baum.Aufbauen(w, _spieler!, _gewaehlt);
         _baum.AmtGewaehlt += amt =>
         {

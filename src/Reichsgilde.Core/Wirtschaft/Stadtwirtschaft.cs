@@ -184,19 +184,31 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Folgen der Jahreszeit: Winter, Eis auf dem Fluss, Ernte, Schlamm, Festmärkte (Abschnitt „jahreszeiten“, Datenversion 69).</summary>
     public Jahreszeitenwesen Jahreszeiten { get; }
 
+    /// <summary>Erntejahr und Teuerung: Güte jeder Ernte, Ansage ein Jahr vorher, Preis der Getreidewaren (Abschnitt „ernte“, Datenversion 91).</summary>
+    public Erntewesen Ernte { get; }
+
+    /// <summary>Lagen aller Rohstoffquellen, die Ernte zuerst: Preis der Waren, Ertrag der eigenen Umlandbetriebe (Abschnitt „lagen“, Datenversion 92).</summary>
+    public Lagenwesen Lagen { get; }
+
+    /// <summary>„Härte der Zeit“ der Partie (aus den <see cref="Partie.Partieeinstellungen"/>): wie oft und wie stark gute und schlechte Ernten kommen.</summary>
+    public HaerteDerZeit HaerteDerZeit { get; init; } = HaerteDerZeit.Ueberliefert;
+
+    /// <summary>Die Klappbrücke über den Rhein: offen für das Zierschiff, Karren darüber warten (Abschnitt „logistik.klappbruecke“, Datenversion 90).</summary>
+    public Klappbruecke Klappbruecke { get; }
+
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
     public Bauen.Stadtkarte? Karte { get; private set; }
 
     /// <summary>
-    /// Legt die Karte der Stadt fest (einmal, gleich nach dem Erzeugen). Häuser, die es schon gibt, bekommen ihre Startplätze in Konto-Reihenfolge.
+    /// Legt die Karte der Stadt fest (einmal, gleich nach dem Erzeugen). Wo die Häuser wohnen und arbeiten, sagt die Karte nicht mehr
+    /// (15.11.2026, „nur noch Bauzonen“): Das lost der Aufbau der Partie in den Bauzonen (<see cref="Partie.Startortlos"/>).
     /// </summary>
     public void KarteSetzen(Bauen.Stadtkarte karte)
     {
         if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
         Karte = karte;
+        karte.KlappbrueckeSetzen(Daten.Logistik.Klappbruecke?.Gewaesser);
         Kasse.KarteGesetzt(karte.Kennung);
-        for (var i = 0; i < _konten.Count; i++)
-            Bauen.StartplatzVergeben(_konten[i], i);
     }
 
     /// <summary>Völkerbonus als Faktor auf die Leistung: 1 + Bonus des Berufs für das Volk des Oberhaupts (1 ohne Familie).</summary>
@@ -441,6 +453,9 @@ public sealed partial class Stadtwirtschaft
         Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
         Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
         Jahreszeiten = new Jahreszeitenwesen(this, daten.Jahreszeiten, zufallsstartwert);
+        Ernte = new Erntewesen(this, daten.Ernte, daten.Lagen, zufallsstartwert);
+        Lagen = new Lagenwesen(this, daten.Lagen, Ernte, zufallsstartwert);
+        Klappbruecke = new Klappbruecke(this);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
@@ -469,6 +484,7 @@ public sealed partial class Stadtwirtschaft
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
         Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 69)
+        Lagen.MarktSetzen(); // Lagen aller Rohstoffquellen auf ihre Waren, die Ernte zuerst (Datenversion 91/92)
         Schiffahrt.MarktSetzen(); // Landhandel, solange der Schiffshandel ruht (Datenversion 70)
     }
 
@@ -479,7 +495,6 @@ public sealed partial class Stadtwirtschaft
         if (HatAktionspunkte)
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
-        Bauen.StartplatzVergeben(konto, _konten.Count - 1);
         return konto;
     }
 
@@ -507,6 +522,7 @@ public sealed partial class Stadtwirtschaft
             return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.TalentOhneZuege(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
         if (befehl is MeisterpruefungAblegen m)
             return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
+        if (befehl is BauBefehl && Bauen.StartwahlVon(konto) is not null) return 0; // Startform (Platz von Wohnhaus und Werkstatt wählen): kostenlos
         if (Befugnisse.OhneAktionspunkte(konto, befehl)) return 0; // Kämmerer: Steuersatz; Bürgermeister: ein Antrag im Jahr
         if (befehl is Aktivitaet aktivitaet && HatAktionspunkte) return Meinungen.ApKosten(konto, aktivitaet.Art); // Jagdgesellschaft (Lebensweise)
         return ApKosten(befehl);
@@ -645,6 +661,8 @@ public sealed partial class Stadtwirtschaft
         Entscheidungen.Minute(zeit); // am Tickanfang, nach den Befehlen dieser Minute: Fragen abgleichen, Fristen ablaufen lassen
         EinwohnerZaehlen();
         Jahreszeiten.Minute(zeit); // Meldungen zur Jahreszeit; im Eis ruhen die Schiffe (vor Karren und Schiffen dieser Minute)
+        Ernte.Minute(zeit); // Ansage der Ernte (Sommerjahr) bzw. die Ernte selbst (Herbstjahr)
+        Lagen.Minute(zeit); // Ansage bzw. Beginn der Lagen der anderen Rohstoffquellen (Datenversion 92)
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)
@@ -660,7 +678,8 @@ public sealed partial class Stadtwirtschaft
             if (IstArbeitszeit(betrieb, zeit))
             {
                 var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
-                betrieb.Arbeitsminute(_stillstandMelden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb), volk);
+                betrieb.Arbeitsminute(_stillstandMelden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb)
+                    * Lagen.Ertragsfaktor(betrieb), volk);
             }
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los – um 20 Uhr und, mit gauner.nachtVersuche, zu jeder vollen
@@ -856,6 +875,7 @@ public sealed partial class Stadtwirtschaft
         if (ApFehlen(absender, befehl, out var kosten))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
         var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
+        var startform = befehl is BauBefehl && Bauen.StartwahlVon(absender) is not null; // die Platzwahl am Start ist keine Tat (kein Stress)
         var stress = Familien.StressVorschau(absender, befehl); // vorher: was der Befehl bewirkt, hängt am Stand davor (Ausbau zum …)
         var ergebnis = Bearbeiten(absender, befehl);
         if (ergebnis.Erfolg && kosten > 0)
@@ -863,7 +883,7 @@ public sealed partial class Stadtwirtschaft
             absender.Aktionspunkte.Ausgeben(kosten);
             Familien.TatGebucht(absender, befehl, kosten); // Lebensweise: Taten des aktiven Pfads
         }
-        if (ergebnis.Erfolg && stress.Count > 0)
+        if (ergebnis.Erfolg && stress.Count > 0 && !startform)
             Familien.StressBuchen(stress); // Stress (Teil 3b): Taten gegen den Charakter, Ventile
         if (ergebnis.Erfolg && frei)
             Befugnisse.AntragGestellt(absender, befehl);
@@ -885,6 +905,8 @@ public sealed partial class Stadtwirtschaft
                                                                      or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
+        if (Wohnen.BefehlOhneRaum(absender, befehl) is { } ohneRaum) // Räume je Stufe: z. B. Banden nur mit Hinterzimmer
+            return Befehlsergebnis.Abgelehnt(ohneRaum);
         if (befehl is EntscheidungTreffen entscheidung)
             return Entscheidungen.Treffen(absender, entscheidung.Nummer, entscheidung.Wahl);
         if (befehl is StandErwerben)
@@ -895,6 +917,8 @@ public sealed partial class Stadtwirtschaft
             return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
         if (befehl is WohnhausEinrichtungKaufen wohnEinrichtung)
             return Wohnen.EinrichtungKaufen(absender, wohnEinrichtung.Kennung);
+        if (befehl is RaumAnbauen raum)
+            return Wohnen.RaumAnbauen(absender, raum.Raum);
         if (befehl is LiegenschaftErwerben liegenschaft)
             return LiegenschaftErwerbenAusfuehren(absender, liegenschaft.Name);
         if (befehl is BauBefehl bau)
@@ -1333,7 +1357,7 @@ public sealed partial class Stadtwirtschaft
         ZufallWuerfe = _zufall.Wuerfe,
         ReihenfolgeWuerfe = _reihenfolge.Wuerfe,
         Konten = _konten.Select(k => k.Sichern()).ToList(),
-        Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto))).ToList(),
+        Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto), Uhr.VergangeneMinuten / Spielzeit.MinutenProTag)).ToList(),
         Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),

@@ -11,10 +11,10 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für Gesundheit: Krankheiten, Pest, Medicus, Kräuterschnaps, Krötenschleim.</summary>
 static class GesundheitTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()));
 
     /// <summary>Krötenschleim gelingt immer – so hängt der Test nicht am Zufall.</summary>
-    static readonly Lazy<Wirtschaftsdaten> SichererSchleim = new(() => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(File.ReadAllText(Datenpfad.Wirtschaft()))
+    static readonly Lazy<Wirtschaftsdaten> SichererSchleim = new(() => Wirtschaftsdaten.AusJson(Datenpfad.EinVersuchJeNacht(Datenpfad.OhneRaeume())
         .Replace("\"kroetenschleim\": { \"kosten\": 200, \"chance\": 0.6,", "\"kroetenschleim\": { \"kosten\": 200, \"chance\": 1.0,")
         .Replace("\"zeugenChance\": 0.25", "\"zeugenChance\": 0")));
 
@@ -45,7 +45,7 @@ static class GesundheitTests
             Pruefe.Wahr(g.Pest is not null, "keine Pest");
             Pruefe.Wahr(Daten.Value.Waren.ContainsKey(g.Schnaps), "Schnaps fehlt auf dem Markt");
             Pruefe.Wahr(g.Pest!.Anfaelligkeit(Volk.Elb) < g.Pest.Anfaelligkeit(Volk.Mensch), "Elben sind weniger anfällig");
-            var json = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"Ruhr\", \"Lungenentzündung\", \"Haarausfall\"", "\"Ruhr\", \"Schnupfen\", \"Haarausfall\"");
+            var json = Datenpfad.OhneRaeume().Replace("\"Ruhr\", \"Lungenentzündung\", \"Haarausfall\"", "\"Ruhr\", \"Schnupfen\", \"Haarausfall\"");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "„Schnupfen“ gibt es nicht");
         }),
 

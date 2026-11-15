@@ -101,6 +101,10 @@ public partial class Stadtansicht
         // Markt v3 (Stadtansicht.Marktbummel.cs): von Ziel zu Ziel über den Platz
         /// <summary>Geht sie gerade auf dem Markt von einer Stelle zur nächsten (ein Weg der Darstellung, nicht des Kerns)?</summary>
         public bool ImBummel { get; set; }
+        /// <summary>Hafenarbeit (Stadtansicht.Hafenarbeit.cs): der Weg über das Gassennetz zum Ziel von <see cref="HinGehen"/> (Wegpunkte), das Ziel, für das er gilt, und der nächste Punkt.</summary>
+        public List<Vector3>? HafenRoute { get; set; }
+        public Vector3 HafenRouteZiel { get; set; }
+        public int HafenRouteNaechster { get; set; }
         /// <summary>Wann (Spielminute) sie am Markt angekommen ist (−1 = noch nicht), das wievielte Ziel sie hat, bis wann die Pause dauert, seit wann sie an der Stelle steht und seit wann allein in der Gruppe (−1 = nicht allein).</summary>
         public long BummelAnkunft { get; set; } = -1;
         public int BummelZaehler { get; set; }
@@ -169,6 +173,8 @@ public partial class Stadtansicht
         _passantenUhr.Restart();
         FigurenBildVorbereiten(); // Sichtfeld und Bildrate der Figuren (Stadtansicht.Figuren.cs)
         ProbeStufeWaehlen();      // nur mit --passantenprobe: Skelett oder gebacken (Stadtansicht.Passantenprobe.cs)
+        FingerStufenWaehlen(delta); // Fingerknochen nah/mittel (Stadtansicht.FigurenLod.cs)
+        StoffFedernWaehlen();       // Rock und Kleid: die nächsten nahen Figuren federn (Stadtansicht.Stoff.cs)
         _figurenBewegt = 0;
         var sekunden = _simulation is { Takt.IstPausiert: false } ? delta : 0; // in der Pause stehen auch die Bewegungen still
         _bildSekunden = sekunden;
@@ -363,6 +369,8 @@ public partial class Stadtansicht
         PassantNahFolgen(delta); // nur mit --passantnah (Stadtansicht.Passantnah.cs)
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
+        BegehbarkeitPflegen(delta);
+        KollisionsprobeTakt(delta);
         _passantenBilder++;
         _profilBilder++;
         if (ProfilMessen)
@@ -637,6 +645,14 @@ public partial class Stadtansicht
             // v3: beim Losgehen von einer Stelle auf dem Markt dreht sie sich in die Gehrichtung, statt herumzuspringen
             if (p.ImBummel && strecke < 1.2f && p.Knoten.Visible) drehung = Mathf.LerpAngle(p.Knoten.Rotation.Y, drehung, (float)Math.Min(1, _bildSekunden * 6));
             p.Knoten.Rotation = new Vector3(0, drehung, 0);
+            // Wandabstand (14.11.2026): die seitliche Lage rückt zur Mittellinie zusammen, wenn der Körper sonst näher als 0,1 m an eine Wand käme
+            if (KollisionsFix && _begehbar is { } begehbar && versatz.LengthSquared() > 1e-6f)
+            {
+                var t0 = System.Diagnostics.Stopwatch.GetTimestamp();
+                var wandAnteil = begehbar.Anteil(hier.X, hier.Z, hier.X + versatz.X, hier.Z + versatz.Z);
+                if (wandAnteil < 1) { versatz *= wandAnteil; _begehbarGekuerzt++; }
+                _begehbarTicks += System.Diagnostics.Stopwatch.GetTimestamp() - t0; _begehbarAufrufe++;
+            }
             p.VersatzJetzt = versatz;
             p.RechtsJetzt = rechts;
             p.Geschwindigkeit = vorwaerts * wirklich;
@@ -863,7 +879,7 @@ public partial class Stadtansicht
             Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort,
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.TryGetValue(s, out var u) => Punkt3(u.Punkt),
             Stadtort.Markt => MarktFuer(e)?.Mitte ?? _markt,
-            Stadtort.Hafen when HafenLandpunkt() is { } kai => kai, // Hafenarbeit (Stadtansicht.Hafenarbeit.cs)
+            Stadtort.Hafen when HafenLandpunkt() is { } kai => HafenAnschliessen(kai), // Hafenarbeit (Stadtansicht.Hafenarbeit.cs)
             _ => _markt,
         };
         return _netz.KnotenBei(punkt);
@@ -875,7 +891,7 @@ public partial class Stadtansicht
     /// (Netzweg plus Reststück entlang der Gasse). So läuft der ganze Weg auf Gassen, und die letzten Meter gehen nur an der Gasse entlang.
     /// Beide Enden auf demselben Stück: gerade am Stück entlang. Wird nur beim Planen gebaut; die Netzwege sind gemerkt.
     /// </summary>
-    private List<Vector3> GassenPfad(Weg weg, Einwohner e)
+    private List<Vector3> GassenPfad(Weg weg, Einwohner e, Vector3? vonEnde = null, Vector3? nachEnde = null)
     {
         var abmarsch = AbmarschZeit(weg, e);
         if (weg.Von.Ort == Stadtort.Gasse && weg.Nach.Ort == Stadtort.Gasse
@@ -883,8 +899,8 @@ public partial class Stadtansicht
             && (a.Von.IsEqualApprox(b.Von) && a.Bis.IsEqualApprox(b.Bis) || !SpurV1 && _netz.KanteBei(a.Punkt) is { } ka && ka == _netz.KanteBei(b.Punkt)))
             return new List<Vector3> { a.Punkt, b.Punkt }; // dasselbe Stück: das Netz wird nicht gebraucht
 
-        var anfaenge = Anlaeufe(weg.Von, e, abmarsch);
-        var enden = Anlaeufe(weg.Nach, e, weg.Ankunft);
+        var anfaenge = Anlaeufe(weg.Von, e, abmarsch, vonEnde);
+        var enden = Anlaeufe(weg.Nach, e, weg.Ankunft, nachEnde);
         if (!SpurV1) return _netz.PfadZwischen(anfaenge, enden)?.Pfad.ToList() ?? new List<Vector3>(); // alle Kombinationen in einem Durchgang
         List<Vector3>? beste = null;
         var bestes = float.MaxValue;
@@ -906,8 +922,21 @@ public partial class Stadtansicht
     /// Platz in der Gasse die beiden Enden des Wegstücks, auf dem man steht – des Stücks, wie das Netz jetzt ist (<see cref="Gassennetz.KanteBei"/>):
     /// Die gemerkten Gassen sind oft später an einer Einmündung geteilt worden, und über ihr fernes Ende ginge die Figur am Ziel erst vorbei und dann zurück.
     /// </summary>
-    private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt)
+    private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt, Vector3? ende = null)
     {
+        // Steht die Figur auf einem anderen Platz als dem ihres Hauses (alte Stelle, Rundgang), beginnt der Netzweg an dem Platz, auf dem sie wirklich steht –
+        // sonst entstünde eine Gerade quer durch die Stadt (Kollisionsprobe, 14.11.2026)
+        if (KollisionsFix && a.Ort == Stadtort.Markt && ende is { } punkt && NaechsterMarkt(punkt) is { } platz && platz != MarktFuer(e))
+            return new() { (_netz.KnotenBei(platz.Mitte), 0f) };
+        // Eine Umland-Stelle, die die Karte nicht hat (kein Feld, kein Wald), endet irgendwo auf einer Gasse (Verweilpunkt): Der Netzweg führt dorthin und nicht
+        // bis zur Marktmitte mit einer Geraden von dort (Kollisionsprobe 14.11.2026)
+        if (KollisionsFix && a.Ort == Stadtort.Umland && ende is { } umland && !(a.Stelle is { } stelle && _umlandstellen.ContainsKey(stelle)))
+        {
+            if (_netz.KanteBei(umland) is { } ku)
+                return new() { (ku.A, umland.DistanceTo(_netz.Knoten[ku.A])), (ku.B, umland.DistanceTo(_netz.Knoten[ku.B])) };
+            var nah = NaechsterNetzknoten(umland);
+            return new() { (nah, umland.DistanceTo(_netz.Knoten[nah])) };
+        }
         if (a.Ort != Stadtort.Gasse || GassenLage(e, zeitpunkt) is not { } lage) return new() { (Anlaufknoten(a, e), 0f) };
         if (!SpurV1 && _netz.KanteBei(lage.Punkt) is { } kante)
             return new() { (kante.A, lage.Punkt.DistanceTo(_netz.Knoten[kante.A])), (kante.B, lage.Punkt.DistanceTo(_netz.Knoten[kante.B])) };
@@ -940,17 +969,23 @@ public partial class Stadtansicht
     /// </summary>
     private Vector3[] PfadBauen(Weg weg, Einwohner e, Passant p, double abmarsch, double ankunft)
     {
-        var pfad = GassenPfad(weg, e);
+        Vector3? vonEnde = Draussen(weg.Von) ? StreckenEnde(weg.Von, e, p.AlteMarktstelle, AbmarschZeit(weg, e), abmarsch) : null;
+        Vector3? nachEnde = Draussen(weg.Nach) ? StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft) : null;
+        var pfad = GassenPfad(weg, e, vonEnde, nachEnde);
+        if (Wasserarten.Startoption("kollisionsprobe") is "1" && pfad.Count <= 2 && vonEnde is { } v0 && nachEnde is { } n0 && v0.DistanceTo(n0) > 25f)
+            GD.Print($"[kp] KURZ Netzpfad {pfad.Count} Punkte ({string.Join(" ", pfad.Select(q => $"{q.X:0},{q.Z:0}"))}) von {v0.X:0},{v0.Z:0} nach {n0.X:0},{n0.Z:0}, {weg.Von.Ort}>{weg.Nach.Ort} {weg.Nach.Stelle}; Anlauf Nach {string.Join(" ", Anlaeufe(weg.Nach, e, weg.Ankunft, nachEnde).Select(a => $"{_netz.Knoten[a.Knoten].X:0},{_netz.Knoten[a.Knoten].Z:0}"))}");
         if (pfad.Count == 0) return Array.Empty<Vector3>();
-        if (Draussen(weg.Von)) pfad.Insert(0, StreckenEnde(weg.Von, e, p.AlteMarktstelle, AbmarschZeit(weg, e), abmarsch));
+        if (vonEnde is { } vorn) pfad.Insert(0, vorn);
         else if (TuerVon(weg.Von) is { } ausgang) pfad.Insert(0, ausgang); // kommt aus der Tür des Modells (mit der Höhe der Stufen)
-        if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft));
+        if (nachEnde is { } hinten) pfad.Add(hinten);
         else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
         if (!SpurV1) pfad = OhneUmkehr(pfad); // nirgends bis zu einem Knoten und auf derselben Linie zurück (Stadtansicht.Passantenwege.cs)
         // Markt v3: Der Weg über den Platz wird erst kurz vor dem Losgehen gesucht (PlatzNachplanen) – zur vollen Stunde bekommen sonst alle zugleich einen Weg
         p.PlatzOffen = !MarktV2 && BeruehrtPlatz(pfad);
         p.PfadBeginntAufPlatz = p.PlatzOffen && AufDemPflaster(pfad[0]);
-        return p.PlatzOffen ? pfad.ToArray() : UeberDenPlatz(pfad, p.Nummer).ToArray();
+        var ergebnis = p.PlatzOffen ? pfad.ToArray() : UeberDenPlatz(pfad, p.Nummer).ToArray();
+        PfadPruefen(ergebnis, p.Nummer);
+        return ergebnis;
     }
 
     /// <summary>
@@ -1126,109 +1161,55 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     // ── Tracht ──────────────────────────────────────────────────────────────
-    // Kopfbedeckungen und Lasten sind Trachtteile der Figurmodelle (figur_<volk>.glb); das Spiel blendet sie je Rolle ein.
-
-    private enum Kopfbedeckung { Keine, Strohhut, Barett, Kapuze, Haube, Schleier, Eisenhut }
-    private enum Last { Keine, Kiepe, Buendel, Tasche, Stab, Hellebarde }
-
-    /// <summary>Tracht einer Rolle: Gewandfarbe, Kopfbedeckung, was sie trägt, ob sie eine Schürze hat und gebeugt geht.</summary>
-    private sealed record PassantenTracht(Color Gewand, Kopfbedeckung Kopf, Last Last, bool Schuerze = false, bool Gebeugt = false, Color? Kopffarbe = null);
+    // Tracht und Aussehen kommen aus dem Figuren-Baukasten (FigurenBaukasten.cs, Godot-Seite Stadtansicht.Baukasten.cs): ein Katalog für alle Figuren.
 
     private static readonly Color Leinenfarbe = new(0.78f, 0.74f, 0.64f);
     private static readonly Color Schwarz = new(0.12f, 0.11f, 0.12f);
 
-    /// <summary>
-    /// Die Tracht nach Rolle (Schlüssel wie im Kern, z. B. „Knecht“ auch für die Magd). Woran man jemanden erkennt:
-    /// Ratsherr roter Mantel und Barett, Mönch braune Kutte mit Kapuze (Nonne schwarz mit weißem Schleier), Bettler graue
-    /// Lumpen und gebeugt, Hirte Stab und Strohhut, Feldarbeiter Strohhut, Holzsammler Reisigbündel, Krämer Kiepe,
-    /// Bote blaues Wams mit Tasche, Knecht und Magd Schürze, Verwitwete schwarz, Bürgerkinder kräftige Farben mit Barett.
-    /// </summary>
-    private static PassantenTracht TrachtVon(Einwohner e)
-    {
-        var frau = e.Geschlecht == Geschlecht.Frau;
-        var farbe = Gewandfarben[e.Nummer * 7 % Gewandfarben.Length];
-        return e.Rolle switch
-        {
-            "Ratsherr" => new PassantenTracht(new Color(0.55f, 0.12f, 0.12f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
-            "Bürgersohn" => new PassantenTracht(frau ? new Color(0.45f, 0.22f, 0.50f) : new Color(0.18f, 0.30f, 0.58f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
-            "Mönch" => frau ? new PassantenTracht(Schwarz, Kopfbedeckung.Schleier, Last.Keine, Kopffarbe: new Color(0.92f, 0.92f, 0.88f))
-                            : new PassantenTracht(new Color(0.36f, 0.24f, 0.14f), Kopfbedeckung.Kapuze, Last.Keine),
-            "Bettler" => new PassantenTracht(new Color(0.36f, 0.35f, 0.33f), Kopfbedeckung.Keine, Last.Keine, Gebeugt: true),
-            "Witwer" => new PassantenTracht(Schwarz, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Schwarz),
-            "Hirte" => new PassantenTracht(new Color(0.40f, 0.36f, 0.24f), Kopfbedeckung.Strohhut, Last.Stab),
-            "Feldarbeiter" => new PassantenTracht(new Color(0.58f, 0.50f, 0.36f), Kopfbedeckung.Strohhut, Last.Keine),
-            "Holzsammler" => new PassantenTracht(new Color(0.42f, 0.30f, 0.20f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Buendel, Kopffarbe: Leinenfarbe),
-            "Krämer" => new PassantenTracht(new Color(0.24f, 0.42f, 0.26f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Kiepe, Kopffarbe: Leinenfarbe),
-            "Bote" => new PassantenTracht(new Color(0.20f, 0.32f, 0.62f), Kopfbedeckung.Keine, Last.Tasche),
-            "Torwächter" => new PassantenTracht(Stadtrot, Kopfbedeckung.Eisenhut, Last.Hellebarde, Kopffarbe: new Color(0.45f, 0.45f, 0.48f)), // wie TorwaechterAussehen
-            "Knecht" => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true, Kopffarbe: Leinenfarbe),
-            _ => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Leinenfarbe), // Tagelöhner und neue Rollen
-        };
-    }
-
-    /// <summary>Aussehen eines Einwohners: Gestalt nach Volk und Geschlecht, Tracht nach Rolle, Haar nach Volk (im Alter grau).</summary>
-    private FigurAussehen AussehenVon(Einwohner e, PassantenTracht tracht)
-    {
-        var haare = Haarfarben(e.Volk);
-        var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GrauAb;
-        return new FigurAussehen(e.Volk, e.Geschlecht == Geschlecht.Frau, tracht.Gewand, Beinkleidfarben[e.Nummer * 3 % Beinkleidfarben.Length],
-            HautVon(e.Volk), alt ? GrauesHaar : haare[e.Nummer % haare.Length], tracht.Kopffarbe ?? tracht.Gewand, tracht.Kopf, tracht.Last, tracht.Schuerze);
-    }
+    /// <summary>Das Rezept eines Einwohners aus dem Baukasten (Volk, Geschlecht, Alter, Erbgut, Rolle): draußen und drinnen dasselbe.</summary>
+    private FigurRezept RezeptVon(Einwohner e) => FigurenBaukasten.Von(e, _simulation?.Zeit.Jahr ?? 0);
 
     /// <summary>
-    /// Ein Einwohner sitzt drinnen (Dom): Gestalt, Gewand und Haut wie draußen, damit man ihn wiedererkennt.
+    /// Ein Einwohner sitzt drinnen (Dom): dasselbe Rezept wie draußen (Baukasten), damit man ihn wiedererkennt.
     /// Den Strohhut nimmt man in der Kirche ab; Kiepe, Bündel und Stab bleiben draußen.
     /// </summary>
     private Arbeiterfigur SitzendeFigur(InnenAnsicht a, Einwohner e, Arbeitsplatz platz)
     {
-        var tracht = TrachtVon(e);
-        var aussehen = AussehenVon(e, tracht) with { Last = Last.Keine, Kopf = tracht.Kopf == Kopfbedeckung.Strohhut ? Kopfbedeckung.Keine : tracht.Kopf };
-        var figur = SitzendBauen(a, platz, aussehen, e.Nummer);
+        var rezept = RezeptVon(e);
+        rezept = rezept with { Tracht = rezept.Tracht with { Last = Last.Keine, Kopf = rezept.Tracht.Kopf == Kopfbedeckung.Strohhut ? Kopfbedeckung.Keine : rezept.Tracht.Kopf } };
+        var figur = InnenFigurBauen(a, platz, rezept, "Sitzen", "Sitzen", DomSitzhoehe, vorderkante: DomSitzkante);
         a.Besucher.Add(figur);
         return figur;
     }
 
-    /// <summary>Gläubiger zur Messe im Dom (kein Einwohner): Volk und Gewand aus der Nummer, zunächst versteckt.</summary>
+    /// <summary>Gläubiger zur Messe im Dom (kein Einwohner): ein Statist des Baukastens, fest je Platz, zunächst versteckt.</summary>
     private Arbeiterfigur GlaeubigerBauen(InnenAnsicht a, Arbeitsplatz platz, int nummer)
     {
-        var figur = SitzendBauen(a, platz, AussehenAusNummer(nummer), 5000 + nummer);
+        var volk = (nummer % 4) switch { 1 => Volk.Zwerg, 2 => Volk.Elb, 3 => Volk.Halbling, _ => Volk.Mensch };
+        var figur = InnenFigurBauen(a, platz, FigurenBaukasten.Statist($"Dom:{nummer}", volk, Streuung(nummer, 53) % 2 == 0), "Sitzen", "Sitzen", DomSitzhoehe, vorderkante: DomSitzkante);
         figur.Koerper.Visible = false;
         a.Besucher.Add(figur);
         return figur;
     }
 
     /// <summary>Oberkante der Dombänke (Stadtansicht.Sonderbauten.cs): Darauf ruht die Hüfte der Sitzenden.</summary>
-    private const float DomSitzhoehe = 0.49f;
+    private const float DomSitzhoehe = FigurenBaukasten.Sitzflaeche;
 
-    /// <summary>Die sitzenden Figuren im Dom und ihr Körperknoten – bewegt werden sie nur, solange man hineinsieht (<see cref="SitzendeBewegen"/>).</summary>
+    /// <summary>Vorderkante der Dombänke vor der Sitzmitte (Bank 0,45 m tief): für das Vorrücken kleiner Völker.</summary>
+    private const float DomSitzkante = 0.225f;
+
+    /// <summary>Die Figuren des Baukastens in den Räumen aus Grundkörpern und ihr Körperknoten – bewegt werden sie nur, solange man hineinsieht (<see cref="SitzendeBewegen"/>).</summary>
     private readonly Dictionary<Node3D, Figur> _sitzende = new();
 
-    /// <summary>
-    /// Eine sitzende Figur auf einer Bank im Dom. Sie gibt sich als <see cref="Arbeiterfigur"/> aus, damit der Innenraum sie wie die übrigen
-    /// Besucher zeigt und wegräumt; der Arm ist ein leerer Knoten, denn das Modell bewegt sich selbst („Sitzen“).
-    /// </summary>
-    private Arbeiterfigur SitzendBauen(InnenAnsicht a, Arbeitsplatz platz, FigurAussehen aussehen, int nummer)
-    {
-        // Die Innenraumfiguren blicken bei Drehung 0 nach −Z, die Modelle nach +Z: eine halbe Drehung mehr.
-        var koerper = new Node3D { Position = a.Mitte + platz.Ort, Rotation = new Vector3(0, platz.Drehung + Mathf.Pi, 0) };
-        a.Innen!.AddChild(koerper);
-        var arm = new Node3D();
-        koerper.AddChild(arm);
-        if (FigurEinsetzen(koerper, aussehen, nummer) is { } figur)
-        {
-            BewegungSetzen(figur, "Sitzen");
-            koerper.Position += new Vector3(0, DomSitzhoehe - (figur.Kniehoehe - 0.02f), 0); // kleine Völker sitzen höher
-            _sitzende[koerper] = figur;
-        }
-        return new Arbeiterfigur(koerper, arm, nummer * 0.7f, Bewegung.Beten, Vector3.Zero);
-    }
-
-    /// <summary>Bewegt die sichtbaren Sitzenden im Dom, solange man hineinsieht (in der Pause nicht; „Sitzen“ ist langsam, also jedes dritte Bild).</summary>
+    /// <summary>Bewegt die sichtbaren Figuren der Grundkörper-Räume, solange man hineinsieht (in der Pause nicht; „Sitzen“ ist langsam, also jedes dritte Bild).</summary>
     private void SitzendeBewegen()
     {
         var sekunden = _simulation?.Takt.IstPausiert == true ? 0 : GetProcessDeltaTime();
+        List<Node3D>? weg = null;
         foreach (var (koerper, figur) in _sitzende)
-            if (koerper.Visible) FigurImBildBewegen(figur, null, sekunden);
+            if (!IsInstanceValid(koerper)) (weg ??= new()).Add(koerper); // mit dem Raum abgebaut (Kapseln und Innenfiguren aus dem Baukasten)
+            else if (koerper.IsVisibleInTree()) FigurImBildBewegen(figur, null, sekunden);
+        if (weg is not null) foreach (var k in weg) _sitzende.Remove(k);
     }
 
     /// <summary>Eine Figur steht auf: aus dem Dom entfernen.</summary>
@@ -1242,13 +1223,12 @@ public partial class Stadtansicht
     {
         var knoten = new Node3D { Name = $"Einwohner_{e.Nummer}", Visible = false };
         _passantenEbene!.AddChild(knoten);
-        var tracht = TrachtVon(e);
+        var rezept = RezeptVon(e);
+        var tracht = rezept.Tracht;
         var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GebeugtAb;
         var gebeugt = tracht.Gebeugt || alt;
-        var ki = !ProbeErsetztAlle && KiSchmiedFuer(e, tracht, gebeugt); // der KI-Schmied (Wunsch des Nutzers, 28.10.) bleibt neben den neuen Figuren
-        if (ki) _kiPassanten.Add(e.Nummer); // der KI-Schmied kann noch nicht sitzen (die Probefigur schon)
-        var figur = ProbeAktiv && !ki ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Figur mit Skelett, Weg A (Stadtansicht.Passantenprobe.cs)
-                               : FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
+        // Figur mit Skelett, Weg A (Stadtansicht.Baukasten.cs); der KI-Schmied unter den Passanten ist seit 14.11.2026 entfernt (Nutzer)
+        var figur = ProbeAktiv ? BaukastenProbeEinsetzen(knoten, rezept, innen: false) : FigurEinsetzen(knoten, AussehenAusRezept(rezept), rezept.Nummer);
         if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant
         {

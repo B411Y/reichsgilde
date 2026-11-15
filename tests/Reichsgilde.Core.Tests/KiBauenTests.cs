@@ -31,6 +31,7 @@ static class KiBauenTests
     static Konto Haus(Stadtwirtschaft w, string name, int stand, int wohnhaus, double vermoegen)
     {
         var k = w.KontoEroeffnen(name, startvermoegen: vermoegen);
+        w.Bauen.StartplatzVergeben(k, w.Konten.Count - 1); // wie in einem alten Spielstand: der Wohnhausplatz der Karte (ein Konto bekommt keinen mehr, 15.11.2026)
         k.Stand = stand;
         k.WohnhausStufe = wohnhaus;
         w.Wohnen.HauswertAktualisieren(k);
@@ -41,6 +42,7 @@ static class KiBauenTests
     static Konto Pleite(Stadtwirtschaft w, string name, int wohnhaus)
     {
         var tot = w.KontoEroeffnen(name);
+        w.Bauen.StartplatzVergeben(tot, w.Konten.Count - 1); // wie in einem alten Spielstand: der Wohnhausplatz der Karte
         tot.WohnhausStufe = wohnhaus;
         tot.IstBankrott = true;
         return tot;

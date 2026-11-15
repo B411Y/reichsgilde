@@ -11,12 +11,12 @@ namespace Reichsgilde;
 /// <list type="bullet">
 /// <item><b>Layout</b> (einfach und lehrreich): die Blätter bekommen von links nach rechts je eine Spalte, jedes Amt steht mittig über seinen Untergebenen, die Zeile ist die Tiefe im Baum.
 /// Die Reihenfolge ist die der Datei (<see cref="Stadtrat.Wurzelaemter"/>, <see cref="Stadtrat.Untergebene"/>) – keine Reihenfolge aus einem Wörterbuch.</item>
-/// <item><b>Knoten</b> sind Knöpfe (Maus und Tastatur: Tab und Pfeiltasten springen von Knoten zu Knoten, Eingabe wählt): Porträt, Amt, Name mit Wappen, Einkommen und Meinung.
-/// Euer Amt ist golden, ein freies Amt ein Schatten mit „?“, erreichbare Ämter (eine Stufe höher) haben einen helleren Rand.</item>
+/// <item><b>Knoten</b> sind Knöpfe (Maus und Tastatur: Tab und Pfeiltasten springen von Knoten zu Knoten, Eingabe wählt): Porträt, Amt, Name mit Wappen, Einkommen und Meinung, das Amtszeichen klein oben rechts.
+/// Euer Amt ist golden, ein freies Amt zeigt sein Amtszeichen groß und blass mit „?“, erreichbare Ämter (eine Stufe höher) haben einen helleren Rand.</item>
 /// <item><b>Wähler</b> leuchten beim Darüberfahren auf (F4): Die Wahlregel folgt der Stufe, nicht den Linien – so lernt man sie.</item>
-/// <item><b>Linien</b> zeichnet <c>_Draw</c>: erst ein dunkler Umriss, darüber der helle Strich; die Linie von eurem Amt zum Vorgesetzten ist golden.</item>
+/// <item><b>Seile</b> sind <c>Line2D</c> mit der Seil-Kachel (<see cref="RatStil.Seil"/>); das Seil von eurem Amt zum Vorgesetzten ist golden getönt.</item>
 /// </list>
-/// Farben, Größen und Ränder stehen nur im Thema <c>rat_thema.tres</c> (Varianten „RatKnoten…“, Maße „knoten_…“, „linie_…“).
+/// Farben, Größen und Ränder stehen nur im Thema <c>rat_thema.tres</c> (Varianten „RatKnoten…“, Maße „knoten_…“, „seil_…“).
 /// Die Anzeige ändert nichts, sie meldet nur den Klick (<see cref="AmtGewaehlt"/>).
 /// </summary>
 public partial class RatBaumAnzeige : Control
@@ -26,6 +26,7 @@ public partial class RatBaumAnzeige : Control
 
     private readonly Dictionary<string, Button> _knoten = new();
     private readonly Dictionary<string, string> _grundVariante = new();
+    private int _klein, _frei;
     private readonly List<(Vector2 Von, Vector2 Nach, bool Gold)> _linien = new();
     private readonly HashSet<string> _leuchtend = new();
 
@@ -36,6 +37,7 @@ public partial class RatBaumAnzeige : Control
         _knoten.Clear();
         _grundVariante.Clear();
         _linien.Clear();
+        _klein = _frei = 0;
         _leuchtend.Clear();
         var rat = w.Rat;
 
@@ -83,7 +85,10 @@ public partial class RatBaumAnzeige : Control
                 _linien.Add((new Vector2((float)(obenStelle.X * schrittX) + breite / 2f, obenStelle.Tiefe * schrittY + hoehe),
                              new Vector2(ort.X + breite / 2f, ort.Y), eigenes == amt));
         }
-        QueueRedraw();
+        // Die Seile liegen hinter den Knoten; Wege zum eigenen Amt (golden) zuletzt, damit sie oben liegen.
+        var seile = _linien.OrderBy(l => l.Gold).Select(l => RatStil.Seil(this, Weg(l), l.Gold)).ToList();
+        for (var i = 0; i < seile.Count; i++) MoveChild(seile[i], i);
+        GD.Print($"[ratsbaum] {_klein} Amtszeichen klein, {_frei} freie Ämter groß, {seile.Count} Seile, Mindestgröße {CustomMinimumSize.X} x {CustomMinimumSize.Y}");
     }
 
     /// <summary>Markiert das gewählte Amt (ohne Neuaufbau – die Tastaturauswahl bleibt am Knoten).</summary>
@@ -103,19 +108,6 @@ public partial class RatBaumAnzeige : Control
     {
         var fokus = GetViewport()?.GuiGetFocusOwner();
         return _knoten.FirstOrDefault(k => k.Value == fokus).Key;
-    }
-
-    public override void _Draw()
-    {
-        var tinte = RatStil.Farbe("linie_tinte");
-        var hell = RatStil.Farbe("linie");
-        var gold = RatStil.Farbe("linie_gold");
-        var dick = RatStil.Mass("linie_tinte_breite");
-        var duenn = RatStil.Mass("linie_breite");
-        // Erst alle Umrisse, dann die hellen Striche darüber: Wo Linien sich treffen, bleibt der Umriss nicht stehen.
-        foreach (var l in _linien) DrawPolyline(Weg(l), tinte, dick);
-        foreach (var l in _linien.Where(l => !l.Gold)) DrawPolyline(Weg(l), hell, duenn);
-        foreach (var l in _linien.Where(l => l.Gold)) DrawPolyline(Weg(l), gold, duenn);
     }
 
     /// <summary>Von der Unterkante des Vorgesetzten gerade hinunter, quer, dann hinunter in die Oberkante des Untergebenen.</summary>
@@ -153,11 +145,36 @@ public partial class RatBaumAnzeige : Control
         zeile.MouseFilter = MouseFilterEnum.Ignore;
 
         var portraetGroesse = RatStil.Mass("knoten_portraet");
-        var bild = PortraetAnzeige.Neu(portraetGroesse);
-        if (bild.ZeigenAmt(w, amt)) zeile.AddChild(bild);
+        var bild = amt.IstBesetzt ? PortraetAnzeige.Neu(portraetGroesse) : null;
+        if (bild is not null && bild.ZeigenAmt(w, amt))
+        {
+            zeile.AddChild(bild); // das Porträt des Inhabers bleibt das Hauptbild
+            if (RatStil.AmtZeichen(amt.Name, RatStil.Mass("knoten_amtszeichen")) is { } klein)
+            {
+                // das Amtszeichen klein oben rechts (dort steht nur der kurze Amtsname)
+                var g = RatStil.Mass("knoten_amtszeichen");
+                var zr = RatStil.Mass("knoten_amtszeichen_rand");
+                klein.SetAnchorsPreset(LayoutPreset.TopRight);
+                klein.OffsetLeft = -(g + zr); klein.OffsetRight = -zr; klein.OffsetTop = zr; klein.OffsetBottom = zr + g;
+                knopf.AddChild(klein);
+                _klein++;
+            }
+        }
+        else if (RatStil.AmtZeichen(amt.Name, RatStil.Mass("knoten_frei_zeichen"), true) is { } frei)
+        {
+            // Freies Amt: das Zeichen groß und blass, ein „?“ darüber
+            var gross = RatStil.Mass("knoten_frei_zeichen");
+            var huelle = new MarginContainer { CustomMinimumSize = new Vector2(gross, gross), MouseFilter = MouseFilterEnum.Ignore }; // das „?“ soll nicht mit verblassen
+            huelle.AddChild(frei);
+            zeile.AddChild(huelle);
+            var frage = RatStil.Text(huelle, "?", "RatKnotenFrage", zentriert: true);
+            frage.VerticalAlignment = VerticalAlignment.Center;
+            frage.MouseFilter = MouseFilterEnum.Ignore;
+            _frei++;
+        }
         else
         {
-            // Freier Sitz: ein Schatten mit „?“
+            // Rückfall ohne Amtszeichen: ein Schatten mit „?“
             var schatten = RatStil.Container<PanelContainer>(zeile, "RatKnotenSchatten");
             schatten.CustomMinimumSize = new Vector2(portraetGroesse, portraetGroesse);
             schatten.MouseFilter = MouseFilterEnum.Ignore;

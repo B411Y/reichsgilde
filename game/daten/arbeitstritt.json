@@ -1,0 +1,654 @@
+{
+ "halbling": {
+  "tritt_hoehe_m": 0.4156,
+  "hocker_m": {
+   "Blasebalg": 0.4156,
+   "Destille": 0.0,
+   "Steinblock": 0.37,
+   "Werkbank": 0.32
+  },
+  "clips": {
+   "Behauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.1007,
+    "seitlich_m": -0.0327,
+    "faust_ueber_schulter_mittel_m": -0.075,
+    "faust_ueber_schulter_max_m": 0.0457,
+    "mensch_faust_ueber_schulter_m": -0.1142
+   },
+   "Bildhauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.04,
+    "seitlich_m": -0.0094,
+    "faust_ueber_schulter_mittel_m": 0.0658,
+    "faust_ueber_schulter_max_m": 0.1389,
+    "mensch_faust_ueber_schulter_m": -0.0161
+   },
+   "Blasebalg": {
+    "moebel": "Blasebalg",
+    "vor_m": 0.07,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": 0.0008,
+    "faust_ueber_schulter_max_m": 0.0124,
+    "mensch_faust_ueber_schulter_m": 0.0007
+   },
+   "Destillieren": {
+    "moebel": "Destille",
+    "vor_m": 0.1341,
+    "seitlich_m": -0.0406,
+    "faust_ueber_schulter_mittel_m": -0.2075,
+    "faust_ueber_schulter_max_m": 0.1283,
+    "mensch_faust_ueber_schulter_m": -0.2899
+   },
+   "Drechseln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.07,
+    "seitlich_m": 0.0013,
+    "faust_ueber_schulter_mittel_m": -0.0815,
+    "faust_ueber_schulter_max_m": -0.0468,
+    "mensch_faust_ueber_schulter_m": -0.1757
+   },
+   "Gatter": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2147,
+    "seitlich_m": 0.0005,
+    "faust_ueber_schulter_mittel_m": -0.1364,
+    "faust_ueber_schulter_max_m": -0.0564,
+    "mensch_faust_ueber_schulter_m": -0.2011
+   },
+   "Haemmern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2557,
+    "seitlich_m": 0.005,
+    "faust_ueber_schulter_mittel_m": -0.1668,
+    "faust_ueber_schulter_max_m": -0.0062,
+    "mensch_faust_ueber_schulter_m": -0.1229
+   },
+   "Hobeln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1526,
+    "seitlich_m": 0.0145,
+    "faust_ueber_schulter_mittel_m": -0.0876,
+    "faust_ueber_schulter_max_m": -0.0592,
+    "mensch_faust_ueber_schulter_m": -0.1785
+   },
+   "Kerzenziehen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2202,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.1257,
+    "faust_ueber_schulter_max_m": -0.0703,
+    "mensch_faust_ueber_schulter_m": -0.0995
+   },
+   "Knacken": {
+    "moebel": "Werkbank",
+    "vor_m": 0.06,
+    "seitlich_m": 0.013,
+    "faust_ueber_schulter_mittel_m": -0.0758,
+    "faust_ueber_schulter_max_m": -0.022,
+    "mensch_faust_ueber_schulter_m": -0.1667
+   },
+   "Mischen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1698,
+    "seitlich_m": -0.0357,
+    "faust_ueber_schulter_mittel_m": -0.1557,
+    "faust_ueber_schulter_max_m": -0.0645,
+    "mensch_faust_ueber_schulter_m": -0.2166
+   },
+   "Moersern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1123,
+    "seitlich_m": 0.0168,
+    "faust_ueber_schulter_mittel_m": -0.0823,
+    "faust_ueber_schulter_max_m": 0.0334,
+    "mensch_faust_ueber_schulter_m": -0.1793
+   },
+   "Pressen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1211,
+    "seitlich_m": -0.0014,
+    "faust_ueber_schulter_mittel_m": -0.0892,
+    "faust_ueber_schulter_max_m": -0.0534,
+    "mensch_faust_ueber_schulter_m": -0.1888
+   },
+   "Ruehren": {
+    "moebel": "Werkbank",
+    "vor_m": 0.3629,
+    "seitlich_m": -0.0171,
+    "faust_ueber_schulter_mittel_m": -0.2131,
+    "faust_ueber_schulter_max_m": -0.0781,
+    "mensch_faust_ueber_schulter_m": -0.1319
+   },
+   "Saegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.138,
+    "seitlich_m": -0.0231,
+    "faust_ueber_schulter_mittel_m": -0.12,
+    "faust_ueber_schulter_max_m": -0.0116,
+    "mensch_faust_ueber_schulter_m": -0.1289
+   },
+   "Schleifen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.09,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.1181,
+    "faust_ueber_schulter_max_m": -0.1062,
+    "mensch_faust_ueber_schulter_m": -0.1999
+   },
+   "Schoepfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.283,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.136,
+    "faust_ueber_schulter_max_m": -0.0833,
+    "mensch_faust_ueber_schulter_m": -0.2147
+   },
+   "Wiegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1909,
+    "seitlich_m": -0.0014,
+    "faust_ueber_schulter_mittel_m": -0.14,
+    "faust_ueber_schulter_max_m": -0.021,
+    "mensch_faust_ueber_schulter_m": -0.2179
+   },
+   "Zapfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1,
+    "seitlich_m": -0.0135,
+    "faust_ueber_schulter_mittel_m": -0.0053,
+    "faust_ueber_schulter_max_m": 0.0478,
+    "mensch_faust_ueber_schulter_m": -0.0863
+   }
+  }
+ },
+ "halblingin": {
+  "tritt_hoehe_m": 0.4662,
+  "hocker_m": {
+   "Blasebalg": 0.4662,
+   "Destille": 0.0,
+   "Steinblock": 0.33,
+   "Werkbank": 0.33
+  },
+  "clips": {
+   "Behauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.0956,
+    "seitlich_m": -0.0371,
+    "faust_ueber_schulter_mittel_m": 0.0087,
+    "faust_ueber_schulter_max_m": 0.1331,
+    "mensch_faust_ueber_schulter_m": -0.1071
+   },
+   "Bildhauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.05,
+    "seitlich_m": -0.0127,
+    "faust_ueber_schulter_mittel_m": 0.1573,
+    "faust_ueber_schulter_max_m": 0.2303,
+    "mensch_faust_ueber_schulter_m": -0.0151
+   },
+   "Blasebalg": {
+    "moebel": "Blasebalg",
+    "vor_m": 0.09,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": 0.0006,
+    "faust_ueber_schulter_max_m": 0.0147,
+    "mensch_faust_ueber_schulter_m": 0.0007
+   },
+   "Destillieren": {
+    "moebel": "Destille",
+    "vor_m": 0.1765,
+    "seitlich_m": -0.0544,
+    "faust_ueber_schulter_mittel_m": -0.1611,
+    "faust_ueber_schulter_max_m": 0.1542,
+    "mensch_faust_ueber_schulter_m": -0.2719
+   },
+   "Drechseln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.09,
+    "seitlich_m": 0.0022,
+    "faust_ueber_schulter_mittel_m": -0.0422,
+    "faust_ueber_schulter_max_m": -0.0085,
+    "mensch_faust_ueber_schulter_m": -0.1648
+   },
+   "Gatter": {
+    "moebel": "Werkbank",
+    "vor_m": 0.226,
+    "seitlich_m": 0.0002,
+    "faust_ueber_schulter_mittel_m": -0.1019,
+    "faust_ueber_schulter_max_m": -0.0256,
+    "mensch_faust_ueber_schulter_m": -0.1886
+   },
+   "Haemmern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2378,
+    "seitlich_m": 0.003,
+    "faust_ueber_schulter_mittel_m": -0.1247,
+    "faust_ueber_schulter_max_m": 0.0354,
+    "mensch_faust_ueber_schulter_m": -0.1152
+   },
+   "Hobeln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1914,
+    "seitlich_m": 0.0194,
+    "faust_ueber_schulter_mittel_m": -0.0504,
+    "faust_ueber_schulter_max_m": -0.0222,
+    "mensch_faust_ueber_schulter_m": -0.1674
+   },
+   "Kerzenziehen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2314,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.0838,
+    "faust_ueber_schulter_max_m": -0.0286,
+    "mensch_faust_ueber_schulter_m": -0.0933
+   },
+   "Knacken": {
+    "moebel": "Werkbank",
+    "vor_m": 0.09,
+    "seitlich_m": 0.0195,
+    "faust_ueber_schulter_mittel_m": -0.0325,
+    "faust_ueber_schulter_max_m": 0.0211,
+    "mensch_faust_ueber_schulter_m": -0.1564
+   },
+   "Mischen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1787,
+    "seitlich_m": -0.0424,
+    "faust_ueber_schulter_mittel_m": -0.1168,
+    "faust_ueber_schulter_max_m": -0.0243,
+    "mensch_faust_ueber_schulter_m": -0.2031
+   },
+   "Moersern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1378,
+    "seitlich_m": 0.0224,
+    "faust_ueber_schulter_mittel_m": -0.044,
+    "faust_ueber_schulter_max_m": 0.072,
+    "mensch_faust_ueber_schulter_m": -0.1681
+   },
+   "Pressen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1501,
+    "seitlich_m": -0.0039,
+    "faust_ueber_schulter_mittel_m": -0.0509,
+    "faust_ueber_schulter_max_m": -0.0182,
+    "mensch_faust_ueber_schulter_m": -0.1771
+   },
+   "Ruehren": {
+    "moebel": "Werkbank",
+    "vor_m": 0.3576,
+    "seitlich_m": -0.0176,
+    "faust_ueber_schulter_mittel_m": -0.1736,
+    "faust_ueber_schulter_max_m": -0.0395,
+    "mensch_faust_ueber_schulter_m": -0.1237
+   },
+   "Saegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1578,
+    "seitlich_m": -0.0305,
+    "faust_ueber_schulter_mittel_m": -0.0826,
+    "faust_ueber_schulter_max_m": 0.0242,
+    "mensch_faust_ueber_schulter_m": -0.1209
+   },
+   "Schleifen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.11,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.0781,
+    "faust_ueber_schulter_max_m": -0.0663,
+    "mensch_faust_ueber_schulter_m": -0.1875
+   },
+   "Schoepfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2758,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.0953,
+    "faust_ueber_schulter_max_m": -0.0415,
+    "mensch_faust_ueber_schulter_m": -0.2014
+   },
+   "Wiegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2116,
+    "seitlich_m": -0.0049,
+    "faust_ueber_schulter_mittel_m": -0.0962,
+    "faust_ueber_schulter_max_m": 0.0218,
+    "mensch_faust_ueber_schulter_m": -0.2043
+   },
+   "Zapfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.13,
+    "seitlich_m": -0.019,
+    "faust_ueber_schulter_mittel_m": 0.0356,
+    "faust_ueber_schulter_max_m": 0.0886,
+    "mensch_faust_ueber_schulter_m": -0.081
+   }
+  }
+ },
+ "zwerg": {
+  "tritt_hoehe_m": 0.3711,
+  "hocker_m": {
+   "Blasebalg": 0.3711,
+   "Destille": 0.0,
+   "Steinblock": 0.3609,
+   "Werkbank": 0.2874
+  },
+  "clips": {
+   "Behauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.1368,
+    "seitlich_m": -0.0348,
+    "faust_ueber_schulter_mittel_m": -0.2088,
+    "faust_ueber_schulter_max_m": -0.1156,
+    "mensch_faust_ueber_schulter_m": -0.149
+   },
+   "Bildhauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.04,
+    "seitlich_m": -0.0098,
+    "faust_ueber_schulter_mittel_m": 0.0575,
+    "faust_ueber_schulter_max_m": 0.1915,
+    "mensch_faust_ueber_schulter_m": -0.021
+   },
+   "Blasebalg": {
+    "moebel": "Blasebalg",
+    "vor_m": 0.06,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": 0.001,
+    "faust_ueber_schulter_max_m": 0.0502,
+    "mensch_faust_ueber_schulter_m": 0.0009
+   },
+   "Destillieren": {
+    "moebel": "Destille",
+    "vor_m": 0.1366,
+    "seitlich_m": 0.0064,
+    "faust_ueber_schulter_mittel_m": -0.3403,
+    "faust_ueber_schulter_max_m": -0.044,
+    "mensch_faust_ueber_schulter_m": -0.3785
+   },
+   "Drechseln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.06,
+    "seitlich_m": 0.0021,
+    "faust_ueber_schulter_mittel_m": -0.2031,
+    "faust_ueber_schulter_max_m": -0.1721,
+    "mensch_faust_ueber_schulter_m": -0.2293
+   },
+   "Gatter": {
+    "moebel": "Werkbank",
+    "vor_m": 0.236,
+    "seitlich_m": 0.0035,
+    "faust_ueber_schulter_mittel_m": -0.2497,
+    "faust_ueber_schulter_max_m": -0.1646,
+    "mensch_faust_ueber_schulter_m": -0.2625
+   },
+   "Haemmern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2434,
+    "seitlich_m": 0.0098,
+    "faust_ueber_schulter_mittel_m": -0.2526,
+    "faust_ueber_schulter_max_m": -0.0365,
+    "mensch_faust_ueber_schulter_m": -0.1604
+   },
+   "Hobeln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1479,
+    "seitlich_m": 0.0128,
+    "faust_ueber_schulter_mittel_m": -0.2047,
+    "faust_ueber_schulter_max_m": -0.1644,
+    "mensch_faust_ueber_schulter_m": -0.233
+   },
+   "Kerzenziehen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2865,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.2408,
+    "faust_ueber_schulter_max_m": -0.1852,
+    "mensch_faust_ueber_schulter_m": -0.1299
+   },
+   "Knacken": {
+    "moebel": "Werkbank",
+    "vor_m": 0.0454,
+    "seitlich_m": 0.0096,
+    "faust_ueber_schulter_mittel_m": -0.2186,
+    "faust_ueber_schulter_max_m": -0.1672,
+    "mensch_faust_ueber_schulter_m": -0.2176
+   },
+   "Mischen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2332,
+    "seitlich_m": -0.0356,
+    "faust_ueber_schulter_mittel_m": -0.282,
+    "faust_ueber_schulter_max_m": -0.1978,
+    "mensch_faust_ueber_schulter_m": -0.2827
+   },
+   "Moersern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1083,
+    "seitlich_m": 0.0076,
+    "faust_ueber_schulter_mittel_m": -0.2092,
+    "faust_ueber_schulter_max_m": -0.1168,
+    "mensch_faust_ueber_schulter_m": -0.234
+   },
+   "Pressen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1476,
+    "seitlich_m": 0.0063,
+    "faust_ueber_schulter_mittel_m": -0.2256,
+    "faust_ueber_schulter_max_m": -0.1944,
+    "mensch_faust_ueber_schulter_m": -0.2464
+   },
+   "Ruehren": {
+    "moebel": "Werkbank",
+    "vor_m": 0.37,
+    "seitlich_m": -0.0273,
+    "faust_ueber_schulter_mittel_m": -0.2658,
+    "faust_ueber_schulter_max_m": -0.0988,
+    "mensch_faust_ueber_schulter_m": -0.1721
+   },
+   "Saegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1113,
+    "seitlich_m": -0.0125,
+    "faust_ueber_schulter_mittel_m": -0.2278,
+    "faust_ueber_schulter_max_m": -0.1419,
+    "mensch_faust_ueber_schulter_m": -0.1683
+   },
+   "Schleifen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.0703,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.2559,
+    "faust_ueber_schulter_max_m": -0.2433,
+    "mensch_faust_ueber_schulter_m": -0.261
+   },
+   "Schoepfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2706,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.2748,
+    "faust_ueber_schulter_max_m": -0.2413,
+    "mensch_faust_ueber_schulter_m": -0.2802
+   },
+   "Wiegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2298,
+    "seitlich_m": 0.0009,
+    "faust_ueber_schulter_mittel_m": -0.2783,
+    "faust_ueber_schulter_max_m": -0.167,
+    "mensch_faust_ueber_schulter_m": -0.2844
+   },
+   "Zapfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.12,
+    "seitlich_m": -0.0094,
+    "faust_ueber_schulter_mittel_m": -0.0828,
+    "faust_ueber_schulter_max_m": 0.0258,
+    "mensch_faust_ueber_schulter_m": -0.1127
+   }
+  }
+ },
+ "zwergin": {
+  "tritt_hoehe_m": 0.436,
+  "hocker_m": {
+   "Blasebalg": 0.436,
+   "Destille": 0.0,
+   "Steinblock": 0.4204,
+   "Werkbank": 0.32
+  },
+  "clips": {
+   "Behauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.1712,
+    "seitlich_m": -0.0381,
+    "faust_ueber_schulter_mittel_m": -0.1986,
+    "faust_ueber_schulter_max_m": -0.1152,
+    "mensch_faust_ueber_schulter_m": -0.1428
+   },
+   "Bildhauen": {
+    "moebel": "Steinblock",
+    "vor_m": 0.06,
+    "seitlich_m": -0.0154,
+    "faust_ueber_schulter_mittel_m": 0.0643,
+    "faust_ueber_schulter_max_m": 0.1979,
+    "mensch_faust_ueber_schulter_m": -0.0201
+   },
+   "Blasebalg": {
+    "moebel": "Blasebalg",
+    "vor_m": 0.0901,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": 0.0009,
+    "faust_ueber_schulter_max_m": 0.0537,
+    "mensch_faust_ueber_schulter_m": 0.0009
+   },
+   "Destillieren": {
+    "moebel": "Destille",
+    "vor_m": 0.1461,
+    "seitlich_m": 0.0044,
+    "faust_ueber_schulter_mittel_m": -0.2841,
+    "faust_ueber_schulter_max_m": 0.0207,
+    "mensch_faust_ueber_schulter_m": -0.3625
+   },
+   "Drechseln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.07,
+    "seitlich_m": 0.004,
+    "faust_ueber_schulter_mittel_m": -0.1728,
+    "faust_ueber_schulter_max_m": -0.143,
+    "mensch_faust_ueber_schulter_m": -0.2197
+   },
+   "Gatter": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2478,
+    "seitlich_m": 0.0027,
+    "faust_ueber_schulter_mittel_m": -0.2248,
+    "faust_ueber_schulter_max_m": -0.1467,
+    "mensch_faust_ueber_schulter_m": -0.2515
+   },
+   "Haemmern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.301,
+    "seitlich_m": 0.0082,
+    "faust_ueber_schulter_mittel_m": -0.2142,
+    "faust_ueber_schulter_max_m": -0.0029,
+    "mensch_faust_ueber_schulter_m": -0.1536
+   },
+   "Hobeln": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1734,
+    "seitlich_m": 0.0201,
+    "faust_ueber_schulter_mittel_m": -0.1761,
+    "faust_ueber_schulter_max_m": -0.141,
+    "mensch_faust_ueber_schulter_m": -0.2232
+   },
+   "Kerzenziehen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.3503,
+    "seitlich_m": 0.0,
+    "faust_ueber_schulter_mittel_m": -0.1996,
+    "faust_ueber_schulter_max_m": -0.1462,
+    "mensch_faust_ueber_schulter_m": -0.1244
+   },
+   "Knacken": {
+    "moebel": "Werkbank",
+    "vor_m": 0.0615,
+    "seitlich_m": 0.014,
+    "faust_ueber_schulter_mittel_m": -0.1843,
+    "faust_ueber_schulter_max_m": -0.1314,
+    "mensch_faust_ueber_schulter_m": -0.2085
+   },
+   "Mischen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.2173,
+    "seitlich_m": -0.0402,
+    "faust_ueber_schulter_mittel_m": -0.2497,
+    "faust_ueber_schulter_max_m": -0.1662,
+    "mensch_faust_ueber_schulter_m": -0.2708
+   },
+   "Moersern": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1315,
+    "seitlich_m": 0.0158,
+    "faust_ueber_schulter_mittel_m": -0.1787,
+    "faust_ueber_schulter_max_m": -0.0874,
+    "mensch_faust_ueber_schulter_m": -0.2242
+   },
+   "Pressen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1566,
+    "seitlich_m": 0.0021,
+    "faust_ueber_schulter_mittel_m": -0.1964,
+    "faust_ueber_schulter_max_m": -0.1688,
+    "mensch_faust_ueber_schulter_m": -0.2361
+   },
+   "Ruehren": {
+    "moebel": "Werkbank",
+    "vor_m": 0.3683,
+    "seitlich_m": -0.0243,
+    "faust_ueber_schulter_mittel_m": -0.2333,
+    "faust_ueber_schulter_max_m": -0.0702,
+    "mensch_faust_ueber_schulter_m": -0.1649
+   },
+   "Saegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1242,
+    "seitlich_m": -0.0239,
+    "faust_ueber_schulter_mittel_m": -0.1957,
+    "faust_ueber_schulter_max_m": -0.1174,
+    "mensch_faust_ueber_schulter_m": -0.1612
+   },
+   "Schleifen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1075,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.2173,
+    "faust_ueber_schulter_max_m": -0.2038,
+    "mensch_faust_ueber_schulter_m": -0.25
+   },
+   "Schoepfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.3246,
+    "seitlich_m": -0.0,
+    "faust_ueber_schulter_mittel_m": -0.2341,
+    "faust_ueber_schulter_max_m": -0.2031,
+    "mensch_faust_ueber_schulter_m": -0.2684
+   },
+   "Wiegen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.263,
+    "seitlich_m": 0.0024,
+    "faust_ueber_schulter_mittel_m": -0.2316,
+    "faust_ueber_schulter_max_m": -0.1313,
+    "mensch_faust_ueber_schulter_m": -0.2724
+   },
+   "Zapfen": {
+    "moebel": "Werkbank",
+    "vor_m": 0.1339,
+    "seitlich_m": -0.0172,
+    "faust_ueber_schulter_mittel_m": -0.0498,
+    "faust_ueber_schulter_max_m": 0.0581,
+    "mensch_faust_ueber_schulter_m": -0.108
+   }
+  }
+ }
+}

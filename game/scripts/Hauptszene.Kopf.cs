@@ -6,7 +6,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Oben im Bild (PR #197) – ein Teil der <c>partial class Hauptszene</c>: links die <b>Kopfzeile</b> (Wappen, Geld, Stand, Aktionspunkte; ein Klick
-/// öffnet das Wohnhaus), in der Mitte der <b>Zeitstrahl</b> (Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht, darunter das Band des Tages mit
+/// öffnet das Familienfenster), in der Mitte der <b>Zeitstrahl</b> (Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht, darunter das Band des Tages mit
 /// Sonne bzw. Mond, darunter Pause und Tempo). Beide sitzen in einer Reihe über die ganze Breite: Ist das Fenster schmal, rückt der Zeitstrahl aus
 /// der Mitte nach rechts, statt die Kopfzeile zu überdecken.
 /// </summary>
@@ -59,10 +59,10 @@ public partial class Hauptszene
         _kopfzeile.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         _kopfzeile.MouseFilter = Control.MouseFilterEnum.Stop;
         _kopfzeile.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
-        _kopfzeile.TooltipText = "Euer Haus – ein Klick öffnet das Wohnhaus (Stand, Familie, Handwerk, Geld, Hinterzimmer)";
+        _kopfzeile.TooltipText = "Euer Haus – ein Klick öffnet die Familie (Oberhaupt, Ehepartner, Kinder, Stammbaum)";
         _kopfzeile.GuiInput += eingabe =>
         {
-            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) WohnhausOeffnen(WohnhausAnzeige.Reiter.Haus);
+            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) FamilieOeffnen();
         };
         _obenReihe.AddChild(_kopfzeile);
         var kopfSpalte = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -150,9 +150,16 @@ public partial class Hauptszene
         _zeitstrahl.Minute = _stadt.LichtUhrErzwungen is { } lichtUhr ? (int)(lichtUhr * 60) - Spielzeit.TagesbeginnMinute : zeit.MinuteImTag;
         var pause = _simulation.IstBeendet ? "Partie beendet" : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
         if (_pauseKnopf.Text != pause) _pauseKnopf.Text = pause;
-        _pauseKnopf.Disabled = _simulation.IstBeendet;
+        // Ein Haltegrund (Ratssitzung, Jahresbericht im Einzelspiel) sperrt Pause und Tempo, bis das Fenster zu ist
+        var gesperrt = takt.IstAngehalten;
+        _pauseKnopf.Disabled = _simulation.IstBeendet || gesperrt;
+        var tipp = gesperrt ? $"Die Zeit ruht, bis {string.Join(" und ", takt.Haltegruende)} {(takt.Haltegruende.Count > 1 ? "geschlossen sind" : "geschlossen ist")}." : "Pause (Leertaste)";
+        if (_pauseKnopf.TooltipText != tipp) _pauseKnopf.TooltipText = tipp;
         for (var i = 0; i < _tempoKnoepfe.Count; i++)
+        {
             _tempoKnoepfe[i].SetPressedNoSignal(!takt.IstPausiert && Taktgeber.AlleTempostufen /* TESTTEMPO */[i] == takt.Tempo);
+            _tempoKnoepfe[i].Disabled = gesperrt;
+        }
 
         // Der Ausgleich rechts ist so breit wie die Kopfzeile, solange daneben noch Platz bleibt – sonst schmaler (bis 0).
         var frei = _obenReihe.Size.X - _kopfzeile.Size.X - _zeitTafel.Size.X - 4 * 16;

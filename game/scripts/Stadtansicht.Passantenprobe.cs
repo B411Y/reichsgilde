@@ -74,12 +74,15 @@ public partial class Stadtansicht
     /// <summary>Ist die Probefigur ein Zwerg, Elb oder Halbling (Art 4 bis 9, eigene Proportionen und Größe)?</summary>
     private static bool ProbeKleinesVolk(int art) => art is >= 4 and < ProbeErsteTierart;
 
-    /// <summary>Erbgut der Passanten (fester Startwert aus Volk und Nummer, nichts im Spielstand): daraus Bartform und Bartwuchs.</summary>
+    /// <summary>
+    /// Erbgut der Probefiguren, daraus Bartform und Bartwuchs: das Erbgut aus dem Rezept des Baukastens (<see cref="BaukastenProbeEinsetzen"/> trägt es ein,
+    /// bei Familienpersonen ihr echtes), sonst fest aus Volk und Nummer (<see cref="FigurenBaukasten.ErbgutFuer"/>, nichts im Spielstand).
+    /// </summary>
     private static readonly Dictionary<(Volk, int), Erbgut> _probeErbgut = new();
     private static Erbgut ProbeErbgut(Volk volk, int nummer)
     {
         if (!_probeErbgut.TryGetValue((volk, nummer), out var e))
-            _probeErbgut[(volk, nummer)] = e = Erbgut.Wuerfeln(Erbgutvorlage.Standard, 7000 + nummer, volk);
+            _probeErbgut[(volk, nummer)] = e = FigurenBaukasten.ErbgutFuer(volk, nummer);
         return e;
     }
 
@@ -172,12 +175,15 @@ public partial class Stadtansicht
     /// <summary>Bilder je Sekunde eines Clips: „Hacken“ ist schnell (bei 12 Bildern/s lag die Axthand zwischen zwei Bildern bis 40 cm daneben)
     /// und bleibt bei 24 (kleine Völker 12). Langsame Clips (Sitzen, Kauern, Betteln, der Bock-Fahrer) brauchen nur 6: ihre Zeilen in der Textur halbieren sich bei
     /// höchstens 3,5 mm Abweichung (der Shader mischt zwischen zwei Bildern, Messwerte mit <c>--probepruefen=1</c>); so bleiben die Zieher-Clips
-    /// unter 100 MB. Alle übrigen 12, bei Zwergen, Elben und Halblingen (Art 4 bis 9) nur 8: spart etwa ein Drittel der Texturen; die VAT zeigt sie erst ab Zoom 50.</summary>
+    /// unter 100 MB. Alle übrigen 12, bei Zwergen, Elben und Halblingen (Art 4 bis 9) nur 8: spart etwa ein Drittel der Texturen; die VAT zeigt sie erst ab Zoom 50.
+    /// Der Ruhe-Clip „Stehen“ der Passanten (seit 14.11.2026 je Volk und Geschlecht eigen, 5 s statt 2,5 s, nur Atmen und Gewichtsverlagerung) hat die
+    /// halbe Bildzahl seiner Art: so bleibt seine Zeilenzahl und der VAT-Speicher wie vorher.</summary>
     private static double ProbeVatBilderFuer(string klip, int art = 0) => klip switch
     {
         "Hacken" => ProbeKleinesVolk(art) ? ProbeVatBilder : 24,
         "Sitzen" or "Kauern" or "Betteln" or "SitzenBock" => ProbeVatBilder / 2,
         "Stehen" when art >= ProbeErsteTierart => 1.0 / 3, // das Tier steht und atmet (6 s Schleife): 2 Bilder, der Shader mischt (Dreieckswelle)
+        "Stehen" => (ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder) / 2.0,
         "Gehen" or "Ziehen" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
         _ => ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder,
     };
@@ -188,9 +194,6 @@ public partial class Stadtansicht
     /// <summary>Sind die Passanten Figuren mit Skelett (Weg A)? Seit Schritt 5 des Vollausbaus der Normalfall; <c>--passantenprobe=0</c> holt die
     /// Figuren aus Blender zurück (zum Vergleichen).</summary>
     private static readonly bool ProbeAktiv = ProbeOption is null or not ("0" or "aus");
-    /// <summary>Mit ausdrücklichem <c>--passantenprobe</c> sind alle Passanten Probefiguren, auch die sonst vom KI-Schmied gestellten, und alle 10 s
-    /// steht eine Messzeile im Protokoll.</summary>
-    private static readonly bool ProbeErsetztAlle = ProbeOption is not null && ProbeAktiv;
     private static readonly int ProbeMessfigurenZahl = int.TryParse(ProbeOption, out var n) && n > 1 ? n : 0;
     private static readonly Volk? ProbeVolkErzwingen = Enum.TryParse<Volk>(Wasserarten.Startoption("passantenvolk"), true, out var erzwungenesVolk) ? erzwungenesVolk : null;
     private static readonly string? ProbeVoelkerMischen = Wasserarten.Startoption("passantenvoelker");
@@ -265,7 +268,8 @@ public partial class Stadtansicht
     /// eingefärbt über das Material der Tracht (<see cref="FigurStoff"/>, dieselben fünf Zonen) in gedeckten Pflanzenfarben. Frauen bekommen die
     /// Frauen-Datei; Völker sind vorerst nur gleichmäßig skaliert.
     /// </summary>
-    private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null)
+    /// <param name="innen">Figur eines Innenraums (Baukasten): bleibt immer beim Skelett, kommt nicht in die gebackene Stufe (VAT) und backt nichts nach.</param>
+    private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null, bool innen = false)
     {
         // Zum Ansehen: --passantenvolk=<Zwerg|Elb|Halbling|Mensch|Ork|Oger> macht alle Passanten zu diesem Volk, --passantenfrau=1 alle zu Frauen
         if (ProbeVolkErzwingen is { } erzwungen) aussehen = aussehen with { Volk = erzwungen };
@@ -292,7 +296,8 @@ public partial class Stadtansicht
             || art == 4 // Zwerge: immer Bartzone auf den Wangen (unter dem Bartnetz)
             || art == 8 && ProbeErbgut(aussehen.Volk, nummer).SichtbarerWert("bartwuchs", Geschlecht.Mann) >= 55; // Halblinge: nur mit kräftigem Wuchs Stoppeln
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
-        var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
+        // Das Oberhaupt eines Hauses trägt die Farbe seines Hauses (Baukasten: in Kontor, Wohnstube und Ratssitzung dieselbe)
+        var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler" or "Oberhaupt";
         // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
         var festeKopffarbe = aussehen.Kopffarbe == Schwarz || aussehen.Kopffarbe.R > 0.85f;
         aussehen = aussehen with
@@ -304,8 +309,8 @@ public partial class Stadtansicht
                 : aussehen.Frau && daten.Varianten[variante] is "haube" or "bettler" ? ProbeHauben[Streuung(nummer, 227) % ProbeHauben.Length]
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
-            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeKleinesVolk(art) ? Haarfarben(aussehen.Volk)[Streuung(nummer, 239) % Haarfarben(aussehen.Volk).Length]
-                : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
+            // Haar: wie es die Figur mitbringt (Baukasten: aus dem Aussehen der Person, sonst aus den Farb-Genen); Alte grau, Orks und Oger schwarz
+            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : aussehen.Haar,
         };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
         // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
@@ -322,7 +327,7 @@ public partial class Stadtansicht
                 spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
         var figur = new Figur
         {
-            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler,
+            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler, ProbeInnen = innen,
             ProbeRuecklast = zubehoer.Contains("kiepe") || zubehoer.Contains("buendel"),
             Beinfaktor = daten.Huefte / 0.92f * massstab * daten.Schritt, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
@@ -342,7 +347,7 @@ public partial class Stadtansicht
         {
             var name = teil.Name.ToString();
             if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug"
-                && !(name.StartsWith("Zub_") && zubehoer.Contains(name[4..]))) { teil.QueueFree(); continue; }
+                && !(name.StartsWith("Zub_") && zubehoer.Contains(name[4..])) && !(innen && ProbeNurSkelett(name))) { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
             if (name.StartsWith("Zub_bart") && teil.Mesh is ArrayMesh bartMesh)
             {
@@ -356,13 +361,18 @@ public partial class Stadtansicht
                 }
                 teil.MaterialOverride = bartStoff;
             }
-            if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
+            if (name is "Last" or "Werkzeug" || ProbeNurSkelett(name)) { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
-        _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, bart ? ProbeFarbe(bartton) : 0);
-        ProbeArtAnfordern(art);
-        if (_probeVat && ProbeArtGebacken(art)) modell.Visible = false;
+        FingerStufeAnlegen(figur, modell, innen);
+        StoffAnlegen(figur, modell, innen); // Rock mit Kettenknochen: Federwahl (Stadtansicht.Stoff.cs)
+        if (!innen)
+        {
+            _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
+                ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart, bart ? ProbeFarbe(bartton) : 0);
+            ProbeArtAnfordern(art);
+            if (_probeVat && ProbeArtGebacken(art)) modell.Visible = false;
+        }
         BewegungSetzen(figur, "Stehen");
         return figur;
     }
@@ -480,6 +490,13 @@ public partial class Stadtansicht
     /// <see cref="BewegungSetzen"/> für die Probe: Gehen, Eilen und Gebeugt nehmen „Gehen“, Tragen „Tragen“ (mit Kiste), Reden, Sitzen, Hacken und
     /// Buecken ihren Clip (Hacken mit Axt), alles andere „Stehen“. Der Takt gleicht das Tempo an, damit die Füße nicht rutschen.
     /// </summary>
+    /// <summary>
+    /// Teile der Passanten-Dateien, die nur Figuren mit Skelett in Innenräumen brauchen (tools/modelle/passanten_arbeit.py): die Werkzeuge der
+    /// Arbeitsbewegungen (Namen wie im alten Rig, <see cref="WerkstattWerkzeug"/>), die Hellebarde und die Hocker „Tritt_&lt;Möbel&gt;“.
+    /// Sie werden nicht in die VAT gebacken.
+    /// </summary>
+    private static bool ProbeNurSkelett(string name) => WerkzeugNamen.Contains(name) || name == "Hellebarde" || name.StartsWith("Tritt_");
+
     private static void ProbeBewegungSetzen(Figur f, string bewegung, float takt)
     {
         string klip;
@@ -502,7 +519,8 @@ public partial class Stadtansicht
         }
         else
         {
-            klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" or "Kauern" or "Betteln" ? bewegung : "Stehen";
+            // Arbeitsbewegungen (passanten_arbeit.py) haben ihren Clip unter dem Namen des alten Rigs
+            klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" or "Kauern" or "Betteln" || f.Spieler.HasAnimation(bewegung) ? bewegung : "Stehen";
             if (f.ProbeBettler && klip is "Stehen" or "Reden" or "Sitzen") klip = "Betteln"; // Schritt 2: der Bettler kauert und streckt die Hand aus
             probeTakt = 1;
         }
@@ -511,9 +529,21 @@ public partial class Stadtansicht
         f.Bewegung = bewegung;
         if (f.Werkzeuge.TryGetValue("Last", out var last)) last.Visible = klip == "Tragen";
         if (f.Werkzeuge.TryGetValue("Werkzeug", out var axt)) axt.Visible = klip == "Hacken";
+        var werkzeug = WerkstattWerkzeug.TryGetValue(klip, out var teile) ? teile : Array.Empty<string>();
+        foreach (var (name, teil) in f.Werkzeuge)
+            if (WerkzeugNamen.Contains(name)) teil.Visible = werkzeug.Contains(name);
         if (klip == f.KiKlip) return; // Gehen ↔ Eilen: die Schleife läuft in derselben Phase weiter
         f.KiKlip = klip;
         f.Spieler.Play(klip);
+        StoffClipwechsel(f);
+        // Formschlüssel „Sitzen“ (Stoff unter den Oberschenkeln auf der Sitzfläche): nur im Clip „Sitzen“ 1, beim Verlassen zurück auf 0 –
+        // (keine Spur in den Animationen: das Spiel entfernt die ungenutzten Kleidervarianten, Spuren auf sie gäben Warnungen)
+        // Je Sitzhaltung eine eigene Zielform (Rock folgt dem Knie): die des Clips auf 1, alle übrigen auf 0
+        var sitzForm = FigurenBaukasten.SitzForm(klip);
+        foreach (var teil in f.Teile)
+            foreach (var name in FigurenBaukasten.SitzFormen)
+                if (teil.FindBlendShapeByName(name) is var form and >= 0)
+                    teil.SetBlendShapeValue(form, name == sitzForm ? 1f : 0f);
         f.Anfang = 0;
         f.Dauer = Math.Max(0.1, f.Spieler.GetAnimation(klip).Length);
         f.Phase = (Streuung(f.Nummer, 131) & 0xFFFF) / 65536.0 * f.Dauer;
@@ -792,7 +822,8 @@ public partial class Stadtansicht
             var shader = GD.Load<Shader>(tier ? "res://assets/shader/tier_vat.gdshader" : "res://assets/shader/figur_vat.gdshader");
             _passantenEbene ??= NeueEbene();
             var teile = wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()
-                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art is 2 or 3 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
+                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art is 2 or 3 && ProbeUnfreiOhne.Contains(t.Name.ToString()))
+                            && !ProbeNurSkelett(t.Name.ToString())).ToList(); // Werkzeuge der Arbeitsbewegungen und Hocker: nur am Skelett (innen), nie in der VAT
             for (var i = 0; i < teile.Count; i++)
             {
                 var teil = teile[i];
@@ -1299,6 +1330,7 @@ public partial class Stadtansicht
         if (!ProbeAktiv) return;
         _probeUhr.Restart();
         if (ProbeMessfigurenZahl > 0 && !_probeMessfigurenGebaut && _passantenEbene is not null) ProbeMessfigurenBauen();
+        FigurProbeDraussenAktualisieren(delta); // Prüfhilfe --figurprobe ohne Innenraum (Stadtansicht.Pruefhilfe.cs)
         _probeMessZeit += sekunden;
         if (_probeMessSchatten != _passantenSchatten)
         {
@@ -1346,7 +1378,7 @@ public partial class Stadtansicht
         GD.Print($"[passantenprobe] Stufe {(_probeVat ? (_probeFern ? "VAT fern" : "VAT nah") : "Skelett")}, Zoom {_kamera.Size:0}, Probefiguren {_probeTrachten.Count} " +
                  $"(Messfiguren {_probeMessfiguren.Count}), im Bild gezeichnet als VAT {_probeGezeichnet}, Skelette sichtbar {_probeSkelettSichtbar}, " +
                  $"Messfiguren-Rechnung {_probeMs / _probeBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s, GPU (letztes Bild, nur mit --messung) {gpu:0.00} ms, " +
-                 $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
+                 $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe; {FingerStufenZaehlen()}; {StoffZaehlen()}");
         // Stillstand (NAS 09.11.: eine nahe Figur blieb in der Gehpose stehen): im Bild, mit Gehclip, aber seit der letzten Zeile dieselbe Phase
         var still = 0;
         var gehend = 0;

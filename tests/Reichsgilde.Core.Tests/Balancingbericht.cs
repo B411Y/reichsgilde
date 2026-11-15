@@ -18,6 +18,8 @@ using Reichsgilde.Core.Wirtschaft;
 //                                                                          [--betriebe=datei.csv]   (jeder Betrieb je Jahr, Abschnitt „ausbau“)
 //                                                                          [--schwer=nein]   (KI-Stärke ohne die Partien „Schwer“)
 //                                                                          [--startplaetze=vorgabe]   (ohne Los der Hofstellen, wie vor dem 9.11.2026)
+//                                                                          [--haerte=mild|ueberliefert|hart]   (Härte der Zeit aller Partien)
+//                                                                          [--lagen=aus|ernte|alle]   (Lagen der Rohstoffquellen: keine, nur Ernte, alle; Standard alle)
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
 //  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
@@ -133,8 +135,11 @@ static partial class Balancingbericht
             Schalter("rotationen") is { } ro ? Math.Max(1, int.Parse(ro)) : null,
             Schalter("schwer") == "nein");
         var uhr = Stopwatch.StartNew();
+        Messpartie.Haerte = Schalter("haerte") is { } hd ? Enum.Parse<HaerteDerZeit>(hd, ignoreCase: true) : HaerteDerZeit.Ueberliefert; // --haerte=mild|hart
         Messpartie.OhneLos = Schalter("startplaetze") == "vorgabe"; // --startplaetze=vorgabe: ohne Los der Hofstellen (Vergleich, 09.11.2026)
-        var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
+        var lagen = Schalter("lagen") ?? "alle"; // --lagen=aus|ernte|alle (Datenversion 92)
+        if (lagen is not ("aus" or "ernte" or "alle")) throw new ArgumentException("--lagen=aus|ernte|alle");
+        var q = new Messquellen(Schalter("ohne"), anpassen: t => Messpartie.LagenWaehlen(t, lagen)); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         // ── Alle Partien, die die Abschnitte brauchen (gleiche Aufbauten nur einmal) ──
@@ -175,6 +180,8 @@ static partial class Balancingbericht
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
                 ["ohneAbschnitt"] = Schalter("ohne"),
                 ["startplaetze"] = Messpartie.OhneLos ? "vorgabe" : "gelost",
+                ["haerte"] = Messpartie.Haerte.ToString(),
+                ["lagen"] = lagen,
             },
             ["partien"] = auftraege.Count,
             ["partienMitFehler"] = fehler.Count,
@@ -232,7 +239,7 @@ static partial class Balancingbericht
                     break;
                 case 4:
                     foreach (var n in Hausstufen)
-                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true);
+                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true, Startplaetze: Startplatzvergabe.Vorgabe); // feste Plätze der Messstadt (9 Häuser; gelost passen seit 15.11.2026 höchstens 8)
                     break;
                 case 5:
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);

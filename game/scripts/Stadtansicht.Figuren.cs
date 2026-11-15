@@ -47,8 +47,6 @@ public partial class Stadtansicht
         /// <summary>Langsame Schleife (Stehen, Sitzen, Hüten: drei bis vier Sekunden, kaum Ausschlag) – sie braucht nicht jedes Bild eine neue Pose.</summary>
         public bool Langsam { get; set; }
         public bool Hervorgehoben { get; set; }
-        /// <summary>KI-Schmied aus TRELLIS (Stadtansicht.KiFiguren.cs): ein Netz mit eigener Textur, Clips nach Namen in der Bibliothek statt der zehn Schleifen.</summary>
-        public bool Ki { get; init; }
         /// <summary>Probefigur „Weg A“ (Stadtansicht.Passantenprobe.cs): MPFB-Körper mit Spielskelett, Clips nach Namen, ab Zoom 50 gebacken (VAT).</summary>
         public bool Probe { get; init; }
         /// <summary>Welche Probedatei (0 Mann, 1 Frau, <c>ProbeArten</c>).</summary>
@@ -59,7 +57,14 @@ public partial class Stadtansicht
         public bool ProbeRuecklast { get; init; }
         /// <summary>Probefigur nah vor der Ego-Kamera: auch in der VAT-Stufe mit Skelett gezeichnet (Stadtansicht.Passantenprobe.cs).</summary>
         public bool ProbeNah { get; set; }
-        /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
+        /// <summary>Probefigur im Innenraum (Baukasten, <c>innen: true</c>): nie gebacken, das Skelett wird immer gestellt – auch wenn draußen die VAT
+        /// für ihre Art läuft (sonst stand sie in der Ruhelage der Datei mit 42° abgespreizten Armen, NAS-Klicktest 2).</summary>
+        public bool ProbeInnen { get; init; }
+        /// <summary>Fingerknochen und ihre Stufe (Stadtansicht.FigurenLod.cs); null bei Figuren ohne Finger.</summary>
+        public FingerStufe? Finger { get; set; }
+        /// <summary>Federketten von Rock, Kleid und Schürze (Stadtansicht.Stoff.cs); null bei Figuren ohne Kettenknochen.</summary>
+        public StoffFederung? Stoff { get; set; }
+        /// <summary>Welche Animation der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
         public double Anfang { get; set; } = SchleifenAnfang;
@@ -67,7 +72,7 @@ public partial class Stadtansicht
 
     /// <summary>Wie eine Figur aussieht: Volk, Geschlecht, Farben und Tracht.</summary>
     private sealed record FigurAussehen(Volk Volk, bool Frau, Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopffarbe,
-        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false, bool KiSchmied = false, bool Waffenrock = false);
+        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false, bool Waffenrock = false);
 
     /// <summary>Datei, Hüft- und Kniehöhe (Meter) und Größe je Volk – Hüfte und Knie wie in <c>tools/modelle/figuren.py</c>.
     /// Orks und Oger haben noch kein eigenes Modell: vorerst ein größerer Mensch.</summary>
@@ -140,7 +145,18 @@ public partial class Stadtansicht
     /// </summary>
     private Figur? FigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
     {
-        if (aussehen.KiSchmied && KiSchmiedEinsetzen(eltern, nummer) is { } kiFigur) return kiFigur;
+        // Ein Baukasten für alle Figuren (Nutzer 15.11.2026): Mit den Probefiguren (Standard) baut jede Stelle, die bisher das alte Rig lud
+        // (Wechselstube, Wachstube, Diebesversteck, Werkräume, Ratssitzung, Barde, Prediger, Markt, Wachen, Diebe, Schiffer …), die Figur mit
+        // Passanten-Skelett – immer gestellt, mit Werkzeugen, Arbeitsclips, Hockern und den Zielformen des Rocks. Nur mit --passantenprobe=0 das alte Rig.
+        if (ProbeAktiv && ProbefigurEinsetzen(eltern, aussehen, nummer, null, innen: true) is { } baukasten)
+        {
+            if (aussehen.Last == Last.Hellebarde && baukasten.Werkzeuge.TryGetValue("Hellebarde", out var hellebarde))
+            {
+                hellebarde.Visible = true; // statt des Stabs (die Probe legt für die Hellebarde den Stab an)
+                foreach (var teil in baukasten.Teile.Where(t => t.Name.ToString().StartsWith("Zub_stab"))) teil.Visible = false;
+            }
+            return baukasten;
+        }
         var (datei, huefte, knie, groesse) = FigurMasse(aussehen.Volk);
         if (Modell(datei) is not { } szene) return null;
         var modell = szene.Instantiate<Node3D>();
@@ -201,7 +217,6 @@ public partial class Stadtansicht
     {
         f.Takt = takt;
         if (f.Probe) { ProbeBewegungSetzen(f, bewegung, takt); return; }
-        if (f.Ki) { KiBewegungSetzen(f, bewegung, takt); return; }
         if (f.Bewegung == bewegung) return;
         f.Bewegung = bewegung;
         f.Spieler.Play(bewegung);
@@ -218,10 +233,11 @@ public partial class Stadtansicht
     /// <summary>Zählt die Phase um <paramref name="sekunden"/> (echte Zeit, mal Abspieltempo) weiter und setzt die Pose.</summary>
     private static void FigurBewegen(Figur f, double sekunden)
     {
-        if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
-        if (f.Probe && _probeVat && !f.ProbeNah && _probeArtFertigStatisch[f.ProbeArt]) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
+        if (f.Probe && !f.ProbeInnen && _probeVat && !f.ProbeNah && _probeArtFertigStatisch[f.ProbeArt]) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen (Innenfiguren nie)
         f.Spieler.Seek(f.Anfang + f.Phase, true);
+        StoffNachPose(f); // nach einem Clipwechsel beginnt die Stofffeder aus der gebackenen Haltung (Stadtansicht.Stoff.cs)
+        FingerMischen(f); // Überblendung Griff ↔ Ruhehand (Stadtansicht.FigurenLod.cs)
         f.Neu = false;
     }
 
@@ -318,8 +334,7 @@ public partial class Stadtansicht
         foreach (var teil in f.Teile)
         {
             if (!IsInstanceValid(teil)) continue;
-            if (f.Ki) teil.MaterialOverride = an ? KiHervorhebung(teil) : null; // die Überlagerung ließ das PBR-Material durchscheinen (Stadtansicht.KiFiguren.cs)
-            else teil.MaterialOverlay = an ? _hervorhebung : null;
+            teil.MaterialOverlay = an ? _hervorhebung : null;
         }
     }
 

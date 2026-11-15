@@ -114,7 +114,7 @@ public static class Partiebesetzung
     /// <summary>Schlüssel der Zufallsquelle für die Züge des Spielers (<see cref="SpielerZuege"/>).</summary>
     public const int ZugSchluessel = 0x5A7567; // „Zug“
 
-    private const int ZweckSpieler = 1, ZweckKiHaeuser = 2, ZweckNamen = 3;
+    private const int ZweckSpieler = 1, ZweckKiHaeuser = 2, ZweckNamen = 3, ZweckKartenwappen = 4;
 
     internal static Zufallsquelle Besetzungsquelle(int zufallsstartwert, int zweck) => new(Zugwuerfel.Mischen(zufallsstartwert, BesetzungSchluessel, zweck));
 
@@ -135,12 +135,22 @@ public static class Partiebesetzung
         : 1 + (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
 
     /// <summary>
-    /// Wie viele KI-Gegner höchstens mitspielen: Höfe − 1 (der Spieler). Ohne Los (<see cref="Aufstellungsart.Vorgabe"/>) nur die KI-Häuser der
-    /// Startbelegung – gewürfelt wird dann nichts.
+    /// Wie viele KI-Gegner höchstens mitspielen. Seit „nur noch Bauzonen“ (15.11.2026) mit <paramref name="daten"/>: so viele Häuser, wie in
+    /// die Bauzonen im Stadtinneren passen (<see cref="Startortlos.Haeuser"/>, höchstens <see cref="HoechstensHoefe"/>), minus der Spieler.
+    /// Ohne Los (<see cref="Aufstellungsart.Vorgabe"/>) höchstens die KI-Häuser der Startbelegung – gewürfelt wird dann nichts. Ohne Karte:
+    /// die Häuser des Ersatzes. Ohne <paramref name="daten"/> (oder ohne Bauwesen in den Daten) die alte Zählung nach den Höfen der Karte –
+    /// nur noch als Anhalt; die Partie prüft mit den Daten.
     /// </summary>
-    public static int HoechstensKi(Stadtkarte? karte, Aufstellungsart aufstellung = Aufstellungsart.Gelost) => aufstellung == Aufstellungsart.Vorgabe
-        ? (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count
-        : Math.Max(0, Hoefe(karte) - 1);
+    public static int HoechstensKi(Stadtkarte? karte, Aufstellungsart aufstellung = Aufstellungsart.Gelost, Wirtschaftsdaten? daten = null)
+    {
+        var haeuser = (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
+        if (karte is not null && daten is not null && Startortlos.IstAktiv(karte, daten))
+        {
+            var platz = Math.Max(0, Startortlos.Haeuser(karte, daten) - 1);
+            return aufstellung == Aufstellungsart.Vorgabe ? Math.Min(haeuser, platz) : platz;
+        }
+        return aufstellung == Aufstellungsart.Vorgabe ? haeuser : Math.Max(0, Hoefe(karte) - 1);
+    }
 
     // ── Züge des Spielers ───────────────────────────────────────────────────
 
@@ -240,32 +250,28 @@ public static class Partiebesetzung
 
     /// <summary>
     /// Die mitspielenden KI-Häuser vor dem Los: die ersten <paramref name="anzahl"/> der Startbelegung (deren Betriebsarten die Daten kennen; die
-    /// ausführliche Beschreibung alter Karten), und für jeden weiteren Hof ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
-    /// Farbe und Geschlecht auf einer freien Start-Hofstelle. Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
+    /// ausführliche Beschreibung alter Karten), und für jedes weitere ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
+    /// Farbe und Geschlecht – ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/> (seit 15.11.2026, vorher eine freie
+    /// Start-Hofstelle). Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
     /// </summary>
     internal static List<Starthaus> KiHaeuser(Stadtkarte? karte, Startbelegung start, Wirtschaftsdaten daten, int anzahl, Wappen spielerWappen,
         IReadOnlyList<Hausvorgabe?>? vorgaben, int zufallsstartwert)
     {
         var ausKarte = start.Haeuser.Take(anzahl).ToList();
-        var haeuser = ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
+        var haeuser = KartenwappenEindeutig(ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList(), spielerWappen, vorgaben, zufallsstartwert);
         var fehlen = anzahl - ausKarte.Count;
         if (fehlen <= 0) return haeuser;
-        if (karte is not { HatHofstellen: true })
-            throw new ArgumentException($"Ohne Hofstellen spielen höchstens {start.Haeuser.Count} KI-Häuser mit.");
-
-        var belegt = haeuser.Select(h => Hofstellenvergabe.VorgabeVon(karte, h)).Prepend(Hofstellenvergabe.VorgabeSpieler(karte)).ToList();
-        var frei = Hofstellenvergabe.Startplaetze(karte).Where(h => !belegt.Contains(h)).ToList();
-        if (frei.Count < fehlen)
-            throw new ArgumentException($"Die Karte hat nur {Hoefe(karte)} Höfe – für den Spieler und {anzahl} KI-Häuser zu wenig.");
+        if (karte is null)
+            throw new ArgumentException($"Ohne Karte spielen höchstens {start.Haeuser.Count} KI-Häuser mit.");
 
         var art = daten.Berufe[Startaufstellung.Berufe(daten)[0]].Werkstatt; // Platzhalter: den Beruf würfelt die Startaufstellung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
-            .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>()).ToList();
+            .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
+            .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
         var farben = start.Haeuser.Select(h => h.Farbe).Append(start.Spieler.Farbe).OfType<string>().ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
         {
-            var hof = frei[i];
             var geschlecht = z.Next(2) == 0 ? Geschlecht.Mann : Geschlecht.Frau;
             var w = Wappen.Zufall(z, wappen);
             wappen.Add(w);
@@ -273,8 +279,8 @@ public static class Partiebesetzung
             if (farbe is not null) farben.Add(farbe);
             haeuser.Add(new Starthaus
             {
-                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, Farbe = farbe, Wohnhaus = hof.Wohnhaus,
-                Betriebe = { new Startbetrieb { Platz = hof.Werkstatt, Art = art } },
+                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, Farbe = farbe,
+                Betriebe = { new Startbetrieb { Art = art } },
             });
         }
         return haeuser;
@@ -282,6 +288,61 @@ public static class Partiebesetzung
 
     /// <summary>Die eigene Zufallsquelle der Namen gewürfelter KI-Häuser (in der <see cref="Startaufstellung"/>).</summary>
     internal static Zufallsquelle Namensquelle(int zufallsstartwert) => Besetzungsquelle(zufallsstartwert, ZweckNamen);
+
+    /// <summary>
+    /// Mitspielende Häuser der Karte führen ihr Wappen aus der Karte – außer es gleicht dem des Spielers, einer Vorgabe aus „Erweitert“ oder dem
+    /// eines vorher stehenden mitspielenden Hauses (Nutzer 15.11.2026: die KI würfelt neu, bis es anders ist). Dann würfelt das Haus ein neues aus
+    /// einer eigenen Zufallsquelle, verschieden von allen anderen. Ein Haus mit eigener Vorgabe behält sie (die prüft <see cref="VorgabenPruefen"/>).
+    /// Nicht mitspielende Häuser der Karte zählen nicht. Ohne Gleichstand bleibt alles wie in der Karte (kein Wurf).
+    /// </summary>
+    internal static List<Starthaus> KartenwappenEindeutig(List<Starthaus> haeuser, Wappen spielerWappen, IReadOnlyList<Hausvorgabe?>? vorgaben,
+        int zufallsstartwert)
+    {
+        Wappen? Vorgabe(int i) => vorgaben is not null && i < vorgaben.Count ? vorgaben[i]?.Wappen : null;
+        var fest = haeuser.Select((_, i) => Vorgabe(i)).OfType<Wappen>().Append(spielerWappen).ToList();
+        var vergeben = new List<Wappen>();
+        Zufallsquelle? z = null;
+        var ergebnis = new List<Starthaus>(haeuser.Count);
+        for (var i = 0; i < haeuser.Count; i++)
+        {
+            var h = haeuser[i];
+            if (Vorgabe(i) is null && (fest.Contains(h.Wappen) || vergeben.Contains(h.Wappen)))
+            {
+                z ??= Besetzungsquelle(zufallsstartwert, ZweckKartenwappen);
+                var belegt = fest.Concat(vergeben).Concat(haeuser.Select(k => k.Wappen)).ToList();
+                h = new Starthaus
+                {
+                    Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = Wappen.Zufall(z, belegt), Farbe = h.Farbe,
+                    Wohnhaus = h.Wohnhaus, Betriebe = h.Betriebe.ToList(), Gewuerfelt = h.Gewuerfelt,
+                };
+            }
+            if (Vorgabe(i) is null) vergeben.Add(h.Wappen);
+            ergebnis.Add(h);
+        }
+        return ergebnis;
+    }
+
+    /// <summary>
+    /// Welche Wappen für ein Haus des Menüs „Erweitert“ schon vergeben sind (nur lesend, für die Sperre im Wappenfeld): die der Häuser der Karte (die ersten
+    /// <paramref name="rivalen"/> der Startbelegung, solange ihre Zeile kein eigenes Wappen wählt), die gewählten der anderen Zeilen und das des Spielers.
+    /// <paramref name="zeile"/> ist die Zeile (0 …), für die gefragt wird; sie selbst zählt nicht mit, -1 fragt für den Spieler (dessen Wappen zählt dann nicht mit).
+    /// Wählt eine andere Zeile ein anderes Wappen, ist ihr altes (Kartenhaus) wieder frei.
+    /// </summary>
+    /// <param name="wahl">Das gewählte Wappen je Zeile (null = gewürfelt).</param>
+    public static IReadOnlyList<(Wappen Wappen, string Haus)> VergebeneWappen(Startbelegung start, int rivalen, Wappen spielerWappen, string spielername,
+        IReadOnlyList<Wappen?> wahl, int zeile)
+    {
+        var liste = new List<(Wappen, string)>();
+        if (zeile >= 0) liste.Add((spielerWappen, spielername));
+        for (var j = 0; j < rivalen; j++)
+        {
+            if (j == zeile) continue;
+            var karte = j < start.Haeuser.Count ? start.Haeuser[j] : null;
+            var wappen = (j < wahl.Count ? wahl[j] : null) ?? karte?.Wappen;
+            if (wappen is not null) liste.Add((wappen, karte is { Name.Length: > 0 } ? karte.Name : $"KI-Haus {j + 1}"));
+        }
+        return liste;
+    }
 
     /// <summary>
     /// Prüft die KI-Vorgaben („Erweitert“) gegen den Spieler und die mitspielenden Häuser: nicht mehr Vorgaben als KI-Häuser, Namen und Wappen
@@ -298,11 +359,13 @@ public static class Partiebesetzung
             .OfType<string>().Prepend(spielername).ToList();
         if (namen.GroupBy(n => n).FirstOrDefault(g => g.Count() > 1) is { } doppelt)
             throw new ArgumentException($"„{doppelt.Key}“ heißen zwei Häuser.");
-        var wappen = mitspielend.Select((h, i) => V(i)?.Wappen ?? (h.Gewuerfelt ? null : h.Wappen)).OfType<Wappen>().Prepend(spielerWappen).ToList();
-        foreach (var w in wappen)
+        var wappen = mitspielend.Select((h, i) => (Haus: V(i)?.Name is { } vn ? Partieaufbau.Hausname(vn) : h.Gewuerfelt ? $"KI-Haus {i + 1}" : h.Name,
+                                                   Wappen: V(i)?.Wappen ?? (h.Gewuerfelt ? null : h.Wappen)))
+            .Where(x => x.Wappen is not null).Select(x => (x.Haus, Wappen: x.Wappen!)).Prepend((Haus: spielername, Wappen: spielerWappen)).ToList();
+        foreach (var (_, w) in wappen)
             if (w.Fehler() is { } fehler) throw new ArgumentException(fehler);
-        if (wappen.Count != wappen.Distinct().Count())
-            throw new ArgumentException("Zwei Häuser führen dasselbe Wappen.");
+        if (wappen.GroupBy(x => x.Wappen).FirstOrDefault(g => g.Count() > 1) is { } gleich)
+            throw new ArgumentException($"Zwei Häuser führen dasselbe Wappen ({string.Join(" und ", gleich.Select(x => x.Haus))}).");
         var vergeben = new List<string> { spielerberuf };
         foreach (var b in vorgaben.Select(v => v?.Beruf).OfType<string>())
             if (Startaufstellung.BerufVergeben(daten, vergeben, b) is { } grund) throw new ArgumentException(grund);

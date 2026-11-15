@@ -55,16 +55,52 @@ Z_HAUBE = 1.95                            # Unterkante der Herdhaube: 1,80 m ueb
 TUER_HOCH = 2.00                          # lichte Hoehe der Haustuer ueber dem Fussboden (Figur 1,75 m)
 OG_FENSTER = (3.50, 4.30)                 # Bruestung 0,83 m ueber dem Galerieboden
 
+# ── Konstruktionsregel Fachwerk (Rueckmeldung des Nutzers 14.11.2026, wie Stufe 2: wohnhaus_mensch_s23_masse.py) ─────────
+#    Jede Fachwerkwand eines Geschosses: Schwelle unten, Raehm oben, Staender (Eckstaender buendig an den Enden) in einem
+#    REGELMAESSIGEN Raster mit Achsabstand um RASTER_ZIEL; dazwischen die Gefache. Eine Oeffnung fuellt genau ein Gefach:
+#    zwischen zwei Staendern (Breite = Achsabstand minus Staenderbreite) und zwischen Brustriegel und Sturzriegel, die in einer
+#    Hoehe durch das Geschoss laufen (gleiche Fenster je Geschoss und Seite). Gefache ohne Oeffnung: Brust- und Sturzriegel; die
+#    Eckgefache tragen spiegelgleiche Streben. Giebel: dasselbe Achsraster bis unter die Giebelsparren, die Oeffnung im mittleren
+#    Gefach, der Kehlbalken ist ihr Sturz, darueber Hahnenbalken und Spitzsaeule bis zum First; alles spiegelgleich zur Giebelachse.
+BW = 0.17                       # Staenderbreite
+RIEGEL = 0.14                   # Hoehe der Riegel
+RASTER_ZIEL = 0.95              # Achsabstand, um den das Raster gelegt wird
+# Zahl der Gefache, wo sie von der naechsten ganzen Zahl abweicht: die Traufseiten des Obergeschosses (5,22 m) bekommen sechs
+# Gefache (Achsabstand 0,84 statt 1,01), damit das Fenster rechts frei vom Schlot und nicht im Eckgefach liegt.
+RASTER_N = {"links_og": 6, "rechts_og": 6}
+
+
+def raster(laenge, n=None, ziel=RASTER_ZIEL, b=BW):
+    """Achsen der Staender einer Wand der Laenge `laenge` (ab ihrem Ursprung): Eckstaender buendig an den Enden, dazwischen
+    gleiche Abstaende (n Gefache, sonst die ganze Zahl, die dem Ziel am naechsten kommt). Gibt (Achsen, Achsabstand) zurueck."""
+    n = n or max(1, round((laenge - b) / ziel))
+    a = (laenge - b) / n
+    return [b / 2 + k * a for k in range(n + 1)], a
+
+
+def gefach(start, laenge, k, n=None):
+    """Lichte Weite (a0, a1) des Gefachs k einer Wand, die bei `start` (Weltkoordinate entlang der Wand) beginnt."""
+    achsen, _ = raster(laenge, n)
+    return (start + achsen[k] + BW / 2, start + achsen[k + 1] - BW / 2)
+
+
+_v = lambda k: gefach(-OX, 2 * OX, k)                              # Giebelseiten des Obergeschosses: fuenf Gefache (0,93 m)
+_s = lambda k: gefach(OVORN, HINTEN - OVORN, k, RASTER_N["links_og"])   # Traufseiten: sechs Gefache (0,84 m)
+# Ladeluke im mittleren Gefach des vorderen Giebels: steht auf der Giebelschwelle, der Kehlbalken (1,45 ueber der Traufe, auf
+# derselben Hoehe wie die Kehlbalken des Dachstuhls innen) ist ihr Sturz
+LUKE = (_v(2), (Z_TRAUFE + 0.17, Z_TRAUFE + 1.45 - 0.08))
+
 # Oeffnungen: Wand, (a0, a1) entlang der Wand in Weltkoordinaten (x bei vorn/hinten, y bei links/rechts), (z0, z1), Art
 FENSTER = [
     ("vorn_eg", (0.62, 1.58), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),
     ("vorn_eg", (-1.35, -0.35), (1.05, 2.00), "fenster"),
     ("links_eg", (-0.50, 0.40), (1.10, 1.95), "fenster"),
-    ("vorn_og", (-1.45, -0.75), OG_FENSTER, "fenster"),
-    ("vorn_og", (0.75, 1.45), OG_FENSTER, "fenster"),
-    ("links_og", (-1.90, -1.20), OG_FENSTER, "fenster"),
-    ("rechts_og", (1.00, 1.70), OG_FENSTER, "fenster"),
-    ("hinten_og", (-0.35, 0.35), OG_FENSTER, "fenster"),
+    # Obergeschoss (Fachwerk): je ein Gefach; zur Gasse spiegelgleich das zweite und vierte, hinten das mittlere
+    ("vorn_og", _v(1), OG_FENSTER, "fenster"),
+    ("vorn_og", _v(3), OG_FENSTER, "fenster"),
+    ("links_og", _s(1), OG_FENSTER, "fenster"),
+    ("rechts_og", _s(4), OG_FENSTER, "fenster"),
+    ("hinten_og", _v(2), OG_FENSTER, "fenster"),
 ]
 # Waende: Name -> (Ursprung aussen, Richtung, Breite, Normale nach aussen); innen liegt dieselbe Wand um T nach innen versetzt
 WAENDE = {
@@ -95,6 +131,102 @@ def punkt(wand, s, z, raus=0.0):
 def dach_z(x, oben=False):
     """Hoehe des Dachs (Unterseite, mit `oben` die Oberkante der Deckung ohne Stufen) ueber der Stelle x."""
     return Z_FIRST - abs(x) * NEIGUNG + (STROH if oben else 0.0)
+
+
+def fachwerk_wand(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, riegel=True, z_fenster=OG_FENSTER, stoss=None):
+    """Fachwerk einer Geschosswand nach der Konstruktionsregel (auch fuer wohnhaus_mensch_s1.py): Schwelle (an Tueren
+    unterbrochen), Raehm, Staender im regelmaessigen Raster; jede Oeffnung (s0, s1, za, zb, art; Wandkoordinaten) fuellt genau ein
+    Gefach – Fenster zwischen Brust- und Sturzriegel, Tueren unter dem Sturzriegel. Gefache ohne Oeffnung: Brust- und Sturzriegel
+    auf der Hoehe der Fenster (`z_fenster`), in den beiden Eckgefachen statt dessen spiegelgleiche Streben (vom Eckstaender unten
+    nach innen oben). Ohne `riegel` (Kniestock) nur Schwelle, Raehm und Staender. P(s, z): Punkt auf der Wand."""
+    holz, b, r = "Fachwerk", BW, RIEGEL
+    achsen, _ = raster(breite, n)
+    gefache = [(achsen[k] + b / 2, achsen[k + 1] - b / 2) for k in range(len(achsen) - 1)]
+    belegt = {}
+    for s0, s1, za, zb, art in oeffnungen:
+        k = next((k for k, (g0, g1) in enumerate(gefache) if abs(s0 - g0) < 0.01 and abs(s1 - g1) < 0.01), None)
+        if k is None: raise SystemExit(f"Oeffnung {s0:.3f}..{s1:.3f} liegt in keinem Gefach (Raster {[round(a, 3) for a in achsen]})")
+        belegt[k] = (za, zb, art)
+    tueren = sorted(gefache[k] for k, (_, _, art) in belegt.items() if art == "tuer")
+
+    def ende(tiefe):
+        """Enden von Schwelle und Raehm an den Ecken: 'kappe' laeuft um die eigene Tiefe ueber die Ecke (deckt die Balken der
+        Nachbarwand) und bekommt Stirnflaechen, 'buendig' endet an der Ecke – so decken sich die Balken zweier Waende an der Ecke
+        nicht (deckungsgleiche Flaechen backen schwarz). Ohne Angabe wie bisher 5 cm ueber die Ecke."""
+        return {"kappe": tiefe, "buendig": 0.0}.get(stoss, 0.05)
+
+    def stirn(s, zm, hoehe, tiefe, aussen):
+        o = Vector(P(s, zm - hoehe / 2))
+        h.rechteck(holz, o, n3, (0, 0, 1), tiefe, hoehe, "balken_c", weg_von=Vector(P(s - aussen, zm)))
+    e = ende(0.07)
+    kanten = [-e] + [x for g0, g1 in tueren for x in (g0, g1)] + [breite + e]
+    for a, c in zip(kanten[0::2], kanten[1::2]):
+        h.brett(holz, P(a, z0 + 0.10), P(c, z0 + 0.10), 0.20, n3, "balken_c", tiefe=0.07)          # Schwelle
+    if stoss == "kappe":
+        stirn(-e, z0 + 0.10, 0.20, 0.07, -1); stirn(breite + e, z0 + 0.10, 0.20, 0.07, 1)
+    e = ende(0.06)
+    if raehm:
+        h.brett(holz, P(-e, z1 - 0.09), P(breite + e, z1 - 0.09), 0.18, n3, "balken_b", tiefe=0.06)
+        if stoss == "kappe": stirn(-e, z1 - 0.09, 0.18, 0.06, -1); stirn(breite + e, z1 - 0.09, 0.18, 0.06, 1)
+    oben = z1 - (0.18 if raehm else 0.0)
+    for s in achsen:
+        h.brett(holz, P(s, z0 + 0.20), P(s, oben), b, n3, "balken_a", laengs="v")
+    if not riegel: return
+    for k, (g0, g1) in enumerate(gefache):
+        if k in belegt:
+            za, zb, art = belegt[k]
+            if art != "tuer": h.brett(holz, P(g0, za - r / 2), P(g1, za - r / 2), r, n3, "balken_b", tiefe=0.045)   # Brustriegel
+            if zb + r < oben: h.brett(holz, P(g0, zb + r / 2), P(g1, zb + r / 2), r, n3, "balken_b", tiefe=0.045)  # Sturzriegel
+            continue
+        if k in (0, len(gefache) - 1) and len(gefache) > 2:                                   # Eckgefach: Strebe
+            aussen, innen = (g0, g1) if k == 0 else (g1, g0)
+            h.brett(holz, P(aussen, z0 + 0.22), P(innen, oben - 0.02), 0.13, n3, "balken_a", tiefe=0.045)
+            continue
+        h.brett(holz, P(g0, z_fenster[0] - r / 2), P(g1, z_fenster[0] - r / 2), r, n3, "balken_b", tiefe=0.045)
+        h.brett(holz, P(g0, z_fenster[1] + r / 2), P(g1, z_fenster[1] + r / 2), r, n3, "balken_b", tiefe=0.045)
+
+
+def giebel_fachwerk(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n=None):
+    """Giebelfachwerk nach der Konstruktionsregel (auch fuer wohnhaus_mensch_s1.py): dasselbe Staenderraster wie die Wand darunter
+    (Breite 2 * ox, Mitte x = 0), Giebelschwelle, die Oeffnung (x0, x1) im mittleren Gefach zwischen Schwelle bzw. Brustriegel und
+    Kehlbalken (der Kehlbalken ist ihr Sturz), Staender bis unter den Kehlbalken bzw. die Giebelsparren, darueber Hahnenbalken
+    und Spitzsaeule bis zum First, Streben ueber dem Kehlbalken; Giebelsparren am Ortgang; alles spiegelgleich zur Giebelachse.
+    `oeffnung` None: der Giebel ohne Oeffnung hat dieselben Hoehen (`z_oeffnung`) wie der gegenueberliegende."""
+    holz, b, r = "Fachwerk", BW, RIEGEL
+    n3 = (0, aussen, 0)
+    xk = lambda z: ox - (z - zt) / neigung
+    dach = lambda x: zf - abs(x) * neigung - 0.10                  # Unterkante der Giebelsparren an der Stelle x
+    achsen = [s - ox for s in raster(2 * ox, n)[0]]
+    z_br, z_kb = z_oeffnung
+    oben_schwelle = min(zt + 0.17, z_br)                           # steht die Oeffnung (fast) auf der Schwelle, ist diese ihr Brustriegel
+    zk = z_kb + 0.08                                               # Kehlbalken (0,16 hoch), Unterkante = Sturz der Oeffnung
+    zh = zk + 0.55 * (zf - zk)                                     # Hahnenbalken
+    h.brett(holz, (-ox - 0.02, y, (zt - 0.01 + oben_schwelle) / 2), (ox + 0.02, y, (zt - 0.01 + oben_schwelle) / 2), oben_schwelle - zt + 0.01, n3, "balken_c", tiefe=0.07)   # Giebelschwelle
+    # Wo sich Hoelzer kreuzen oder ueberlappen, liegt eines 5 mm vor dem anderen (gleiche Tiefe hiesse deckungsgleiche Flaechen,
+    # die flackern und schwarz backen): Giebelsparren vor der Schwelle, der rechte vor dem linken, Hahnenbalken vor der Spitzsaeule.
+    for s in (-1, 1):
+        h.brett(holz, (s * (ox + 0.02), y, zt - 0.02), (s * 0.02, y, zf - 0.02), 0.16, n3, "balken_c", tiefe=0.075 if s < 0 else 0.08)   # Giebelsparren (Ortgang)
+    h.brett(holz, (-xk(zk), y, zk), (xk(zk), y, zk), 0.16, n3, "balken_b")                                        # Kehlbalken
+    h.brett(holz, (-xk(zh), y, zh), (xk(zh), y, zh), 0.15, n3, "balken_b", tiefe=0.055)                           # Hahnenbalken
+    h.brett(holz, (0.0, y, zk + 0.08), (0.0, y, zf - 0.05), b, n3, "balken_a", laengs="v")                       # Spitzsaeule
+    innen = []
+    for x in achsen:
+        if abs(x) < 1e-6 or dach(x) - oben_schwelle < 0.35: continue
+        st_oben = min(dach(x), zk - 0.08) if abs(x) < xk(zk) else dach(x)
+        h.brett(holz, (x, y, oben_schwelle), (x, y, st_oben), b, n3, "balken_a", laengs="v")               # Staender
+        if 0 < x < xk(zk): innen.append(x)
+    x_bis = max(innen) if innen else 0.0
+    if z_br - oben_schwelle >= 0.25:                                                                         # Brustriegel unter der Oeffnung
+        h.brett(holz, (-(x_bis - b / 2), y, z_br - r / 2), (x_bis - b / 2, y, z_br - r / 2), r, n3, "balken_b", tiefe=0.045)
+    for s in (-1, 1):
+        # aeussere Gefache: Strebe vom Staender unten nach aussen oben bis unter den Sparren
+        for x in achsen:
+            if x > x_bis + 1e-6 and dach(x) - oben_schwelle >= 0.35:
+                x2 = x + 0.55
+                h.brett(holz, (s * (x - b / 2), y, oben_schwelle + 0.06), (s * x2, y, dach(x2) - 0.08), 0.12, n3, "balken_a", tiefe=0.04)
+        # ueber dem Kehlbalken: Strebe von dessen Ende zur Spitzsaeule unter dem Hahnenbalken
+        h.brett(holz, (s * (xk(zk) - 0.15), y, zk + 0.10), (s * (b / 2), y, zh - 0.10), 0.12, n3, "balken_a", tiefe=0.04)
+    return zk
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -132,8 +264,8 @@ def baue_haus():
         l = [x[:4] for x in loecher(wand)]
         h.wand(lehm, (ox, oy, 0), (ex, ey, 0), breite, Z_OG, Z_TRAUFE, "putz", loecher=l, zbasis=Z_OG, hoehe=Z_TRAUFE - Z_OG, laibung=(holz, "balken_c"), laibung_tiefe=T, weg_von=MITTE, u_start=umfang)
         umfang += breite
-    # Giebel vorn und hinten: Trapez bis zum Kehlbalken, darueber das Dreieck
-    zk = Z_TRAUFE + 1.45
+    # Giebel vorn und hinten: Trapez bis zum Kehlbalken (Sturz der Ladeluke), darueber das Dreieck
+    zk = LUKE[1][1] + 0.08
     xk = OX - (zk - Z_TRAUFE) / NEIGUNG
     for y, n in ((OVORN, -1), (HINTEN, 1)):
         o, eu = (-OX, y, 0), (1, 0, 0)
@@ -151,43 +283,17 @@ def baue_haus():
             y = VORN + 0.5 + i * 1.4
             h.kasten(holz, (min(seite * BX, seite * (OX + 0.02)), y - 0.08, Z_OG - 0.17), (max(seite * BX, seite * (OX + 0.02)), y + 0.08, Z_OG), "balken_c", ohne=("+z", "-x" if seite > 0 else "+x"), laengs="x")
 
-    # ── Fachwerk des Obergeschosses ──────────────────────────────────────────────────────────────────────────────────
-    bw = 0.17
+    # ── Fachwerk des Obergeschosses und der Giebel nach der Konstruktionsregel (fachwerk_wand, giebel_fachwerk) ─────────
     for wand in ("vorn_og", "rechts_og", "hinten_og", "links_og"):
         _, _, breite, n = WAENDE[wand]
-        n3 = (n[0], n[1], 0)
-        P = lambda s, z: punkt(wand, s, z)
-        h.brett(holz, P(-0.05, Z_OG + 0.10), P(breite + 0.05, Z_OG + 0.10), 0.20, n3, "balken_c", tiefe=0.07)          # Schwelle
-        h.brett(holz, P(-0.05, Z_TRAUFE - 0.09), P(breite + 0.05, Z_TRAUFE - 0.09), 0.18, n3, "balken_b", tiefe=0.06)  # Raehm
-        l = loecher(wand)
-        pfosten = {bw / 2, breite - bw / 2}
-        for s0, s1, _, _, _ in l: pfosten |= {s0 - bw / 2, s1 + bw / 2}
-        # Zwischenstaender, wo das Feld sonst breiter als 1,5 m waere
-        fest = sorted(pfosten)
-        for a, b in zip(fest[:-1], fest[1:]):
-            if b - a > 1.5 and not any(s0 - 0.1 < (a + b) / 2 < s1 + 0.1 for s0, s1, *_ in l): pfosten.add((a + b) / 2)
-        for s in sorted(pfosten):
-            h.brett(holz, P(s, Z_OG + 0.20), P(s, Z_TRAUFE - 0.18), bw, n3, "balken_a", laengs="v")
-        # Brustriegel durchlaufend, Sturzriegel ueber den Fenstern
-        zr = OG_FENSTER[0] - 0.07
-        h.brett(holz, P(bw, zr), P(breite - bw, zr), 0.14, n3, "balken_b", tiefe=0.045)
-        for s0, s1, _, zb, _ in l:
-            h.brett(holz, P(s0 - bw, zb + 0.07), P(s1 + bw, zb + 0.07), 0.14, n3, "balken_b", tiefe=0.045)
-        # Streben in den Eckfeldern (unten aussen nach oben innen)
-        for s_a, s_b in ((bw, 0.62), (breite - bw, breite - 0.62)):
-            if any(min(s_a, s_b) - 0.1 < s0 < max(s_a, s_b) + 0.1 or min(s_a, s_b) - 0.1 < s1 < max(s_a, s_b) + 0.1 for s0, s1, *_ in l): continue
-            h.brett(holz, P(s_a, Z_OG + 0.22), P(s_b, zr - 0.07), 0.13, n3, "balken_a", tiefe=0.04)
-    # Giebelfachwerk: Kehlbalken, Mittelstaender, zwei Streben, Ortgang-Sparren; vorn dazu die Ladeluke (Akzentfarbe)
-    for y, n in ((OVORN, (0, -1, 0)), (HINTEN, (0, 1, 0))):
-        h.brett(holz, (-xk, y, zk), (xk, y, zk), 0.16, n, "balken_b")
-        h.brett(holz, (0, y, zk + 0.08), (0, y, Z_FIRST - 0.25), 0.15, n, "balken_a", laengs="v")
-        for s in (-1, 1):
-            h.brett(holz, (s * 1.25, y, Z_TRAUFE), (s * 1.25, y, dach_z(1.25) - 0.12), 0.15, n, "balken_a", laengs="v")
-            h.brett(holz, (s * (xk - 0.15), y, zk + 0.1), (s * 0.12, y, Z_FIRST - 0.75), 0.12, n, "balken_a", tiefe=0.04)
-            h.brett(holz, (s * (OX + 0.02), y, Z_TRAUFE - 0.02), (s * 0.02, y, Z_FIRST - 0.02), 0.16, n, "balken_c", tiefe=0.07)
-    for x in (-0.165, 0.165):
-        h.brett("Fachwerk", (x, OVORN, 5.20), (x, OVORN, 6.04), 0.33, (0, -1, 0), "farbholz", tiefe=0.06, farbe=ROT)
-    h.brett(holz, (-0.42, OVORN, 5.15), (0.42, OVORN, 5.15), 0.11, (0, -1, 0), "balken_b", tiefe=0.07)
+        fachwerk_wand(h, lambda s, z, w=wand: punkt(w, s, z), breite, (n[0], n[1], 0), Z_OG, Z_TRAUFE, loecher(wand), n=RASTER_N.get(wand),
+                      stoss="kappe" if wand.startswith(("vorn", "hinten")) else "buendig")
+    (lx0, lx1), (lz0, lz1) = LUKE
+    for y, aussen in ((OVORN, -1), (HINTEN, 1)):
+        giebel_fachwerk(h, y, aussen, OX, Z_TRAUFE, Z_FIRST, NEIGUNG, (lx0, lx1) if aussen < 0 else None, (lz0, lz1))
+    # Ladeluke im mittleren Gefach des vorderen Giebels (zwei Fluegel in der Akzentfarbe)
+    for xa, xb in ((lx0, 0.0), (0.0, lx1)):
+        h.brett("Fachwerk", ((xa + xb) / 2, OVORN, lz0), ((xa + xb) / 2, OVORN, lz1), xb - xa - 0.01, (0, -1, 0), "farbholz", tiefe=0.06, farbe=ROT)
 
     # ── Tuer, Fensterkreuze, Laeden ──────────────────────────────────────────────────────────────────────────────────
     for wand, (a0, a1), (z0, z1), art in FENSTER:
@@ -209,7 +315,8 @@ def baue_haus():
             h.kasten(stein, (a0 - 0.15, VORN - 0.36, -0.12), (a1 + 0.15, VORN, Z_BODEN), "bruchstein", ohne=("-z", "+y"))
             continue
         # Rahmen (unten Fensterbank), Fensterkreuz in der Wandmitte
-        h.brett(holz, P(s0 - 0.12, z0 - 0.05), P(s1 + 0.12, z0 - 0.05), 0.10, n3, "balken_c", tiefe=0.08)
+        # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
+        h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
         if eg:
             h.brett(holz, P(s0 - 0.12, z1 + 0.06), P(s1 + 0.12, z1 + 0.06), 0.12, n3, "balken_c", tiefe=0.06)
             for s in (s0 - 0.06, s1 + 0.06):
@@ -249,7 +356,7 @@ def baue_haus():
         h.kasten(holz, (x - 0.05, VORN - 0.34, 0.0), (x + 0.05, VORN - 0.10, 0.42), "balken_c", ohne=("-z", "+z"), laengs="z")
     # Scheitholz an der rechten Seitenwand unter der Auskragung, Regenfass an der linken vorderen Ecke
     for i, (y, z) in enumerate([(0.55 + 0.19 * k, 0.09) for k in range(5)] + [(0.64 + 0.19 * k, 0.26) for k in range(4)] + [(0.74 + 0.19 * k, 0.43) for k in range(3)]):
-        h.stab(holz, (BX + 0.03, y, z), (BX + 0.62, y + 0.02 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)
+        h.stab(holz, (BX + 0.03, y, z), (BX + 0.62, y + 0.008 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)   # schraeg, ohne sich zu durchdringen
         h.rechteck(holz, (BX + 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=MITTE, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
     h.dreh(holz, (-BX - 0.36, VORN + 0.45, 0.0), [(0.25, 0.0), (0.31, 0.3), (0.31, 0.5), (0.26, 0.8)], "planken", seiten=10, deckel=False, gedreht=True)
     h.dreh(stein, (-BX - 0.36, VORN + 0.45, 0.72), [(0.255, 0.0), (0.0, 0.0)], "eisen", seiten=8, deckel=False, anteil=(0.0, 0.3))
@@ -349,7 +456,9 @@ def baue_dach():
     # Windbretter: am Giebel gekreuzte Bretter ueber dem First (halten das Stroh am Ortgang)
     for y in (DACH_VORN - 0.03, DACH_HINTEN + 0.03):
         for seite in (-1, 1):
-            a = Vector((seite * 0.45, y, dach_z(0.45) + dick_oben + 0.06)); b = Vector((-seite * 0.16, y, zf + 0.42))
+            # das zweite Brett liegt vor dem ersten (sonst decken sich beide in der Kreuzung: flackert, backt schwarz)
+            vor = Vector((0, (-1 if y < 0 else 1) * (0.025 if seite == 1 else 0.0), 0))
+            a = Vector((seite * 0.45, y, dach_z(0.45) + dick_oben + 0.06)) + vor; b = Vector((-seite * 0.16, y, zf + 0.42)) + vor
             d.brett("Fachwerk", a, b, 0.09, (0, -1 if y < 0 else 1, 0), "balken_c", tiefe=0.025)
             d.brett("Fachwerk", a, b, 0.09, (0, 1 if y < 0 else -1, 0), "balken_c", tiefe=0.0, seiten=False)
     return d
@@ -461,9 +570,15 @@ def baue_raum():
         for y in (-0.85, 0.75):
             if sx > 0 and KAMIN[2] - 0.4 < y < KAMIN[3] + 0.4: continue
             r.kasten(S, (min(sx * IX, sx * (IX - 0.07)), y - bw / 2, Z_BODEN), (max(sx * IX, sx * (IX - 0.07)), y + bw / 2, Z_OG), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
-        r.kasten(S, (min(sx * IX, sx * (IX - 0.09)), IV, Z_OG - 0.18), (max(sx * IX, sx * (IX - 0.09)), IH, Z_OG), "balken", ohne=("+z", "+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
-        # Staender im Obergeschoss
-        for y in (JV + 0.08, -0.6, 0.75, IH - 0.08):
+        # zwischen den Raehmen vorn und hinten (nicht unter ihnen: sonst decken sich die Unterseiten an den Ecken)
+        r.kasten(S, (min(sx * IX, sx * (IX - 0.09)), IV + 0.09, Z_OG - 0.18), (max(sx * IX, sx * (IX - 0.09)), IH - 0.09, Z_OG), "balken", ohne=("+z", "+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
+        # Staender im Obergeschoss: auf den Achsen des Fachwerks aussen (Raster der Traufseite), nicht neben einem Fenster, nicht am Schlot
+        wand = "links_og" if sx < 0 else "rechts_og"
+        offen = [(a0, a1) for w, (a0, a1), _, _ in FENSTER if w == wand]
+        achsen = [OVORN + s for s in raster(HINTEN - OVORN, RASTER_N[wand])[0]]
+        achsen = [y for y in achsen if JV + 0.2 < y < IH - 0.2 and not any(a0 - 0.3 < y < a1 + 0.3 for a0, a1 in offen)
+                  and not (sx > 0 and KAMIN[2] - 0.4 < y < KAMIN[3] + 0.4)]
+        for y in [JV + 0.08] + achsen + [IH - 0.08]:
             r.kasten(S, (min(sx * JX, sx * (JX - 0.06)), y - bw / 2, Z_OG), (max(sx * JX, sx * (JX - 0.06)), y + bw / 2, zw - 0.05), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
     for y, n in ((IV, 1), (IH, -1)):
         r.kasten(S, (-IX, min(y, y + n * 0.09), Z_OG - 0.18), (IX, max(y, y + n * 0.09), Z_OG), "balken", ohne=("+z", "-x", "+x", "-y" if n > 0 else "+y"), laengs="x")
@@ -473,8 +588,8 @@ def baue_raum():
         r.kasten(S, (-IX, y - 0.09, Z_OG - 0.2), (IX, y + 0.09, Z_OG), "balken", ohne=("+z", "-x", "+x"), laengs="x")
     for xa, xb in ((-JX, LEITER_X - 0.35), (LEITER_X + 0.35, JX)):          # Brustholz mit Luecke fuer den Austritt der Leiter
         r.stab(S, (xa, GALERIE_AB + 0.06, Z_GALERIE + 0.85), (xb, GALERIE_AB + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
-    for x in (-JX + 0.05, LEITER_X - 0.35, LEITER_X + 0.35, 0.75, JX - 0.05):
-        r.stab(S, (x, GALERIE_AB + 0.06, Z_GALERIE), (x, GALERIE_AB + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
+    for x in (-JX + 0.05, LEITER_X - 0.35, LEITER_X + 0.35, 0.75, JX - 0.05):   # Pfosten 9 cm: 5 mm vor dem Brustholz (nicht deckungsgleich)
+        r.stab(S, (x, GALERIE_AB + 0.06, Z_GALERIE), (x, GALERIE_AB + 0.06, Z_GALERIE + 0.85), 0.09, "balken")
     # Leiter zur Galerie: lehnt an der Galeriekante, quer zu ihr – man steigt aus dem freien Raum zur Galerie hinauf.
     # 73 Grad, 0,48 m breit, neun Sprossen im Abstand von 26,5 cm, die Holme ragen 0,95 m ueber den Galerieboden (Haltegriff
     # beim Austritt), davor 0,75 m frei bis zur Bank, im Brustholz der Galerie eine Luecke von 0,70 m.
@@ -490,7 +605,8 @@ def baue_raum():
     # Dachstuhl: fuenf Sparrenpaare, Firstpfette, zwei Kehlbalken
     for y in (JV + 0.3, -1.45, -0.62, 0.9, IH - 0.3):
         for sx in (-1, 1):
-            r.stab(S, (sx * JX, y, zw - 0.07), (0, y, Z_FIRST - 0.07), 0.12, "balken", breite=0.10)
+            # der rechte Sparren 1 cm breiter: am First liegen sonst die Seiten beider Sparren in einer Ebene (deckungsgleich)
+            r.stab(S, (sx * JX, y, zw - 0.07), (0, y, Z_FIRST - 0.07), 0.12, "balken", breite=0.10 if sx < 0 else 0.11)
     r.stab(S, (0, JV, Z_FIRST - 0.12), (0, IH, Z_FIRST - 0.12), 0.14, "balken")
     for y in (-1.45, 0.9):
         zk = Z_TRAUFE + 1.45
@@ -550,9 +666,10 @@ def baue_herd():
     return c
 
 
-def baue_vorrat():
+def baue_vorrat(zimmertuer_frei=False):
     """Vorrat-Set: Zwiebelzoepfe und Kraeuterbuendel an der rechten Wand zwischen Tuer und Herd, darunter zwei Tonkruege;
-    Hackklotz mit Scheiten hinter dem Herd."""
+    Hackklotz mit Scheiten hinter dem Herd. zimmertuer_frei (nur die Probe mit den Zimmertueren): Hackklotz und Scheite an der Rueckwand,
+    damit die rechte Wand unter der Galerie frei bleibt; die Grundformen 2-4 (wohnhaus_mensch_s1.py) behalten die alte Lage."""
     c = Teil("Vorrat_Set", BAENDER_INNEN, saat=59)
     S = "Innen"
     x0, x1, y0, y1 = KAMIN
@@ -564,9 +681,13 @@ def baue_vorrat():
         c.stab(S, (IX - 0.06, y, 2.03), (IX - 0.03, y, 2.25), 0.015, "stroh")
     for y in (hy0 - 0.85, hy0 - 1.1):
         c.dreh(S, (IX - 0.09, y, 1.72), [(0.0, 0.0), (0.085, 0.07), (0.05, 0.3), (0.012, 0.42)], "kleinteile", seiten=5, deckel=False, u_bereich=feld("kraut"))
-    # Hackklotz mit Scheiten hinter dem Herd (unter der Galerie)
-    c.dreh(S, (1.6, hy1 + 0.42, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
-    for a, b in (((1.25, hy1 + 0.82, Z_BODEN + 0.05), (1.85, hy1 + 0.84, Z_BODEN + 0.05)), ((1.3, hy1 + 0.94, Z_BODEN + 0.05), (1.86, hy1 + 0.97, Z_BODEN + 0.05)), ((1.28, hy1 + 0.88, Z_BODEN + 0.14), (1.84, hy1 + 0.9, Z_BODEN + 0.14))):
+    if zimmertuer_frei:   # Hackklotz mit Scheiten an der Rueckwand unter der Galerie (rechts davor die Tuer zur Bibliothek)
+        c.dreh(S, (1.05, IH - 0.25, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
+        scheite = (((1.32, IH - 0.08, Z_BODEN + 0.05), (1.92, IH - 0.10, Z_BODEN + 0.05)), ((1.36, IH - 0.20, Z_BODEN + 0.05), (1.93, IH - 0.21, Z_BODEN + 0.05)), ((1.34, IH - 0.14, Z_BODEN + 0.14), (1.90, IH - 0.15, Z_BODEN + 0.14)))
+    else:                 # Hackklotz mit Scheiten hinter dem Herd (unter der Galerie)
+        c.dreh(S, (1.6, hy1 + 0.42, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
+        scheite = (((1.25, hy1 + 0.82, Z_BODEN + 0.05), (1.85, hy1 + 0.84, Z_BODEN + 0.05)), ((1.3, hy1 + 0.94, Z_BODEN + 0.05), (1.86, hy1 + 0.97, Z_BODEN + 0.05)), ((1.28, hy1 + 0.88, Z_BODEN + 0.14), (1.84, hy1 + 0.9, Z_BODEN + 0.14)))
+    for a, b in scheite:
         c.stab(S, a, b, 0.1, "balken", kappen=True)
     return c
 
@@ -620,7 +741,8 @@ def baue_schlafplatz():
         c.kasten(S, (x0, y0, z), (x1, y1, z + 0.2), "bohlen", ohne=("-z", "+z"), laengs="x")
         for px in (x0 + 0.04, x1 - 0.04):
             for py in (y0 + 0.04, y1 - 0.04):
-                c.kasten(S, (px - 0.04, py - 0.04, z), (px + 0.04, py + 0.04, z + 0.27), "balken", ohne=("-z",), laengs="z")
+                # Pfosten 9 cm: stehen 5 mm vor dem Gestell (sonst decken sich ihre Aussenflaechen mit denen des Gestells)
+                c.kasten(S, (px - 0.045, py - 0.045, z), (px + 0.045, py + 0.045, z + 0.27), "balken", ohne=("-z",), laengs="z")
         c.kasten(S, (x0 + 0.05, y0 + 0.05, z + 0.12), (x1 - 0.05, y1 - 0.05, z + 0.33), "sackleinen", ohne=("-z",), laengs="x")
         kopf = x0 if x0 < 0 else x1
         r = 1 if x0 < 0 else -1
@@ -676,6 +798,25 @@ def baue_hausrat():
     return c
 
 
+# Zimmertueren zu den Raeumen der Stufen 2 und 3 (tools/modelle/raeume/raeume_masse.py): je Raum eine Tuer unter der Galerie,
+# Knoten „Zimmertuer_<Raum>“ – im Spiel nur sichtbar, wenn das Haus den Raum hat (Stadtansicht.Wohnraeume.cs)
+sys.path.insert(0, os.path.join(os.path.dirname(HIER), "raeume"))
+import raeume_masse as RM                                        # noqa: E402
+from zimmertuer import zimmertuer                                # noqa: E402
+
+
+def baue_zimmertueren():
+    teile, mitten = [], {}
+    k0, k1, _ = BAENDER_INNEN["kleinteile"]
+    for raum, (wand, (y0, y1)) in RM.WOHNSTUBE_TUEREN.items():
+        c = Teil(f"Zimmertuer_{raum}", BAENDER_INNEN, saat=101 + len(teile))
+        x = -IX if wand == "links" else IX
+        mitten[raum] = zimmertuer(c, "Innen", "bohlen", "balken", "kleinteile", feld("eisen"), x, y0, y1, Z_BODEN, RM.TUER_H,
+                                  1 if wand == "links" else -1, klinke_rechts=(wand == "links"))
+        teile.append(c)
+    return teile, mitten
+
+
 def baue_familienbuch():
     """Familienbuch (Gegenstand: Familie): dickes Buch mit Lederdeckel und Schliessen auf dem Tisch, daneben das Tintenhorn."""
     c = Teil("Gegenstand_Familienbuch", BAENDER_INNEN, saat=91)
@@ -683,9 +824,10 @@ def baue_familienbuch():
     x0, x1, y0, y1 = TISCH
     tx, zt = (x0 + x1) / 2, Z_BODEN + TISCH_HOEHE
     bx, by = tx + 0.02, y1 - 0.62
-    c.kasten(S, (bx - 0.14, by - 0.19, zt), (bx + 0.14, by + 0.19, zt + 0.018), "kleinteile", laengs="y")            # Deckel unten
+    # Deckel beginnen am Ruecken (nicht in ihm: sonst decken sich ihre Flaechen mit seinen)
+    c.kasten(S, (bx - 0.13, by - 0.19, zt), (bx + 0.14, by + 0.19, zt + 0.018), "kleinteile", laengs="y")            # Deckel unten
     c.kasten(S, (bx - 0.13, by - 0.18, zt + 0.018), (bx + 0.125, by + 0.18, zt + 0.075), "sackleinen", ohne=("-z", "+z"), laengs="y")   # Buchblock
-    c.kasten(S, (bx - 0.14, by - 0.19, zt + 0.075), (bx + 0.14, by + 0.19, zt + 0.093), "kleinteile", laengs="y")    # Deckel oben
+    c.kasten(S, (bx - 0.13, by - 0.19, zt + 0.075), (bx + 0.14, by + 0.19, zt + 0.093), "kleinteile", laengs="y")    # Deckel oben
     c.kasten(S, (bx - 0.145, by - 0.19, zt), (bx - 0.13, by + 0.19, zt + 0.093), "kleinteile", ohne=("+x",), laengs="y")   # Ruecken
     ur, k0, k1 = feld("rinde"), BAENDER_INNEN["kleinteile"][0], BAENDER_INNEN["kleinteile"][1]
     for fl in c.flaechen:
@@ -794,11 +936,14 @@ def baue_wappen():
     faerbt es in der Farbe des Besitzers), Eisenhaken. Nur mit Besitzer sichtbar."""
     w = Teil("Wappen", BAENDER_AUSSEN, saat=61)
     g = 0.62
-    o = (0.0, OVORN, 3.93)                      # mittleres Gefach der Gassenseite: zwischen den Laeden ist die Wand frei
+    # Bruestungsfeld des mittleren Gefachs zur Gasse (zwischen Schwelle und Brustriegel): zwischen den offenen Laeden der
+    # Fenster, die je ein ganzes Gefach fuellen, bleiben nur 0,28 m frei; der Haken haengt am Brustriegel
+    zw = (Z_OG + 0.20 + OG_FENSTER[0] - RIEGEL) / 2 + (0.44 - 0.42) * 1.12 * g / 2
+    o = (0.0, OVORN, zw)
     eu, ev, n = (1, 0, 0), (0, 0, 1), (0, -1, 0)
     prisma(w, "Fachwerk", [(x * 1.16 * g, y * 1.12 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.045, "balken_c")
     prisma(w, "Hausfarbe", [(x * g, y * g) for x, y in SCHILD], o, eu, ev, n, 0.045, 0.075, "farbholz", farbe=(1.0, 1.0, 1.0, 1.0))   # weisse Eckenfarbe: Godot multipliziert sie auf die Hausfarbe
-    w.kasten("Bruchstein", (-0.02, OVORN - 0.05, 3.93 + 0.47 * g), (0.02, OVORN, 3.93 + 0.58 * g), "eisen", ohne=("+y",))
+    w.kasten("Bruchstein", (-0.02, OVORN - 0.05, zw + 0.47 * g), (0.02, OVORN, zw + 0.58 * g), "eisen", ohne=("+y",))
     return w
 
 
@@ -966,6 +1111,8 @@ def baue_massfigur():
     figur(LEITER_X, GALERIE_AB - LEITER_LAUF - 0.42, Z_BODEN)   # vor der Leiter (Aufstieg aus dem freien Raum)
     figur(LEITER_X, GALERIE_AB + 0.3, Z_GALERIE)        # oben am Austritt der Leiter
     figur(BANK_X, TISCH[2] + 0.55, Z_BODEN + SITZ_HOEHE, sitzt=True, blick=(-1, 0))   # auf der Bank am Tisch
+    figur(-IX + 0.40, 1.60, Z_BODEN)                    # vor der Tuer zum Hinterzimmer (unter der Galerie)
+    figur(IX - 0.40, 1.60, Z_BODEN)                     # vor der Tuer zur Bibliothek
     return f
 
 
@@ -1005,9 +1152,46 @@ def atlas_platz(gruppe, modell):
     return daten["datei"], daten["kante"], n, nummer % n, nummer // n
 
 
+UEBERABTASTUNG = 4          # die Verdeckung wird in vierfacher Aufloesung gebacken und je 4 x 4 Bildpunkte gemittelt
+
+
+def abdeckung(objekte, zelle):
+    """Bildpunkte der Zelle, deren Mitte in einer UV2-Flaeche der Objekte liegt (UV2 noch 0..1 ueber der Zelle)."""
+    import numpy as np
+    maske = np.zeros((zelle, zelle), dtype=bool)
+    for o in objekte:
+        uv2 = o.data.uv_layers["UV2"]
+        for p in o.data.polygons:
+            pts = [uv2.data[i].uv * zelle for i in p.loop_indices]
+            for k in range(1, len(pts) - 1):
+                a, b, c = pts[0], pts[k], pts[k + 1]
+                x0, x1 = max(int(min(a.x, b.x, c.x)) - 1, 0), min(int(max(a.x, b.x, c.x)) + 2, zelle)
+                y0, y1 = max(int(min(a.y, b.y, c.y)) - 1, 0), min(int(max(a.y, b.y, c.y)) + 2, zelle)
+                if x0 >= x1 or y0 >= y1: continue
+                xx, yy = np.meshgrid(np.arange(x0, x1) + 0.5, np.arange(y0, y1) + 0.5)
+                k1 = (b.x - a.x) * (yy - a.y) - (b.y - a.y) * (xx - a.x)
+                k2 = (c.x - b.x) * (yy - b.y) - (c.y - b.y) * (xx - b.x)
+                k3 = (a.x - c.x) * (yy - c.y) - (a.y - c.y) * (xx - c.x)
+                drin = ((k1 >= 0) & (k2 >= 0) & (k3 >= 0)) | ((k1 <= 0) & (k2 <= 0) & (k3 <= 0))
+                maske[y0:y1, x0:x1] |= drin
+    return maske
+
+
 def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
-    """UV2 (Smart UV Project, Rand 0,02; alle Objekte des Modells in einer Zelle des Atlas) und die Verdeckung dorthin backen (Cycles).
-    `gruppen`: Liste aus (Objekte, Verdecker) – jede wird fuer sich gebacken (das Geruest soll das Haus nicht verschatten)."""
+    """UV2 (Smart UV Project, Inselrand 0,003; alle Objekte des Modells in einer Zelle des Atlas) und die Verdeckung dorthin backen (Cycles).
+    `gruppen`: Liste aus (Objekte, Verdecker) – jede wird fuer sich gebacken (das Geruest soll das Haus nicht verschatten).
+    UV2-Korrektur (Rueckmeldung des Nutzers 15.11.2026, wie das Steinhaus wohnhaus_mensch_s23.uv2_und_ao): mit dem Inselrand 0,02
+    presste Smart UV Project bei den vielen Inseln ganze Mauerstuecke auf wenige Bildpunkte (UV2 entartet, Verdeckung schwarz);
+    mit 0,003 bleiben rund 4 Bildpunkte zwischen den Inseln, die Dichte steigt auf das Sechs- bis Siebenfache. Weil der Rand
+    schmaler ist als Blenders Randfuellung (6 Bildpunkte, sie fuellte beim Backen eines Objekts auch die Inseln der schon
+    gebackenen Nachbarn), backt jede Gruppe in einem Zug ohne Randfuellung: die Bildpunkte ausserhalb aller Inseln
+    fuellt danach `abdeckung` + Ausweiten aus den Nachbarn (6 Bildpunkte), geglaettet wird nur innerhalb der Inseln. Gebacken wird
+    in vierfacher Aufloesung; gemittelt werden nur feine Bildpunkte, deren Mitte in einer Flaeche liegt – schmale Inseln (Leisten,
+    Putzstreifen von wenigen Zentimetern, bis hinab zu einem Viertel Bildpunkt) bekamen sonst die Werte, die Cycles am Rand
+    ausserhalb der Flaeche rechnet (schwarz).
+    Der Rand von 3 Bildpunkten zur Nachbarzelle wird vor dem Backen in die UV2 gelegt (frueher danach: Bild und UV2 lagen bis zu
+    3 Bildpunkte gegeneinander verschoben, schmale Flaechen lasen die Verdeckung der Nachbarinsel).
+    Pruefung: uv2_pruefung.py (uv2_inseln, schwarze_flaechen)."""
     import numpy as np
     datei, kante, n, spalte, zeile = atlas_platz(gruppe, modell)
     zelle = kante // n
@@ -1022,18 +1206,25 @@ def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
     bpy.context.view_layer.objects.active = objekte[0]
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.02, area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003, area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
     bpy.ops.object.mode_set(mode="OBJECT")
+    # 3 Bildpunkte Rand zur Nachbarzelle – VOR dem Backen: frueher wurde die UV2 erst nach dem Backen gestaucht, das Bild aber nicht,
+    # so lag jede Flaeche im Atlas bis zu 3 Bildpunkte neben ihrer gebackenen Verdeckung (schmale Flaechen lasen die Nachbarinsel)
+    rand = 3.0 / zelle
+    for o in objekte:
+        for d in o.data.uv_layers["UV2"].data:
+            d.uv = (rand + d.uv[0] * (1 - 2 * rand), rand + d.uv[1] * (1 - 2 * rand))
     bild = None
     if mit_ao:
-        bild = bpy.data.images.new("AO-Zelle", zelle, zelle, alpha=False)
+        fein = zelle * UEBERABTASTUNG                      # gebacken wird feiner, dann gemittelt (schmale Inseln: Leisten, Bretterkanten)
+        bild = bpy.data.images.new("AO-Zelle", fein, fein, alpha=False)
         bild.colorspace_settings.name = "Non-Color"
         bild.generated_color = (1, 1, 1, 1)
         szene = bpy.context.scene
         szene.render.engine = "CYCLES"
         szene.cycles.device = "CPU"
         szene.cycles.samples = 96
-        szene.render.bake.margin = 6
+        szene.render.bake.margin = 0                       # Randfuellung selbst (unten), sonst ueberschreibt sie Nachbarinseln
         szene.render.bake.use_clear = False
         if szene.world is None: szene.world = bpy.data.worlds.new("Welt")
         szene.world.light_settings.distance = 1.1          # nur Kontaktschatten (Dachueberstand, Balken, Moebel), kein dunkler Raum
@@ -1046,14 +1237,34 @@ def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
                     ziel = knoten.get("AO-Ziel") or knoten.new("ShaderNodeTexImage")
                     ziel.name = "AO-Ziel"; ziel.image = bild
                     knoten.active = ziel
-            for o in objs:
-                bpy.ops.object.select_all(action="DESELECT")
-                o.select_set(True); bpy.context.view_layer.objects.active = o
-                bpy.ops.object.bake(type="AO", uv_layer="UV2")
-        # weich zeichnen: die Karte soll nur Kontaktschatten tragen
-        feld = np.empty(zelle * zelle * 4, dtype=np.float32); bild.pixels.foreach_get(feld)
-        grau = feld.reshape(zelle, zelle, 4)[..., 0]
-        grau = np.clip((grau + np.roll(grau, 1, 0) + np.roll(grau, -1, 0) + np.roll(grau, 1, 1) + np.roll(grau, -1, 1)) / 5, 0, 1)
+            bpy.ops.object.select_all(action="DESELECT")              # die ganze Gruppe in einem Zug
+            for o in objs: o.select_set(True)
+            bpy.context.view_layer.objects.active = objs[0]
+            bpy.ops.object.bake(type="AO", uv_layer="UV2")
+        feld = np.empty(fein * fein * 4, dtype=np.float32); bild.pixels.foreach_get(feld)
+        f_grau = feld.reshape(fein, fein, 4)[..., 0]
+        # nur feine Bildpunkte, deren Mitte in einer Flaeche liegt: an den Raendern rechnet Cycles sonst ausserhalb der Flaeche
+        # (in der Nachbarwand) und liefert Schwarz
+        f_drin = abdeckung(objekte, fein)
+        u = UEBERABTASTUNG
+        zahl_f = f_drin.reshape(zelle, u, zelle, u).sum(axis=(1, 3))
+        grau = (f_grau * f_drin).reshape(zelle, u, zelle, u).sum(axis=(1, 3)) / np.maximum(zahl_f, 1)
+        drin = zahl_f > 0
+        # weich zeichnen (nur Kontaktschatten), nur ueber Bildpunkte in den Inseln
+        def nachbarn(feld_, maske_):
+            summe, zahl = feld_ * maske_, maske_.astype(np.float32)
+            for ax, s in ((0, 1), (0, -1), (1, 1), (1, -1)):
+                summe = summe + np.roll(feld_ * maske_, s, ax); zahl = zahl + np.roll(maske_, s, ax)
+            return summe, zahl
+        summe, zahl = nachbarn(grau, drin)
+        grau = np.where(drin, summe / np.maximum(zahl, 1), grau)
+        # Rand: Bildpunkte ausserhalb der Inseln aus den Nachbarn fuellen (6 Bildpunkte weit, wie zuvor bake.margin)
+        gefuellt = drin.copy()
+        for _ in range(6):
+            summe, zahl = nachbarn(grau, gefuellt)
+            neu = ~gefuellt & (zahl > 0)
+            grau = np.where(neu, summe / np.maximum(zahl, 1), grau); gefuellt |= neu
+        grau = np.clip(np.where(gefuellt, grau, 1.0), 0, 1)
         # in den Atlas legen (vorhandene Zellen anderer Modelle bleiben)
         pfad = os.path.join(ZIEL_TEXTUR, datei)
         if os.path.exists(pfad):
@@ -1069,12 +1280,11 @@ def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
         atlas.pixels.foreach_set(ganz.ravel())
         atlas.filepath_raw = pfad; atlas.file_format = "PNG"; atlas.save()
         print("geschrieben", pfad, "Zelle", spalte, zeile)
-    # UV2 in die Zelle des Atlas schieben (mit etwas Rand zur Nachbarzelle)
-    rand = 3.0 / zelle
+    # UV2 in die Zelle des Atlas schieben (Bild und UV2 passen Bildpunkt fuer Bildpunkt aufeinander)
     for o in objekte:
         kanal = o.data.uv_layers["UV2"]
         for d in kanal.data:
-            d.uv = ((spalte + rand + d.uv[0] * (1 - 2 * rand)) / n, (zeile + rand + d.uv[1] * (1 - 2 * rand)) / n)
+            d.uv = ((spalte + d.uv[0]) / n, (zeile + d.uv[1]) / n)
         for m in o.data.materials:
             knoten = m.node_tree.nodes
             if knoten.get("AO-Ziel"): knoten.remove(knoten["AO-Ziel"])
@@ -1148,9 +1358,11 @@ def main():
     scheiben = baue_scheiben()
     zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]                     # Besitz und Zustand, wie bei den bisherigen Haeusern
     fahne = baue_fahne()
-    raum = [baue_raum(), baue_herd(), baue_vorrat(), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
+    raum = [baue_raum(), baue_herd(), baue_vorrat(zimmertuer_frei=True), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
     gegenstaende = [baue_truhe(), baue_familienbuch(), baue_bauplan(), baue_werkzeug(), baue_geldkassette()]   # anklickbar: oeffnen je eine Tafel
     einrichtung = [baue_hausapotheke(), baue_hauswaechter(), baue_hauswappen()]
+    zimmertueren, tuer_mitten = baue_zimmertueren()           # sichtbar, wenn das Haus den Raum hat
+    einrichtung += zimmertueren
     glas_teil = baue_glas()
     zaehle = lambda teile: {t.name: t.dreiecke() for t in teile}
     print("DREIECKE aussen:", zaehle(huelle + [scheiben]), "Summe", sum(t.dreiecke() for t in huelle + [scheiben]))
@@ -1203,6 +1415,8 @@ def main():
         anker("Platz_Kind_3", (HERDSCHEMEL[0], HERDSCHEMEL[1], Z_BODEN), "ost", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Kind_4", (0.2, 1.4, Z_BODEN), "nord", haltung="spielt", rolle="kind"),
     ]
+    # Zimmertueren: Klickflaeche im Spiel aus Lage und extras (ziel = Raum, achse x: die Wand steht quer zur X-Achse)
+    anker_innen += [anker(f"Tuer_Wohnstube_{raum}", tuple(m), ziel=raum, breite=RM.TUER_B, hoehe=RM.TUER_H, achse="x") for raum, m in tuer_mitten.items()]
     exportiere(aussen + anker_aussen, os.path.join(ZIEL_MODELL, f"{NAME}.glb"))
     exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))
 
@@ -1219,6 +1433,9 @@ def main():
         huelle_weg = ["Dach", "Scheiben", "Wappen", "Fahne", "Leerstand", "Geruest"]
         kontrollbild(os.path.join(o, "blender_innen_blick.jpg"), (0.0, IH - 0.3, Z_BODEN + 1.60), (0.45, IV, Z_BODEN + 1.50), brennweite=14, verbergen=huelle_weg)
         kontrollbild(os.path.join(o, "blender_innen_oben.jpg"), (1.2, -2.2, 6.4), (-0.4, 0.3, 1.0), brennweite=16, verbergen=huelle_weg)
+        # Zimmertueren unter der Galerie (vom Standpunkt der Raumkamera nach links bzw. rechts gedreht)
+        kontrollbild(os.path.join(o, "blender_innen_tuer_hinterzimmer.jpg"), (0.3, IH - 0.3, Z_BODEN + 1.60), (-IX, 1.2, Z_BODEN + 1.1), brennweite=16, verbergen=huelle_weg)
+        kontrollbild(os.path.join(o, "blender_innen_tuer_bibliothek.jpg"), (0.3, IH - 0.3, Z_BODEN + 1.60), (IX, 1.2, Z_BODEN + 1.1), brennweite=16, verbergen=huelle_weg)
 
 
 if __name__ == "__main__":

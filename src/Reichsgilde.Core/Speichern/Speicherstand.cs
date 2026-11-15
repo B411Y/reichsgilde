@@ -542,6 +542,17 @@ public sealed record BauenStand
 {
     public int NaechsteNummer { get; init; } = 1;
     public List<GrundstueckStand> Grundstuecke { get; init; } = new();
+
+    /// <summary>Häuser, die den Platz von Wohnhaus und Werkstatt noch wählen (seit 15.11.2026; null: keins – auch in älteren Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<StartwahlStand>? Startwahl { get; init; }
+}
+
+/// <summary>Eine offene Startwahl (<see cref="Reichsgilde.Core.Bauen.Bauwesen.StartwahlVon"/>): das Haus (Kontonummer) und die Werkstatt seines Startberufs.</summary>
+public sealed record StartwahlStand
+{
+    public int Konto { get; init; }
+    public Betriebsart Werkstatt { get; init; }
 }
 
 /// <summary>Ein Grundstück: Fläche, Art, Besitzer (Kontonummer) und eine laufende Baustelle.</summary>
@@ -1156,6 +1167,10 @@ public sealed record KontoStand
     /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
     public List<string>? WohnhausEinrichtung { get; init; }
 
+    /// <summary>Angebaute Räume zur Wahl (Kennungen aus „wohnen.raeume“, in der Reihenfolge der Wahl; fehlt = keine, auch in alten Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? WohnhausRaeume { get; init; }
+
     /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (fehlt = 0, nur geschrieben, wenn gesetzt).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public double EntwicklerAnsehen { get; init; }
@@ -1255,6 +1270,10 @@ public sealed record BetriebStand
 
     /// <summary>Gesparte Zutaten des Vorarbeiters „Sparsam“, noch kein ganzes Stück (PR #224; null: nichts).</summary>
     public Dictionary<string, double>? RohstoffErsparnis { get; init; }
+
+    /// <summary>Spieltag, an dem der Verwalter schon „kauft nur das Nötigste“ gemeldet hat – nur wenn es der laufende ist (sonst null, alte Stände: null).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? KasseKnappAm { get; init; }
 }
 
 /// <summary>Ein Arbeiter eines Betriebs (siehe <see cref="Wirtschaft.Arbeiter"/>).</summary>
@@ -1325,6 +1344,14 @@ public sealed record KarrenStand
 
     /// <summary>Der Rückweg ins Umland beginnt erst, wenn das Tor aufgeht.</summary>
     public bool RueckfahrtWartet { get; init; }
+
+    /// <summary>Wartet auf dieser Fahrt ab dieser Spielminute an der offenen Klappbrücke (null: nein, dann nicht geschrieben – der Spielstand bleibt Byte für Byte wie vorher; fehlt vor Datenversion 90).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? BrueckeWartenAb { get; init; }
+
+    /// <summary>… bis zu dieser Spielminute (null: wartet nicht).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? BrueckeWartenBis { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>

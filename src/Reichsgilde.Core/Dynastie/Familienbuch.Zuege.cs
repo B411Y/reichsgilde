@@ -35,6 +35,12 @@ public sealed partial class Familienbuch
     /// <summary>Eine Person hat einen erworbenen Zug bekommen (nicht bei Geburt und Volljährigkeit).</summary>
     public event Action<Person, Charakterzug>? ZugErhalten;
 
+    /// <summary>
+    /// Die bleibenden Versehrungen der Person (Narbe, Entstellt, Einäugig, Lahm, Verkrüppelte Hand) in der Reihenfolge ihrer Züge –
+    /// für Porträt und Figur; <see cref="Charakterzug.Versehrung"/> sagt, was zu zeigen ist.
+    /// </summary>
+    public IReadOnlyList<Charakterzug> Versehrungen(Person p) => p.Zuege.Where(z => z.IstVersehrung).ToList();
+
     /// <summary>Faktor auf Haushalt bzw. Unterhalt der Person (Bescheiden spart, Hochmütig prasst).</summary>
     public double HaushaltFaktor(Person p) => p.Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Haushalt);
 
@@ -181,7 +187,7 @@ public sealed partial class Familienbuch
         }
     }
 
-    /// <summary>Ein Anlass, der das Oberhaupt eines Hauses trifft (Einbruch, Brand im Wohnhaus).</summary>
+    /// <summary>Ein Anlass, der das Oberhaupt eines Hauses trifft (Einbruch, Brand im Wohnhaus, Kerker).</summary>
     internal void ZugAnlass(Konto konto, string anlass)
     {
         if (HatZuege && Von(konto) is { } f) ZugAnlass(konto, f.Oberhaupt, anlass);
@@ -197,6 +203,8 @@ public sealed partial class Familienbuch
 
     private void Erhalten(Konto? konto, Person p, Charakterzug zug)
     {
+        foreach (var weg in p.Zuege.Where(z => zug.Daten.Verdraengt.Contains(z.Kennung)).ToList())
+            p.ZugEntfernen(weg); // Entstellt nimmt „Schön“
         p.ZugHinzufuegen(zug);
         if (konto is not null)
             Ereignis(konto, $"Neuer Charakterzug für {p.Vorname} {p.Familienname}: {zug.Name} – {zug.Beschreibung}");

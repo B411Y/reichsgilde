@@ -207,7 +207,7 @@
   "kennung": "unterhalt",
   "titel": "Unterhalt",
   "gruppe": "Wirtschaft",
-  "text": "Laufende Kosten eines Betriebs oder [[wohnhaus|Wohnhauses]], die in die [[jahresrechnung]] eingehen. Beim Wohnhaus wächst er mit der Stufe: vom Bürgerhaus ({wert:haus_unterhalt_2} {wert:waehrung} im Jahr) bis zum Stadthof ({wert:haus_unterhalt_5})."
+  "text": "Laufende Kosten eines Betriebs oder [[wohnhaus|Wohnhauses]], die in die [[jahresrechnung]] eingehen. In der Tooltip-Rechnung „Gewinn je Stück“ einer Ware wird der Jahresunterhalt der Werkstatt auf das Stück umgelegt: Jahresunterhalt ÷ Stück, die der Betrieb im Jahr von dieser Ware schafft. Beim Wohnhaus wächst er mit der Stufe: vom Bürgerhaus ({wert:haus_unterhalt_2} {wert:waehrung} im Jahr) bis zum Stadthof ({wert:haus_unterhalt_5})."
  },
  {
   "kennung": "liegenschaft",
@@ -688,8 +688,8 @@
   "kennung": "charakterzuege",
   "titel": "Charakterzüge",
   "gruppe": "Haus und Familie",
-  "bilder": ["zug:bescheiden|Bescheiden", "zug:ehrlich|Ehrlich", "zug:feige|Feige", "zug:fleissig|Fleißig", "zug:fromm|Fromm", "zug:geduldig|Geduldig", "zug:gelehrt|Gelehrt", "zug:gesellig|Gesellig", "zug:gierig|Gierig", "zug:grosszuegig|Großzügig", "zug:hochmuetig|Hochmütig", "zug:jaehzornig|Jähzornig", "zug:klug|Klug", "zug:kraenklich|Kränklich", "zug:mutig|Mutig", "zug:pilger|Pilger", "zug:reizbar|Reizbar", "zug:scheu|Scheu", "zug:schoen|Schön", "zug:schwermuetig|Schwermütig", "zug:stark|Stark", "zug:traege|Träge", "zug:trinker|Trinker", "zug:verschlagen|Verschlagen", "zug:zynisch|Zynisch"],
-  "text": "Jede erwachsene Person hat drei Züge der Persönlichkeit (zum Beispiel gierig oder gütig), manche bringen einen angeborenen Zug mit, und im Lauf des Lebens kommen durch Ereignisse erworbene Züge dazu. Ein Zug ändert die [[talente|Talente]] (grün: Sterne mehr, rot: weniger), den Haushalt, die Anfälligkeit für [[krankheiten|Krankheiten]] oder – bei Ratsherren – die Wirkung von Geschenken. Gegensätze schließen sich aus. Ein Klick auf ein Porträt öffnet das Charakterfenster. Alle Züge:\n{wert:zuege_liste}"
+  "bilder": ["zug:bescheiden|Bescheiden", "zug:ehrlich|Ehrlich", "zug:einaeugig|Einäugig", "zug:entstellt|Entstellt", "zug:feige|Feige", "zug:fleissig|Fleißig", "zug:fromm|Fromm", "zug:geduldig|Geduldig", "zug:gelehrt|Gelehrt", "zug:gesellig|Gesellig", "zug:gierig|Gierig", "zug:grosszuegig|Großzügig", "zug:hochmuetig|Hochmütig", "zug:jaehzornig|Jähzornig", "zug:klug|Klug", "zug:kraenklich|Kränklich", "zug:lahm|Lahm", "zug:mutig|Mutig", "zug:pilger|Pilger", "zug:reizbar|Reizbar", "zug:scheu|Scheu", "zug:schoen|Schön", "zug:schwermuetig|Schwermütig", "zug:stark|Stark", "zug:traege|Träge", "zug:trinker|Trinker", "zug:verkrueppelt|Verkrüppelte Hand", "zug:verschlagen|Verschlagen", "zug:zynisch|Zynisch"],
+  "text": "Jede erwachsene Person hat drei Züge der Persönlichkeit (zum Beispiel gierig oder gütig), manche bringen einen angeborenen Zug mit, und im Lauf des Lebens kommen durch Ereignisse erworbene Züge dazu. Manche davon sind bleibende Versehrungen (Einäugig, Entstellt, Lahm, Verkrüppelte Hand) nach Einbruch, Brand, Rauferei, Kerker oder einem schlecht geheilten Knochenbruch; sie bleiben fürs Leben, nur ein Medicus beim Knochenbruch verhindert Lahm. Ein Zug ändert die [[talente|Talente]] (grün: Sterne mehr, rot: weniger), den Haushalt, die Anfälligkeit für [[krankheiten|Krankheiten]] oder – bei Ratsherren – die Wirkung von Geschenken. Gegensätze schließen sich aus. Ein Klick auf ein Porträt öffnet das Charakterfenster. Alle Züge:\n{wert:zuege_liste}"
  },
  {
   "kennung": "gesundheit",

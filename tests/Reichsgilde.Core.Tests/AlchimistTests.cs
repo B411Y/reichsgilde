@@ -7,7 +7,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für den vierten Beruf (Alchimist), den Krötenschleim-Vorteil und KI-Häuser, die einen zweiten Beruf erlernen.</summary>
 static class AlchimistTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneRaeume()));
 
     static Simulation NeueSimulation(int startwert = 1400) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert }, wirtschaftsdaten: Daten.Value);

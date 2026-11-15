@@ -281,7 +281,7 @@ public sealed class Blitzwesen
         var katalog = karte.Katalog;
         var bau = _w.Bauen;
         var betriebeAufPlaetzen = new Dictionary<string, Betrieb>();
-        // über das Bauwesen: Eine Werkstatt auf dem Werkstattplatz einer Hofstelle (Neubau, 9.11.2026) steht auf dem Platz der Karte
+        // über das Bauwesen: Eine Werkstatt auf einem Werkstattplatz der Karte (alter Spielstand) steht auf dem Platz der Karte
         foreach (var b in _w.Betriebe)
             if ((bau.IstAktiv ? bau.PlatzVon(b.Name)?.Gebaeude : karte.PlatzVon(b.Name)) is { } platz && !betriebeAufPlaetzen.ContainsKey(platz.Kennung))
                 betriebeAufPlaetzen[platz.Kennung] = b;
@@ -302,9 +302,11 @@ public sealed class Blitzwesen
                 case Bausteinart.Werkstattplatz:
                 case Bausteinart.Umlandbetrieb:
                 {
-                    // der Werkstattteil einer freien Hofstelle als Bauplatz oder Baustelle brennt nicht (ohne Hofstellen hat ein Platz nie ein Grundstück)
+                    // eine Baustelle auf einem Werkstattplatz (alter Spielstand) brennt nicht
                     if (grundstueckNachKennung.TryGetValue(g.Kennung, out var frei) && (frei.Art == Grundstuecksart.Bauplatz || frei.Arbeit is not null)) continue;
                     var b = betriebeAufPlaetzen.GetValueOrDefault(g.Kennung);
+                    // Ein Werkstattplatz ohne Betrieb und ohne Namen ist ein freier Platz einer alten Karte: Dort steht nichts (15.11.2026, „nur noch Bauzonen“).
+                    if (g.Art == Bausteinart.Werkstattplatz && b is null && string.IsNullOrEmpty(g.Betrieb)) continue;
                     var h = g.Art == Bausteinart.Umlandbetrieb ? Hoehe(g.Katalog) : b is null ? Hoehe(g.Katalog) : Hoehe(WerkstattModell(b));
                     if (h <= 0) continue;
                     var name = b is not null ? WerkstattName(b) : g.Name != "" ? g.Name : "eine leere Werkstatt";
@@ -473,6 +475,7 @@ public sealed class Blitzwesen
             var grund = _w.Gauner.IstAktiv && _w.Gauner.Daten.Wohnhaus is not null ? _w.Gauner.Brandschaden(k) : 0;
             var reparatur = Math.Round(Math.Max(d.WohnhausReparatur, Anteil(d.WohnhausAnteil, e.Schwere) * grund) * _w.Wohnen.BrandFaktor(k));
             if (reparatur > 0) k.Schaden(reparatur);
+            _w.Familien.ZugAnlass(k, "blitz"); // Brand durch Blitz: Narbe, vielleicht entstellt (Versehrungen; eigener Anlass, damit ältere Daten ohne ihn bleiben, wie sie waren)
             return " Bis es instand gesetzt ist, fehlt das Ansehen des Hauses." +
                    (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}." : "");
         }

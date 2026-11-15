@@ -811,6 +811,7 @@ public partial class Stadtansicht : Node3D
         Ladezeit.Phase("im Bild: Wetter und Licht");
         NachtlichterAktualisieren(delta); // Stadtansicht.Nachtlichter.cs
         Ladezeit.Phase("im Bild: Nachtlichter");
+        SilhouettenAktualisieren(delta); // Schattenrisse der Bewohner hinter den Fenstern (Stadtansicht.Fenstersilhouetten.cs)
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
         PassantenFleckenAktualisieren(); // Schatten der Passanten über Stellvertreter bei Zoom 50 und 100 (Stadtansicht.Passantenschatten.cs)
         Ladezeit.Phase("im Bild: Passanten");
@@ -1087,8 +1088,11 @@ public partial class Stadtansicht : Node3D
     public override void _Process(double delta)
     {
         ProzessBild(delta);
+        if (_raum is not null) SitzendeBewegen(); // Innenfiguren aus dem Baukasten in jedem Raum stellen (vorher nur im Dom: Wohnstube, Kontor, Ratssaal, Kapseln standen in der Ruhelage)
+        ArmProbeBild(delta); // nur mit --armprobe: Armwinkel der Figuren mit Passanten-Skelett im Raum ins Log (Stadtansicht.Pruefhilfe.cs)
         PixelBild(); // nach allem anderen: die Kamera des Pixel-Looks folgt der Spielkamera (Stadtansicht.Pixel.cs)
         ZeichenAnalyseBild(); // nur mit --zeichenanalyse: Gruppen ausblenden und Zeichenaufrufe zählen (Stadtansicht.Zeichenanalyse.cs)
+        SchilderPruefungBild(delta); // nur mit --schilderpruefung=1: Bildzahl und Schilder ins Log (Stadtansicht.Schilderpruefung.cs)
     }
 
     private void ProzessBild(double delta)
@@ -1122,7 +1126,7 @@ public partial class Stadtansicht : Node3D
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
-        _beschriftungen.RemoveAll(label => !IsInstanceValid(label)); // Sicherung: ein freigegebenes Schild darf nie wieder das ganze Bild (Kamera, Raum, Pixel-Look) lahmlegen
+        SchilderAufraeumen(); // Sicherung: ein freigegebenes Schild darf nie wieder das ganze Bild (Kamera, Raum, Pixel-Look) lahmlegen; meldet es als Fehler (Stadtansicht.Schilderpruefung.cs)
         foreach (var label in _beschriftungen)
             label.Scale = Vector3.One * massstab;
         BeschriftungenZeigen();

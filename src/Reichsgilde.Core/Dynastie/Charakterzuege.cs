@@ -64,12 +64,22 @@ public sealed class CharakterzugDaten
     /// <summary>
     /// Erworben: Chance je Anlass. Anlässe: „jahr“ (jedes Jahr für Erwachsene), „trauer“ (im Jahr, in dem ein Angehöriger starb),
     /// „schaenke“ (jedes Jahr, wenn das Haus eine Schänke führt), „abschluss:&lt;Ausbildung&gt;“, „ueberstanden:&lt;Krankheit&gt;“,
-    /// „einbruch“ und „brand“ (Anschlag auf das Wohnhaus, trifft das Oberhaupt).
+    /// „einbruch“ und „brand“ (Anschlag auf das Wohnhaus, trifft das Oberhaupt), „blitz“ (das Wohnhaus brennt nach Blitz oder Funkenflug), „kerker“ (das Oberhaupt kommt aus dem Kerker),
+    /// „entfuehrung“ (eine Geisel kommt gegen Lösegeld frei), „unglueck:&lt;Aktivität&gt;“ (die Aktivität des Oberhaupts ging schief).
     /// </summary>
     public Dictionary<string, double> Anlaesse { get; init; } = new();
 
     /// <summary>Erworben: Faktor auf die Chance, wenn die Person schon diesen Zug hat (Fromm × 4 für den Pilger).</summary>
     public Dictionary<string, double> ZugFaktor { get; init; } = new();
+
+    /// <summary>Erworben: Diese Züge verliert die Person, wenn sie den Zug bekommt (Entstellt nimmt „Schön“).</summary>
+    public List<string> Verdraengt { get; init; } = new();
+
+    /// <summary>
+    /// Erworben: Eine bleibende Versehrung – die Kennung sagt der Darstellung, was zu zeigen ist (Haltung, Zubehör, Mal im Gesicht),
+    /// z. B. „narbe“, „brandmal“, „augenklappe“, „hinken“, „hand“. Null: keine Versehrung.
+    /// </summary>
+    public string? Versehrung { get; init; }
 
     // ── Wirkung ──────────────────────────────────────────────────────────
 
@@ -138,7 +148,7 @@ public sealed class CharakterzuegeDaten
 
     public Charakterzug? Zug(string kennung) => Katalog.NachKennung.GetValueOrDefault(kennung);
 
-    internal void Pruefen(List<string> f, ICollection<string> ausbildungen, ICollection<string> krankheiten)
+    internal void Pruefen(List<string> f, ICollection<string> ausbildungen, ICollection<string> krankheiten, ICollection<string>? aktivitaeten = null)
     {
         if (!IstAktiv) return;
         const string p = "charakterzuege";
@@ -171,13 +181,19 @@ public sealed class CharakterzuegeDaten
             {
                 if (chance is < 0 or > 1) f.Add($"{q}.anlaesse.{anlass}: Chance muss zwischen 0 und 1 liegen.");
                 var (art, wert) = Anlass(anlass);
-                if (art is not ("jahr" or "trauer" or "schaenke" or "einbruch" or "brand" or "abschluss" or "ueberstanden"))
+                if (art is not ("jahr" or "trauer" or "schaenke" or "einbruch" or "brand" or "blitz" or "kerker" or "entfuehrung" or "abschluss" or "ueberstanden" or "unglueck")
+                    || (wert is null) != art is not ("abschluss" or "ueberstanden" or "unglueck"))
                     f.Add($"{q}.anlaesse: Anlass „{anlass}“ gibt es nicht.");
+                else if (art == "unglueck" && aktivitaeten is not null && !aktivitaeten.Contains(wert!)) f.Add($"{q}.anlaesse: Aktivität „{wert}“ gibt es nicht.");
                 else if (art == "abschluss" && !ausbildungen.Contains(wert ?? "")) f.Add($"{q}.anlaesse: Ausbildung „{wert}“ gibt es nicht.");
                 else if (art == "ueberstanden" && !krankheiten.Contains(wert ?? "")) f.Add($"{q}.anlaesse: Krankheit „{wert}“ gibt es nicht.");
             }
             foreach (var (k, faktor) in z.ZugFaktor)
                 if (!Zuege.ContainsKey(k) || faktor < 0) f.Add($"{q}.zugFaktor.{k}: Zug fehlt oder Faktor negativ.");
+            if (z.Art != Zugart.Erworben && (z.Verdraengt.Count > 0 || z.Versehrung is not null)) f.Add($"{q}: verdraengt und versehrung gibt es nur für erworbene Züge.");
+            foreach (var k in z.Verdraengt)
+                if (!Zuege.ContainsKey(k) || k == kennung) f.Add($"{q}.verdraengt: Zug „{k}“ gibt es nicht.");
+            if (z.Versehrung is { } v && string.IsNullOrWhiteSpace(v)) f.Add($"{q}.versehrung darf nicht leer sein.");
             if (z.Haushalt < 0 || z.Krankheit < 0 || z.Bestechlich <= 0) f.Add($"{q}: haushalt und krankheit ≥ 0, bestechlich > 0.");
             z.Ki.Pruefen(f, q + ".ki");
         }
@@ -200,11 +216,29 @@ public sealed class Charakterzug
     public string? Gegenteil => Daten.Gegenteil;
     public string Beschreibung => Daten.Beschreibung;
 
+    /// <summary>Kennung der bleibenden Versehrung für die Darstellung („hinken“, „augenklappe“ …) oder null.</summary>
+    public string? Versehrung => Daten.Versehrung;
+    public bool IstVersehrung => Daten.Versehrung is not null;
+
     /// <summary>Sterne mehr (oder weniger) in diesem Talent.</summary>
     public double Talent(Talent t) => Daten.Talente.GetValueOrDefault(t);
 
     /// <summary>„Verhandeln +1, Rhetorik −½. Haushalt −15 %. Als KI-Haus: …“ – für den Tooltip.</summary>
     public string Wirkungstext { get; }
+
+    /// <summary>Wie der Zug die Meinung anderer färbt (aus <see cref="CharakterzugDaten.Meinung"/>); leer, wenn er sie nicht färbt.</summary>
+    public string Meinungstext
+    {
+        get
+        {
+            var m = Daten.Meinung;
+            var teile = new List<string>();
+            if (Math.Abs(m.Gleich) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Gleich)} über Träger desselben Zugs");
+            if (Math.Abs(m.Gegenteil) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Gegenteil)} über Träger des Gegenteils");
+            if (Math.Abs(m.Allgemein) > 1e-9) teile.Add($"{Zahlenformat.MitVorzeichen(m.Allgemein)} bei allen anderen über ihn");
+            return string.Join(", ", teile);
+        }
+    }
 
     /// <summary>„Persönlichkeit“, „angeboren“ oder „erworben“.</summary>
     public string Artname => Art switch

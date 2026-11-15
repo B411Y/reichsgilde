@@ -114,6 +114,7 @@ public partial class Stadtansicht
         public Node3D? Flaechen;
         public readonly List<(ShaderMaterial Stoff, Wasserart Art)> Stoffe = new();
         public readonly List<(Wasserlauf Lauf, Wasserart Art, ShaderMaterial Stoff)> Schollen = new();
+        public readonly List<(Wasserlauf Lauf, ShaderMaterial Stoff)> LaufStoffe = new();
         public IEnumerator<int>? Schritte;
 
         /// <summary>Was die Flächen vom Wasserplan lesen (Furten, Fähren) beim Start des Baus (Kartenwerkstatt.Wasser.cs).</summary>
@@ -193,6 +194,9 @@ public partial class Stadtansicht
         _wasserStoffe.AddRange(bau.Stoffe);
         SchollenVergessen();
         _schollenWarten.AddRange(bau.Schollen);
+        _wasserLaufStoffe.Clear();
+        _wasserLaufStoffe.AddRange(bau.LaufStoffe);
+        StroemungsfeldVeraltet();
     }
 
     /// <summary>
@@ -234,6 +238,7 @@ public partial class Stadtansicht
                 yield return 0;
             }
             while (nr < netze.Count) flaechen.AddChild(WasserInstanz($"Fluss_{lauf.Name}_{nr}", netze[nr++], stoff));
+            bau.LaufStoffe.Add((lauf, stoff));
             if (art.Schollen > 0) bau.Schollen.Add((lauf, art, stoff));
         }
         foreach (var see in form.Seen)
