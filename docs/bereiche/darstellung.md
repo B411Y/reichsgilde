@@ -295,6 +295,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Die 3D-Beschriftungen (Zahlen, Stimmen, Namen) sind weiter Schrift im Code (Welt, nicht Oberfläche), Farben dort nicht im Thema
 - Die Szene hat noch keinen Ton (Glocke, Hammer, Stuhlrücken: Ton-PR); Ratsbuch und Spruchband brauchen die Holzschnitt-Grafik (Grafik-PC)
 - (Wasser, Strömungsfeld) Schaum am Ufer und an Pfeilern, Mündungslinien und Eisbrei treiben weiter linear mit der Strömung des Bandes in Laufachsen (`stroemung`), nicht mit dem Feld; der Prahm der Fähre (bewegt) und Fährlinien sind kein Hindernis des Feldes; die Kartenwerkstatt zeigt kein Feld; Seen, Teiche und Hafenbecken haben keins (stilles Wasser). Das Kehrwasser färbt nichts (B der Karte ist frei für Schaum hinter Pfeilern, falls der Nutzer ihn will).
+- (von Kern) Klappbrücke: Der Wasserplan liefert für die Kölner Rheinbrücke jetzt `Wasserquerung.Durchfahrt` (13 m) und die Pfeiler bei −21,3 / −8,5 / +8,5 / +21,3 m (Torhauspfeiler 4 m, außen 2 Bögen je Seite zu `Feldlaenge`). `Stadtansicht.Wasser.Uebergaenge.cs` setzt die Steinpfeiler und `_wasserPfeiler` (Strömungsfeld, Eisschollen) aber selbst aus `Felder` und `Feldlaenge` und liest `q.Pfeiler` nicht – bei `Durchfahrt > 0` aus `q.Pfeiler` bauen (Entscheidung in `bereiche/kern.md`, „Pfeiler der Klappbrücke“).
 
 ## Entscheidungen
 
