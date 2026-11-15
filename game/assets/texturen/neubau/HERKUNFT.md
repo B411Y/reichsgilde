@@ -40,6 +40,25 @@ Dazu aus der Tabelle oben: `old_planks_02` (Dielen), `rough_wood` (Balken), `whi
 
 Die Atlanten `wohnhaus_mensch_ao_atlas.png` und `wohnhaus_mensch_innen_ao_atlas.png` (2048 × 2048, 4 × 4 Zellen) sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py`; Platz je Modell in `tools/modelle/neubau/ao_atlas.json`).
 
+## Rathaus
+
+`rathaus_trim_{albedo,normal,orm}.png` (Hülle) und `rathaus_innen_trim_{albedo,normal,orm}.png` (sieben Räume), je 2048 × 2048, packt `tools/modelle/neubau/rathaus_trimsheet.py` (mit den Funktionen von `trimsheet.py`) aus 13 CC0-Texturen von Poly Haven, abgerufen am 14.11.2026 wie oben (2K-JPG). Bänder: `BAENDER_RATHAUS` und `BAENDER_RATHAUS_INNEN` im Skript. Lizenz wie oben (CC0 1.0). Bereits oben genannt und hier wieder verwendet: `rough_wood` (Balken), `white_plaster_rough_01` (Putz), `old_planks_02` (Planken, Dielen), `rusty_metal_02` (Eisen, Messing, Bronze, Gold umgefärbt), `reed_roof_03` (Stroh im Kerker). Neu:
+
+| Asset-ID | Name | Urheber | Seite | Verwendet für |
+|---|---|---|---|---|
+| `roof_slates_02` | Roof Slates 02 | Rob Tuytel | https://polyhaven.com/a/roof_slates_02 | außen: Schiefer, Schieferkante (Alpha selbst erzeugt) |
+| `sandstone_blocks_08` | Sandstone Blocks 08 | Rob Tuytel | https://polyhaven.com/a/sandstone_blocks_08 | außen und innen: Sandsteinquader (Ecken, Bögen, Gewände, Kamin) |
+| `castle_wall_slates` | Castle Wall Slates | Rob Tuytel | https://polyhaven.com/a/castle_wall_slates | außen und innen: Bruchstein (Erdgeschoss, Turm, Halle) |
+| `dark_wooden_planks` | Dark Wooden Planks | Amal Kumar | https://polyhaven.com/a/dark_wooden_planks | innen: Täfelung, dunkle Möbel und Türen |
+| `large_floor_tiles_02` | Large Floor Tiles 02 | Rob Tuytel | https://polyhaven.com/a/large_floor_tiles_02 | innen: Steinplatten |
+| `rough_block_wall` | Rough Block Wall | Rob Tuytel | https://polyhaven.com/a/rough_block_wall | innen: Kerkermauer |
+| `cobblestone_floor_01` | Cobblestone Floor 01 | Rob Tuytel | https://polyhaven.com/a/cobblestone_floor_01 | innen: Pflaster des Kerkers |
+| `velour_velvet` | Velour Velvet | colormass, Rico Cilliers | https://polyhaven.com/a/velour_velvet | innen: roter Stoff (Banner, Behänge, Polster) |
+
+Nachbearbeitung wie oben; dazu die ausgezahnte Unterkante der Schieferkante (Alpha aus einem Zufallsprofil) und Farbfelder für Kleinteile (Eisen, Messing, Bronze, Pergament, Wachs, Tinte, Glut, Gold). Keine Bild-KI.
+
+`rathaus_ao_atlas.png` (1024 × 1024, eine Zelle) und `rathaus_innen_ao_atlas.png` (2048 × 2048, eine Zelle je Raum) sind gebackene Verdeckung der Rathausmodelle (Blender Cycles, `tools/modelle/neubau/rathaus_bib.py`), keine Fremdtexturen.
+
 ## Wohnhäuser Mensch, Stufe 2 und 3 (Bürgerhaus, Steinhaus)
 
 `trim_s2_*`, `trim_s3_*` und `innen_trim_s23_*` (je Albedo, Normale, ORM, 2048 × 2048) schreibt `tools/modelle/neubau/trimsheet_stufen.py`: Es liest die fertigen Blätter `trim_*` und `innen_trim_*` (oben) und ersetzt nur einzelne Bänder; alle anderen Bänder sind Pixel für Pixel die der Stufe 1. Quellen (Poly Haven, CC0 1.0 wie oben; Quelldateien nicht im Repository):

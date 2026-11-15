@@ -47,7 +47,10 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild (aus <see cref="GrafikBild"/>): den Himmel zu- oder abschalten und seine Werte nachführen.</summary>
     private void HimmelBild(double delta)
     {
-        var perspektive = HimmelGewuenscht && FreiAktiv && _raum is null && _innen is null && _entwurf is null;
+        // Auch im Rathaus: Seine Raumkamera schaut waagerecht aus dem Fenster. In der Probestadt sehen die Fenster der Amtsstube über den Kartenrand
+        // ins Leere (Fensterblick-Probe: bis 150 m kein Netz) – ohne Himmel stand dort nur die dunkle Hintergrundfarbe im Glas (Klicktest 4)
+        var imRathaus = _neubauInnen is not null && _neubauInnen == _rathausNeuInnen;
+        var perspektive = HimmelGewuenscht && (FreiAktiv && _raum is null && _innen is null || imRathaus) && _entwurf is null;
         if (perspektive != _himmelAn) HimmelUmschalten(perspektive);
         if (!_himmelAn || _himmelStoff is null) return;
 

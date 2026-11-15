@@ -12,18 +12,17 @@ namespace Reichsgilde;
 /// Rathaus (Raumansicht) und Dom (Diorama) – dritter Teil der Stadtansicht; dazu die Kirchen mit eigenem Modell (nur von außen, <see cref="KircheBauen"/>).
 ///
 /// Beide sind keine Betriebe, nutzen aber dasselbe Gerüst wie die Werkstätten (<see cref="InnenAnsicht"/>):
-/// ein Knoten „Innen". Von außen stehen die Modelle <c>rathaus.glb</c> und <c>dom.glb</c> (Stadtansicht.Modelle.cs) an ihrer Lage in der Karte, auch
-/// gedreht; beim Dom sind Dach, Turm und die vier Wände eigene Knoten des Modells, die beim Hineinsehen ausgeblendet werden. Die Ansicht liest nur
-/// Abfragen des Kerns.
+/// ein Knoten „Innen". Von außen stehen die Modelle des Rathauses (<c>gebaeude/neubau/rathaus.glb</c>, in Köln <c>koelner_rathaus.glb</c>) und
+/// <c>dom.glb</c> (Stadtansicht.Modelle.cs) an ihrer Lage in der Karte, auch gedreht; beim Dom sind Dach, Turm und die vier Wände eigene Knoten des
+/// Modells, die beim Hineinsehen ausgeblendet werden. Die Ansicht liest nur Abfragen des Kerns.
 ///
-/// Rathaus – vier Räume, jeder mit fester Ansicht (Raumansicht, siehe Stadtansicht.Raeume.cs):
-///   • Ratssaal (West): Hufeisentisch mit den sieben Ämtern. Häuser im Amt sitzen in ihrer Farbe da,
-///     Ratsherren der Stadt in Ratsrot, der Bürgermeister mit Amtskette. Liegt ein Antrag vor, liegt eine Rolle auf dem Tisch.
-///   • Gerichtssaal (Mitte): Richterbank auf einem Podest, Schranke, Anklagebank. Läuft ein Verfahren, sitzen die drei
-///     Richter dieses Verfahrens, Ankläger und Beklagter stehen davor.
+/// Rathaus – sieben Räume im Haus selbst (Stadtansicht.Rathausneubau.cs; Modelle und Anker aus tools/modelle/neubau/rathaus_*.py):
+///   • Ratshalle: die sieben Ämter an den Sitzen der Ratssitzung. Häuser im Amt sitzen in ihrer Farbe da,
+///     Ratsherren der Stadt in Ratsrot, der Bürgermeister mit Amtskette.
+///   • Gerichtssaal: Läuft ein Verfahren, sitzen die drei Richter dieses Verfahrens, Ankläger und Beklagter stehen davor.
 ///   • Kerker: hinter Gittern die Oberhäupter der Häuser, die einsitzen; davor ein Wächter.
-///   • Amtsstube (Ost): Kanzleipult des Stadtschreibers, Ständetafel mit einer Marke für den Stand des Spielers, Stadtkasse.
-///   Tagsüber (8–20 Uhr) sind die Amtsinhaber da. Ein Klick in den Raum öffnet seine Tafel (Hauptszene).
+///   • Amtsstube: der Stadtschreiber am Kanzleipult, die Ständetafel mit einer Marke für den Stand des Spielers.
+///   Tagsüber (8–20 Uhr) sind die Amtsinhaber da. Gegenstände im Raum öffnen ihre Tafel (Hauptszene, RathausGegenstaende.cs).
 ///
 /// Dom – Hauptkirche des Stadtglaubens:
 ///   • katholisch: Hochaltar mit goldenem Retabel, Marienfigur, Weihrauchfass, ein Bischof mit Mitra;
@@ -92,6 +91,7 @@ public partial class Stadtansicht
     private Arbeiterfigur PersonBauen(InnenAnsicht a, Node3D eltern, Arbeitsplatz platz, Volk volk, Color gewand, Kopfputz kopf, float takt,
         float hoehe = 0, Color? schuerze = null)
     {
+        if (RathausNeuFigur(a, eltern, platz, volk, gewand, kopf, takt) is { } echt) return echt; // neues Rathaus: echte Figur statt Kapsel (Stadtansicht.Rathausneubau.cs)
         var (groesse, breite, bart) = Koerperbau(volk);
         var haut = volk is Volk.Ork or Volk.Oger ? new Color(0.36f, 0.50f, 0.28f) : Haut;
         return FigurBauen(eltern, a.Mitte + platz.Ort + new Vector3(0, hoehe, 0), platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite),
@@ -128,9 +128,9 @@ public partial class Stadtansicht
 
     private void RathausBauen(Kartengebaeude g)
     {
-        // Außen das Modell rathaus.glb: Markthalle mit Ratssaal in Fachwerk (16 × 10 m, Vorderseite +Z zum Markt) und Uhrturm vorn rechts, 23,6 m hoch.
-        // In Köln koelner_rathaus.glb (22 × 13 m): Saalbau mit dem Hansasaal (Walmdach, 15,9 m) und links davon der Ratsturm als Baustelle
-        // (Stumpf mit Gerüst, gut 9 m). Innen vier Räume (Raumansicht, je 40 m auseinander); das Haus bleibt dabei in der Stadt stehen.
+        // Außen der Neubau gebaeude/neubau/rathaus.glb (16 × 10 m, Vorderseite +Z zum Markt, Turm rechts, 22 m hoch), in Köln koelner_rathaus.glb
+        // (22 × 13 m: Saalbau mit dem Hansasaal und links davon der Ratsturm als Baustelle). Innen in beiden die sieben Räume des Neubaus im Haus
+        // selbst (Stadtansicht.Rathausneubau.cs), in Köln mittig in der größeren Hülle; das Haus bleibt dabei in der Stadt stehen.
         var koeln = g.Katalog == "koelner_rathaus";
         var lage = ModellLage(g);
         var p = lage.Origin;
@@ -138,106 +138,32 @@ public partial class Stadtansicht
         var flaeche = GroesseVon(g);
         var a = SonderbauAnlegen("Rathaus", string.IsNullOrEmpty(g.Name) ? "Rathaus" : g.Name, p, new Vector3(flaeche.X, koeln ? 16 : 10, flaeche.Y), new Vector3(0, 26, 0),
             zoom: 21, reichweite: 12, raumansicht: true, drehung: drehung);
-        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/rathaus", this, p, new ModellZustand(), "Rathaus");
+        var huelle = ModellEinsetzen(g.Baustein?.Modell ?? NeubauOrdner + "rathaus", this, p, new ModellZustand(), "Rathaus");
         if (huelle is not null) huelle.Wurzel.Transform = lage;
         a.Huelle = huelle?.Wurzel;
         if (koeln) a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(-7.8f, 4.6f, 2.2f), new Vector3(6.2f, 9.2f, 6.2f), drehung: drehung)); // der Ratsturm im Bau
-        else a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(6.2f, 17, 3.2f), new Vector3(4.2f, 14, 4.2f), drehung: drehung)); // der Uhrturm
+        else a.ZusatzKlicks.Add(Klickflaeche("Rathaus", lage * new Vector3(5.7f, 11, 2.5f), new Vector3(4.2f, 22, 4.2f), drehung: drehung)); // der Turm
 
-        var innen = a.Innen!;
-        var holz = Material(Holz);
-        var dunkel = Material(DunklesHolz);
-        var gold = Metall(Gold);
-        var stein = Material(Mauerstein);
-        var eisen = Metall(new Color(0.30f, 0.31f, 0.34f));
-        const float rat = 0, gericht = RaumAbstand, amt = 2 * RaumAbstand, kerker = 3 * RaumAbstand;
-        const float tiefe = 9.4f, rueckwand = -tiefe / 2 + 0.05f;
-
-        RaumAnlegen(a, new Raum(RaumRat, "Ratssaal", new Vector3(rat, 0, 0), new Vector3(8, 6, tiefe)), Putz, Steinboden);
-        RaumAnlegen(a, new Raum(RaumGericht, "Gerichtssaal", new Vector3(gericht, 0, 0), new Vector3(8, 6, tiefe)), Putz, Steinboden);
-        RaumAnlegen(a, new Raum(RaumAmt, "Amtsstube", new Vector3(amt, 0, 0), new Vector3(7, 4.5f, tiefe)), Putz, Dielen);
-        RaumAnlegen(a, new Raum(RaumKerker, "Kerker", new Vector3(kerker, 0, 0), new Vector3(6.5f, 4, 7)), Mauerstein,
-            new Color(0.26f, 0.24f, 0.22f), fenster: false, licht: 0.35f);
-        var schildRat = Beschriftung("", a.Mitte + new Vector3(rat, 3.9f, -1.5f), 30, innen); // tiefer als 4,8: sonst liegt der Text unter dem Zeitstrahl (F5)
-        var schildGericht = Beschriftung("", a.Mitte + new Vector3(gericht, 4.8f, -1.5f), 30, innen);
-        var schildAmt = Beschriftung("", a.Mitte + new Vector3(amt, 3.7f, -1.5f), 30, innen);
-        var schildKerker = Beschriftung("", a.Mitte + new Vector3(kerker, 3.3f, -1.0f), 30, innen);
-
-        // ── Ratssaal: Teppich, Hufeisentisch, sieben Stühle, Stadtwappen ──
-        Teil(a, new Vector3(rat, 0.11f, -0.6f), new Vector3(2.6f, 0.02f, 3.6f), Material(Ratsrot));
-        Teil(a, new Vector3(rat, 0.8f, -2.4f), new Vector3(4.0f, 0.1f, 0.8f), holz);
-        foreach (var bx in new[] { -1.9f, 1.9f }) // Beine an den Enden: unter dem Tisch Platz für Füße und Knie
-            Teil(a, new Vector3(rat + bx, 0.4f, -2.4f), new Vector3(0.1f, 0.7f, 0.6f), dunkel);
-        foreach (var dx in new[] { -1.6f, 1.6f })
-        {
-            Teil(a, new Vector3(rat + dx, 0.8f, -0.4f), new Vector3(0.8f, 0.1f, 3.2f), holz);
-            foreach (var bz in new[] { -1.9f, 1.1f })
-                Teil(a, new Vector3(rat + dx, 0.4f, bz), new Vector3(0.6f, 0.7f, 0.1f), dunkel);
-        }
-        var sitze = new[]
-        {
-            new Arbeitsplatz(new Vector3(rat, 0, RatssaalStirn), Sued, Bewegung.Beten, Werkzeug.Keins, true),          // Bürgermeister
-            new Arbeitsplatz(new Vector3(rat - 1.2f, 0, RatssaalStirn), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat + 1.2f, 0, RatssaalStirn), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat - RatssaalSeite, 0, -1.0f), Ost, Bewegung.Beten, Werkzeug.Keins, true),
-            new Arbeitsplatz(new Vector3(rat + RatssaalSeite, 0, -1.0f), West, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat - RatssaalSeite, 0, 0.6f), Ost, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat + RatssaalSeite, 0, 0.6f), West, Bewegung.Beten, Werkzeug.Keins, true),
-        };
         _rathaus = a;
-        _ratssaalSitze = sitze; // für die sichtbare Ratssitzung (Stadtansicht.Ratssitzung.cs), falls das Modell des Ratssaals fehlt
-        RatssaalModellBauen(a);
-        for (var i = 0; i < sitze.Length; i++)
-        {
-            var s = sitze[i];
-            var hinten = new Vector3(Mathf.Sin(s.Drehung), 0, Mathf.Cos(s.Drehung)) * 0.32f; // Lehne hinter der Figur
-            Teil(a, s.Ort + new Vector3(0, FigurenBaukasten.Sitzflaeche - 0.04f, 0), new Vector3(0.55f, 0.08f, 0.55f), dunkel); // Sitzhöhe des Baukastens
-            var lehne = Teil(a, s.Ort + hinten + new Vector3(0, i == 0 ? 1.2f : 0.85f, 0), new Vector3(0.55f, i == 0 ? 1.6f : 0.9f, 0.08f), i == 0 ? gold : dunkel);
-            lehne.Rotation = new Vector3(0, s.Drehung, 0);
-        }
-        Teil(a, new Vector3(rat, 3.4f, rueckwand), new Vector3(1.2f, 1.5f, 0.06f), Material(Leinen));   // Stadtwappen
-        Teil(a, new Vector3(rat, 3.6f, rueckwand + 0.02f), new Vector3(1.2f, 0.5f, 0.06f), Material(Stadtrot));
-        var antragsrolle = Rund(a, new Vector3(rat, 0.92f, -2.3f), 0.07f, 0.5f, Material(Pergament), drehung: new Vector3(0, 0, 90), segmente: 8);
-
-        // ── Gerichtssaal: Podest mit Richterbank, Richtschwert, Schranke, Anklagebank ──
-        Teil(a, new Vector3(gericht, 0.2f, -3.7f), new Vector3(4.4f, 0.4f, 1.5f), stein);
-        Teil(a, new Vector3(gericht, 0.75f, -3.1f), new Vector3(3.8f, 0.7f, 0.4f), dunkel); // niedrig, damit man die Richter sieht
-        Teil(a, new Vector3(gericht, 3.6f, rueckwand), new Vector3(0.12f, 1.6f, 0.08f), gold);         // Richtschwert als Zeichen
-        Teil(a, new Vector3(gericht, 3.9f, rueckwand), new Vector3(0.7f, 0.1f, 0.08f), gold);
-        Teil(a, new Vector3(gericht, 0.85f, 0.2f), new Vector3(4.4f, 0.08f, 0.08f), holz);              // Schranke
-        foreach (var dx in new[] { -2.1f, -0.7f, 0.7f, 2.1f })
-            Teil(a, new Vector3(gericht + dx, 0.45f, 0.2f), new Vector3(0.08f, 0.8f, 0.08f), holz);
-        Teil(a, new Vector3(gericht - 1.4f, 0.45f, 1.6f), new Vector3(1.6f, 0.08f, 0.4f), holz);        // Anklagebank
-        Teil(a, new Vector3(gericht - 1.4f, 0.22f, 1.6f), new Vector3(1.4f, 0.38f, 0.12f), dunkel);
-
-        // ── Kerker: Gitter quer durch den Raum, dahinter Stroh und die Gefangenen, davor ein Wächter ──
-        var zelle = new Vector3(kerker, 0, -2.0f);
-        Teil(a, new Vector3(kerker, 0.12f, -2.3f), new Vector3(5.6f, 0.03f, 2.0f), Material(Stroh));
-        for (var i = 0; i < 15; i++)
-            Teil(a, new Vector3(kerker - 3.1f + i * 0.44f, 1.9f, -0.6f), new Vector3(0.07f, 3.8f, 0.07f), eisen);
-        foreach (var y in new[] { 0.4f, 3.5f })
-            Teil(a, new Vector3(kerker, y, -0.6f), new Vector3(6.4f, 0.1f, 0.1f), eisen);
-        Teil(a, new Vector3(kerker - 2.6f, 2.6f, -3.45f), new Vector3(0.15f, 0.15f, 0.1f), eisen);       // Kettenring an der Wand
-        var waechter = PersonBauen(a, innen, new Arbeitsplatz(new Vector3(kerker + 1.8f, 0, 1.3f), Sued - 0.6f, Bewegung.Stehen, Werkzeug.Speer),
-            Volk.Mensch, Stadtrot, Kopfputz.Helm, 0.2f);
-        a.Besucher.Add(waechter);
-        var fackel = Leuchtend(new Color(1f, 0.7f, 0.3f), new Color(1f, 0.55f, 0.2f));
-        FlammeAnlegen(a, new Vector3(kerker + 3.05f, 2.3f, 0.8f), FeuerVorgabe.Fackel, 0.8f, () => true); // die Fackel an der Wand des Kerkers
-        FeuerAnlegen(a, new Vector3(kerker + 2.6f, 2.6f, 0.8f), fackel, lichtAn: 1.2f, lichtAus: 1.2f, glutAn: 2f, glutAus: 2f, an: () => true, reichweite: 7);
-
-        // ── Amtsstube: Kanzleipult, Ständetafel, Stadtkasse, Stadtschreiber ──
-        Teil(a, new Vector3(amt, 0.45f, -3.4f), new Vector3(2.0f, 0.9f, 0.8f), holz);
-        Teil(a, new Vector3(amt + 0.4f, 0.93f, -3.4f), new Vector3(0.5f, 0.06f, 0.6f), Material(new Color(0.45f, 0.18f, 0.14f)));
-        Teil(a, new Vector3(amt + 3.45f, 2.3f, 0.4f), new Vector3(0.06f, 3.0f, 2.4f), Material(Pergament));     // Ständetafel an der Ostwand
+        RathausNeuVorbereiten(a, huelle, fremdeHuelle: koeln); // die sieben Räume im Haus, Raumleiste mit der Eingangshalle zuerst
+        RatssaalModellBauen(a);                                // die Sitzung tagt in der Ratshalle
+        var schildGericht = RathausNeuSchild(a, RaumGericht, "Schild_Gericht");
+        var schildAmt = RathausNeuSchild(a, RaumAmt, "Schild_Amt");
+        var schildKerker = RathausNeuSchild(a, RaumKerker, "Schild_Kerker");
         var stufen = _simulation?.Wirtschaft?.Daten.Staende.Count ?? 6;
-        for (var i = 0; i < stufen; i++)
-            Teil(a, new Vector3(amt + 3.42f, 1.0f + i * 2.6f / stufen, 0.4f), new Vector3(0.06f, 0.05f, 2.2f), dunkel);
-        var marke = Teil(a, new Vector3(amt + 3.25f, 1.15f, -0.4f), new Vector3(0.2f, 0.3f, 0.3f), Material(Spieler));
-        Teil(a, new Vector3(amt - 2.2f, 0.4f, 2.4f), new Vector3(1.2f, 0.7f, 0.6f), eisen);                     // Stadtkasse
-        Teil(a, new Vector3(amt - 2.2f, 0.78f, 2.4f), new Vector3(1.25f, 0.08f, 0.65f), gold);
-        var schreiber = PersonBauen(a, innen, new Arbeitsplatz(new Vector3(amt, 0, -4.0f), Sued, Bewegung.Schreiben, Werkzeug.Feder), Volk.Mensch,
-            new Color(0.22f, 0.26f, 0.36f), Kopfputz.Barett, 0.4f);
-        a.Besucher.Add(schreiber);
+
+        // Kerker: der Wächter vor dem Gitter
+        var waechter = RathausNeuPlatz(a, RaumKerker, "Platz_Waechter", Bewegung.Stehen, Werkzeug.Speer, false) is (var wEltern, var wPlatz)
+            ? PersonBauen(a, wEltern, wPlatz, Volk.Mensch, Stadtrot, Kopfputz.Helm, 0.2f) : null;
+        if (waechter is not null) a.Besucher.Add(waechter);
+
+        // Amtsstube: der Stadtschreiber am Kanzleipult, die Marke auf der Ständetafel
+        var schreiber = RathausNeuPlatz(a, RaumAmt, "Platz_Schreiber", Bewegung.Schreiben, Werkzeug.Feder, true) is (var sEltern, var sPlatz)
+            ? PersonBauen(a, sEltern, sPlatz, Volk.Mensch, new Color(0.22f, 0.26f, 0.36f), Kopfputz.Barett, 0.4f) : null;
+        if (schreiber is not null) a.Besucher.Add(schreiber);
+        var marke = RathausNeuStandmarke();
+        var leiter = RathausNeuStaendeleiterAnlegen(stufen);   // die Stände mit Schwelle auf der Ständetafel, der eigene hervorgehoben
+        if (leiter.Count > 0 && schildAmt is not null) schildAmt.VerticalAlignment = VerticalAlignment.Bottom;   // das Raumschild steht über der Leiter, nicht auf ihr
 
         // ── Figuren, die sich mit der Simulation ändern ──
         var ratsfiguren = new List<Arbeiterfigur>();
@@ -247,14 +173,16 @@ public partial class Stadtansicht
         var gefangene = new List<Arbeiterfigur>();
         var keinSchild = new List<Node3D>();
         string? ratStand = null, gerichtStand = null, kerkerStand = null; // null = noch nie gebaut
+        // Die Ratsherren sitzen in der Ratshalle an den Ankern der Sitzung (Stadtansicht.Rathausneubau.cs)
+        var ratSitze = RathausNeuSitzplaetze(a) ?? Array.Empty<Arbeitsplatz>();
 
         a.Zustand = (zeit, arbeitszeit, aktiv) =>
         {
-            if (_simulation?.Wirtschaft is not { } w) return;
+            if (_simulation?.Wirtschaft is not { } w || _rathausNeuInnen is not { } innen) return;
             var gulden = w.Daten.Allgemein.Waehrung;
 
-            // Ratssaal: Ämter nach Rang (Bürgermeister zuerst), je Sitz der Inhaber
-            var aemter = w.Rat.IstAktiv ? w.Rat.Aemter.OrderByDescending(x => x.Stufe).Take(sitze.Length).ToList() : new List<Amt>();
+            // Ratshalle: Ämter nach Rang (Bürgermeister zuerst), je Sitz der Inhaber
+            var aemter = w.Rat.IstAktiv ? w.Rat.Aemter.OrderByDescending(x => x.Stufe).Take(ratSitze.Length).ToList() : new List<Amt>();
             var stand = string.Join("|", aemter.Select(x => x.Inhaber));
             if (stand != ratStand)
             {
@@ -264,26 +192,19 @@ public partial class Stadtansicht
                     var amtX = aemter[i];
                     if (!amtX.IstBesetzt) continue;
                     // Baukasten: ein Haus zeigt sein Oberhaupt (dieselbe Person wie in Kontor und Wohnstube), ein Ratsherr der Stadt sich selbst;
-                    // der Bürgermeister mit goldenem Barett (wie in der Ratssitzung)
+                    // der Bürgermeister mit Amtskette (wie in der Ratssitzung)
                     var rezept = RatsRezept(w, amtX.Konto is { } k ? k.Inhaber : amtX.Ratsherr!.Name, amtX.Konto, i == 0);
-                    var figur = InnenFigurBauen(a, sitze[i], rezept, "Sitzen", "Sitzen", FigurenBaukasten.Sitzflaeche, vorderkante: 0.275f); // Stuhl 0,55 m tief
+                    var figur = InnenFigurBauen(a, ratSitze[i], rezept, "Sitzen", "Sitzen", FigurenBaukasten.Sitzflaeche, vorderkante: 0.275f, eltern: innen, mitte: a.Mitte); // Stuhl 0,55 m tief
                     ratsfiguren.Add(figur);
                     a.Besucher.Add(figur);
                     if (amtX.Konto is not null) // Häuser im Amt beschriften – so findet man den eigenen Sitz
-                        ratsschilder.Add(Beschriftung($"{amtX.Name}: {amtX.Inhaber}", a.Mitte + sitze[i].Ort + new Vector3(0, 2.3f, 0), 24, innen));
+                        ratsschilder.Add(RathausBeschriftung($"{amtX.Name}: {amtX.Inhaber}", a.Mitte + ratSitze[i].Ort + new Vector3(0, 1.75f, 0)));
                 }
                 BaukastenMelden("Ratssaal", ratsfiguren.Count);
                 ratStand = stand;
             }
             foreach (var f in ratsfiguren) f.Koerper.Visible = arbeitszeit && _ratssitzung is null; // in der Sitzung sitzen dort die Figuren der Sitzung
             foreach (var schild in ratsschilder) schild.Visible = _ratssitzung is null;
-            schildRat.Visible = _ratssitzung is null;
-            var statutAntrag = w.Rat.IstAktiv ? w.Rat.Antrag : null;
-            var glaubeAntrag = w.Glaube.IstAktiv ? w.Glaube.Antrag : null;
-            antragsrolle.Visible = statutAntrag is not null || glaubeAntrag is not null;
-            schildRat.Text = "Ratssaal" + (w.Rat.IstAktiv ? $"\nBürgermeister: {w.Rat.Aemter.First().Inhaber}" : "")
-                + (statutAntrag is { } sa ? $"\nAntrag: Statut {sa.Statut.Kuerzel()} ({sa.Antragsteller.Inhaber})" : "")
-                + (glaubeAntrag is { } ga ? $"\nAntrag zum Stadtglauben: {KonfessionTexte.StadtglaubeText(ga.Glaube)} ({ga.Antragsteller.Inhaber})" : "");
 
             // Gerichtssaal: das Verfahren, das den Spieler betrifft, sonst das erste
             var verfahren = w.Justiz.IstAktiv
@@ -299,66 +220,67 @@ public partial class Stadtansicht
                     for (var i = 0; i < Math.Min(3, verfahren.Richter.Count); i++)
                     {
                         var r = verfahren.Richter[i];
-                        var platz = new Arbeitsplatz(new Vector3(gericht - 1.2f + i * 1.2f, 0, -3.85f), Sued, i == 1 ? Bewegung.Schreiben : Bewegung.Beten, i == 1 ? Werkzeug.Feder : Werkzeug.Keins, true);
-                        var figur = PersonBauen(a, innen, platz, r.Konto is { } k ? VolkVon(k) : r.Ratsherr?.Daten.Volk ?? Volk.Mensch,
-                            r.Konto is { } k2 ? Besitzerfarbe(k2) : Robe, Kopfputz.Barett, i, hoehe: 0.4f);
-                        gerichtsfiguren.Add(figur);
+                        var (bewegung, werkzeug) = i == 1 ? (Bewegung.Schreiben, Werkzeug.Feder) : (Bewegung.Beten, Werkzeug.Keins);
+                        if (RathausNeuPlatz(a, RaumGericht, $"Platz_Richter_{i + 1}", bewegung, werkzeug, true) is not (var eltern, var platz)) continue;
+                        gerichtsfiguren.Add(PersonBauen(a, eltern, platz, r.Konto is { } k ? VolkVon(k) : r.Ratsherr?.Daten.Volk ?? Volk.Mensch,
+                            r.Konto is { } k2 ? Besitzerfarbe(k2) : Robe, Kopfputz.Barett, i));
                     }
-                    foreach (var (konto, x) in new[] { (verfahren.Beklagter, -1.4f), (verfahren.Anklaeger, 1.4f) })
+                    foreach (var (konto, anker) in new[] { (verfahren.Beklagter, "Platz_Beklagter"), (verfahren.Anklaeger, "Platz_Klaeger") })
                     {
-                        var figur = PersonBauen(a, innen, new Arbeitsplatz(new Vector3(gericht + x, 0, 0.9f), Nord, Bewegung.Stehen, Werkzeug.Keins),
-                            VolkVon(konto), Besitzerfarbe(konto), Kopfputz.Keiner, x);
-                        gerichtsfiguren.Add(figur);
-                        gerichtsschilder.Add(Beschriftung(konto.Inhaber, a.Mitte + new Vector3(gericht + x, 2.3f, 0.9f), 24, innen));
+                        if (RathausNeuPlatz(a, RaumGericht, anker, Bewegung.Stehen, Werkzeug.Keins, false) is not (var eltern, var platz)) continue;
+                        gerichtsfiguren.Add(PersonBauen(a, eltern, platz, VolkVon(konto), Besitzerfarbe(konto), Kopfputz.Keiner, anker.Length));
+                        gerichtsschilder.Add(RathausBeschriftung(konto.Inhaber, a.Mitte + platz.Ort + new Vector3(0, 2.05f, 0)));
                     }
                 }
-                else if (w.Rat.IstAktiv && w.Rat.Aemter.FirstOrDefault(x => x.Name == "Stadtrichter") is { IstBesetzt: true } richterAmt)
+                else if (w.Rat.IstAktiv && w.Rat.Aemter.FirstOrDefault(x => x.Name == "Stadtrichter") is { IstBesetzt: true } richterAmt
+                         && RathausNeuPlatz(a, RaumGericht, "Platz_Richter_2", Bewegung.Schreiben, Werkzeug.Feder, true) is (var eltern, var platz))
                 {
                     // Ohne Verfahren erledigt der Stadtrichter allein Schreibarbeit.
-                    var platz = new Arbeitsplatz(new Vector3(gericht, 0, -3.85f), Sued, Bewegung.Schreiben, Werkzeug.Feder, true);
-                    gerichtsfiguren.Add(PersonBauen(a, innen, platz, richterAmt.Konto is { } k ? VolkVon(k) : richterAmt.Ratsherr!.Daten.Volk,
-                        richterAmt.Konto is { } k2 ? Besitzerfarbe(k2) : Robe, Kopfputz.Barett, 0, hoehe: 0.4f));
+                    gerichtsfiguren.Add(PersonBauen(a, eltern, platz, richterAmt.Konto is { } k ? VolkVon(k) : richterAmt.Ratsherr!.Daten.Volk,
+                        richterAmt.Konto is { } k2 ? Besitzerfarbe(k2) : Robe, Kopfputz.Barett, 0));
                 }
                 a.Besucher.AddRange(gerichtsfiguren);
                 gerichtStand = gStand;
             }
             foreach (var f in gerichtsfiguren) f.Koerper.Visible = arbeitszeit;
 
-            // Kerker: Häuser, deren Oberhaupt einsitzt, schauen aus der Gittergrube
+            // Kerker: Häuser, deren Oberhaupt einsitzt, stehen hinter dem Gitter
             var imKerker = w.Justiz.IstAktiv ? w.Konten.Where(k => w.Justiz.KerkerBis(k) is not null).Take(3).ToList() : new List<Konto>();
             var kStand = string.Join("|", imKerker.Select(k => k.Inhaber));
             if (kStand != kerkerStand)
             {
                 Wegraeumen(a, gefangene, keinSchild);
                 for (var i = 0; i < imKerker.Count; i++)
-                {
-                    var platz = new Arbeitsplatz(zelle + new Vector3(-1.4f + i * 1.4f, 0, 0), Sued, Bewegung.Stehen, Werkzeug.Keins);
-                    gefangene.Add(PersonBauen(a, innen, platz, VolkVon(imKerker[i]), Besitzerfarbe(imKerker[i]), Kopfputz.Keiner, i));
-                }
+                    if (RathausNeuPlatz(a, RaumKerker, $"Platz_Gefangener_{i + 1}", Bewegung.Stehen, Werkzeug.Keins, false) is (var eltern, var platz))
+                        gefangene.Add(PersonBauen(a, eltern, platz, VolkVon(imKerker[i]), Besitzerfarbe(imKerker[i]), Kopfputz.Keiner, i));
                 kerkerStand = kStand;
             }
             var letztes = w.Justiz.IstAktiv ? w.Justiz.LetzteUrteile.LastOrDefault() : null;
-            schildGericht.Text = "Gerichtssaal"
-                + (verfahren is not null
-                    ? $"\n{verfahren.Anklaeger.Inhaber} klagt {verfahren.Beklagter.Inhaber} an · Prognose: {w.Justiz.Prognose(verfahren).Count(x => x.Schuldig)} von {verfahren.Richter.Count} für schuldig"
-                    : letztes is not null ? $"\nLetztes Urteil: {letztes.Beklagter.Inhaber} {(letztes.Schuldig ? "schuldig" : "freigesprochen")}" : "\nKein Verfahren anhängig")
-                + (imKerker.Count > 0 ? $"\nIm Kerker: {string.Join(", ", imKerker.Select(k => $"{k.Inhaber} (bis {w.Justiz.KerkerBis(k)})"))}" : "");
-            schildKerker.Text = "Kerker" + (imKerker.Count > 0
-                ? "\n" + string.Join("\n", imKerker.Select(k => $"{k.Inhaber} – bis {w.Justiz.KerkerBis(k)}"))
-                : "\nDie Zellen sind leer");
+            if (schildGericht is not null)
+                schildGericht.Text = "Gerichtssaal"
+                    + (verfahren is not null
+                        ? $"\n{verfahren.Anklaeger.Inhaber} klagt {verfahren.Beklagter.Inhaber} an · Prognose: {w.Justiz.Prognose(verfahren).Count(x => x.Schuldig)} von {verfahren.Richter.Count} für schuldig"
+                        : letztes is not null ? $"\nLetztes Urteil: {letztes.Beklagter.Inhaber} {(letztes.Schuldig ? "schuldig" : "freigesprochen")}" : "\nKein Verfahren anhängig")
+                    + (imKerker.Count > 0 ? $"\nIm Kerker: {string.Join(", ", imKerker.Select(k => $"{k.Inhaber} (bis {w.Justiz.KerkerBis(k)})"))}" : "");
+            if (schildKerker is not null)
+                schildKerker.Text = "Kerker" + (imKerker.Count > 0
+                    ? "\n" + string.Join("\n", imKerker.Select(k => $"{k.Inhaber} – bis {w.Justiz.KerkerBis(k)}"))
+                    : "\nDie Zellen sind leer");
 
             // Amtsstube: Stand des Spielers auf der Ständetafel
             if (_spielerKonto is { } sp)
             {
                 var stufe = Math.Clamp(sp.Stand, 0, stufen - 1);
-                marke.Position = a.Mitte + new Vector3(amt + 3.25f, 1.15f + stufe * 2.6f / stufen, -0.4f);
+                if (marke is var (standmarke, unten, oben)) standmarke.Position = new Vector3(0, Mathf.Lerp(unten, oben, stufen > 1 ? stufe / (float)(stufen - 1) : 0), 0);
+                RathausNeuStaendeleiterSetzen(leiter, w.Daten.Staende, sp.Stand, gulden);
                 var naechster = w.NaechsterStand(sp);
-                schildAmt.Text = $"Amtsstube\nEuer Stand: {w.StandVon(sp).Name}"
-                    + (naechster is not null ? $"\nNächster: {naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {gulden}" : "")
-                    + $"\nStatut {w.Statut.Kuerzel()} – {w.Statut.Name()}";
+                if (schildAmt is not null)
+                    schildAmt.Text = $"Amtsstube\nEuer Stand: {w.StandVon(sp).Name}"
+                        + (naechster is not null ? $"\nNächster: {naechster.Name} ab {Zahlenformat.Ganz(naechster.Schwelle)} {gulden}" : "")
+                        + $"\nStatut {w.Statut.Kuerzel()} – {w.Statut.Name()}";
             }
-            else schildAmt.Text = "Amtsstube";
-            schreiber.Koerper.Visible = arbeitszeit;
+            else if (schildAmt is not null) schildAmt.Text = "Amtsstube";
+            if (schreiber is not null) schreiber.Koerper.Visible = arbeitszeit;
         };
     }
 

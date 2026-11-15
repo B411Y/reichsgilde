@@ -30,5 +30,17 @@
     "kante": 2048,
     "zellen": 1,
     "plaetze": {"klappbruecke": 0}
+  },
+  "rathaus": {
+    "datei": "rathaus_ao_atlas.png",
+    "kante": 1024,
+    "zellen": 1,
+    "plaetze": {"rathaus": 0}
+  },
+  "rathaus_innen": {
+    "datei": "rathaus_innen_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 4,
+    "plaetze": {"eingangshalle": 0, "amtsstube": 1, "gerichtssaal": 2, "kerker": 3, "ratshalle": 4, "turm_treppe": 5, "turm_spitze": 6}
   }
 }

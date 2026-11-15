@@ -111,6 +111,7 @@ public partial class Stadtansicht
         var name = datei[(datei.LastIndexOf('/') + 1)..];
         if (WohnraumGruppe(name) is { } raeume) return raeume; // Hinterzimmer, Bibliothek: eigene Gruppe (Stadtansicht.Wohnraeume.cs)
         var innen = name.EndsWith("_innen");
+        if (name.StartsWith("rathaus")) return innen ? "rathaus_innen" : "rathaus"; // Rathaus: Hülle und sieben Räume (Stadtansicht.Rathausneubau.cs)
         if (innen) name = name[..^"_innen".Length];
         var stufe = System.Text.RegularExpressions.Regex.Match(name, "_s(\\d+)_g\\d+$") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
@@ -127,6 +128,7 @@ public partial class Stadtansicht
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
         if (WohnraumGruppe(name) is not null) return "raeume_innen_trim";
+        if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
         var innen = name.EndsWith("_innen");
         var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         return stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}";
@@ -140,6 +142,7 @@ public partial class Stadtansicht
     {
         var gruppe = NeubauGruppe(datei);
         var innen = gruppe.EndsWith("_innen");
+        if (gruppe.StartsWith("rathaus")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets, einzelne Texturen
         var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "");
         if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var array = innen ? "innen" : "haeuser";
@@ -170,12 +173,12 @@ public partial class Stadtansicht
         {
             stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
             // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
-            if (stoff.Shader == _neubauKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
+            if (stoff.Shader == _neubauKantenShader || stoff.Shader == _rathausKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
         }
     }
 
     /// <summary>Ist das ein Trim-Material der Neubauten (oder eine Kopie davon, etwa mit Brandschaden)?</summary>
-    private bool NeubauIstTrim(ShaderMaterial stoff) => stoff.Shader is { } s && (s == _neubauShader || s == _neubauKantenShader);
+    private bool NeubauIstTrim(ShaderMaterial stoff) => stoff.Shader is { } s && (s == _neubauShader || s == _neubauKantenShader || s == _rathausShader || s == _rathausKantenShader);
 
     /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
     public const string NeubauAusgang = "neubau:haustuer";
@@ -201,8 +204,8 @@ public partial class Stadtansicht
     /// </summary>
     public static bool NeubauOhneHinterzimmer(Konto? konto) => NeubauProbeAn && konto is { WohnhausStufe: 0 };
 
-    /// <summary>Ist das die Haustür (oder eine Zimmertür, Stadtansicht.Wohnraeume.cs) von innen? Dann zeigt der Mauszeiger das Schloss.</summary>
-    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstWohnraumTuer(kennung);
+    /// <summary>Ist das die Haustür (oder eine Zimmertür, Stadtansicht.Wohnraeume.cs; oder eine Rathaustür) von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
+    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstWohnraumTuer(kennung) || IstRathausTuer(kennung);
 
     private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
 
@@ -256,7 +259,7 @@ public partial class Stadtansicht
                     case "Innenglas":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
                         break;
-                    case "Strohkante":
+                    case "Strohkante" or "Schieferkante":
                         // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Trim-Shader als Kantenvariante (beidseitig, Alpha Scissor)
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name));
                         teil.SetSurfaceOverrideMaterial(i, NeubauStoff(datei, kante: true));
@@ -275,9 +278,10 @@ public partial class Stadtansicht
         }
         if (innen || modell.HasNode("Bodenfleck")) return;
         // Bodenübergang (Style-Guide 5.1): festgetretene Erde rund ums Haus als Decal, nur dünn über dem Boden (trifft keine Wände)
+        var rathaus = NeubauGruppe(datei) == "rathaus";
         modell.AddChild(new Decal
         {
-            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, -0.2f), Size = new Vector3(8.6f, 0.36f, 8.2f),
+            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, rathaus ? 0f : -0.2f), Size = rathaus ? new Vector3(17.5f, 0.36f, 11.5f) : new Vector3(8.6f, 0.36f, 8.2f),
             TextureAlbedo = NeubauTextur<Texture2D>("bodenfleck.png"), AlbedoMix = 0.85f, NormalFade = 0.6f, UpperFade = 0.6f, LowerFade = 0.6f,
             DistanceFadeEnabled = true, DistanceFadeBegin = 160, DistanceFadeLength = 40,
         });
@@ -313,6 +317,11 @@ public partial class Stadtansicht
     /// </summary>
     private bool NeubauInnenAbgleichen()
     {
+        if (RathausNeuRaumKnoten() is { } rathausRaum) // neues Rathaus: Raum im Haus selbst (Stadtansicht.Rathausneubau.cs)
+        {
+            RathausNeuZeigen(rathausRaum);
+            return true;
+        }
         Node3D? haus = null;
         var wohnraum = IstWohnraum(_raum?.Kennung); // Hinterzimmer oder Bibliothek (Stadtansicht.Wohnraeume.cs)
         var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && (_raum == _innen.Raeume[0] || wohnraum)
@@ -348,10 +357,16 @@ public partial class Stadtansicht
         wurzel.ProcessMode = ProcessModeEnum.Inherit;
         if (haus.FindChild("Scheiben", true, false) is Node3D scheiben) scheiben.Visible = false;
         if (_wohnhausAnsicht?.Innen is { } unten) unten.Visible = false; // die alte Wohnstube 200 m unter der Stadt wird nicht gebraucht
+        NeubauKameraSetzen(wurzel.FindChild("Blick_Auge", true, false) as Node3D, wurzel.FindChild("Blick_Ziel", true, false) as Node3D);
+    }
+
+    /// <summary>Raumkamera im Haus: Licht und Himmel der Stadt, Öffnungswinkel 66°, Standpunkt und Blick aus den Ankern, Umschauen zurückgesetzt.</summary>
+    private void NeubauKameraSetzen(Node3D? auge, Node3D? ziel)
+    {
         _sonne.Visible = true;                // draußen ist Tag oder Nacht wie in der Stadt
         _raumKamera.Environment = null;       // Himmel, Nebel und Licht der Stadt statt des dunklen Raumhintergrunds
         _raumKamera.Fov = 66;
-        if (wurzel.FindChild("Blick_Auge", true, false) is Node3D auge && wurzel.FindChild("Blick_Ziel", true, false) is Node3D ziel)
+        if (auge is not null && ziel is not null)
             _raumKamera.LookAtFromPosition(auge.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
         _neubauBlickGrund = _raumKamera.GlobalTransform;
         (_neubauGier, _neubauNick, _neubauGierZiel, _neubauNickZiel) = (0, 0, 0, 0);
@@ -493,6 +508,7 @@ public partial class Stadtansicht
     private bool NeubauUmschauen(double delta)
     {
         if (!NeubauInnenAktiv) return false;
+        if (RatssitzungImBild && _neubauInnen == _rathausNeuInnen) return true; // Sitzung in der neuen Ratshalle: die Kamera führt die Sitzung (SaalKamera)
         var fenster = GetViewport();
         var maus = fenster.GetMousePosition();
         var bild = fenster.GetVisibleRect().Size;
@@ -517,6 +533,7 @@ public partial class Stadtansicht
     {
         if (_neubauInnen is not { } wurzel) return;
         _neubauInnen = null;
+        RathausNeuEindringlingeZeigen(true);   // Rathaus: was in die Räume ragt, wieder einblenden (Stadtansicht.Rathausneubau.cs)
         if (IsInstanceValid(wurzel))
         {
             wurzel.Visible = false;
@@ -527,6 +544,7 @@ public partial class Stadtansicht
         _raumKamera.Fov = 50;
         _sonne.Visible = _raum is null;
         if (_raum is not null && _innen == _wohnhausAnsicht && _wohnhausAnsicht?.Innen is { } unten) unten.Visible = true; // weiter ins Kontor
+        if (_raum is not null && _innen == _rathaus && _rathaus?.Innen is { } alt) alt.Visible = true;       // neues Rathaus: in einen Raum ohne Modell (alte Raumansicht)
     }
 
     // ═════════════════════════════════════════════════════════════════════════
