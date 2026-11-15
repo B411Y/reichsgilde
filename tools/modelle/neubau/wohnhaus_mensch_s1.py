@@ -260,7 +260,8 @@ def fachwerk(h, wand, z0, z1, ganz=True, raehm=True):
     Raehm, Staender im regelmaessigen Raster, jede Oeffnung genau ein Gefach; mit `ganz` dazu Brust- und Sturzriegel in einer
     Hoehe und Streben in den Eckgefachen (ohne: Kniestock, nur Staender)."""
     _, _, breite, n = F.WAENDE[wand]
-    g1.fachwerk_wand(h, lambda s, z: punkt(wand, s, z), breite, (n[0], n[1], 0), z0, z1, loecher(wand), raehm=raehm, riegel=ganz, z_fenster=EG_FENSTER)
+    g1.fachwerk_wand(h, lambda s, z: punkt(wand, s, z), breite, (n[0], n[1], 0), z0, z1, loecher(wand), raehm=raehm, riegel=ganz, z_fenster=EG_FENSTER,
+                     stoss="kappe" if wand.startswith(("vorn", "hinten")) else "buendig")   # Ecken ohne deckungsgleiche Balken
 
 
 def scheitholz(h, wand, a_start):
@@ -269,7 +270,7 @@ def scheitholz(h, wand, a_start):
     start = ox if ex else oy
     for i, (ds, z) in enumerate([(0.19 * k, 0.09) for k in range(5)] + [(0.09 + 0.19 * k, 0.26) for k in range(4)] + [(0.19 + 0.19 * k, 0.43) for k in range(3)]):
         s = a_start - start + ds
-        a, b = punkt(wand, s, z, 0.03), punkt(wand, s + 0.02 * (i % 3 - 1), z, 0.62)
+        a, b = punkt(wand, s, z, 0.03), punkt(wand, s + 0.008 * (i % 3 - 1), z, 0.62)   # schraeg, ohne sich zu durchdringen
         h.stab("Fachwerk", a, b, 0.17, "balken_a", kappen=False)
         quer = Vector((ex, ey, 0))
         h.rechteck("Fachwerk", b - quer * 0.085 - EZ * 0.085, quer, EZ, 0.17, 0.17, "farbholz", weg_von=a, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
@@ -325,7 +326,8 @@ def baue_haus():
             wandkasten(h, stein, wand, s0 - 0.15, s1 + 0.15, 0.0, 0.36, -0.12, Z_BODEN, "bruchstein", ohne=("-z",))
             h.rechteck(stein, P(s0 + 0.12, 1.05, -0.072), e3, EZ, 0.1, 0.14, "eisen", weg_von=M)                    # Tuerring
             continue
-        h.brett(holz, P(s0 - 0.12, z0 - 0.05), P(s1 + 0.12, z0 - 0.05), 0.10, n3, "balken_c", tiefe=0.08)            # Fensterbank
+        # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
+        h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)          # Fensterbank
         fensterstock(h, holz, wand, s0, s1, z0, z1, "balken_c")
         # Laeden: zur Gasse zwei Fluegel, sonst einer; offen an der Wand, Eckenfarbe Rot = Akzentfarbe je Haus
         lb = (s1 - s0) / 2
@@ -481,7 +483,9 @@ def baue_dach():
     # Windbretter am Giebel (nicht am Walm)
     for y in ((DH + 0.03,) if walm else (DV - 0.03, DH + 0.03)):
         for seite in (-1, 1):
-            a = Vector((seite * 0.45, y, dach_z(0.45) + dick_oben + 0.06)); b = Vector((-seite * 0.16, y, zf + 0.42))
+            # das zweite Brett liegt vor dem ersten (sonst decken sich beide in der Kreuzung: flackert, backt schwarz)
+            vor = Vector((0, (-1 if y < M.y else 1) * (0.025 if seite == 1 else 0.0), 0))
+            a = Vector((seite * 0.45, y, dach_z(0.45) + dick_oben + 0.06)) + vor; b = Vector((-seite * 0.16, y, zf + 0.42)) + vor
             d.brett("Fachwerk", a, b, 0.09, (0, -1 if y < M.y else 1, 0), "balken_c", tiefe=0.025)
             d.brett("Fachwerk", a, b, 0.09, (0, 1 if y < M.y else -1, 0), "balken_c", tiefe=0.0, seiten=False)
     if walm:
@@ -686,7 +690,8 @@ def baue_raum():
             if abs(sx * IX - (kx0 + kx1) / 2) < 0.9 and ky0 - 0.5 < y < ky1 + 0.5: continue
             r.kasten(S, (min(sx * IX, sx * (IX - 0.07)), y - bw / 2, Z_BODEN), (max(sx * IX, sx * (IX - 0.07)), y + bw / 2, Z_OG), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
             r.kasten(S, (min(sx * IX, sx * (IX - 0.06)), y - bw / 2, Z_OG), (max(sx * IX, sx * (IX - 0.06)), y + bw / 2, zw - 0.05), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
-        r.kasten(S, (min(sx * IX, sx * (IX - 0.09)), IV, Z_OG - 0.18), (max(sx * IX, sx * (IX - 0.09)), IH, Z_OG), "balken", ohne=("+z", "+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
+        # zwischen den Raehmen vorn und hinten (nicht unter ihnen: sonst decken sich die Unterseiten an den Ecken)
+        r.kasten(S, (min(sx * IX, sx * (IX - 0.09)), IV + 0.09, Z_OG - 0.18), (max(sx * IX, sx * (IX - 0.09)), IH - 0.09, Z_OG), "balken", ohne=("+z", "+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
         for y in (IV + 0.08, IH - 0.08):                # Eckstaender des Kniestocks
             r.kasten(S, (min(sx * IX, sx * (IX - 0.06)), y - bw / 2, Z_OG), (max(sx * IX, sx * (IX - 0.06)), y + bw / 2, zw - 0.05), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
     for y, n in ((IV, 1), (IH, -1)):
@@ -701,7 +706,7 @@ def baue_raum():
         r.stab(S, (xa, GA + 0.06, Z_GALERIE + 0.85), (xb, GA + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
         if xb - xa > 1.7: pfosten.append((xa + xb) / 2)
     for x in pfosten:
-        r.stab(S, (x, GA + 0.06, Z_GALERIE), (x, GA + 0.06, Z_GALERIE + 0.85), 0.08, "balken")
+        r.stab(S, (x, GA + 0.06, Z_GALERIE), (x, GA + 0.06, Z_GALERIE + 0.85), 0.09, "balken")      # 5 mm vor dem Brustholz
     # Leiter zur Galerie wie in der Probe: 73 Grad, 0,48 m breit, neun Sprossen im Abstand von 26,5 cm, Holme 0,95 m ueber den Galerieboden
     fuss = Vector((LX, GA - 0.03 - LEITER_LAUF, Z_BODEN))
     kante = Vector((LX, GA - 0.03, Z_GALERIE))
@@ -716,7 +721,7 @@ def baue_raum():
     sparren = [IV + 0.3 + (IH - IV - 0.6) * i / (n_sp - 1) for i in range(n_sp)]
     for y in sparren:
         for sx in (-1, 1):
-            r.stab(S, (sx * IX, y, zw - 0.07), (0, y, F.Z_FIRST - 0.07), 0.12, "balken", breite=0.10)
+            r.stab(S, (sx * IX, y, zw - 0.07), (0, y, F.Z_FIRST - 0.07), 0.12, "balken", breite=0.10 if sx < 0 else 0.11)   # am First nicht deckungsgleich
     r.stab(S, (0, IV, F.Z_FIRST - 0.12), (0, IH, F.Z_FIRST - 0.12), 0.14, "balken")
     for y in (sparren[1], sparren[-2]):
         r.stab(S, (-xk + 0.1, y, zk), (xk - 0.1, y, zk), 0.12, "balken")
@@ -786,7 +791,8 @@ def zusammen(name, stuecke, baender=BAENDER_INNEN):
 #  Grundform 3: das Haus der Probe mit Schuppen
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-SCHUPPEN = dict(x1=g1.BX + 2.40, y0=-1.40, y1=g1.HINTEN, z_oben=3.30, z_aussen=2.15)
+# Rueckwand 1 cm hinter der Flucht des Hauses: in der Flucht laege sie in einer Ebene mit dem Eckstaender des Obergeschosses
+SCHUPPEN = dict(x1=g1.BX + 2.40, y0=-1.40, y1=g1.HINTEN + 0.01, z_oben=3.30, z_aussen=2.15)
 
 
 def schuppen_z(x):
@@ -817,7 +823,7 @@ def baue_schuppen(h):
     n = (0, -1, 0)
     for x in (tx0 - 0.06, tx1 + 0.06):
         h.brett(holz, (x, y0, 0), (x, y0, tz + 0.12), 0.12, n, "balken_c", tiefe=0.06, laengs="v")
-    h.brett(holz, (tx0 - 0.12, y0, tz + 0.06), (tx1 + 0.12, y0, tz + 0.06), 0.12, n, "balken_c", tiefe=0.06)
+    h.brett(holz, (tx0 - 0.12, y0, tz + 0.06), (tx1 + 0.12, y0, tz + 0.06), 0.12, n, "balken_c", tiefe=0.065)   # Sturz 5 mm vor den Pfosten
     for z in (0.35, tz - 0.35):
         h.brett(holz, (tx0 + 0.03, y0 - 0.03, z), (tx1 - 0.03, y0 - 0.03, z), 0.12, n, "balken_b", tiefe=0.03)
     h.brett(holz, (tx0 + 0.08, y0 - 0.03, 0.43), (tx1 - 0.08, y0 - 0.03, tz - 0.43), 0.11, n, "balken_b", tiefe=0.025)
@@ -847,7 +853,7 @@ def scheitholz_links(h):
     """Das Scheitholz der Probe lag an der rechten Seitenwand; dort steht jetzt der Schuppen – es liegt an der linken."""
     h.flaechen = [fl for fl in h.flaechen if not (min(p.x for p in fl[0]) > g1.BX + 0.02 and max(p.z for p in fl[0]) < 0.6 and 0.3 < sum(p.y for p in fl[0]) / len(fl[0]) < 1.6)]
     for i, (y, z) in enumerate([(0.75 + 0.19 * k, 0.09) for k in range(5)] + [(0.84 + 0.19 * k, 0.26) for k in range(4)] + [(0.94 + 0.19 * k, 0.43) for k in range(3)]):
-        h.stab("Fachwerk", (-g1.BX - 0.03, y, z), (-g1.BX - 0.62, y + 0.02 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)
+        h.stab("Fachwerk", (-g1.BX - 0.03, y, z), (-g1.BX - 0.62, y + 0.008 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)   # schraeg, ohne sich zu durchdringen
         h.rechteck("Fachwerk", (-g1.BX - 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=(0, y, z), anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
 
 

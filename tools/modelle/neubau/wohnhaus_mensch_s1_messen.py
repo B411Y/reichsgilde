@@ -21,7 +21,13 @@ Giebel bei vorn/hinten, Giebelachse x = 0). Prueft:
      Achsabstaende (2 cm).
   8. Haustuer licht mindestens 1,95 m hoch und 0,85 m breit, bei Grundform 2 und 4 0,80 m (die Tuer fuellt ein Gefach;
      --tuer-soll=<m> setzt ein anderes Soll, z. B. fuer die Gegenprobe).
---gegenprobe: dieselben Pruefungen an einem aelteren Stand (--ordner), die Fehler finden muessen.
+ 12. Keine schwarze Flaeche, aussen und innen (uv2_pruefung.schwarze_flaechen; Grenzwerte im Kopf von uv2_pruefung.py): je
+     Flaeche ein Stoff, UV im Blatt, UV2 in der Zelle, Albedo und gebackene Verdeckung nicht schwarz, UV2 nicht entartet,
+     keine deckungsgleichen Flaechen.
+ 13. UV2-Inseln, aussen und innen (uv2_pruefung.uv2_inseln): kleinste Insel ab 0,05 m2 mindestens 2 Bildpunkte, keine Insel
+     unter einem Viertel der mittleren Dichte, kleinster Inselrand mindestens 1 Bildpunkt, keine ueberlappenden Inseln.
+--gegenprobe: dieselben Pruefungen an einem aelteren Stand (--ordner, fuer 12 dazu --texturen=<ordner der Trim-Sheets und
+Atlanten>), die Fehler finden muessen.
 Rueckgabewert 1 bei Fehlern (ohne --gegenprobe).
 """
 import os
@@ -34,12 +40,14 @@ HIER = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HIER)
 import wohnhaus_mensch_s1_g1 as G1                                        # noqa: E402
 import wohnhaus_mensch_s1 as S1                                           # noqa: E402
+import uv2_pruefung as U                                                  # noqa: E402
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 TOL = 0.005
 
 
 SOLL_TUER = None                          # --tuer-soll=<m>: anderes Soll fuer die Tuerbreite (Gegenprobe)
+TEXTUREN = None                           # --texturen=<ordner>: Trim-Sheets und AO-Atlanten des gemessenen Stands (Gegenprobe)
 WELT = (((1, 0), (0, 1)), (0.0, 0.0))     # Baurahmen -> Spiel der gemessenen Grundform (wird in pruefe gesetzt)
 
 
@@ -375,14 +383,24 @@ def pruefe(haus, ordner):
     zeilen.append("4. Moebel vor Fenstern: " + ("keine" if not f4 else f"{len(f4)} FEHLER"))
     zeilen += ["   " + x for x in f4]
     fehler += len(f4)
+    # 12. keine schwarze Flaeche und UV2-Inseln (gemeinsame Pruefungen aller Stufen: uv2_pruefung.py), Huelle und Innenraum
+    for teil in ("", "_innen"):
+        glb = os.path.join(ordner, f"{haus}{teil}.glb")
+        z12, f12 = U.schwarze_flaechen(glb, texturen=TEXTUREN)
+        zeilen.append(f"12. Keine schwarze Flaeche {'innen' if teil else 'aussen'} (Stoff, UV, UV2, Albedo, Verdeckung, deckungsgleich): {'ok' if not f12 else str(f12) + ' FEHLER'}")
+        zeilen += z12; fehler += f12
+        zu, fu, _w = U.uv2_inseln(glb)
+        zeilen.append(f"13. UV2-Inseln {'innen' if teil else 'aussen'} (kleinste Insel, Dichte, Inselrand): {'ok' if not fu else str(fu) + ' FEHLER'}")
+        zeilen += zu; fehler += fu
     return zeilen, fehler
 
 
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
-    global SOLL_TUER
+    global SOLL_TUER, TEXTUREN
     SOLL_TUER = opt.get("tuer-soll")
+    TEXTUREN = opt.get("texturen")
     ordner = opt.get("ordner", os.path.join(WURZEL, "game", "assets", "modelle", "gebaeude", "neubau"))
     zeilen, fehler = pruefe(opt["haus"], ordner)
     kopf = ("GEGENPROBE (aelterer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {opt['haus']} ({ordner})"
