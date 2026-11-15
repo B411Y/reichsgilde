@@ -3,6 +3,12 @@
     "datei": "wohnhaus_mensch_raeume_innen_ao_atlas.png",
     "kante": 1024,
     "zellen": 2,
-    "plaetze": {"hinterzimmer": 0, "bibliothek": 1}
+    "plaetze": {"hinterzimmer": 0, "bibliothek": 1, "hinterzimmer_s23": 2, "bibliothek_s23": 3}
+  },
+  "wohnhaus_mensch_dachraeume_innen": {
+    "datei": "wohnhaus_mensch_dachraeume_innen_ao_atlas.png",
+    "kante": 512,
+    "zellen": 1,
+    "plaetze": {"bibliothek_dach": 0}
   }
 }

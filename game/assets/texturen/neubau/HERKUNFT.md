@@ -39,3 +39,17 @@ Dazu aus der Tabelle oben: `old_planks_02` (Dielen), `rough_wood` (Balken), `whi
 `bodenfleck.png` (512 × 512, mit Alpha; Decal unter den Häusern) entsteht im selben Skript aus `brown_mud_dry` (umgefärbt, weicher Rand).
 
 Die Atlanten `wohnhaus_mensch_ao_atlas.png` und `wohnhaus_mensch_innen_ao_atlas.png` (2048 × 2048, 4 × 4 Zellen) sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py`; Platz je Modell in `tools/modelle/neubau/ao_atlas.json`).
+
+## Wohnhäuser Mensch, Stufe 2 und 3 (Bürgerhaus, Steinhaus)
+
+`trim_s2_*`, `trim_s3_*` und `innen_trim_s23_*` (je Albedo, Normale, ORM, 2048 × 2048) schreibt `tools/modelle/neubau/trimsheet_stufen.py`: Es liest die fertigen Blätter `trim_*` und `innen_trim_*` (oben) und ersetzt nur einzelne Bänder; alle anderen Bänder sind Pixel für Pixel die der Stufe 1. Quellen (Poly Haven, CC0 1.0 wie oben; Quelldateien nicht im Repository):
+
+| Asset-ID | Name | Urheber | Seite | Verwendet für |
+|---|---|---|---|---|
+| `clay_roof_tiles_02` | Clay Roof Tiles 02 | Amal Kumar | https://polyhaven.com/a/clay_roof_tiles_02 | trim_s2: Ziegel (1K-JPG, Dateien vom 10.11.2026) |
+| `roof_slates_02` | Roof Slates 02 | Rob Tuytel | https://polyhaven.com/a/roof_slates_02 | trim_s3: Schiefer |
+| `sandstone_blocks_08` | Sandstone Blocks 08 | Rob Tuytel | https://polyhaven.com/a/sandstone_blocks_08 | trim_s3: Haustein (Band „bruchstein“) |
+| `white_plaster_rough_01` | White Plaster Rough 01 | Rob Tuytel | https://polyhaven.com/a/white_plaster_rough_01 | innen_trim_s23: Kalkputz |
+| `large_floor_tiles_02` | Large Floor Tiles 02 | Rob Tuytel | https://polyhaven.com/a/large_floor_tiles_02 | innen_trim_s23: Tonfliesen und Schachbrett (Band „lehmboden“) |
+
+Urheber laut Poly-Haven-Schnittstelle (`api.polyhaven.com/assets`, Abzug im Quellordner). Nachbearbeitung im Skript: auf Bandhöhe zugeschnitten, waagerecht gekachelt, umgefärbt; die Dachdeckung ohne Alpha (keine Fransen); die Fliesen mit gezeichneten Fugen, leicht verschiedenem Ton je Fliese und im rechten Feld als Schachbrett. Keine Bild-KI.

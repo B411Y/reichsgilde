@@ -49,9 +49,15 @@ public partial class Stadtansicht
         ["Kartentisch"] = "Kartentisch · Hinterzimmer", ["Lesepult"] = "Lesepult · Lehrschriften",
     };
 
-    private static string WohnraumDatei(string kern) => $"{NeubauWohnhaus}_{kern.ToLowerInvariant()}_innen";
+    /// <summary>Die Datei des Hauses, in dem die Räume liegen: die Grundform und Stufe des Wohnhauses in der Innenansicht (Meta „neubau_datei“).</summary>
+    private string WohnraumHaus() =>
+        _wohnhausAnsicht is { } a && _neubauHaeuser.TryGetValue(a.Kennung, out var haus) && IsInstanceValid(haus) && haus.HasMeta(NeubauDateiMeta)
+            ? haus.GetMeta(NeubauDateiMeta).AsString() : NeubauWohnhaus;
 
-    private static bool WohnraumModellDa(string kern) => ResourceLoader.Exists($"res://assets/modelle/{WohnraumDatei(kern)}.glb");
+    /// <summary>Das Raummodell dieses Hauses („…_s2_g1_hinterzimmer_innen“): jede Grundform und Stufe hat eigene, an ihrem Platz im Haus.</summary>
+    private string WohnraumDatei(string kern) => $"{WohnraumHaus()}_{kern.ToLowerInvariant()}_innen";
+
+    private bool WohnraumModellDa(string kern) => ResourceLoader.Exists($"res://assets/modelle/{WohnraumDatei(kern)}.glb");
 
     /// <summary>Ist das einer der Räume hier (Hinterzimmer, Bibliothek)?</summary>
     private static bool IstWohnraum(string? kennung) => kennung is not null && Wohnraeume.Any(r => r.Kennung == kennung);
@@ -61,14 +67,17 @@ public partial class Stadtansicht
     /// null für alle anderen Modelle (Stadtansicht.Neubau.cs, <see cref="NeubauGruppe"/>).
     /// </summary>
     private static string? WohnraumGruppe(string name) =>
-        System.Text.RegularExpressions.Regex.Match(name, "^(.+)_s\\d+_g\\d+_[a-z]+_innen$") is { Success: true } m ? m.Groups[1].Value + "_raeume_innen" : null;
+        System.Text.RegularExpressions.Regex.Match(name, "^(.+)_s(\\d+)_g\\d+_([a-z]+)_innen$") is not { Success: true } m ? null
+        : m.Groups[2].Value == "3" && m.Groups[3].Value == "bibliothek" ? m.Groups[1].Value + "_dachraeume_innen"   // Steinhaus: Bibliothek im Dachgeschoss, eigener AO-Atlas
+        : m.Groups[1].Value + "_raeume_innen";
 
     /// <summary>Hat das Haus des Spielers diesen Raum (Kern), und steht es als Neubau? Mit <c>--neubauraeume</c> für Bilder auch ohne Anbau.</summary>
     private bool WohnraumGebaut(string kern)
     {
         if (!NeubauProbeAn || !WohnraumModellDa(kern) || _wohnhausAnsicht is not { } a || !_neubauHaeuser.TryGetValue(a.Kennung, out var haus)) return false;
-        // Die Räume liegen im Grundriss der Grundform 1 (Probe); in den Grundformen 2–4 passen Wände und Fenster nicht
-        if (!IsInstanceValid(haus) || (haus.HasMeta(NeubauDateiMeta) ? haus.GetMeta(NeubauDateiMeta).AsString() : NeubauWohnhaus) != NeubauWohnhaus) return false;
+        // Räume nur, wo es ein Raummodell zu genau diesem Haus gibt (WohnraumModellDa): Stufe 1 nur Grundform 1 (in 2–4 passen Wände
+        // und Fenster nicht), Bürgerhaus und Steinhaus in allen vier Grundformen
+        if (!IsInstanceValid(haus)) return false;
         if (NeubauRaeumeOption.Contains(kern)) return true;
         return _spielerKonto is { } konto && _simulation?.Wirtschaft is { } w && w.Wohnen.HatRaum(konto, kern);
     }
@@ -215,9 +224,11 @@ public partial class Stadtansicht
             if (wurzel.FindChild("Tuer_Wohnstube_" + kern, true, false) is not Node3D anker) continue;
             var b = ExtraZahlKomma(anker, "breite", 0.9f);
             var h = ExtraZahlKomma(anker, "hoehe", 2.0f);
-            var flaeche = Klickflaeche(WohnraumTuer + kern, wurzel.ToLocal(anker.GlobalPosition), new Vector3(0.3f, h, b), wurzel);
+            var groesse = ExtraText(anker, "achse") is "x" or "" ? new Vector3(0.3f, h, b) : new Vector3(b, h, 0.3f); // achse x: die Wand steht quer zur X-Achse (Stufe 1), sonst quer zur Z-Achse
+            var flaeche = Klickflaeche(WohnraumTuer + kern, wurzel.ToLocal(anker.GlobalPosition), groesse, wurzel);
             a.Raumklicks.Add(flaeche);
-            tueren.Add((kern, wurzel.FindChild("Zimmertuer_" + kern, true, false) as Node3D, flaeche));
+            var blattName = ExtraText(anker, "blatt") is { Length: > 0 } geteilt ? geteilt : kern; // Bürgerhaus/Steinhaus: ein Türblatt „Zimmertuer_Gang“ für beide Räume
+            tueren.Add((kern, wurzel.FindChild("Zimmertuer_" + blattName, true, false) as Node3D, flaeche));
         }
         GD.Print($"[wohnraeume] Wohnstube: {tueren.Count} Zimmertüren ({string.Join(", ", tueren.Select(t => t.Kern + (WohnraumGebaut(t.Kern) ? " offen" : " zu")))})");
         if (tueren.Count == 0) return;
@@ -226,7 +237,8 @@ public partial class Stadtansicht
             foreach (var (kern, blatt, klick) in tueren)
             {
                 var da = WohnraumGebaut(kern);
-                if (blatt is not null) blatt.Visible = da;
+                // ein geteiltes Türblatt ist sichtbar, sobald einer seiner Räume gebaut ist
+                if (blatt is not null) blatt.Visible = tueren.Any(t => t.Blatt == blatt && WohnraumGebaut(t.Kern));
                 klick.Disabled = !da;
             }
         }

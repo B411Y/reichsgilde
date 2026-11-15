@@ -19,3 +19,7 @@ blender -b --python tools/modelle/raeume/raum_hinterzimmer.py -- [--bilder=<ordn
 blender -b --python tools/modelle/raeume/raum_bibliothek.py -- [--bilder=<ordner>]
 python tools/modelle/raeume/raeume_masse.py --soll-ist
 ```
+
+**Stufe 2 und 3 (14.11.2026, Branch phase5/neubau-mensch-st23):** `tools/modelle/raeume/raeume_s23.py` baut dieselben Räume mit den unveränderten Raumskripten, setzt vorher nur die Maße in `raeume_masse.py` um (Fenster nur zur Gasse, Tür der Bibliothek an die Stelle der Tür des Hinterzimmers, links hinten zum Flur) und legt das fertige Modul (UV2 und Verdeckung im eigenen Rahmen, Zellen 2 und 3 des Raum-Atlas) um `RAUM_VERSATZ` aus `tools/modelle/neubau/wohnhaus_mensch_s23_masse.py` ins Obergeschoss des Hauses. Aufruf: `blender -b --python tools/modelle/raeume/raeume_s23.py -- --haus=wohnhaus_mensch_s2_g1 --raum=<hinterzimmer|bibliothek> [--bilder=<ordner>] [--ohne-ao]`.
+
+**Steinhaus, Bibliothek im Dachgeschoss (14.11.2026, Entscheidung des Nutzers):** `tools/modelle/raeume/raum_bibliothek_dach.py` baut den Raum unter den Schrägen (Giebelwand mit dem Fenster im Treppengiebel, Gaubennische, Trennwand mit Tür) und stellt die Möbel aus `raum_bibliothek.py` mit umgesetzten Maßen hinein (hohe Regale an der Giebelwand, niedrige unter den Schrägen, Schreibtisch unter der Gaube); `raeume_s23.py -- --haus=wohnhaus_mensch_s3_g<n> --raum=bibliothek` ruft es auf. Eigener AO-Atlas `wohnhaus_mensch_dachraeume_innen`.
