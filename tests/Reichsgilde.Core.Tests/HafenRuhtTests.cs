@@ -135,7 +135,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(89, d.Version);
+            Pruefe.Gleich(91, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");
@@ -246,7 +246,7 @@ static class HafenRuhtTests
 
         ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) ist bitgleich mit dem Kern vor dem Schalter", () =>
         {
-            var ist = Partie(Datenpfad.MitSchiffshandel(Json.Value), 3);
+            var ist = Partie(Datenpfad.MitSchiffshandel(Datenpfad.OhneErnte(Json.Value)), 3); // ohne die Erntejahre (Datenversion 91), die es damals nicht gab
             Pruefe.Gleich(string.Join("\n", Sollwerte), string.Join("\n", ist));
         }),
     };
