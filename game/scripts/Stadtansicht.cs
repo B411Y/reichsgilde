@@ -811,6 +811,7 @@ public partial class Stadtansicht : Node3D
         Ladezeit.Phase("im Bild: Wetter und Licht");
         NachtlichterAktualisieren(delta); // Stadtansicht.Nachtlichter.cs
         Ladezeit.Phase("im Bild: Nachtlichter");
+        SilhouettenAktualisieren(delta); // Schattenrisse der Bewohner hinter den Fenstern (Stadtansicht.Fenstersilhouetten.cs)
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
         PassantenFleckenAktualisieren(); // Schatten der Passanten über Stellvertreter bei Zoom 50 und 100 (Stadtansicht.Passantenschatten.cs)
         Ladezeit.Phase("im Bild: Passanten");

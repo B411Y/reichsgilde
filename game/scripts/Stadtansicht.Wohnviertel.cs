@@ -198,8 +198,8 @@ public partial class Stadtansicht
             _ => nummer % 3 + 1,
         };
         var kennung = "einwohner:" + nummer;
-        ModellEinsetzen(EinwohnerDatei(art), gruppe, new Vector3(0, 0, platz.Groesse.Y / 2 - EinwohnerFront(art)),
-            new ModellZustand(Variante: variante, Besitzer: Hausfarben[nummer % Hausfarben.Length]), kennung);
+        SilhouettenMelden(nummer, ModellEinsetzen(EinwohnerDatei(art), gruppe, new Vector3(0, 0, platz.Groesse.Y / 2 - EinwohnerFront(art)),
+            new ModellZustand(Variante: variante, Besitzer: Hausfarben[nummer % Hausfarben.Length]), kennung)); // Fenstersilhouetten der Bewohner (Stadtansicht.Fenstersilhouetten.cs)
         _platzKennung[platz] = kennung;
     }
 

@@ -546,7 +546,8 @@ public sealed class Wirtschaftsdaten
         Glaube?.Pruefen(f, Politik.Ratsherren);
         Dynastie.Pruefen(f, StandStufe);
         Charakterzuege?.Pruefen(f, Dynastie.Talente.Ausbildungen.Keys,
-            (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList());
+            (Gesundheit?.Krankheiten.Keys ?? Enumerable.Empty<string>()).Append(Reichsgilde.Core.Gesundheit.Erkrankung.PestName).ToList(),
+            Meinungen?.Aktivitaeten.Keys);
         foreach (var r in Politik.Ratsherren)
         {
             if (r.Zuege is not { } fest) continue;

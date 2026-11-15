@@ -1337,7 +1337,7 @@ public sealed partial class Stadtwirtschaft
         ZufallWuerfe = _zufall.Wuerfe,
         ReihenfolgeWuerfe = _reihenfolge.Wuerfe,
         Konten = _konten.Select(k => k.Sichern()).ToList(),
-        Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto))).ToList(),
+        Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto), Uhr.VergangeneMinuten / Spielzeit.MinutenProTag)).ToList(),
         Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),
