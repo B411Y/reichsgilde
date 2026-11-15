@@ -23,6 +23,15 @@ static class BriefaufschubTests
             Pruefe.Gleich("Zunft,Kontor", string.Join(",", frei));
             Pruefe.Gleich(0, a.Wartend);
         }),
+        ("Einblendung ruht in der Briefphase (Stimmrunde bis Jahresbericht); Gegenprobe: danach läuft sie weiter", () =>
+        {
+            var r = new Einblendungsreihe<string>();
+            r.Einreihen("Brief der Zunft", 5);
+            r.RuhtSetzen(Briefphase.Ruht(false, true, false, false, false, false));   // zwischen Stimmrunde und Sitzung
+            Pruefe.Wahr(r.Beginnen() is null, "ruht, keine Meldung beginnt");
+            r.RuhtSetzen(Briefphase.Ruht(false, false, false, false, false, false));
+            Pruefe.Gleich("Brief der Zunft", r.Beginnen());
+        }),
         ("Briefphase: Briefe warten die ganze Folge Stimmrunde → Ratssitzung → Jahresbericht ab, auch zwischen den Tafeln; Gegenprobe: danach nicht", () =>
         {
             Pruefe.Wahr(Briefphase.Ruht(true, true, false, false, false, false), "Stimmrunde offen");
