@@ -14,10 +14,13 @@ Keine Bild-KI und keine Image-to-3D-KI. Modell, UV und Texturen entstehen aus Sk
 
 **Paket 1 (14.11.2026): Grundformen 2, 3 und 4.** Auftrag des Nutzers: 2 breit, 3 mit Anbau bzw. Schuppen, 4 mit Hof bzw. Laube, alles wie bei der Probe. `tools/modelle/neubau/wohnhaus_mensch_s1.py` (Claude Fable 5.2, Claude Code) baut sie: Grundform 3 ist das Haus der Probe, gespiegelt, mit Bretterschuppen unter einem Pultdach; Grundform 2 (Traufe zur Gasse, 7,0 × 4,8 m) und 4 (Giebel zur Gasse, Laube unter einem Krüppelwalm) sind anderthalb Geschosse hoch mit Fachwerk im Erdgeschoss. Möbel, Gegenstände und Einrichtungsstücke kommen unverändert aus den Funktionen der Probe und werden an ihre Wand im neuen Raum versetzt. Konzeptbilder `wohnhaus_lvl1_v02…v04` nur als Stilvorlage angesehen. Weiter ohne Bild- oder 3D-KI, dieselben Trim-Sheets, je Haus eine Zelle im AO-Atlas.
 
+**Fachwerk-Korrektur (14.11.2026).** Rückmeldung des Nutzers zum Bürgerhaus der Stufe 2 (Fenster verschieden groß, Hölzer nur an die Fensterrahmen gesetzt, Giebel nicht bis zum First), übertragen auf Stufe 1 im Auftrag des Teamleiters. Claude (Claude Code) hat die Konstruktionsregel der Stufe 2 in `wohnhaus_mensch_s1_g1.py` (`raster`, `gefach`, `fachwerk_wand`, `giebel_fachwerk`) und `wohnhaus_mensch_s1.py` übernommen und alle vier Grundformen mit Blender 5.2.3 neu gebaut; `wohnhaus_mensch_s1_messen.py` prüft die GLB. Quellen der Regel (nur gelesen): https://de.wikipedia.org/wiki/Fachwerkhaus, https://www.baunetzwissen.de/holz/fachwissen/holzbausysteme/fachwerkbauweise-7820010.
+
 **Aufruf**
 
 ```bash
 blender -b --python tools/modelle/neubau/trimsheet.py -- --quellen=<ordner mit den Poly-Haven-Paketen>
 blender -b --python tools/modelle/neubau/wohnhaus_mensch_s1_g1.py -- [--bilder=<ordner>]
 blender -b --python tools/modelle/neubau/wohnhaus_mensch_s1.py -- --form=<2|3|4> [--bilder=<ordner>] [--ohne-ao]
+blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_mensch_s1_messen.py -- --haus=wohnhaus_mensch_s1_g<1..4> [--ordner=<glb-ordner>] [--gegenprobe] [--tuer-soll=<m>]
 ```

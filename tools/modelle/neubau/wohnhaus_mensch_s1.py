@@ -54,10 +54,11 @@ STROH = 0.28
 Z_GALERIE = Z_OG + 0.12     # Oberkante der Galeriebohlen
 Z_HAUBE = 1.95              # Unterkante der Herdhaube (1,80 m ueber dem Fussboden)
 TUER_HOCH = 2.00
-GB_FENSTER = (3.50, 4.30)   # Giebelfenster der Galerie: Bruestung 0,83 m ueber dem Galerieboden
+KEHL = 1.45                 # Hoehe des Kehlbalkens ueber der Traufe (innen 2,13 m ueber dem Galerieboden)
+GB_FENSTER = (3.50, Z_TRAUFE + KEHL - 0.08)   # Giebelfenster der Galerie: Bruestung 0,83 m ueber dem Galerieboden, der Kehlbalken ist sein Sturz
+EG_FENSTER = (1.05, 2.00)   # Bruestung und Sturz aller Fenster des Erdgeschosses (Fachwerk: Riegel in einer Hoehe durchs Geschoss)
 LEITER_LAUF = 0.77
-KEHL = 1.45                 # Hoehe des Kehlbalkens ueber der Traufe
-BW = 0.17                   # Breite der Fachwerkstaender
+BW = g1.BW                  # Breite der Fachwerkstaender
 
 # Masse der Probe, auf die sich die Moebelgruppen beziehen (Innenwaende der Probe)
 G1_IX, G1_IV, G1_IH, G1_JV = g1.IX, g1.IV, g1.IH, g1.JV
@@ -73,16 +74,18 @@ def form_setzen(n):
     F.name = f"wohnhaus_mensch_s1_g{n}"
     if n == 2:
         F.BX, F.VORN, F.HINTEN = 2.4, -3.5, 3.5
+        _q = lambda k: g1.gefach(-F.BX, 2 * F.BX, k)               # Giebelseiten 4,8 m: fuenf Gefache (Achsabstand 0,93)
+        _l = lambda k: g1.gefach(F.VORN, F.HINTEN - F.VORN, k)     # Traufseiten 7,0 m: sieben Gefache (0,98)
         F.DACH_VORN, F.DACH_HINTEN = -3.85, 3.85
         F.STRASSE = "links_eg"                         # die Traufwand zur Gasse
         F.WELT = (((0, -1), (1, 0)), (0.0, -0.2))      # Baurahmen -> Spiel: Vierteldrehung, Strassenwand bei y = -2,6
-        F.FENSTER = [
-            ("links_eg", (-1.30, -0.34), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),
-            ("links_eg", (-2.55, -1.85), (1.05, 2.00), "fenster"),
-            ("links_eg", (1.95, 2.75), (1.05, 2.00), "fenster"),
-            ("rechts_eg", (0.60, 1.40), (1.10, 1.95), "fenster"),
-            ("hinten_eg", (-0.45, 0.45), (1.10, 1.95), "fenster"),
-            ("hinten_gb", (-0.35, 0.35), GB_FENSTER, "fenster"),
+        F.FENSTER = [                                  # je ein Gefach; zur Gasse die Tuer im mittleren, die Fenster spiegelgleich im 2. und 6.
+            ("links_eg", _l(3), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),
+            ("links_eg", _l(1), EG_FENSTER, "fenster"),
+            ("links_eg", _l(5), EG_FENSTER, "fenster"),
+            ("rechts_eg", _l(4), EG_FENSTER, "fenster"),
+            ("hinten_eg", _q(2), EG_FENSTER, "fenster"),
+            ("hinten_gb", _q(2), GB_FENSTER, "fenster"),
         ]
         F.WALM = None
         F.LAUBE = False
@@ -90,22 +93,24 @@ def form_setzen(n):
         F.KAMIN = (-0.50, 0.20, -3.5 + T, -3.5 + T + 0.60)       # Schlot innen an der Giebelwand, aussen am First
         F.MATTEN = ((-0.6, -1.3, 1.5, 1.6), (0.3, 2.0, 1.5, 1.0))
         F.FAHNE = (0.0, F.DACH_HINTEN - 0.55)
-        F.WAPPEN = ((-F.BX, 0.25, 1.75), (0, -1, 0), (-1, 0, 0))  # Ort, Rechts des Betrachters, Normale: Gefach neben der Tuer
+        F.WAPPEN = ((-F.BX, 0.845, 1.53), (0, -1, 0), (-1, 0, 0))  # Ort, Rechts des Betrachters, Normale: Gefach neben der Tuer, frei zwischen Tuer und Laden
         F.BANK = ("links_eg", 1.75, 2.95)
         F.FASS = (F.BX + 0.36, F.HINTEN - 0.45)
         F.SCHEIT = ("rechts_eg", -2.9)
         F.GERUEST = dict(y=-2.6, x0=-3.6, x1=3.6, ebenen=(1.9,), innen=3.3, aussen=3.9, leiter_x=2.9)
     elif n == 4:
         F.BX, F.VORN, F.HINTEN = 2.5, -1.4, 3.4
+        _q = lambda k: g1.gefach(-F.BX, 2 * F.BX, k)               # Giebelseiten 5,0 m: fuenf Gefache (Achsabstand 0,97)
+        _l = lambda k: g1.gefach(F.VORN, F.HINTEN - F.VORN, k)     # Traufseiten 4,8 m: fuenf Gefache (0,93)
         F.DACH_VORN, F.DACH_HINTEN = -2.88, 3.62
         F.STRASSE = "vorn_eg"
         F.WELT = (((1, 0), (0, 1)), (0.0, 0.0))
         F.FENSTER = [
-            ("vorn_eg", (0.62, 1.58), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),
-            ("vorn_eg", (-1.40, -0.50), (1.05, 2.00), "fenster"),
-            ("links_eg", (0.80, 1.70), (1.10, 1.95), "fenster"),
-            ("hinten_eg", (-0.45, 0.45), (1.10, 1.95), "fenster"),
-            ("hinten_gb", (-0.35, 0.35), GB_FENSTER, "fenster"),
+            ("vorn_eg", _q(3), (Z_BODEN, Z_BODEN + TUER_HOCH), "tuer"),       # je ein Gefach, Tuer und Fenster spiegelgleich
+            ("vorn_eg", _q(1), EG_FENSTER, "fenster"),
+            ("links_eg", _l(3), EG_FENSTER, "fenster"),                 # im vierten Gefach: im dritten laege der Bauplan am Tisch davor
+            ("hinten_eg", _q(2), EG_FENSTER, "fenster"),
+            ("hinten_gb", _q(2), GB_FENSTER, "fenster"),
         ]
         F.WALM = math.tan(math.radians(55))            # Krueppelwalm ueber der Laube: Neigung der Walmflaeche
         F.LAUBE = True
@@ -251,36 +256,11 @@ def fensterstock(teil, stoff, wand, s0, s1, z0, z1, band):
 
 
 def fachwerk(h, wand, z0, z1, ganz=True, raehm=True):
-    """Fachwerk einer Wand zwischen z0 und z1: Schwelle (an Tueren unterbrochen), Raehm, Staender an den Ecken und neben jeder
-    Oeffnung, Zwischenstaender in breiten Feldern; mit `ganz` dazu Brustriegel, Sturzriegel und Streben in den Eckfeldern."""
-    holz = "Fachwerk"
+    """Fachwerk einer Wand zwischen z0 und z1 nach der Konstruktionsregel (g1.fachwerk_wand): Schwelle (an Tueren unterbrochen),
+    Raehm, Staender im regelmaessigen Raster, jede Oeffnung genau ein Gefach; mit `ganz` dazu Brust- und Sturzriegel in einer
+    Hoehe und Streben in den Eckgefachen (ohne: Kniestock, nur Staender)."""
     _, _, breite, n = F.WAENDE[wand]
-    n3 = (n[0], n[1], 0)
-    P = lambda s, z: punkt(wand, s, z)
-    l = loecher(wand)
-    tueren = sorted((s0, s1) for s0, s1, _, _, art in l if art == "tuer")
-    kanten = [-0.05] + [x for s0, s1 in tueren for x in (s0 - BW, s1 + BW)] + [breite + 0.05]
-    for a, b in zip(kanten[0::2], kanten[1::2]):
-        h.brett(holz, P(a, z0 + 0.10), P(b, z0 + 0.10), 0.20, n3, "balken_c", tiefe=0.07)          # Schwelle
-    if raehm: h.brett(holz, P(-0.05, z1 - 0.09), P(breite + 0.05, z1 - 0.09), 0.18, n3, "balken_b", tiefe=0.06)
-    pfosten = {BW / 2, breite - BW / 2}
-    for s0, s1, *_ in l: pfosten |= {s0 - BW / 2, s1 + BW / 2}
-    fest = sorted(pfosten)
-    for a, b in zip(fest[:-1], fest[1:]):
-        if b - a > 1.5 and not any(s0 - 0.1 < (a + b) / 2 < s1 + 0.1 for s0, s1, *_ in l):
-            for k in range(1, round((b - a) / 1.25)): pfosten.add(a + (b - a) * k / round((b - a) / 1.25))
-    for s in sorted(pfosten):
-        h.brett(holz, P(s, z0 + 0.20), P(s, z1 - (0.18 if raehm else 0.0)), BW, n3, "balken_a", laengs="v")
-    if not ganz: return
-    bruestungen = [z for _, _, z, _, art in l if art == "fenster"]
-    zr = (min(bruestungen) if bruestungen else z0 + 0.65) - 0.07
-    for a, b in zip(kanten[0::2], kanten[1::2]):                                                    # Brustriegel, an Tueren unterbrochen
-        h.brett(holz, P(max(a, BW), zr), P(min(b, breite - BW), zr), 0.14, n3, "balken_b", tiefe=0.045)
-    for s0, s1, _, zb, _ in l:
-        h.brett(holz, P(s0 - BW, zb + 0.07), P(s1 + BW, zb + 0.07), 0.14, n3, "balken_b", tiefe=0.045)
-    for s_a, s_b in ((BW, 0.62), (breite - BW, breite - 0.62)):                                     # Streben in den Eckfeldern
-        if any(min(s_a, s_b) - 0.25 < s0 < max(s_a, s_b) + 0.25 or min(s_a, s_b) - 0.25 < s1 < max(s_a, s_b) + 0.25 for s0, s1, *_ in l): continue
-        h.brett(holz, P(s_a, z0 + 0.22), P(s_b, zr - 0.07), 0.13, n3, "balken_a", tiefe=0.04)
+    g1.fachwerk_wand(h, lambda s, z: punkt(wand, s, z), breite, (n[0], n[1], 0), z0, z1, loecher(wand), raehm=raehm, riegel=ganz, z_fenster=EG_FENSTER)
 
 
 def scheitholz(h, wand, a_start):
@@ -324,25 +304,9 @@ def baue_haus():
     # ── Fachwerk: Erdgeschoss mit Riegeln und Streben, Kniestock, Giebel ─────────────────────────────────────────────
     for wand in ("vorn_eg", "rechts_eg", "hinten_eg", "links_eg"): fachwerk(h, wand, Z_SOCKEL, Z_OG, raehm=False)   # die Schwelle des Kniestocks ist zugleich das Raehm
     for wand in ("vorn_og", "rechts_og", "hinten_og", "links_og"): fachwerk(h, wand, Z_OG, Z_TRAUFE, ganz=False)
-    for gb, y, n in (("vorn_gb", F.VORN, (0, -1, 0)), ("hinten_gb", F.HINTEN, (0, 1, 0))):
-        h.brett(holz, (-xk, y, zk), (xk, y, zk), 0.16, n, "balken_b")                                # Kehlbalken
-        h.brett(holz, (0, y, zk + 0.08), (0, y, F.Z_FIRST - 0.25), 0.15, n, "balken_a", laengs="v")
-        fenster = loecher(gb)
-        for s in (-1, 1):
-            h.brett(holz, (s * (xk - 0.075), y, Z_TRAUFE), (s * (xk - 0.075), y, zk - 0.08), 0.15, n, "balken_a", laengs="v")
-            h.brett(holz, (s * (xk - 0.15), y, zk + 0.1), (s * 0.12, y, F.Z_FIRST - 0.75), 0.12, n, "balken_a", tiefe=0.04)
-            h.brett(holz, (s * (OX + 0.02), y, Z_TRAUFE - 0.02), (s * 0.02, y, F.Z_FIRST - 0.02), 0.16, n, "balken_c", tiefe=0.07)   # Ortgang-Sparren
-            h.brett(holz, (s * (OX - 0.25), y, Z_TRAUFE + 0.03), (s * (xk + 0.05), y, zk - 0.35), 0.12, n, "balken_a", tiefe=0.04)   # Strebe im Zwickel
-        if fenster:
-            for s0, s1, z0, z1, _ in fenster:
-                for z in (z0 - 0.07, z1 + 0.07):
-                    h.brett(holz, (-xk + 0.15, y, z), (xk - 0.15, y, z), 0.14, n, "balken_b", tiefe=0.045)
-                for s in (s0 - BW / 2, s1 + BW / 2):
-                    h.brett(holz, (-xk + s, y, Z_TRAUFE), (-xk + s, y, zk - 0.08), BW, n, "balken_a", laengs="v")
-        else:
-            h.brett(holz, (-xk + 0.15, y, Z_TRAUFE + 0.72), (xk - 0.15, y, Z_TRAUFE + 0.72), 0.14, n, "balken_b", tiefe=0.045)
-            for s in (-1, 1):
-                h.brett(holz, (s * 0.45, y, Z_TRAUFE), (s * 0.45, y, zk - 0.08), 0.15, n, "balken_a", laengs="v")
+    for gb, y, aussen in (("vorn_gb", F.VORN, -1), ("hinten_gb", F.HINTEN, 1)):              # Giebel bis zum First
+        fenster = [(a0, a1) for w, (a0, a1), _, _ in F.FENSTER if w == gb]
+        g1.giebel_fachwerk(h, y, aussen, OX, Z_TRAUFE, F.Z_FIRST, NEIGUNG, fenster[0] if fenster else None, GB_FENSTER)
 
     # ── Tuer, Fensterstoecke, Laeden ─────────────────────────────────────────────────────────────────────────────────
     strasse = F.STRASSE[:-3]
@@ -710,15 +674,14 @@ def baue_raum():
     # Sichtbares Fachwerk innen: Eckstaender, Staender an den Traufwaenden (nicht in Oeffnungen, nicht am Herd), Raehm
     bw = 0.16
     kx0, kx1, ky0, ky1 = F.KAMIN
-    n_st = max(2, round((IH - IV) / 1.6))
     for sx in (-1, 1):
         wand = "links_eg" if sx < 0 else "rechts_eg"
         offen = [(a0, a1) for w, (a0, a1), _, _ in F.FENSTER if w == wand]
         for y in (IV, IH):
             sy = 1 if y == IV else -1
             r.kasten(S, (min(sx * IX, sx * (IX - bw)), min(y, y + sy * bw), Z_BODEN), (max(sx * IX, sx * (IX - bw)), max(y, y + sy * bw), Z_OG), "balken", ohne=("-z", "+z"), laengs="z")
-        for i in range(1, n_st):
-            y = IV + (IH - IV) * i / n_st
+        for y in [F.VORN + s for s in g1.raster(F.HINTEN - F.VORN)[0]]:   # auf den Achsen des Fachwerks aussen
+            if not IV + 0.2 < y < IH - 0.2: continue
             if any(a0 - 0.3 < y < a1 + 0.3 for a0, a1 in offen): continue
             if abs(sx * IX - (kx0 + kx1) / 2) < 0.9 and ky0 - 0.5 < y < ky1 + 0.5: continue
             r.kasten(S, (min(sx * IX, sx * (IX - 0.07)), y - bw / 2, Z_BODEN), (max(sx * IX, sx * (IX - 0.07)), y + bw / 2, Z_OG), "balken", ohne=("-z", "+z", "+x" if sx > 0 else "-x"), laengs="z")
