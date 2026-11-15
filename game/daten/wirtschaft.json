@@ -1,5 +1,5 @@
 {
-  "version": 90,
+  "version": 91,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2357,6 +2357,13 @@
       { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 },
       { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 }
     ]
+  },
+  "ernte": {
+    "waren": { "Gerste": 1, "Roggen": 1, "Körnermahlzeit": 0.5, "Dünnbier": 0.5, "Starkbier": 0.5, "Festbier": 0.5 },
+    "gut": 1.25, "mager": 0.75, "missernte": 0.5, "untereGrenze": 0.35, "obereGrenze": 1.5,
+    "mild": { "chanceGut": 0.2, "chanceMager": 0.15, "chanceMissernte": 0, "staerke": 0.5 },
+    "ueberliefert": { "chanceGut": 0.2, "chanceMager": 0.25, "chanceMissernte": 0.1, "staerke": 1 },
+    "hart": { "chanceGut": 0.15, "chanceMager": 0.3, "chanceMissernte": 0.2, "staerke": 1.25 }
   },
   "entscheidungen": { "hoechstOffen": 6, "erbeAbSterberisiko": 0.1, "fristMinuten": { "standard": 120, "Krankheit": 120, "Erbe": 120, "Geheimnis": 120, "Mahnung": 120 } },
   "glaube": {

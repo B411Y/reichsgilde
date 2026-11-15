@@ -70,7 +70,7 @@ static class KlappbrueckeTests
         ("Klappbrücke: Daten ab 90 – Rhein, 20 Minuten je Durchfahrt; Prüfung meldet leeres Gewässer und Dauer außerhalb 1–60; ohne Abschnitt keine Brücke", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(90, d.Version);
+            Pruefe.Gleich(91, d.Version);
             Pruefe.Gleich("Rhein", d.Logistik.Klappbruecke!.Gewaesser);
             Pruefe.Gleich(20, d.Logistik.Klappbruecke.OeffnungMinuten);
             Pruefe.WirftMitMeldung(() => DatenMit(j => j["logistik"]!["klappbruecke"]!["oeffnungMinuten"] = 0), "oeffnungMinuten");

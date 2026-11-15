@@ -184,6 +184,12 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Folgen der Jahreszeit: Winter, Eis auf dem Fluss, Ernte, Schlamm, Festmärkte (Abschnitt „jahreszeiten“, Datenversion 69).</summary>
     public Jahreszeitenwesen Jahreszeiten { get; }
 
+    /// <summary>Erntejahr und Teuerung: Güte jeder Ernte, Ansage ein Jahr vorher, Preis der Getreidewaren (Abschnitt „ernte“, Datenversion 91).</summary>
+    public Erntewesen Ernte { get; }
+
+    /// <summary>„Härte der Zeit“ der Partie (aus den <see cref="Partie.Partieeinstellungen"/>): wie oft und wie stark gute und schlechte Ernten kommen.</summary>
+    public HaerteDerZeit HaerteDerZeit { get; init; } = HaerteDerZeit.Ueberliefert;
+
     /// <summary>Die Klappbrücke über den Rhein: offen für das Zierschiff, Karren darüber warten (Abschnitt „logistik.klappbruecke“, Datenversion 90).</summary>
     public Klappbruecke Klappbruecke { get; }
 
@@ -197,6 +203,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
         Karte = karte;
+        karte.KlappbrueckeSetzen(Daten.Logistik.Klappbruecke?.Gewaesser);
         Kasse.KarteGesetzt(karte.Kennung);
         for (var i = 0; i < _konten.Count; i++)
             Bauen.StartplatzVergeben(_konten[i], i);
@@ -444,6 +451,7 @@ public sealed partial class Stadtwirtschaft
         Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
         Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
         Jahreszeiten = new Jahreszeitenwesen(this, daten.Jahreszeiten, zufallsstartwert);
+        Ernte = new Erntewesen(this, daten.Ernte, zufallsstartwert);
         Klappbruecke = new Klappbruecke(this);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
@@ -473,6 +481,7 @@ public sealed partial class Stadtwirtschaft
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
         Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 69)
+        Ernte.MarktSetzen(); // Güte der Ernte auf die Getreidewaren (Datenversion 91)
         Schiffahrt.MarktSetzen(); // Landhandel, solange der Schiffshandel ruht (Datenversion 70)
     }
 
@@ -649,6 +658,7 @@ public sealed partial class Stadtwirtschaft
         Entscheidungen.Minute(zeit); // am Tickanfang, nach den Befehlen dieser Minute: Fragen abgleichen, Fristen ablaufen lassen
         EinwohnerZaehlen();
         Jahreszeiten.Minute(zeit); // Meldungen zur Jahreszeit; im Eis ruhen die Schiffe (vor Karren und Schiffen dieser Minute)
+        Ernte.Minute(zeit); // Ansage der Ernte (Sommerjahr) bzw. die Ernte selbst (Herbstjahr)
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)

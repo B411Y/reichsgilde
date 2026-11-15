@@ -48,6 +48,25 @@ static class Datenpfad
     }
 
     /// <summary>
+    /// Die echten Daten ohne Abschnitt „ernte“ (Datenversion 91, Erntejahr und Teuerung), als Text mit derselben Formatierung – für Tests, die
+    /// bitgleich mit dem Kern davor rechnen. Die Ernte prüft ErnteTests.
+    /// </summary>
+    public static string OhneErnte(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        const string anfang = "\n  \"ernte\": {";
+        var a = json.IndexOf(anfang, StringComparison.Ordinal);
+        if (a < 0)
+            return System.Text.Json.Nodes.JsonNode.Parse(json)!["ernte"] is null ? json
+                : throw new InvalidDataException("Abschnitt „ernte“ steht nicht wie erwartet in den Daten – Datenpfad.OhneErnte anpassen.");
+        var e = json.IndexOf("\n  },", a, StringComparison.Ordinal);
+        if (e < 0) throw new InvalidDataException("Ende des Abschnitts „ernte“ nicht gefunden.");
+        var ohne = json[..a] + json[(e + "\n  },".Length)..];
+        if (System.Text.Json.Nodes.JsonNode.Parse(ohne)!["ernte"] is not null) throw new InvalidDataException("„ernte“ nicht entfernt.");
+        return ohne;
+    }
+
+    /// <summary>
     /// Die Daten mit laufendem Schiffshandel (<c>schiffshandel.aktiv: true</c> statt false, Datenversion 70 „Hafen ruht“) – für die Tests der
     /// Schiffe, die so weiter wie vor dem Schalter rechnen. Den ruhenden Hafen prüft HafenRuhtTests.
     /// </summary>
