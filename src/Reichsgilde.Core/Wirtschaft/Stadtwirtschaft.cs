@@ -203,6 +203,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
         Karte = karte;
+        karte.KlappbrueckeSetzen(Daten.Logistik.Klappbruecke?.Gewaesser);
         Kasse.KarteGesetzt(karte.Kennung);
         for (var i = 0; i < _konten.Count; i++)
             Bauen.StartplatzVergeben(_konten[i], i);
