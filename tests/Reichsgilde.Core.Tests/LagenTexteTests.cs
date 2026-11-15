@@ -4,7 +4,7 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
-/// <summary>Tests: die Lagen-Texte der Oberfläche (<c>LagenTexte</c>): Tooltip je Ware, Übersicht für Markt und Jahresbericht; gewöhnliche Lagen und Ernte kommen nicht vor.</summary>
+/// <summary>Tests: die Lagen-Texte der Oberfläche (<c>LagenTexte</c>): Tooltip je Ware, Übersicht für Markt und Jahresbericht (nur geltende Lagen); gewöhnliche Lagen und Ernte kommen nicht vor.</summary>
 static class LagenTexteTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())));
@@ -27,16 +27,13 @@ static class LagenTexteTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("LagenTexte: Ansage im Jahr davor erscheint in Übersicht und im Tooltip der Waren, bis zum Beginn kein Faktor", () =>
+        ("LagenTexte: Im Jahr davor nichts – weder Übersicht noch Tooltip zeigen die kommende Lage (Gegenprobe: im Stichjahr schon)", () =>
         {
             var sim = Sim(Minute(3, 4), StartwertMit(Betriebsart.Mine, Lagegute.Schlecht));
             sim.Tick();
             var w = sim.Wirtschaft!;
-            var uebersicht = LagenTexte.Uebersicht(w);
-            Pruefe.Wahr(uebersicht.Any(z => z.StartsWith("angesagt für Frühling 1404: Wassereinbruch") && z.Contains("Eisen und Silber")), string.Join(" | ", uebersicht));
-            var tipp = LagenTexte.Tipp(w, "Eisen");
-            Pruefe.Wahr(tipp.Any(z => z.StartsWith("angesagt für Frühling 1404: Wassereinbruch")), string.Join(" | ", tipp));
-            Pruefe.Wahr(!tipp.Any(z => z.Contains("×")), string.Join(" | ", tipp));
+            Pruefe.Wahr(!LagenTexte.Uebersicht(w).Any(z => z.Contains("Wassereinbruch") || z.Contains("angesagt")), string.Join(" | ", LagenTexte.Uebersicht(w)));
+            Pruefe.Gleich(0, LagenTexte.Tipp(w, "Eisen").Count);
             Pruefe.Gleich(0, LagenTexte.Tipp(w, "Gerste").Count);
         }),
 

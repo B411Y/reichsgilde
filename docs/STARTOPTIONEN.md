@@ -21,7 +21,7 @@ Startoptionen (nach `--`):
 - `--tiptest=1` (ein Knopf „Tooltip-Test“ in der Bildmitte mit einem Tooltip voller Verweise und vier Testbegriffen, falls das Lexikon keine liefert); `--verweistest=1` (schreibt Beispielsätze mit automatischen Lexikon-Verweisen ins Log); `--tooltipfest=<Sekunden|taste>` (Zeit bis zum Festkleben bzw. nur mit Taste, gilt nur für diesen Start)
 - `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
 - `--startrunde=<n>` (die Partie beginnt in der n-ten Runde statt der ersten, z. B. `4` = Winter, `1`–`4` = Frühling bis Winter; nur für Bilder, zusammen mit `--startstunde`)
-- `--startwert=<n>` (Zufallsstartwert der Partie, nur für Bilder; zusammen mit `--startrunde` wählt er die Lagen der Rohstoffquellen: `--startwert=12` gibt den Gruben im Frühling 1404 eine schlechte Lage, Wassereinbruch – Ansage im Jahr 1403 = `--startrunde=4`, Lage im Jahr 1404 = `--startrunde=5`)
+- `--startwert=<n>` (Zufallsstartwert der Partie, nur für Bilder; zusammen mit `--startrunde` wählt er die Lagen der Rohstoffquellen: `--startwert=12` gibt den Gruben im Frühling 1404 eine schlechte Lage, Wassereinbruch – Jahr davor 1403 = `--startrunde=4` (nichts zu sehen), Lage im Jahr 1404 = `--startrunde=5`)
 - `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
 - `--tempo=<1–32>`
 - `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>` (`--innen=wohnhaus` = das eigene Wohnhaus; Prüfhilfe Wohnstube mit Bewohnern: `--innen=wohnhaus --charakter-ehe=1 --vermoegen=30000 --startstunde=21` – ohne `--vermoegen=30000` kommt die Ehe nicht zustande und die Ehefrau fehlt; das Oberhaupt sitzt nur außerhalb der Arbeitszeit am Tisch, die Ehefrau steht am Herd)

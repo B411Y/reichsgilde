@@ -39,15 +39,15 @@ Seit Datenversion 91 („Härte um 1400“, Nutzer 15.11.2026) ist nicht jede Er
 
 Die Werte gelten für „Wie überliefert“. Was Spieler und KI-Häuser selbst verkaufen, drückt den Preis wie immer. Die Preisgrenzen des Markts (halber bis doppelter Grundpreis) bleiben.
 
-- **Ansage ein Jahr vorher:** Zu Beginn des Sommerjahres meldet das Spiel, wie die Ernte im Herbst ausfällt, z. B. „Ein nasser Sommer: Im Herbst 1406 droht eine magere Ernte – Gerste, Roggen, … werden teurer. Wer jetzt einlagert, verkauft später besser.“ Die Ansage trifft immer ein. Zu Beginn des Herbstjahres kommt die Meldung zur Ernte selbst.
-- **Wo man es sieht:** Im Marktfenster steht über den Waren die gültige Ernte (Jahr und Güte) und im Sommerjahr die Ansage; der Mauszeiger über einer Getreideware zeigt „Ernte 1402: eine Missernte – Menge ×0,6“. Wie oft und wie stark Missernten kommen, wählt man beim Start unter „Neue Partie“ → „Erweitert“ → „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre).
-- **Wer Vorräte hat, gewinnt:** Wer im Sommer vor einer schlechten Ernte Getreide einlagert, verkauft es danach teurer. Brauer und Wirte zahlen mehr für Gerste, bekommen aber auch mehr für Bier und Mahlzeit.
+- **Keine Ansage:** Der Spieler sieht nie in die Zukunft (Nutzer 15.11.2026): Das Spiel meldet die Ernte erst, wenn sie zu gelten beginnt (Herbst), z. B. „Magere Ernte 1406: Bis zur nächsten Ernte sind Gerste, Roggen, … knapp und teurer.“ Die Güte steht intern schon im Sommer davor fest, gezeigt wird sie nicht. Nach einer schlechten Ernte lohnt sich Einlagern erst, wenn man sie kennt.
+- **Wo man es sieht:** Im Marktfenster steht über den Waren die gültige Ernte (Jahr und Güte); der Mauszeiger über einer Getreideware zeigt „Ernte 1402: eine Missernte – Menge ×0,6“. Wie oft und wie stark Missernten kommen, wählt man beim Start unter „Neue Partie“ → „Erweitert“ → „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre).
+- **Wer Vorräte hat, gewinnt:** Wer nach einer schlechten Ernte Getreide im Lager hat, verkauft es teurer. Brauer und Wirte zahlen mehr für Gerste, bekommen aber auch mehr für Bier und Mahlzeit.
 - **Keine Abwärtsspirale:** Nach einer Missernte ist die nächste Ernte nie mager und keine Missernte (Schonjahr). Der Faktor jeder Ware bleibt zwischen 0,35 und 1,5.
 - **Dein eigener Bauernhof** liefert in einem schlechten Jahr auch weniger, aber nur halb so stark wie der Markt (Missernte: drei Viertel). Den höheren Preis bekommst du trotzdem – wer selbst erntet, kommt glimpflich davon, wer zukauft, zahlt drauf.
 
 ## Lagen der anderen Rohstoffquellen
 
-Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquelle**, nicht nur für das Getreide – sonst träfe es nur den Wirt. Jede Quelle hat alle vier Jahre eine **Lage**: gut, gewöhnlich, schlecht oder schwer, mit genau denselben Chancen, Stärken, Grenzen, Schonjahren und der Ansage ein Jahr vorher wie die Ernte (gut = „gute Ernte“, schlecht = „mager“, schwer = „Missernte“). Jeder Beruf mit Rohwaren ist also gleich oft betroffen. Eine gute Lage bringt halb so viel mehr, wie eine Missernte wegnimmt (×1,5 gegen ×0,5) – so gleichen sich gute und schlechte Jahre im Mittel aus, und die Lagen machen die Rohwaren auf Dauer nicht teurer. Die Lage verschiebt die Rohwaren der Quelle voll und die Waren der ersten Werkstatt zu einem Viertel; dein eigener Umlandbetrieb liefert halb so stark mehr oder weniger.
+Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquelle**, nicht nur für das Getreide – sonst träfe es nur den Wirt. Jede Quelle hat alle vier Jahre eine **Lage**: gut, gewöhnlich, schlecht oder schwer, mit genau denselben Chancen, Stärken, Grenzen, Schonjahren und der Meldung zum Beginn wie die Ernte (gut = „gute Ernte“, schlecht = „mager“, schwer = „Missernte“). Jeder Beruf mit Rohwaren ist also gleich oft betroffen. Eine gute Lage bringt halb so viel mehr, wie eine Missernte wegnimmt (×1,5 gegen ×0,5) – so gleichen sich gute und schlechte Jahre im Mittel aus, und die Lagen machen die Rohwaren auf Dauer nicht teurer. Die Lage verschiebt die Rohwaren der Quelle voll und die Waren der ersten Werkstatt zu einem Viertel; dein eigener Umlandbetrieb liefert halb so stark mehr oder weniger.
 
 | Quelle (Beruf) | beginnt im | gut | schlecht | schwer |
 |---|---|---|---|---|
@@ -59,11 +59,11 @@ Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquell
 | Klosterhof (Prediger) | Frühling | gutes Bienenjahr | kalter Frühling | Bienensterben |
 | Duftgarten (Parfumeur) | Sommer | üppige Blüte | Spätfrost | Hagelschlag |
 
-**Wo man es sieht:** Ansage und Beginn kommen als Meldung (nur gute, schlechte und schwere Lagen). Im Marktfenster stehen unter der Ernte die gültigen und angesagten Lagen („Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“); der Mauszeiger über einer betroffenen Ware zeigt „Grube 1404: Wassereinbruch – Eisen ×0,8“ bzw. die Ansage. Der Jahresbericht hat einen Abschnitt „Lagen im Jahr“.
+**Wo man es sieht:** Der Beginn einer Lage kommt als Meldung (nur gute, schlechte und schwere Lagen). Im Marktfenster stehen unter der Ernte die geltenden Lagen („Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“); der Mauszeiger über einer betroffenen Ware zeigt „Grube 1404: Wassereinbruch – Eisen ×0,8“. Der Jahresbericht hat einen Abschnitt „Lagen im Jahr“.
 
 Folgewaren (je ein Viertel): Beschlag, Dolch, Silberring · Holzzapfen, Schemel, Truhe · Schleifziegel, Grabstein, Mühlstein · Farbe, Kräuterschnaps, Heilsalbe · Papier, Kerze, Lehrschrift · Politur, Blume der Zwietracht, Giftdolch. Beim Klosterhof trifft es Wachs voll und Lumpen halb.
 
-Die Ansage kommt zu Beginn des Jahres davor, z. B. „Die Schneeschmelze drückt Wasser in die Stollen: Im Frühling 1404 droht ein Wassereinbruch in den Gruben – Eisen und Silber werden teurer. Wer jetzt einlagert, verkauft später besser.“ Gewöhnliche Lagen werden nicht gemeldet (außer bei der Ernte). Dieb, Geldleiher und Gardist haben keine Rohwaren und keine Lage; sie spüren nur die Preise.
+Der Beginn wird zu Jahresbeginn gemeldet, z. B. „Wassereinbruch 1404: Bis 1407 sind Eisen und Silber knapp und teurer.“ Eine Ansage vorab gibt es nicht. Gewöhnliche Lagen werden nicht gemeldet (außer bei der Ernte). Dieb, Geldleiher und Gardist haben keine Rohwaren und keine Lage; sie spüren nur die Preise.
 
 ### Härte der Zeit
 
