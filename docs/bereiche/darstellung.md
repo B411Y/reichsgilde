@@ -1241,6 +1241,14 @@ Nachgestellt mit dem Spielstand „Haus Hammerschmid, Herbst 1422“ (`--laden`,
 | Prüfhilfe | `--blendeschleife=<Kennung|1>,<n>[,drin]` (`docs/STARTOPTIONEN.md`) | 14.11.2026 |
 | Kein Kerntest | Der Fehler liegt in der Szenenverwaltung (Godot-Knoten), nicht im Kern oder im Zustandsautomaten `InnenraumUebergang`; geprüft durch den Klicktest-Lauf mit Zählern | 14.11.2026 |
 
+### Nachprüfung: andere Freigaben von Schildern (Branch fix/schilder-freigeben)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fundstellen | Alle `QueueFree()`, `Free()` und `RemoveChild` in `Stadtansicht*.cs` (rund 90) gegen die 46 Aufrufe von `Beschriftung(...)` geprüft: Jeder Knoten, unter dem ein Schild aus `_beschriftungen` hängt (Gebäude, Bauplatz, Baustelle, Stadtbau, Schiffe, Innenräume, Rats- und Gerichtsschilder, Kartenwerkstatt-Markierungen, Rand), wird auf `origin/main` schon über `KnotenEntfernen` freigegeben. Die übrigen direkten Freigaben tragen keine solchen Schilder (Figuren, Halter, Brand, Strahl, Lasten, Griffe, Natur, Felder, Vorschaumodelle) oder hängen nur um (`InGruppe`, `UmMitteDrehen`, Neubau, Sonderbauten). Die Schilder der Ratssitzung (`SitzungsSchild`) und der Neubau-Gegenstände stehen nicht in `_beschriftungen`. Keine Umstellung nötig | 15.11.2026 |
+| Prüfung | Die Sicherung aus #453 heißt jetzt `SchilderAufraeumen` und meldet jedes freigegebene Schild als Fehler `[schilder]`, statt es still zu verschlucken; `--schilderpruefung=1` schreibt alle 10 s Bildzahl, Schilder und Funde vom Ende von `_Process` (`docs/STARTOPTIONEN.md`). Gegenprobe: `StadtbauAktualisieren` zurück auf `QueueFree()`, Lauf Probestadt mit Brunnen-Baustelle und laufender Zeit – 4 Funde; nachher 0 | 15.11.2026 |
+| Rathaus-Branch | `phase5/neubau-rathaus` führt eigene Schilderlisten (`_rathausNeuTexte`, `_rathausNeuRaumschilder`, `_rathausNeuNamensschilder`, `_rathausNeuLeiter`); nur gelesen (Stand 15.11., Worktree mit ungesicherten Änderungen). Jeder Zugriff prüft `IsInstanceValid`, `_rathausNeuTexte` (Rats- und Gerichtsschilder kommen und gehen über `Wegraeumen`) wird vor jedem Bild von toten Einträgen geleert; Raum-, Namens- und Leiterschilder hängen am Innenraum des Hauses, der bleibt. Kein Absturzweg gefunden; nicht geändert | 15.11.2026 |
+
 ### Toter Shader-Teil: Rußfahne am Fenster (Branch fix/kleinkram-1411)
 
 | Thema | Entscheidung | Datum |
