@@ -64,7 +64,7 @@ public partial class Stadtansicht
         var klick = new Aabb(new Vector3(-Mathf.Min(16, platzBreite) / 2, 0, -platzTiefe / 2), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe)); // Klickkörper: die Fläche, 10 m hoch, solange das Modell nicht bekannt ist
         if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
         {
-            datei = NeubauModell(datei); // Probe --neubauprobe=1: neues Wohnhaus statt des Fachwerkhauses (Stadtansicht.Neubau.cs)
+            datei = NeubauModell(datei, mitte); // Probe --neubauprobe=1: neues Wohnhaus statt des Fachwerkhauses, Grundform fest aus dem Platz (Stadtansicht.Neubau.cs)
             var instanz = ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
                 new ModellZustand(Geruest: imBau || (brand && brennt is null), Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
             NeubauMerken(kennung, datei, instanz);

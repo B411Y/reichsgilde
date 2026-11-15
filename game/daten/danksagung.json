@@ -163,7 +163,7 @@
           "pflicht": false
         },
         {
-          "werk": "Trim-Sheets der neuen Gebäude (Stroh, Balken, Putz, Planken, Bruchstein, Eisen, Einrichtung)",
+          "werk": "Trim-Sheets der neuen Gebäude (Stroh, Ziegel, Schiefer, Balken, Putz, Planken, Bruchstein, Haustein, Eisen, Fliesen, Einrichtung, Räume im Wohnhaus)",
           "autor": "Poly Haven (Rob Tuytel, Dimitrios Savva, Dario Barresi, Charlotte Baglioni, Amal Kumar, colormass, Rico Cilliers)",
           "quelle": "https://polyhaven.com",
           "lizenz": "CC0 1.0",

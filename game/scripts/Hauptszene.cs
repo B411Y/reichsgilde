@@ -1502,6 +1502,7 @@ public partial class Hauptszene : Node
 
     private bool RaumAngeklickt(string kennung)
     {
+        if (_stadt.WohnraumTuerAngeklickt(kennung)) return true; // Zimmertür im Wohnhaus (Neubau-Probe): Klinke, Blende, anderer Raum (Stadtansicht.Wohnraeume.cs)
         if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
         {
             _stadt.InnenansichtVerlassenDurchTuer();
@@ -1516,6 +1517,8 @@ public partial class Hauptszene : Node
                 case "Bauplan": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Haus); break;
                 case "Werkzeug": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Handwerk); break;
                 case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
+                case "Kartentisch": TafelnSchliessen(); _hinterzimmer.Oeffnen(); break; // Hinterzimmer: Banden, Erpresserbriefe, Wächter (die Tafel von Reiter und Taste H; den Tisch gibt es nur im gebauten Raum)
+                case "Lesepult": TafelnSchliessen(); _familientafel.Oeffnen(FamilienAnzeige.Reiter.Familie); break; // Bibliothek: Familienbuch mit den Lehrschriften
             }
             return true;
         }
