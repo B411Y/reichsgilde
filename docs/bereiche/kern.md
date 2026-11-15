@@ -95,6 +95,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Stimmrunde) Der alte Halt-Pfad der Ratssitzung (`Stadtwirtschaft.RatssitzungAnhalten`, `Simulation.RatssitzungWeiter/-Abschliessen`, Spieler-Schritt in `RatssitzungAnzeige`) ist seit der Stimmrunde ungenutzt in der Oberfläche; entfernen (Tests auf die Stimmrunde umstellen, u. a. `GleichheitTests`, `RatssitzungTests`) oder für Entwickler lassen?
 - (Klappbrücke) Läuft der Schiffshandel wieder (`schiffshandel.aktiv`), kommt kein Zierschiff, und die Klappbrücke bleibt zu – die echten Schiffe kennen keine Durchfahrt (ihre Fahrt rechnet nur Minuten bis zur fernen Stadt). Wenn nötig: Durchfahrten der Schiffe an der Brücke im Kern rechnen.
 - (Klappbrücke) In Köln fährt heute kein Karren über den Rhein (jedes Haus hat seinen Markt auf seiner Seite, zum Hafen ist es immer weiter). Die Wartezeit greift erst, wenn sich das ändert (Karte, Märkte, Bauort); gemessen nur auf der Prüfkarte.
+- (Wappen) Köln: Die sieben Kartenhäuser tragen feste Wappen (Haus Kleingedank die blaue Lilie u. a.). Wählt der Spieler eines davon, meldet das Menü „Dieses Wappen führt schon ein KI-Haus“ (`Partieaufbau.Erstellen`, `Hauptmenue.WappenProblem`), auch wenn das Haus gar nicht mitspielt. Empfehlung: ein mitspielendes Kartenhaus würfelt dann sein Wappen neu, nicht mitspielende zählen nicht. Entscheidet der Teamleiter bzw. Nutzer.
 
 ## Entscheidungen
 
