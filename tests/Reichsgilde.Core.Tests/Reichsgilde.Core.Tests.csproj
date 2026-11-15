@@ -24,6 +24,12 @@
     <Compile Include="..\..\game\scripts\Einblendungsreihe.cs" Link="Ansagen\Einblendungsreihe.cs" />
     <!-- Was man Arbeitern im Innenraum ansieht (Stufe, Volk, Geschlecht, Haar; Personal PR #224) – ArbeitertrachtTests.cs -->
     <Compile Include="..\..\game\scripts\Arbeitertracht.cs" Link="Arbeitertracht\Arbeitertracht.cs" />
+    <!-- Der Figuren-Baukasten: Rezept und Trachtkatalog aller Figuren aus den Personendaten (ohne Godot) – FigurenBaukastenTests.cs -->
+    <Compile Include="..\..\game\scripts\FigurenBaukasten.cs" Link="Arbeitertracht\FigurenBaukasten.cs" />
+    <!-- Detailstufen der Figuren mit Fingerknochen (Nah/Mittel/Fern, Hysterese, Überblendung, ohne Godot) – FigurenLodTests.cs -->
+    <Compile Include="..\..\game\scripts\FigurenLod.cs" Link="Arbeitertracht\FigurenLod.cs" />
+    <!-- Tritt und Standort der kleinen Völker am Arbeitsplatz (Tabelle game/daten/arbeitstritt.json, ohne Godot) – ArbeitsTrittTests.cs -->
+    <Compile Include="..\..\game\scripts\ArbeitsTritt.cs" Link="Arbeitertracht\ArbeitsTritt.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
     <!-- Zäune der Umlandstellen als Kisten der Ego-Perspektive (Zaun blockiert, Tor und Lücke offen) – EgoZaunTests.cs -->

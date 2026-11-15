@@ -942,10 +942,10 @@ public partial class Stadtansicht
         foreach (var zeile in zeilen)
         {
             if (!md.Arbeiter.TryGetValue(zeile.Nummer, out var arbeiter)) continue;
-            var da = arbeitszeit && zeile.FaelltAusBis is null;
+            var da = arbeitszeit && zeile.FaelltAusBis is null || FigurProbeOption is not null; // Prüfhilfe --figurprobe: immer bei der Arbeit
             if (arbeiter.Halter.Visible != da) arbeiter.Halter.Visible = da;
             if (arbeiter.Klick.Disabled == da) arbeiter.Klick.Disabled = !da; // Einsteigen setzt alle Klickflächen an: abgleichen
-            var arbeitet1 = da && arbeitet && !still.Contains(zeile.Ware);
+            var arbeitet1 = da && arbeitet && !still.Contains(zeile.Ware) || FigurProbeOption is not null;
             var bewegung = arbeitet1 ? FigurBewegungVon(arbeiter) : "Stehen";
             // Bewegungen, deren Hand oder Fuß ein bewegtes Teil des Raums führt (Animation „Arbeit“, siehe RaumTakt): Die Figur läuft in dessen Takt, nicht mit eigener Startphase und Tempo.
             var eigene = bewegung == arbeiter.Platz.Bewegung; // sonst steht sie oder hilft sich mit „Gebeugt“
@@ -1003,23 +1003,29 @@ public partial class Stadtansicht
             alt.Halter.QueueFree();
         }
         md.Arbeiter.Clear();
-        var plaetze = md.Plaetze.Where(p => p.AbStufe <= stufe).ToList();
+        var plaetze = FigurProbePlaetze(md.Plaetze.Where(p => p.AbStufe <= stufe).ToList(), a.Betrieb.Name); // Prüfhilfe --figurprobe: Platz mit dem Clip zuerst
+        var erster = true;
         foreach (var (zeile, platz) in zeilen.OrderBy(z => z.Nummer).Zip(plaetze))
         {
             // Der Anker blickt mit −Z auf sein Werkstück, die Figur mit +Z: um 180° gedreht einsetzen.
             var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0) };
             platz.Anker.AddChild(halter);
-            // Schmiede: der KI-Schmied statt des Menschen aus Blender (Stadtansicht.KiFiguren.cs) – nur für Menschen; Zwerge, Elben und Halblinge
-            // (Volk des Arbeiters im Kern) bleiben die Figuren aus Blender in ihrer Größe, sonst sähe jeder Arbeiter am Amboss wie ein Mensch aus
-            var aussehen = ArbeiterAussehen(zeile);
-            if (FigurEinsetzen(halter, aussehen with { KiSchmied = a.Stil == Werkstil.Giesserei && aussehen.Volk == Volk.Mensch }, zeile.Nummer) is not { } figur)
+            // Aussehen aus dem Baukasten (Rezept des echten Arbeiters). Schmiede (Gießerei), Menschen: die Passanten-Figur mit Skelett und der
+            // Arbeitsbewegung samt Werkzeug (tools/modelle/passanten_arbeit.py; ersetzt seit 14.11.2026 den KI-Schmied); alle übrigen Arbeiter
+            // vorerst im alten Rig
+            var rezept = FigurProbeRezept(FigurenBaukasten.Von(zeile, a.Betrieb.Name), zeile.Nummer); // Prüfhilfe --figurprobe: Volk und Geschlecht der Option
+            var aussehen = AussehenAusRezept(rezept);
+            var passant = a.Stil == Werkstil.Giesserei && aussehen.Volk == Volk.Mensch || FigurProbeOption is not null;
+            if ((passant ? BaukastenFigurEinsetzen(halter, rezept, platz.Bewegung, platz.Bewegung) : FigurEinsetzen(halter, aussehen, rezept.Nummer)) is not { } figur)
             {
                 halter.QueueFree();
                 continue;
             }
             // Wer sitzt (Feinarbeit), hat die Hüfte auf Sitzhöhe des Menschen: kleine Völker sitzen höher, Orks tiefer (wie die Sitzenden im Dom).
-            if (figur.Ki && platz.Bewegung == "Haemmern") halter.Position = new Vector3(0, 0, -KiAmbossAbstand); // näher an den Amboss: der Hammer reicht nur so weit wie der Arm
                         if (platz.Bewegung is "Feinarbeit" or "Schreiben") halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
+            var tritt = figur.Probe ? TrittAnwenden(figur, aussehen.Volk, aussehen.Frau, platz.Bewegung) : "altes Rig"; // Hocker der kleinen Völker (ArbeitsTritt)
+            if (erster) FigurProbeWerkraumMelden(a.Betrieb.Name, platz, tritt); // Prüfhilfe: Log
+            erster = false;
             var koerper = new StaticBody3D();
             koerper.SetMeta("innen", "arbeiter:" + zeile.Nummer);
             var form = new CollisionShape3D { Shape = new CapsuleShape3D { Radius = 0.38f, Height = 1.75f }, Position = new Vector3(0, 0.88f, 0) };
@@ -1035,6 +1041,7 @@ public partial class Stadtansicht
             RaumEbeneUebernehmen(halter);
             md.Arbeiter[zeile.Nummer] = new ModellArbeiter { Nummer = zeile.Nummer, Figur = figur, Halter = halter, Platz = platz, Klick = form, Ring = ring };
         }
+        BaukastenMelden($"Werkstatt {a.Betrieb.Name}", md.Arbeiter.Count);
         if (_gewaehlt.RemoveWhere(n => !md.Arbeiter.ContainsKey(n)) > 0) ArbeiterAuswahlGeaendert?.Invoke(); // Gegangene sind nicht mehr gewählt
     }
 
@@ -1048,27 +1055,6 @@ public partial class Stadtansicht
     {
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = new Color(0.98f, 0.82f, 0.35f),
     };
-
-    /// <summary>
-    /// Wie ein Arbeiter aussieht (PR #224: nach der Stufe seiner Laufbahn, <see cref="Arbeiterbild"/>, nicht nach dem Namen der Arbeitskraft):
-    /// Anfänger (Lehrling, Knecht, Taschendieb, Rekrut) heller und schlichter, Stufe 2 in Braun, Stufe 3 in dunklerem Braun, Orks grün; alle mit Lederschürze.
-    /// Volk, Geschlecht und Haarfarbe sind die des Arbeiters im Kern.
-    /// </summary>
-    private static FigurAussehen ArbeiterAussehen(ArbeiterZeile zeile)
-    {
-        var bild = Arbeiterbild.Von(zeile);
-        var gewand = bild switch
-        {
-            { Anfaenger: true } => new Color(0.62f, 0.55f, 0.40f),
-            { Vorarbeiter: true } => new Color(0.30f, 0.21f, 0.15f), // Stufe 3 in dunklerem Braun
-            { Volk: Volk.Ork } => new Color(0.30f, 0.27f, 0.22f),
-            { Arbeitskraft: "Leibeigener" } => new Color(0.45f, 0.43f, 0.39f),
-            _ => new Color(0.42f, 0.30f, 0.20f),
-        };
-        var frau = FrauVon(bild, zeile.Nummer, 5);
-        return new FigurAussehen(bild.Volk, frau, gewand, Beinkleidfarben[zeile.Nummer % Beinkleidfarben.Length], HautVon(bild.Volk),
-            HaarVon(bild, zeile.Nummer), Leinenfarbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true);
-    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Warenstapel

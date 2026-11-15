@@ -26,7 +26,6 @@ public static class Vorladen
             boden.Normale,
             // zwei große Modelle, die beim Laden jeder Stadt und mit den ersten Passanten gebraucht werden (je 0,1 bis 0,2 s auf dem Hauptfaden)
             "res://assets/modelle/natur/natur_kit_baeume.glb",
-            "res://assets/modelle/figuren/ki/schmied_ki.glb",
         };
     }
 
