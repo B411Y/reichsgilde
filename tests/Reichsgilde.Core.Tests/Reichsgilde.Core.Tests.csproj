@@ -74,5 +74,8 @@
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
     <!-- Wechsel Hand/Messing-I und Windrose des 3D-Zeigers – ZeigerSymboleTests.cs -->
     <Compile Include="..\..\game\scripts\ZeigerSymbole.cs" Link="Handschuh\ZeigerSymbole.cs" />
+    <!-- Steinebenen je Volk: Zuordnung Volk/Stufe → Ebene des Häuser-Arrays – SteinebenenTests.cs -->
+    <Compile Include="..\..\game\scripts\Steinebenen.cs" Link="Neubau\Steinebenen.cs" />
+    <Compile Include="..\..\game\scripts\NeubauBrand.cs" Link="Neubau\NeubauBrand.cs" />
   </ItemGroup>
 </Project>
