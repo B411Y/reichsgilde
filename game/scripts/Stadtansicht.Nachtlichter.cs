@@ -362,10 +362,11 @@ public partial class Stadtansicht
     {
         var skelett = figur.Modell.FindChild("Skelett", true, false) as Skeleton3D
                       ?? figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
-        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer, wandert: true) is not { } lampe) return null;
+        var knochen = skelett?.FindBone("Unterarm_R") >= 0 ? "Unterarm_R" : "RightLowerArm"; // altes Rig bzw. Passanten-Skelett (Baukasten)
+        if (skelett is null || skelett.FindBone(knochen) < 0 || LichtKnoten(art, nummer, wandert: true) is not { } lampe) return null;
         var anhang = new BoneAttachment3D { Name = "Licht", Visible = false };
         skelett.AddChild(anhang);
-        anhang.BoneName = "Unterarm_R";
+        anhang.BoneName = knochen;
         var halter = new Node3D { Position = new Vector3(0, HandAbstand(volk), 0), Basis = new Basis(Vector3.Right, Mathf.Pi) };
         anhang.AddChild(halter);
         halter.AddChild(lampe);

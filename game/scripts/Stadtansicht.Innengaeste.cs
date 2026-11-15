@@ -66,7 +66,8 @@ public partial class Stadtansicht
         if (md.GaesteStand.Raum < 0 || md.GaesteZeit >= GaesteAbfrageAlle)
         {
             md.GaesteZeit = 0;
-            var raum = kern.GaesteJetzt(b);
+            var raum = GaesteProbe ?? kern.GaesteJetzt(b); // Prüfhilfe --gaesteprobe=<n> (Stadtansicht.Pruefhilfe.cs)
+            if (GaesteProbe is { } n && md.GaesteStand.Raum < 0) GD.Print($"Prüfhilfe: {b.Name} Gäste {Math.Min(n, md.Gaeste.Count(g => g.Tisch == GastTisch.Raum))} von {md.Gaeste.Count(g => g.Tisch == GastTisch.Raum)} Plätzen, Clip Sitzen/Trinken");
             var stand = new GastenStand(raum, kern.WuerfeltischBesetzt(b) ? Math.Clamp(raum / 3, 2, 4) : 0, kern.StammtischBesetzt(b) ? StammPlaetze : 0, kern.BardeSpielt(b));
             if (stand != md.GaesteStand)
             {
@@ -108,15 +109,16 @@ public partial class Stadtansicht
         // Der Anker blickt mit −Z zum Tisch (zur Saalmitte), die Figur mit +Z: um 180° gedreht einsetzen.
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false };
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, GastAussehen(platz.Tisch, nummer), nummer) is not { } figur)
+        // Baukasten: die Gäste sitzen mit Passanten-Skelett (Trinken gibt es dort noch nicht), der Barde spielt im alten Rig die Laute – beide nach ihrem Rezept
+        var tempo = 0.85f + (Streuung(nummer, 17) % 31) / 100f; // 0,85 … 1,15: die Gäste trinken nicht im Gleichschritt
+        if (BaukastenFigurEinsetzen(halter, GastRezept(platz.Tisch, nummer), barde ? "Laute" : "Trinken", barde ? null : "Sitzen", barde ? 1f : tempo,
+                vorderkante: 0.16f) is not { } figur) // Bänke im Modell 0,32 m tief
         {
             halter.QueueFree();
             return;
         }
-        // Sitzende haben die Hüfte auf Sitzhöhe des Menschen (kleine Völker sitzen höher, Orks tiefer – wie bei der Feinarbeit).
-        if (!barde) halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
-        var tempo = 0.85f + (Streuung(nummer, 17) % 31) / 100f; // 0,85 … 1,15: die Gäste trinken nicht im Gleichschritt
-        BewegungSetzen(figur, barde ? "Laute" : "Trinken", barde ? 1f : tempo);
+        // Sitzende: mit Passanten-Skelett das Gesäß auf der Bank des Modells (Baukasten, Füße nie unter dem Boden); im alten Rig die Hüfte auf Sitzhöhe des Menschen
+        if (!barde) halter.Position = new Vector3(0, figur.Probe ? SitzHoehe(figur, FigurenBaukasten.ModellSitzflaeche) : SitzKniehoehe - figur.Kniehoehe, 0);
         var koerper = new StaticBody3D();
         koerper.SetMeta("innen", barde ? "barde" : "gast");
         var hoehe = barde ? 1.75f : 1.3f;
@@ -134,22 +136,15 @@ public partial class Stadtansicht
     /// Aussehen eines Gastes, fest je Platz: in der Schankstube bunt gemischt (meist Menschen, dazu Zwerge, Halblinge, Elben und Orks, einfache Tracht, Männer oft mit Barett oder Strohhut),
     /// am Stammtisch die Ratsherren (rotes Gewand, Barett), der Barde ein Elb in Blaugrün.
     /// </summary>
-    private static FigurAussehen GastAussehen(GastTisch tisch, int nummer)
+    private static FigurRezept GastRezept(GastTisch tisch, int nummer)
     {
-        if (tisch == GastTisch.Barde)
-        {
-            var elb = Haarfarben(Volk.Elb);
-            return new FigurAussehen(Volk.Elb, false, new Color(0.22f, 0.36f, 0.34f), Beinkleidfarben[3], HautVon(Volk.Elb), elb[0], Schwarz, Kopfbedeckung.Barett);
-        }
+        var platz = $"Schaenke:{nummer}";
+        if (tisch == GastTisch.Barde) return FigurenBaukasten.Statist(platz, Volk.Elb, false, "Barde");
         var wahl = Streuung(nummer, 71) % 12;
         var volk = tisch == GastTisch.Stamm ? Volk.Mensch : wahl switch { 6 or 7 => Volk.Zwerg, 8 => Volk.Halbling, 9 => Volk.Elb, 10 => Volk.Ork, _ => Volk.Mensch };
         var frau = tisch != GastTisch.Stamm && Streuung(nummer, 53) % 4 == 0;
-        var haare = Haarfarben(volk);
-        var kopf = tisch == GastTisch.Stamm ? Kopfbedeckung.Barett
-            : frau ? Kopfbedeckung.Haube
+        Kopfbedeckung? kopf = tisch == GastTisch.Stamm || frau ? null // Ratsherr: Barett, Frauen: Haube (Katalog)
             : (Streuung(nummer, 29) % 5) switch { 0 => Kopfbedeckung.Barett, 1 => Kopfbedeckung.Strohhut, 2 => Kopfbedeckung.Kapuze, _ => Kopfbedeckung.Keine };
-        var gewand = tisch == GastTisch.Stamm ? Ratsrot : Gewandfarben[(int)(Streuung(nummer, 7) % Gewandfarben.Length)];
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), haare[nummer * 5 % haare.Length],
-            frau ? Leinenfarbe : tisch == GastTisch.Stamm ? Schwarz : gewand, kopf);
+        return FigurenBaukasten.Statist(platz, volk, frau, tisch == GastTisch.Stamm ? "Ratsherr" : "Gast", kopf);
     }
 }

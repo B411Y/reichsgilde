@@ -9,8 +9,8 @@ Aufruf (Windows PowerShell 5.1, im Worktree mit dem Branch phase5/passanten-prob
 
 Läufe: je Fall × Zoom × Lauf ein Start von Köln (Markt, 10 Uhr, klar) mit --messung=15:
   alt       --passantenprobe=0 (die Figuren aus Blender wie vor dem Vollausbau)
-  neu       ohne Option: der Normalfall seit Schritt 5 (Figuren mit Skelett, Zoom 25 Skelett, 50 VAT nah, 100 VAT fern; der KI-Schmied bleibt)
-  probe     --passantenprobe=1 (alle Passanten Probefigur, auch statt des KI-Schmieds)
+  neu       ohne Option: der Normalfall seit Schritt 5 (Figuren mit Skelett, Zoom 25 Skelett, 50 VAT nah, 100 VAT fern)
+  probe     --passantenprobe=1 (alle Passanten Probefigur, mit Messzeile)
   probe400  --passantenprobe=400 (dazu 400 Messfiguren um den Blickpunkt)
   skelett400 --passantenprobe=400 --probestufe=skelett (nur bei Zoom 50 und 100: dieselben 400 mit Skelett statt VAT)
 Zoom 25, 50, 100 (--blick=37,-110,<zoom>). Standard 3 Läufe: 5 Fälle, zusammen 42 Starts zu je etwa 1,5 min.

@@ -341,7 +341,7 @@ public partial class Stadtansicht
         Teil(a, k + new Vector3(0, 2.9f, -3.05f), new Vector3(1.4f, 1.9f, 0.05f), hausfarbe);
         Teil(a, k + new Vector3(0, 3.9f, -3.03f), new Vector3(1.7f, 0.08f, 0.08f), dunkel);
         // Schreibpult mit Büchern, Tintenfass und Kerze
-        Teil(a, k + new Vector3(0, 0.5f, -1.4f), new Vector3(2.4f, 1.0f, 0.9f), holz);
+        Teil(a, k + new Vector3(0, 0.5f, -1.0f), new Vector3(2.4f, 1.0f, 0.2f), holz); // Rückwand des Pults (an der fernen Seite): Platz für Knie und Füße der Sitzenden
         Teil(a, k + new Vector3(0, 1.03f, -1.4f), new Vector3(2.5f, 0.06f, 1.0f), dunkel);
         Teil(a, k + new Vector3(-0.3f, 1.09f, -1.35f), new Vector3(0.7f, 0.05f, 0.5f), Material(Pergament));       // aufgeschlagenes Buch
         Teil(a, k + new Vector3(-0.85f, 1.16f, -1.5f), new Vector3(0.35f, 0.2f, 0.45f), Material(Stadtrot));         // Rechnungsbuch
@@ -350,9 +350,10 @@ public partial class Stadtansicht
         Rund(a, k + new Vector3(0.9f, 1.25f, -1.5f), 0.05f, 0.35f, Material(Leinen), segmente: 8);
         Kerzenflamme(a, k + new Vector3(0.9f, 1.425f, -1.5f), () => true);
         FeuerAnlegen(a, k + new Vector3(0.9f, 1.8f, -1.2f), flamme, lichtAn: 0.9f, lichtAus: 0.9f, glutAn: 2f, glutAus: 2f, an: () => true, reichweite: 6);
-        // Stuhl hinter dem Pult
-        Teil(a, k + new Vector3(0, 0.42f, -2.3f), new Vector3(0.6f, 0.08f, 0.6f), dunkel);
-        Teil(a, k + new Vector3(0, 0.9f, -2.6f), new Vector3(0.6f, 1.0f, 0.08f), dunkel);
+        // Stuhl hinter dem Pult: Sitzfläche auf der Höhe des Baukastens, so weit zurück, dass Knie und Rocksaum der Sitzenden vor dem Pult bleiben
+        // (Sitzprüfung tools/modelle/sitzpruefung.py)
+        Teil(a, k + new Vector3(0, FigurenBaukasten.Sitzflaeche - 0.04f, KontorStuhl), new Vector3(0.6f, 0.08f, 0.6f), dunkel);
+        Teil(a, k + new Vector3(0, 0.9f, KontorStuhl - 0.3f), new Vector3(0.6f, 1.0f, 0.08f), dunkel);
         // Aktenregal an der Westwand mit bunten Buchrücken
         Teil(a, k + new Vector3(-3.4f, 1.5f, -1.0f), new Vector3(0.5f, 3.0f, 2.6f), dunkel);
         var ruecken = new[] { new Color(0.45f, 0.16f, 0.14f), new Color(0.20f, 0.28f, 0.40f), new Color(0.36f, 0.40f, 0.22f), Pergament };
@@ -378,11 +379,15 @@ public partial class Stadtansicht
             var stand = oberhaupt is null ? "Schreiber" : $"{oberhaupt.Nummer}:{farbe}";
             if (stand != figurStand)
             {
-                if (figur is not null) { a.Besucher.Remove(figur); KnotenEntfernen(figur.Koerper); }
-                var platz = new Arbeitsplatz(k + new Vector3(0, 0, -2.25f), Sued, Bewegung.Schreiben, Werkzeug.Feder, true);
+                if (figur is not null) { a.Besucher.Remove(figur); SitzendeEntfernen(figur); }
+                var platz = new Arbeitsplatz(k + new Vector3(0, 0, KontorStuhl), Sued, Bewegung.Schreiben, Werkzeug.Feder, true);
+                // Das Oberhaupt ist die echte Person aus dem Familienbuch (Baukasten: dasselbe Rezept wie in Wohnstube und Rat); es schreibt im alten Rig,
+                // mit Passanten-Skelett sitzt es (Schreiben gibt es dort noch nicht).
                 figur = oberhaupt is not null
-                    ? PersonBauen(a, a.Innen!, platz, oberhaupt.Volk, farbe, Kopfputz.Barett, 0.3f)
+                    ? InnenFigurBauen(a, platz, FigurenBaukasten.Von(oberhaupt, _simulation?.Zeit.Jahr ?? 0, true, true, new Farbwert(farbe.R, farbe.G, farbe.B)),
+                        "Schreiben", "Sitzen", FigurenBaukasten.Sitzflaeche, vorderkante: 0.30f) // Stuhl 0,6 m tief
                     : PersonBauen(a, a.Innen!, platz, Volk.Mensch, new Color(0.22f, 0.26f, 0.36f), Kopfputz.Barett, 0.3f);
+                if (oberhaupt is not null) BaukastenMelden("Kontor", 1);
                 a.Besucher.Add(figur);
                 figurStand = stand;
             }
@@ -416,9 +421,10 @@ public partial class Stadtansicht
         FeuerAnlegen(a, s + new Vector3(-2.6f, 1.6f, -1.6f), glut, lichtAn: 1.4f, lichtAus: 1.4f, glutAn: 1.5f, glutAus: 1.5f, an: () => true, reichweite: 7);
         // Tisch mit zwei Bänken in der Mitte
         Teil(a, s + new Vector3(0.4f, 0.78f, 0), new Vector3(2.6f, 0.1f, 1.1f), hell);
-        Teil(a, s + new Vector3(0.4f, 0.38f, 0), new Vector3(2.2f, 0.7f, 0.5f), dunkel);
+        foreach (var bx in new[] { -0.85f, 1.65f }) // zwei schmale Beine an den Enden: unter dem Tisch Platz für Knie, Füße und Rocksaum der Sitzenden
+            Teil(a, s + new Vector3(bx, 0.38f, 0), new Vector3(0.1f, 0.7f, 0.3f), dunkel);
         foreach (var dz in new[] { -0.95f, 0.95f })
-            Teil(a, s + new Vector3(0.4f, 0.42f, dz), new Vector3(2.4f, 0.1f, 0.35f), holz);
+            Teil(a, s + new Vector3(0.4f, FigurenBaukasten.Sitzflaeche - 0.05f, dz), new Vector3(2.4f, 0.1f, 0.35f), holz); // Sitzhöhe des Baukastens
         Rund(a, s + new Vector3(0.1f, 0.88f, 0), 0.2f, 0.08f, Material(new Color(0.55f, 0.45f, 0.32f)));       // Brotschale
         Rund(a, s + new Vector3(0.9f, 0.93f, 0.1f), 0.08f, 0.2f, Metall(new Color(0.6f, 0.6f, 0.62f)), segmente: 8); // Krug
         // Bett (hinten rechts), Truhe, Wiege
@@ -445,7 +451,7 @@ public partial class Stadtansicht
             var stand = familie is null ? "" : farbe + string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
             if (stand != familienStand)
             {
-                foreach (var (f, _) in figuren) { a.Besucher.Remove(f); KnotenEntfernen(f.Koerper); }
+                foreach (var (f, _) in figuren) { a.Besucher.Remove(f); SitzendeEntfernen(f); }
                 figuren.Clear();
                 if (familie is not null) FamilieSetzen(a, s, familie, w!.Familien, figuren, farbe);
                 familienStand = stand;
@@ -495,40 +501,43 @@ public partial class Stadtansicht
 
     private static string PersonenText(int anzahl) => anzahl == 1 ? "1 Person" : $"{anzahl} Personen";
 
+    /// <summary>Mitte des Stuhls hinter dem Kontorpult (z, Meter): 0,30 m weiter zurück als früher, die Pultvorderkante liegt bei −1,85.</summary>
+    private const float KontorStuhl = -2.6f;
+
     /// <summary>
-    /// Setzt die Familie in die Wohnstube: Oberhaupt am Tisch (nur abends), Ehepartner am Herd, bis zu vier Kinder.
+    /// Setzt die Familie in die Wohnstube: Oberhaupt am Tisch (nur abends), Ehepartner am Herd, bis zu vier Kinder. Jede Person ist die echte Person
+    /// des Familienbuchs mit ihrem Rezept aus dem Baukasten (Volk, Geschlecht, Alter, Erbgut, Haar) – so sieht sie aus wie im Kontor und im Rat.
     /// Mit <paramref name="eltern"/> und <paramref name="eigenePlaetze"/> (Oberhaupt, Ehepartner, dann die Kinder; Orte im Elternknoten)
     /// sitzt sie in einem anderen Raum – der Wohnstube im neu gebauten Haus (Stadtansicht.Neubau.cs).
     /// </summary>
     private void FamilieSetzen(InnenAnsicht a, Vector3 s, Familie familie, Familienbuch buch, List<(Arbeiterfigur, bool)> figuren, Color farbe,
                                Node3D? eltern = null, Arbeitsplatz[]? eigenePlaetze = null)
     {
-        Arbeiterfigur Figur(Person p, Arbeitsplatz platz, Color gewand, int nummer)
+        var jahr = _simulation?.Zeit.Jahr ?? 0;
+        var hausfarbe = new Farbwert(farbe.R, farbe.G, farbe.B);
+        Arbeiterfigur Figur(Person p, Arbeitsplatz platz, string bewegung, string probeBewegung)
         {
-            var (groesse, breite, bart) = Koerperbau(p.Volk);
-            if (!buch.IstVolljaehrig(p)) groesse *= 0.68f; // Kinder sind kleiner
-            var erwachsen = buch.IstVolljaehrig(p);
-            var kopf = p.Geschlecht == Geschlecht.Frau && erwachsen ? Kopfputz.Kappe : Kopfputz.Keiner; // Haube
-            var haut = p.Volk is Volk.Ork or Volk.Oger ? new Color(0.36f, 0.50f, 0.28f) : Haut;
-            var figur = FigurBauen(eltern ?? a.Innen!, eigenePlaetze is null ? a.Mitte + platz.Ort : platz.Ort, platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite), gewand, haut,
-                null, kopf, platz.Werkzeug, platz.Art, nummer * 0.8f, platz.Sitzt, bart && erwachsen && p.Geschlecht == Geschlecht.Mann);
+            var rezept = FigurenBaukasten.Von(p, jahr, buch.IstVolljaehrig(p), p == familie.Oberhaupt, hausfarbe);
+            var figur = InnenFigurBauen(a, platz, rezept, bewegung, probeBewegung, platz.Sitzt ? FigurenBaukasten.Sitzflaeche : null, vorderkante: 0.175f, // Bank 0,35 m tief
+                eltern: eltern, mitte: eigenePlaetze is null ? null : Vector3.Zero);
             a.Besucher.Add(figur);
             return figur;
         }
 
-        var nummer = 0;
-        figuren.Add((Figur(familie.Oberhaupt, eigenePlaetze?[0] ?? new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), farbe, nummer++), true));
+        figuren.Add((Figur(familie.Oberhaupt, eigenePlaetze?[0] ?? new Arbeitsplatz(s + new Vector3(0.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), "Sitzen", "Sitzen"), true));
         if (familie.Ehepartner is { Lebt: true } partner)
-            figuren.Add((Figur(partner, eigenePlaetze?[1] ?? new Arbeitsplatz(s + new Vector3(-2.3f, 0, -1.5f), West, Bewegung.Ruehren, Werkzeug.Kelle), Gewandfarben[4], nummer++), false));
+            figuren.Add((Figur(partner, eigenePlaetze?[1] ?? new Arbeitsplatz(s + new Vector3(-2.3f, 0, -1.5f), FigurenBaukasten.DrehungZu(-2.3f, -1.5f, -3.1f, -2.4f), // zum Kessel
+                Bewegung.Ruehren, Werkzeug.Kelle), "Ruehren", "Stehen"), false));
         var plaetze = eigenePlaetze?[2..] ?? new[]
         {
             new Arbeitsplatz(s + new Vector3(-0.3f, 0, 0.95f), Nord, Bewegung.Beten, Werkzeug.Keins, true),
             new Arbeitsplatz(s + new Vector3(1.1f, 0, 0.95f), Nord, Bewegung.Beten, Werkzeug.Keins, true),
-            new Arbeitsplatz(s + new Vector3(1.4f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true),
+            new Arbeitsplatz(s + new Vector3(1.0f, 0, -0.95f), Sued, Bewegung.Beten, Werkzeug.Keins, true), // 1,0 statt 1,4: weg vom Tischbein
             new Arbeitsplatz(s + new Vector3(-1.4f, 0, 1.2f), Ost, Bewegung.Spielen, Werkzeug.Keins),
         };
         var kinder = familie.Lebende.Where(p => p != familie.Oberhaupt && p != familie.Ehepartner).Take(plaetze.Length).ToList();
         for (var i = 0; i < kinder.Count; i++)
-            figuren.Add((Figur(kinder[i], plaetze[i], Gewandfarben[(kinder[i].Nummer * 3 + 1) % Gewandfarben.Length], nummer++), false));
+            figuren.Add((Figur(kinder[i], plaetze[i], plaetze[i].Sitzt ? "Sitzen" : "Stehen", plaetze[i].Sitzt ? "Sitzen" : "Stehen"), false));
+        BaukastenMelden($"Wohnstube {familie.Nachname}", figuren.Count);
     }
 }

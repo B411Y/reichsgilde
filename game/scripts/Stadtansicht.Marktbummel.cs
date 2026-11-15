@@ -336,13 +336,11 @@ public partial class Stadtansicht
         if (platz is null) return -1;
         var stellen = Enumerable.Range(0, _marktstellen.Count).Where(k => _marktstellen[k].Platz == platz && k != ausser && MarktstelleFrei(k)).ToList();
         if (stellen.Count == 0) return -1;
-        var ki = _kiPassanten.Contains(nummer);
         var wahl = Passantenspur.Bruchteil(nummer, 7000 + zaehler * 13 + (int)(ankunft % 997));
         // Ein anderer Stand als zuletzt (sonst stünde sie nur einen Platz weiter am selben Tisch)
         var alterStand = ausser >= 0 ? _marktstellen[ausser].Stand : -1;
         foreach (var art in Marktbummel.Reihenfolge(Marktbummel.Waehlen(nummer, zaehler, ankunft)))
         {
-            if (ki && art is Marktbummel.Art.Bank) continue; // der KI-Schmied kann noch nicht sitzen
             var passend = stellen.Where(k => _marktstellen[k].Art == art && (art != Marktbummel.Art.Stand || _marktstellen[k].Stand != alterStand)).ToList();
             if (passend.Count == 0) continue;
             var gewaehlt = art == Marktbummel.Art.Gruppe ? GruppenplatzWaehlen(passend, wahl, ausser) : passend[(int)(wahl * passend.Count) % passend.Count];

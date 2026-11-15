@@ -173,6 +173,7 @@ public partial class Stadtansicht
         _passantenUhr.Restart();
         FigurenBildVorbereiten(); // Sichtfeld und Bildrate der Figuren (Stadtansicht.Figuren.cs)
         ProbeStufeWaehlen();      // nur mit --passantenprobe: Skelett oder gebacken (Stadtansicht.Passantenprobe.cs)
+        FingerStufenWaehlen(delta); // Fingerknochen nah/mittel (Stadtansicht.FigurenLod.cs)
         _figurenBewegt = 0;
         var sekunden = _simulation is { Takt.IstPausiert: false } ? delta : 0; // in der Pause stehen auch die Bewegungen still
         _bildSekunden = sekunden;
@@ -1159,109 +1160,55 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     // ── Tracht ──────────────────────────────────────────────────────────────
-    // Kopfbedeckungen und Lasten sind Trachtteile der Figurmodelle (figur_<volk>.glb); das Spiel blendet sie je Rolle ein.
-
-    private enum Kopfbedeckung { Keine, Strohhut, Barett, Kapuze, Haube, Schleier, Eisenhut }
-    private enum Last { Keine, Kiepe, Buendel, Tasche, Stab, Hellebarde }
-
-    /// <summary>Tracht einer Rolle: Gewandfarbe, Kopfbedeckung, was sie trägt, ob sie eine Schürze hat und gebeugt geht.</summary>
-    private sealed record PassantenTracht(Color Gewand, Kopfbedeckung Kopf, Last Last, bool Schuerze = false, bool Gebeugt = false, Color? Kopffarbe = null);
+    // Tracht und Aussehen kommen aus dem Figuren-Baukasten (FigurenBaukasten.cs, Godot-Seite Stadtansicht.Baukasten.cs): ein Katalog für alle Figuren.
 
     private static readonly Color Leinenfarbe = new(0.78f, 0.74f, 0.64f);
     private static readonly Color Schwarz = new(0.12f, 0.11f, 0.12f);
 
-    /// <summary>
-    /// Die Tracht nach Rolle (Schlüssel wie im Kern, z. B. „Knecht“ auch für die Magd). Woran man jemanden erkennt:
-    /// Ratsherr roter Mantel und Barett, Mönch braune Kutte mit Kapuze (Nonne schwarz mit weißem Schleier), Bettler graue
-    /// Lumpen und gebeugt, Hirte Stab und Strohhut, Feldarbeiter Strohhut, Holzsammler Reisigbündel, Krämer Kiepe,
-    /// Bote blaues Wams mit Tasche, Knecht und Magd Schürze, Verwitwete schwarz, Bürgerkinder kräftige Farben mit Barett.
-    /// </summary>
-    private static PassantenTracht TrachtVon(Einwohner e)
-    {
-        var frau = e.Geschlecht == Geschlecht.Frau;
-        var farbe = Gewandfarben[e.Nummer * 7 % Gewandfarben.Length];
-        return e.Rolle switch
-        {
-            "Ratsherr" => new PassantenTracht(new Color(0.55f, 0.12f, 0.12f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
-            "Bürgersohn" => new PassantenTracht(frau ? new Color(0.45f, 0.22f, 0.50f) : new Color(0.18f, 0.30f, 0.58f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Barett, Last.Keine, Kopffarbe: frau ? Leinenfarbe : Schwarz),
-            "Mönch" => frau ? new PassantenTracht(Schwarz, Kopfbedeckung.Schleier, Last.Keine, Kopffarbe: new Color(0.92f, 0.92f, 0.88f))
-                            : new PassantenTracht(new Color(0.36f, 0.24f, 0.14f), Kopfbedeckung.Kapuze, Last.Keine),
-            "Bettler" => new PassantenTracht(new Color(0.36f, 0.35f, 0.33f), Kopfbedeckung.Keine, Last.Keine, Gebeugt: true),
-            "Witwer" => new PassantenTracht(Schwarz, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Schwarz),
-            "Hirte" => new PassantenTracht(new Color(0.40f, 0.36f, 0.24f), Kopfbedeckung.Strohhut, Last.Stab),
-            "Feldarbeiter" => new PassantenTracht(new Color(0.58f, 0.50f, 0.36f), Kopfbedeckung.Strohhut, Last.Keine),
-            "Holzsammler" => new PassantenTracht(new Color(0.42f, 0.30f, 0.20f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Buendel, Kopffarbe: Leinenfarbe),
-            "Krämer" => new PassantenTracht(new Color(0.24f, 0.42f, 0.26f), frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Kiepe, Kopffarbe: Leinenfarbe),
-            "Bote" => new PassantenTracht(new Color(0.20f, 0.32f, 0.62f), Kopfbedeckung.Keine, Last.Tasche),
-            "Torwächter" => new PassantenTracht(Stadtrot, Kopfbedeckung.Eisenhut, Last.Hellebarde, Kopffarbe: new Color(0.45f, 0.45f, 0.48f)), // wie TorwaechterAussehen
-            "Knecht" => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true, Kopffarbe: Leinenfarbe),
-            _ => new PassantenTracht(farbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Kopffarbe: Leinenfarbe), // Tagelöhner und neue Rollen
-        };
-    }
-
-    /// <summary>Aussehen eines Einwohners: Gestalt nach Volk und Geschlecht, Tracht nach Rolle, Haar nach Volk (im Alter grau).</summary>
-    private FigurAussehen AussehenVon(Einwohner e, PassantenTracht tracht)
-    {
-        var haare = Haarfarben(e.Volk);
-        var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GrauAb;
-        return new FigurAussehen(e.Volk, e.Geschlecht == Geschlecht.Frau, tracht.Gewand, Beinkleidfarben[e.Nummer * 3 % Beinkleidfarben.Length],
-            HautVon(e.Volk), alt ? GrauesHaar : haare[e.Nummer % haare.Length], tracht.Kopffarbe ?? tracht.Gewand, tracht.Kopf, tracht.Last, tracht.Schuerze);
-    }
+    /// <summary>Das Rezept eines Einwohners aus dem Baukasten (Volk, Geschlecht, Alter, Erbgut, Rolle): draußen und drinnen dasselbe.</summary>
+    private FigurRezept RezeptVon(Einwohner e) => FigurenBaukasten.Von(e, _simulation?.Zeit.Jahr ?? 0);
 
     /// <summary>
-    /// Ein Einwohner sitzt drinnen (Dom): Gestalt, Gewand und Haut wie draußen, damit man ihn wiedererkennt.
+    /// Ein Einwohner sitzt drinnen (Dom): dasselbe Rezept wie draußen (Baukasten), damit man ihn wiedererkennt.
     /// Den Strohhut nimmt man in der Kirche ab; Kiepe, Bündel und Stab bleiben draußen.
     /// </summary>
     private Arbeiterfigur SitzendeFigur(InnenAnsicht a, Einwohner e, Arbeitsplatz platz)
     {
-        var tracht = TrachtVon(e);
-        var aussehen = AussehenVon(e, tracht) with { Last = Last.Keine, Kopf = tracht.Kopf == Kopfbedeckung.Strohhut ? Kopfbedeckung.Keine : tracht.Kopf };
-        var figur = SitzendBauen(a, platz, aussehen, e.Nummer);
+        var rezept = RezeptVon(e);
+        rezept = rezept with { Tracht = rezept.Tracht with { Last = Last.Keine, Kopf = rezept.Tracht.Kopf == Kopfbedeckung.Strohhut ? Kopfbedeckung.Keine : rezept.Tracht.Kopf } };
+        var figur = InnenFigurBauen(a, platz, rezept, "Sitzen", "Sitzen", DomSitzhoehe, vorderkante: DomSitzkante);
         a.Besucher.Add(figur);
         return figur;
     }
 
-    /// <summary>Gläubiger zur Messe im Dom (kein Einwohner): Volk und Gewand aus der Nummer, zunächst versteckt.</summary>
+    /// <summary>Gläubiger zur Messe im Dom (kein Einwohner): ein Statist des Baukastens, fest je Platz, zunächst versteckt.</summary>
     private Arbeiterfigur GlaeubigerBauen(InnenAnsicht a, Arbeitsplatz platz, int nummer)
     {
-        var figur = SitzendBauen(a, platz, AussehenAusNummer(nummer), 5000 + nummer);
+        var volk = (nummer % 4) switch { 1 => Volk.Zwerg, 2 => Volk.Elb, 3 => Volk.Halbling, _ => Volk.Mensch };
+        var figur = InnenFigurBauen(a, platz, FigurenBaukasten.Statist($"Dom:{nummer}", volk, Streuung(nummer, 53) % 2 == 0), "Sitzen", "Sitzen", DomSitzhoehe, vorderkante: DomSitzkante);
         figur.Koerper.Visible = false;
         a.Besucher.Add(figur);
         return figur;
     }
 
     /// <summary>Oberkante der Dombänke (Stadtansicht.Sonderbauten.cs): Darauf ruht die Hüfte der Sitzenden.</summary>
-    private const float DomSitzhoehe = 0.49f;
+    private const float DomSitzhoehe = FigurenBaukasten.Sitzflaeche;
 
-    /// <summary>Die sitzenden Figuren im Dom und ihr Körperknoten – bewegt werden sie nur, solange man hineinsieht (<see cref="SitzendeBewegen"/>).</summary>
+    /// <summary>Vorderkante der Dombänke vor der Sitzmitte (Bank 0,45 m tief): für das Vorrücken kleiner Völker.</summary>
+    private const float DomSitzkante = 0.225f;
+
+    /// <summary>Die Figuren des Baukastens in den Räumen aus Grundkörpern und ihr Körperknoten – bewegt werden sie nur, solange man hineinsieht (<see cref="SitzendeBewegen"/>).</summary>
     private readonly Dictionary<Node3D, Figur> _sitzende = new();
 
-    /// <summary>
-    /// Eine sitzende Figur auf einer Bank im Dom. Sie gibt sich als <see cref="Arbeiterfigur"/> aus, damit der Innenraum sie wie die übrigen
-    /// Besucher zeigt und wegräumt; der Arm ist ein leerer Knoten, denn das Modell bewegt sich selbst („Sitzen“).
-    /// </summary>
-    private Arbeiterfigur SitzendBauen(InnenAnsicht a, Arbeitsplatz platz, FigurAussehen aussehen, int nummer)
-    {
-        // Die Innenraumfiguren blicken bei Drehung 0 nach −Z, die Modelle nach +Z: eine halbe Drehung mehr.
-        var koerper = new Node3D { Position = a.Mitte + platz.Ort, Rotation = new Vector3(0, platz.Drehung + Mathf.Pi, 0) };
-        a.Innen!.AddChild(koerper);
-        var arm = new Node3D();
-        koerper.AddChild(arm);
-        if (FigurEinsetzen(koerper, aussehen, nummer) is { } figur)
-        {
-            BewegungSetzen(figur, "Sitzen");
-            koerper.Position += new Vector3(0, DomSitzhoehe - (figur.Kniehoehe - 0.02f), 0); // kleine Völker sitzen höher
-            _sitzende[koerper] = figur;
-        }
-        return new Arbeiterfigur(koerper, arm, nummer * 0.7f, Bewegung.Beten, Vector3.Zero);
-    }
-
-    /// <summary>Bewegt die sichtbaren Sitzenden im Dom, solange man hineinsieht (in der Pause nicht; „Sitzen“ ist langsam, also jedes dritte Bild).</summary>
+    /// <summary>Bewegt die sichtbaren Figuren der Grundkörper-Räume, solange man hineinsieht (in der Pause nicht; „Sitzen“ ist langsam, also jedes dritte Bild).</summary>
     private void SitzendeBewegen()
     {
         var sekunden = _simulation?.Takt.IstPausiert == true ? 0 : GetProcessDeltaTime();
+        List<Node3D>? weg = null;
         foreach (var (koerper, figur) in _sitzende)
-            if (koerper.Visible) FigurImBildBewegen(figur, null, sekunden);
+            if (!IsInstanceValid(koerper)) (weg ??= new()).Add(koerper); // mit dem Raum abgebaut (Kapseln und Innenfiguren aus dem Baukasten)
+            else if (koerper.IsVisibleInTree()) FigurImBildBewegen(figur, null, sekunden);
+        if (weg is not null) foreach (var k in weg) _sitzende.Remove(k);
     }
 
     /// <summary>Eine Figur steht auf: aus dem Dom entfernen.</summary>
@@ -1275,13 +1222,12 @@ public partial class Stadtansicht
     {
         var knoten = new Node3D { Name = $"Einwohner_{e.Nummer}", Visible = false };
         _passantenEbene!.AddChild(knoten);
-        var tracht = TrachtVon(e);
+        var rezept = RezeptVon(e);
+        var tracht = rezept.Tracht;
         var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GebeugtAb;
         var gebeugt = tracht.Gebeugt || alt;
-        var ki = !ProbeErsetztAlle && KiSchmiedFuer(e, tracht, gebeugt); // der KI-Schmied (Wunsch des Nutzers, 28.10.) bleibt neben den neuen Figuren
-        if (ki) _kiPassanten.Add(e.Nummer); // der KI-Schmied kann noch nicht sitzen (die Probefigur schon)
-        var figur = ProbeAktiv && !ki ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Figur mit Skelett, Weg A (Stadtansicht.Passantenprobe.cs)
-                               : FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
+        // Figur mit Skelett, Weg A (Stadtansicht.Baukasten.cs); der KI-Schmied unter den Passanten ist seit 14.11.2026 entfernt (Nutzer)
+        var figur = ProbeAktiv ? BaukastenProbeEinsetzen(knoten, rezept, innen: false) : FigurEinsetzen(knoten, AussehenAusRezept(rezept), rezept.Nummer);
         if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant
         {

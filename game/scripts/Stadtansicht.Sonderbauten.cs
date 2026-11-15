@@ -41,6 +41,12 @@ public partial class Stadtansicht
     private static readonly Color Robe = new(0.12f, 0.12f, 0.14f);
     private static readonly Color Gold = new(0.90f, 0.74f, 0.30f);
 
+    /// <summary>Abstand der Stühle an den Seitentischen des Ratssaals von der Mitte (Meter): weit genug, dass Rocksaum und Füße vor dem Tischfuß bleiben.</summary>
+    private const float RatssaalSeite = 2.6f;
+
+    /// <summary>Stühle an der Stirnseite des Ratssaals (z, Meter): 10 cm hinter dem früheren Platz, damit Knie und Rock großer Figuren vor dem Tisch bleiben.</summary>
+    private const float RatssaalStirn = -3.4f;
+
     // ═════════════════════════════════════════════════════════════════════════
     //  Gemeinsames Gerüst
     // ═════════════════════════════════════════════════════════════════════════
@@ -89,7 +95,7 @@ public partial class Stadtansicht
         var (groesse, breite, bart) = Koerperbau(volk);
         var haut = volk is Volk.Ork or Volk.Oger ? new Color(0.36f, 0.50f, 0.28f) : Haut;
         return FigurBauen(eltern, a.Mitte + platz.Ort + new Vector3(0, hoehe, 0), platz.Drehung, new Vector3(groesse * breite, groesse, groesse * breite),
-            gewand, haut, schuerze, kopf, platz.Werkzeug, platz.Art, takt, platz.Sitzt, bart);
+            gewand, haut, schuerze, kopf, platz.Werkzeug, platz.Art, takt, platz.Sitzt, bart, volk, 700 + (int)(takt * 100));
     }
 
     /// <summary>Volk des Oberhaupts eines Hauses (für seine Figur), sonst Mensch.</summary>
@@ -101,7 +107,7 @@ public partial class Stadtansicht
         foreach (var f in figuren)
         {
             a.Besucher.Remove(f);
-            KnotenEntfernen(f.Koerper);
+            SitzendeEntfernen(f); // auch aus den bewegten Figuren des Baukastens
         }
         foreach (var s in schilder) KnotenEntfernen(s);
         figuren.Clear();
@@ -160,21 +166,23 @@ public partial class Stadtansicht
         // ── Ratssaal: Teppich, Hufeisentisch, sieben Stühle, Stadtwappen ──
         Teil(a, new Vector3(rat, 0.11f, -0.6f), new Vector3(2.6f, 0.02f, 3.6f), Material(Ratsrot));
         Teil(a, new Vector3(rat, 0.8f, -2.4f), new Vector3(4.0f, 0.1f, 0.8f), holz);
-        Teil(a, new Vector3(rat, 0.4f, -2.4f), new Vector3(3.4f, 0.7f, 0.3f), dunkel);
+        foreach (var bx in new[] { -1.9f, 1.9f }) // Beine an den Enden: unter dem Tisch Platz für Füße und Knie
+            Teil(a, new Vector3(rat + bx, 0.4f, -2.4f), new Vector3(0.1f, 0.7f, 0.6f), dunkel);
         foreach (var dx in new[] { -1.6f, 1.6f })
         {
             Teil(a, new Vector3(rat + dx, 0.8f, -0.4f), new Vector3(0.8f, 0.1f, 3.2f), holz);
-            Teil(a, new Vector3(rat + dx, 0.4f, -0.4f), new Vector3(0.3f, 0.7f, 2.6f), dunkel);
+            foreach (var bz in new[] { -1.9f, 1.1f })
+                Teil(a, new Vector3(rat + dx, 0.4f, bz), new Vector3(0.6f, 0.7f, 0.1f), dunkel);
         }
         var sitze = new[]
         {
-            new Arbeitsplatz(new Vector3(rat, 0, -3.3f), Sued, Bewegung.Beten, Werkzeug.Keins, true),          // Bürgermeister
-            new Arbeitsplatz(new Vector3(rat - 1.2f, 0, -3.3f), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat + 1.2f, 0, -3.3f), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat - 2.45f, 0, -1.0f), Ost, Bewegung.Beten, Werkzeug.Keins, true),
-            new Arbeitsplatz(new Vector3(rat + 2.45f, 0, -1.0f), West, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat - 2.45f, 0, 0.6f), Ost, Bewegung.Schreiben, Werkzeug.Feder, true),
-            new Arbeitsplatz(new Vector3(rat + 2.45f, 0, 0.6f), West, Bewegung.Beten, Werkzeug.Keins, true),
+            new Arbeitsplatz(new Vector3(rat, 0, RatssaalStirn), Sued, Bewegung.Beten, Werkzeug.Keins, true),          // Bürgermeister
+            new Arbeitsplatz(new Vector3(rat - 1.2f, 0, RatssaalStirn), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
+            new Arbeitsplatz(new Vector3(rat + 1.2f, 0, RatssaalStirn), Sued, Bewegung.Schreiben, Werkzeug.Feder, true),
+            new Arbeitsplatz(new Vector3(rat - RatssaalSeite, 0, -1.0f), Ost, Bewegung.Beten, Werkzeug.Keins, true),
+            new Arbeitsplatz(new Vector3(rat + RatssaalSeite, 0, -1.0f), West, Bewegung.Schreiben, Werkzeug.Feder, true),
+            new Arbeitsplatz(new Vector3(rat - RatssaalSeite, 0, 0.6f), Ost, Bewegung.Schreiben, Werkzeug.Feder, true),
+            new Arbeitsplatz(new Vector3(rat + RatssaalSeite, 0, 0.6f), West, Bewegung.Beten, Werkzeug.Keins, true),
         };
         _rathaus = a;
         _ratssaalSitze = sitze; // für die sichtbare Ratssitzung (Stadtansicht.Ratssitzung.cs), falls das Modell des Ratssaals fehlt
@@ -183,7 +191,7 @@ public partial class Stadtansicht
         {
             var s = sitze[i];
             var hinten = new Vector3(Mathf.Sin(s.Drehung), 0, Mathf.Cos(s.Drehung)) * 0.32f; // Lehne hinter der Figur
-            Teil(a, s.Ort + new Vector3(0, 0.42f, 0), new Vector3(0.55f, 0.08f, 0.55f), dunkel);
+            Teil(a, s.Ort + new Vector3(0, FigurenBaukasten.Sitzflaeche - 0.04f, 0), new Vector3(0.55f, 0.08f, 0.55f), dunkel); // Sitzhöhe des Baukastens
             var lehne = Teil(a, s.Ort + hinten + new Vector3(0, i == 0 ? 1.2f : 0.85f, 0), new Vector3(0.55f, i == 0 ? 1.6f : 0.9f, 0.08f), i == 0 ? gold : dunkel);
             lehne.Rotation = new Vector3(0, s.Drehung, 0);
         }
@@ -255,16 +263,16 @@ public partial class Stadtansicht
                 {
                     var amtX = aemter[i];
                     if (!amtX.IstBesetzt) continue;
-                    var volk = amtX.Konto is { } k ? VolkVon(k) : amtX.Ratsherr!.Daten.Volk;
-                    var gewand = amtX.Konto is { } k2 ? Besitzerfarbe(k2) : Ratsrot;
-                    var figur = PersonBauen(a, innen, sitze[i], volk, gewand, Kopfputz.Barett, i * 0.7f);
-                    if (i == 0) // Amtskette des Bürgermeisters
-                        figur.Koerper.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.4f, 0.08f, 0.06f) }, MaterialOverride = gold, Position = new Vector3(0, 1.22f, -0.27f) });
+                    // Baukasten: ein Haus zeigt sein Oberhaupt (dieselbe Person wie in Kontor und Wohnstube), ein Ratsherr der Stadt sich selbst;
+                    // der Bürgermeister mit goldenem Barett (wie in der Ratssitzung)
+                    var rezept = RatsRezept(w, amtX.Konto is { } k ? k.Inhaber : amtX.Ratsherr!.Name, amtX.Konto, i == 0);
+                    var figur = InnenFigurBauen(a, sitze[i], rezept, "Sitzen", "Sitzen", FigurenBaukasten.Sitzflaeche, vorderkante: 0.275f); // Stuhl 0,55 m tief
                     ratsfiguren.Add(figur);
                     a.Besucher.Add(figur);
                     if (amtX.Konto is not null) // Häuser im Amt beschriften – so findet man den eigenen Sitz
                         ratsschilder.Add(Beschriftung($"{amtX.Name}: {amtX.Inhaber}", a.Mitte + sitze[i].Ort + new Vector3(0, 2.3f, 0), 24, innen));
                 }
+                BaukastenMelden("Ratssaal", ratsfiguren.Count);
                 ratStand = stand;
             }
             foreach (var f in ratsfiguren) f.Koerper.Visible = arbeitszeit && _ratssitzung is null; // in der Sitzung sitzen dort die Figuren der Sitzung
@@ -486,9 +494,11 @@ public partial class Stadtansicht
             var z = bank0 + reihe * 1.55f;
             foreach (var x in new[] { -2.4f, 2.4f })
             {
-                Teil(a, new Vector3(x, 0.45f, z), new Vector3(3.2f, 0.08f, 0.45f), holz);
-                Teil(a, new Vector3(x, 0.22f, z), new Vector3(3.0f, 0.4f, 0.35f), dunkel);
-                Teil(a, new Vector3(x, 0.8f, z + 0.24f), new Vector3(3.2f, 0.6f, 0.07f), holz);
+                // Sitzfläche auf der Höhe des Baukastens (vorher 0,49 m: die Füße hingen 4 cm), der Unterbau darunter
+                Teil(a, new Vector3(x, FigurenBaukasten.Sitzflaeche - 0.04f, z), new Vector3(3.2f, 0.08f, 0.45f), holz);
+                // Unterbau schmal und nach hinten gesetzt (Platz für Saum und Füße), Lehne 3 cm weiter hinten (Rücken großer Figuren)
+                Teil(a, new Vector3(x, (FigurenBaukasten.Sitzflaeche - 0.08f) / 2, z + 0.05f), new Vector3(3.0f, FigurenBaukasten.Sitzflaeche - 0.08f, 0.2f), dunkel);
+                Teil(a, new Vector3(x, 0.8f, z + 0.27f), new Vector3(3.2f, 0.6f, 0.07f), holz);
                 foreach (var dx in new[] { -1.0f, 0f, 1.0f })
                     sitzplaetze.Add((new Arbeitsplatz(new Vector3(x + dx, 0, z), Nord, Bewegung.Beten, Werkzeug.Keins, true), x < 0));
             }
@@ -606,7 +616,7 @@ public partial class Stadtansicht
                 : $"\nMesse gehalten: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses";
             var betenText = betende.Count == 0 ? "" : $"\nZum Gebet im Dom: {PersonenText(betende.Count)}";
             a.Infotafel!.Text = titel + messeText + betenText;
-            SitzendeBewegen(); // Betende und Gläubige sitzen und atmen (Stadtansicht.Passanten.cs)
+            // Betende und Gläubige sitzen und atmen: SitzendeBewegen läuft jetzt in jedem Raum einmal je Bild (Stadtansicht.cs)
         };
     }
 
