@@ -13,7 +13,7 @@ static class ErnteTests
 {
     static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
-    static readonly Lazy<Wirtschaftsdaten> OhneErnte = new(() => Wirtschaftsdaten.AusJson(OhneAbschnitt(Json.Value, "ernte")));
+    static readonly Lazy<Wirtschaftsdaten> OhneErnte = new(() => Wirtschaftsdaten.AusJson(OhneAbschnitt(OhneAbschnitt(Json.Value, "lagen"), "ernte"))); // „lagen“ braucht „ernte“
 
     static string OhneAbschnitt(string json, string abschnitt)
     {
@@ -118,8 +118,8 @@ static class ErnteTests
         {
             var u = Wirtschaft(1, HaerteDerZeit.Ueberliefert).Ernte;
             Pruefe.Ungefaehr(0.5, u.Faktor("Gerste", Erntegute.Missernte), 1e-12);
-            Pruefe.Ungefaehr(0.75, u.Faktor("Körnermahlzeit", Erntegute.Missernte), 1e-12); // halbes Gewicht
-            Pruefe.Ungefaehr(1.25, u.Faktor("Roggen", Erntegute.Gut), 1e-12);
+            Pruefe.Ungefaehr(0.875, u.Faktor("Körnermahlzeit", Erntegute.Missernte), 1e-12); // Folgeware: Gewicht 0,25 (Datenversion 92, vorher 0,5)
+            Pruefe.Ungefaehr(1.5, u.Faktor("Roggen", Erntegute.Gut), 1e-12); // gut 1,5 seit Datenversion 92 (vorher 1,25)
             Pruefe.Gleich(1.0, u.Faktor("Gerste", Erntegute.Gewoehnlich));
             Pruefe.Gleich(1.0, u.Faktor("Eisen", Erntegute.Missernte));
             var m = Wirtschaft(1, HaerteDerZeit.Mild).Ernte;
@@ -139,19 +139,19 @@ static class ErnteTests
             sommer.Tick();
             var ws = sommer.Wirtschaft!;
             Pruefe.Gleich(Erntegute.Missernte, ws.Ernte.Angesagt!.Guete);
-            Pruefe.Gleich(1.0, ws.Markt["Gerste"].Erntefaktor);
+            Pruefe.Gleich(1.0, ws.Markt["Gerste"].Lagefaktor);
             var winter = Sim(Minute(3, 10), s); // Winter 1403: die Missernte von 1402 gilt noch (ohne den Erntezuschlag des Herbstes)
             winter.Tick();
             var ww = winter.Wirtschaft!;
             Pruefe.Gleich(Erntegute.Missernte, ww.Ernte.Jetzt!.Guete);
-            Pruefe.Ungefaehr(0.5, ww.Markt["Gerste"].Erntefaktor, 1e-12);
+            Pruefe.Ungefaehr(0.5, ww.Markt["Gerste"].Lagefaktor, 1e-12);
             Pruefe.Wahr(ww.Markt["Gerste"].Preis > ws.Markt["Gerste"].Preis * 1.3, $"Gerste {ws.Markt["Gerste"].Preis:0.0} → {ww.Markt["Gerste"].Preis:0.0}");
             Pruefe.Wahr(ww.Markt["Dünnbier"].Preis > ws.Markt["Dünnbier"].Preis, "Dünnbier teurer");
             Pruefe.Gleich(ws.Markt["Eisen"].Preis, ww.Markt["Eisen"].Preis); // andere Waren nicht
             // Gegenprobe: dieselbe Partie ohne Abschnitt – kein Unterschied am Gerstenpreis
             var ohne = Sim(Minute(3, 10), s, daten: OhneErnte.Value);
             ohne.Tick();
-            Pruefe.Gleich(1.0, ohne.Wirtschaft!.Markt["Gerste"].Erntefaktor);
+            Pruefe.Gleich(1.0, ohne.Wirtschaft!.Markt["Gerste"].Lagefaktor);
             Pruefe.Gleich(ws.Markt["Gerste"].Preis, ohne.Wirtschaft!.Markt["Gerste"].Preis);
         }),
 
@@ -193,7 +193,7 @@ static class ErnteTests
 
         ("Ernte: Fehlerhafte Daten werden abgewiesen", () =>
         {
-            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"Körnermahlzeit\": 0.5,", "\"Hirse\": 0.5,")), "ernte.waren");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"Körnermahlzeit\": 0.25,", "\"Hirse\": 0.25,")), "ernte.waren");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"chanceMissernte\": 0.2", "\"chanceMissernte\": 0.7")), "ernte.hart");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"missernte\": 0.5,", "\"missernte\": 0.9,")), "ernte.missernte");
         }),

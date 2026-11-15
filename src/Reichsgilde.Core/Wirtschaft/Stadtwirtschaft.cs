@@ -187,6 +187,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Erntejahr und Teuerung: Güte jeder Ernte, Ansage ein Jahr vorher, Preis der Getreidewaren (Abschnitt „ernte“, Datenversion 91).</summary>
     public Erntewesen Ernte { get; }
 
+    /// <summary>Lagen aller Rohstoffquellen, die Ernte zuerst: Preis der Waren, Ertrag der eigenen Umlandbetriebe (Abschnitt „lagen“, Datenversion 92).</summary>
+    public Lagenwesen Lagen { get; }
+
     /// <summary>„Härte der Zeit“ der Partie (aus den <see cref="Partie.Partieeinstellungen"/>): wie oft und wie stark gute und schlechte Ernten kommen.</summary>
     public HaerteDerZeit HaerteDerZeit { get; init; } = HaerteDerZeit.Ueberliefert;
 
@@ -451,7 +454,8 @@ public sealed partial class Stadtwirtschaft
         Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
         Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
         Jahreszeiten = new Jahreszeitenwesen(this, daten.Jahreszeiten, zufallsstartwert);
-        Ernte = new Erntewesen(this, daten.Ernte, zufallsstartwert);
+        Ernte = new Erntewesen(this, daten.Ernte, daten.Lagen, zufallsstartwert);
+        Lagen = new Lagenwesen(this, daten.Lagen, Ernte, zufallsstartwert);
         Klappbruecke = new Klappbruecke(this);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
@@ -481,7 +485,7 @@ public sealed partial class Stadtwirtschaft
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
         Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 69)
-        Ernte.MarktSetzen(); // Güte der Ernte auf die Getreidewaren (Datenversion 91)
+        Lagen.MarktSetzen(); // Lagen aller Rohstoffquellen auf ihre Waren, die Ernte zuerst (Datenversion 91/92)
         Schiffahrt.MarktSetzen(); // Landhandel, solange der Schiffshandel ruht (Datenversion 70)
     }
 
@@ -659,6 +663,7 @@ public sealed partial class Stadtwirtschaft
         EinwohnerZaehlen();
         Jahreszeiten.Minute(zeit); // Meldungen zur Jahreszeit; im Eis ruhen die Schiffe (vor Karren und Schiffen dieser Minute)
         Ernte.Minute(zeit); // Ansage der Ernte (Sommerjahr) bzw. die Ernte selbst (Herbstjahr)
+        Lagen.Minute(zeit); // Ansage bzw. Beginn der Lagen der anderen Rohstoffquellen (Datenversion 92)
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)
@@ -674,7 +679,8 @@ public sealed partial class Stadtwirtschaft
             if (IstArbeitszeit(betrieb, zeit))
             {
                 var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
-                betrieb.Arbeitsminute(_stillstandMelden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb), volk);
+                betrieb.Arbeitsminute(_stillstandMelden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb)
+                    * Lagen.Ertragsfaktor(betrieb), volk);
             }
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los – um 20 Uhr und, mit gauner.nachtVersuche, zu jeder vollen

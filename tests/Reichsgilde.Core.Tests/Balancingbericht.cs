@@ -19,6 +19,7 @@ using Reichsgilde.Core.Wirtschaft;
 //                                                                          [--schwer=nein]   (KI-Stärke ohne die Partien „Schwer“)
 //                                                                          [--startplaetze=vorgabe]   (ohne Los der Hofstellen, wie vor dem 9.11.2026)
 //                                                                          [--haerte=mild|ueberliefert|hart]   (Härte der Zeit aller Partien)
+//                                                                          [--lagen=aus|ernte|alle]   (Lagen der Rohstoffquellen: keine, nur Ernte, alle; Standard alle)
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
 //  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
@@ -136,7 +137,9 @@ static partial class Balancingbericht
         var uhr = Stopwatch.StartNew();
         Messpartie.Haerte = Schalter("haerte") is { } hd ? Enum.Parse<HaerteDerZeit>(hd, ignoreCase: true) : HaerteDerZeit.Ueberliefert; // --haerte=mild|hart
         Messpartie.OhneLos = Schalter("startplaetze") == "vorgabe"; // --startplaetze=vorgabe: ohne Los der Hofstellen (Vergleich, 09.11.2026)
-        var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
+        var lagen = Schalter("lagen") ?? "alle"; // --lagen=aus|ernte|alle (Datenversion 92)
+        if (lagen is not ("aus" or "ernte" or "alle")) throw new ArgumentException("--lagen=aus|ernte|alle");
+        var q = new Messquellen(Schalter("ohne"), anpassen: t => Messpartie.LagenWaehlen(t, lagen)); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         // ── Alle Partien, die die Abschnitte brauchen (gleiche Aufbauten nur einmal) ──
@@ -178,6 +181,7 @@ static partial class Balancingbericht
                 ["ohneAbschnitt"] = Schalter("ohne"),
                 ["startplaetze"] = Messpartie.OhneLos ? "vorgabe" : "gelost",
                 ["haerte"] = Messpartie.Haerte.ToString(),
+                ["lagen"] = lagen,
             },
             ["partien"] = auftraege.Count,
             ["partienMitFehler"] = fehler.Count,
