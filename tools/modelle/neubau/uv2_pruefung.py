@@ -7,6 +7,8 @@ Aus einem Messskript (laeuft in Blender, laedt das GLB selbst in eine leere Szen
     import uv2_pruefung as U
     zeilen, fehler = U.schwarze_flaechen(glb)          # Pruefung 12
     zeilen, fehler, werte = U.uv2_inseln(glb)          # UV2-Pruefung (werte: Zahlen fuer die Tabelle)
+    zeilen, fehler, werte = U.uv2_dichte(glb)          # Dichte und typischer Inselrand
+    zeilen, fehler = U.normal_orm(glb)                 # Normalmap und ORM des Blatts
 
 Allein (Ausgabe mit Praefix PRUEFUNG, Rueckgabewert 1 bei Fehlern):
 
@@ -43,6 +45,18 @@ Grenzwerte uv2_inseln (Inseln = Flaechen, die in der UV2 eine Kante teilen; alle
     mit dem Rand der Nachbarinsel fuellt; ueberlappende Inseln (Abstand 0) sind immer Fehler.
   Smart UV Project mit Inselrand 0,003 (wohnhaus_mensch_s1_g1.uv2_und_ao) ergibt in einer Zelle von 512 Bildpunkten gemessen
   3,9 bis 4 Bildpunkte (Mensch Stufe 1, 15.11.2026); mit 0,02 waren es ueber 4, dafuer lagen ganze Mauerstuecke auf 1–2 Bildpunkten.
+
+Grenzwerte uv2_dichte (abgeleitet aus Mensch Stufe 1, 15.11.2026: neu aussen 200–264, innen 524–629 Bildpunkte je m2, Rand
+3,9–4,0; mit Inselrand 0,02 aussen 29–40, innen 83–97, Rand 10,1–10,3):
+  * Median der Dichte (Bildpunkte je m2, nach Flaeche gewichtet) mindestens 150 aussen bzw. 300 innen (dichte_min=);
+  * typischer Inselrand = Median ueber alle Inseln des Abstands zur naechsten Insel (gesucht bis 24 Bildpunkte): 2 bis 6
+    Bildpunkte – darueber verschwendet der Rand Flaeche und drueckt die Dichte (Inselrand 0,02 ergibt rund 10), darunter
+    laufen die Inseln beim Filtern ineinander.
+Grenzwerte normal_orm (je Trim-Flaeche ab 100 cm2, Stichproben an den UV-Punkten; neu gemessen: groesste Abweichung der
+Normalmap im Mittel einer Flaeche 0,25 im Rot-Kanal auf Stroh):
+  * <blatt>_normal.png und <blatt>_orm.png vorhanden und so gross wie <blatt>_albedo.png;
+  * Normalmap im Mittel nahe (0,5, 0,5, 1): Blau mindestens 0,6, Rot und Gruen hoechstens 0,35 von 0,5 entfernt;
+  * ORM: Verdeckung (R) im Mittel mindestens 0,05, Rauheit (G) nicht auf der ganzen Flaeche 0 bzw. 1 (Abstand 0,01).
 """
 import json
 import math
@@ -72,6 +86,13 @@ DECKUNG_MIN = 0.002
 EBENE_TOL = 0.002                     # zwei Flaechen gelten als eine Ebene bis 2 mm Abstand
 DICHTE_ANTEIL_MIN = 0.25
 RAND_MIN = 1.0
+# Dichte und typischer Rand (uv2_dichte), Normalmap und ORM (normal_orm): siehe Kopf
+DICHTE_MIN_AUSSEN = 150.0
+DICHTE_MIN_INNEN = 300.0
+RAND_TYP_MIN, RAND_TYP_MAX = 2.0, 6.0
+RAND_SUCHE = 24.0
+NORMAL_B_MIN, NORMAL_RG_ABW = 0.6, 0.35
+ORM_AO_MIN, ORM_RAU_RAND = 0.05, 0.01
 LISTE_MAX = 5                         # so viele Fundstellen je Fehlerart in der Ausgabe (--alle: alle)
 
 
@@ -443,6 +464,166 @@ def uv2_inseln(glb, atlas=None):
     return zeilen, anzahl, werte
 
 
+def _insel_netz(kante):
+    """UV2 aller Objekte der geladenen Szene als Inseln: (Inseln {Wurzel: [Flaeche]}, Flaechen, Randkanten [(a, b, Wurzel)]).
+    Flaeche = (Punkte in Bildpunkten, Bildpunkte, Flaeche 3D, Ort)."""
+    rund = lambda uv: (round(uv[0] * kante * 64), round(uv[1] * kante * 64))
+    flaechen, schluessel = [], []
+    for o in bpy.data.objects:
+        if not _mit_uv2(o): continue
+        mw = o.matrix_world
+        uv2 = o.data.uv_layers[1]
+        for p in o.data.polygons:
+            pts = [(uv2.data[i].uv[0] * kante, uv2.data[i].uv[1] * kante) for i in p.loop_indices]
+            bp = abs(sum(pts[i][0] * pts[(i + 1) % len(pts)][1] - pts[(i + 1) % len(pts)][0] * pts[i][1] for i in range(len(pts)))) / 2
+            ecken = [mw @ o.data.vertices[i].co for i in p.vertices]
+            f3 = sum(((ecken[k] - ecken[0]).cross(ecken[k + 1] - ecken[0])).length / 2 for k in range(1, len(ecken) - 1))
+            c = mw @ p.center
+            flaechen.append((pts, bp, f3, f"{o.name.split('.')[0]} ({c.x:.2f}, {c.y:.2f}, {c.z:.2f})"))
+            schluessel.append([rund(uv2.data[i].uv) for i in p.loop_indices])
+    eltern = list(range(len(flaechen)))
+
+    def wurzel(i):
+        while eltern[i] != i:
+            eltern[i] = eltern[eltern[i]]; i = eltern[i]
+        return i
+    kanten = {}
+    for fi, schl in enumerate(schluessel):
+        for k in range(len(schl)):
+            e = tuple(sorted((schl[k], schl[(k + 1) % len(schl)])))
+            if e[0] == e[1]: continue
+            if e in kanten: eltern[wurzel(fi)] = wurzel(kanten[e][0])
+            kanten.setdefault(e, []).append(fi)
+    inseln = {}
+    for fi in range(len(flaechen)): inseln.setdefault(wurzel(fi), []).append(fi)
+    rand = [((e[0][0] / 64, e[0][1] / 64), (e[1][0] / 64, e[1][1] / 64), wurzel(fl[0])) for e, fl in kanten.items() if len(fl) == 1]
+    return inseln, flaechen, rand
+
+
+def uv2_dichte(glb, atlas=None, dichte_min=None, rand_min=None, rand_max=None):
+    """UV2-Dichte und typischer Inselrand (Grenzwerte im Kopf). Rueckgabe (Zeilen, Fehlerzahl, Werte) mit Werte =
+    dict(dichte_median, dichte_p10, rand_median, inseln). dichte_min ohne Angabe: DICHTE_MIN_AUSSEN bzw. DICHTE_MIN_INNEN."""
+    atlas = atlas or atlas_von(glb)
+    _lade_glb(glb)
+    kante = atlas["kante"]
+    if dichte_min is None: dichte_min = DICHTE_MIN_INNEN if atlas["innen"] else DICHTE_MIN_AUSSEN
+    rand_min = RAND_TYP_MIN if rand_min is None else rand_min
+    rand_max = RAND_TYP_MAX if rand_max is None else rand_max
+    inseln, flaechen, rand = _insel_netz(kante)
+    # Dichte (Bildpunkte je m2) je Insel, gewichtet nach der Flaeche: Median und 10-%-Wert
+    dichten = []
+    for fl in inseln.values():
+        f3 = sum(flaechen[i][2] for i in fl)
+        if f3 > 1e-6: dichten.append((sum(flaechen[i][1] for i in fl) / f3, f3))
+    dichten.sort()
+    ganz = sum(f for _, f in dichten)
+
+    def anteil(q):
+        s = 0.0
+        for d, f in dichten:
+            s += f
+            if s >= q * ganz: return d
+        return dichten[-1][0] if dichten else 0.0
+    median, p10 = anteil(0.5), anteil(0.1)
+    # typischer Inselrand: je Insel der Abstand zur naechsten anderen Insel (gesucht bis RAND_SUCHE Bildpunkte), davon der Median
+    g = 8.0
+    gitter = {}
+    for ri, (a, b, _w) in enumerate(rand):
+        for gx in range(int(math.floor(min(a[0], b[0]) / g)), int(math.floor(max(a[0], b[0]) / g)) + 1):
+            for gy in range(int(math.floor(min(a[1], b[1]) / g)), int(math.floor(max(a[1], b[1]) / g)) + 1):
+                gitter.setdefault((gx, gy), []).append(ri)
+    naechste = {}
+    r_bins = int(math.ceil(RAND_SUCHE / g))
+    for a, b, w in rand:
+        gx0, gx1 = int(math.floor(min(a[0], b[0]) / g)) - r_bins, int(math.floor(max(a[0], b[0]) / g)) + r_bins
+        gy0, gy1 = int(math.floor(min(a[1], b[1]) / g)) - r_bins, int(math.floor(max(a[1], b[1]) / g)) + r_bins
+        best = naechste.get(w, RAND_SUCHE)
+        gesehen = set()
+        for gx in range(gx0, gx1 + 1):
+            for gy in range(gy0, gy1 + 1):
+                for rj in gitter.get((gx, gy), ()):
+                    if rj in gesehen: continue
+                    gesehen.add(rj)
+                    c, d, w2 = rand[rj]
+                    if w2 == w: continue
+                    best = min(best, _seg_abstand(a, b, c, d))
+        naechste[w] = best
+    werte_rand = sorted(naechste.values())
+    rand_median = werte_rand[len(werte_rand) // 2] if werte_rand else RAND_SUCHE
+    fehler = []
+    if median < dichte_min:
+        fehler.append(f"Dichte zu gering: Median {median:.0f} Bildpunkte je m2 (Soll >= {dichte_min:.0f})")
+    if not (rand_min <= rand_median <= rand_max):
+        art = "zu breit" if rand_median > rand_max else "zu schmal"
+        fehler.append(f"Inselrand {art}: Median {rand_median:.1f} Bildpunkte (Soll {rand_min:.0f} bis {rand_max:.0f})")
+    werte = dict(dichte_median=median, dichte_p10=p10, rand_median=rand_median, inseln=len(inseln))
+    zeilen = [f"   {len(inseln)} Inseln; Dichte Median {median:.0f}, 10-%-Wert {p10:.0f} Bildpunkte je m2 (Soll Median >= {dichte_min:.0f}); "
+              f"Inselrand Median {rand_median:.1f} Bildpunkte (Soll {rand_min:.0f} bis {rand_max:.0f})"]
+    zeilen += ["   FEHLER " + f for f in fehler]
+    return zeilen, len(fehler), werte
+
+
+def normal_orm(glb, texturen=None, blatt=None, atlas=None, trim_frei=TRIM_FREI):
+    """Normalmap und ORM des Blatts an den UV-Punkten jeder Trim-Flaeche (Grenzwerte im Kopf). Rueckgabe (Zeilen, Fehlerzahl)."""
+    import numpy as np
+    atlas = atlas or atlas_von(glb)
+    texturen = texturen or TEXTUREN
+    blatt = blatt or ("innen_trim" if atlas["innen"] else "trim")
+    fehler = {}
+
+    def melde(art, text):
+        fehler.setdefault(art, []).append(text)
+    bilder = {}
+    for art in ("albedo", "normal", "orm"):
+        pfad = os.path.join(texturen, f"{blatt}_{art}.png")
+        if not os.path.exists(pfad):
+            melde("Bild fehlt", pfad); continue
+        im = bpy.data.images.load(pfad); im.colorspace_settings.name = "Non-Color"
+        w, h = im.size
+        a = np.empty(w * h * 4, dtype=np.float32); im.pixels.foreach_get(a)
+        bpy.data.images.remove(im)
+        bilder[art] = a.reshape(h, w, 4)
+    if "albedo" in bilder:
+        for art in ("normal", "orm"):
+            if art in bilder and bilder[art].shape != bilder["albedo"].shape:
+                melde("Bildgroesse", f"{blatt}_{art}.png {bilder[art].shape[1]} x {bilder[art].shape[0]} statt wie die Albedo")
+    _lade_glb(glb)
+    nrm, orm = bilder.get("normal"), bilder.get("orm")
+
+    def wert(img, u, v):
+        h, w = img.shape[:2]
+        return img[min(max(int(v * h), 0), h - 1), min(max(int((u % 1.0) * w), 0), w - 1), :3]
+    gew = [(a_, b_, 1 - a_ - b_) for a_ in (0.1, 0.3, 0.5, 0.7) for b_ in (0.1, 0.3, 0.5, 0.7) if a_ + b_ <= 0.9]
+    geprueft = 0
+    for o in bpy.data.objects:
+        if not _mit_uv2(o) or nrm is None or orm is None: continue
+        mw = o.matrix_world
+        uv1 = o.data.uv_layers[0]
+        for p in o.data.polygons:
+            if not o.data.materials or o.data.materials[p.material_index] is None: continue
+            mat = o.data.materials[p.material_index].name.split(".")[0]
+            if mat in trim_frei or p.area < AO_FLAECHE_MIN: continue
+            geprueft += 1
+            u = [uv1.data[i].uv for i in p.loop_indices]
+            stich = [(g0 * u[0].x + g1 * u[k].x + g2 * u[k + 1].x, g0 * u[0].y + g1 * u[k].y + g2 * u[k + 1].y)
+                     for k in range(1, len(u) - 1) for g0, g1, g2 in gew]
+            c = mw @ p.center
+            ort = f"{o.name.split('.')[0]} ({c.x:.2f}, {c.y:.2f}, {c.z:.2f}) {mat}"
+            n = np.mean([wert(nrm, x, y) for x, y in stich], axis=0)
+            if n[2] < NORMAL_B_MIN or abs(n[0] - 0.5) > NORMAL_RG_ABW or abs(n[1] - 0.5) > NORMAL_RG_ABW:
+                melde("Normalmap leer oder schief", f"{ort} ({n[0]:.2f}, {n[1]:.2f}, {n[2]:.2f})")
+            werte = np.array([wert(orm, x, y) for x, y in stich])
+            ao_, rau = float(werte[:, 0].mean()), werte[:, 1]
+            if ao_ < ORM_AO_MIN: melde("ORM: Verdeckung 0", f"{ort} {ao_:.2f}")
+            if rau.max() <= ORM_RAU_RAND or rau.min() >= 1 - ORM_RAU_RAND:
+                melde("ORM: Rauheit flaechig 0 oder 1", f"{ort} {rau.min():.2f}..{rau.max():.2f}")
+    zeilen, anzahl = [f"   {geprueft} Trim-Flaechen geprueft (Blatt {blatt}: Normalmap und ORM)"], 0
+    for art, liste in sorted(fehler.items()):
+        anzahl += len(liste)
+        zeilen.append(f"   FEHLER {art}: {len(liste)} (" + "; ".join(liste[:LISTE_MAX]) + (" ..." if len(liste) > LISTE_MAX else "") + ")")
+    return zeilen, anzahl
+
+
 def main():
     global LISTE_MAX
     opt = _optionen()
@@ -451,12 +632,18 @@ def main():
     atlas = atlas_von(glb, opt.get("atlas-json"), opt.get("gruppe"), opt.get("modell"))
     z1, f1 = schwarze_flaechen(glb, opt.get("texturen"), opt.get("blatt"), atlas)
     z2, f2, _w = uv2_inseln(glb, atlas)
+    z3, f3, _w = uv2_dichte(glb, atlas)
+    z4, f4 = normal_orm(glb, opt.get("texturen"), opt.get("blatt"), atlas)
     print(f"PRUEFUNG {glb}")
     print(f"PRUEFUNG 12. Keine schwarze Flaeche: {'ok' if not f1 else str(f1) + ' FEHLER'}")
     for z in z1: print("PRUEFUNG " + z)
     print(f"PRUEFUNG UV2-Inseln: {'ok' if not f2 else str(f2) + ' FEHLER'}")
     for z in z2: print("PRUEFUNG " + z)
-    if f1 + f2: sys.exit(1)
+    print(f"PRUEFUNG UV2-Dichte und Inselrand: {'ok' if not f3 else str(f3) + ' FEHLER'}")
+    for z in z3: print("PRUEFUNG " + z)
+    print(f"PRUEFUNG Normalmap und ORM: {'ok' if not f4 else str(f4) + ' FEHLER'}")
+    for z in z4: print("PRUEFUNG " + z)
+    if f1 + f2 + f3 + f4: sys.exit(1)
 
 
 if __name__ == "__main__":

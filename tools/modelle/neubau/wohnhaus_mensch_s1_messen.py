@@ -26,6 +26,11 @@ Giebel bei vorn/hinten, Giebelachse x = 0). Prueft:
      keine deckungsgleichen Flaechen.
  13. UV2-Inseln, aussen und innen (uv2_pruefung.uv2_inseln): kleinste Insel ab 0,05 m2 mindestens 2 Bildpunkte, keine Insel
      unter einem Viertel der mittleren Dichte, kleinster Inselrand mindestens 1 Bildpunkt, keine ueberlappenden Inseln.
+ 14. UV2-Dichte und Inselrand, aussen und innen (uv2_pruefung.uv2_dichte): Median der Dichte mindestens 150 (aussen) bzw.
+     300 Bildpunkte je m2 (innen), Median des Abstands jeder Insel zur naechsten 2 bis 6 Bildpunkte (ein Inselrand von 0,02
+     verschwendet Flaeche und drueckt die Dichte).
+ 15. Normalmap und ORM, aussen und innen (uv2_pruefung.normal_orm): Blaetter vorhanden und so gross wie die Albedo; je
+     Trim-Flaeche Normalmap im Mittel nahe (0,5, 0,5, 1), ORM mit Verdeckung nicht 0 und Rauheit nicht flaechig 0 oder 1.
 --gegenprobe: dieselben Pruefungen an einem aelteren Stand (--ordner, fuer 12 dazu --texturen=<ordner der Trim-Sheets und
 Atlanten>), die Fehler finden muessen.
 Rueckgabewert 1 bei Fehlern (ohne --gegenprobe).
@@ -392,6 +397,12 @@ def pruefe(haus, ordner):
         zu, fu, _w = U.uv2_inseln(glb)
         zeilen.append(f"13. UV2-Inseln {'innen' if teil else 'aussen'} (kleinste Insel, Dichte, Inselrand): {'ok' if not fu else str(fu) + ' FEHLER'}")
         zeilen += zu; fehler += fu
+        zd, fd, _w = U.uv2_dichte(glb)
+        zeilen.append(f"14. UV2-Dichte und Inselrand {'innen' if teil else 'aussen'}: {'ok' if not fd else str(fd) + ' FEHLER'}")
+        zeilen += zd; fehler += fd
+        zn, fn = U.normal_orm(glb, texturen=TEXTUREN)
+        zeilen.append(f"15. Normalmap und ORM {'innen' if teil else 'aussen'}: {'ok' if not fn else str(fn) + ' FEHLER'}")
+        zeilen += zn; fehler += fn
     return zeilen, fehler
 
 
