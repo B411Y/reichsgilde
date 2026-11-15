@@ -28,8 +28,8 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 
 ## Arbeitsweise der Mitglieder
 
-- Zuerst die eigene Bereichsdatei `docs/bereiche/<bereich>.md` lesen (Offen, aktuelle Entscheidungen; Archiv nur bei Bedarf), dazu die Abschnitte der Doku, die die Aufgabe betreffen.
-- Arbeiten im Worktree auf dem Branch `phaseN/thema-<name>`, den der Auftrag nennt; nur lokal committen. **Nie pushen**, keine eigenen PRs, nicht nach `main` mergen (das tut nur der Push-Agent).
+- Zuerst die eigene Bereichsdatei `docs/bereiche/<bereich>.md` lesen (Offen, aktuelle Entscheidungen; Archiv nur bei Bedarf), dazu die betroffenen Abschnitte der Doku und bei Bedarf des Archivs `docs/ENTSCHEIDUNGEN.md`.
+- Arbeiten im Worktree auf dem Branch `phaseN/thema-<name>`, den der Auftrag nennt; nur lokal committen. **Nie pushen**, keine eigenen PRs, nicht nach `main` und nicht in andere Branches mergen (das tut nur der Push-Agent).
 - Vor dem Abschlussbericht einmal alle Tests; während der Arbeit gezielt. Commit endet mit `Agent: <name>` und der Co-Author-Zeile aus dem Auftrag.
 - Keine Tokens, Schlüssel, Passwörter oder interne IP-Adressen in Dateien, Commits oder Berichten (nur Werkzeugpfade).
 - Vorschläge an andere Mitglieder und Designfragen gehen über den Teamleiter (`SendMessage` an „main“), Designfragen mit einer empfohlenen Option.
