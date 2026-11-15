@@ -126,6 +126,7 @@ public partial class MarktAnzeige : PanelContainer
                                  "Grün ▲ über dem Grundpreis – gut zum Verkaufen; rot ▼ darunter – gut zum Einkaufen. " +
                                  "Die gelbe Zahl im Bild: so viel liegt in euren Lagern. Einzelheiten zeigt der Mauszeiger.", 12, Grau, umbruchBreite: Spalten * (Kachelbreite + 6));
 
+        _ernte = w.Ernte.IstAktiv ? Hauptmenue.Text(_inhalt, "", 13, Gold, umbruchBreite: Spalten * (Kachelbreite + 6)) : null;
         if (w.Daten.Handel is not null && _spieler is not null)
             HandelAufbauen(w);
         VorschauAufbauen(w);
@@ -216,6 +217,7 @@ public partial class MarktAnzeige : PanelContainer
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         HandelAktualisieren(w);
         VorschauAktualisieren(w);
+        ErnteAktualisieren(w);
         var vorschau = w.Befugnisse.Marktvorschau(_spieler).ToDictionary(v => v.Ware); // leer, wenn der Spieler nicht Marktmeister ist
         var d = w.Daten;
         var waehrung = d.Allgemein.Waehrung;
@@ -251,6 +253,7 @@ public partial class MarktAnzeige : PanelContainer
                            $"Gewinn je Arbeitsminute {Zahlenformat.Kommazahl(Kalkulation.GewinnJeArbeitsminute(w, ware))} {waehrung}");
             if (w.Gastwirtschaft.IstAktiv && w.Gastwirtschaft.Daten.Ausschank.Contains(ware))
                 zeilen.Add($"Wird in Schänken ausgeschenkt: {Zahlenformat.Kommazahl(w.Gastwirtschaft.Ausschankpreis(ware))} {waehrung} je Gast");
+            if (ErnteZeile(w, ware) is { } ernteZeile) zeilen.Add(ernteZeile);
             if (bestand > 0)
                 zeilen.Add($"In euren Lagern: {bestand}");
             if (vorschau.TryGetValue(ware, out var naechste))
@@ -265,6 +268,34 @@ public partial class MarktAnzeige : PanelContainer
     // ═════════════════════════════════════════════════════════════════════════
 
     private Label? _vorschau;
+    private Label? _ernte;
+
+    /// <summary>Die Zeile über den Waren: die gültige Ernte und, im Sommerjahr, die Ansage der nächsten (Erntejahre, Nutzer 15.11.2026).</summary>
+    private void ErnteAktualisieren(Stadtwirtschaft w)
+    {
+        if (_ernte is null) return;
+        var zeilen = new List<string>();
+        if (w.Ernte.Jetzt is { } jetzt)
+            zeilen.Add($"Ernte {jetzt.Erntejahr}: {Erntewesen.Text(jetzt.Guete)} – gilt bis zum Herbst {jetzt.LetztesJahr + 1}");
+        else
+            zeilen.Add("Noch keine Ernte eingebracht.");
+        if (w.Ernte.Angesagt is { } a)
+            zeilen.Add($"Angesagt für Herbst {a.Erntejahr}: {Erntewesen.Text(a.Guete)}");
+        var text = string.Join("\n", zeilen);
+        if (_ernte.Text != text) _ernte.Text = text;
+    }
+
+    /// <summary>Tooltip-Zeile einer Ware, die von der Ernte abhängt, sonst null: „Ernte 1406: eine Missernte – Preis ×1,6“.</summary>
+    private static string? ErnteZeile(Stadtwirtschaft w, string ware)
+    {
+        if (!w.Ernte.Waren.Contains(ware)) return null;
+        var teile = new List<string>();
+        if (w.Ernte.Jetzt is { } j)
+            teile.Add($"Ernte {j.Erntejahr}: {Erntewesen.Text(j.Guete)} – Menge ×{Zahlenformat.Kommazahl(w.Ernte.Faktor(ware, j.Guete))}");
+        if (w.Ernte.Angesagt is { } a)
+            teile.Add($"angesagt für Herbst {a.Erntejahr}: {Erntewesen.Text(a.Guete)}");
+        return teile.Count == 0 ? null : string.Join("; ", teile);
+    }
 
     /// <summary>Nur für den Marktmeister: die Preise der nächsten Stunde – die Waren, deren Preis sich am meisten ändert.</summary>
     private void VorschauAufbauen(Stadtwirtschaft w)

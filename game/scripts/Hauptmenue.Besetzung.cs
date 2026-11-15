@@ -393,6 +393,14 @@ public partial class Hauptmenue
         _zielvermoegen = Zahl(10_000, 10_000_000, 10_000, 200_000, " Gulden");
         _zielZeile = Zeile(raster, "Zielvermögen", _zielvermoegen);
 
+        _haerte = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        foreach (var h in Partieeinstellungen.HaertenZurWahl)
+            _haerte.AddItem(Partieeinstellungen.HaerteText(h), (int)h);
+        _haerte.Select(_haerte.GetItemIndex((int)Partieeinstellungen.Standard.HaerteDerZeit));
+        _haerte.TooltipText = "Wie oft und wie stark gute und schlechte Ernten kommen. Der Preis der Getreidewaren folgt der Ernte, ein Jahr vorher gibt es eine Ansage.\n" +
+                              "Milde Jahre: Missernten sind selten und schwach.\nWie überliefert: Häufigkeit und Stärke nach der Überlieferung.\nHarte Jahre: Missernten sind häufiger und stärker.";
+        Zeile(raster, "Härte der Zeit", _haerte);
+
         _dauer = Zahl(1, 120, 1, 15, " Min.");
         Zeile(raster, "Dauer eines Spieljahres", _dauer);
 
