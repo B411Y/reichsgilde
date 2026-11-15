@@ -50,7 +50,7 @@ static class SteinebenenTests
         ("Steinebenen: Dateiname eines Außenhauses → Ebene und AO-Ebene, sonst keine", () =>
         {
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s1_g1") == (0, 0), "Mensch S1");
-            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s3_g4") == (2, 0), "Mensch S3");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s3_g4") == (2, 3), "Mensch S3 (eigener AO-Atlas)");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s2_g1") == (4, 1), "Zwerg S2");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s1_g1_innen") is null, "innen gehört nicht ins Häuser-Array");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/rathaus") is null, "Rathaus hat ein eigenes Array");
