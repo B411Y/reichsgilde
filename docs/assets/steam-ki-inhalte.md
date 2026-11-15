@@ -16,7 +16,7 @@ Wortlaut der Regel vor der Angabe an der Quelle prüfen; die Zusammenfassung sta
 
 ## Ausgeliefert und für Spieler sichtbar (Pre-Generated)
 
-Zusammen: 168 × Audio, 1807 × Bild, 3 × Modell, 4 × Textur.
+Zusammen: 168 × Audio, 1811 × Bild, 3 × Modell, 4 × Textur.
 
 | Inhalt | Anzahl | Art | Werkzeug | Modell | Bemerkung |
 |---|---|---|---|---|---|
@@ -100,6 +100,7 @@ Zusammen: 168 × Audio, 1807 × Bild, 3 × Modell, 4 × Textur.
 | `game/assets/oberflaeche/zeiger/hand_*.png` | 48 | Bild | Handschuh-Vorlagen: Nutzerzeichnung, vom Nutzer mit Gemini überarbeitet (acht Bilder, nicht im Repository); gepixelt mit tools/oberflaeche/zeiger_aus_vorlage.py (Python, numpy und OpenImageIO aus Blender 5.2.2) | unbekannt (Gemini, vom Nutzer bedient) | Mauszeiger des Spiels (game/scripts/Mauszeiger.cs), Auswahl in den Einstellungen: acht Handschuhe (sechs nach Stand, Wache und Dieb nur zur Wahl) in 48, 64, 80 Pixel Handgröße (Bild mit Scheinrand 60, 80, 100), je normal und klick (klick = Schein beim Drüberfahren) (hand_<1..6\|wache\|dieb>_<normal\|klick>_<48\|64\|80>.png); ersetzt die Blender-Hände von Runde 16/17 (Commit 1e2c3d72); Zeigerpunkte stehen im Code |
 | `game/assets/oberflaeche/zeiger/hilfe_*.png` | 3 | Bild | Vorlage des Nutzers, mit Gemini erstellt (Bild nicht im Repository); freigestellt und verkleinert mit tools/oberflaeche/zeiger_hilfe.py (Python, numpy und Pillow) | unbekannt (Gemini, vom Nutzer bedient) | Hilfe-Mauszeiger (CursorShape.Help, game/scripts/Mauszeiger.cs) über den Zug-Icons im Charakterfenster; Spitze des Dreiecks als Zeigerpunkt (0,0); hilfe_<48\|64\|80>.png |
 | `game/assets/oberflaeche/zuege/*.png` | 22 | Bild | Google Gemini (App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App bzw. ChatGPT erzeugt, Modellversion dort nicht angezeigt) | Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository; ohne pilger und gelehrt (eigene Zeile) |
+| `game/assets/oberflaeche/zuege/{entstellt,einaeugig,lahm,verkrueppelt}.png` | 4 | Bild | ComfyUI auf dem Grafik-PC des Nutzers: Qwen-Image (Text zu Bild), Aufrufskript bild.py | unbekannt (Qwen-Image, Standard-Workflow reichsgilde_text_api mit Lightning-LoRA; Modelldatei nicht abgefragt) | Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository; Lizenzangabe des Modells nicht belegt, Qwen-Image steht sonst unter Apache-2.0 laut Protokoll der Geheimnis-Siegel |
 | `game/assets/oberflaeche/zuege/{pilger,gelehrt}.png` | 2 | Bild | ChatGPT-Bilderzeugung (OpenAI, App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App bzw. ChatGPT erzeugt, Modellversion dort nicht angezeigt) | Gemini-Limit erreicht, daher ChatGPT; Rohbilder nicht im Repository |
 | `game/assets/oberflaeche/zuege/{schwermuetig,reizbar}.png` | 2 | Bild | Google Gemini (App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App erzeugt, Modellversion dort nicht angezeigt) | Vorlage des Nutzers, mit Gemini erstellt (Austauschordner: vorlage_schwermuetig.webp – Mann mit dem Kopf in der Hand, Kerze; vorlage_reizbar.webp – Faust schlägt auf den Tisch); Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository |
 

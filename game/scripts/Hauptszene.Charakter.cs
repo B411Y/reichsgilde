@@ -78,6 +78,32 @@ public partial class Hauptszene
         Protokollieren("--stress: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerStress(person.Nummer, stress))));
     }
 
+    /// <summary>Startoption <c>--zug=</c>, wartet wie <c>--stress=</c> bis nach dem Vorspulen.</summary>
+    private string? _zugWartet;
+
+    /// <summary>
+    /// <c>--zug=&lt;Kennung[,Kennung…]&gt;[:oberhaupt|ehepartner|Personennummer]</c>: gibt dieser Person des eigenen Hauses (ohne Angabe dem Oberhaupt) die Züge über den
+    /// Entwicklerbefehl <see cref="Core.Entwickler.EntwicklerZug"/> – darum nur mit <c>--entwickler=1</c>. Kennungen mit der Schreibweise der Daten
+    /// (<c>Narbe</c>, <c>Entstellt</c>, <c>Einaeugig</c>, <c>Lahm</c>, <c>Verkrueppelt</c>). Für den Klicktest der Versehrungen, z. B.
+    /// <c>--entwickler=1 --zug=Lahm,Entstellt --charakter=oberhaupt</c>.
+    /// </summary>
+    private void ZugStartoption(string wert)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        var teile = wert.Split(':');
+        var familie = w.Familien.Von(_spieler);
+        var person = teile.Length < 2 || teile[1] == "oberhaupt" ? familie?.Oberhaupt
+            : teile[1] == "ehepartner" ? familie?.Ehepartner
+            : int.TryParse(teile[1], out var nr) ? w.Familien.PersonNummer(nr) : null;
+        if (person is null || teile[0].Length == 0)
+        {
+            Protokollieren($"--zug={wert}: erwartet <Kennung[,Kennung]>[:oberhaupt|ehepartner|Personennummer].");
+            return;
+        }
+        foreach (var kennung in teile[0].Split(','))
+            Protokollieren($"--zug={kennung}: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerZug(person.Nummer, kennung))));
+    }
+
     /// <summary>Das Oberhaupt des ersten anderen Hauses, das noch spielt (für <c>rivale</c>).</summary>
     private Core.Dynastie.Person? Rivale(Core.Wirtschaft.Stadtwirtschaft w) =>
         w.Konten.Where(k => k != _spieler && k.IstAktiv).Select(w.Familien.Von).OfType<Core.Dynastie.Familie>().FirstOrDefault()?.Oberhaupt;
