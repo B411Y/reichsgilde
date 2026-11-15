@@ -48,21 +48,25 @@ static class Datenpfad
     }
 
     /// <summary>
-    /// Die echten Daten ohne Abschnitt „ernte“ (Datenversion 91, Erntejahr und Teuerung), als Text mit derselben Formatierung – für Tests, die
-    /// bitgleich mit dem Kern davor rechnen. Die Ernte prüft ErnteTests.
+    /// Die echten Daten ohne die Abschnitte „ernte“ (Datenversion 91, Erntejahr und Teuerung) und „lagen“ (Datenversion 92, braucht „ernte“), als
+    /// Text mit derselben Formatierung – für Tests, die bitgleich mit dem Kern davor rechnen. Ernte und Lagen prüfen ErnteTests und LagenTests.
     /// </summary>
-    public static string OhneErnte(string? json = null)
+    public static string OhneErnte(string? json = null) => OhneTextabschnitt(OhneLagen(json), "ernte");
+
+    /// <summary>Die echten Daten ohne Abschnitt „lagen“ (Datenversion 92): nur die Ernte, wie in Datenversion 91 (mit deren Werten aus „ernte“).</summary>
+    public static string OhneLagen(string? json = null) => OhneTextabschnitt(json ?? File.ReadAllText(Wirtschaft()), "lagen");
+
+    private static string OhneTextabschnitt(string json, string name)
     {
-        json ??= File.ReadAllText(Wirtschaft());
-        const string anfang = "\n  \"ernte\": {";
+        var anfang = $"\n  \"{name}\": {{";
         var a = json.IndexOf(anfang, StringComparison.Ordinal);
         if (a < 0)
-            return System.Text.Json.Nodes.JsonNode.Parse(json)!["ernte"] is null ? json
-                : throw new InvalidDataException("Abschnitt „ernte“ steht nicht wie erwartet in den Daten – Datenpfad.OhneErnte anpassen.");
+            return System.Text.Json.Nodes.JsonNode.Parse(json)![name] is null ? json
+                : throw new InvalidDataException($"Abschnitt „{name}“ steht nicht wie erwartet in den Daten – Datenpfad anpassen.");
         var e = json.IndexOf("\n  },", a, StringComparison.Ordinal);
-        if (e < 0) throw new InvalidDataException("Ende des Abschnitts „ernte“ nicht gefunden.");
+        if (e < 0) throw new InvalidDataException($"Ende des Abschnitts „{name}“ nicht gefunden.");
         var ohne = json[..a] + json[(e + "\n  },".Length)..];
-        if (System.Text.Json.Nodes.JsonNode.Parse(ohne)!["ernte"] is not null) throw new InvalidDataException("„ernte“ nicht entfernt.");
+        if (System.Text.Json.Nodes.JsonNode.Parse(ohne)![name] is not null) throw new InvalidDataException($"„{name}“ nicht entfernt.");
         return ohne;
     }
 
