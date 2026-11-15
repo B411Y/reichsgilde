@@ -30,18 +30,37 @@ Wer im strengen Winter ein Schiff losschickt, bevor der Fluss zufriert, riskiert
 
 Seit Datenversion 91 („Härte um 1400“, Nutzer 15.11.2026) ist nicht jede Ernte gleich. Jede Ernte im **Herbstjahr** (1402, 1406, …) ist **gut**, **gewöhnlich**, **mager** oder eine **Missernte**. Sie gilt bis zur nächsten Ernte, also vier Spieljahre (Herbst, Winter, Frühling, Sommer). Sie ändert, wie viel Bauern und Händler auf den Markt bringen:
 
-| Ernte | Gerste, Roggen | Körnermahlzeit, Dünnbier, Starkbier, Festbier |
+| Ernte | Gerste, Roggen | Weingeist, Körnermahlzeit, Dünnbier (seit Datenversion 92) |
 |---|---|---|
-| gut | 25 % mehr (Preis gut 10 % tiefer) | 12,5 % mehr |
+| gut | 25 % mehr (Preis gut 10 % tiefer) | 6,25 % mehr |
 | gewöhnlich | wie sonst | wie sonst |
-| mager | 25 % weniger (Preis gut 15 % höher) | 12,5 % weniger |
-| Missernte | halb so viel (Preis gut 40 % höher) | 25 % weniger |
+| mager | 25 % weniger (Preis gut 15 % höher) | 6,25 % weniger |
+| Missernte | halb so viel (Preis gut 40 % höher) | 12,5 % weniger |
 
 Die Werte gelten für „Wie überliefert“. Was Spieler und KI-Häuser selbst verkaufen, drückt den Preis wie immer. Die Preisgrenzen des Markts (halber bis doppelter Grundpreis) bleiben.
 
 - **Ansage ein Jahr vorher:** Zu Beginn des Sommerjahres meldet das Spiel, wie die Ernte im Herbst ausfällt, z. B. „Ein nasser Sommer: Im Herbst 1406 droht eine magere Ernte – Gerste, Roggen, … werden teurer. Wer jetzt einlagert, verkauft später besser.“ Die Ansage trifft immer ein. Zu Beginn des Herbstjahres kommt die Meldung zur Ernte selbst.
 - **Wer Vorräte hat, gewinnt:** Wer im Sommer vor einer schlechten Ernte Getreide einlagert, verkauft es danach teurer. Brauer und Wirte zahlen mehr für Gerste, bekommen aber auch mehr für Bier und Mahlzeit.
 - **Keine Abwärtsspirale:** Nach einer Missernte ist die nächste Ernte nie mager und keine Missernte (Schonjahr). Der Faktor jeder Ware bleibt zwischen 0,35 und 1,5.
+- **Dein eigener Bauernhof** liefert in einem schlechten Jahr auch weniger, aber nur halb so stark wie der Markt (Missernte: drei Viertel). Den höheren Preis bekommst du trotzdem – wer selbst erntet, kommt glimpflich davon, wer zukauft, zahlt drauf.
+
+## Lagen der anderen Rohstoffquellen
+
+Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquelle**, nicht nur für das Getreide – sonst träfe es nur den Wirt. Jede Quelle hat alle vier Jahre eine **Lage**: gut, gewöhnlich, schlecht oder schwer, mit genau denselben Chancen, Stärken, Grenzen, Schonjahren und der Ansage ein Jahr vorher wie die Ernte (gut = „gute Ernte“, schlecht = „mager“, schwer = „Missernte“). Jeder Beruf mit Rohwaren ist also gleich oft betroffen. Die Lage verschiebt die Rohwaren der Quelle voll und die Waren der ersten Werkstatt zu einem Viertel; dein eigener Umlandbetrieb liefert halb so stark mehr oder weniger.
+
+| Quelle (Beruf) | beginnt im | gut | schlecht | schwer |
+|---|---|---|---|---|
+| Bauernhof (Wirt) | Herbst | gute Ernte | magere Ernte | Missernte |
+| Grube (Schmied) | Frühling | reiche Ader (Silber voll, Eisen halb) | Wassereinbruch | Stollen eingestürzt |
+| Holzschlag (Tischler) | Winter | Sturmbruch | grundlose Wege | Bannwald |
+| Steinbruch (Steinmetz) | Herbst | neue Bank (Granit voll, Bruchstein halb) | Wasser im Bruch | Felssturz |
+| Kräutergarten (Alchimist) | Sommer | feuchtes Jahr | Dürre (Kröten halb) | Kräuter-Missernte |
+| Klosterhof (Prediger) | Frühling | gutes Bienenjahr | kalter Frühling | Bienensterben |
+| Duftgarten (Parfumeur) | Sommer | üppige Blüte | Spätfrost | Hagelschlag |
+
+Folgewaren (je ein Viertel): Beschlag, Dolch, Silberring · Holzzapfen, Schemel, Truhe · Schleifziegel, Grabstein, Mühlstein · Farbe, Kräuterschnaps, Heilsalbe · Papier, Kerze, Lehrschrift · Politur, Blume der Zwietracht, Giftdolch. Beim Klosterhof trifft es Wachs voll und Lumpen halb.
+
+Die Ansage kommt zu Beginn des Jahres davor, z. B. „Die Schneeschmelze drückt Wasser in die Stollen: Im Frühling 1404 droht ein Wassereinbruch in den Gruben – Eisen und Silber werden teurer. Wer jetzt einlagert, verkauft später besser.“ Gewöhnliche Lagen werden nicht gemeldet (außer bei der Ernte). Dieb, Geldleiher und Gardist haben keine Rohwaren und keine Lage; sie spüren nur die Preise.
 
 ### Härte der Zeit
 
@@ -64,7 +83,7 @@ Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt 
 Die KI-Häuser wissen dasselbe wie du:
 - Im strengen Winter lassen sie ihre Schiffe am Kai, schon bevor der Fluss zufriert, und schicken sie erst nach dem Eisgang wieder los. Damit nach dem Eisgang oder zum Festmarkt nicht alle zugleich mit derselben Fracht zur selben Stadt fahren, rechnet jedes Schiff mit denen, die schon unterwegs sind (siehe [Wirtschaft und Handel](wirtschaft-und-handel.md), Hafen und Schiffe).
 - Im Herbst ab 17 Uhr füllen ihre Verwalter die Zutaten, die im Winter teurer werden oder jetzt mit der Ernte billig sind (Holz, Gerste, Roggen, Kräuter), bis zur Lagergrenze auf.
-- Erntejahre treffen sie nach denselben Regeln wie dich: Sie kaufen und verkaufen zu den Preisen des Markts. Auf die Ansage hin lagern sie noch nicht gezielt ein.
+- Erntejahre und Lagen treffen sie nach denselben Regeln wie dich: Sie kaufen und verkaufen zu den Preisen des Markts, ihre Umlandbetriebe liefern wie deine. Auf die Ansage hin lagern sie noch nicht gezielt ein.
 
 ## Für Entwickler
 
