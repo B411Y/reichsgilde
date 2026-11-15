@@ -187,6 +187,9 @@ static class Messpartie
     /// </summary>
     public static bool OhneLos;
 
+    /// <summary>„Härte der Zeit“ aller Partien (<c>--haerte=mild|ueberliefert|hart</c>; „Härte um 1400“ PR 1).</summary>
+    public static HaerteDerZeit Haerte = HaerteDerZeit.Ueberliefert;
+
     /// <summary>
     /// Die Karte mit weitergereichten Wohnhausplätzen: Bei Rotation r wohnt der i-te (Spieler = 0, dann die KI-Häuser) dort, wo vorher der
     /// (i + r)-te wohnte. Werkstattplätze bleiben – ihre Lage wirkt im Kern nicht (Fahrzeit nach Ort, nicht nach Weg).
@@ -224,7 +227,7 @@ static class Messpartie
         if ((a.Rotation > 0 || a.Startplaetze == Startplatzvergabe.Vorgabe) && Hofstellenvergabe.Startplaetze(karte) is { Count: > 0 } plaetze)
             neu = neu with { Hofstelle = plaetze[a.Rotation % plaetze.Count].Kennung, Startplaetze = Startplatzvergabe.Vorgabe };
         var (sim, spieler) = Partieaufbau.Erstellen(
-            Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit },
+            Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit, HaerteDerZeit = Haerte },
             daten, neu, karte: karte);
         var w = sim.Wirtschaft!;
         w.Meldung += m => KarrenZaehlen(ergebnis, m);

@@ -18,6 +18,7 @@ using Reichsgilde.Core.Wirtschaft;
 //                                                                          [--betriebe=datei.csv]   (jeder Betrieb je Jahr, Abschnitt „ausbau“)
 //                                                                          [--schwer=nein]   (KI-Stärke ohne die Partien „Schwer“)
 //                                                                          [--startplaetze=vorgabe]   (ohne Los der Hofstellen, wie vor dem 9.11.2026)
+//                                                                          [--haerte=mild|ueberliefert|hart]   (Härte der Zeit aller Partien)
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
 //  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
@@ -133,6 +134,7 @@ static partial class Balancingbericht
             Schalter("rotationen") is { } ro ? Math.Max(1, int.Parse(ro)) : null,
             Schalter("schwer") == "nein");
         var uhr = Stopwatch.StartNew();
+        Messpartie.Haerte = Schalter("haerte") is { } hd ? Enum.Parse<HaerteDerZeit>(hd, ignoreCase: true) : HaerteDerZeit.Ueberliefert; // --haerte=mild|hart
         Messpartie.OhneLos = Schalter("startplaetze") == "vorgabe"; // --startplaetze=vorgabe: ohne Los der Hofstellen (Vergleich, 09.11.2026)
         var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
@@ -175,6 +177,7 @@ static partial class Balancingbericht
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
                 ["ohneAbschnitt"] = Schalter("ohne"),
                 ["startplaetze"] = Messpartie.OhneLos ? "vorgabe" : "gelost",
+                ["haerte"] = Messpartie.Haerte.ToString(),
             },
             ["partien"] = auftraege.Count,
             ["partienMitFehler"] = fehler.Count,
