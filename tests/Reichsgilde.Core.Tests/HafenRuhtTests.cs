@@ -110,6 +110,7 @@ static class HafenRuhtTests
             Spielstandfelder.Ohne(n, Spielstandfelder.NurLaden); // nur fürs Laden (Datenversion 75), durchgehend ohne Wirkung
             Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
             Spielstandfelder.Ohne(n, Spielstandfelder.Hauschronik); // die Hauschronik (Datenversion 83): die Simulation liest sie nie
+            AlterSpielstandSollwertTests.OhneGrundstuecksverwaltung(n); // nur noch Bauzonen (15.11.2026): Werkstätten sind Grundstücke, keine Bauplätze
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
@@ -125,9 +126,12 @@ static class HafenRuhtTests
         "Schiffe 1 → 1, Fahrten 6",
         // Ohne das Erbgut der Personen (11.11.2026): gerechnet auf main 770c374a mit demselben Ablauf – dort mit Erbgut noch gleich den
         // Sollwerten vor dem Schalter (eff1eef3…, 46ceacc4…, 37185b3f…).
-        "251fc776248248679ed221f56e28bef2301978c6580469534b790d3dc892a754",
-        "b01bd17cc3d054c55c2c038e086ed6bfc55e9d744b08a7dc73486eac310c1bed",
-        "317386f4506249b9a64121890ac1eda08760a0a4b0f8cee904cf28d9e9b16055",
+        // Ohne die Grundstücksverwaltung (AlterSpielstandSollwertTests.OhneGrundstuecksverwaltung, 15.11.2026, „nur noch Bauzonen“): gerechnet auf
+        // main f7890512 mit demselben Ablauf – dort mit der Grundstücksverwaltung noch gleich den Sollwerten ohne Erbgut (251fc776…, b01bd17c…,
+        // 317386f4…). Die Häuser stehen dafür auf den Plätzen der Karte (Startplatzvergabe.Vorgabe), wie vor dem Startortlos.
+        "edf27c8527a7c39248e43144d35eabb6ade0d6f345514a281b0ca73d6726ad65",
+        "ec3782c67dcbbfd545e5eb1cb2edee8b622abad6007cc6a929b8624bd48f1358",
+        "aa1ba25ba024075bf030a81c4334a5b44fbc4629fdd80dae747983832c4551f4",
     };
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -135,7 +139,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(92, d.Version);
+            Pruefe.Gleich(93, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

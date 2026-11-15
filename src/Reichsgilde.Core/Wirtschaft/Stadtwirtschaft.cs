@@ -200,7 +200,8 @@ public sealed partial class Stadtwirtschaft
     public Bauen.Stadtkarte? Karte { get; private set; }
 
     /// <summary>
-    /// Legt die Karte der Stadt fest (einmal, gleich nach dem Erzeugen). Häuser, die es schon gibt, bekommen ihre Startplätze in Konto-Reihenfolge.
+    /// Legt die Karte der Stadt fest (einmal, gleich nach dem Erzeugen). Wo die Häuser wohnen und arbeiten, sagt die Karte nicht mehr
+    /// (15.11.2026, „nur noch Bauzonen“): Das lost der Aufbau der Partie in den Bauzonen (<see cref="Partie.Startortlos"/>).
     /// </summary>
     public void KarteSetzen(Bauen.Stadtkarte karte)
     {
@@ -208,8 +209,6 @@ public sealed partial class Stadtwirtschaft
         Karte = karte;
         karte.KlappbrueckeSetzen(Daten.Logistik.Klappbruecke?.Gewaesser);
         Kasse.KarteGesetzt(karte.Kennung);
-        for (var i = 0; i < _konten.Count; i++)
-            Bauen.StartplatzVergeben(_konten[i], i);
     }
 
     /// <summary>Völkerbonus als Faktor auf die Leistung: 1 + Bonus des Berufs für das Volk des Oberhaupts (1 ohne Familie).</summary>
@@ -496,7 +495,6 @@ public sealed partial class Stadtwirtschaft
         if (HatAktionspunkte)
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
-        Bauen.StartplatzVergeben(konto, _konten.Count - 1);
         return konto;
     }
 
@@ -524,6 +522,7 @@ public sealed partial class Stadtwirtschaft
             return Familien.TrainingVerboten(konto, t.Talent) is null ? d.TrainingKostenFuer(f.Oberhaupt.TalentOhneZuege(t.Talent)) : 0; // abgelehnt wird es ohnehin – mit dem richtigen Grund
         if (befehl is MeisterpruefungAblegen m)
             return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
+        if (befehl is BauBefehl && Bauen.StartwahlVon(konto) is not null) return 0; // Startform (Platz von Wohnhaus und Werkstatt wählen): kostenlos
         if (Befugnisse.OhneAktionspunkte(konto, befehl)) return 0; // Kämmerer: Steuersatz; Bürgermeister: ein Antrag im Jahr
         if (befehl is Aktivitaet aktivitaet && HatAktionspunkte) return Meinungen.ApKosten(konto, aktivitaet.Art); // Jagdgesellschaft (Lebensweise)
         return ApKosten(befehl);
@@ -876,6 +875,7 @@ public sealed partial class Stadtwirtschaft
         if (ApFehlen(absender, befehl, out var kosten))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
         var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
+        var startform = befehl is BauBefehl && Bauen.StartwahlVon(absender) is not null; // die Platzwahl am Start ist keine Tat (kein Stress)
         var stress = Familien.StressVorschau(absender, befehl); // vorher: was der Befehl bewirkt, hängt am Stand davor (Ausbau zum …)
         var ergebnis = Bearbeiten(absender, befehl);
         if (ergebnis.Erfolg && kosten > 0)
@@ -883,7 +883,7 @@ public sealed partial class Stadtwirtschaft
             absender.Aktionspunkte.Ausgeben(kosten);
             Familien.TatGebucht(absender, befehl, kosten); // Lebensweise: Taten des aktiven Pfads
         }
-        if (ergebnis.Erfolg && stress.Count > 0)
+        if (ergebnis.Erfolg && stress.Count > 0 && !startform)
             Familien.StressBuchen(stress); // Stress (Teil 3b): Taten gegen den Charakter, Ventile
         if (ergebnis.Erfolg && frei)
             Befugnisse.AntragGestellt(absender, befehl);

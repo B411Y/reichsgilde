@@ -22,10 +22,11 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Trägt ein mitspielendes Kartenhaus dasselbe, würfelt es neu (gewürfelte Aufstellung).</param>
 /// <param name="Aussehen">Gesicht, Haar und Augen des Oberhaupts im Porträt; null = gewürfelt. Muss zum Volk passen
 /// (<see cref="Aussehenspalette.Verboten"/>).</param>
-/// <param name="Hofstelle">Startplatz des Spielers auf einer Karte mit Hofstellen: Kennung einer Start-Hofstelle (<see cref="Hofstellenvergabe.Angebot"/>);
-/// null = gelost (Knopf „Zufall“). Ohne Hofstellen ohne Wirkung.</param>
-/// <param name="Startplaetze">Gelost (wie im Spiel: die KI-Häuser bekommen geloste Hofstellen) oder Vorgabe (jedes Haus, wo die Startbelegung
-/// der Karte es hinsetzt – für Tests und Vergleiche).</param>
+/// <param name="Hofstelle">Ohne Wirkung seit „nur noch Bauzonen“ (15.11.2026; vorher die Start-Hofstelle des Spielers) – bleibt, bis das
+/// Startmenü umgebaut ist.</param>
+/// <param name="Startplaetze">Gelost (wie im Spiel): Die Orte lost das <see cref="Startortlos"/> in den Bauzonen. Vorgabe (nur Tests und
+/// Vergleiche auf alten Karten, bis deren Kartenfelder entfallen): Jedes Haus steht, wo die Startbelegung der Karte es hinsetzt – als Grundstück
+/// in Fläche und Kennung des Wohnhaus- bzw. Werkstattplatzes (wie ein umgewandelter alter Spielstand); ein Haus ohne Platz in der Karte wird gelost.</param>
 /// <param name="Aufstellung">Gelost (wie im Spiel: Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf einmal, <see cref="Startaufstellung"/>) oder
 /// Vorgabe (jedes KI-Haus wie in der Startbelegung der Karte – nur für Tests und Vergleiche).</param>
 /// <param name="KiStaerke">Stärke der KI-Gegner (11.11.2026): Leicht, Normal (wie bisher), Schwer – Startgeld und Profil (<see cref="Partiebesetzung.Profil"/>).</param>
@@ -33,6 +34,10 @@ namespace Reichsgilde.Core.Partie;
 /// null oder ein null-Eintrag = alles gewürfelt. Nur mit <see cref="Aufstellungsart.Gelost"/>.</param>
 /// <param name="ZugWurf">Die Persönlichkeitszüge des Spielers aus dem Startbildschirm: Wurf Nummer n (<see cref="Partiebesetzung.SpielerZuege"/>,
 /// Befehl <see cref="ZuegeNeuWuerfeln"/>); null = gewürfelt wie bei jedem Erwachsenen (wie vor dem 11.11.2026).</param>
+/// <param name="Startwahl">Der Spieler wählt den Platz von Wohnhaus und Werkstatt selbst (15.11.2026, „nur noch Bauzonen“): Die Partie beginnt
+/// für ihn ohne beides; er setzt erst das Wohnhaus, dann die Werkstatt mit dem Baubefehl als Startform – sofort, kostenlos, einmalig
+/// (<see cref="Bauwesen.StartwahlVon"/>; die Oberfläche hält dafür die Zeit an). Falsch (Messungen, Tests): gelost wie die KI-Häuser. Ohne
+/// Bauwesen (keine Karte) ohne Wirkung.</param>
 public sealed record NeuePartie(
     string Familienname = "Hammerschmid",
     double? Startvermoegen = null,
@@ -50,7 +55,8 @@ public sealed record NeuePartie(
     Aufstellungsart Aufstellung = Aufstellungsart.Gelost,
     KiStaerke KiStaerke = KiStaerke.Normal,
     IReadOnlyList<Hausvorgabe?>? KiVorgaben = null,
-    int? ZugWurf = null);
+    int? ZugWurf = null,
+    bool Startwahl = false);
 
 /// <summary>Wie der KI-Rivale spielt – im Menü als Schwierigkeit wählbar.</summary>
 public enum KiCharakter
@@ -109,6 +115,7 @@ public static class Partieaufbau
         Spielzeit? startzeit = null, Stadtkarte? karte = null)
     {
         var start = karte?.Startbelegung ?? Startbelegung.Ersatz;
+        var urkarte = karte; // an ihr hängen die gemerkten Stellen des Startortloses (die Aufstellung macht eine Kopie)
         var name = Hausname(neu.Familienname);
         if (start.Rivalennamen.Contains(name))
             throw new ArgumentException($"„{name}“ ist schon der Name eines Rivalen.");
@@ -118,8 +125,10 @@ public static class Partieaufbau
         // Bei gewürfelter Aufstellung weicht ein mitspielendes Kartenhaus aus (Partiebesetzung.KartenwappenEindeutig); sonst darf es keins tragen.
         if (neu.Aufstellung != Aufstellungsart.Gelost && start.Haeuser.Take(neu.Rivalen).Any(h => h.Wappen == wappen))
             throw new ArgumentException("Dieses Wappen führt schon ein KI-Haus.");
-        // KI-Gegner (11.11.2026): 0 bis Höfe − 1; ohne Los nur die Häuser der Startbelegung
-        var hoechstens = Partiebesetzung.HoechstensKi(karte, neu.Aufstellung);
+        // KI-Gegner: 0 bis so viele, wie mit dem Spieler in die Bauzonen im Stadtinneren passen (15.11.2026); ohne Los nur die Häuser der Startbelegung
+        // (mit festen Plätzen der Karte, Startplatzvergabe.Vorgabe, zählt wie früher die Karte)
+        var vorgabe = neu.Startplaetze == Startplatzvergabe.Vorgabe;
+        var hoechstens = Partiebesetzung.HoechstensKi(karte, neu.Aufstellung, vorgabe ? null : daten);
         if (neu.Rivalen < 0 || neu.Rivalen > hoechstens)
             throw new ArgumentException(hoechstens == 0 ? "Hier spielt kein KI-Haus mit."
                 : hoechstens == 1 ? "Hier spielt höchstens ein KI-Haus mit."
@@ -128,8 +137,7 @@ public static class Partieaufbau
             throw new ArgumentException("KI-Häuser einzeln festlegen geht nur mit gewürfelter Aufstellung.");
         if (neu.ZugWurf is < 0) throw new ArgumentException("Der Wurf der Züge zählt ab 0.");
 
-        // Startaufstellung (11.11.2026): Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf höchstens einmal je Partie – vor den Hofstellen,
-        // denn die Werkstatt eines Hauses zieht mit ihrem Namen auf seine Hofstelle.
+        // Startaufstellung (11.11.2026): Beruf, Volk und Glaube der KI-Häuser gelost, jeder Beruf höchstens einmal je Partie.
         var rivalen = neu.Rivalen;
         IReadOnlyList<(string Name, Betriebsart Art)> freiesUmland = Array.Empty<(string, Betriebsart)>();
         string? aufstellungsmeldung = null;
@@ -143,12 +151,23 @@ public static class Partieaufbau
             rivalen = start.Haeuser.Count;
         }
 
-        // Hofstellen (09.11.2026): Die Partie spielt auf der Partiekarte – die Startbelegung auf den gewählten bzw. gelosten Hofstellen.
-        if (karte is { HatHofstellen: true })
-        {
-            karte = Hofstellenvergabe.Belegen(karte, daten, neu, einstellungen.Zufallsstartwert, Mitspielend(start, daten, rivalen));
-            start = karte.Startbelegung;
-        }
+        // Nur noch Bauzonen (15.11.2026): Wohnhaus und Werkstatt jedes Hauses stehen auf gelosten Grundstücken in den Bauzonen im Stadtinneren
+        // (Startortlos) – das erste Los gehört dem Spieler, die weiteren den KI-Häusern in ihrer Reihenfolge. Die Partie spielt auf der
+        // Partiekarte ohne Stadtplätze; die Namen der Betriebe kommen weiter aus der Karte der Aufstellung (namenskarte).
+        var haeuser = Mitspielend(start, daten, rivalen);
+        var namenskarte = karte;
+        var bauzonen = Startortlos.IstAktiv(urkarte, daten); // ohne Bauwesen (keine Karte, alte Daten) bleibt alles wie früher
+        // Startplatzvergabe.Vorgabe (Tests, Vergleiche): der Platz der Karte, wenn die Startbelegung einen nennt
+        Kartengebaeude? Kartenplatz(string? kennung, string art) =>
+            vorgabe && namenskarte?.GebaeudeMit(kennung) is { Grundriss: not null } platz && platz.Art == art ? platz : null;
+        // Gelost wird, wenn ein Haus keinen Platz der Karte bekommt (im Spiel: jedes) – mit Vorgabe nur, soweit die Zonen reichen.
+        bool HatKartenplatz(string? wohnhaus, IEnumerable<string> werkstaetten) =>
+            Kartenplatz(wohnhaus, Bausteinart.Wohnhausplatz) is not null && werkstaetten.Any(p => Kartenplatz(p, Bausteinart.Werkstattplatz) is not null);
+        var allePlaetze = vorgabe && HatKartenplatz(start.Spieler.Wohnhaus, new[] { start.Spieler.WerkstattFuer(neu.Beruf).Platz })
+                          && haeuser.All(h => HatKartenplatz(h.Wohnhaus, h.Betriebe.Select(b => b.Platz)));
+        var orte = !bauzonen || allePlaetze || vorgabe && 1 + haeuser.Count > Startortlos.Haeuser(urkarte, daten) ? null
+            : Startortlos.Losen(urkarte!, daten, einstellungen.Zufallsstartwert, 1 + haeuser.Count);
+        if (bauzonen) karte = karte!.OhneStadtplaetze();
 
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;
@@ -163,14 +182,35 @@ public static class Partieaufbau
             : throw new ArgumentException($"Den Beruf „{neu.Beruf}“ gibt es nicht.");
         var spieler = w.KontoEroeffnen(name, startvermoegen: neu.Startvermoegen);
         spieler.Wappen = wappen;
-        var werkstatt = w.BetriebEroeffnen(start.Spieler.WerkstattFuer(neu.Beruf).NameFuer(daten.Art(startArt).Name), startArt, spieler);
+        // Der Spieler: mit Startwahl ohne Wohnhaus und Werkstatt (er setzt beides selbst, der Betrieb entsteht mit der Werkstatt), sonst am
+        // gelosten Ort – die Werkstatt heißt dann nach ihrer Straße wie ein Neubau. Ohne Bauwesen wie früher nach der Startbelegung.
+        var startwahl = neu.Startwahl && bauzonen;
+        Betrieb? werkstatt = null;
+        var alterName = start.Spieler.WerkstattFuer(neu.Beruf).NameFuer(daten.Art(startArt).Name);
+        if (startwahl) w.Bauen.StartwahlEroeffnen(spieler, startArt);
+        else if (bauzonen)
+        {
+            if (Kartenplatz(start.Spieler.Wohnhaus, Bausteinart.Wohnhausplatz) is { } hausplatz) w.Bauen.StartwohnhausSetzen(spieler, hausplatz);
+            else if (orte is not null) w.Bauen.StartwohnhausSetzen(spieler, orte[0].Wohnhaus);
+            if (Kartenplatz(start.Spieler.WerkstattFuer(neu.Beruf).Platz, Bausteinart.Werkstattplatz) is { } werkplatz)
+            {
+                werkstatt = w.BetriebEroeffnen(alterName, startArt, spieler);
+                w.Bauen.StartwerkstattSetzen(werkstatt.Name, startArt, werkplatz);
+            }
+            else if (orte is not null)
+            {
+                werkstatt = w.BetriebEroeffnen(w.Bauen.Startwerkstattname(startArt, orte[0].Werkstatt), startArt, spieler);
+                w.Bauen.StartwerkstattSetzen(werkstatt.Name, startArt, orte[0].Werkstatt);
+            }
+            else werkstatt = w.BetriebEroeffnen(alterName, startArt, spieler);
+        }
+        else werkstatt = w.BetriebEroeffnen(alterName, startArt, spieler);
 
         // Orks nur, wenn das Startstatut sie im Umland erlaubt (Statut B oder C) – sonst Bergleute (bzw. die Kraft des Umlandbetriebs).
         var orks = daten.Arbeitskraefte.TryGetValue("Ork", out var ork) && ork.IstErlaubt(w.Statut, Arbeitsort.Umland);
 
         // Die KI-Häuser in der Reihenfolge der Karte; das erste spielt immer mit. Sein Konto entsteht noch vor der Familie des Spielers
         // (so war die Reihenfolge schon vor der Karte – die Zufallszahlen der Familien bleiben dieselben).
-        var haeuser = Mitspielend(start, daten, rivalen);
         var konten = new Dictionary<Starthaus, Konto>();
         Konto KontoVon(Starthaus h)
         {
@@ -186,14 +226,16 @@ public static class Partieaufbau
         // Erst nach der Familie, damit die Arbeiter das Volk des Hauses kennen (Einstellen würfelt nicht mit dem Zufall der Partie).
         // Mit „personal“ (PR #224) beginnt jedes Haus mit Anfängern (Lehrlingen), sonst mit zwei Gesellen wie früher; wie viele, sagt
         // personal.startJeBetrieb (ab Datenversion 72: einer, für Spieler und KI-Häuser gleich).
-        w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
-        foreach (var h in haeuser)
-            HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit, neu.KiStaerke);
+        if (werkstatt is not null)
+            w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
+        for (var i = 0; i < haeuser.Count; i++)
+            HausAufstellen(w, daten, namenskarte, haeuser[i], KontoVon(haeuser[i]), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit, neu.KiStaerke,
+                bauzonen, Kartenplatz, orte?[i + 1]);
         // Umland-Startplätze, die bei der Aufstellung niemand bekommen hat, stehen frei zur Pacht (wie bei „Normal“ der Umlandbetrieb eines KI-Hauses)
         foreach (var (frei, art) in freiesUmland)
             w.StartbetriebFreigeben(frei, art);
         if (aufstellungsmeldung is not null) w.Melden(aufstellungsmeldung);
-        w.Bauen.FreieHofstellenFreigeben(); // was niemand bekommen hat, ist ab jetzt Bauplatz (nur mit Hofstellen)
+        if (bauzonen) w.StartbetriebeEinordnen(); // eine weitere Stadtwerkstatt eines Hauses (alte Karten, „Schwer“): die erste freie Stelle der Bauzonen
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
         return (simulation, spieler);
     }
@@ -211,11 +253,18 @@ public static class Partieaufbau
     /// <see cref="Schwierigkeit.Schwer"/>: alle Startbetriebe, dazu „Grube Eisenbart“ mit Umlandkräften (ab Datenversion 72 auch dort eine,
     /// vorher drei). Wie viele Leute jeder Startbetrieb hat, sagt <see cref="PersonalDaten.StartJeBetrieb"/>.
     /// </summary>
+    /// <param name="karte">Die Karte der Aufstellung – nur für die Namen der Betriebe an ihren Plätzen.</param>
+    /// <param name="bauzonen">Stehen die Häuser auf Grundstücken (Bauwesen aktiv)?</param>
+    /// <param name="kartenplatz">Der Platz der Karte zu Kennung und Art, wenn die Häuser stehen sollen, wo die Karte sie hinsetzt (sonst null).</param>
+    /// <param name="ort">Der geloste Startort (null: keiner): das Wohnhaus und die Stelle der ersten Werkstatt in der Stadt.</param>
     private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, Stadtkarte? karte, Starthaus h, Konto konto, string? umlandKraft,
-        KiCharakter charakter, Schwierigkeit schwierigkeit, KiStaerke staerke)
+        KiCharakter charakter, Schwierigkeit schwierigkeit, KiStaerke staerke, bool bauzonen, Func<string?, string, Kartengebaeude?> kartenplatz, Startort? ort)
     {
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(konto, h.Volk, h.Geschlecht, glaube: h.Glaube);
+        if (bauzonen && kartenplatz(h.Wohnhaus, Bausteinart.Wohnhausplatz) is { } hausplatz) w.Bauen.StartwohnhausSetzen(konto, hausplatz);
+        else if (bauzonen && ort is not null) w.Bauen.StartwohnhausSetzen(konto, ort.Wohnhaus);
+        var werkstattGesetzt = false;
         var startbetriebe = h.Betriebe;
         // Bei „Normal“ nur die erste Werkstatt (hat ein Haus keine in der Stadt: seinen ersten Betrieb).
         var erste = startbetriebe.FirstOrDefault(b => daten.Art(b.Art).InDerStadt) ?? startbetriebe.FirstOrDefault();
@@ -229,6 +278,13 @@ public static class Partieaufbau
                 continue;
             }
             var betrieb = w.BetriebEroeffnen(name, b.Art, konto);
+            if (bauzonen && art.InDerStadt && kartenplatz(b.Platz, Bausteinart.Werkstattplatz) is { } werkplatz)
+                w.Bauen.StartwerkstattSetzen(name, b.Art, werkplatz);
+            else if (bauzonen && ort is not null && art.InDerStadt && !werkstattGesetzt)
+            {
+                w.Bauen.StartwerkstattSetzen(name, b.Art, ort.Werkstatt);
+                werkstattGesetzt = true;
+            }
             if (b.Produkt is { } produkt) betrieb.Produkt = produkt;
             if (art.InDerStadt)
                 w.Einstellen(betrieb, w.Personal.AnfaengerFuer(b.Art, "Geselle"), w.Personal.StartAnzahl(b.Art, 2));

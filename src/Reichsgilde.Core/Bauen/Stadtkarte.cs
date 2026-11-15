@@ -743,6 +743,21 @@ public sealed class Stadtkarte
         return k;
     }
 
+    /// <summary>
+    /// Die Partiekarte seit „nur noch Bauzonen“ (15.11.2026): dieselbe Karte, aber kein Werkstattplatz trägt mehr einen Betrieb, und die
+    /// Startbelegung setzt niemanden mehr auf einen Platz (<see cref="Startbelegung.OhnePlaetze"/>, ohne Hofstellen) – Wohnhäuser und
+    /// Werkstätten stehen als Grundstücke in den Bauzonen (<see cref="Bauwesen"/>). Die Umlandbetriebe behalten Platz und Namen.
+    /// </summary>
+    internal Stadtkarte OhneStadtplaetze()
+    {
+        var alt = Startbelegung;
+        var start = new Startbelegung { Spieler = new Spielerstart { Farbe = alt.Spieler.Farbe }, Haeuser = alt.Haeuser, OhnePlaetze = true };
+        var ohne = new Dictionary<string, string?>(StringComparer.Ordinal); // nur nachgeschlagen
+        foreach (var g in Gebaeude)
+            if (g.Art == Bausteinart.Werkstattplatz) ohne[g.Kennung] = null;
+        return MitBelegung(start, ohne);
+    }
+
     /// <summary>Alle Gebäude einer Art (<see cref="Bausteinart"/>), in der Reihenfolge der Datei.</summary>
     public IEnumerable<Kartengebaeude> GebaeudeDerArt(string art) => Gebaeude.Where(g => g.Art == art);
 
@@ -799,6 +814,7 @@ public sealed class Stadtkarte
     public Kartengebaeude? PlatzVon(string betrieb)
     {
         if (Gebaeude.FirstOrDefault(g => g.Betrieb == betrieb) is { } fest) return fest;
+        if (Startbelegung.OhnePlaetze) return null; // nur noch Bauzonen: Der Spieler hat keinen Platz in der Karte
         var s = Startbelegung.Spieler;
         foreach (var w in s.JeBeruf.Values.Prepend(s.Werkstatt))
             if (PasstZumMuster(betrieb, w.Name) && GebaeudeMit(w.Platz) is { } platz) return platz;
@@ -972,6 +988,13 @@ public sealed class Stadtkarte
 
     private void StartPruefen(Startbelegung s, List<string> f)
     {
+        if (s.OhnePlaetze)
+        {
+            // Partiekarte seit „nur noch Bauzonen“: Die Plätze gelten nicht – geprüft wird nur, wer mitspielt.
+            foreach (var doppelt in s.Haeuser.GroupBy(h => h.Name).Where(x => x.Count() > 1))
+                f.Add($"Start: Das Haus „{doppelt.Key}“ steht doppelt.");
+            return;
+        }
         void Wohnhaus(string wer, string? kennung)
         {
             if (kennung is not null && GebaeudeMit(kennung) is not { Art: Bausteinart.Wohnhausplatz })

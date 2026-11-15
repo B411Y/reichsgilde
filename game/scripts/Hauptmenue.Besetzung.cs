@@ -51,7 +51,7 @@ public partial class Hauptmenue
         _fehler.Text = "";
         _zugWurf = 0;
         _startwert.Value = GD.RandRange(0, 999_999);
-        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte);
+        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         _kiAnzahl.MaxValue = hoechstens;
         _kiAnzahl.Value = Math.Min(3, hoechstens);
         HofstellenWahlFuellen();

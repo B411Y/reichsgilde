@@ -542,6 +542,17 @@ public sealed record BauenStand
 {
     public int NaechsteNummer { get; init; } = 1;
     public List<GrundstueckStand> Grundstuecke { get; init; } = new();
+
+    /// <summary>Häuser, die den Platz von Wohnhaus und Werkstatt noch wählen (seit 15.11.2026; null: keins – auch in älteren Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<StartwahlStand>? Startwahl { get; init; }
+}
+
+/// <summary>Eine offene Startwahl (<see cref="Reichsgilde.Core.Bauen.Bauwesen.StartwahlVon"/>): das Haus (Kontonummer) und die Werkstatt seines Startberufs.</summary>
+public sealed record StartwahlStand
+{
+    public int Konto { get; init; }
+    public Betriebsart Werkstatt { get; init; }
 }
 
 /// <summary>Ein Grundstück: Fläche, Art, Besitzer (Kontonummer) und eine laufende Baustelle.</summary>
