@@ -179,7 +179,7 @@
           ]
         },
         {
-          "werk": "Trim-Sheets der neuen Gebäude (Stroh, Balken, Putz, Planken, Bruchstein, Eisen, Einrichtung)",
+          "werk": "Trim-Sheets der neuen Gebäude (Stroh, Schiefer, Balken, Putz, Sandstein, Planken, Bruchstein, Steinplatten, Stoff, Eisen, Einrichtung)",
           "autor": "Poly Haven (Rob Tuytel, Dimitrios Savva, Dario Barresi, Charlotte Baglioni, Amal Kumar, colormass, Rico Cilliers)",
           "quelle": "https://polyhaven.com",
           "lizenz": "CC0 1.0",
@@ -187,6 +187,7 @@
           "pflicht": false,
           "deckt": [
             "game/assets/texturen/neubau/*trim_",
+            "game/assets/texturen/neubau/rathaus*trim_",
             "game/assets/texturen/neubau/bodenfleck"
           ]
         }

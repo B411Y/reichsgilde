@@ -1280,14 +1280,18 @@ public partial class Stadtansicht : Node3D
     /// <summary>Welches Gebäude liegt an dieser Bildschirmstelle? (Strahl aus der Kamera, trifft die Klickflächen)</summary>
     private string? KennungBei(Vector2 bildschirm)
     {
-        if (DiebBei(bildschirm) is { } gestalt) return gestalt; // Taschendiebe (Stadtansicht.Taschendiebe.cs)
-        if (PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
+        // Steht die Kamera in einem Raum im Haus (Neubau: Wohnhaus-Probe, neues Rathaus), zählen nur dessen Klickflächen: Wände und Böden haben
+        // keine, ein Klick ins Leere fiele sonst durch auf die Stadt dahinter (Marktplatz, Passanten vor dem Fenster). RathausGegenstaende.KlickZaehlt
+        var imHaus = NeubauInnenAktiv && _innen is not null;
+        if (!imHaus && DiebBei(bildschirm) is { } gestalt) return gestalt; // Taschendiebe (Stadtansicht.Taschendiebe.cs)
+        if (!imHaus && PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
         var kamera = _raum is not null ? _raumKamera : StadtKamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
         var bis = von + kamera.ProjectRayNormal(bildschirm) * 500;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
-        return treffer.Count > 0 && treffer["collider"].As<Node>() is { } koerper && koerper.HasMeta("kennung")
-            ? koerper.GetMeta("kennung").AsString() : null;
+        if (treffer.Count == 0 || treffer["collider"].As<Node>() is not { } koerper || !koerper.HasMeta("kennung")) return null;
+        var raumklick = imHaus && _innen!.Raumklicks.Any(k => IsInstanceValid(k) && k.GetParent() == koerper);
+        return RathausGegenstaende.KlickZaehlt(imHaus, raumklick) ? koerper.GetMeta("kennung").AsString() : null;
     }
 
     private void Auswaehlen(Vector2 mausposition, bool doppelklick)

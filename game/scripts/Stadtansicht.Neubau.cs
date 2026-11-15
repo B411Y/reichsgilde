@@ -65,6 +65,7 @@ public partial class Stadtansicht
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
         var innen = name.EndsWith("_innen");
+        if (name.StartsWith("rathaus")) return innen ? "rathaus_innen" : "rathaus"; // Rathaus: Hülle und sieben Räume (Stadtansicht.Rathausneubau.cs)
         if (innen) name = name[..^"_innen".Length];
         name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
         return innen ? name + "_innen" : name;
@@ -76,7 +77,7 @@ public partial class Stadtansicht
         var gruppe = NeubauGruppe(datei);
         if (_neubauStoffe.TryGetValue(gruppe, out var stoff)) return stoff;
         var innen = gruppe.EndsWith("_innen");
-        var blatt = innen ? "innen_trim" : "trim";
+        var blatt = NeubauBlatt(datei);
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
         stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + gruppe };
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
@@ -85,7 +86,20 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<Texture2D>(gruppe + "_ao_atlas.png"));
         stoff.SetShaderParameter("wetter_an", innen ? 0f : 1f);      // im Haus regnet und schneit es nicht
         stoff.SetShaderParameter("pixel_look", Fenster.PixelLookAn ? 1f : 0f);
+        stoff.SetShaderParameter("stroh_dach", gruppe.StartsWith("rathaus") ? 0f : 1f); // Schiefer statt Stroh: keine Halmstriche
+        var stein = SteinMip.Von(blatt);                                                  // Steinbänder: kleinerer Mip-Zuschlag im Pixel-Look
+        stoff.SetShaderParameter("stein_baender", new Vector4(stein.A0, stein.A1, stein.B0, stein.B1));
+        if (float.TryParse(NeubauOption("--steinmip"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var steinMip))
+            stoff.SetShaderParameter("stein_mip", steinMip);                             // Prüfhilfe: Mip-Zuschlag der Steinbänder vergleichen (Standard im Shader 1)
         return _neubauStoffe[gruppe] = stoff;
+    }
+
+    /// <summary>Das Trim-Sheet eines Modells: Wohnhäuser „trim“/„innen_trim“, das Rathaus seine eigenen (Schiefer, Quader, Steinplatten).</summary>
+    private static string NeubauBlatt(string datei)
+    {
+        var gruppe = NeubauGruppe(datei);
+        var innen = gruppe.EndsWith("_innen");
+        return gruppe.StartsWith("rathaus") ? (innen ? "rathaus_innen_trim" : "rathaus_trim") : (innen ? "innen_trim" : "trim");
     }
 
     /// <summary>Pixel-Look an oder aus: die Trim-Materialien lesen eine gröbere Mip-Stufe (aus Stadtansicht.Oberflaechendetails.cs).</summary>
@@ -94,6 +108,7 @@ public partial class Stadtansicht
         foreach (var stoff in _neubauStoffe.Values) stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
         // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
         if (_neubauGrund.TryGetValue("trim/Strohkante", out var kante)) kante.AlphaScissorThreshold = an ? 1.01f : 0.5f;
+        if (_neubauGrund.TryGetValue("rathaus_trim/Schieferkante", out var schiefer)) schiefer.AlphaScissorThreshold = an ? 1.01f : 0.5f;
     }
 
     /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
@@ -121,7 +136,7 @@ public partial class Stadtansicht
     public static bool NeubauOhneHinterzimmer(Konto? konto) => NeubauProbeAn && konto is { WohnhausStufe: 0 };
 
     /// <summary>Ist das die Haustür von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
-    public bool IstAusgangstuer(string? kennung) => kennung == NeubauAusgang && NeubauInnenAktiv;
+    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstRathausTuer(kennung);
 
     private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
 
@@ -147,7 +162,7 @@ public partial class Stadtansicht
             Metallic = 1, MetallicTexture = orm, MetallicTextureChannel = BaseMaterial3D.TextureChannel.Blue,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
         };
-        if (name == "Strohkante")
+        if (name is "Strohkante" or "Schieferkante")
         {
             // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Alpha Scissor 0,5, von beiden Seiten sichtbar
             stoff.Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor;
@@ -165,7 +180,7 @@ public partial class Stadtansicht
     {
         if (!datei.StartsWith(NeubauOrdner)) return;
         var innen = datei.EndsWith("_innen");
-        var blatt = innen ? "innen_trim" : "trim";
+        var blatt = NeubauBlatt(datei);
         var trim = NeubauStoff(datei);
         var ort = modell.GlobalPosition;
         var saat = (uint)HashCode.Combine(Mathf.RoundToInt(ort.X * 2), Mathf.RoundToInt(ort.Z * 2));
@@ -191,7 +206,7 @@ public partial class Stadtansicht
                     case "Innenglas":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
                         break;
-                    case "Strohkante":
+                    case "Strohkante" or "Schieferkante":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name, blatt));
                         break;
                     default:
@@ -206,9 +221,10 @@ public partial class Stadtansicht
         }
         if (innen || modell.HasNode("Bodenfleck")) return;
         // Bodenübergang (Style-Guide 5.1): festgetretene Erde rund ums Haus als Decal, nur dünn über dem Boden (trifft keine Wände)
+        var rathaus = NeubauGruppe(datei) == "rathaus";
         modell.AddChild(new Decal
         {
-            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, -0.2f), Size = new Vector3(8.6f, 0.36f, 8.2f),
+            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, rathaus ? 0f : -0.2f), Size = rathaus ? new Vector3(17.5f, 0.36f, 11.5f) : new Vector3(8.6f, 0.36f, 8.2f),
             TextureAlbedo = NeubauTextur<Texture2D>("bodenfleck.png"), AlbedoMix = 0.85f, NormalFade = 0.6f, UpperFade = 0.6f, LowerFade = 0.6f,
             DistanceFadeEnabled = true, DistanceFadeBegin = 160, DistanceFadeLength = 40,
         });
@@ -238,6 +254,11 @@ public partial class Stadtansicht
     /// </summary>
     private bool NeubauInnenAbgleichen()
     {
+        if (RathausNeuRaumKnoten() is { } rathausRaum) // neues Rathaus: Raum im Haus selbst (Stadtansicht.Rathausneubau.cs)
+        {
+            RathausNeuZeigen(rathausRaum);
+            return true;
+        }
         Node3D? haus = null;
         var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && _raum == _innen.Raeume[0]
                    && _neubauHaeuser.TryGetValue(_innen.Kennung, out haus) && IsInstanceValid(haus);
@@ -269,10 +290,16 @@ public partial class Stadtansicht
         wurzel.ProcessMode = ProcessModeEnum.Inherit;
         if (haus.FindChild("Scheiben", true, false) is Node3D scheiben) scheiben.Visible = false;
         if (_wohnhausAnsicht?.Innen is { } unten) unten.Visible = false; // die alte Wohnstube 200 m unter der Stadt wird nicht gebraucht
+        NeubauKameraSetzen(wurzel.FindChild("Blick_Auge", true, false) as Node3D, wurzel.FindChild("Blick_Ziel", true, false) as Node3D);
+    }
+
+    /// <summary>Raumkamera im Haus: Licht und Himmel der Stadt, Öffnungswinkel 66°, Standpunkt und Blick aus den Ankern, Umschauen zurückgesetzt.</summary>
+    private void NeubauKameraSetzen(Node3D? auge, Node3D? ziel)
+    {
         _sonne.Visible = true;                // draußen ist Tag oder Nacht wie in der Stadt
         _raumKamera.Environment = null;       // Himmel, Nebel und Licht der Stadt statt des dunklen Raumhintergrunds
         _raumKamera.Fov = 66;
-        if (wurzel.FindChild("Blick_Auge", true, false) is Node3D auge && wurzel.FindChild("Blick_Ziel", true, false) is Node3D ziel)
+        if (auge is not null && ziel is not null)
             _raumKamera.LookAtFromPosition(auge.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
         _neubauBlickGrund = _raumKamera.GlobalTransform;
         (_neubauGier, _neubauNick, _neubauGierZiel, _neubauNickZiel) = (0, 0, 0, 0);
@@ -407,6 +434,7 @@ public partial class Stadtansicht
     private bool NeubauUmschauen(double delta)
     {
         if (!NeubauInnenAktiv) return false;
+        if (RatssitzungImBild && _neubauInnen == _rathausNeuInnen) return true; // Sitzung in der neuen Ratshalle: die Kamera führt die Sitzung (SaalKamera)
         var fenster = GetViewport();
         var maus = fenster.GetMousePosition();
         var bild = fenster.GetVisibleRect().Size;
@@ -431,6 +459,7 @@ public partial class Stadtansicht
     {
         if (_neubauInnen is not { } wurzel) return;
         _neubauInnen = null;
+        RathausNeuEindringlingeZeigen(true);   // Rathaus: was in die Räume ragt, wieder einblenden (Stadtansicht.Rathausneubau.cs)
         if (IsInstanceValid(wurzel))
         {
             wurzel.Visible = false;
@@ -441,6 +470,7 @@ public partial class Stadtansicht
         _raumKamera.Fov = 50;
         _sonne.Visible = _raum is null;
         if (_raum is not null && _innen == _wohnhausAnsicht && _wohnhausAnsicht?.Innen is { } unten) unten.Visible = true; // weiter ins Kontor
+        if (_raum is not null && _innen == _rathaus && _rathaus?.Innen is { } alt) alt.Visible = true;       // neues Rathaus: in einen Raum ohne Modell (alte Raumansicht)
     }
 
     // ═════════════════════════════════════════════════════════════════════════

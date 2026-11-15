@@ -81,6 +81,7 @@ public sealed partial class BriefAnzeige : PanelContainer
     /// <summary>Ein Brief kommt an: öffnet das Fenster, wenn es zu ist; sonst kommt er hinten an den Stapel, ohne die Seite zu wechseln.</summary>
     public void Einreihen(Brief brief)
     {
+        if (!_freigabe && _aufschub.Zurueckstellen(brief, SitzungOffen())) return;   // wartet bis nach Sitzung/Stimmrunde (Briefaufschub.cs)
         var vorher = _stapel.FindIndex(b => b.Schluessel == brief.Schluessel && brief.Schluessel != "");
         if (vorher >= 0) _stapel[vorher] = brief; else _stapel.Add(brief);
         if (!Visible)
@@ -108,8 +109,24 @@ public sealed partial class BriefAnzeige : PanelContainer
         Show();
     }
 
+    // Ratssitzung und Stimmrunde (Nutzer, Rathaus Stufe 10): Briefe liegen sonst über deren Tafel. Sie warten, solange eine der beiden Tafeln
+    // offen ist (beide hängen wie der Brief in der Ebene „Oberflaeche“), und kommen direkt danach in ihrer Reihenfolge (Briefaufschub.cs).
+    private readonly Briefaufschub<Brief> _aufschub = new();
+    private bool _freigabe;
+    private bool SitzungOffen() => Ruht?.Invoke() == true
+        || GetParent() is { } ebene && ebene.GetChildren().Any(k => k is RatssitzungAnzeige { Visible: true } or StimmrundeAnzeige { Visible: true });
+
+    /// <summary>Setzt die Hauptszene: die ganze Folge Stimmrunde → Sitzung → Jahresbericht (<see cref="Briefphase"/>), auch zwischen den Tafeln.</summary>
+    public Func<bool>? Ruht { get; set; }
+
     public override void _Process(double delta)
     {
+        if (_aufschub.Wartend > 0 && _aufschub.Freigeben(SitzungOffen()) is { Count: > 0 } frei)
+        {
+            _freigabe = true;
+            foreach (var b in frei) Einreihen(b);
+            _freigabe = false;
+        }
         if (_alter >= 1 || !Visible) return;
         _alter += delta / 0.22;
         Modulate = new Color(1, 1, 1, Meldungseinstellungen.Bewegung ? (float)Math.Min(1, _alter) : 1f);

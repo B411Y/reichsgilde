@@ -316,6 +316,7 @@ public partial class Stadtansicht
         _pxVignette.Visible = gewuenscht;
         PixelNeueNetze();
         PixelNamen(gewuenscht && laeuft && !raum ? kamera : null);
+        RathausNeuTexteScharf(gewuenscht && laeuft && raum && _neubauInnen is not null && _neubauInnen == _rathausNeuInnen ? kamera : null); // Schilder im Rathaus scharf (Stadtansicht.Rathausneubau.cs)
         var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Eigenfarbenbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
         if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
         if (_schnee is not null && _schnee.Layers != teilchen) _schnee.Layers = teilchen;

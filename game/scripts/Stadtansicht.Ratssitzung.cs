@@ -24,8 +24,8 @@ namespace Reichsgilde;
 /// hebt die rechte Hand, wer dagegen ist, schüttelt den Kopf. Die Pose kommt nicht aus dem Modell: Das Spiel dreht nach der Sitzbewegung Oberarm,
 /// Unterarm bzw. Kopf des Skeletts selbst (<see cref="GesteAnwenden"/>).
 ///
-/// Die Plätze kommen vorerst aus dem Ratssaal aus Grundkörpern (Stadtansicht.Sonderbauten.cs, Hufeisentisch mit sieben Stühlen). Während der Sitzung
-/// sind dessen Figuren aus, die Eingabe im Raum ruht (kein Raumwechsel, kein Hinausgehen), und zwei Kerzenlichter erhellen den Tisch –
+/// Die Plätze kommen aus der Ratshalle des Rathauses (Anker im Modell, Stadtansicht.Rathausneubau.cs, auch in Köln). Während der Sitzung
+/// sind die Figuren der Arbeitszeit aus, die Eingabe im Raum ruht (kein Raumwechsel, kein Hinausgehen), und die Kerzen des Leuchters brennen –
 /// die Sitzung ist am Jahresende, vor Sonnenaufgang, und danach kommt der Jahresbericht.
 /// </summary>
 public partial class Stadtansicht
@@ -83,21 +83,16 @@ public partial class Stadtansicht
         public Figur? Figur { get; set; }
     }
 
-    /// <summary>Die Rathaus-Ansicht und die sieben Sitze des alten Ratssaals (Lage relativ zur Gebäudemitte, Bürgermeister zuerst) – gesetzt in RathausBauen.</summary>
+    /// <summary>Die Rathaus-Ansicht – gesetzt in RathausBauen.</summary>
     private SonderbauAnsicht? _rathaus;
-    private Arbeitsplatz[] _ratssaalSitze = Array.Empty<Arbeitsplatz>();
     private Sitzungsbild? _ratssitzung;
-
-    /// <summary>Kennung des Raums der Sitzung, wenn der Ratssaal aus dem Modell kommt (nur während der Sitzung zugänglich).</summary>
-    public const string RaumSitzung = "rathaus:sitzung";
 
     /// <summary>Ein Stuhl der Sitzung: Elternknoten und Lage darin (die Figur blickt mit +Z zum Tisch), Sitzhöhe in Metern.</summary>
     private sealed record Stuhl(Node3D Eltern, Transform3D Lage, float Sitzhoehe);
 
     /// <summary>
-    /// Der Ratssaal aus <c>innen/rathaus_innen.glb</c> (PR #202): als fünfter Raum des Rathauses (160 m neben dem alten Ratssaal) gebaut, aber nur während der
-    /// Sitzung zu sehen. Stühle: Bürgermeister auf dem Podest, dann <c>Anker_Sitz_&lt;n&gt;</c> nach „platz“ (Rang); dazu Redner, Schreiber, die Rolle
-    /// <c>Antrag</c> und der Blickpunkt über dem Tisch.
+    /// Der Saal der Sitzung: die Ratshalle des Rathauses (<see cref="RathausNeuRatssaal"/>). Stühle: Bürgermeister auf dem Podest, dann
+    /// <c>Anker_Sitz_&lt;n&gt;</c> nach „platz“ (Rang); dazu Redner, Schreiber, Zuhörerbank, die Rolle <c>Antrag</c> und die Blickpunkte.
     /// </summary>
     private sealed class Ratssaalmodell
     {
@@ -110,37 +105,30 @@ public partial class Stadtansicht
         public Node3D? Antrag { get; set; }
         /// <summary>Blickpunkt vom Podest zurück (<c>Blick_Rat_R2</c>): der Redner von vorn.</summary>
         public Node3D? RednerBlick { get; set; }
+        /// <summary>Kamera der Sitzung aus den Ankern <c>Blick_Sitzung_Auge</c>/<c>_Ziel</c>.</summary>
+        public Node3D? Auge { get; set; }
+        public Node3D? Ziel { get; set; }
     }
 
     private Ratssaalmodell? _ratssaal;
-    private const string RatssaalDatei = "innen/rathaus_innen";
 
     /// <summary>Die Anker blicken mit −Z zum Tisch (wie die Plätze der Kirche), die Figuren mit +Z: um 180° gedreht einsetzen.</summary>
     private static readonly Transform3D AmAnker = new(new Basis(Vector3.Up, Mathf.Pi), Vector3.Zero);
 
-    /// <summary>Wo der Antragsteller redet (relativ zur Gebäudemitte): vorn rechts zwischen den Tischreihen, Blick schräg zum Tisch, im Profil zur Kamera.</summary>
-    private static readonly Vector3 RednerOrt = new(1.0f, 0, 1.7f);
-    private static readonly float RednerDrehung = -2.1f;
-
-    /// <summary>Kamera im Ratssaal aus dem Modell (relativ zu seinem Ursprung): über der Tür, Blick den Tisch entlang auf die vordere Hälfte mit den Ämtern und den Bürgermeister.</summary>
-    private static readonly Vector3 SaalAuge = new(0, 2.7f, 4.9f), SaalZiel = new(0, 0.75f, -2.4f); // unter dem Kronleuchter hindurch auf den Bürgermeister
-
-    /// <summary>Im Ratssaal aus dem Modell: der Blick über den Tisch – oder, solange der Antragsteller an der Tür redet, vom Podest zurück auf ihn.</summary>
+    /// <summary>Im Ratssaal: der Blick über den Tisch – oder, solange der Antragsteller redet, vom Podest zurück auf ihn.</summary>
     private void SaalKamera(bool redner)
     {
         if (_ratssaal is not { } saal) return;
         redner &= saal.RednerBlick is not null;
         if (redner)
             _raumKamera.GlobalTransform = new Transform3D(saal.RednerBlick!.GlobalTransform.Basis.Orthonormalized(), saal.RednerBlick.GlobalPosition);
-        else
-            _raumKamera.LookAtFromPosition(saal.Wurzel.ToGlobal(SaalAuge), saal.Wurzel.ToGlobal(SaalZiel), Vector3.Up);
+        else if (saal.Auge is not null && saal.Ziel is not null)
+            _raumKamera.LookAtFromPosition(saal.Auge.GlobalPosition, saal.Ziel.GlobalPosition, Vector3.Up); // Ratshalle (Stadtansicht.Rathausneubau.cs)
         // Vom Podest aus stünden die Schilder der nahen Plätze riesig im Bild: Solange der Redner spricht, sind sie aus
         if (_ratssitzung is { } s)
             foreach (var platz in s.Plaetze) platz.Schild.Visible = platz.Stimme.Visible = platz.Zahl.Visible = !redner;
     }
 
-    /// <summary>Kamera während der Sitzung im alten Ratssaal (relativ zu seiner Mitte): vorn erhöht, Blick schräg hinab auf den Tisch.</summary>
-    private static readonly Vector3 SitzungsAuge = new(0, 5.4f, 9.4f), SitzungsZiel = new(0, -0.2f, 0.2f);
 
     private static readonly Color StimmeJa = new(0.55f, 0.92f, 0.5f);
     private static readonly Color StimmeNein = new(1f, 0.45f, 0.4f);
@@ -156,78 +144,13 @@ public partial class Stadtansicht
     public bool RatssitzungImBild => _ratssitzung is not null;
 
     /// <summary>
-    /// Baut den Ratssaal aus dem Modell in den Knoten „Innen“ des Rathauses (aus RathausBauen): Materialien wie in den Innenräumen der Werkstätten
-    /// (Kerzen glühen immer), Lampen und Glut als warmes Licht, die Fenster ohne Licht (die Sitzung ist vor Sonnenaufgang). Ohne Modell bleibt der alte Ratssaal.
+    /// Der Saal der Sitzung (aus RathausBauen): die Ratshalle im Rathaus mit ihren Ankern (<see cref="RathausNeuRatssaal"/>). Fehlt sie, gibt es
+    /// keine Sitzung im Bild (die Oberfläche zeigt sie dann ohne Bild).
     /// </summary>
     private void RatssaalModellBauen(SonderbauAnsicht a)
     {
-        if (a.Innen is null || Modell(RatssaalDatei) is not { } szene) return;
-        var ort = new Vector3(4 * RaumAbstand, 0, 0);
-        var wurzel = szene.Instantiate<Node3D>();
-        wurzel.Position = a.Mitte + ort;
-        a.Innen.AddChild(wurzel);
-        var md = new ModellRaumDaten { Wurzel = wurzel };
-        var altFlammen = KegelflammenErsetzen(wurzel);
-        InnenModellStoffe(md, wurzel, false);
-        foreach (var glut in md.Glut) glut.EmissionEnergyMultiplier = md.GlutAn; // Kerzen und Leuchter brennen während der Sitzung
-        InnenFlammenAnlegen(md, wurzel, RatssaalDatei, false, altFlammen, immer: true); // die Kerzen mit echter Flamme (Stadtansicht.Feuer.cs); sichtbar ist der Raum nur während der Sitzung
-        var m = new Ratssaalmodell { Wurzel = wurzel };
-        Stuhl? buergermeister = null;
-        var sitze = new List<(int Platz, Stuhl Stuhl)>();
-        foreach (var knoten in wurzel.FindChildren("*", nameof(Node3D), true, false).OfType<Node3D>())
-        {
-            var name = knoten.Name.ToString();
-            var hoehe = ExtraZahlKomma(knoten, "sitzhoehe", 0.45f);
-            if (name == "Anker_Buergermeister") buergermeister = new Stuhl(knoten, AmAnker, hoehe);
-            else if (name == "Anker_Redner") m.Redner = new Stuhl(knoten, AmAnker, 0);
-            else if (name == "Anker_Schreiber") m.Schreiber = new Stuhl(knoten, AmAnker, hoehe);
-            else if (name == "Antrag") m.Antrag = knoten;
-            else if (name == "Blick_Rat_R2") m.RednerBlick = knoten;
-            else if (name.StartsWith("Anker_Sitz_") && int.TryParse(name[11..], out var nummer))
-                sitze.Add((ExtraZahl(knoten, "platz", nummer), new Stuhl(knoten, AmAnker, hoehe)));
-            else if (name.StartsWith("Licht_") && ExtraText(knoten, "art") is var art && art is "Lampe" or "Glut")
-                knoten.AddChild(new OmniLight3D
-                {
-                    LightColor = art == "Glut" ? new Color(1f, 0.62f, 0.3f) : new Color(1f, 0.8f, 0.52f),
-                    OmniRange = art == "Glut" ? 4.5f : 7f, LightEnergy = art == "Glut" ? 0.45f : 1.1f,
-                });
-        }
-        if (buergermeister is null || sitze.Count == 0)
-        {
-            GD.PushWarning($"{RatssaalDatei}: Anker_Buergermeister oder Anker_Sitz_<n> fehlen – die Sitzung zeigt den alten Ratssaal.");
-            wurzel.QueueFree();
-            return;
-        }
-        if (m.Antrag is not null) m.Antrag.Visible = false;
-        ZuhoererbankBauen(m);
-        m.Stuehle.Add(buergermeister);
-        m.Stuehle.AddRange(sitze.OrderBy(x => x.Platz).Select(x => x.Stuhl));
-        _ratssaal = m;
-        a.Raeume.Add(new Raum(RaumSitzung, "Ratssaal", ort, new Vector3(10, 4.4f, 11), () => _ratssitzung is not null));
-    }
-
-    /// <summary>Wo die Zuhörerbank steht (x, relativ zum Ursprung des Saals): an der linken Wand, Blick zum Tisch.</summary>
-    private const float BankX = -3.3f;
-    private const int BankPlaetze = 4;
-
-    /// <summary>
-    /// Die Zuhörerbank: Das Modell hat keine (kein Anker), deshalb baut das Spiel eine schlichte Holzbank an die Wand – für Bewerber ohne Ratssitz.
-    /// Plätze entlang der Bank, die Figuren blicken mit +Z zum Tisch (+X).
-    /// </summary>
-    private void ZuhoererbankBauen(Ratssaalmodell m)
-    {
-        var holz = new StandardMaterial3D { AlbedoColor = new Color(0.34f, 0.23f, 0.14f), Roughness = 0.85f };
-        const float laenge = 3.6f, mitteZ = 0.3f;
-        void Brett(Vector3 groesse, Vector3 ort) => m.Wurzel.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = groesse }, MaterialOverride = holz, Position = ort });
-        Brett(new Vector3(0.5f, 0.06f, laenge), new Vector3(BankX, 0.42f, mitteZ)); // Sitz
-        Brett(new Vector3(0.06f, 0.5f, laenge), new Vector3(BankX - 0.27f, 0.72f, mitteZ)); // Lehne
-        foreach (var z in new[] { mitteZ - laenge / 2 + 0.15f, mitteZ + laenge / 2 - 0.15f })
-            Brett(new Vector3(0.44f, 0.4f, 0.1f), new Vector3(BankX, 0.2f, z)); // Füße
-        for (var i = 0; i < BankPlaetze; i++)
-        {
-            var z = mitteZ - laenge / 2 + laenge / BankPlaetze * (i + 0.5f);
-            m.Bank.Add(new Stuhl(m.Wurzel, new Transform3D(new Basis(Vector3.Up, Mathf.Pi / 2), new Vector3(BankX, 0, z)), 0.45f));
-        }
+        if (!RathausNeuRatssaal(a)) GD.PushWarning("Rathaus: die Ratshalle oder ihre Anker fehlen – die Ratssitzung läuft ohne Bild.");
+        else GD.Print($"[rathausneu] Saal der Sitzung: Ratshalle, {_ratssaal!.Stuehle.Count} Stühle, Bank {_ratssaal.Bank.Count}, Redner {(_ratssaal.Redner is null ? "fehlt" : "da")}, Schreiber {(_ratssaal.Schreiber is null ? "fehlt" : "da")}, Kamera {(_ratssaal.Auge is null ? "fehlt" : "da")}");
     }
 
     /// <summary>Eine Kommazahl aus den „extras“ eines Knotens, sonst der Vorgabewert.</summary>
@@ -237,30 +160,22 @@ public partial class Stadtansicht
         return extras is not null && extras.ContainsKey(schluessel) ? (float)extras[schluessel].AsDouble() : vorgabe;
     }
 
-    /// <summary>Die Stühle der Sitzung, Bürgermeister zuerst: aus dem Modell oder die sieben des alten Ratssaals.</summary>
-    private List<Stuhl> SitzungsStuehle(Node3D wurzel) => _ratssaal?.Stuehle
-        ?? _ratssaalSitze.Select(s => new Stuhl(wurzel, new Transform3D(new Basis(Vector3.Up, s.Drehung + Mathf.Pi), _rathaus!.Mitte + s.Ort), 0.46f)).ToList();
+    /// <summary>Die Stühle der Sitzung, Bürgermeister zuerst (Anker der Ratshalle).</summary>
+    private List<Stuhl> SitzungsStuehle() => _ratssaal?.Stuehle ?? new List<Stuhl>();
 
     /// <summary>
-    /// Geht in den Ratssaal und setzt die Ratsherren an den Tisch. Gibt false zurück, wenn die Stadt kein Rathaus hat (dann zeigt die Oberfläche die Sitzung ohne Bild).
+    /// Geht in den Ratssaal und setzt die Ratsherren an den Tisch. Gibt false zurück, wenn die Stadt kein Rathaus mit Ratshalle hat (dann zeigt die Oberfläche die Sitzung ohne Bild).
     /// </summary>
     public bool RatssitzungBetreten()
     {
-        if (_rathaus?.Innen is not { } innen || _simulation?.Wirtschaft is not { } w) return false;
+        if (_rathaus?.Innen is not { } innen || _simulation?.Wirtschaft is not { } w || _ratssaal is null) return false;
         if (_ratssitzung is null)
         {
             var wurzel = new Node3D { Name = "Ratssitzung" };
             innen.AddChild(wurzel);
             _ratssitzung = new Sitzungsbild { Wurzel = wurzel };
-            if (_ratssaal is null)
-                foreach (var x in new[] { -1.4f, 1.4f }) // Kerzenlicht über dem alten Tisch (das Modell hat eigene Leuchter): links und rechts des Bürgermeisters, warm
-                    wurzel.AddChild(new OmniLight3D
-                    {
-                        LightColor = new Color(1f, 0.78f, 0.5f), LightEnergy = 1.6f, OmniRange = 7.5f,
-                        Position = _rathaus.Mitte + new Vector3(x, 2.4f, -1.2f),
-                    });
             var aemter = SitzOrdnung(w);
-            var stuehle = SitzungsStuehle(wurzel);
+            var stuehle = SitzungsStuehle();
             for (var i = 0; i < aemter.Count && i < stuehle.Count; i++)
             {
                 var halter = new Node3D { Transform = stuehle[i].Lage };
@@ -271,7 +186,7 @@ public partial class Stadtansicht
                     Amt = aemter[i], Halter = halter, Sitzhoehe = stuehle[i].Sitzhoehe,
                     Schild = SitzungsSchild(halter, new Vector3(0, i == 0 ? 2.1f : 1.75f, 0), 28),
                     // Die Stimme liegt vor dem Platz auf dem Tisch: Die Stühle an den Seiten stehen im Bild dicht hintereinander, ihre Köpfe fast übereinander
-                    Stimme = SitzungsSchild(halter, new Vector3(0, 1.05f, _ratssaal is null ? 0.8f : 0.74f), 44),
+                    Stimme = SitzungsSchild(halter, new Vector3(0, 1.05f, 0.74f), 44),
                     Zahl = SitzungsSchild(halter, new Vector3(0, 1.42f, 0), 40),
                 };
                 platz.Zahl.Modulate = StimmeKandidat;
@@ -287,14 +202,8 @@ public partial class Stadtansicht
             PlaetzeBesetzen(w, null);
         }
         if (!InnenansichtBetreten(_rathaus.Kennung)) return false;
-        RaumWaehlen(_ratssaal is null ? RaumRat : RaumSitzung);
-        if (_ratssaal is not null) SaalKamera(false);
-        else
-        {
-            // Steiler von oben als sonst im alten Ratssaal: Der Tisch rückt in die obere Bildhälfte, unten steht die Tafel der Sitzung
-            var mitte = innen.ToGlobal(_rathaus.Mitte);
-            _raumKamera.LookAtFromPosition(mitte + SitzungsAuge, mitte + SitzungsZiel, Vector3.Up);
-        }
+        RaumWaehlen(RaumRat);
+        SaalKamera(false);
         return true;
     }
 
@@ -527,17 +436,9 @@ public partial class Stadtansicht
         }
         SaalKamera(antragsteller is not null);
         if (antragsteller is null) return;
-        Node3D halter;
-        if (_ratssaal?.Redner is { } pult)
-        {
-            halter = new Node3D { Transform = pult.Lage };
-            pult.Eltern.AddChild(halter);
-        }
-        else
-        {
-            halter = new Node3D { Position = _rathaus.Mitte + RednerOrt, Rotation = new Vector3(0, RednerDrehung, 0) };
-            s.Wurzel.AddChild(halter);
-        }
+        if (_ratssaal?.Redner is not { } pult) return;
+        var halter = new Node3D { Transform = pult.Lage };
+        pult.Eltern.AddChild(halter);
         var oberhaupt = w.Familien.Von(antragsteller)?.Oberhaupt;
         var volk = oberhaupt?.Volk ?? Volk.Mensch;
         var haare = Haarfarben(volk);
@@ -598,16 +499,19 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ein Schild im Ratssaal: immer zur Kamera gedreht, vor allem anderen (wie die Schilder der Räume, aber ohne Zoom der Stadt).</summary>
-    private static Label3D SitzungsSchild(Node3D eltern, Vector3 ort, int groesse) // ort im Halter des Platzes
+    private Label3D SitzungsSchild(Node3D eltern, Vector3 ort, int groesse) // ort im Halter des Platzes
     {
+        // Klicktest 4: Mit fester Größe in der Welt (0,0042 m je Bildpunkt) stand der Name des Platzes nah an der Kamera riesig am Bildrand.
+        // Jetzt feste Größe im Bild wie die Schilder im Haus (FixedSize), im Pixel-Look scharf über dem Pixelbild (RathausNeuTexteScharf).
         var schild = new Label3D
         {
-            Position = ort, FontSize = groesse, PixelSize = 0.0042f,
+            Position = ort, FontSize = groesse, PixelSize = 0.0009f, FixedSize = true,
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
             OutlineSize = 12, OutlineModulate = new Color(0.08f, 0.07f, 0.06f),
             Font = Schriften.Ueberschrift,
         };
         eltern.AddChild(schild);
+        _rathausNeuTexte.Add(schild);
         return schild;
     }
 
@@ -617,7 +521,7 @@ public partial class Stadtansicht
     /// </summary>
     private void RatssitzungAktualisieren(double delta)
     {
-        if (_ratssitzung is not { } s || _raum?.Kennung is not (RaumRat or RaumSitzung)) return;
+        if (_ratssitzung is not { } s || _raum?.Kennung is not RaumRat) return;
         foreach (var platz in s.Plaetze)
         {
             if (platz.Figur is not { } figur) continue;
