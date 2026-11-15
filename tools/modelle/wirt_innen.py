@@ -235,6 +235,10 @@ def bank(netz, st, a, b, hoehe=0.43, tiefe=0.32):
                     @ Matrix((d, q, Vector((0, 0, 1)))).transposed().to_4x4() @ Matrix.Diagonal((0.06, tiefe - 0.04, hoehe - 0.07, 1)))
 
 
+BOCK_EINZUG = 0.10                                                     # Kreuzböcke so weit vom Tischende (vorher 0,22): Platz für Knie und Rock der Gäste
+STEG_H = 0.58
+
+
 def tisch(netz, st, mitte, laenge, breite, hoehe=0.78, quer_x=True, platte="Tischplatte"):
     """Wirtshaustisch: dicke Platte auf zwei Kreuzböcken mit Steg (Länge entlang x, mit `quer_x` False entlang y)."""
     lx, ly = (laenge, breite) if quer_x else (breite, laenge)
@@ -242,17 +246,18 @@ def tisch(netz, st, mitte, laenge, breite, hoehe=0.78, quer_x=True, platte="Tisc
     holz = st["Holz"]
     for s in (-1, 1):
         if quer_x:
-            fuss = Vector(mitte) + Vector((s * (laenge / 2 - 0.22), 0, 0))
+            fuss = Vector(mitte) + Vector((s * (laenge / 2 - BOCK_EINZUG), 0, 0))
             for t in (-1, 1):                                                              # gekreuzt, versetzt
                 netz.stab(fuss + Vector((0.035 * t, t * (breite / 2 - 0.08), 0)), fuss + Vector((0.035 * t, -t * 0.12, hoehe - 0.06)),
                           0.07, 0.06, holz, quer=(1, 0, 0))
         else:
-            fuss = Vector(mitte) + Vector((0, s * (laenge / 2 - 0.22), 0))
+            fuss = Vector(mitte) + Vector((0, s * (laenge / 2 - BOCK_EINZUG), 0))
             for t in (-1, 1):
                 netz.stab(fuss + Vector((t * (breite / 2 - 0.08), 0.035 * t, 0)), fuss + Vector((-t * 0.12, 0.035 * t, hoehe - 0.06)),
                           0.07, 0.06, holz, quer=(0, 1, 0))
-    a = Vector(mitte) + (Vector((-(laenge / 2 - 0.22), 0, 0.3)) if quer_x else Vector((0, -(laenge / 2 - 0.22), 0.3)))
-    netz.stab(a, Vector(mitte) * 2 - a + Vector((0, 0, 0.6)), 0.06, 0.06, holz)
+    # Steg hoch unter der Platte (0,58 m, vorher 0,3): darunter Platz für Füße und Rocksaum der Gäste beider Seiten
+    a = Vector(mitte) + (Vector((-(laenge / 2 - BOCK_EINZUG), 0, STEG_H)) if quer_x else Vector((0, -(laenge / 2 - BOCK_EINZUG), STEG_H)))
+    netz.stab(a, Vector(mitte) * 2 - a + Vector((0, 0, 2 * STEG_H)), 0.06, 0.06, holz)
 
 
 def gast(name, punkt, blick, sitz=0.43, stufe=None):
@@ -494,20 +499,27 @@ def kamin(netz, st, anker):
         netz.stab((x0 + 0.12 + 0.05 * k, y1 + 0.3, 0.5 + 0.02 * k), (x0 + 0.17 + 0.05 * k, y1 + 0.55, 0.55), 0.07, 0.07, st["Scheitholz"])
 
 
+GAST_SEITE = 0.28
+BANK_ABSTAND = 0.78                                                    # Bank von der Tischmitte (vorher 0,62): Tischkante 0,38 m vor dem Sitzpunkt, Platz für Arme und Brust großer und kleiner Gäste
+
+
 def tische_und_gaeste(netz, st, anker):
     """Vier Tische mit Bänken; je Tisch drei Plätze Gast_<n> (die Nummern füllen erst den Tisch an der Theke, dann den daneben,
     den am Kamin und zuletzt den vorn rechts) mit Krug_<n> davor; auf den Tischen Kerzenstumpen, Teller und Brot."""
     nummer = 1
-    tische = ((-2.6, 0.55, (("n", -0.45), ("n", 0.45), ("s", 0.0))), (0.9, 0.6, (("n", 0.45), ("s", -0.45), ("s", 0.45))),
-              (-2.35, -2.25, (("n", 0.45), ("n", -0.45), ("s", 0.0))), (1.0, -2.05, (("n", -0.45), ("s", 0.45), ("n", 0.45))))
+    # Seitliche Plätze bei ±GAST_SEITE: so weit innen, dass die Kreuzböcke (bei ±0,70 m) neben Knien, Füßen und Rock bleiben (Figuren-Baukasten,
+    # tools/modelle/sitzpruefung.py; vorher ±0,45 m, da stand ein Bein des Bocks vor dem Knie)
+    g = GAST_SEITE
+    tische = ((-2.6, 0.55, (("n", -g), ("n", g), ("s", 0.0))), (0.9, 0.6, (("n", g), ("s", -g), ("s", g))),
+              (-2.35, -2.25, (("n", g), ("n", -g), ("s", 0.0))), (1.0, -2.05, (("n", -g), ("s", g), ("n", g))))
     zufall = random.Random(21)
     for cx, cy, plaetze in tische:
         tisch(netz, st, Vector((cx, cy, 0)), 1.6, 0.8)
         for s in (-1, 1):
-            bank(netz, st, (cx - 0.8, cy + s * 0.62, 0), (cx + 0.8, cy + s * 0.62, 0))
+            bank(netz, st, (cx - 0.8, cy + s * BANK_ABSTAND, 0), (cx + 0.8, cy + s * BANK_ABSTAND, 0))
         for seite, dx in plaetze:
             blick = (0, -1) if seite == "n" else (0, 1)
-            punkt = Vector((cx + dx, cy + (0.62 if seite == "n" else -0.62), 0))
+            punkt = Vector((cx + dx, cy + (BANK_ABSTAND if seite == "n" else -BANK_ABSTAND), 0))
             anker.append(gast(f"Gast_{nummer}", punkt, blick))
             anker.append(krug_platz(f"Krug_{nummer}", punkt, blick))
             nummer += 1
@@ -518,15 +530,18 @@ def tische_und_gaeste(netz, st, anker):
     return nummer - 1
 
 
+WUERFEL_ABSTAND = 0.83                                                 # Hocker von der Tischmitte (vorher 0,62): Tischkante 0,38 m vor dem Sitzpunkt
+
+
 def wuerfeltisch(st, anker):
     """Ab Stufe 2: der Würfeltisch in der dunklen Ecke vorn rechts – runder Tisch, vier Hocker, ein Lederbecher, drei Würfel,
     Münzen, eine Kerze (Licht „Glut“). Vier Plätze Gast_Wuerfel_<n> mit Krug_Wuerfel_<n>. Gibt das Netz zurück."""
     netz = bs.Netz("Wuerfeltisch")
-    m = Vector((3.45, -2.55, 0))
+    m = Vector((3.38, -2.48, 0))                                                           # vorher (3,45, −2,55): die Hocker stehen jetzt weiter außen, Abstand zur Wand
     drehkoerper(netz, st, m, [(0.0, 0.25), (0.05, 0.2), (0.06, 0.06), (0.72, 0.06), (0.72, 0.45), (0.78, 0.45)], "Tischplatte", n=12)
     for k in range(4):
         w = math.radians(45 + 90 * k)
-        p = m + Vector((0.62 * math.cos(w), 0.62 * math.sin(w), 0))
+        p = m + Vector((WUERFEL_ABSTAND * math.cos(w), WUERFEL_ABSTAND * math.sin(w), 0))
         drehkoerper(netz, st, p, [(0.0, 0.14), (0.38, 0.12), (0.38, 0.18), (0.43, 0.18)], "Holz alt", n=8)
         blick = (-math.cos(w), -math.sin(w))
         o = gast(f"Gast_Wuerfel_{k + 1}", p, blick, stufe=2)
@@ -958,11 +973,11 @@ def stammtisch(netz, st, anker):
     z = Z_SAAL
     tisch(netz, st, Vector((cx, cy, z)), laenge, 0.9, hoehe=0.78)
     for s in (-1, 1):
-        bank(netz, st, (cx - laenge / 2, cy + s * 0.62, z), (cx + laenge / 2, cy + s * 0.62, z))
+        bank(netz, st, (cx - laenge / 2, cy + s * BANK_ABSTAND, z), (cx + laenge / 2, cy + s * BANK_ABSTAND, z))   # wie unten
     nummer = 1
     for s, blick in ((1, (0, -1)), (-1, (0, 1))):
         for dx in (-1.2, 0.0, 1.2):
-            punkt = Vector((cx + dx * s, cy + s * 0.62, z))
+            punkt = Vector((cx + dx * s, cy + s * BANK_ABSTAND, z))
             anker.append(gast(f"Gast_Stamm_{nummer}", punkt, blick, stufe=3))
             anker.append(krug_platz(f"Krug_Stamm_{nummer}", punkt, blick, stufe=3))
             nummer += 1

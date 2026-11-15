@@ -81,15 +81,19 @@ public partial class Stadtansicht
         // Der Anker blickt mit −Z zum Altar (zur Gemeinde), die Figur mit +Z: um 180° gedreht einsetzen.
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false };
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, GlaeubigAussehen(platz.Tisch, nummer), nummer) is not { } figur)
+        // Baukasten: auf der Bank sitzen die Gläubigen mit Passanten-Skelett (Beten gibt es dort noch nicht); Prediger und Kniende bleiben im alten Rig – alle nach ihrem Rezept
+        var tempo = platz.Tisch == GastTisch.Bank ? 0.85f + (Streuung(nummer, 17) % 31) / 100f : 1f; // 0,85 … 1,15: die Betenden atmen nicht im Gleichschritt
+        var bewegung = platz.Tisch switch { GastTisch.Kanzel => "Predigen", GastTisch.Beichte => "Knien", _ => "Beten" };
+        if (BaukastenFigurEinsetzen(halter, GlaeubigRezept(platz.Tisch, nummer), bewegung, platz.Tisch == GastTisch.Bank ? "Sitzen" : null, tempo,
+                vorderkante: 0.16f) is not { } figur) // Kirchenbank 0,38 m tief, Anker 3 cm vor der Mitte
         {
             halter.QueueFree();
             return;
         }
         // Wer auf der Bank sitzt, hat die Hüfte auf Sitzhöhe des Menschen (kleine Völker sitzen höher, Orks tiefer – wie die Gäste der Schänke); Kanzel und Kniebank brauchen keinen Ausgleich.
-        if (platz.Tisch == GastTisch.Bank) halter.Position = new Vector3(0, SitzKniehoehe - figur.Kniehoehe, 0);
-        var tempo = platz.Tisch == GastTisch.Bank ? 0.85f + (Streuung(nummer, 17) % 31) / 100f : 1f; // 0,85 … 1,15: die Betenden atmen nicht im Gleichschritt
-        BewegungSetzen(figur, platz.Tisch switch { GastTisch.Kanzel => "Predigen", GastTisch.Beichte => "Knien", _ => "Beten" }, tempo);
+        // Mit Passanten-Skelett (Baukasten): das Gesäß auf der Bank des Modells, Füße nie unter dem Boden
+        if (platz.Tisch == GastTisch.Bank)
+            halter.Position = new Vector3(0, figur.Probe ? SitzHoehe(figur, FigurenBaukasten.ModellSitzflaeche) : SitzKniehoehe - figur.Kniehoehe, 0);
         var koerper = new StaticBody3D();
         koerper.SetMeta("innen", platz.Tisch == GastTisch.Kanzel ? "prediger" : "glaeubiger");
         var hoehe = platz.Tisch switch { GastTisch.Kanzel => 1.75f, GastTisch.Bank => 1.3f, _ => 1.1f };
@@ -107,21 +111,15 @@ public partial class Stadtansicht
     /// Aussehen, fest je Platz: der Prediger ein älterer Mensch in heller Kutte, die Gläubigen wie die Einwohner der Stadt (meist Menschen, dazu Zwerge, Halblinge, Elben und Orks) in einfacher
     /// Tracht, Frauen mit Haube oder Schleier, Männer meist barhäuptig (in der Kirche nimmt man den Hut ab), manche mit grauem Haar.
     /// </summary>
-    private static FigurAussehen GlaeubigAussehen(GastTisch tisch, int nummer)
+    private static FigurRezept GlaeubigRezept(GastTisch tisch, int nummer)
     {
-        if (tisch == GastTisch.Kanzel)
-        {
-            var kutte = new Color(0.88f, 0.85f, 0.76f);
-            return new FigurAussehen(Volk.Mensch, false, kutte, Beinkleidfarben[0], HautVon(Volk.Mensch), GrauesHaar, kutte);
-        }
+        var platz = $"Kirche:{nummer}";
+        if (tisch == GastTisch.Kanzel) return FigurenBaukasten.Statist(platz, Volk.Mensch, false, "Prediger", grau: true);
         var wahl = Streuung(nummer, 71) % 12;
         var volk = wahl switch { 6 or 7 => Volk.Zwerg, 8 => Volk.Halbling, 9 => Volk.Elb, 10 => Volk.Ork, _ => Volk.Mensch };
         var frau = Streuung(nummer, 53) % 5 < 2;
-        var haare = Haarfarben(volk);
         var kopf = frau ? (Streuung(nummer, 29) % 2 == 0 ? Kopfbedeckung.Haube : Kopfbedeckung.Schleier)
             : (Streuung(nummer, 29) % 6) switch { 0 => Kopfbedeckung.Barett, 1 => Kopfbedeckung.Kapuze, _ => Kopfbedeckung.Keine };
-        var gewand = Gewandfarben[(int)(Streuung(nummer, 7) % Gewandfarben.Length)];
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk),
-            Streuung(nummer, 11) % 6 == 0 ? GrauesHaar : haare[nummer * 5 % haare.Length], frau ? Leinenfarbe : gewand, kopf);
+        return FigurenBaukasten.Statist(platz, volk, frau, "Gast", kopf, grau: Streuung(nummer, 11) % 6 == 0);
     }
 }

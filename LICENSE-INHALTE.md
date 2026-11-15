@@ -42,8 +42,6 @@ Dazu gehören im Einzelnen (Stand: Merge von PR #240):
 
 Ausgenommen sind die Modelle `natur_kit_*.glb` (Ordner `natur/`) und `props_*.glb` (Ordner `props/`): Sie sind bearbeitete Auswahlen aus Paketen von Quaternius (Stylized Nature, Fantasy Props, Medieval Village MegaKit) unter **CC0 1.0** (Public Domain Dedication); Herkunft in den `HERKUNFT.md` neben den Dateien.
 
-Das Modell `schmied_ki.glb` (Ordner `figuren/ki/`) entstand aus einem Bild des Nutzers mit TRELLIS.2, AssetFurnace, SkinTokens und Kimodo; die Lizenzen dieser Werkzeuge und ihrer Ausgaben stehen in `game/assets/modelle/figuren/ki/HERKUNFT.md`. Es steht ebenfalls unter CC BY 4.0.
-
 Die Waren-Knöpfe (`game/assets/oberflaeche/icons/`) und ihre Teile (`tools/icons/quellen/`: Rahmen, Hintergründe, Waren-Motive) wurden mit dem Bildmodell Gemini von Google erzeugt und im Projekt zusammengesetzt; sie stehen ebenfalls unter CC BY 4.0.
 
 Ebenfalls mit KI erzeugt und ebenfalls unter CC BY 4.0:
