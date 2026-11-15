@@ -32,7 +32,7 @@ Seit Datenversion 91 („Härte um 1400“, Nutzer 15.11.2026) ist nicht jede Er
 
 | Ernte | Gerste, Roggen | Weingeist, Körnermahlzeit, Dünnbier (seit Datenversion 92) |
 |---|---|---|
-| gut | 25 % mehr (Preis gut 10 % tiefer) | 6,25 % mehr |
+| gut | 50 % mehr (Preis knapp 20 % tiefer; bis Datenversion 91: 25 % mehr) | 12,5 % mehr |
 | gewöhnlich | wie sonst | wie sonst |
 | mager | 25 % weniger (Preis gut 15 % höher) | 6,25 % weniger |
 | Missernte | halb so viel (Preis gut 40 % höher) | 12,5 % weniger |
@@ -47,7 +47,7 @@ Die Werte gelten für „Wie überliefert“. Was Spieler und KI-Häuser selbst 
 
 ## Lagen der anderen Rohstoffquellen
 
-Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquelle**, nicht nur für das Getreide – sonst träfe es nur den Wirt. Jede Quelle hat alle vier Jahre eine **Lage**: gut, gewöhnlich, schlecht oder schwer, mit genau denselben Chancen, Stärken, Grenzen, Schonjahren und der Ansage ein Jahr vorher wie die Ernte (gut = „gute Ernte“, schlecht = „mager“, schwer = „Missernte“). Jeder Beruf mit Rohwaren ist also gleich oft betroffen. Die Lage verschiebt die Rohwaren der Quelle voll und die Waren der ersten Werkstatt zu einem Viertel; dein eigener Umlandbetrieb liefert halb so stark mehr oder weniger.
+Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquelle**, nicht nur für das Getreide – sonst träfe es nur den Wirt. Jede Quelle hat alle vier Jahre eine **Lage**: gut, gewöhnlich, schlecht oder schwer, mit genau denselben Chancen, Stärken, Grenzen, Schonjahren und der Ansage ein Jahr vorher wie die Ernte (gut = „gute Ernte“, schlecht = „mager“, schwer = „Missernte“). Jeder Beruf mit Rohwaren ist also gleich oft betroffen. Eine gute Lage bringt halb so viel mehr, wie eine Missernte wegnimmt (×1,5 gegen ×0,5) – so gleichen sich gute und schlechte Jahre im Mittel aus, und die Lagen machen die Rohwaren auf Dauer nicht teurer. Die Lage verschiebt die Rohwaren der Quelle voll und die Waren der ersten Werkstatt zu einem Viertel; dein eigener Umlandbetrieb liefert halb so stark mehr oder weniger.
 
 | Quelle (Beruf) | beginnt im | gut | schlecht | schwer |
 |---|---|---|---|---|
@@ -69,9 +69,9 @@ Beim Start der Partie wählst du, wie hart die Jahre sind (die Auswahl unter „
 
 | Stufe | gute Ernte | magere Ernte | Missernte | Stärke |
 |---|---|---|---|---|
-| Milde Jahre | 20 % | 15 % | nie | halb (mager: 12,5 % weniger Getreide) |
+| Milde Jahre | 20 % | 15 % | nie | halb (gut: 25 % mehr, mager: 12,5 % weniger Getreide) |
 | **Wie überliefert** (Standard) | 20 % | 25 % | 10 % | wie in der Tabelle oben |
-| Harte Jahre | 15 % | 30 % | 20 % | 1,25-fach (Missernte: 62,5 % weniger Getreide) |
+| Harte Jahre | 15 % | 30 % | 20 % | 1,25-fach (gut: 50 % mehr, die Grenze; Missernte: 62,5 % weniger Getreide) |
 
 Der Rest der Ernten ist gewöhnlich. Ob eine Ernte gut oder schlecht ist, hängt nur vom Startwert der Partie ab – jeder Mitspieler und jede geladene Partie hat dieselben Ernten.
 
