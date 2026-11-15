@@ -60,6 +60,13 @@ uniform float rand_breite = 6.0;       // Breite des Abklingens am Netzrand in m
 // ── Oberfläche und Strömung ──
 uniform vec2 stroemung = vec2(0.0);    // Strömung in m/s (Weltachsen x, z; bei lauf_netz = 1 in Laufachsen: (0, Tempo)), (0, 0) = stehend
 uniform vec2 ruhe_drift = vec2(0.05, 0.04); // langsames Kräuseln auch ohne Strömung
+// Strömungsfeld (Flüsse und Bäche, Stadtansicht.Stroemungsfeld.cs): Karte in Weltachsen über die Gewässer, einmal beim Kartenaufbau gerechnet.
+// RG = Unterschied zur Strömung des Bandes (UV2) in m/s, 0,5 = kein Unterschied, Spanne ± strom_skala; B = Kehrwasser (0 = keins, 1 = tiefster Wirbel).
+// Das Wasser fließt damit sichtbar um Pfeiler, Kähne, Ufervorsprünge und Inseln, wird am Ufer langsamer und kehrt hinter dem Hindernis um.
+uniform sampler2D strom_karte : filter_linear, repeat_disable;
+uniform vec4 strom_ort = vec4(0.0, 0.0, 1.0, 1.0); // x0, z0 (Meter) und 1 / Breite, 1 / Tiefe der Karte
+uniform float strom_skala = 4.0;       // Spanne der Karte in m/s
+uniform float strom_aktiv = 0.0;       // 1 = Karte gesetzt (nur Läufe mit lauf_netz = 1), 0 = Strömung nur aus dem Band
 uniform float fluss_periode = 1.6;     // Flüsse: so lange (s) wandert eine der zwei Abtastungen der Normalkarten, bevor sie zurückspringt
 uniform vec2 sampler_scale = vec2(0.25, 0.25);       // Bildwiederholung je Meter
 uniform sampler2D uv_sampler : hint_anisotropy;      // Strömungskarte (verschiebt die Normalkarten)
@@ -347,7 +354,14 @@ void fragment() {
 		// wandert eine Periode lang und springt dann zurück, während sie ausgeblendet ist – so zieht eine Strömung, die sich von Ort zu Ort ändert,
 		// das Bild nicht mit der Zeit immer weiter auseinander. Ein Versatz der Phase je Ort (großes Rauschen) verteilt das Zurückspringen.
 		vec2 uvw = welt_xz * sampler_scale;
-		vec2 weg = strom_welt * sampler_scale * fluss_periode;
+		vec2 strom_feld = strom_welt;
+		if (strom_aktiv > 0.5) {
+			vec2 kuv = (welt_xz - strom_ort.xy) * strom_ort.zw;
+			if (kuv.x > 0.0 && kuv.y > 0.0 && kuv.x < 1.0 && kuv.y < 1.0) {
+				strom_feld += (texture(strom_karte, kuv).rg * 2.0 - 1.0) * strom_skala;
+			}
+		}
+		vec2 weg = strom_feld * sampler_scale * fluss_periode;
 		float p0 = fract(TIME / fluss_periode + w_rausch(welt_xz * 0.05) * 0.5);
 		float p1 = fract(p0 + 0.5);
 		float g = abs(0.5 - p0) * 2.0;

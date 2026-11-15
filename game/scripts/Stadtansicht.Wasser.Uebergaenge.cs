@@ -622,6 +622,7 @@ public partial class Stadtansicht
     private void WasserBild(double delta)
     {
         WasserWinterNachfuehren();
+        StroemungsfeldBild(delta); // Strömungsfeld der Läufe (Stadtansicht.Stroemungsfeld.cs)
         SchollenBild(delta);     // treibende Eisschollen (Stadtansicht.Eisschollen.cs)
         WassermessungSchritt(delta); // nur mit --wasservergleich=1 (Stadtansicht.Wassermessung.cs)
         FaehrenBewegen(delta);
