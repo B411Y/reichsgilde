@@ -57,6 +57,24 @@ public sealed record Partieeinstellungen
     /// <summary>Wie die KI-Häuser anfangen. Fehlt in alten Spielständen – dann Normal (wirkt nur beim Aufstellen der Partie).</summary>
     public Schwierigkeit Schwierigkeit { get; init; } = Schwierigkeit.Normal;
 
+    /// <summary>
+    /// „Härte der Zeit“: wie oft und wie stark gute und schlechte Ernten kommen (Nutzer 15.11.2026). Fehlt in alten Spielständen – dann
+    /// Standard; dort fehlt aber auch der Abschnitt „ernte“ in den gespeicherten Daten, es gibt also keine Erntejahre.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public HaerteDerZeit HaerteDerZeit { get; init; } = HaerteDerZeit.Ueberliefert;
+
+    /// <summary>Die Stufen der Härte in der Reihenfolge für das Menü „Neue Partie“.</summary>
+    public static IReadOnlyList<HaerteDerZeit> HaertenZurWahl { get; } = new[] { HaerteDerZeit.Mild, HaerteDerZeit.Ueberliefert, HaerteDerZeit.Hart };
+
+    /// <summary>Name einer Stufe für die Anzeige: „Milde Jahre“, „Wie überliefert“, „Harte Jahre“.</summary>
+    public static string HaerteText(HaerteDerZeit h) => h switch
+    {
+        HaerteDerZeit.Mild => "Milde Jahre",
+        HaerteDerZeit.Hart => "Harte Jahre",
+        _ => "Wie überliefert",
+    };
+
     /// <summary>Nur für <see cref="Siegbedingung.Endjahr"/>: In diesem Jahr endet die Partie.</summary>
     public int Endjahr { get; init; } = 1600;
 
