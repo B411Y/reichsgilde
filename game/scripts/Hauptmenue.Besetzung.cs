@@ -207,7 +207,7 @@ public partial class Hauptmenue
             oben.AddChild(new Label { Text = "Wappen" });
             // FitToLongestItem aus: sonst bestimmt die längste Wappenbeschreibung die Mindestbreite (trotz ClipText) und „Erweitert“ machte die Tafel breiter.
             var wappen = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, FitToLongestItem = false, CustomMinimumSize = new Vector2(120, 0) };
-            wappen.AddItem("zufällig", -1);
+            wappen.AddItem("zufällig", Zufaellig);
             for (var w = 0; w < Wappen.Vorlagen.Count; w++)
                 wappen.AddItem(Wappen.Vorlagen[w].Beschreibung(), w);
             wappen.ItemSelected += _ => KiWappenSperren();
@@ -217,10 +217,10 @@ public partial class Hauptmenue
             var unten = new HBoxContainer();
             unten.AddThemeConstantOverride("separation", 6);
             var volk = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
-            volk.AddItem("Volk: zufällig", -1);
+            volk.AddItem("Volk: zufällig", Zufaellig);
             foreach (var v in Startaufstellung.KiVoelker) volk.AddItem(v.Mehrzahl(), (int)v);
             var glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
-            glaube.AddItem("Glaube: zufällig", -1);
+            glaube.AddItem("Glaube: zufällig", Zufaellig);
             foreach (var g in new[] { Konfession.Katholisch, Konfession.Evangelisch }) glaube.AddItem(GlaubeName(g), (int)g);
             var beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
             BerufFuellen(beruf, true);
@@ -235,9 +235,18 @@ public partial class Hauptmenue
         KiZeilenZeigen();
     }
 
+    /// <summary>
+    /// Kennung des Eintrags „zufällig“ in den Feldern einer KI-Zeile. Nicht -1: Godot vergibt bei <c>AddItem(text, -1)</c> den Index als Kennung,
+    /// „zufällig“ hatte so die 0 und galt als erste Vorlage (Wappen), Mensch (Volk) bzw. katholisch (Glaube) – alle KI-Häuser trugen dasselbe Wappen.
+    /// </summary>
+    private const int Zufaellig = 1_000_000;
+
+    /// <summary>Die gewählte Kennung eines Feldes der KI-Zeile, null bei „zufällig“ (oder ohne Wahl).</summary>
+    private static int? Gewaehlt(OptionButton feld) => feld.Selected < 0 || feld.GetSelectedId() == Zufaellig ? null : feld.GetSelectedId();
+
     /// <summary>Das gewählte Wappen je KI-Zeile (null = zufällig); nur die gezeigten Zeilen.</summary>
     private List<Wappen?> KiWappenWahl() =>
-        _kiZeilen.Take((int)_kiAnzahl.Value).Select(z => z.Wappen.GetSelectedId() < 0 ? null : (Wappen?)Wappen.Vorlagen[z.Wappen.GetSelectedId()]).ToList();
+        _kiZeilen.Take((int)_kiAnzahl.Value).Select(z => Gewaehlt(z.Wappen) is { } w ? Wappen.Vorlagen[w] : null).ToList();
 
     /// <summary>Welche Wappen für die Zeile (-1 = Spieler) schon vergeben sind (Kern, nur lesend).</summary>
     private IReadOnlyList<(Wappen Wappen, string Haus)> VergebeneWappenLesen(int zeile) =>
@@ -284,9 +293,9 @@ public partial class Hauptmenue
             var name = z.Name.Text.Trim();
             var v = new Hausvorgabe(
                 Name: name == "" ? null : name,
-                Wappen: z.Wappen.GetSelectedId() < 0 ? null : Wappen.Vorlagen[z.Wappen.GetSelectedId()],
-                Volk: z.Volk.GetSelectedId() < 0 ? null : (Volk)z.Volk.GetSelectedId(),
-                Glaube: z.Glaube.GetSelectedId() < 0 ? null : (Konfession)z.Glaube.GetSelectedId(),
+                Wappen: Gewaehlt(z.Wappen) is { } w ? Wappen.Vorlagen[w] : null,
+                Volk: Gewaehlt(z.Volk) is { } vk ? (Volk)vk : null,
+                Glaube: Gewaehlt(z.Glaube) is { } g ? (Konfession)g : null,
                 Beruf: GewaehlterBeruf(z.Beruf));
             liste.Add(v == new Hausvorgabe(null, null, null, null, null) ? null : v);
         }
