@@ -7,7 +7,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Neubau der Gebäude, Probe (Wohnhaus Mensch, Stufe 1, Grundform 1) – Teil der <c>partial class Stadtansicht</c>.
+/// Neubau der Gebäude: Wohnhaus Mensch, Stufe 1, in vier Grundformen (Probe und Paket 1) – Teil der <c>partial class Stadtansicht</c>.
 ///
 /// Die neuen Häuser (<c>assets/modelle/gebaeude/neubau/</c>, gebaut von <c>tools/modelle/neubau/</c>) folgen dem Style-Guide
 /// „3D-Asset-Pipeline“: ein gemeinsames Trim-Sheet (<c>assets/texturen/neubau/trim_*.png</c>) mit dem Shader
@@ -25,13 +25,15 @@ namespace Reichsgilde;
 /// Fensteröffnungen die echte Stadt samt Passanten (die Scheiben mit dem Fensterlicht sind solange ausgeblendet). Beim
 /// Verlassen wird „InteriorRoot“ unsichtbar und nimmt nicht mehr an der Verarbeitung teil.
 ///
-/// Alles hier ist nur mit Startoption aktiv (<c>docs/STARTOPTIONEN.md</c>): <c>--neubauprobe=1</c>, <c>--neubaureihe=…</c>,
+/// Alles hier ist nur mit Startoption aktiv (<c>docs/STARTOPTIONEN.md</c>): <c>--neubauprobe=1</c>, <c>--neubauform=…</c>, <c>--neubaureihe=…</c>,
 /// <c>--neubaumessung=…</c>. Ohne sie steht überall das bisherige <c>fachwerkhaus.glb</c>.
 /// </summary>
 public partial class Stadtansicht
 {
     private const string NeubauOrdner = "gebaeude/neubau/";
     private const string NeubauWohnhaus = NeubauOrdner + "wohnhaus_mensch_s1_g1";
+    /// <summary>Grundformen des Wohnhauses der Stufe 1 (Nutzer, 14.11.2026): 1 schmal und hoch, 2 breit, 3 mit Schuppen, 4 mit Laube.</summary>
+    private const int NeubauGrundformen = 4;
     private const string AltesWohnhaus = "gebaeude/fachwerkhaus";
     private const string NeubauTexturen = "res://assets/texturen/neubau/";
 
@@ -52,8 +54,30 @@ public partial class Stadtansicht
     private Node3D? _neubauInnen;      // der sichtbare „InteriorRoot“ (null: niemand ist drinnen)
     private bool NeubauInnenAktiv => _neubauInnen is not null;
 
-    /// <summary>Welche Datei für das Wohnhaus eingesetzt wird: mit <c>--neubauprobe=1</c> das neue Haus statt des Fachwerkhauses.</summary>
-    private static string NeubauModell(string datei) => NeubauProbeAn && datei == AltesWohnhaus ? NeubauWohnhaus : datei;
+    /// <summary>Startoption <c>--neubauform=1…4</c>: alle neuen Wohnhäuser in dieser Grundform (ohne Angabe fest zufällig je Platz).</summary>
+    private static readonly int NeubauFormFest = int.TryParse(NeubauOption("--neubauform"), out var form) && form is >= 1 and <= NeubauGrundformen ? form : 0;
+
+    private static string NeubauWohnhausForm(int form) => NeubauOrdner + "wohnhaus_mensch_s1_g" + form;
+
+    /// <summary>
+    /// Feste Zufallszahl eines Platzes (auf einen halben Meter gerundet): in jeder Partie und auf jedem Rechner dieselbe, anders
+    /// als <c>HashCode.Combine</c>, das je Programmstart anders würfelt. Nur Darstellung – der Kern kennt die Grundform nicht.
+    /// </summary>
+    private static uint NeubauPlatzSaat(Vector3 ort)
+    {
+        unchecked
+        {
+            var h = (uint)Mathf.RoundToInt(ort.X * 2) * 0x9E3779B1u ^ ((uint)Mathf.RoundToInt(ort.Z * 2) + 0x7F4A7C15u) * 0x85EBCA6Bu;
+            h ^= h >> 15; h *= 0xC2B2AE35u; h ^= h >> 13;
+            return h;
+        }
+    }
+
+    /// <summary>Die Grundform des Wohnhauses auf einem Platz: mit <c>--neubauform</c> die gewählte, sonst fest zufällig aus dem Platz.</summary>
+    private static int NeubauGrundform(Vector3 platz) => NeubauFormFest > 0 ? NeubauFormFest : 1 + (int)(NeubauPlatzSaat(platz) % NeubauGrundformen);
+
+    /// <summary>Welche Datei für das Wohnhaus eingesetzt wird: mit <c>--neubauprobe=1</c> das neue Haus in der Grundform des Platzes statt des Fachwerkhauses.</summary>
+    private static string NeubauModell(string datei, Vector3 platz) => NeubauProbeAn && datei == AltesWohnhaus ? NeubauWohnhausForm(NeubauGrundform(platz)) : datei;
 
     private static T NeubauTextur<T>(string name) where T : Resource => GD.Load<T>(NeubauTexturen + name);
 
@@ -168,7 +192,7 @@ public partial class Stadtansicht
         var blatt = innen ? "innen_trim" : "trim";
         var trim = NeubauStoff(datei);
         var ort = modell.GlobalPosition;
-        var saat = (uint)HashCode.Combine(Mathf.RoundToInt(ort.X * 2), Mathf.RoundToInt(ort.Z * 2));
+        var saat = NeubauPlatzSaat(ort);
         var putz = NeubauPutz[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
@@ -220,11 +244,17 @@ public partial class Stadtansicht
     /// </summary>
     private ShaderMaterial NeubauGlas() => _neubauButzenglas ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/butzenglas.gdshader"), ResourceName = "Innenglas" };
 
+    private const string NeubauDateiMeta = "neubau_datei";
+
     /// <summary>Merkt das Haus zu seiner Kennung (aus <see cref="SpielhausModell"/>), damit die Innenansicht es findet.</summary>
     private void NeubauMerken(string? kennung, string datei, ModellInstanz? instanz)
     {
         if (kennung is null || instanz is null) return;
-        if (datei.StartsWith(NeubauOrdner)) _neubauHaeuser[kennung] = instanz.Wurzel;
+        if (datei.StartsWith(NeubauOrdner))
+        {
+            _neubauHaeuser[kennung] = instanz.Wurzel;
+            instanz.Wurzel.SetMeta(NeubauDateiMeta, datei); // welche Grundform hier steht: ihr Innenraum ist „<datei>_innen“
+        }
         else _neubauHaeuser.Remove(kennung);
     }
 
@@ -251,11 +281,12 @@ public partial class Stadtansicht
         var wurzel = haus.GetNodeOrNull<Node3D>("InteriorRoot");
         if (wurzel is null)
         {
-            if (Modell(NeubauWohnhaus + "_innen") is not { } szene) return;
+            var innenDatei = (haus.HasMeta(NeubauDateiMeta) ? haus.GetMeta(NeubauDateiMeta).AsString() : NeubauWohnhaus) + "_innen"; // der Raum der Grundform dieses Hauses
+            if (Modell(innenDatei) is not { } szene) return;
             wurzel = szene.Instantiate<Node3D>();
             wurzel.Name = "InteriorRoot";
             haus.AddChild(wurzel);
-            NeubauEinkleiden(NeubauWohnhaus + "_innen", wurzel);
+            NeubauEinkleiden(innenDatei, wurzel);
             NeubauInnenBeleben(wurzel);
             // Herdfeuer und ein schwaches Grundlicht unter dem Dach (ohne Schatten): sonst ist der Raum hinter den kleinen Fenstern schwarz
             if (wurzel.FindChild("Licht_Herd", true, false) is Node3D herd)
@@ -307,8 +338,14 @@ public partial class Stadtansicht
         }
         Vector3? Ort(string name) => wurzel.FindChild(name, true, false) is Node3D n ? wurzel.ToLocal(n.GlobalPosition) : null;
         if (Ort("Feuer_Herd") is { } feuer)
-            foreach (var dz in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
-                FlammeAnlegen(a, feuer + new Vector3(-0.18f, 0, dz) - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
+        {
+            // Der Herd steht je Grundform an einer anderen Wand: „Licht_Herd“ liegt vom Feuer aus zum Raum hin
+            var zumRaum = Ort("Licht_Herd") is { } licht ? new Vector3(licht.X - feuer.X, 0, licht.Z - feuer.Z) : Vector3.Left;
+            zumRaum = zumRaum.LengthSquared() > 1e-6f ? zumRaum.Normalized() : Vector3.Left;
+            var quer = new Vector3(-zumRaum.Z, 0, zumRaum.X);
+            foreach (var d in new[] { -0.2f, 0.2f }) // zwei Flammen links und rechts unter dem Kessel, zum Raum hin
+                FlammeAnlegen(a, feuer + zumRaum * 0.18f + quer * d - a.Mitte, FeuerVorgabe.Esse, 1.25f, () => NeubauInnenAktiv, wurzel, herd: true);
+        }
         // Gegenstände statt Reiterfenster: jeder Knoten „Gegenstand_<Name>“ bekommt eine Klickfläche um sein Netz, ein Namensschild
         // und leuchtet auf, solange die Maus darüber steht; der Klick öffnet seine Tafel (NeubauGegenstandVon, Hauptszene.RaumAngeklickt)
         var gegenstaende = new List<(string Kennung, MeshInstance3D Teil, Label3D Schild)>();
@@ -467,8 +504,10 @@ public partial class Stadtansicht
             for (var i = 0; i < 16; i++)
             {
                 var (spalte, zeile) = (i % 4, i / 4);
-                var datei = teile[0] switch { "neu" => NeubauWohnhaus, "beide" => spalte < 2 ? AltesWohnhaus : NeubauWohnhaus, _ => AltesWohnhaus };
                 var mitte = ort + new Vector3((spalte - 1.5f) * 8.5f, 0, (zeile - 1.5f) * 11f);
+                // Ohne --neubauform steht je Spalte eine Grundform (1 bis 4), bei „beide“ in den zwei neuen Spalten je Haus die nächste
+                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1);
+                var datei = teile[0] switch { "neu" => neu, "beide" => spalte < 2 ? AltesWohnhaus : neu, _ => AltesWohnhaus };
                 var g = new Node3D { Name = $"Neubaureihe_{i}", Position = AufFundament(mitte, 0, new Vector2(8, 10)) };
                 AddChild(g);
                 GruppenSockel(g, 0, new Vector2(8, 10)); // am Hang ein Bruchsteinsockel wie bei den Spielhäusern (Stadtansicht.Gelaende.cs)

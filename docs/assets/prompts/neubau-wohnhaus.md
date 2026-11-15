@@ -1,4 +1,4 @@
-# Neubau der Gebäude: Probe Wohnhaus Mensch, Stufe 1, Grundform 1
+# Neubau der Gebäude: Wohnhaus Mensch, Stufe 1 (Probe Grundform 1, Paket 1 Grundformen 2 bis 4)
 
 Keine Bild-KI und keine Image-to-3D-KI. Modell, UV und Texturen entstehen aus Skripten, die Claude (Fable 5.2, Claude Code) in der Sitzung vom 14.11.2026 geschrieben hat.
 
@@ -12,9 +12,12 @@ Keine Bild-KI und keine Image-to-3D-KI. Modell, UV und Texturen entstehen aus Sk
 
 **Zweite Runde (14.11.2026, nach Rückmeldung des Nutzers):** Fahne, Wappen, Leerstand und Gerüst wie bei den bisherigen Häusern; Fensterkreuze und Rahmen innen; Butzenscheiben als eigene Shader (`butzen.gdshaderinc`, `butzenglas.gdshader`, `bleinetz.gdshader`; Recherche und Quellen in `docs/bereiche/darstellung.md`); Teilband „gestrichenes Holz“; AO-Atlas je Gruppe (`ao_atlas.json`); Einrichtungsstücke der Stufe 1 (Hausapotheke, Hauswächter, Hauswappen); `bodenfleck.png` fürs Decal. Weiter ohne Bild- oder 3D-KI.
 
+**Paket 1 (14.11.2026): Grundformen 2, 3 und 4.** Auftrag des Nutzers: 2 breit, 3 mit Anbau bzw. Schuppen, 4 mit Hof bzw. Laube, alles wie bei der Probe. `tools/modelle/neubau/wohnhaus_mensch_s1.py` (Claude Fable 5.2, Claude Code) baut sie: Grundform 3 ist das Haus der Probe, gespiegelt, mit Bretterschuppen unter einem Pultdach; Grundform 2 (Traufe zur Gasse, 7,0 × 4,8 m) und 4 (Giebel zur Gasse, Laube unter einem Krüppelwalm) sind anderthalb Geschosse hoch mit Fachwerk im Erdgeschoss. Möbel, Gegenstände und Einrichtungsstücke kommen unverändert aus den Funktionen der Probe und werden an ihre Wand im neuen Raum versetzt. Konzeptbilder `wohnhaus_lvl1_v02…v04` nur als Stilvorlage angesehen. Weiter ohne Bild- oder 3D-KI, dieselben Trim-Sheets, je Haus eine Zelle im AO-Atlas.
+
 **Aufruf**
 
 ```bash
 blender -b --python tools/modelle/neubau/trimsheet.py -- --quellen=<ordner mit den Poly-Haven-Paketen>
 blender -b --python tools/modelle/neubau/wohnhaus_mensch_s1_g1.py -- [--bilder=<ordner>]
+blender -b --python tools/modelle/neubau/wohnhaus_mensch_s1.py -- --form=<2|3|4> [--bilder=<ordner>] [--ohne-ao]
 ```
