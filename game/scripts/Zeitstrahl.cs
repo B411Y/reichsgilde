@@ -54,6 +54,17 @@ public sealed partial class Zeitstrahl : Control
         return uhr < lauf.Aufgang ? Mathf.SmoothStep(lauf.Daemmerung, lauf.Aufgang, uhr) : 1 - Mathf.SmoothStep(lauf.Untergang, lauf.Dunkel, uhr);
     }
 
+    /// <summary>Tagesfarbe zu einer Minute: an den Phasengrenzen Zunftglocke/Mittag und Mittag/Vesper gleitet sie so breit wie das Dunkelwerden am Abend (derselbe Verlauf wie zur Nacht).</summary>
+    private Color TagFarbe(int minute)
+    {
+        var lauf = Sonnenzeiten.Fuer(_jahreszeit);
+        var halb = (lauf.Dunkel - lauf.Untergang) / 2f;
+        var farbe = Phasen[0].Farbe;
+        for (var i = 1; i < Phasen.Length - 1; i++)
+            farbe = farbe.Lerp(Phasen[i].Farbe, Mathf.SmoothStep(Phasen[i].Ab - halb, Phasen[i].Ab + halb, minute));
+        return farbe;
+    }
+
     private static readonly Color NachtFarbe = new(0.18f, 0.20f, 0.32f);
 
     /// <summary>Minuten seit Tagesbeginn (0 = 04:00, 1140 = 23:00; negativ vor 4 Uhr nur für Bildschirmfotos).</summary>
@@ -95,12 +106,11 @@ public sealed partial class Zeitstrahl : Control
             var (ab, farbe, name) = Phasen[i];
             var bis = i + 1 < Phasen.Length ? Phasen[i + 1].Ab : Spielzeit.MinutenProTag;
             var feld = new Rect2(X(ab), oben, X(bis) - X(ab), Bandhoehe);
-            // Das Feld in schmalen Streifen: Tagesfarbe der Phase (die Nacht-Phase zeigt bei Tag die Farbe der Vesper), je nach Tageslicht zur Nachtfarbe abgedunkelt
-            var tagFarbe = i == Phasen.Length - 1 ? Phasen[i - 1].Farbe : farbe;
+            // Das Feld in schmalen Streifen: Tagesfarbe (weich zwischen den Phasen), je nach Tageslicht zur Nachtfarbe abgedunkelt
             for (var x = feld.Position.X; x < feld.End.X; x += 2)
             {
                 var minute = (int)((x + 1) / Size.X * Spielzeit.MinutenProTag);
-                DrawRect(new Rect2(x, oben, Mathf.Min(2, feld.End.X - x), Bandhoehe), NachtFarbe.Lerp(tagFarbe, Tageslicht(minute)));
+                DrawRect(new Rect2(x, oben, Mathf.Min(2, feld.End.X - x), Bandhoehe), NachtFarbe.Lerp(TagFarbe(minute), Tageslicht(minute)));
             }
             // Der Name klein ins Feld, wenn er hineinpasst
             var breite = schrift.GetStringSize(name, HorizontalAlignment.Left, -1, Schriftgrad).X;
