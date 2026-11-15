@@ -19,6 +19,8 @@ namespace Reichsgilde.Core.Bauen;
 //  keine Pfeiler, sondern das Mittelteil von 21 m (zwei Klappen samt Torhäusern) mit 13 m lichter Durchfahrt; die beiden Torhauspfeiler
 //  (je 4 m) stehen 8,5 m links und rechts der Mitte. Jede Seite davon bis zur Uferkante (Länge L) bekommt Bögen nach der Regel oben:
 //  n = max(1, round((L + 2) / 10)) Bögen mit n − 1 Pfeilern zu 2 m dazwischen. Ist die Weite kleiner als 21 m, bleibt es bei der Regel oben.
+//  Ihre Rampen sind je Ufer 12 m lang (etwa 12 % Steigung bei 1,4 m Deck; Wasserquerung.Rampe, RampeAnfang, RampeEnde), auch wenn der Weg
+//  vorher endet (dann geradeaus weiter); nur Darstellung, Fahrbahn und Karrennetz bleiben bei Anfang und Ende.
 //  Ein Weg durch einen See bekommt keinen Übergang: Dort ist er gesperrt (die Prüfung meldet einen Fehler, Karren fahren nicht hindurch).
 //  Eine Fährstelle (uebergaenge mit art „faehre“) verbindet zwei Anleger an beiden Ufern; Karren warten dort (logistik.wasser.faehreMinuten).
 //
@@ -132,6 +134,29 @@ public sealed record Wasserquerung
     public double Durchfahrt { get; init; }
 
     /// <summary>
+    /// Klappbrücke: die Länge der Rampe je Ufer (<see cref="Wasserplan.KlappRampe"/>, 12 m – bei 1,4 m Deck etwa 12 % Steigung; sonst 0, dann
+    /// gelten <see cref="Anfang"/> und <see cref="Ende"/> mit Rampe bzw. Endstück wie bisher). Die Rampe A führt von <see cref="RampeAnfang"/>
+    /// (Höhe <see cref="RampeAnfangHoehe"/>) zur Uferkante A hinauf aufs Deck, die Rampe B von der Uferkante B hinab zu <see cref="RampeEnde"/>
+    /// (Höhe <see cref="RampeEndeHoehe"/>). Nur für die Darstellung: Fahrbahn, Karrennetz und Wartezeit rechnen weiter mit
+    /// <see cref="VonStelle"/> und <see cref="BisStelle"/>.
+    /// </summary>
+    public double Rampe { get; init; }
+
+    /// <summary>
+    /// Klappbrücke: Fuß der Rampe A bzw. B auf der Mittellinie des Weges, <see cref="Rampe"/> Meter vor Uferkante A bzw. hinter Uferkante B. Endet
+    /// der Weg vorher, geht der Fuß geradeaus in Richtung seines ersten bzw. letzten Stücks weiter (Köln: die Rheinbrücke endet 3,9 m hinter dem
+    /// Ufer, die Rampe reicht 8,1 m auf die Deutzer Freiheit). Sonst (0 | 0).
+    /// </summary>
+    public Kartenort RampeAnfang { get; init; }
+
+    public Kartenort RampeEnde { get; init; }
+
+    /// <summary>Klappbrücke: Höhe des Weges (Längsprofil) am Fuß der Rampen; hinter dem Ende des Weges die Höhe an seinem Ende. Sonst 0.</summary>
+    public double RampeAnfangHoehe { get; init; }
+
+    public double RampeEndeHoehe { get; init; }
+
+    /// <summary>
     /// Quert der Weg das Gewässer wirklich (Anfang und Ende an verschiedenen Ufern)? Sonst streift er es nur oder läuft im Wasser entlang –
     /// die Prüfung meldet das.
     /// </summary>
@@ -213,6 +238,9 @@ public sealed class Wasserplan
 
     /// <summary>Klappbrücke (Modell): lichte Durchfahrt zwischen den Torhauspfeilern und Länge des Mittelteils mit Klappen und Torhäusern (Meter).</summary>
     public const double KlappDurchfahrt = 13, KlappMittelteil = 21;
+
+    /// <summary>Klappbrücke: Länge der Rampe je Ufer (Meter) – bei 1,4 m Deck über dem Ufer etwa 11,7 % Steigung, so viel schafft ein Karren.</summary>
+    public const double KlappRampe = 12;
 
     /// <summary>So hoch liegt das Deck über der Uferhöhe (Meter), wie in den Modellen; die Fähre trägt ihr Deck 0,3 m über dem Wasser.</summary>
     public const double HolzDeck = 0.6, SteinDeck = 1.4, FaehreDeck = 0.3;
@@ -314,6 +342,16 @@ public sealed class Wasserplan
         k = ~k;
         var t = (s - stellen[k - 1]) / (stellen[k] - stellen[k - 1]);
         return new Kartenort(v[k - 1].X + (v[k].X - v[k - 1].X) * t, v[k - 1].Z + (v[k].Z - v[k - 1].Z) * t);
+    }
+
+    /// <summary>Wie <see cref="OrtAn"/>, aber vor dem Anfang bzw. hinter dem Ende geradeaus in Richtung des ersten bzw. letzten Stücks weiter.</summary>
+    private static Kartenort OrtGeradeaus(IReadOnlyList<Kartenort> v, double[] stellen, double s)
+    {
+        if (v.Count < 2 || (s >= 0 && s <= stellen[^1])) return OrtAn(v, stellen, s);
+        var (von, nach, ueber) = s < 0 ? (v[1], v[0], -s) : (v[^2], v[^1], s - stellen[^1]);
+        var l = von.Abstand(nach);
+        if (l <= 0) return nach;
+        return new Kartenort(nach.X + (nach.X - von.X) / l * ueber, nach.Z + (nach.Z - von.Z) / l * ueber);
     }
 
     /// <summary>Welches Gewässer am Ort ist: (Nummer, ist es ein See) – null an Land.</summary>
@@ -434,9 +472,10 @@ public sealed class Wasserplan
         };
         // Holz: der Holm jedes Jochs in seiner Mitte; Stein: die Pfeiler zwischen den Bögen
         var pfeilerStellen = new List<double>();
-        var (felder, feldlaenge, durchfahrt) = (0, 0.0, 0.0);
+        var (felder, feldlaenge, durchfahrt, rampe) = (0, 0.0, 0.0, 0.0);
         if (art == Uebergangsart.Steinbruecke && weg.Karren && _klappbruecke is not null && lauf.Name == _klappbruecke && weite >= KlappMittelteil)
         {
+            rampe = KlappRampe;
             // Klappbrücke: Mittelteil in der Flussmitte, je Seite Bögen nach der Steinregel
             var mitte = (ua + ub) / 2;
             var seite = weite / 2 - KlappMittelteil / 2;
@@ -469,6 +508,9 @@ public sealed class Wasserplan
             Spannweite = spannweite, Breite = weg.Breite, Richtung = Richtung(anfang, ende), Uferhoehe = uferhoehe, Deckhoehe = deck,
             AnfangHoehe = ProfilHoehe(v, a), EndeHoehe = ProfilHoehe(v, b), Spiegel = spiegel, Tiefe = tiefe, Pfeiler = pfeiler, Felder = felder,
             Feldlaenge = feldlaenge, Durchfahrt = durchfahrt, Quert = quert, Karren = weg.Karren,
+            Rampe = rampe, RampeAnfang = rampe > 0 ? OrtGeradeaus(v, stellen, ua - rampe) : default,
+            RampeEnde = rampe > 0 ? OrtGeradeaus(v, stellen, ub + rampe) : default,
+            RampeAnfangHoehe = rampe > 0 ? ProfilHoehe(v, Math.Max(0, ua - rampe)) : 0, RampeEndeHoehe = rampe > 0 ? ProfilHoehe(v, Math.Min(laenge, ub + rampe)) : 0,
         };
     }
 
