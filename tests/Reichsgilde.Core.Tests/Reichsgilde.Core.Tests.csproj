@@ -69,6 +69,10 @@
     <!-- Zustandsautomat der Schwarzblende beim Betreten und Verlassen von Innenräumen – InnenraumUebergangTests.cs -->
     <Compile Include="..\..\game\scripts\InnenraumUebergang.cs" Link="Handschuh\InnenraumUebergang.cs" />
     <Compile Include="..\..\game\scripts\KlinkeFolge.cs" Link="Handschuh\KlinkeFolge.cs" />
+    <Compile Include="..\..\game\scripts\RathausGegenstaende.cs" Link="Rathaus\RathausGegenstaende.cs" />
+    <Compile Include="..\..\game\scripts\Staendeleiter.cs" Link="Rathaus\Staendeleiter.cs" />
+    <Compile Include="..\..\game\scripts\Briefaufschub.cs" Link="Rathaus\Briefaufschub.cs" />
+    <Compile Include="..\..\game\scripts\SteinMip.cs" Link="Rathaus\SteinMip.cs" />
     <!-- Zuordnung Übergang zu Türklang – KlangTuerTests.cs -->
     <Compile Include="..\..\game\scripts\KlangTuerModell.cs" Link="Handschuh\KlangTuerModell.cs" />
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />

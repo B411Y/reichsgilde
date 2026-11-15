@@ -492,6 +492,7 @@ public partial class Hauptszene : Node
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {
+            _rathausAushang = false;
             if (kennung is not null) _auswahlKennung = kennung;
             Protokollieren(kennung is null ? "Zurück in den Gassen der Stadt."
                 : _stadt.HatBedienung ? $"Ihr betretet {_stadt.InnenName}. Gegenstände anklicken ({_stadt.InnenBedienungen}) · Maus an den Bildrand: Blick wechseln · Rechtsklick: hinaus."
@@ -501,6 +502,7 @@ public partial class Hauptszene : Node
         };
         _stadt.RaumGewechselt += _ =>
         {
+            _rathausAushang = false;
             RaumleisteAufbauen();
             foreach (var tafel in _innenTafeln) tafel.Hide(); // ein anderer Raum, eine andere Bedienung
         };
@@ -1331,7 +1333,7 @@ public partial class Hauptszene : Node
         _einblendung.AbstandUnten = _brief.AbstandUnten;
         // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
         _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
-                            || _stimmrunde.Visible || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
+                            || _stimmrunde.Visible || _brief.Ruht?.Invoke() == true || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
@@ -1502,6 +1504,7 @@ public partial class Hauptszene : Node
 
     private bool RaumAngeklickt(string kennung)
     {
+        if (_stadt.RathausWegAngeklickt(kennung)) return true; // neues Rathaus: Tür, Treppe oder Leiter in den nächsten Raum (Stadtansicht.Rathausneubau.cs)
         if (_stadt.WohnraumTuerAngeklickt(kennung)) return true; // Zimmertür im Wohnhaus (Neubau-Probe): Klinke, Blende, anderer Raum (Stadtansicht.Wohnraeume.cs)
         if (_stadt.IstAusgangstuer(kennung)) // Haustür von innen (Neubau-Probe): hinaus mit Klinke und Blende
         {
@@ -1519,6 +1522,21 @@ public partial class Hauptszene : Node
                 case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
                 case "Kartentisch": TafelnSchliessen(); _hinterzimmer.Oeffnen(); break; // Hinterzimmer: Banden, Erpresserbriefe, Wächter (die Tafel von Reiter und Taste H; den Tisch gibt es nur im gebauten Raum)
                 case "Lesepult": TafelnSchliessen(); _familientafel.Oeffnen(FamilienAnzeige.Reiter.Familie); break; // Bibliothek: Familienbuch mit den Lehrschriften
+            }
+            // Neues Rathaus: Gegenstand → Tafel nach RathausGegenstaende (im Test geprüft)
+            switch (RathausGegenstaende.ZielVon(gegenstand))
+            {
+                case { Tafel: RathausTafelArt.Gericht }: // wie heute der Klick in Gerichtssaal und Kerker
+                    if (_simulation.Wirtschaft?.Justiz.IstAktiv == true) { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }
+                    break;
+                case { Tafel: RathausTafelArt.Uebersicht }: // die Rathaus-Übersicht rechts (Stand, Statut, Aufsteigen), wie heute der Klick aufs Rathaus
+                    _rathausAushang = true;
+                    _auswahlKennung = "Rathaus";
+                    AuswahlAnzeigen();
+                    break;
+                case { Tafel: RathausTafelArt.Ratskammer, Reiter: { } reiter } when Enum.TryParse<RatAnzeige.Reiter>(reiter, out var r):
+                    RatOeffnen(r); // prüft selbst, ob der Rat tagt
+                    break;
             }
             return true;
         }
@@ -1546,7 +1564,10 @@ public partial class Hauptszene : Node
     /// In der Raumansicht bleibt das Bild frei: Die Tafel rechts (Auswahl, beim eigenen Wohnhaus dessen Tafel) erscheint nur in Kontor
     /// und Amtsstube. Draußen und im Dom (noch Diorama) wie bisher.
     /// </summary>
-    private bool AuswahlImRaum => _stadt.RaumKennung is null or Stadtansicht.RaumKontor or Stadtansicht.RaumAmt;
+    private bool AuswahlImRaum => _stadt.RaumKennung is null or Stadtansicht.RaumKontor or Stadtansicht.RaumAmt || _rathausAushang;
+
+    /// <summary>Im neuen Rathaus wurde das Anschlagbrett angeklickt: die Übersicht steht rechts, bis der Raum wechselt.</summary>
+    private bool _rathausAushang;
 
     /// <summary>Leiste unten rechts (dort ist in jedem Raum Platz): ein Knopf je Raum, der gezeigte ist gedrückt, dazu „Zur Stadt".</summary>
     private void RaumleisteBauen()

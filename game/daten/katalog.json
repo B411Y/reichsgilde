@@ -9,7 +9,7 @@
     {"kennung": "einwohnerplatz_vorstadt", "art": "einwohnerplatz", "name": "Einwohnerplatz in der Vorstadt", "groesse": [7.5, 6.2]},
     {"kennung": "kulisse_buergerhaus", "art": "kulisse", "name": "Bürgerhaus (Kulisse)", "modell": "gebaeude/einwohner_buergerhaus", "groesse": [8, 8.5]},
     {"kennung": "markt", "art": "sonderbau", "name": "Marktplatz", "modell": "gebaeude/marktplatz", "groesse": [24, 24]},
-    {"kennung": "rathaus", "art": "sonderbau", "name": "Rathaus", "modell": "gebaeude/rathaus", "groesse": [16, 10]},
+    {"kennung": "rathaus", "art": "sonderbau", "name": "Rathaus", "modell": "gebaeude/neubau/rathaus", "groesse": [16, 10]},
     {"kennung": "koelner_rathaus", "art": "sonderbau", "name": "Kölner Rathaus", "modell": "gebaeude/koelner_rathaus", "groesse": [22, 13]},
     {"kennung": "dom", "art": "sonderbau", "name": "Dom", "modell": "gebaeude/dom", "groesse": [12.5, 30.2], "versatz": [0, -2.85]},
     {"kennung": "koelner_dom", "art": "sonderbau", "name": "Kölner Dom", "modell": "gebaeude/koelner_dom", "groesse": [14, 34]},

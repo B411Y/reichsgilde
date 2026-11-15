@@ -24,5 +24,17 @@
     "plaetze": {"wohnhaus_mensch_s1_g1": 0, "wohnhaus_mensch_s1_g2": 1, "wohnhaus_mensch_s1_g3": 2, "wohnhaus_mensch_s1_g4": 3,
                "wohnhaus_mensch_s2_g1": 4, "wohnhaus_mensch_s2_g2": 5, "wohnhaus_mensch_s2_g3": 6, "wohnhaus_mensch_s2_g4": 7,
                "wohnhaus_mensch_s3_g1": 8, "wohnhaus_mensch_s3_g2": 9, "wohnhaus_mensch_s3_g3": 10, "wohnhaus_mensch_s3_g4": 11}
+  },
+  "rathaus": {
+    "datei": "rathaus_ao_atlas.png",
+    "kante": 1024,
+    "zellen": 1,
+    "plaetze": {"rathaus": 0}
+  },
+  "rathaus_innen": {
+    "datei": "rathaus_innen_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 4,
+    "plaetze": {"eingangshalle": 0, "amtsstube": 1, "gerichtssaal": 2, "kerker": 3, "ratshalle": 4, "turm_treppe": 5, "turm_spitze": 6}
   }
 }

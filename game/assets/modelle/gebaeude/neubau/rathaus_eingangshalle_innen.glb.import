@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dxnho8pax5cbr"
-path="res://.godot/imported/rathaus_innen.glb-ebe877689d2d043b3ebc40140ce26ad5.scn"
+uid="uid://dwnuqdheh4483"
+path="res://.godot/imported/rathaus_eingangshalle_innen.glb-4e3f81d55e770ca5d94cb358879f18ff.scn"
 
 [deps]
 
-source_file="res://assets/modelle/innen/rathaus_innen.glb"
-dest_files=["res://.godot/imported/rathaus_innen.glb-ebe877689d2d043b3ebc40140ce26ad5.scn"]
+source_file="res://assets/modelle/gebaeude/neubau/rathaus_eingangshalle_innen.glb"
+dest_files=["res://.godot/imported/rathaus_eingangshalle_innen.glb-4e3f81d55e770ca5d94cb358879f18ff.scn"]
 
 [params]
 
