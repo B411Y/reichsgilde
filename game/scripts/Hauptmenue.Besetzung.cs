@@ -51,7 +51,7 @@ public partial class Hauptmenue
         _fehler.Text = "";
         _zugWurf = 0;
         _startwert.Value = GD.RandRange(0, 999_999);
-        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte);
+        var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         _kiAnzahl.MaxValue = hoechstens;
         _kiAnzahl.Value = Math.Min(3, hoechstens);
         HofstellenWahlFuellen();
@@ -404,7 +404,7 @@ public partial class Hauptmenue
         foreach (var h in Partieeinstellungen.HaertenZurWahl)
             _haerte.AddItem(Partieeinstellungen.HaerteText(h), (int)h);
         _haerte.Select(_haerte.GetItemIndex((int)Partieeinstellungen.Standard.HaerteDerZeit));
-        _haerte.TooltipText = "Wie oft und wie stark gute und schlechte Ernten kommen. Der Preis der Getreidewaren folgt der Ernte, ein Jahr vorher gibt es eine Ansage.\n" +
+        _haerte.TooltipText = "Wie oft und wie stark gute und schlechte Ernten kommen. Der Preis der Getreidewaren folgt der Ernte; eine Ansage vorab gibt es nicht.\n" +
                               "Milde Jahre: Missernten sind selten und schwach.\nWie überliefert: Häufigkeit und Stärke nach der Überlieferung.\nHarte Jahre: Missernten sind häufiger und stärker.";
         Zeile(raster, "Härte der Zeit", _haerte);
 

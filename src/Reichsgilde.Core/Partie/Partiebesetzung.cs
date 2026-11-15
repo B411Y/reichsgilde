@@ -135,12 +135,22 @@ public static class Partiebesetzung
         : 1 + (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
 
     /// <summary>
-    /// Wie viele KI-Gegner höchstens mitspielen: Höfe − 1 (der Spieler). Ohne Los (<see cref="Aufstellungsart.Vorgabe"/>) nur die KI-Häuser der
-    /// Startbelegung – gewürfelt wird dann nichts.
+    /// Wie viele KI-Gegner höchstens mitspielen. Seit „nur noch Bauzonen“ (15.11.2026) mit <paramref name="daten"/>: so viele Häuser, wie in
+    /// die Bauzonen im Stadtinneren passen (<see cref="Startortlos.Haeuser"/>, höchstens <see cref="HoechstensHoefe"/>), minus der Spieler.
+    /// Ohne Los (<see cref="Aufstellungsart.Vorgabe"/>) höchstens die KI-Häuser der Startbelegung – gewürfelt wird dann nichts. Ohne Karte:
+    /// die Häuser des Ersatzes. Ohne <paramref name="daten"/> (oder ohne Bauwesen in den Daten) die alte Zählung nach den Höfen der Karte –
+    /// nur noch als Anhalt; die Partie prüft mit den Daten.
     /// </summary>
-    public static int HoechstensKi(Stadtkarte? karte, Aufstellungsart aufstellung = Aufstellungsart.Gelost) => aufstellung == Aufstellungsart.Vorgabe
-        ? (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count
-        : Math.Max(0, Hoefe(karte) - 1);
+    public static int HoechstensKi(Stadtkarte? karte, Aufstellungsart aufstellung = Aufstellungsart.Gelost, Wirtschaftsdaten? daten = null)
+    {
+        var haeuser = (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
+        if (karte is not null && daten is not null && Startortlos.IstAktiv(karte, daten))
+        {
+            var platz = Math.Max(0, Startortlos.Haeuser(karte, daten) - 1);
+            return aufstellung == Aufstellungsart.Vorgabe ? Math.Min(haeuser, platz) : platz;
+        }
+        return aufstellung == Aufstellungsart.Vorgabe ? haeuser : Math.Max(0, Hoefe(karte) - 1);
+    }
 
     // ── Züge des Spielers ───────────────────────────────────────────────────
 
@@ -240,8 +250,9 @@ public static class Partiebesetzung
 
     /// <summary>
     /// Die mitspielenden KI-Häuser vor dem Los: die ersten <paramref name="anzahl"/> der Startbelegung (deren Betriebsarten die Daten kennen; die
-    /// ausführliche Beschreibung alter Karten), und für jeden weiteren Hof ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
-    /// Farbe und Geschlecht auf einer freien Start-Hofstelle. Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
+    /// ausführliche Beschreibung alter Karten), und für jedes weitere ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
+    /// Farbe und Geschlecht – ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/> (seit 15.11.2026, vorher eine freie
+    /// Start-Hofstelle). Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
     /// </summary>
     internal static List<Starthaus> KiHaeuser(Stadtkarte? karte, Startbelegung start, Wirtschaftsdaten daten, int anzahl, Wappen spielerWappen,
         IReadOnlyList<Hausvorgabe?>? vorgaben, int zufallsstartwert)
@@ -250,13 +261,8 @@ public static class Partiebesetzung
         var haeuser = KartenwappenEindeutig(ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList(), spielerWappen, vorgaben, zufallsstartwert);
         var fehlen = anzahl - ausKarte.Count;
         if (fehlen <= 0) return haeuser;
-        if (karte is not { HatHofstellen: true })
-            throw new ArgumentException($"Ohne Hofstellen spielen höchstens {start.Haeuser.Count} KI-Häuser mit.");
-
-        var belegt = haeuser.Select(h => Hofstellenvergabe.VorgabeVon(karte, h)).Prepend(Hofstellenvergabe.VorgabeSpieler(karte)).ToList();
-        var frei = Hofstellenvergabe.Startplaetze(karte).Where(h => !belegt.Contains(h)).ToList();
-        if (frei.Count < fehlen)
-            throw new ArgumentException($"Die Karte hat nur {Hoefe(karte)} Höfe – für den Spieler und {anzahl} KI-Häuser zu wenig.");
+        if (karte is null)
+            throw new ArgumentException($"Ohne Karte spielen höchstens {start.Haeuser.Count} KI-Häuser mit.");
 
         var art = daten.Berufe[Startaufstellung.Berufe(daten)[0]].Werkstatt; // Platzhalter: den Beruf würfelt die Startaufstellung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
@@ -266,7 +272,6 @@ public static class Partiebesetzung
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
         {
-            var hof = frei[i];
             var geschlecht = z.Next(2) == 0 ? Geschlecht.Mann : Geschlecht.Frau;
             var w = Wappen.Zufall(z, wappen);
             wappen.Add(w);
@@ -274,8 +279,8 @@ public static class Partiebesetzung
             if (farbe is not null) farben.Add(farbe);
             haeuser.Add(new Starthaus
             {
-                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, Farbe = farbe, Wohnhaus = hof.Wohnhaus,
-                Betriebe = { new Startbetrieb { Platz = hof.Werkstatt, Art = art } },
+                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, Farbe = farbe,
+                Betriebe = { new Startbetrieb { Art = art } },
             });
         }
         return haeuser;

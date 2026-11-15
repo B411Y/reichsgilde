@@ -163,14 +163,14 @@ static class ErnteTests
             Pruefe.Wahr(b.Wirtschaft!.Markt["Gerste"].Preis < a.Wirtschaft!.Markt["Gerste"].Preis, "Gerste billiger");
         }),
 
-        ("Ernte: Meldung der Ansage zu Beginn des Sommerjahres und der Ernte zu Beginn des Herbstjahres", () =>
+        ("Ernte: keine Ansage im Sommerjahr, die Meldung erst zu Beginn des Herbstjahres", () =>
         {
             var s = StartwertMit(Erntegute.Mager);
             var sim = Sim(Minute(1, 4), s);
             var meldungen = new List<string>();
             sim.Wirtschaft!.Meldung += meldungen.Add;
             sim.Tick();
-            Pruefe.Wahr(meldungen.Any(m => m.Contains("magere Ernte") && m.Contains("1402") && m.Contains("Gerste")), string.Join(" | ", meldungen));
+            Pruefe.Wahr(!meldungen.Any(m => m.Contains("1402") && m.Contains("Ernte")), string.Join(" | ", meldungen)); // Gegenprobe: nichts vorab
             meldungen.Clear();
             while (sim.Zeit.Jahr < 1402) sim.Tick();
             sim.Tick();

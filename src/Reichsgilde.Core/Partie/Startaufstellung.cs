@@ -128,8 +128,10 @@ public static class Startaufstellung
         bool IstKirche(string beruf) => daten.Kirche is { } k && beruf == k.Beruf;
         if (IstKirche(spielerberuf)) kirchen.Add(spielerglaube);
 
-        bool AufWerkstattplatz(Startbetrieb b) => karte is null ? daten.Art(b.Art).InDerStadt : karte.GebaeudeMit(b.Platz) is { Art: Bausteinart.Werkstattplatz };
+        // Die Werkstatt in der Stadt: an der Betriebsart erkannt, nicht mehr am Werkstattplatz der Karte (15.11.2026, „nur noch Bauzonen“ –
+        // ein gewürfeltes Haus hat keinen Platz mehr; wo es steht, lost das Startortlos).
         bool AufUmlandplatz(Startbetrieb b) => karte is not null && karte.GebaeudeMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb };
+        bool AufWerkstattplatz(Startbetrieb b) => daten.Art(b.Art).InDerStadt && !AufUmlandplatz(b);
 
         // Die Umland-Startplätze der mitspielenden Häuser (in ihrer Reihenfolge) – wer welchen bekommt, steht unten
         var umland = mitspielend.SelectMany(h => h.Betriebe.Where(AufUmlandplatz)).ToList();
@@ -192,7 +194,7 @@ public static class Startaufstellung
                 var b = daten.Berufe[beruf];
                 var nachname = Familie.NachnameAus(name);
                 betriebe = new List<Startbetrieb> { new() { Platz = werkstatt!.Platz, Art = b.Werkstatt, ErsatzName = "{art} " + nachname } };
-                if (karte is not null) namen.Add((werkstatt.Platz, $"{daten.Art(b.Werkstatt).Name} {nachname}"));
+                if (karte is not null && werkstatt.Platz != "") namen.Add((werkstatt.Platz, $"{daten.Art(b.Werkstatt).Name} {nachname}"));
                 if (b.Umland is { } u && daten.KenntArt(u))
                 {
                     if (karte is null)

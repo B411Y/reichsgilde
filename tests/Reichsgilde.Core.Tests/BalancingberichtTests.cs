@@ -112,7 +112,7 @@ static class BalancingberichtTests
             Pruefe.Gleich("Zwerg,Elb,Halbling", string.Join(",", karte.Startbelegung.Haeuser.Take(3).Select(h => h.Volk)), "die ersten drei wie in der Greybox");
             var daten = Wirtschaftsdaten.AusJson(Quellen.Value.Wirtschaft);
             Pruefe.Wahr(daten.Liegenschaften.All(l => karte.Gebaeude.Any(g => g.Betrieb == l.Name)), "jede Liegenschaft hat ihren Platz");
-            var r = Messpartie.Spielen(new Messaufbau("messstadt", 101, 1, Bezug: Bezugsart.Geist, Rivalen: 8, MarktMessen: true), Quellen.Value);
+            var r = Messpartie.Spielen(new Messaufbau("messstadt", 101, 1, Bezug: Bezugsart.Geist, Rivalen: 8, MarktMessen: true, Startplaetze: Reichsgilde.Core.Partie.Startplatzvergabe.Vorgabe), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             Pruefe.Gleich(9, r.Haeuser.Count);
             Pruefe.Gleich(0, r.Spieler.StartArbeiter);

@@ -97,7 +97,8 @@ static class GreyboxTests
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
 
-            // ohne Los (Hofstellen, 9.11.2026): jedes Haus auf seiner Vorgabe; gelost dieselben vier Hofstellen anders verteilt (HofstellenStartTests)
+            // Startplatzvergabe.Vorgabe (nur noch für Tests): jedes Haus, wo die Karte es hinsetzt – als Grundstück mit der Kennung des Platzes;
+            // im Spiel lost das Startortlos die Häuser in die Bauzonen (StartortlosTests)
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: k);
             var w = sim.Wirtschaft!;
             for (var i = 0; i < w.Konten.Count; i++)
@@ -173,35 +174,34 @@ static class GreyboxTests
             Pruefe.Gleich(null, sim2.Wirtschaft.Bauen.PlatzVerboten(wohnhaus.Befehl()));
         }),
 
-        ("Greybox: Ein Wohnhausplatz wird nach dem Abriss Bauplatz für jedes Wohnhaus (17 × 8, eingepasst), nicht für eine Werkstatt", () =>
+        ("Greybox: Ein Haus auf einem Wohnhausplatz der Karte (alter Spielstand) hinterlässt nach dem Abriss keinen Bauplatz – außerhalb der Bauzonen wird dort nicht mehr gebaut", () =>
         {
             var (sim, w) = MitKarte();
             var tot = w.KontoEroeffnen("Haus Pleite");
+            Pruefe.Wahr(w.Bauen.Wohnhaus(tot) is null, "ein Konto bekommt keinen Wohnhausplatz mehr (15.11.2026)");
+            var alt = w.Bauen.StartwohnhausSetzen(tot, w.Karte!.GebaeudeMit("Wohnhaus1")!); // wie in einem alten Spielstand
+            Pruefe.Gleich(("Wohnhaus1", Lage.Mauerring, new Grundriss(0, -44.3, 17, 8, 0)), (alt.Kennung!, alt.Lage!.Value, alt.Grundriss));
             var k = Reich(w, "Haus Neu");
+            Pruefe.Gleich("Hier steht schon das Wohnhaus von Haus Pleite.", w.Bauen.PlatzVerboten(new WohnhausBauen(1, 0, -45, 0)));
             tot.IstBankrott = true;
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
             for (var i = 0; i < 241; i++) sim.Tick();
-            var platz = w.Bauen.Bauplaetze.Single();
-            Pruefe.Gleich("Wohnhaus1", platz.Kennung);
-            Pruefe.Gleich(Lage.Mauerring, platz.Lage);
+            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any() && w.Bauen.Grundstuecke.Count == 0, "kein Bauplatz, kein Grundstück");
             for (var stufe = 0; stufe < 5; stufe++)
             {
                 var befehl = w.Bauen.Einrasten(new WohnhausBauen(stufe, 3, -45, 2));
-                Pruefe.Gleich(new WohnhausBauen(stufe, 0, -44.3, 0), befehl);
-                Pruefe.Gleich(platz.Grundriss, w.Bauen.Grundriss(befehl));
-                Pruefe.Gleich(null, w.Bauen.PlatzVerboten(befehl), $"Stufe {stufe}"); // auch der Stadthof: der Platz liegt laut Karte am Mauerring
+                Pruefe.Wahr(befehl != new WohnhausBauen(stufe, 0, -44.3, 0), $"Stufe {stufe}: rastet nicht mehr auf den Platz ein");
+                Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(stufe, 0, -44.3, 0)) is not null, $"Stufe {stufe}: der alte Platz nimmt nichts mehr auf");
             }
-            Pruefe.Gleich("Auf einem Wohnhausplatz stehen nur Wohnhäuser.", w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, -45, 0)));
-            var palais = new WohnhausBauen(3, 0, -44.3, 0);
-            var v = w.Bauen.Vorschau(k, palais);
-            Pruefe.Gleich((15_500.0, 2 * Spielzeit.MinutenProTag), (v.Kosten, v.BauzeitMinuten));
-            Pruefe.Wahr(w.Ausfuehren(k, palais).Erfolg, "Stadtpalais auf dem Wohnhausplatz");
-            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "Platz vergeben");
+            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WohnhausBauen(1, 0, -45, 0))!.Contains("keine Bauzone"), "der Platz liegt in keiner Bauzone");
+            Pruefe.Wahr(w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, 0, -45, 0))!.Contains("keine Bauzone"), "auch keine Werkstatt");
         }),
 
         ("Greybox: Bauorte – genau die gültigen Rasterstellen (gegen eine Suche über die ganze Stadt), in fester Reihenfolge und schnell genug für die KI", () =>
         {
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: Karte());
+            // Häuser auf den Plätzen der Karte (Vorgabe): Die Bauzonen bleiben frei – gelost stünden vier Häuser darin, und im Stadtinneren der
+            // Greybox bliebe kein Platz für einen Stadthof (bis die Karten mehr Zonen haben, Leveldesign).
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: Karte());
             var w = sim.Wirtschaft!;
             var k = Reich(w, "Haus Reich");
             var vorlagen = new BauBefehl[]
@@ -242,7 +242,7 @@ static class GreyboxTests
             Pruefe.Gleich(0, w.Bauen.Bauorte(spieler, new WohnhausBauen(4, 0, 0, 0)).Count);
         }),
 
-        ("Greybox: So viele Stadtpalais und Stadthöfe passen gleichzeitig in die Bauzonen (gierig gezählt) – und vorn stehen die Bauplätze", () =>
+        ("Greybox: So viele Stadtpalais und Stadthöfe passen gleichzeitig in die Bauzonen (gierig gezählt); ein Abriss macht keinen Bauplatz mehr", () =>
         {
             int Anzahl(int stufe)
             {
@@ -262,16 +262,17 @@ static class GreyboxTests
             Pruefe.Wahr(palais >= 3, $"nur {palais} Stadtpalais");
             Pruefe.Wahr(hoefe >= 1, $"nur {hoefe} Stadthöfe");
 
-            // Ein Wohnhausplatz wird frei (Abriss): Er steht für jedes Wohnhaus vorn in der Liste, in seiner Drehung.
+            // Ein Haus auf einem Wohnhausplatz der Karte wird abgerissen (alter Spielstand): kein Bauplatz – die Bauorte sind dieselben wie vorher.
             var (sim2, w2) = MitKarte();
             var tot = w2.KontoEroeffnen("Haus Pleite");
+            w2.Bauen.StartwohnhausSetzen(tot, w2.Karte!.GebaeudeMit("Wohnhaus1")!);
             var bauherr = Reich(w2, "Haus Neu");
+            var vorher = w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0));
             tot.IstBankrott = true;
             Pruefe.Wahr(w2.Ausfuehren(bauherr, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
             for (var i = 0; i < 241; i++) sim2.Tick();
-            Pruefe.Gleich<BauBefehl>(new WohnhausBauen(4, 0, -44.3, 0), w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0))[0]);
-            var platz = w2.Bauen.Bauplaetze.Single().Grundriss;
-            Pruefe.Wahr(w2.Bauen.Bauorte(bauherr, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).All(o => !w2.Bauen.Grundriss(o).Ueberlappt(platz)), "keine Werkstatt auf dem Wohnhausplatz");
+            Pruefe.Wahr(vorher.SequenceEqual(w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0))), "dieselben Bauorte");
+            Pruefe.Wahr(!w2.Bauen.Bauplaetze.Any(), "kein Bauplatz");
         }),
     };
 }

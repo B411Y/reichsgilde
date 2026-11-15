@@ -42,7 +42,7 @@ static class KlappbrueckeTests
         var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!["start"]!["haeuser"]!.AsArray().Count;
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer, Zufallsstartwert = startwert },
-            daten, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
+            daten, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
         return sim;
     }
 
@@ -70,7 +70,7 @@ static class KlappbrueckeTests
         ("Klappbrücke: Daten ab 90 – Rhein, 20 Minuten je Durchfahrt; Prüfung meldet leeres Gewässer und Dauer außerhalb 1–60; ohne Abschnitt keine Brücke", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(92, d.Version);
+            Pruefe.Gleich(93, d.Version);
             Pruefe.Gleich("Rhein", d.Logistik.Klappbruecke!.Gewaesser);
             Pruefe.Gleich(20, d.Logistik.Klappbruecke.OeffnungMinuten);
             Pruefe.WirftMitMeldung(() => DatenMit(j => j["logistik"]!["klappbruecke"]!["oeffnungMinuten"] = 0), "oeffnungMinuten");
@@ -108,7 +108,7 @@ static class KlappbrueckeTests
             var andere = Mit(DatenMit(j => j["logistik"]!["klappbruecke"]!["gewaesser"] = "Duffesbach"));
             Pruefe.Wahr(!andere.Klappbruecke.Gibt, "Duffesbach: kein Hafen an diesem Gewässer");
             var (grey, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
-                new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+                new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
             Pruefe.Wahr(!grey.Wirtschaft!.Klappbruecke.Gibt, "Greybox: keine Klappbrücke");
         }),
 

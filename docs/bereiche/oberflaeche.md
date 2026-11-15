@@ -51,17 +51,28 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - **Ratskammer ins Thema umstellen:** Der Reiter „Ämter“ (Ratsbaum) und die Kurzübersicht sind im Thema `rat_thema.tres`. Die Abschnitte der Reiter „Anträge“, „Stadtglaube“ und „Kasse“ und der Domprediger (`RatAnzeige.Antraege.cs`, `.Kasse.cs`, `.Dom.cs`, Statutantrag und Stadtglaube in `RatAnzeige.cs`) rufen noch `Hauptmenue.Text(…, Größe, Farbe)` auf; sie wandern im Fable-Neudesign in Varianten.
 - Ratsbaum: Ein **freies Amt** (Schatten mit „?“) ließ sich im Klicktest nicht zeigen: Alle Sitze sind zu Beginn besetzt (Nachrücker). Der Schatten ist gebaut, aber nur im Spiel nach einem Rücktritt oder Tod zu sehen.
 - (Zeiger-Symbole, Branch phase5/zeiger-symbole) Klicktest mit Grafik steht aus, belegt ist nur die Blender-Rechenvorschau (kein Spielbild): Stammbaum (Zeigehand mit Windrose, beim Ziehen bleibt die Hand zeigend), Textfeld im Hauptfenster und in einem Dialog/Popup (Hand schrumpft, Messing-I wächst, Einfügemarke zwischen den Buchstaben unter der Mitte des I, Rückweg beim Verlassen), 48/64/80 px, helle und dunkle Tafeln. Kollision mit `fix/testbefunde-1`: dort zeigt die Stammbaum-Fläche `CursorShape.Move` und der 3D-Handschuh die Faust; hier zeigt die Hand (Nutzerwunsch 14.11.), beide setzen Move/Drag in `Mauszeiger` (gleiche Zeilen).
-- (von Kern) Lagen aller Rohstoffquellen (Datenversion 92): Ansage und Tooltip wie bei der Ernte für alle Quellen – Zeitstrahl bzw. Marktfenster je angesagter Lage (`Stadtwirtschaft.Lagen.Angesagt`, Text `Lagenwesen.Ansage(lage)`, Überschrift `lage.Ereignis.Titel`), am Marktstand die Gründe (`Lagen.Gruende(ware)` → Lage und Faktor), Zeile im Jahresbericht (`Lagenwesen.Beginn(lage)`). Die Ernte-Abfragen (`w.Ernte.…`) bleiben gültig.
 
 ## Entscheidungen
+
+### Lagen aller Rohstoffquellen (Branch phase5/lagen-oberflaeche)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Beginn | Kommt als Meldung vom Kern, erst wenn die Lage zu gelten beginnt (keine Ansage vorab: Nutzerentscheidung 15.11.2026 „der Spieler sieht nie in die Zukunft“; der Kern meldet nur noch den Beginn) (`Lagenwesen.Minute`, nur gute, schlechte und schwere, nicht gewöhnliche) über den vorhandenen Meldungsweg (Meldeleiste, Protokoll); die Oberfläche fügt nichts hinzu. Eigener Brief nicht gebaut: der Kern meldet mit Art „Sonstiges“, wie die Ernte | 15.11.2026 |
+| Texte | `game/scripts/LagenTexte.cs` (ohne Godot, vom Test mitübersetzt): Übersicht (nur die jetzt geltenden Lagen mit Ereignis, ohne Ernte) und Tooltip-Zeilen je Ware aus `Lagen.Gruende(ware)`; nichts Kommendes | 15.11.2026 |
+| Tooltip | Alle Waren im Marktfenster: „Grube 1404: Wassereinbruch – Eisen ×0,8“ (Faktor auf eine Stelle wie überall, `Zahlenformat.Kommazahl`) (nur geltende Lagen); die Ernte-Zeile bleibt eigen | 15.11.2026 |
+| Markt | Die Ernte-Zeile über den Waren wird zur Lagen-Übersicht: Ernte, dann je geltender Lage „Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“; keine Ansage; gewöhnliche Lagen stehen nicht da | 15.11.2026 |
+| Jahresbericht | Neuer Abschnitt „Lagen im Jahr“ (vor der Rangliste) mit denselben Zeilen; fehlt, wenn keine Lage mit Ereignis besteht | 15.11.2026 |
+| Aussehen | Keine neuen Farben oder Größen: Zeilen im Stil der übrigen Markt- und Berichtszeilen | 15.11.2026 |
+| Prüfhilfe | Startoption `--startwert=<n>` (Zufallsstartwert) für Bilder; `--startwert=12 --startrunde=4` zeigt das Jahr vor der Lage (nichts), `--startrunde=5` die gültige Lage „Wassereinbruch“ der Gruben (`docs/STARTOPTIONEN.md`) | 15.11.2026 |
 
 ### Erntejahre in der Oberfläche (Branch phase5/haerte-oberflaeche, zu PR #475)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Härte der Zeit | Auswahl „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre) im aufklappbaren Bereich „Erweitert“ der Neuen Partie, bei den übrigen Partie-Einstellungen; Tooltip erklärt die drei Stufen; Standard „Wie überliefert“ | 15.11.2026 |
-| Ernte am Markt | Im Marktfenster eine Zeile über den Waren: gültige Ernte mit Jahr und Güte, im Sommerjahr zusätzlich die Ansage; im Tooltip der Getreidewaren (`Ernte.Waren`) „Ernte 1402: eine Missernte – Menge ×0,6“ und die Ansage. Aussehen wie die übrigen Markt-Zeilen, keine neuen Farben | 15.11.2026 |
-| Ansage | Kommt als Meldung vom Kern (`Erntewesen.Minute`); die Oberfläche liest nur | 15.11.2026 |
+| Ernte am Markt | Im Marktfenster eine Zeile über den Waren: gültige Ernte mit Jahr und Güte, keine Ansage der nächsten (seit 15.11.2026 entfällt sie); im Tooltip der Getreidewaren (`Ernte.Waren`) „Ernte 1402: eine Missernte – Menge ×0,6“. Aussehen wie die übrigen Markt-Zeilen, keine neuen Farben | 15.11.2026 |
+| Meldung | Kommt vom Kern (`Erntewesen.Minute`) erst zum Beginn der Ernte; die Oberfläche liest nur. Der Hinweis im Tooltip der „Härte der Zeit“ („ein Jahr vorher gibt es eine Ansage“) ist gestrichen | 15.11.2026 |
 
 ### Versehrungen in der Oberfläche (Branch phase5/versehrt-oberflaeche, PR 2 zu #468)
 

@@ -56,7 +56,8 @@ public sealed partial class Stadtwirtschaft
     private readonly HashSet<string> _ohnePlatz = new();
 
     /// <summary>
-    /// Nach dem Laden (Karte, Konten und Betriebe stehen): Werkstätten in der Stadt, für die die Karte keinen Platz mehr hat, bekommen
+    /// Nach dem Laden (Karte, Konten und Betriebe stehen): Werkstätten auf Werkstattplätzen der Karte (alte Spielstände) werden Grundstücke
+    /// (<see cref="Bauen.Bauwesen.AltePlaetzeUmwandeln"/>). Werkstätten in der Stadt ohne Platz bekommen
     /// ein Grundstück in einer Bauzone (<see cref="Bauen.Bauwesen.OhnePlatzEinordnen"/>); freie Werkstätten ohne Platz sind nicht mehr
     /// zu haben. Betrifft alte Spielstände mit den zehn Werkstätten zum Kauf, die seit PR #162 gestrichen sind. Gibt die Namen der
     /// Betriebe zurück, für die keine Stelle frei war (sie arbeiten weiter, nur ohne Bild).
@@ -64,12 +65,22 @@ public sealed partial class Stadtwirtschaft
     internal IReadOnlyList<string> PlaetzeNachDemLaden()
     {
         if (Karte is null) return Array.Empty<string>();
-        Betriebsart Stufe1(Betrieb b) => Daten.Berufe.TryGetValue(b.Artdaten.Beruf, out var beruf) ? beruf.Werkstatt : b.Art;
+        // Alte Spielstände (vor „nur noch Bauzonen“, 15.11.2026): Werkstätten auf Werkstattplätzen der Karte werden Grundstücke derselben Fläche
+        Bauen.AltePlaetzeUmwandeln(_betriebe.Where(b => b.InDerStadt).Select(b => (b.Name, Stufe1(b)))
+            .Concat(FreieLiegenschaften.Where(l => Daten.KenntArt(l.Art) && Daten.Art(l.Art).InDerStadt).Select(l => (l.Name, l.Art))).ToList());
         var ohne = Bauen.OhnePlatzEinordnen(_betriebe.Where(b => b.InDerStadt).Select(b => (b.Name, Stufe1(b))).ToList());
         foreach (var l in FreieLiegenschaften.Where(l => Daten.KenntArt(l.Art) && Daten.Art(l.Art).InDerStadt && Bauen.PlatzVon(l.Name) is null).ToList())
             _ohnePlatz.Add(l.Name);
         return ohne;
     }
+
+    private Betriebsart Stufe1(Betrieb b) => Daten.Berufe.TryGetValue(b.Artdaten.Beruf, out var beruf) ? beruf.Werkstatt : b.Art;
+
+    /// <summary>
+    /// Am Ende des Aufbaus einer Partie: Eine Werkstatt in der Stadt, die noch keinen Platz hat (eine zweite Stadtwerkstatt eines Hauses alter
+    /// Karten bei „Schwer“; das Los gibt jedem Haus eine Stelle), bekommt die erste freie Stelle der Bauzonen.
+    /// </summary>
+    internal void StartbetriebeEinordnen() => Bauen.OhnePlatzEinordnen(_betriebe.Where(b => b.InDerStadt).Select(b => (b.Name, Stufe1(b))).ToList());
 
     /// <summary>
     /// Ein Haus hat einen Betrieb verkauft oder eine Pacht gekündigt. Der Betrieb gehört niemandem mehr

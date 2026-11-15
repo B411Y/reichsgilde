@@ -136,7 +136,7 @@ public partial class Hauptmenue
     internal static string Kennzahlen(Stadtkarte karte)
     {
         var teile = new List<string>();
-        var ki = Partiebesetzung.HoechstensKi(karte);
+        var ki = Partiebesetzung.HoechstensKi(karte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         teile.Add(ki == 0 ? "kein KI-Gegner" : ki == 1 ? "höchstens 1 KI-Gegner" : $"höchstens {ki} KI-Gegner");
         if (karte.HatHofstellen)
         {

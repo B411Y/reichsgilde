@@ -28,7 +28,7 @@ static class KiStandortTests
     static (Simulation Sim, Stadtwirtschaft W, KiRivale Ki, Konto Bauherr) Partie(string karte, Wirtschaftsdaten? daten = null)
     {
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, daten ?? Daten.Value,
-            new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte(karte)));
+            new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte(karte)));
         var w = sim.Wirtschaft!;
         var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 100_000);
         k.Stand = 3;

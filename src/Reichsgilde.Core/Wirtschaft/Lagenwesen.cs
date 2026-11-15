@@ -6,7 +6,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// Lagen aller Rohstoffquellen (Datenversion 92, Nutzer 15.11.2026: die Erntejahre gelten für alle Warenketten, nicht nur für den Wirt).
 /// Hält die Ernte (<see cref="Erntewesen"/>, erste Quelle) und die Quellen aus dem Abschnitt „lagen“ in fester Reihenfolge, setzt den
 /// <see cref="Marktstand.Lagefaktor"/> jeder Ware (Produkt aller Quellen, begrenzt) und den Ertrag der eigenen Umlandbetriebe, und meldet
-/// Ansage und Beginn jeder Lage außer der Ernte (die meldet sich selbst).
+/// den Beginn jeder Lage außer der Ernte (die meldet sich selbst); eine Ansage vorab gibt es nicht (Nutzer 15.11.2026).
 ///
 /// Ohne Abschnitt „lagen“ gibt es nur die Ernte, und alles rechnet wie in Datenversion 91 (ohne Ertragswirkung).
 /// </summary>
@@ -107,16 +107,14 @@ public sealed class Lagenwesen
                 _ertrag[(int)b] *= q.Ertragsfaktor;
     }
 
-    /// <summary>Jede Spielminute: zu Jahresbeginn Ansage bzw. Beginn jeder Lage außer der Ernte melden (nur gute, schlechte und schwere).</summary>
+    /// <summary>Jede Spielminute: zu Jahresbeginn den Beginn jeder Lage (keine Ansage vorab, Nutzer 15.11.2026) außer der Ernte melden (nur gute, schlechte und schwere).</summary>
     internal void Minute(Spielzeit zeit)
     {
         if (zeit.MinuteImTag != 0) return;
         foreach (var q in _quellen)
         {
             if (q.Kennung == "Ernte") continue;
-            if (q.AngesagtIm(zeit.Jahr) is { Ereignis: not null } a)
-                _w.Melden(Ansage(a));
-            else if (q.LageVon(zeit.Jahr) is { Ereignis: not null } l)
+            if (q.LageVon(zeit.Jahr) is { Ereignis: not null } l)
                 _w.Melden(Beginn(l));
         }
     }
@@ -136,24 +134,6 @@ public sealed class Lagenwesen
     private static bool Einzeln(Quellenlage l) => l.Quelle.Rohwaren(l.Guete).Count() == 1;
     private static string Werden(Quellenlage l) => Einzeln(l) ? "wird" : "werden";
     private static string Sein(Quellenlage l) => Einzeln(l) ? "ist" : "sind";
-
-    private static string Jahreszeitwort(Jahreszeit j) => j switch
-    {
-        Jahreszeit.Fruehling => "Frühling",
-        Jahreszeit.Sommer => "Sommer",
-        Jahreszeit.Herbst => "Herbst",
-        _ => "Winter",
-    };
-
-    /// <summary>Text der Ansage, z. B. „Die Schneeschmelze drückt Wasser in die Stollen: Im Frühling 1404 droht ein Wassereinbruch …“.</summary>
-    public static string Ansage(Quellenlage l)
-    {
-        var e = l.Ereignis!;
-        var wann = $"Im {Jahreszeitwort(l.Quelle.Stichjahreszeit)} {l.Stichjahr}";
-        return l.Guete == Lagegute.Gut
-            ? $"{e.Vorzeichen}: {wann} kommt wohl {e.Text} – {WarenText(l)} {Werden(l)} billiger."
-            : $"{e.Vorzeichen}: {wann} droht {e.Text} – {WarenText(l)} {Werden(l)} {(l.Guete == Lagegute.Schwer ? "deutlich " : "")}teurer. Wer jetzt einlagert, verkauft später besser.";
-    }
 
     /// <summary>Text zum Beginn einer Lage, z. B. „Wassereinbruch 1404: Bis 1407 sind Eisen und Silber knapp und teurer.“</summary>
     public static string Beginn(Quellenlage l)

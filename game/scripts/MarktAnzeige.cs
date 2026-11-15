@@ -254,6 +254,7 @@ public partial class MarktAnzeige : PanelContainer
             if (w.Gastwirtschaft.IstAktiv && w.Gastwirtschaft.Daten.Ausschank.Contains(ware))
                 zeilen.Add($"Wird in Schänken ausgeschenkt: {Zahlenformat.Kommazahl(w.Gastwirtschaft.Ausschankpreis(ware))} {waehrung} je Gast");
             if (ErnteZeile(w, ware) is { } ernteZeile) zeilen.Add(ernteZeile);
+            zeilen.AddRange(LagenTexte.Tipp(w, ware));
             if (bestand > 0)
                 zeilen.Add($"In euren Lagern: {bestand}");
             if (vorschau.TryGetValue(ware, out var naechste))
@@ -270,7 +271,7 @@ public partial class MarktAnzeige : PanelContainer
     private Label? _vorschau;
     private Label? _ernte;
 
-    /// <summary>Die Zeile über den Waren: die gültige Ernte und, im Sommerjahr, die Ansage der nächsten (Erntejahre, Nutzer 15.11.2026).</summary>
+    /// <summary>Die Zeilen über den Waren: die gültige Ernte (keine Ansage der nächsten: der Spieler sieht nie in die Zukunft, Nutzer 15.11.2026), dazu die geltenden Lagen der übrigen Quellen.</summary>
     private void ErnteAktualisieren(Stadtwirtschaft w)
     {
         if (_ernte is null) return;
@@ -279,8 +280,7 @@ public partial class MarktAnzeige : PanelContainer
             zeilen.Add($"Ernte {jetzt.Erntejahr}: {Erntewesen.Text(jetzt.Guete)} – gilt bis zum Herbst {jetzt.LetztesJahr + 1}");
         else
             zeilen.Add("Noch keine Ernte eingebracht.");
-        if (w.Ernte.Angesagt is { } a)
-            zeilen.Add($"Angesagt für Herbst {a.Erntejahr}: {Erntewesen.Text(a.Guete)}");
+        zeilen.AddRange(LagenTexte.Uebersicht(w)); // Lagen der übrigen Quellen (Gruben, Wälder …), nur gute, schlechte und schwere
         var text = string.Join("\n", zeilen);
         if (_ernte.Text != text) _ernte.Text = text;
     }
@@ -292,8 +292,6 @@ public partial class MarktAnzeige : PanelContainer
         var teile = new List<string>();
         if (w.Ernte.Jetzt is { } j)
             teile.Add($"Ernte {j.Erntejahr}: {Erntewesen.Text(j.Guete)} – Menge ×{Zahlenformat.Kommazahl(w.Ernte.Faktor(ware, j.Guete))}");
-        if (w.Ernte.Angesagt is { } a)
-            teile.Add($"angesagt für Herbst {a.Erntejahr}: {Erntewesen.Text(a.Guete)}");
         return teile.Count == 0 ? null : string.Join("; ", teile);
     }
 

@@ -125,7 +125,8 @@ static class KartenformatTests
 
         ("Start: Die Greybox führt dieselben drei Häuser wie der Ersatz ohne Karte – gleiche Konten, Betriebe, Völker und Wappen", () =>
         {
-            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
+            // Plätze der Karte (Vorgabe): Die Werkstatt des Spielers heißt wie in der Karte – gelost hieße sie nach ihrer Straße (15.11.2026)
+            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe, Startplaetze: Startplatzvergabe.Vorgabe), karte: Greybox());
             var (ohne, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var (w1, w2) = (mit.Wirtschaft!, ohne.Wirtschaft!);
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")), string.Join(", ", w1.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")));
