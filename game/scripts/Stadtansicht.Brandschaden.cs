@@ -247,7 +247,9 @@ public partial class Stadtansicht
                 }
                 var aktuell = teil.GetSurfaceOverrideMaterial(i);
                 Material? neu = null;
-                if (Dachstoffe.Contains(name) || Strohstoffe.Contains(name)) neu = RussStoff(stoff);
+                if ((Dachstoffe.Contains(name) || Strohstoffe.Contains(name)) && aktuell is ShaderMaterial trim && NeubauIstTrim(trim))
+                    neu = NeubauRussStoff(trim, name); // Neubau: Variante des Trim-Shaders statt Kopie des Grundmaterials (Steinebenen)
+                else if (Dachstoffe.Contains(name) || Strohstoffe.Contains(name)) neu = RussStoff(stoff);
                 else if (Holzstoffe.Contains(name)) neu = VerkohltStoff();
                 else if (Wandstoffe.Contains(name) && (aktuell ?? stoff) is BaseMaterial3D or ShaderMaterial)
                 {

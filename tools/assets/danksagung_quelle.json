@@ -190,7 +190,19 @@
             "game/assets/texturen/neubau/rathaus*trim_",
             "game/assets/texturen/neubau/bodenfleck",
             "game/assets/texturen/neubau/raeume_innen_trim_",
-            "game/assets/texturen/neubau/{trim_s2,trim_s3,innen_trim_s23}"
+            "game/assets/texturen/neubau/{trim_s2,trim_s3,innen_trim_s23}",
+            "game/assets/texturen/neubau/innen_ebenen_"
+          ]
+        },
+        {
+          "werk": "Steinebenen der neuen Gebäude (Mauerwerk, Sandstein, Ziegel)",
+          "autor": "Poly Haven (Rob Tuytel) und ambientCG",
+          "quelle": "https://polyhaven.com/a/castle_wall_varriation ; https://polyhaven.com/a/large_sandstone_blocks_01 ; https://ambientcg.com/view?id=Bricks100",
+          "lizenz": "CC0 1.0",
+          "hinweis": "Aufnahmen und Materialien, vom Spiel in die Steinbänder der Trim-Sheets gesetzt.",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/texturen/neubau/haeuser_ebenen_"
           ]
         }
       ],

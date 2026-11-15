@@ -865,4 +865,34 @@ public partial class Stadtansicht
         Blende().Starten(tuer ? UebergangRichtung.Betreten : UebergangRichtung.Verlassen, ziel, schritte, klinke: tuer);
         return true;
     }
+
+    private Shader? _rathausShader, _rathausKantenShader;
+
+    /// <summary>
+    /// Das Trim-Material des Rathauses (Hülle und sieben Räume): eigene Trim-Sheets (Schiefer, Quader, Steinplatten) als einzelne Texturen,
+    /// nicht im Array der Häuser; eigener Shader <c>building_trim_rathaus.gdshader</c> (Stein-Mip, Schiefer statt Stroh, Innenschärfe).
+    /// Je Gruppe und Kantenart eines; die Schieferkanten sind die Variante mit Alpha Scissor.
+    /// </summary>
+    private ShaderMaterial RathausStoff(string datei, string gruppe, bool innen, bool kante)
+    {
+        var schluessel = gruppe + (kante ? "|kante" : "");
+        if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
+        var blatt = NeubauBlatt(datei);
+        _rathausShader ??= GD.Load<Shader>("res://assets/shader/building_trim_rathaus.gdshader");
+        _rathausKantenShader ??= GD.Load<Shader>("res://assets/shader/building_trim_rathaus_kante.gdshader");
+        stoff = new ShaderMaterial { Shader = kante ? _rathausKantenShader : _rathausShader, ResourceName = "Trim " + schluessel };
+        if (kante) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(Fenster.PixelLookAn));
+        stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
+        stoff.SetShaderParameter("normal_tex", NeubauTextur<Texture2D>(blatt + "_normal.png"));
+        stoff.SetShaderParameter("orm_tex", NeubauTextur<Texture2D>(blatt + "_orm.png"));
+        stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<Texture2D>(gruppe + "_ao_atlas.png"));
+        stoff.SetShaderParameter("wetter_an", innen ? 0f : 1f);      // im Haus regnet und schneit es nicht
+        stoff.SetShaderParameter("pixel_look", Fenster.PixelLookAn ? 1f : 0f);
+        stoff.SetShaderParameter("stroh_dach", 0f);                  // Schiefer statt Stroh: keine Halmstriche
+        var stein = SteinMip.Von(blatt);                             // Steinbänder: kleinerer Mip-Zuschlag im Pixel-Look
+        stoff.SetShaderParameter("stein_baender", new Vector4(stein.A0, stein.A1, stein.B0, stein.B1));
+        if (float.TryParse(NeubauOption("--steinmip"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var steinMip))
+            stoff.SetShaderParameter("stein_mip", steinMip);        // Prüfhilfe: Mip-Zuschlag der Steinbänder vergleichen (Standard im Shader 1)
+        return _neubauStoffe[schluessel] = stoff;
+    }
 }
