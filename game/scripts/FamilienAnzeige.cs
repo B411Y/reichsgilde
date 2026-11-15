@@ -503,7 +503,7 @@ public partial class FamilienAnzeige : PanelContainer
             var medicus = new Button { Text = $"Medicus ({Zahlenformat.Ganz(g.MedicusKosten(k))} {waehrung})", FocusMode = FocusModeEnum.None };
             medicus.Disabled = k.IstPest && k.Medicus;
             medicus.TooltipText = medicus.Disabled ? "Der Medicus pflegt schon." :
-                k.IstPest ? "Halbiert das Sterberisiko an der Pest." : "Heilt die Krankheit sofort.";
+                k.IstPest ? "Halbiert das Sterberisiko an der Pest." : "Heilt die Krankheit sofort." + MedicusVerhindert(w, k.Name);
             medicus.Pressed += () => Befehlen(new MedicusRufen(person));
             zeile.AddChild(medicus);
 
@@ -516,6 +516,14 @@ public partial class FamilienAnzeige : PanelContainer
             geben.Pressed += () => Befehlen(new SchnapsGeben(person));
             zeile.AddChild(geben);
         }
+    }
+
+    /// <summary>Beim Knochenbruch: Heilt ihn der Medicus, bleibt kein Lahm zurück (Chance aus den Zugdaten des Kerns).</summary>
+    private static string MedicusVerhindert(Stadtwirtschaft w, string krankheit)
+    {
+        if (krankheit != "Knochenbruch" || w.Familien.Zug("Lahm") is not { } lahm
+            || !lahm.Daten.Anlaesse.TryGetValue("ueberstanden:Knochenbruch", out var chance)) return "";
+        return $" Verhindert „{lahm.Name}“ (sonst {Zahlenformat.Ganz(chance * 100)} % Gefahr).";
     }
 
     /// <summary>Je Talent ein Knopf „üben" – ½ Stern für Aktionspunkte, einmal je Talent und Jahr.</summary>

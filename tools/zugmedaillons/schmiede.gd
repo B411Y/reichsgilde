@@ -24,7 +24,7 @@ func _init():
 	var art := {}
 	for k in ["gierig","grosszuegig","fleissig","traege","fromm","zynisch","mutig","feige","ehrlich","verschlagen","geduldig","jaehzornig","gesellig","scheu","bescheiden","hochmuetig"]: art[k] = "kupfer"
 	for k in ["klug","stark","schoen","kraenklich"]: art[k] = "gold"
-	for k in ["trinker","narbe","pilger","gelehrt","schwermuetig","reizbar"]: art[k] = "eisen"
+	for k in ["trinker","narbe","pilger","gelehrt","schwermuetig","reizbar","entstellt","einaeugig","lahm","verkrueppelt"]: art[k] = "eisen"
 	var licht := Vector3(-1, -1, 1.3).normalized()
 	var halb := (licht + Vector3(0, 0, 1)).normalized()
 	var dellen := FastNoiseLite.new(); dellen.noise_type = FastNoiseLite.TYPE_CELLULAR; dellen.frequency = 0.06
