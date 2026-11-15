@@ -26,7 +26,7 @@ static class WappenEindeutigTests
             foreach (var kennung in new[] { "koeln", "greybox", "probestadt", "messstadt" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var max = Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost);
+                var max = Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost, Daten.Value);
                 for (var s = 1; s <= 200; s++)
                 {
                     var w = HausWappen(karte, s, max);
@@ -68,7 +68,7 @@ static class WappenEindeutigTests
             var j = koeln.Startbelegung.Haeuser.ToList().IndexOf(fest);
             var vorgaben = new Hausvorgabe?[2];
             vorgaben[j == 0 ? 1 : 0] = new(Wappen: fest.Wappen); // auf ein anderes Haus als das, dem das Wappen gehört
-            var max = Partiebesetzung.HoechstensKi(koeln, Aufstellungsart.Gelost);
+            var max = Partiebesetzung.HoechstensKi(koeln, Aufstellungsart.Gelost, Daten.Value);
             var w = HausWappen(koeln, 5, max, vorgaben);
             Pruefe.Gleich(w.Count, w.Distinct().Count(), "alle verschieden");
             Pruefe.Gleich(1, w.Count(x => x == fest.Wappen), "das vorgegebene Wappen genau einmal");

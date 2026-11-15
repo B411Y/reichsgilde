@@ -239,7 +239,7 @@ static partial class Balancingbericht
                     break;
                 case 4:
                     foreach (var n in Hausstufen)
-                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true);
+                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true, Startplaetze: Startplatzvergabe.Vorgabe); // feste Plätze der Messstadt (9 Häuser; gelost passen seit 15.11.2026 höchstens 8)
                     break;
                 case 5:
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);

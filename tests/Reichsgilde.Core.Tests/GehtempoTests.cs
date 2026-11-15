@@ -261,7 +261,7 @@ static class GehtempoTests
         ("Köln: Karren fahren zu verschiedenen Marktplätzen, jeder Betrieb zu einem Platz der Karte, mit der Fahrzeit des Kerns auf seinem Weg", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(3, karte.Marktplaetze.Count, "Heumarkt, Alter Markt, Neumarkt");
             var plaetze = new HashSet<string>();
@@ -288,7 +288,7 @@ static class GehtempoTests
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
                 var netz = w.Karrennetz!;
                 var m = karte.Gebaeude.First(g => g.Katalog == "markt");
@@ -318,7 +318,7 @@ static class GehtempoTests
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
                 var gepruft = 0;
                 var grenzen = w.Daten.Logistik.Weglaenge!;
