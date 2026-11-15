@@ -88,6 +88,7 @@ public partial class Stadtansicht
     private static string NeubauGruppe(string datei)
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
+        if (WohnraumGruppe(name) is { } raeume) return raeume; // Hinterzimmer, Bibliothek: eigene Gruppe (Stadtansicht.Wohnraeume.cs)
         var innen = name.EndsWith("_innen");
         if (innen) name = name[..^"_innen".Length];
         name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
@@ -100,7 +101,7 @@ public partial class Stadtansicht
         var gruppe = NeubauGruppe(datei);
         if (_neubauStoffe.TryGetValue(gruppe, out var stoff)) return stoff;
         var innen = gruppe.EndsWith("_innen");
-        var blatt = innen ? "innen_trim" : "trim";
+        var blatt = gruppe.EndsWith("_raeume_innen") ? "raeume_innen_trim" : innen ? "innen_trim" : "trim"; // Räume: eigenes Trim-Sheet (Stadtansicht.Wohnraeume.cs)
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
         stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + gruppe };
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
@@ -144,8 +145,8 @@ public partial class Stadtansicht
     /// </summary>
     public static bool NeubauOhneHinterzimmer(Konto? konto) => NeubauProbeAn && konto is { WohnhausStufe: 0 };
 
-    /// <summary>Ist das die Haustür von innen? Dann zeigt der Mauszeiger das Schloss, und der Klick führt hinaus.</summary>
-    public bool IstAusgangstuer(string? kennung) => kennung == NeubauAusgang && NeubauInnenAktiv;
+    /// <summary>Ist das die Haustür (oder eine Zimmertür, Stadtansicht.Wohnraeume.cs) von innen? Dann zeigt der Mauszeiger das Schloss.</summary>
+    public bool IstAusgangstuer(string? kennung) => (kennung == NeubauAusgang && NeubauInnenAktiv) || IstWohnraumTuer(kennung);
 
     private ShaderMaterial? _neubauBleinetz, _neubauButzenglas;
 
@@ -269,9 +270,11 @@ public partial class Stadtansicht
     private bool NeubauInnenAbgleichen()
     {
         Node3D? haus = null;
-        var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && _raum == _innen.Raeume[0]
+        var wohnraum = IstWohnraum(_raum?.Kennung); // Hinterzimmer oder Bibliothek (Stadtansicht.Wohnraeume.cs)
+        var soll = _innen is not null && _innen == _wohnhausAnsicht && _raum is not null && (_raum == _innen.Raeume[0] || wohnraum)
                    && _neubauHaeuser.TryGetValue(_innen.Kennung, out haus) && IsInstanceValid(haus);
-        if (soll) NeubauInnenAn(haus!);
+        if (soll && wohnraum) WohnraumAn(haus!, _raum!.Kennung);
+        else if (soll) NeubauInnenAn(haus!);
         else NeubauInnenAus();
         return soll;
     }
@@ -386,6 +389,7 @@ public partial class Stadtansicht
             hinaus.Disabled = false;
             a.Raumklicks.Add(hinaus);
         }
+        WohnraumTuerenAnlegen(a, wurzel); // Zimmertüren zu Hinterzimmer und Bibliothek, nur wenn gebaut (Stadtansicht.Wohnraeume.cs)
 
         // Plätze der Familie aus dem Modell: Lage und Blickrichtung des Ankers, Haltung aus seinen extras („sitzt“, „ruehrt“,
         // „spielt“). Der Figuren-Baukasten braucht nur diese Liste (Reihenfolge: Oberhaupt, Ehepartner, Kinder).

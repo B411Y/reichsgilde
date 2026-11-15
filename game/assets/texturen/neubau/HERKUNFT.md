@@ -21,6 +21,21 @@
 
 Nachbearbeitung (alles im Skript): auf Bandhöhe zugeschnitten und waagerecht gekachelt; Holz um 90° gedreht (Maserung entlang des Bandes, Normale mitgedreht); auf eine Zielfarbe je Band umgefärbt (Zeichnung der Aufnahme bleibt); gemalte Ränder (Schatten unter der Strohstufe, Fase an den Balken, Spritzwasserrand am Putz); Alpha der Strohfransen aus einem Zufallsprofil. Keine Bild-KI.
 
+## Räume im Wohnhaus (Hinterzimmer, Bibliothek)
+
+`raeume_innen_trim_{albedo,normal,orm}.png` (2048 × 2048) packt `tools/modelle/raeume/raeume_trimsheet.py` mit denselben Werkzeugen aus CC0-Texturen von Poly Haven (2K-JPG, abgerufen am 14.11.2026 über `api.polyhaven.com/files/<Asset-ID>`; Quelldateien nicht im Repository). Lizenz der Quellen wie oben: CC0 1.0. Neu dazu gegenüber der Tabelle oben:
+
+| Asset-ID | Name | Urheber | Seite | Verwendet für |
+|---|---|---|---|---|
+| `dark_wooden_planks` | Dark Wooden Planks | Amal Kumar | https://polyhaven.com/a/dark_wooden_planks | Parkett (Bibliothek) |
+| `wood_table_001` | Wood Table 001 | Dimitrios Savva, Rico Cilliers | https://polyhaven.com/a/wood_table_001 | Möbelholz (Regale, Tisch, Stühle, Pult) |
+| `castle_wall_slates` | Castle Wall Slates | Rob Tuytel | https://polyhaven.com/a/castle_wall_slates | Bruchstein (Sockel, Pfeiler, Ofen) |
+| `sandstone_blocks_08` | Sandstone Blocks 08 | Rob Tuytel | https://polyhaven.com/a/sandstone_blocks_08 | Sandstein (Kamin, Sims) |
+| `velour_velvet` | Velour Velvet | colormass, Rico Cilliers | https://polyhaven.com/a/velour_velvet | Grund des Teppichs |
+| `leather_red_03` | Leather Red 03 | Rob Tuytel | https://polyhaven.com/a/leather_red_03 | Leder, Grund der Buchrücken (Farbbild „coll1“) |
+
+Dazu aus der Tabelle oben: `old_planks_02` (Dielen), `rough_wood` (Balken), `white_plaster_rough_01` (Putz, Grund des Pergaments), `hessian_230` (Säcke), `rusty_metal_02` (Eisen, Messing, Gold). Nachbearbeitung im Skript wie oben; selbst gerechnet (keine Bild-KI): Muster des Teppichs (Borte, Rauten), Buchrücken (Breiten, Lederfarben, Bünde, Goldlinien), Landkarte und Schriftzeilen auf dem Pergament. `wohnhaus_mensch_raeume_innen_ao_atlas.png` ist gebackene Verdeckung der Raummodelle (Platz je Raum in `tools/modelle/raeume/ao_atlas.json`).
+
 `bodenfleck.png` (512 × 512, mit Alpha; Decal unter den Häusern) entsteht im selben Skript aus `brown_mud_dry` (umgefärbt, weicher Rand).
 
 Die Atlanten `wohnhaus_mensch_ao_atlas.png` und `wohnhaus_mensch_innen_ao_atlas.png` (2048 × 2048, 4 × 4 Zellen) sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/wohnhaus_mensch_s1_g1.py`; Platz je Modell in `tools/modelle/neubau/ao_atlas.json`).

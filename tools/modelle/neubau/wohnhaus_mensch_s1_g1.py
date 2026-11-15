@@ -666,9 +666,10 @@ def baue_herd():
     return c
 
 
-def baue_vorrat():
+def baue_vorrat(zimmertuer_frei=False):
     """Vorrat-Set: Zwiebelzoepfe und Kraeuterbuendel an der rechten Wand zwischen Tuer und Herd, darunter zwei Tonkruege;
-    Hackklotz mit Scheiten hinter dem Herd."""
+    Hackklotz mit Scheiten hinter dem Herd. zimmertuer_frei (nur die Probe mit den Zimmertueren): Hackklotz und Scheite an der Rueckwand,
+    damit die rechte Wand unter der Galerie frei bleibt; die Grundformen 2-4 (wohnhaus_mensch_s1.py) behalten die alte Lage."""
     c = Teil("Vorrat_Set", BAENDER_INNEN, saat=59)
     S = "Innen"
     x0, x1, y0, y1 = KAMIN
@@ -680,9 +681,13 @@ def baue_vorrat():
         c.stab(S, (IX - 0.06, y, 2.03), (IX - 0.03, y, 2.25), 0.015, "stroh")
     for y in (hy0 - 0.85, hy0 - 1.1):
         c.dreh(S, (IX - 0.09, y, 1.72), [(0.0, 0.0), (0.085, 0.07), (0.05, 0.3), (0.012, 0.42)], "kleinteile", seiten=5, deckel=False, u_bereich=feld("kraut"))
-    # Hackklotz mit Scheiten hinter dem Herd (unter der Galerie)
-    c.dreh(S, (1.6, hy1 + 0.42, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
-    for a, b in (((1.25, hy1 + 0.82, Z_BODEN + 0.05), (1.85, hy1 + 0.84, Z_BODEN + 0.05)), ((1.3, hy1 + 0.94, Z_BODEN + 0.05), (1.86, hy1 + 0.97, Z_BODEN + 0.05)), ((1.28, hy1 + 0.88, Z_BODEN + 0.14), (1.84, hy1 + 0.9, Z_BODEN + 0.14))):
+    if zimmertuer_frei:   # Hackklotz mit Scheiten an der Rueckwand unter der Galerie (rechts davor die Tuer zur Bibliothek)
+        c.dreh(S, (1.05, IH - 0.25, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
+        scheite = (((1.32, IH - 0.08, Z_BODEN + 0.05), (1.92, IH - 0.10, Z_BODEN + 0.05)), ((1.36, IH - 0.20, Z_BODEN + 0.05), (1.93, IH - 0.21, Z_BODEN + 0.05)), ((1.34, IH - 0.14, Z_BODEN + 0.14), (1.90, IH - 0.15, Z_BODEN + 0.14)))
+    else:                 # Hackklotz mit Scheiten hinter dem Herd (unter der Galerie)
+        c.dreh(S, (1.6, hy1 + 0.42, Z_BODEN), [(0.23, 0.0), (0.22, 0.42)], "kleinteile", seiten=8, u_bereich=feld("rinde"), glatt=False)
+        scheite = (((1.25, hy1 + 0.82, Z_BODEN + 0.05), (1.85, hy1 + 0.84, Z_BODEN + 0.05)), ((1.3, hy1 + 0.94, Z_BODEN + 0.05), (1.86, hy1 + 0.97, Z_BODEN + 0.05)), ((1.28, hy1 + 0.88, Z_BODEN + 0.14), (1.84, hy1 + 0.9, Z_BODEN + 0.14)))
+    for a, b in scheite:
         c.stab(S, a, b, 0.1, "balken", kappen=True)
     return c
 
@@ -791,6 +796,25 @@ def baue_hausrat():
     c.stab(S, fuss, kopf, 0.03, "balken")
     c.dreh(S, (-1.0, IH - 0.27, Z_BODEN), [(0.13, 0.0), (0.09, 0.2), (0.03, 0.34)], "stroh", seiten=6, deckel=False, u_bereich=(0.0, 0.3))
     return c
+
+
+# Zimmertueren zu den Raeumen der Stufen 2 und 3 (tools/modelle/raeume/raeume_masse.py): je Raum eine Tuer unter der Galerie,
+# Knoten „Zimmertuer_<Raum>“ – im Spiel nur sichtbar, wenn das Haus den Raum hat (Stadtansicht.Wohnraeume.cs)
+sys.path.insert(0, os.path.join(os.path.dirname(HIER), "raeume"))
+import raeume_masse as RM                                        # noqa: E402
+from zimmertuer import zimmertuer                                # noqa: E402
+
+
+def baue_zimmertueren():
+    teile, mitten = [], {}
+    k0, k1, _ = BAENDER_INNEN["kleinteile"]
+    for raum, (wand, (y0, y1)) in RM.WOHNSTUBE_TUEREN.items():
+        c = Teil(f"Zimmertuer_{raum}", BAENDER_INNEN, saat=101 + len(teile))
+        x = -IX if wand == "links" else IX
+        mitten[raum] = zimmertuer(c, "Innen", "bohlen", "balken", "kleinteile", feld("eisen"), x, y0, y1, Z_BODEN, RM.TUER_H,
+                                  1 if wand == "links" else -1, klinke_rechts=(wand == "links"))
+        teile.append(c)
+    return teile, mitten
 
 
 def baue_familienbuch():
@@ -1087,6 +1111,8 @@ def baue_massfigur():
     figur(LEITER_X, GALERIE_AB - LEITER_LAUF - 0.42, Z_BODEN)   # vor der Leiter (Aufstieg aus dem freien Raum)
     figur(LEITER_X, GALERIE_AB + 0.3, Z_GALERIE)        # oben am Austritt der Leiter
     figur(BANK_X, TISCH[2] + 0.55, Z_BODEN + SITZ_HOEHE, sitzt=True, blick=(-1, 0))   # auf der Bank am Tisch
+    figur(-IX + 0.40, 1.60, Z_BODEN)                    # vor der Tuer zum Hinterzimmer (unter der Galerie)
+    figur(IX - 0.40, 1.60, Z_BODEN)                     # vor der Tuer zur Bibliothek
     return f
 
 
@@ -1332,9 +1358,11 @@ def main():
     scheiben = baue_scheiben()
     zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]                     # Besitz und Zustand, wie bei den bisherigen Haeusern
     fahne = baue_fahne()
-    raum = [baue_raum(), baue_herd(), baue_vorrat(), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
+    raum = [baue_raum(), baue_herd(), baue_vorrat(zimmertuer_frei=True), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
     gegenstaende = [baue_truhe(), baue_familienbuch(), baue_bauplan(), baue_werkzeug(), baue_geldkassette()]   # anklickbar: oeffnen je eine Tafel
     einrichtung = [baue_hausapotheke(), baue_hauswaechter(), baue_hauswappen()]
+    zimmertueren, tuer_mitten = baue_zimmertueren()           # sichtbar, wenn das Haus den Raum hat
+    einrichtung += zimmertueren
     glas_teil = baue_glas()
     zaehle = lambda teile: {t.name: t.dreiecke() for t in teile}
     print("DREIECKE aussen:", zaehle(huelle + [scheiben]), "Summe", sum(t.dreiecke() for t in huelle + [scheiben]))
@@ -1387,6 +1415,8 @@ def main():
         anker("Platz_Kind_3", (HERDSCHEMEL[0], HERDSCHEMEL[1], Z_BODEN), "ost", haltung="sitzt", rolle="kind", sitzhoehe=SITZ_HOEHE),
         anker("Platz_Kind_4", (0.2, 1.4, Z_BODEN), "nord", haltung="spielt", rolle="kind"),
     ]
+    # Zimmertueren: Klickflaeche im Spiel aus Lage und extras (ziel = Raum, achse x: die Wand steht quer zur X-Achse)
+    anker_innen += [anker(f"Tuer_Wohnstube_{raum}", tuple(m), ziel=raum, breite=RM.TUER_B, hoehe=RM.TUER_H, achse="x") for raum, m in tuer_mitten.items()]
     exportiere(aussen + anker_aussen, os.path.join(ZIEL_MODELL, f"{NAME}.glb"))
     exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))
 
@@ -1403,6 +1433,9 @@ def main():
         huelle_weg = ["Dach", "Scheiben", "Wappen", "Fahne", "Leerstand", "Geruest"]
         kontrollbild(os.path.join(o, "blender_innen_blick.jpg"), (0.0, IH - 0.3, Z_BODEN + 1.60), (0.45, IV, Z_BODEN + 1.50), brennweite=14, verbergen=huelle_weg)
         kontrollbild(os.path.join(o, "blender_innen_oben.jpg"), (1.2, -2.2, 6.4), (-0.4, 0.3, 1.0), brennweite=16, verbergen=huelle_weg)
+        # Zimmertueren unter der Galerie (vom Standpunkt der Raumkamera nach links bzw. rechts gedreht)
+        kontrollbild(os.path.join(o, "blender_innen_tuer_hinterzimmer.jpg"), (0.3, IH - 0.3, Z_BODEN + 1.60), (-IX, 1.2, Z_BODEN + 1.1), brennweite=16, verbergen=huelle_weg)
+        kontrollbild(os.path.join(o, "blender_innen_tuer_bibliothek.jpg"), (0.3, IH - 0.3, Z_BODEN + 1.60), (IX, 1.2, Z_BODEN + 1.1), brennweite=16, verbergen=huelle_weg)
 
 
 if __name__ == "__main__":
