@@ -15,6 +15,10 @@ namespace Reichsgilde.Core.Bauen;
 //  Uferkante eine Rampe, 10 m aufs Land. Alle Teile sitzen mit ihrer Höhe 0 auf der Uferhöhe (Mittel der Weghöhe an beiden Uferkanten),
 //  das Deck liegt 0,6 m (Holz) bzw. 1,4 m (Stein) darüber. Zwischen Anfang und Ende (mit Endstücken bzw. Rampen) zeichnet die Darstellung
 //  statt des Wegbands die Brücke.
+//  Klappbrücke (logistik.klappbruecke, Datenversion 90): Die Steinbrücke mit Karren über ihr Gewässer hat in der Mitte der Weite (Flussmitte)
+//  keine Pfeiler, sondern das Mittelteil von 21 m (zwei Klappen samt Torhäusern) mit 13 m lichter Durchfahrt; die beiden Torhauspfeiler
+//  (je 4 m) stehen 8,5 m links und rechts der Mitte. Jede Seite davon bis zur Uferkante (Länge L) bekommt Bögen nach der Regel oben:
+//  n = max(1, round((L + 2) / 10)) Bögen mit n − 1 Pfeilern zu 2 m dazwischen. Ist die Weite kleiner als 21 m, bleibt es bei der Regel oben.
 //  Ein Weg durch einen See bekommt keinen Übergang: Dort ist er gesperrt (die Prüfung meldet einen Fehler, Karren fahren nicht hindurch).
 //  Eine Fährstelle (uebergaenge mit art „faehre“) verbindet zwei Anleger an beiden Ufern; Karren warten dort (logistik.wasser.faehreMinuten).
 //
@@ -114,11 +118,18 @@ public sealed record Wasserquerung
     /// <summary>Brücke: Holz die Holme der Joche (je in der Mitte eines Jochs), Stein die Pfeiler zwischen den Bögen (2 m breit). Furt: keine.</summary>
     public IReadOnlyList<Brueckenpfeiler> Pfeiler { get; init; } = Array.Empty<Brueckenpfeiler>();
 
-    /// <summary>Wie viele Joche (Holz) bzw. Bögen (Stein) die Brücke hat (Furt: 0).</summary>
+    /// <summary>Wie viele Joche (Holz) bzw. Bögen (Stein) die Brücke hat (Furt: 0; Klappbrücke: die Bögen beider Seiten ohne das Mittelteil).</summary>
     public int Felder { get; init; }
 
     /// <summary>Die Länge eines Jochs bzw. Bogens (Meter): Holz W / n (Modell 4 m), Stein (W − 2 (n − 1)) / n (Modell 8 m) – so weit strecken.</summary>
     public double Feldlaenge { get; init; }
+
+    /// <summary>
+    /// Klappbrücke: die lichte Durchfahrt in der Mitte zwischen den Torhauspfeilern (<see cref="Wasserplan.KlappDurchfahrt"/>, 13 m; sonst 0). Die
+    /// Pfeiler sind dann von Ufer A nach B: die Pfeiler der Seite A, die beiden Torhauspfeiler, die Pfeiler der Seite B; die Bögen jeder Seite sind
+    /// <see cref="Feldlaenge"/> lang, je Seite <see cref="Felder"/> / 2.
+    /// </summary>
+    public double Durchfahrt { get; init; }
 
     /// <summary>
     /// Quert der Weg das Gewässer wirklich (Anfang und Ende an verschiedenen Ufern)? Sonst streift er es nur oder läuft im Wasser entlang –
@@ -200,6 +211,9 @@ public sealed class Wasserplan
     /// <summary>Länge eines Jochs (Holz) und eines Bogens (Stein) im Modell, Breite eines Steinpfeilers (Meter).</summary>
     public const double HolzJoch = 4, SteinBogen = 8, SteinPfeiler = 2;
 
+    /// <summary>Klappbrücke (Modell): lichte Durchfahrt zwischen den Torhauspfeilern und Länge des Mittelteils mit Klappen und Torhäusern (Meter).</summary>
+    public const double KlappDurchfahrt = 13, KlappMittelteil = 21;
+
     /// <summary>So hoch liegt das Deck über der Uferhöhe (Meter), wie in den Modellen; die Fähre trägt ihr Deck 0,3 m über dem Wasser.</summary>
     public const double HolzDeck = 0.6, SteinDeck = 1.4, FaehreDeck = 0.3;
 
@@ -212,18 +226,20 @@ public sealed class Wasserplan
     private readonly Gelaendeform _gelaende;
     private readonly IReadOnlyList<Planweg> _wege;
     private readonly IReadOnlyList<Uebergang> _uebergaenge;
+    private readonly string? _klappbruecke;
     private (List<Wasserquerung> Querungen, List<Wegsperre> Sperren, List<Faehrverbindung> Faehren)? _stand;
 
     /// <param name="gelaende">Das Gelände mit seinem Wasser (für Spiegel, Boden und das Längsprofil der Wege).</param>
     /// <param name="wege">Alle Wege der Karte in ihrer Reihenfolge.</param>
     /// <param name="uebergaenge">Die Liste <c>uebergaenge</c> der Karte (Fährstellen; Einträge mit „bruecke“ zählen hier nicht).</param>
-    public Wasserplan(Gelaendeform gelaende, IReadOnlyList<Planweg> wege, IReadOnlyList<Uebergang> uebergaenge) =>
-        (_gelaende, _wege, _uebergaenge) = (gelaende, wege, uebergaenge);
+    /// <param name="klappbruecke">Das Gewässer der Klappbrücke (<c>logistik.klappbruecke.gewaesser</c>; null: keine) – seine Steinbrücken mit Karren bekommen das Mittelteil.</param>
+    public Wasserplan(Gelaendeform gelaende, IReadOnlyList<Planweg> wege, IReadOnlyList<Uebergang> uebergaenge, string? klappbruecke = null) =>
+        (_gelaende, _wege, _uebergaenge, _klappbruecke) = (gelaende, wege, uebergaenge, klappbruecke);
 
-    /// <summary>Der Wasserplan einer Stadtkarte.</summary>
+    /// <summary>Der Wasserplan einer Stadtkarte (mit ihrer Klappbrücke, <see cref="Stadtkarte.Klappbruecke"/>).</summary>
     public static Wasserplan Von(Stadtkarte karte) => new(karte.Gelaendeform,
         karte.Wege.Select(w => new Planweg(w.Name, w.Linie.Count >= 2 ? w.Verlauf.Select(Kartenort.Aus).ToList() : new List<Kartenort>(), w.BreiteWirksam, w.IstKarrenstrasse)).ToList(),
-        karte.Uebergaenge);
+        karte.Uebergaenge, karte.Klappbruecke);
 
     private (List<Wasserquerung> Querungen, List<Wegsperre> Sperren, List<Faehrverbindung> Faehren) Stand => _stand ??= Rechnen();
 
@@ -418,8 +434,22 @@ public sealed class Wasserplan
         };
         // Holz: der Holm jedes Jochs in seiner Mitte; Stein: die Pfeiler zwischen den Bögen
         var pfeilerStellen = new List<double>();
-        var (felder, feldlaenge) = (0, 0.0);
-        if (art == Uebergangsart.Holzbruecke)
+        var (felder, feldlaenge, durchfahrt) = (0, 0.0, 0.0);
+        if (art == Uebergangsart.Steinbruecke && weg.Karren && _klappbruecke is not null && lauf.Name == _klappbruecke && weite >= KlappMittelteil)
+        {
+            // Klappbrücke: Mittelteil in der Flussmitte, je Seite Bögen nach der Steinregel
+            var mitte = (ua + ub) / 2;
+            var seite = weite / 2 - KlappMittelteil / 2;
+            var n = Math.Max(1, (int)Math.Round((seite + SteinPfeiler) / (SteinBogen + SteinPfeiler), MidpointRounding.AwayFromZero));
+            feldlaenge = (seite - SteinPfeiler * (n - 1)) / n;
+            (felder, durchfahrt) = (2 * n, KlappDurchfahrt);
+            var torhaus = (KlappMittelteil - KlappDurchfahrt) / 2;
+            for (var i = 1; i < n; i++) pfeilerStellen.Add(ua + i * (feldlaenge + SteinPfeiler) - SteinPfeiler / 2);
+            pfeilerStellen.Add(mitte - KlappDurchfahrt / 2 - torhaus / 2);
+            pfeilerStellen.Add(mitte + KlappDurchfahrt / 2 + torhaus / 2);
+            for (var i = n - 1; i >= 1; i--) pfeilerStellen.Add(ub - i * (feldlaenge + SteinPfeiler) + SteinPfeiler / 2);
+        }
+        else if (art == Uebergangsart.Holzbruecke)
         {
             felder = Math.Max(1, (int)Math.Round(weite / HolzJoch, MidpointRounding.AwayFromZero));
             feldlaenge = weite / felder;
@@ -438,7 +468,7 @@ public sealed class Wasserplan
             VonStelle = a, BisStelle = b, UferA = OrtAn(v, stellen, ua), UferB = OrtAn(v, stellen, ub), UferAStelle = ua, UferBStelle = ub,
             Spannweite = spannweite, Breite = weg.Breite, Richtung = Richtung(anfang, ende), Uferhoehe = uferhoehe, Deckhoehe = deck,
             AnfangHoehe = ProfilHoehe(v, a), EndeHoehe = ProfilHoehe(v, b), Spiegel = spiegel, Tiefe = tiefe, Pfeiler = pfeiler, Felder = felder,
-            Feldlaenge = feldlaenge, Quert = quert, Karren = weg.Karren,
+            Feldlaenge = feldlaenge, Durchfahrt = durchfahrt, Quert = quert, Karren = weg.Karren,
         };
     }
 

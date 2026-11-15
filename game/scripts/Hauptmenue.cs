@@ -66,6 +66,7 @@ public partial class Hauptmenue : Node
     private OptionButton _kiStaerke = null!;
     private OptionButton _rivale = null!;
     private OptionButton _schwierigkeit = null!;
+    private OptionButton _haerte = null!;
     private Label _schwierigkeitHinweis = null!;
     private SpinBox _startwert = null!;
     private Label _fehler = null!;
@@ -678,6 +679,7 @@ public partial class Hauptmenue : Node
             AktionspunkteProRunde = (int)_aktionspunkte.Value,
             StartStatut = (Fronstatut)_statut.GetSelectedId(),
             Schwierigkeit = (Schwierigkeit)_schwierigkeit.GetSelectedId(),
+            HaerteDerZeit = (HaerteDerZeit)_haerte.GetSelectedId(),
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();

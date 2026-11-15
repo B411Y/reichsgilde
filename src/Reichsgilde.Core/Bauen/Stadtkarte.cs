@@ -658,6 +658,20 @@ public sealed class Stadtkarte
     [JsonIgnore]
     public Wasserplan Wasserplan => _wasserplan ??= Bauen.Wasserplan.Von(this);
 
+    /// <summary>
+    /// Das Gewässer der Klappbrücke (<c>logistik.klappbruecke.gewaesser</c>; null: keine) – setzt die Stadtwirtschaft mit der Karte
+    /// (<see cref="Wirtschaft.Stadtwirtschaft.KarteSetzen"/>); der Wasserplan rechnet dort das Mittelteil statt der mittleren Pfeiler.
+    /// </summary>
+    [JsonIgnore]
+    public string? Klappbruecke { get; private set; }
+
+    /// <summary>Setzt das Gewässer der Klappbrücke; ändert es sich, rechnet der Wasserplan neu.</summary>
+    public void KlappbrueckeSetzen(string? gewaesser)
+    {
+        if (gewaesser == Klappbruecke) return;
+        (Klappbruecke, _wasserplan) = (gewaesser, null);
+    }
+
     /// <summary>Das Fundament eines Gebäudes der Karte (ganze Grundfläche mit Vorplatz): Höhe des Bodens im Haus und Tiefe des Sockels.</summary>
     public Fundament Fundament(Kartengebaeude g) =>
         Gelaendeform.Fundament(Bauen.Kartengrenzen.GebaeudeEcken(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab));

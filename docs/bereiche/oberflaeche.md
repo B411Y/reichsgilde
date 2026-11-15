@@ -54,6 +54,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Erntejahre in der Oberfläche (Branch phase5/haerte-oberflaeche, zu PR #475)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Härte der Zeit | Auswahl „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre) im aufklappbaren Bereich „Erweitert“ der Neuen Partie, bei den übrigen Partie-Einstellungen; Tooltip erklärt die drei Stufen; Standard „Wie überliefert“ | 15.11.2026 |
+| Ernte am Markt | Im Marktfenster eine Zeile über den Waren: gültige Ernte mit Jahr und Güte, im Sommerjahr zusätzlich die Ansage; im Tooltip der Getreidewaren (`Ernte.Waren`) „Ernte 1402: eine Missernte – Menge ×0,6“ und die Ansage. Aussehen wie die übrigen Markt-Zeilen, keine neuen Farben | 15.11.2026 |
+| Ansage | Kommt als Meldung vom Kern (`Erntewesen.Minute`); die Oberfläche liest nur | 15.11.2026 |
+
 ### Versehrungen in der Oberfläche (Branch phase5/versehrt-oberflaeche, PR 2 zu #468)
 
 | Thema | Entscheidung | Datum |
