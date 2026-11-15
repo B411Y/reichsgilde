@@ -56,4 +56,50 @@ public static class FigurenLod
         var schritt = Ueberblendung <= 0f ? 1f : dt / Ueberblendung;
         return bisher < ziel ? System.Math.Min(ziel, bisher + schritt) : System.Math.Max(ziel, bisher - schritt);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  Stoff: Federketten an Rock, Kleid und Schürze (Auftrag 15.11.2026, tools/modelle/passanten_stoff.py)
+    //    Nah     Godots SpringBoneSimulator3D über den gebackenen Kettenspuren, nur bei den nächsten StoffFederMax Figuren
+    //    Mittel  nur die gebackenen Spuren des Clips
+    //    Fern    die VAT backt die Spuren mit
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Bahnen je Rock und Glieder je Bahn; die Knochen heißen <c>Stoff_&lt;Bahn&gt;_&lt;Glied&gt;</c>, Glied 3 ist der Endknochen am Saum.</summary>
+    public const int StoffBahnen = 8, StoffGlieder = 3;
+
+    /// <summary>So viele Figuren rechnen ihren Stoff zugleich mit der Feder (die nächsten an der Kamera); alle übrigen zeigen die gebackene Bewegung.</summary>
+    public const int StoffFederMax = 12;
+
+    /// <summary>Halbmesser der Kollisionskörper im Modellraum (Meter), wie in passanten_stoff.py: Oberschenkel, Schienbein, Kettengelenk, Gesäß.</summary>
+    public const float StoffSchenkel = 0.022f, StoffSchienbein = 0.055f, StoffGelenk = 0.008f, StoffGesaess = 0.10f;
+
+    /// <summary>Feder: Zug zur gebackenen Haltung und Dämpfung (ohne Schwerkraft: die Ruhelage ist die gebackene Haltung, nichts sackt durch den Sitz).</summary>
+    public const float StoffSteife = 2.5f, StoffDaempfung = 0.4f;
+
+    /// <summary>Bewegt sich eine Figur in einem Bild weiter als so viele Meter (Platzwechsel, Raum betreten), beginnt ihre Feder neu aus der gebackenen Haltung.</summary>
+    public const float StoffSprung = 1.0f;
+
+    /// <summary>Wer schon federt, zählt mit diesem Anteil seines Abstands: Kein Hin und Her zwischen zwei gleich weiten Figuren.</summary>
+    public const float StoffTreue = 0.8f;
+
+    public static string StoffKnochen(int bahn, int glied) => $"Stoff_{bahn}_{glied}";
+
+    /// <summary>
+    /// Welche Figuren federn: die höchstens <paramref name="max"/> nächsten (Abstand in Metern; negativ = kommt nicht in Frage, etwa nicht Nah
+    /// oder nicht im Bild). Wer schon federt (<paramref name="bisher"/>), behält bei fast gleichem Abstand den Platz; bei Gleichstand gewinnt die kleinere Stelle.
+    /// </summary>
+    public static bool[] StoffWaehlen(System.Collections.Generic.IReadOnlyList<float> abstand, System.Collections.Generic.IReadOnlyList<bool> bisher, int max)
+    {
+        var wahl = new bool[abstand.Count];
+        if (max <= 0) return wahl;
+        var folge = new System.Collections.Generic.List<(float Wert, int Stelle)>();
+        for (var i = 0; i < abstand.Count; i++)
+            if (abstand[i] >= 0f) folge.Add((bisher[i] ? abstand[i] * StoffTreue : abstand[i], i));
+        folge.Sort((a, b) => a.Wert != b.Wert ? a.Wert.CompareTo(b.Wert) : a.Stelle.CompareTo(b.Stelle));
+        for (var i = 0; i < folge.Count && i < max; i++) wahl[folge[i].Stelle] = true;
+        return wahl;
+    }
+
+    /// <summary>Ob die Feder neu beginnen muss: Die Figur ist in einem Bild weiter gesprungen als <see cref="StoffSprung"/>.</summary>
+    public static bool StoffNeuBeginnen(float wegMeter) => wegMeter > StoffSprung;
 }

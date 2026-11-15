@@ -62,6 +62,8 @@ public partial class Stadtansicht
         public bool ProbeInnen { get; init; }
         /// <summary>Fingerknochen und ihre Stufe (Stadtansicht.FigurenLod.cs); null bei Figuren ohne Finger.</summary>
         public FingerStufe? Finger { get; set; }
+        /// <summary>Federketten von Rock, Kleid und Schürze (Stadtansicht.Stoff.cs); null bei Figuren ohne Kettenknochen.</summary>
+        public StoffFederung? Stoff { get; set; }
         /// <summary>Welche Animation der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
@@ -234,6 +236,7 @@ public partial class Stadtansicht
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
         if (f.Probe && !f.ProbeInnen && _probeVat && !f.ProbeNah && _probeArtFertigStatisch[f.ProbeArt]) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen (Innenfiguren nie)
         f.Spieler.Seek(f.Anfang + f.Phase, true);
+        StoffNachPose(f); // nach einem Clipwechsel beginnt die Stofffeder aus der gebackenen Haltung (Stadtansicht.Stoff.cs)
         FingerMischen(f); // Überblendung Griff ↔ Ruhehand (Stadtansicht.FigurenLod.cs)
         f.Neu = false;
     }

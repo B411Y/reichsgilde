@@ -174,6 +174,7 @@ public partial class Stadtansicht
         FigurenBildVorbereiten(); // Sichtfeld und Bildrate der Figuren (Stadtansicht.Figuren.cs)
         ProbeStufeWaehlen();      // nur mit --passantenprobe: Skelett oder gebacken (Stadtansicht.Passantenprobe.cs)
         FingerStufenWaehlen(delta); // Fingerknochen nah/mittel (Stadtansicht.FigurenLod.cs)
+        StoffFedernWaehlen();       // Rock und Kleid: die nächsten nahen Figuren federn (Stadtansicht.Stoff.cs)
         _figurenBewegt = 0;
         var sekunden = _simulation is { Takt.IstPausiert: false } ? delta : 0; // in der Pause stehen auch die Bewegungen still
         _bildSekunden = sekunden;

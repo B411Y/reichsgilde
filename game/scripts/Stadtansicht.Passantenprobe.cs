@@ -365,6 +365,7 @@ public partial class Stadtansicht
             figur.Teile.Add(teil);
         }
         FingerStufeAnlegen(figur, modell, innen);
+        StoffAnlegen(figur, modell, innen); // Rock mit Kettenknochen: Federwahl (Stadtansicht.Stoff.cs)
         if (!innen)
         {
             _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
@@ -534,6 +535,7 @@ public partial class Stadtansicht
         if (klip == f.KiKlip) return; // Gehen ↔ Eilen: die Schleife läuft in derselben Phase weiter
         f.KiKlip = klip;
         f.Spieler.Play(klip);
+        StoffClipwechsel(f);
         // Formschlüssel „Sitzen“ (Stoff unter den Oberschenkeln auf der Sitzfläche): nur im Clip „Sitzen“ 1, beim Verlassen zurück auf 0 –
         // (keine Spur in den Animationen: das Spiel entfernt die ungenutzten Kleidervarianten, Spuren auf sie gäben Warnungen)
         // Je Sitzhaltung eine eigene Zielform (Rock folgt dem Knie): die des Clips auf 1, alle übrigen auf 0
@@ -1376,7 +1378,7 @@ public partial class Stadtansicht
         GD.Print($"[passantenprobe] Stufe {(_probeVat ? (_probeFern ? "VAT fern" : "VAT nah") : "Skelett")}, Zoom {_kamera.Size:0}, Probefiguren {_probeTrachten.Count} " +
                  $"(Messfiguren {_probeMessfiguren.Count}), im Bild gezeichnet als VAT {_probeGezeichnet}, Skelette sichtbar {_probeSkelettSichtbar}, " +
                  $"Messfiguren-Rechnung {_probeMs / _probeBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s, GPU (letztes Bild, nur mit --messung) {gpu:0.00} ms, " +
-                 $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe; {FingerStufenZaehlen()}");
+                 $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe; {FingerStufenZaehlen()}; {StoffZaehlen()}");
         // Stillstand (NAS 09.11.: eine nahe Figur blieb in der Gehpose stehen): im Bild, mit Gehclip, aber seit der letzten Zeile dieselbe Phase
         var still = 0;
         var gehend = 0;
