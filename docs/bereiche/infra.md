@@ -81,6 +81,12 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Verbindung | Das Team hat derzeit keine eigene Gemini-Verbindung (keine API, kein Agent-CLI); Gemini-Bilder liefert der Nutzer selbst | 07.11.2026 |
 | Standardweg | Für neue Bilder bleibt die lokale Bild-KI (ComfyUI, Qwen-Image) der Standardweg | 07.11.2026 |
 
+### Merge durch den Teamleiter (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | Nutzer: „Kannst du bitte einfach alles in Zukunft mergen.“ Der Teamleiter mergt alle PRs selbst, auch mit geschützten Dateien (CODEOWNERS-Pfade), sobald die 4 Pflichtprüfungen (Build & Tests Linux und Windows, Spiel exportieren, Gleichheit Linux/Windows) SUCCESS sind und der PR CLEAN ist. Bleibt: kein Auto-merge, kein `--admin`, kein Force-Push, ohne Klicktest bei Grafik-Änderungen nichts nach `main` | 15.11.2026 |
+
 ### Merge-Ablauf Einbahnstraße (PR #…)
 
 | Thema | Entscheidung | Datum |

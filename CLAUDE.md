@@ -27,7 +27,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 
 ## Feste Regeln
 
-- **Mergen** (Nutzer, 08.11.2026, „Einbahnstraße“): Mitglieder arbeiten nur lokal und pushen nie; auf GitHub ist immer nur **ein** PR offen. Der Teamleiter mergt alle PRs selbst (auch mit geschützten Dateien), sobald die 3 Pflichtprüfungen grün sind und Klicktest bzw. Prüfer erledigt; push, PR und Merge führt nur der Push-Agent aus. Verboten: `--admin`, `--auto`, `--delete-branch`, Force-Push, `gh api`. **Kein Auto-merge:** ohne Klicktest nichts nach `main`. Ablauf in `.claude/teamleiter.md`.
+- **Mergen** (Nutzer, 08.11.2026 „Einbahnstraße“, bestätigt 15.11.2026 „einfach alles mergen“): Mitglieder arbeiten nur lokal und pushen nie; auf GitHub ist immer nur **ein** PR offen. Der Teamleiter mergt alle PRs selbst (auch mit geschützten Dateien), sobald die 4 Pflichtprüfungen (Build & Tests Linux und Windows, Spiel exportieren, Gleichheit Linux/Windows) grün sind, der PR CLEAN ist und Klicktest bzw. Prüfer erledigt; push, PR und Merge führt nur der Push-Agent aus. Verboten: `--admin`, `--auto`, `--delete-branch`, Force-Push, `gh api`. **Kein Auto-merge:** ohne Klicktest nichts nach `main`. Ablauf in `.claude/teamleiter.md`.
 - **Nichts aus dem Original-Spiel** (Grafiken, Sounds, Musik, Texte, Modelle); es ist nur Vorbild für Mechaniken. **Mechanik-Katalog** und **Design-Dossier** kommen **nie** ins Repository.
 - Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
 - Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer deutsch, kurz, ohne Emojis.
