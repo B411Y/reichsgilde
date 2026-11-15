@@ -1333,6 +1333,14 @@ public sealed record KarrenStand
 
     /// <summary>Der Rückweg ins Umland beginnt erst, wenn das Tor aufgeht.</summary>
     public bool RueckfahrtWartet { get; init; }
+
+    /// <summary>Wartet auf dieser Fahrt ab dieser Spielminute an der offenen Klappbrücke (null: nein, dann nicht geschrieben – der Spielstand bleibt Byte für Byte wie vorher; fehlt vor Datenversion 90).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? BrueckeWartenAb { get; init; }
+
+    /// <summary>… bis zu dieser Spielminute (null: wartet nicht).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? BrueckeWartenBis { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>
