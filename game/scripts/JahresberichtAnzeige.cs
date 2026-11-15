@@ -176,6 +176,15 @@ public partial class JahresberichtAnzeige : PanelContainer
                 Text("• " + eintrag, 13);
         }
 
+        // ── Lagen im Jahr (Gruben, Wälder …; die Ernte steht im Marktfenster) ──
+        if (LagenTexte.Uebersicht(w) is { Count: > 0 } lagenZeilen)
+        {
+            _inhalt.AddChild(new HSeparator());
+            Text("Lagen im Jahr", 16);
+            foreach (var zeile in lagenZeilen)
+                Text("• " + zeile, 13);
+        }
+
         // ── Rangliste ──
         _inhalt.AddChild(new HSeparator());
         Text("Rangliste der Häuser", 16);

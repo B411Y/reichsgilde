@@ -59,6 +59,8 @@ Seit Datenversion 92 (Nutzer 15.11.2026) gilt dasselbe für **jede Rohstoffquell
 | Klosterhof (Prediger) | Frühling | gutes Bienenjahr | kalter Frühling | Bienensterben |
 | Duftgarten (Parfumeur) | Sommer | üppige Blüte | Spätfrost | Hagelschlag |
 
+**Wo man es sieht:** Ansage und Beginn kommen als Meldung (nur gute, schlechte und schwere Lagen). Im Marktfenster stehen unter der Ernte die gültigen und angesagten Lagen („Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“); der Mauszeiger über einer betroffenen Ware zeigt „Grube 1404: Wassereinbruch – Eisen ×0,8“ bzw. die Ansage. Der Jahresbericht hat einen Abschnitt „Lagen im Jahr“.
+
 Folgewaren (je ein Viertel): Beschlag, Dolch, Silberring · Holzzapfen, Schemel, Truhe · Schleifziegel, Grabstein, Mühlstein · Farbe, Kräuterschnaps, Heilsalbe · Papier, Kerze, Lehrschrift · Politur, Blume der Zwietracht, Giftdolch. Beim Klosterhof trifft es Wachs voll und Lumpen halb.
 
 Die Ansage kommt zu Beginn des Jahres davor, z. B. „Die Schneeschmelze drückt Wasser in die Stollen: Im Frühling 1404 droht ein Wassereinbruch in den Gruben – Eisen und Silber werden teurer. Wer jetzt einlagert, verkauft später besser.“ Gewöhnliche Lagen werden nicht gemeldet (außer bei der Ernte). Dieb, Geldleiher und Gardist haben keine Rohwaren und keine Lage; sie spüren nur die Preise.

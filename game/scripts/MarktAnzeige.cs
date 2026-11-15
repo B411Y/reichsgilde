@@ -254,6 +254,7 @@ public partial class MarktAnzeige : PanelContainer
             if (w.Gastwirtschaft.IstAktiv && w.Gastwirtschaft.Daten.Ausschank.Contains(ware))
                 zeilen.Add($"Wird in Schänken ausgeschenkt: {Zahlenformat.Kommazahl(w.Gastwirtschaft.Ausschankpreis(ware))} {waehrung} je Gast");
             if (ErnteZeile(w, ware) is { } ernteZeile) zeilen.Add(ernteZeile);
+            zeilen.AddRange(LagenTexte.Tipp(w, ware));
             if (bestand > 0)
                 zeilen.Add($"In euren Lagern: {bestand}");
             if (vorschau.TryGetValue(ware, out var naechste))
@@ -270,7 +271,7 @@ public partial class MarktAnzeige : PanelContainer
     private Label? _vorschau;
     private Label? _ernte;
 
-    /// <summary>Die Zeile über den Waren: die gültige Ernte und, im Sommerjahr, die Ansage der nächsten (Erntejahre, Nutzer 15.11.2026).</summary>
+    /// <summary>Die Zeilen über den Waren: die gültige Ernte und, im Sommerjahr, die Ansage der nächsten (Erntejahre, Nutzer 15.11.2026), dazu die Lagen der übrigen Quellen.</summary>
     private void ErnteAktualisieren(Stadtwirtschaft w)
     {
         if (_ernte is null) return;
@@ -281,6 +282,7 @@ public partial class MarktAnzeige : PanelContainer
             zeilen.Add("Noch keine Ernte eingebracht.");
         if (w.Ernte.Angesagt is { } a)
             zeilen.Add($"Angesagt für Herbst {a.Erntejahr}: {Erntewesen.Text(a.Guete)}");
+        zeilen.AddRange(LagenTexte.Uebersicht(w)); // Lagen der übrigen Quellen (Gruben, Wälder …), nur gute, schlechte und schwere
         var text = string.Join("\n", zeilen);
         if (_ernte.Text != text) _ernte.Text = text;
     }
