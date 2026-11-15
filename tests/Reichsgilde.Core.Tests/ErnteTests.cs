@@ -119,7 +119,7 @@ static class ErnteTests
             var u = Wirtschaft(1, HaerteDerZeit.Ueberliefert).Ernte;
             Pruefe.Ungefaehr(0.5, u.Faktor("Gerste", Erntegute.Missernte), 1e-12);
             Pruefe.Ungefaehr(0.875, u.Faktor("Körnermahlzeit", Erntegute.Missernte), 1e-12); // Folgeware: Gewicht 0,25 (Datenversion 92, vorher 0,5)
-            Pruefe.Ungefaehr(1.25, u.Faktor("Roggen", Erntegute.Gut), 1e-12);
+            Pruefe.Ungefaehr(1.5, u.Faktor("Roggen", Erntegute.Gut), 1e-12); // gut 1,5 seit Datenversion 92 (vorher 1,25)
             Pruefe.Gleich(1.0, u.Faktor("Gerste", Erntegute.Gewoehnlich));
             Pruefe.Gleich(1.0, u.Faktor("Eisen", Erntegute.Missernte));
             var m = Wirtschaft(1, HaerteDerZeit.Mild).Ernte;

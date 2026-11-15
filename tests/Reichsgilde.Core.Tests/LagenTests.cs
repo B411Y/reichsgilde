@@ -135,8 +135,8 @@ static class LagenTests
             Pruefe.Ungefaehr(0.5, g.Faktor("Eisen", Lagegute.Schwer), 1e-12);
             Pruefe.Ungefaehr(0.75, g.Faktor("Silber", Lagegute.Schlecht), 1e-12);
             Pruefe.Ungefaehr(0.875, g.Faktor("Beschlag", Lagegute.Schwer), 1e-12);
-            Pruefe.Ungefaehr(1.25, g.Faktor("Silber", Lagegute.Gut), 1e-12); // reiche Ader: Silber voll
-            Pruefe.Ungefaehr(1.125, g.Faktor("Eisen", Lagegute.Gut), 1e-12); // Eisen halb
+            Pruefe.Ungefaehr(1.5, g.Faktor("Silber", Lagegute.Gut), 1e-12); // reiche Ader: Silber voll
+            Pruefe.Ungefaehr(1.25, g.Faktor("Eisen", Lagegute.Gut), 1e-12); // Eisen halb
             Pruefe.Gleich(1.0, g.Faktor("Eisen", Lagegute.Gewoehnlich));
             Pruefe.Gleich(1.0, g.Faktor("Holz", Lagegute.Schwer));
             Pruefe.Gleich(1.0, g.Faktor("Gerste", Lagegute.Schwer));
@@ -171,7 +171,7 @@ static class LagenTests
             Pruefe.Wahr(beide > 50, $"nur {beide} Jahre mit zwei Lagen auf Holz");
         }),
 
-        ("Lagen: Der eigene Umlandbetrieb ist halb getroffen (schwer ×0,75, gut ×1,125); Werkstätten und ohne „lagen“ nicht", () =>
+        ("Lagen: Der eigene Umlandbetrieb ist halb getroffen (schwer ×0,75, gut ×1,25); Werkstätten und ohne „lagen“ nicht", () =>
         {
             var s = StartwertMit(Betriebsart.Mine, Lagegute.Schwer);
             var w = Wirtschaft(s);
@@ -183,7 +183,7 @@ static class LagenTests
             Pruefe.Gleich(1.0, w.Lagen.Ertragsfaktor(Betriebsart.Mine));
             var gut = Wirtschaft(StartwertMit(Betriebsart.Mine, Lagegute.Gut));
             gut.Uhr = new Spielzeit(Minute(4, 10));
-            Pruefe.Ungefaehr(1.125, gut.Lagen.Ertragsfaktor(Betriebsart.Mine), 1e-12);
+            Pruefe.Ungefaehr(1.25, gut.Lagen.Ertragsfaktor(Betriebsart.Mine), 1e-12);
             // Die Ernte trifft den Bauernhof nur mit Abschnitt „lagen“
             var m = 1;
             while (Wirtschaft(m).Ernte.ErnteVon(1402)!.Guete != Erntegute.Missernte) m++;

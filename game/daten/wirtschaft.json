@@ -2360,7 +2360,7 @@
   },
   "ernte": {
     "waren": { "Gerste": 1, "Roggen": 1, "Weingeist": 0.25, "Körnermahlzeit": 0.25, "Dünnbier": 0.25 },
-    "gut": 1.25, "mager": 0.75, "missernte": 0.5, "untereGrenze": 0.35, "obereGrenze": 1.5,
+    "gut": 1.5, "mager": 0.75, "missernte": 0.5, "untereGrenze": 0.35, "obereGrenze": 1.5,
     "mild": { "chanceGut": 0.2, "chanceMager": 0.15, "chanceMissernte": 0, "staerke": 0.5 },
     "ueberliefert": { "chanceGut": 0.2, "chanceMager": 0.25, "chanceMissernte": 0.1, "staerke": 1 },
     "hart": { "chanceGut": 0.15, "chanceMager": 0.3, "chanceMissernte": 0.2, "staerke": 1.25 }
