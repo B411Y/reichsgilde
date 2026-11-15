@@ -59,7 +59,7 @@ static class VersehrtTests
         ("Versehrungen: Daten – fünf Versehrungen, alle erworben, ohne Gegenteil und Vererbung, mit Kennung fürs Bild; Lahm mag die Jagd nicht", () =>
         {
             var d = Daten.Value.Charakterzuege!;
-            Pruefe.Gleich(91, Daten.Value.Version);
+            Pruefe.Gleich(92, Daten.Value.Version);
             var bild = new Dictionary<string, string>
                 { ["Narbe"] = "narbe", ["Entstellt"] = "brandmal", ["Einaeugig"] = "augenklappe", ["Lahm"] = "hinken", ["Verkrueppelt"] = "hand" };
             Pruefe.Gleich(string.Join(",", Versehrungen), string.Join(",", d.Alle.Where(z => z.IstVersehrung).Select(z => z.Kennung)));

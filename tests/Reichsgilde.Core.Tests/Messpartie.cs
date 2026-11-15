@@ -424,6 +424,17 @@ static class Messpartie
     }
 
     /// <summary>Die Wirtschaftsdaten ohne einen Abschnitt (sonst gleich) – z. B. ohne „schiffshandel“ für den Vergleich ohne Schiffe.</summary>
+    /// <summary>
+    /// Lagen der Rohstoffquellen für eine Messung (<c>--lagen=aus|ernte|alle</c>, Datenversion 92): „aus“ ohne „ernte“ und „lagen“, „ernte“ ohne
+    /// „lagen“ (wie Datenversion 91, aber mit deren Ernte-Werten), „alle“ wie die Daten.
+    /// </summary>
+    public static string LagenWaehlen(string json, string lagen) => lagen switch
+    {
+        "aus" => OhneAbschnitt(OhneAbschnitt(json, "lagen"), "ernte"),
+        "ernte" => OhneAbschnitt(json, "lagen"),
+        _ => json,
+    };
+
     public static string OhneAbschnitt(string json, string abschnitt)
     {
         var knoten = JsonNode.Parse(json)!.AsObject();
