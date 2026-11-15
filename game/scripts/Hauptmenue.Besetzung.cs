@@ -315,9 +315,7 @@ public partial class Hauptmenue
             fehler.Add($"„{doppelt.Key}“ heißen zwei Häuser.");
         var wappen = kis.Select(v => v.Wappen).OfType<Wappen>().Prepend(_wappen).ToList();
         if (wappen.Count != wappen.Distinct().Count())
-            fehler.Add("Zwei Häuser führen dasselbe Wappen.");
-        else if (VergebeneWappenLesen(-1).FirstOrDefault(x => x.Wappen == _wappen) is { Haus: not null } kartenhaus)
-            fehler.Add($"Das Wappen führt schon {kartenhaus.Haus}."); // ein Haus der Karte (Daten der Karte, nur gelesen)
+            fehler.Add("Zwei Häuser führen dasselbe Wappen."); // nur selbst gewählte; Häuser der Karte weichen dem Spieler aus (Kern)
         var berufe = kis.Select(v => v.Beruf).OfType<string>().Prepend(GewaehlterBeruf(_beruf) ?? "").ToList();
         if (berufe.GroupBy(b => b).FirstOrDefault(g => g.Count() > 1) is { } doppelterBeruf)
             fehler.Add($"Den Beruf „{doppelterBeruf.Key}“ hat nur ein Haus – jeder Beruf kommt einmal vor.");

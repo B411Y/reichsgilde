@@ -114,7 +114,7 @@ public static class Partiebesetzung
     /// <summary>Schlüssel der Zufallsquelle für die Züge des Spielers (<see cref="SpielerZuege"/>).</summary>
     public const int ZugSchluessel = 0x5A7567; // „Zug“
 
-    private const int ZweckSpieler = 1, ZweckKiHaeuser = 2, ZweckNamen = 3;
+    private const int ZweckSpieler = 1, ZweckKiHaeuser = 2, ZweckNamen = 3, ZweckKartenwappen = 4;
 
     internal static Zufallsquelle Besetzungsquelle(int zufallsstartwert, int zweck) => new(Zugwuerfel.Mischen(zufallsstartwert, BesetzungSchluessel, zweck));
 
@@ -247,7 +247,7 @@ public static class Partiebesetzung
         IReadOnlyList<Hausvorgabe?>? vorgaben, int zufallsstartwert)
     {
         var ausKarte = start.Haeuser.Take(anzahl).ToList();
-        var haeuser = ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList();
+        var haeuser = KartenwappenEindeutig(ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList(), spielerWappen, vorgaben, zufallsstartwert);
         var fehlen = anzahl - ausKarte.Count;
         if (fehlen <= 0) return haeuser;
         if (karte is not { HatHofstellen: true })
@@ -260,7 +260,8 @@ public static class Partiebesetzung
 
         var art = daten.Berufe[Startaufstellung.Berufe(daten)[0]].Werkstatt; // Platzhalter: den Beruf würfelt die Startaufstellung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
-            .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>()).ToList();
+            .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
+            .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
         var farben = start.Haeuser.Select(h => h.Farbe).Append(start.Spieler.Farbe).OfType<string>().ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
@@ -282,6 +283,39 @@ public static class Partiebesetzung
 
     /// <summary>Die eigene Zufallsquelle der Namen gewürfelter KI-Häuser (in der <see cref="Startaufstellung"/>).</summary>
     internal static Zufallsquelle Namensquelle(int zufallsstartwert) => Besetzungsquelle(zufallsstartwert, ZweckNamen);
+
+    /// <summary>
+    /// Mitspielende Häuser der Karte führen ihr Wappen aus der Karte – außer es gleicht dem des Spielers, einer Vorgabe aus „Erweitert“ oder dem
+    /// eines vorher stehenden mitspielenden Hauses (Nutzer 15.11.2026: die KI würfelt neu, bis es anders ist). Dann würfelt das Haus ein neues aus
+    /// einer eigenen Zufallsquelle, verschieden von allen anderen. Ein Haus mit eigener Vorgabe behält sie (die prüft <see cref="VorgabenPruefen"/>).
+    /// Nicht mitspielende Häuser der Karte zählen nicht. Ohne Gleichstand bleibt alles wie in der Karte (kein Wurf).
+    /// </summary>
+    internal static List<Starthaus> KartenwappenEindeutig(List<Starthaus> haeuser, Wappen spielerWappen, IReadOnlyList<Hausvorgabe?>? vorgaben,
+        int zufallsstartwert)
+    {
+        Wappen? Vorgabe(int i) => vorgaben is not null && i < vorgaben.Count ? vorgaben[i]?.Wappen : null;
+        var fest = haeuser.Select((_, i) => Vorgabe(i)).OfType<Wappen>().Append(spielerWappen).ToList();
+        var vergeben = new List<Wappen>();
+        Zufallsquelle? z = null;
+        var ergebnis = new List<Starthaus>(haeuser.Count);
+        for (var i = 0; i < haeuser.Count; i++)
+        {
+            var h = haeuser[i];
+            if (Vorgabe(i) is null && (fest.Contains(h.Wappen) || vergeben.Contains(h.Wappen)))
+            {
+                z ??= Besetzungsquelle(zufallsstartwert, ZweckKartenwappen);
+                var belegt = fest.Concat(vergeben).Concat(haeuser.Select(k => k.Wappen)).ToList();
+                h = new Starthaus
+                {
+                    Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = Wappen.Zufall(z, belegt), Farbe = h.Farbe,
+                    Wohnhaus = h.Wohnhaus, Betriebe = h.Betriebe.ToList(), Gewuerfelt = h.Gewuerfelt,
+                };
+            }
+            if (Vorgabe(i) is null) vergeben.Add(h.Wappen);
+            ergebnis.Add(h);
+        }
+        return ergebnis;
+    }
 
     /// <summary>
     /// Welche Wappen für ein Haus des Menüs „Erweitert“ schon vergeben sind (nur lesend, für die Sperre im Wappenfeld): die der Häuser der Karte (die ersten

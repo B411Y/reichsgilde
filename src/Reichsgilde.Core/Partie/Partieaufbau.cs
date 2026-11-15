@@ -19,7 +19,7 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler),
 /// 3 = dazu Haus Kieselbach (Steinmetz).</param>
 /// <param name="Glaube">Konfession des eigenen Hauses; null = Startglaube des Volkes.</param>
-/// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Darf keinem KI-Haus gehören.</param>
+/// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Trägt ein mitspielendes Kartenhaus dasselbe, würfelt es neu (gewürfelte Aufstellung).</param>
 /// <param name="Aussehen">Gesicht, Haar und Augen des Oberhaupts im Porträt; null = gewürfelt. Muss zum Volk passen
 /// (<see cref="Aussehenspalette.Verboten"/>).</param>
 /// <param name="Hofstelle">Startplatz des Spielers auf einer Karte mit Hofstellen: Kennung einer Start-Hofstelle (<see cref="Hofstellenvergabe.Angebot"/>);
@@ -115,7 +115,8 @@ public static class Partieaufbau
         var wappen = neu.Wappen ?? Wappen.Vorlagen[0];
         if (wappen.Fehler() is { } wappenFehler)
             throw new ArgumentException(wappenFehler);
-        if (start.Rivalenwappen.Contains(wappen))
+        // Bei gewürfelter Aufstellung weicht ein mitspielendes Kartenhaus aus (Partiebesetzung.KartenwappenEindeutig); sonst darf es keins tragen.
+        if (neu.Aufstellung != Aufstellungsart.Gelost && start.Haeuser.Take(neu.Rivalen).Any(h => h.Wappen == wappen))
             throw new ArgumentException("Dieses Wappen führt schon ein KI-Haus.");
         // KI-Gegner (11.11.2026): 0 bis Höfe − 1; ohne Los nur die Häuser der Startbelegung
         var hoechstens = Partiebesetzung.HoechstensKi(karte, neu.Aufstellung);

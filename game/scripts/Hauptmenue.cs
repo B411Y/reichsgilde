@@ -615,10 +615,8 @@ public partial class Hauptmenue : Node
     /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
     private string? WappenProblem()
     {
-        if (_wappen.Fehler() is { } fehler) return fehler;
-        if (Startbelegung.Rivalenwappen.Contains(_wappen))
-            return "Dieses Wappen führt schon ein KI-Haus – ändert eine Farbe.";
-        return null;
+        // Trägt ein mitspielendes Haus der Karte dasselbe Wappen, würfelt es neu (Kern, Partiebesetzung.KartenwappenEindeutig).
+        return _wappen.Fehler();
     }
 
     private static readonly Volk[] Spielbare = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
