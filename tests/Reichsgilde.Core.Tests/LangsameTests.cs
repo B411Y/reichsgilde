@@ -40,6 +40,7 @@ static class LangsameTests
         ("HofstellenHaeppchenTests", "nach je 12 zufälligen Änderungen an Hofstellen", 1), // 4 s: volle Prüfung frisch geöffnet nach jeder Änderung
         ("ZwischenspeicherTests", "Bauorte in einer Greybox-Partie", 1),               // 3 s: drei Jahre, Bauorte ohne Speicher alle vier Stunden (14.11.2026)
         ("ZwischenspeicherTests", "Bauorte in einer Köln-Partie", 1),                  // 3 s: zwei Jahre Köln, Bauorte ohne Speicher zweimal am Tag
+        ("KlappbrueckeTests", "Karren warten in der Partie", 1),                       // 8 s: bis zu drei Jahre Köln-Prüfkarte, Spielstand, Gegenprobe (15.11.2026)
     };
 
     public static bool IstLangsam(Testfall test) =>
