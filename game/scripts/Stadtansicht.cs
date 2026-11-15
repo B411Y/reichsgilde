@@ -1090,6 +1090,7 @@ public partial class Stadtansicht : Node3D
         ProzessBild(delta);
         PixelBild(); // nach allem anderen: die Kamera des Pixel-Looks folgt der Spielkamera (Stadtansicht.Pixel.cs)
         ZeichenAnalyseBild(); // nur mit --zeichenanalyse: Gruppen ausblenden und Zeichenaufrufe zählen (Stadtansicht.Zeichenanalyse.cs)
+        SchilderPruefungBild(delta); // nur mit --schilderpruefung=1: Bildzahl und Schilder ins Log (Stadtansicht.Schilderpruefung.cs)
     }
 
     private void ProzessBild(double delta)
@@ -1123,7 +1124,7 @@ public partial class Stadtansicht : Node3D
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;
-        _beschriftungen.RemoveAll(label => !IsInstanceValid(label)); // Sicherung: ein freigegebenes Schild darf nie wieder das ganze Bild (Kamera, Raum, Pixel-Look) lahmlegen
+        SchilderAufraeumen(); // Sicherung: ein freigegebenes Schild darf nie wieder das ganze Bild (Kamera, Raum, Pixel-Look) lahmlegen; meldet es als Fehler (Stadtansicht.Schilderpruefung.cs)
         foreach (var label in _beschriftungen)
             label.Scale = Vector3.One * massstab;
         BeschriftungenZeigen();
