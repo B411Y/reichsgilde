@@ -108,6 +108,7 @@ public sealed class Simulation
             Wirtschaft = new Stadtwirtschaft(wirtschaftsdaten, Einstellungen.StartStatut, Einstellungen.Zufallsstartwert)
             {
                 AktionspunkteJeRunde = Einstellungen.AktionspunkteProRunde,
+                HaerteDerZeit = Einstellungen.HaerteDerZeit,
                 Uhr = Zeit, // dieselbe Uhr – die Wirtschaft sieht immer die aktuelle Zeit (Marktzeiten)
             };
     }

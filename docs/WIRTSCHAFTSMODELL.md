@@ -2861,3 +2861,58 @@ Gemessen auf main 8b57ef72 + diesen Branch (fcd76d02) gegen main 8b57ef72, `mess
 | Gardist | 33.533 | 33.533 | 0,0 % |
 
 Alles im Rauschen (die Streuung je Beruf liegt bei 20 Startwerten im Bereich weniger Prozent; der Gardist rechnet ohne Zufall der Züge). Außerhalb ±15 % gegen das Mittel: main Gardist −16 %, mit Versehrungen Dieb −16 % und Gardist −16 % (der Dieb lag schon knapp darunter). KI ÷ Bezug Median 0,88 → 0,84, bei „Schwer“ 0,91 → 0,91; Einbruch ins Wohnhaus 0,50 → 0,46 im Jahr. Dateien: `docs/messungen/balancing-2026-11-14-versehrt-vorher.json`, `…-nachher.json`.
+
+## Klappbrücke über den Rhein (Datenversion 90, 15.11.2026)
+
+Die Rheinbrücke in Köln öffnet für das Zierschiff von und nach flussauf, jeweils 20 Minuten (`logistik.klappbruecke`). Ein Karren, der die Brücke offen findet, wartet, bis sie zugeht. Gemessen mit `messen klappbruecke 10 3` auf main 56b439f2 + Branch phase5/klappbruecke-kern. Kern und Daten sind gleich wie main bef78a05. Je Lauf 3 Startwerte, 10 Jahre, „Schwer“ mit allen KI-Häusern. Die Prüfkarte ist Köln ohne den Neumarkt, so fahren die Häuser in Deutz über den Rhein.
+
+| Lauf | Querungen | gewartet | Anteil | Wartezeit gesamt | je Wartefall | Fahrten Deutz je Jahr | Reinvermögen Deutz |
+|---|---|---|---|---|---|---|---|
+| Köln | 0 | 0 | 0 % | 0 min | – | 26,4 | 63.359 |
+| Prüfkarte mit Klappbrücke | 1.758 | 71 | 4,0 % | 678 min | 9,5 min | 10,1 | 9.454 |
+| Prüfkarte ohne Abschnitt | – | 0 | – | 0 min | – | 10,4 | 9.773 |
+
+In Köln wirkt die Brücke heute nicht, weil kein Karren den Rhein quert. Auf der Prüfkarte wartet jede 25. Querung, im Mittel knapp 10 Minuten. Die Häuser in Deutz fahren dadurch etwa 3 % seltener und haben 3 % weniger Reinvermögen, das liegt im Rauschen von 3 Startwerten. Der große Abstand zwischen Köln und der Prüfkarte kommt von den langen Wegen über die Brücke zum Heumarkt bzw. Alter Markt, nicht von der Klappbrücke. Ohne den Abschnitt zählt die Messung keine Querungen, weil es dann keine Klappbrücke gibt.
+
+## Erntejahr und Härte der Zeit (Datenversion 91, 15.11.2026)
+
+Jede Ernte im Herbstjahr ist gut, gewöhnlich, mager oder eine Missernte und verschiebt bis zur nächsten Ernte die Grundversorgung von Gerste und Roggen (voll) sowie Körnermahlzeit, Dünnbier, Starkbier und Festbier (halb). Preis nach der Formel des Markts (Elastizität 0,5, nur NPC-Angebot): Missernte Gerste +41 %, mager +15 %, gut −11 %. Werte und Stufen in `docs/bereiche/kern.md`, „Erntejahr und Härte der Zeit“.
+
+Gemessen auf main bd678e2a + diesen Branch (caab3362) gegen main bd678e2a, `messen bericht 20 20 --teile=1` (220 Partien je Lauf, 4 Kerne, nice 19), je Lauf `--haerte=mild|ueberliefert|hart`. Reinvermögen nach 20 Jahren, ein Betrieb, KI-geführt (main mit Fehler des Mittels):
+
+| Beruf | main | Milde Jahre | Wie überliefert | Harte Jahre |
+|---|---|---|---|---|
+| Schmied | 40.579 (±1.121) | 40.568 (−0,0 %) | 40.274 (−0,8 %) | 39.034 (−3,8 %) |
+| Tischler | 36.580 (±1.245) | 37.413 (+2,3 %) | 36.224 (−1,0 %) | 35.700 (−2,4 %) |
+| Steinmetz | 42.709 (±1.428) | 42.174 (−1,3 %) | 41.900 (−1,9 %) | 42.335 (−0,9 %) |
+| Alchimist | 40.563 (±1.249) | 41.664 (+2,7 %) | 41.086 (+1,3 %) | 39.165 (−3,4 %) |
+| Wirt | 38.856 (±1.161) | 39.288 (+1,1 %) | 41.025 (+5,6 %) | 41.719 (+7,4 %) |
+| Prediger | 42.166 (±1.455) | 42.228 (+0,1 %) | 42.386 (+0,5 %) | 42.810 (+1,5 %) |
+| Dieb | 33.913 (±1.013) | 34.350 (+1,3 %) | 34.294 (+1,1 %) | 33.709 (−0,6 %) |
+| Parfumeur | 42.378 (±1.492) | 41.480 (−2,1 %) | 41.393 (−2,3 %) | 41.747 (−1,5 %) |
+| Geldleiher | 41.920 (±1.199) | 41.378 (−1,3 %) | 40.745 (−2,8 %) | 39.418 (−6,0 %) |
+| Gardist | 33.708 (±820) | 33.764 (+0,2 %) | 33.331 (−1,1 %) | 33.219 (−1,5 %) |
+| Dieb (wagemutig, nicht im Mittel) | 25.648 (±1.372) | 25.449 (−0,8 %) | 26.120 (+1,8 %) | 24.248 (−5,5 %) |
+
+Milde Jahre: Rauschen (alle Abstände unter zwei Fehlern des Mittels). Wie überliefert: Rauschen bis knapp spürbar, nur der Wirt +5,6 % (er verkauft Körnermahlzeit und Dünnbier, die nach schlechten Ernten teurer sind). Harte Jahre: spürbar, nicht zerstörerisch – Wirt +7,4 %, Geldleiher −6,0 %, Schmied −3,8 %, Alchimist −3,4 %. Außerhalb ±15 % gegen das Mittel: main Dieb −15,3 % und Gardist −15,9 %; mit Ernte nur der Gardist (−16,0 / −16,8 / −16,2 %). Kein Beruf fällt neu aus dem Band. Werte nicht nachgesteuert. Die KI lagert auf die Ansage hin noch nicht gezielt ein (Offen bei spiel-ki). Dateien: `docs/messungen/balancing-2026-11-15-haerte-{main,mild,ueberliefert,hart}.json`.
+
+## Lagen aller Rohstoffquellen (Datenversion 92, 15.11.2026)
+
+Die Erntejahre gelten jetzt für jede Rohstoffquelle (Grube, Holzschlag, Steinbruch, Kräutergarten, Klosterhof, Duftgarten, dazu die Ernte am Bauernhof), mit denselben Stufen, Chancen, Grenzen und derselben Härte. Rohwaren Gewicht 1 (einige Ereignisse 0,5), die drei Waren der ersten Werkstatt 0,25; der eigene Umlandbetrieb halb. Werte und Regeln in `docs/bereiche/kern.md`, „Lagen aller Rohstoffquellen“.
+
+Gemessen auf main 2f848d4a + dieser Branch (58eaf32d), `messen bericht 20 60 --teile=1 --lagen=aus|alle` (660 Partien je Lauf, 4 Kerne, nice 19), Wie überliefert. „aus“ = ohne `ernte` und `lagen`. Reinvermögen nach 20 Jahren, ein Betrieb, KI-geführt:
+
+| Beruf | aus (± Fehler) | alle, `gut` 1,25 | alle, `gut` 1,5 (gewählt) | q10 / q90 aus | q10 / q90 alle |
+|---|---|---|---|---|---|
+| Schmied | 39.911 (±800) | −3,7 % | −2,4 % | 32.124 / 48.529 | 31.780 / 48.091 |
+| Tischler | 36.897 (±773) | −3,8 % | −1,8 % | 29.095 / 43.519 | 26.323 / 44.238 |
+| Steinmetz | 42.397 (±846) | −5,6 % | −4,0 % | 32.972 / 50.974 | 32.603 / 48.471 |
+| Alchimist | 40.119 (±891) | −1,8 % | −0,8 % | 31.819 / 48.886 | 32.204 / 46.955 |
+| Wirt | 38.708 (±807) | −1,4 % | +1,1 % | 30.733 / 47.031 | 31.032 / 47.507 |
+| Prediger | 41.432 (±906) | −4,1 % | −2,1 % | 32.929 / 49.347 | 30.698 / 48.916 |
+| Dieb | 31.940 (±715) | −2,2 % | −3,7 % | 25.527 / 39.675 | 24.708 / 37.782 |
+| Parfumeur | 43.727 (±808) | −6,3 % | −4,7 % | 34.527 / 50.864 | 35.419 / 49.554 |
+| Geldleiher | 41.047 (±667) | −0,9 % | −1,6 % | 34.093 / 47.494 | 34.496 / 47.128 |
+| Gardist | 32.187 (±485) | −0,1 % | +0,7 % | 27.202 / 37.865 | 28.849 / 36.694 |
+
+Keine Bankrotte. Mit `gut` 1,25 verloren alle Berufe mit Rohwaren (erwartete Menge 0,2 × 1,25 + 0,45 + 0,25 × 0,75 + 0,1 × 0,5 = 0,94, die Rohwaren wurden im Mittel teurer; Abstand 6,2 Punkte). Mit `gut` 1,5 (erwartete Menge 0,99) liegen sieben Berufe innerhalb ±3 %, Parfumeur −4,7, Steinmetz −4,0, Dieb −3,7 %; Abstand 5,8 Punkte (Wirt bis Parfumeur). Ziel (±3 %, höchstens 5 Punkte) knapp verfehlt, die Abweichungen liegen innerhalb von zwei Fehlern der Differenz (etwa ±2,7 %). Die Streuung (q10 bis q90) bleibt fast gleich. Vorlauf mit 20 Startwerten (gleiches Bild, Rauschen ±4 %): `gut` 1,25 Abstand 9,1, `gut` 1,5 Abstand 10,0 – 20 Startwerte reichen für ±3 % nicht. Harte und Milde Jahre mit allen Lagen noch nicht gemessen. Dateien: `docs/messungen/balancing-2026-11-15-lagen-{aus,gut125,alle}.json`. Die Messdateien nennen als `mainCommit` cb9c2018 (origin/main zur Zeit des Laufs); gemessen wurde der Code von 58eaf32d. Danach kamen auf main nur Wasserplan und Wappen der KI-Häuser (#479–#481) dazu, nicht neu gemessen.

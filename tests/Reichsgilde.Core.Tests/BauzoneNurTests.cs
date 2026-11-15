@@ -63,7 +63,7 @@ static class BauzoneNurTests
                 .First(b => w.Bauen.Grundriss(b).Felder(2).All(f => bauplatz.Enthaelt(f.X, f.Z)));
             Pruefe.Gleich(null, w.Bauen.PlatzVerboten(ort));
             // ein Stadthof (16 × 14) genau dort nicht
-            Pruefe.Gleich("Dieser Bauplatz ist für eine Werkstatt.", w.Bauen.PlatzVerboten(new WohnhausBauen(4, ort.X, ort.Z, ort.Drehung)));
+            Pruefe.Gleich("Diese Bauzone ist für Werkstätten.", w.Bauen.PlatzVerboten(new WohnhausBauen(4, ort.X, ort.Z, ort.Drehung)));
         }),
 
         ("Bauzone „nur werkstatt“: Bauorte für Wohnhäuser meiden den Werkstatt-Bauplatz, Bauorte für Werkstätten finden ihn", () =>

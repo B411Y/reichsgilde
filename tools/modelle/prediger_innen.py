@@ -630,7 +630,9 @@ def kirchenbank(netz, st, x0, x1, y):
         netz.prisma(profil, x - 0.03, x + 0.03, st["Kirchenholz"])
 
 
-BANK_Y = (1.6, 0.6, -0.4, -1.4)                                        # Reihen von vorn nach hinten
+GLAEUBIG_VOR = 0.085
+BANK_ABSTAND = 1.14                                                    # Reihenabstand (vorher 1,0): Platz für Knie und Rocksaum großer Figuren
+BANK_Y = tuple(1.6 - BANK_ABSTAND * k for k in range(4))                                        # Reihen von vorn nach hinten
 BANK_X = ((-2.3, -0.6), (0.6, 2.3))
 
 
@@ -641,8 +643,10 @@ def baenke(netz, st, anker):
     for y in BANK_Y:
         for x0, x1 in BANK_X:
             kirchenbank(netz, st, x0, x1, y)
-        for x in (-1.03, 1.03, -1.87, 1.87):
-            anker.append(wi.gast(f"Glaeubig_{nummer}", (x, y), (0, 1), sitz=SITZ))
+        for x in (-1.05, 1.05, -1.85, 1.85):
+            # 8,5 cm vor der Mitte des Sitzbretts: der Rücken bleibt vor der Lehne; 0,39 m von den Wangen: Platz für breite Figuren
+            # (Figuren-Baukasten, tools/modelle/sitzpruefung.py; vorher ±1,03 / ±1,87 genau in der Mitte)
+            anker.append(wi.gast(f"Glaeubig_{nummer}", (x, y + GLAEUBIG_VOR), (0, 1), sitz=SITZ))
             nummer += 1
 
 

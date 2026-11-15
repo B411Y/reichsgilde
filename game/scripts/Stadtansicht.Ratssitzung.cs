@@ -418,7 +418,7 @@ public partial class Stadtansicht
             s.Zuhoerer.Add(new Zuhoerer
             {
                 Halter = halter, Name = warten[i].Name, Schild = schild,
-                Figur = SitzungsFigur(halter, RatsherrAussehen(w, warten[i].Name, warten[i].Haus, false), 820 + i, "Sitzen", bank.Sitzhoehe, 0.9f + i * 0.05f),
+                Figur = SitzungsFigur(halter, AussehenAusRezept(RatsRezept(w, warten[i].Name, warten[i].Haus, false)), 820 + i, "Sitzen", bank.Sitzhoehe, 0.9f + i * 0.05f),
             });
         }
     }
@@ -491,26 +491,17 @@ public partial class Stadtansicht
             platz.Schild.Text = name is null ? $"{amt.Name} (unbesetzt)" : i == 0 ? $"{amt.Name} {name}" : name;
             platz.Schild.Modulate = s.AmZug == platz ? AmZugFarbe : SchildFarbe(platz);
             if (name is null) continue;
-            if (SitzungsFigur(platz.Halter, RatsherrAussehen(w, name, haus, i == 0), 700 + i, "Sitzen", platz.Sitzhoehe, 0.9f + i * 0.04f) is not { } figur) continue;
+            // Baukasten: dieselbe Person wie im Ratssaal, im Kontor und in der Wohnstube (Passanten-Skelett, sitzend)
+            if (BaukastenFigurEinsetzen(platz.Halter, RatsRezept(w, name, haus, i == 0), "Sitzen", "Sitzen", 0.9f + i * 0.04f,
+                    vorderkante: i == 0 ? 0.19f : 0.18f) is not { } figur) continue; // Thron bzw. Lehnstuhl im Modell
+            // Gesäß auf dem Stuhl (Baukasten: Sitzhöhe des Ankers, 1 cm Luft; altes Rig wie bisher); waagrecht bleibt der Sitzversatz (Hüftgelenk über dem Anker)
+            figur.Modell.Position = figur.Modell.Position with
+            {
+                Y = figur.Probe ? SitzHoehe(figur, platz.Sitzhoehe) : platz.Sitzhoehe + 0.04f - figur.Kniehoehe,
+            };
             platz.Figur = figur;
             platz.Skelett = SitzungsSkelett(figur);
         }
-    }
-
-    /// <summary>
-    /// Aussehen eines Ratsmitglieds: ein Haus in seiner Farbe (Volk und Geschlecht des Oberhaupts), ein Ratsherr der Stadt in Ratsrot (Volk aus den Daten).
-    /// Alle tragen ein dunkles Barett, der Bürgermeister ein goldenes. Haar und Beinkleid folgen fest aus dem Namen.
-    /// </summary>
-    private FigurAussehen RatsherrAussehen(Stadtwirtschaft w, string name, Konto? haus, bool buergermeister)
-    {
-        var oberhaupt = haus is not null ? w.Familien.Von(haus)?.Oberhaupt : null;
-        var volk = oberhaupt?.Volk ?? (haus is not null ? Volk.Mensch : w.Rat.Ratsherren.FirstOrDefault(r => r.Name == name)?.Daten.Volk ?? Volk.Mensch);
-        var frau = oberhaupt?.Geschlecht == Geschlecht.Frau;
-        var gewand = haus is not null ? Besitzerfarbe(haus) : Ratsrot;
-        var nummer = name.Sum(c => c) % 97; // fest je Name (string.GetHashCode wechselt mit jedem Start)
-        var haare = Haarfarben(volk);
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[nummer % Beinkleidfarben.Length], HautVon(volk),
-            nummer % 3 == 0 ? GrauesHaar : haare[nummer % haare.Length], buergermeister ? Gold : new Color(0.12f, 0.10f, 0.10f), Kopfbedeckung.Barett);
     }
 
     /// <summary>Stellt den Antragsteller an den Rednerplatz (null: niemand redet, sein Stuhl ist wieder besetzt).</summary>
@@ -538,12 +529,9 @@ public partial class Stadtansicht
             halter = new Node3D { Position = _rathaus.Mitte + RednerOrt, Rotation = new Vector3(0, RednerDrehung, 0) };
             s.Wurzel.AddChild(halter);
         }
-        var oberhaupt = w.Familien.Von(antragsteller)?.Oberhaupt;
-        var volk = oberhaupt?.Volk ?? Volk.Mensch;
-        var haare = Haarfarben(volk);
-        var aussehen = new FigurAussehen(volk, oberhaupt?.Geschlecht == Geschlecht.Frau, Besitzerfarbe(antragsteller), Beinkleidfarben[2], HautVon(volk),
-            haare[0], new Color(0.12f, 0.10f, 0.10f), Kopfbedeckung.Barett);
-        s.RednerFigur = SitzungsFigur(halter, aussehen, 790, "Reden");
+        // Der Redner ist das Oberhaupt des Hauses (Baukasten: dieselbe Person wie auf seinem Stuhl)
+        if (BaukastenFigurEinsetzen(halter, RatsRezept(w, antragsteller.Inhaber, antragsteller, false), "Reden", "Reden") is { } figur)
+            s.RednerFigur = figur;
         s.Redner = halter;
         // Sitzt er selbst im Rat, ist sein Stuhl leer, solange er vorn steht
         s.RednerPlatz = s.Plaetze.FirstOrDefault(p => p.Haus == antragsteller);
@@ -643,12 +631,14 @@ public partial class Stadtansicht
         {
             var anteil = Mathf.SmoothStep(0f, 1f, (float)Math.Min(1, zeit / 0.5));
             var ziel = new Vector3(-0.12f, 1f, 0.3f).Normalized();
-            foreach (var name in new[] { "Oberarm_R", "Unterarm_R" })
+            foreach (var name in new[] { "Oberarm_R", "Unterarm_R", "RightUpperArm", "RightLowerArm" }) // altes Rig und Passanten-Skelett (Baukasten)
             {
                 var knochen = skelett.FindBone(name);
                 if (knochen < 0) continue;
                 var ruhe = skelett.GetBoneGlobalRest(knochen).Basis.Orthonormalized();
-                var achse = (ruhe.Inverse() * Vector3.Down).Normalized(); // in der Ruhelage hängt der Arm nach unten
+                // Altes Rig: in der Ruhelage hängt der Arm nach unten. Passanten-Skelett (Baukasten): Die Arme stehen in der Ruhelage schräg ab,
+                // der Knochen zeigt dort entlang seiner eigenen +Y-Achse (der Kindknochen sitzt bei (0, Länge, 0)).
+                var achse = name.StartsWith("Right") ? Vector3.Up : (ruhe.Inverse() * Vector3.Down).Normalized();
                 var lage = skelett.GetBoneGlobalPose(knochen);
                 var jetzt = (lage.Basis.Orthonormalized() * achse).Normalized();
                 var richtung = jetzt.Slerp(ziel, anteil).Normalized();
@@ -660,6 +650,7 @@ public partial class Stadtansicht
         else if (geste == Geste.Kopfschuetteln)
         {
             var knochen = skelett.FindBone("Kopf");
+            if (knochen < 0) knochen = skelett.FindBone("Head"); // Passanten-Skelett (Baukasten)
             if (knochen < 0) return;
             var ausschlag = zeit < 2.0 ? Mathf.Sin((float)zeit * Mathf.Tau * 2) * 0.45f * (1 - (float)zeit / 2.4f) : 0;
             var lage = skelett.GetBoneGlobalPose(knochen);

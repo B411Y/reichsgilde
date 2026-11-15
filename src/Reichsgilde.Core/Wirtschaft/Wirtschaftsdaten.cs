@@ -244,6 +244,18 @@ public sealed class Wirtschaftsdaten
     /// </summary>
     public JahreszeitenDaten? Jahreszeiten { get; init; }
 
+    /// <summary>
+    /// Erntejahr und Teuerung (ab Datenversion 91, „Härte um 1400“): Güte jeder Ernte nach der Härte der Zeit, Wirkung auf die Getreidewaren.
+    /// Fehlt der Abschnitt (alte Spielstände), gibt es keine Erntejahre.
+    /// </summary>
+    public ErnteDaten? Ernte { get; init; }
+
+    /// <summary>
+    /// Lagen aller Rohstoffquellen (ab Datenversion 92): wie die Ernte, für Grube, Holzschlag, Steinbruch, Kräutergarten, Klosterhof und
+    /// Duftgarten, dazu die Wirkung auf die eigenen Umlandbetriebe. Fehlt der Abschnitt (alte Spielstände), gibt es nur die Ernte.
+    /// </summary>
+    public LagenDaten? Lagen { get; init; }
+
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube (ab Datenversion 22). Fehlt der Abschnitt, spielt der Glaube keine Rolle.</summary>
     public Glaube.GlaubeDaten? Glaube { get; init; }
 
@@ -507,6 +519,8 @@ public sealed class Wirtschaftsdaten
         Handel?.Pruefen(f);
         Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
         Jahreszeiten?.Pruefen(f, Waren, Betriebsarten);
+        Ernte?.Pruefen(f, Waren);
+        Lagen?.Pruefen(f, this);
         Wohnen?.Pruefen(f, Staende.Count, Waren, Meinungen?.Aktivitaeten.Keys, Betriebsarten.Count > 0 ? Betriebsarten.Values.Select(a => a.Beruf) : null);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);

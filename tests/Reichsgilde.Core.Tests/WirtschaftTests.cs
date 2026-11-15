@@ -48,6 +48,29 @@ static class Datenpfad
     }
 
     /// <summary>
+    /// Die echten Daten ohne die Abschnitte „ernte“ (Datenversion 91, Erntejahr und Teuerung) und „lagen“ (Datenversion 92, braucht „ernte“), als
+    /// Text mit derselben Formatierung – für Tests, die bitgleich mit dem Kern davor rechnen. Ernte und Lagen prüfen ErnteTests und LagenTests.
+    /// </summary>
+    public static string OhneErnte(string? json = null) => OhneTextabschnitt(OhneLagen(json), "ernte");
+
+    /// <summary>Die echten Daten ohne Abschnitt „lagen“ (Datenversion 92): nur die Ernte, wie in Datenversion 91 (mit deren Werten aus „ernte“).</summary>
+    public static string OhneLagen(string? json = null) => OhneTextabschnitt(json ?? File.ReadAllText(Wirtschaft()), "lagen");
+
+    private static string OhneTextabschnitt(string json, string name)
+    {
+        var anfang = $"\n  \"{name}\": {{";
+        var a = json.IndexOf(anfang, StringComparison.Ordinal);
+        if (a < 0)
+            return System.Text.Json.Nodes.JsonNode.Parse(json)![name] is null ? json
+                : throw new InvalidDataException($"Abschnitt „{name}“ steht nicht wie erwartet in den Daten – Datenpfad anpassen.");
+        var e = json.IndexOf("\n  },", a, StringComparison.Ordinal);
+        if (e < 0) throw new InvalidDataException($"Ende des Abschnitts „{name}“ nicht gefunden.");
+        var ohne = json[..a] + json[(e + "\n  },".Length)..];
+        if (System.Text.Json.Nodes.JsonNode.Parse(ohne)![name] is not null) throw new InvalidDataException($"„{name}“ nicht entfernt.");
+        return ohne;
+    }
+
+    /// <summary>
     /// Die Daten mit laufendem Schiffshandel (<c>schiffshandel.aktiv: true</c> statt false, Datenversion 70 „Hafen ruht“) – für die Tests der
     /// Schiffe, die so weiter wie vor dem Schalter rechnen. Den ruhenden Hafen prüft HafenRuhtTests.
     /// </summary>
@@ -384,13 +407,14 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.08); // ±8 %: Seit PR #152 trifft ein Unfall die beiden zufällig verschieden oft
         }),
 
-        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 947 Gulden/Jahr", () =>
+        // Seit den Lagen aller Rohstoffquellen (Datenversion 92: Lage der Grube auf Eisen- und Silberpreis und halb auf die Förderung): 947 → 996.
+        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 996 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation(Fronstatut.FreieStadt);
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Altknecht", 3);
-            Pruefe.Ungefaehr(947, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(996, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         ("Mine, 3 Orks (Statut B), Ochsenkarren: Gewinn ≈ 1.365 Gulden/Jahr – deutlich mehr als mit Bergleuten", () =>

@@ -1,5 +1,5 @@
 {
-  "version": 89,
+  "version": 93,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -858,6 +858,10 @@
     "wasser": {
       "furtMinuten": 5,
       "faehreMinuten": 30
+    },
+    "klappbruecke": {
+      "gewaesser": "Rhein",
+      "oeffnungMinuten": 20
     },
     "weglaenge": {
       "mindestMinuten": 10,
@@ -2352,6 +2356,64 @@
     "festmaerkte": [
       { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 },
       { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 }
+    ]
+  },
+  "ernte": {
+    "waren": { "Gerste": 1, "Roggen": 1, "Weingeist": 0.25, "Körnermahlzeit": 0.25, "Dünnbier": 0.25 },
+    "gut": 1.5, "mager": 0.75, "missernte": 0.5, "untereGrenze": 0.35, "obereGrenze": 1.5,
+    "mild": { "chanceGut": 0.2, "chanceMager": 0.15, "chanceMissernte": 0, "staerke": 0.5 },
+    "ueberliefert": { "chanceGut": 0.2, "chanceMager": 0.25, "chanceMissernte": 0.1, "staerke": 1 },
+    "hart": { "chanceGut": 0.15, "chanceMager": 0.3, "chanceMissernte": 0.2, "staerke": 1.25 }
+  },
+  "lagen": {
+    "ertrag": 0.5,
+    "ernteBetrieb": "Bauernhof",
+    "quellen": [
+      {
+        "betrieb": "Mine", "jahreszeit": "Fruehling",
+        "waren": { "Eisen": 1, "Silber": 1, "Beschlag": 0.25, "Dolch": 0.25, "Silberring": 0.25 },
+        "gut": { "titel": "Reiche Ader", "text": "eine reiche Silberader", "vorzeichen": "Die Hauer klopfen auf hellen Glanz im Fels",
+          "waren": { "Silber": 1, "Eisen": 0.5, "Beschlag": 0.25, "Dolch": 0.25, "Silberring": 0.25 } },
+        "schlecht": { "titel": "Wassereinbruch", "text": "ein Wassereinbruch in den Gruben", "vorzeichen": "Die Schneeschmelze drückt Wasser in die Stollen" },
+        "schwer": { "titel": "Stollen eingestürzt", "text": "der Einsturz der Stollen", "vorzeichen": "Das Gebirge arbeitet, die Stempel knacken" }
+      },
+      {
+        "betrieb": "Holzfaellerei", "jahreszeit": "Winter",
+        "waren": { "Holz": 1, "Holzzapfen": 0.25, "Schemel": 0.25, "Truhe": 0.25 },
+        "gut": { "titel": "Sturmbruch", "text": "viel Sturmholz", "vorzeichen": "Die Herbststürme legen ganze Hänge um" },
+        "schlecht": { "titel": "Grundlose Wege", "text": "ein nasser Winter mit grundlosen Wegen", "vorzeichen": "Der Regen will nicht enden, die Waldwege versinken" },
+        "schwer": { "titel": "Bannwald", "text": "der Bann über den Stadtwald", "vorzeichen": "Der Rat klagt über kahle Hänge und will den Wald bannen" }
+      },
+      {
+        "betrieb": "Steinbruch", "jahreszeit": "Herbst",
+        "waren": { "Bruchstein": 1, "Granit": 1, "Schleifziegel": 0.25, "Grabstein": 0.25, "Mühlstein": 0.25 },
+        "gut": { "titel": "Neue Bank", "text": "eine neue Bank guten Gesteins", "vorzeichen": "Die Brecher legen eine feste, saubere Gesteinsbank frei",
+          "waren": { "Granit": 1, "Bruchstein": 0.5, "Schleifziegel": 0.25, "Grabstein": 0.25, "Mühlstein": 0.25 } },
+        "schlecht": { "titel": "Wasser im Bruch", "text": "Wasser im Steinbruch", "vorzeichen": "Quellen brechen in der Sohle des Bruchs auf" },
+        "schwer": { "titel": "Felssturz", "text": "ein Felssturz im Bruch", "vorzeichen": "Risse laufen durch die Wand über dem Bruch" }
+      },
+      {
+        "betrieb": "Kraeutergarten", "jahreszeit": "Sommer",
+        "waren": { "Kräuter": 1, "Kröte": 1, "Farbe": 0.25, "Kräuterschnaps": 0.25, "Heilsalbe": 0.25 },
+        "gut": { "titel": "Feuchtes Jahr", "text": "ein feuchtes Jahr voller Kräuter und Kröten", "vorzeichen": "Warmer Regen im Frühjahr, die Gräben sind voll Laich" },
+        "schlecht": { "titel": "Dürre", "text": "eine Dürre im Kräutergarten", "vorzeichen": "Kein Regen seit Wochen, die Beete reißen auf",
+          "waren": { "Kräuter": 1, "Kröte": 0.5, "Farbe": 0.25, "Kräuterschnaps": 0.25, "Heilsalbe": 0.25 } },
+        "schwer": { "titel": "Kräuter-Missernte", "text": "eine Kräuter-Missernte, und die Kröten bleiben aus", "vorzeichen": "Mehltau liegt weiß auf den Blättern" }
+      },
+      {
+        "betrieb": "Klosterhof", "jahreszeit": "Fruehling",
+        "waren": { "Wachs": 1, "Lumpen": 0.5, "Papier": 0.25, "Kerze": 0.25, "Lehrschrift": 0.25 },
+        "gut": { "titel": "Gutes Bienenjahr", "text": "ein gutes Bienenjahr", "vorzeichen": "Die Stöcke sind stark durch den Winter gekommen" },
+        "schlecht": { "titel": "Kalter Frühling", "text": "ein kalter Frühling, in dem die Bienen nicht schwärmen", "vorzeichen": "Die Bienen hocken matt in den Körben" },
+        "schwer": { "titel": "Bienensterben", "text": "ein Bienensterben", "vorzeichen": "Die Mönche finden tote Völker in den Körben" }
+      },
+      {
+        "betrieb": "Duftgarten", "jahreszeit": "Sommer",
+        "waren": { "Lavendel": 1, "Jasmin": 1, "Politur": 0.25, "Blume der Zwietracht": 0.25, "Giftdolch": 0.25 },
+        "gut": { "titel": "Üppige Blüte", "text": "eine üppige Blüte", "vorzeichen": "Die Knospen stehen dicht wie nie" },
+        "schlecht": { "titel": "Spätfrost", "text": "Spätfrost an den Blüten", "vorzeichen": "Die Nächte bleiben bitterkalt, die Knospen werden braun" },
+        "schwer": { "titel": "Hagelschlag", "text": "ein Hagelschlag auf die Beete", "vorzeichen": "Schwere, gelbe Wolken ziehen über das Land" }
+      }
     ]
   },
   "entscheidungen": { "hoechstOffen": 6, "erbeAbSterberisiko": 0.1, "fristMinuten": { "standard": 120, "Krankheit": 120, "Erbe": 120, "Geheimnis": 120, "Mahnung": 120 } },

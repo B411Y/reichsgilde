@@ -66,6 +66,7 @@ public partial class Hauptmenue : Node
     private OptionButton _kiStaerke = null!;
     private OptionButton _rivale = null!;
     private OptionButton _schwierigkeit = null!;
+    private OptionButton _haerte = null!;
     private Label _schwierigkeitHinweis = null!;
     private SpinBox _startwert = null!;
     private Label _fehler = null!;
@@ -614,10 +615,8 @@ public partial class Hauptmenue : Node
     /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
     private string? WappenProblem()
     {
-        if (_wappen.Fehler() is { } fehler) return fehler;
-        if (Startbelegung.Rivalenwappen.Contains(_wappen))
-            return "Dieses Wappen führt schon ein KI-Haus – ändert eine Farbe.";
-        return null;
+        // Trägt ein mitspielendes Haus der Karte dasselbe Wappen, würfelt es neu (Kern, Partiebesetzung.KartenwappenEindeutig).
+        return _wappen.Fehler();
     }
 
     private static readonly Volk[] Spielbare = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
@@ -678,6 +677,7 @@ public partial class Hauptmenue : Node
             AktionspunkteProRunde = (int)_aktionspunkte.Value,
             StartStatut = (Fronstatut)_statut.GetSelectedId(),
             Schwierigkeit = (Schwierigkeit)_schwierigkeit.GetSelectedId(),
+            HaerteDerZeit = (HaerteDerZeit)_haerte.GetSelectedId(),
             Zufallsstartwert = (int)_startwert.Value,
         };
         var fehler = einstellungen.Pruefen().ToList();

@@ -85,12 +85,14 @@ STAENDER_HINTEN, STAENDER_VORNE = (-4.0, -2.5, 2.5, 4.0), (-3.6, -1.6, 1.6, 3.6)
 TISCH_L, TISCH_B, TISCH_H = 5.2, 1.1, 0.78                         # Ratstisch entlang y, Mitte im Ursprung
 STUHL = 0.45                                                        # Oberkante der Polster der Lehnstühle
 SITZ_Y = tuple(2.15 - 0.86 * k for k in range(6))                  # Sitze je Seite, vom Bürgermeister zur Tür
-SITZ_X = TISCH_B / 2 + 0.24                                         # Fußpunkt neben der Tischkante (wie die Gäste beim Wirt)
+SITZ_X = TISCH_B / 2 + 0.41                                         # Fußpunkt neben der Tischkante: 0,41 m, damit auch Knie, Füße und Rock großer
+                                                                    # Figuren (Oger, Ork, Elb) vor der Tafel bleiben (vorher 0,24; tools/modelle/sitzpruefung.py)
 PODEST_Y, PODEST_H, PODEST_X = 3.6, 0.3, 2.3                        # Podest von y 3,6 bis zur Rückwand, x ±2,3
 STUFE_Y = 3.35                                                      # Stufe vor dem Podest (0,15 m)
-BM_TISCH = Vector((0.0, 3.95, PODEST_H))                           # Tisch des Bürgermeisters (Mitte, auf dem Podest)
+BM_TISCH = Vector((0.0, 3.835, PODEST_H))                           # Tisch des Bürgermeisters (Mitte, auf dem Podest)
 BM_TISCH_L, BM_TISCH_B = 1.7, 0.5
-BM = Vector((0.0, 4.47, PODEST_H))                                 # Fußpunkt des Bürgermeisters, Blick −y
+FUSSFREI = 0.24                                                     # Tisch des Bürgermeisters: Füllung vorn erst ab dieser Höhe (Füße großer Figuren)
+BM = Vector((0.0, 4.53, PODEST_H))                                 # Fußpunkt des Bürgermeisters, Blick −y (vorher 4,47: Füße und Rock großer Figuren vor der Füllung des Tischs)
 THRON = 0.46                                                        # Oberkante seines Polsters über dem Podest
 SCHREIBER = Vector((-2.85, 2.9, 0.0))                              # Schreiberpult, Blick +x zum Tisch
 REDNER = Vector((0.0, -3.45, 0.0))                                 # der Antragsteller, Blick +y
@@ -208,11 +210,11 @@ def podest(netz, st):
 
 def lehnstuhl(netz, st, fuss, blick):
     """Lehnstuhl eines Ratsherrn: Gestell aus dunkler Eiche, Sitz und Rückenpolster in Leder mit Messingnägeln, Lehne mit
-    geschnitztem Abschluss. `fuss`: Fußpunkt der Figur, der Stuhl steht 5 cm dahinter."""
+    geschnitztem Abschluss. `fuss`: Fußpunkt der Figur, der Stuhl steht 6 cm dahinter (vorher 5: Rücken großer Figuren an der Lehne)."""
     vor = Vector((blick[0], blick[1], 0)).normalized()
     rechts = Vector((vor.y, -vor.x, 0))
     M = Matrix((rechts, vor, Vector((0, 0, 1)))).transposed().to_4x4()
-    M.translation = Vector((fuss[0], fuss[1], 0.0)) - vor * 0.05
+    M.translation = Vector((fuss[0], fuss[1], 0.0)) - vor * 0.06
     for sx in (-1, 1):
         for sy in (-1, 1):
             netz.quader((sx * 0.21, sy * 0.19, (STUHL - 0.06) / 2), (0.05, 0.05, STUHL - 0.06), st["Thronholz"], M)
@@ -281,10 +283,11 @@ def thron(netz, st):
         for sy in (-1, 1):
             netz.quader(f + Vector((sx * 0.27, sy * 0.22, (s - 0.06) / 2)), (0.07, 0.07, s - 0.06), st["Thronholz"])
     netz.quader(f + Vector((0, 0, s - 0.05)), (0.64, 0.54, 0.06), st["Thronholz"])
-    netz.quader(f + Vector((0, -0.02, s - 0.005)), (0.56, 0.46, 0.04), st["Polster"])
+    netz.quader(f + Vector((0, -0.02, s - 0.03)), (0.56, 0.46, 0.04), st["Polster"])   # Oberkante 1 cm unter THRON (Sitzhöhe des Ankers): Luft für schwere Figuren
     for sx in (-1, 1):                                                                      # Armlehnen
-        netz.quader(f + Vector((sx * 0.3, -0.02, s + 0.24)), (0.07, 0.52, 0.05), st["Thronholz"])
-        drehkoerper(netz, st, f + Vector((sx * 0.3, -0.22, s - 0.02)), [(0.0, 0.03), (0.06, 0.035), (0.13, 0.022), (0.24, 0.03)],
+        # Armlehnen bei ±0,36 m (vorher 0,30): auch breite Figuren (Haar, Ärmel) bleiben frei (tools/modelle/sitzpruefung.py)
+        netz.quader(f + Vector((sx * 0.36, -0.02, s + 0.24)), (0.07, 0.52, 0.05), st["Thronholz"])
+        drehkoerper(netz, st, f + Vector((sx * 0.36, -0.22, s - 0.02)), [(0.0, 0.03), (0.06, 0.035), (0.13, 0.022), (0.24, 0.03)],
                     "Thronholz", n=6)
     hoch = 1.9
     netz.quader(f + Vector((0, 0.26, s + hoch / 2 - 0.02)), (0.68, 0.07, hoch), st["Thronholz"])
@@ -304,11 +307,14 @@ def bm_tisch(netz, st, buch, glocke):
     (Bedienung_Rat_Ratsbuch), die Ratsglocke, Siegel und Wachs."""
     m, L, B, Hh = BM_TISCH, BM_TISCH_L, BM_TISCH_B, TISCH_H
     netz.quader(m + Vector((0, 0, Hh - 0.03)), (L, B, 0.06), st["Thronholz"])
-    netz.quader(m + Vector((0, -B / 2 + 0.04, (Hh - 0.06) / 2)), (L - 0.04, 0.04, Hh - 0.06), st["Taeferholz"], ohne=("-z",))
+    # Füllung erst ab FUSSFREI über dem Podest: darunter Platz für die Füße großer Figuren (Oger), nur die Eckpfosten reichen zum Boden
+    f0 = FUSSFREI
+    netz.quader(m + Vector((0, -B / 2 + 0.04, (f0 + Hh - 0.06) / 2)), (L - 0.04, 0.04, Hh - 0.06 - f0), st["Taeferholz"])
     for k in range(4):
         x = -L / 2 + 0.02 + (L - 0.04) * k / 3
-        netz.quader(m + Vector((x, -B / 2 + 0.012, (Hh - 0.06) / 2)), (0.08, 0.012, Hh - 0.06), st["Taeferholz dunkel"])
-    for z in (0.08, Hh - 0.12):
+        unten = 0.0 if k in (0, 3) else f0
+        netz.quader(m + Vector((x, -B / 2 + 0.012, (unten + Hh - 0.06) / 2)), (0.08, 0.012, Hh - 0.06 - unten), st["Taeferholz dunkel"])
+    for z in (f0 + 0.04, Hh - 0.12):
         netz.quader(m + Vector((0, -B / 2 + 0.01, z)), (L - 0.04, 0.012, 0.08), st["Taeferholz dunkel"])
     for sx in (-1, 1):
         netz.quader(m + Vector((sx * (L / 2 - 0.04), 0.01, (Hh - 0.06) / 2)), (0.06, B - 0.06, Hh - 0.06), st["Taeferholz dunkel"], ohne=("-z",))

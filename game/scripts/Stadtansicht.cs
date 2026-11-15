@@ -1088,6 +1088,8 @@ public partial class Stadtansicht : Node3D
     public override void _Process(double delta)
     {
         ProzessBild(delta);
+        if (_raum is not null) SitzendeBewegen(); // Innenfiguren aus dem Baukasten in jedem Raum stellen (vorher nur im Dom: Wohnstube, Kontor, Ratssaal, Kapseln standen in der Ruhelage)
+        ArmProbeBild(delta); // nur mit --armprobe: Armwinkel der Figuren mit Passanten-Skelett im Raum ins Log (Stadtansicht.Pruefhilfe.cs)
         PixelBild(); // nach allem anderen: die Kamera des Pixel-Looks folgt der Spielkamera (Stadtansicht.Pixel.cs)
         ZeichenAnalyseBild(); // nur mit --zeichenanalyse: Gruppen ausblenden und Zeichenaufrufe zählen (Stadtansicht.Zeichenanalyse.cs)
         SchilderPruefungBild(delta); // nur mit --schilderpruefung=1: Bildzahl und Schilder ins Log (Stadtansicht.Schilderpruefung.cs)

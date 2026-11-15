@@ -54,6 +54,26 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Lagen aller Rohstoffquellen (Branch phase5/lagen-oberflaeche)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Beginn | Kommt als Meldung vom Kern, erst wenn die Lage zu gelten beginnt (keine Ansage vorab: Nutzerentscheidung 15.11.2026 „der Spieler sieht nie in die Zukunft“; der Kern meldet nur noch den Beginn) (`Lagenwesen.Minute`, nur gute, schlechte und schwere, nicht gewöhnliche) über den vorhandenen Meldungsweg (Meldeleiste, Protokoll); die Oberfläche fügt nichts hinzu. Eigener Brief nicht gebaut: der Kern meldet mit Art „Sonstiges“, wie die Ernte | 15.11.2026 |
+| Texte | `game/scripts/LagenTexte.cs` (ohne Godot, vom Test mitübersetzt): Übersicht (nur die jetzt geltenden Lagen mit Ereignis, ohne Ernte) und Tooltip-Zeilen je Ware aus `Lagen.Gruende(ware)`; nichts Kommendes | 15.11.2026 |
+| Tooltip | Alle Waren im Marktfenster: „Grube 1404: Wassereinbruch – Eisen ×0,8“ (Faktor auf eine Stelle wie überall, `Zahlenformat.Kommazahl`) (nur geltende Lagen); die Ernte-Zeile bleibt eigen | 15.11.2026 |
+| Markt | Die Ernte-Zeile über den Waren wird zur Lagen-Übersicht: Ernte, dann je geltender Lage „Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“; keine Ansage; gewöhnliche Lagen stehen nicht da | 15.11.2026 |
+| Jahresbericht | Neuer Abschnitt „Lagen im Jahr“ (vor der Rangliste) mit denselben Zeilen; fehlt, wenn keine Lage mit Ereignis besteht | 15.11.2026 |
+| Aussehen | Keine neuen Farben oder Größen: Zeilen im Stil der übrigen Markt- und Berichtszeilen | 15.11.2026 |
+| Prüfhilfe | Startoption `--startwert=<n>` (Zufallsstartwert) für Bilder; `--startwert=12 --startrunde=4` zeigt das Jahr vor der Lage (nichts), `--startrunde=5` die gültige Lage „Wassereinbruch“ der Gruben (`docs/STARTOPTIONEN.md`) | 15.11.2026 |
+
+### Erntejahre in der Oberfläche (Branch phase5/haerte-oberflaeche, zu PR #475)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Härte der Zeit | Auswahl „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre) im aufklappbaren Bereich „Erweitert“ der Neuen Partie, bei den übrigen Partie-Einstellungen; Tooltip erklärt die drei Stufen; Standard „Wie überliefert“ | 15.11.2026 |
+| Ernte am Markt | Im Marktfenster eine Zeile über den Waren: gültige Ernte mit Jahr und Güte, keine Ansage der nächsten (seit 15.11.2026 entfällt sie); im Tooltip der Getreidewaren (`Ernte.Waren`) „Ernte 1402: eine Missernte – Menge ×0,6“. Aussehen wie die übrigen Markt-Zeilen, keine neuen Farben | 15.11.2026 |
+| Meldung | Kommt vom Kern (`Erntewesen.Minute`) erst zum Beginn der Ernte; die Oberfläche liest nur. Der Hinweis im Tooltip der „Härte der Zeit“ („ein Jahr vorher gibt es eine Ansage“) ist gestrichen | 15.11.2026 |
+
 ### Versehrungen in der Oberfläche (Branch phase5/versehrt-oberflaeche, PR 2 zu #468)
 
 | Thema | Entscheidung | Datum |

@@ -62,18 +62,20 @@ static class NeuePartieTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Neue Partie: knappe Karte – Hof 1 der Spieler, Hof 2 … n die KI-Häuser der Reihe nach; Namen, Wappen, Volk, Glaube und Beruf gewürfelt, alle verschieden", () =>
+        ("Neue Partie: knappe Karte – der Spieler und sieben KI-Häuser, jedes auf gelosten Grundstücken (keine Höfe mehr); Namen, Wappen, Volk, Glaube und Beruf gewürfelt, alle verschieden", () =>
         {
             var karte = Knapp("messstadt", i => i < 8 ? i + 1 : null);
             Pruefe.Gleich(8, Partiebesetzung.Hoefe(karte));
             Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte));
-            var hoefe = Hofstellenvergabe.Startplaetze(karte);
+            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value)); // was in die Bauzonen passt (15.11.2026), höchstens 8 Häuser
             var (w, spieler) = Partie(karte, new NeuePartie(Rivalen: 7));
             var start = w.Karte!.Startbelegung;
-            Pruefe.Gleich(hoefe[0].Werkstatt, start.Spieler.Werkstatt.Platz, "Spieler auf Hof 1");
             Pruefe.Gleich(7, start.Haeuser.Count);
-            for (var i = 0; i < 7; i++)
-                Pruefe.Gleich(hoefe[i + 1].Wohnhaus, start.Haeuser[i].Wohnhaus, $"KI-Haus {i + 1} auf Hof {i + 2}");
+            // Seit „nur noch Bauzonen“ (15.11.2026) sitzt niemand mehr auf einem Hof: jedes Haus auf zwei gelosten Grundstücken (StartortlosTests)
+            Pruefe.Wahr(start.OhnePlaetze && !w.Karte.HatHofstellen, "die Partiekarte nennt keine Plätze");
+            foreach (var k in w.Konten)
+                Pruefe.Wahr(w.Bauen.Wohnhaus(k) is { Kennung: null } && w.Betriebe.Any(b => b.Konto == k && w.Bauen.PlatzVon(b.Name) is { Grundstueck.Kennung: null }),
+                    $"{k.Inhaber}: Wohnhaus und Werkstatt auf Grundstücken");
             var namen = w.Konten.Select(k => k.Inhaber).ToList();
             Pruefe.Gleich(8, namen.Distinct().Count(), string.Join(", ", namen));
             Pruefe.Wahr(start.Haeuser.All(h => h.Name.StartsWith("Haus ") && !Partieaufbau.Rivalennamen.Contains(h.Name)), string.Join(", ", namen));
@@ -88,15 +90,6 @@ static class NeuePartieTests
                 var familiennamen = w.Daten.Dynastie.Voelker[h.Volk].Familiennamen;
                 Pruefe.Wahr(familiennamen.Contains(Familie.NachnameAus(h.Name)), $"{h.Name} ist ein Name der {h.Volk.Mehrzahl()}");
             }
-            // Gegenprobe: dieselbe Karte ohne Nummern (Startplätze wie bisher) lost die Höfe – nicht immer sitzen alle der Reihe nach
-            var gelost = Knapp("messstadt", _ => null);
-            Pruefe.Wahr(!Hofstellenvergabe.Nummeriert(gelost), "ohne Nummern");
-            var plaetze = Hofstellenvergabe.Startplaetze(gelost);
-            Pruefe.Wahr(Enumerable.Range(1, 5).Any(s =>
-            {
-                var (wg, _) = Partie(gelost, new NeuePartie(Rivalen: 7), s);
-                return wg.Karte!.Startbelegung.Spieler.Werkstatt.Platz != plaetze[0].Werkstatt;
-            }), "gelost: der Spieler nicht immer auf der ersten");
         }),
 
         ("Neue Partie: gewürfelt ist deterministisch – gleicher Startwert, gleiche Häuser; ein anderer Startwert würfelt andere Namen", () =>
@@ -191,15 +184,15 @@ static class NeuePartieTests
                 Pruefe.Gleich(hoefe, Partiebesetzung.Hoefe(karte), kennung);
                 Pruefe.Gleich(ki, Partiebesetzung.HoechstensKi(karte), kennung);
                 Pruefe.Gleich(karte.Startbelegung.Haeuser.Count, ki, kennung);
-                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki), 11);
+                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki, Startplaetze: Startplatzvergabe.Vorgabe), 11);
                 var namen = karte.Startbelegung.Haeuser.Select(h => h.Name).ToList();
                 Pruefe.Gleich(string.Join(",", namen), string.Join(",", w.Konten.Skip(1).Select(k => k.Inhaber)), $"{kennung}: die Häuser der Karte");
             }
             Pruefe.Gleich(4, Partiebesetzung.Hoefe(null));
             Pruefe.Gleich(3, Partiebesetzung.HoechstensKi(null));
-            // Gegenprobe: dieselbe alte Karte nimmt kein Haus mehr, als sie Startplätze hat
-            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")), new NeuePartie(Rivalen: 4)), "null bis drei");
-            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")), new NeuePartie(Rivalen: 9)), "null bis acht");
+            // Gegenprobe: Gelost zählt, was in die Bauzonen passt – höchstens acht Häuser zusammen (15.11.2026; vorher die Startplätze der Karte)
+            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")), new NeuePartie(Rivalen: 8)), "null bis sieben");
+            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")), new NeuePartie(Rivalen: 8)), "null bis sieben");
         }),
 
         ("Neue Partie: ohne KI-Gegner – null Rivalen gehen, der Spieler ist allein; Gegenprobe −1 wird abgewiesen", () =>

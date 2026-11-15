@@ -99,7 +99,7 @@ static partial class Balancingbericht
         Console.WriteLine($"4 Häuser (Messstadt) – Vermögen je KI-Haus nach {letztes} Jahren:");
         foreach (var n in Hausstufen)
         {
-            var laeufe = Gut(e.Werte.Select(s => p(new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true))));
+            var laeufe = Gut(e.Werte.Select(s => p(new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true, Startplaetze: Startplatzvergabe.Vorgabe))));
             if (laeufe.Count == 0) continue;
             var ki = laeufe.SelectMany(r => r.Ki).ToList();
             mittelJeHaus[n] = e.Stich.ToDictionary(j => j, j => ki.Average(h => h.Im(j).Rein));

@@ -288,10 +288,11 @@ public static class Kalkulation
     /// <summary>
     /// Arbeitsminuten eines Gesellen, die der Betrieb in einer Spielminute schafft – wie die Simulation sie rechnet: Tempo und Laune der
     /// Arbeiter (wer nach einem Unfall fehlt, zählt nicht) × Handwerkskunst des Oberhaupts × Völkerbonus × (1 − Krankenstand im Pestjahr)
-    /// × Jahreszeit (Arbeit im Freien, Ernte; Datenversion 69).
+    /// × Jahreszeit (Arbeit im Freien, Ernte; Datenversion 69) × Lage der eigenen Rohstoffquelle (Umland; Datenversion 92).
     /// </summary>
     public static double Leistung(Stadtwirtschaft w, Betrieb b) =>
-        b.LeistungProMinute * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand) * w.Jahreszeiten.Arbeitsfaktor(b);
+        b.LeistungProMinute * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand) * w.Jahreszeiten.Arbeitsfaktor(b)
+        * w.Lagen.Ertragsfaktor(b);
 
     /// <summary>
     /// Gewinn je Stück dieser Ware in diesem Betrieb (Tooltips): Erlös am Markt (mit Verhandlungsgeschick und – verkaufen die Karren am Hafen –
@@ -316,7 +317,7 @@ public static class Kalkulation
         {
             // Ohne Personal: was ein Geselle kostete und schaffte
             leistung = geselle.TempoAm(b.Ort) * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand)
-                       * w.Jahreszeiten.Arbeitsfaktor(b);
+                       * w.Jahreszeiten.Arbeitsfaktor(b) * w.Lagen.Ertragsfaktor(b);
             lohn = b.LohnJeArbeiter("Geselle");
         }
         var unterhalt = b.Unterhalt + (b.Waechter && w.Daten.Gauner is { } g ? g.WaechterKosten : 0);

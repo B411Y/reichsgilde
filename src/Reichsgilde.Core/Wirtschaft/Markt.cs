@@ -65,15 +65,22 @@ public sealed class Marktstand
     public double LandhandelAngebot { get; internal set; } = 1;
 
     /// <summary>
+    /// Faktor der Lagen auf die Grundversorgung (1 = wie in den Daten; magere Ernte, Wassereinbruch in der Grube …: weniger Ware, höherer Preis).
+    /// Setzt das <see cref="Lagenwesen"/> (Ernte Datenversion 91, alle Rohstoffquellen 92).
+    /// </summary>
+    public double Lagefaktor { get; internal set; } = 1;
+
+    /// <summary>
     /// Faktor des Landhandels auf die Nachfrage (1 = wie in den Daten): Händler kaufen für die fernen Städte, was sonst die Schiffe ausführten.
     /// Setzt die <see cref="Schiffahrt"/>, nur wenn der Schiffshandel ruht.
     /// </summary>
     public double LandhandelNachfrage { get; internal set; } = 1;
 
     /// <summary>
-    /// Was Händler und Bauern im Jahr liefern: Nachfrage der Einwohner × NPC-Anteil × <see cref="Angebotsfaktor"/> × <see cref="LandhandelAngebot"/>.
+    /// Was Händler und Bauern im Jahr liefern: Nachfrage der Einwohner × NPC-Anteil × <see cref="Angebotsfaktor"/> × <see cref="Lagefaktor"/>
+    /// × <see cref="LandhandelAngebot"/>.
     /// </summary>
-    public double Grundversorgung => Grundnachfrage * _ware.NpcAnteil * Angebotsfaktor * LandhandelAngebot;
+    public double Grundversorgung => Grundnachfrage * _ware.NpcAnteil * Angebotsfaktor * Lagefaktor * LandhandelAngebot;
 
     /// <summary>Gesamtangebot pro Jahr: NPC-Grundversorgung plus Spieler.</summary>
     public double Gesamtangebot => Grundversorgung + SpielerAngebotImJahr;

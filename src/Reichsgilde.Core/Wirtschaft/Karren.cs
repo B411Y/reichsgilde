@@ -94,6 +94,19 @@ public sealed class Karren
     public bool WartetAmTor(Spielzeit zeit) => TorWartenBis is { } bis && zeit.VergangeneMinuten < bis;
 
     /// <summary>
+    /// Wartet der Karren auf dieser Fahrt an der offenen Klappbrücke (<see cref="Stadtwirtschaft.Klappbruecke"/>, Datenversion 90), steht hier die
+    /// Spielminute, zu der er sie erreicht (null: wartet auf dieser Fahrt nicht). Gesetzt beim Aufbruch; die Wartezeit steckt in <see cref="Ankunft"/>.
+    /// </summary>
+    public long? BrueckeWartenAb { get; private set; }
+
+    /// <summary>Bis zu dieser Spielminute wartet er an der Klappbrücke (dann geht sie zu und er fährt weiter; null: wartet nicht).</summary>
+    public long? BrueckeWartenBis { get; private set; }
+
+    /// <summary>Wartet der Karren gerade an der offenen Klappbrücke? (für Anzeige und Darstellung)</summary>
+    public bool WartetAnBruecke(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && BrueckeWartenAb is { } ab && BrueckeWartenBis is { } bis
+                                                   && zeit.VergangeneMinuten >= ab && zeit.VergangeneMinuten < bis;
+
+    /// <summary>
     /// Fährt der Karren gerade mit seinem Fuhrmann (unterwegs und nicht am geschlossenen Tor)? Für die Darstellung: am Betrieb und am Tor
     /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden. Nur eine Abfrage, ändert nichts an den Fahrzeiten.
     /// </summary>
@@ -120,6 +133,7 @@ public sealed class Karren
     /// <summary>Kurzer Text für die Anzeige.</summary>
     public string ZustandText(Spielzeit zeit) => WartetAmTor(zeit)
         ? (Zustand == KarrenZustand.ZumMarkt ? "wartet vor dem geschlossenen Stadttor bis zum Morgen" : "wartet in der Stadt, bis das Tor aufgeht")
+        : WartetAnBruecke(zeit) ? $"wartet an der offenen Klappbrücke (noch {BrueckeWartenBis!.Value - zeit.VergangeneMinuten} Min.)"
         : Zustand switch
     {
         KarrenZustand.AmBetrieb => "wartet am Betrieb",
@@ -264,7 +278,16 @@ public sealed class Karren
     {
         Zustand = ziel;
         if (ziel == KarrenZustand.ZumMarkt) ZielHafen = w.FaehrtZumHafen(Heimat, Typ); // der nähere Handelsort (Datenversion 73)
-        Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(this, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        var fahrzeit = w.Fahrzeit(this, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        Ankunft = zeit.VergangeneMinuten + fahrzeit;
+        // Führt die Fahrt über die Klappbrücke und ist sie offen, wenn er sie erreicht: warten, bis sie zugeht (Datenversion 90).
+        (BrueckeWartenAb, BrueckeWartenBis) = ((long?)null, (long?)null);
+        if (w.Fahrten(this) is var (hin, zurueck)
+            && w.Klappbruecke.Halt(ziel == KarrenZustand.ZumMarkt ? hin : zurueck, zeit.VergangeneMinuten, fahrzeit) is { } halt)
+        {
+            (BrueckeWartenAb, BrueckeWartenBis) = (halt.Von, halt.Bis);
+            Ankunft += halt.Bis - halt.Von;
+        }
         if (ziel == KarrenZustand.ZumMarkt) FahrtenImJahr++;
         w.Wegebau.FahrtZaehlen(Heimat, ZielHafen); // Verkehr auf den Wegen (Austritt)
 
@@ -454,7 +477,7 @@ public sealed class Karren
     {
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
-        TorWartenBis = TorWartenBis, RueckfahrtWartet = _rueckfahrtWartet,
+        TorWartenBis = TorWartenBis, RueckfahrtWartet = _rueckfahrtWartet, BrueckeWartenAb = BrueckeWartenAb, BrueckeWartenBis = BrueckeWartenBis,
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
@@ -471,6 +494,8 @@ public sealed class Karren
         NachtsFahren = s.NachtsFahren;
         _wareWartetSeit = s.WareWartetSeit;
         TorWartenBis = s.TorWartenBis;
+        BrueckeWartenAb = s.BrueckeWartenAb;
+        BrueckeWartenBis = s.BrueckeWartenBis;
         _rueckfahrtWartet = s.RueckfahrtWartet;
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
         Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null

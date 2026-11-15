@@ -212,7 +212,7 @@ public partial class Stadtansicht
         var nummer = stand.Arbeiter.Nummer;
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false }; // der Anker blickt mit −Z auf sein Ziel, die Figur mit +Z: um 180° gedreht einsetzen
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, SchreiberAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal)), nummer) is not { } figur)
+        if (FigurEinsetzen(halter, FigurProbeAussehen(SchreiberAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal))), nummer) is not { } figur)
         {
             halter.QueueFree();
             return null;

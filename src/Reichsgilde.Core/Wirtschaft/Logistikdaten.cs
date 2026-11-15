@@ -133,6 +133,26 @@ public sealed class ToreDaten
 }
 
 /// <summary>
+/// Die Klappbrücke (Abschnitt "logistik.klappbruecke", ab Datenversion 90, Entscheidung des Nutzers vom 15.11.2026): Die Brücke über
+/// <see cref="Gewaesser"/> öffnet für das Zierschiff, je Durchfahrt <see cref="OeffnungMinuten"/> Minuten; Karren darüber warten so lange
+/// (<see cref="Wirtschaft.Klappbruecke"/>). Fehlt der Abschnitt, gibt es keine Klappbrücke.
+/// </summary>
+public sealed class KlappbrueckeDaten
+{
+    /// <summary>Der Name des Gewässers, über dessen Brücke die Klappbrücke liegt (Köln: „Rhein“).</summary>
+    public string Gewaesser { get; init; } = "Rhein";
+
+    /// <summary>So viele Minuten ist die Brücke je Durchfahrt eines Schiffs offen (1–60).</summary>
+    public int OeffnungMinuten { get; init; } = 20;
+
+    internal void Pruefen(List<string> f)
+    {
+        if (string.IsNullOrWhiteSpace(Gewaesser)) f.Add("logistik.klappbruecke.gewaesser fehlt.");
+        if (OeffnungMinuten is < 1 or > 60) f.Add("logistik.klappbruecke.oeffnungMinuten muss zwischen 1 und 60 liegen.");
+    }
+}
+
+/// <summary>
 /// Wie Steigung die Karren bremst (Abschnitt "logistik.steigung", ab Datenversion 50; Kartenwerkstatt, Schritt 5b). Jedes Stück der Fahrt
 /// über die Karrenstraßen (<see cref="Bauen.Karrennetz"/>) dauert bergauf ab <see cref="AbProzent"/> Steigung länger: je Prozentpunkt darüber
 /// um <see cref="ZuschlagJeProzent"/>, höchstens das <see cref="HoechstensFaktor"/>-fache. Bergab und in der Ebene wie bisher. Nach Weglänge
@@ -294,6 +314,9 @@ public sealed class LogistikDaten
     /// <summary>Fahrzeit nach Weglänge und Karrenart (null: die festen <see cref="Fahrzeiten"/>, wie vor Datenversion 65).</summary>
     public WeglaengeDaten? Weglaenge { get; init; }
 
+    /// <summary>Die Klappbrücke über den Rhein (null: keine, wie vor Datenversion 90; <see cref="Wirtschaft.Klappbruecke"/>).</summary>
+    public KlappbrueckeDaten? Klappbruecke { get; init; }
+
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
     /// <summary>
@@ -315,6 +338,7 @@ public sealed class LogistikDaten
         Tore?.Pruefen(f);
         Steigung?.Pruefen(f);
         Wasser?.Pruefen(f);
+        Klappbruecke?.Pruefen(f);
         Weglaenge?.Pruefen(f, Karren);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
