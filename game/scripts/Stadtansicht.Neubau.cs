@@ -547,7 +547,7 @@ public partial class Stadtansicht
                 var (spalte, zeile) = (i % 4, i / 4);
                 var mitte = ort + new Vector3((spalte - 1.5f) * 8.5f, 0, (zeile - 1.5f) * 11f);
                 // Ohne --neubauform steht je Spalte eine Grundform (1 bis 4), bei „beide“ in den zwei neuen Spalten je Haus die nächste
-                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1);
+                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1, NeubauStufeFest > 0 ? NeubauStufeFest : 1);
                 var datei = teile[0] switch { "neu" => neu, "beide" => spalte < 2 ? AltesWohnhaus : neu, _ => AltesWohnhaus };
                 var g = new Node3D { Name = $"Neubaureihe_{i}", Position = AufFundament(mitte, 0, new Vector2(8, 10)) };
                 AddChild(g);
