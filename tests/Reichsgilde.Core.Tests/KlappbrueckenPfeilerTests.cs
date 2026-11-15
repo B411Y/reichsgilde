@@ -81,8 +81,12 @@ static class KlappbrueckenPfeilerTests
             var na = Math.Max(1, (int)Math.Round((alt.Weite + 2) / 10, MidpointRounding.AwayFromZero));
             Pruefe.Gleich(na, alt.Felder);
             Pruefe.Gleich(na - 1, alt.Pfeiler.Count);
-            // nur die Pfeiler, Felder und Durchfahrt der Rheinbrücke ändern sich, alles andere bitgleich
-            Pruefe.Gleich(Text(alt with { Pfeiler = q.Pfeiler, Felder = q.Felder, Feldlaenge = q.Feldlaenge, Durchfahrt = q.Durchfahrt }), Text(q));
+            // nur die Pfeiler, Felder, Durchfahrt und Rampen der Rheinbrücke ändern sich, alles andere bitgleich
+            Pruefe.Gleich(Text(alt with
+            {
+                Pfeiler = q.Pfeiler, Felder = q.Felder, Feldlaenge = q.Feldlaenge, Durchfahrt = q.Durchfahrt, Rampe = q.Rampe,
+                RampeAnfang = q.RampeAnfang, RampeEnde = q.RampeEnde, RampeAnfangHoehe = q.RampeAnfangHoehe, RampeEndeHoehe = q.RampeEndeHoehe,
+            }), Text(q));
             Pruefe.Gleich(ohne.Wasserplan.Querungen.Count, mit.Wasserplan.Querungen.Count);
             var andere = 0;
             for (var i = 0; i < mit.Wasserplan.Querungen.Count; i++)
