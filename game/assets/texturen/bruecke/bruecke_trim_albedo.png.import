@@ -3,11 +3,16 @@
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
 uid="uid://ctk8l82trnkf"
+path.bptc="res://.godot/imported/bruecke_trim_albedo.png-055581ac0574fb56dbaecca49636432b.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
 
 [deps]
 
 source_file="res://assets/texturen/bruecke/bruecke_trim_albedo.png"
-dest_files=[]
+dest_files=["res://.godot/imported/bruecke_trim_albedo.png-055581ac0574fb56dbaecca49636432b.bptc.ctexarray"]
 
 [params]
 

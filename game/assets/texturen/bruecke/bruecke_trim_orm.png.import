@@ -3,11 +3,16 @@
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
 uid="uid://b8r01ig0j611u"
+path.bptc="res://.godot/imported/bruecke_trim_orm.png-e6f5d7315e6c19ed3bf12a8de2951fe7.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
 
 [deps]
 
 source_file="res://assets/texturen/bruecke/bruecke_trim_orm.png"
-dest_files=[]
+dest_files=["res://.godot/imported/bruecke_trim_orm.png-e6f5d7315e6c19ed3bf12a8de2951fe7.bptc.ctexarray"]
 
 [params]
 
