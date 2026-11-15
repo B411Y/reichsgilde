@@ -407,13 +407,14 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(spieler.Vermoegen, rivale.Vermoegen, 0.08); // ±8 %: Seit PR #152 trifft ein Unfall die beiden zufällig verschieden oft
         }),
 
-        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 947 Gulden/Jahr", () =>
+        // Seit den Lagen aller Rohstoffquellen (Datenversion 92: Lage der Grube auf Eisen- und Silberpreis und halb auf die Förderung): 947 → 996.
+        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 996 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation(Fronstatut.FreieStadt);
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Altknecht", 3);
-            Pruefe.Ungefaehr(947, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(996, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         ("Mine, 3 Orks (Statut B), Ochsenkarren: Gewinn ≈ 1.365 Gulden/Jahr – deutlich mehr als mit Bergleuten", () =>
