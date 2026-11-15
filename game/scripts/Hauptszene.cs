@@ -21,6 +21,7 @@ namespace Reichsgilde;
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
+///   --startwert=12     Zufallsstartwert der Partie (mit --startrunde=4 bzw. 5: Gruben 1404 schlecht, Ansage 1403), nur für Bilder
 ///   --startrunde=4     Partie beginnt in der 4. Runde (Winter), nur für Bilder
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
 ///   --zierminute=133.4,0.1  Zierschiff am Hafen zeigt diese Spielminute seit Spielbeginn, danach 0,1 Minuten je Sekunde (Zeitlupe; ohne Rate steht es; nur Darstellung, Stadtansicht.Kranladen.cs)
@@ -1062,6 +1063,8 @@ public partial class Hauptszene : Node
         einstellungen ??= Partieeinstellungen.Standard;
         if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
             einstellungen = einstellungen with { Schwierigkeit = schwierigkeit }; // --schwierigkeit=Schwer: nur für diesen Start
+        if (optionen.TryGetValue("startwert", out var sw) && int.TryParse(sw, out var startwert))
+            einstellungen = einstellungen with { Zufallsstartwert = startwert }; // --startwert=12: Zufallsstartwert (z. B. eine schlechte Lage der Gruben 1404), nur für Bilder
         var (simulation, spieler) = Partieaufbau.Erstellen(einstellungen, daten, neu, start, karte);
         SimulationVerbinden(simulation, spieler);
         return simulation;

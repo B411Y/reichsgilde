@@ -222,22 +222,21 @@ static class LagenTests
             Pruefe.Ungefaehr(Kalkulation.Leistung(po.W, po.Giesserei), Kalkulation.Leistung(pm.W, pm.Giesserei), 1e-12);
         }),
 
-        ("Lagen: Meldung der Ansage im Jahr davor und zum Beginn – nicht bei „gewöhnlich“", () =>
+        ("Lagen: Meldung erst zum Beginn, keine Ansage im Jahr davor – nicht bei „gewöhnlich“", () =>
         {
             var s = StartwertMit(Betriebsart.Mine, Lagegute.Schlecht);
             var sim = Sim(Minute(3, 4), s);
             var meldungen = new List<string>();
             sim.Wirtschaft!.Meldung += meldungen.Add;
             sim.Tick();
-            Pruefe.Wahr(meldungen.Any(m => m.Contains("Wassereinbruch in den Gruben") && m.Contains("Frühling 1404") && m.Contains("Eisen und Silber werden teurer")),
-                string.Join(" | ", meldungen));
+            Pruefe.Wahr(!meldungen.Any(m => m.Contains("1404") && (m.Contains("Eisen") || m.Contains("Silber"))), string.Join(" | ", meldungen)); // Gegenprobe: nichts vorab
             meldungen.Clear();
             while (sim.Zeit.Jahr < 1404) sim.Tick();
             sim.Tick();
             Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Wassereinbruch 1404: Bis 1407 sind Eisen und Silber knapp")), string.Join(" | ", meldungen));
-            // Holz allein: „wird“ statt „werden“
+            // Holz allein: „ist“ statt „sind“
             var h = Wirtschaft(StartwertMit(Betriebsart.Holzfaellerei, Lagegute.Schwer)).Lagen.QuelleVon(Betriebsart.Holzfaellerei)!;
-            Pruefe.Wahr(Lagenwesen.Ansage(h.LageVon(1403)!).Contains("Holz wird deutlich teurer"), Lagenwesen.Ansage(h.LageVon(1403)!));
+            Pruefe.Wahr(Lagenwesen.Beginn(h.LageVon(1403)!).Contains("Holz sehr knapp"), Lagenwesen.Beginn(h.LageVon(1403)!));
             // Gewöhnlich: keine Meldung der Grube
             var g = Sim(Minute(3, 4), StartwertMit(Betriebsart.Mine, Lagegute.Gewoehnlich));
             var leise = new List<string>();

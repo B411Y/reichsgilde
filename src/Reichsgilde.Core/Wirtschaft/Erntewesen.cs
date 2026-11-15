@@ -13,8 +13,8 @@ public sealed record Erntelage(int Erntejahr, Erntegute Guete)
 /// Erntejahr und Teuerung („Härte um 1400“ PR 1, Abschnitt „ernte“, Datenversion 91; Nutzer 15.11.2026):
 ///   • Jede Ernte im <b>Herbstjahr</b> bekommt eine Güte (gut, gewöhnlich, mager, Missernte). Sie gilt bis zur nächsten Ernte (Herbst, Winter,
 ///     Frühling, Sommer) und verschiebt die Grundversorgung von Gerste, Roggen und dem, was aus Getreide gemacht wird – also ihren Preis.
-///   • <b>Ansage ein Jahr vorher:</b> Im Sommerjahr vor der Ernte steht fest und wird gemeldet, wie sie ausfällt (<see cref="Angesagt"/>).
-///     Wer dann Korn einlagert, verkauft es nach einer schlechten Ernte teurer.
+///   • <b>Keine Ansage:</b> Im Sommerjahr davor steht die Güte im Kern schon fest (<see cref="Angesagt"/>, nur für Rechnungen), gemeldet und gezeigt
+///     wird sie erst, wenn die Ernte gilt (Nutzer 15.11.2026: der Spieler sieht nie in die Zukunft).
 ///   • <b>Keine Abwärtsspirale:</b> Nach einer Missernte folgt ein Schonjahr (die nächste Ernte ist nie mager und keine Missernte), der Faktor
 ///     jeder Ware bleibt zwischen <see cref="ErnteDaten.UntereGrenze"/> und <see cref="ErnteDaten.ObereGrenze"/>, dazu die Preisgrenzen des Markts.
 ///   • Wie oft und wie stark: <see cref="HaerteDerZeit"/> der Partie (<see cref="Stadtwirtschaft.HaerteDerZeit"/>).
@@ -104,13 +104,11 @@ public sealed class Erntewesen
     //  Ablauf
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Jede Spielminute: zu Jahresbeginn die Ansage (Sommerjahr) bzw. die Ernte selbst (Herbstjahr) melden.</summary>
+    /// <summary>Jede Spielminute: zu Jahresbeginn die Ernte melden, wenn sie zu gelten beginnt (Herbstjahr). Eine Ansage vorab gibt es nicht (Nutzer 15.11.2026: der Spieler sieht nie in die Zukunft).</summary>
     internal void Minute(Spielzeit zeit)
     {
         if (Daten is null || zeit.MinuteImTag != 0) return;
-        if (AngesagtIm(zeit.Jahr) is { } a)
-            _w.Melden(Ansage(a));
-        else if (ErnteVon(zeit.Jahr) is { } e)
+        if (ErnteVon(zeit.Jahr) is { } e)
             _w.Melden(Erntemeldung(e));
     }
 
@@ -124,14 +122,6 @@ public sealed class Erntewesen
             _ => string.Join(", ", namen.Take(namen.Count - 1)) + " und " + namen[^1],
         };
     }
-
-    private string Ansage(Erntelage a) => a.Guete switch
-    {
-        Erntegute.Gut => $"Die Felder stehen prächtig: Im Herbst {a.Erntejahr} kommt wohl eine gute Ernte – {WarenText()} werden billiger.",
-        Erntegute.Mager => $"Ein nasser Sommer: Im Herbst {a.Erntejahr} droht eine magere Ernte – {WarenText()} werden teurer. Wer jetzt einlagert, verkauft später besser.",
-        Erntegute.Missernte => $"Hagel und Dauerregen auf den Feldern: Im Herbst {a.Erntejahr} droht eine Missernte – {WarenText()} werden deutlich teurer. Wer jetzt einlagert, verkauft später besser.",
-        _ => $"Die Felder stehen wie in jedem Jahr: Im Herbst {a.Erntejahr} kommt wohl eine gewöhnliche Ernte.",
-    };
 
     private string Erntemeldung(Erntelage e) => e.Guete switch
     {
