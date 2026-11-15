@@ -66,5 +66,5 @@ Gekaufte Texturen mit Lizenz, die die Weitergabe einzelner Dateien verbietet (Ga
 
 ## Verhältnis zu anderen Dateien
 
-- `HERKUNFT.md` neben Fremdpaketen und dem KI-Schmied (`game/assets/modelle/natur/`, `props/`, `figuren/ki/`) und den Höhendaten der Kulissenberge (`kulisse/`) behalten die Lizenztexte und Einzelheiten der Werkzeuge; in Ordnern mit KI-Bildern verweist eine kurze `HERKUNFT.md` hierher.
+- `HERKUNFT.md` neben Fremdpaketen (`game/assets/modelle/natur/`, `props/`) und den Höhendaten der Kulissenberge (`kulisse/`) behalten die Lizenztexte und Einzelheiten der Werkzeuge; in Ordnern mit KI-Bildern verweist eine kurze `HERKUNFT.md` hierher.
 - `LICENSE-INHALTE.md` sagt, unter welcher Lizenz Code und Inhalte stehen (bis zum Stichtag CC BY 4.0, danach „Alle Rechte vorbehalten“); das Protokoll sagt, woher jede Datei kommt.

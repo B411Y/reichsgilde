@@ -388,12 +388,11 @@ public partial class Stadtansicht
             var seite = anker.Position.X >= 0 ? 1f : -1f;
             halter.Position = new Vector3(seite * KarrenLaeuferAbstand, anker.Position.Y, joch.Position.Z + KarrenLaeuferVorn);
         }
-        var frau = fuhrmann.Geschlecht == Geschlecht.Frau;
-        var haare = Haarfarben(fuhrmann.Volk);
-        // Gewand, Haut und Haar wählt die Probefigur selbst (gedeckte Pflanzenfarben, nach der Nummer); die Hausfarbe trägt nur der Karren
-        var aussehen = new FigurAussehen(fuhrmann.Volk, frau, Gewandfarben[0], Beinkleidfarben[0], HautVon(fuhrmann.Volk), haare[fuhrmann.Startwert % haare.Length], Leinenfarbe,
-            Kopfbedeckung.Strohhut, art.ZieherClip == "Nebenhergehen" ? Last.Stab : Last.Keine);
-        var figur = ProbefigurEinsetzen(halter, aussehen, fuhrmann.Startwert, "Fuhrmann");
+        // Aussehen aus dem Baukasten (Volk, Geschlecht und Haar des Fuhrmanns im Kern, Tracht „Fuhrmann“); die Hausfarbe trägt nur der Karren.
+        // Den Stecken führt nur der Läufer am Ochsen – er gehört zur Arbeit am Karren, nicht zur Person.
+        var rezept = FigurenBaukasten.Von(fuhrmann);
+        if (art.ZieherClip == "Nebenhergehen") rezept = rezept with { Tracht = rezept.Tracht with { Last = Last.Stab } };
+        var figur = BaukastenProbeEinsetzen(halter, rezept, innen: false);
         if (figur is null) { halter.QueueFree(); return null; }
         if (art.ZieherClip == "Nebenhergehen") StabKraeftigen(figur);
         if (art.ZieherClip == "SitzenBock") halter.Position -= new Vector3(0, figur.Kniehoehe - 0.02f, 0); // die Hüfte sitzt auf der Sitzfläche

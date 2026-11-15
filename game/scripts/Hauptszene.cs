@@ -39,7 +39,6 @@ namespace Reichsgilde;
 ///   --bauort=-96,-3,0  mit --bauen=<Gebäude>: der Umriss sitzt an dieser Stelle (x,z in Metern, Drehung 0–3), bis die Maus bewegt wird
 ///   --bauklick=1       mit --bauort: die Rückfrage öffnen (=2: gleich bauen; auch bei --leerstand: gleich kaufen bzw. abreißen)
 ///   --leerstand=kaufen mit --auswahl=wohnhaus:<Inhaber>: die Rückfrage zum Kauf des leeren Hauses öffnen (=abreissen: zum Abriss; Leerzeichen als _)
-///   --kischmied=alle   Passanten mit dem KI-Schmied aus TRELLIS: aus, wenige (Standard: Knechte und Tagelöhner, jeder zweite) oder alle Männer
 ///   --innen=1          direkt in der Innenansicht der eigenen Werkstatt starten (--innen=Rathaus, --innen=Dom bzw. --innen=wohnhaus:<Inhaber>: dort)
 ///   --raum=2           mit --innen: gleich im zweiten Raum der Raumleiste (Werkstatt: 1 Werkraum, 2 Lager; Wohnhaus: 1 Wohnstube, 2 Kontor)
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
@@ -572,7 +571,6 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("einschlag", out var einschlagSek) && double.TryParse(einschlagSek, System.Globalization.CultureInfo.InvariantCulture, out var einschlagNach))
             _einschlagNach = einschlagNach;
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
-        if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
         if (optionen.TryGetValue("nachtnebel", out var nachtnebel)) _stadt.Nachtnebel = nachtnebel is not ("aus" or "0"); // Nebel bei Nacht (Stadtansicht.Bodennebel.cs)
         if (optionen.TryGetValue("morgennebel", out var morgennebel) && float.TryParse(morgennebel, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nebelTag))
@@ -720,6 +718,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("blendetest", out var blendeKennung)) _stadt.BlendeTestStarten(blendeKennung == "1" ? (_eigeneGiesserei is { } bg ? Stadtansicht.BetriebsKennung(bg) : "Rathaus") : blendeKennung); // Betreten und Verlassen mit Schwarzblende ins Log (Stadtansicht.Uebergang.cs)
         if (optionen.TryGetValue("innen", out var innen))
         {
+            if (innen == "wohnhaus" && EigenesWohnhaus is { } eigenes) innen = eigenes; // Prüfhilfe: --innen=wohnhaus = das eigene Wohnhaus
             if (innen == "1" && _eigeneGiesserei is not null) _stadt.InnenansichtBetreten(_eigeneGiesserei);
             else if (innen != "1" && !_stadt.InnenansichtBetreten(innen)) _innenWartet = innen; // Rathaus oder Dom; ein Betrieb, den es noch nicht gibt (--bauklick), kommt später
             if (optionen.TryGetValue("raum", out var raum) && int.TryParse(raum, out var raumNummer))

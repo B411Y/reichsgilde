@@ -22,9 +22,10 @@ Schnittlinien eines Feldes über die Ecken (`isolinie_schneiden`); beim Verklein
 (Eckengruppe „Erhalten“). Stoffe tragen die Schicht „tuch“ bzw. „leder“ der Material-Bibliothek in UV.y (wie bausteine.py:
 Art + 16 × (Schicht + 1)), die Oberflächendetails des Spiels legen dort die Struktur darüber.
 
-Skelett: 23 Knochen mit den Namen von Godots SkeletonProfileHumanoid (Root, Hips, Spine, Chest, UpperChest, Neck, Head,
-Left/RightShoulder, …UpperArm, …LowerArm, …Hand, …UpperLeg, …LowerLeg, …Foot, …Toes); die Fingergewichte sind in die Hand
-gelegt. Netze: je Variante „Nah_<variante>“ und „Fern_<variante>“, dazu „Last“ (Kiste, nur beim Tragen sichtbar).
+Skelett: 43 Knochen mit den Namen von Godots SkeletonProfileHumanoid (Root, Hips, Spine, Chest, UpperChest, Neck, Head,
+Left/RightShoulder, …UpperArm, …LowerArm, …Hand, …UpperLeg, …LowerLeg, …Foot, …Toes) und je Hand 10 Fingerknochen (FINGER_KNOCHEN:
+…ThumbMetacarpal/…ThumbProximal, …Index/Middle/Ring/LittleProximal und …Intermediate; das dritte MPFB-Glied geht ins zweite;
+Nutzer 14.11.2026). Ruhelage der Finger ist die locker gekrümmte Hand (haende_entspannen). Netze: je Variante „Nah_<variante>“ und „Fern_<variante>“, dazu „Last“ (Kiste, nur beim Tragen sichtbar).
 Farben wie bei den Figuren aus figuren.py: Zone in UV.x, feste Farbe als Eckenfarbe (figur.gdshader).
 """
 
@@ -87,6 +88,18 @@ for _s, _S in (("l", "Left"), ("r", "Right")):
         f"foot_{_s}": f"{_S}Foot", f"ball_{_s}": f"{_S}Toes",
     })
 FINGER = ("index", "middle", "ring", "pinky", "thumb")
+# Fingerknochen (Nutzer 14.11.2026, „Finger C“): je Finger und Daumen 2 Knochen, Namen nach SkeletonProfileHumanoid; das dritte Glied
+# von MPFB (_03) geht ins zweite. Nicht in KNOCHEN, damit die Quaternius-Übertragung die Finger nicht bewegt (sie ruhen gekrümmt).
+FINGER_KNOCHEN = {}
+FINGER_DREI = {}
+for _s, _S in (("l", "Left"), ("r", "Right")):
+    for _f, _F in (("index", "Index"), ("middle", "Middle"), ("ring", "Ring"), ("pinky", "Little")):
+        FINGER_KNOCHEN[f"{_f}_01_{_s}"] = f"{_S}{_F}Proximal"
+        FINGER_KNOCHEN[f"{_f}_02_{_s}"] = f"{_S}{_F}Intermediate"
+        FINGER_DREI[f"{_f}_03_{_s}"] = f"{_f}_02_{_s}"
+    FINGER_KNOCHEN[f"thumb_01_{_s}"] = f"{_S}ThumbMetacarpal"
+    FINGER_KNOCHEN[f"thumb_02_{_s}"] = f"{_S}ThumbProximal"
+    FINGER_DREI[f"thumb_03_{_s}"] = f"thumb_02_{_s}"
 
 # Quaternius-Rigs → unser Skelett: UAL 1 hat Rigify-DEF-Knochen, UAL 2 die Unreal-Namen (wie MPFB, nur „Head“ groß)
 UAL_KNOCHEN = {
@@ -442,8 +455,20 @@ def haende_entspannen(mensch, rig):
             mensch.shape_key_clear()
         mensch.data.vertices.foreach_set("co", lagen)
         mensch.data.update()
+    # Die Fingerknochen bekommen die gekrümmte Haltung als Ruhelage (sie bleiben Knochen, Nutzer 14.11.2026): Gelenke liegen dann in
+    # den Knöcheln des gekrümmten Netzes; nur die Fingerknochen werden im Bearbeitungsmodus versetzt, alle übrigen bleiben unberührt.
+    gekruemmt = {pb.name: pb.matrix.copy() for pb in rig.pose.bones if pb.name.split("_")[0] in FINGER}
+    laengen = {n: kn[n].length for n in gekruemmt}
     for pb in rig.pose.bones:
         pb.rotation_quaternion = Quaternion()
+    bpy.context.view_layer.update()
+    aktiv(rig)
+    bpy.ops.object.mode_set(mode="EDIT")
+    for n, m in gekruemmt.items():
+        eb = rig.data.edit_bones[n]
+        eb.matrix = m
+        eb.length = laengen[n]
+    bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
 
 
@@ -1434,15 +1459,16 @@ def zusammenfuegen(teile, name):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def gewichte_aufraeumen(obj):
-    """Finger → Hand, alle übrigen Gruppen weg, höchstens 4 Knochen je Ecke, normiert, Namen nach SkeletonProfileHumanoid."""
+    """Finger auf ihre zwei Knochen (drittes Glied ins zweite), alle übrigen Gruppen weg, höchstens 4 Knochen je Ecke, normiert, Namen
+    nach SkeletonProfileHumanoid."""
     namen = gruppen_index(obj)
     werte = []
     for v in obj.data.vertices:
         g = {}
         for e in v.groups:
-            n = namen[e.group]
-            if n.split("_")[0] in FINGER:
-                n = "hand_" + n[-1]
+            n = FINGER_DREI.get(namen[e.group], namen[e.group])
+            if n in FINGER_KNOCHEN:
+                g[FINGER_KNOCHEN[n]] = g.get(FINGER_KNOCHEN[n], 0.0) + e.weight
             if n in KNOCHEN and n != "Root":
                 g[KNOCHEN[n]] = g.get(KNOCHEN[n], 0.0) + e.weight
         beste = sorted(g.items(), key=lambda x: -x[1])[:4]
@@ -1452,7 +1478,7 @@ def gewichte_aufraeumen(obj):
         werte.append([(n, w / summe) for n, w in beste])
     for g in list(obj.vertex_groups):
         obj.vertex_groups.remove(g)
-    for n in sorted(set(KNOCHEN.values())):
+    for n in sorted(set(KNOCHEN.values()) | set(FINGER_KNOCHEN.values())):
         obj.vertex_groups.new(name=n)
     for i, liste in enumerate(werte):
         for n, w in liste:
@@ -1467,7 +1493,8 @@ def erhalten_markieren(obj, fern=False):
     me = obj.data
     gruppe = obj.vertex_groups.new(name="Erhalten")
     kopf = obj.vertex_groups["Head"].index
-    haende = {obj.vertex_groups["LeftHand"].index, obj.vertex_groups["RightHand"].index}
+    # Hand samt Fingerknochen (die Fingergewichte zählen zur Hand wie vor den Fingerknochen)
+    haende = {g.index for g in obj.vertex_groups if g.name in ("LeftHand", "RightHand") or g.name in FINGER_KNOCHEN.values()}
     guertel = stoff("Guertel")
     stoffe = {}
     flicken = stoff("Flicken")
@@ -1486,8 +1513,8 @@ def erhalten_markieren(obj, fern=False):
             for e in v.groups:
                 if e.group == kopf and e.weight > 0.5:
                     w = max(w, 0.8)
-                if e.group in haende and e.weight > 0.5:
-                    w = max(w, 0.97)         # Hände stark schonen (Vorlage 09.11.) (Vorlage 09.11.: Finger blieben dünne Stäbe)
+            if sum(e.weight for e in v.groups if e.group in haende) > 0.5:
+                w = max(w, 0.97)         # Hände stark schonen (Vorlage 09.11.) (Vorlage 09.11.: Finger blieben dünne Stäbe)
         if fern:
             w = 0.7 if guertel in stoffe.get(v.index, ()) else 0.0
         elif len(stoffe.get(v.index, ())) > 1 or v.index in rand:
@@ -1576,10 +1603,10 @@ def skelett_umbauen(rig, name):
     bpy.ops.object.mode_set(mode="EDIT")
     eb = rig.data.edit_bones
     for b in list(eb):
-        if b.name not in KNOCHEN:
+        if b.name not in KNOCHEN and b.name not in FINGER_KNOCHEN:
             eb.remove(b)
     for b in eb:
-        b.name = KNOCHEN[b.name]
+        b.name = KNOCHEN.get(b.name) or FINGER_KNOCHEN[b.name]
     bpy.ops.object.mode_set(mode="OBJECT")
     rig.name = name
     rig.data.name = name
