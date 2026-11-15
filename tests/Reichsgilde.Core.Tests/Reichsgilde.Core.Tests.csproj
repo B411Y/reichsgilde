@@ -44,6 +44,8 @@
     <!-- Ausweichen der Passanten (Schicht 4) und ihr Einstieg auf das nächste Wegstück – PassantenausweichenTests.cs, PassantenwegeTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenausweichen.cs" Link="Gehtempo\Passantenausweichen.cs" />
     <Compile Include="..\..\game\scripts\Wegeinstieg.cs" Link="Gehtempo\Wegeinstieg.cs" />
+    <!-- Sperrflächen der Passanten (Wandabstand, Zusammenrücken) – BegehbarkeitTests.cs -->
+    <Compile Include="..\..\game\scripts\Begehbarkeit.cs" Link="Gehtempo\Begehbarkeit.cs" />
     <!-- Markt v3 der Passanten: freie Fläche des Platzes und Bummeln von Ziel zu Ziel – MarktflaecheTests.cs, MarktbummelTests.cs -->
     <Compile Include="..\..\game\scripts\Marktflaeche.cs" Link="Gehtempo\Marktflaeche.cs" />
     <Compile Include="..\..\game\scripts\Marktbummel.cs" Link="Gehtempo\Marktbummel.cs" />
