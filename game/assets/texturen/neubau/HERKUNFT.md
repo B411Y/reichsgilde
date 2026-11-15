@@ -53,3 +53,17 @@ Die Atlanten `wohnhaus_mensch_ao_atlas.png` und `wohnhaus_mensch_innen_ao_atlas.
 | `large_floor_tiles_02` | Large Floor Tiles 02 | Rob Tuytel | https://polyhaven.com/a/large_floor_tiles_02 | innen_trim_s23: Tonfliesen und Schachbrett (Band „lehmboden“) |
 
 Urheber laut Poly-Haven-Schnittstelle (`api.polyhaven.com/assets`, Abzug im Quellordner). Nachbearbeitung im Skript: auf Bandhöhe zugeschnitten, waagerecht gekachelt, umgefärbt; die Dachdeckung ohne Alpha (keine Fransen); die Fliesen mit gezeichneten Fugen, leicht verschiedenem Ton je Fliese und im rechten Feld als Schachbrett. Keine Bild-KI.
+
+## Steinebenen je Volk (`haeuser_ebenen_*`, `innen_ebenen_*`, `*_ao_ebenen`)
+
+`tools/modelle/neubau/trimsheet_ebenen.py` legt die Trim-Sheets der Häuser als Texture2DArray untereinander (Ebene je Volk und Stufe) und setzt in die Steinbänder jeder Ebene den Stein des Volkes aus drei fremden CC0-Texturen (1K-JPG, abgerufen am 15.11.2026; Poly Haven über `api.polyhaven.com/files/<Asset-ID>`, ambientCG über `ambientcg.com/get?file=<ID>_1K-JPG.zip`). Die Quelldateien liegen nicht im Repository. Die übrigen Bänder kommen unverändert aus den Blättern oben; `innen_ebenen_*` ist `innen_trim` als Array mit einer Ebene, `*_ao_ebenen` sind die gebackenen Atlanten untereinander (keine Fremdtexturen).
+
+**Lizenz: CC0 1.0 Universal (Public Domain).** Poly Haven wörtlich von https://polyhaven.com/license (abgerufen am 15.11.2026): „Our assets are all licensed as CC0“. ambientCG wörtlich von https://docs.ambientcg.com/license/ (abgerufen am 15.11.2026): „All ambientCG assets are provided under the Creative Commons CC0 1.0 Universal License.“
+
+| Kürzel | Asset-ID | Urheber | Seite | Reale Größe | Verwendet für |
+|---|---|---|---|---|---|
+| K1 | `castle_wall_varriation` | Rob Tuytel | https://polyhaven.com/a/castle_wall_varriation | 2 × 2 m | Menschen: Mauern (Stufe 2 und 3) |
+| K2 | `large_sandstone_blocks_01` | Rob Tuytel | https://polyhaven.com/a/large_sandstone_blocks_01 | 3 × 3 m | Elben und Halblinge: Flächen |
+| K5 | `Bricks100` | ambientCG (kein Einzelurheber genannt) | https://ambientcg.com/view?id=Bricks100 | unbekannt, angenommen 2 × 1 m | Elben und Halblinge: Akzent |
+
+Nachbearbeitung (alles im Skript): in eigener Farbe eingesetzt (nicht umgefärbt); auf Bandhöhe zugeschnitten, Ober- und Unterkante auf dunkle Lagerfugen gelegt; waagerecht in 2^k Kacheln je Band (nahtlos) und dafür im Maßstab angepasst (K2 1,33, sonst 1,0). K3 (`stone_wall_04`) und K4 (`PavingStones142`) aus der Auswahl vom 15.11.2026 sind nach der Rückmeldung des Nutzers nicht eingesetzt. Keine Bild-KI.

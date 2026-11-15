@@ -60,6 +60,10 @@ python3 tools/assets/danksagung_bauen.py --pruefen   # prüfen (läuft in protok
 
 **Ablauf bei neuem Fremdmaterial:** Zeile im Protokoll (Herkunft „Fremdpaket“, Lizenz, Bezugsquelle), dann den Eintrag in `tools/assets/danksagung_quelle.json` anlegen (Werk, Urheber, Adresse, Lizenz; Feld `deckt` nennt den Anfang des Protokoll-Musters) und die Datei neu bauen. Freesound-Aufnahmen stehen in der Tabelle von `game/assets/audio/umgebung/HERKUNFT.md` und kommen von selbst hinein. Das Prüfskript meldet jede Fremdpaket-Zeile ohne Eintrag und jede Namensnennung im Protokoll, die in der Tabelle fehlt.
 
+## Abgeleitete Texturen (Trim-Sheets, Steinebenen)
+
+Texturen, die ein Skript aus anderen Dateien des Repositorys und aus Fremdmaterial zusammensetzt, stehen mit dem Skript als Werkzeug im Protokoll und nennen in `prompt_oder_quelle` alle Quellen. Beispiel Steinebenen (`game/assets/texturen/neubau/haeuser_ebenen_*.png`): `tools/modelle/neubau/trimsheet_ebenen.py` legt die Trim-Sheets als Texture2DArray untereinander und setzt die CC0-Steine K1 bis K5 ein. Ändert sich ein Quellblatt oder die Steinwahl, wird das Array neu gebaut (Aufruf im Kopf des Skripts), mit `ebenen_pruefung.py --gegenprobe` geprüft und mit seiner Protokollzeile im selben PR eingereicht; neue Steine kommen zusätzlich in `HERKUNFT.md` des Ordners und als Eintrag in die Danksagung (`deckt`: `game/assets/texturen/neubau/haeuser_ebenen_`).
+
 ## Private Texturen (GameDev.tv)
 
 Gekaufte Texturen mit Lizenz, die die Weitergabe einzelner Dateien verbietet (GameDev.tv General Asset License 2.0), kommen **nie** ins Repository, auch nicht verkleinert oder in einem Patch. Sie liegen in einem privaten Ordner, `tools/assets/privat_holen.py` kopiert sie nach `game/assets/privat/` (in `.gitignore`), `privat_manifest.json` nennt sie mit SHA-256. Das Protokoll hat dafür eine Zeile mit Herkunft „privat“ (Muster und Anzahl werden nicht geprüft, `game/assets/privat/` zählt nicht als Repo-Asset). Das Spiel nimmt ohne die Dateien die eigenen Texturen (`PrivateTexturen.cs`).

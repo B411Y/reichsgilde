@@ -684,15 +684,36 @@ public partial class Stadtansicht
         var stroh = Strohstoffe.Contains(stoff.ResourceName);
         var kante = Dachkante(stoff.ResourceName);
         var kopie = (BaseMaterial3D)stoff.Duplicate();
-        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, kante ? 0.6f : stroh ? 0.55f : 0.3f);
-        kopie.Roughness = Mathf.Max(stoff.Roughness, 0.92f); // Ruß glänzt nicht
-        if (!kante)
+        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, NeubauBrand.RussAnteil(kante, stroh));
+        kopie.Roughness = NeubauBrand.Rauheit(stoff.Roughness); // Ruß glänzt nicht
+        if (NeubauBrand.MitRussSchicht(kante))
         {
             var schicht = RussSchicht(stroh);
             kopie.NextPass = schicht;
             if (_oberflaeche?.Ableiten(kopie) is { } abgeleitet) abgeleitet.NextPass = schicht; // die Oberflächendetails zeichnen ihr abgeleitetes Material (Stadtansicht.Brandschaden.cs)
         }
         return _russStoffe[stoff] = kopie;
+    }
+
+    private readonly Dictionary<(ShaderMaterial, bool, bool), ShaderMaterial> _neubauRussStoffe = new();
+
+    /// <summary>
+    /// Brandschaden am Dach eines Neubau-Hauses: eine Kopie seines Trim-Materials (<c>building_trim.gdshader</c> bzw. die Strohkante) mit
+    /// <c>russ_tint</c> und der Rußschicht – dieselben Werte wie <see cref="RussStoff"/> (<see cref="NeubauBrand"/>), aber ohne ein Material,
+    /// das die Trim-Sheets als einzelne Texturen lädt. Je Vorlage und Art einmal; die Kopie teilt die Texture-Arrays.
+    /// </summary>
+    private ShaderMaterial NeubauRussStoff(ShaderMaterial trim, string name)
+    {
+        var stroh = Strohstoffe.Contains(name);
+        var kante = Dachkante(name);
+        if (_neubauRussStoffe.TryGetValue((trim, stroh, kante), out var fertig)) return fertig;
+        var kopie = (ShaderMaterial)trim.Duplicate();
+        kopie.SetShaderParameter("russ_tint", Colors.White.Lerp(Russ, NeubauBrand.RussAnteil(kante, stroh)));
+        // Rauheit: das Grundmaterial hatte 1 (NeubauBrand.Rauheit(1) = 1), die Rauheit des Blatts bleibt also wie sie ist
+        if (NeubauBrand.MitRussSchicht(kante)) kopie.NextPass = RussSchicht(stroh);
+        _neubauRussStoffe[(trim, stroh, kante)] = kopie;
+        _neubauKopien.Add(kopie);
+        return kopie;
     }
 
     /// <summary>Mit <c>RG_DACHSTOFF=1</c>: schreibt je Dachfläche Name, Art, Shader, Override, Nächste Schicht und Werte ins Protokoll (Gegenprobe zu Dachstreifen).</summary>

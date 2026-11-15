@@ -46,11 +46,12 @@ public partial class Stadtansicht
     // Putz- und Akzentfarben aus dem Style-Guide (5.3); fest je Standort
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
     private static readonly Color[] NeubauAkzent = { new(0.22f, 0.35f, 0.55f), new(0.25f, 0.42f, 0.28f), new(0.55f, 0.22f, 0.20f), new(0.45f, 0.36f, 0.28f) };
-    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // je Gruppe und Trim-Sheet („gruppe|blatt“) ein Material
+    private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // außen eines für alle Häuser („haeuser“), innen eines je Gruppe
     private readonly Dictionary<string, StandardMaterial3D> _neubauGrund = new(); // benannte Grundmaterialien fürs Netz
     private readonly HashSet<Mesh> _neubauNetze = new();
     private readonly Dictionary<string, Node3D> _neubauHaeuser = new();          // Kennung (wohnhaus:…) → Wurzel des Modells
-    private Shader? _neubauShader;
+    private Shader? _neubauShader, _neubauKantenShader;
+    private readonly List<ShaderMaterial> _neubauKopien = new();                  // Kopien der Trim-Materialien (Brandschaden am Dach): folgen dem Pixel-Look
     private Node3D? _neubauInnen;      // der sichtbare „InteriorRoot“ (null: niemand ist drinnen)
     private bool NeubauInnenAktiv => _neubauInnen is not null;
 
@@ -131,31 +132,50 @@ public partial class Stadtansicht
         return stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}";
     }
 
-    /// <summary>Das Trim-Material einer Gruppe und eines Trim-Sheets: Trim-Sheet (außen oder innen) und der AO-Atlas der Gruppe.</summary>
-    private ShaderMaterial NeubauStoff(string datei)
+    /// <summary>
+    /// Das Trim-Material: außen EINES für alle Häuser aller Völker (Steinebenen: Trim-Sheets und AO-Atlanten als Texture2DArray, die
+    /// Ebene wählt jedes Haus über Instanz-Uniformen, siehe <see cref="Steinebenen"/>), innen eines je Gruppe (Array mit den Innenblättern, Ebene und AO-Ebene je Modell).
+    /// </summary>
+    private ShaderMaterial NeubauStoff(string datei, bool kante = false)
     {
         var gruppe = NeubauGruppe(datei);
-        var blatt = NeubauBlatt(datei);
-        if (_neubauStoffe.TryGetValue(gruppe + "|" + blatt, out var stoff)) return stoff;
         var innen = gruppe.EndsWith("_innen");
+        var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "");
+        if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
+        var array = innen ? "innen" : "haeuser";
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
-        stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim " + gruppe };
-        stoff.SetShaderParameter("albedo_tex", NeubauTextur<Texture2D>(blatt + "_albedo.png"));
-        stoff.SetShaderParameter("normal_tex", NeubauTextur<Texture2D>(blatt + "_normal.png"));
-        stoff.SetShaderParameter("orm_tex", NeubauTextur<Texture2D>(blatt + "_orm.png"));
-        stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<Texture2D>(gruppe + "_ao_atlas.png"));
+        _neubauKantenShader ??= GD.Load<Shader>("res://assets/shader/building_trim_kante.gdshader");
+        // Strohkanten: derselbe Shader (Rumpf building_trim.gdshaderinc) beidseitig und mit Alpha Scissor, dieselben Arrays
+        stoff = new ShaderMaterial { Shader = kante ? _neubauKantenShader : _neubauShader, ResourceName = "Trim " + schluessel };
+        if (kante) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(Fenster.PixelLookAn));
+        stoff.SetShaderParameter("albedo_tex", NeubauTextur<TextureLayered>(array + "_ebenen_albedo.png"));
+        stoff.SetShaderParameter("normal_tex", NeubauTextur<TextureLayered>(array + "_ebenen_normal.png"));
+        stoff.SetShaderParameter("orm_tex", NeubauTextur<TextureLayered>(array + "_ebenen_orm.png"));
+        stoff.SetShaderParameter("ao_uv2_tex", NeubauTextur<TextureLayered>(array + "_ao_ebenen.png"));
+        if (innen)
+        {
+            // Innenblätter (Stufe 1, Stufen 2/3, Räume): eigenes Layout (Bruchstein 0,70–0,80), keine Steinebenen
+            stoff.SetShaderParameter("stein_je_ebene", false);
+            stoff.SetShaderParameter("stein_baender", new Vector4(0.70f, 0.80f, -1f, -1f));
+        }
         stoff.SetShaderParameter("wetter_an", innen ? 0f : 1f);      // im Haus regnet und schneit es nicht
         stoff.SetShaderParameter("pixel_look", Fenster.PixelLookAn ? 1f : 0f);
-        return _neubauStoffe[gruppe + "|" + blatt] = stoff;
+        return _neubauStoffe[schluessel] = stoff;
     }
 
     /// <summary>Pixel-Look an oder aus: die Trim-Materialien lesen eine gröbere Mip-Stufe (aus Stadtansicht.Oberflaechendetails.cs).</summary>
     private void NeubauPixelSetzen(bool an)
     {
-        foreach (var stoff in _neubauStoffe.Values) stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
-        // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
-        if (_neubauGrund.TryGetValue("trim/Strohkante", out var kante)) kante.AlphaScissorThreshold = an ? 1.01f : 0.5f;
+        foreach (var stoff in _neubauStoffe.Values.Concat(_neubauKopien))
+        {
+            stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
+            // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
+            if (stoff.Shader == _neubauKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
+        }
     }
+
+    /// <summary>Ist das ein Trim-Material der Neubauten (oder eine Kopie davon, etwa mit Brandschaden)?</summary>
+    private bool NeubauIstTrim(ShaderMaterial stoff) => stoff.Shader is { } s && (s == _neubauShader || s == _neubauKantenShader);
 
     /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
     public const string NeubauAusgang = "neubau:haustuer";
@@ -190,32 +210,15 @@ public partial class Stadtansicht
     private ShaderMaterial NeubauBleinetz() => _neubauBleinetz ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/bleinetz.gdshader"), ResourceName = "Bleinetz" };
 
     /// <summary>
-    /// Das benannte Standardmaterial im Netz (für alles, was nach dem Materialnamen sucht, und als Grundlage des
-    /// Brandschadens: <see cref="RussStoff"/> kopiert es): dieselben Trim-Texturen, ohne Farbvariation und ohne UV2.
+    /// Das benannte Standardmaterial im Netz, nur noch für alles, was nach dem Materialnamen sucht (Brandschaden: Dach, Holz, Wand).
+    /// Ohne Texturen (Steinebenen): Gezeichnet wird immer das Trim-Material als Override; der Brand am Dach nimmt eine Kopie davon
+    /// (<see cref="NeubauRussStoff"/>). Bis dahin trug es die Trim-Sheets als einzelne Texturen und hielt sie so im Grafikspeicher.
     /// </summary>
-    private StandardMaterial3D NeubauGrundstoff(string name, string blatt)
+    private StandardMaterial3D NeubauGrundstoff(string name)
     {
-        var schluessel = blatt + "/" + name;
-        if (_neubauGrund.TryGetValue(schluessel, out var stoff)) return stoff;
-        var orm = NeubauTextur<Texture2D>(blatt + "_orm.png");
-        stoff = new StandardMaterial3D
-        {
-            ResourceName = name,
-            AlbedoTexture = NeubauTextur<Texture2D>(blatt + "_albedo.png"),
-            NormalEnabled = true, NormalTexture = NeubauTextur<Texture2D>(blatt + "_normal.png"),
-            AOEnabled = true, AOTexture = orm, AOTextureChannel = BaseMaterial3D.TextureChannel.Red,
-            Roughness = 1, RoughnessTexture = orm, RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Green,
-            Metallic = 1, MetallicTexture = orm, MetallicTextureChannel = BaseMaterial3D.TextureChannel.Blue,
-            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
-        };
-        if (name == "Strohkante")
-        {
-            // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Alpha Scissor 0,5, von beiden Seiten sichtbar
-            stoff.Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor;
-            stoff.AlphaScissorThreshold = Fenster.PixelLookAn ? 1.01f : 0.5f; // im Pixel-Look aus, siehe NeubauPixelSetzen
-            stoff.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-        }
-        return _neubauGrund[schluessel] = stoff;
+        if (_neubauGrund.TryGetValue(name, out var stoff)) return stoff;
+        stoff = new StandardMaterial3D { ResourceName = name, Roughness = 1 };
+        return _neubauGrund[name] = stoff;
     }
 
     /// <summary>
@@ -232,6 +235,7 @@ public partial class Stadtansicht
         var saat = NeubauPlatzSaat(ort);
         var putz = NeubauPutz[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
+        var ebenen = innen ? Steinebenen.InnenAusBlatt(NeubauBlatt(datei), NeubauGruppe(datei)) : Steinebenen.AusDatei(datei) ?? (0, 0);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
@@ -253,14 +257,18 @@ public partial class Stadtansicht
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
                         break;
                     case "Strohkante":
-                        if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name, blatt));
+                        // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Trim-Shader als Kantenvariante (beidseitig, Alpha Scissor)
+                        if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name));
+                        teil.SetSurfaceOverrideMaterial(i, NeubauStoff(datei, kante: true));
                         break;
                     default:
-                        if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name, blatt));
+                        if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name));
                         teil.SetSurfaceOverrideMaterial(i, trim);
                         break;
                 }
             }
+            teil.SetInstanceShaderParameter("ebene", ebenen.Ebene);       // Stein des Volkes (Steinebenen) bzw. Innenblatt
+            teil.SetInstanceShaderParameter("ao_ebene", ebenen.AoEbene);
             if (innen) continue;
             teil.SetInstanceShaderParameter("plaster_tint", putz);
             teil.SetInstanceShaderParameter("accent_tint", akzent);
