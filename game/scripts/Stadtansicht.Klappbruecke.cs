@@ -121,6 +121,7 @@ public partial class Stadtansicht
         var d0 = (b - a) / weite;
         // die Pfeiler kommen aus dem Wasserplan (Kern), nicht aus eigener Rechnung: Stellen ab Uferkante A; die beiden mittleren sind die Torhauspfeiler
         var stellen = q.Pfeiler.Select(p => (double)(V2(p.Ort) - a).Dot(d0)).OrderBy(u => u).ToList();
+        GD.Print($"Klappbrücke: Pfeiler des Wasserplans (m ab Ufer A): {string.Join(", ", stellen.Select(x => x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)))}; Durchfahrt {q.Durchfahrt:0.##} m");
         var torhausBreite = m.Mittelteil / 2 - (float)q.Durchfahrt / 2;           // Torhaus je Seite: (Mittelteil − Durchfahrt) / 2 = 4 m
         if (Klappbrueckenlage.Aus(weite, stellen, q.Durchfahrt, torhausBreite, m.Zwischenpfeiler) is not { } lage)
         {
@@ -217,6 +218,10 @@ public partial class Stadtansicht
                 };
                 break;
             default:
+                // zu: die Datei steht in der Pose „offen“; Anfang von „Oeffnen“ ist die Pose „zu“ (wie im Ablauf), dort anhalten
+                _klappbrueckeAnimation.Play("Oeffnen");
+                _klappbrueckeAnimation.Seek(0, true);
+                _klappbrueckeAnimation.Pause();
                 GD.Print("Klappbrücke: zu");
                 break;
         }
