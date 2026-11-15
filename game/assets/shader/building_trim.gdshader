@@ -27,6 +27,14 @@ uniform float ao_grund : hint_range(0.0, 1.0) = 0.68;   // Grundmaß der Verdeck
 uniform float ao_stroh : hint_range(0.0, 1.0) = 0.6;
 uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Regen im Haus)
 
+// Stein-Mip (Nutzer, 15.11.2026): Mit pixel_mip 2,5 blieb von Bruchstein und Quadern im Pixel-Look nur der Grundton (Zoom nah: Mip 7,65,
+// ein Texel ≈ 0,39 m). Auf den Steinbändern ist der Zuschlag kleiner (stein_mip, Standard 1 → Mip 6,15, ein Texel ≈ 0,14 m ≈ 2 Bildpunkte):
+// Die Lagenfugen (12 Texel) dunkeln dann ihre Texelzeile um etwa ein Sechstel statt ein Zwanzigstel – sichtbar, aber noch über der
+// Abtastgrenze (kein Flimmern beim Schwenken). Steinbänder je Blatt (v-Bereiche, -1 = keiner) setzt das Spiel (SteinMip.cs);
+// Standard: Band „bruchstein“ der Häuser (0,85–0,95). Putz, Holz, Stroh und Schiefer behalten pixel_mip.
+uniform float stein_mip = 1.0;
+uniform vec4 stein_baender = vec4(0.85, 0.95, -1.0, -1.0);
+
 // Pro Gebäude-Instanz in Godot variierbar (ohne neues Material!):
 instance uniform vec3 plaster_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 wood_tint : source_color = vec3(1.0, 1.0, 1.0);
@@ -43,7 +51,8 @@ void vertex() {
 }
 
 void fragment() {
-	float grob = pixel_look * pixel_mip;
+	bool stein = (UV.y >= stein_baender.x && UV.y < stein_baender.y) || (UV.y >= stein_baender.z && UV.y < stein_baender.w);
+	float grob = pixel_look * (stein ? stein_mip : pixel_mip);
 	vec4 tex = texture(albedo_tex, UV, grob);
 	vec3 orm = texture(orm_tex, UV, grob).rgb;
 	float house_ao = texture(ao_uv2_tex, UV2).r;
