@@ -2861,3 +2861,25 @@ Gemessen auf main 8b57ef72 + diesen Branch (fcd76d02) gegen main 8b57ef72, `mess
 | Gardist | 33.533 | 33.533 | 0,0 % |
 
 Alles im Rauschen (die Streuung je Beruf liegt bei 20 Startwerten im Bereich weniger Prozent; der Gardist rechnet ohne Zufall der Züge). Außerhalb ±15 % gegen das Mittel: main Gardist −16 %, mit Versehrungen Dieb −16 % und Gardist −16 % (der Dieb lag schon knapp darunter). KI ÷ Bezug Median 0,88 → 0,84, bei „Schwer“ 0,91 → 0,91; Einbruch ins Wohnhaus 0,50 → 0,46 im Jahr. Dateien: `docs/messungen/balancing-2026-11-14-versehrt-vorher.json`, `…-nachher.json`.
+
+## Erntejahr und Härte der Zeit (Datenversion 91, 15.11.2026)
+
+Jede Ernte im Herbstjahr ist gut, gewöhnlich, mager oder eine Missernte und verschiebt bis zur nächsten Ernte die Grundversorgung von Gerste und Roggen (voll) sowie Körnermahlzeit, Dünnbier, Starkbier und Festbier (halb). Preis nach der Formel des Markts (Elastizität 0,5, nur NPC-Angebot): Missernte Gerste +41 %, mager +15 %, gut −11 %. Werte und Stufen in `docs/bereiche/kern.md`, „Erntejahr und Härte der Zeit“.
+
+Gemessen auf main bd678e2a + diesen Branch (caab3362) gegen main bd678e2a, `messen bericht 20 20 --teile=1` (220 Partien je Lauf, 4 Kerne, nice 19), je Lauf `--haerte=mild|ueberliefert|hart`. Reinvermögen nach 20 Jahren, ein Betrieb, KI-geführt (main mit Fehler des Mittels):
+
+| Beruf | main | Milde Jahre | Wie überliefert | Harte Jahre |
+|---|---|---|---|---|
+| Schmied | 40.579 (±1.121) | 40.568 (−0,0 %) | 40.274 (−0,8 %) | 39.034 (−3,8 %) |
+| Tischler | 36.580 (±1.245) | 37.413 (+2,3 %) | 36.224 (−1,0 %) | 35.700 (−2,4 %) |
+| Steinmetz | 42.709 (±1.428) | 42.174 (−1,3 %) | 41.900 (−1,9 %) | 42.335 (−0,9 %) |
+| Alchimist | 40.563 (±1.249) | 41.664 (+2,7 %) | 41.086 (+1,3 %) | 39.165 (−3,4 %) |
+| Wirt | 38.856 (±1.161) | 39.288 (+1,1 %) | 41.025 (+5,6 %) | 41.719 (+7,4 %) |
+| Prediger | 42.166 (±1.455) | 42.228 (+0,1 %) | 42.386 (+0,5 %) | 42.810 (+1,5 %) |
+| Dieb | 33.913 (±1.013) | 34.350 (+1,3 %) | 34.294 (+1,1 %) | 33.709 (−0,6 %) |
+| Parfumeur | 42.378 (±1.492) | 41.480 (−2,1 %) | 41.393 (−2,3 %) | 41.747 (−1,5 %) |
+| Geldleiher | 41.920 (±1.199) | 41.378 (−1,3 %) | 40.745 (−2,8 %) | 39.418 (−6,0 %) |
+| Gardist | 33.708 (±820) | 33.764 (+0,2 %) | 33.331 (−1,1 %) | 33.219 (−1,5 %) |
+| Dieb (wagemutig, nicht im Mittel) | 25.648 (±1.372) | 25.449 (−0,8 %) | 26.120 (+1,8 %) | 24.248 (−5,5 %) |
+
+Milde Jahre: Rauschen (alle Abstände unter zwei Fehlern des Mittels). Wie überliefert: Rauschen bis knapp spürbar, nur der Wirt +5,6 % (er verkauft Körnermahlzeit und Dünnbier, die nach schlechten Ernten teurer sind). Harte Jahre: spürbar, nicht zerstörerisch – Wirt +7,4 %, Geldleiher −6,0 %, Schmied −3,8 %, Alchimist −3,4 %. Außerhalb ±15 % gegen das Mittel: main Dieb −15,3 % und Gardist −15,9 %; mit Ernte nur der Gardist (−16,0 / −16,8 / −16,2 %). Kein Beruf fällt neu aus dem Band. Werte nicht nachgesteuert. Die KI lagert auf die Ansage hin noch nicht gezielt ein (Offen bei spiel-ki). Dateien: `docs/messungen/balancing-2026-11-15-haerte-{main,mild,ueberliefert,hart}.json`.
