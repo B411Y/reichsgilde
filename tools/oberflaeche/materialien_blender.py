@@ -15,7 +15,7 @@ Maserung, Ziegel als Höhe und Farbe je Eckpunkt) und für das Stroh Tausende Ha
 Mal auf der Gegenseite: Das Bild ist nahtlos. Die Kamera schaut senkrecht auf die Fläche (orthografisch), Cycles backt Grundfarbe,
 Normale, Umgebungsverdeckung, Höhe und Rauheit. Der obere Bildrand ist auf der Wand **oben**, auf dem Dach **firstwärts**.
 
-Schreibt nach game/assets/texturen/modelle/ (Format wie beim Boden, Beschreibung in docs/ARCHITEKTUR.md, „Material-Bibliothek“):
+Schreibt nach game/assets/texturen/modelle/ (Format wie beim Boden, Beschreibung in docs/architektur/modelle.md, „Material-Bibliothek“):
     modelle_farbe_hoehe.webp     RGBA: RGB Farbe (sRGB, Verdeckung eingerechnet, verlustbehaftet q95), A Höhe (1 tief … 255 hoch,
                                  verlustfrei)
     modelle_normal_rauheit.webp  RGB:  R/G Normale (OpenGL: G+ zum oberen Bildrand), B Rauheit; verlustfrei

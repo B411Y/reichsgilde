@@ -5,7 +5,7 @@
 #  Linux wird in einem Container mit glibc 2.28 gebaut (wie Godot selbst), damit die
 #  Bibliothek auf den meisten Linux-Rechnern der Spieler läuft; dazu Windows x86_64.
 #  Ergebnis: Artefakt "tressfx-bau" mit den Bibliotheken, SHA256SUMS und glibc-Bericht.
-#  Die Binärdateien kommen NICHT ins Repository. Doku: docs/ARCHITEKTUR.md (Fremd-Erweiterungen).
+#  Die Binärdateien kommen NICHT ins Repository. Doku: docs/architektur/infra.md (Fremd-Erweiterungen).
 #  Ablage: Bei "Run workflow" und bei Push auf main entsteht ein GitHub-Release "tressfx-<Kurzcommit der
 #  Quelle>" mit Bibliotheken, Addon-Dateien (zip), Lizenzen und Prüfsummen. Der Export holt es mit
 #  tools/tressfx_holen.sh (Version und Prüfsummen in tools/tressfx.version).

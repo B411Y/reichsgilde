@@ -275,7 +275,7 @@ Ohne Witwenrecht wären es nach 30 Jahren 18–27 %. Das Dynastie-Risiko der Elb
 | Bestechungsgeld über 30 Jahre | 1.800 | 2.100 |
 | Schuldsprüche gegen den Rivalen | – | 81 in 20 Partien (≈ 4 je Partie), davon 73 mit Amtsverlust |
 
-**Verlauf der Balance** (siehe ARCHITEKTUR, Lehrstück):
+**Verlauf der Balance** (siehe `docs/architektur/kern-gesellschaft.md`, Lehrstück):
 1. Ohne Obergrenze für die Gunstwirkung kaufte sich die KI frei: 62 Freisprüche zu 1 Schuldspruch.
 2. Mit Obergrenze, aber ohne vorsichtige KI: 97 Schuldsprüche in 10 Partien, und die KI verlor 30.000 Gulden.
 3. Endstand: Die KI rechnet unter Beobachtung mit erwarteter Buße (Kosten × 2,5) und besticht nur, wenn drei Jahre Nutzen das übersteigen.
@@ -2768,7 +2768,7 @@ Vor dem Rücken der Greybox (Stand `7b6465b7`, 100 Startwerte): mit Los Gardist 
 
 ## Entscheidungen: Unterwelt, Krankheit, Erbe, Geheimnis, Mahnung (Benachrichtigungen Stufe 3, Datenversion 81 und 82, 10.11.2026)
 
-Häuser von Menschen bekommen Fragen mit Frist und Voreinstellung (Einzelheiten in `ARCHITEKTUR.md` und `docs/bereiche/kern.md`). Auf die Wirtschaft wirkt nur, was die **Voreinstellung** tut, wenn niemand antwortet: Lösegeld wird gezahlt, wenn das Geld reicht (sonst wie bisher abgelehnt); bei einer Krankheit kommt der Medicus, wenn bezahlbar (120 Gulden, Pest 300), sonst Kräuterschnaps aus der Hausapotheke; Erbe, Geheimnis, Mahnung, Erpresserbrief und Schutzgeld tun nichts (wie bisher). KI-Häuser antworten wie bisher selbst.
+Häuser von Menschen bekommen Fragen mit Frist und Voreinstellung (Einzelheiten in `docs/architektur/oberflaeche.md` und `docs/bereiche/kern.md`). Auf die Wirtschaft wirkt nur, was die **Voreinstellung** tut, wenn niemand antwortet: Lösegeld wird gezahlt, wenn das Geld reicht (sonst wie bisher abgelehnt); bei einer Krankheit kommt der Medicus, wenn bezahlbar (120 Gulden, Pest 300), sonst Kräuterschnaps aus der Hausapotheke; Erbe, Geheimnis, Mahnung, Erpresserbrief und Schutzgeld tun nichts (wie bisher). KI-Häuser antworten wie bisher selbst.
 
 **Messung** `messen bericht 20 20` (900 Partien), gemessen auf main d6d30810 (gleicher Kern wie main c4ceaf06, dazwischen nur Shader) gegen main c4ceaf06 + Teil 1 und 2 (Branch `phase5/entscheidungen-kern2`, 71b69aa1); JSON `docs/messungen/balancing-2026-11-10-entscheidungen-vorher.json` und `…-nachher.json`.
 

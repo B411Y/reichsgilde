@@ -1,4 +1,4 @@
-// Oberflächendetails für die Modelle (Grafikoption, Einbau: game/scripts/Oberflaechendetails.cs, Beschreibung in docs/ARCHITEKTUR.md).
+// Oberflächendetails für die Modelle (Grafikoption, Einbau: game/scripts/Oberflaechendetails.cs, Beschreibung in docs/architektur/modelle.md).
 // Die Grundfarbe des Modells bleibt bestimmend; je Materialart kommt eine dezente Struktur dazu: Steine mit leichten Farbunterschieden
 // und weichen Fugen, Maserung mit Ästen, Ziegel mit leichter Abnutzung, Stroh mit Halmen, Laub mit Blättern, Boden mit Körnung –
 // und eine leichte Unebenheit im Licht (Normale). Licht und Schatten sind Godots eigene (kein light()).
