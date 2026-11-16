@@ -1277,7 +1277,7 @@ def main():
         versteinern(huelle[0], bis=None if "schuppen" not in F else sh0)
         versteinern(huelle[1], bis=None if "schuppen" not in F else sd0)
     zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]
-    fahne = baue_fahne()
+    fahne = g1.fahne_verankern(baue_fahne(), huelle[1])      # Mast im Dach verankert, Schelle am Fuss (Mensch-Nachtrag 16.11.2026)
     m_raum, gegenstaende, einr = moebel()
     raum = [baue_raum(), baue_fensterseiten(), baue_decke(), baue_schmuck()] + m_raum
     zimmertueren, tuer_mitten = baue_zimmertueren()

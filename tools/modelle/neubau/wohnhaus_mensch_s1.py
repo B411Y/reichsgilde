@@ -265,10 +265,11 @@ def fachwerk(h, wand, z0, z1, ganz=True, raehm=True):
 
 
 def scheitholz(h, wand, a_start):
-    """Scheitholzstapel an einer Wand unter dem Dachueberstand (zwoelf Scheite in drei Lagen, Stirnseiten hell)."""
+    """Scheitholzstapel an einer Wand unter dem Dachueberstand (zwoelf Scheite in drei Lagen, Stirnseiten hell). Achsabstand 0,18 m =
+    1 cm Fuge (vorher 2 cm: Durchblick bis an die Hauswand, luecken_pruefung; Mensch-Nachtrag 16.11.2026)."""
     (ox, oy), (ex, ey), _, _ = F.WAENDE[wand]
     start = ox if ex else oy
-    for i, (ds, z) in enumerate([(0.19 * k, 0.09) for k in range(5)] + [(0.09 + 0.19 * k, 0.26) for k in range(4)] + [(0.19 + 0.19 * k, 0.43) for k in range(3)]):
+    for i, (ds, z) in enumerate([(0.18 * k, 0.09) for k in range(5)] + [(0.09 + 0.18 * k, 0.26) for k in range(4)] + [(0.18 + 0.18 * k, 0.43) for k in range(3)]):
         s = a_start - start + ds
         a, b = punkt(wand, s, z, 0.03), punkt(wand, s + 0.008 * (i % 3 - 1), z, 0.62)   # schraeg, ohne sich zu durchdringen
         h.stab("Fachwerk", a, b, 0.17, "balken_a", kappen=False)
@@ -387,6 +388,13 @@ def baue_laube(h):
     for x, richtungen in ((xs[0], (1,)), (xs[1], (-1, 1)), (xs[2], (-1,))):
         for r in richtungen:
             h.stab(holz, (x + r * 0.08, yl, zr - 0.72), (x + r * 0.70, yl, zr - 0.09), 0.10, "balken_a")
+            # das Dreieck zwischen Pfosten, Rahmholz und Kopfband mit stehenden Brettern gefuellt (durch die Felder sah man 0,6 m tief
+            # bis an die Hauswand, luecken_pruefung „Durchblick“; die Laube bleibt darunter offen; Mensch-Nachtrag 16.11.2026, wie bei
+            # den Zwergen). Bretter von beiden Seiten sichtbar; u laeuft die Hoehe hinauf, v quer ueber die Bretter im Band „planken“
+            a, b, c = Vector((x + r * 0.08, yl, zr - 0.72)), Vector((x + r * 0.08, yl, zr - 0.09)), Vector((x + r * 0.70, yl, zr - 0.09))
+            for dy, seite in ((-0.012, -1), (0.012, 1)):
+                v = Vector((0, dy, 0))
+                h.vieleck(holz, [a + v, b + v, c + v], [(0.10, 0.705), (0.2575, 0.705), (0.2575, 0.77)], weg_von=(x, yl - seite * 5, zr - 0.3))
     # Verbretterung des Giebels ueber dem Rahmholz: stehende Bretter bis unter die Dachflaechen und den Walm
     oben = lambda p: min(dach_z(p.x) - 0.02, F.Z_WALM + 0.10)
     bretterwand(h, holz, (-F.OX, yl, 0), (F.OX, yl, 0), zr + 0.09, oben, "planken",
@@ -847,12 +855,18 @@ def baue_schuppen(h):
         h.stab(holz, Vector((xa, y, schuppen_z(xa) + 0.07)), Vector((xb, y, schuppen_z(xb) + 0.07)), 0.03, "balken_b", breite=0.07)
     for y in (y0 + 0.5, (y0 + y1) / 2, y1 - 0.5):                                   # Sparren, an der Stirn zu sehen
         h.stab(holz, Vector((xa, y, schuppen_z(xa) - 0.06)), Vector((xb - 0.04, y, schuppen_z(xb - 0.04) - 0.06)), 0.12, "balken_a", breite=0.09)
+    # Windbrett an Vorder- und Rueckwand unter dem Pultdach: zwischen Wandkrone und Dach blieb ein Spalt von 2 cm, durch den man in den
+    # Schuppen sah (luecken_pruefung „Durchblick“; Mensch-Nachtrag 16.11.2026, wie bei den Zwergen)
+    for y, aussen in ((y0, -1), (y1, 1)):
+        a = Vector((g1.OX, y + aussen * 0.002, schuppen_z(g1.OX) - 0.04))
+        b = Vector((x1, y + aussen * 0.002, schuppen_z(x1) - 0.04))
+        h.brett(holz, a, b, 0.11, (0, aussen, 0), "balken_c", tiefe=0.03)
 
 
 def scheitholz_links(h):
     """Das Scheitholz der Probe lag an der rechten Seitenwand; dort steht jetzt der Schuppen – es liegt an der linken."""
     h.flaechen = [fl for fl in h.flaechen if not (min(p.x for p in fl[0]) > g1.BX + 0.02 and max(p.z for p in fl[0]) < 0.6 and 0.3 < sum(p.y for p in fl[0]) / len(fl[0]) < 1.6)]
-    for i, (y, z) in enumerate([(0.75 + 0.19 * k, 0.09) for k in range(5)] + [(0.84 + 0.19 * k, 0.26) for k in range(4)] + [(0.94 + 0.19 * k, 0.43) for k in range(3)]):
+    for i, (y, z) in enumerate([(0.75 + 0.18 * k, 0.09) for k in range(5)] + [(0.84 + 0.18 * k, 0.26) for k in range(4)] + [(0.93 + 0.18 * k, 0.43) for k in range(3)]):   # 1 cm Fuge
         h.stab("Fachwerk", (-g1.BX - 0.03, y, z), (-g1.BX - 0.62, y + 0.008 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)   # schraeg, ohne sich zu durchdringen
         h.rechteck("Fachwerk", (-g1.BX - 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=(0, y, z), anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
 
@@ -977,7 +991,7 @@ def main():
     m_welt, t_welt = F.WELT
     alle = t["huelle"] + [t["scheiben"]] + t["zusatz"] + t["raum"] + t["gegenstaende"] + t["einrichtung"] + [t["glas"]]
     versetze_alle(alle + t["anker_aussen"] + t["anker_innen"] + t["steht"] + [t["fahne_ort"]], m_welt, t_welt)
-    fahne = baue_fahne(*t["fahne_ort"].ort)
+    fahne = g1.fahne_verankern(baue_fahne(*t["fahne_ort"].ort), t["huelle"][1])     # Mast im Dach verankert (Mensch-Nachtrag 16.11.2026)
     if F.nr != 3: t["zusatz"].append(baue_geruest(**F.GERUEST))
 
     zaehle = lambda teile: {x.name: x.dreiecke() for x in teile}

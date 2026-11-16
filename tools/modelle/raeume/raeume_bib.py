@@ -134,18 +134,30 @@ def decke(teil, bretter="dielen", balken="balken"):
 
 
 def fensterlaibung(teil, band, bank_band=None):
-    """Rahmen und Bank auf der Innenwand um jede Fensteroeffnung (wie in der Wohnstube); das Fensterkreuz ist das der Huelle."""
+    """Rahmen und Bank auf der Innenwand um jede Fensteroeffnung (wie in der Wohnstube); das Fensterkreuz ist das der Huelle.
+    Ein Fensterpaar (Abstand unter 0,30 m, gleiche Hoehe) bekommt durchgehende Bretter oben und unten und einen gemeinsamen
+    Mittelpfosten: zwei einzelne Rahmen lagen im Pfeiler deckungsgleich uebereinander (uv2_pruefung 12; Mensch-Nachtrag 16.11.2026,
+    wie bei den Zwergen)."""
     for wand in ("vorn", "links"):
-        for a0, a1, z0, z1 in fenster_der_wand(wand):
-            n = wandpunkt(wand, 0, 0, 1) - wandpunkt(wand, 0, 0, 0)
-            for a, b, breite in ((wandpunkt(wand, a0 - 0.10, z0 - 0.04), wandpunkt(wand, a1 + 0.10, z0 - 0.04), 0.08),
-                                 (wandpunkt(wand, a0 - 0.10, z1 + 0.04), wandpunkt(wand, a1 + 0.10, z1 + 0.04), 0.08),
-                                 (wandpunkt(wand, a0 - 0.05, z0), wandpunkt(wand, a0 - 0.05, z1), 0.10),
-                                 (wandpunkt(wand, a1 + 0.05, z0), wandpunkt(wand, a1 + 0.05, z1), 0.10)):
+        gruppen = []
+        for f in sorted(fenster_der_wand(wand)):
+            if gruppen and f[0] - gruppen[-1][-1][1] < 0.30 and abs(f[2] - gruppen[-1][-1][2]) < 1e-3: gruppen[-1].append(f)
+            else: gruppen.append([f])
+        n = wandpunkt(wand, 0, 0, 1) - wandpunkt(wand, 0, 0, 0)
+        for g in gruppen:
+            a0, a1, z0, z1 = g[0][0], g[-1][1], g[0][2], g[0][3]
+            bretter = [(wandpunkt(wand, a0 - 0.10, z0 - 0.04), wandpunkt(wand, a1 + 0.10, z0 - 0.04), 0.08),
+                       (wandpunkt(wand, a0 - 0.10, z1 + 0.04), wandpunkt(wand, a1 + 0.10, z1 + 0.04), 0.08),
+                       (wandpunkt(wand, a0 - 0.05, z0), wandpunkt(wand, a0 - 0.05, z1), 0.10),
+                       (wandpunkt(wand, a1 + 0.05, z0), wandpunkt(wand, a1 + 0.05, z1), 0.10)]
+            for (_, b_, _, _), (c_, _, _, _) in zip(g, g[1:]):          # Mittelpfosten im Pfeiler
+                bretter.append((wandpunkt(wand, (b_ + c_) / 2, z0), wandpunkt(wand, (b_ + c_) / 2, z1), c_ - b_))
+            for a, b, breite in bretter:
                 teil.brett(S, a, b, breite, n, band, tiefe=0.035)
             if bank_band:   # tiefe Fensterbank in der Laibung
-                p0 = wandpunkt(wand, a0, z0, 0.04); p1 = wandpunkt(wand, a1, z0, -M.T / 2 + 0.03)
-                teil.kasten(S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.03), (max(p0.x, p1.x), max(p0.y, p1.y), z0), bank_band)
+                for f0, f1, _, _ in g:
+                    p0 = wandpunkt(wand, f0, z0, 0.04); p1 = wandpunkt(wand, f1, z0, -M.T / 2 + 0.03)
+                    teil.kasten(S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.03), (max(p0.x, p1.x), max(p0.y, p1.y), z0), bank_band)
 
 
 def spitzbogenfenster(teil, band, rahmen_band, wand, a0, a1, z0, z1, kaempfer, glas_teil=None):
