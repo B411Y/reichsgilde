@@ -266,12 +266,13 @@ def fachwerk(h, wand, z0, z1, ganz=True, raehm=True):
 
 def scheitholz(h, wand, a_start):
     """Scheitholzstapel an einer Wand unter dem Dachueberstand (zwoelf Scheite in drei Lagen, Stirnseiten hell). Achsabstand 0,18 m =
-    1 cm Fuge (vorher 2 cm: Durchblick bis an die Hauswand, luecken_pruefung; Mensch-Nachtrag 16.11.2026)."""
+    1 cm Fuge und gerade wie im Steinhaus (vorher 2 cm und schraeg: an der Stirn bis 1,8 cm, Durchblick bis an die Hauswand,
+    luecken_pruefung; Mensch-Nachtrag 16.11.2026)."""
     (ox, oy), (ex, ey), _, _ = F.WAENDE[wand]
     start = ox if ex else oy
     for i, (ds, z) in enumerate([(0.18 * k, 0.09) for k in range(5)] + [(0.09 + 0.18 * k, 0.26) for k in range(4)] + [(0.18 + 0.18 * k, 0.43) for k in range(3)]):
         s = a_start - start + ds
-        a, b = punkt(wand, s, z, 0.03), punkt(wand, s + 0.008 * (i % 3 - 1), z, 0.62)   # schraeg, ohne sich zu durchdringen
+        a, b = punkt(wand, s, z, 0.03), punkt(wand, s, z, 0.62)
         h.stab("Fachwerk", a, b, 0.17, "balken_a", kappen=False)
         quer = Vector((ex, ey, 0))
         h.rechteck("Fachwerk", b - quer * 0.085 - EZ * 0.085, quer, EZ, 0.17, 0.17, "farbholz", weg_von=a, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))

@@ -79,7 +79,7 @@ def dach_band(blatt, q, ton, kontrast=1.1, eigenfarbe=0.35, ab=0):
 # „stroh“ und „stroh_franse“ in der gespeicherten PNG (Werte 0..1 der sRGB-Bytes). Vorher Schiefer 0,12 (sRGB rund 31, linear 0,014:
 # „Schieferdaecher Mensch S3 tags fast schwarz“) und Ziegel 0,08 (Farbe sRGB 49/14/8, linear 0,010: dunkler als der Schiefer).
 SCHIEFER_HELL = 0.33      # wie bei den Zwergen: sRGB rund 85, sichtbar dunkelgrauer Schiefer mit Struktur
-ZIEGEL_HELL = 0.20        # Tonziegel: sRGB rund 118/34/18 (dunkles Ziegelrot statt fast schwarz)
+ZIEGEL_HELL = 0.20        # Tonziegel: sRGB rund 101/39/24 (dunkles Ziegelrot statt fast schwarz)
 
 
 def dach_aufhellen(blatt, ziel):
