@@ -48,21 +48,23 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026, die Hofstellen seit 9.11.2026, Köln mit nur drei Kirchen seit 11.11.2026): 6.835 Felder, Pflicht und Reserve passen – 84 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle und das Rathaus am Alter Markt seit 9.11.2026, die Hofstellen seit 9.11.2026, Köln mit nur drei Kirchen seit 11.11.2026, die Startgebäude in der Pflicht seit 16.11.2026): 8.495 Felder, Pflicht und Reserve passen – 75 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
                 "Stadt-Bauzonen: 8495 Felder, davon fest belegt 0",   // seit 16.11.2026 ohne die Werkstatt- und Wohnhausplätze (vorher 1.133 Felder unter den 32 alten Plätzen)
+                "Pflicht Werkstatt am Start (Kern und Mauerring): 8 von 8 passen", "Pflicht Wohnhaus am Start (Kern und Mauerring): 8 von 8 passen", // seit 16.11.2026
                 "Pflicht Werkstatt: 16 von 16 passen", // bis 16.11.2026 acht auf freien Hofstellen, acht in den Zonen
                 "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 6983 Felder (82%), nach der Reserve: 6519 Felder", // mit den alten Plätzen 6.298 (74 %) und 5.834
+                "Frei nach der Pflicht: 6375 Felder (75%), nach der Reserve: 5911 Felder", // ohne die Startgebäude 6.983 (82 %) und 6.519, mit den alten Plätzen 6.298 (74 %) und 5.834
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve (16 Werkstätten, 56 Häuser der Pflicht, 12 der Reserve); feste keine mehr
-            Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
-            Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
+            // Die gesetzten Gebäude: alle 100 aus Pflicht und Reserve (8 + 16 Werkstätten, 8 Wohnhäuser am Start, 56 Häuser der Pflicht, 12 der Reserve); feste keine mehr
+            Pruefe.Gleich(100, k.Plaetze.Count(p => p.Art != "fest"));
+            Pruefe.Gleich(24 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
+            Pruefe.Gleich(8 * 20, k.Plaetze.Where(p => p.Art == "Wohnhaus").Sum(p => p.Felder.Count));
             Pruefe.Gleich(0, k.Plaetze.Count(p => p.Art == "fest"));
         }),
 
@@ -82,7 +84,9 @@ static class KartenbauTests
                 // seit dem Aufräumen (16.11.2026; keine Plätze mehr, also nichts fest belegt; Greybox ohne die zwei Gassen in K4 und mit dem Hof als Vorstadt,
                 // Messstadt mit Zonen im Stadtinneren): Köln vorher 0 / 108 / 2.671 / −9.672.404, Greybox 4 / 41 / 1.327 / −5.675.165,
                 // Probestadt 0 / 94 / 2.312 / 6.589.340, Messstadt 0 / 79 / 1.696 / 5.021.759
-                ("koeln", 0, 84, 1976, 12452268L), ("greybox", 2, 52, 1285, -3610854L), ("probestadt", 0, 84, 1976, 6241256L), ("messstadt", 0, 84, 1976, -13917464L),
+                // seit den Startgebäuden in der Pflicht (16.11.2026): Köln vorher 0 / 84 / 1.976 / 12.452.268, Greybox 2 / 52 / 1.285 / −3.610.854,
+                // Probestadt 0 / 84 / 1.976 / 6.241.256, Messstadt 0 / 84 / 1.976 / −13.917.464
+                ("koeln", 0, 100, 2584, 2856704L), ("greybox", 3, 46, 1319, -6144997L), ("probestadt", 0, 100, 2584, -5967037L), ("messstadt", 0, 100, 2584, -28830371L),
             };
             var gemessen = erwartet.Select(x =>
             {
@@ -108,7 +112,7 @@ static class KartenbauTests
             var koeln = Oeffnen("koeln");
             Pruefe.Wahr(!koeln.HatFehler, Liste(Fehler(koeln)));
             foreach (var z in koeln.Bauzonen.ToList()) koeln.FlaecheLoeschen(z);
-            Pruefe.Wahr(Fehler(koeln).Count(b => b.Regel == "kapazitaet") == 4, Liste(Fehler(koeln)));
+            Pruefe.Wahr(Fehler(koeln).Count(b => b.Regel == "kapazitaet") == 6, Liste(Fehler(koeln))); // seit 16.11.2026 mit den zwei Startgebäuden
         }),
 
         ("Kapazität Köln: unter 150 ms (Release, Median), und die Kartenwerkstatt rechnet sie nur neu, wenn sich Gebäude, Wege oder Bauzonen ändern", () =>
