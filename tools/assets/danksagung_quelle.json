@@ -203,7 +203,9 @@
           "pflicht": false,
           "deckt": [
             "game/assets/texturen/neubau/haeuser_ebenen_",
-            "game/assets/texturen/bruecke/bruecke_trim_"
+            "game/assets/texturen/bruecke/bruecke_trim_",
+            "game/assets/texturen/bruecke/bruecke_ebenen_",
+            "game/assets/texturen/neubau/rathaus_ebenen_"
           ]
         }
       ],
