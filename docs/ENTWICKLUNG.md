@@ -53,7 +53,8 @@ reichsgilde/
 ├── tools/oberflaeche/texturen.py   Strukturen der Oberflächendetails (Python + numpy)
 ├── tools/oberflaeche/materialien_blender.py   Material-Bibliothek der Modelle (Blender, Cycles)
 ├── docs/
-│   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
+│   ├── ARCHITEKTUR.md              Übersicht: wie der Code aufgebaut ist und warum
+│   ├── architektur/                Ausführliche Architektur je Bereich (kern, darstellung, oberflaeche …), Übersicht in ARCHITEKTUR.md
 │   ├── assets/                     Asset-Protokoll (Herkunft jeder Grafik, jedes Modells …), Prompts der Bild-KIs, Steam-Liste der KI-Inhalte
 │   ├── ENTWICKLUNG.md              Projektstruktur, Tests, Export, automatische Prüfung (diese Datei)
 │   ├── bereiche/                   Offene Punkte und aktuelle Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …);
