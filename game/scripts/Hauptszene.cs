@@ -63,7 +63,8 @@ namespace Reichsgilde;
 ///   --hafen=1          die Hafentafel des ersten Hafens öffnen (=<Kennung> eines Hafens der Karte, =staedte: auf dem Reiter „Ferne Städte“)
 ///   --vermoegen=12000  Startvermögen des Spielers setzen (zum Ausprobieren des Aufstiegs)
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
-///   --hofstelle=S3     Hofstelle des Spielers (Kennung aus der Karte, z. B. S3 in Köln; zufall oder ohne Angabe: gelost)
+///   --startwahl=1      die Partie beginnt mit der Platzwahl wie aus dem Menü: erst das Wohnhaus, dann die Werkstatt in eine Bauzone setzen
+///                      (ohne Angabe: gelost wie die KI-Häuser; mit --bauen=1 --bauort=x,z,drehung --bauklick=1|2 sitzt der Umriss gleich dort)
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen (--ratamt=Zöllner wählt dazu einen Knoten im Ratsbaum)
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
@@ -710,6 +711,7 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
         if (!optionen.ContainsKey("blick")) KameraAufEigenenHof(); // neue Partie: der Blick beginnt über der eigenen Hofstelle
+        _startOptionen = optionen; // nach der Platzwahl am Start folgt der Hinweis (Hauptszene.Startwahl.cs)
         StartHinweisZeigen(optionen); // einmaliger Hinweis zum Personalbuch (Hauptszene.Starthinweis.cs)
         if (optionen.TryGetValue("baum", out var baumWahl)) // Talentbaum der Einrichtung von außen: wohnhaus oder betrieb (eigene Werkstatt)
         {
@@ -1058,9 +1060,9 @@ public partial class Hauptszene : Node
         // hat, geht nicht – auch eine Wahl aus dem Menü wird darauf begrenzt
         var haeuser = (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
         neu ??= new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
-            Hofstelle: optionen.TryGetValue("hofstelle", out var hof) && !hof.Equals("zufall", StringComparison.OrdinalIgnoreCase) ? hof : null,
             Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null,
-            Rivalen: haeuser);
+            Rivalen: haeuser,
+            Startwahl: optionen.GetValueOrDefault("startwahl") == "1"); // --startwahl=1: der Spieler setzt Wohnhaus und Werkstatt selbst (Hauptszene.Startwahl.cs)
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
         einstellungen ??= Partieeinstellungen.Standard;
         if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
@@ -1260,6 +1262,7 @@ public partial class Hauptszene : Node
 
     public override void _Process(double delta)
     {
+        StartwahlPflegen(); // Platzwahl am Start: vor dem ersten Tick anhalten, Tafel offen halten (Hauptszene.Startwahl.cs)
         _simulation.Aktualisieren(delta);
         EgoPruefen();
         WegTippNachfuehren();
@@ -1358,7 +1361,7 @@ public partial class Hauptszene : Node
                 _bauFrage.Zurueck();
             else if (_wegTafel.Aktiv)
                 _wegTafel.Schliessen();
-            else if (_bau.Aktiv)
+            else if (_bau.Aktiv && !_bau.Startwahl) // Platzwahl am Start: kein Schritt zurück, Esc öffnet das Spielmenü
                 _bau.Zurueck();
             else if (Fensterrahmen.ObersteSchliessen())
             { /* das zuletzt geöffnete oder angeklickte Fenster ist zu (Mitte, Innentafeln, Wohnhaus, Bericht, Hafen) */ }
@@ -1747,6 +1750,7 @@ public partial class Hauptszene : Node
     {
         BauenOeffnen();
         if (wahl == "wege" && _bau.Aktiv) _bau.WegeModus = true; // der Wege-Modus des Baumenüs (Klicks mit KLICKS=…)
+        if (wahl == "1" && _bau.Startwahl) { BauOrtAusOptionen(optionen); return; } // Platzwahl am Start: das Gebäude steht fest (--startwahl=1)
         if (wahl is "1" or "wege" || !_bau.Aktiv) return;
         var teile = wahl.Split(':', 2);
         Func<double, double, int, BauBefehl>? erzeuger = null;
@@ -1760,6 +1764,12 @@ public partial class Hauptszene : Node
             return;
         }
         _bau.Waehlen(wahl, erzeuger);
+        BauOrtAusOptionen(optionen);
+    }
+
+    /// <summary><c>--bauort=x,z,drehung</c> setzt den Umriss an diese Weltstelle, <c>--bauklick=1|2</c> klickt dort (Rückfrage bzw. gleich bauen).</summary>
+    private void BauOrtAusOptionen(Dictionary<string, string> optionen)
+    {
         if (optionen.TryGetValue("bauort", out var ort))
         {
             var zahlen = ort.Split(',').Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray();

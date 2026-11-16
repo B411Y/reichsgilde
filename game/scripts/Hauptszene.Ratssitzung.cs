@@ -129,6 +129,7 @@ public partial class Hauptszene
         var gruende = Zeithalt.Gruende(einzelspiel: DarfAnhalten && !_simulation.IstBeendet, stimmrundeOffen: _stimmrunde.Visible,
             sitzung: _sitzungZuZeigen is not null || _wiedergabeJahresende && _sitzungsTafel.Laeuft,
             berichtOffen: _jahresbericht.Visible, berichtWartet: _jahresberichtWartet);
+        if (StartwahlHaelt) gruende = gruende.Append(HaltegrundPlatzwahl).ToList(); // Platzwahl am Start (Hauptszene.Startwahl.cs)
         var takt = _simulation.Takt;
         foreach (var wechsel in Zeithalt.Abgleichen(takt, gruende)) // Log für den Klicktest: Reihenfolge der Pausengründe
             GD.Print($"Zeit: {wechsel} · {_simulation.Zeit.DatumText} {_simulation.Zeit.UhrzeitText}, Tempo {takt.Tempo}×{(takt.Spielerpause ? ", eigene Pause" : "")}");

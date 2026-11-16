@@ -61,7 +61,6 @@ public partial class Hauptmenue : Node
     private SpinBox _startvermoegen = null!;
     private SpinBox _aktionspunkte = null!;
     private OptionButton _beruf = null!;
-    private OptionButton _hofstelle = null!;
     private SpinBox _kiAnzahl = null!;
     private OptionButton _kiStaerke = null!;
     private OptionButton _rivale = null!;
@@ -588,30 +587,6 @@ public partial class Hauptmenue : Node
     /// <summary>Wer am Start in der Stadt lebt: die Belegung der Karte, mit der eine neue Partie beginnt (ohne Karte die eingebaute).</summary>
     private static Startbelegung Startbelegung => Stadtkarten.Startkarte?.Startbelegung ?? Startbelegung.Ersatz;
 
-    /// <summary>
-    /// Die Wahl der Hofstelle: „Zufall“ (Vorgabe) und je Start-Hofstelle der gewählten Karte ein Eintrag „Heumarkt – 120 m zum Heumarkt“.
-    /// Karten ohne Hofstellen: die Zeile verschwindet. Der Weg wird beim Wechsel der Karte einmal gerechnet (Köln einige 10 ms).
-    /// </summary>
-    private void HofstellenWahlFuellen()
-    {
-        _hofstelle.Clear();
-        _hofstelle.AddItem("Zufall", 0);
-        _hofstelle.SetItemMetadata(0, "");
-        var karte = Stadtkarten.Startkarte;
-        if (karte is { HatHofstellen: true })
-        {
-            var start = karte.Hofstellen.Where(h => h.Start).Select(h => h.Kennung).ToHashSet();
-            foreach (var a in Hofstellenvergabe.Angebot(karte).Where(a => start.Contains(a.Kennung)))
-            {
-                var text = a.Meter is { } m && a.Markt is { } markt ? $"{a.Name} – {Math.Round(m):0} m zum {markt}" : a.Name;
-                _hofstelle.AddItem(text);
-                _hofstelle.SetItemMetadata(_hofstelle.ItemCount - 1, a.Kennung);
-            }
-        }
-        _hofstelle.Select(0);
-        ZeileZeigen(_hofstelle, _hofstelle.ItemCount > 1);
-    }
-
     /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
     private string? WappenProblem()
     {
@@ -703,10 +678,10 @@ public partial class Hauptmenue : Node
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
                 Beruf: GewaehlterBeruf(_beruf)!,
                 Rivalen: (int)_kiAnzahl.Value,
-                Hofstelle: _hofstelle.Selected > 0 ? _hofstelle.GetItemMetadata(_hofstelle.Selected).AsString() : null,
                 Glaube: (Konfession)_glaube.GetSelectedId(),
                 Wappen: _wappen, Aussehen: GewaehltesAussehen,
-                KiStaerke: (KiStaerke)_kiStaerke.GetSelectedId(), KiVorgaben: vorgaben, ZugWurf: _zugWurf));
+                KiStaerke: (KiStaerke)_kiStaerke.GetSelectedId(), KiVorgaben: vorgaben, ZugWurf: _zugWurf,
+                Startwahl: true)); // „nur noch Bauzonen“: Wohnhaus und Werkstatt setzt der Spieler zu Beginn selbst (Hauptszene.Startwahl.cs)
         SpielStarten();
     }
 
