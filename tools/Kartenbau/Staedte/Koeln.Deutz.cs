@@ -14,7 +14,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      die Südmauer, eine Sackgasse. Häuser an der Westseite, an der Mauer ein Gartenstreifen.
 //
 // Die Gassen sind Wege der Klasse Gasse (Karren nehmen sie nur, wenn nichts anderes geht – sie zählen im Karrennetz doppelt); die Fahrzeiten
-// der Bauplätze bleiben, wie sie waren (Tabelle in docs/LEVELDESIGN.md). Die Häuser sind Kulissenhäuser (feste Modelle, stehen auch mit wenigen
+// der Bauplätze bleiben, wie sie waren (Tabelle in docs/leveldesign/kartendatei.md). Die Häuser sind Kulissenhäuser (feste Modelle, stehen auch mit wenigen
 // Rivalen); von den acht Einwohnerplätzen von Deutz stehen zwei an der Urbanusgasse in der Mauer, sechs vor dem Südtor. Abstände: Gassenmitte
 // mindestens 2 m zu den Bauplätzen, Häuser 2 m zu den Bauplätzen und 3 m zur Mauerlinie (Regel 1 m).
 

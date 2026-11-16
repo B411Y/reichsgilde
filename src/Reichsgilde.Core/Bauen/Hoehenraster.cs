@@ -13,7 +13,7 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Gespeichert wird in Kacheln zu 64 × 64 Punkten (128 × 128 m), ebenfalls am Boden verankert (Kachel (ti, tj) hat die Punkte
 //  i = 64·ti … 64·ti + 63). Nur Kacheln, in denen etwas nicht 0 ist, stehen im Speicher und in der Datei – eine flache Karte hat
-//  keine einzige, ihre Datei bleibt, wie sie war. Eine Kachel in der Datei (Feld „hoehen“, docs/LEVELDESIGN.md):
+//  keine einzige, ihre Datei bleibt, wie sie war. Eine Kachel in der Datei (Feld „hoehen“, docs/leveldesign/kartendatei.md):
 //    1. Jeder Punkt wird aus seinen Nachbarn vorhergesagt (links + oben − links oben, wie bei PNG „Paeth“ ohne Auswahl); gespeichert
 //       wird nur die Abweichung. Auf einem gleichmäßigen Hang ist sie 0.
 //    2. Die Abweichungen als kleine Zahlen (Zickzack: 0, −1, 1, −2 … → 0, 1, 2, 3 …), je Zahl ein Halbbyte (4 Bit): 0 bis 13 stehen für

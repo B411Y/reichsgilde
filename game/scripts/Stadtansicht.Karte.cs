@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Die Stadt aus der Karte – ein Teil der <c>partial class Stadtansicht</c>.
 ///
 /// Was wo steht, kommt nur aus der Karte der Partie (<c>Stadtwirtschaft.Karte</c>, ohne Partie die Greybox-Karte) und dem Gebäudekatalog
-/// (Kartenformat 2, <c>docs/LEVELDESIGN.md</c>): Boden, Mauern mit Toren, Marktplatz, Rathaus, Dom, Kulissenhäuser, Felsberge, Wege, die
+/// (Kartenformat 2, <c>docs/leveldesign/kartendatei.md</c>): Boden, Mauern mit Toren, Marktplatz, Rathaus, Dom, Kulissenhäuser, Felsberge, Wege, die
 /// Arbeitsstellen im Umland und die Natur. Der Code kennt keine Lagen; er liest nur die Anker der Modelle (Tür, Karrenplatz, Gatter).
 ///
 /// Lage eines Gebäudes: <c>punkt</c> ist die Mitte seiner Fläche, <c>drehung</c> der Winkel um die Hochachse in Grad wie Godot
