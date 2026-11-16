@@ -144,7 +144,23 @@ def baue_aussen(quellen):
     a, e = blatt.zeilen(B["eisen"])
     f, n, arm = eisen.streifen(e - a, ab=0)
     blatt.setze(B["eisen"], faerbe(f, (0.15, 0.14, 0.14), kontrast=0.5, eigenfarbe=0.25), n, arm, rauheit=0.62, metall=1.0)
+    schindeln_aufhellen(blatt)
     blatt.speichere("trim_zwerg")
+
+
+SCHINDEL_HELL = 0.40     # mittlerer Wert der Schindelbaender in der gespeicherten PNG (sRGB rund 100; vorher 0,25 = sRGB 62): das Haus
+                         # der Stufe 1 war aus der Ferne fast schwarz (Klicktest 16.11.2026; mittlere Albedo der Huelle 0,036 gegen 0,16 bei den
+                         # Menschen); die Schindeln des Kunstwerks sind verwittertes, mittelbraunes Holz. Der dunkle Stein bleibt (Nutzer).
+
+
+def schindeln_aufhellen(blatt):
+    """Hebt die Schindelbaender („stroh“, „stroh_franse“) auf SCHINDEL_HELL (Farbe, Zeichnung und Alpha bleiben)."""
+    for name in ("stroh", "stroh_franse"):
+        a, e = blatt.zeilen(BAENDER_AUSSEN[name])
+        lin = srgb_zu_linear(blatt.albedo[a:e, :, :3])
+        hell = float((lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean())
+        blatt.albedo[a:e, :, :3] = linear_zu_srgb(np.clip(lin * (SCHINDEL_HELL / max(hell, 1e-4)), 0, 1))
+        print(f"Schindeln {name}: Helligkeit {hell:.4f} -> {SCHINDEL_HELL}")
 
 
 def baue_innen(quellen):

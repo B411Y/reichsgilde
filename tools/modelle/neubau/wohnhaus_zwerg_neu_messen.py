@@ -167,6 +167,33 @@ def stangen_liegen(glb):
     return zeilen[:10], funde + (1 if stangen == 0 else 0)
 
 
+def fenster_innen(haus, ordner, MOD):
+    """Pruefung 24 (Klicktest 16.11.2026: „ein Fenster schwebt mitten im Raum“): jede Glasflaeche jedes Innenmodells (Wohnstube,
+    Hinterzimmer, Bibliothek) liegt in einer Oeffnung der Huelle (gleiche Wandebene auf 3 cm, Mitte in der Oeffnung) – Glas ohne
+    Aussenfenster ist ein Fehler. Dazu die Tabelle Aussenfenster je Raum (aus Pruefung 3) gegen Fenster innen. `MOD` = das Messmodul der
+    Menschen (lade, fenster_aussen, glas, rechteck) dieser Stufe; seine Lage (Baurahmen) ist durch pruefe gesetzt."""
+    fa = MOD.fenster_aussen(MOD.lade(os.path.join(ordner, f"{haus}.glb")))
+    zeilen, fehler = [], 0
+    for teil in ("_innen", "_hinterzimmer_innen", "_bibliothek_innen"):
+        pfad = os.path.join(ordner, f"{haus}{teil}.glb")
+        if not os.path.exists(pfad): continue
+        gl = MOD.glas(MOD.lade(pfad))
+        getroffen, frei = set(), 0
+        for ax, pts in gl:
+            ge, gu0, gu1, gz0, gz1 = MOD.rechteck(pts, ax)
+            cu, cz = (gu0 + gu1) / 2, (gz0 + gz1) / 2
+            f = next((i for i, (fax, e, u0, u1, z0, z1) in enumerate(fa)
+                      if fax == ax and abs(ge - e) <= 0.03 and u0 - 0.02 <= cu <= u1 + 0.02 and z0 - 0.02 <= cz <= z1 + 0.02), None)
+            if f is None:
+                frei += 1
+                zeilen.append(f"   FEHLER {teil[1:]}: Glas ohne Aussenfenster bei Ebene {ax} = {ge:.2f}, u {gu0:.2f}..{gu1:.2f}, z {gz0:.2f}..{gz1:.2f}")
+            else:
+                getroffen.add(f)
+        fehler += frei
+        zeilen.insert(len(zeilen) - frei, f"   {teil[1:]}: {len(getroffen)} Fenster innen in Oeffnungen der Huelle, {frei} Glasflaechen ohne Oeffnung")
+    return zeilen, fehler
+
+
 def wappen_frei(glb, abstand=0.05):
     """Pruefung 19 fuer jede Wand (Stufe 1 haengt das Wappen je Grundform an verschiedene Waende): Das Wappen haelt in der Ansicht
     seiner Wand mindestens `abstand` zu allem, was vor der Mauerflucht steht (Laden, Gewaende, Fachwerkholz, Vordach, Tuer), und zu
@@ -331,6 +358,9 @@ def main():
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren(haus, stufe, form); zeilen += z; fehler += f
+    MOD = MS1 if stufe == 1 else MS23
+    z24, f24 = fenster_innen(haus, ordner, MOD)
+    zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
     z22, f22 = fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
     if stufe == 1:

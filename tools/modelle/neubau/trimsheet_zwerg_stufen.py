@@ -25,13 +25,31 @@ from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN, N, Quelle, faerbe        # 
 import trimsheet_stufen as st                                                # noqa: E402  (lade_blatt, dach_band, FLIESEN_U)
 
 
+SCHIEFER_HELL = 0.33      # mittlerer Wert der Schieferbaender in der gespeicherten PNG (sRGB rund 85 von 255; speichere() legt den hier
+                          # „linear“ gerechneten Wert als sRGB-Byte ab): vorher 0,11 (sRGB 27) – im Spiel schwarz (Klicktest 16.11.2026),
+                          # in Blender nur dunkelgrau; Kunstwerke Stufe 2 und 3: mittelgrauer Schiefer
+
+
+def schiefer_aufhellen(blatt):
+    """Hebt die Dachbaender („stroh“, „stroh_franse“) linear auf SCHIEFER_HELL; Zeichnung und Verlauf bleiben."""
+    from trimsheet import srgb_zu_linear, linear_zu_srgb
+    for name in ("stroh", "stroh_franse"):
+        a, e = blatt.zeilen(BAENDER_AUSSEN[name])
+        lin = srgb_zu_linear(blatt.albedo[a:e, :, :3])
+        hell = float((lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean())
+        blatt.albedo[a:e, :, :3] = linear_zu_srgb(np.clip(lin * (SCHIEFER_HELL / max(hell, 1e-4)), 0, 1))
+        print(f"Schiefer {name}: Helligkeit {hell:.4f} -> {SCHIEFER_HELL}")
+
+
 def baue(quellen):
     schiefer = Quelle(quellen, "roof_slates_02", kante=1024)
     s2 = st.lade_blatt("trim_zwerg")
     st.dach_band(s2, schiefer, (0.36, 0.37, 0.40), kontrast=1.2, eigenfarbe=0.08)
+    schiefer_aufhellen(s2)
     s2.speichere("trim_s2_zwerg")
     s3 = st.lade_blatt("trim_zwerg")
     st.dach_band(s3, schiefer, (0.36, 0.37, 0.40), kontrast=1.2, eigenfarbe=0.08)
+    schiefer_aufhellen(s3)
     stein = Quelle(quellen, "sandstone_blocks_08", kante=1024)
     a, e = s3.zeilen(BAENDER_AUSSEN["bruchstein"])
     f, n, arm = stein.streifen(e - a, ab=210)
