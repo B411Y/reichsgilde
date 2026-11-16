@@ -165,10 +165,11 @@ public partial class BauRueckfrage : PanelContainer
         {
             var v = w.Bauen.Vorschau(_spieler, befehl);
             verboten = v.Verboten;
-            knopf = "Bauen";
-            plan = string.Join("|", "neu", v.Gebaeude, v.Betrieb, Zahlenformat.Ganz(v.Kosten), Zahlenformat.Ganz(v.Anrechnung), verboten, Zahlenformat.Ganz(_spieler.Vermoegen), FertigText(v.BauzeitMinuten),
+            var startwahl = w.Bauen.StartwahlVon(_spieler); // Platzwahl am Start: kein Preis, keine Bauzeit (Bauwesen.Start.cs)
+            knopf = startwahl is null ? "Bauen" : "Platz wählen";
+            plan = string.Join("|", startwahl is null ? "neu" : "start", v.Gebaeude, v.Betrieb, Zahlenformat.Ganz(v.Kosten), Zahlenformat.Ganz(v.Anrechnung), verboten, Zahlenformat.Ganz(_spieler.Vermoegen), FertigText(v.BauzeitMinuten),
                 befehl is WerkstattBauen && Fahrweg?.Invoke() is var (f, _) ? $"{f.Hin}/{f.Zurueck}/{f.Markt}" : "");
-            zeigen = () => NeubauZeigen(w, befehl, v, waehrung);
+            zeigen = startwahl is null ? () => NeubauZeigen(w, befehl, v, waehrung) : () => StartformZeigen(w, befehl, v, startwahl);
         }
         else if (_leer is { } leer)
         {
@@ -228,6 +229,32 @@ public partial class BauRueckfrage : PanelContainer
         Hauptmenue.Text(_inhalt, werkstatt
             ? "Während des Baus fallen keine Löhne und kein Unterhalt an. Danach öffnet die Werkstatt; Personal stellt ihr dann ein wie überall."
             : $"Bis zur Fertigstellung wohnt ihr im alten Haus. Danach zieht ihr um, das alte Haus wird abgerissen und zum Bauplatz. Unterhalt des neuen Hauses: {Zahlenformat.Ganz(v.Unterhalt)} {waehrung} im Jahr.",
+            12, Grau, umbruchBreite: Breite);
+        if (v.Verboten is { } grund)
+            Hauptmenue.Text(_inhalt, $"✗ {grund}", 14, Rot, umbruchBreite: Breite);
+    }
+
+    /// <summary>
+    /// Die Rückfrage der Platzwahl am Start (<see cref="Bauwesen.StartwahlVon"/>): Wohnhaus bzw. Werkstatt stehen sofort und kosten nichts –
+    /// darum ohne Rechnung und Bauzeit, nur Fläche, Eingang und bei der Werkstatt die Fahrt zum Markt.
+    /// </summary>
+    private void StartformZeigen(Stadtwirtschaft w, BauBefehl befehl, Bauvorschau v, Startwahl wahl)
+    {
+        Hauptmenue.Text(_inhalt, wahl.WohnhausOffen ? $"Euer Wohnhaus: {v.Gebaeude}" : $"Eure Werkstatt: {v.Gebaeude}", 22, Gold, zentriert: true);
+        if (v.Betrieb is not null) Hauptmenue.Text(_inhalt, $"„{v.Betrieb}“", 16, Hell, zentriert: true);
+        var f = w.Bauen.Flaeche(befehl);
+        Hauptmenue.Text(_inhalt,
+            $"{Zahlenformat.Ganz(f.Breite)} × {Zahlenformat.Ganz(f.Tiefe)} m{(f.Tiefe > 9 ? " (mit 2 m Vorplatz)" : "")}, Eingang nach {Himmelsrichtung(Grundriss.DrehungZu(f.Vorne.X, f.Vorne.Z))}.",
+            13, Grau, umbruchBreite: Breite);
+        if (!wahl.WohnhausOffen && Fahrweg?.Invoke() is var (fahrweg, plaetze))
+        {
+            var (links, rechts) = Zeile(Raster(_inhalt), "Fahrt zum Markt", FahrwegAnzeige.Kurz(fahrweg), Schriften.LesbareFarbe(Fahrzeitstufen.Stufe(fahrweg.Hin)), 14);
+            links.TooltipText = rechts.TooltipText = FahrwegAnzeige.Tipp(fahrweg, plaetze);
+            links.MouseFilter = rechts.MouseFilter = MouseFilterEnum.Stop;
+        }
+        Hauptmenue.Text(_inhalt, wahl.WohnhausOffen
+            ? "Das Wohnhaus steht sofort und kostet nichts. Danach wählt ihr den Platz der Werkstatt."
+            : "Die Werkstatt steht sofort und kostet nichts. Eure ersten Leute fangen dort an.",
             12, Grau, umbruchBreite: Breite);
         if (v.Verboten is { } grund)
             Hauptmenue.Text(_inhalt, $"✗ {grund}", 14, Rot, umbruchBreite: Breite);

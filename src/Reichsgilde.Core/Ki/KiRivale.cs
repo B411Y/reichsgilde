@@ -46,7 +46,8 @@ public sealed record KiProfil(
 /// <summary>
 /// Ein Rivale, der seine Betriebe selbst führt – mit denselben Regeln und Informationen,
 /// die auch der Spieler hat (Marktpreise, Daten, eigenes Konto). Die KI schummelt nicht:
-/// Sie sieht keine Zukunft und kennt keine Zufallswürfe.
+/// Sie sieht keine Zukunft (keine Ansage von Ernte oder Lage) und kennt keine Zufallswürfe des Spiels; ob es schlecht wird, würfelt sie zu
+/// Jahresbeginn selbst (Vorrat auf Verdacht, KiRivale.Vorrat.cs).
 ///
 /// Was sie entscheidet und wann:
 ///
@@ -116,6 +117,8 @@ public sealed partial class KiRivale
         StundenOhnePersonal = new(_stundenOhnePersonal),
         Gesperrt = new(_gesperrt),
         KeinWerkstattplatzJahr = _keinWerkstattplatzJahr,
+        Vorrat = Kopie(_vorrat),
+        VorratOffen = Kopie(_vorratOffen),
     };
 
     internal void Wiederherstellen(RivaleStand s)
@@ -133,6 +136,7 @@ public sealed partial class KiRivale
         foreach (var (name, stunden) in s.StundenOhnePersonal) _stundenOhnePersonal[name] = stunden;
         foreach (var (art, bis) in s.Gesperrt) _gesperrt[art] = bis;
         _keinWerkstattplatzJahr = s.KeinWerkstattplatzJahr;
+        VorratWiederherstellen(s);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -147,6 +151,7 @@ public sealed partial class KiRivale
         _bauorteGefragt = false;
         // Im Kerker führt nur der Verwalter die Betriebe – alles Persönliche ruht.
         var frei = !(_w.Justiz.IstAktiv && _w.Justiz.ImKerker(Konto));
+        if (_stundenImJahr == 1) JahresvorratWuerfeln(); // Vorrat auf Verdacht, einmal zu Jahresbeginn (KiRivale.Vorrat.cs)
         KarrenNotverkauf();  // Betriebssache: in der Not zuerst einen Karren (KiRivale.Karren.cs) …
         BetriebeVerkaufen(); // … dann einen Betrieb – das tut auch der Verwalter
         if (frei)
@@ -213,6 +218,7 @@ public sealed partial class KiRivale
             KarrenTauschen(betrieb); // an der Grenze nach Durchfluss (KiRivale.Karren.cs)
             EskorteWaehlen(betrieb);
         }
+        VorratEinkaufen(); // offene Grundnahrung des Vorrats per Handelsauftrag (KiRivale.Vorrat.cs)
         SchiffeLosschicken(); // Schiffe am Kai bekommen einen Auftrag, wenn sich eine Fahrt lohnt – Betriebssache wie die Karren
     }
 

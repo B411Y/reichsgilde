@@ -13,6 +13,11 @@ namespace Reichsgilde;
 ///
 /// Die Tafel rechnet nichts selbst: Preise und Bauzeit kommen aus <see cref="Bauwesen.Vorschau"/>, was ein Haus nicht darf
 /// (Stand, Handwerk, Geld) aus <see cref="Bauwesen.BauherrVerboten"/> – solche Gebäude sind ausgegraut und nennen den Grund.
+///
+/// <b>Platzwahl am Start</b> („nur noch Bauzonen“, 15.11.2026): Solange der Kern für den Spieler eine offene Startwahl meldet
+/// (<see cref="Bauwesen.StartwahlVon"/>), zeigt die Tafel statt der Liste gleich die Platzwahl – erst für das Wohnhaus, dann für die
+/// Werkstatt (<see cref="StartwahlWaehlen"/>). Zurück und Wege-Modus gibt es dabei nicht; die Hauptszene hält die Zeit an und öffnet die
+/// Tafel wieder, bis beides steht (Hauptszene.Startwahl.cs).
 /// </summary>
 public partial class BauAnzeige : PanelContainer
 {
@@ -42,7 +47,7 @@ public partial class BauAnzeige : PanelContainer
         get => _wege;
         set
         {
-            if (_wege == value || _stadt is null) return;
+            if (_wege == value || _stadt is null || value && Startwahl) return; // am Start erst der Platz, dann die Wege
             _wege = value;
             if (value) { _gewaehlt = null; _stadt.BauPlatzieren(null); }
             _stadt.Baumodus = !value;
@@ -97,6 +102,32 @@ public partial class BauAnzeige : PanelContainer
         Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
         // Auch nach dem Ziehen öffnet sie wieder rechts (wie die Auswahl): Der Rahmen setzt jedes Bild die Lage, bis der Spieler sie zieht
         Fensterrahmen.Von(this)?.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+        StartwahlWaehlen(); // Platzwahl am Start: gleich der Umriss statt der Liste
+    }
+
+    /// <summary>Wählt der Spieler gerade den Platz von Wohnhaus oder Werkstatt für den Start (<see cref="Bauwesen.StartwahlVon"/>)?</summary>
+    public bool Startwahl => _spieler is not null && _simulation?.Wirtschaft?.Bauen.StartwahlVon(_spieler) is not null;
+
+    /// <summary>Welcher Schritt der Platzwahl am Start gerade gezeigt wird: 0 keiner, 1 Wohnhaus, 2 Werkstatt.</summary>
+    private int _startSchritt;
+
+    /// <summary>Der Schritt, den der Kern jetzt verlangt (0: keine offene Startwahl).</summary>
+    private int StartSchritt => _spieler is not null && _simulation?.Wirtschaft?.Bauen.StartwahlVon(_spieler) is { } wahl ? wahl.WohnhausOffen ? 1 : 2 : 0;
+
+    /// <summary>
+    /// Platzwahl am Start: wählt gleich das Gebäude, das jetzt dran ist (erst das Wohnhaus, dann die Werkstatt des Berufs) – die Liste
+    /// erscheint nicht. Ohne offene Startwahl geschieht nichts.
+    /// </summary>
+    private void StartwahlWaehlen()
+    {
+        _startSchritt = StartSchritt;
+        if (_spieler is not { } spieler || _simulation?.Wirtschaft is not { } w || w.Bauen.StartwahlVon(spieler) is not { } wahl) return;
+        var stufe = spieler.WohnhausStufe;
+        var art = wahl.Werkstatt;
+        Func<double, double, int, BauBefehl> erzeuger = wahl.WohnhausOffen
+            ? (x, z, d) => new WohnhausBauen(stufe, x, z, d)
+            : (x, z, d) => new WerkstattBauen(art, x, z, d);
+        Waehlen(w.Bauen.Vorschau(spieler, wahl.Vorlage).Gebaeude, erzeuger);
     }
 
     /// <summary>Schließt den Baumodus ganz: Bauzonen und Umriss verschwinden.</summary>
@@ -116,6 +147,7 @@ public partial class BauAnzeige : PanelContainer
     /// <summary>Ein Schritt zurück (Esc, Rechtsklick): von der Platzwahl zur Liste, von der Liste ganz hinaus.</summary>
     public void Zurueck()
     {
+        if (Startwahl && _gewaehlt is not null) return; // am Start gibt es keine Liste, zu der es zurückginge
         if (_gewaehlt is null) { Schliessen(); return; }
         _gewaehlt = null;
         _stadt?.BauPlatzieren(null);
@@ -135,6 +167,7 @@ public partial class BauAnzeige : PanelContainer
     {
         WerkstattTippAktualisieren();
         if (!Visible) return;
+        if (StartSchritt != _startSchritt) StartwahlWaehlen(); // Platzwahl am Start: nach dem Wohnhaus gleich die Werkstatt
         _seitAktualisierung += delta;
         if (_seitAktualisierung < 0.25) return;
         _seitAktualisierung = 0;
@@ -162,7 +195,7 @@ public partial class BauAnzeige : PanelContainer
         "Liste|" + Zahlenformat.Ganz(_spieler!.Vermoegen) + "|" + string.Join("|", Gebaeude(w).Select(x => x.Verboten + Zahlenformat.Ganz(x.Vorschau.Kosten)));
 
     private string PlatzwahlPlan(Stadtwirtschaft w, (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel) g) =>
-        $"Platz|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}|" +
+        $"Platz|{Startwahl}|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}|" +
         (_stadt.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f ? $"{f.Hin}/{f.Zurueck}/{f.Markt}/{_stadt.FahrwegSchilder.Count}" : "") +
         $"|{_stadt.FahrwegAmpeln.Count > 0}|{_stadt.BauzoneUnterMaus?.NurWerkstaetten == true}";
 
@@ -196,21 +229,7 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m (V blendet die Rasterlinien ein und aus), mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
 
-        // Legende: die Farben der Bauzonen in der Stadt (die Zeile „FahrwegAmpeln.Count == 0 → return“ aus #282 gehörte nur in FahrwegZeigen:
-        // bei offener Liste gibt es nie Ampeln, die ganze Liste fehlte)
-        var legende = new HBoxContainer();
-        legende.AddThemeConstantOverride("separation", 14);
-        _inhalt.AddChild(legende);
-        foreach (var lage in new[] { Lage.Kern, Lage.Mauerring, Lage.Vorstadt })
-        {
-            var punkt = new ColorRect { Color = Stadtansicht.LageFarbe(lage), CustomMinimumSize = new Vector2(14, 14), SizeFlagsVertical = SizeFlags.ShrinkCenter };
-            legende.AddChild(punkt);
-            var lageTipp = $"Bauzone {Stadtansicht.LageName(lage)}: In dieser Farbe sind Bauplätze auf der Karte markiert; die Lage bestimmt Preis und Kundschaft.";
-            punkt.TooltipText = lageTipp;
-            punkt.MouseFilter = MouseFilterEnum.Pass;
-            Hauptmenue.Text(legende, Stadtansicht.LageName(lage), 13, Hell).TooltipText = lageTipp;
-        }
-        if (w.Karte?.Bauzonen.Any(z => z.NurWerkstaetten) == true) WerkstattplatzLegende();
+        LagenLegende(w);
 
         string? gruppe = null;
         foreach (var (g, name, beruf, erzeuger, vorschau, verboten) in Gebaeude(w))
@@ -285,8 +304,30 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Knopf(_inhalt, "Schließen (Esc)", Schliessen).SizeFlagsHorizontal = SizeFlags.ExpandFill;
     }
 
+    /// <summary>
+    /// Legende: die Farben der Bauzonen in der Stadt (die Zeile „FahrwegAmpeln.Count == 0 → return“ aus #282 gehörte nur in FahrwegZeigen:
+    /// bei offener Liste gibt es nie Ampeln, die ganze Liste fehlte). Steht in der Liste und in der Platzwahl am Start.
+    /// </summary>
+    private void LagenLegende(Stadtwirtschaft w)
+    {
+        var legende = new HBoxContainer();
+        legende.AddThemeConstantOverride("separation", 14);
+        _inhalt.AddChild(legende);
+        foreach (var lage in new[] { Lage.Kern, Lage.Mauerring, Lage.Vorstadt })
+        {
+            var punkt = new ColorRect { Color = Stadtansicht.LageFarbe(lage), CustomMinimumSize = new Vector2(14, 14), SizeFlagsVertical = SizeFlags.ShrinkCenter };
+            legende.AddChild(punkt);
+            var lageTipp = $"Bauzone {Stadtansicht.LageName(lage)}: In dieser Farbe sind Bauplätze auf der Karte markiert; die Lage bestimmt Preis und Kundschaft.";
+            punkt.TooltipText = lageTipp;
+            punkt.MouseFilter = MouseFilterEnum.Pass;
+            Hauptmenue.Text(legende, Stadtansicht.LageName(lage), 13, Hell).TooltipText = lageTipp;
+        }
+        if (w.Karte?.Bauzonen.Any(z => z.NurWerkstaetten) == true) WerkstattplatzLegende();
+    }
+
     private void PlatzwahlZeigen(Stadtwirtschaft w, (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel) g)
     {
+        if (w.Bauen.StartwahlVon(_spieler!) is { } wahl) { StartwahlZeigen(w, wahl, g); return; }
         var vorschau = w.Bauen.Vorschau(_spieler!, g.Beispiel);
         var waehrung = w.Daten.Allgemein.Waehrung;
         Hauptmenue.Text(_inhalt, "Platz wählen", 22, Gold, zentriert: true);
@@ -315,6 +356,40 @@ public partial class BauAnzeige : PanelContainer
         drehen.CustomMinimumSize = new Vector2(120, 36);
         var zurueck = Hauptmenue.Knopf(knoepfe, "Zurück", Zurueck);
         zurueck.CustomMinimumSize = new Vector2(120, 36);
+    }
+
+    /// <summary>
+    /// Die Platzwahl am Start (<see cref="Bauwesen.StartwahlVon"/>): Schritt 1 das Wohnhaus, Schritt 2 die Werkstatt des Berufs. Kein Preis,
+    /// keine Bauzeit (die Startform steht sofort und kostet nichts) und kein „Zurück“ – sonst wie die Platzwahl eines Neubaus.
+    /// </summary>
+    private void StartwahlZeigen(Stadtwirtschaft w, Startwahl wahl, (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel) g)
+    {
+        var vorschau = w.Bauen.Vorschau(_spieler!, g.Beispiel);
+        Hauptmenue.Text(_inhalt, "Euer Platz in der Stadt", 22, Gold, zentriert: true);
+        Hauptmenue.Text(_inhalt, wahl.WohnhausOffen ? $"Schritt 1 von 2: Wohnhaus ({g.Name})" : $"Schritt 2 von 2: Werkstatt ({g.Name})", 17, Hell, zentriert: true);
+        Hauptmenue.Text(_inhalt,
+            "Ihr wählt selbst, wo Euer Haus beginnt: erst den Platz des Wohnhauses, dann den der Werkstatt. Erlaubt ist jede freie Stelle in den farbigen Bauzonen – " +
+            "am Raster von 2 m (V blendet die Rasterlinien ein und aus), mit der Vorderseite an einer Straße. Beides kostet nichts und steht sofort.",
+            13, Grau, umbruchBreite: Breite);
+        Hauptmenue.Text(_inhalt, $"Fläche {Zahlenformat.Ganz(vorschau.Grundriss.Breite)} × {Zahlenformat.Ganz(vorschau.Grundriss.Tiefe)} m (mit 2 m Vorplatz)", 14, Grau, umbruchBreite: Breite);
+        LagenLegende(w);
+
+        // Zustand des Umrisses: grün oder rot mit Grund
+        if (_stadt!.BauAuftrag is null)
+            Hauptmenue.Text(_inhalt, "Bewegt die Maus über die Stadt.", 15, Grau, umbruchBreite: Breite);
+        else if (_stadt.BauGrund is { } grund)
+            Hauptmenue.Text(_inhalt, "✗ " + grund, 15, Rot, umbruchBreite: Breite);
+        else
+            Hauptmenue.Text(_inhalt, wahl.WohnhausOffen ? "✔ Hier kann das Wohnhaus stehen – Klick wählt den Platz." : "✔ Hier kann die Werkstatt stehen – Klick wählt den Platz.", 15, Gruen, umbruchBreite: Breite);
+        if (_stadt.BauGrund is null && _stadt.BauzoneUnterMaus is { NurWerkstaetten: true }) // rot nennt der Grund es schon
+            Hauptmenue.Text(_inhalt, "Werkstatt-Bauplatz: Hier dürfen nur Werkstätten stehen.", 13, Grau, umbruchBreite: Breite).TooltipText = WerkstattTippText;
+        FahrwegZeigen(g.Beispiel);
+        Hauptmenue.Text(_inhalt, "R dreht das Gebäude (Eingang zur Straße) · Q/E drehen die Kamera", 13, Grau, umbruchBreite: Breite);
+
+        var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        _inhalt.AddChild(knoepfe);
+        var drehen = Hauptmenue.Knopf(knoepfe, "Drehen (R)", () => _stadt.BauDrehung = (_stadt.BauDrehung + 1) % 4);
+        drehen.CustomMinimumSize = new Vector2(120, 36);
     }
 
     /// <summary>

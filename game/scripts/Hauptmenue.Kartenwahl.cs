@@ -132,22 +132,12 @@ public partial class Hauptmenue
         return platz;
     }
 
-    /// <summary>„höchstens 2 KI-Gegner · 18 Werkstattplätze · Fluss · Hafen · 400 × 300 m“ – was man vor der Wahl wissen will.</summary>
+    /// <summary>„höchstens 2 KI-Gegner · Fluss · Hafen · 400 × 300 m“ – was man vor der Wahl wissen will.</summary>
     internal static string Kennzahlen(Stadtkarte karte)
     {
         var teile = new List<string>();
         var ki = Partiebesetzung.HoechstensKi(karte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         teile.Add(ki == 0 ? "kein KI-Gegner" : ki == 1 ? "höchstens 1 KI-Gegner" : $"höchstens {ki} KI-Gegner");
-        if (karte.HatHofstellen)
-        {
-            var hoefe = Partiebesetzung.Hoefe(karte);
-            teile.Add($"Höfe: {hoefe} zum Start, {Math.Max(0, karte.Hofstellen.Count - hoefe)} weitere Hofstellen");
-        }
-        else
-        {
-            var plaetze = karte.Gebaeude.Count(g => g.Art == Bausteinart.Werkstattplatz);
-            teile.Add(plaetze == 1 ? "1 Werkstattplatz" : $"{plaetze} Werkstattplätze");
-        }
         if (karte.Wasser.Any(w => w.Art is "fluss" or "bach")) teile.Add("Fluss");
         if (karte.Haefen.Count > 0) teile.Add("Hafen");
         var g = karte.Kartengrenzen;
@@ -164,7 +154,7 @@ public partial class Hauptmenue
         einstellungen.Load("user://einstellungen.cfg");
         einstellungen.SetValue("spiel", "karte", _kartenAuswahl);
         einstellungen.Save("user://einstellungen.cfg");
-        NeuePartieOeffnen(); // KI-Zahl, Hofstellen und der gewürfelte Vorschlag gehören zur Karte
+        NeuePartieOeffnen(); // KI-Zahl und der gewürfelte Vorschlag gehören zur Karte
         Zeigen(_neu);
     }
 
