@@ -858,6 +858,7 @@ public partial class Stadtansicht : Node3D
         foreach (var kirche in _kirchenFenster) // Dom und Kirchen mit Modell (Köln): schwacher Schein, zur Messe heller
             FenstergruppeSetzen(kirche, messe ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         Ladezeit.Phase("im Bild: Karrenklang und Dom");
+        KlappbrueckeAblauf(w, zeit.VergangeneMinuten + bruchteil);          // Stadtansicht.Klappbruecke.cs: Klappen nach dem Kern
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         Ladezeit.Phase("im Bild: Schiffe");
         NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)

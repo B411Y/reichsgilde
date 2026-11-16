@@ -40,6 +40,7 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Rückseite zum Wasser)
 //    dotnet run --project tools/Kartenbau -- belag <karte> <weg> <stufe> [<von> <bis>]   Startbelag eines Weges (ganz oder von–bis Meter)
 //    dotnet run --project tools/Kartenbau -- umbauen <umbau>                     ein Umbauskript (Umbauten/) auf seine Karte anwenden
+//    dotnet run --project tools/Kartenbau -- bruecke <karte>                      Prüfskript: Brücken (Maße, Durchfahrt, Wartezonen, Karrenweg), ändert nichts
 //    dotnet run --project tools/Kartenbau -- bauzonen <karte>                     die Bauzonen aus dem Raster neu rechnen (nach den Lage-Gebieten „lagen“)
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
@@ -107,6 +108,7 @@ public static class Program
                     Befehle.Hafen(ordner, ziel, ort[0], drehung[0], Text(args, "--name"), Console.Out),
                 "belag" when ziel is not null && worte.Count is 4 or 6 && Zahlen(worte.Skip(4)) is { Count: 0 or 2 } bereich =>
                     Befehle.Belag(ordner, ziel, worte[2], worte[3], bereich.Count == 2 ? (bereich[0], bereich[1]) : null, Console.Out),
+                "bruecke" when ziel is not null => Brueckenpruefung.Pruefen(ordner, ziel, Console.Out),
                 "umbauen" when ziel is not null => Befehle.Umbauen(ordner, ziel, Console.Out),
                 "bauzonen" when ziel is not null => Befehle.Bauzonen(ordner, ziel, Console.Out),
                 _ => Hilfe(),

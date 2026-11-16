@@ -158,6 +158,7 @@ Aufruf siehe „Kartenskript“ unten; die wichtigsten:
 ```bash
 dotnet run --project tools/Kartenbau -- pruefen koeln            # alle Prüfungen: Regeln, Kapazität, Katalog gegen die Modelle
 dotnet run --project tools/Kartenbau -- vorschau greybox --belegung   # docs/karten/greybox.svg und greybox-belegung.svg neu zeichnen
+dotnet run --project tools/Kartenbau -- bruecke koeln            # Brücke über das Gewässer der Klappbrücke: Straßenbreite, Deck über Spiegel, Pfeiler und Durchfahrt (13 m), Wartezonen, Karrenweg; ändert nichts
 dotnet run --project tools/Kartenbau -- bauen probestadt         # Stadtskript ausführen → game/karten/probestadt.json (nie über eine vorhandene Datei)
 ```
 

@@ -73,6 +73,8 @@ static class KartenformatTests
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
             // Ohne Katalog: die Probe zum Neubau der Gebäude (gebaeude/neubau/); sie steht nur mit Startoption (--neubauprobe, Stadtansicht.Neubau.cs), bis der Nutzer den Tausch freigibt.
             fehlen.RemoveAll(d => d.StartsWith("gebaeude/neubau/"));
+            // Ohne Katalog: der Entwurf der Klappbrücke (bruecke/); noch nicht im Spiel, Einbau nach Abnahme durch den Nutzer.
+            fehlen.RemoveAll(d => d.StartsWith("bruecke/"));
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 

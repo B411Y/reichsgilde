@@ -374,17 +374,24 @@ public partial class Stadtansicht
         gezeigt.ZugProfile = (hin, zurueck);
         var kernAnteil = KernAnteil(karren, hin, zurueck, fahrzeit, jetztGenau);
         var sim = _simulation!;
+        // Klappbrücke (Kern: Karren.WartetAnBruecke): Wartet der Karren an der offenen Brücke, hält er mit der Spitze an der Schranke; die Zeit seines Zuges steht, bis die Brücke zugeht –
+        // so kommt er um die Wartezeit später an, wie es der Kern in Ankunft rechnet (Stadtansicht.Klappbruecke.cs)
+        var halt = !neu && karren.WartetAnBruecke(sim.Zeit) ? KlappbrueckeHaltMeter(weg, zug.ZumMarkt, karren.Typ) : null;
+        var steht = halt is { } h && zug.Etappe is Etappe.Hin or Etappe.Zurueck && (zug.ZumMarkt ? zug.Weg(hin, zurueck) * laenge >= h - 0.05f : zug.Weg(hin, zurueck) * laenge <= h + 0.05f);
+        KlappbrueckeWartenMelden(karren, steht, halt);
         if (neu) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         else
         {
-            zug.Weiter(sim.Takt.IstPausiert ? 0 : delta * sim.Takt.TicksProSekunde, karren.Zustand, hin, zurueck);
+            zug.Weiter(sim.Takt.IstPausiert || steht ? 0 : delta * sim.Takt.TicksProSekunde, karren.Zustand, hin, zurueck);
             // Sieht keiner hin (der Karren und der Ort, an dem der Kern ihn hätte, liegen außerhalb des Bildes), gilt der Kern
             if (!KarrenImBild(knoten.GlobalPosition) && !KarrenImBild(ToGlobal(AufFuss(PunktAufWeg(weg, Stelle((float)kernAnteil))))))
                 zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         }
         gezeigt.Geschwindigkeit = sim.Takt.IstPausiert ? 0 : (float)(zug.MeterJeMinute(hin, zurueck) * sim.Takt.TicksProSekunde);
+        if (steht) gezeigt.Geschwindigkeit = 0;                       // wartet vor der Schranke: die Räder stehen
         // Stelle auf dem Weg (Meter): wohin der Zug will (am Markt höchstens bis zum eigenen Halteplatz), dann die Folgeregel hinter dem Vordermann
         var wunsch = zug.Etappe == Etappe.Hof ? 0f : Stelle((float)zug.Weg(hin, zurueck)) * laenge;
+        if (halt is { } schranke && zug.Etappe != Etappe.Hof) wunsch = zug.ZumMarkt ? Math.Min(wunsch, schranke) : Math.Max(wunsch, schranke);
         var amHalt = zug.Etappe is Etappe.Hin or Etappe.Zurueck && zug.Weg(hin, zurueck) * laenge >= laenge - rueckstand - 0.01f;
         var zone = KarrenHofZone(typen, nummer, !zug.ZumMarkt);
         var vorleute = ansicht.Betrieb.Karren
