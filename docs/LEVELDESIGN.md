@@ -411,7 +411,7 @@ Der Kern prüft: Kennung eindeutig, Art bekannt, `groesse` vorhanden und positiv
 
 ### Kartenwerkstatt (21.10.2026)
 
-Der Level-Editor im Spiel (Fahrplan und Entscheidungen in `docs/bereiche/leveldesign.md`, „Kartenwerkstatt“). Der Kern liefert dafür (`src/Reichsgilde.Core/Kartenwerkstatt/`, Aufbau in `docs/ARCHITEKTUR.md`, „Bauen“):
+Der Level-Editor im Spiel (Fahrplan und Entscheidungen in `docs/bereiche/leveldesign.md`, „Kartenwerkstatt“). Der Kern liefert dafür (`src/Reichsgilde.Core/Kartenwerkstatt/`, Aufbau in `docs/architektur/kern.md`, „Bauen“):
 
 - **Entwurf:** öffnet eine Kartendatei, auch mit Regelfehlern, hält alle Felder (auch die, die der Kern nicht liest) und schreibt sie im Zeilenformat der Kartendateien zurück – eine unverändert gespeicherte Karte ist Byte für Byte dieselbe Datei. Neue Karten mit Kennung, Name und Größe.
 - **Befehle** mit Rückgängig und Wiederholen (200 Schritte): Gebäude setzen, verschieben, drehen, löschen, Name, Betrieb, Lage ändern. Punkte landen auf 5 cm, Drehungen auf 0,1°; das 1-m-Raster und die 15°-Schritte wählt die Bedienung.

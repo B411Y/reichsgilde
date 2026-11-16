@@ -53,7 +53,8 @@ reichsgilde/
 ├── tools/oberflaeche/texturen.py   Strukturen der Oberflächendetails (Python + numpy)
 ├── tools/oberflaeche/materialien_blender.py   Material-Bibliothek der Modelle (Blender, Cycles)
 ├── docs/
-│   ├── ARCHITEKTUR.md              Wie der Code aufgebaut ist und warum
+│   ├── ARCHITEKTUR.md              Übersicht: wie der Code aufgebaut ist und warum
+│   ├── architektur/                Ausführliche Architektur je Bereich (kern, darstellung, oberflaeche …), Übersicht in ARCHITEKTUR.md
 │   ├── assets/                     Asset-Protokoll (Herkunft jeder Grafik, jedes Modells …), Prompts der Bild-KIs, Steam-Liste der KI-Inhalte
 │   ├── ENTWICKLUNG.md              Projektstruktur, Tests, Export, automatische Prüfung (diese Datei)
 │   ├── bereiche/                   Offene Punkte und aktuelle Entscheidungen je Bereich (Kern, Spiel-KI, Darstellung …);
@@ -152,7 +153,7 @@ Eine eigene Claude-Code-Sitzung auf dem Windows-PC führt Klicktests und Messung
 Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
 
 1. Bauen – auf Windows **und** Linux. Alle Tests laufen unter Linux, unter Windows nur der Gleichheitstest (`--klasse=GleichheitTests`, liefert die Prüfsummen für Punkt 2); unter Linux dazu das **Asset-Protokoll**: Jede Datei unter `game/assets/` muss in `docs/assets/protokoll.csv` stehen (Werkzeug, KI-Modell, Prompt, Lizenz), sonst scheitert die Prüfung (`python3 tools/assets/protokoll_pruefen.py`, Einzelheiten in `docs/assets/README.md`)
-2. **Gleichheit Linux/Windows** – der Gleichheitstest (Mehrspieler) schreibt auf beiden Systemen Prüfsummen über feste Partien; sie müssen Zeichen für Zeichen gleich sein (Einzelheiten in [ARCHITEKTUR.md](ARCHITEKTUR.md), „Gleich auf jedem Rechner“)
+2. **Gleichheit Linux/Windows** – der Gleichheitstest (Mehrspieler) schreibt auf beiden Systemen Prüfsummen über feste Partien; sie müssen Zeichen für Zeichen gleich sein (Einzelheiten in [architektur/kern.md](architektur/kern.md), „Gleich auf jedem Rechner“)
 3. Export für beide Systeme (gleichzeitig mit den Tests, er wartet nicht auf sie) und ein kurzer Startversuch des Linux-Builds (Rauchtest). Meldet das Spiel dabei einen Fehler oder ein Speicherleck, wird der Start einmal wiederholt – erst ein zweiter Fund lässt die Prüfung scheitern. Die Fundstellen stehen als Anmerkung oben in der Zusammenfassung des Laufs. Stürzt das Spiel ab oder hängt es (Grenze: 3 Minuten je Start), zeigt eine Rückverfolgung mit gdb, welcher Faden wo stand – als Anmerkung und im Artefakt **„Rauchtest-Protokoll“**.
 
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen. Linux läuft dabei fest auf Ubuntu 24.04, damit ein neues Ubuntu bei GitHub die Prüfung nicht unbemerkt ändert.
