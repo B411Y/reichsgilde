@@ -24,6 +24,9 @@ public sealed class KiDaten
     /// </summary>
     public KiSchaenkeDaten? Schaenke { get; init; }
 
+    /// <summary>Vorrat auf Verdacht (Nutzer 16.11.2026: die KI sieht nicht in die Zukunft). Fehlt der Teil, legt sie keinen Jahresvorrat an.</summary>
+    public KiVorratDaten? Vorrat { get; init; }
+
     public void Pruefen(List<string> f)
     {
         Einrichtung?.Pruefen(f);
@@ -31,6 +34,36 @@ public sealed class KiDaten
         Schiffe?.Pruefen(f);
         Jahreszeiten?.Pruefen(f);
         Schaenke?.Pruefen(f);
+        Vorrat?.Pruefen(f);
+    }
+}
+
+/// <summary>
+/// Vorrat auf Verdacht (Nutzer 16.11.2026: die KI sieht nicht in die Zukunft, <c>KiRivale.Vorrat.cs</c>): Zu Jahresbeginn würfelt jedes KI-Haus
+/// einmal, ob es glaubt, dass es schlecht wird – mit <see cref="Chance"/>, mit <see cref="ChanceMitAnzeichen"/>, wenn es Anzeichen gibt, die
+/// auch der Spieler sieht (eine geltende schlechte oder schwere Lage einer Quelle samt Ernte, ein strenger Winter). Dann legt es von der
+/// <see cref="Grundnahrung"/> und den Zutaten seiner Werkstätten je Ware <see cref="Anteil"/> ± <see cref="Streuung"/> des Lagers zurück.
+/// </summary>
+public sealed class KiVorratDaten
+{
+    /// <summary>Chance je Jahr ohne Anzeichen.</summary>
+    public double Chance { get; init; } = 0.1;
+
+    /// <summary>Chance je Jahr, wenn es im laufenden Jahr Anzeichen gibt.</summary>
+    public double ChanceMitAnzeichen { get; init; } = 0.3;
+
+    /// <summary>Mittlerer Anteil des Lagers je Ware (gewürfelt gleichverteilt in Anteil ± Streuung).</summary>
+    public double Anteil { get; init; } = 0.25;
+
+    public double Streuung { get; init; } = 0.10;
+
+    /// <summary>Die Grundnahrung, die jede Werkstatt zurücklegt (Waren, die es nicht gibt, zählen nicht).</summary>
+    public List<string> Grundnahrung { get; init; } = new();
+
+    public void Pruefen(List<string> f)
+    {
+        if (Chance is < 0 or > 1 || ChanceMitAnzeichen is < 0 or > 1) f.Add("ki.vorrat.chance und chanceMitAnzeichen müssen zwischen 0 und 1 liegen.");
+        if (Streuung < 0 || Anteil - Streuung < 0 || Anteil + Streuung > 1) f.Add("ki.vorrat: anteil ± streuung muss zwischen 0 und 1 liegen.");
     }
 }
 
