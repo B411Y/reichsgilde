@@ -13,16 +13,6 @@
   {"kennung": "Marktplatz1", "katalog": "markt", "name": "Marktplatz", "punkt": [0, 0], "drehung": 0},
   {"kennung": "Rathaus1", "katalog": "rathaus", "name": "Rathaus", "punkt": [0, -19], "drehung": 0},
   {"kennung": "Kirche1", "katalog": "kirche", "name": "Kirche", "punkt": [0, 22], "drehung": 180},
-  {"kennung": "Werkstattplatz1", "katalog": "werkstattplatz", "name": "Werkstattplatz", "punkt": [-30, -10], "drehung": 0},
-  {"kennung": "Werkstattplatz2", "katalog": "werkstattplatz", "name": "Werkstattplatz 2", "punkt": [32, -10], "drehung": 0, "betrieb": "Tischlerei Ahlbeck"},
-  {"kennung": "Werkstattplatz3", "katalog": "werkstattplatz", "name": "Werkstattplatz 3", "punkt": [-30, 10], "drehung": 180},
-  {"kennung": "Werkstattplatz4", "katalog": "werkstattplatz", "name": "Werkstattplatz 4", "punkt": [32, 10], "drehung": 180, "betrieb": "Gießerei Brendel"},
-  {"kennung": "Wohnhausplatz1", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 1", "punkt": [-10, -35], "drehung": 180},
-  {"kennung": "Wohnhausplatz2", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 2", "punkt": [0, -35], "drehung": 180},
-  {"kennung": "Wohnhausplatz3", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 3", "punkt": [10, -35], "drehung": 180},
-  {"kennung": "Wohnhausplatz4", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 1", "punkt": [10, 35], "drehung": 0},
-  {"kennung": "Wohnhausplatz5", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 2", "punkt": [0, 35], "drehung": 0},
-  {"kennung": "Wohnhausplatz6", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 3", "punkt": [-10, 35], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [-42.75, -48], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-33.25, -48], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-23.75, -48], "drehung": 0},
@@ -368,13 +358,7 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre am Sandfluss", "von": [-130, 113], "bis": [-130, 137]}],
  "start": {
-  "hofstellen": [
-   {"kennung": "S1", "name": "an der Hauptstraße (Nordwest)", "werkstatt": "Werkstattplatz1", "wohnhaus": "Wohnhausplatz2", "start": true, "nummer": 1},
-   {"kennung": "S2", "name": "an der Hauptstraße (Nordost)", "werkstatt": "Werkstattplatz2", "wohnhaus": "Wohnhausplatz1", "start": true, "nummer": 2},
-   {"kennung": "S3", "name": "an der Hauptstraße (Südost)", "werkstatt": "Werkstattplatz4", "wohnhaus": "Wohnhausplatz3", "start": true, "nummer": 3},
-   {"kennung": "H1", "name": "an der Hauptstraße (Südwest)", "werkstatt": "Werkstattplatz3", "wohnhaus": "Wohnhausplatz6"}
-  ],
-  "spieler": {"wohnhaus": "Wohnhausplatz2", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
+  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Ahlbeck",
@@ -382,8 +366,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
     "farbe": "#b33329",
-    "wohnhaus": "Wohnhausplatz1",
-    "betriebe": [{"platz": "Werkstattplatz2", "art": "Tischlerei"}]
+    "betriebe": [{"art": "Tischlerei"}]
    },
    {
     "name": "Haus Brendel",
@@ -391,8 +374,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
     "farbe": "#388c47",
-    "wohnhaus": "Wohnhausplatz3",
-    "betriebe": [{"platz": "Werkstattplatz4", "art": "Giesserei"}]
+    "betriebe": [{"art": "Giesserei"}]
    }
   ]
  },

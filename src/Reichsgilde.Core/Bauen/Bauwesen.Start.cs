@@ -113,49 +113,27 @@ public sealed partial class Bauwesen
         return g;
     }
 
-    /// <summary>
-    /// Startplatzvergabe.Vorgabe (Tests und Vergleiche auf alten Karten): das Wohnhaus auf einem Wohnhausplatz der Karte – ein Grundstück in
-    /// Fläche, Lage und Kennung des Platzes, wie in einem alten Spielstand.
-    /// </summary>
-    internal Grundstueck StartwohnhausSetzen(Konto konto, Kartengebaeude platz)
-    {
-        var g = Neu(platz.Grundriss!.Value, Grundstuecksart.Wohnhaus, platz.Kennung, platz.Lage);
-        g.Besitzer = konto;
-        HauswerteAktualisieren(konto);
-        return g;
-    }
-
-    /// <summary>Startplatzvergabe.Vorgabe: die Werkstatt auf einem Werkstattplatz der Karte – ein Grundstück wie nach <see cref="AltePlaetzeUmwandeln"/>.</summary>
-    internal Grundstueck StartwerkstattSetzen(string betrieb, Betriebsart art, Kartengebaeude platz)
-    {
-        var g = Neu(platz.Grundriss!.Value, Grundstuecksart.Werkstatt, platz.Kennung);
-        g.Betrieb = betrieb;
-        g.Betriebsart = art;
-        return g;
-    }
-
     /// <summary>Wie eine Werkstatt dieser Art an dieser Stelle hieße (nach der nächsten Karrenstraße, eindeutig) – für die Werkstatt des Spielers am gelosten Ort.</summary>
     internal string Startwerkstattname(Betriebsart art, Grundriss flaeche) => NeuerName(art, flaeche);
 
     /// <summary>
-    /// Alle Stellen, an denen am Start das Gebäude der Vorlage stehen kann (<see cref="FreieOrte"/>, feste Reihenfolge), und darunter die, deren
-    /// ganze Fläche im Stadtinneren liegt (<see cref="ImStadtinneren"/>).
+    /// Die Stellen im Stadtinneren, an denen am Start das Gebäude der Vorlage stehen kann: <see cref="FreieOrte"/> in fester Reihenfolge,
+    /// davon die, deren ganze Fläche im Stadtinneren liegt (<see cref="ImStadtinneren"/>).
     /// </summary>
-    internal (List<Grundriss> Alle, List<Grundriss> Innen) Startstellen(BauBefehl vorlage)
+    internal List<Grundriss> Startstellen(BauBefehl vorlage)
     {
-        var (alle, innen) = (new List<Grundriss>(), new List<Grundriss>());
-        if (!IstAktiv) return (alle, innen);
+        var innen = new List<Grundriss>();
+        if (!IstAktiv) return innen;
         var raster = Daten!.Raster;
         var karte = Karte!;
         foreach (var ort in FreieOrte(vorlage))
         {
             var g = Grundriss(ort);
-            alle.Add(g);
             // die erste Zone am Feld zählt – wie in PlatzVerboten
             if (g.Felder(raster).All(f => karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(f.X, f.Z)) is { } zone && ImStadtinneren(zone.Art)))
                 innen.Add(g);
         }
-        return (alle, innen);
+        return innen;
     }
 
     /// <summary>

@@ -50,9 +50,6 @@ public sealed record Befund(Schwere Schwere, string Regel, string Text, IReadOnl
 /// </summary>
 public sealed record Pruefregeln
 {
-    /// <summary>So viele Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“) müssen gleich weit vom Markt liegen (0 = keine; Köln 8).</summary>
-    public int Startgrundstuecke { get; init; }
-
     /// <summary>True/False verlangt eine geschlossene bzw. offene Stadtmauer (erste Mauer); null = beides erlaubt.</summary>
     public bool? MauerGeschlossen { get; init; }
 
@@ -63,9 +60,6 @@ public sealed record Pruefregeln
     /// des Nutzers vom 26.10.2026, PR #209) – nur wer im Spiel baut, braucht eine Karrenstraße (Probeplan, Bauwesen).
     /// </summary>
     public bool Stadtregeln { get; init; }
-
-    /// <summary>So viele Wohnhausplätze muss es geben, die ersten vier gleich weit vom Markt (±10 %); 0 = nicht prüfen. Greybox: 8.</summary>
-    public int Wohnhausplaetze { get; init; }
 
     /// <summary>Mindestens so viele Plätze zu 16 × 14 m im Probeplan (Werkstatt und Stadthof), Wohnhäuser und Stadthöfe (Greybox 6, 8, 2).</summary>
     public int MindestWerkstaetten { get; init; }
@@ -85,12 +79,12 @@ public sealed record Pruefregeln
     /// <summary>Wie bisher <c>tools/karten/greybox.py</c> (statt der Kapazität der Probeplan).</summary>
     public static readonly Pruefregeln Greybox = new()
     {
-        MauerGeschlossen = true, Stadtregeln = true, Wohnhausplaetze = 8,
+        MauerGeschlossen = true, Stadtregeln = true,
         MindestWerkstaetten = 6, MindestWohnhaeuser = 8, MindestStadthoefe = 2,
     };
 
-    /// <summary>Wie bisher <c>tools/karten/koeln.py</c>: 8 Startgrundstücke, die Stadtmauer offen (am Rhein), die Kapazität ein Fehler.</summary>
-    public static readonly Pruefregeln Koeln = new() { Startgrundstuecke = 8, MauerGeschlossen = false, Kapazitaet = Schwere.Fehler };
+    /// <summary>Wie bisher <c>tools/karten/koeln.py</c>: die Stadtmauer offen (am Rhein), die Kapazität ein Fehler.</summary>
+    public static readonly Pruefregeln Koeln = new() { MauerGeschlossen = false, Kapazitaet = Schwere.Fehler };
 
     /// <summary>Die Regeln zu einer Kartenkennung.</summary>
     public static Pruefregeln Fuer(string kennung) => kennung switch
@@ -308,21 +302,14 @@ public static class Kartenpruefung
             if (_r.Stadtregeln)
                 foreach (var schritt in Probeplan()) yield return schritt;
             yield return 0;
-            Teil = "Wohnhausplätze und Startgrundstücke";
-            if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
-            if (_r.Startgrundstuecke > 0)
-                foreach (var teil in Startgrundstuecke())
-                {
-                    Teil = teil;
-                    yield return 0;
-                }
-            else if (_e.Start.Hofstellen.Any(h => h.Start)) // Fairness auf jeder Karte mit Hofstellen
+            Teil = "Startwege";
+            // Startwege (Regel „startweg“): die Umlandbetriebe der KI-Häuser – die Werkstätten in der Stadt haben keinen Platz mehr (16.11.2026)
+            if (_e.Start.Haeuser.Any(h => h.Betriebe.Any(b => b.Platz != "")))
             {
                 Teil = "Startwege";
                 foreach (var teil in _e.StartwegSchritte()) { Teil = teil; yield return 0; }
                 _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
             }
-            Hofstellen();
             Teil = "Marktplätze und Vorkommen";
             Marktplaetze();
             Vorkommen();
@@ -606,7 +593,7 @@ public static class Kartenpruefung
                 if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt)
                     FehlerAn("zone-nur", $"Bauzone {z.Kennung}: „nur“ kennt nur „{Bauzone.NurWerkstatt}“, nicht „{nur}“.", mitte, new[] { z });
                 else if (z.Nur == Bauzone.NurWerkstatt)
-                    HinweisAn("zone-nur", $"Bauzone {z.Kennung} ist ein Werkstatt-Bauplatz – seit den Hofstellen (9.11.2026) besser eine Hofstelle mit Platz für Werkstatt und Wohnhaus.", mitte, new[] { z });
+                    HinweisAn("zone-nur", $"Bauzone {z.Kennung} ist ein Werkstatt-Bauplatz – Wohnhäuser dürfen dort nicht stehen (seit „nur noch Bauzonen“ ist in einer Zone sonst alles baubar).", mitte, new[] { z });
                 if (karren.Count == 0)
                 {
                     FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte, new[] { z });
@@ -737,136 +724,6 @@ public static class Kartenpruefung
                 270 => zs.Select(z => new Kartenort(x0 + r / 2, z)).ToList(),
                 _ => null,
             };
-        }
-
-        /// <summary>
-        /// Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Luftlinie; ohne Marktplatz vom Ursprung, wo der Markt bis Oktober 2026
-        /// immer lag). Seit dem 31.10.2026 darf eine Stadt mehrere Marktplätze haben; „gleich weit vom Markt“ heißt dann: vom jeweils nächsten. Nur
-        /// noch für die Wohnhausplätze (Regel 4): Der Wohnhausplatz wirkt im Kern nicht, die Werkstätten misst <see cref="Startwegpruefung"/> nach dem Weg.
-        /// </summary>
-        private double ZumMarkt(Kartenort p)
-        {
-            var maerkte = _e.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog).Select(g => g.Punkt).ToList();
-            return maerkte.Count == 0 ? p.Abstand(new Kartenort(0, 0)) : maerkte.Min(m => p.Abstand(m));
-        }
-
-        /// <summary>So viele Wohnhausplätze wie Häuser, die ersten vier gleich weit vom (nächsten) Markt (±10 %; greybox.py, Regel 4).</summary>
-        private void WohnhausplaetzeZaehlen()
-        {
-            var plaetze = _e.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz).ToList();
-            if (plaetze.Count != _r.Wohnhausplaetze)
-                Fehler("wohnhausplaetze", $"Die Karte hat {plaetze.Count} Wohnhausplätze statt {_r.Wohnhausplaetze}.", null);
-            var vorn = plaetze.Take(4).ToList();
-            if (vorn.Count == 0) return;
-            var mittel = vorn.Average(g => ZumMarkt(g.Punkt));
-            foreach (var g in vorn.Where(g => Math.Abs(ZumMarkt(g.Punkt) - mittel) > 0.10 * mittel))
-                Fehler("wohnhausplaetze", $"{Wer(g)}: {M(ZumMarkt(g.Punkt))} m zum Markt, die ersten vier im Mittel {M(mittel)} m (±10 %).", g.Punkt, g.Kennung);
-        }
-
-        /// <summary>
-        /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (karte.py, Regel 5). „Gleich weit“ misst
-        /// seit dem 1.11.2026 den Karrenweg, wie ihn der Kern rechnet (<see cref="Startwegpruefung"/>, Befund M4 der Prüfung von phase5/gehtempo):
-        /// Die Luftlinie wirkt im Kern nicht, der Weg über die Fahrzeit schon. Abweichungen über ±10 % vom Mittel (Werkstätten und Start-Umland
-        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet. Die Startwege
-        /// rechnet der Entwurf in Häppchen (<see cref="Kartenentwurf.StartwegSchritte"/>, je Element ein Stück mit dem Namen seines Teils).
-        /// </summary>
-        private IEnumerable<string> Startgrundstuecke()
-        {
-            // Mit Hofstellen (seit 9.11.2026): mindestens so viele Start-Hofstellen; gemessen werden alle (Startwegpruefung)
-            if (_e.Start.Hofstellen.Count > 0)
-            {
-                var anzahl = _e.Start.Hofstellen.Count(h => h.Start);
-                if (anzahl < _r.Startgrundstuecke)
-                    Fehler("startgrundstuecke", $"Die Karte hat {anzahl} Start-Hofstellen – für {_r.Startgrundstuecke} Häuser zu wenig.", null);
-                if (anzahl > 0)
-                {
-                    foreach (var teil in _e.StartwegSchritte()) yield return teil;
-                    _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
-                }
-                yield break;
-            }
-            var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
-                .GroupBy(x => x.m.Groups[1].Value, x => x.g).ToList();
-            if (starts.Count != _r.Startgrundstuecke)
-                Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
-            if (starts.Count == 0) yield break;
-            foreach (var teil in _e.StartwegSchritte()) yield return teil;
-            _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
-        }
-
-        /// <summary>
-        /// Die Hofstellen (seit 9.11.2026, Regel „hofstelle“): Jede verweist auf einen Werkstatt- und einen Wohnhausplatz der Karte, kein Platz gehört zu
-        /// zwei Hofstellen, Kennungen eindeutig; die Vorgabe der Startbelegung setzt jedes Haus auf genau eine Start-Hofstelle (Wohnhaus und Werkstatt
-        /// derselben); es gibt mindestens so viele Start-Hofstellen wie Häuser (Spieler und KI-Häuser). Fehler. Die Fairness der Start-Hofstellen
-        /// (Karrenweg ±10 %, Hinweis) misst „startweg“ – auf jeder Karte mit Hofstellen.
-        /// </summary>
-        private void Hofstellen()
-        {
-            var s = _e.Start;
-            if (s.Hofstellen.Count == 0) return;
-            var teil = new EntwurfTeil[] { s };
-            Kartenort? Ort(string? k) => k is null ? null : _e.GebaeudeMit(k)?.Punkt;
-            string[] Betroffen(params string?[] k) => k.OfType<string>().Where(x => _e.GebaeudeMit(x) is not null).ToArray();
-            void HofFehler(string text, params string?[] plaetze) => FehlerAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
-            void HofHinweisOhneVorgabe(string text, params string?[] plaetze) =>
-                HinweisAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
-
-            foreach (var h in s.Hofstellen)
-            {
-                if (string.IsNullOrWhiteSpace(h.Kennung)) HofFehler("Hofstellen: Eine Hofstelle hat keine Kennung.", h.Werkstatt);
-                if (_e.GebaeudeMit(h.Werkstatt) is not { Art: Bausteinart.Werkstattplatz })
-                    HofFehler($"Hofstelle {h.Kennung}: „{h.Werkstatt}“ ist kein Werkstattplatz der Karte.", h.Werkstatt, h.Wohnhaus);
-                if (_e.GebaeudeMit(h.Wohnhaus) is not { Art: Bausteinart.Wohnhausplatz })
-                    HofFehler($"Hofstelle {h.Kennung}: „{h.Wohnhaus}“ ist kein Wohnhausplatz der Karte.", h.Wohnhaus, h.Werkstatt);
-            }
-            foreach (var doppelt in s.Hofstellen.GroupBy(h => h.Kennung).Where(x => x.Count() > 1))
-                HofFehler($"Hofstellen: Die Kennung „{doppelt.Key}“ ist doppelt.", doppelt.First().Werkstatt);
-            foreach (var doppelt in s.Hofstellen.SelectMany(h => new[] { h.Werkstatt, h.Wohnhaus }).GroupBy(p => p).Where(x => x.Count() > 1))
-                HofFehler($"Hofstellen: Der Platz „{doppelt.Key}“ gehört zu mehreren Hofstellen.", doppelt.Key);
-
-            // Nummerierte Höfe (11.11.2026): Hof 1 bis 8, jede Nummer einmal, ohne Lücke ab 1 (Hof n bekommt Spieler n)
-            var nummeriert = s.Hofstellen.Where(h => h.Nummer is not null).ToList();
-            if (nummeriert.Count > 0)
-            {
-                foreach (var h in nummeriert.Where(h => h.Nummer is < 1 or > Partiebesetzung.HoechstensHoefe))
-                    HofFehler($"Hofstelle {h.Kennung}: Höfe sind von 1 bis {Partiebesetzung.HoechstensHoefe} nummeriert, nicht {h.Nummer}.", h.Werkstatt);
-                foreach (var doppelt in nummeriert.GroupBy(h => h.Nummer).Where(x => x.Count() > 1))
-                    HofFehler($"Hofstellen: Hof {doppelt.Key} gibt es mehrmals ({string.Join(", ", doppelt.Select(h => h.Kennung))}).", doppelt.First().Werkstatt);
-                var nummern = nummeriert.Select(h => h.Nummer!.Value).Where(n => n is >= 1 and <= Partiebesetzung.HoechstensHoefe).Distinct().ToList();
-                for (var n = 1; n <= nummern.DefaultIfEmpty(0).Max(); n++)
-                    if (!nummern.Contains(n)) HofFehler($"Hofstellen: Hof {n} fehlt – die Höfe sind ohne Lücke ab 1 nummeriert.");
-                foreach (var h in s.Hofstellen.Where(h => h.Start && h.Nummer is null))
-                    HofHinweisOhneVorgabe($"Hofstelle {h.Kennung}: Startplatz ohne Nummer – auf einer Karte mit nummerierten Höfen beginnt dort niemand.", h.Werkstatt);
-            }
-
-            if (s.Haeuser.Count == 0 && s.SpielerWerkstatt is null && s.SpielerWohnhaus is null) return;
-            // Die Vorgabe (nur ohne Los: Tests, Vergleiche, „Karte ausprobieren“): jedes Haus auf genau einer Start-Hofstelle, Wohnhaus und Werkstatt
-            // derselben. Ein Hinweis – im Spiel bekommt jedes Haus ohnehin eine Hofstelle (gewählt oder gelost).
-            void HofHinweis(string text, params string?[] plaetze) =>
-                HinweisAn("hofstelle", text, plaetze.Select(Ort).FirstOrDefault(o => o is not null), teil, Betroffen(plaetze));
-            void Vorgabe(string wer, string? wohnhaus, string? werkstatt)
-            {
-                var hw = s.HofstelleVon(werkstatt);
-                var hh = s.HofstelleVon(wohnhaus);
-                if (werkstatt is not null && hw is null)
-                    HofHinweis($"Start, {wer}: Die Werkstatt „{werkstatt}“ gehört zu keiner Hofstelle – ohne Los sitzt das Haus dort, im Spiel bekommt es eine Hofstelle.", werkstatt);
-                if (wohnhaus is not null && hh is null)
-                    HofHinweis($"Start, {wer}: Das Wohnhaus „{wohnhaus}“ gehört zu keiner Hofstelle – ohne Los wohnt das Haus dort, im Spiel bekommt es eine Hofstelle.", wohnhaus);
-                if (hw is not null && hh is not null && hw != hh)
-                    HofHinweis($"Start, {wer}: Wohnhaus und Werkstatt liegen auf verschiedenen Hofstellen ({hh.Kennung}, {hw.Kennung}).", werkstatt, wohnhaus);
-                if ((hw ?? hh) is { Start: false } h)
-                    HofHinweis($"Start, {wer}: Die Hofstelle {h.Kennung} ist kein Startplatz – ohne Los sitzt das Haus trotzdem dort.", werkstatt ?? wohnhaus);
-            }
-            Vorgabe("Spieler", s.SpielerWohnhaus, s.SpielerWerkstatt?.Platz);
-            foreach (var h in s.Haeuser)
-                Vorgabe(h.Name, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }));
-            // gelost wird für den Spieler und jedes Haus, das auf einer Hofstelle sitzt (ein Haus ganz außerhalb bleibt, wo es ist)
-            var start = nummeriert.Count > 0 ? nummeriert.Select(h => h.Nummer).Where(n => n is >= 1 and <= Partiebesetzung.HoechstensHoefe).Distinct().Count()
-                : s.Hofstellen.Count(h => h.Start);
-            var haeuser = s.Haeuser.Count(h => s.HofstelleVon(h.Wohnhaus) is not null // wie Hofstellenvergabe.VorgabeVon: die erste Werkstatt oder das Wohnhaus
-                || s.HofstelleVon(h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz })) is not null);
-            if (start < 1 + haeuser)
-                HofFehler($"Hofstellen: {start} Startplätze für den Spieler und {haeuser} KI-Häuser – es braucht mindestens {1 + haeuser}.");
         }
 
         /// <summary>
@@ -1270,7 +1127,7 @@ public static class Kartenpruefung
             var teil = new EntwurfTeil[] { s };
             if (s.IstLeer)
             {
-                var text = "Start: Die Karte hat keine Startbelegung – der Startplatz des Spielers fehlt, im Spiel gälten die drei Häuser des Ersatzes ohne Plätze.";
+                var text = "Start: Die Karte hat keine Startbelegung – im Spiel gälten die drei Häuser des Ersatzes, ihre Umlandbetriebe ohne Platz in der Karte. Eine Farbe für den Spieler oder ein KI-Haus genügt.";
                 if (_r.Stadtregeln) FehlerAn("start-fehlt", text, null, teil);
                 else HinweisAn("start-fehlt", text, null, teil);
                 return;
@@ -1282,47 +1139,30 @@ public static class Kartenpruefung
             string[] Betroffen(string? k) => Platz(k) is { } g ? new[] { g.Kennung } : Array.Empty<string>();
             void StartFehler(string text, string? kennung) => FehlerAn("start", text, Ort(kennung), teil, Betroffen(kennung));
 
-            void Wohnhaus(string wer, string? kennung)
-            {
-                if (kennung is null) StartFehler($"Start, {wer}: Es fehlt das Wohnhaus.", null);
-                else if (Platz(kennung) is not { Art: Bausteinart.Wohnhausplatz })
-                    StartFehler($"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.", kennung);
-            }
-            // Knappes Format (11.11.2026): Mit nummerierten Höfen braucht die Karte weder Spieler noch KI-Häuser – die Partie würfelt sie.
-            var knapp = s.Hofstellen.Any(h => h.Nummer is not null);
-            if (!(knapp && s.SpielerWohnhaus is null)) Wohnhaus("Spieler", s.SpielerWohnhaus);
-            if (s.SpielerWerkstatt is null && !knapp) StartFehler("Start, Spieler: Der Startplatz der Werkstatt fehlt.", null);
-            foreach (var (beruf, w) in s.JeBeruf.Select(e => (e.Key, (EntwurfStartplatz?)e.Value)).Prepend(("", s.SpielerWerkstatt)))
-            {
-                if (w is null) continue;
-                var wer = $"Start, Spieler{(beruf == "" ? "" : $" ({beruf})")}";
-                if (Platz(w.Platz) is not { Art: Bausteinart.Werkstattplatz })
-                    StartFehler($"{wer}: „{w.Platz}“ ist kein Werkstattplatz der Karte.", w.Platz);
-                if (beruf != "" && daten is not null && !daten.Berufe.ContainsKey(beruf))
-                    StartFehler($"{wer}: Den Beruf „{beruf}“ gibt es nicht.", w.Platz);
-            }
             if (s.SpielerFarbe is { } sf && !IstFarbe(sf)) StartFehler($"Start, Spieler: Die Farbe „{sf}“ ist nicht #rrggbb.", null);
 
-            if (s.Haeuser.Count == 0 && !knapp) StartFehler("Start: Es braucht mindestens ein KI-Haus (das erste spielt immer mit).", null);
             if (s.Haeuser.Count > Kartenentwurf.HoechstensHaeuser) StartFehler($"Start: Höchstens {Kartenentwurf.HoechstensHaeuser} KI-Häuser, nicht {s.Haeuser.Count}.", null);
             foreach (var h in s.Haeuser)
             {
                 if (string.IsNullOrWhiteSpace(h.Name)) StartFehler("Start: Ein Haus hat keinen Namen.", null);
-                Wohnhaus(h.Name, h.Wohnhaus);
                 if (h.Wappen.Fehler() is { } wf) StartFehler($"Start, {h.Name}: {wf}", null);
                 if (h.Farbe is { } hf && !IstFarbe(hf)) StartFehler($"Start, {h.Name}: Die Farbe „{hf}“ ist nicht #rrggbb.", null);
                 if (h.Betriebe.Count == 0) StartFehler($"Start, {h.Name}: Ein Haus braucht mindestens einen Betrieb.", null);
                 foreach (var b in h.Betriebe)
                 {
-                    var platz = Platz(b.Platz);
-                    if (platz is not { Art: Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb })
-                        StartFehler($"Start, {h.Name}: „{b.Platz}“ ist weder Werkstattplatz noch Umlandbetrieb der Karte.", b.Platz);
+                    // Die Werkstatt in der Stadt hat keinen Platz (sie steht in einer Bauzone, wo das Los sie hinsetzt); ein Platz ist ein Umlandbetrieb.
+                    var platz = b.Platz == "" ? null : Platz(b.Platz);
+                    if (b.Platz == "")
+                    {
+                        if (daten is not null && !_e.Stadtwerkstaetten().Contains(b.Art))
+                            StartFehler($"Start, {h.Name}: {b.Art} ist keine Werkstatt der Stufe 1 in der Stadt – ein Umlandbetrieb braucht seinen Platz der Karte.", null);
+                    }
+                    else if (platz is not { Art: Bausteinart.Umlandbetrieb })
+                        StartFehler($"Start, {h.Name}: „{b.Platz}“ ist kein Umlandbetrieb der Karte.", b.Platz);
                     else if (string.IsNullOrWhiteSpace(platz.Betrieb))
                         StartFehler($"Start, {h.Name}: Am Platz „{b.Platz}“ fehlt der Name des Betriebs.", b.Platz);
-                    else if (platz.Art == Bausteinart.Umlandbetrieb && platz.Baustein!.BetriebsartWert != b.Art)
+                    else if (platz.Baustein!.BetriebsartWert != b.Art)
                         StartFehler($"Start, {h.Name}: Auf „{b.Platz}“ steht {platz.Baustein.Anzeigename}, kein Platz für {b.Art}.", b.Platz);
-                    else if (platz.Art == Bausteinart.Werkstattplatz && daten is not null && !_e.BetriebsartenFuer(platz).Contains(b.Art))
-                        StartFehler($"Start, {h.Name}: {b.Art} ist keine Werkstatt der Stufe 1 in der Stadt – sie passt nicht auf den Werkstattplatz „{b.Platz}“.", b.Platz);
                     if (b.Produkt is { } ware && daten is not null && daten.KenntArt(b.Art) && !daten.Art(b.Art).Produkte.Contains(ware))
                         StartFehler($"Start, {h.Name}: {b.Art} stellt „{ware}“ nicht her.", b.Platz);
                 }
@@ -1331,11 +1171,8 @@ public static class Kartenpruefung
                 StartFehler($"Start: Das Haus „{doppelt.Key}“ steht doppelt.", null);
             foreach (var doppelt in s.Haeuser.GroupBy(h => h.Wappen).Where(x => x.Count() > 1))
                 StartFehler($"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).", null);
-            var spielerPlaetze = s.JeBeruf.Select(e => e.Value.Platz).Concat(s.SpielerWerkstatt is { } sw ? new[] { sw.Platz } : Array.Empty<string>()).Distinct();
-            foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat(spielerPlaetze).GroupBy(p => p).Where(x => x.Count() > 1))
+            foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
                 StartFehler($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.", doppelt.Key);
-            foreach (var doppelt in s.Haeuser.Select(h => h.Wohnhaus).Prepend(s.SpielerWohnhaus).OfType<string>().GroupBy(p => p).Where(x => x.Count() > 1))
-                StartFehler($"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.", doppelt.Key);
         }
 
         private static bool IstFarbe(string f) => Regex.IsMatch(f, "^#[0-9a-fA-F]{6}$");

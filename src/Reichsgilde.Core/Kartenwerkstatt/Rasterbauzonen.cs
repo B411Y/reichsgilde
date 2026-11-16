@@ -190,7 +190,7 @@ public static class Rasterbauzonen
                 }
 
         // Auf und an den alten Plätzen (2 m wie zu Gebäuden) entsteht keine Restfläche: Solange sie in der Karte stehen, steht dort in einer Partie
-        // mit festen Plätzen (Startplatzvergabe.Vorgabe) ein Haus, und die Darstellung füllt nichts unter Gebäuden.
+        // mit festen Startorten (NeuePartie.Startorte) ein Haus, und die Darstellung füllt nichts unter Gebäuden.
         var plaetze = e.Gebaeude.Where(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)
             .Select(g => g.Ecken()).Where(ecken => ecken.Count > 0)
             .Select(ecken => (Ecken: ecken, Rand: ecken.Append(ecken[0]).ToList(), Rahmen: Rahmen(ecken, Gebaeudeabstand + 1))).ToList();

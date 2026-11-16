@@ -39,10 +39,12 @@ public sealed class EntwurfRasterzonen : EntwurfTeil
     internal static JsonArray LagenJson(IEnumerable<Lagegebiet> lagen) => new(lagen.Select(g => (JsonNode)Zusammensetzen(null,
         ("art", g.ArtText), ("name", g.Name == "" ? null : JsonValue.Create(g.Name)), ("flaeche", JsonPunkte(g.Ecken)))).ToArray());
 
-    internal static JsonArray RestJson(IEnumerable<Restflaeche> rest) => new(rest.Select(r => (JsonNode)new JsonObject
+    internal static JsonArray RestJson(IEnumerable<Restflaeche> rest) => new(rest.Select(r =>
     {
-        ["kennung"] = r.Kennung, ["art"] = r.Art.ToString().ToLowerInvariant(), ["grund"] = r.Grund, ["felder"] = r.Felder,
-        ["flaeche"] = JsonPunkte(Orte(r.Flaeche)),
+        var eintrag = new JsonObject { ["kennung"] = r.Kennung, ["art"] = r.Art.ToString().ToLowerInvariant(), ["grund"] = r.Grund, ["felder"] = r.Felder };
+        if (r.Thema is { } thema) eintrag["thema"] = thema; // nur, wo die Karte das Thema der Füllung festlegt
+        eintrag["flaeche"] = JsonPunkte(Orte(r.Flaeche));
+        return (JsonNode)eintrag;
     }).ToArray());
 
     /// <summary>Liest „lagen“ (fehlt es, keine Gebiete).</summary>
@@ -92,6 +94,19 @@ public sealed partial class Kartenentwurf
 
     private double RasterRunden(double wert) => Math.Round(wert / Raster) * Raster + 0.0;
 
+    private static Restflaeche MitThema(Restflaeche r, string? thema) =>
+        new() { Kennung = r.Kennung, Art = r.Art, Grund = r.Grund, Felder = r.Felder, Flaeche = r.Flaeche, Thema = string.IsNullOrWhiteSpace(thema) ? null : thema };
+
+    /// <summary>
+    /// Legt das Thema der Füllung einer Restfläche fest (<see cref="Restflaeche.Thema"/>, z. B. „pferch“; null: wieder der feste Würfel). Es
+    /// bleibt bei einer neuen Rechnung der Bauzonen an der Fläche, solange sie dieselbe bleibt.
+    /// </summary>
+    public void RestflaecheThemaSetzen(string kennung, string? thema)
+    {
+        if (_rasterzonen.Restflaechen.All(r => r.Kennung != kennung)) throw new ArgumentException($"Keine Restfläche „{kennung}“.", nameof(kennung));
+        Aendern(_rasterzonen, $"– Thema der Restfläche {kennung}", z => z.Restflaechen = z.Restflaechen.Select(r => r.Kennung == kennung ? MitThema(r, thema) : r).ToList());
+    }
+
     /// <summary>
     /// Rechnet die Bauzonen aus dem Raster neu (<see cref="Rasterbauzonen.Rechnen"/>) und ersetzt in einem Schritt alle berechneten Zonen
     /// (<see cref="EntwurfBauzone.Berechnet"/>) und die Restflächen; von Hand gezeichnete Zonen bleiben. Ohne <see cref="Rastervorgaben.LageVon"/>
@@ -117,7 +132,11 @@ public sealed partial class Kartenentwurf
             zone.VieleckSetzen(-1, z.Umriss);
             befehle.Add(new TeilSetzen(zone, k));
         }
-        if (Aenderung(_rasterzonen, r => r.Restflaechen = ergebnis.Restflaechen.ToList()) is { } rest) befehle.Add(rest);
+        // Ein festes Thema (Restflaeche.Thema) bleibt an seiner Fläche, solange die Rechnung dieselbe Fläche wieder ergibt.
+        static string Umriss(Restflaeche r) => string.Join(";", r.Flaeche.Select(p => $"{Zahlenformat.Knapp(p[0])},{Zahlenformat.Knapp(p[1])}"));
+        var themen = _rasterzonen.Restflaechen.Where(r => r.Thema is not null).GroupBy(Umriss).ToDictionary(g => g.Key, g => g.First().Thema, StringComparer.Ordinal);
+        var neueRest = ergebnis.Restflaechen.Select(r => themen.TryGetValue(Umriss(r), out var thema) ? MitThema(r, thema) : r).ToList();
+        if (Aenderung(_rasterzonen, r => r.Restflaechen = neueRest) is { } rest) befehle.Add(rest);
         if (befehle.Count > 0) Geschichte.Ausfuehren(new Sammelbefehl("Bauzonen aus dem Raster berechnet", befehle));
         return ergebnis;
     }

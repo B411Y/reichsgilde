@@ -61,15 +61,15 @@ static class StartaufstellungTests
                 }
             Pruefe.Gleich(berufe.Count, gezogen.Count, "jeder Beruf kommt bei einem KI-Haus vor: " + string.Join(", ", gezogen));
 
-            // Ganze Partien (Spieler und KI-Häuser mit ihren Betrieben, „Schwer“: auch das Umland), Messstadt mit acht KI-Häusern
+            // Ganze Partien (Spieler und KI-Häuser mit ihren Betrieben, „Schwer“: auch das Umland), Messstadt mit sieben KI-Häusern (acht Häuser, mehr passen gelost nicht)
             for (var s = 1; s <= 10; s++)
             {
-                var w = Partie(Messstadt.Value, new NeuePartie(Beruf: berufe[s % berufe.Count], Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe), s, Schwierigkeit.Schwer);
-                Pruefe.Gleich(9, w.Konten.Count);
+                var w = Partie(Messstadt.Value, new NeuePartie(Beruf: berufe[s % berufe.Count], Rivalen: 7), s, Schwierigkeit.Schwer);
+                Pruefe.Gleich(8, w.Konten.Count);
                 Pruefe.Wahr(OhneDoppel(BerufeDerHaeuser(w)), $"Startwert {s}: {string.Join(", ", BerufeDerHaeuser(w))}");
             }
             // Gegenprobe: ohne die Regel (Vorgabe = Karte wie geschrieben) beginnen zwei Häuser als Schmiede
-            var v = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), 1);
+            var v = Partie(Messstadt.Value, new NeuePartie(Rivalen: 7, Aufstellung: Aufstellungsart.Vorgabe), 1);
             Pruefe.Wahr(!OhneDoppel(BerufeDerHaeuser(v)), "ohne Regel Doppelungen: " + string.Join(", ", BerufeDerHaeuser(v)));
         }),
 
@@ -155,7 +155,7 @@ static class StartaufstellungTests
                 Pruefe.Wahr(Losen(Messstadt.Value, "Prediger", 8, s).Belegung.Haeuser.All(h => d.Art(h.Betriebe[0].Art).Beruf != "Prediger"), $"Startwert {s}");
         }),
 
-        ("Startaufstellung: Plätze – neue Werkstatt auf dem Werkstattplatz des Hauses, Umland auf einem freien Umland-Startplatz (Name des Hauses); ungenutzte stehen frei zur Pacht", () =>
+        ("Startaufstellung: Plätze – die Werkstatt ohne Platz der Karte, Umland auf einem freien Umland-Startplatz (Name des Hauses); ungenutzte stehen frei zur Pacht", () =>
         {
             var d = Daten.Value;
             var gepruefte = 0;
@@ -167,8 +167,7 @@ static class StartaufstellungTests
                 foreach (var h in e.Belegung.Haeuser)
                 {
                     var alt = original.Single(o => o.Name == h.Name);
-                    Pruefe.Gleich(alt.Betriebe[0].Platz, h.Betriebe[0].Platz, $"{h.Name}: Werkstatt auf ihrem Platz");
-                    Pruefe.Wahr(karte.GebaeudeMit(h.Betriebe[0].Platz) is { Art: Bausteinart.Werkstattplatz }, h.Name);
+                    Pruefe.Gleich("", h.Betriebe[0].Platz, $"{h.Name}: die Werkstatt in der Stadt hat keinen Platz der Karte (das Los setzt sie in eine Bauzone)");
                     var beruf = d.Berufe[d.Art(h.Betriebe[0].Art).Beruf];
                     if (h.Betriebe.Count > 1)
                     {
@@ -196,9 +195,9 @@ static class StartaufstellungTests
             // In der Partie: frei gewordene Umland-Startplätze stehen zur Pacht
             for (var s = 1; s <= 20; s++)
             {
-                var e = Losen(Messstadt.Value, "Schmied", 8, s);
+                var e = Losen(Messstadt.Value, "Schmied", 7, s);
                 if (e.Frei.Count == 0) continue;
-                var w = Partie(Messstadt.Value, new NeuePartie(Rivalen: 8, Startplaetze: Startplatzvergabe.Vorgabe), s, Schwierigkeit.Schwer);
+                var w = Partie(Messstadt.Value, new NeuePartie(Rivalen: 7), s, Schwierigkeit.Schwer);
                 foreach (var (name, art) in e.Frei)
                     Pruefe.Wahr(w.FreieLiegenschaften.Any(l => l.Name == name && l.Art == art), $"Startwert {s}: {name} frei");
                 return;

@@ -11,24 +11,6 @@
   {"kennung": "Marktplatz1", "katalog": "markt", "name": "Marktplatz", "punkt": [0, 0], "drehung": 0},
   {"kennung": "Rathaus1", "katalog": "rathaus", "name": "Rathaus", "punkt": [0, -19], "drehung": 0},
   {"kennung": "Kirche1", "katalog": "kirche", "name": "Kirche", "punkt": [0, 22], "drehung": 180},
-  {"kennung": "Werkstattplatz1", "katalog": "werkstattplatz", "name": "Werkstattplatz", "punkt": [-24, -10], "drehung": 0},
-  {"kennung": "Werkstattplatz2", "katalog": "werkstattplatz", "name": "Werkstattplatz 2", "punkt": [24, -10], "drehung": 0, "betrieb": "Gießerei Ahlbeck"},
-  {"kennung": "Werkstattplatz3", "katalog": "werkstattplatz", "name": "Werkstattplatz 3", "punkt": [-42, -10], "drehung": 0, "betrieb": "Tischlerei Brendel"},
-  {"kennung": "Werkstattplatz4", "katalog": "werkstattplatz", "name": "Werkstattplatz 4", "punkt": [42, -10], "drehung": 0, "betrieb": "Maurerei Dornbusch"},
-  {"kennung": "Werkstattplatz5", "katalog": "werkstattplatz", "name": "Werkstattplatz 5", "punkt": [-60, -10], "drehung": 0, "betrieb": "Tinkturei Falkner"},
-  {"kennung": "Werkstattplatz6", "katalog": "werkstattplatz", "name": "Werkstattplatz 6", "punkt": [60, -10], "drehung": 0, "betrieb": "Gießerei Grünwald"},
-  {"kennung": "Werkstattplatz7", "katalog": "werkstattplatz", "name": "Werkstattplatz 7", "punkt": [-24, 10], "drehung": 180, "betrieb": "Schänke Hollerbach"},
-  {"kennung": "Werkstattplatz8", "katalog": "werkstattplatz", "name": "Werkstattplatz 8", "punkt": [24, 10], "drehung": 180, "betrieb": "Tischlerei Lindenau"},
-  {"kennung": "Werkstattplatz9", "katalog": "werkstattplatz", "name": "Werkstattplatz 9", "punkt": [-42, 10], "drehung": 180, "betrieb": "Maurerei Rabenstein"},
-  {"kennung": "Wohnhausplatz1", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 1", "punkt": [-20, -40], "drehung": 180},
-  {"kennung": "Wohnhausplatz2", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 2", "punkt": [-10, -40], "drehung": 180},
-  {"kennung": "Wohnhausplatz3", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 3", "punkt": [0, -40], "drehung": 180},
-  {"kennung": "Wohnhausplatz4", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 4", "punkt": [10, -40], "drehung": 180},
-  {"kennung": "Wohnhausplatz5", "katalog": "wohnhausplatz", "name": "Wohnhaus Nord 5", "punkt": [20, -40], "drehung": 180},
-  {"kennung": "Wohnhausplatz6", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 1", "punkt": [15, 40], "drehung": 0},
-  {"kennung": "Wohnhausplatz7", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 2", "punkt": [5, 40], "drehung": 0},
-  {"kennung": "Wohnhausplatz8", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 3", "punkt": [-5, 40], "drehung": 0},
-  {"kennung": "Wohnhausplatz9", "katalog": "wohnhausplatz", "name": "Wohnhaus Süd 4", "punkt": [-15, 40], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [-66.5, -53], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-57, -53], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-47.5, -53], "drehung": 0},
@@ -111,10 +93,25 @@
   {"name": "Umlandweg Süd", "klasse": "land", "linie": [[-220, 56], [-220, 100], [220, 100], [220, 56]], "gefahr": 1, "breite": 4}
  ],
  "bauzonen": [
+  {
+   "kennung": "K1",
+   "art": "kern",
+   "flaeche": [[-74, -44], [74, -44], [74, -4], [14, -4], [14, -14], [10, -14], [10, -26], [-10, -26], [-10, -14], [-14, -14], [-14, -4], [-74, -4]],
+   "berechnet": true
+  },
+  {"kennung": "K2", "art": "kern", "flaeche": [[-74, 4], [-14, 4], [-14, 14], [-10, 14], [-10, 32], [10, 32], [10, 14], [14, 14], [14, 4], [74, 4], [74, 44], [-74, 44]], "berechnet": true},
+  {"kennung": "M1", "art": "mauerring", "flaeche": [[-88, -58], [-74, -58], [-74, -50], [-80, -50], [-80, -4], [-88, -4]], "berechnet": true},
+  {"kennung": "M2", "art": "mauerring", "flaeche": [[-88, 4], [-80, 4], [-80, 50], [-74, 50], [-74, 58], [-88, 58]], "berechnet": true},
+  {"kennung": "M3", "art": "mauerring", "flaeche": [[74, -58], [88, -58], [88, -4], [80, -4], [80, -50], [74, -50]], "berechnet": true},
+  {"kennung": "M4", "art": "mauerring", "flaeche": [[74, 50], [80, 50], [80, 4], [88, 4], [88, 58], [74, 58]], "berechnet": true},
   {"kennung": "VON", "art": "vorstadt", "flaeche": [[96, -4], [214, -4], [214, -52], [96, -52]]},
   {"kennung": "VOS", "art": "vorstadt", "flaeche": [[96, 4], [214, 4], [214, 52], [96, 52]]},
   {"kennung": "VWN", "art": "vorstadt", "flaeche": [[-96, -4], [-214, -4], [-214, -52], [-96, -52]]},
   {"kennung": "VWS", "art": "vorstadt", "flaeche": [[-96, 4], [-214, 4], [-214, 52], [-96, 52]]}
+ ],
+ "lagen": [
+  {"art": "kern", "name": "innerhalb der Ringstraße", "flaeche": [[-76, -48], [76, -48], [76, 48], [-76, 48]]},
+  {"art": "mauerring", "name": "zwischen Ringstraße und Mauer", "flaeche": [[-90, -60], [90, -60], [90, 60], [-90, 60]]}
  ],
  "natur": {
   "flaechen": [
@@ -138,18 +135,7 @@
   "pflanzen": []
  },
  "start": {
-  "hofstellen": [
-   {"kennung": "S1", "name": "an der Hauptstraße (Nordseite, 24 m westlich des Marktes)", "werkstatt": "Werkstattplatz1", "wohnhaus": "Wohnhausplatz1", "start": true},
-   {"kennung": "S2", "name": "an der Hauptstraße (Nordseite, 24 m östlich des Marktes)", "werkstatt": "Werkstattplatz2", "wohnhaus": "Wohnhausplatz2", "start": true},
-   {"kennung": "S3", "name": "an der Hauptstraße (Nordseite, 42 m westlich des Marktes)", "werkstatt": "Werkstattplatz3", "wohnhaus": "Wohnhausplatz3", "start": true},
-   {"kennung": "S4", "name": "an der Hauptstraße (Nordseite, 42 m östlich des Marktes)", "werkstatt": "Werkstattplatz4", "wohnhaus": "Wohnhausplatz4", "start": true},
-   {"kennung": "S5", "name": "an der Hauptstraße (Nordseite, 60 m westlich des Marktes)", "werkstatt": "Werkstattplatz5", "wohnhaus": "Wohnhausplatz5", "start": true},
-   {"kennung": "S6", "name": "an der Hauptstraße (Nordseite, 60 m östlich des Marktes)", "werkstatt": "Werkstattplatz6", "wohnhaus": "Wohnhausplatz6", "start": true},
-   {"kennung": "S7", "name": "an der Hauptstraße (Südseite, 24 m westlich des Marktes)", "werkstatt": "Werkstattplatz7", "wohnhaus": "Wohnhausplatz7", "start": true},
-   {"kennung": "S8", "name": "an der Hauptstraße (Südseite, 24 m östlich des Marktes)", "werkstatt": "Werkstattplatz8", "wohnhaus": "Wohnhausplatz8", "start": true},
-   {"kennung": "S9", "name": "an der Hauptstraße (Südseite, 42 m westlich des Marktes)", "werkstatt": "Werkstattplatz9", "wohnhaus": "Wohnhausplatz9", "start": true}
-  ],
-  "spieler": {"wohnhaus": "Wohnhausplatz1", "farbe": "#336bb8", "werkstatt": {"platz": "Werkstattplatz1", "name": "{art} am Werkstattplatz"}},
+  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Ahlbeck",
@@ -157,8 +143,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
     "farbe": "#b33329",
-    "wohnhaus": "Wohnhausplatz2",
-    "betriebe": [{"platz": "Werkstattplatz2", "art": "Giesserei"}, {"platz": "Grube1", "art": "Mine"}]
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube1", "art": "Mine"}]
    },
    {
     "name": "Haus Brendel",
@@ -166,8 +151,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
     "farbe": "#388c47",
-    "wohnhaus": "Wohnhausplatz3",
-    "betriebe": [{"platz": "Werkstattplatz3", "art": "Tischlerei"}, {"platz": "Holzschlag1", "art": "Holzfaellerei"}]
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag1", "art": "Holzfaellerei"}]
    },
    {
     "name": "Haus Dornbusch",
@@ -175,8 +159,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Silber", "figur": "Turm"},
     "farbe": "#d9ad2e",
-    "wohnhaus": "Wohnhausplatz4",
-    "betriebe": [{"platz": "Werkstattplatz4", "art": "Maurerei"}, {"platz": "Steinbruch1", "art": "Steinbruch"}]
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch1", "art": "Steinbruch"}]
    },
    {
     "name": "Haus Falkner",
@@ -184,8 +167,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
     "farbe": "#7a4a9e",
-    "wohnhaus": "Wohnhausplatz5",
-    "betriebe": [{"platz": "Werkstattplatz5", "art": "Tinkturei"}, {"platz": "Kraeutergarten1", "art": "Kraeutergarten"}]
+    "betriebe": [{"art": "Tinkturei"}, {"platz": "Kraeutergarten1", "art": "Kraeutergarten"}]
    },
    {
     "name": "Haus Grünwald",
@@ -193,8 +175,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Purpur", "farbe2": "Gold", "figur": "Krone"},
     "farbe": "#2e8c8c",
-    "wohnhaus": "Wohnhausplatz6",
-    "betriebe": [{"platz": "Werkstattplatz6", "art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
    },
    {
     "name": "Haus Hollerbach",
@@ -202,8 +183,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Ohne", "farbe1": "Gruen", "farbe2": "Gold", "figur": "Aehre"},
     "farbe": "#c26a1f",
-    "wohnhaus": "Wohnhausplatz7",
-    "betriebe": [{"platz": "Werkstattplatz7", "art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
+    "betriebe": [{"art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
    },
    {
     "name": "Haus Lindenau",
@@ -211,8 +191,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Gold", "figur": "Lilie"},
     "farbe": "#5c5c5c",
-    "wohnhaus": "Wohnhausplatz8",
-    "betriebe": [{"platz": "Werkstattplatz8", "art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
    },
    {
     "name": "Haus Rabenstein",
@@ -220,8 +199,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Geviert", "farbe1": "Silber", "farbe2": "Rot", "figur": "Rose"},
     "farbe": "#a3476b",
-    "wohnhaus": "Wohnhausplatz9",
-    "betriebe": [{"platz": "Werkstattplatz9", "art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
    }
   ]
  },

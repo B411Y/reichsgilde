@@ -19,7 +19,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Bauzonen (seit 4.11.2026): aus dem 2-m-Raster gerechnet (Kartenentwurf.BauzonenAusRaster) – von Hand stehen nur drei Lage-Gebiete:
 //      Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt vor den Toren bis zu den Feldwegen. Dazu die Restflächen.
 //    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve; im Randstreifen (300 m) Felder und Waldstücke aus dem Rand-Vorschlag.
-//    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei); drei Start-Hofstellen (Startpaare) und eine freie Hofstelle (vierte Werkstatt).
+//    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei); wo sie wohnen und arbeiten, lost die Partie in den Bauzonen (seit 16.11.2026
+//      ohne Werkstatt- und Wohnhausplätze und ohne Hofstellen).
 //    • Gelände: die Stadt flach, nach Osten ein sanfter Hang hinauf (die östliche Vorstadt steigt bis 4 % an), im Randstreifen Hügel bis 25 m
 //      und rundherum natürliche Unebenheit. Unter keinem Platz mehr als 8 % Gefälle (die Prüfung meldet nichts).
 //    • Wasser (Schritt 5c): Ein Bach kommt vom Hügel im Nordwesten, quert den Waldweg in einer Furt, läuft an der Westmauer entlang (eine
@@ -76,18 +77,9 @@ public sealed class Probestadt : Stadtskript
         E.Setzen("rathaus", 0, -19);         // die Vorderseite zum Markt (Süden)
         E.Setzen("kirche", 0, 22, 180);      // die Vorderseite zum Markt (Norden)
 
-        // ── Werkstattplätze an der Hauptstraße (16 × 14 m, der Hof 3,5 m neben der Straßenmitte) ──
-        var werkstaetten = new[]
-        {
-            E.Setzen("werkstattplatz", -30, -10), E.Setzen("werkstattplatz", 32, -10),
-            E.Setzen("werkstattplatz", -30, 10, 180), E.Setzen("werkstattplatz", 32, 10, 180),
-        };
-
-        // ── Wohnhausplätze an der Ringstraße (innen), Einwohnerplätze außen zur Mauer ──
+        // ── Einwohnerplätze an der Ringstraße, außen zur Mauer (Wohnhäuser und Werkstätten der Häuser stehen in den Bauzonen) ──
         var rand = ring.BreiteWirksam / 2 + 0.5;  // die Vorderkante 0,5 m neben dem Straßenrand
         var (rx, rz) = (MauerX - Ring, MauerZ - Ring);
-        var wohnhaeuser = Haeuserreihe("wohnhausplatz", P(-50, -rz), P(50, -rz), links: false, rand, luecke: 2, hoechstens: 3, name: "Wohnhaus Nord");
-        wohnhaeuser.AddRange(Haeuserreihe("wohnhausplatz", P(50, rz), P(-50, rz), links: false, rand, luecke: 2, hoechstens: 3, name: "Wohnhaus Süd"));
         Haeuserreihe("einwohnerplatz_ring", P(-rx + 6, -rz), P(rx - 6, -rz), links: true, rand, luecke: 1);
         Haeuserreihe("einwohnerplatz_ring", P(rx - 6, rz), P(-rx + 6, rz), links: true, rand, luecke: 1);
         // Einwohnerplätze der Vorstadt (das Spiel stellt einen Teil der Einwohnerhäuser vor die Mauer): am Feldweg Ost-Nord, nach Norden
@@ -106,15 +98,11 @@ public sealed class Probestadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(60, 70), P(195, 60), P(195, 145), P(40, 145) }, "Wald im Südosten");
 
         // ── Start: der Spieler und zwei KI-Häuser ────────────────────────────
-        E.SpielerWohnhausSetzen(wohnhaeuser[1].Kennung);
         E.SpielerFarbeSetzen("#336bb8");
-        E.SpielerStartplatzSetzen(werkstaetten[0].Kennung);
         var tischler = E.HausHinzufuegen("Haus Ahlbeck");
-        E.BetriebHinzufuegen(tischler, werkstaetten[1].Kennung, Betriebsart.Tischlerei);
+        E.BetriebHinzufuegen(tischler, "", Betriebsart.Tischlerei);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
         var giesser = E.HausHinzufuegen("Haus Brendel");
-        E.BetriebHinzufuegen(giesser, werkstaetten[3].Kennung, Betriebsart.Giesserei);
-        // Hofstellen (seit 9.11.2026): die drei Startpaare sind Start-Hofstellen, die vierte Werkstatt mit dem nächsten freien Wohnhausplatz eine freie
-        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nord" : "Süd")}{(w.X < 0 ? "west" : "ost")})", freie: true, nummern: true);
+        E.BetriebHinzufuegen(giesser, "", Betriebsart.Giesserei);
 
         // ── Gelände: sanfter Hang an der östlichen Vorstadt, Hügel im Randstreifen, Unebenheit im Rand ──
         Huegel(P(280, 0), 220, 6);          // höchstens 1,5 · 6 / 220 ≈ 4 % – die Mauer bei x = 70 liegt am Fuß

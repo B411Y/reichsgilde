@@ -26,7 +26,7 @@ static class KirchenstartTests
         for (var i = 0; i < prediger; i++)
         {
             var betriebe = haeuser[i]!["betriebe"]!.AsArray();
-            betriebe[0] = new JsonObject { ["platz"] = (string)betriebe[0]!["platz"]!, ["art"] = "Kirche" };
+            betriebe[0] = new JsonObject { ["art"] = "Kirche" }; // die Werkstatt in der Stadt hat keinen Platz der Karte (16.11.2026)
             if (volk is { } v) haeuser[i]!["volk"] = v.ToString();
         }
         return Stadtkarte.AusJson(json.ToJsonString(), Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(pfad)));

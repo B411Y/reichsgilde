@@ -205,7 +205,7 @@ static class RestflaechenfuellungTests
             Pruefe.Gleich("garten", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 5, 0 }, keine, "randgestruepp", erwNamen, new[] { 0, 100 })); // nur Randgestrüpp wird ersetzt
         }),
 
-        ("Restflächenfüllung: Köln bekommt Steinmetzplätze und höchstens wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit „nur noch Bauzonen“: 1 Hof, 0 Pferche, 3 Wasserstellen, 2 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
+        ("Restflächenfüllung: Köln bekommt Steinmetzplätze und höchstens wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit dem Aufräumen der Plätze: 1 Hof, 2 Pferche fest in der Karte, 3 Wasserstellen, 3 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
         {
             var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
             var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
@@ -223,7 +223,8 @@ static class RestflaechenfuellungTests
                 var namen = wahl.Select(e => e.Key).ToList();
                 var gewichte = wahl.Select(e => e.Value!.GetValue<int>()).ToList();
                 var alt = Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen);
-                var neu = Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen, ersetzt, erw.Select(e => e.Key).ToList(), erw.Select(e => e.Value!.GetValue<int>()).ToList());
+                // wie das Spiel (Stadtansicht.FuellThemaWaehlen): Legt die Karte das Thema fest (Restflaeche.Thema, Köln: zwei Pferche), gilt es – sonst der Würfel
+                var neu = r.Thema ?? Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen, ersetzt, erw.Select(e => e.Key).ToList(), erw.Select(e => e.Value!.GetValue<int>()).ToList());
                 if (alt is not null) ohne[alt] = ohne.GetValueOrDefault(alt) + 1;
                 if (neu is not null) mit[neu] = mit.GetValueOrDefault(neu) + 1;
                 Pruefe.Wahr(neu == alt || alt == ersetzt, $"{kennung}: nur Randgestrüpp wird ersetzt ({alt} → {neu})");
@@ -231,9 +232,10 @@ static class RestflaechenfuellungTests
             var uebersicht = string.Join(", ", mit.Select(e => $"{e.Key} {e.Value}"));
             // Seit den Hofstellen (9.11.2026; neue Restflächen am Hafen und in Deutz) fällt das Los der Themen in Köln auf einen Steinmetzplatz und keinen
             // Taubenschlag (vorher 2–6 bzw. 1–3 verlangt; seit 11.11.2026 wieder kein Steinmetzplatz, deshalb fest 0) – offener Punkt bei der Darstellung (Gewichte in restflaechen.json)
+            Pruefe.Gleich("R27, R30", string.Join(", ", (karte.Restflaechen ?? new()).Where(r => r.Thema == "pferch").Select(r => r.Kennung)));
             Pruefe.Gleich(0, mit.GetValueOrDefault("steinmetzplatz"));
             Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 0 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
-            foreach (var (thema, zahl) in new[] { ("hof", 1), ("pferch", 0), ("wasserstelle", 3), ("heuschober", 2) })   // seit „nur noch Bauzonen“ (16.11.2026; 31 statt 38 Restflächen, die Flächen der alten Plätze gehören zur Zone) 1, 0, 3, 2; seit Köln ohne St. Severin und St. Kunibert (11.11.2026; weniger Restflächen, kein Steinmetzplatz mehr) 3, 2, 3, 6; bis zu den Hofstellen 4, 4, 2, 4; bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7; bis zu den Hofstellen 4, 5, 3, 6
+            foreach (var (thema, zahl) in new[] { ("hof", 1), ("pferch", 2), ("wasserstelle", 3), ("heuschober", 3) })   // seit dem Aufräumen (16.11.2026; 32 Restflächen, zwei Pferche fest in der Karte: R27 und R30) 1, 2, 3, 3; mit den alten Plätzen (31 Restflächen) 1, 0, 3, 2
                 Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema), thema + " – " + uebersicht);
         }),
 

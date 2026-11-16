@@ -138,7 +138,6 @@ public static class Vorschau
         }
         Uebergaenge(e, Zeile);
         Gebaeude(e, Zeile);
-        Hofstellen(e, Zeile);
         foreach (var p in e.Pflanzen)
             Zeile($"<circle cx=\"{F(p.X)}\" cy=\"{F(p.Z)}\" r=\"1\" fill=\"#5F7F4F\"/>");
         foreach (var v in e.Vorkommen)
@@ -390,13 +389,13 @@ public static class Vorschau
 
     /// <summary>
     /// Gebäude: Grundfläche aus dem Katalog (gedreht), ein Punkt an der Mitte der Vorderseite; Felsberge zuerst (sie liegen hinter den Gruben).
-    /// Plätze der Startbelegung in der Farbe ihres Hauses.
+    /// Umlandbetriebe der Startbelegung in der Farbe ihres Hauses.
     /// </summary>
     private static void Gebaeude(Kartenentwurf e, Action<string> zeile)
     {
         var farbeVon = new Dictionary<string, string>();
         foreach (var b in e.Belegung())
-            farbeVon.TryAdd(b.Kennung, b.IstSpieler ? e.Start.SpielerFarbe ?? Spielerfarbe : Hausfarbe(e, b.Haus));
+            farbeVon.TryAdd(b.Kennung, Hausfarbe(e, b.Haus));
         foreach (var g in e.Gebaeude.OrderBy(g => g.Art != Bausteinart.Berg))
         {
             var ecken = g.Ecken();
@@ -409,37 +408,9 @@ public static class Vorschau
             var fuellung = belegt ? hausfarbe! : Gebaeudefarben.GetValueOrDefault(g.Art, "#999");
             zeile($"<polygon points=\"{Punkte(ecken)}\" fill=\"{fuellung}\" stroke=\"{Farben["fest"]}\" stroke-width=\"{(belegt ? "0.8" : "0.3")}\"{(g.Art == Bausteinart.Berg ? " opacity=\"0.6\"" : "")}/>");
             if (g.Art != Bausteinart.Berg && g.Eingang is { } vorn)
-                zeile($"<circle cx=\"{F(vorn.X)}\" cy=\"{F(vorn.Z)}\" r=\"0.9\" fill=\"{(g.Art == Bausteinart.Wohnhausplatz || belegt ? "#fff" : Farben["start"])}\"/>");
-            if (g.Art is Bausteinart.Sonderbau or Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle)
+                zeile($"<circle cx=\"{F(vorn.X)}\" cy=\"{F(vorn.Z)}\" r=\"0.9\" fill=\"{(belegt ? "#fff" : Farben["start"])}\"/>");
+            if (g.Art is Bausteinart.Sonderbau or Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle)
                 zeile($"<text x=\"{F(g.X)}\" y=\"{F(g.Z + 1)}\" font-size=\"3\" text-anchor=\"middle\" fill=\"{(belegt ? "#fff" : Farben["text"])}\">{X(g.Name)}</text>");
-            else if (g.Art == Bausteinart.Wohnhausplatz)
-                zeile($"<text x=\"{F(g.X)}\" y=\"{F(g.Z + 1.5)}\" font-size=\"4\" text-anchor=\"middle\" fill=\"#fff\" font-weight=\"bold\">{X(g.Kennung)}</text>");
-        }
-    }
-
-    /// <summary>
-    /// Die Hofstellen (seit 9.11.2026): ein Rahmen um Werkstattplatz und Wohnhausplatz (die Hülle ihrer Ecken; liegen sie getrennt, etwa über einer
-    /// Straße, jeder für sich mit einer Linie dazwischen) und die Kennung über der Werkstatt – Start-Hofstellen rot und gestrichelt, freie blau und gepunktet.
-    /// </summary>
-    private static void Hofstellen(Kartenentwurf e, Action<string> zeile)
-    {
-        foreach (var h in e.Start.Hofstellen)
-        {
-            var (werkstatt, wohnhaus) = (e.GebaeudeMit(h.Werkstatt)?.Ecken(), e.GebaeudeMit(h.Wohnhaus)?.Ecken());
-            if (werkstatt is not { Count: >= 3 } || wohnhaus is not { Count: >= 3 }) continue;
-            var (farbe, strich) = h.Start ? (Farben["start"], "4 2") : ("#2F4F7A", "1 1.5");
-            string Rahmen(IEnumerable<Kartenort> ecken) =>
-                $"<polygon points=\"{Punkte(ecken)}\" fill=\"none\" stroke=\"{farbe}\" stroke-width=\"0.9\" stroke-dasharray=\"{strich}\" stroke-linejoin=\"round\"/>";
-            var (mw, mh) = (Kartengeometrie.Mitte(werkstatt), Kartengeometrie.Mitte(wohnhaus));
-            if (Kartengeometrie.AbstandVielecke(werkstatt, wohnhaus) < 3) zeile(Rahmen(Huelle(werkstatt.Concat(wohnhaus).ToList())));   // Hof: ein Rahmen
-            else
-            {
-                // getrennte Plätze (etwa über eine Straße): beide umrahmt, eine Linie dazwischen
-                zeile(Rahmen(werkstatt));
-                zeile(Rahmen(wohnhaus));
-                zeile($"<line x1=\"{F(mw.X)}\" y1=\"{F(mw.Z)}\" x2=\"{F(mh.X)}\" y2=\"{F(mh.Z)}\" stroke=\"{farbe}\" stroke-width=\"0.6\" stroke-dasharray=\"{strich}\"/>");
-            }
-            zeile($"<text x=\"{F(mw.X)}\" y=\"{F(mw.Z - 3)}\" font-size=\"6\" text-anchor=\"middle\" fill=\"{farbe}\" font-weight=\"bold\" stroke=\"#fff\" stroke-width=\"0.5\" paint-order=\"stroke\">{X(h.Kennung)}</text>");
         }
     }
 

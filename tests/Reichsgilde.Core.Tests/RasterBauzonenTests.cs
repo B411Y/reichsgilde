@@ -205,13 +205,12 @@ static class RasterBauzonenTests
             var koeln = Oeffnen("koeln");
             Pruefe.Gleich(0, koeln.Bauzonen.Count(z => !z.Berechnet), "keine Zone von Hand (bis zu den Hofstellen 6 Werkstatt-Bauplätze, bis zum Rathaus am Alter Markt 7)");
             Pruefe.Gleich(50, koeln.Bauzonen.Count(z => z.Berechnet)); // seit „nur noch Bauzonen“ (16.11.2026, Plätze sperren nichts mehr) 50; seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48
-            Pruefe.Gleich(0, koeln.Start.Hofstellen.Count(h => h.Kennung.StartsWith("WB_")), "die Werkstatt-Bauplätze heißen als Hofstellen N1–N5 und A1");
             Pruefe.Wahr(koeln.Restflaechen.Count > 0, "Köln hat Restflächen");
         }),
 
-        ("Raster-Bauzonen: kein Verlust – jedes Feld der früheren Hand-Zonen der Greybox ist weiter Zone derselben Lage", () =>
+        ("Raster-Bauzonen: kein Verlust – jedes Feld der früheren Hand-Zonen der Greybox ist weiter Zone derselben Lage (der Hof vor der Westmauer seit 16.11.2026 als Vorstadt)", () =>
         {
-            // die elf Zonen der Greybox bis 4.11.2026 (K1–K3, M1, V1–V8)
+            // die elf Zonen der Greybox bis 4.11.2026 (K1–K3, M1, V1–V8); M1, der Hof vor der Westmauer, zählt seit 16.11.2026 zur Vorstadt
             var alt = new (Lage Art, Kartenort[] Ecken)[]
             {
                 (Lage.Kern, Rechteck(4, 22, 36, 36)),
@@ -221,7 +220,7 @@ static class RasterBauzonenTests
                 (Lage.Vorstadt, Rechteck(-120, 10, -104, 24)),
                 (Lage.Vorstadt, Rechteck(-96, 10, -80, 24)),
                 (Lage.Vorstadt, Rechteck(-112, 28, -102, 36)),
-                (Lage.Mauerring, new[] { O(-80, -58), O(-66, -58), O(-66, -44), O(-62, -44), O(-62, -26), O(-80, -26) }),
+                (Lage.Vorstadt, new[] { O(-80, -58), O(-66, -58), O(-66, -44), O(-62, -44), O(-62, -26), O(-80, -26) }),
                 (Lage.Vorstadt, Rechteck(-76, -66, -66, -58)),
                 (Lage.Vorstadt, new[] { O(-42, -62), O(-34, -62), O(-34, -66), O(-16, -66), O(-16, -52), O(-42, -52) }),
                 (Lage.Vorstadt, new[]

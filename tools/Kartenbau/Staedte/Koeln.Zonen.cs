@@ -54,5 +54,24 @@ public sealed partial class Koeln
         var ergebnis = E.BauzonenAusRaster(new Rastervorgaben { LageVon = LageVon, Bereich = new Kartenrechteck(-340, -196, 250, 246), Mauerabstand = 3, Uferabstand = 3 });
         foreach (var (lage, zonen, felder) in ergebnis.JeLage) Console.WriteLine($"   Bauzonen {lage}: {zonen} Zonen, {felder} Felder");
         Console.WriteLine($"   Restflächen: {ergebnis.Restflaechen.Count} ({ergebnis.Restflaechen.Sum(r => r.Felder)} Felder)");
+        Pferche();
+    }
+
+    /// <summary>
+    /// Zwei Pferche auf Restflächen der Vorstadt (16.11.2026): Seit die Flächen der alten Plätze Bauzone sind, fiel der Würfel der Füllung in
+    /// Köln auf keinen Pferch mehr (vorher zwei). Die Karte legt das Thema deshalb an zwei passenden Stellen fest (Feld <c>thema</c> der
+    /// Restfläche) – am Ostrand von Deutz und vor der Nordmauer, beide abseits der Gassen, wo sonst Randgestrüpp stünde.
+    /// </summary>
+    private void Pferche()
+    {
+        foreach (var ort in new[] { P(205, -37), P(5, -184) })
+        {
+            Kartenort Mitte(Restflaeche r) => P(r.Flaeche.Average(p => p[0]), r.Flaeche.Average(p => p[1]));
+            var flaeche = E.Restflaechen.Where(r => r.Thema is null && r.Art == Lage.Vorstadt).MinBy(r => Mitte(r).Abstand(ort))
+                          ?? throw new InvalidOperationException("Pferche: keine Restfläche in der Vorstadt.");
+            if (Mitte(flaeche).Abstand(ort) > 15) throw new InvalidOperationException($"Pferch bei {ort}: die nächste Restfläche {flaeche.Kennung} liegt {Mitte(flaeche).Abstand(ort):0} m entfernt.");
+            E.RestflaecheThemaSetzen(flaeche.Kennung, "pferch");
+            Console.WriteLine($"   Pferch auf Restfläche {flaeche.Kennung} ({flaeche.Felder} Felder) bei {Mitte(flaeche)}");
+        }
     }
 }

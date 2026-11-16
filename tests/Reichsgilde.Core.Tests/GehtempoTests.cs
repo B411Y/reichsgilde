@@ -261,7 +261,7 @@ static class GehtempoTests
         ("Köln: Karren fahren zu verschiedenen Marktplätzen, jeder Betrieb zu einem Platz der Karte, mit der Fahrzeit des Kerns auf seinem Weg", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
-            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(3, karte.Marktplaetze.Count, "Heumarkt, Alter Markt, Neumarkt");
             var plaetze = new HashSet<string>();
@@ -288,15 +288,15 @@ static class GehtempoTests
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
                 var w = sim.Wirtschaft!;
                 var netz = w.Karrennetz!;
                 var m = karte.Gebaeude.First(g => g.Katalog == "markt");
                 var markt = new Kartenort(m.Punkt[0], m.Punkt[1]);
                 var gepruft = 0;
-                foreach (var g in karte.Gebaeude.Where(g => g.Katalog == "werkstattplatz"))
+                foreach (var g in FesteStartorte.Fuer(kennung, 4).Select(o => o.Werkstatt)) // vier Werkstätten der Stadt (bis 16.11.2026 die Werkstattplätze der Karte)
                 {
-                    var fahrt = netz.Fahrt(new Kartenort(g.Punkt[0], g.Punkt[1]), markt);
+                    var fahrt = netz.Fahrt(new Kartenort(g.X, g.Z), markt);
                     var laenge = fahrt.Sum(s => s.Laenge);
                     var stuecke = Karrentempo.Stuecke(fahrt, w.Zeitfaktor, 5, 30);
                     foreach (var typ in new[] { "Handkarren", "Ochsenkarren", "Pferdekarren" })
@@ -309,7 +309,7 @@ static class GehtempoTests
                         gepruft++;
                     }
                 }
-                Pruefe.Wahr(gepruft >= 3, $"{kennung}: zu wenige Werkstattplätze geprüft ({gepruft})");
+                Pruefe.Wahr(gepruft >= 3, $"{kennung}: zu wenige Werkstätten geprüft ({gepruft})");
             }
         }),
 
@@ -318,7 +318,7 @@ static class GehtempoTests
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: karte);
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
                 var w = sim.Wirtschaft!;
                 var gepruft = 0;
                 var grenzen = w.Daten.Logistik.Weglaenge!;

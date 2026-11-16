@@ -23,7 +23,7 @@ public enum Aufstellungsart
 ///
 ///   • <b>Jeder Beruf höchstens einmal je Partie</b> – der Spieler und alle KI-Häuser zusammen. Der Beruf des Spielers steht zuerst fest.
 ///   • Jedes mitspielende KI-Haus bekommt in der Reihenfolge der Karte <b>Volk, Glaube und Beruf gelost</b>, in dieser Reihenfolge, mit einer
-///     eigenen Zufallsquelle aus dem Startwert der Partie (<see cref="Losquelle"/>, wie das Los der Hofstellen): Alle übrigen Würfe bleiben, wie sie
+///     eigenen Zufallsquelle aus dem Startwert der Partie (<see cref="Losquelle"/>, wie das Los der Startorte): Alle übrigen Würfe bleiben, wie sie
 ///     ohne dieses Los wären, und jeder Rechner einer Mehrspielerpartie lost dasselbe. Je Haus genau drei Würfe (auch wenn eine Liste nur einen
 ///     Eintrag hat – die Reihe der Würfe bleibt fest).
 ///   • Volk: eines der Völker mit Bürgerrecht (<see cref="KiVoelker"/>; Orks und Oger sind nicht spielbar).
@@ -216,7 +216,7 @@ public static class Startaufstellung
 
         var frei = umland.Where(x => !belegt.Contains(x))
             .Select(x => (karte!.GebaeudeMit(x.Platz)?.Betrieb ?? $"{daten.Art(x.Art).Name} {x.Platz}", x.Art)).ToList();
-        var belegung = new Startbelegung { Spieler = start.Spieler, Haeuser = haeuser, Hofstellen = start.Hofstellen };
+        var belegung = new Startbelegung { Spieler = start.Spieler, Haeuser = haeuser };
         var neueKarte = karte?.MitBelegung(belegung, namen.ToDictionary(n => n.Platz, n => (string?)n.Name, StringComparer.Ordinal));
         string? meldung = ohne.Count == 0 ? null
             : $"Für {string.Join(", ", ohne)} war kein Beruf mehr frei (jeder Beruf nur einmal je Partie) – {(ohne.Count == 1 ? "dieses Haus spielt" : "diese Häuser spielen")} nicht mit.";

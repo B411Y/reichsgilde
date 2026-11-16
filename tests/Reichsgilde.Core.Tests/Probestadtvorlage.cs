@@ -25,4 +25,19 @@ static class Probestadtvorlage
         e.Daten = daten;
         return e;
     }
+
+    /// <summary>
+    /// „Karte ausprobieren“ mit festen Startorten (<see cref="FesteStartorte"/>, Probestadt): der Spieler mit Wohnhaus an der Nordseite der
+    /// Ringstraße und der Werkstatt an der Hauptstraße bei −30 | −10, die KI-Häuser bei 32 | −10 und 32 | 10 – für Tests, die Fahrzeit, Belag
+    /// oder Gelände an einer bekannten Stelle messen. Sonst wie <see cref="Kartenentwurf.Ausprobieren"/> (dort lost die Partie die Orte).
+    /// </summary>
+    public static (Reichsgilde.Core.Simulation Simulation, Konto Spieler) Ausprobieren(Kartenentwurf e, Wirtschaftsdaten daten, string beruf = "Schmied",
+        Reichsgilde.Core.Partie.Partieeinstellungen? einstellungen = null)
+    {
+        e.Daten ??= daten;
+        if (e.HatFehler) throw new InvalidOperationException("Die Karte hat Fehler – erst beheben, dann ausprobieren.");
+        var neu = e.Probepartie(beruf);
+        return Reichsgilde.Core.Partie.Partieaufbau.Erstellen(einstellungen ?? Reichsgilde.Core.Partie.Partieeinstellungen.Standard, daten,
+            FesteStartorte.Partie("probestadt", neu), karte: e.ZuStadtkarte());
+    }
 }

@@ -505,7 +505,7 @@ static class StadtkasseTests
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
-            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("probestadt"));
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("greybox")); // ihre Umlandbetriebe tragen Betriebsnamen (die Werkstattplätze der Probestadt gibt es seit 16.11.2026 nicht mehr)
             w.KarteSetzen(karte);
             var k = Haus(w, "Haus");
             var mitte = (X: karte.Gebaeude.Average(g => g.Punkt[0]), Z: karte.Gebaeude.Average(g => g.Punkt[1]));

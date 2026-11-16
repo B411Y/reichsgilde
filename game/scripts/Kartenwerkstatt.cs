@@ -145,7 +145,7 @@ public partial class Kartenwerkstatt : Node
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
             // ein Werkzeug des Katalogs zeigt seine Tafel unter „Eigenschaften“ (Pinsel); die Wahl eines Platzes gehört zur Tafel „Start“
-            if ((_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz or Werkstattwerkzeug.Hofstelle)) || (_karteOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Auswahl)) ReiterWaehlen(false);
+            if ((_startOffen && _stadt.Kartenwerkzeug is not (Werkstattwerkzeug.Auswahl or Werkstattwerkzeug.Platz)) || (_karteOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Auswahl)) ReiterWaehlen(false);
             EigenschaftenZeigen(neu: true);
             HilfeZeigen();
         };
@@ -262,7 +262,7 @@ public partial class Kartenwerkstatt : Node
     {
         AuffrischenVormerken();
         if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
-        if (a.Objekt is EntwurfStart) { HofstelleAuffrischen(); StartVormerken(); } // Kartenwerkstatt.Hofstelle.cs, Kartenwerkstatt.Start.cs
+        if (a.Objekt is EntwurfStart) StartVormerken(); // Kartenwerkstatt.Start.cs
         if (a.Objekt is EntwurfKopf) KarteWerteSetzen(); // Kartenwerkstatt.Karte.cs
     }
 
@@ -680,14 +680,6 @@ public partial class Kartenwerkstatt : Node
                     var g = _entwurf.Setzen(t[0], Zahl(t[1]), Zahl(t[2]), t.Length > 3 ? Zahl(t[3]) : 0);
                     _stadt.WerkstattWaehlen(g.Kennung);
                 }
-            // --werkstatt-hofstelle=x,z[,drehung[,start]] (mehrere mit ;): setzt Werkstatt- und Wohnhausplatz wie das Werkzeug „Hofstelle“
-            if (o.TryGetValue("werkstatt-hofstelle", out var hofstellen))
-                foreach (var eintrag in hofstellen.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var t = eintrag.Split(',');
-                    var h = _entwurf.HofstelleSetzen(Zahl(t[0]), Zahl(t[1]), t.Length > 2 ? Zahl(t[2]) : 0, t.Length > 3 && t[3] == "start");
-                    _stadt.WerkstattWaehlen(h.Werkstatt);
-                }
             // --werkstatt-mauer=x1,z1;x2,z2;…[,offen] (ohne „offen“ ab drei Ecken geschlossen)
             if (o.TryGetValue("werkstatt-mauer", out var mauern))
                 foreach (var eintrag in mauern.Split('|', StringSplitOptions.RemoveEmptyEntries))
@@ -882,7 +874,7 @@ public partial class Kartenwerkstatt : Node
             if (o.TryGetValue("werkstatt-umriss", out var umriss))
             {
                 var t = umriss.Split(',');
-                KatalogWaehlen(t[0]); // auch „hofstelle“
+                KatalogWaehlen(t[0]);
                 _stadt.WerkstattDrehung = t.Length > 3 ? Zahl(t[3]) : 0;
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
@@ -1263,9 +1255,8 @@ public partial class Kartenwerkstatt : Node
     }
 
     /// <summary>
-    /// Ein Schritt der Startoption <c>--werkstatt-start</c>: „haus[:Name]“, „wohnhaus:&lt;Haus&gt;:&lt;Kennung&gt;“, „betrieb:&lt;Haus&gt;:&lt;Platz&gt;:&lt;Art&gt;[:&lt;Ware&gt;]“,
-    /// „farbe:&lt;Haus&gt;:#rrggbb“, „spieler:&lt;Platz&gt;[:&lt;Beruf&gt;]“, „spielerwohnhaus:&lt;Kennung&gt;“, „spielerfarbe:#rrggbb“, „entfernen:&lt;Haus&gt;“ – Häuser
-    /// mit ihrer Nummer ab 1.
+    /// Ein Schritt der Startoption <c>--werkstatt-start</c>: „haus[:Name]“, „betrieb:&lt;Haus&gt;:&lt;Platz&gt;:&lt;Art&gt;[:&lt;Ware&gt;]“ (Platz leer: die Werkstatt in
+    /// der Stadt, sonst ein Umlandbetrieb), „farbe:&lt;Haus&gt;:#rrggbb“, „spielerfarbe:#rrggbb“, „entfernen:&lt;Haus&gt;“ – Häuser mit ihrer Nummer ab 1.
     /// </summary>
     private void StartBefehl(string befehl)
     {
@@ -1274,14 +1265,11 @@ public partial class Kartenwerkstatt : Node
         switch (t[0])
         {
             case "haus": _startHaus = _entwurf.HausHinzufuegen(t.Length > 1 ? t[1].Replace('_', ' ') : null); break;
-            case "wohnhaus": _entwurf.HausWohnhausSetzen(Haus(1), t[2]); break;
             case "betrieb": _entwurf.BetriebHinzufuegen(Haus(1), t[2], Enum.Parse<Betriebsart>(t[3], ignoreCase: true), t.Length > 4 ? t[4] : null); break;
             case "farbe": _entwurf.HausFarbeSetzen(Haus(1), t[2]); break;
-            case "spieler": _entwurf.SpielerStartplatzSetzen(t[1], t.Length > 2 ? t[2] : null); break;
-            case "spielerwohnhaus": _entwurf.SpielerWohnhausSetzen(t[1]); break;
             case "spielerfarbe": _entwurf.SpielerFarbeSetzen(t[1]); break;
             case "entfernen": _entwurf.HausEntfernen(Haus(1)); break;
-            default: throw new ArgumentException($"Unbekannter Startbefehl „{t[0]}“ (haus, wohnhaus, betrieb, farbe, spieler, spielerwohnhaus, spielerfarbe, entfernen).");
+            default: throw new ArgumentException($"Unbekannter Startbefehl „{t[0]}“ (haus, betrieb, farbe, spielerfarbe, entfernen).");
         }
     }
 }

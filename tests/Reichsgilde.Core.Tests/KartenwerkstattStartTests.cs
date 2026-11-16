@@ -120,15 +120,10 @@ static class KartenwerkstattStartTests
         var mauer = e.MauerAnlegen(new[] { O(-60, -60), O(60, -60), O(60, 60), O(-60, 60) }, geschlossen: true);
         e.TorSetzen(mauer, 61.3, 10, "Osttor");
         e.WegAnlegen(Wegklasse.Land, new[] { O(-50, 10), O(100, 10) }, glatt: false, name: "Landstraße");
-        var w1 = e.Setzen("werkstattplatz", 20, 23, 180);
-        var w2 = e.Setzen("werkstattplatz", 45, 23, 180);
-        var h1 = e.Setzen("wohnhausplatz", -30, 2);
-        var h2 = e.Setzen("wohnhausplatz", -15, 2);
-        e.SpielerWohnhausSetzen(h1.Kennung);
-        e.SpielerStartplatzSetzen(w2.Kennung);
+        // Bauzone innerhalb der Mauer an der Landstraße: dort lost die Partie Wohnhaus und Werkstatt jedes Hauses hin (keine Plätze mehr, 16.11.2026)
+        e.BauzoneAnlegen(Lage.Kern, new[] { O(-50, 14), O(50, 14), O(50, 44), O(-50, 44) }, "K1");
         var haus = e.HausHinzufuegen();
-        e.BetriebHinzufuegen(haus, w1.Kennung, Betriebsart.Tischlerei);
-        Pruefe.Gleich(h2.Kennung, e.Start.Haeuser[haus].Wohnhaus, "das neue Haus bekommt den ersten freien Wohnhausplatz");
+        e.BetriebHinzufuegen(haus, "", Betriebsart.Tischlerei);
         return e;
     }
 
@@ -259,19 +254,19 @@ static class KartenwerkstattStartTests
             var weg = g.WegAnlegen(Wegklasse.Gasse, new[] { O(40, -30), O(60, -30) }, glatt: false);
             Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "tor" && b.Andere.Contains(weg) && b.Andere.Contains(g.Mauern[0])), "Weg ohne Tor:\n  " + Liste(Fehler(g)));
 
-            var werkstatt = g.Gebaeude.First(x => x.Art == Bausteinart.Werkstattplatz);
-            g.Verschieben(werkstatt.Kennung, 50, 20);
-            Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(werkstatt.Kennung) && b.Text.Contains("auf der Mauer")), "Werkstatt auf der Mauer");
-            var wohnhaus = g.Gebaeude.First(x => x.Art == Bausteinart.Wohnhausplatz);
-            g.Verschieben(wohnhaus.Kennung, -50, -30);
-            Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(wohnhaus.Kennung)), "jedes Gebäude, nicht nur Werkstätten");
+            var kulisse = g.Gebaeude.First(x => x.Art == Bausteinart.Kulisse);
+            g.Verschieben(kulisse.Kennung, 50, 20);
+            Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(kulisse.Kennung) && b.Text.Contains("auf der Mauer")), "Haus auf der Mauer");
+            var ringplatz = g.Gebaeude.First(x => x.Art == Bausteinart.Einwohnerplatz);
+            g.Verschieben(ringplatz.Kennung, -50, -30);
+            Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(ringplatz.Kennung)), "jedes Gebäude");
 
-            // Köln (Stadtskript, PR #213): kein Gebäude auf der Mauer, eine Startbelegung; Hinweise nur die lange Rheinbrücke und seit dem 1.11.2026 die
-            // drei Startwege außerhalb von ±10 % (StartwegpruefungTests)
+            // Köln (Stadtskript, PR #213): kein Gebäude auf der Mauer, eine Startbelegung; Hinweise nur die lange Rheinbrücke und die zwei
+            // Startwege des Umlands außerhalb von ±10 % (StartwegpruefungTests; bis 16.11.2026 drei, mit der Werkstatt des Spielers)
             var koeln = Oeffnen("koeln");
             var hinweise = koeln.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
             Pruefe.Wahr(hinweise.All(b => b.Regel is "bruecke-lang" or "startweg") && hinweise.Count(b => b.Regel == "bruecke-lang") == 1
-                        && hinweise.Count(b => b.Regel == "startweg") == 3, "Köln:\n  " + Liste(hinweise));
+                        && hinweise.Count(b => b.Regel == "startweg") == 2, "Köln:\n  " + Liste(hinweise));
             Pruefe.Wahr(!koeln.HatFehler, "Köln ohne Fehler");
             // ein Haus auf der Stadtmauer bleibt in Köln ein Hinweis (dort gelten die Stadtregeln nicht)
             var hausAufMauer = koeln.Gebaeude.First(x => x.Katalog == "leerstand");
@@ -330,26 +325,26 @@ static class KartenwerkstattStartTests
 
         // ── Startbelegung ────────────────────────────────────────────────────
 
-        ("Start: Greybox – Belegung, freie Plätze, Betriebsarten je Platz; gelesen wie der Kern liest", () =>
+        ("Start: Greybox – Belegung (nur Umlandbetriebe), freie Plätze, Betriebsarten je Platz und Werkstätten der Stadt; gelesen wie der Kern liest", () =>
         {
             var e = Oeffnen("greybox");
             e.Daten = Daten.Value;
             var s = e.Start;
             Folge(new[] { "Haus Eisenbart", "Haus Eichwald", "Haus Kieselbach" }, s.Haeuser.Select(h => h.Name).ToArray());
-            Pruefe.Gleich("Wohnhaus1", s.SpielerWohnhaus);
-            Pruefe.Gleich(new EntwurfStartplatz("Weinmarkt", "{art} am Weinmarkt"), s.SpielerWerkstatt);
+            Pruefe.Gleich("#336bb8", s.SpielerFarbe);
             Pruefe.Gleich(Wappen.Eichwald, s.Haeuser[1].Wappen);
-            Pruefe.Gleich("Dolch", s.Haeuser[0].Betriebe[0].Produkt);
-            var bel = e.BelegungVon("Giesserei_Eisenbart");
-            Pruefe.Wahr(bel is [{ Haus: 0, Art: Belegungsart.Betrieb, Betrieb: 0 }], "Gießerei Eisenbart gehört Haus Eisenbart");
-            Pruefe.Wahr(e.BelegungVon("Wohnhaus1") is [{ IstSpieler: true, Art: Belegungsart.Wohnhaus }], "Wohnhaus1 ist das des Spielers");
-            Pruefe.Wahr(e.BelegungVon("Weinmarkt") is [{ IstSpieler: true, Art: Belegungsart.Startplatz }], "Weinmarkt ist der Startplatz");
-            Folge(new[] { "Wohnhaus5", "Wohnhaus6", "Wohnhaus7", "Wohnhaus8" }, e.FreieWohnhausplaetze().Select(g => g.Kennung).ToArray());
+            Pruefe.Gleich(new EntwurfStartbetrieb("", Betriebsart.Giesserei, "Dolch"), s.Haeuser[0].Betriebe[0]); // die Werkstatt in der Stadt hat keinen Platz
+            Pruefe.Gleich(new EntwurfStartbetrieb("Grube_Eisenbart", Betriebsart.Mine), s.Haeuser[0].Betriebe[1]);
+            Pruefe.Wahr(e.BelegungVon("Grube_Eisenbart") is [{ Haus: 0, Betrieb: 1 }], "Grube Eisenbart gehört Haus Eisenbart");
+            Pruefe.Gleich(3, e.Belegung().Count); // je Haus sein Umlandbetrieb
+            Pruefe.Wahr(e.Gebaeude.All(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)), "keine Werkstatt- und Wohnhausplätze");
             Pruefe.Wahr(e.FreieBetriebsplaetze().Any(g => g.Kennung == "Grube_am_Silberberg") && !e.FreieBetriebsplaetze().Any(g => g.Kennung == "Grube_Eisenbart"), "freie Plätze");
-            var arten = e.BetriebsartenFuer(e.GebaeudeMit("Weinmarkt")!);
+            Pruefe.Wahr(e.FreieBetriebsplaetze().All(g => g.Art == Bausteinart.Umlandbetrieb), "frei sind nur Umlandbetriebe");
+            var arten = e.Stadtwerkstaetten();
             Pruefe.Wahr(arten.Contains(Betriebsart.Giesserei) && arten.Contains(Betriebsart.Tischlerei) && !arten.Contains(Betriebsart.Schmiede) && !arten.Contains(Betriebsart.Mine),
-                "Werkstattplatz: Werkstätten der Stufe 1: " + string.Join(", ", arten));
+                "Werkstätten der Stufe 1 in der Stadt: " + string.Join(", ", arten));
             Folge(new[] { Betriebsart.Mine }, e.BetriebsartenFuer(e.GebaeudeMit("Grube_am_Silberberg")!).ToArray());
+            Pruefe.Gleich(0, e.BetriebsartenFuer(e.Gebaeude.First(g => g.Katalog == "rathaus")).Count);
             // Dieselbe Belegung wie der Leser der Stadtkarte
             var kern = Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Start!;
             var entwurf = s.AlsStartbelegung();
@@ -358,19 +353,16 @@ static class KartenwerkstattStartTests
             Pruefe.Wahr(!e.HatFehler, "Greybox ohne Fehler (mit Daten):\n  " + Liste(Fehler(e)));
         }),
 
-        ("Start: Häuser hinzufügen (bis 8), bearbeiten, Betriebe, Startplatz je Beruf – alles mit Rückgängig, Greybox wieder Byte für Byte", () =>
+        ("Start: Häuser hinzufügen (bis 8), bearbeiten, Betriebe (Werkstatt in der Stadt ohne Platz, Umlandbetrieb mit Platz) – alles mit Rückgängig, Greybox wieder Byte für Byte", () =>
         {
             var e = Oeffnen("greybox");
             e.Daten = Daten.Value;
-            // ein viertes KI-Haus braucht eine fünfte Start-Hofstelle (Hofstellen, 9.11.2026): ein Werkstattplatz vor der Stadt und der freie Wohnhaus5
-            e.HofstelleBilden(e.Setzen("werkstattplatz", -150, 120, 90).Kennung, "Wohnhaus5", start: true);
             var meldungen = new List<Kartenaenderung>();
             e.Geaendert += meldungen.Add;
             var i = e.HausHinzufuegen();
             Pruefe.Gleich(3, i);
             var h = e.Start.Haeuser[3];
             Pruefe.Gleich("Haus Ahlbeck", h.Name);
-            Pruefe.Gleich("Wohnhaus5", h.Wohnhaus, "das Wohnhaus der ersten freien Start-Hofstelle");
             Pruefe.Wahr(h.Farbe is not null && h.Farbe != "#b33329" && h.Farbe != "#336bb8", $"eine freie Farbe ({h.Farbe})");
             Pruefe.Wahr(!e.Start.Haeuser.Take(3).Any(x => x.Wappen == h.Wappen), "ein freies Wappen");
             Pruefe.Wahr(meldungen[^1] is { Teil: Kartenteil.Start } m && ReferenceEquals(m.Start, e.Start), "Ereignis für die Startbelegung");
@@ -380,19 +372,26 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(0, b);
             Pruefe.Gleich("Grube am Silberberg", e.GebaeudeMit("Grube_am_Silberberg")!.Betrieb, "ein Platz mit Namen behält ihn");
             Pruefe.Wahr(!e.HatFehler, "vollständiges Haus ohne Fehler:\n  " + Liste(Fehler(e)));
-            // Ein Werkstattplatz ohne Betriebsnamen bekommt im selben Schritt einen (die Greybox hat keinen freien: einer vor der Stadt)
-            var w = e.Setzen("werkstattplatz", 0, 75);
-            e.BetriebHinzufuegen(i, w.Kennung, Betriebsart.Tischlerei, "Truhe");
-            Pruefe.Gleich("Tischlerei Ahlbeck", w.Betrieb, "der Platz bekommt einen Betriebsnamen");
-            Pruefe.Gleich(new EntwurfStartbetrieb(w.Kennung, Betriebsart.Tischlerei, "Truhe"), e.Start.Haeuser[3].Betriebe[1]);
+            // Die Werkstatt in der Stadt hat keinen Platz (sie steht in einer Bauzone, wo das Los sie hinsetzt)
+            Pruefe.Gleich(1, e.BetriebHinzufuegen(i, "", Betriebsart.Tischlerei, "Truhe"));
+            Pruefe.Gleich(new EntwurfStartbetrieb("", Betriebsart.Tischlerei, "Truhe"), e.Start.Haeuser[3].Betriebe[1]);
             Pruefe.Gleich("Haus Ahlbeck: Betrieb hinzugefügt", e.Geschichte.RueckgaengigText);
+            Pruefe.Wahr(!e.HatFehler, "Haus mit Werkstatt ohne Platz ohne Fehler:\n  " + Liste(Fehler(e)));
             e.BetriebProduktSetzen(i, 1, null);
             Pruefe.Gleich(null, e.Start.Haeuser[3].Betriebe[1].Produkt);
             e.Rueckgaengig();
             e.Rueckgaengig();
+            Pruefe.Gleich(1, e.Start.Haeuser[3].Betriebe.Count);
+            // Ein Umlandbetrieb ohne Betriebsnamen bekommt im selben Schritt einen (die Greybox hat keinen freien: eine Grube weit draußen)
+            var w = e.Setzen("grube", 150, 120);
+            e.BetriebHinzufuegen(i, w.Kennung, Betriebsart.Mine);
+            Pruefe.Gleich("Grube Ahlbeck", w.Betrieb, "der Platz bekommt einen Betriebsnamen");
+            Pruefe.Gleich(new EntwurfStartbetrieb(w.Kennung, Betriebsart.Mine), e.Start.Haeuser[3].Betriebe[1]);
+            e.Rueckgaengig();
             Pruefe.Wahr(string.IsNullOrEmpty(w.Betrieb) && e.Start.Haeuser[3].Betriebe.Count == 1, "ein Rückgängig nimmt Betrieb und Namen zurück");
             e.Rueckgaengig();
-            Pruefe.Wahr(e.GebaeudeMit(w.Kennung) is null, "Werkstattplatz wieder weg");
+            Pruefe.Wahr(e.GebaeudeMit(w.Kennung) is null, "Grube wieder weg");
+            Pruefe.Wirft(() => e.BetriebHinzufuegen(i, "gibt_es_nicht", Betriebsart.Mine));
 
             e.HausUmbenennen(i, "Haus Wendelstein");
             e.HausVolkSetzen(i, Volk.Zwerg);
@@ -400,20 +399,15 @@ static class KartenwerkstattStartTests
             e.HausFarbeSetzen(i, "#123456");
             e.HausWappenSetzen(i, new Wappen(Teilung.Geviert, Tinktur.Rot, Tinktur.Gold, Figur.Krone));
             h = e.Start.Haeuser[3];
-            Pruefe.Gleich(new EntwurfHaus("Haus Wendelstein", Volk.Zwerg, Geschlecht.Frau, new Wappen(Teilung.Geviert, Tinktur.Rot, Tinktur.Gold, Figur.Krone), "#123456", "Wohnhaus5"),
+            Pruefe.Gleich(new EntwurfHaus("Haus Wendelstein", Volk.Zwerg, Geschlecht.Frau, new Wappen(Teilung.Geviert, Tinktur.Rot, Tinktur.Gold, Figur.Krone), "#123456"),
                 h with { Betriebe = Array.Empty<EntwurfStartbetrieb>() });
             Pruefe.Gleich(new EntwurfStartbetrieb("Grube_am_Silberberg", Betriebsart.Mine), h.Betriebe.Single());
-            e.HausWohnhausSetzen(i, "Wohnhaus8");
-            e.SpielerStartplatzSetzen("Weinmarkt", "Tischler", "Tischlerei am Weinmarkt");
-            Pruefe.Gleich("Tischlerei am Weinmarkt", e.Start.StartplatzFuer("Tischler")!.Name);
-            Pruefe.Gleich("{art} am Weinmarkt", e.Start.StartplatzFuer("Schmied")!.Name);
+            e.SpielerFarbeSetzen("#224466");
             Pruefe.Wahr(!e.HatFehler, "ohne Fehler:\n  " + Liste(Fehler(e)));
             var karte = e.ZuStadtkarte();
             Pruefe.Gleich(4, karte.Start!.Haeuser.Count);
-            Pruefe.Gleich("Weinmarkt", karte.Start.Spieler.WerkstattFuer("Tischler").Platz);
-            Pruefe.Gleich("Tischlerei am Weinmarkt", karte.Start.Spieler.WerkstattFuer("Tischler").Name);
-            e.SpielerStartplatzEntfernen("Tischler");
-            Pruefe.Gleich(0, e.Start.JeBeruf.Count);
+            Pruefe.Gleich("#224466", karte.Start.Spieler.Farbe);
+            Pruefe.Gleich("Grube_am_Silberberg", karte.Start.Haeuser[3].Betriebe.Single().Platz);
 
             // bis acht Häuser, dann nicht mehr
             while (e.Start.Haeuser.Count < Kartenentwurf.HoechstensHaeuser) Pruefe.Wahr(e.HausHinzufuegen() >= 0, "Platz für ein Haus");
@@ -441,10 +435,10 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(8, e.HausHinzufuegen() + 1, "das achte KI-Haus (neunter Platz) wird angelegt");
             e.Rueckgaengig();
             Pruefe.Gleich(Text("koeln"), e.ZuJson());
-            Pruefe.Wahr(e.Belegung().Count(b => b.Art == Belegungsart.Startplatz) >= 1, "der Spieler hat seinen Startplatz");
+            Pruefe.Gleich(7, e.Belegung().Count); // je KI-Haus sein Umlandbetrieb – die Werkstätten in der Stadt haben keinen Platz
         }),
 
-        ("Start: Prüfung – Haus ohne Wohnhaus, Platz doppelt, Betriebsart passt nicht, Name doppelt, Startplatz fehlt, Ware, kein Haus", () =>
+        ("Start: Prüfung – Platz doppelt, Platz kein Umlandbetrieb, Betriebsart passt nicht, Name doppelt, Ware; ohne KI-Haus kein Fehler (die Partie würfelt)", () =>
         {
             Kartenentwurf Neu()
             {
@@ -459,24 +453,16 @@ static class KartenwerkstattStartTests
             }
 
             var e = Neu();
-            e.HausWohnhausSetzen(1, null);
-            Erwarte(e, "Haus Eichwald: Es fehlt das Wohnhaus");
+            e.BetriebHinzufuegen(2, "Grube_Eisenbart", Betriebsart.Mine);
+            Erwarte(e, "Der Platz „Grube_Eisenbart“ ist mehrfach vergeben");
             e = Neu();
-            e.HausWohnhausSetzen(1, "Wohnhaus2");
-            Erwarte(e, "Der Wohnhausplatz „Wohnhaus2“ ist mehrfach vergeben");
+            e.BetriebHinzufuegen(2, e.Gebaeude.First(g => g.Katalog == "rathaus").Kennung, Betriebsart.Maurerei);
+            Erwarte(e, "ist kein Umlandbetrieb der Karte");
             e = Neu();
-            e.BetriebHinzufuegen(2, "Giesserei_Eisenbart", Betriebsart.Giesserei);
-            Erwarte(e, "Der Platz „Giesserei_Eisenbart“ ist mehrfach vergeben");
-            e = Neu();
-            e.BetriebHinzufuegen(2, "Weinmarkt", Betriebsart.Maurerei);
-            Erwarte(e, "Der Platz „Weinmarkt“ ist mehrfach vergeben");
-            e = Neu();
-            var frei = e.Setzen("werkstattplatz", 0, 75); // die Greybox hat keinen freien Werkstattplatz
-            e.BetriebHinzufuegen(0, frei.Kennung, Betriebsart.Schmiede);
+            e.BetriebHinzufuegen(0, "", Betriebsart.Schmiede);
             Erwarte(e, "Schmiede ist keine Werkstatt der Stufe 1");
             e = Neu();
-            frei = e.Setzen("werkstattplatz", 0, 75);
-            e.BetriebHinzufuegen(0, frei.Kennung, Betriebsart.Mine);
+            e.BetriebHinzufuegen(0, "", Betriebsart.Mine);
             Erwarte(e, "Mine ist keine Werkstatt der Stufe 1");
             e = Neu();
             e.BetriebHinzufuegen(0, "Grube_am_Silberberg", Betriebsart.Steinbruch);
@@ -494,65 +480,65 @@ static class KartenwerkstattStartTests
             e.HausFarbeSetzen(0, "rot");
             Erwarte(e, "Die Farbe „rot“ ist nicht #rrggbb");
             e = Neu();
-            e.SpielerStartplatzEntfernen();
-            Erwarte(e, "Der Startplatz der Werkstatt fehlt");
-            e = Neu();
-            e.SpielerWohnhausSetzen(null);
-            Erwarte(e, "Spieler: Es fehlt das Wohnhaus");
-            e = Neu();
-            e.SpielerStartplatzSetzen("Wohnhaus6", "Wirt");
-            Erwarte(e, "Spieler (Wirt): „Wohnhaus6“ ist kein Werkstattplatz");
-            e = Neu();
-            e.SpielerStartplatzSetzen("Weinmarkt", "Gaukler");
-            Erwarte(e, "Den Beruf „Gaukler“ gibt es nicht");
+            e.SpielerFarbeSetzen("blau");
+            Erwarte(e, "Spieler: Die Farbe „blau“ ist nicht #rrggbb");
+            // Ohne KI-Haus in der Karte würfelt die Partie alle Häuser – kein Fehler (bis 16.11.2026 nur mit nummerierten Höfen)
             e = Neu();
             for (var i = 2; i >= 0; i--) e.HausEntfernen(i);
-            Erwarte(e, "mindestens ein KI-Haus");
-            // Ohne Daten prüft die Werkstatt Betriebsart und Ware am Werkstattplatz nicht
+            Pruefe.Wahr(!Fehler(e).Any(b => b.Regel == "start"), "ohne KI-Haus:\n  " + Liste(Fehler(e)));
+            // Ohne Daten prüft die Werkstatt Betriebsart und Ware nicht
             e = Oeffnen("greybox");
-            frei = e.Setzen("werkstattplatz", 0, 75);
-            e.BetriebHinzufuegen(0, frei.Kennung, Betriebsart.Schmiede);
+            e.BetriebHinzufuegen(0, "", Betriebsart.Schmiede);
             e.BetriebProduktSetzen(0, 0, "Truhe");
             Pruefe.Wahr(!Fehler(e).Any(b => b.Regel == "start"), "ohne Daten:\n  " + Liste(Fehler(e)));
         }),
 
         // ── Karte ausprobieren ───────────────────────────────────────────────
 
-        ("Ausprobieren: Greybox-Entwurf → Partie mit denselben Häusern, Betrieben und Wohnhäusern wie aus der Datei", () =>
+        ("Ausprobieren: Greybox-Entwurf → Partie mit denselben Häusern, Betrieben und gelosten Grundstücken wie aus der Datei", () =>
         {
             var e = Oeffnen("greybox");
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
-            // „Karte ausprobieren“ lost nicht (Hofstellen, 9.11.2026): wie die Datei ohne Los
+            // „Karte ausprobieren“ würfelt die Häuser nicht (jedes wie in der Karte); wo sie stehen, lost die Partie wie aus der Datei
             var (simDatei, spielerDatei) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value,
-                new NeuePartie(Rivalen: 3, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusJson(Text("greybox"), Katalog.Value));
+                new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusJson(Text("greybox"), Katalog.Value));
             var (w, wd) = (sim.Wirtschaft!, simDatei.Wirtschaft!);
             Folge(wd.Konten.Select(k => k.Inhaber).ToArray(), w.Konten.Select(k => k.Inhaber).ToArray());
             Folge(wd.Konten.Select(k => k.Wappen).ToArray(), w.Konten.Select(k => k.Wappen).ToArray());
             Folge(wd.Betriebe.Select(b => (b.Name, b.Art, b.Konto.Inhaber, b.Produkt)).ToArray(), w.Betriebe.Select(b => (b.Name, b.Art, b.Konto.Inhaber, b.Produkt)).ToArray());
-            Folge(wd.Konten.Select(k => wd.Bauen.Wohnhaus(k)?.Kennung).ToArray(), w.Konten.Select(k => w.Bauen.Wohnhaus(k)?.Kennung).ToArray());
-            Pruefe.Gleich("Gießerei am Weinmarkt", w.Betriebe.First(b => b.Konto == spieler).Name);
+            Folge(wd.Bauen.Grundstuecke.Select(g => (g.Art, g.Grundriss, g.Besitzer?.Inhaber, g.Betrieb)).ToArray(),
+                w.Bauen.Grundstuecke.Select(g => (g.Art, g.Grundriss, g.Besitzer?.Inhaber, g.Betrieb)).ToArray());
+            Pruefe.Gleich(8, w.Bauen.Grundstuecke.Count); // vier Häuser: je ein Wohnhaus und eine Werkstatt
+            Pruefe.Wahr(w.Betriebe.First(b => b.Konto == spieler).Name.StartsWith("Gießerei a", StringComparison.Ordinal), w.Betriebe.First(b => b.Konto == spieler).Name);
+            Pruefe.Gleich("Gießerei Eisenbart", w.Betriebe.First(b => b.Konto == w.Konten[1]).Name);
             Pruefe.Wahr(w.Karte is not null && w.Bauen.IstAktiv, "die Partie hat die Karte und baut");
 
-            // mit einem anderen Beruf und einem vierten Haus aus der Werkstatt – es braucht eine fünfte Start-Hofstelle (sein Wohnhaus kommt von dort)
+            // mit einem anderen Beruf und einem vierten Haus aus der Werkstatt (fünf Häuser passen in die Bauzonen der Greybox)
             e.Daten = Daten.Value;
-            // (die Greybox verlangt genau 8 Wohnhausplätze: die fünfte Hofstelle nimmt den freien Wohnhaus5 und einen neuen Werkstattplatz vor der Stadt)
-            var hof = e.Start.HofstelleMit(e.HofstelleBilden(e.Setzen("werkstattplatz", -150, 120, 90).Kennung, "Wohnhaus5", start: true))!;
             var i = e.HausHinzufuegen();
+            e.BetriebHinzufuegen(i, "", Betriebsart.Schaenke);
             e.BetriebHinzufuegen(i, "Grube_am_Silberberg", Betriebsart.Mine);
             var (sim4, spieler4) = e.Ausprobieren(Daten.Value, "Tischler");
             Pruefe.Gleich(5, sim4.Wirtschaft!.Konten.Count, "Spieler und vier KI-Häuser");
-            Pruefe.Gleich("Tischlerei am Weinmarkt", sim4.Wirtschaft.Betriebe.First(b => b.Konto == spieler4).Name);
-            Pruefe.Gleich(hof.Wohnhaus, sim4.Wirtschaft.Bauen.Wohnhaus(sim4.Wirtschaft.Konten[4])!.Kennung);
-            Pruefe.Wahr(sim4.Wirtschaft.Betriebe.Any(b => b.Name == "Grube am Silberberg" && b.Konto.Inhaber == "Haus Ahlbeck"), "die Grube gehört dem neuen Haus");
+            Pruefe.Wahr(sim4.Wirtschaft.Betriebe.First(b => b.Konto == spieler4).Name.StartsWith("Tischlerei a", StringComparison.Ordinal), "die Werkstatt des Spielers");
+            Pruefe.Wahr(sim4.Wirtschaft.Bauen.Wohnhaus(sim4.Wirtschaft.Konten[4]) is not null, "das neue Haus wohnt");
+            Pruefe.Wahr(sim4.Wirtschaft.Betriebe.Any(b => b.Name == "Schänke Ahlbeck" && b.Konto.Inhaber == "Haus Ahlbeck" && sim4.Wirtschaft.Bauen.PlatzVon(b.Name) is not null), "die Schänke steht auf ihrem Grundstück");
             // die Partie läuft
             for (var t = 0; t < 200; t++) sim4.Tick();
+            // ein Haus zu viel für die Bauzonen: „Ausprobieren“ nimmt so viele, wie passen
+            while (e.Start.Haeuser.Count < 7)
+            {
+                var n = e.HausHinzufuegen();
+                e.BetriebHinzufuegen(n, "", Betriebsart.Giesserei);
+            }
+            Pruefe.Gleich(5, e.Ausprobieren(Daten.Value).Simulation.Wirtschaft!.Konten.Count);
 
             // mit Fehler nicht
-            e.HausWohnhausSetzen(i, null);
+            e.BetriebHinzufuegen(i, "", Betriebsart.Mine);
             Pruefe.WirftMitMeldung(() => e.Ausprobieren(Daten.Value), "Fehler");
         }),
 
-        ("Ausprobieren: eine neue kleine Stadt aus der Werkstatt (Mauer, Tor, Straße, Plätze, Start) hat keine Fehler und lässt sich spielen", () =>
+        ("Ausprobieren: eine neue kleine Stadt aus der Werkstatt (Mauer, Tor, Straße, Bauzone, Start) hat keine Fehler und lässt sich spielen", () =>
         {
             var e = Kleinstadt();
             Pruefe.Wahr(!e.HatFehler, "Kleinstadt ohne Fehler:\n  " + Liste(Fehler(e)));
@@ -563,22 +549,15 @@ static class KartenwerkstattStartTests
             var w = sim.Wirtschaft!;
             Pruefe.Gleich(2, w.Konten.Count);
             Pruefe.Gleich("Haus Ahlbeck", w.Konten[1].Inhaber);
-            Pruefe.Gleich("Maurerei am Werkstattplatz 2", w.Betriebe.First(b => b.Konto == spieler).Name);
+            Pruefe.Wahr(w.Betriebe.First(b => b.Konto == spieler).Name.StartsWith("Maurerei a", StringComparison.Ordinal), w.Betriebe.First(b => b.Konto == spieler).Name);
             Pruefe.Gleich("Tischlerei Ahlbeck", w.Betriebe.Single(b => b.Konto == w.Konten[1]).Name);
+            Pruefe.Gleich(4, w.Bauen.Grundstuecke.Count); // zwei Häuser: je ein Wohnhaus und eine Werkstatt in der Bauzone
             for (var t = 0; t < 200; t++) sim.Tick();
-            // Wieder schreiben und lesen: dieselbe Karte – beim ersten Öffnen kommen die Hofstellen aus den Startpaaren dazu (9.11.2026), danach bleibt sie
+            // Wieder schreiben und lesen: dieselbe Karte, ohne Plätze und ohne Hofstellen
             var json = e.ZuJson();
             var wieder = Kartenentwurf.AusJson(json, Katalog.Value);
-            Pruefe.Gleich("H1 Werkstattplatz 2 Wohnhausplatz | H2 Werkstattplatz Wohnhausplatz 2", string.Join(" | ",
-                wieder.Start.Hofstellen.Select(h => $"{h.Kennung} {e.GebaeudeMit(h.Werkstatt)!.Name} {e.GebaeudeMit(h.Wohnhaus)!.Name}")));
-            Pruefe.Gleich(wieder.ZuJson(), Kartenentwurf.AusJson(wieder.ZuJson(), Katalog.Value).ZuJson());
-            static string OhneHofstellen(string text)
-            {
-                var n = System.Text.Json.Nodes.JsonNode.Parse(text)!.AsObject();
-                n["start"]!.AsObject().Remove("hofstellen");
-                return n.ToJsonString();
-            }
-            Pruefe.Gleich(OhneHofstellen(json), OhneHofstellen(wieder.ZuJson()), "sonst gleich");
+            Pruefe.Gleich(json, wieder.ZuJson());
+            Pruefe.Wahr(!json.Contains("hofstellen") && !json.Contains("\"platz\"") && !json.Contains("\"wohnhaus\""), "keine Hofstellen, keine Plätze");
             Pruefe.Wahr(json.Contains("\"start\": {") && json.Contains("\"tore\": [{\"name\": \"Osttor\", \"punkt\": [60, 10], \"schliesstNachts\": true}]"), json);
         }),
 

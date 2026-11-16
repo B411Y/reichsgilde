@@ -20,12 +20,11 @@ static class KarrenwegTests
     static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
-    /// <param name="vorgabe">Ohne Los der Hofstellen (9.11.2026): jedes Haus auf seinem Platz der Startbelegung, wie vor den Hofstellen.</param>
-    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null, bool vorgabe = false)
+    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)
     {
         var haeuser = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Startplaetze: vorgabe ? Startplatzvergabe.Vorgabe : Startplatzvergabe.Gelost, Aufstellung: Aufstellungsart.Vorgabe),
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe),
             karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
         return sim.Wirtschaft!;
     }
@@ -210,20 +209,15 @@ static class KarrenwegTests
             // nichts geändert): Länge hin und zurück bitgenau, Fahrzeit Handkarren hin und Ochsenkarren zurück
             var alterCode = new (string Karte, string Betrieb, double Hin, double Zurueck, int Hand, int Ochse)[]
             {
-                ("greybox", "Gießerei Eisenbart", 22, 22, 30, 30), ("greybox", "Gießerei am Weinmarkt", 24.416407864998735, 24.41640786499874, 30, 30),
                 ("greybox", "Grube Eisenbart", 98.08644811766285, 98.08644811766275, 120, 120), ("greybox", "Holzschlag Eichwald", 114.74983589514886, 114.74983589514898, 120, 120),
-                ("greybox", "Maurerei Kieselbach", 89, 89, 30, 30), ("greybox", "Steinbruch Kieselbach", 136.4186281064889, 136.4186281064889, 120, 120),
-                ("greybox", "Tischlerei Eichwald", 22, 22, 30, 30), ("probestadt", "Gießerei Brendel", 32, 32, 30, 30),
-                ("probestadt", "Gießerei am Werkstattplatz", 30, 30, 30, 30), ("probestadt", "Tischlerei Ahlbeck", 32, 32, 30, 30),
+                ("greybox", "Steinbruch Kieselbach", 136.4186281064889, 136.4186281064889, 120, 120),
             };
-            // Seit den fairen Hofstellen der Greybox (9.11.2026) stehen Tischlerei Eichwald (22 → 24 | −13) und Maurerei Kieselbach (25 → 24 | −29) an
-            // anderer Stelle – für sie gibt es keinen Wert des alten Codes mehr; die übrigen Plätze sind unverändert
-            var verlegt = new[] { "Maurerei Kieselbach", "Tischlerei Eichwald" };
-            alterCode = alterCode.Where(x => !(x.Karte == "greybox" && verlegt.Contains(x.Betrieb))).ToArray();
-            foreach (var kennung in new[] { "greybox", "probestadt" })
+            // Seit „nur noch Bauzonen“ (16.11.2026) stehen die Werkstätten in der Stadt auf gelosten Grundstücken – für sie gibt es keinen Wert des
+            // alten Codes mehr (bis dahin: Gießerei Eisenbart und Gießerei am Weinmarkt, Probestadt drei Werkstätten); die Umlandbetriebe stehen, wo sie standen
+            foreach (var kennung in new[] { "greybox" })
             {
-                var w = Partie(kennung, alt, vorgabe: true); // die Werte des alten Codes gelten für die Plätze der Startbelegung
-                var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 } && !(kennung == "greybox" && verlegt.Contains(b.Name)))
+                var w = Partie(kennung, alt);
+                var mitWeg = w.Betriebe.Where(b => !b.InDerStadt && w.Fahrten(b) is { Hin.Count: > 0 })
                     .OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
                 var erwartet = alterCode.Where(x => x.Karte == kennung).ToList();
                 Pruefe.Gleich(string.Join(", ", erwartet.Select(x => x.Betrieb)), string.Join(", ", mitWeg.Select(b => b.Name)), kennung);
@@ -308,7 +302,7 @@ static class KarrenwegTests
                 { "format": 2, "kennung": "lage", "stadt": "Lage", "raster": 2.0, "wege": [ { "name": "Weg", "klasse": "land", "linie": [[-100, 60], [100, 60]] } ],
                   "gebaeude": [ { "kennung": "U", "katalog": "testgrube", "name": "U", "betrieb": "Testgrube U", "punkt": [10, 20], "drehung": 30, "massstab": 1.5 },
                                 { "kennung": "W", "katalog": "werkstattplatz", "name": "W", "punkt": [-20, 5], "drehung": 250, "massstab": 1.5 } ] }
-                """, katalog);
+                """, katalog, alteStadtplaetze: true); // der Werkstattplatz: wie in der Karte eines alten Spielstands
             // unabhängig wie Godot gerechnet: Basis(Vector3.Up, θ) * (x, 0, z) = (x cos θ + z sin θ, −x sin θ + z cos θ)
             static (double X, double Z) Dreh(double x, double z, double grad)
             {

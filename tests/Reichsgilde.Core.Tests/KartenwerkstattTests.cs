@@ -186,7 +186,9 @@ static class KartenwerkstattTests
             var e = Oeffnen("greybox");
             // Ein Kulissenhaus schräg in die Ecke einer Werkstatt: Die umschließenden Rechtecke würden schon weiter weg überlappen,
             // die gedrehten Flächen erst hier.
-            var giesserei = e.GebaeudeMit("Giesserei_Eisenbart")!; // 16 × 14 um (22 | 13): x 14 … 30, z 6 … 20
+            // (der Werkstattplatz steht nur im Entwurf – eine Kartendatei führt seit 16.11.2026 keine mehr)
+            var giesserei = e.Setzen("werkstattplatz", 22, 13); // 16 × 14 um (22 | 13): x 14 … 30, z 6 … 20
+            Pruefe.Wahr(!e.HatFehler, "der Platz allein ohne Fehler:\n  " + Liste(e.Befunde.Where(b => b.Schwere == Schwere.Fehler)));
             var k = e.Katalog.Finde("kulisse_buergerhaus")!.Groesse!;
             var halbeDiagonale = Math.Sqrt(k[0] * k[0] + k[1] * k[1]) / 2;
             var frei = Kartenpruefung.PruefeStelle(e, "kulisse_buergerhaus", 30 + halbeDiagonale * 0.75, 20 + halbeDiagonale * 0.75, 45);
@@ -213,13 +215,13 @@ static class KartenwerkstattTests
                 var g = k["gebaeude"]!.AsArray();
                 g.Add(JsonNode.Parse("""{"kennung": "Schloss1", "katalog": "schloss", "name": "Schloss", "punkt": [300, 300], "drehung": 0}"""));
                 g.Add(JsonNode.Parse("""{"kennung": "Ring1", "katalog": "einwohnerplatz_ring", "name": "Doppelt", "punkt": [400, 300], "drehung": 0}"""));
-                g.Add(JsonNode.Parse("""{"kennung": "GrubeX", "katalog": "grube", "name": "Grube X", "punkt": [300, 400], "drehung": 0, "betrieb": "Gießerei Eisenbart"}"""));
+                g.Add(JsonNode.Parse("""{"kennung": "GrubeX", "katalog": "grube", "name": "Grube X", "punkt": [300, 400], "drehung": 0, "betrieb": "Grube Eisenbart"}"""));
                 g.Add(JsonNode.Parse("""{"kennung": "GrubeY", "katalog": "grube", "name": "Grube Y", "punkt": [400, 400], "drehung": 0}"""));
             });
             var f = Fehler(e);
             Pruefe.Wahr(f.Any(b => b.Regel == "katalog" && b.Text.Contains("„schloss“") && b.Gebaeude.Contains("Schloss1")), "unbekannter Baustein\n  " + Liste(f));
             Pruefe.Wahr(f.Any(b => b.Regel == "kennung" && b.Text.Contains("„Ring1“")), "Kennung doppelt");
-            Pruefe.Wahr(f.Any(b => b.Regel == "betrieb" && b.Gebaeude.Contains("GrubeX") && b.Gebaeude.Contains("Giesserei_Eisenbart")), "Betrieb doppelt");
+            Pruefe.Wahr(f.Any(b => b.Regel == "betrieb" && b.Gebaeude.Contains("GrubeX") && b.Gebaeude.Contains("Grube_Eisenbart")), "Betrieb doppelt");
             Pruefe.Wahr(f.Any(b => b.Regel == "betrieb" && b.Gebaeude.SequenceEqual(new[] { "GrubeY" })), "Umlandbetrieb ohne Betrieb");
 
             // Seit PR #209 darf ein Wohnhausplatz schräg stehen (die Regel „rechtwinklig“ gibt es nicht mehr).
@@ -254,8 +256,8 @@ static class KartenwerkstattTests
                 k["wege"]!.AsArray().Add(JsonNode.Parse("""{"name": "Schleichweg", "klasse": "gasse", "linie": [[45, 30], [60, 30]], "gefahr": 1, "breite": 2}"""));
                 k["wege"]!.AsArray().Add(JsonNode.Parse("""{"name": "Inselweg", "klasse": "land", "linie": [[300, 300], [320, 300]], "gefahr": 1, "breite": 4}"""));
                 k["bauzonen"]!.AsArray().Add(JsonNode.Parse("""{"kennung": "X1", "art": "vorstadt", "flaeche": [[200, 200], [210, 200], [210, 210], [200, 210]]}"""));
-                k["start"]!["haeuser"]![0]!["wohnhaus"] = "Ring1";
-                k["start"]!["haeuser"]![1]!["betriebe"]![0]!["platz"] = "Giesserei_Eisenbart";
+                k["start"]!["haeuser"]![0]!["betriebe"]![0]!["platz"] = "Ring1";
+                k["start"]!["haeuser"]![1]!["betriebe"]![1]!["platz"] = "Grube_Eisenbart";
             });
             var f = Fehler(e);
             var text = Liste(f);
@@ -264,8 +266,8 @@ static class KartenwerkstattTests
             Pruefe.Wahr(f.Any(b => b.Regel == "tor" && b.Text.Contains("Schleichweg") && b.Ort is { } o && Math.Abs(o.X - 50) < 1e-9), "Weg kreuzt ohne Tor");
             Pruefe.Wahr(f.Any(b => b.Regel == "zone-anschluss" && b.Text.Contains("X1")), "Bauzone fern der Karrenstraße");
             Pruefe.Wahr(f.Any(b => b.Regel == "wegenetz" && b.Text.Contains("Inselweg")), "Wegenetz zerfällt");
-            Pruefe.Wahr(f.Any(b => b.Regel == "start" && b.Text.Contains("„Ring1“ ist kein Wohnhausplatz") && b.Gebaeude.Contains("Ring1")), "Wohnhaus ist ein Einwohnerplatz");
-            Pruefe.Wahr(f.Any(b => b.Regel == "start" && b.Text.Contains("„Giesserei_Eisenbart“ ist mehrfach vergeben")), "Platz doppelt");
+            Pruefe.Wahr(f.Any(b => b.Regel == "start" && b.Text.Contains("„Ring1“ ist kein Umlandbetrieb") && b.Gebaeude.Contains("Ring1")), "Startbetrieb auf einem Einwohnerplatz");
+            Pruefe.Wahr(f.Any(b => b.Regel == "start" && b.Text.Contains("„Grube_Eisenbart“ ist mehrfach vergeben")), "Platz doppelt");
         }),
 
         ("Kartenwerkstatt: Eine Karte ohne Fehler liest auch der Kern (Stadtkarte) – mit einem neuen Gebäude", () =>
@@ -289,8 +291,8 @@ static class KartenwerkstattTests
             // Einziger Fehler einer leeren Karte: Ihr fehlt die Startbelegung (seit Schritt 3 – ohne sie hätte der Spieler keinen Startplatz).
             Pruefe.Wahr(Fehler(e) is [{ Regel: "start-fehlt" }], "leere Karte nur ohne Startbelegung:\n  " + Liste(e.Befunde));
             e.Setzen("markt", 0, 0);
-            var w = e.Setzen("werkstattplatz", 20, 0, 90);
-            Pruefe.Wahr(!e.FehlerhafteGebaeude.Contains(w.Kennung), "Werkstatt ohne Weg ist kein Fehler mehr (PR #209)\n  " + Liste(e.Befunde));
+            var w = e.Setzen("kulisse_buergerhaus", 20, 0, 90); // (bis 16.11.2026 ein Werkstattplatz – die führt eine Kartendatei nicht mehr)
+            Pruefe.Wahr(!e.FehlerhafteGebaeude.Contains(w.Kennung), "ein Haus ohne Weg ist kein Fehler (PR #209)\n  " + Liste(e.Befunde));
             var json = e.ZuJson();
             Pruefe.Wahr(json.StartsWith("{\n \"format\": 2,\n \"kennung\": \"probestadt\",\n \"stadt\": \"Probestadt\","), json[..120]);
             Pruefe.Wahr(json.Contains("\"groesse\": [400, 300]") && !json.Contains("\"natur\"") && !json.Contains("\"start\""), json);

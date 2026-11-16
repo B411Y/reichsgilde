@@ -59,7 +59,7 @@ static class FahrzeitWeglaengeTests
     /// <summary>Probepartie in der Probestadt (Spieler Schmied, Werkstatt bei (−30 | −10) an der Hauptstraße, Markt bei (0 | 0)).</summary>
     static (Simulation Sim, Konto Spieler, Betrieb Werkstatt) Partie(Wirtschaftsdaten? daten = null, Partieeinstellungen? einstellungen = null)
     {
-        var (sim, spieler) = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value).Ausprobieren(daten ?? Daten.Value, "Schmied", einstellungen);
+        var (sim, spieler) = Probestadtvorlage.Ausprobieren(Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value), daten ?? Daten.Value, "Schmied", einstellungen);
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 
@@ -166,7 +166,7 @@ static class FahrzeitWeglaengeTests
             var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Pflaster);
             var ganzAlt = DatenMit(d => { d["logistik"]!.AsObject().Remove("weglaenge"); d["wegebau"]!.AsObject().Remove("ausbauHoechstens"); });
-            var (simP, spielerP) = e.Ausprobieren(ganzAlt, "Schmied");
+            var (simP, spielerP) = Probestadtvorlage.Ausprobieren(e, ganzAlt, "Schmied");
             var wp = simP.Wirtschaft!.Betriebe.Single(b => b.Konto == spielerP);
             var hinP = simP.Wirtschaft.Fahrten(wp)!.Value.Hin;
             Pruefe.Ungefaehr(0.85, simP.Wirtschaft.Wegebau.Faktor(hinP[0]), 1e-12);

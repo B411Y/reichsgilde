@@ -148,7 +148,7 @@ static class HafenzielTests
             {
                 var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-                    Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: haeuser), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
+                    Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), FesteStartorte.Partie(kennung, new NeuePartie(Rivalen: haeuser)), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung))); // feste Startorte nahe den Märkten (gelost kann eine Werkstatt näher am Hafen stehen)
                 var w = sim.Wirtschaft!;
                 Pruefe.Wahr(w.Schiffahrt.KarrenZumHafen && w.Schiffahrt.HafenOffen, $"{kennung}: Karren zum Hafen, offen");
                 var mitWeg = w.Betriebe.Where(b => w.FahrtenZumHafen(b) is not null).ToList();
@@ -158,7 +158,7 @@ static class HafenzielTests
                         Pruefe.Wahr(!w.FaehrtZumHafen(b, typ), $"{kennung}: {b.Name} {typ} fährt zum Marktplatz");
             }
             var (simM, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
-                Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")));
+                Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")));
             var m = simM.Wirtschaft!;
             Pruefe.Wahr(!m.Schiffahrt.HatHafen && !m.Schiffahrt.KarrenZumHafen, "Messstadt ohne Hafen");
             Pruefe.Wahr(m.Betriebe.All(b => m.FahrtenZumHafen(b) is null && m.HafenVon(b) is null && !m.FaehrtZumHafen(b, Hand)), "kein Weg zum Hafen");

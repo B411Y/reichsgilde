@@ -36,8 +36,6 @@ static class LangsameTests
         ("PruefungInkrementellTests", "das Bett nach einem Weg oder einer Mauer", 1),    // 4–5 s: Bett Punkt für Punkt gegen eine frisch geöffnete Karte
         ("KiHafenStandortTests", "baut die KI am Rheinhafen", 1),                       // 6 s: Bauorte in Köln belegen, zwei Städte (spiel-ki)
         ("HafenAufschlagTests", "verkauft Silberringe", 1),                             // 4 s: sechs Kölner Fahrten mit und ohne Aufschlag
-        ("HofstellenHaeppchenTests", "ein halber Lauf der Kapazität und der Startwege", 1), // 6–13 s: Köln, je Paar Kapazität, Startwege und Prüfung frisch
-        ("HofstellenHaeppchenTests", "nach je 12 zufälligen Änderungen an Hofstellen", 1), // 4 s: volle Prüfung frisch geöffnet nach jeder Änderung
         ("ZwischenspeicherTests", "Bauorte in einer Greybox-Partie", 1),               // 3 s: drei Jahre, Bauorte ohne Speicher alle vier Stunden (14.11.2026)
         ("ZwischenspeicherTests", "Bauorte in einer Köln-Partie", 1),                  // 3 s: zwei Jahre Köln, Bauorte ohne Speicher zweimal am Tag
         ("KlappbrueckeTests", "Karren warten in der Partie", 1),                       // 8 s: bis zu drei Jahre Köln-Prüfkarte, Spielstand, Gegenprobe (15.11.2026)

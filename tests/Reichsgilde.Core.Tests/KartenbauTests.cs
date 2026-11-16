@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Zeit;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core.Bauen;
@@ -52,21 +53,17 @@ static class KartenbauTests
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 8495 Felder, davon fest belegt 1133",   // seit „nur noch Bauzonen“ (16.11.2026) 8.495, davon 1.133 unter den alten Plätzen (ihre Flächen gehören zur Zone); seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 6.835, vorher 6.569; bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
-                // seit den Hofstellen: 16 Hofstellen, 8 für die Häuser einer Partie mit 8 Häusern, die übrigen 8 nehmen je eine Pflicht-Werkstatt auf (vorher 16 von 16 in den Zonen)
-                "Pflicht Werkstatt: 8 auf freien Hofstellen", "Pflicht Werkstatt: 8 von 8 passen (dazu die freien Hofstellen)",
+                "Stadt-Bauzonen: 8495 Felder, davon fest belegt 0",   // seit 16.11.2026 ohne die Werkstatt- und Wohnhausplätze (vorher 1.133 Felder unter den 32 alten Plätzen)
+                "Pflicht Werkstatt: 16 von 16 passen", // bis 16.11.2026 acht auf freien Hofstellen, acht in den Zonen
                 "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 6298 Felder (74%), nach der Reserve: 5834 Felder", // vor „nur noch Bauzonen“ (16.11.2026) 5.771 (84 %) und 5.307; vor den Kirchen-Entfernung (11.11.2026) 5.505 und 5.041, vor den Hofstellen 5.623 (79 %) und 5.159
+                "Frei nach der Pflicht: 6983 Felder (82%), nach der Reserve: 6519 Felder", // mit den alten Plätzen 6.298 (74 %) und 5.834
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 76 aus Pflicht und Reserve (vor den Hofstellen 84: acht Werkstätten stehen jetzt auf Hofstellen); feste keine
-            // (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder); seit „nur noch Bauzonen“ (16.11.2026) liegen die 32 alten Plätze
-            // (16 Werkstatt- und 16 Wohnhausplätze) in den Zonen und zählen als fest: 1.133 Felder
-            Pruefe.Gleich(76, k.Plaetze.Count(p => p.Art != "fest"));
-            Pruefe.Gleich(8 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
-            Pruefe.Gleich(32, k.Plaetze.Count(p => p.Art == "fest"));
-            Pruefe.Gleich(1143, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count)); // je Platz gezählt; 10 Felder teilen sich zwei Plätze, belegt sind 1.133
+            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve (16 Werkstätten, 56 Häuser der Pflicht, 12 der Reserve); feste keine mehr
+            Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
+            Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
+            Pruefe.Gleich(0, k.Plaetze.Count(p => p.Art == "fest"));
         }),
 
         ("Kapazität aller Karten: dieselben Plätze wie vor der Beschleunigung (27.10.2026) – Anzahl, Felder und eine Prüfsumme ihrer Lage", () =>
@@ -82,7 +79,10 @@ static class KartenbauTests
                 // stehen auf freien Hofstellen), Messstadt vorher 0 / 80 / 1.752 / 6.597.050 (9 Hofstellen: eine nimmt eine Pflicht-Werkstatt auf)
                 // seit „nur noch Bauzonen“ (16.11.2026; die Flächen der alten Plätze gehören zur Zone und zählen als fest belegt): Köln vorher 0 / 76 / 1.528 / −7.275.443,
                 // Greybox vorher 4 / 26 / 901 / −2.835.284, Probestadt vorher 0 / 84 / 1.976 / 12.679.538; Messstadt unverändert
-                ("koeln", 0, 108, 2671, -9672404L), ("greybox", 4, 41, 1327, -5675165L), ("probestadt", 0, 94, 2312, 6589340L), ("messstadt", 0, 79, 1696, 5021759L),
+                // seit dem Aufräumen (16.11.2026; keine Plätze mehr, also nichts fest belegt; Greybox ohne die zwei Gassen in K4 und mit dem Hof als Vorstadt,
+                // Messstadt mit Zonen im Stadtinneren): Köln vorher 0 / 108 / 2.671 / −9.672.404, Greybox 4 / 41 / 1.327 / −5.675.165,
+                // Probestadt 0 / 94 / 2.312 / 6.589.340, Messstadt 0 / 79 / 1.696 / 5.021.759
+                ("koeln", 0, 84, 1976, 12452268L), ("greybox", 2, 52, 1285, -3610854L), ("probestadt", 0, 84, 1976, 6241256L), ("messstadt", 0, 84, 1976, -13917464L),
             };
             var gemessen = erwartet.Select(x =>
             {
@@ -138,17 +138,17 @@ static class KartenbauTests
             Pruefe.Wahr(!ReferenceEquals(vorher, e.Kapazitaetsrechnung()), "ein Gebäude schon");
         }),
 
-        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), dazu seit den Hofstellen 2 Startwege des Umlands, keine Fehler", () =>
+        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), dazu 2 Startwege des Umlands, keine Fehler", () =>
         {
             var e = Oeffnen("greybox");
             Pruefe.Gleich(0, Fehler(e).Count, Liste(Fehler(e)));
             var hinweise = e.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
             Pruefe.Gleich(4, hinweise.Count(b => b.Regel == "weg-ueber-umland"), Liste(hinweise));
             Pruefe.Gleich(3, hinweise.Count(b => b.Regel == "ueberlappung"), Liste(hinweise));
-            // Seit den Hofstellen (9.11.2026) misst die Fairness jede Karte mit Start-Hofstellen. Die vier Start-Hofstellen liegen seit dem Umbau
-            // greybox-hofstellen-fair im Band (20,3 / 18,1 / 19,1 / 21,1 m; vorher H3 10,6 und H4 25,1 m) – es bleiben die zwei Umlandbetriebe
-            Pruefe.Gleich(2, hinweise.Count(b => b.Regel == "startweg"), Liste(hinweise));
-            Pruefe.Wahr(hinweise.Where(b => b.Regel == "startweg").All(b => !b.Text.Contains("Hofstelle")), "keine Start-Hofstelle außerhalb ±10 %");
+            // Die Regel „startweg“ misst nur noch die Umlandbetriebe der KI-Häuser (16.11.2026; bis dahin auch die vier Start-Hofstellen, die im Band
+            // lagen) – außerhalb ±10 % liegen zwei: Grube Eisenbart und Steinbruch Kieselbach
+            Pruefe.Gleich("Grube_Eisenbart, Steinbruch_Kieselbach",
+                string.Join(", ", hinweise.Where(b => b.Regel == "startweg").SelectMany(b => b.Gebaeude).Order(StringComparer.Ordinal)), Liste(hinweise));
             Pruefe.Gleich(9, hinweise.Count, Liste(hinweise));
         }),
 
@@ -248,8 +248,8 @@ static class KartenbauTests
         {
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             Pruefe.Gleich("", Liste(e.Befunde));
-            Pruefe.Gleich(4, e.Gebaeude.Count(g => g.Art == Bausteinart.Werkstattplatz));
-            Pruefe.Gleich(6, e.Gebaeude.Count(g => g.Art == Bausteinart.Wohnhausplatz));
+            Pruefe.Gleich(0, e.Gebaeude.Count(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)); // seit 16.11.2026 (vorher vier und sechs)
+            Pruefe.Gleich(8, Startortlos.Haeuser(e.ZuStadtkarte(), Daten.Value)); // dafür Platz für acht Häuser in den Bauzonen im Stadtinneren
             Pruefe.Wahr(e.Gebaeude.Count(g => g.Art == Bausteinart.Einwohnerplatz) >= 10, "Einwohnerplätze");
             Pruefe.Gleich(2, e.Mauern[0].Tore.Count);
             Pruefe.Gleich(2, e.Start.Haeuser.Count);
@@ -298,7 +298,7 @@ static class KartenbauTests
                 Pruefe.Gleich(e.ZuJson(), File.ReadAllText(karte), "mit --ueberschreiben ersetzt");
                 // mit einem Fehler: nichts
                 var kaputt = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
-                kaputt.Setzen("werkstattplatz", -30, -10);  // genau auf einen anderen Werkstattplatz
+                kaputt.Setzen("rathaus", 0, -19);  // genau auf das Rathaus
                 var andere = Path.Combine(ordner, "karten", "kaputt.json");
                 Pruefe.Gleich(1, Befehle.Schreiben(kaputt, andere, vorschau, true, aus));
                 Pruefe.Wahr(!File.Exists(andere), "nichts geschrieben");
@@ -316,11 +316,13 @@ static class KartenbauTests
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var ring = e.Wege.Single(w => w.Name == "Ringstraße");
             Pruefe.Gleich("(-57 | -42), (57 | -42), (57 | 42), (-57 | 42), (-57 | -42)", string.Join(", ", ring.Punkte), "13 m innerhalb der Mauer");
-            // Die Wohnhäuser der Nordreihe: Vorderseite nach Süden zur Ringstraße, der Eingang 0,5 m neben dem Straßenrand
-            var nord = e.Gebaeude.Where(g => g.Name.StartsWith("Wohnhaus Nord")).ToList();
-            Pruefe.Gleich(3, nord.Count);
-            Pruefe.Wahr(nord.All(g => g.Drehung == 180 && g.Eingang!.Value.Z == -40), string.Join(", ", nord.Select(g => $"{g.Punkt} {g.Drehung}")));
-            Pruefe.Gleich("-10, 0, 10", string.Join(", ", nord.Select(g => g.X)));
+            // Die Einwohnerplätze der Nordreihe (zwischen Ringstraße und Mauer): Vorderseite nach Süden zur Ringstraße, der Eingang 0,5 m neben dem
+            // Straßenrand, in gleichen Abständen (bis 16.11.2026 prüfte das die Reihe der Wohnhausplätze)
+            var nord = e.Gebaeude.Where(g => g.Katalog == "einwohnerplatz_ring" && g.Z < 0).OrderBy(g => g.X).ToList();
+            Pruefe.Wahr(nord.Count >= 5, $"{nord.Count} Einwohnerplätze in der Nordreihe");
+            Pruefe.Wahr(nord.All(g => g.Drehung == 0 && Math.Abs(g.Eingang!.Value.Z - (-42 - ring.BreiteWirksam / 2 - 0.5)) < 1e-9), string.Join(", ", nord.Select(g => $"{g.Punkt} {g.Drehung} {g.Eingang}")));
+            var schritte = nord.Zip(nord.Skip(1), (a, b) => b.X - a.X).ToList();
+            Pruefe.Wahr(schritte.All(x => Math.Abs(x - schritte[0]) < 1e-9 && x > 0), "gleiche Abstände: " + string.Join(", ", schritte));
         }),
 
         ("Vorschau: Mauer aus dem Mauerplan (Türme, Torburgen), Wege als Kurve, Startbelegung farbig mit Legende; Belegung mit Kapazität bzw. Probeplan", () =>

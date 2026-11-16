@@ -25,8 +25,6 @@ public partial class Kartenwerkstatt
     /// <summary>Die Gruppen der Gebäude im Katalog links: Überschrift und die Arten, die dazugehören (Reihenfolge wie im Fahrplan).</summary>
     private static readonly (string Titel, string[] Arten)[] Katalogteile =
     {
-        ("Werkstattplätze", new[] { Bausteinart.Werkstattplatz }),
-        ("Wohnhausplätze", new[] { Bausteinart.Wohnhausplatz }),
         ("Einwohnerplätze", new[] { Bausteinart.Einwohnerplatz }),
         ("Sonderbauten", new[] { Bausteinart.Sonderbau }),
         ("Kulissen", new[] { Bausteinart.Kulisse }),
@@ -230,7 +228,6 @@ public partial class Kartenwerkstatt
         var zeile = _stadt.Kartenwerkzeug switch
         {
             Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
-            Werkstattwerkzeug.Hofstelle => "Klick setzt Werkstatt- und Wohnhausplatz nebeneinander (Mitte des Ganzen) · Q/E dreht (15°, mit Alt 1°) · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Weg => "Punkte klicken (rasten aufs Raster, Alt: frei, Umschalt: 45°-Winkel, V: Raster aus/an) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
             Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung =>
@@ -359,7 +356,6 @@ public partial class Kartenwerkstatt
         var regeln = _entwurf.Regeln;
         _pruefKopf.TooltipText = $"Regeln dieser Karte ({_entwurf.Kennung}): allgemeine Kartenregeln"
             + (regeln.Stadtregeln ? ", Stadtregeln" : "")
-            + (regeln.Startgrundstuecke > 0 ? $", {regeln.Startgrundstuecke} Startgrundstücke" : "")
             + (regeln.Kapazitaet is { } k ? $", Kapazität als {(k == Schwere.Fehler ? "Fehler" : "Hinweis")}" : ", Kapazität nicht (der Probeplan prüft)");
         foreach (var b in befunde.Take(ListenGrenze))
         {
@@ -538,7 +534,7 @@ public partial class Kartenwerkstatt
         _massstabFeld.ValueChanged += wert => _entwurf.MassstabSetzen(g.Kennung, wert);
         Zeile(raster, "Maßstab", _massstabFeld);
 
-        if (g.Art is Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb)
+        if (g.Art == Bausteinart.Umlandbetrieb)
         {
             _betriebFeld = new LineEdit { Text = g.Betrieb ?? "", PlaceholderText = "(keiner)", TooltipText = "Der Betrieb, der hier steht (Werkstatt eines KI-Hauses, Umlandbetrieb)" };
             _betriebFeld.TextSubmitted += _ => _betriebFeld.ReleaseFocus();
@@ -550,7 +546,7 @@ public partial class Kartenwerkstatt
             Zeile(raster, "Betrieb", _betriebFeld);
         }
 
-        if (g.Art is Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz)
+        if (g.Art == Bausteinart.Einwohnerplatz)
         {
             _lageWahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Ohne Angabe gilt die nächste Bauzone" };
             _lageWahl.AddItem("nach Bauzone", NachBauzone);
@@ -574,7 +570,6 @@ public partial class Kartenwerkstatt
         _eigenschaften.AddChild(knoepfe);
         Knopf(knoepfe, "Hinfahren", () => _stadt.WerkstattWaehlen(g.Kennung, hinfahren: true));
         Knopf(knoepfe, "Löschen", () => _entwurf.Loeschen(g.Kennung), "Das Gebäude aus der Karte nehmen (Entf)");
-        HofstelleGruppe(g); // Kartenwerkstatt.Hofstelle.cs
         WerteSetzen(g);
     }
 
@@ -769,7 +764,7 @@ public partial class Kartenwerkstatt
         var (tafel, spalte) = Hauptmenue.Tafel(480);
         Hauptmenue.Text(spalte, "Karte ausprobieren", 26, Gold, zentriert: true);
         Hauptmenue.Text(spalte, $"Eine neue Partie auf „{_entwurf.Stadt}“, so wie die Karte gerade ist – mit "
-            + (_entwurf.Start.Haeuser.Count == 0 ? "den drei Häusern des Spiels" : $"{_entwurf.Start.Haeuser.Count} KI-Häusern")
+            + (_entwurf.Start.IstLeer ? "den drei Häusern des Spiels" : _entwurf.Start.Haeuser.Count == 0 ? "gewürfelten KI-Häusern" : $"{_entwurf.Start.Haeuser.Count} KI-Häusern")
             + ". Nichts wird gespeichert. Zurück geht es im Spiel mit Esc → „Zurück zur Kartenwerkstatt“; hier ist dann alles wie vorher, auch Rückgängig.",
             15, Hell, umbruchBreite: 420);
         var raster = new GridContainer { Columns = 2 };
@@ -778,7 +773,7 @@ public partial class Kartenwerkstatt
         var berufe = Berufe(); // Kartenwerkstatt.Start.cs
         var beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         foreach (var b in berufe)
-            beruf.AddItem(b + (_entwurf.Start.StartplatzFuer(b) is { } platz ? $" – {_entwurf.GebaeudeMit(platz.Platz)?.Name ?? platz.Platz}" : ""));
+            beruf.AddItem(b);
         beruf.Select(Math.Max(0, berufe.ToList().IndexOf("Schmied")));
         Zeile(raster, "Als", beruf);
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };

@@ -19,30 +19,19 @@ static class NeuePartieTests
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(Datenpfad.Karte("greybox"))));
 
     /// <summary>
-    /// Eine Karte im knappen Format: nur Hofstellen mit Nummer (in Kartenreihenfolge 1, 2, …), ohne „haeuser“ und „spieler“ – wie die Kartenwerkstatt
-    /// sie künftig schreibt. <paramref name="nummern"/>: abweichende Nummern je Start-Hofstelle (null = ohne Nummer, Startplatz wie bisher).
+    /// Eine Karte im knappen Format: ohne „haeuser“ und „spieler“ im Abschnitt „start“ – die Partie würfelt alle KI-Häuser (bis 16.11.2026 mit
+    /// nummerierten Höfen; seit „nur noch Bauzonen“ stehen die Häuser auf gelosten Grundstücken, und Höfe gibt es nicht mehr).
     /// </summary>
-    static string KnappJson(string kennung, Func<int, int?>? nummern = null)
+    static string KnappJson(string kennung)
     {
         var k = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!.AsObject();
         var start = k["start"]!.AsObject();
         start.Remove("haeuser");
         start.Remove("spieler");
-        start.Remove("jeBeruf");
-        var i = 0;
-        foreach (var h in start["hofstellen"]!.AsArray().Select(x => x!.AsObject()).ToList())
-        {
-            if (h["start"] is null) continue; // freie Hofstellen bleiben ohne Nummer
-            h.Remove("start");
-            var n = nummern is null ? i + 1 : nummern(i);
-            if (n is { } nr) h["nummer"] = nr;
-            else h["start"] = true; // ohne Nummer ein Startplatz wie bisher
-            i++;
-        }
         return k.ToJsonString();
     }
 
-    static Stadtkarte Knapp(string kennung, Func<int, int?>? nummern = null) => Stadtkarte.AusJson(KnappJson(kennung, nummern), Katalog.Value);
+    static Stadtkarte Knapp(string kennung) => Stadtkarte.AusJson(KnappJson(kennung), Katalog.Value);
 
     static (Stadtwirtschaft W, Konto Spieler) Partie(Stadtkarte? karte, NeuePartie neu, int startwert = 1400, Wirtschaftsdaten? daten = null)
     {
@@ -64,15 +53,15 @@ static class NeuePartieTests
     {
         ("Neue Partie: knappe Karte – der Spieler und sieben KI-Häuser, jedes auf gelosten Grundstücken (keine Höfe mehr); Namen, Wappen, Volk, Glaube und Beruf gewürfelt, alle verschieden", () =>
         {
-            var karte = Knapp("messstadt", i => i < 8 ? i + 1 : null);
-            Pruefe.Gleich(8, Partiebesetzung.Hoefe(karte));
-            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte));
+            var karte = Knapp("messstadt");
+            Pruefe.Gleich(0, karte.Startbelegung.Haeuser.Count);
+            Pruefe.Gleich(8, Startortlos.Haeuser(karte, Daten.Value));
             Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value)); // was in die Bauzonen passt (15.11.2026), höchstens 8 Häuser
             var (w, spieler) = Partie(karte, new NeuePartie(Rivalen: 7));
             var start = w.Karte!.Startbelegung;
             Pruefe.Gleich(7, start.Haeuser.Count);
             // Seit „nur noch Bauzonen“ (15.11.2026) sitzt niemand mehr auf einem Hof: jedes Haus auf zwei gelosten Grundstücken (StartortlosTests)
-            Pruefe.Wahr(start.OhnePlaetze && !w.Karte.HatHofstellen, "die Partiekarte nennt keine Plätze");
+            Pruefe.Wahr(start.OhnePlaetze, "die Partiekarte nennt keine Plätze");
             foreach (var k in w.Konten)
                 Pruefe.Wahr(w.Bauen.Wohnhaus(k) is { Kennung: null } && w.Betriebe.Any(b => b.Konto == k && w.Bauen.PlatzVon(b.Name) is { Grundstueck.Kennung: null }),
                     $"{k.Inhaber}: Wohnhaus und Werkstatt auf Grundstücken");
@@ -94,7 +83,7 @@ static class NeuePartieTests
 
         ("Neue Partie: gewürfelt ist deterministisch – gleicher Startwert, gleiche Häuser; ein anderer Startwert würfelt andere Namen", () =>
         {
-            var karte = Knapp("messstadt", i => i < 8 ? i + 1 : null);
+            var karte = Knapp("messstadt");
             string Bild(int s)
             {
                 var (w, _) = Partie(karte, new NeuePartie(Rivalen: 7), s);
@@ -106,7 +95,7 @@ static class NeuePartieTests
 
         ("Neue Partie: nie zwei gleiche Berufe – 60 Startwerte × 0 bis 7 KI auf der knappen Karte, jeder Spielerberuf; Gegenprobe: zwei gleiche KI-Vorgaben werden abgewiesen", () =>
         {
-            var karte = Knapp("messstadt", i => i < 8 ? i + 1 : null);
+            var karte = Knapp("messstadt");
             var alle = Startaufstellung.Berufe(Daten.Value);
             for (var s = 1; s <= 60; s++)
             {
@@ -123,7 +112,7 @@ static class NeuePartieTests
 
         ("Neue Partie: die Spielerwahl hat Vorrang – kein KI-Haus bekommt seinen Beruf, eine KI-Vorgabe mit seinem Beruf wird abgewiesen, Würfeln lässt ihm seine Wahl", () =>
         {
-            var karte = Knapp("messstadt", i => i < 8 ? i + 1 : null);
+            var karte = Knapp("messstadt");
             for (var s = 1; s <= 30; s++)
             {
                 var (w, _) = Partie(karte, new NeuePartie(Beruf: "Tischler", Rivalen: 7), s);
@@ -143,55 +132,37 @@ static class NeuePartieTests
                 Pruefe.Gleich("Schmied", Partiebesetzung.SpielerWuerfeln(d, karte, s, kiVorgaben: vorgaben).Beruf, $"Startwert {s}");
         }),
 
-        ("Neue Partie: höchstens acht Höfe – neun nummerierte zählen als acht (Hof 9 ist ein Fehler der Prüfung), höchstens sieben KI; die Kartenwerkstatt nimmt keine 9", () =>
+        ("Neue Partie: höchstens acht Häuser – die Messstadt nennt acht KI-Häuser, mit dem Spieler passen sieben; ein achtes wird abgewiesen, gewürfelt wie nach der Karte", () =>
         {
-            var neun = Knapp("messstadt"); // S1 … S9 mit Nummer 1 … 9
-            Pruefe.Gleich(9, neun.Hofstellen.Count(h => h.Nummer is not null));
-            Pruefe.Gleich(8, Partiebesetzung.Hoefe(neun));
-            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(neun));
-            Pruefe.WirftMitMeldung(() => Partie(neun, new NeuePartie(Rivalen: 8)), "null bis sieben");
-            Partie(neun, new NeuePartie(Rivalen: 7));
-            var befunde = Kartenpruefung.Pruefen(Kartenentwurf.AusJson(KnappJson("messstadt"), Katalog.Value));
-            Pruefe.Wahr(befunde.Any(b => b.Regel == "hofstelle" && b.Text.Contains("nicht 9")), "Hof 9 ist ein Fehler");
-            // Gegenprobe: acht Nummern ohne Lücke sind kein Fehler; eine Lücke ist einer
-            var acht = Kartenpruefung.Pruefen(Kartenentwurf.AusJson(KnappJson("messstadt", i => i < 8 ? i + 1 : null), Katalog.Value));
-            Pruefe.Wahr(!acht.Any(b => b.Regel == "hofstelle" && b.Schwere == Schwere.Fehler), string.Join("; ", acht.Where(b => b.Regel == "hofstelle").Select(b => b.Text)));
-            var luecke = Kartenpruefung.Pruefen(Kartenentwurf.AusJson(KnappJson("messstadt", i => i == 0 ? 1 : i == 1 ? 3 : null), Katalog.Value));
-            Pruefe.Wahr(luecke.Any(b => b.Regel == "hofstelle" && b.Schwere == Schwere.Fehler && b.Text.Contains("Hof 2 fehlt")), "Lücke");
-            var e = Kartenentwurf.AusJson(KnappJson("messstadt", i => i < 8 ? i + 1 : null), Katalog.Value);
-            var frei = e.Start.Hofstellen[8].Kennung; // S9 ohne Nummer
-            Pruefe.Wirft(() => e.HofstelleNummerSetzen(frei, 9));
-            Pruefe.Wirft(() => e.HofstelleNummerSetzen(frei, 3)); // Hof 3 gibt es schon
-            e.HofstelleNummerSetzen(e.Start.Hofstellen[7].Kennung, null);
-            e.HofstelleNummerSetzen(frei, 8);
-            Pruefe.Gleich(8, e.Start.Hofstellen[8].Nummer);
-            Pruefe.Gleich((int?)8, Stadtkarte.AusJson(e.ZuJson(), Katalog.Value).HofstelleMit(frei)!.Nummer, "Nummer wird geschrieben und gelesen");
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
+            Pruefe.Gleich(8, karte.Startbelegung.Haeuser.Count);
+            Pruefe.Gleich(9, Partiebesetzung.Hoefe(karte));
+            Pruefe.Gleich(8, Startortlos.Haeuser(karte, Daten.Value));
+            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value));
+            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Vorgabe, Daten.Value));
+            Pruefe.WirftMitMeldung(() => Partie(karte, new NeuePartie(Rivalen: 8)), "null bis sieben");
+            Pruefe.WirftMitMeldung(() => Partie(karte, new NeuePartie(Rivalen: 8, Aufstellung: Aufstellungsart.Vorgabe)), "null bis sieben");
+            Pruefe.WirftMitMeldung(() => Partie(Knapp("messstadt"), new NeuePartie(Rivalen: 8)), "null bis sieben");
+            Partie(karte, new NeuePartie(Rivalen: 7));
+            Partie(Knapp("messstadt"), new NeuePartie(Rivalen: 7));
         }),
 
-        ("Neue Partie: alte Karten im ausführlichen Format laden wie bisher – Häuser der Karte mit ihren Namen, Höfe und KI-Höchstzahl unverändert, Messstadt ohne Nummern, die anderen Karten nummeriert", () =>
+        ("Neue Partie: Karten im ausführlichen Format – die Häuser der Karte spielen mit ihren Namen mit, soweit sie in die Bauzonen passen (Greybox 3, Probestadt 2, Köln 7, Messstadt 7 von 8)", () =>
         {
-            // Hofnummern (12.11.2026): Köln, Probestadt und Greybox sind nummeriert, die Messstadt bleibt die alte, unnummerierte Karte
-            foreach (var (kennung, hoefe) in new[] { ("greybox", 4), ("koeln", 8), ("probestadt", 3) })
-            {
-                var nummeriert = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Wahr(Hofstellenvergabe.Nummeriert(nummeriert), kennung);
-                Pruefe.Gleich(hoefe, Partiebesetzung.Hoefe(nummeriert), kennung);
-            }
-            foreach (var (kennung, hoefe, ki) in new[] { ("messstadt", 9, 8) })
+            foreach (var (kennung, haeuser, ki) in new[] { ("greybox", 3, 3), ("koeln", 7, 7), ("probestadt", 2, 2), ("messstadt", 8, 7) })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Wahr(!Hofstellenvergabe.Nummeriert(karte), kennung);
-                Pruefe.Gleich(hoefe, Partiebesetzung.Hoefe(karte), kennung);
-                Pruefe.Gleich(ki, Partiebesetzung.HoechstensKi(karte), kennung);
-                Pruefe.Gleich(karte.Startbelegung.Haeuser.Count, ki, kennung);
-                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki, Startplaetze: Startplatzvergabe.Vorgabe), 11);
-                var namen = karte.Startbelegung.Haeuser.Select(h => h.Name).ToList();
+                Pruefe.Gleich(1 + haeuser, Partiebesetzung.Hoefe(karte), kennung);
+                Pruefe.Gleich(haeuser, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Vorgabe), kennung + ": ohne Daten die Häuser der Karte");
+                Pruefe.Gleich(ki, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Vorgabe, Daten.Value), kennung);
+                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki), 11);
+                var namen = karte.Startbelegung.Haeuser.Take(ki).Select(h => h.Name).ToList();
                 Pruefe.Gleich(string.Join(",", namen), string.Join(",", w.Konten.Skip(1).Select(k => k.Inhaber)), $"{kennung}: die Häuser der Karte");
             }
             Pruefe.Gleich(4, Partiebesetzung.Hoefe(null));
             Pruefe.Gleich(3, Partiebesetzung.HoechstensKi(null));
             // Gegenprobe: Gelost zählt, was in die Bauzonen passt – höchstens acht Häuser zusammen (15.11.2026; vorher die Startplätze der Karte)
-            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")), new NeuePartie(Rivalen: 8)), "null bis sieben");
+            Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")), new NeuePartie(Rivalen: 8)), "null bis vier"); // fünf Häuser passen ins Stadtinnere der Greybox
             Pruefe.WirftMitMeldung(() => Partie(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")), new NeuePartie(Rivalen: 8)), "null bis sieben");
         }),
 
@@ -212,7 +183,7 @@ static class NeuePartieTests
                 null,
                 new(Volk: Volk.Zwerg, Beruf: "Steinmetz"),
             };
-            foreach (var karte in new[] { Knapp("messstadt", i => i < 8 ? i + 1 : null), Stadtkarte.AusDatei(Datenpfad.Karte("koeln")) })
+            foreach (var karte in new[] { Knapp("messstadt"), Stadtkarte.AusDatei(Datenpfad.Karte("koeln")) })
             {
                 var (w, _) = Partie(karte, new NeuePartie(Rivalen: 3, KiVorgaben: vorgaben));
                 var h = w.Karte!.Startbelegung.Haeuser;
@@ -224,7 +195,7 @@ static class NeuePartieTests
                 Pruefe.Gleich("Tischler,Steinmetz", $"{Berufe(w)[1]},{Berufe(w)[3]}");
                 Pruefe.Wahr(w.Betriebe.Any(b => b.Konto == w.Konten[1] && b.Name.EndsWith("Brenner")), "die Werkstatt heißt nach dem Haus");
             }
-            var knapp = Knapp("messstadt", i => i < 8 ? i + 1 : null);
+            var knapp = Knapp("messstadt");
             Pruefe.WirftMitMeldung(() => Partie(knapp, new NeuePartie(Rivalen: 1, KiVorgaben: new Hausvorgabe?[] { new(Volk: Volk.Ork) })), "Bürgerrecht");
             Pruefe.Wirft(() => Partie(knapp, new NeuePartie(Rivalen: 1, KiVorgaben: new Hausvorgabe?[] { new(Volk: Volk.Mensch, Glaube: Konfession.Naturglaube) })));
             Pruefe.WirftMitMeldung(() => Partie(knapp, new NeuePartie(Rivalen: 2, KiVorgaben: new Hausvorgabe?[] { new("Hammerschmid") })), "zwei Häuser");

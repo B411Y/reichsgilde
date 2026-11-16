@@ -160,12 +160,7 @@ public sealed partial class Koeln
 
     private void Start()
     {
-        E.SpielerWohnhausSetzen("S1_Wohnhaus");
         E.SpielerFarbeSetzen("#336bb8");
-        // Der Name der Werkstatt nach dem Platz, an dem sie liegt (mit seinem Dativ aus Maerkte: „Gießerei am …“)
-        var platz = Maerkte.MinBy(m => m.Ort.Abstand(_startMitten[0]))!;
-        E.SpielerStartplatzSetzen("S1_Werkstatt", null, "{art} " + platz.Dativ);
-
         var frei = _umland.Where(g => g.Betrieb is null).ToList();
         for (var i = 0; i < KiHaeuser.Length; i++)
         {
@@ -173,8 +168,7 @@ public sealed partial class Koeln
             var haus = E.HausHinzufuegen(h.Name);
             E.HausVolkSetzen(haus, h.Volk);
             E.HausGeschlechtSetzen(haus, h.Geschlecht);
-            E.HausWohnhausSetzen(haus, $"S{i + 2}_Wohnhaus");
-            E.BetriebHinzufuegen(haus, $"S{i + 2}_Werkstatt", h.Werkstatt);
+            E.BetriebHinzufuegen(haus, "", h.Werkstatt);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
             var umland = frei.FirstOrDefault(g => E.Katalog.Finde(g.Katalog)?.BetriebsartWert == h.Umland);
             if (umland is null) { Console.WriteLine($"   !!! {h.Name}: kein Umlandbetrieb {h.Umland}"); continue; }
             frei.Remove(umland);

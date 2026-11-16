@@ -327,18 +327,14 @@ public partial class Stadtansicht
         var gesehen = new HashSet<((int, int) Feld, int Drehung)>();
         var geprueft = new HashSet<(double, double, int)>(); // überlappende Zonen: jede Stelle nur einmal
         var zonen = karte.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).ToList();
-        var freiePlaetze = w.Bauen.Bauplaetze.Where(p => !Bauwesen.IstWohnhausplatz(p)).ToList();
-        // wie in Bauwesen.Bauorte: Liegt ein Eckfeld weder in einer passenden Zone noch auf einem Bauplatz, lehnt PlatzVerboten die Stelle sicher ab
-        bool Bebaubar(double fx, double fz) => freiePlaetze.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(z => z.Enthaelt(fx, fz));
+        // wie in Bauwesen.Bauorte: Liegt ein Eckfeld in keiner passenden Zone, lehnt PlatzVerboten die Stelle sicher ab
+        bool Bebaubar(double fx, double fz) => zonen.Any(z => z.Enthaelt(fx, fz));
         bool EckenBebaubar(Grundriss g, WerkstattBauen b)
         {
             var (ax, az) = (g.HalbX - r / 2, g.HalbZ - r / 2);
             return Bebaubar(b.X - ax, b.Z - az) && Bebaubar(b.X + ax, b.Z - az) && Bebaubar(b.X - ax, b.Z + az) && Bebaubar(b.X + ax, b.Z + az);
         }
         var kandidaten = new List<WerkstattBauen>();
-        foreach (var platz in w.Bauen.Bauplaetze.Where(p => !Bauwesen.IstWohnhausplatz(p)).OrderBy(p => p.Nummer))
-            for (var d = 0; d < 4; d++)
-                kandidaten.Add((WerkstattBauen)w.Bauen.Einrasten(new WerkstattBauen(art, platz.Grundriss.X, platz.Grundriss.Z, d)));
         foreach (var zone in zonen)
         {
             var (x0, x1) = (Math.Floor(zone.Flaeche.Min(e => e[0]) / r) * r, zone.Flaeche.Max(e => e[0]));

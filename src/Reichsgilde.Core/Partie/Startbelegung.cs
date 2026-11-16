@@ -13,11 +13,16 @@ namespace Reichsgilde.Core.Partie;
 //  Wie viele Gesellen und Umlandkräfte ein Startbetrieb bekommt, bleibt eine Regel des Kerns (Partieaufbau).
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// <summary>Ein Startbetrieb eines KI-Hauses: auf welchem Platz der Karte, welche Betriebsart, was er zuerst herstellt.</summary>
+/// <summary>Ein Startbetrieb eines KI-Hauses: welche Betriebsart, auf welchem Platz der Karte (nur im Umland), was er zuerst herstellt.</summary>
 public sealed class Startbetrieb
 {
-    /// <summary>Kennung des Gebäudes in der Karte (Werkstattplatz oder Umlandbetrieb). Dessen <c>betrieb</c> ist der Name des Betriebs.</summary>
-    public string Platz { get; init; } = "";
+    /// <summary>
+    /// Kennung des Umlandbetriebs in der Karte (dessen <c>betrieb</c> ist der Name des Betriebs) – leer für die Werkstatt in der Stadt: Sie hat
+    /// keinen Platz in der Karte, die Partie lost sie in eine Bauzone (<see cref="Startortlos"/>, seit 16.11.2026). Nur die Karte in einem alten
+    /// Spielstand nennt hier noch einen Werkstattplatz.
+    /// </summary>
+    public string Platz { get => _platz; init => _platz = value ?? ""; }
+    private readonly string _platz = "";
 
     /// <summary>Betriebsart (Stufe 1 bzw. Umland), z. B. „Giesserei“ oder „Mine“.</summary>
     public Betriebsart Art { get; init; }
@@ -109,16 +114,6 @@ public sealed class Startbelegung
 {
     public Spielerstart Spieler { get; init; } = new();
     public List<Starthaus> Haeuser { get; init; } = new();
-
-    /// <summary>
-    /// Die Hofstellen der Karte (<see cref="Hofstelle"/>, Feld <c>hofstellen</c>, seit 09.11.2026) – null: eine Karte von vorher (dann sitzt jedes
-    /// Haus fest, wo <see cref="Spieler"/> und <see cref="Haeuser"/> es hinsetzen, wie bisher; <see cref="Stadtkarte.AusJson"/> bildet sie aus den
-    /// Startpaaren). Mit Hofstellen sind Spieler und Häuser nur die Vorgabe ohne Los (<see cref="Startplatzvergabe.Vorgabe"/>); eine Partie
-    /// schreibt die Belegung auf die gelosten Hofstellen um (<see cref="Hofstellenvergabe"/>).
-    /// </summary>
-    [JsonInclude]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public List<Hofstelle>? Hofstellen { get; internal set; }
 
     /// <summary>
     /// Die Belegung einer Partie seit „nur noch Bauzonen“ (15.11.2026, <see cref="Stadtkarte.OhneStadtplaetze"/>): Sie nennt nur noch, wer

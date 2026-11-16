@@ -17,7 +17,7 @@ static class BauzoneNurTests
     static readonly Lazy<Gebaeudekatalog> Katalog =
         new(() => Gebaeudekatalog.AusDatei(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "katalog.json")));
 
-    /// <summary>Die Greybox, deren größte Stadtzone ein Werkstatt-Bauplatz ist (wie eine Karte von vor den Hofstellen mit „nur“), mit allen Häusern ohne Los.</summary>
+    /// <summary>Die Greybox, deren größte Stadtzone ein Werkstatt-Bauplatz ist (wie eine Karte von vor den Hofstellen mit „nur“), ohne Häuser.</summary>
     static (Stadtwirtschaft W, string Zone) MitWerkstattBauplatz()
     {
         var knoten = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("greybox")))!.AsObject();
@@ -29,8 +29,9 @@ static class BauzoneNurTests
         var zone = knoten["bauzonen"]!.AsArray().Select(z => z!.AsObject()).Where(z => (string)z["art"]! != "umland")
             .OrderByDescending(Flaeche).ThenBy(z => (string)z["kennung"]!, StringComparer.Ordinal).First();
         zone["nur"] = Bauzone.NurWerkstatt;
-        var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
-            new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: Stadtkarte.AusJson(knoten.ToJsonString(), Katalog.Value));
+        // eine leere Stadt auf dieser Karte (keine Partie: gelost stünden Häuser in den Zonen, und für einen Stadthof bliebe je nach Los kein Platz)
+        var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
+        sim.Wirtschaft!.KarteSetzen(Stadtkarte.AusJson(knoten.ToJsonString(), Katalog.Value));
         return (sim.Wirtschaft!, (string)zone["kennung"]!);
     }
 

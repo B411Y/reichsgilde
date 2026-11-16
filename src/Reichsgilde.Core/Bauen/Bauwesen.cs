@@ -238,10 +238,6 @@ public sealed partial class Bauwesen
     /// <summary>Ein Haus wurde abgerissen (nach Abriss oder nach dem Umzug aus dem alten Haus) – das Grundstück steht nicht mehr in <see cref="Grundstuecke"/>.</summary>
     public event Action<Grundstueck>? Abgerissen;
 
-    /// <summary>Wird nicht mehr ausgelöst (es gibt keine Bauplätze mehr, 15.11.2026); bleibt bis zum Aufräumen der Hofstellen für die Abonnenten.</summary>
-#pragma warning disable CS0067 // nie ausgelöst
-    public event Action<Grundstueck>? BauplatzBebaut;
-#pragma warning restore CS0067
 
     // ── Auskunft ─────────────────────────────────────────────────────────────
 
@@ -276,9 +272,6 @@ public sealed partial class Bauwesen
     /// </summary>
     public Betriebsplatz PlatzAmBauort(WerkstattBauen ort) =>
         new("", null, new Grundstueck(-1, Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
-
-    /// <summary>Freie Bauplätze – seit „nur noch Bauzonen“ (15.11.2026) immer leer; bleibt bis zum Aufräumen der Hofstellen für die Darstellung.</summary>
-    public IEnumerable<Grundstueck> Bauplaetze => _grundstuecke.Where(g => g.Art == Grundstuecksart.Bauplatz);
 
     /// <summary>Das leerstehende Wohnhaus eines bankrotten oder erloschenen Hauses (null: lebt noch, schon verkauft oder kein Platz).</summary>
     public Grundstueck? Leerstand(Konto leer) => !leer.IstAktiv ? Wohnhaus(leer) : null;
@@ -328,12 +321,6 @@ public sealed partial class Bauwesen
 
     /// <summary>Wo das Gebäude des Befehls stünde: der <see cref="Grundriss(BauBefehl)"/>.</summary>
     public Hausflaeche Flaeche(BauBefehl befehl) => Hausflaeche.Von(Grundriss(befehl));
-
-    /// <summary>War der Bauplatz ein Wohnhausplatz der Karte? Seit „nur noch Bauzonen“ (15.11.2026) gibt es keine Bauplätze mehr; bleibt für die Darstellung.</summary>
-    public static bool IstWohnhausplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.Kennung is not null && !g.AufWerkstattplatz;
-
-    /// <summary>War der Bauplatz der Werkstattteil einer freien Hofstelle? Seit „nur noch Bauzonen“ gibt es keine Bauplätze mehr; bleibt für die Darstellung.</summary>
-    public static bool IstWerkstattplatz(Grundstueck g) => g.Art == Grundstuecksart.Bauplatz && g.AufWerkstattplatz;
 
     /// <summary>Rastet die Mausposition aufs 2-m-Raster ein und gibt den Befehl mit den eingerasteten Koordinaten zurück.</summary>
     public BauBefehl Einrasten(BauBefehl befehl)

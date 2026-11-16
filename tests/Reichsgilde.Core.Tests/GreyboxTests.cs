@@ -88,31 +88,35 @@ static class GreyboxTests
             Pruefe.Wahr(name.StartsWith("Gießerei ") && !name.Contains("Weg zu"), name);
         }),
 
-        ("Greybox: Karte wird gelesen; Spieler und drei Rivalen bekommen Wohnhaus 1–4", () =>
+        ("Greybox: Karte wird gelesen – keine Wohnhaus- und Werkstattplätze mehr, 15 Bauzonen; Spieler und drei Rivalen wohnen und arbeiten auf gelosten Grundstücken innerhalb der Mauer", () =>
         {
             var k = Karte();
             Pruefe.Gleich("greybox", k.Kennung);
-            Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
-            Pruefe.Gleich(16, k.Bauzonen.Count); // seit „nur noch Bauzonen“ (16.11.2026) 16: die Flächen der alten Plätze gehören zur Zone; seit 4.11.2026 aus dem Raster 9 (vorher 11 von Hand); alle Felder der alten Zonen sind weiter Zone
-            Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
-            Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
+            Pruefe.Gleich(0, k.Wohnhausplaetze.Count + k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count()); // bis 16.11.2026 acht und vier
+            Pruefe.Gleich(15, k.Bauzonen.Count); // seit 16.11.2026 15 (der Hof vor der Westmauer ist Vorstadt und wächst mit V4 zusammen); mit den Flächen der alten Plätze 16; seit 4.11.2026 aus dem Raster 9 (vorher 11 von Hand)
+            Pruefe.Wahr(k.Bauzonen.Where(z => z.Art == Lage.Mauerring).All(z => z.Flaeche.All(p => Math.Abs(p[0]) <= 50 && Math.Abs(p[1]) <= 50)), "jede Zone der Lage Mauerring liegt innerhalb der Mauer");
+            Pruefe.Wahr(k.ZoneBei(-70, -40) is { Art: Lage.Vorstadt }, "der Hof vor der Westmauer ist Vorstadt");
 
-            // Startplatzvergabe.Vorgabe (nur noch für Tests): jedes Haus, wo die Karte es hinsetzt – als Grundstück mit der Kennung des Platzes;
-            // im Spiel lost das Startortlos die Häuser in die Bauzonen (StartortlosTests)
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: k);
+            // Im Spiel lost das Startortlos die Häuser in die Bauzonen im Stadtinneren (StartortlosTests)
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(), karte: k);
             var w = sim.Wirtschaft!;
-            for (var i = 0; i < w.Konten.Count; i++)
-                Pruefe.Gleich($"Wohnhaus{i + 1}", w.Bauen.Wohnhaus(w.Konten[i])!.Kennung);
-            Pruefe.Gleich(new Grundriss(0, -44.3, 17, 8, 0), w.Bauen.Wohnhaus(spieler)!.Grundriss);
-            Pruefe.Gleich(2, w.Bauen.Wohnhaus(w.Konten[1])!.Grundriss.Drehung); // 180° → Eingang nach Norden
-            Pruefe.Gleich(1, w.Bauen.Wohnhaus(w.Konten[2])!.Grundriss.Drehung); //  90° → Osten
-            Pruefe.Gleich(3, w.Bauen.Wohnhaus(w.Konten[3])!.Grundriss.Drehung); // 270° → Westen
-            foreach (var f in k.Wohnhausplaetze.Where(f => f.Kennung is not null))
+            Pruefe.Gleich(4, w.Konten.Count);
+            foreach (var konto in w.Konten)
             {
-                var grad = (int)(System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Pfad))!["gebaeude"]!.AsArray()
-                    .Single(x => (string)x!["kennung"]! == f.Kennung)!["drehung"]!);
-                Pruefe.Gleich((grad / 90 % 4 + 4) % 4, f.Grundriss!.Value.Drehung, $"Drehung von {f.Kennung} = Grad / 90");
+                var haus = w.Bauen.Wohnhaus(konto)!;
+                Pruefe.Wahr(haus.Kennung is null && k.ZoneBei(haus.Grundriss.X, haus.Grundriss.Z) is { Art: Lage.Kern or Lage.Mauerring }, $"{konto.Inhaber}: Wohnhaus im Stadtinneren");
+                Pruefe.Wahr(Math.Abs(haus.Grundriss.X) < 50 && Math.Abs(haus.Grundriss.Z) < 50, $"{konto.Inhaber}: innerhalb der Mauer");
+                var werkstatt = w.Bauen.PlatzVon(w.Betriebe.First(b => b.Konto == konto && b.InDerStadt).Name)!.Grundstueck!.Grundriss;
+                Pruefe.Wahr(Math.Abs(werkstatt.X) < 50 && Math.Abs(werkstatt.Z) < 50, $"{konto.Inhaber}: Werkstatt innerhalb der Mauer");
             }
+            // Mit dem Standard-Startwert und drei KI-Häusern bleibt innerhalb der Mauer Platz für die Werkstatt des Spielers (Ziel vom 16.11.2026):
+            // Mit Startwahl stehen die KI-Häuser schon, der Spieler findet Stellen für Wohnhaus und Werkstatt im Stadtinneren.
+            var (simWahl, waehler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startwahl: true), karte: k);
+            var ww = simWahl.Wirtschaft!;
+            Pruefe.Wahr(ww.Bauen.StartwahlVon(waehler) is not null && ww.Bauen.Wohnhaus(waehler) is null, "der Spieler wählt selbst");
+            var (haeuser, werkstaetten) = (ww.Bauen.Startstellen(new WohnhausBauen(waehler.WohnhausStufe, 0, 0, 0)), ww.Bauen.Startstellen(new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)));
+            Pruefe.Wahr(werkstaetten.Count > 0, $"innerhalb der Mauer bleibt Platz für die Werkstatt des Spielers ({werkstaetten.Count} Stellen)");
+            Pruefe.Wahr(haeuser.Any(h => werkstaetten.Any(x => !x.Ueberlappt(h))), "und daneben für sein Wohnhaus");
         }),
 
         ("Greybox: Jedes Gebäude des Probeplans darf gebaut werden – auch alle zusammen", () =>
@@ -123,7 +127,7 @@ static class GreyboxTests
             foreach (var p in plan)
                 Pruefe.Gleich(null, w.Bauen.PlatzVerboten(p.Befehl()), $"{p.Art} in {p.Zone} bei {p.X}/{p.Z}, {p.Grad}°");
             foreach (var p in plan.Where(p => p.Art == "Stadthof"))
-                Pruefe.Gleich(Lage.Mauerring, Karte().ZoneBei(p.X, p.Z)!.Art);
+                Pruefe.Gleich((Lage.Kern, "K4"), (Karte().ZoneBei(p.X, p.Z)!.Art, p.Zone)); // seit 16.11.2026 im Kern K4 (vorher im Hof vor der Westmauer)
 
             var werkstatt = Reich(w, "Haus Esse");
             var n = 0;
@@ -149,9 +153,9 @@ static class GreyboxTests
                 if (p.Art == "Werkstatt" && Karte().ZoneBei(p.X, p.Z)!.Art != Lage.Kern) // in Kernlage darf dort auch ein Stadthof stehen
                     Pruefe.Gleich("Ein Stadthof steht nur in Kernlage oder am Mauerring.", b.PlatzVerboten(new WohnhausBauen(4, p.X, p.Z, p.Grad / 90)));
             }
-            // Auf einer Werkstatt der Karte
-            var giesserei = Karte().PlatzVon("Gießerei Eisenbart")!.Grundriss!.Value;
-            Pruefe.Wahr(b.PlatzVerboten(new WohnhausBauen(1, giesserei.X, giesserei.Z, 0)) is not null, "auf der Gießerei Eisenbart");
+            // Auf einem Gebäude der Karte (bis 16.11.2026 der Werkstattplatz der Gießerei Eisenbart)
+            var rathaus = Karte().Gebaeude.First(g => g.Katalog == "rathaus").Grundriss!.Value;
+            Pruefe.Wahr(b.PlatzVerboten(new WohnhausBauen(1, rathaus.X, rathaus.Z, 0)) is not null, "auf dem Rathaus");
 
             // Rücken zur Straße: mindestens ein Gebäude des Probeplans hat hinter sich keine Straße – umgedreht wird es abgewiesen.
             var umgedreht = Probeplan().Select(p => b.PlatzVerboten(p.Befehl(grad: (p.Grad + 180) % 360))).ToList();
@@ -174,19 +178,19 @@ static class GreyboxTests
             Pruefe.Gleich(null, sim2.Wirtschaft.Bauen.PlatzVerboten(wohnhaus.Befehl()));
         }),
 
-        ("Greybox: Ein Haus auf einem Wohnhausplatz der Karte (alter Spielstand) hinterlässt nach dem Abriss keinen Bauplatz – außerhalb der Bauzonen wird dort nicht mehr gebaut", () =>
+        ("Greybox: Ein Haus, wo früher ein Wohnhausplatz der Karte lag (alter Spielstand), hinterlässt nach dem Abriss keinen Bauplatz – außerhalb der Bauzonen wird dort nicht mehr gebaut", () =>
         {
             var (sim, w) = MitKarte();
             var tot = w.KontoEroeffnen("Haus Pleite");
             Pruefe.Wahr(w.Bauen.Wohnhaus(tot) is null, "ein Konto bekommt keinen Wohnhausplatz mehr (15.11.2026)");
-            var alt = w.Bauen.StartwohnhausSetzen(tot, w.Karte!.GebaeudeMit("Wohnhaus1")!); // wie in einem alten Spielstand
-            Pruefe.Gleich(("Wohnhaus1", Lage.Mauerring, new Grundriss(0, -44.3, 17, 8, 0)), (alt.Kennung!, alt.Lage!.Value, alt.Grundriss));
+            var alt = w.Bauen.StartwohnhausSetzen(tot, new Grundriss(0, -44.3, 17, 8, 0)); // wo bis 16.11.2026 der Wohnhausplatz „Wohnhaus1“ der Karte lag
+            Pruefe.Gleich(new Grundriss(0, -44.3, 17, 8, 0), alt.Grundriss);
             var k = Reich(w, "Haus Neu");
             Pruefe.Gleich("Hier steht schon das Wohnhaus von Haus Pleite.", w.Bauen.PlatzVerboten(new WohnhausBauen(1, 0, -45, 0)));
             tot.IstBankrott = true;
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
             for (var i = 0; i < 241; i++) sim.Tick();
-            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any() && w.Bauen.Grundstuecke.Count == 0, "kein Bauplatz, kein Grundstück");
+            Pruefe.Wahr(w.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz) && w.Bauen.Grundstuecke.Count == 0, "kein Bauplatz, kein Grundstück");
             for (var stufe = 0; stufe < 5; stufe++)
             {
                 var befehl = w.Bauen.Einrasten(new WohnhausBauen(stufe, 3, -45, 2));
@@ -199,9 +203,9 @@ static class GreyboxTests
 
         ("Greybox: Bauorte – genau die gültigen Rasterstellen (gegen eine Suche über die ganze Stadt), in fester Reihenfolge und schnell genug für die KI", () =>
         {
-            // Häuser auf den Plätzen der Karte (Vorgabe): Die Bauzonen bleiben frei – gelost stünden vier Häuser darin, und im Stadtinneren der
-            // Greybox bliebe kein Platz für einen Stadthof (bis die Karten mehr Zonen haben, Leveldesign).
-            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe), karte: Karte());
+            // Häuser auf festen Startorten (FesteStartorte, die Flächen der alten Plätze): gelost stünden vier Häuser irgendwo, und im Stadtinneren der
+            // Greybox bliebe je nach Los kein Platz für einen Stadthof.
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, FesteStartorte.Partie("greybox", new NeuePartie()), karte: Karte());
             var w = sim.Wirtschaft!;
             var k = Reich(w, "Haus Reich");
             var vorlagen = new BauBefehl[]
@@ -265,14 +269,14 @@ static class GreyboxTests
             // Ein Haus auf einem Wohnhausplatz der Karte wird abgerissen (alter Spielstand): kein Bauplatz – die Bauorte sind dieselben wie vorher.
             var (sim2, w2) = MitKarte();
             var tot = w2.KontoEroeffnen("Haus Pleite");
-            w2.Bauen.StartwohnhausSetzen(tot, w2.Karte!.GebaeudeMit("Wohnhaus1")!);
+            w2.Bauen.StartwohnhausSetzen(tot, new Grundriss(0, -44.3, 17, 8, 0));
             var bauherr = Reich(w2, "Haus Neu");
             var vorher = w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0));
             tot.IstBankrott = true;
             Pruefe.Wahr(w2.Ausfuehren(bauherr, new LeerstandAbreissen(tot.Inhaber)).Erfolg, "abreißen");
             for (var i = 0; i < 241; i++) sim2.Tick();
             Pruefe.Wahr(vorher.SequenceEqual(w2.Bauen.Bauorte(bauherr, new WohnhausBauen(4, 0, 0, 0))), "dieselben Bauorte");
-            Pruefe.Wahr(!w2.Bauen.Bauplaetze.Any(), "kein Bauplatz");
+            Pruefe.Wahr(w2.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz), "kein Bauplatz");
         }),
     };
 }

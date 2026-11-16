@@ -15,20 +15,20 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //
 //  Aufbau wie die Probestadt, nur größer (Meter, x = Osten, z = Süden, der Markt bei 0 | 0):
 //    • Mauerring 180 × 120 m mit Westtor und Osttor, die Hauptstraße von Tor zu Tor über den Markt, eine Ringstraße 13 m innerhalb der Mauer.
-//    • Am Markt Rathaus und Kirche, an der Hauptstraße neun Werkstattplätze (der Spieler und acht KI-Häuser), an der Ringstraße innen
-//      neun Wohnhausplätze, außen die Einwohnerplätze am Ring; Einwohnerplätze der Vorstadt am Feldweg im Nordosten.
+//    • Am Markt Rathaus und Kirche; innerhalb der Mauer Bauzonen aus dem Raster (Kern und Mauerring, seit 16.11.2026) – dort stehen die
+//      Wohnhäuser und Werkstätten der Häuser, wo das Los sie hinsetzt; die Einwohnerplätze am Ring, die der Vorstadt am Feldweg im Nordosten.
 //    • Vor jedem Tor die Landstraße und beiderseits ein Feldweg, dazwischen vier große Bauzonen der Vorstadt (die KI-Häuser bauen dort
 //      neue Werkstätten und Wohnhäuser).
 //    • Im Umland zwei Umlandwege mit 17 Umlandbetrieben: die acht der KI-Häuser und die neun Liegenschaften zur Pacht aus wirtschaft.json.
 //    • Start: der Spieler und acht KI-Häuser. Die ersten drei gleichen den Häusern der Greybox (Schmied/Zwerg, Tischler/Elb, Steinmetz/Halbling);
-//      eine Messung mit n Häusern nimmt die ersten n. Jedes Startpaar ist eine Start-Hofstelle (S1 … S9, seit 9.11.2026).
+//      eine Messung mit n Häusern nimmt die ersten n (in die Bauzonen passen mit dem Spieler höchstens acht Häuser).
 // ═════════════════════════════════════════════════════════════════════════════
 
 public sealed class Messstadt : Stadtskript
 {
     public override string Kennung => "messstadt";
     public override string Stadt => "Messstadt";
-    public override string Beschreibung => "Messung: Mauerring, 9 Werkstatt- und 9 Wohnhausplätze, große Vorstadt, 17 Umlandbetriebe, 8 KI-Häuser";
+    public override string Beschreibung => "Messung: Mauerring mit Bauzonen, große Vorstadt, 17 Umlandbetriebe, 8 KI-Häuser";
     public override (double Breite, double Tiefe) Groesse => (480, 340);
 
     private const double MauerX = 90, MauerZ = 60;   // Mauerring bei x = ±90, z = ±60
@@ -87,23 +87,14 @@ public sealed class Messstadt : Stadtskript
         E.Setzen("rathaus", 0, -19);         // die Vorderseite zum Markt (Süden)
         E.Setzen("kirche", 0, 22, 180);      // die Vorderseite zum Markt (Norden)
 
-        // ── Werkstattplätze an der Hauptstraße (16 × 14 m, der Hof 3,5 m neben der Straßenmitte), 2 m Abstand ──
-        var werkstaetten = new List<EntwurfGebaeude>();
-        foreach (var x in new[] { -24.0, 24, -42, 42, -60, 60 })
-            werkstaetten.Add(E.Setzen("werkstattplatz", x, -10));
-        foreach (var x in new[] { -24.0, 24, -42 })
-            werkstaetten.Add(E.Setzen("werkstattplatz", x, 10, 180));
-
-        // ── Wohnhausplätze an der Ringstraße (innen), Einwohnerplätze außen zur Mauer ──
+        // ── Einwohnerplätze an der Ringstraße, außen zur Mauer (Wohnhäuser und Werkstätten der Häuser stehen in den Bauzonen) ──
         var rand = ring.BreiteWirksam / 2 + 0.5;  // die Vorderkante 0,5 m neben dem Straßenrand
         var (rx, rz) = (MauerX - Ring, MauerZ - Ring);
-        var wohnhaeuser = Haeuserreihe("wohnhausplatz", P(-50, -rz), P(50, -rz), links: false, rand, luecke: 2, hoechstens: 5, name: "Wohnhaus Nord");
-        wohnhaeuser.AddRange(Haeuserreihe("wohnhausplatz", P(50, rz), P(-50, rz), links: false, rand, luecke: 2, hoechstens: 4, name: "Wohnhaus Süd"));
         Haeuserreihe("einwohnerplatz_ring", P(-rx + 6, -rz), P(rx - 6, -rz), links: true, rand, luecke: 1);
         Haeuserreihe("einwohnerplatz_ring", P(rx - 6, rz), P(-rx + 6, rz), links: true, rand, luecke: 1);
         Haeuserreihe("einwohnerplatz_vorstadt", P(Ende - 6, -FeldwegZ), P(MauerX + 6, -FeldwegZ), links: false, 2, luecke: 1.5, hoechstens: 12);
 
-        // ── Bauzonen der Vorstadt zwischen Landstraße und Feldweg ────────────
+        // ── Bauzonen der Vorstadt zwischen Landstraße und Feldweg (von Hand, wie seit je – die Messungen bauen dort) ──
         foreach (var seite in new[] { 1, -1 })
             foreach (var nord in new[] { -1, 1 })
             {
@@ -129,23 +120,28 @@ public sealed class Messstadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(60, 125), P(235, 125), P(235, 165), P(60, 165) }, "Wald im Süden");
 
         // ── Start: der Spieler und acht KI-Häuser ────────────────────────────
-        E.SpielerWohnhausSetzen(wohnhaeuser[0].Kennung);
         E.SpielerFarbeSetzen("#336bb8");
-        E.SpielerStartplatzSetzen(werkstaetten[0].Kennung);
         for (var i = 0; i < Haeuser.Length; i++)
         {
             var h = Haeuser[i];
             var haus = E.HausHinzufuegen();
             E.HausVolkSetzen(haus, h.Volk);
             E.HausGeschlechtSetzen(haus, h.Geschlecht);
-            E.BetriebHinzufuegen(haus, werkstaetten[i + 1].Kennung, h.Werkstatt);
+            E.BetriebHinzufuegen(haus, "", h.Werkstatt);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
             E.BetriebHinzufuegen(haus, umlandKi[i].Kennung, h.Umland);
         }
-        // Hofstellen (seit 9.11.2026): die neun Startpaare sind Start-Hofstellen
-        HofstellenAusStart(w => $"an der Hauptstraße ({(w.Z < 0 ? "Nordseite" : "Südseite")}, {Math.Abs(w.X):0} m {(w.X < 0 ? "westlich" : "östlich")} des Marktes)");
-
+        // ── Bauzonen im Stadtinneren (seit 16.11.2026, „nur noch Bauzonen“): aus dem Raster gerechnet, was innerhalb der Mauer frei ist –
+        //    dort stehen die Wohnhäuser und Werkstätten aller Häuser am Start. Die vier Zonen der Vorstadt bleiben von Hand.
+        E.LagenSetzen(new[]
+        {
+            new Lagegebiet(Lage.Kern, Rechteck(-(MauerX - Ring), -(MauerZ - Ring), MauerX - Ring, MauerZ - Ring), "innerhalb der Ringstraße"),
+            new Lagegebiet(Lage.Mauerring, Rechteck(-MauerX, -MauerZ, MauerX, MauerZ), "zwischen Ringstraße und Mauer"),
+        });
+        E.BauzonenAusRaster();
         E.KameraStartSetzen(P(0, 0), 140);
     }
+
+    private static Kartenort[] Rechteck(double x0, double z0, double x1, double z1) => new[] { P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1) };
 
     /// <summary>Ein Umlandbetrieb mit der Vorderseite zum Umlandweg: <paramref name="nord"/> −1 nördlich des Nordwegs, +1 südlich des Südwegs.</summary>
     private EntwurfGebaeude UmlandSetzen(string baustein, double x, int nord)

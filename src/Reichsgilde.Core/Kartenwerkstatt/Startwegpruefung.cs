@@ -53,7 +53,7 @@ public static class Startwegpruefung
         Kartengebaeude? Platz(string kennung) => entwurf.GebaeudeMit(kennung) is { } g
             ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
             : null;
-        return Schritte(karte, netz, entwurf.Start.AlsStartbelegung(), Platz, liste, nurHofstellen: false);
+        return Schritte(karte, netz, entwurf.Start.AlsStartbelegung(), Platz, liste);
     }
 
     /// <summary>Wie oben für eine geladene Karte.</summary>
@@ -61,28 +61,15 @@ public static class Startwegpruefung
     {
         if (karte.Start is not { } start || karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
         var liste = new List<Startweg>();
-        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste, nurHofstellen: false)) { }
+        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste)) { }
         return liste;
     }
 
     /// <summary>
-    /// Nur die Werkstätten der Start-Hofstellen (Wer = Kennung der Hofstelle) – für die Wahl im Startmenü (<see cref="Hofstellenvergabe.Angebot"/>).
-    /// Leer ohne Hofstellen oder ohne Marktplatz.
+    /// Gemessen werden die Umlandbetriebe der KI-Häuser. Die Werkstätten in der Stadt haben keinen Platz in der Karte mehr (seit 16.11.2026
+    /// stehen sie in den Bauzonen, wo das Los sie hinsetzt) – ihre Wege zeigt <c>pruefen</c> des Kartenbaus je Startort.
     /// </summary>
-    public static IReadOnlyList<Startweg> Hofstellen(Stadtkarte karte)
-    {
-        if (karte.Start is not { } start || !karte.HatHofstellen || karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
-        var liste = new List<Startweg>();
-        foreach (var _ in Schritte(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, liste, nurHofstellen: true)) { }
-        return liste;
-    }
-
-    /// <summary>
-    /// Mit Hofstellen (seit 09.11.2026) gilt die Fairness für jede Start-Hofstelle, nicht nur für die Plätze der Startbelegung: Gemessen werden die
-    /// Werkstätten aller Start-Hofstellen (Wer = „Hofstelle S3“) und die Umlandbetriebe der KI-Häuser; ohne Hofstellen wie bisher die Werkstatt des
-    /// Spielers und jeder Betrieb der KI-Häuser.
-    /// </summary>
-    private static IEnumerable<int> Schritte(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, List<Startweg> liste, bool nurHofstellen)
+    private static IEnumerable<int> Schritte(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, List<Startweg> liste)
     {
         if (karte.Marktplaetze.Count == 0) yield break;
         void Messen(string wer, string kennung, Betriebsart? art)
@@ -96,28 +83,8 @@ public static class Startwegpruefung
                 Karrenweg.Start(platz, umland ? art ?? Betriebsart.Mine : Betriebsart.Giesserei, daten, karte.Katalog), karte, netz);
             liste.Add(new Startweg(wer, kennung, ort, hin.Count > 0 ? hin.Sum(s => s.Laenge) : null, markt?.Name, new Kartenort(g.Punkt[0], g.Punkt[1])));
         }
-        var hofstellen = (start.Hofstellen ?? new List<Hofstelle>()).Where(h => h.Start).ToList();
-        if (hofstellen.Count > 0)
-        {
-            foreach (var h in hofstellen)
-            {
-                Messen(nurHofstellen ? h.Kennung : $"Hofstelle {h.Kennung}", h.Werkstatt, null);
-                yield return 0;
-            }
-            if (nurHofstellen) yield break;
-            foreach (var h in start.Haeuser)
-                foreach (var b in h.Betriebe.Where(b => platzMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb }))
-                {
-                    Messen(h.Name, b.Platz, b.Art);
-                    yield return 0;
-                }
-            yield break;
-        }
-        if (nurHofstellen) yield break;
-        Messen("Spieler", start.Spieler.Werkstatt.Platz, null);
-        yield return 0;
         foreach (var h in start.Haeuser)
-            foreach (var b in h.Betriebe)
+            foreach (var b in h.Betriebe.Where(b => b.Platz != "" && platzMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb }))
             {
                 Messen(h.Name, b.Platz, b.Art);
                 yield return 0;

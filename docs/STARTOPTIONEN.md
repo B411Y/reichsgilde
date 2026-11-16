@@ -256,7 +256,6 @@ Zur Kartenwerkstatt (Level-Editor): `--kartenwerkstatt=<kennung|neu|datei.json>`
 | `--werkstatt-groesse` | `<breite>,<tiefe>[,<rand>]` | Größe des Spielfelds, 400 × 300 bis 2.000 × 2.000 m, Rand 100–600 m; mit `--werkstatt-rueckgaengig` zurücknehmen | Kartenwerkstatt |
 | `--werkstatt-randvorschlag` | `1` | Felder, Wald und Streu im Randstreifen; eine Zahl über 1 ist der Startwert | Kartenwerkstatt |
 | `--werkstatt-setzen` | `<katalog>,<x>,<z>,<grad>` | mehrere mit `;` | Kartenwerkstatt |
-| `--werkstatt-hofstelle` | `<x>,<z>[,<grad>[,start]]` | setzt eine Hofstelle – Werkstattplatz und Wohnhausplatz nebeneinander, (x, z) ist die Mitte des Ganzen; mehrere mit `;`; mit `start` als Startplatz; wie das Werkzeug „Hofstelle“, ein Schritt für Strg+Z; den Umriss zeigt `--werkstatt-umriss=hofstelle,<x>,<z>[,<grad>]`, die Palette `--werkstatt-gruppe=gebaeude`; die Eigenschaften der Plätze mit `--werkstatt-auswahl=H1_Werkstatt`, die Tafel „Start“ mit `--werkstatt-tafel=start` | Kartenwerkstatt |
 | `--werkstatt-versetzen` | `<kennung>,<x>,<z>,<grad>` |  | Kartenwerkstatt |
 | `--werkstatt-rueckgaengig` | `<n>` |  | Kartenwerkstatt |
 | `--werkstatt-auswahl` | `<kennung>` | wählen und hinfahren | Kartenwerkstatt |
@@ -316,7 +315,7 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 |---|---|---|---|
 | `--werkstatt-mauer` | `<x1>,<z1>;<x2>,<z2>;…[,offen]` | ohne `offen` ab drei Ecken geschlossen | Kartenwerkstatt |
 | `--werkstatt-tor` | `<x>,<z>` | auf die nächste Mauer bis 10 m | Kartenwerkstatt |
-| `--werkstatt-start` | `<befehl>\|<befehl>…` | mit `haus[:Name]`, `wohnhaus:<Haus>:<Kennung>`, `betrieb:<Haus>:<Platz>:<Betriebsart>[:<Ware>]`, `farbe:<Haus>:#rrggbb`, `spieler:<Platz>[:<Beruf>]`, `spielerwohnhaus:<Kennung>`, `spielerfarbe:#rrggbb`, `entfernen:<Haus>` (Häuser ab 1) | Kartenwerkstatt |
+| `--werkstatt-start` | `<befehl>\|<befehl>…` | mit `haus[:Name]`, `betrieb:<Haus>:<Platz>:<Betriebsart>[:<Ware>]` (Platz leer: die Werkstatt in der Stadt, sonst ein Umlandbetrieb), `farbe:<Haus>:#rrggbb`, `spielerfarbe:#rrggbb`, `entfernen:<Haus>` (Häuser ab 1; `wohnhaus`, `spieler` und `spielerwohnhaus` gibt es seit 16.11.2026 nicht mehr, ebenso `--werkstatt-hofstelle`) | Kartenwerkstatt |
 | `--werkstatt-tafel` | `start\|karte` | Reiter „Start“ bzw. „Karte“ | Kartenwerkstatt |
 | `--werkstatt-gruppe` | `<auswaehlen\|gelaende\|boden\|wasser\|wege\|flaechen\|gebaeude\|mauer\|start\|pruefen>` | (die Palette dieser Gruppe der Leiste links aufklappen) mit `--werkstatt-haus=<n>` (Haus aufklappen) | Kartenwerkstatt |
 | `--werkstatt-ebenen` | `<ebene>,…\|alle` | (Ebenen der Kartenwerkstatt ausblenden: `bauzonen`, `natur`, `requisiten`, `linien`, `beschriftungen`) und `--werkstatt-ebenenliste=1` (die Liste „Ebenen“ aufklappen) | Kartenwerkstatt |

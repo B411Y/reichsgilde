@@ -59,7 +59,8 @@ static class BauenTests
 
     static Gebaeudekatalog Katalog() => Gebaeudekatalog.AusJson(KatalogJson);
 
-    static Stadtkarte Karte() => Stadtkarte.AusJson(KarteJson, Katalog());
+    /// <summary>Die Testkarte mit ihren Wohnhaus- und Werkstattplätzen – wie die Karte in einem Spielstand von vor dem 16.11.2026 (eine Kartendatei verlöre sie beim Lesen).</summary>
+    static Stadtkarte Karte() => Stadtkarte.AusJson(KarteJson, Katalog(), alteStadtplaetze: true);
 
     static Simulation NeueSimulation() =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: Daten.Value);
@@ -98,7 +99,7 @@ static class BauenTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Karte: Köln wird gelesen – Wege mit Klasse, Bauzonen, Gebäude aus dem Katalog; Startgrundstücke als Werkstatt- und Wohnhausplatz", () =>
+        ("Karte: Köln wird gelesen – Wege mit Klasse, Bauzonen, Gebäude aus dem Katalog; keine Werkstatt- und Wohnhausplätze mehr, die KI-Häuser mit Werkstatt ohne Platz", () =>
         {
             var k = Stadtkarte.AusDatei(Kartenpfad("koeln"));
             Pruefe.Gleich(2, k.Format);
@@ -109,25 +110,21 @@ static class BauenTests
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
             Pruefe.Gleich(50, k.Bauzonen.Count); // seit „nur noch Bauzonen“ (16.11.2026, die Flächen der alten Plätze gehören zur Zone) 50; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48, vorher 46; seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55, seit dem Rathaus am Alter Markt (S4 auf dem Bauplatz WB_AlterMarkt1) 54; seit den Hofstellen (9.11.2026: die sechs Werkstatt-Bauplätze und zwei Zonen am Hafen werden Hofstellen) 46
             Pruefe.Gleich(0, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_") || z.Nur is not null)); // die Werkstatt-Bauplätze sind seit 9.11.2026 freie Hofstellen (vorher 6, bis zum Rathaus am Alter Markt 7)
-            Pruefe.Gleich("S1 S2 S3 S4 S5 S6 S7 S8 | N1 N2 N3 N4 N5 A1 R1 R2", string.Join(" ", k.Hofstellen.Where(h => h.Start).Select(h => h.Kennung))
-                + " | " + string.Join(" ", k.Hofstellen.Where(h => !h.Start).Select(h => h.Kennung))); // acht Start-Hofstellen, sechs frei nahe den Märkten, zwei am Rheinhafen
+            Pruefe.Wahr(k.Gebaeude.All(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)), "keine Werkstatt- und Wohnhausplätze mehr (16.11.2026; bis dahin 16 Hofstellen S1–S8, N1–N5, A1, R1, R2)");
             Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 10, vorher 8; um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12; seit dem Rathaus am Alter Markt (ohne WB_AlterMarkt1) 11; seit den Hofstellen (9.11.2026, A1 und die Hafen-Hofstellen statt Zonen) 8
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
-            Pruefe.Gleich(16, k.Wohnhausplaetze.Count); // seit den Hofstellen (9.11.2026) je Hofstelle einer, vorher 8
-            Pruefe.Gleich(16, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
+            Pruefe.Gleich(0, k.Wohnhausplaetze.Count + k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count()); // seit 16.11.2026 (bis dahin je 16)
             Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
             Pruefe.Gleich(10, k.Mauern.Sum(m => m.Tore.Count)); // 7 in der Stadtmauer (fünf Tore, zwei Ufertore), 3 in Deutz
             Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Wasser.Any(x => x.Name == "Duffesbach") && k.Uebergaenge.Count == 1, "Rhein, Duffesbach, Fähre");
             Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran")!.Katalog == "rheinkran", "Hafen am Ufer; am Hafensteg entlädt ein Kran, dazu steht seit Paket 3 der Wahrzeichen der Rheinkran als Schwimmkran am Ufer");
             Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
             Pruefe.Wahr(k.Start is not null, "Köln hat eine Startbelegung");
-            Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser und der Spieler auf den acht Startgrundstücken
+            Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser
             Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
-            Pruefe.Gleich("S1_Wohnhaus", k.Startbelegung.Spieler.Wohnhaus);
+            Pruefe.Wahr(k.Startbelegung.Spieler.Wohnhaus is null && k.Startbelegung.Haeuser.All(h => h.Wohnhaus is null && h.Betriebe[0].Platz == ""), "niemand sitzt auf einem Platz der Karte");
 
-            var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, an der Rheingasse vor dem Heumarkt (seit 31.10.2026)
-            Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 14, Tiefe: 30 }, "St. Gereon 14 × 30 wie im Kapazitätswerkzeug (seit dem Modell, 9.11.2026; vorher der Block 16 × 14)");
 
             var k1 = k.Bauzonen.First(z => z.Art == Lage.Kern && z.Enthaelt(z.Flaeche.Average(p => p[0]), z.Flaeche.Average(p => p[1]))); // eine Kernzone, deren Mitte in ihr liegt
@@ -333,7 +330,7 @@ static class BauenTests
             Pruefe.Gleich((-24.0, 9.0), (neu.Grundriss.X, neu.Grundriss.Z));
             Pruefe.Gleich(Bauzustand.Bewohnt, neu.Zustand);
             Pruefe.Gleich(alt, abgerissen);
-            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(alt) && !w.Bauen.Bauplaetze.Any(), "das alte Haus ist weg – kein Grundstück, kein Bauplatz");
+            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(alt) && w.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz), "das alte Haus ist weg – kein Grundstück, kein Bauplatz");
             Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WohnhausBauen(1, alt.Grundriss.X, alt.Grundriss.Z, alt.Grundriss.Drehung))); // wieder Bauzone
             Pruefe.Gleich(null, w.Bauen.UmzugZiel(k));
             Pruefe.Gleich(null, w.Wohnen.StandVerboten(k, 2));
@@ -401,7 +398,7 @@ static class BauenTests
             Pruefe.Wahr(!w.Wohnen.Leerstand.Contains(tot), "kein Leerstand mehr");
             Pruefe.Wahr(w.Ausfuehren(k, new LeerstandAbreissen(tot.Inhaber)).Meldung.Contains("nicht mehr leer"), "nur einmal");
             Ticken(sim, 241);
-            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(huette) && !w.Bauen.Bauplaetze.Any(), "abgerissen: kein Grundstück, kein Bauplatz");
+            Pruefe.Wahr(!w.Bauen.Grundstuecke.Contains(huette) && w.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz), "abgerissen: kein Grundstück, kein Bauplatz");
 
             // Die Stelle liegt in der Kernzone und ist wieder bebaubar wie jede andere – auf dem Raster, für Wohnhaus und Werkstatt.
             var stelle = huette.Grundriss;
@@ -619,7 +616,7 @@ static class BauenTests
             Pruefe.Wahr(vorherKlein.All(nachherKlein.Contains) && vorher.All(nachher.Contains), "die alten Bauorte bleiben");
             Pruefe.Wahr(nachherKlein.Except(vorherKlein).All(o => w.Bauen.Grundriss(o).Ueberlappt(alteStelle)), "neu sind nur Bauorte über der alten Stelle");
             Pruefe.Wahr(nachherKlein.Contains(new WohnhausBauen(1, alteStelle.X, alteStelle.Z, alteStelle.Drehung)), "genau an der alten Stelle");
-            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "kein Bauplatz");
+            Pruefe.Wahr(w.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz), "kein Bauplatz");
 
             // Ein Gebäude belegt Bauorte; wer nicht bauen darf (Stand, Geld, schon ein Neubau), bekommt keine.
             Pruefe.Wahr(w.Ausfuehren(k, nachher[1]).Erfolg, "bauen");
