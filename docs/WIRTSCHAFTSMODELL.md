@@ -2507,6 +2507,8 @@ Keine Bankrotte. Mit `gut` 1,25 verloren alle Berufe mit Rohwaren (erwartete Men
 
 Grund: Vorher konnte ein Los im Hof vor der Westmauer landen (Lage Mauerring, aber außerhalb der Mauer, über 120 Minuten zum Markt); jetzt liegt jedes Los innerhalb der Mauer.
 
+Die Bauvorhaben der Stadt steigen stärker als die Steuer (+84 % bei +7 %), weil sie an einer Schwelle hängen: Ein KI-Haus stimmt einem Bauvorhaben nur zu, wenn die Kasse danach nicht im Minus steht (`KiRivale.Stadtkasse.cs`). Die Kasse ist in beiden Messungen die meiste Zeit im Minus und kommt mit etwas mehr Steuer und Bußen früher heraus (Jahr 25: −2.043 → +1.016, Jahr 30: 3.931 → 5.321); in den Jahren im Plus werden dann mehr Vorhaben beantragt und gebaut (Anträge 22 → 39, gebaut 15 → 30 in 20 Partien). Am Verhalten der Stadt ist nichts geändert.
+
 **Startwege** (Karrenweg der gelosten Startwerkstatt zum Markt, Abschnitt 3 des Berichts, 20 Startwerte; vorher standen die Häuser dort ohne Los auf den festen Plätzen):
 
 | Karte | feste Plätze bis 16.11.2026 | gelost: Mittel (Median; kleinster–größter) | Spieler / KI im Mittel |

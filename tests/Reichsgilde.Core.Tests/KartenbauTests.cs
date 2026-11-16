@@ -138,17 +138,17 @@ static class KartenbauTests
             Pruefe.Wahr(!ReferenceEquals(vorher, e.Kapazitaetsrechnung()), "ein Gebäude schon");
         }),
 
-        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), dazu seit den Hofstellen 2 Startwege des Umlands, keine Fehler", () =>
+        ("Greybox: dieselben 7 Hinweise wie tools/karten/greybox.py (4 Wege über Umlandbetrieben, 3 Felsberge), dazu 2 Startwege des Umlands, keine Fehler", () =>
         {
             var e = Oeffnen("greybox");
             Pruefe.Gleich(0, Fehler(e).Count, Liste(Fehler(e)));
             var hinweise = e.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
             Pruefe.Gleich(4, hinweise.Count(b => b.Regel == "weg-ueber-umland"), Liste(hinweise));
             Pruefe.Gleich(3, hinweise.Count(b => b.Regel == "ueberlappung"), Liste(hinweise));
-            // Seit den Hofstellen (9.11.2026) misst die Fairness jede Karte mit Start-Hofstellen. Die vier Start-Hofstellen liegen seit dem Umbau
-            // greybox-hofstellen-fair im Band (20,3 / 18,1 / 19,1 / 21,1 m; vorher H3 10,6 und H4 25,1 m) – es bleiben die zwei Umlandbetriebe
-            Pruefe.Gleich(2, hinweise.Count(b => b.Regel == "startweg"), Liste(hinweise));
-            Pruefe.Wahr(hinweise.Where(b => b.Regel == "startweg").All(b => !b.Text.Contains("Hofstelle")), "keine Start-Hofstelle außerhalb ±10 %");
+            // Die Regel „startweg“ misst nur noch die Umlandbetriebe der KI-Häuser (16.11.2026; bis dahin auch die vier Start-Hofstellen, die im Band
+            // lagen) – außerhalb ±10 % liegen zwei: Grube Eisenbart und Steinbruch Kieselbach
+            Pruefe.Gleich("Grube_Eisenbart, Steinbruch_Kieselbach",
+                string.Join(", ", hinweise.Where(b => b.Regel == "startweg").SelectMany(b => b.Gebaeude).Order(StringComparer.Ordinal)), Liste(hinweise));
             Pruefe.Gleich(9, hinweise.Count, Liste(hinweise));
         }),
 
