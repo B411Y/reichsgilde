@@ -65,6 +65,10 @@ public partial class Stadtansicht
     /// Zwerge wohnen in ihren eigenen Häusern (<c>wohnhaus_zwerg_s…</c>: Stein, Schindeln bzw. Schiefer), alle anderen Völker vorerst im Haus der Menschen.
     private static string NeubauWohnhausForm(int form, int stufe = 1, Volk? volk = null) => NeubauOrdner + $"wohnhaus_{(volk == Volk.Zwerg ? "zwerg" : "mensch")}_s{stufe}_g{form}";
 
+    /// <summary>Startoption <c>--neubauvolk=zwerg</c> (mit <c>--neubauprobe=1</c>): alle neuen Wohnhäuser im Stil dieses Volks, gleich wem sie
+    /// gehören – nur für Bilder und Klicktests (auch die Häuser von <c>--neubaureihe</c>, die keinen Besitzer haben).</summary>
+    private static readonly Volk? NeubauVolkFest = NeubauOption("--neubauvolk")?.ToLowerInvariant() switch { "zwerg" => Volk.Zwerg, "mensch" => Volk.Mensch, _ => null };
+
     /// <summary>Das Volk, in dessen Stil ein Haus gebaut wird: das Volk des Oberhaupts seines Besitzers (null: ohne Familie, dann wie die Menschen).</summary>
     private static Volk? NeubauVolk(Stadtwirtschaft w, Konto? besitzer) => besitzer is null ? null : w.Familien.Von(besitzer)?.Oberhaupt.Volk;
 
@@ -102,6 +106,7 @@ public partial class Stadtansicht
     private static string NeubauModell(string datei, Vector3 platz, Volk? volk = null)
     {
         if (!NeubauProbeAn || !NeubauStufen.TryGetValue(datei, out var stufe)) return datei;
+        volk = NeubauVolkFest ?? volk;
         if (NeubauStufeFest > 0) stufe = NeubauStufeFest;
         var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe, volk);
         if (volk == Volk.Zwerg && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Zwergenhaus fehlt: Haus der Menschen
@@ -582,7 +587,7 @@ public partial class Stadtansicht
                 var (spalte, zeile) = (i % 4, i / 4);
                 var mitte = ort + new Vector3((spalte - 1.5f) * 8.5f, 0, (zeile - 1.5f) * 11f);
                 // Ohne --neubauform steht je Spalte eine Grundform (1 bis 4), bei „beide“ in den zwei neuen Spalten je Haus die nächste
-                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1, NeubauStufeFest > 0 ? NeubauStufeFest : 1);
+                var neu = NeubauWohnhausForm(NeubauFormFest > 0 ? NeubauFormFest : teile[0] == "beide" ? 1 + (i / 4 * 2 + spalte) % NeubauGrundformen : spalte + 1, NeubauStufeFest > 0 ? NeubauStufeFest : 1, NeubauVolkFest);
                 var datei = teile[0] switch { "neu" => neu, "beide" => spalte < 2 ? AltesWohnhaus : neu, _ => AltesWohnhaus };
                 var g = new Node3D { Name = $"Neubaureihe_{i}", Position = AufFundament(mitte, 0, new Vector2(8, 10)) };
                 AddChild(g);
