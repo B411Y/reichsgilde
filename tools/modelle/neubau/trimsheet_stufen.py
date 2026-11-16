@@ -75,6 +75,24 @@ def dach_band(blatt, q, ton, kontrast=1.1, eigenfarbe=0.35, ab=0):
     blatt.verlauf(BAENDER_AUSSEN["stroh_franse"], 0.62, 1.0, 34)
 
 
+# Helligkeit der Dachbaender (Mensch-Nachtrag 16.11.2026, wie trimsheet_zwerg_stufen.SCHIEFER_HELL): mittlere Leuchtdichte der Baender
+# „stroh“ und „stroh_franse“ in der gespeicherten PNG (Werte 0..1 der sRGB-Bytes). Vorher Schiefer 0,12 (sRGB rund 31, linear 0,014:
+# „Schieferdaecher Mensch S3 tags fast schwarz“) und Ziegel 0,08 (Farbe sRGB 49/14/8, linear 0,010: dunkler als der Schiefer).
+SCHIEFER_HELL = 0.33      # wie bei den Zwergen: sRGB rund 85, sichtbar dunkelgrauer Schiefer mit Struktur
+ZIEGEL_HELL = 0.20        # Tonziegel: sRGB rund 118/34/18 (dunkles Ziegelrot statt fast schwarz)
+
+
+def dach_aufhellen(blatt, ziel):
+    """Hebt die Dachbaender („stroh“, „stroh_franse“) gleichmaessig auf die mittlere Helligkeit `ziel`; Zeichnung, Farbton und Verlauf
+    bleiben (alle Kanaele mit demselben Faktor)."""
+    for name in ("stroh", "stroh_franse"):
+        a, e = blatt.zeilen(BAENDER_AUSSEN[name])
+        lin = ts.srgb_zu_linear(blatt.albedo[a:e, :, :3])
+        hell = float((lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean())
+        blatt.albedo[a:e, :, :3] = ts.linear_zu_srgb(np.clip(lin * (ziel / max(hell, 1e-4)), 0, 1))
+        print(f"Dach {name}: Helligkeit {hell:.4f} -> {ziel}")
+
+
 def quader_plan(breite_px, hoehe_px, px_m, saat):
     """Quaderverband eines Mauerstreifens (eine Lage des Bandes, Hoehe = Bandhoehe): Liste der Steine (x0, x1, y0, y1) in Pixeln,
     waagerecht nahtlos (x laeuft ueber den Rand und wird beim Malen umgebrochen). Abschnitte mit einem hohen Stein ueber die ganze
@@ -167,10 +185,12 @@ def baue(quellen):
     # Aussen, Stufe 2: Tonziegel
     s2 = lade_blatt("trim")
     dach_band(s2, Quelle1k(quellen, "clay_roof_tiles_02", kante=1024), (0.52, 0.33, 0.26), eigenfarbe=0.2)
+    dach_aufhellen(s2, ZIEGEL_HELL)
     s2.speichere("trim_s2")
     # Aussen, Stufe 3: Schiefer und behauener Stein
     s3 = lade_blatt("trim")
     dach_band(s3, Quelle(quellen, "roof_slates_02", kante=1024), (0.38, 0.39, 0.42), kontrast=1.2, eigenfarbe=0.08)
+    dach_aufhellen(s3, SCHIEFER_HELL)
     # Mauer: Quaderverband aus hellgrauem Haustein (wie die Vorlagen wohnhaus_lvl3_*), Band "bruchstein" = eine Lage von 0,40 m
     stein = Quelle(quellen, "sandstone_blocks_08", kante=1024)
     quaderband(s3, BAENDER_AUSSEN["bruchstein"], stein, (0.66, 0.65, 0.62), saat=31, ab=210)
