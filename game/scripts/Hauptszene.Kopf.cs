@@ -153,7 +153,8 @@ public partial class Hauptszene
         // Ein Haltegrund (Ratssitzung, Jahresbericht im Einzelspiel) sperrt Pause und Tempo, bis das Fenster zu ist
         var gesperrt = takt.IstAngehalten;
         _pauseKnopf.Disabled = _simulation.IstBeendet || gesperrt;
-        var tipp = gesperrt ? $"Die Zeit ruht, bis {string.Join(" und ", takt.Haltegruende)} {(takt.Haltegruende.Count > 1 ? "geschlossen sind" : "geschlossen ist")}." : "Pause (Leertaste)";
+        var tipp = gesperrt && takt.Haltegruende.All(g => g == HaltegrundPlatzwahl) ? "Die Zeit ruht, bis Wohnhaus und Werkstatt ihren Platz haben."
+            : gesperrt ? $"Die Zeit ruht, bis {string.Join(" und ", takt.Haltegruende)} {(takt.Haltegruende.Count > 1 ? "geschlossen sind" : "geschlossen ist")}." : "Pause (Leertaste)";
         if (_pauseKnopf.TooltipText != tipp) _pauseKnopf.TooltipText = tipp;
         for (var i = 0; i < _tempoKnoepfe.Count; i++)
         {

@@ -43,7 +43,7 @@ public partial class Hauptmenue
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Richtet die Seite auf die gewählte Karte ein: höchstens so viele KI-Gegner wie Höfe minus eins, die Hofstellen, die Liste für „Erweitert“, und
+    /// Richtet die Seite auf die gewählte Karte ein: höchstens so viele KI-Gegner, wie Häuser in die Bauzonen passen (minus der Spieler), die Liste für „Erweitert“, und
     /// einen frischen gewürfelten Vorschlag (neuer Zufallsstartwert, Züge ab Wurf 0).
     /// </summary>
     private void NeuePartieOeffnen()
@@ -54,7 +54,6 @@ public partial class Hauptmenue
         var hoechstens = Partiebesetzung.HoechstensKi(Stadtkarten.Startkarte, daten: DatenLesekopie()); // mit Daten: was in die Bauzonen passt (15.11.2026)
         _kiAnzahl.MaxValue = hoechstens;
         _kiAnzahl.Value = Math.Min(3, hoechstens);
-        HofstellenWahlFuellen();
         BerufFuellen(_beruf, false);
         KiZeilenBauen(hoechstens);
         VorschlagAnwenden();
@@ -346,7 +345,7 @@ public partial class Hauptmenue
 
     /// <summary>
     /// Der aufklappbare Bereich: jede KI einzeln (Name, Wappen, Volk, Glaube, Beruf; leer = zufällig), „KI-Häuser mit Umland“ (die bisherige
-    /// Schwierigkeit) und die übrigen Einstellungen der Partie – Siegbedingung, Dauer, Statut, Startvermögen, Aktionspunkte, Hofstelle, Zufallsstartwert.
+    /// Schwierigkeit) und die übrigen Einstellungen der Partie – Siegbedingung, Dauer, Statut, Startvermögen, Aktionspunkte, Zufallsstartwert.
     /// </summary>
     private VBoxContainer ErweitertBauen()
     {
@@ -382,11 +381,6 @@ public partial class Hauptmenue
         _rivale.AddItem("Wagemutig (schwerer)", (int)KiCharakter.Wagemutig);
         _rivale.Select(1);
         Zeile(raster, "Die KI-Häuser spielen", _rivale);
-
-        _hofstelle = new OptionButton { FocusMode = Control.FocusModeEnum.None };
-        _hofstelle.TooltipText = "Eine Hofstelle ist Wohnhaus und Werkstatt nebeneinander. Zufall lost eine unter den Startplätzen der Karte; die KI-Häuser bekommen immer geloste Hofstellen.";
-        Zeile(raster, "Hofstelle", _hofstelle);
-        HofstellenWahlFuellen();
 
         _sieg = new OptionButton { FocusMode = Control.FocusModeEnum.None };
         foreach (var (text, wert) in new[] { ("Partie endet in einem Jahr", Siegbedingung.Endjahr), ("Zielvermögen erreichen", Siegbedingung.Zielvermoegen),
