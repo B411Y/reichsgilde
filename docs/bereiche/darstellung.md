@@ -327,6 +327,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Klappbrücke Einbau) Kartenwerkstatt und Vorschau (`Stadtansicht.Kartenwerkstatt.Wasser.cs`, Kartenbild) zeigen die Köln-Brücke noch nach der alten Regel (sechs Bögen, kein Mittelteil), solange sie ohne die Klappbrücke der Stadtwirtschaft rechnen (Wasserplan ohne `klappbruecke`); nicht gebaut.
 - (Klappbrücke Schranken) Das Warten der Passanten ist nur Anzeige: Eine Figur, die von außen auf die zu Schranke zugeht, bleibt einen Meter vor dem Baum stehen und steht danach wieder an ihrem Platz auf dem Plan des Kerns (springt also weiter, wenn die Schranke aufgeht: weicher Übergang bräuchte einen Eingriff in die Wegzeit der Passanten, den es nicht geben soll). In Köln laufen kaum Passanten über die Rheinbrücke (jedes Haus hat seinen Markt auf seiner Seite); gesehen ist der Halt nicht. Der Karren-Halt ist nur im Kern getestet, im Godot-Fenster nicht gesehen. Klang (Kettenrasseln, Knarren der Klappen, Schranke) bleibt bei sound.
 - (Klappbrücke Einbau) Die Stoffe der Brücke (Trim, Verdeckung) sind in `Stadtansicht.Klappbruecke.cs` verdrahtet; im Godot-Fenster ist die Brücke nicht gesehen (nur `--headless`: Log ohne Fehler, Blender-Bilder der Enden und der ganzen Brücke). Nässe, Schnee und Pixel-Look kommen über denselben Shader wie bei den Häusern (`haus_baender = 0`); ungesehen.
+- (von Leveldesign) Köln nach Bauzonen-Karten: 0 Pferche statt 2, nur 1 Hof und 2 Heuschober; graue Bodenplatten der alten Plätze noch sichtbar.
 
 ## Entscheidungen
 

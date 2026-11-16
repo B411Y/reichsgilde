@@ -1,6 +1,6 @@
 {
   "format": 1,
-  "beschreibung": "Gebäudekatalog für alle Karten – siehe docs/LEVELDESIGN.md, Abschnitt Gebäudekatalog",
+  "beschreibung": "Gebäudekatalog für alle Karten – siehe docs/leveldesign/kartendatei.md, Abschnitt Gebäudekatalog",
   "bausteine": [
     {"kennung": "werkstattplatz", "art": "werkstattplatz", "name": "Werkstattplatz", "groesse": [16, 14]},
     {"kennung": "wohnhausplatz_ring", "art": "wohnhausplatz", "name": "Wohnhausplatz am Ring (Doppelplatz)", "groesse": [17, 8]},

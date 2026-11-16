@@ -63,6 +63,7 @@ reichsgilde/
 │   ├── spielbuch/                  Das Spielbuch: ein Kapitel je Thema, Inhaltsverzeichnis in README.md
 │   ├── ENTSCHEIDUNGEN.md           Archiv der Grundsatzentscheidungen bis 16.10.2026, Phasenplan
 │   ├── LEVELDESIGN.md              Kartenregeln und Städte
+│   ├── leveldesign/                Kartendatei (kartendatei.md: Kartenformat 2, Gebäudekatalog, Kartenwerkstatt, Kartenskript, Greybox-Karte)
 │   ├── WELT.md                     Die Welt der Reichsgilde: Weltgeschichte, Völker, Glaube, Städte (Köln)
 │   ├── messungen/                  Balancing-Berichte als JSON (messen bericht, siehe WIRTSCHAFTSMODELL.md)
 │   └── WIRTSCHAFTSMODELL.md        Zahlen und Messungen je Beruf und Balance-Änderung

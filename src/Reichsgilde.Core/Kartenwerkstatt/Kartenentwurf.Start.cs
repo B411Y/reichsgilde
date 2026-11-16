@@ -661,15 +661,27 @@ public sealed partial class Kartenentwurf
     /// <summary>
     /// „Karte ausprobieren“: stellt eine neue Partie auf genau diesem Entwurf auf (ohne Datei), mit dem gewählten Beruf und allen KI-Häusern
     /// (<see cref="Probepartie"/>). Nur ohne Fehler; fehlen dem Entwurf noch <see cref="Daten"/>, prüft er mit <paramref name="daten"/>.
+    /// Mit <paramref name="startwahl"/> (die Kartenwerkstatt im Spiel, „nur noch Bauzonen“ 15.11.2026) beginnt die Probe wie eine Partie aus dem
+    /// Menü: Der Spieler setzt Wohnhaus und Werkstatt selbst (<see cref="NeuePartie.Startwahl"/>), die KI-Häuser werden in die Bauzonen gelost –
+    /// die Plätze der Karte gelten nicht, und es spielen höchstens so viele KI-Häuser mit, wie in die Zonen passen.
     /// </summary>
     /// <exception cref="InvalidOperationException">Wenn der Entwurf Fehler hat (<see cref="HatFehler"/>).</exception>
     /// <exception cref="KartenFehler">Wenn der Leser des Kerns die Karte ablehnt (sollte ohne Fehler nicht vorkommen).</exception>
     /// <exception cref="ArgumentException">Wenn es den Beruf in den Daten nicht gibt.</exception>
     public (Simulation Simulation, Konto Spieler) Ausprobieren(Wirtschaftsdaten daten, string beruf = "Schmied", Partieeinstellungen? einstellungen = null,
-        Spielzeit? startzeit = null)
+        Spielzeit? startzeit = null, bool startwahl = false)
     {
         Daten ??= daten;
         if (HatFehler) throw new InvalidOperationException("Die Karte hat Fehler – erst beheben, dann ausprobieren.");
-        return Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten, Probepartie(beruf), startzeit, ZuStadtkarte());
+        var karte = ZuStadtkarte();
+        var neu = Probepartie(beruf);
+        if (startwahl)
+            neu = neu with
+            {
+                Startwahl = true,
+                Startplaetze = Startplatzvergabe.Gelost,
+                Rivalen = Math.Min(neu.Rivalen, Partiebesetzung.HoechstensKi(karte, neu.Aufstellung, daten)),
+            };
+        return Partieaufbau.Erstellen(einstellungen ?? Partieeinstellungen.Standard, daten, neu, startzeit, karte);
     }
 }

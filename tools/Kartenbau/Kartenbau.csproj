@@ -2,7 +2,7 @@
   <!--
     Kartenskript von Reichsgilde (Bereich Leveldesign): Stadtkarten per Code anlegen, prüfen und als Vorschaubild zeichnen.
     Benutzt dieselben Befehle und Prüfungen des Kerns wie die Kartenwerkstatt im Spiel (src/Reichsgilde.Core/Kartenwerkstatt).
-    Aufruf und Befehle: docs/LEVELDESIGN.md, Abschnitt „Kartenskript“, oder Program.cs.
+    Aufruf und Befehle: docs/leveldesign/kartendatei.md, Abschnitt „Kartenskript“, oder Program.cs.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

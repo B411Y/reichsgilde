@@ -454,7 +454,8 @@ public partial class Kartenwerkstatt : Node
         }
         try
         {
-            _probepartie = _entwurf.Ausprobieren(_daten, beruf);
+            // „nur noch Bauzonen“: wie im Menü setzt der Spieler Wohnhaus und Werkstatt zu Beginn selbst (Hauptszene.Startwahl.cs)
+            _probepartie = _entwurf.Ausprobieren(_daten, beruf, startwahl: true);
         }
         catch (Exception ex) when (ex is InvalidOperationException or KartenFehler or ArgumentException)
         {

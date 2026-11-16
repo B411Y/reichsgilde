@@ -1,6 +1,7 @@
 using System.Globalization;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
+using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Kartenbau;
@@ -9,7 +10,7 @@ namespace Reichsgilde.Kartenbau;
 //  Kartenskript von Reichsgilde (Bereich Leveldesign) – Stadtkarten per Code anlegen, prüfen und als Vorschaubild zeichnen
 //
 //  Aufruf (Ordner reichsgilde):
-//    dotnet run --project tools/Kartenbau -- pruefen <karte|datei>               alle Prüfungen (Regeln, Kapazität, Katalog gegen die Modelle)
+//    dotnet run --project tools/Kartenbau -- pruefen <karte|datei>               alle Prüfungen (Regeln, Startorte in den Bauzonen, Kapazität, Katalog gegen die Modelle)
 //    dotnet run --project tools/Kartenbau -- vorschau <karte|datei> [--belegung]  docs/karten/<kennung>.svg (und -belegung.svg) zeichnen
 //    dotnet run --project tools/Kartenbau -- bauen <skript> [--ueberschreiben]    ein Stadtskript ausführen → game/karten/<kennung>.json
 //                                                   mit --entwurf=<datei> stattdessen nur diesen Entwurf schreiben (auch mit Fehlern, zum Ansehen)
@@ -348,7 +349,7 @@ public static class Program
     private static int Hilfe()
     {
         Console.WriteLine("""
-            Kartenskript – Stadtkarten anlegen, prüfen und zeichnen (siehe docs/LEVELDESIGN.md, „Kartenskript“)
+            Kartenskript – Stadtkarten anlegen, prüfen und zeichnen (siehe docs/leveldesign/kartendatei.md, „Kartenskript“)
 
               pruefen <karte|datei>               alle Prüfungen: Regeln, Kapazität, Katalog gegen die Modelle
               vorschau <karte|datei> [--belegung]  Vorschaubild docs/karten/<kennung>.svg (mit --belegung auch -belegung.svg)
@@ -911,7 +912,7 @@ public static class Befehle
         foreach (var b in befunde.Where(b => b.Schwere == Schwere.Hinweis)) aus.WriteLine($"   Hinweis: {b.Text}");
         aus.WriteLine($"   Wegenetz: {e.Wege.Count} Wege" + (befunde.Any(b => b.Regel == "wegenetz") ? "" : ", 1 zusammenhängender Teil"));
         aus.WriteLine("   Gebäude: " + string.Join(", ", e.Gebaeude.GroupBy(g => g.Art == "" ? "?" : g.Art).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Count()} {g.Key}")));
-        HofstellenBericht(e, aus);
+        var zuWenigStartorte = StartortBericht(e, aus) is < Partiebesetzung.HoechstensHoefe ? 1 : 0;
         if (e.Regeln.Kapazitaet is not null)
             foreach (var zeile in e.Kapazitaetsrechnung().Bericht) aus.WriteLine($"   {zeile}");
         if (e.Probeplan.Count > 0)
@@ -936,31 +937,35 @@ public static class Befehle
                           string.Join(", ", e.Restflaechen.GroupBy(r => r.Grund).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Count()} {g.Key}")) + ")");
         var fehler = befunde.Where(b => b.Schwere == Schwere.Fehler).ToList();
         foreach (var b in fehler) aus.WriteLine($"FEHLER: {b.Text}");
-        aus.WriteLine($"{e.Kennung}: {fehler.Count} Fehler, {befunde.Count - fehler.Count} Hinweise");
+        aus.WriteLine($"{e.Kennung}: {fehler.Count} Fehler, {befunde.Count - fehler.Count + zuWenigStartorte} Hinweise");
         return fehler.Count;
     }
 
     /// <summary>
-    /// Die Hofstellen der Karte (seit 9.11.2026): Kennung, Name, Start oder frei, Werkstatt (Punkt, Drehung), Wohnhaus (Punkt) und der Karrenweg der
-    /// Werkstatt zum nächsten Marktplatz – auch für die freien Hofstellen, gerechnet an einer Kopie, in der jede als Startplatz gilt.
+    /// Die Startorte in den Bauzonen (nur noch Bauzonen, 15.11.2026 – ersetzt den Bericht über die Hofstellen): wie viele Häuser (Wohnhaus und
+    /// Werkstatt) im Stadtinneren (Kern und Mauerring) beginnen können und wie viele Stellen das Los dort hat (<see cref="Startortlos"/>, dieselbe
+    /// Rechnung wie in der Partie). Passen weniger als <see cref="Partiebesetzung.HoechstensHoefe"/> Häuser, steht ein Hinweis da: Die Partie
+    /// lässt dann entsprechend weniger KI-Häuser zu. Gibt die Zahl der Häuser zurück (null: nicht gerechnet).
     /// </summary>
-    private static void HofstellenBericht(Kartenentwurf e, TextWriter aus)
+    public static int? StartortBericht(Kartenentwurf e, TextWriter aus)
     {
-        if (e.Start.Hofstellen.Count == 0) return;
-        var kopie = Kartenentwurf.AusJson(e.ZuJson(), e.Katalog);
-        kopie.Daten = e.Daten;
-        foreach (var h in kopie.Start.Hofstellen.Where(h => !h.Start)) kopie.HofstelleStartSetzen(h.Kennung, true);
-        var wege = kopie.Startwegrechnung().Where(w => w.Wer.StartsWith("Hofstelle ", StringComparison.Ordinal))
-            .ToDictionary(w => w.Wer["Hofstelle ".Length..], w => w);
-        var start = e.Start.Hofstellen.Count(h => h.Start);
-        aus.WriteLine($"   Hofstellen: {e.Start.Hofstellen.Count} ({start} Start, {e.Start.Hofstellen.Count - start} frei)");
-        foreach (var h in e.Start.Hofstellen)
+        if (e.Daten is not { } daten) return null;
+        Stadtkarte karte;
+        try { karte = Stadtkarte.AusJson(e.ZuJson(), e.Katalog); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or FormatException or System.Text.Json.JsonException)
         {
-            var (w, n) = (e.GebaeudeMit(h.Werkstatt), e.GebaeudeMit(h.Wohnhaus));
-            var weg = wege.TryGetValue(h.Kennung, out var s) && s.Meter is { } m ? $"{Kartenschreiber.Zahl(Math.Round(m, 1))} m zum {s.Markt}" : "kein Weg";
-            aus.WriteLine($"      {h.Kennung} {(h.Start ? "Start" : "frei ")} „{h.Name ?? "–"}“: Werkstatt {(w is null ? "?" : $"{w.Punkt} d={Kartenschreiber.Zahl(w.Drehung)}")}, " +
-                          $"Wohnhaus {(n is null ? "?" : $"{n.Punkt} d={Kartenschreiber.Zahl(n.Drehung)}")}, Karrenweg {weg}");
+            aus.WriteLine($"   Startorte: nicht gerechnet – der Kern liest die Karte nicht ({ex.Message})");
+            return null;
         }
+        if (!Startortlos.IstAktiv(karte, daten)) return null;
+        var haeuser = Startortlos.Haeuser(karte, daten, nurStadtinneres: true);
+        var (wohnhaeuser, werkstaetten) = (Startortlos.Startstellen(karte, daten, werkstatt: false), Startortlos.Startstellen(karte, daten, werkstatt: true));
+        aus.WriteLine($"   Startorte im Stadtinneren (Bauzonen Kern und Mauerring): Platz für {haeuser} von {Partiebesetzung.HoechstensHoefe} Häusern " +
+                      $"(Wohnhaus und Werkstatt), {wohnhaeuser.Count} Stellen für ein Wohnhaus, {werkstaetten.Count} für eine Werkstatt");
+        if (haeuser < Partiebesetzung.HoechstensHoefe)
+            aus.WriteLine($"   Hinweis: Die Bauzonen im Stadtinneren reichen nur für {haeuser} von {Partiebesetzung.HoechstensHoefe} Häusern – " +
+                          "die Partie lässt entsprechend weniger KI-Häuser zu.");
+        return haeuser;
     }
 
     /// <summary>Fläche eines Vielecks in m² (Gaußsche Trapezformel).</summary>
@@ -993,7 +998,7 @@ public sealed record Hoehendatenherkunft(string? Quelle, string? Lizenz, string?
     public const string Kopf = """
         # Höhendaten der Stadtskripte
 
-        Herkunft jeder Höhenkarte, die das Kartenskript eingelesen hat (`hoehenkarte-einlesen`, docs/LEVELDESIGN.md „Kartenskript“). Das Skript
+        Herkunft jeder Höhenkarte, die das Kartenskript eingelesen hat (`hoehenkarte-einlesen`, docs/leveldesign/kartendatei.md „Kartenskript“). Das Skript
         hängt die Zeile selbst an, wenn es die Karte geschrieben hat; die Höhenkarte selbst liegt nicht im Repository (die SHA-256 sagt, welche
         Datei es war). Freie Quellen: DGM NRW (dl-de/zero-2.0, ohne Pflichtvermerk); Copernicus DEM und SRTM mit Quellenvermerk; Gaea oder
         World Machine nur mit geprüfter kommerzieller Lizenzstufe.

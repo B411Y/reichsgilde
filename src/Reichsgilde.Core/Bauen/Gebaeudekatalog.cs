@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde.Core.Bauen;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Der Gebäudekatalog (game/daten/katalog.json) – beschrieben in docs/LEVELDESIGN.md, „Gebäudekatalog“
+//  Der Gebäudekatalog (game/daten/katalog.json) – beschrieben in docs/leveldesign/kartendatei.md, „Gebäudekatalog“
 //
 //  Eine Datei für alle Karten: Je Baustein steht hier, WAS er ist (Art, Modelldatei, Grundfläche …).
 //  Die Karte sagt nur, WO er steht (Katalog-Kennung, Punkt, Drehung, Name – siehe Stadtkarte).

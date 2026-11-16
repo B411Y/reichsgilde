@@ -322,7 +322,7 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 | `--werkstatt-ebenen` | `<ebene>,…\|alle` | (Ebenen der Kartenwerkstatt ausblenden: `bauzonen`, `natur`, `requisiten`, `linien`, `beschriftungen`) und `--werkstatt-ebenenliste=1` (die Liste „Ebenen“ aufklappen) | Kartenwerkstatt |
 | `--katalogbilder` | `1\|<kennung>,…` | Vorschaubilder des Katalogs nach `game/assets/oberflaeche/katalog/` rendern und beenden, mit `--kartenwerkstatt=probestadt`; Skript `tools/katalogbilder/katalogbilder.sh` | Kartenwerkstatt |
 | `--werkstatt-kamerastart` | `1` | den Blick nach `--blick` und `--drehung` als Kamera-Start übernehmen | Kartenwerkstatt |
-| `--werkstatt-ausprobieren` | `<Beruf>` | zuletzt: gleich die Probepartie starten; im Spiel Esc → „Zurück zur Kartenwerkstatt“ | Kartenwerkstatt |
+| `--werkstatt-ausprobieren` | `<Beruf>` | zuletzt: gleich die Probepartie starten – sie beginnt seit 16.11.2026 mit der Platzwahl wie aus dem Menü (`--bauort` und `--bauort2` setzen im Klicktest Wohnhaus und Werkstatt, siehe `--startwahl`); im Spiel Esc → „Zurück zur Kartenwerkstatt“ | Kartenwerkstatt |
 
 `--werkstatt-auswahl` nimmt auch `weg:<Name>`, `zone:<Kennung>`, `natur:<Name>`, `feld:<Name>`, `mauer:<Name>`, `fluss:<Name>`, `see:<Name>`, `faehre:<Name>` (Leerzeichen als `_`).
 

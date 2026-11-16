@@ -137,13 +137,33 @@
  ],
  "bauzonen": [
   {"kennung": "K1", "art": "kern", "flaeche": [[-36, -36], [-14, -36], [-14, -30], [-28, -30], [-28, -28], [-30, -28], [-30, -20], [-36, -20]], "berechnet": true},
-  {"kennung": "K2", "art": "kern", "flaeche": [[-36, 26], [-12, 26], [-12, 14], [8, 14], [8, 22], [32, 22], [32, 4], [36, 4], [36, 36], [-36, 36]], "berechnet": true},
+  {
+   "kennung": "K2",
+   "art": "kern",
+   "flaeche": [[-36, 26], [-12, 26], [-12, 14], [8, 14], [8, 22], [26, 22], [26, 18], [24, 18], [24, 16], [16, 16], [16, 10], [14, 10], [14, 4], [36, 4], [36, 36], [-36, 36]],
+   "berechnet": true
+  },
+  {"kennung": "K3", "art": "kern", "flaeche": [[-30, 10], [-16, 10], [-16, 20], [-30, 20]], "berechnet": true},
+  {
+   "kennung": "K4",
+   "art": "kern",
+   "flaeche": [
+    [14, -16], [16, -16], [16, -18], [18, -18], [18, -20], [28, -20], [28, -24], [26, -24], [26, -26], [16, -26], [16, -36], [36, -36], [36, -4], [28, -4], [28, -8], [26, -8],
+    [26, -10], [22, -10], [22, -8], [20, -8], [20, -4], [14, -4]
+   ],
+   "berechnet": true
+  },
   {
    "kennung": "M1",
    "art": "mauerring",
    "flaeche": [[-82, -58], [-66, -58], [-66, -54], [-64, -54], [-64, -44], [-62, -44], [-62, -32], [-60, -32], [-60, -26], [-70, -26], [-70, -24], [-80, -24], [-80, -32], [-82, -32]],
    "berechnet": true
   },
+  {"kennung": "M2", "art": "mauerring", "flaeche": [[-48, -14], [-40, -14], [-40, 2], [-48, 2]], "berechnet": true},
+  {"kennung": "M3", "art": "mauerring", "flaeche": [[-22, -48], [22, -48], [22, -40], [-22, -40]], "berechnet": true},
+  {"kennung": "M4", "art": "mauerring", "flaeche": [[-22, 40], [6, 40], [6, 48], [-22, 48]], "berechnet": true},
+  {"kennung": "M5", "art": "mauerring", "flaeche": [[40, -22], [48, -22], [48, -4], [40, -4]], "berechnet": true},
+  {"kennung": "M6", "art": "mauerring", "flaeche": [[40, 4], [48, 4], [48, 22], [40, 22]], "berechnet": true},
   {"kennung": "V1", "art": "vorstadt", "flaeche": [[-120, 10], [-104, 10], [-104, 24], [-102, 24], [-102, 36], [-104, 36], [-104, 38], [-120, 38]], "berechnet": true},
   {"kennung": "V2", "art": "vorstadt", "flaeche": [[-118, -14], [-88, -14], [-88, 2], [-118, 2]], "berechnet": true},
   {
@@ -186,16 +206,15 @@
  ],
  "restflaechen": [
   {"kennung": "R1", "art": "kern", "grund": "klein", "felder": 15, "flaeche": [[-36, -8], [-30, -8], [-30, 2], [-36, 2]]},
-  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 16, "flaeche": [[34, -36], [36, -36], [36, -4], [34, -4]]},
-  {"kennung": "R3", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[-48, -48], [-46, -48], [-46, -38], [-48, -38]]},
-  {"kennung": "R4", "art": "mauerring", "grund": "klein", "felder": 4, "flaeche": [[-48, 10], [-40, 10], [-40, 12], [-48, 12]]},
-  {"kennung": "R5", "art": "mauerring", "grund": "klein", "felder": 13, "flaeche": [[-48, 34], [-40, 34], [-40, 38], [-46, 38], [-46, 48], [-48, 48]]},
-  {"kennung": "R6", "art": "mauerring", "grund": "klein", "felder": 12, "flaeche": [[28, 40], [34, 40], [34, 48], [28, 48]]},
-  {"kennung": "R7", "art": "mauerring", "grund": "klein", "felder": 9, "flaeche": [[40, -38], [46, -38], [46, -48], [48, -48], [48, -36], [40, -36]]},
-  {"kennung": "R8", "art": "mauerring", "grund": "klein", "felder": 18, "flaeche": [[42, 36], [48, 36], [48, 48], [42, 48]]},
-  {"kennung": "R9", "art": "vorstadt", "grund": "klein", "felder": 4, "flaeche": [[-82, -14], [-80, -14], [-80, -6], [-82, -6]]},
-  {"kennung": "R10", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[-80, -4], [-78, -4], [-78, 2], [-80, 2]]},
-  {"kennung": "R11", "art": "vorstadt", "grund": "klein", "felder": 11, "flaeche": [[-58, -98], [-46, -98], [-46, -96], [-50, -96], [-50, -94], [-56, -94], [-56, -92], [-58, -92]]}
+  {"kennung": "R2", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[-48, -48], [-46, -48], [-46, -38], [-48, -38]]},
+  {"kennung": "R3", "art": "mauerring", "grund": "klein", "felder": 4, "flaeche": [[-48, 10], [-40, 10], [-40, 12], [-48, 12]]},
+  {"kennung": "R4", "art": "mauerring", "grund": "klein", "felder": 13, "flaeche": [[-48, 34], [-40, 34], [-40, 38], [-46, 38], [-46, 48], [-48, 48]]},
+  {"kennung": "R5", "art": "mauerring", "grund": "klein", "felder": 12, "flaeche": [[28, 40], [34, 40], [34, 48], [28, 48]]},
+  {"kennung": "R6", "art": "mauerring", "grund": "klein", "felder": 9, "flaeche": [[40, -38], [46, -38], [46, -48], [48, -48], [48, -36], [40, -36]]},
+  {"kennung": "R7", "art": "mauerring", "grund": "klein", "felder": 18, "flaeche": [[42, 36], [48, 36], [48, 48], [42, 48]]},
+  {"kennung": "R8", "art": "vorstadt", "grund": "klein", "felder": 4, "flaeche": [[-82, -14], [-80, -14], [-80, -6], [-82, -6]]},
+  {"kennung": "R9", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[-80, -4], [-78, -4], [-78, 2], [-80, 2]]},
+  {"kennung": "R10", "art": "vorstadt", "grund": "klein", "felder": 11, "flaeche": [[-58, -98], [-46, -98], [-46, -96], [-50, -96], [-50, -94], [-56, -94], [-56, -92], [-58, -92]]}
  ],
  "natur": {
   "flaechen": [

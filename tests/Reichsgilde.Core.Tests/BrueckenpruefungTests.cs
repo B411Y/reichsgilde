@@ -23,6 +23,8 @@ static class BrueckenpruefungTests
             Pruefe.Wahr(text.Contains("Wartezone West") && text.Contains("Wartezone Ost") && !text.Contains("NICHT gerade"), "Wartezonen gerade.\n" + text);
             Pruefe.Wahr(text.Contains("erreichbar") && !text.Contains("NICHT erreichbar"), "Karren erreichbar.\n" + text);
             Pruefe.Wahr(text.Contains("Deck über Spiegel 2.4 m"), "Deck 2,4 m über dem Spiegel.\n" + text);
+            // Wasserplan wie im Spiel (Klappbrücke): 13 m frei zwischen den Torhauspfeilern, kein Fehlalarm „Durchfahrt NEIN“
+            Pruefe.Wahr(text.Contains("größte 13.0 m") && text.Contains("in der Flussmitte: ja") && text.Contains("Klappbrücke: erfüllt"), "Durchfahrt 13 m.\n" + text);
         });
         yield return ("Brückenprüfung: Karten ohne Rhein melden keine Brücke und keinen Fehler", () =>
         {
