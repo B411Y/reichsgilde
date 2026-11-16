@@ -205,7 +205,7 @@ static class RestflaechenfuellungTests
             Pruefe.Gleich("garten", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 5, 0 }, keine, "randgestruepp", erwNamen, new[] { 0, 100 })); // nur Randgestrüpp wird ersetzt
         }),
 
-        ("Restflächenfüllung: Köln bekommt Steinmetzplätze und höchstens wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit den Hofstellen: 4 Höfe, 4 Pferche, 2 Wasserstellen, 4 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
+        ("Restflächenfüllung: Köln bekommt Steinmetzplätze und höchstens wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit „nur noch Bauzonen“: 1 Hof, 0 Pferche, 3 Wasserstellen, 2 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
         {
             var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
             var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
