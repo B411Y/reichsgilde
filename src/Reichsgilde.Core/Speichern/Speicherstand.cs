@@ -1412,9 +1412,11 @@ public sealed record RivaleStand
     /// <summary>In diesem Jahr fand die KI keinen Platz für eine neue Werkstatt (null: kein solches Jahr).</summary>
     public int? KeinWerkstattplatzJahr { get; init; }
 
-    /// <summary>Vorrat auf Verdacht (Spiel-KI, 16.11.2026; fehlt in alten Spielständen): Betriebsname → Ware → vorgehaltener Bestand.</summary>
-    public Dictionary<string, Dictionary<string, int>> Vorrat { get; init; } = new();
+    /// <summary>Vorrat auf Verdacht (Spiel-KI, 16.11.2026; fehlt in alten Spielständen und ohne Vorrat): Betriebsname → Ware → vorgehaltener Bestand.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, Dictionary<string, int>>? Vorrat { get; init; }
 
-    /// <summary>Betriebsname → Ware → Stück, die ein Karren für den Vorrat noch kaufen soll.</summary>
-    public Dictionary<string, Dictionary<string, int>> VorratOffen { get; init; } = new();
+    /// <summary>Betriebsname → Ware → Stück, die ein Karren für den Vorrat noch kaufen soll (fehlt, wenn nichts offen ist).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, Dictionary<string, int>>? VorratOffen { get; init; }
 }

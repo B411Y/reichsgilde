@@ -74,14 +74,15 @@ public sealed partial class KiRivale
             if (Betriebe.FirstOrDefault(b => b.Name == name) is not { } b) continue;
             foreach (var ware in waren)
                 if (b.HaeltZurueck(ware) && !(_vorrat.TryGetValue(name, out var neu) && neu.ContainsKey(ware)))
-                    freigegeben |= Befehlen(new WareZurueckhalten(name, ware, false), $"gibt den Vorrat an {ware} in {name} frei.");
+                    freigegeben |= StillBefehlen(new WareZurueckhalten(name, ware, false));
         }
         if (treffer)
             Entscheiden($"glaubt, dass es schlecht wird{(anzeichen ? " (es gibt Anzeichen)" : "")}, und legt {Prozent(anteil)} des Lagers zurück: " +
                         (_vorrat.Count == 0 ? "nichts – kein Geld oder keine Werkstatt."
                             : string.Join("; ", _vorrat.Select(x => $"{x.Key}: {string.Join(", ", x.Value.Select(v => $"{v.Value} {v.Key}"))}")) + "."));
-        else if (alt.Count > 0 && !freigegeben)
-            Entscheiden("glaubt nicht mehr, dass es schlecht wird, und verbraucht den Vorrat.");
+        else if (alt.Count > 0)
+            Entscheiden(freigegeben ? "glaubt nicht mehr, dass es schlecht wird, und gibt den Vorrat zum Verkauf frei."
+                : "glaubt nicht mehr, dass es schlecht wird, und verbraucht den Vorrat.");
     }
 
     /// <summary>
@@ -140,8 +141,7 @@ public sealed partial class KiRivale
                 }
                 if (kauf.Count == 0) { _vorratOffen.Remove(name); break; }
                 if (_w.HandelsauftragVerboten(b, nr, leer, kauf) is not null) continue;
-                if (!Befehlen(new Handelsauftrag(name, nr, leer, kauf),
-                        $"kauft Vorrat für {name}: {string.Join(", ", kauf.Select(x => $"{x.Value} {x.Key}"))}.")) break;
+                if (!StillBefehlen(new Handelsauftrag(name, nr, leer, kauf))) break;
                 foreach (var (ware, n) in kauf)
                     if ((offen[ware] -= n) <= 0) offen.Remove(ware);
                 if (offen.Count == 0) _vorratOffen.Remove(name);
@@ -150,11 +150,23 @@ public sealed partial class KiRivale
         }
     }
 
-    private static Dictionary<string, Dictionary<string, int>> Kopie(SortedDictionary<string, SortedDictionary<string, int>> d) =>
-        d.ToDictionary(x => x.Key, x => new Dictionary<string, int>(x.Value));
-
-    private static void Laden(SortedDictionary<string, SortedDictionary<string, int>> ziel, Dictionary<string, Dictionary<string, int>> stand)
+    /// <summary>
+    /// Wie <see cref="Befehlen"/>, aber ohne Eintrag bei Erfolg: Einkauf und Freigabe des Vorrats sind Folgen der einen Entscheidung zu Jahresbeginn
+    /// (die steht schon in den Entscheidungen). Ein abgelehnter Befehl wird wie dort gemeldet.
+    /// </summary>
+    private bool StillBefehlen(Befehl befehl)
     {
+        var ergebnis = _w.Ausfuehren(Konto, befehl);
+        if (!ergebnis.Erfolg) Entscheiden($"wollte, durfte aber nicht: {ergebnis.Meldung}");
+        return ergebnis.Erfolg;
+    }
+
+    private static Dictionary<string, Dictionary<string, int>>? Kopie(SortedDictionary<string, SortedDictionary<string, int>> d) =>
+        d.Count == 0 ? null : d.ToDictionary(x => x.Key, x => new Dictionary<string, int>(x.Value)); // leer: nicht im Spielstand
+
+    private static void Laden(SortedDictionary<string, SortedDictionary<string, int>> ziel, Dictionary<string, Dictionary<string, int>>? stand)
+    {
+        if (stand is null) return;
         foreach (var (betrieb, waren) in stand)
             foreach (var (ware, stueck) in waren)
                 Eintragen(ziel, betrieb, ware, stueck);

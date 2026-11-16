@@ -250,7 +250,8 @@ static class HafenRuhtTests
 
         ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) ist bitgleich mit dem Kern vor dem Schalter", () =>
         {
-            var ist = Partie(Datenpfad.MitSchiffshandel(Datenpfad.OhneErnte(Json.Value)), 3); // ohne die Erntejahre (Datenversion 91), die es damals nicht gab
+            // ohne die Erntejahre (Datenversion 91) und den Vorrat auf Verdacht der KI (ki.vorrat, 16.11.2026), die es damals nicht gab
+            var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Json.Value))), 3);
             Pruefe.Gleich(string.Join("\n", Sollwerte), string.Join("\n", ist));
         }),
     };

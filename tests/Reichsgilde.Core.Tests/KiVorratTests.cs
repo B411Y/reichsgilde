@@ -25,6 +25,15 @@ static class KiVorratTests
     static Wirtschaftsdaten Daten(double chance = 0.1) => Wirtschaftsdaten.AusJson(Json.Value.Replace(VorratZeile,
         VorratZeile.Replace("\"chance\": 0.1", $"\"chance\": {chance.ToString(System.Globalization.CultureInfo.InvariantCulture)}")));
 
+    /// <summary>Die Daten ohne Abschnitt ki.vorrat (für Tests, die bitgleich mit dem Kern davor rechnen).</summary>
+    public static string OhneVorrat(string json)
+    {
+        var a = json.IndexOf(",\n    \"vorrat\": {", StringComparison.Ordinal);
+        Pruefe.Wahr(a >= 0, "ki.vorrat steht nicht wie erwartet in wirtschaft.json");
+        var e = json.IndexOf('}', a);
+        return json[..a] + json[(e + 1)..];
+    }
+
     static readonly Lazy<Wirtschaftsdaten> Immer = new(() => Daten(1));
     static readonly Lazy<Wirtschaftsdaten> Echt = new(() => Daten());
 
@@ -163,7 +172,7 @@ static class KiVorratTests
 
         ("KI-Vorrat: Ohne Abschnitt ki.vorrat würfelt die KI nicht und hält nichts vor", () =>
         {
-            var daten = Wirtschaftsdaten.AusJson(Json.Value.Replace(VorratZeile, "\"vorratAus\": { \"chance\": 0.1, \"chanceMitAnzeichen\": 0.3,"));
+            var daten = Wirtschaftsdaten.AusJson(OhneVorrat(Json.Value));
             Pruefe.Gleich(null, daten.Ki!.Vorrat);
             var (_, _, _, ki) = KiHaus(daten, Minute(1, 4), tischlerei: "Tischlerei Vorrat");
             Pruefe.Gleich(0, ki.Vorrat.Count);
