@@ -551,9 +551,13 @@ public static class Kartenpruefung
             }
         }
 
-        /// <summary>Jede Bauzone hält 2 m Abstand zu jedem Gebäude (greybox.py, Regel 1).</summary>
+        /// <summary>
+        /// Jede Bauzone hält 2 m Abstand zu jedem Gebäude (greybox.py, Regel 1) – außer zu den Werkstatt- und Wohnhausplätzen alter Karten: Die
+        /// versperren seit „nur noch Bauzonen“ (15.11.2026) nichts mehr, ihre Fläche gehört zur Zone (wie Rasterbauzonen und Bauwesen.AlterPlatz).
+        /// </summary>
         private void ZonenAbstand(EntwurfGebaeude g)
         {
+            if (g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz) return;
             var ecken = Ecken(g);
             var rahmen = Rahmen.Um(ecken);
             foreach (var (z, flaeche, zr) in _zonen)

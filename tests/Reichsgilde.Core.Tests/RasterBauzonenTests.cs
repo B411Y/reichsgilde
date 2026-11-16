@@ -18,14 +18,14 @@ static class RasterBauzonenTests
     static Kartenentwurf Oeffnen(string karte) => Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte(karte)), Katalog.Value);
 
     /// <summary>
-    /// Eine kleine Karte: eine Landstraße von West nach Ost (z = 0), ein Werkstattplatz nördlich daran, eine Ecke Vorstadt (südlich der Straße)
+    /// Eine kleine Karte: eine Landstraße von West nach Ost (z = 0), ein festes Gebäude (Leerstand) nördlich daran, eine Ecke Vorstadt (südlich der Straße)
     /// und ein schmaler Kern-Streifen. Lage-Gebiete: Kern (x 0 … 60), Vorstadt (x −60 … 0).
     /// </summary>
     static Kartenentwurf Probekarte()
     {
         var e = Kartenentwurf.Neu("rasterprobe", "Rasterprobe", 400, 300, Katalog.Value);
         e.WegAnlegen(Wegklasse.Land, new[] { O(-150, 0), O(150, 0) }, glatt: false, name: "Landstraße");
-        e.Setzen("werkstattplatz", 20, -12);
+        e.Setzen("leerstand", 20, -12); // ein festes Gebäude von 16 × 14 m (bis 16.11.2026 ein Werkstattplatz – der sperrt seit „nur noch Bauzonen“ nichts mehr)
         e.LagenSetzen(new[]
         {
             new Lagegebiet(Lage.Kern, Rechteck(0, -40, 60, 40), "Kern"),
@@ -66,7 +66,7 @@ static class RasterBauzonenTests
                 Pruefe.Wahr(z.Ecken.All(p => p.X % 2 == 0 && p.Z % 2 == 0), $"{z.Kennung} auf dem Raster");
                 Pruefe.Wahr(z.Ecken.All(p => Kartengeometrie.AbstandLinie(p, strasse.Verlauf) >= strasse.BreiteWirksam / 2 + 0.5 - 1e-9), $"{z.Kennung} hält Abstand zur Straße");
                 Pruefe.Wahr(Kartengeometrie.AbstandVielecke(z.Ecken, platz) >= 2 - 1e-9 && !Kartengeometrie.ImVieleck(Kartengeometrie.Mitte(platz), z.Ecken),
-                    $"{z.Kennung} hält 2 m Abstand zum Werkstattplatz");
+                    $"{z.Kennung} hält 2 m Abstand zum Gebäude");
                 var lage = z.Art == Lage.Kern ? (0.0, 60.0) : (-60.0, 0.0);
                 Pruefe.Wahr(z.Ecken.All(p => p.X >= lage.Item1 && p.X <= lage.Item2), $"{z.Kennung} bleibt in seinem Lage-Gebiet");
             }
@@ -119,9 +119,9 @@ static class RasterBauzonenTests
         {
             var e = Kartenentwurf.Neu("rest", "Rest", 400, 300, Katalog.Value);
             e.WegAnlegen(Wegklasse.Land, new[] { O(-150, 0), O(150, 0) }, glatt: false, name: "Landstraße");
-            // eine Gasse (keine Karrenstraße) und zwei Werkstattplätze schließen nördlich der Straße ein kleines Stück ein
-            e.Setzen("werkstattplatz", 0, -12);
-            e.Setzen("werkstattplatz", 24, -12);
+            // eine Gasse (keine Karrenstraße) und zwei Gebäude (Leerstand, 16 × 14 m) schließen nördlich der Straße ein kleines Stück ein
+            e.Setzen("leerstand", 0, -12);
+            e.Setzen("leerstand", 24, -12);
             e.WegAnlegen(Wegklasse.Gasse, new[] { O(-10, -24), O(34, -24) }, glatt: false, name: "Hintergasse");
             e.LagenSetzen(new[]
             {
@@ -131,7 +131,7 @@ static class RasterBauzonenTests
             var r = e.BauzonenAusRaster();
             Pruefe.Wahr(r.Restflaechen.Count > 0, "es gibt Restflächen");
             Pruefe.Wahr(r.Restflaechen.All(x => x.Art == Lage.Mauerring), "nur in der Stadt (das Umland bleibt Wiese)");
-            Pruefe.Wahr(r.Restflaechen.Any(x => x.Grund == Restflaeche.Klein && x.Felder < 24), "ein kleines Stück zwischen den Plätzen");
+            Pruefe.Wahr(r.Restflaechen.Any(x => x.Grund == Restflaeche.Klein && x.Felder < 24), "ein kleines Stück zwischen den Gebäuden");
             Pruefe.Wahr(r.Restflaechen.Any(x => x.Grund == Restflaeche.Abseits && x.Felder >= 24), "hinter den Plätzen, über 30 m von der Straße");
             Pruefe.Wahr(r.Restflaechen.Select(x => x.Kennung).SequenceEqual(Enumerable.Range(1, r.Restflaechen.Count).Select(n => $"R{n}")), "R1, R2 …");
             var zonen = Felder(e.Bauzonen.Select(z => z.Ecken));
@@ -204,7 +204,7 @@ static class RasterBauzonenTests
             }
             var koeln = Oeffnen("koeln");
             Pruefe.Gleich(0, koeln.Bauzonen.Count(z => !z.Berechnet), "keine Zone von Hand (bis zu den Hofstellen 6 Werkstatt-Bauplätze, bis zum Rathaus am Alter Markt 7)");
-            Pruefe.Gleich(48, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48
+            Pruefe.Gleich(50, koeln.Bauzonen.Count(z => z.Berechnet)); // seit „nur noch Bauzonen“ (16.11.2026, Plätze sperren nichts mehr) 50; seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48; seit den Hofstellen 46; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48
             Pruefe.Gleich(0, koeln.Start.Hofstellen.Count(h => h.Kennung.StartsWith("WB_")), "die Werkstatt-Bauplätze heißen als Hofstellen N1–N5 und A1");
             Pruefe.Wahr(koeln.Restflaechen.Count > 0, "Köln hat Restflächen");
         }),

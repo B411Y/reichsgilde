@@ -52,19 +52,21 @@ static class KartenbauTests
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 6835 Felder, davon fest belegt 0",   // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 6.835, vorher 6.569; bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
+                "Stadt-Bauzonen: 8495 Felder, davon fest belegt 1133",   // seit „nur noch Bauzonen“ (16.11.2026) 8.495, davon 1.133 unter den alten Plätzen (ihre Flächen gehören zur Zone); seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 6.835, vorher 6.569; bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197, bis zum Rathaus am Alter Markt 7.093, bis zu den Hofstellen 7.135
                 // seit den Hofstellen: 16 Hofstellen, 8 für die Häuser einer Partie mit 8 Häusern, die übrigen 8 nehmen je eine Pflicht-Werkstatt auf (vorher 16 von 16 in den Zonen)
                 "Pflicht Werkstatt: 8 auf freien Hofstellen", "Pflicht Werkstatt: 8 von 8 passen (dazu die freien Hofstellen)",
                 "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 5771 Felder (84%), nach der Reserve: 5307 Felder", // vor den Kirchen-Entfernung (11.11.2026) 5.505 und 5.041, vor den Hofstellen 5.623 (79 %) und 5.159
+                "Frei nach der Pflicht: 6298 Felder (74%), nach der Reserve: 5834 Felder", // vor „nur noch Bauzonen“ (16.11.2026) 5.771 (84 %) und 5.307; vor den Kirchen-Entfernung (11.11.2026) 5.505 und 5.041, vor den Hofstellen 5.623 (79 %) und 5.159
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
             // Die gesetzten Gebäude: alle 76 aus Pflicht und Reserve (vor den Hofstellen 84: acht Werkstätten stehen jetzt auf Hofstellen); feste keine
-            // (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder)
+            // (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder); seit „nur noch Bauzonen“ (16.11.2026) liegen die 32 alten Plätze
+            // (16 Werkstatt- und 16 Wohnhausplätze) in den Zonen und zählen als fest: 1.133 Felder
             Pruefe.Gleich(76, k.Plaetze.Count(p => p.Art != "fest"));
             Pruefe.Gleich(8 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
-            Pruefe.Gleich(0, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
+            Pruefe.Gleich(32, k.Plaetze.Count(p => p.Art == "fest"));
+            Pruefe.Gleich(1143, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count)); // je Platz gezählt; 10 Felder teilen sich zwei Plätze, belegt sind 1.133
         }),
 
         ("Kapazität aller Karten: dieselben Plätze wie vor der Beschleunigung (27.10.2026) – Anzahl, Felder und eine Prüfsumme ihrer Lage", () =>
@@ -78,7 +80,9 @@ static class KartenbauTests
                 // seit den Kirchenmodellen in Köln (9.11.2026) die Prüfsumme neu, vorher −5.342.922; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) noch einmal, vorher −7.195.386, und seit dem Rathaus am Alter Markt, vorher −8.093.550
                 // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) Köln vorher 0 / 76 / 1.528 / −5.176.768, die Plätze bleiben gleich; seit den Hofstellen (9.11.2026): Köln vorher 0 / 84 / 1.976 / −7.853.157 (die sechs Werkstatt-Bauplätze und zwei Hafenzonen sind Hofstellen, 8 Pflicht-Werkstätten
                 // stehen auf freien Hofstellen), Messstadt vorher 0 / 80 / 1.752 / 6.597.050 (9 Hofstellen: eine nimmt eine Pflicht-Werkstatt auf)
-                ("koeln", 0, 76, 1528, -7275443L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 79, 1696, 5021759L),
+                // seit „nur noch Bauzonen“ (16.11.2026; die Flächen der alten Plätze gehören zur Zone und zählen als fest belegt): Köln vorher 0 / 76 / 1.528 / −7.275.443,
+                // Greybox vorher 4 / 26 / 901 / −2.835.284, Probestadt vorher 0 / 84 / 1.976 / 12.679.538; Messstadt unverändert
+                ("koeln", 0, 108, 2671, -9672404L), ("greybox", 4, 41, 1327, -5675165L), ("probestadt", 0, 94, 2312, 6589340L), ("messstadt", 0, 79, 1696, 5021759L),
             };
             var gemessen = erwartet.Select(x =>
             {

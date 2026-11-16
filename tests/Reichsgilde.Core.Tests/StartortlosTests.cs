@@ -109,9 +109,9 @@ static class StartortlosTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Startortlos: Wie viele Häuser beginnen können, sagen die Bauzonen im Stadtinneren – Köln und Probestadt 8, Greybox 3, Messstadt 0; im Übergang zählt die Vorstadt mit", () =>
+        ("Startortlos: Wie viele Häuser beginnen können, sagen die Bauzonen im Stadtinneren – Köln und Probestadt 8, Greybox 4 (seit 16.11.2026, vorher 3), Messstadt 0; im Übergang zählt die Vorstadt mit", () =>
         {
-            foreach (var (kennung, innen) in new[] { ("koeln", 8), ("probestadt", 8), ("greybox", 3), ("messstadt", 0) })
+            foreach (var (kennung, innen) in new[] { ("koeln", 8), ("probestadt", 8), ("greybox", 4), ("messstadt", 0) })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
                 Pruefe.Gleich(innen, Startortlos.Haeuser(karte, Daten.Value, nurStadtinneres: true), kennung + ", nur Stadtinneres");

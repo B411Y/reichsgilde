@@ -93,7 +93,7 @@ static class GreyboxTests
             var k = Karte();
             Pruefe.Gleich("greybox", k.Kennung);
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
-            Pruefe.Gleich(9, k.Bauzonen.Count); // seit 4.11.2026 aus dem Raster (vorher 11 von Hand); alle Felder der alten Zonen sind weiter Zone
+            Pruefe.Gleich(16, k.Bauzonen.Count); // seit „nur noch Bauzonen“ (16.11.2026) 16: die Flächen der alten Plätze gehören zur Zone; seit 4.11.2026 aus dem Raster 9 (vorher 11 von Hand); alle Felder der alten Zonen sind weiter Zone
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
 

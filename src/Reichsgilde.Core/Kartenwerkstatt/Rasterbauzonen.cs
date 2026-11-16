@@ -13,6 +13,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Zusammenhängende Felder einer Lage werden eine Zone, deren Umriss die Ränder der Felder nachzeichnet (Löcher – ein Haus mitten im Block –
 //  teilt ein senkrechter Schnitt). Zu kleine Stücke (unter 24 Feldern) und Felder ohne Karrenstraße in der Nähe werden keine Zone, sondern
 //  Restflächen (in Kern, Mauerring und Vorstadt): Platz für Gärten und Höfe der Darstellung.
+//  Nur noch Bauzonen (15.11.2026): Werkstatt- und Wohnhausplätze alter Karten sind kein Hindernis mehr – ihre Fläche gehört zur Zone; eine
+//  Restfläche entsteht auf und an ihnen nicht.
 //  Gerechnet wird beim Kartenbau (Stadtskript, Umbau, Befehl „bauzonen“), nie in der Partie: Das Ergebnis steht als „bauzonen“ (mit
 //  "berechnet": true) und „restflaechen“ in der Datei. Herkunft: die Köln-Rechnung von tools/Kartenbau/Staedte/Koeln.Zonen.cs (PR #163 ff.).
 //  Alle Mengen werden in fester Reihenfolge (nach Feldnummer) durchlaufen, damit dieselbe Karte immer dieselben Zonen ergibt.
@@ -101,7 +103,10 @@ public static class Rasterbauzonen
         // Was Felder sperrt, mit umschließendem Rechteck zum schnellen Aussortieren
         var wege = e.Wege.Where(w => w.Verlauf.Count >= 2)
             .Select(w => (Linie: w.Verlauf, Abstand: w.BreiteWirksam / 2 + Wegrand, Rahmen: Rahmen(w.Verlauf, w.BreiteWirksam / 2 + Wegrand + 1))).ToList();
-        var gebaeude = e.Gebaeude.Select(g => g.Ecken()).Where(ecken => ecken.Count > 0)
+        // Nur noch Bauzonen (15.11.2026): Werkstatt- und Wohnhausplätze alter Karten versperren nichts mehr (wie Bauwesen.AlterPlatz) – ihre
+        // Fläche gehört zur Zone.
+        var gebaeude = e.Gebaeude.Where(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz))
+            .Select(g => g.Ecken()).Where(ecken => ecken.Count > 0)
             .Select(ecken => (Ecken: ecken, Rahmen: Rahmen(ecken, Gebaeudeabstand + 1))).ToList();
         var mauern = e.Mauern.Where(m => m.Linie.Count >= 2).Select(m => (Linie: m.Linie, Rahmen: Rahmen(m.Linie, v.Mauerabstand + 1))).ToList();
         var vonHand = e.Bauzonen.Where(z => !z.Berechnet && z.Ecken.Count >= 3)
@@ -183,6 +188,25 @@ public static class Rasterbauzonen
                     }
                     zonen.Add(new Rasterzone(lage, umriss, teil.Count));
                 }
+
+        // Auf und an den alten Plätzen (2 m wie zu Gebäuden) entsteht keine Restfläche: Solange sie in der Karte stehen, steht dort in einer Partie
+        // mit festen Plätzen (Startplatzvergabe.Vorgabe) ein Haus, und die Darstellung füllt nichts unter Gebäuden.
+        var plaetze = e.Gebaeude.Where(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)
+            .Select(g => g.Ecken()).Where(ecken => ecken.Count > 0)
+            .Select(ecken => (Ecken: ecken, Rand: ecken.Append(ecken[0]).ToList(), Rahmen: Rahmen(ecken, Gebaeudeabstand + 1))).ToList();
+        bool AmPlatz((int I, int J) f)
+        {
+            for (var dx = 0; dx <= 2; dx++)
+                for (var dz = 0; dz <= 2; dz++)
+                {
+                    var p = new Kartenort((f.I + dx / 2.0) * Raster, (f.J + dz / 2.0) * Raster);
+                    foreach (var g in plaetze)
+                        if (Im(g.Rahmen, p) && (Kartengeometrie.ImVieleck(p, g.Ecken) || Kartengeometrie.AbstandLinie(p, g.Rand) < Gebaeudeabstand)) return true;
+                }
+            return false;
+        }
+        if (plaetze.Count > 0)
+            foreach (var f in rest.Keys.Where(AmPlatz).ToList()) rest.Remove(f);
 
         // Restflächen: zusammenhängende Reste je Lage; „klein“ unter der Mindestgröße einer Zone, sonst „abseits“
         var restflaechen = new List<Restflaeche>();

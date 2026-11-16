@@ -233,8 +233,8 @@ static class RestflaechenfuellungTests
             // Taubenschlag (vorher 2–6 bzw. 1–3 verlangt; seit 11.11.2026 wieder kein Steinmetzplatz, deshalb fest 0) – offener Punkt bei der Darstellung (Gewichte in restflaechen.json)
             Pruefe.Gleich(0, mit.GetValueOrDefault("steinmetzplatz"));
             Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 0 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
-            foreach (var (thema, zahl) in new[] { ("hof", 3), ("pferch", 2), ("wasserstelle", 3), ("heuschober", 6) })   // seit Köln ohne St. Severin und St. Kunibert (11.11.2026; weniger Restflächen, kein Steinmetzplatz mehr) 3, 2, 3, 6; bis zu den Hofstellen 4, 4, 2, 4; bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7; bis zu den Hofstellen 4, 5, 3, 6
-                Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema));
+            foreach (var (thema, zahl) in new[] { ("hof", 1), ("pferch", 0), ("wasserstelle", 3), ("heuschober", 2) })   // seit „nur noch Bauzonen“ (16.11.2026; 31 statt 38 Restflächen, die Flächen der alten Plätze gehören zur Zone) 1, 0, 3, 2; seit Köln ohne St. Severin und St. Kunibert (11.11.2026; weniger Restflächen, kein Steinmetzplatz mehr) 3, 2, 3, 6; bis zu den Hofstellen 4, 4, 2, 4; bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7; bis zu den Hofstellen 4, 5, 3, 6
+                Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema), thema + " – " + uebersicht);
         }),
 
         ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die Themen Kirchhof, Holzplatz, Heuschober, Bildstock, Hof, Pferch, Wasserstelle, Steinmetzplatz und Taubenschlag sind da, ihr Winterknoten auch (die Tiere haben keinen: Schwein und Ziege stehen im Winter wie im Sommer)", () =>
