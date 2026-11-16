@@ -318,7 +318,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Steinebenen) Nicht auf der GPU geprüft: der Shader (nur im Dummy-Renderer geparst), die Reihenfolge der Ebenen nach dem Import (senkrecht, Ebene i = Bildzeilen i·2048), Strohkanten und Brand am Dach im Bild, Flimmern der Steinbänder im Pixel-Look. Anleitung für die NAS im Bericht des Branches.
 - (Steinebenen) Innenblätter ohne Steinwahl. K4 `PavingStones142` (Pflaster, Böden) ist nirgends eingesetzt; passende Bänder gäbe es nur innen (`lehmboden`) bzw. im Boden der Stadt.
 - (Steinebenen, an die Ketten-Branches) Häuserfehler aus der Rückmeldung zum Vergleichsbild: Ankereisen am Giebel der Steinhäuser, Pfeiler zwischen den Fenstern des Zwerg-Steinhauses, Wappen über dem Laden (Stufe 2 und 3) – Liste mit Maßen im Bericht des Branches; Prüfung mit `luecken_pruefung.py`.
-- (Steinebenen) Auf main allein (nur Mensch S1) kostet das Array mehr Grafikspeicher als das eine Blatt (rund 208 statt 75 MiB), weil alle 8 Ebenen geladen werden; die Ersparnis entsteht erst mit den Häusern der Kette. Elb und Halbling sind Platzhalter-Ebenen (32 MiB).
+- (Steinebenen) Auf main allein (nur Mensch S1) kostet das Array mehr Grafikspeicher als das eine Blatt (rund 208 statt 75 MiB), weil alle 8 Ebenen geladen werden; die Ersparnis entsteht erst mit den Häusern der Kette. Elb und Halbling sind Platzhalter-Ebenen (32 MiB). Rathaus und Brücke ändern daran nichts (gemessen 16.11.: gleich vor und nach dem Umbau auf Arrays).
 - (Klappbrücke, Entwurf) Wartet auf Abnahme des Nutzers (Bilder unter `C:/Reichsgilde_Austausch/klappbruecke/bilder/`). Danach: Karte (Durchfahrt, Pfeiler, Strömungsfeld: leveldesign), Einbau in die Stadtansicht, Ablauf (Zierschiff, Passanten, Schranken) mit der Kernabfrage `Klappbruecke.IstOffen`.
 - (Klappbrücke, von sound) Kettenrasseln, Knarren der Klappen und Zahnradklicken beim Öffnen und Schließen (Animationen `Oeffnen`/`Schliessen`, 6 s); Mastholz-Knarren beim Durchfahren. Nichts gebaut.
 - (Klappbrücke) Kettenglieder werden beim Öffnen mit gestreckt (Skalierung entlang der Kette: 3,4 bis 8,7 m); echte Kette = Shader-Kachel oder Skelett (später). Ranken und Eisenspitzen sind Geometrie (kein Alpha-Card); Alpha-Cards nur, wenn die Dreiecke im Spiel zu teuer werden. Die Stoffe (Quader, Eichenholz, Eisenwerk, Schiefer) und die Verdeckung auf UV2 sind noch nicht im Spiel verdrahtet (kommt mit dem Einbau). Normal und ORM prüft `uv2_pruefung.py` nicht (nur Albedo und Verdeckung).
@@ -330,6 +330,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Leveldesign) Köln nach Bauzonen-Karten: 0 Pferche statt 2, nur 1 Hof und 2 Heuschober; graue Bodenplatten der alten Plätze noch sichtbar.
 
 ## Entscheidungen
+
+### Steinebenen auch für Rathaus und Klappbrücke (Branch phase5/steinebenen-rathaus-bruecke, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Shader | Das Rathaus nutzt `building_trim.gdshader` (und `_kante`) wie die Häuser; `building_trim_rathaus.*` ist gelöscht. Was ihn unterschied, ist Uniform im Rumpf: `stroh_dach = 0` (keine Halmstriche im Pixel-Look, Schiefer), `stein_je_ebene = false` mit `stein_baender` aus `SteinMip.Von`. Die Schieferkanten laufen über `STROHKANTE` (nur der Alpha Scissor) | 16.11.2026 |
+| Arrays | Rathaus außen `rathaus_ebenen_*` (Quaderband mit K1, `trimsheet_ebenen.py --array=rathaus`), Brücke `bruecke_ebenen_*` (Werksteinband mit K2, Quader bleiben dunkel), je eine Ebene. Rathaus innen und alle Rathaus-AO-Atlanten: nur Importart auf „Array, eine Ebene“ (Bilder unverändert). Die Einzelblätter `rathaus_trim_*`, `bruecke_trim_*` bleiben als Quelle der Bauskripte | 16.11.2026 |
+| Aussehen | Rathaus: nur das Quaderband (Sockel, Gewände) zeigt K1 statt des bisherigen Sandsteins, sonst im Klicktest (Köln, Pixel-Look an und aus) gleich. Brücke: Pfeiler, Rampen und Torhäuser sind heller sandfarben (K2 statt dunklem Werkstein), das ist die gewollte Änderung | 16.11.2026 |
+| Grafikspeicher | Gemessen mit `TextureMemUsed` (Köln, 4000er-Blick, klar, 1600 × 900, Vulkan): Rathaus-Blick vorher 1397,1 MiB, nachher 1397,1 MiB; Brücken-Blick vorher 1396,8, nachher 1396,8 MiB – gleich, weil ein Array mit einer Ebene so viel belegt wie die Einzelblätter | 16.11.2026 |
+| Absturzschutz | `KnotenEntfernen` (Stadtansicht.cs): `IsInstanceValid(label) &&` bzw. `IsInstanceValid(teil) &&` vor `IsAncestorOf` (Befund des Prüfers zu #485); freigegebene Einträge bleiben in der Liste, bis die Schilderprüfung (`Stadtansicht.Schilderpruefung.cs`) sie entfernt | 16.11.2026 |
 
 ### Zieher-Clips für die Passanten (Branch phase5/karren-clips, Karren Teil c)
 

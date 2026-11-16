@@ -63,7 +63,7 @@ public static class KlappbrueckeModellTests
         });
         yield return ("Klappbrücke Texturen: Trim-Sheet (Albedo, Normal, ORM) und Verdeckungsatlas liegen da, 2048 × 2048", () =>
         {
-            foreach (var n in new[] { "bruecke_trim_albedo.png", "bruecke_trim_normal.png", "bruecke_trim_orm.png", "klappbruecke_ao_atlas.png" })
+            foreach (var n in new[] { "bruecke_ebenen_albedo.png", "bruecke_ebenen_normal.png", "bruecke_ebenen_orm.png", "klappbruecke_ao_atlas.png" })
             {
                 var b = File.ReadAllBytes(Path.Combine(Assets, "texturen", "bruecke", n));
                 Pruefe.Wahr(b.Length > 24 && b[1] == (byte)'P' && b[2] == (byte)'N' && b[3] == (byte)'G', n + " ist kein PNG");

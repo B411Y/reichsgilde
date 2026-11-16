@@ -48,7 +48,6 @@ Blender-Bauskripte, Trim-Sheets, Texturen, GLB, Asset-Protokoll, Messskripte. Ne
 
 - (Steinebenen) Die einzelnen Blätter `trim_*.png`, `innen_trim_*.png` und die AO-Atlanten liegen weiter in `game/assets/texturen/neubau/` (Quellen des Bauskripts); das Spiel lädt sie nicht mehr, sie würden aber mit exportiert. Vorschlag: aus dem Spielordner nehmen oder vom Export ausschließen.
 
-- (Steinebenen, an Rathaus und Brücke) Rathaus: im Branch `trimsheet_ebenen.py --array=rathaus` (Quader → K1), Material mit `rathaus_ebenen_*`, `stein_je_ebene = false`, `stein_baender` wie `SteinMip.Von("rathaus_trim")`; der Shader dort hat zusätzlich `stroh_dach` (beim Zusammenführen behalten). Brücke: `--array=bruecke` (Werkstein → K2, Quader bleiben der dunkle Zwergenstein); sie läuft bisher nicht mit `building_trim.gdshader`, für ihr Layout braucht der Rumpf einen Schalter „kein Strohband“ (v unter 0,25 ist bei ihr Quader).
 
 ## Entscheidungen
 

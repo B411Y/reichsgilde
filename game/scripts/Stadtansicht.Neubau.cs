@@ -142,7 +142,7 @@ public partial class Stadtansicht
     {
         var gruppe = NeubauGruppe(datei);
         var innen = gruppe.EndsWith("_innen");
-        if (gruppe.StartsWith("rathaus")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets, einzelne Texturen
+        if (gruppe.StartsWith("rathaus")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets (Arrays mit einer Ebene), derselbe Shader
         var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "");
         if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var array = innen ? "innen" : "haeuser";
@@ -173,12 +173,12 @@ public partial class Stadtansicht
         {
             stoff.SetShaderParameter("pixel_look", an ? 1f : 0f);
             // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
-            if (stoff.Shader == _neubauKantenShader || stoff.Shader == _rathausKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
+            if (stoff.Shader == _neubauKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
         }
     }
 
     /// <summary>Ist das ein Trim-Material der Neubauten (oder eine Kopie davon, etwa mit Brandschaden)?</summary>
-    private bool NeubauIstTrim(ShaderMaterial stoff) => stoff.Shader is { } s && (s == _neubauShader || s == _neubauKantenShader || s == _rathausShader || s == _rathausKantenShader);
+    private bool NeubauIstTrim(ShaderMaterial stoff) => stoff.Shader is { } s && (s == _neubauShader || s == _neubauKantenShader);
 
     /// <summary>Kennung der Klickfläche auf der Haustür im Innenraum: ein Klick verlässt das Haus (mit Klinke und Blende).</summary>
     public const string NeubauAusgang = "neubau:haustuer";
