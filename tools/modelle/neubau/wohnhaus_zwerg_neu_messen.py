@@ -11,7 +11,8 @@ Prueft (Nummern wie bei den Menschen):
   Stufe 2/3: wohnhaus_mensch_s23_messen.pruefe (1-11, 12-15 aussen und Wohnstube, 16-18 Lueckenpruefung, 19 Wappen frei an der Gassenwand).
   Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim_zwerg, AO-Atlanten der Raeume), 20 Dreiecke der Huelle
         (Haus, Dach, Scheiben) hoechstens 4.000 (Nutzer 15.11.2026), 21 Haustuer und Zimmertueren mindestens fuer einen Menschen
-        (1,75 m + 0,20 hoch, Schulter 0,46 + 0,30 breit; Ork und Oger zur Kenntnis).
+        (1,75 m + 0,20 hoch, Schulter 0,46 + 0,30 breit; Elb zur Kenntnis; Ork und Oger werden nicht betrachtet, Nutzer 16.11.2026),
+        22 Fahnenmast steht auf dem Dach (Luft hoechstens 1 cm); Stufe 1: 23 Schwerstangen liegen auf den Schindeln, Findlinge auf den Stangen.
 Die Blaetter heissen wie bei den Menschen mit "_zwerg" (trim_zwerg, trim_s2_zwerg, innen_trim_s23_zwerg ...).
 --gegenprobe: dieselben Pruefungen am alten Stand (Branch phase5/neubau-zwerg-st23: --ordner, --texturen, --atlas-json und --raeume-json
 dieses Stands), die Fehler finden muessen. Rueckgabewert 1 bei Fehlern (ohne --gegenprobe).
@@ -81,6 +82,89 @@ def _vieleck_trifft_rechteck(pts2, u0, u1, z0, z1):
         if max(a) <= min(b) + 1e-9 or max(b) <= min(a) + 1e-9:
             return False
     return True
+
+
+def _dach_baum(obs, stoffe=None):
+    """BVH der Flaechen des Objekts „Dach“ (optional nur bestimmter Stoffe)."""
+    from mathutils.bvhtree import BVHTree
+    pkt, fl = [], []
+    for o in obs:
+        if o.name.split(".")[0] != "Dach": continue
+        for p in o.data.polygons:
+            mat = o.data.materials[p.material_index].name.split(".")[0] if o.data.materials else ""
+            if stoffe and mat not in stoffe: continue
+            b = len(pkt)
+            pkt += [o.matrix_world @ o.data.vertices[i].co for i in p.vertices]
+            fl.append(list(range(b, b + len(p.vertices))))
+    return BVHTree.FromPolygons(pkt, fl) if fl else None
+
+
+def fahne_steht(glb):
+    """Pruefung 22: Der Fahnenmast steht auf dem Dach (Rueckmeldung des Nutzers 16.11.2026): der tiefste Punkt des Masts (Knoten
+    „Fahne“, Stoff „Holz“) liegt hoechstens 1 cm ueber der Dachoberflaeche an seiner Stelle (Strahl von oben auf das Dach)."""
+    obs = _objekte(glb)
+    holz = [o.matrix_world @ o.data.vertices[i].co for o in obs if o.name.split(".")[0] == "Fahne"
+            for p in o.data.polygons if o.data.materials and o.data.materials[p.material_index].name.split(".")[0] == "Holz" for i in p.vertices]
+    if not holz:
+        return ["   FEHLER kein Fahnenmast"], 1
+    unten = min(p.z for p in holz)
+    fuss = [p for p in holz if p.z < unten + 1e-3]
+    x, y = sum(p.x for p in fuss) / len(fuss), sum(p.y for p in fuss) / len(fuss)
+    baum = _dach_baum(obs)
+    treffer = baum.ray_cast(Vector((x, y, unten + 3.0)), Vector((0, 0, -1))) if baum else (None,)
+    if treffer[0] is None:
+        return [f"   FEHLER unter dem Mast bei ({x:.2f}, {y:.2f}) kein Dach"], 1
+    luft = unten - treffer[0].z
+    ok = luft <= 0.01
+    return [f"   Mastfuss z {unten:.3f}, Dach darunter z {treffer[0].z:.3f}: Luft {luft * 100:+.1f} cm (Soll <= 1 cm)" + ("" if ok else "  FEHLER")], 0 if ok else 1
+
+
+def stangen_liegen(glb):
+    """Pruefung 23 (Legschindeldach, Stufe 1): jede Schwerstange (Holz im Dach, ueber 2 m lang entlang des Firsts) liegt auf den
+    Schindeln (Strahl von der Mitte ihrer Unterseite entlang deren Normale trifft eine Schindelflaeche nach hoechstens 1,5 cm), und
+    jeder Findling (Stoff „Lehmputz“ im Dach) liegt auf einer Stange (Strahl von seinem Boden nach unten trifft Holz nach hoechstens 2 cm)."""
+    obs = _objekte(glb)
+    schindeln, holz = _dach_baum(obs, ("Stroh",)), _dach_baum(obs, ("Fachwerk",))
+    stangen = funde = steine = 0
+    zeilen, boden = [], []
+    dv = [o.matrix_world @ v.co for o in obs if o.name.split(".")[0] == "Dach" for v in o.data.vertices]
+    mx, my = sum(v.x for v in dv) / len(dv), sum(v.y for v in dv) / len(dv)       # Mitte des Dachs (der First liegt darueber)
+    for o in obs:
+        if o.name.split(".")[0] != "Dach": continue
+        for p in o.data.polygons:
+            mat = o.data.materials[p.material_index].name.split(".")[0] if o.data.materials else ""
+            pts = [o.matrix_world @ o.data.vertices[i].co for i in p.vertices]
+            n = (o.matrix_world.to_3x3() @ p.normal).normalized()
+            c = sum(pts, Vector()) / len(pts)
+            dx_, dy_ = max(q.x for q in pts) - min(q.x for q in pts), max(q.y for q in pts) - min(q.y for q in pts)
+            flach = max(q.z for q in pts) - min(q.z for q in pts) < 0.15
+            zum_first = (n.x * (c.x - mx) < 0) if dy_ > dx_ else (n.y * (c.y - my) < 0)     # Unterseite: Normale zeigt hangaufwaerts
+            if mat == "Fachwerk" and flach and max(dx_, dy_) > 2.0 and n.z < -0.3 and zum_first:   # Unterseite einer Stange
+                stangen += 1
+                t = schindeln.ray_cast(c - n * 0.05, n, 0.20)                 # von 5 cm innen: eine eingesenkte Stange zaehlt als aufliegend
+                if t[0] is None or t[3] > 0.065:
+                    funde += 1; zeilen.append(f"   FEHLER Stange bei ({c.x:.2f}, {c.y:.2f}, {c.z:.2f}) liegt nicht auf ({'nichts' if t[0] is None else f'{(t[3] - 0.05) * 100:.1f} cm Luft'})")
+            if mat == "Lehmputz" and n.z < -0.9:                                                          # Boden eines Findlings
+                boden.append([tuple(round(c_, 3) for c_ in o.matrix_world @ o.data.vertices[i].co) for i in p.vertices])
+    # Findlinge: Bodenfaecher nach gemeinsamen Ecken zusammenfassen; die Ecke, die in den meisten Dreiecken steckt, ist die Mitte
+    gruppe = {}
+    def wurzel(a):
+        while gruppe.setdefault(a, a) != a: a = gruppe[a]
+        return a
+    for tri in boden:
+        for v in tri[1:]: gruppe[wurzel(v)] = wurzel(tri[0])
+    mitten = {}
+    for tri in boden:
+        for v in tri:
+            w = wurzel(v); mitten.setdefault(w, {}); mitten[w][v] = mitten[w].get(v, 0) + 1
+    for w, ecken in mitten.items():
+        v = max(ecken, key=ecken.get)
+        steine += 1
+        t = holz.ray_cast(Vector(v) + Vector((0, 0, 0.05)), Vector((0, 0, -1)), 0.20)
+        if t[0] is None or t[3] > 0.075:
+            funde += 1; zeilen.append(f"   FEHLER Findling bei ({v[0]:.2f}, {v[1]:.2f}, {v[2]:.2f}) liegt nicht auf einer Stange")
+    zeilen.insert(0, f"   {stangen} Stangen-Unterseiten, {steine} Findlinge")
+    return zeilen[:10], funde + (1 if stangen == 0 else 0)
 
 
 def wappen_frei(glb, abstand=0.05):
@@ -185,7 +269,7 @@ def tueren(haus, stufe, form):
     zeilen, fehler = [], 0
     for name, (b, h) in (("Haustuer", (tb, th)),) + ((("Zimmertuer", zimmer),) if zimmer else ()):
         teile = []
-        for fig in ("Zwergin", "Zwerg", "Mensch", "Elb", "Ork", "Oger"):
+        for fig in ("Zwergin", "Zwerg", "Mensch", "Elb"):              # Ork und Oger arbeiten nur in Aussenbetrieben (Nutzer 16.11.2026)
             ok = b + 1e-6 >= soll[fig]["tuer_b"] and h + 1e-6 >= soll[fig]["tuer_h"]
             teile.append(f"{fig} {'ja' if ok else 'nein'}")
             if not ok and fig in ("Zwergin", "Zwerg", "Mensch"): fehler += 1
@@ -247,6 +331,11 @@ def main():
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren(haus, stufe, form); zeilen += z; fehler += f
+    z22, f22 = fahne_steht(glb)
+    zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
+    if stufe == 1:
+        z23, f23 = stangen_liegen(glb)
+        zeilen.append(f"23. Legschindeldach: Schwerstangen auf den Schindeln, Findlinge auf den Stangen: {'ok' if not f23 else str(f23) + ' FEHLER'}"); zeilen += z23; fehler += f23
     kopf = ("GEGENPROBE (aelterer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
     print("MESSUNG " + kopf)
     for z in zeilen: print("MESSUNG " + z)

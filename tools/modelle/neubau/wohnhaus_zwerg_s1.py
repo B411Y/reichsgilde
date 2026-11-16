@@ -189,6 +189,11 @@ def schicht_anlegen():
             w.flaechen = [([o + (p - o) * (g / WAPPEN_G) for p in pts], uv, st, fa, gl) for pts, uv, st, fa, gl in w.flaechen]
         return w
     s1.baue_wappen = wappen24
+    # ── Fahnenmast auf dem First verankert (er schwebte ueber dem duennen Schindeldach: der Mast der Menschen steht 25 cm ueber der
+    #    Unterseite des Firsts, das Stroh ist 28 cm dick, die Schindeln 1,5 bis 7 cm) ──
+    alt_fahne1, alt_fahne24 = g1.baue_fahne, s1.baue_fahne
+    g1.baue_fahne = lambda: zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH)
+    s1.baue_fahne = lambda x, y, z: zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH)
 
 
 WAPPEN_G = 0.62                                   # Groesse des Schilds der Menschen (g1.baue_wappen)

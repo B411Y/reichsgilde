@@ -5,7 +5,7 @@
 Dieses Modul haengt nur an zwerg_masse.py
 (Figuren, Zwergenhoehen). Das Bauskript (wohnhaus_zwerg_s23.py) misst am Ende jeder Grundform den Ist-Stand aus der Szene und ruft
 `pruefe(stufe, form, ist)`. Regeln (Auftrag): Zwergenhoehen fuer Moebel, Tueren und Decken so, dass Menschen hineinpassen, Elb mitgerechnet;
-Ork und Oger werden genannt, wenn sie nicht passen (nicht Pflicht).
+Ork und Oger werden nicht betrachtet (Nutzer 16.11.2026).
 """
 import sys
 
@@ -23,7 +23,7 @@ def pruefe(stufe, form, ist, ausgabe=print):
     oeffnung ueber der Lauflinie), og_raum_h (lichte Hoehe der Raeume im Obergeschoss bzw. Dachgeschoss, oberste Stelle),
     dach_bib_stehbreite (Breite der Dachgeschoss-Bibliothek, auf der ein Zwerg bzw. Mensch aufrecht steht; Stufe 3, sonst None)."""
     zeilen, fehler = ZM.pruefe(f"S{stufe} G{form}", ist, ausgabe=lambda z: None)
-    out = [f"SOLLIST Stufe {stufe} Grundform {form}: Soll gegen Ist (Zwerg, Zwergin, Mensch Pflicht; Elb, Ork, Oger zur Kenntnis)"]
+    out = [f"SOLLIST Stufe {stufe} Grundform {form}: Soll gegen Ist (Zwerg, Zwergin, Mensch Pflicht; Elb zur Kenntnis)"]
     out += ["SOLLIST " + f"  {n:64s} Soll {str(s):>12s}   Ist {i if isinstance(i, str) else format(i, '.2f'):>6s}   {'ok' if ok else 'FEHLT'} {b}"
             for n, s, i, ok, b in zeilen]
     extra = []

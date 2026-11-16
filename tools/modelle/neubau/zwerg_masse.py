@@ -7,17 +7,16 @@ Konstanten der Menschenskripte) und ruft `pruefe(form, ist)` auf: eine Tabelle S
 Muster: rathaus_masse.py (Branch phase5/neubau-rathaus). Die Zahlen stehen mit Herkunft in docs/bereiche/darstellung.md.
 
 Regel (Auftrag): innen exakt maßgleich mit aussen, fuer Zwerg und Zwergin belegt; zugleich muss eine Menschenfigur von 1,75 m durch
-die Haustuer passen und im Raum stehen koennen (Besucher und Mitarbeiter anderer Voelker). Oger (2,50 m wie beim Rathaus) ist hier nicht
-Pflicht; die Tabelle nennt trotzdem, was er braeuchte.
+die Haustuer passen und im Raum stehen koennen (Besucher und Mitarbeiter anderer Voelker). Ork und Oger werden nicht betrachtet (sie
+arbeiten nur in Aussenbetrieben, Nutzer 16.11.2026); der Elb steht zur Kenntnis in der Tabelle.
 """
 import sys
 
 # Hoehe in Metern, Schulterbreite. Zwerg 1,30-1,40 (Mittel 1,35), Zwergin mal 0,95: ProbeKoerpergroesse / ProbeArtDaten in
-# game/scripts (docs/bereiche/darstellung.md, Passanten-Probe). Mensch 1,75, Elb 1,85, Halbling 1,10, Ork 1,1 x 1,75,
-# Oger 1,35 x 1,75 = 2,36 (Obergrenze des Rathaus-Auftrags 2,50).
+# game/scripts (docs/bereiche/darstellung.md, Passanten-Probe). Mensch 1,75, Elb 1,85, Halbling 1,10.
 FIGUREN = {
     "Zwergin": (1.28, 0.44), "Zwerg": (1.35, 0.46), "Halbling": (1.10, 0.32), "Mensch": (1.75, 0.46),
-    "Elb": (1.85, 0.44), "Ork": (1.93, 0.52), "Oger": (2.50, 0.66),
+    "Elb": (1.85, 0.44),
 }
 KOPF = 0.20             # Luft ueber dem Kopf in einer Tuer (Hut, Nicken)
 SCHULTER_LUFT = 0.30    # Luft neben den Schultern in der Tuer
@@ -47,7 +46,7 @@ def pruefe(form, ist, ausgabe=print):
         nonlocal fehler
         zeilen.append((name, sollwert, istwert, ok, bem))
 
-    for fig in ("Zwergin", "Zwerg", "Mensch", "Elb", "Ork", "Oger"):
+    for fig in ("Zwergin", "Zwerg", "Mensch", "Elb"):
         pflicht = fig in ("Zwergin", "Zwerg", "Mensch")
         z = s[fig]
         for name, soll_, ist_, mehr in (

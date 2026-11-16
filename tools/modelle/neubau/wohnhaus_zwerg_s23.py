@@ -14,7 +14,7 @@ unveraendert):
   * Stufe 3 (Kunstwerk wohnhaus_lvl3_zwerg): GANZ STEIN. Mauer dunkler Quader (Band „putz“), Werkstein (Eckquader, Gewaende, Gesims,
     Treppengiebel, Schornstein) heller Haustein im Band „bruchstein“; der Mittelpfosten zwischen zwei Fenstern eines Paars ist ein
     HOLZPFOSTEN 25 x 10 cm (Nutzer 16.11.2026; kein Steinpfeiler mit tiefen Laibungen, keine Ankereisen), Laeden und Balkenkoepfe dunkles Holz.
-  * vor der Tuer ein Amboss (Kunstwerke), innerhalb der Dreiecksgrenze 4.000 der Huelle.
+  * vor der Tuer ein Amboss (Kunstwerke; nur Stufe 2, im Steinhaus reichen die Dreiecke nach den Eckquadern im OG nicht).
 Messung: wohnhaus_zwerg_neu_messen.py; Soll/Ist: wohnhaus_zwerg_s23_masse.py.
 """
 import os
@@ -105,10 +105,86 @@ def schicht_anlegen(stufe):
         rechts = laenge - s1_ >= s0                          # auf der Seite mit mehr Platz
         sa = s1_ + 0.85 if rechts else s0 - 0.85
         lage = lambda s, raus: (ox + ex * s + nx * raus, oy + ey * s + ny * raus)
-        zt.schmiedegeraet(h, lage(sa, 0.50), (nx, ny), (ex * (1 if rechts else -1), ey * (1 if rechts else -1)), schlank=True, nur_amboss=True)
-        print("DREIECKE Schmiedegeraet:", h.dreiecke() - vorher)
+        if stufe == 2:      # Steinhaus: ohne Amboss (Dreiecke fuer die Eckquader des Obergeschosses, Grenze 4.000)
+            zt.schmiedegeraet(h, lage(sa, 0.50), (nx, ny), (ex * (1 if rechts else -1), ey * (1 if rechts else -1)), schlank=True, nur_amboss=True)
+            print("DREIECKE Schmiedegeraet:", h.dreiecke() - vorher)
+        if stufe == 3:
+            vorher = h.dreiecke()
+            weg = eckquader_neu(h)
+            print("DREIECKE Eckquader (EG ersetzt, OG neu):", h.dreiecke() - vorher, "- entfernte Flaechen", weg)
         return h
     S23.baue_haus = haus
+    # Fahnenmast: auf dem First verankert (stand bisher 25 cm ueber der Unterseite des Firsts frei ueber der Deckung)
+    alt_dach, alt_fahne = S23.baue_dach, S23.baue_fahne
+
+    def dach(*a, **kw):
+        d = alt_dach(*a, **kw)
+        S23._zwerg_dach = d
+        return d
+    S23.baue_dach = dach
+    S23.baue_fahne = lambda: zt.fahne_verankern(alt_fahne(), S23._zwerg_dach)
+
+
+def flaechen_entfernen(h, weg):
+    """Entfernt Flaechen (Indexmenge) aus einem Teil und verschiebt die Bereiche der Holzakzente (versteinern() liest sie nach Index)
+    passend mit."""
+    alt = h.flaechen
+    neu_index, n = [], 0
+    for i in range(len(alt) + 1):
+        neu_index.append(n)
+        if i < len(alt) and i not in weg: n += 1
+    h.flaechen = [fl for i, fl in enumerate(alt) if i not in weg]
+    if hasattr(h, "holz_akzente"):
+        h.holz_akzente = [(neu_index[a], neu_index[e]) for a, e in h.holz_akzente]
+
+
+FUGE = 0.009     # Lagerfuge der Eckquader: 9 mm (bei 15 mm sah die Lueckenpruefung durch die Fuge an der Ecke einen Durchblick)
+
+
+def eckquader_l(h, x_ecke, ys, z_unten, z_oben, ende):
+    """Eckquader als Werkstuecke aus hellem Haustein (Band WERKSTEIN), Form wie im Erdgeschoss der Menschen (Laeufer 0,48 x 0,22 und
+    Binder 0,22 x 0,48 im Wechsel, Hoehe 0,34 bzw. 0,26 m, 3 cm vor der Mauer; Fuge FUGE), aber jeder Quader als ein L-Prisma ueber die
+    Ecke: Stirn, Seite, zwei Enden und Oberseite (die Unterseite liegt auf dem Quader darunter bzw. dem Gesims). So kostet ein Quader
+    12 statt 18 Dreiecke – noetig fuer die Grenze von 4.000 mit Eckquadern im Erd- und Obergeschoss."""
+    band = S23.WERKSTEIN
+    st = "Bruchstein"
+    EZ = Vector((0, 0, 1))
+    for sx in (-1, 1):
+        for y, sy in ys:
+            z, i = z_unten, 0
+            while z < ende:
+                hq = 0.34 if i % 2 == 0 else 0.26
+                lx, ly = (0.48, 0.22) if i % 2 == 0 else (0.22, 0.48)
+                zb = min(z + hq, z_oben)
+                za, ze, hz = z, zb - FUGE, zb - FUGE - z
+                xa, xi = sx * (x_ecke + 0.03), sx * (x_ecke - lx)          # aussen, innen entlang x
+                yf, yw, yi = y + sy * 0.03, y - sy * 0.01, y - sy * ly     # Stirnflaeche, hinter der Mauerflucht, innen entlang y
+                xw = sx * (x_ecke - 0.01)
+                kern = Vector((sx * (x_ecke - 0.05), y - sy * 0.05, (za + ze) / 2))
+                h.rechteck(st, Vector((min(xa, xi), yf, za)), (1, 0, 0), EZ, abs(xa - xi), hz, band, weg_von=kern)          # Stirn
+                h.rechteck(st, Vector((xa, min(yf, yi), za)), (0, 1, 0), EZ, abs(yf - yi), hz, band, weg_von=kern)          # Seite
+                h.rechteck(st, Vector((xi, min(yf, yw), za)), (0, 1, 0), EZ, abs(yf - yw), hz, band, zu=kern + Vector((sx * 5, 0, 0)))   # Ende entlang x
+                h.rechteck(st, Vector((min(xa, xw), yi, za)), (1, 0, 0), EZ, abs(xa - xw), hz, band, zu=kern + Vector((0, sy * 5, 0)))   # Ende entlang y
+                h.rechteck(st, Vector((min(xa, xi), min(yf, yw), ze)), (1, 0, 0), (0, 1, 0), abs(xa - xi), abs(yf - yw), band, zu=kern + EZ * 9)
+                h.rechteck(st, Vector((min(xa, xw), min(yw, yi), ze)), (1, 0, 0), (0, 1, 0), abs(xa - xw), abs(yw - yi), band, zu=kern + EZ * 9)
+                z = zb
+                i += 1
+
+
+def eckquader_neu(h):
+    """Steinhaus der Zwerge (Rueckmeldung des Nutzers 16.11.2026): Eckquader an allen vier Ecken des Erdgeschosses UND des
+    Obergeschosses, gleich in Form, Stein und Verzahnung. Die Eckquader der Menschen im Erdgeschoss (zwei Kaesten je Lage) werden durch
+    die L-Prismen ersetzt (gleiche Lage und Masse); im Obergeschoss vom Gesims ueber der Auskragung bis unter die Traufe. Giebel und Dach
+    bekommen keine (sie laufen im Muster des Erdgeschosses nicht mit)."""
+    M = S23.M
+    v0, v1, _ = h.baender[S23.WERKSTEIN]
+    ecke = lambda pts: (all(abs(abs(p.x) - M.BX) < 0.52 and p.z <= M.Z_EG_DECKE - 0.02 + 1e-3 for p in pts)
+                        and all(min(abs(p.y - M.VORN), abs(p.y - M.HINTEN)) < 0.52 for p in pts))
+    weg = {i for i, fl in enumerate(h.flaechen) if fl[2] == "Bruchstein" and ecke(fl[0]) and all(v0 - 1e-4 <= uv[1] <= v1 + 1e-4 for uv in fl[1])}
+    flaechen_entfernen(h, weg)
+    eckquader_l(h, M.BX, ((M.VORN, -1), (M.HINTEN, 1)), 0.0, M.Z_EG_DECKE - 0.02, M.Z_EG_DECKE - 0.3)
+    eckquader_l(h, M.OX, ((M.OVORN, -1), (M.HINTEN, 1)), M.Z_EG_DECKE + 0.12, M.Z_TRAUFE - 0.02, M.Z_TRAUFE - 0.2)
+    return len(weg)
 
 
 def messen(stufe, form, ausgabe_ordner=None):

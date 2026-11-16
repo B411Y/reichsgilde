@@ -13,6 +13,7 @@ from netzbau import Teil
 from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN
 
 UEBER = 0.38                  # Dachueberstand an der Traufe (wie bei den Menschen)
+LETZTES_DACH = None           # das zuletzt gebaute Schindeldach (Teil „Dach“)
 
 
 def feld(name):
@@ -120,7 +121,9 @@ def dach(g):
             d.vieleck("Stroh", [p, p + unter, spitze], [(u0, v0 + 0.03), (u0 + 0.05, v0 + 0.03), (u0 + 0.3, v0 + 0.07)], weg_von=M)
         ab = Vector((0, -0.06, -0.14))
         d.vieleck("Strohkante", [fuss_l + unter, fuss_r + unter, fuss_r + unter + ab, fuss_l + unter + ab], [(0.1, f0), (0.1 + 2 * xw / fm, f0), (0.1 + 2 * xw / fm, f1), (0.1, f1)], weg_von=M)
-    dachsteine(d, g, xe, laenge, dick_unten, kante)
+    dachsteine(d, g, xe, laenge, dick_unten, kante, stufen=stufen, dick_oben=dick_oben)
+    global LETZTES_DACH
+    LETZTES_DACH = d                                              # fuer fahne_verankern (Stufe 1)
     return d
 
 
@@ -129,21 +132,65 @@ def stein(t, mitte, r, h, seiten=6, band="putz", stoff="Lehmputz"):
     t.dreh(stoff, mitte, [(0.0, 0.0), (r * 0.92, 0.0), (r, h * 0.45), (r * 0.72, h * 0.9), (0.0, h)], band, seiten=seiten, deckel=False, glatt=False)
 
 
-def dachsteine(d, g, xe, laenge, dick, kante):
-    """Rundhoelzer laengs des Hangs und je zwei Steine darauf, auf jeder Dachseite (Kunstwerk: Steine halten die Schindeln)."""
-    walm_tief = (g.D_WALM + 0.7) if g.walm else 0.0
-    ys = [g.DV + walm_tief + (laenge - walm_tief) * f for f in (0.14, 0.5, 0.86)]
+STANGEN_A = (0.24, 0.52, 0.80)      # Lage der Schwerstangen am Hang (Anteil von der Traufe zum First)
+STANGE = 0.11                        # Kantholz 11 x 11 cm
+
+
+def dachsteine(d, g, xe, laenge, dick, kante, stufen=None, dick_oben=0.015):
+    """Legschindeldach (Rueckmeldung des Nutzers 16.11.2026): je Dachseite drei lange SCHWERSTANGEN waagerecht, parallel zum First, ueber
+    die ganze Dachlaenge auf den Schindeln; die Findlinge liegen in Abstaenden AUF den Stangen und beschweren sie, damit der Wind die
+    Schindeln nicht abhebt. Die Stange liegt mit ihrer Breitseite auf der Schindelflaeche (5 mm eingesenkt, Normale der Dachflaeche);
+    die Hoehe der Schindelflaeche am Hang: Reihe k von a0 = k/stufen (Fuss, Dicke `dick`) bis a1 (oben, Dicke dick_oben)."""
+    walm_tief = (g.D_WALM + 0.5) if g.walm else 0.0
+    ya, yb = g.DV + walm_tief + 0.05, g.DH - 0.05          # bis in den Ueberstand (Stirn nicht in der Ebene des Giebels)
     for seite in (-1, 1):
-        for i, y in enumerate(ys):
-            y = y + 0.18 * seite * (1 if i % 2 else -1)
-            ya = y
-            a_lo, a_hi = 0.22 + 0.06 * ((i + (seite > 0)) % 2), 0.60 + 0.05 * ((i + (seite > 0)) % 2)
-            lo = Vector((seite * xe * (1 - a_lo), ya, g.dach_z(seite * xe * (1 - a_lo)) + dick + 0.08))
-            hi = Vector((seite * xe * (1 - a_hi), ya, g.dach_z(seite * xe * (1 - a_hi)) + dick + 0.08))
-            d.stab("Fachwerk", lo, hi, 0.13, "balken_a", kappen=True)
-            for f in (0.30, 0.78):
-                p = lo.lerp(hi, f)
-                stein(d, p + Vector((0, 0.0, 0.03)), 0.17 + 0.03 * ((i + int(f * 10)) % 3), 0.20, seiten=6)
+        n = Vector((seite * g.neigung, 0.0, 1.0)).normalized()          # Normale der Dachflaeche (nach aussen oben)
+        for i, a in enumerate(STANGEN_A):
+            x = seite * xe * (1 - a)
+            # hoechste Stelle der Schindeln unter der Stange (gemessen an den gebauten Flaechen, alle 0,25 m): dort liegt sie auf
+            hoehen = [dach_hoehe(d, x, ya + (yb - ya) * s / 24, stoffe=("Stroh",)) for s in range(25)]
+            zs = max(h for h in hoehen if h is not None)
+            mitte = lambda y: Vector((x, y, zs)) + n * (STANGE / 2 - 0.005)
+            d.stab("Fachwerk", mitte(ya), mitte(yb), STANGE, "balken_a", oben=n, kappen=True)
+            oben = n * (STANGE / 2 - 0.01)                               # Findlinge 1 cm in die Stange gesetzt (liegen auf)
+            for j, f in enumerate((0.18, 0.5, 0.82)):
+                y = ya + (yb - ya) * f + 0.25 * ((i + j + (seite > 0)) % 2 - 0.5)
+                stein(d, mitte(y) + oben, 0.15 + 0.02 * ((i + j) % 3), 0.18, seiten=5)
+
+
+def dach_hoehe(dach, x, y, stoffe=None):
+    """Oberste Hoehe der Dachflaechen (Teil „Dach“, optional nur bestimmter Stoffe) ueber der Stelle (x, y); None ohne Flaeche."""
+    beste = None
+    for pts, uv, st, *_ in dach.flaechen:
+        if stoffe and st not in stoffe: continue
+        for i in range(1, len(pts) - 1):
+            a, b, c = pts[0], pts[i], pts[i + 1]
+            det = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
+            if abs(det) < 1e-9: continue
+            u = ((x - a.x) * (c.y - a.y) - (c.x - a.x) * (y - a.y)) / det
+            v = ((b.x - a.x) * (y - a.y) - (x - a.x) * (b.y - a.y)) / det
+            if u >= -1e-6 and v >= -1e-6 and u + v <= 1 + 1e-6:
+                z = a.z + u * (b.z - a.z) + v * (c.z - a.z)
+                beste = z if beste is None else max(beste, z)
+    return beste
+
+
+def fahne_verankern(f, dach):
+    """Der Fahnenmast steht auf dem First (Rueckmeldung des Nutzers 16.11.2026: er schwebte ueber den Schindeln): der Mast wird bis
+    10 cm unter die Dachoberflaeche verlaengert und bekommt dort eine eiserne Schelle als Fuss. `f` = Teil „Fahne“ (erste Flaeche
+    gehoert zum Mast, Stoff „Holz“)."""
+    holz = [p for pts, uv, st, *_ in f.flaechen if st == "Holz" for p in pts]
+    unten = min(p.z for p in holz)
+    fuss = [p for p in holz if p.z < unten + 1e-4]
+    x, y = sum(p.x for p in fuss) / len(fuss), sum(p.y for p in fuss) / len(fuss)
+    dz = dach_hoehe(dach, x, y)
+    if dz is None:
+        raise SystemExit(f"Fahne: keine Dachflaeche unter dem Mast bei ({x:.2f}, {y:.2f})")
+    if unten > dz - 0.10:
+        f.stab("Holz", (x, y, dz - 0.10), (x, y, unten), 0.08, "balken_a")
+    f.kasten("Eisen", (x - 0.07, y - 0.07, dz - 0.03), (x + 0.07, y + 0.07, dz + 0.09), "eisen")      # Schelle am Fuss
+    print(f"FAHNE Mast von {unten:.3f} bis auf {dz - 0.10:.3f} verlaengert, Dach bei {dz:.3f}")
+    return f
 
 
 def schlot_aufsatz(h, k, zo):
