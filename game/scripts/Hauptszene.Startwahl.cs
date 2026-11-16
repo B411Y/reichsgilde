@@ -50,5 +50,8 @@ public partial class Hauptszene
         if (StartwahlHaelt) _simulation.Takt.Anhalten(HaltegrundPlatzwahl); // schon vor dem ersten Tick; freigegeben wird in ZeitHalteAbgleichen
         if (_bau.Aktiv || _bauFrage.Visible || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || _simulation.IstBeendet) return;
         BauenOeffnen(); // die Tafel wählt das Gebäude selbst (BauAnzeige.StartwahlWaehlen)
+        // Klicktest: --bauort2=x,z,drehung setzt den Umriss des zweiten Schritts (Werkstatt) – wie --bauort den des ersten
+        if (_startOptionen?.GetValueOrDefault("bauort2") is { } ort && _simulation.Wirtschaft!.Bauen.StartwahlVon(_spieler!) is { WohnhausOffen: false })
+            BauOrtSetzen(ort);
     }
 }

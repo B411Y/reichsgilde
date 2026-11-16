@@ -65,6 +65,7 @@ namespace Reichsgilde;
 ///   --beruf=Steinmetz  Startberuf der Testpartie (Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher)
 ///   --startwahl=1      die Partie beginnt mit der Platzwahl wie aus dem Menü: erst das Wohnhaus, dann die Werkstatt in eine Bauzone setzen
 ///                      (ohne Angabe: gelost wie die KI-Häuser; mit --bauen=1 --bauort=x,z,drehung --bauklick=1|2 sitzt der Umriss gleich dort)
+///                      --bauort2=x,z,drehung setzt den Umriss des zweiten Schritts (Werkstatt), bis die Maus bewegt wird
 ///   --bericht=1        gleich zu Beginn einen Jahresbericht zeigen (zum Testen der Anzeige); =jahresrechnung, rivalen, umsaetze, protokoll: die Tafel „Bericht“ auf diesem Reiter
 ///   --rat=1            gleich zu Beginn die Ratskammer öffnen (--ratamt=Zöllner wählt dazu einen Knoten im Ratsbaum)
 ///   --amt=Kämmerer     dem Spieler ein Amt geben; --kasse=9000 Stand der Stadtkasse; --antrag=steuer:4|bau:brunnen|fest Antrag stellen;
@@ -1767,18 +1768,19 @@ public partial class Hauptszene : Node
         BauOrtAusOptionen(optionen);
     }
 
+    /// <summary>Setzt den Umriss des Baumodus an die Weltstelle „x,z[,drehung]“ (bis die Maus bewegt wird).</summary>
+    private void BauOrtSetzen(string ort)
+    {
+        var zahlen = ort.Split(',').Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray();
+        if (zahlen.Length < 2 || double.IsNaN(zahlen[0]) || double.IsNaN(zahlen[1])) return;
+        _stadt.BauOrtSetzen(zahlen[0], zahlen[1]);
+        if (zahlen.Length >= 3 && !double.IsNaN(zahlen[2])) _stadt.BauDrehung = ((int)zahlen[2] % 4 + 4) % 4;
+    }
+
     /// <summary><c>--bauort=x,z,drehung</c> setzt den Umriss an diese Weltstelle, <c>--bauklick=1|2</c> klickt dort (Rückfrage bzw. gleich bauen).</summary>
     private void BauOrtAusOptionen(Dictionary<string, string> optionen)
     {
-        if (optionen.TryGetValue("bauort", out var ort))
-        {
-            var zahlen = ort.Split(',').Select(t => double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : double.NaN).ToArray();
-            if (zahlen.Length >= 2 && !double.IsNaN(zahlen[0]) && !double.IsNaN(zahlen[1]))
-            {
-                _stadt.BauOrtSetzen(zahlen[0], zahlen[1]);
-                if (zahlen.Length >= 3 && !double.IsNaN(zahlen[2])) _stadt.BauDrehung = ((int)zahlen[2] % 4 + 4) % 4;
-            }
-        }
+        if (optionen.TryGetValue("bauort", out var ort)) BauOrtSetzen(ort);
         if (optionen.TryGetValue("bauklick", out var klick) && int.TryParse(klick, out var art2)) _bauAutoKlick = art2;
     }
 
