@@ -2482,3 +2482,68 @@ Gemessen auf main 2f848d4a + dieser Branch (58eaf32d), `messen bericht 20 60 --t
 | Gardist | 32.187 (±485) | −0,1 % | +0,7 % | 27.202 / 37.865 | 28.849 / 36.694 |
 
 Keine Bankrotte. Mit `gut` 1,25 verloren alle Berufe mit Rohwaren (erwartete Menge 0,2 × 1,25 + 0,45 + 0,25 × 0,75 + 0,1 × 0,5 = 0,94, die Rohwaren wurden im Mittel teurer; Abstand 6,2 Punkte). Mit `gut` 1,5 (erwartete Menge 0,99) liegen sieben Berufe innerhalb ±3 %, Parfumeur −4,7, Steinmetz −4,0, Dieb −3,7 %; Abstand 5,8 Punkte (Wirt bis Parfumeur). Ziel (±3 %, höchstens 5 Punkte) knapp verfehlt, die Abweichungen liegen innerhalb von zwei Fehlern der Differenz (etwa ±2,7 %). Die Streuung (q10 bis q90) bleibt fast gleich. Vorlauf mit 20 Startwerten (gleiches Bild, Rauschen ±4 %): `gut` 1,25 Abstand 9,1, `gut` 1,5 Abstand 10,0 – 20 Startwerte reichen für ±3 % nicht. Harte und Milde Jahre mit allen Lagen noch nicht gemessen. Dateien: `docs/messungen/balancing-2026-11-15-lagen-{aus,gut125,alle}.json`. Die Messdateien nennen als `mainCommit` cb9c2018 (origin/main zur Zeit des Laufs); gemessen wurde der Code von 58eaf32d. Danach kamen auf main nur Wasserplan und Wappen der KI-Häuser (#479–#481) dazu, nicht neu gemessen.
+
+## Nur noch Bauzonen, Teil 4: Karten ohne Plätze – Messung vorher/nachher (16.11.2026, Datenversion bleibt 93)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md`): Die Karten führen keine Werkstatt- und Wohnhausplätze, keine Hofstellen und keine Startplätze mehr; jedes Haus steht auf gelosten Grundstücken in den Bauzonen im Stadtinneren, in die Vorstadt weicht keines mehr aus. Greybox: der Hof vor der Westmauer ist Vorstadt, K4 ist ohne die zwei Zufahrtsgassen größer (Platz für 5 statt 4 Häuser, alle innerhalb der Mauer). Messstadt: Kern und Mauerring aus dem Raster (Platz für 8 Häuser, vorher 0). **Kein Wert in `wirtschaft.json` ist geändert** – gemessen wurde nur.
+
+**Messung:** vorher auf main f0a5942a, nachher auf main f0a5942a + dieser PR (Commit 284ca52c). `messen 30 20 greybox`, `messen 30 20` und `messen bericht 20 20` (vorher 900 Partien, nachher 780 – die Startfairness spielt keine Rotationen mehr; 0 Partien mit Fehler). Dateien: `docs/messungen/balancing-2026-11-16-nur-bauzonen-vorher.json` und `…-nachher.json`.
+
+**Ohne Karte** (`messen 30 20`): Zeichen für Zeichen dieselbe Ausgabe wie vorher (Haus Eisenbart Ø 161.096 Gulden) – ohne Karte gibt es kein Los.
+
+**KI-Vermögen auf der Greybox** (`messen 30 20 greybox`, 30 Jahre, 20 Startwerte; vorher wie nachher gelost):
+
+| | vorher | nachher | |
+|---|---|---|---|
+| Haus Eisenbart, Vermögen Ø | 177.407 | 214.398 | +21 % |
+| Haus Eichwald, Vermögen Ø | 160.015 | 192.462 | +20 % |
+| Haus Kieselbach, Vermögen Ø | 191.282 | 208.428 | +9 % |
+| Spieler (passiv): Bürger im Schnitt ab Jahr | 9,2 | 7,3 | |
+| Stand der KI-Häuser am Ende (60) | Edler 56, Reichsgraf 2, Patrizier 1, Bürger 1 | Edler 58, Patrizier 2 | bankrott 0 / 0 |
+| Umsatzsteuer je Jahr | 1.965 | 2.110 | +7 % |
+| Steuersatz am Ende | 3 % 18×, 4 % 2× | 3 % 20× | |
+| Bauvorhaben / Feste der Stadt je Jahr | 127 / 70 | 234 / 113 | Brunnen 8 → 14, Mauer 4 → 11 |
+| KI: Werkstatt neu gebaut / Betrieb gekauft (Summe) | 102 / 132 | 103 / 133 | |
+
+Grund: Vorher konnte ein Los im Hof vor der Westmauer landen (Lage Mauerring, aber außerhalb der Mauer, über 120 Minuten zum Markt); jetzt liegt jedes Los innerhalb der Mauer.
+
+**Startwege** (Karrenweg der gelosten Startwerkstatt zum Markt, Abschnitt 3 des Berichts, 20 Startwerte; vorher standen die Häuser dort ohne Los auf den festen Plätzen):
+
+| Karte | feste Plätze bis 16.11.2026 | gelost: Mittel (Median; kleinster–größter) | Spieler / KI im Mittel |
+|---|---|---|---|
+| Greybox | 18–21 m | 65,1 m (77,4; 1,2–111,7) | 67,2 / 64,3 m |
+| Probestadt | 30–32 m | 93,4 m (108,2; 8,3–145,1) | 101,9 / 89,2 m |
+| Köln (Kartenprüfung, nicht im Bericht) | 21,1 m, der Spieler 23,6 m | nicht gemessen | – |
+
+Die Lage wirkt stark. Die Häuser nach dem Startweg in Drittel geteilt, Reinvermögen nach 20 Jahren gegen das Mittel desselben Hauses:
+
+| Karte | kurz | mittel | lang |
+|---|---|---|---|
+| Greybox | 25,1 m: +28,0 % | 72,3 m: −4,6 % | 96,4 m: −22,4 % |
+| Probestadt | 46,0 m: +31,3 % | 104,9 m: −4,3 % | 129,5 m: −27,0 % |
+
+(Mit festen Plätzen und Rotation der Wohnhäuser waren es vorher 0 % – das Wohnhaus wirkt im Kern nicht, die Werkstätten standen gleich weit.) Der Spieler mit einem Betrieb, auf den festen Plätzen gegen gelost: Greybox 37.562 → 26.552 Gulden (−29 %), Bürger Ø Jahr 7,7 → 9,5; Probestadt 37.003 → 21.470 (−42 %), Bürger Ø Jahr 7,6 → 11,1. Die KI-Häuser dort im Mittel 81.527 → 61.209 (Greybox) und 72.792 → 58.784 (Probestadt).
+
+**Wirtschaft** (`messen bericht 20 20`, Greybox, gelost vorher wie nachher – Abschnitte 1, 2 und 5):
+
+| | vorher | nachher |
+|---|---|---|
+| Berufe, Vermögenszuwachs nach 20 Jahren: kleinster – größter | Gardist 21.595 – Geldleiher 41.206 | Gardist 20.637 – Geldleiher 38.691 |
+| Schmied / Tischler / Steinmetz | 24.780 / 25.205 / 28.792 | 22.552 / 24.723 / 26.858 |
+| Alchimist / Wirt / Prediger | 26.750 / 22.209 / 28.563 | 23.682 / 22.139 / 31.136 |
+| Dieb / Parfumeur | 29.590 / 26.994 | 29.381 / 26.377 |
+| außerhalb ±15 % um das Mittel | Wirt −19,4, Gardist −21,7, Geldleiher +49,5 % | Schmied −15,3, Wirt −16,8, Gardist −22,5, Prediger +17,0, Geldleiher +45,4 % |
+| KI-Stärke: Bezug / KI-Häuser Ø (Verhältnis Median) | 66.660 / 50.552 (0,72) | 60.165 / 60.766 (0,91) |
+| KI-Stärke „Schwer“ | 62.527 / 64.131 (0,96) | 65.027 / 71.307 (1,11) |
+| davongezogen / abgeschlagen (von 60) | 4 / 20 | 7 / 11 |
+
+**Häuserzahl (Messstadt, Abschnitt 4):** Vorher standen die Häuser auf festen Plätzen an der Hauptstraße (10 m neben der Straßenmitte), jetzt gelost in den neuen Zonen im Stadtinneren; mehr als acht Häuser lost das Spiel nicht, deshalb 7 statt 8 KI-Häuser. Die Reihen sind nur in der Richtung vergleichbar.
+
+| KI-Häuser | vorher: Vermögen je Haus / Preisindex | nachher |
+|---|---|---|
+| 1 | 47.897 / 0,893 | 26.181 / 0,937 |
+| 3 | 59.240 / 0,936 | 45.308 / 0,950 |
+| 5 | 59.783 / 0,961 | 49.529 / 0,966 |
+| 8 bzw. 7 | 63.252 / 1,008 (8 Häuser) | 51.730 / 0,992 (7 Häuser) |
+
+**Befunde (nichts nachgesteuert):** (1) Das Los streut die Startwege weit – ein Haus nahe am Markt ist nach 20 Jahren um ein gutes Viertel reicher, eines am Ende der Ringgasse um ein gutes Fünftel ärmer als sein eigenes Mittel. Das gilt auch für den Spieler ohne Platzwahl (Messungen, Tests); im Spiel wählt er selbst. (2) Gegen die festen Plätze von früher verdient ein Haus mit einem Betrieb gelost deutlich weniger (−29 bis −42 %), weil die kuratierten Plätze 20–30 m vom Markt lagen und die Zonen im Schnitt 65–93 m. (3) Auf der Greybox sind die KI-Häuser gegen den Stand von main stärker (+9 bis +21 % nach 30 Jahren), weil kein Los mehr vor der Mauer landet. Ob die Fahrzeit der Handkarren, die Lage der Zonen oder das Los (z. B. näher am Markt) nachgestellt werden soll, ist eine Entscheidung des Nutzers – offen in `docs/bereiche/kern.md`.
