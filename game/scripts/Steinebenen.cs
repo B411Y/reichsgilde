@@ -28,21 +28,27 @@ public static class Steinebenen
         ("mensch_s1", Bruchstein),          // Sockel aus K4 (PavingStones142)
         ("mensch_s2", Bruchstein),          // Mauer aus K1 (castle_wall_varriation)
         ("mensch_s3", PutzUndBruchstein),   // Werkstein im Putzband, Mauer aus K1
-        ("zwerg_s1", PutzUndBruchstein),    // dunkler Quader (Referenzstein) im Putzband, Bruchstein K3 (stone_wall_04)
+        ("zwerg_s1", PutzUndBruchstein),    // alter dunkler Stein: dunkler Quader (Referenzstein) im Putzband, dunkler Bruchstein (K3 zurückgenommen)
         ("zwerg_s2", PutzUndBruchstein),
-        ("zwerg_s3", PutzUndBruchstein),    // dunkler Quader, heller Haustein
+        ("zwerg_s3", PutzUndBruchstein),    // dunkler Quader, im Bruchsteinband heller Haustein K2 (large_sandstone_blocks_01) für Gewände, Giebel, Eckquader
         ("elb", PutzUndBruchstein),         // Akzent K5 (Bricks100) im Putzband, Flächen K2 (large_sandstone_blocks_01)
         ("halbling", PutzUndBruchstein),
     };
 
-    /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>).</summary>
-    public static readonly string[] AoGruppen = { "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3" };
+    /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>); Bürgerhaus und Steinhaus haben je Volk einen eigenen Atlas (größere Zellen).</summary>
+    public static readonly string[] AoGruppen = { "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3" };
 
-    /// <summary>Die Ebenen des Innen-Arrays <c>innen_ebenen_*.png</c>: die Innenblätter (Stufe 1, Stufen 2/3, Räume), gleiches Layout.</summary>
-    public static readonly string[] InnenBlaetter = { "innen_trim", "innen_trim_s23", "raeume_innen_trim" };
+    /// <summary>Die Ebenen des Innen-Arrays <c>innen_ebenen_*.png</c>: die Innenblätter (Stufe 1, Stufen 2/3, Räume) der Menschen und der
+    /// Zwerge (Steinwand und Pflaster statt Lehm und Dielen), gleiches Layout.</summary>
+    public static readonly string[] InnenBlaetter =
+        { "innen_trim", "innen_trim_s23", "raeume_innen_trim", "innen_trim_zwerg", "innen_trim_s23_zwerg", "raeume_innen_trim_zwerg" };
 
     /// <summary>Die AO-Atlanten der Innen-Gruppen (Array <c>innen_ao_ebenen.png</c>, alle auf 2048 gebracht).</summary>
-    public static readonly string[] InnenAoGruppen = { "wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen" };
+    public static readonly string[] InnenAoGruppen =
+    {
+        "wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
+        "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen",
+    };
 
     /// <summary>Ebene und AO-Ebene eines Innenmodells aus Innenblatt und Innengruppe; unbekannte Namen fallen auf Ebene 0.</summary>
     public static (int Ebene, int AoEbene) InnenAusBlatt(string blatt, string gruppe)
@@ -71,8 +77,8 @@ public static class Steinebenen
         if (!m.Success) return null;
         var volk = m.Groups[2].Value switch { "zwerg" => Volk.Zwerg, "elb" => Volk.Elb, "halbling" => Volk.Halbling, _ => Volk.Mensch };
         var stufe = int.Parse(m.Groups[3].Value);
-        // Menschen: Bürgerhaus und Steinhaus haben je einen eigenen AO-Atlas (größere Zellen); die Zwergenatlanten kommen mit den Zwergenhäusern
-        var gruppe = m.Groups[1].Value + (volk == Volk.Mensch && stufe >= 2 ? $"_s{System.Math.Min(stufe, 3)}" : "");
+        // Bürgerhaus und Steinhaus haben je einen eigenen AO-Atlas (größere Zellen); ohne eigenen Atlas gilt der der Gruppe
+        var gruppe = m.Groups[1].Value + (stufe >= 2 ? $"_s{System.Math.Min(stufe, 3)}" : "");
         var ao = System.Array.IndexOf(AoGruppen, gruppe);
         if (ao < 0) ao = System.Array.IndexOf(AoGruppen, m.Groups[1].Value);
         return (Ebene(volk, stufe), ao < 0 ? 0 : ao);

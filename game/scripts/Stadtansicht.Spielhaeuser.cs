@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -52,10 +53,11 @@ public partial class Stadtansicht
     /// Bei laufendem Ausbau steht ein Gerüst davor, nach einem Brand ist das Dach rußig, im Leerstand sind Tür und Fenster vernagelt.
     /// <paramref name="ankerKennung"/> ist der Schlüssel für Tür- und Karrenanker (<see cref="TuerAnker"/>); ohne Angabe die <paramref name="kennung"/>.
     /// <paramref name="brennt"/>: Seit dieser Spielminute brennt das Haus (Flammen, dann Schwelen, Stadtansicht.Feuer.cs) – solange ohne Gerüst.
+    /// <paramref name="volk"/>: das Volk des Besitzers, nur für den Stil des Neubau-Hauses (<see cref="NeubauModell"/>).
     /// </summary>
     private Node3D SpielhausModell(Vector3 mitte, float drehungY, float platzBreite, float platzTiefe, float vorne,
                                    int stufe, bool imBau, bool brand, bool leer, Color? farbe, string? kennung, string? name, string? zusatz = null,
-                                   string? ankerKennung = null, long? brennt = null)
+                                   string? ankerKennung = null, long? brennt = null, Volk? volk = null)
     {
         var flaeche = new Vector2(platzBreite, platzTiefe);
         var g = new Node3D { Name = "Spielhaus", Position = AufFundament(mitte, drehungY, flaeche), Rotation = new Vector3(0, drehungY, 0) };
@@ -64,7 +66,7 @@ public partial class Stadtansicht
         var klick = new Aabb(new Vector3(-Mathf.Min(16, platzBreite) / 2, 0, -platzTiefe / 2), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe)); // Klickkörper: die Fläche, 10 m hoch, solange das Modell nicht bekannt ist
         if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
         {
-            datei = NeubauModell(datei, mitte); // Probe --neubauprobe=1: neues Wohnhaus statt des Fachwerkhauses, Grundform fest aus dem Platz (Stadtansicht.Neubau.cs)
+            datei = NeubauModell(datei, mitte, volk); // Probe --neubauprobe=1: neues Wohnhaus statt des Fachwerkhauses, Grundform fest aus dem Platz (Stadtansicht.Neubau.cs)
             var instanz = ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
                 new ModellZustand(Geruest: imBau || (brand && brennt is null), Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
             NeubauMerken(kennung, datei, instanz);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Reichsgilde.Core;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -45,6 +46,8 @@ public partial class Stadtansicht
 
     // Putz- und Akzentfarben aus dem Style-Guide (5.3); fest je Standort
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
+    // Zwerge: im Putzband liegt dunkler Quader statt Putz – nur vier graue Töne, keine Putzfarben
+    private static readonly Color[] NeubauStein = { new(1.0f, 1.0f, 1.0f), new(0.90f, 0.92f, 0.95f), new(0.95f, 0.91f, 0.86f), new(0.86f, 0.86f, 0.84f) };
     private static readonly Color[] NeubauAkzent = { new(0.22f, 0.35f, 0.55f), new(0.25f, 0.42f, 0.28f), new(0.55f, 0.22f, 0.20f), new(0.45f, 0.36f, 0.28f) };
     private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // außen eines für alle Häuser („haeuser“), innen eines je Gruppe
     private readonly Dictionary<string, StandardMaterial3D> _neubauGrund = new(); // benannte Grundmaterialien fürs Netz
@@ -59,7 +62,11 @@ public partial class Stadtansicht
     private static readonly int NeubauFormFest = int.TryParse(NeubauOption("--neubauform"), out var form) && form is >= 1 and <= NeubauGrundformen ? form : 0;
 
     /// <summary>Die Datei des neuen Wohnhauses einer Grundform und Stufe (1 Fachwerkhaus, 2 Bürgerhaus, 3 Steinhaus).</summary>
-    private static string NeubauWohnhausForm(int form, int stufe = 1) => NeubauOrdner + $"wohnhaus_mensch_s{stufe}_g{form}";
+    /// Zwerge wohnen in ihren eigenen Häusern (<c>wohnhaus_zwerg_s…</c>: Stein, Schindeln bzw. Schiefer), alle anderen Völker vorerst im Haus der Menschen.
+    private static string NeubauWohnhausForm(int form, int stufe = 1, Volk? volk = null) => NeubauOrdner + $"wohnhaus_{(volk == Volk.Zwerg ? "zwerg" : "mensch")}_s{stufe}_g{form}";
+
+    /// <summary>Das Volk, in dessen Stil ein Haus gebaut wird: das Volk des Oberhaupts seines Besitzers (null: ohne Familie, dann wie die Menschen).</summary>
+    private static Volk? NeubauVolk(Stadtwirtschaft w, Konto? besitzer) => besitzer is null ? null : w.Familien.Von(besitzer)?.Oberhaupt.Volk;
 
     /// <summary>
     /// Startoption <c>--neubaustufe=1…3</c> (mit <c>--neubauprobe=1</c>): alle neuen Wohnhäuser zeigen das Modell dieser Stufe, gleich welche
@@ -92,11 +99,12 @@ public partial class Stadtansicht
     /// des Katalogmodells (Fachwerkhaus, Bürgerhaus, Steinhaus) statt des bisherigen Modells.
     /// </summary>
     /// Stufen 2 und 3: nur, wenn die Grundform schon gebaut ist (sonst bleibt das bisherige Modell).
-    private static string NeubauModell(string datei, Vector3 platz)
+    private static string NeubauModell(string datei, Vector3 platz, Volk? volk = null)
     {
         if (!NeubauProbeAn || !NeubauStufen.TryGetValue(datei, out var stufe)) return datei;
         if (NeubauStufeFest > 0) stufe = NeubauStufeFest;
-        var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe);
+        var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe, volk);
+        if (volk == Volk.Zwerg && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Zwergenhaus fehlt: Haus der Menschen
         return stufe == 1 || ResourceLoader.Exists($"res://assets/modelle/{neu}.glb") ? neu : datei;
     }
 
@@ -127,11 +135,12 @@ public partial class Stadtansicht
     private static string NeubauBlatt(string datei)
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
-        if (WohnraumGruppe(name) is not null) return "raeume_innen_trim";
+        var zwerg = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : "";   // gleiche Bänder, anderer Inhalt (tools/modelle/neubau/trimsheet_zwerg*.py)
+        if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + zwerg;
         if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
         var innen = name.EndsWith("_innen");
         var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
-        return stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}";
+        return (stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}") + zwerg;
     }
 
     /// <summary>
@@ -236,7 +245,7 @@ public partial class Stadtansicht
         var trim = NeubauStoff(datei);
         var ort = modell.GlobalPosition;
         var saat = NeubauPlatzSaat(ort);
-        var putz = NeubauPutz[saat % (uint)NeubauPutz.Length];
+        var putz = (datei.Contains("wohnhaus_zwerg_") ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         var ebenen = innen ? Steinebenen.InnenAusBlatt(NeubauBlatt(datei), NeubauGruppe(datei)) : Steinebenen.AusDatei(datei) ?? (0, 0);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
