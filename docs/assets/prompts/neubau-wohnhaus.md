@@ -32,4 +32,8 @@ python tools/modelle/neubau/wohnhaus_mensch_s23_masse.py --soll-ist
 blender -b --python tools/modelle/neubau/wohnhaus_mensch_s23.py -- --stufe=<2|3> --form=<1..4> [--bilder=<ordner>] [--ohne-ao]
 blender -b --python tools/modelle/neubau/wohnhaus_mensch_s23_messen.py -- --haus=wohnhaus_mensch_s<2|3>_g<1..4> [--ordner=<glb>] [--gegenprobe]
 blender -b --python tools/modelle/raeume/raeume_s23.py -- --haus=wohnhaus_mensch_s2_g1 --raum=<hinterzimmer|bibliothek> [--bilder=<ordner>] [--ohne-ao]
+blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_mensch_messen.py -- --haus=wohnhaus_mensch_s<1|2|3>_g<1..4> [--ordner=<glb>] [--gegenprobe]
+blender -b --factory-startup --python tools/modelle/neubau/albedo_messen.py -- --blaetter=trim,trim_s2,trim_s3 [--haeuser=wohnhaus_mensch_s3_g1:trim_s3,...]
 ```
+
+**Mensch-Nachtrag (16.11.2026).** Wie bei den Zwergen: Fahnenmast aller Stufen im Dach verankert (`fahne_verankern` in `wohnhaus_mensch_s1_g1.py`: bis 10 cm unter die Dachfläche, Eisenschelle), Scheitholz mit 1 cm Fuge, Dreiecke der Laube (Grundform 4) mit Brettern gefüllt, Windbrett am Schuppen (Grundform 3), Fensterrahmen eines Paars in den Räumen durchgehend (`raeume_bib.fensterlaibung`), Fensterbank der Dachbibliothek 4 mm höher. Dachbänder der Blätter `trim_s2` (Ziegel) und `trim_s3` (Schiefer) aufgehellt (`trimsheet_stufen.dach_aufhellen`). Messung 1–24 mit `wohnhaus_mensch_messen.py`. Keine Bild-KI, keine neuen Quellen.
