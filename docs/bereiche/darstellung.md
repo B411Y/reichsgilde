@@ -333,6 +333,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Wohnhaus Zwerg) Nicht im Spiel gesehen: nur Blender-Rechenvorschau und Godot `--headless` (Import, Start, Log); Klicktest mit Vulkan auf der NAS (Anleitung im Bericht des Branches). Headless ohne Partie (Godot bleibt im Hauptmenü) wurden keine Spielhäuser angelegt; die Zwergenhäuser sind also im Spiel nicht einmal geladen worden. Für den Klicktest `--neubauvolk=zwerg` mit `--neubaureihe=neu`.
 - (Wohnhaus Zwerg) Die Berichtigungen aus der Lückenprüfung (Scheitholz mit 1 cm Fuge, gefüllte Laubenfelder Grundform 4, Windbrett am Schuppen Grundform 3, Fensterrahmen eines Paars in den Räumen, Fensterbank der Dachbibliothek) stecken nur in der Schicht der Zwerge; dieselben Stellen haben die Häuser der Menschen weiter (neu backen beim nächsten Mensch-Durchlauf).
 - (Wohnhaus Zwerg) Grafikspeicher: AO-Array der Häuser 6 statt 4 Ebenen, Innen-Arrays 6 statt 3 Ebenen; nicht auf der GPU gemessen.
+- (Wohnhaus Mensch, gemeldet bei den Zwergen) Der Fahnenmast der Bürger- und Steinhäuser (main #487, alle 8) steht 4 cm über dem First (Prüfung 22 der Zwergenmessung, `wohnhaus_zwerg_neu_messen.fahne_steht`); Stufe 1 steckt 7–9 cm im Stroh (in Ordnung). Bei den Zwergen behoben (`zwerg_teile.fahne_verankern`), bei den Menschen nicht geändert.
 
 ## Entscheidungen
 
