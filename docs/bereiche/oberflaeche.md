@@ -54,6 +54,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nur noch Bauzonen, Platzwahl) Mehrspieler: Die Platzwahl läuft dort bei laufender Zeit (kein Haltegrund); die Regel „alle wählen, dann beginnt die Zeit“ fehlt im Kern (siehe kern.md).
 - (Nur noch Bauzonen, Platzwahl) Die Probepartie der Kartenwerkstatt („Karte ausprobieren“) und Starts mit Startoptionen losen das Haus des Spielers weiter; Tafel „Start“ und Hofstellen-Werkzeug der Kartenwerkstatt stehen noch (PR 3 Karten).
 - (Nur noch Bauzonen, Platzwahl) Während der Wahl wirken die Knöpfe für Wohnhaus, Bericht und Hafen nicht (die Bautafel kommt sofort wieder), ohne Hinweis; die Betriebsleiste ist bis zur Werkstatt leer.
+- (Bautafel, schon vor der Platzwahl) Die Zeichen „✔“ und „✗“ vor dem Zustand des Umrisses erscheinen im Klicktest als Kästchen (die Schrift hat sie nicht); betrifft Baumodus und Platzwahl.
 
 ## Entscheidungen
 
@@ -325,5 +326,5 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zeit | Im Einzelspiel ruht die Zeit über den Haltegrund „die Platzwahl“ schon vor dem ersten Tick; Pause und Tempo sind gesperrt, der Tooltip der Pause nennt den Grund. | 16.11.2026 |
 | Kein Abbruch | Die Tafel hat kein „Zurück“ und keinen Wege-Modus; Esc öffnet das Spielmenü. Schließt etwas die Tafel, öffnet sie sich wieder. | 16.11.2026 |
 | Menü | Die Zeile „Hofstelle“ unter „Erweitert“ ist entfernt; die Kennzahlen der Kartenwahl nennen keine Höfe und Werkstattplätze mehr (höchstens n KI-Gegner, Fluss, Hafen, Maße). | 16.11.2026 |
-| Startoptionen | Ohne Menü wird das Haus gelost wie bisher (Klicktests behalten ihren Betrieb); `--startwahl=1` verlangt die Wahl. `--hofstelle` wird nicht mehr gelesen. | 16.11.2026 |
+| Startoptionen | Ohne Menü wird das Haus gelost wie bisher (Klicktests behalten ihren Betrieb); `--startwahl=1` verlangt die Wahl (`--bauort2` setzt im Klicktest den Umriss der Werkstatt). `--hofstelle` wird nicht mehr gelesen. | 16.11.2026 |
 | Kamera und Hinweis | Mit Platzwahl beginnt der Blick im Blick der Karte; der Brief zum Personalbuch kommt nach der Wahl. | 16.11.2026 |
