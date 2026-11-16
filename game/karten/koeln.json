@@ -24,38 +24,6 @@
   {"kennung": "L1", "katalog": "leerstand", "name": "Haus zum güldenen Hammer (leer)", "punkt": [-64, 94], "drehung": 90},
   {"kennung": "L2", "katalog": "leerstand", "name": "Haus zum weißen Schwan (leer)", "punkt": [-100, -40], "drehung": 90},
   {"kennung": "L3", "katalog": "leerstand", "name": "Haus zum schwarzen Raben (Ruine)", "punkt": [183, 54], "drehung": 274.7},
-  {"kennung": "S1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, 79], "drehung": 90},
-  {"kennung": "S1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, 66.9], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "S2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [47.5, 81.5], "drehung": 270, "betrieb": "Gießerei Overstolz"},
-  {"kennung": "S2_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [45.5, 69.4], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "S3_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Malzbüchel", "punkt": [8.5, 120.5], "drehung": 180, "betrieb": "Tischlerei Hardevust"},
-  {"kennung": "S3_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Malzbüchel", "punkt": [-3.6, 118.5], "drehung": 180, "lage": "mauerring"},
-  {"kennung": "S4_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Unter Fettenhennen", "punkt": [8.5, -84.5], "drehung": 180, "betrieb": "Maurerei Lyskirchen"},
-  {"kennung": "S4_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Unter Fettenhennen", "punkt": [3.6, -68], "drehung": 0, "lage": "mauerring"},
-  {"kennung": "S5_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [47.5, -81.5], "drehung": 270, "betrieb": "Tinkturei Gryn"},
-  {"kennung": "S5_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [45.5, -69.4], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "S6_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Deutzer Kirchstraße", "punkt": [160.6, -22.9], "drehung": 87.8, "betrieb": "Gießerei Scherfgin"},
-  {"kennung": "S6_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Deutzer Kirchstraße", "punkt": [163.05, -34.95], "drehung": 87.8, "lage": "mauerring"},
-  {"kennung": "S7_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Deutzer Kirchstraße", "punkt": [181.55, -22.1], "drehung": 267.8, "betrieb": "Schänke Mommersloch"},
-  {"kennung": "S7_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Deutzer Kirchstraße", "punkt": [180.05, -34.3], "drehung": 267.8, "lage": "mauerring"},
-  {"kennung": "S8_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Deutzer Freiheit", "punkt": [141, -3.2], "drehung": 2.6, "betrieb": "Tischlerei Kleingedank"},
-  {"kennung": "S8_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Deutzer Freiheit", "punkt": [129, -0.65], "drehung": 2.6, "lage": "mauerring"},
-  {"kennung": "N1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle N1", "punkt": [143.85, 19], "drehung": 180},
-  {"kennung": "N1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle N1", "punkt": [140, 34.9], "drehung": 180, "lage": "mauerring"},
-  {"kennung": "N2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle N2", "punkt": [160.9, 28], "drehung": 90},
-  {"kennung": "N2_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle N2", "punkt": [148.3, 34.9], "drehung": 180, "lage": "mauerring"},
-  {"kennung": "N3_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle N3", "punkt": [183, 29.7], "drehung": 270},
-  {"kennung": "N3_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle N3", "punkt": [199, 33.5], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "N4_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle N4", "punkt": [194, 12.6], "drehung": 180},
-  {"kennung": "N4_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle N4", "punkt": [199, 24.6], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "N5_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle N5", "punkt": [200, -13], "drehung": 0},
-  {"kennung": "N5_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle N5", "punkt": [196, -26.2], "drehung": 0, "lage": "mauerring"},
-  {"kennung": "A1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle A1", "punkt": [-13, -94], "drehung": 90},
-  {"kennung": "A1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle A1", "punkt": [-26.2, -94], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "R1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle R1", "punkt": [46.8, -37], "drehung": 270},
-  {"kennung": "R1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle R1", "punkt": [29.1, -31], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "R2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hofstelle R2", "punkt": [46.8, -2.8], "drehung": 270},
-  {"kennung": "R2_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hofstelle R2", "punkt": [44.8, -15], "drehung": 270, "lage": "mauerring"},
   {"kennung": "Buergerhaus_Kulisse1", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse)", "punkt": [29.45, -131.5], "drehung": 90},
   {"kennung": "Buergerhaus_Kulisse2", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 2", "punkt": [44.55, -142], "drehung": 270},
   {"kennung": "Buergerhaus_Kulisse3", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 3", "punkt": [44.55, -132.5], "drehung": 270},
@@ -794,7 +762,14 @@
   },
   {"kennung": "R25", "art": "vorstadt", "grund": "klein", "felder": 1, "flaeche": [[-18, 150], [-16, 150], [-16, 152], [-18, 152]]},
   {"kennung": "R26", "art": "vorstadt", "grund": "klein", "felder": 2, "flaeche": [[-8, 204], [-6, 204], [-6, 208], [-8, 208]]},
-  {"kennung": "R27", "art": "vorstadt", "grund": "abseits", "felder": 28, "flaeche": [[2, -196], [6, -196], [6, -186], [8, -186], [8, -168], [4, -168], [4, -186], [2, -186]]},
+  {
+   "kennung": "R27",
+   "art": "vorstadt",
+   "grund": "abseits",
+   "felder": 28,
+   "thema": "pferch",
+   "flaeche": [[2, -196], [6, -196], [6, -186], [8, -186], [8, -168], [4, -168], [4, -186], [2, -186]]
+  },
   {
    "kennung": "R28",
    "art": "vorstadt",
@@ -806,8 +781,9 @@
    ]
   },
   {"kennung": "R29", "art": "vorstadt", "grund": "abseits", "felder": 88, "flaeche": [[126, -44], [142, -44], [142, -22], [126, -22]]},
-  {"kennung": "R30", "art": "vorstadt", "grund": "klein", "felder": 15, "flaeche": [[202, -42], [208, -42], [208, -32], [202, -32]]},
-  {"kennung": "R31", "art": "vorstadt", "grund": "klein", "felder": 17, "flaeche": [[208, 2], [210, 2], [210, 36], [208, 36]]}
+  {"kennung": "R30", "art": "vorstadt", "grund": "klein", "felder": 15, "thema": "pferch", "flaeche": [[202, -42], [208, -42], [208, -32], [202, -32]]},
+  {"kennung": "R31", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[202, 30], [204, 30], [204, 36], [202, 36]]},
+  {"kennung": "R32", "art": "vorstadt", "grund": "klein", "felder": 17, "flaeche": [[208, 2], [210, 2], [210, 36], [208, 36]]}
  ],
  "natur": {
   "flaechen": [
@@ -1146,25 +1122,7 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre Mülheim", "von": [51, -200], "bis": [146, -200]}],
  "start": {
-  "hofstellen": [
-   {"kennung": "S1", "name": "Heumarkt", "werkstatt": "S1_Werkstatt", "wohnhaus": "S1_Wohnhaus", "start": true, "nummer": 1},
-   {"kennung": "S2", "name": "an der Rheingasse (Heumarkt)", "werkstatt": "S2_Werkstatt", "wohnhaus": "S2_Wohnhaus", "start": true, "nummer": 2},
-   {"kennung": "S3", "name": "am Malzbüchel", "werkstatt": "S3_Werkstatt", "wohnhaus": "S3_Wohnhaus", "start": true, "nummer": 3},
-   {"kennung": "S4", "name": "Unter Fettenhennen", "werkstatt": "S4_Werkstatt", "wohnhaus": "S4_Wohnhaus", "start": true, "nummer": 4},
-   {"kennung": "S5", "name": "an der Rheingasse (Alter Markt)", "werkstatt": "S5_Werkstatt", "wohnhaus": "S5_Wohnhaus", "start": true, "nummer": 5},
-   {"kennung": "S6", "name": "an der Deutzer Kirchstraße (West)", "werkstatt": "S6_Werkstatt", "wohnhaus": "S6_Wohnhaus", "start": true, "nummer": 6},
-   {"kennung": "S7", "name": "an der Deutzer Kirchstraße (Ost)", "werkstatt": "S7_Werkstatt", "wohnhaus": "S7_Wohnhaus", "start": true, "nummer": 7},
-   {"kennung": "S8", "name": "an der Deutzer Freiheit", "werkstatt": "S8_Werkstatt", "wohnhaus": "S8_Wohnhaus", "start": true, "nummer": 8},
-   {"kennung": "N1", "name": "an der Deutzer Freiheit (Brückenseite)", "werkstatt": "N1_Werkstatt", "wohnhaus": "N1_Wohnhaus"},
-   {"kennung": "N2", "name": "an der Deutzer Kirchstraße (West)", "werkstatt": "N2_Werkstatt", "wohnhaus": "N2_Wohnhaus"},
-   {"kennung": "N3", "name": "an der Deutzer Kirchstraße (Ost)", "werkstatt": "N3_Werkstatt", "wohnhaus": "N3_Wohnhaus"},
-   {"kennung": "N4", "name": "an der Deutzer Freiheit (Osttor)", "werkstatt": "N4_Werkstatt", "wohnhaus": "N4_Wohnhaus"},
-   {"kennung": "N5", "name": "an der Deutzer Freiheit (Nordseite)", "werkstatt": "N5_Werkstatt", "wohnhaus": "N5_Wohnhaus"},
-   {"kennung": "A1", "name": "Unter Fettenhennen", "werkstatt": "A1_Werkstatt", "wohnhaus": "A1_Wohnhaus"},
-   {"kennung": "R1", "name": "am Rheinhafen", "werkstatt": "R1_Werkstatt", "wohnhaus": "R1_Wohnhaus"},
-   {"kennung": "R2", "name": "an der Rheinbrücke", "werkstatt": "R2_Werkstatt", "wohnhaus": "R2_Wohnhaus"}
-  ],
-  "spieler": {"wohnhaus": "S1_Wohnhaus", "farbe": "#336bb8", "werkstatt": {"platz": "S1_Werkstatt", "name": "{art} am Heumarkt"}},
+  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Overstolz",
@@ -1172,8 +1130,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
     "farbe": "#b33329",
-    "wohnhaus": "S2_Wohnhaus",
-    "betriebe": [{"platz": "S2_Werkstatt", "art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
    },
    {
     "name": "Haus Hardevust",
@@ -1181,8 +1138,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
     "farbe": "#388c47",
-    "wohnhaus": "S3_Wohnhaus",
-    "betriebe": [{"platz": "S3_Werkstatt", "art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
    },
    {
     "name": "Haus Lyskirchen",
@@ -1190,8 +1146,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Silber", "figur": "Turm"},
     "farbe": "#d9ad2e",
-    "wohnhaus": "S4_Wohnhaus",
-    "betriebe": [{"platz": "S4_Werkstatt", "art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
    },
    {
     "name": "Haus Gryn",
@@ -1199,8 +1154,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
     "farbe": "#7a4a9e",
-    "wohnhaus": "S5_Wohnhaus",
-    "betriebe": [{"platz": "S5_Werkstatt", "art": "Tinkturei"}, {"platz": "Kraeutergarten2", "art": "Kraeutergarten"}]
+    "betriebe": [{"art": "Tinkturei"}, {"platz": "Kraeutergarten2", "art": "Kraeutergarten"}]
    },
    {
     "name": "Haus Scherfgin",
@@ -1208,8 +1162,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Purpur", "farbe2": "Gold", "figur": "Krone"},
     "farbe": "#2e8c8c",
-    "wohnhaus": "S6_Wohnhaus",
-    "betriebe": [{"platz": "S6_Werkstatt", "art": "Giesserei"}, {"platz": "Grube4", "art": "Mine"}]
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube4", "art": "Mine"}]
    },
    {
     "name": "Haus Mommersloch",
@@ -1217,8 +1170,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Ohne", "farbe1": "Gruen", "farbe2": "Gold", "figur": "Aehre"},
     "farbe": "#c26a1f",
-    "wohnhaus": "S7_Wohnhaus",
-    "betriebe": [{"platz": "S7_Werkstatt", "art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
+    "betriebe": [{"art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
    },
    {
     "name": "Haus Kleingedank",
@@ -1226,8 +1178,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Gold", "figur": "Lilie"},
     "farbe": "#5c5c5c",
-    "wohnhaus": "S8_Wohnhaus",
-    "betriebe": [{"platz": "S8_Werkstatt", "art": "Tischlerei"}, {"platz": "Holzschlag3", "art": "Holzfaellerei"}]
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag3", "art": "Holzfaellerei"}]
    }
   ]
  },

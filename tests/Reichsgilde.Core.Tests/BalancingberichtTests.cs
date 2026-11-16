@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Partie;
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
@@ -5,7 +6,7 @@ using Reichsgilde.Core.Ki;
 using Reichsgilde.Core.Wirtschaft;
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Balancing-Bericht (PR #176): die Bausteine der Messung – Kennzahlen, Stichjahre, die Rotation der Wohnhausplätze, die Messpartie
+//  Balancing-Bericht (PR #176): die Bausteine der Messung – Kennzahlen, Stichjahre, die Startwege, die Messpartie
 //  (Spieler von der KI mit genau einem Betrieb geführt, Geist, Einrichtung am Start, gleich bei gleichem Aufbau) und die Messstadt.
 //  Die Messung selbst ist kein Test: dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,17 +50,16 @@ static class BalancingberichtTests
             Pruefe.Ungefaehr(50, Balancingbericht.Abstand(-50, -100), 1e-9);
         }),
 
-        ("Bericht: Rotation reicht die Wohnhausplätze weiter, die Karte bleibt gültig", () =>
+        ("Bericht: Die Messpartie lost die Startorte wie das Spiel und misst je Haus den Karrenweg der Startwerkstatt zum Markt (Startweg, statt der Rotation der Wohnhausplätze)", () =>
         {
-            var text = Quellen.Value.Karte("greybox");
-            var rotiert = JsonNode.Parse(Messpartie.KarteRotiert(text, 1, 3))!["start"]!;
-            Pruefe.Gleich("Wohnhaus2", (string)rotiert["spieler"]!["wohnhaus"]!);
-            Pruefe.Gleich("Wohnhaus3", (string)rotiert["haeuser"]![0]!["wohnhaus"]!);
-            Pruefe.Gleich("Wohnhaus1", (string)rotiert["haeuser"]![2]!["wohnhaus"]!);
-            Pruefe.Gleich("Giesserei_Eisenbart", (string)rotiert["haeuser"]![0]!["betriebe"]![0]!["platz"]!, "Werkstattplätze bleiben");
-            var karte = Stadtkarte.AusJson(Messpartie.KarteRotiert(text, 2, 3), Gebaeudekatalog.AusJson(Quellen.Value.Katalog));
-            Pruefe.Gleich("Wohnhaus3", karte.Wohnhausplaetze[0].Kennung);
-            Pruefe.Gleich(text, Messpartie.KarteRotiert(text, 0, 3), "ohne Rotation unverändert");
+            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1), Quellen.Value);
+            Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
+            Pruefe.Gleich(4, r.Haeuser.Count);
+            Pruefe.Wahr(r.Haeuser.All(h => h.StartwegMeter is > 0 and < 200), "jedes Haus hat einen Startweg innerhalb der Mauer: " + string.Join(", ", r.Haeuser.Select(h => h.StartwegMeter)));
+            var nochmal = Messpartie.Spielen(new Messaufbau("greybox", 101, 1), Quellen.Value);
+            Pruefe.Gleich(string.Join(",", r.Haeuser.Select(h => h.StartwegMeter)), string.Join(",", nochmal.Haeuser.Select(h => h.StartwegMeter)), "gleicher Startwert, gleiche Orte");
+            var anders = Messpartie.Spielen(new Messaufbau("greybox", 202, 1), Quellen.Value);
+            Pruefe.Wahr(string.Join(",", r.Haeuser.Select(h => h.StartwegMeter)) != string.Join(",", anders.Haeuser.Select(h => h.StartwegMeter)), "anderer Startwert, andere Orte");
         }),
 
         ("Bericht: Der Spieler mit einem Betrieb wird von der KI geführt und expandiert nicht", () =>
@@ -102,22 +102,22 @@ static class BalancingberichtTests
             Pruefe.Ungefaehr(4000 - 650 - daten.Personal!.Handgeld * (r.Spieler.StartArbeiter - daten.Personal.StartJeBetrieb!.Value), r.Spieler.StartBar, 1e-6);
         }),
 
-        ("Messstadt: 9 Werkstatt- und 9 Wohnhausplätze, 8 KI-Häuser, 17 Umlandbetriebe; eine Partie mit 8 Häusern und Geist läuft", () =>
+        ("Messstadt: Bauzonen im Stadtinneren für 8 Häuser, keine Werkstatt- und Wohnhausplätze, 8 KI-Häuser in der Karte, 17 Umlandbetriebe; eine Partie mit 7 KI-Häusern und Geist läuft (8 Häuser, mehr passen gelost nicht)", () =>
         {
             var karte = Stadtkarte.AusJson(Quellen.Value.Karte("messstadt"), Gebaeudekatalog.AusJson(Quellen.Value.Katalog));
-            Pruefe.Gleich(9, karte.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
-            Pruefe.Gleich(9, karte.GebaeudeDerArt(Bausteinart.Wohnhausplatz).Count());
+            Pruefe.Gleich(0, karte.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count() + karte.GebaeudeDerArt(Bausteinart.Wohnhausplatz).Count());
             Pruefe.Gleich(17, karte.GebaeudeDerArt(Bausteinart.Umlandbetrieb).Count());
             Pruefe.Gleich(8, karte.Startbelegung.Haeuser.Count);
             Pruefe.Gleich("Zwerg,Elb,Halbling", string.Join(",", karte.Startbelegung.Haeuser.Take(3).Select(h => h.Volk)), "die ersten drei wie in der Greybox");
             var daten = Wirtschaftsdaten.AusJson(Quellen.Value.Wirtschaft);
             Pruefe.Wahr(daten.Liegenschaften.All(l => karte.Gebaeude.Any(g => g.Betrieb == l.Name)), "jede Liegenschaft hat ihren Platz");
-            var r = Messpartie.Spielen(new Messaufbau("messstadt", 101, 1, Bezug: Bezugsart.Geist, Rivalen: 8, MarktMessen: true, Startplaetze: Reichsgilde.Core.Partie.Startplatzvergabe.Vorgabe), Quellen.Value);
+            var r = Messpartie.Spielen(new Messaufbau("messstadt", 101, 1, Bezug: Bezugsart.Geist, Rivalen: 8, MarktMessen: true), Quellen.Value); // 8 verlangt, 7 passen
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
-            Pruefe.Gleich(9, r.Haeuser.Count);
+            Pruefe.Gleich(8, Startortlos.Haeuser(karte, daten));
+            Pruefe.Gleich(8, r.Haeuser.Count);
             Pruefe.Gleich(0, r.Spieler.StartArbeiter);
             Pruefe.Wahr(r.Markt.ContainsKey(1) && r.Markt[1].Any(x => x.VerkauftHaeuser > 0), "Markt im Stichjahr gemessen");
-            Pruefe.Wahr(r.Ki.Select(h => h.Wohnhausplatz).Distinct().Count() == 8, "jedes Haus hat sein Wohnhaus");
+            Pruefe.Wahr(r.Ki.Count() == 7 && r.Ki.All(h => h.StartwegMeter is > 0), "jedes KI-Haus hat seine Werkstatt in der Stadt mit Weg zum Markt");
         }),
     };
 }

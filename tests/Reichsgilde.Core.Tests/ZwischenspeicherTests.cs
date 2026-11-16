@@ -195,7 +195,6 @@ static class ZwischenspeicherTests
         bauen.BauFertig += _ => geaendert = true;
         var abgerissen = 0;
         bauen.Abgerissen += _ => { geaendert = true; abgerissen++; };
-        bauen.BauplatzBebaut += _ => geaendert = true;
 
         void Vergleichen(string wann)
         {

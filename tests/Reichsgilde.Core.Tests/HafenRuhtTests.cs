@@ -20,23 +20,6 @@ static class HafenRuhtTests
 
     static Stadtkarte Karte(string kennung) => Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
 
-    /// <summary>
-    /// Die Greybox, wie sie vor den fairen Hofstellen war (Umbau greybox-hofstellen-fair, 9.11.2026): Tischlerei Eichwald bei 22 | −13 und Maurerei
-    /// Kieselbach bei 25 | −29 mit ihren alten Gassen – auf dieser Karte rechnete der Kern vor dem Schalter die Sollwerte.
-    /// </summary>
-    static Stadtkarte GreyboxVorDenFairenHofstellen()
-    {
-        var n = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("greybox")))!.AsObject();
-        void Punkt(string kennung, double x, double z) => n["gebaeude"]!.AsArray().Single(g => (string)g!["kennung"]! == kennung)!["punkt"] = new JsonArray(x, z);
-        void Linie(string name, params double[][] punkte) =>
-            n["wege"]!.AsArray().Single(w => (string)w!["name"]! == name)!["linie"] = new JsonArray(punkte.Select(p => (JsonNode)new JsonArray(p[0], p[1])).ToArray());
-        Punkt("Tischlerei_Eichwald", 22, -13);
-        Punkt("Maurerei_Kieselbach", 25, -29);
-        Linie("Gasse Tischlerei Eichwald", new[] { 22, -6.5 }, new[] { 12.5, -6.5 }, new[] { 0.0, 0 });
-        Linie("Gasse Maurerei Kieselbach", new[] { 25, -22.5 }, new[] { 11, -22.5 }, new[] { 11.0, -13 }, new[] { 0.0, 0 });
-        return Stadtkarte.AusJson(n.ToJsonString(), Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(Datenpfad.Karte("greybox"))));
-    }
-
     /// <summary>Eine Stadt mit Karte zu dieser Minute (ohne Häuser), Daten aus der Datei.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Stadt(Wirtschaftsdaten daten, long minute = 9 * 60 - Spielzeit.TagesbeginnMinute, int startwert = 1400,
         string karte = "probestadt")
@@ -87,7 +70,7 @@ static class HafenRuhtTests
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
-            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: GreyboxVorDenFairenHofstellen()); // ohne Los wie vor den Hofstellen
+            daten, FesteStartorte.Partie("greybox", new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Aufstellung: Aufstellungsart.Vorgabe)), karte: Karte("greybox")); // feste Startorte statt des Loses
         var w = sim.Wirtschaft!;
         var kauf = w.Ausfuehren(spieler, new SchiffKaufen());
         if (kauf.Erfolg && w.Schiffahrt.SchiffeVon(spieler).FirstOrDefault() is { } schiff
@@ -129,9 +112,14 @@ static class HafenRuhtTests
         // Ohne die Grundstücksverwaltung (AlterSpielstandSollwertTests.OhneGrundstuecksverwaltung, 15.11.2026, „nur noch Bauzonen“): gerechnet auf
         // main f7890512 mit demselben Ablauf – dort mit der Grundstücksverwaltung noch gleich den Sollwerten ohne Erbgut (251fc776…, b01bd17c…,
         // 317386f4…). Die Häuser stehen dafür auf den Plätzen der Karte (Startplatzvergabe.Vorgabe), wie vor dem Startortlos.
-        "edf27c8527a7c39248e43144d35eabb6ade0d6f345514a281b0ca73d6726ad65",
-        "ec3782c67dcbbfd545e5eb1cb2edee8b622abad6007cc6a929b8624bd48f1358",
-        "aa1ba25ba024075bf030a81c4334a5b44fbc4629fdd80dae747983832c4551f4",
+        // Seit „nur noch Bauzonen“, Aufräumen (16.11.2026): Die Karte hat keine Werkstatt- und Wohnhausplätze mehr, die Häuser stehen auf festen
+        // Startorten (FesteStartorte: die Flächen der alten Plätze, Grundstücke ohne Kennung), die Werkstatt des Spielers heißt nach ihrer Straße,
+        // und die zwei Gassen in K4 fehlen. Damit lässt sich der Kern vor dem Schalter nicht mehr Bit für Bit nachstellen – die Kette der Vergleiche
+        // endet hier (zuletzt edf27c85…, ec3782c6…, aa1ba25b…). Die Sollwerte unten sind der Stand dieses Kerns: Sie halten fest, dass sich die
+        // Partie mit Schiff von hier an nicht unbemerkt ändert.
+        "c32e2ad808d33060c8fb193a86aa6150def0da8dbbd016d6a772af152ca81dae",
+        "c3fb1f3241d46fd7ad7dc3e796a5df3e2bfa4b64ac2aa501dcb0a4bf7882994b",
+        "3c7ba50588e1b08196ceb92481a900dbce11f8243dceb76ab8ef5aa0a64e422e",
     };
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
@@ -248,7 +236,7 @@ static class HafenRuhtTests
             for (var i = 0; i < 60; i++) geladen.Tick();
         }),
 
-        ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) ist bitgleich mit dem Kern vor dem Schalter", () =>
+        ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) läuft bitgleich wie festgehalten (bis 16.11.2026: wie der Kern vor dem Schalter)", () =>
         {
             // ohne die Erntejahre (Datenversion 91) und den Vorrat auf Verdacht der KI (ki.vorrat, 16.11.2026), die es damals nicht gab
             var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Json.Value))), 3);

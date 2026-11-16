@@ -90,12 +90,12 @@ static class KartenformatTests
             Pruefe.WirftMitMeldung(() => Gebaeudekatalog.AusJson("""{ "format": 2 }"""), "neuer als dieser Leser");
         }),
 
-        ("Greybox: Format 2 – jedes Gebäude im Katalog aufgelöst, vier Werkstattplätze, Umland mit Betriebsnamen, Mauer mit drei Toren, Hafen, Natur", () =>
+        ("Greybox: Format 2 – jedes Gebäude im Katalog aufgelöst, keine Werkstatt- und Wohnhausplätze, Umland mit Betriebsnamen, Mauer mit drei Toren, Hafen, Natur", () =>
         {
             var k = Greybox();
             Pruefe.Gleich(2, k.Format);
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null && g.Art != ""), "jedes Gebäude aufgelöst");
-            Pruefe.Gleich(4, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count());
+            Pruefe.Gleich(0, k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count() + k.Wohnhausplaetze.Count); // bis 16.11.2026 vier und acht
             Pruefe.Gleich(12, k.GebaeudeDerArt(Bausteinart.Umlandbetrieb).Count());
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Umlandbetrieb).All(g => g.Betrieb == g.Name), "Umlandbetriebe tragen ihren Betriebsnamen");
             Pruefe.Gleich(4, k.GebaeudeDerArt(Bausteinart.Umlandstelle).Count()); // seit PR #199 mit dem Hafen
@@ -103,7 +103,6 @@ static class KartenformatTests
             Pruefe.Gleich(3, k.GebaeudeDerArt(Bausteinart.Berg).Count()); // je Grube ein Felsberg
             Pruefe.Gleich("Osttor, Südtor, Westtor", string.Join(", ", k.Mauern.SelectMany(m => m.Tore).Select(t => t.Name).Order()));
             Pruefe.Wahr(k.Natur.Flaechen.Count > 0, "Natur fehlt");
-            Pruefe.Gleich(string.Join(", ", Enumerable.Range(1, 8).Select(i => $"Wohnhaus{i}")), string.Join(", ", k.Wohnhausplaetze.Select(g => g.Kennung)));
 
             // Schräg gedreht belegt ein Gebäude das umschließende Rechteck: Grube Eisenbart (16 × 14, −60°).
             var grube = k.GebaeudeMit("Grube_Eisenbart")!;
@@ -112,37 +111,41 @@ static class KartenformatTests
             Pruefe.Wahr(Math.Abs(g.Breite - (16 * 0.5 + 14 * Math.Sqrt(3) / 2)) < 1e-9 && g.Drehung == 0, $"Rechteck um die Grube: {g}");
         }),
 
-        ("Greybox: jeder Betrieb hat seinen Platz – Startwerkstatt je Beruf am Weinmarkt, Rivalen, jede Liegenschaft aus wirtschaft.json", () =>
+        ("Greybox: Plätze der Karte haben nur noch die Umlandbetriebe – die der Rivalen und jede Liegenschaft aus wirtschaft.json; die Werkstätten in der Stadt nicht", () =>
         {
             var k = Greybox();
-            Pruefe.Gleich("Weinmarkt", k.PlatzVon("Gießerei am Weinmarkt")!.Kennung);
-            Pruefe.Gleich("Weinmarkt", k.PlatzVon("Wechselstube am Weinmarkt")!.Kennung);
-            Pruefe.Gleich(Bausteinart.Werkstattplatz, k.PlatzVon("Gießerei Eisenbart")!.Art);
-            Pruefe.Wahr(k.PlatzVon("Gießerei an der Ostgasse") is null && k.PlatzVon(" am Weinmarkt") is null, "kein Platz für fremde Namen");
+            Pruefe.Wahr(k.PlatzVon("Gießerei am Weinmarkt") is null && k.PlatzVon("Gießerei Eisenbart") is null && k.PlatzVon("Gießerei an der Ostgasse") is null,
+                "kein Platz der Karte für Werkstätten in der Stadt (bis 16.11.2026 Werkstattplätze)");
+            Pruefe.Gleich(Bausteinart.Umlandbetrieb, k.PlatzVon("Grube Eisenbart")!.Art);
             foreach (var l in Daten.Value.Liegenschaften)
                 Pruefe.Wahr(k.PlatzVon(l.Name) is { Art: Bausteinart.Umlandbetrieb } p && p.Baustein!.BetriebsartWert == l.Art, $"Platz für {l.Name}");
             foreach (var b in k.Startbelegung.Haeuser.SelectMany(h => h.Betriebe))
-                Pruefe.Wahr(k.GebaeudeMit(b.Platz)?.Betrieb is not null, $"Startbetrieb auf {b.Platz}");
+                Pruefe.Wahr(b.Platz == "" ? Daten.Value.Art(b.Art).InDerStadt : k.GebaeudeMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb, Betrieb: not null },
+                    $"Startbetrieb {b.Art} auf „{b.Platz}“: Werkstatt ohne Platz oder Umlandbetrieb mit Namen");
         }),
 
         ("Start: Die Greybox führt dieselben drei Häuser wie der Ersatz ohne Karte – gleiche Konten, Betriebe, Völker und Wappen", () =>
         {
-            // Plätze der Karte (Vorgabe): Die Werkstatt des Spielers heißt wie in der Karte – gelost hieße sie nach ihrer Straße (15.11.2026)
-            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe, Startplaetze: Startplatzvergabe.Vorgabe), karte: Greybox());
+            // Mit Karte heißt die Werkstatt des Spielers nach ihrer Straße (gelost), ohne Karte „am Weinmarkt“ – sonst dieselben Betriebe
+            var (mit, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: Greybox());
             var (ohne, _) = Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe));
             var (w1, w2) = (mit.Wirtschaft!, ohne.Wirtschaft!);
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")), string.Join(", ", w1.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")));
-            Pruefe.Gleich(string.Join(", ", w2.Betriebe.Select(b => $"{b.Name}/{b.Art}/{b.Konto.Inhaber}/{b.Produkt}/{b.Arbeiter.Count}")),
-                          string.Join(", ", w1.Betriebe.Select(b => $"{b.Name}/{b.Art}/{b.Konto.Inhaber}/{b.Produkt}/{b.Arbeiter.Count}")));
+            static string Betriebe(Stadtwirtschaft w) => string.Join(", ", w.Betriebe.Select(b =>
+                $"{(b.Konto == w.Konten[0] ? "(Werkstatt des Spielers)" : b.Name)}/{b.Art}/{b.Konto.Inhaber}/{b.Produkt}/{b.Arbeiter.Count}"));
+            Pruefe.Gleich(Betriebe(w2), Betriebe(w1));
+            Pruefe.Gleich("Gießerei am Weinmarkt", w2.Betriebe[0].Name);
+            Pruefe.Wahr(w1.Betriebe[0].Name.StartsWith("Gießerei a", StringComparison.Ordinal) && w1.Betriebe[0].Name != "Gießerei am Weinmarkt", w1.Betriebe[0].Name);
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => w2.Familien.Von(k)?.Oberhaupt.Volk)), string.Join(", ", w1.Konten.Select(k => w1.Familien.Von(k)?.Oberhaupt.Volk)));
             Pruefe.Gleich(string.Join(", ", Startbelegung.Ersatz.Rivalennamen), string.Join(", ", Greybox().Startbelegung.Rivalennamen));
             Pruefe.Gleich("#b33329", Greybox().Startbelegung.Farbe("Haus Eisenbart"));
             Pruefe.Gleich("#336bb8", Greybox().Startbelegung.Farbe("Haus Hammerschmid", istSpieler: true));
-            // Jeder Betrieb hat seinen Platz in der Karte.
-            Pruefe.Wahr(w1.Betriebe.All(b => w1.Bauen.PlatzVon(b.Name)?.Gebaeude is not null), "jeder Startbetrieb steht auf einem Platz der Karte");
+            // Jeder Betrieb hat seinen Platz: die Werkstätten in der Stadt ein Grundstück, die Umlandbetriebe ihr Gebäude der Karte.
+            Pruefe.Wahr(w1.Betriebe.All(b => w1.Bauen.PlatzVon(b.Name) is { } p && (b.InDerStadt ? p.Grundstueck is not null : p.Gebaeude is not null)),
+                "jeder Startbetrieb steht auf seinem Platz");
         }),
 
-        ("Start: Die Karte bestimmt die KI-Häuser – Name, Volk, Wappen, Betriebe, Wohnhaus, Startplatz des Spielers je Beruf, Zahl der Rivalen", () =>
+        ("Start: Die Karte bestimmt die KI-Häuser – Name, Volk, Wappen, Betriebe, Zahl der Rivalen; wo sie wohnen und arbeiten, lost die Partie", () =>
         {
             var json = GreyboxJson();
             var haeuser = json["start"]!["haeuser"]!.AsArray();
@@ -150,30 +153,23 @@ static class KartenformatTests
             erstes["name"] = "Haus Steinhauer";
             erstes["volk"] = "Mensch";
             erstes["wappen"] = new JsonObject { ["teilung"] = "Geteilt", ["farbe1"] = "Rot", ["farbe2"] = "Silber", ["figur"] = "Turm" };
-            erstes["wohnhaus"] = "Wohnhaus5";
             erstes["betriebe"]![0]!["produkt"] = null;
             haeuser.RemoveAt(2); // ohne Kieselbach
-            json["gebaeude"]!.AsArray().Add(new JsonObject
-            {
-                ["kennung"] = "Probeplatz", ["katalog"] = "werkstattplatz", ["name"] = "Probeplatz", ["punkt"] = new JsonArray(-110, -5), ["drehung"] = 0,
-            });
-            json["start"]!["spieler"]!["jeBeruf"] = new JsonObject { ["Steinmetz"] = new JsonObject { ["platz"] = "Probeplatz", ["name"] = "{art} am Probeplatz" } };
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog());
 
-            // ohne Los (Hofstellen, 9.11.2026): jedes Haus genau, wie die Startbelegung es setzt
+            // Aufstellung nach der Karte: jedes Haus mit Name, Volk, Wappen und Betrieben der Startbelegung
             var (sim, spieler) = Partieaufbau.Erstellen(Endlos with { Schwierigkeit = Schwierigkeit.Schwer }, Daten.Value,
-                new NeuePartie(Beruf: "Steinmetz", Rivalen: 2, Startplaetze: Startplatzvergabe.Vorgabe, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
+                new NeuePartie(Beruf: "Steinmetz", Rivalen: 2, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
             var w = sim.Wirtschaft!;
             Pruefe.Gleich("Haus Hammerschmid, Haus Steinhauer, Haus Eichwald", string.Join(", ", w.Konten.Select(k => k.Inhaber)));
             var steinhauer = w.Konten[1];
             Pruefe.Gleich(new Wappen(Teilung.Geteilt, Tinktur.Rot, Tinktur.Silber, Figur.Turm), steinhauer.Wappen);
             Pruefe.Gleich(Volk.Mensch, w.Familien.Von(steinhauer)!.Oberhaupt.Volk);
-            Pruefe.Gleich("Wohnhaus5", w.Bauen.Wohnhaus(steinhauer)!.Kennung);
-            Pruefe.Gleich("Wohnhaus3", w.Bauen.Wohnhaus(w.Konten[2])!.Kennung);
-            // Die Betriebe heißen wie ihr Platz in der Karte (die Gießerei bleibt „Gießerei Eisenbart“, so steht es am Platz).
-            Pruefe.Gleich("Gießerei Eisenbart, Grube Eisenbart", string.Join(", ", w.Betriebe.Where(b => b.Konto == steinhauer).Select(b => b.Name)));
-            Pruefe.Gleich("Maurerei am Probeplatz", w.Betriebe.Single(b => b.Konto == spieler).Name);
-            Pruefe.Gleich("Probeplatz", w.Bauen.PlatzVon("Maurerei am Probeplatz")!.Gebaeude!.Kennung);
+            Pruefe.Wahr(w.Konten.All(k => w.Bauen.Wohnhaus(k) is { Kennung: null }), "jedes Haus wohnt auf einem gelosten Grundstück");
+            // Die Werkstatt in der Stadt heißt nach dem Haus, der Umlandbetrieb wie sein Platz in der Karte („Grube Eisenbart“ steht dort).
+            Pruefe.Gleich("Gießerei Steinhauer, Grube Eisenbart", string.Join(", ", w.Betriebe.Where(b => b.Konto == steinhauer).Select(b => b.Name)));
+            Pruefe.Wahr(w.Betriebe.Single(b => b.Konto == spieler).Name.StartsWith("Maurerei a", StringComparison.Ordinal), w.Betriebe.Single(b => b.Konto == spieler).Name);
+            Pruefe.Wahr(w.Bauen.PlatzVon(w.Betriebe.Single(b => b.Konto == spieler).Name) is { Grundstueck.Kennung: null }, "die Werkstatt des Spielers steht auf einem Grundstück");
 
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "null bis zwei KI-Häuser");
             Pruefe.WirftMitMeldung(() => Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Steinhauer", Aufstellung: Aufstellungsart.Vorgabe), karte: karte), "Name eines Rivalen");
@@ -183,7 +179,7 @@ static class KartenformatTests
             Pruefe.Gleich("Haus Eisenbart", Partieaufbau.Erstellen(Endlos, Daten.Value, new NeuePartie("Eisenbart", Rivalen: 1, Aufstellung: Aufstellungsart.Vorgabe), karte: karte).Spieler.Inhaber);
         }),
 
-        ("Start: Fehler in der Karte werden gemeldet – Platz unbekannt, falsche Betriebsart, Wappen doppelt, kein Wohnhausplatz, Platz doppelt", () =>
+        ("Start: Fehler in der Karte werden gemeldet – Platz unbekannt oder kein Umlandbetrieb, falsche Betriebsart, Wappen doppelt, Platz doppelt; ein alter Wohnhausplatz wird still vergessen", () =>
         {
             void Fehler(Action<JsonNode> aendern, string meldung)
             {
@@ -191,12 +187,17 @@ static class KartenformatTests
                 aendern(json);
                 Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson(json.ToJsonString(), Katalog()), meldung);
             }
-            Fehler(j => j["start"]!["haeuser"]![0]!["betriebe"]![0]!["platz"] = "Nirgendwo", "„Nirgendwo“ ist kein Werkstattplatz");
+            Fehler(j => j["start"]!["haeuser"]![0]!["betriebe"]![0]!["platz"] = "Nirgendwo", "„Nirgendwo“ ist kein Umlandbetrieb");
+            Fehler(j => j["start"]!["haeuser"]![0]!["betriebe"]![0]!["platz"] = "Markt", "„Markt“ ist kein Umlandbetrieb");
             Fehler(j => j["start"]!["haeuser"]![0]!["betriebe"]![1]!["art"] = "Steinbruch", "nicht Steinbruch");
             Fehler(j => j["start"]!["haeuser"]![1]!["wappen"] = j["start"]!["haeuser"]![0]!["wappen"]!.DeepClone(), "dasselbe Wappen");
-            Fehler(j => j["start"]!["haeuser"]![1]!["wohnhaus"] = "Markt", "„Markt“ ist kein Wohnhausplatz");
-            Fehler(j => j["start"]!["haeuser"]![1]!["betriebe"]![0]!["platz"] = "Giesserei_Eisenbart", "mehrfach vergeben");
-            Fehler(j => j["start"]!["spieler"]!["werkstatt"]!["platz"] = "Grube_Eisenbart", "kein Werkstattplatz der Karte");
+            Fehler(j => j["start"]!["haeuser"]![1]!["betriebe"]![1]!["platz"] = "Grube_Eisenbart", "mehrfach vergeben");
+            // Felder alter Karten (Wohnhaus, Startplatz des Spielers) liest der Kern nicht mehr – kein Fehler, was auch darin steht
+            var alt = GreyboxJson();
+            alt["start"]!["haeuser"]![1]!["wohnhaus"] = "Markt";
+            alt["start"]!["spieler"]!["werkstatt"] = new JsonObject { ["platz"] = "Grube_Eisenbart", ["name"] = "{art} am Markt" };
+            var gelesen = Stadtkarte.AusJson(alt.ToJsonString(), Katalog());
+            Pruefe.Wahr(gelesen.Startbelegung.Haeuser[1].Wohnhaus is null && gelesen.Startbelegung.Spieler.Werkstatt.Platz == "", "alte Felder vergessen");
             Fehler(j => j["natur"]!["flaechen"]![0]!["gruppen"]![0]!["teile"]![0]!["arten"]!["palme"] = 1, "Natur-Baustein „palme“");
             Fehler(j => j["gebaeude"]!.AsArray().Add(new JsonObject { ["kennung"] = "X", ["katalog"] = "grube", ["punkt"] = new JsonArray(0, 0), ["betrieb"] = "Grube Eisenbart" }),
                 "„Grube Eisenbart“ steht an mehreren Plätzen");

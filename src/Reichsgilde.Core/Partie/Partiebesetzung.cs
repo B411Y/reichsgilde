@@ -9,14 +9,14 @@ namespace Reichsgilde.Core.Partie;
 // ═════════════════════════════════════════════════════════════════════════════
 //  Neue Partie und Höfe (Nutzerentscheidungen 11.11.2026)
 //
-//  • Eine Karte hat bis zu acht nummerierte Höfe (Hofstelle.Nummer): Hof 1 bekommt Spieler 1, Hof 2 Spieler 2 usw. Die Karte speichert nur
-//    Lage, Drehung und Nummer – Namen, Wappen und Berufe würfelt jede Partie neu. Alte Karten mit ihren ausführlich beschriebenen
-//    KI-Häusern (Abschnitt „start“ → „haeuser“) laden weiter; ihre Häuser sind die Vorlage („Erweitert“).
+//  • In einer Partie beginnen bis zu acht Häuser (HoechstensHoefe) – so viele, wie in die Bauzonen im Stadtinneren passen (Startortlos; seit
+//    16.11.2026 gibt es keine Hofstellen und keine Plätze der Karte mehr). Die Karte nennt nur ihre KI-Häuser (Abschnitt „start“ →
+//    „haeuser“) – sie sind die Vorlage („Erweitert“); Namen, Wappen und Berufe würfelt sonst jede Partie neu.
 //  • Bei jedem Partiestart wird gewürfelt, was niemand festlegt: für jedes KI-Haus Name, Wappen, Volk, Glaube und Beruf, für den Spieler,
 //    was er offen lässt (SpielerWuerfeln). Es gelten die Regeln der Startaufstellung (jeder Beruf einmal, der Spieler zuerst; Glaube nach Volk).
 //  • Persönlichkeitszüge sind immer gewürfelt, auch beim Spieler: drei, nie zwei Gegenteile. Vor Partiebeginn darf er sie neu würfeln
 //    (Befehl ZuegeNeuWuerfeln) – frei wählen nie.
-//  • KI-Gegner: 0 bis (Höfe − 1), Stärke Leicht / Normal / Schwer (wirtschaft.json „kiStaerke“; Normal rechnet wie bisher).
+//  • KI-Gegner: 0 bis (Häuser − 1), Stärke Leicht / Normal / Schwer (wirtschaft.json „kiStaerke“; Normal rechnet wie bisher).
 //
 //  Gewürfelt wird nur mit eigenen Zufallsquellen aus dem Startwert der Partie (Zugwuerfel.Mischen mit eigenem Schlüssel) – die übrigen Würfe
 //  der Partie bleiben, wie sie ohne diese Würfe wären, und jeder Rechner einer Mehrspielerpartie würfelt dasselbe.
@@ -105,7 +105,7 @@ public sealed class KiStaerkeDaten
 /// <summary>Wer auf welchem Hof beginnt und was dafür gewürfelt wird (siehe Kopf).</summary>
 public static class Partiebesetzung
 {
-    /// <summary>So viele Höfe (und damit Häuser, Spieler und KI zusammen) hat eine Karte höchstens.</summary>
+    /// <summary>So viele Häuser (Spieler und KI zusammen) beginnen in einer Partie höchstens.</summary>
     public const int HoechstensHoefe = 8;
 
     /// <summary>Schlüssel der Zufallsquellen für Namen, Wappen und Geschlecht (<see cref="Besetzungsquelle"/>).</summary>
@@ -127,19 +127,17 @@ public static class Partiebesetzung
     // ── Höfe ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Wie viele Häuser (Spieler und KI) auf dieser Karte beginnen können: die Startplätze der Hofstellen (nummerierte Höfe: höchstens
-    /// <see cref="HoechstensHoefe"/>); ohne Hofstellen der Spieler und die KI-Häuser der Startbelegung (ohne Karte: <see cref="Startbelegung.Ersatz"/>).
+    /// Wie viele Häuser (Spieler und KI) die Startbelegung dieser Karte nennt: der Spieler und ihre KI-Häuser (ohne Karte:
+    /// <see cref="Startbelegung.Ersatz"/>). Wie viele wirklich Platz finden, sagt <see cref="HoechstensKi"/> mit den Daten.
     /// </summary>
-    public static int Hoefe(Stadtkarte? karte) => karte is { HatHofstellen: true }
-        ? Hofstellenvergabe.Startplaetze(karte).Count
-        : 1 + (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
+    public static int Hoefe(Stadtkarte? karte) => 1 + (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
 
     /// <summary>
     /// Wie viele KI-Gegner höchstens mitspielen. Seit „nur noch Bauzonen“ (15.11.2026) mit <paramref name="daten"/>: so viele Häuser, wie in
     /// die Bauzonen im Stadtinneren passen (<see cref="Startortlos.Haeuser"/>, höchstens <see cref="HoechstensHoefe"/>), minus der Spieler.
     /// Ohne Los (<see cref="Aufstellungsart.Vorgabe"/>) höchstens die KI-Häuser der Startbelegung – gewürfelt wird dann nichts. Ohne Karte:
-    /// die Häuser des Ersatzes. Ohne <paramref name="daten"/> (oder ohne Bauwesen in den Daten) die alte Zählung nach den Höfen der Karte –
-    /// nur noch als Anhalt; die Partie prüft mit den Daten.
+    /// die Häuser des Ersatzes. Ohne <paramref name="daten"/> (oder ohne Bauwesen in den Daten) die Häuser der Startbelegung –
+    /// nur als Anhalt; die Partie prüft mit den Daten.
     /// </summary>
     public static int HoechstensKi(Stadtkarte? karte, Aufstellungsart aufstellung = Aufstellungsart.Gelost, Wirtschaftsdaten? daten = null)
     {
@@ -251,8 +249,7 @@ public static class Partiebesetzung
     /// <summary>
     /// Die mitspielenden KI-Häuser vor dem Los: die ersten <paramref name="anzahl"/> der Startbelegung (deren Betriebsarten die Daten kennen; die
     /// ausführliche Beschreibung alter Karten), und für jedes weitere ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
-    /// Farbe und Geschlecht – ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/> (seit 15.11.2026, vorher eine freie
-    /// Start-Hofstelle). Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
+    /// Farbe und Geschlecht – ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/>. Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
     /// </summary>
     internal static List<Starthaus> KiHaeuser(Stadtkarte? karte, Startbelegung start, Wirtschaftsdaten daten, int anzahl, Wappen spielerWappen,
         IReadOnlyList<Hausvorgabe?>? vorgaben, int zufallsstartwert)

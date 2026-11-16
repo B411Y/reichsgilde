@@ -564,36 +564,6 @@
 <polygon points="8,29 -8,29 -8,15 8,15" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="0" cy="15" r="0.9" fill="#A3262A"/>
 <text x="0" y="23" font-size="3" text-anchor="middle" fill="#1F2326">Kirche</text>
-<polygon points="-38,-17 -22,-17 -22,-3 -38,-3" fill="#336bb8" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="-30" cy="-3" r="0.9" fill="#fff"/>
-<text x="-30" y="-9" font-size="3" text-anchor="middle" fill="#fff">Werkstattplatz</text>
-<polygon points="24,-17 40,-17 40,-3 24,-3" fill="#b33329" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="32" cy="-3" r="0.9" fill="#fff"/>
-<text x="32" y="-9" font-size="3" text-anchor="middle" fill="#fff">Werkstattplatz 2</text>
-<polygon points="-22,17 -38,17 -38,3 -22,3" fill="#B58A5A" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="-30" cy="3" r="0.9" fill="#A3262A"/>
-<text x="-30" y="11" font-size="3" text-anchor="middle" fill="#1F2326">Werkstattplatz 3</text>
-<polygon points="40,17 24,17 24,3 40,3" fill="#388c47" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="32" cy="3" r="0.9" fill="#fff"/>
-<text x="32" y="11" font-size="3" text-anchor="middle" fill="#fff">Werkstattplatz 4</text>
-<polygon points="-6,-30 -14,-30 -14,-40 -6,-40" fill="#b33329" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="-10" cy="-40" r="0.9" fill="#fff"/>
-<text x="-10" y="-33.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz1</text>
-<polygon points="4,-30 -4,-30 -4,-40 4,-40" fill="#336bb8" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="0" cy="-40" r="0.9" fill="#fff"/>
-<text x="0" y="-33.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz2</text>
-<polygon points="14,-30 6,-30 6,-40 14,-40" fill="#388c47" stroke="#1F2326" stroke-width="0.8"/>
-<circle cx="10" cy="-40" r="0.9" fill="#fff"/>
-<text x="10" y="-33.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz3</text>
-<polygon points="6,30 14,30 14,40 6,40" fill="#8E7470" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="10" cy="40" r="0.9" fill="#fff"/>
-<text x="10" y="36.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz4</text>
-<polygon points="-4,30 4,30 4,40 -4,40" fill="#8E7470" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="0" cy="40" r="0.9" fill="#fff"/>
-<text x="0" y="36.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz5</text>
-<polygon points="-14,30 -6,30 -6,40 -14,40" fill="#8E7470" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="-10" cy="40" r="0.9" fill="#fff"/>
-<text x="-10" y="36.5" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">Wohnhausplatz6</text>
 <polygon points="-47,-52 -38.5,-52 -38.5,-44 -47,-44" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="-42.75" cy="-44" r="0.9" fill="#A3262A"/>
 <polygon points="-37.5,-52 -29,-52 -29,-44 -37.5,-44" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
@@ -657,22 +627,6 @@
 <polygon points="-82,115 -98,115 -98,101 -82,101" fill="#B7C79A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="-90" cy="101" r="0.9" fill="#A3262A"/>
 <text x="-90" y="109" font-size="3" text-anchor="middle" fill="#1F2326">Hafen am Sandfluss</text>
-<polygon points="-38,-17 -22,-17 -22,-3 -38,-3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<polygon points="4,-30 -4,-30 -4,-40 4,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<line x1="-30" y1="-10" x2="0" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
-<text x="-30" y="-13" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S1</text>
-<polygon points="24,-17 40,-17 40,-3 24,-3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<polygon points="-6,-30 -14,-30 -14,-40 -6,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<line x1="32" y1="-10" x2="-10" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
-<text x="32" y="-13" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S2</text>
-<polygon points="40,17 24,17 24,3 40,3" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<polygon points="14,-30 6,-30 6,-40 14,-40" fill="none" stroke="#A3262A" stroke-width="0.9" stroke-dasharray="4 2" stroke-linejoin="round"/>
-<line x1="32" y1="10" x2="10" y2="-35" stroke="#A3262A" stroke-width="0.6" stroke-dasharray="4 2"/>
-<text x="32" y="7" font-size="6" text-anchor="middle" fill="#A3262A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">S3</text>
-<polygon points="-22,17 -38,17 -38,3 -22,3" fill="none" stroke="#2F4F7A" stroke-width="0.9" stroke-dasharray="1 1.5" stroke-linejoin="round"/>
-<polygon points="-14,30 -6,30 -6,40 -14,40" fill="none" stroke="#2F4F7A" stroke-width="0.9" stroke-dasharray="1 1.5" stroke-linejoin="round"/>
-<line x1="-30" y1="10" x2="-10" y2="35" stroke="#2F4F7A" stroke-width="0.6" stroke-dasharray="1 1.5"/>
-<text x="-30" y="7" font-size="6" text-anchor="middle" fill="#2F4F7A" font-weight="bold" stroke="#fff" stroke-width="0.5" paint-order="stroke">H1</text>
 <text x="0" y="-17" font-size="6" text-anchor="middle" fill="#6B6E66">K1</text>
 <text x="0" y="18" font-size="6" text-anchor="middle" fill="#6B6E66">K2</text>
 <text x="-59" y="-33" font-size="6" text-anchor="middle" fill="#6B6E66">M1</text>

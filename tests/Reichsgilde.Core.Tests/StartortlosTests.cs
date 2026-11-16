@@ -97,7 +97,7 @@ static class StartortlosTests
             "die freie Werkstatt hat ihr Grundstück und ist zu haben");
         // Freie Bauplätze und Hofstellen fallen ersatzlos weg.
         Pruefe.Wahr(alteGrundstuecke.Count > wohnhaeuser.Length + 1, "der alte Spielstand hat Bauplätze");
-        Pruefe.Wahr(!w.Bauen.Bauplaetze.Any() && w.Bauen.Grundstuecke.All(g => g.Art != Grundstuecksart.Bauplatz), "kein Bauplatz mehr");
+        Pruefe.Wahr(w.Bauen.Grundstuecke.All(g => g.Art != Grundstuecksart.Bauplatz), "kein Bauplatz mehr");
         Pruefe.Gleich(wohnhaeuser.Length + 1 + betriebe.Length + 1, w.Bauen.Grundstuecke.Count); // Wohnhäuser, Leerstand, Werkstätten, freie Werkstatt
 
         // Es läuft weiter; nach Speichern und Laden steht alles gleich (keine zweite Umwandlung).
@@ -109,14 +109,13 @@ static class StartortlosTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Startortlos: Wie viele Häuser beginnen können, sagen die Bauzonen im Stadtinneren – Köln und Probestadt 8, Greybox 4 (seit 16.11.2026, vorher 3), Messstadt 0; im Übergang zählt die Vorstadt mit", () =>
+        ("Startortlos: Wie viele Häuser beginnen können, sagen die Bauzonen im Stadtinneren – Köln, Probestadt und Messstadt 8, Greybox 5 (seit 16.11.2026: Hof vor der Westmauer ist Vorstadt, K4 ohne die Gassen der alten Werkstattplätze); in die Vorstadt weicht kein Haus aus", () =>
         {
-            foreach (var (kennung, innen) in new[] { ("koeln", 8), ("probestadt", 8), ("greybox", 4), ("messstadt", 0) })
+            foreach (var (kennung, innen) in new[] { ("koeln", 8), ("probestadt", 8), ("greybox", 5), ("messstadt", 8) })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                Pruefe.Gleich(innen, Startortlos.Haeuser(karte, Daten.Value, nurStadtinneres: true), kennung + ", nur Stadtinneres");
-                Pruefe.Gleich(Partiebesetzung.HoechstensHoefe, Startortlos.Haeuser(karte, Daten.Value), kennung + ", mit Vorstadt (Übergang)");
-                Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value), kennung + ": 8 Häuser zusammen, also 7 KI");
+                Pruefe.Gleich(innen, Startortlos.Haeuser(karte, Daten.Value), kennung);
+                Pruefe.Gleich(innen - 1, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value), kennung + ": der Spieler und so viele KI-Häuser");
                 Pruefe.Wahr(Startortlos.Startstellen(karte, Daten.Value, werkstatt: false).All(g => Innen(karte, g))
                             && Startortlos.Startstellen(karte, Daten.Value, werkstatt: true).All(g => Innen(karte, g)), kennung + ": alle Startstellen im Stadtinneren");
             }
@@ -154,14 +153,14 @@ static class StartortlosTests
                 for (var j = i + 1; j < flaechen.Count; j++)
                     Pruefe.Wahr(!flaechen[i].Ueberlappt(flaechen[j]), $"Grundstück {i + 1} und {j + 1} überdecken sich");
             // Die Karte der Partie setzt niemanden mehr auf einen Platz: keine Hofstellen, kein Betrieb an einem Werkstattplatz, kein Bauplatz.
-            Pruefe.Wahr(w.Karte is { HatHofstellen: false, Startbelegung.OhnePlaetze: true }, "Partiekarte ohne Plätze und ohne Hofstellen");
-            Pruefe.Wahr(w.Karte!.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(g => g.Betrieb is null), "kein Werkstattplatz trägt einen Betrieb");
-            Pruefe.Wahr(!w.Bauen.Bauplaetze.Any(), "keine Bauplätze");
+            Pruefe.Wahr(w.Karte is { Startbelegung.OhnePlaetze: true }, "Partiekarte ohne Plätze");
+            Pruefe.Wahr(!w.Karte!.GebaeudeDerArt(Bausteinart.Werkstattplatz).Any() && !w.Karte.GebaeudeDerArt(Bausteinart.Wohnhausplatz).Any(), "keine Werkstatt- und Wohnhausplätze");
+            Pruefe.Wahr(w.Bauen.Grundstuecke.All(x => x.Art != Grundstuecksart.Bauplatz), "keine Bauplätze");
             // Die Werkstatt des Spielers heißt nach ihrer Straße, die der KI nach dem Haus; die Umlandbetriebe bleiben feste Plätze der Karte.
             Pruefe.Wahr(w.Betriebe.First(b => b.Konto == spieler).Name.StartsWith("Gießerei a", StringComparison.Ordinal), w.Betriebe.First(b => b.Konto == spieler).Name);
             Pruefe.Wahr(w.Betriebe.Where(b => !b.InDerStadt).All(b => w.Bauen.PlatzVon(b.Name) is { Gebaeude.Art: Bausteinart.Umlandbetrieb }), "Umlandbetriebe am festen Platz");
             // Die Karte selbst bleibt, wie sie war (die Partie spielt auf einer Kopie).
-            Pruefe.Wahr(Koeln.Value.HatHofstellen && !Koeln.Value.Startbelegung.OhnePlaetze, "die Kartendatei bleibt unverändert");
+            Pruefe.Wahr(!Koeln.Value.Startbelegung.OhnePlaetze, "die Kartendatei bleibt unverändert");
             // Speichern und Laden: dieselben Grundstücke, die Partiekarte lädt fehlerfrei
             var (sim2, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             Pruefe.Gleich(Orte(w), Orte(sim2.Wirtschaft!));
@@ -185,20 +184,24 @@ static class StartortlosTests
             Pruefe.Gleich(Familie(ohne), Familie(a));
         }),
 
-        ("Startortlos: Übergang auf der Greybox – drei Häuser passen ins Stadtinnere, weitere weichen in die Vorstadt aus; in Köln bleibt jedes Los im Stadtinneren", () =>
+        ("Startortlos: kein Ausweichen in die Vorstadt – auf der Greybox stehen bis zu fünf Häuser ganz im Stadtinneren, ein sechstes wird abgewiesen; in Köln und der Messstadt alle acht", () =>
         {
+            var messstadt = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
             for (var startwert = 1; startwert <= 6; startwert++)
             {
-                var klein = Startortlos.Losen(Greybox.Value, Daten.Value, startwert, 3)!;
-                Pruefe.Wahr(klein.All(o => Innen(Greybox.Value, o.Wohnhaus) && Innen(Greybox.Value, o.Werkstatt)), $"Startwert {startwert}: drei Häuser ganz im Stadtinneren");
-                var gross = Startortlos.Losen(Greybox.Value, Daten.Value, startwert, 8)!;
-                Pruefe.Gleich(8, gross.Count);
-                Pruefe.Wahr(gross.Any(o => !Innen(Greybox.Value, o.Werkstatt)), $"Startwert {startwert}: mit acht Häusern steht eine Werkstatt in der Vorstadt");
-                var koeln = Startortlos.Losen(Koeln.Value, Daten.Value, startwert, 8)!;
-                Pruefe.Wahr(koeln.All(o => Innen(Koeln.Value, o.Wohnhaus) && Innen(Koeln.Value, o.Werkstatt)), $"Köln, Startwert {startwert}: alle acht im Stadtinneren");
+                var greybox = Startortlos.Losen(Greybox.Value, Daten.Value, startwert, 5)!;
+                Pruefe.Gleich(5, greybox.Count);
+                Pruefe.Wahr(greybox.All(o => Innen(Greybox.Value, o.Wohnhaus) && Innen(Greybox.Value, o.Werkstatt)), $"Startwert {startwert}: fünf Häuser ganz im Stadtinneren");
+                Pruefe.WirftMitMeldung(() => Startortlos.Losen(Greybox.Value, Daten.Value, startwert, 6), "Platz für 5 Häuser");
+                foreach (var karte in new[] { Koeln.Value, messstadt })
+                {
+                    var acht = Startortlos.Losen(karte, Daten.Value, startwert, 8)!;
+                    Pruefe.Wahr(acht.Count == 8 && acht.All(o => Innen(karte, o.Wohnhaus) && Innen(karte, o.Werkstatt)), $"{karte.Kennung}, Startwert {startwert}: alle acht im Stadtinneren");
+                }
             }
-            var (sim, _) = Partie(Greybox.Value, rivalen: 7);
-            Pruefe.Gleich(16, sim.Wirtschaft!.Bauen.Grundstuecke.Count);
+            var (sim, _) = Partie(Greybox.Value, rivalen: 4);
+            Pruefe.Gleich(10, sim.Wirtschaft!.Bauen.Grundstuecke.Count);
+            Pruefe.WirftMitMeldung(() => Partie(Greybox.Value, rivalen: 5), "null bis vier");
         }),
 
         ("Startwahl: Der Spieler setzt erst das Wohnhaus, dann die Werkstatt mit dem Baubefehl – sofort, kostenlos, einmalig; die KI-Häuser stehen wie ohne Wahl", () =>

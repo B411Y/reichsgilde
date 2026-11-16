@@ -275,7 +275,7 @@ static class GelaendeTests
             Pruefe.Ungefaehr(0.8, f.Hoehe, 1e-9);
             Pruefe.Ungefaehr(1.6, f.Tiefe, 1e-9);
             Pruefe.Gleich(80, Cm(e, 8, 0), "das Raster bleibt");
-            var karte = Stadtkarte.AusJson(e.ZuJson(), Katalog.Value);
+            var karte = Stadtkarte.AusJson(e.ZuJson(), Katalog.Value, alteStadtplaetze: true); // der Werkstattplatz dient hier nur als Fläche von 16 × 14 m
             Pruefe.Gleich(f, karte.Fundament(karte.GebaeudeMit(g.Kennung)!), "Stadtkarte: dasselbe Fundament");
             // gedreht: die Ecken liegen anders
             e.Drehen(g.Kennung, 90);   // 14 × 16 m quer: x −7 … 7
@@ -452,7 +452,7 @@ static class GelaendeTests
             // Probestadt: der Markt auf einem Hügel (6 m, Radius 60) – die Werkstatt im Westen fährt die Hauptstraße hinauf
             var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             e.GelaendePinseln(new Pinsel(Pinselart.Heben, 60, 6, Kante: 1), new[] { O(0, 0) });
-            var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
+            var (sim, spieler) = Probestadtvorlage.Ausprobieren(e, Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
             var west = w.Betriebe.Single(b => b.Konto == spieler);   // der Spieler beginnt auf dem Werkstattplatz bei (−30 | −10)
             var karren = west.Karren[0];
@@ -468,7 +468,7 @@ static class GelaendeTests
             Pruefe.Gleich(w.Uhr.UhrzeitInMinuten + w.Fahrzeit(karren, true), w.AnkunftAmMarkt(karren));
             // ohne Hügel: die Werkstätten der flachen Stadt fahren Länge ÷ Tempo, obwohl die Karte Gelände hat
             var f = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
-            var (simF, spielerF) = f.Ausprobieren(Daten.Value, "Schmied");
+            var (simF, spielerF) = Probestadtvorlage.Ausprobieren(f, Daten.Value, "Schmied");
             var wf = simF.Wirtschaft!;
             Pruefe.Wahr(!wf.Karte!.Gelaendeform.IstFlach, "Probestadt hat Gelände");
             foreach (var b in wf.Betriebe.Where(b => b.InDerStadt && b.Karren.Count > 0))
@@ -492,7 +492,7 @@ static class GelaendeTests
         {
             var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             Pruefe.Wahr(!e.Hoehen.IstLeer, "die Probestadt hat Gelände");
-            var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
+            var (sim, spieler) = Probestadtvorlage.Ausprobieren(e, Daten.Value, "Schmied");
             var json = Speicherung.Speichern(sim, spieler);
             var (geladen, _) = Speicherung.Laden(json);
             var a = sim.Wirtschaft!.Karte!.Hoehen!;

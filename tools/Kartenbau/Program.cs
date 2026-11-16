@@ -958,7 +958,7 @@ public static class Befehle
             return null;
         }
         if (!Startortlos.IstAktiv(karte, daten)) return null;
-        var haeuser = Startortlos.Haeuser(karte, daten, nurStadtinneres: true);
+        var haeuser = Startortlos.Haeuser(karte, daten);
         var (wohnhaeuser, werkstaetten) = (Startortlos.Startstellen(karte, daten, werkstatt: false), Startortlos.Startstellen(karte, daten, werkstatt: true));
         aus.WriteLine($"   Startorte im Stadtinneren (Bauzonen Kern und Mauerring): Platz für {haeuser} von {Partiebesetzung.HoechstensHoefe} Häusern " +
                       $"(Wohnhaus und Werkstatt), {wohnhaeuser.Count} Stellen für ein Wohnhaus, {werkstaetten.Count} für eine Werkstatt");

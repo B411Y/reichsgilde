@@ -13,10 +13,6 @@
   {"kennung": "Markt", "katalog": "markt", "name": "Marktplatz", "punkt": [0, 0], "drehung": 0},
   {"kennung": "Rathaus", "katalog": "rathaus", "name": "Rathaus", "punkt": [0, -20], "drehung": 0},
   {"kennung": "Dom", "katalog": "dom", "name": "Dom", "punkt": [-20, -11.15], "drehung": 0},
-  {"kennung": "Weinmarkt", "katalog": "werkstattplatz", "name": "Weinmarkt", "punkt": [-23, 16], "drehung": 0},
-  {"kennung": "Giesserei_Eisenbart", "katalog": "werkstattplatz", "name": "Gießerei Eisenbart", "punkt": [22, 13], "drehung": 0, "betrieb": "Gießerei Eisenbart"},
-  {"kennung": "Tischlerei_Eichwald", "katalog": "werkstattplatz", "name": "Tischlerei Eichwald", "punkt": [24, -13], "drehung": 0, "betrieb": "Tischlerei Eichwald"},
-  {"kennung": "Maurerei_Kieselbach", "katalog": "werkstattplatz", "name": "Maurerei Kieselbach", "punkt": [24, -29], "drehung": 0, "betrieb": "Maurerei Kieselbach"},
   {"kennung": "Steinbruch_Kieselbach", "katalog": "steinbruch", "name": "Steinbruch Kieselbach", "punkt": [74, 66], "drehung": 171.5, "betrieb": "Steinbruch Kieselbach"},
   {"kennung": "Steinbruch_am_Felsenhang", "katalog": "steinbruch", "name": "Steinbruch am Felsenhang", "punkt": [-4.5, -80], "drehung": -69.1, "betrieb": "Steinbruch am Felsenhang"},
   {"kennung": "Kraeutergarten_am_Bach", "katalog": "kraeutergarten", "name": "Kräutergarten am Bach", "punkt": [106, 70], "drehung": -159, "betrieb": "Kräutergarten am Bach"},
@@ -39,14 +35,6 @@
   {"kennung": "Kulisse2", "katalog": "kulisse_buergerhaus", "name": "Haus der Kulisse 2", "punkt": [-8, -32], "drehung": 180},
   {"kennung": "Kulisse3", "katalog": "kulisse_buergerhaus", "name": "Haus der Kulisse 3", "punkt": [1, -32], "drehung": 180},
   {"kennung": "Kulisse4", "katalog": "kulisse_buergerhaus", "name": "Haus der Kulisse 4", "punkt": [-32, -14], "drehung": 270},
-  {"kennung": "Wohnhaus1", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 1", "punkt": [0, -44.3], "drehung": 0, "lage": "mauerring"},
-  {"kennung": "Wohnhaus2", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 2", "punkt": [0, 44.3], "drehung": 180, "lage": "mauerring"},
-  {"kennung": "Wohnhaus3", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 3", "punkt": [-44.3, -9], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "Wohnhaus4", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 4", "punkt": [44.3, -16.25], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "Wohnhaus5", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 5", "punkt": [44.3, 16.25], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "Wohnhaus6", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 6", "punkt": [-17, -44.3], "drehung": 0, "lage": "mauerring"},
-  {"kennung": "Wohnhaus7", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 7", "punkt": [-17, 44.3], "drehung": 180, "lage": "mauerring"},
-  {"kennung": "Wohnhaus8", "katalog": "wohnhausplatz_ring", "name": "Wohnhaus 8", "punkt": [17, -44.3], "drehung": 0, "lage": "mauerring"},
   {"kennung": "Ring17", "katalog": "einwohnerplatz_ring", "name": "Ringplatz 17", "punkt": [12.75, 44.3], "drehung": 180},
   {"kennung": "Ring31", "katalog": "einwohnerplatz_ring", "name": "Ringplatz 31", "punkt": [-44.3, 19.25], "drehung": 90},
   {"kennung": "Ring18", "katalog": "einwohnerplatz_ring", "name": "Ringplatz 18", "punkt": [21.25, 44.3], "drehung": 180},
@@ -109,8 +97,6 @@
   {"name": "Vorstadtgasse", "klasse": "gasse", "linie": [[64, -42.5], [64, 42.5]], "gefahr": 1, "breite": 3},
   {"name": "Gasse Weinmarkt", "klasse": "gasse", "linie": [[-23, 22.5], [-34, 22.5], [-34, 6], [-12, 6], [0, 0]], "gefahr": 1, "breite": 3.5},
   {"name": "Gasse Gießerei Eisenbart", "klasse": "gasse", "linie": [[22, 19.5], [12, 19.5], [12, 12], [0, 0]], "gefahr": 1, "breite": 3.5},
-  {"name": "Gasse Tischlerei Eichwald", "klasse": "gasse", "linie": [[24, -6.5], [24, 0]], "gefahr": 1, "breite": 3.5},
-  {"name": "Gasse Maurerei Kieselbach", "klasse": "gasse", "linie": [[24, -22.5], [15.5, -22.5], [0, 0]], "gefahr": 1, "breite": 3.5},
   {"name": "Weg zum Abzweig Steinbruch Kieselbach", "klasse": "land", "linie": [[76, -1.3], [80, 26]], "gefahr": 1, "breite": 4},
   {"name": "Weg zu Steinbruch Kieselbach", "klasse": "land", "linie": [[80, 26], [69.3, 57]], "gefahr": 1, "breite": 4},
   {"name": "Weg zum Abzweig Steinbruch am Felsenhang", "klasse": "land", "linie": [[-50, 6], [-62, -58]], "gefahr": 1, "breite": 4},
@@ -144,26 +130,12 @@
    "berechnet": true
   },
   {"kennung": "K3", "art": "kern", "flaeche": [[-30, 10], [-16, 10], [-16, 20], [-30, 20]], "berechnet": true},
-  {
-   "kennung": "K4",
-   "art": "kern",
-   "flaeche": [
-    [14, -16], [16, -16], [16, -18], [18, -18], [18, -20], [28, -20], [28, -24], [26, -24], [26, -26], [16, -26], [16, -36], [36, -36], [36, -4], [28, -4], [28, -8], [26, -8],
-    [26, -10], [22, -10], [22, -8], [20, -8], [20, -4], [14, -4]
-   ],
-   "berechnet": true
-  },
-  {
-   "kennung": "M1",
-   "art": "mauerring",
-   "flaeche": [[-82, -58], [-66, -58], [-66, -54], [-64, -54], [-64, -44], [-62, -44], [-62, -32], [-60, -32], [-60, -26], [-70, -26], [-70, -24], [-80, -24], [-80, -32], [-82, -32]],
-   "berechnet": true
-  },
-  {"kennung": "M2", "art": "mauerring", "flaeche": [[-48, -14], [-40, -14], [-40, 2], [-48, 2]], "berechnet": true},
-  {"kennung": "M3", "art": "mauerring", "flaeche": [[-22, -48], [22, -48], [22, -40], [-22, -40]], "berechnet": true},
-  {"kennung": "M4", "art": "mauerring", "flaeche": [[-22, 40], [6, 40], [6, 48], [-22, 48]], "berechnet": true},
-  {"kennung": "M5", "art": "mauerring", "flaeche": [[40, -22], [48, -22], [48, -4], [40, -4]], "berechnet": true},
-  {"kennung": "M6", "art": "mauerring", "flaeche": [[40, 4], [48, 4], [48, 22], [40, 22]], "berechnet": true},
+  {"kennung": "K4", "art": "kern", "flaeche": [[10, -22], [16, -22], [16, -36], [36, -36], [36, -4], [14, -4], [14, -14], [10, -14]], "berechnet": true},
+  {"kennung": "M1", "art": "mauerring", "flaeche": [[-48, -14], [-40, -14], [-40, 2], [-48, 2]], "berechnet": true},
+  {"kennung": "M2", "art": "mauerring", "flaeche": [[-22, -48], [22, -48], [22, -40], [-22, -40]], "berechnet": true},
+  {"kennung": "M3", "art": "mauerring", "flaeche": [[-22, 40], [6, 40], [6, 48], [-22, 48]], "berechnet": true},
+  {"kennung": "M4", "art": "mauerring", "flaeche": [[40, -22], [48, -22], [48, -4], [40, -4]], "berechnet": true},
+  {"kennung": "M5", "art": "mauerring", "flaeche": [[40, 4], [48, 4], [48, 22], [40, 22]], "berechnet": true},
   {"kennung": "V1", "art": "vorstadt", "flaeche": [[-120, 10], [-104, 10], [-104, 24], [-102, 24], [-102, 36], [-104, 36], [-104, 38], [-120, 38]], "berechnet": true},
   {"kennung": "V2", "art": "vorstadt", "flaeche": [[-118, -14], [-88, -14], [-88, 2], [-118, 2]], "berechnet": true},
   {
@@ -175,7 +147,15 @@
    ],
    "berechnet": true
   },
-  {"kennung": "V4", "art": "vorstadt", "flaeche": [[-78, -68], [-64, -68], [-64, -60], [-66, -60], [-66, -58], [-78, -58]], "berechnet": true},
+  {
+   "kennung": "V4",
+   "art": "vorstadt",
+   "flaeche": [
+    [-82, -58], [-78, -58], [-78, -68], [-64, -68], [-64, -60], [-66, -60], [-66, -54], [-64, -54], [-64, -44], [-62, -44], [-62, -32], [-60, -32], [-60, -26], [-70, -26], [-70, -24],
+    [-80, -24], [-80, -32], [-82, -32]
+   ],
+   "berechnet": true
+  },
   {
    "kennung": "V5",
    "art": "vorstadt",
@@ -196,7 +176,7 @@
   }
  ],
  "lagen": [
-  {"art": "mauerring", "name": "Hof vor der Westmauer", "flaeche": [[-82, -58], [-60, -58], [-60, -24], [-82, -24]]},
+  {"art": "vorstadt", "name": "Hof vor der Westmauer", "flaeche": [[-82, -58], [-60, -58], [-60, -24], [-82, -24]]},
   {"art": "kern", "name": "innerhalb der Ringgasse", "flaeche": [[-38, -38], [38, -38], [38, 38], [-38, 38]]},
   {"art": "mauerring", "name": "zwischen Ringgasse und Mauer", "flaeche": [[-50, -50], [50, -50], [50, 50], [-50, 50]]},
   {"art": "vorstadt", "name": "an der Weststraße, Nordseite", "flaeche": [[-118, -14], [-78, -14], [-78, 6], [-118, 6]]},
@@ -561,7 +541,7 @@
   }
  ],
  "start": {
-  "spieler": {"wohnhaus": "Wohnhaus1", "farbe": "#336bb8", "werkstatt": {"platz": "Weinmarkt", "name": "{art} am Weinmarkt"}},
+  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Eisenbart",
@@ -569,8 +549,7 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Schwarz", "farbe2": "Gold", "figur": "Amboss"},
     "farbe": "#b33329",
-    "wohnhaus": "Wohnhaus2",
-    "betriebe": [{"platz": "Giesserei_Eisenbart", "art": "Giesserei", "produkt": "Dolch"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
+    "betriebe": [{"art": "Giesserei", "produkt": "Dolch"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
    },
    {
     "name": "Haus Eichwald",
@@ -578,8 +557,7 @@
     "geschlecht": "Frau",
     "wappen": {"teilung": "Bord", "farbe1": "Gruen", "farbe2": "Silber", "figur": "Baum"},
     "farbe": "#388c47",
-    "wohnhaus": "Wohnhaus3",
-    "betriebe": [{"platz": "Tischlerei_Eichwald", "art": "Tischlerei"}, {"platz": "Holzschlag_Eichwald", "art": "Holzfaellerei"}]
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag_Eichwald", "art": "Holzfaellerei"}]
    },
    {
     "name": "Haus Kieselbach",
@@ -587,15 +565,8 @@
     "geschlecht": "Mann",
     "wappen": {"teilung": "Schildhaupt", "farbe1": "Blau", "farbe2": "Silber", "figur": "Wellen"},
     "farbe": "#d9ad2e",
-    "wohnhaus": "Wohnhaus4",
-    "betriebe": [{"platz": "Maurerei_Kieselbach", "art": "Maurerei"}, {"platz": "Steinbruch_Kieselbach", "art": "Steinbruch"}]
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch_Kieselbach", "art": "Steinbruch"}]
    }
-  ],
-  "hofstellen": [
-   {"kennung": "H1", "name": "Weinmarkt", "werkstatt": "Weinmarkt", "wohnhaus": "Wohnhaus1", "start": true, "nummer": 1},
-   {"kennung": "H2", "name": "an der Ostgasse (Süd)", "werkstatt": "Giesserei_Eisenbart", "wohnhaus": "Wohnhaus2", "start": true, "nummer": 2},
-   {"kennung": "H3", "name": "an der Ostgasse (Nord)", "werkstatt": "Tischlerei_Eichwald", "wohnhaus": "Wohnhaus3", "start": true, "nummer": 3},
-   {"kennung": "H4", "name": "an der Ringgasse", "werkstatt": "Maurerei_Kieselbach", "wohnhaus": "Wohnhaus4", "start": true, "nummer": 4}
   ]
  },
  "kamera": {"punkt": [24, -6], "zoom": 95, "drehung": 0},
@@ -609,8 +580,8 @@
   {"kennung": "Holzschlag_im_Eichenforst", "betrieb": "Holzschlag", "punkt": [-94, 46]}
  ],
  "fiktion": [
-  "Zone M1 liegt knapp vor der Westmauer, zählt aber als Mauerring: Innerhalb der Mauer ist kein Platz für einen Stadthof (16 × 14 m) frei. Mit HOF_ZONE_ALS_MAUERRING = False in tools/karten/greybox.py wird sie „Vorstadt“.",
-  "Die Greybox hat keine Startgrundstücke, sondern Wohnhausplätze (Doppelplätze am Ring); die Reihenfolge in `start` ist die der Konten. Heute spielen höchstens 4 Häuser (Spieler und drei Rivalen), Wohnhaus 5 bis 8 gelten erst bei mehr Konten.",
+  "Der Hof vor der Westmauer ist Vorstadt (bis 16.11.2026 zählte er als Mauerring, obwohl er außerhalb der Mauer liegt); die zwei Stadthöfe des Probeplans stehen seitdem im Kern K4, wo vorher zwei Werkstattplätze mit ihren Gassen lagen.",
+  "Die Greybox hat keine Plätze für die Häuser: Wohnhaus und Werkstatt jedes Hauses lost die Partie in die Bauzonen innerhalb der Mauer (Kern und Mauerring) – dort ist Platz für fünf Häuser (der Spieler und bis zu vier KI-Häuser).",
   "Der Grenzfluss (PR #199) läuft über die ganze Breite der Karte; an beiden Enden beginnen die Schiffsrouten zu den fernen Städten. Der Kiesplatz östlich des Hafens ist der Platz der Zollstelle."
  ],
  "probeplan": [
@@ -619,8 +590,8 @@
   {"art": "Werkstatt", "zone": "V1", "punkt": [-112, 17], "groesse": [16, 14], "drehung": 180},
   {"art": "Werkstatt", "zone": "V3", "punkt": [-88, 17], "groesse": [16, 14], "drehung": 180},
   {"art": "Wohnhaus", "zone": "V1", "punkt": [-107, 32], "groesse": [8, 10], "drehung": 90},
-  {"art": "Stadthof", "zone": "M1", "punkt": [-73, -50], "groesse": [16, 14], "drehung": 90},
-  {"art": "Stadthof", "zone": "M1", "punkt": [-69, -34], "groesse": [16, 14], "drehung": 90},
+  {"art": "Stadthof", "zone": "K4", "punkt": [28, -29], "groesse": [16, 14], "drehung": 180},
+  {"art": "Stadthof", "zone": "K4", "punkt": [29, -14], "groesse": [16, 14], "drehung": 90},
   {"art": "Wohnhaus", "zone": "V4", "punkt": [-71, -62], "groesse": [8, 10], "drehung": 90},
   {"art": "Werkstatt", "zone": "V6", "punkt": [-24, -59], "groesse": [16, 14], "drehung": 180},
   {"art": "Wohnhaus", "zone": "V6", "punkt": [-38, -57], "groesse": [8, 10], "drehung": 180},

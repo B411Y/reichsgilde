@@ -384,7 +384,7 @@ static class KartenwerkstattWegeTests
                 wege.Add(JsonNode.Parse("""{"name": "Zu schmal", "klasse": "land", "linie": [[-150, 6], [-200, 6]], "gefahr": 1, "breite": 3}"""));
                 wege.Add(JsonNode.Parse("""{"name": "Stummel", "klasse": "gasse", "linie": [[-200, 6]], "gefahr": 1}"""));
                 k["bauzonen"]!.AsArray().Add(JsonNode.Parse("""{"kennung": "V1", "art": "vorstadt", "flaeche": [[-150, 40], [-140, 50], [-140, 40], [-150, 50]]}"""));
-                k["natur"]!["pflanzen"] = JsonNode.Parse("""[{"katalog": "eiche", "punkt": [-175, 6], "drehung": 0, "massstab": 1, "variante": 0}, {"katalog": "eiche", "punkt": [22, 10], "drehung": 0, "massstab": 1, "variante": 0}]""");
+                k["natur"]!["pflanzen"] = JsonNode.Parse("""[{"katalog": "eiche", "punkt": [-175, 6], "drehung": 0, "massstab": 1, "variante": 0}, {"katalog": "eiche", "punkt": [0, -20], "drehung": 0, "massstab": 1, "variante": 0}]""");
             });
             var b = e.Befunde;
             var text = Liste(b);
@@ -393,15 +393,15 @@ static class KartenwerkstattWegeTests
             Pruefe.Wahr(b.Any(x => x is { Regel: "flaeche-kreuzt", Schwere: Schwere.Hinweis } && x.Text.Contains("V1")), "Fläche kreuzt sich");
             Pruefe.Wahr(b.Any(x => x is { Regel: "zone-kennung" } && x.Text.Contains("„V1“")), "Bauzone doppelt");
             Pruefe.Wahr(b.Count(x => x is { Regel: "pflanze-frei", Schwere: Schwere.Hinweis }) == 2, "Pflanze auf Weg und auf Gebäude");
-            Pruefe.Wahr(b.Any(x => x.Regel == "pflanze-frei" && x.Gebaeude.Contains("Giesserei_Eisenbart")), "auf der Gießerei");
+            Pruefe.Wahr(b.Any(x => x.Regel == "pflanze-frei" && x.Gebaeude.Contains("Rathaus")), "auf dem Rathaus");
 
             // Eine glatte Kurve, deren Bogen über ein Haus schwingt (die Stützpunkte liegen daneben)
             var f = Oeffnen("greybox");
-            var giesserei = f.GebaeudeMit("Giesserei_Eisenbart")!; // x 14 … 30, z 6 … 20
+            var giesserei = f.GebaeudeMit("Rathaus")!; // 16 × 10 um (0 | −20): x −8 … 8, z −25 … −15 (bis 16.11.2026 der Werkstattplatz der Gießerei Eisenbart)
             f.WegAnlegen(Wegklasse.Gasse, new[] { O(-150, -150), O(-150, -151), O(-151, -151) }, einrasten: false); // weit weg, ohne Befund
             var vorher = f.Befunde.Count(x => x.Regel == "kurve-ueber-haus");
-            var w = f.WegAnlegen(Wegklasse.Fussweg, new[] { O(10, 25), O(22, 12), O(34, 25) }, glatt: true, einrasten: false);
-            Pruefe.Wahr(f.Befunde.Any(x => x.Regel == "kurve-ueber-haus" && x.Gebaeude.Contains(giesserei.Kennung) && x.Andere.Contains(w)), "Kurve über der Gießerei\n  " + Liste(f.Befunde));
+            var w = f.WegAnlegen(Wegklasse.Fussweg, new[] { O(-12, -8), O(0, -21), O(12, -8) }, glatt: true, einrasten: false);
+            Pruefe.Wahr(f.Befunde.Any(x => x.Regel == "kurve-ueber-haus" && x.Gebaeude.Contains(giesserei.Kennung) && x.Andere.Contains(w)), "Kurve über dem Rathaus\n  " + Liste(f.Befunde));
             Pruefe.Gleich(0, vorher);
         }),
 

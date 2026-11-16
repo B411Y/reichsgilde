@@ -67,7 +67,6 @@ public sealed partial class Koeln
             E.Umbenennen($"{p.Kennung}_Werkstatt", $"Werkstatt Hofstelle {p.Kennung}");
             E.Umbenennen($"{p.Kennung}_Wohnhaus", $"Wohnhaus Hofstelle {p.Kennung}");
             E.LageSetzen($"{p.Kennung}_Wohnhaus", Lage.Mauerring);
-            E.HofstelleBilden($"{p.Kennung}_Werkstatt", $"{p.Kennung}_Wohnhaus", start: false, name: p.Name, kennung: p.Kennung);
         }
         Console.WriteLine($"   Freie Hofstellen: {FreieHofplaene.Length}");
     }

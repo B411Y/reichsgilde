@@ -237,7 +237,9 @@ static class BlitzTests
             Pruefe.Wahr(e.Ziel.Betrieb.SabotageMinuten <= reparatur, "Reparatur nur einmal");
             BisMinute(sim, e.BrandEnde + 1);
             BisMinute(geladen, e.BrandEnde + 1);
-            Pruefe.Wahr(geladen.Wirtschaft.Blitz.Einschlaege.Count <= 1 && geladen.Wirtschaft.Blitz.Brand(e.Ziel.Kennung) is null, "nicht doppelt, gelöscht");
+            // wie die Partie ohne Laden (seit den gelosten Startorten, 16.11.2026, kann dasselbe Gewitter hier ein zweites Mal einschlagen)
+            Pruefe.Gleich((w.Blitz.Einschlaege.Count, w.Blitz.Brand(e.Ziel.Kennung) is null),
+                (geladen.Wirtschaft.Blitz.Einschlaege.Count, geladen.Wirtschaft.Blitz.Brand(e.Ziel.Kennung) is null), "nicht doppelt, gelöscht");
             BisMinute(sim, gewitter + 600);
             BisMinute(geladen, gewitter + 600);
             Pruefe.Gleich(Zustandspruefsumme.Berechnen(sim), Zustandspruefsumme.Berechnen(geladen), "Prüfsumme");

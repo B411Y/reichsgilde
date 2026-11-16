@@ -42,7 +42,7 @@ static class KlappbrueckeTests
         var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!["start"]!["haeuser"]!.AsArray().Count;
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer, Zufallsstartwert = startwert },
-            daten, new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
+            daten, FesteStartorte.Partie("koeln", new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe)), karte: karte); // feste Startorte: drei Häuser in Deutz
         return sim;
     }
 
@@ -108,7 +108,7 @@ static class KlappbrueckeTests
             var andere = Mit(DatenMit(j => j["logistik"]!["klappbruecke"]!["gewaesser"] = "Duffesbach"));
             Pruefe.Wahr(!andere.Klappbruecke.Gibt, "Duffesbach: kein Hafen an diesem Gewässer");
             var (grey, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
-                new NeuePartie(Startplaetze: Startplatzvergabe.Vorgabe, Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+                new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
             Pruefe.Wahr(!grey.Wirtschaft!.Klappbruecke.Gibt, "Greybox: keine Klappbrücke");
         }),
 

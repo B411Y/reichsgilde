@@ -8,7 +8,7 @@ namespace Reichsgilde.Core.Partie;
 // ═════════════════════════════════════════════════════════════════════════════
 //  Startortlos (Entscheidung des Nutzers vom 15.11.2026: „nur noch Bauzonen“)
 //
-//  Es gibt keine Hofstellen und Startplätze mehr. Jedes Haus beginnt mit einem Wohnhaus und der Werkstatt seines Berufs auf zwei
+//  Es gibt keine Hofstellen und Startplätze mehr (die Kartenfelder dazu sind seit dem 16.11.2026 entfernt). Jedes Haus beginnt mit einem Wohnhaus und der Werkstatt seines Berufs auf zwei
 //  Grundstücken in den Bauzonen – sofort fertig, kostenlos:
 //
 //    • KI-Häuser landen ganz zufällig im Stadtinneren (Bauzonen der Lage Kern und Mauerring, also innerhalb der Mauern) – ohne Bedingung
@@ -17,8 +17,7 @@ namespace Reichsgilde.Core.Partie;
 //      (Bauwesen.Start.cs). Gelost wird für ihn trotzdem – so stehen die KI-Häuser mit und ohne Wahl gleich, und für ihn bleibt Platz.
 //    • Wie viele Häuser beginnen können, ergibt sich daraus, wie viele Paare (Wohnhaus + Werkstatt) in die Zonen im Stadtinneren passen
 //      (Haeuser), höchstens Partiebesetzung.HoechstensHoefe (8 Häuser zusammen: der Spieler und 7 KI-Häuser).
-//    • Übergang (VorstadtAlsUebergang), bis die Karten genug Zonen im Stadtinneren haben: Passt ein Haus dort nicht mehr, landet es in der
-//      Vorstadt.
+//      Passen weniger, spielen weniger mit – in die Vorstadt weicht kein Haus aus.
 //
 //  Das Los hat eine eigene Zufallsquelle aus dem Startwert der Partie (Zugwuerfel.Mischen mit LosSchluessel): Die übrigen Würfe der Partie
 //  bleiben, wie sie ohne das Los wären, und jeder Rechner einer Mehrspielerpartie lost dasselbe.
@@ -39,23 +38,13 @@ public static class Startortlos
     /// <summary>So oft wird neu gelost, wenn ein Haus keinen Platz mehr findet (die ersten haben die Zonen ungünstig zerschnitten); danach gilt die dichte Aufstellung.</summary>
     private const int Versuche = 20;
 
-    /// <summary>
-    /// ÜBERGANG, bis die Karten genug Bauzonen im Stadtinneren haben (Leveldesign, Teil 3 von „nur noch Bauzonen“; fällt mit Teil 4 weg): Passt
-    /// ein Haus nicht mehr ins Stadtinnere, landet es in einer Vorstadt-Zone, und die Höchstzahl zählt die Vorstadt mit. Gemessen am 15.11.2026:
-    /// Greybox 3 Häuser im Stadtinneren, Messstadt 0 (nur Vorstadt-Zonen), Probestadt und Köln 8. Mit <c>false</c> gilt streng das Stadtinnere.
-    /// </summary>
-    internal static readonly bool VorstadtAlsUebergang = true;
-
     internal static Zufallsquelle Losquelle(int zufallsstartwert, int versuch) => new(Zugwuerfel.Mischen(zufallsstartwert, LosSchluessel, versuch));
 
     /// <summary>Stellen für Wohnhäuser und für Werkstätten, in der festen Reihenfolge des Bauwesens.</summary>
     private sealed record Stellen(IReadOnlyList<Grundriss> Wohnhaeuser, IReadOnlyList<Grundriss> Werkstaetten);
 
-    /// <summary>
-    /// Was je Karte gemerkt wird: die Stellen im Stadtinneren, alle Stellen der Stadt (mit Vorstadt, für den Übergang) und die dichten
-    /// Aufstellungen (eine Stelle nach der anderen, je die erste freie) – nur im Stadtinneren und mit Übergang.
-    /// </summary>
-    private sealed record Vorrat(string Schluessel, Stellen Innen, Stellen Alle, IReadOnlyList<Startort> DichtInnen, IReadOnlyList<Startort> Dicht);
+    /// <summary>Was je Karte gemerkt wird: die Stellen im Stadtinneren und die dichte Aufstellung (eine Stelle nach der anderen, je die erste freie).</summary>
+    private sealed record Vorrat(string Schluessel, Stellen Innen, IReadOnlyList<Startort> Dicht);
 
     private static readonly ConditionalWeakTable<Stadtkarte, Vorrat> Gemerkt = new();
     private static readonly object Sperre = new();
@@ -83,37 +72,32 @@ public static class Startortlos
             var art = daten.Berufe[Startaufstellung.Berufe(daten)[0]].Werkstatt; // alle Werkstätten sind gleich groß (bauen.werkstatt)
             var (wohnhaus, werkstatt) = ((BauBefehl)new WohnhausBauen(0, 0, 0, 0), (BauBefehl)new WerkstattBauen(art, 0, 0, 0));
             var (haeuser, werkstaetten) = (w.Bauen.Startstellen(wohnhaus), w.Bauen.Startstellen(werkstatt));
-            var innen = new Stellen(haeuser.Innen, werkstaetten.Innen);
-            var alle = new Stellen(haeuser.Alle, werkstaetten.Alle);
-            var dichtInnen = Aufstellen(innen, null, Partiebesetzung.HoechstensHoefe, null);
-            var vorrat = new Vorrat(schluessel, innen, alle, dichtInnen,
-                VorstadtAlsUebergang ? Aufstellen(innen, alle, Partiebesetzung.HoechstensHoefe, null) : dichtInnen);
+            var innen = new Stellen(haeuser, werkstaetten);
+            var vorrat = new Vorrat(schluessel, innen, Aufstellen(innen, Partiebesetzung.HoechstensHoefe, null));
             Gemerkt.AddOrUpdate(karte, vorrat);
             return vorrat;
         }
     }
 
     /// <summary>
-    /// Stellt bis zu <paramref name="anzahl"/> Häuser auf: je Haus erst das Wohnhaus, dann die Werkstatt, jede auf einer Stelle, die noch nichts
-    /// überdeckt – im Stadtinneren, solange dort eine frei ist, sonst (mit <paramref name="alle"/>, Übergang) irgendwo in der Stadt. Mit
-    /// <paramref name="los"/> jede freie Stelle gleich wahrscheinlich, ohne die erste (dichte Aufstellung). Hört auf, wenn ein Haus nicht mehr passt.
+    /// Stellt bis zu <paramref name="anzahl"/> Häuser auf: je Haus erst das Wohnhaus, dann die Werkstatt, jede auf einer Stelle im Stadtinneren,
+    /// die noch nichts überdeckt. Mit <paramref name="los"/> jede freie Stelle gleich wahrscheinlich, ohne die erste (dichte Aufstellung). Hört
+    /// auf, wenn ein Haus nicht mehr passt.
     /// </summary>
-    private static List<Startort> Aufstellen(Stellen innen, Stellen? alle, int anzahl, Zufallsquelle? los)
+    private static List<Startort> Aufstellen(Stellen innen, int anzahl, Zufallsquelle? los)
     {
         var (frei, freiW) = (innen.Wohnhaeuser.ToList(), innen.Werkstaetten.ToList());
-        var (weit, weitW) = (alle?.Wohnhaeuser.ToList() ?? new List<Grundriss>(), alle?.Werkstaetten.ToList() ?? new List<Grundriss>());
-        Grundriss? Nehmen(List<Grundriss> nah, List<Grundriss> fern)
+        Grundriss? Nehmen(List<Grundriss> topf)
         {
-            var topf = nah.Count > 0 ? nah : fern;
             if (topf.Count == 0) return null;
             var g = topf[los?.Next(topf.Count) ?? 0];
-            foreach (var liste in new[] { frei, freiW, weit, weitW }) liste.RemoveAll(x => x.Ueberlappt(g)); // vergeben: was sie überdeckt, fällt weg
+            foreach (var liste in new[] { frei, freiW }) liste.RemoveAll(x => x.Ueberlappt(g)); // vergeben: was sie überdeckt, fällt weg
             return g;
         }
         var orte = new List<Startort>(anzahl);
         while (orte.Count < anzahl)
         {
-            if (Nehmen(frei, weit) is not { } haus || Nehmen(freiW, weitW) is not { } werkstatt) break;
+            if (Nehmen(frei) is not { } haus || Nehmen(freiW) is not { } werkstatt) break;
             orte.Add(new Startort(haus, werkstatt));
         }
         return orte;
@@ -127,12 +111,10 @@ public static class Startortlos
 
     /// <summary>
     /// Wie viele Häuser (Spieler und KI zusammen) auf dieser Karte beginnen können: so viele Paare aus Wohnhaus und Werkstatt, wie in die
-    /// Bauzonen passen (dicht gestellt), höchstens <see cref="Partiebesetzung.HoechstensHoefe"/>. 0 ohne Bauwesen. Mit
-    /// <paramref name="nurStadtinneres"/> nur das Stadtinnere (Kern und Mauerring – die Regel für die Kartenprüfung); ohne zählt im Übergang
-    /// (<see cref="VorstadtAlsUebergang"/>) die Vorstadt mit – so rechnet die Partie.
+    /// Bauzonen im Stadtinneren passen (Kern und Mauerring, dicht gestellt), höchstens <see cref="Partiebesetzung.HoechstensHoefe"/>. 0 ohne
+    /// Bauwesen. Dieselbe Zahl nimmt die Kartenprüfung („Zonen reichen für N Häuser“).
     /// </summary>
-    public static int Haeuser(Stadtkarte? karte, Wirtschaftsdaten daten, bool nurStadtinneres = false) =>
-        karte is not null && VorratFuer(karte, daten) is { } v ? (nurStadtinneres ? v.DichtInnen : v.Dicht).Count : 0;
+    public static int Haeuser(Stadtkarte? karte, Wirtschaftsdaten daten) => karte is not null && VorratFuer(karte, daten) is { } v ? v.Dicht.Count : 0;
 
     /// <summary>
     /// Die geeigneten Startorte des Loses: alle Stellen im Stadtinneren, an denen ein Wohnhaus (Stufe 0) bzw. eine Werkstatt stehen kann, in der
@@ -152,16 +134,14 @@ public static class Startortlos
         if (anzahl > vorrat.Dicht.Count)
             throw new ArgumentException($"In den Bauzonen der Stadt ist Platz für {vorrat.Dicht.Count} {(vorrat.Dicht.Count == 1 ? "Haus" : "Häuser")} " +
                                         $"(je ein Wohnhaus und eine Werkstatt) – für {anzahl} zu wenig.");
-        // Reicht das Stadtinnere, bleibt das Los dort; nur im Übergang weicht ein Haus in die Vorstadt aus.
-        var innenReicht = anzahl <= vorrat.DichtInnen.Count;
         for (var versuch = 0; versuch < Versuche; versuch++)
         {
-            var orte = Aufstellen(vorrat.Innen, innenReicht ? null : vorrat.Alle, anzahl, Losquelle(zufallsstartwert, versuch));
+            var orte = Aufstellen(vorrat.Innen, anzahl, Losquelle(zufallsstartwert, versuch));
             if (orte.Count == anzahl) return orte;
         }
         // Kein Los ging auf (sehr enge Zonen): die dichte Aufstellung, gemischt – wer wo steht, bleibt Zufall.
         var mischer = Losquelle(zufallsstartwert, Versuche);
-        var dicht = (innenReicht ? vorrat.DichtInnen : vorrat.Dicht).ToList();
+        var dicht = vorrat.Dicht.ToList();
         var gemischt = new List<Startort>(anzahl);
         while (gemischt.Count < anzahl)
         {

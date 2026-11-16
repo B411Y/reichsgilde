@@ -108,9 +108,9 @@ static class StreifeMarktrundeTests
     {
         ("Streife: Köln, Marktrunde ab dem Wachhaus am Heumarkt ist 150–400 m lang, auf Wegen, umläuft den Platz und endet an der Tür", () =>
         {
-            // das Wachhaus der Gardisten-Partie steht auf dem Werkstattplatz an der Rheingasse vor dem Heumarkt (Tür zur Rheingasse)
-            var platz = Koeln.Value.Gebaeude.Single(g => g.Kennung == "S1_Werkstatt");
-            var tuer = ((float)platz.Punkt[0] + 6f, (float)platz.Punkt[1]);
+            // das Wachhaus der Gardisten-Partie steht an der Rheingasse vor dem Heumarkt (Tür zur Rheingasse; bis 16.11.2026 der Werkstattplatz S1)
+            var platz = FesteStartorte.Fuer("koeln", 1)[0].Werkstatt;
+            var tuer = ((float)platz.X + 6f, (float)platz.Z);
             foreach (var dichte in new[] { 1000f, 10f, 4f }) // nur die Stützpunkte, alle 10 m, alle 4 m ein Knoten
             {
             var (runde, laenge) = RundeVon(tuer, dichte);
@@ -129,20 +129,20 @@ static class StreifeMarktrundeTests
             }
         }),
 
-        ("Streife: Köln, von jedem Werkstattplatz der Stadt ist die Marktrunde mindestens 150 m lang und liegt auf Wegen", () =>
+        ("Streife: Köln, von jeder Werkstatt der Stadt (acht feste Startorte) ist die Marktrunde mindestens 150 m lang und liegt auf Wegen", () =>
         {
             var maerkte = Maerkte(Koeln.Value);
-            var plaetze = Koeln.Value.GebaeudeDerArt(Bausteinart.Werkstattplatz).Where(g => g.Lage != Lage.Umland).ToList();
-            Pruefe.Wahr(plaetze.Count >= 5, $"{plaetze.Count} Werkstattplätze");
+            var plaetze = FesteStartorte.Fuer("koeln", 8).Select(o => o.Werkstatt).ToList();
+            Pruefe.Wahr(plaetze.Count >= 5, $"{plaetze.Count} Werkstätten");
             foreach (var platz in plaetze)
             {
-                var tuer = ((float)platz.Punkt[0], (float)platz.Punkt[1]);
+                var tuer = ((float)platz.X, (float)platz.Z);
                 var (runde, laenge) = RundeVon(tuer, 10f);
                 var markt = NaechsterMarkt(maerkte, tuer);
                 // ein Wachhaus weit vom Markt: hin und zurück ist schon länger als die Höchstlänge – dann mindestens das
                 var hinUndZurueck = 2 * Marktrunde.Abstand(tuer, markt.Mitte);
-                Pruefe.Wahr(laenge >= Marktrunde.MindestLaenge, $"{platz.Kennung}: {laenge:0} m");
-                Pruefe.Wahr(laenge <= Math.Max(Marktrunde.HoechstLaenge, 2.5f * hinUndZurueck), $"{platz.Kennung}: {laenge:0} m, Luftlinie hin und zurück {hinUndZurueck:0} m");
+                Pruefe.Wahr(laenge >= Marktrunde.MindestLaenge, $"{platz.X} | {platz.Z}: {laenge:0} m");
+                Pruefe.Wahr(laenge <= Math.Max(Marktrunde.HoechstLaenge, 2.5f * hinUndZurueck), $"{platz.X} | {platz.Z}: {laenge:0} m, Luftlinie hin und zurück {hinUndZurueck:0} m");
                 AufWegen(runde);
             }
         }),

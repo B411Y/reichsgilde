@@ -33,7 +33,7 @@ static class WegebauTests
     /// <summary>Probepartie in der Probestadt (Spieler Schmied, Werkstatt bei (−30 | −10) an der Hauptstraße, Markt bei (0 | 0)).</summary>
     static (Simulation Sim, Konto Spieler, Betrieb Werkstatt) Partie(Kartenentwurf? e = null, Wirtschaftsdaten? daten = null)
     {
-        var (sim, spieler) = (e ?? Probestadt()).Ausprobieren(daten ?? Daten.Value, "Schmied");
+        var (sim, spieler) = Probestadtvorlage.Ausprobieren(e ?? Probestadt(), daten ?? Daten.Value, "Schmied");
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 

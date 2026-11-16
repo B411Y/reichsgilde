@@ -304,16 +304,7 @@ public partial class Stadtansicht
         var gr = g.Grundriss;
         var flaeche = $"{Reichsgilde.Core.Zahlenformat.Ganz(gr.Breite)} × {Reichsgilde.Core.Zahlenformat.Ganz(gr.Tiefe)} m";
 
-        if (g.Arbeit is not { } arbeit)
-            return g.Zustand != Bauzustand.Bauplatz ? null
-                : Bauwesen.IstWerkstattplatz(g) // freie Hofstelle (09.11.2026), ihr Werkstattteil
-                    ? string.Join("\n", "Bauplatz (Werkstatt einer Hofstelle)", "", $"Freie Fläche, {flaeche}.",
-                        "Hier darf jeder eine Werkstatt bauen – sie steht genau auf dem Platz. Ein Wohnhaus gehört auf den Wohnhausplatz der Hofstelle daneben. Im Kontor „Bauen“ wählen und die Maus über den Platz führen.")
-                : Bauwesen.IstWohnhausplatz(g)
-                    ? string.Join("\n", "Bauplatz (Wohnhausplatz)", "", $"Freie Fläche, {flaeche}.",
-                        "Hier darf jeder ein Wohnhaus jeder Stufe bauen – es passt sich der Fläche an. Eine Werkstatt darf hier nicht stehen. Im Kontor „Bauen“ wählen und die Maus über den Platz führen.")
-                    : string.Join("\n", "Bauplatz", "", $"Freie Fläche, {flaeche} (mit Vorplatz).",
-                        "Hier darf jeder bauen, was hineinpasst: Wohnhaus oder Werkstatt – im Kontor „Bauen“ und das Gebäude auf den Platz setzen.");
+        if (g.Arbeit is not { } arbeit) return null; // freie Bauplätze gibt es nicht mehr (nur noch Bauzonen, 16.11.2026)
 
         var stufenname = w.Wohnen.Daten is { } wd ? wd.Stufen[Math.Clamp(g.Stufe, 0, wd.Stufen.Count - 1)].Name : "Wohnhaus";
         var bauherr = g.Besitzer?.Inhaber ?? "?";

@@ -219,6 +219,7 @@ public partial class Stadtansicht
     private static string? FuellThemaWaehlen(Restflaeche r, Stadtkarte karte, Fuellrezepte rezepte)
     {
         if (Wasserarten.Startoption("fuellthema") is { } erzwungen && rezepte.Themen.ContainsKey(erzwungen)) return erzwungen; // nur für Bilder: jede Fläche bekommt dieses Thema
+        if (r.Thema is { } fest && rezepte.Themen.ContainsKey(fest)) return fest; // die Karte legt das Thema fest (z. B. die zwei Pferche in Köln)
         var art = Restflaechenfuellung.Nachbarart(r, karte);
         if (rezepte.Nachbarn.GetValueOrDefault(art) is not { Themen: { Length: > 0 } namen } wahl) return null;
         var erweiterung = rezepte.Erweiterung.GetValueOrDefault(art);

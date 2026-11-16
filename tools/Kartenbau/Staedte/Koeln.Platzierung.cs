@@ -155,19 +155,6 @@ public sealed partial class Koeln
         Startgrundstueck(6, "Deutzer Kirchstraße", links: false, sHint: 19);  // Deutz, nördlich des Platzes, westlich der Kirchstraße
         Startgrundstueck(7, "Deutzer Kirchstraße", links: true, sHint: 19);   // Deutz, nördlich des Platzes, östlich der Kirchstraße
         Startgrundstueck(8, "Deutzer Freiheit", links: true, sHint: 12);      // Deutz, westlich des Platzes, nördlich der Freiheit (zum Rhein)
-
-        // Seit 9.11.2026 (Hofstellen) ist jedes Startgrundstück eine Start-Hofstelle: Werkstattplatz und Wohnhausplatz mit dem Namen der Lage (der
-        // Name der Spielerwerkstatt: „Gießerei am Heumarkt“; ein Name mit Präposition bleibt, wie er ist). Im Spiel wählt der Spieler eine, die
-        // KI-Häuser bekommen geloste; die Vorgabe in Start() (Spieler S1, KI-Häuser S2–S8) gilt ohne Los.
-        var namen = new[]
-        {
-            "Heumarkt", "an der Rheingasse (Heumarkt)", "am Malzbüchel", "Unter Fettenhennen", "an der Rheingasse (Alter Markt)",
-            "an der Deutzer Kirchstraße (West)", "an der Deutzer Kirchstraße (Ost)", "an der Deutzer Freiheit",
-        };
-        for (var n = 1; n <= namen.Length; n++)
-            E.HofstelleBilden($"S{n}_Werkstatt", $"S{n}_Wohnhaus", start: true, name: namen[n - 1], kennung: $"S{n}");
-        // Hofnummern (12.11.2026): S1 … S8 sind Hof 1 … 8; die Partie vergibt sie nach der Nummer statt durch das Los
-        for (var n = 1; n <= namen.Length; n++) E.HofstelleNummerSetzen($"S{n}", n);
     }
 
     // ── Reihen von Häusern an einer Straße ───────────────────────────────────

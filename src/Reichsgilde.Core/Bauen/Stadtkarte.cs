@@ -224,6 +224,13 @@ public sealed class Restflaeche
 
     /// <summary>Umriss als Vieleck auf dem 2-m-Raster, je Punkt [x, z].</summary>
     public List<double[]> Flaeche { get; init; } = new();
+
+    /// <summary>
+    /// Festes Thema der Füllung (Feld <c>thema</c>, eine Kennung aus <c>restflaechen.json</c>, z. B. „pferch“) – die Karte bestimmt, was hier
+    /// steht. Null (die Regel): Die Darstellung wählt nach Nachbarschaft und festem Würfel (<see cref="Restflaechenfuellung.ThemaWaehlen"/>).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Thema { get; init; }
 }
 
 /// <summary>
@@ -251,9 +258,8 @@ public sealed class Kartengebaeude
     public double Massstab { get; init; } = 1;
 
     /// <summary>
-    /// Werkstattplatz eines KI-Hauses oder Umlandbetrieb: der Name des Betriebs, der hier steht (genau wie im Spiel bzw. in „liegenschaften“). Auf
-    /// dem Werkstattplatz einer Hofstelle ist es der Name der Werkstatt des Hauses, das sie ohne Los bekommt; die Partiekarte setzt ihn an die
-    /// geloste Hofstelle (<see cref="Hofstellenvergabe"/>).
+    /// Umlandbetrieb: der Name des Betriebs, der hier steht (genau wie im Spiel bzw. in „liegenschaften“). In der Karte eines alten Spielstands
+    /// trägt ihn auch der Werkstattplatz eines KI-Hauses.
     /// </summary>
     public string? Betrieb { get => _betrieb; init => _betrieb = value; }
     private string? _betrieb;
@@ -716,24 +722,10 @@ public sealed class Stadtkarte
     /// <summary>Das Gebäude mit dieser Kennung – oder null.</summary>
     public Kartengebaeude? GebaeudeMit(string? kennung) => kennung is null ? null : Gebaeude.FirstOrDefault(g => g.Kennung == kennung);
 
-    /// <summary>Die Hofstellen der Karte in der Reihenfolge der Datei (nie null; leer bei Karten ohne Hofstellen, z. B. in alten Spielständen).</summary>
-    [JsonIgnore]
-    public IReadOnlyList<Hofstelle> Hofstellen => Start?.Hofstellen ?? (IReadOnlyList<Hofstelle>)Array.Empty<Hofstelle>();
-
-    /// <summary>Hat die Karte Hofstellen? Dann gelten die Regeln der Hofstellen (Los am Start, freie Hofstellen als Bauplätze).</summary>
-    [JsonIgnore]
-    public bool HatHofstellen => Start?.Hofstellen is { Count: > 0 };
-
-    /// <summary>Die Hofstelle mit dieser Kennung – oder null.</summary>
-    public Hofstelle? HofstelleMit(string? kennung) => kennung is null ? null : Hofstellen.FirstOrDefault(h => h.Kennung == kennung);
-
-    /// <summary>Die Hofstelle, zu der dieser Platz (Kennung eines Werkstatt- oder Wohnhausplatzes) gehört – oder null.</summary>
-    public Hofstelle? HofstelleVon(string? platz) => platz is null ? null : Hofstellen.FirstOrDefault(h => h.Umfasst(platz));
-
     /// <summary>
     /// Die Partiekarte: dieselbe Karte mit einer anderen Startbelegung und anderen Betriebsnamen an Werkstattplätzen (Kennung → Name, null:
     /// keiner). Alles Übrige teilt sie mit dieser Karte (Wege, Gelände, Natur, auch die schon gerechneten Formen – die Geometrie ist dieselbe).
-    /// Diese Karte bleibt unverändert. Siehe <see cref="Hofstellenvergabe"/>.
+    /// Diese Karte bleibt unverändert.
     /// </summary>
     internal Stadtkarte MitBelegung(Startbelegung start, IReadOnlyDictionary<string, string?> betriebe)
     {
@@ -745,7 +737,7 @@ public sealed class Stadtkarte
 
     /// <summary>
     /// Die Partiekarte seit „nur noch Bauzonen“ (15.11.2026): dieselbe Karte, aber kein Werkstattplatz trägt mehr einen Betrieb, und die
-    /// Startbelegung setzt niemanden mehr auf einen Platz (<see cref="Startbelegung.OhnePlaetze"/>, ohne Hofstellen) – Wohnhäuser und
+    /// Startbelegung setzt niemanden mehr auf einen Platz (<see cref="Startbelegung.OhnePlaetze"/>) – Wohnhäuser und
     /// Werkstätten stehen als Grundstücke in den Bauzonen (<see cref="Bauwesen"/>). Die Umlandbetriebe behalten Platz und Namen.
     /// </summary>
     internal Stadtkarte OhneStadtplaetze()
@@ -756,6 +748,36 @@ public sealed class Stadtkarte
         foreach (var g in Gebaeude)
             if (g.Art == Bausteinart.Werkstattplatz) ohne[g.Kennung] = null;
         return MitBelegung(start, ohne);
+    }
+
+    /// <summary>
+    /// Eine Kartendatei von vor „nur noch Bauzonen“ (bis 16.11.2026): Ihre Werkstatt- und Wohnhausplätze und alles, was im Abschnitt „start“
+    /// auf sie zeigt (Wohnhaus, Platz der Werkstatt in der Stadt, Startplatz des Spielers; die Hofstellen liest schon niemand mehr), werden
+    /// still vergessen – die Häuser stehen in den Bauzonen (<see cref="Partie.Startortlos"/>). Umlandbetriebe behalten ihren Platz. Nur für
+    /// Kartendateien (<see cref="AusJson"/>); die Karte in einem alten Spielstand bleibt, wie sie war (<see cref="Bauwesen.AltePlaetzeUmwandeln"/>).
+    /// </summary>
+    private void AlteStadtplaetzeVergessen()
+    {
+        // (der Baustein eines Gebäudes wird erst in Pruefen aufgelöst – hier steht nur seine Kennung im Katalog)
+        bool Alt(Kartengebaeude g) => (g.Baustein ?? Katalog?.Finde(g.Katalog))?.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz;
+        var alte = new List<string>();
+        foreach (var g in Gebaeude)
+            if (Alt(g)) alte.Add(g.Kennung);
+        if (_start is { } s)
+        {
+            Startbetrieb OhnePlatz(Startbetrieb b) => b.Platz == "" || !alte.Contains(b.Platz) ? b
+                : new Startbetrieb { Art = b.Art, Produkt = b.Produkt, ErsatzName = b.ErsatzName };
+            _start = new Startbelegung
+            {
+                Spieler = new Spielerstart { Farbe = s.Spieler.Farbe },
+                Haeuser = s.Haeuser.Select(h => new Starthaus
+                {
+                    Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Farbe,
+                    Betriebe = h.Betriebe.Select(OhnePlatz).ToList(), Gewuerfelt = h.Gewuerfelt,
+                }).ToList(),
+            };
+        }
+        if (alte.Count > 0) _gebaeude = Gebaeude.Where(g => !Alt(g)).ToList();
     }
 
     /// <summary>Alle Gebäude einer Art (<see cref="Bausteinart"/>), in der Reihenfolge der Datei.</summary>
@@ -839,8 +861,11 @@ public sealed class Stadtkarte
     };
 
     /// <summary>Liest die Karte aus dem JSON-Text der Kartendatei, löst ihre Gebäude im Katalog auf und prüft sie.</summary>
+    /// <param name="alteStadtplaetze">Nur für Tests alter Spielstände: Werkstatt- und Wohnhausplätze und die Startbelegung darauf bleiben, wie sie
+    /// in der Karte eines Spielstands von vor dem 16.11.2026 stehen. Sonst (jede Kartendatei) werden sie still vergessen
+    /// (<see cref="AlteStadtplaetzeVergessen"/>).</param>
     /// <exception cref="KartenFehler">Wenn der Text kein gültiges JSON ist oder die Karte Fehler enthält (z. B. ein unbekannter Baustein).</exception>
-    public static Stadtkarte AusJson(string json, Gebaeudekatalog katalog)
+    public static Stadtkarte AusJson(string json, Gebaeudekatalog katalog, bool alteStadtplaetze = false)
     {
         Stadtkarte? karte;
         try
@@ -854,10 +879,7 @@ public sealed class Stadtkarte
         if (karte is null)
             throw new KartenFehler(new[] { "Die Datei ist leer." });
         karte.Katalog = katalog;
-        // Eine Karte von vor den Hofstellen (09.11.2026): jedes Startpaar wird eine Start-Hofstelle. Nur Kartendateien – die Karte in einem
-        // Spielstand liest Speicherung ohne diesen Weg und bleibt, wie sie war.
-        if (karte.Start is { Hofstellen: null } s && Hofstellenvergabe.AusStartpaaren(s, k => katalog.Finde(karte.GebaeudeMit(k)?.Katalog ?? "")?.Art) is { } hofstellen)
-            s.Hofstellen = hofstellen;
+        if (!alteStadtplaetze) karte.AlteStadtplaetzeVergessen();
         var fehler = karte.Pruefen();
         if (fehler.Count > 0)
             throw new KartenFehler(fehler);
@@ -995,29 +1017,19 @@ public sealed class Stadtkarte
                 f.Add($"Start: Das Haus „{doppelt.Key}“ steht doppelt.");
             return;
         }
-        void Wohnhaus(string wer, string? kennung)
-        {
-            if (kennung is not null && GebaeudeMit(kennung) is not { Art: Bausteinart.Wohnhausplatz })
-                f.Add($"Start, {wer}: „{kennung}“ ist kein Wohnhausplatz der Karte.");
-        }
-        Wohnhaus("Spieler", s.Spieler.Wohnhaus);
-        // Ohne Abschnitt „spieler“ (knappes Format mit Höfen, 11.11.2026) bekommt der Spieler seinen Hof erst in der Partie
-        var ohneSpieler = s.Spieler.Werkstatt.Platz == "" && s.Hofstellen is { Count: > 0 };
-        foreach (var (beruf, w) in s.Spieler.JeBeruf.Prepend(new("", s.Spieler.Werkstatt)))
-            if (!(ohneSpieler && beruf == "") && GebaeudeMit(w.Platz) is not { Art: Bausteinart.Werkstattplatz })
-                f.Add($"Start, Spieler{(beruf == "" ? "" : $" ({beruf})")}: „{w.Platz}“ ist kein Werkstattplatz der Karte.");
-
         foreach (var h in s.Haeuser)
         {
             if (string.IsNullOrWhiteSpace(h.Name)) f.Add("Start: Ein Haus hat keinen Namen.");
-            Wohnhaus(h.Name, h.Wohnhaus);
             if (h.Wappen.Fehler() is { } wf) f.Add($"Start, {h.Name}: {wf}");
             if (h.Betriebe.Count == 0) f.Add($"Start, {h.Name}: Ein Haus braucht mindestens einen Betrieb.");
             foreach (var b in h.Betriebe)
             {
+                // Eine Werkstatt in der Stadt hat keinen Platz (sie steht in einer Bauzone, Startortlos); ein Platz ist immer ein Umlandbetrieb.
+                if (b.Platz == "") continue;
                 var platz = GebaeudeMit(b.Platz);
-                if (platz is not { Art: Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb })
-                    f.Add($"Start, {h.Name}: „{b.Platz}“ ist kein Werkstattplatz und kein Umlandbetrieb der Karte.");
+                // (die Karte in einem alten Spielstand nennt hier noch den Werkstattplatz – eine Kartendatei nicht mehr, AlteStadtplaetzeVergessen)
+                if (platz is not { Art: Bausteinart.Umlandbetrieb or Bausteinart.Werkstattplatz })
+                    f.Add($"Start, {h.Name}: „{b.Platz}“ ist kein Umlandbetrieb der Karte.");
                 else if (string.IsNullOrWhiteSpace(platz.Betrieb))
                     f.Add($"Start, {h.Name}: Am Platz „{b.Platz}“ fehlt der Name des Betriebs (betrieb).");
                 else if (platz.Art == Bausteinart.Umlandbetrieb && platz.Baustein!.BetriebsartWert != b.Art)
@@ -1028,26 +1040,8 @@ public sealed class Stadtkarte
             f.Add($"Start: Das Haus „{doppelt.Key}“ steht doppelt.");
         foreach (var doppelt in s.Haeuser.GroupBy(h => h.Wappen).Where(x => x.Count() > 1))
             f.Add($"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).");
-        var spielerPlaetze = s.Spieler.JeBeruf.Values.Prepend(s.Spieler.Werkstatt).Select(w => w.Platz).Distinct();
-        foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat(spielerPlaetze).GroupBy(p => p).Where(x => x.Count() > 1))
+        foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
             f.Add($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.");
-        foreach (var doppelt in s.Haeuser.Select(h => h.Wohnhaus).Prepend(s.Spieler.Wohnhaus).OfType<string>().GroupBy(p => p).Where(x => x.Count() > 1))
-            f.Add($"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.");
-
-        // Hofstellen: was das Spiel braucht (die übrigen Regeln – Vorgabe, Fairness, Anzahl – prüft die Kartenprüfung)
-        foreach (var h in s.Hofstellen ?? new List<Hofstelle>())
-        {
-            var wer = $"Hofstelle „{h.Kennung}“";
-            if (string.IsNullOrWhiteSpace(h.Kennung)) f.Add("Hofstellen: Eine Hofstelle hat keine Kennung.");
-            if (GebaeudeMit(h.Werkstatt) is not { Art: Bausteinart.Werkstattplatz })
-                f.Add($"{wer}: „{h.Werkstatt}“ ist kein Werkstattplatz der Karte.");
-            if (GebaeudeMit(h.Wohnhaus) is not { Art: Bausteinart.Wohnhausplatz })
-                f.Add($"{wer}: „{h.Wohnhaus}“ ist kein Wohnhausplatz der Karte.");
-        }
-        foreach (var doppelt in (s.Hofstellen ?? new List<Hofstelle>()).GroupBy(h => h.Kennung).Where(x => x.Count() > 1))
-            f.Add($"Hofstellen: Die Kennung „{doppelt.Key}“ ist doppelt.");
-        foreach (var doppelt in (s.Hofstellen ?? new List<Hofstelle>()).SelectMany(h => new[] { h.Werkstatt, h.Wohnhaus }).GroupBy(p => p).Where(x => x.Count() > 1))
-            f.Add($"Hofstellen: Der Platz „{doppelt.Key}“ gehört zu mehreren Hofstellen.");
     }
 
     /// <summary>Die Bauzone, in der der Punkt liegt – sonst die nächste (null ohne Bauzonen).</summary>

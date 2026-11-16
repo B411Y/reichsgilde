@@ -14,15 +14,13 @@ using Reichsgilde.Core.Wirtschaft;
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen bericht [Jahre] [Startwerte] [--karte=greybox]
 //                                                                          [--teile=1,2,…] [--parallel=n] [--datei=pfad.json]
 //                                                                          [--fairness=greybox,probestadt,koeln] [--voelkerberufe=alle|Schmied,…]
-//                                                                          [--rotationen=n]   (Startfairness: nur die ersten n Rotationen)
 //                                                                          [--betriebe=datei.csv]   (jeder Betrieb je Jahr, Abschnitt „ausbau“)
 //                                                                          [--schwer=nein]   (KI-Stärke ohne die Partien „Schwer“)
-//                                                                          [--startplaetze=vorgabe]   (ohne Los der Hofstellen, wie vor dem 9.11.2026)
 //                                                                          [--haerte=mild|ueberliefert|hart]   (Härte der Zeit aller Partien)
 //                                                                          [--lagen=aus|ernte|alle]   (Lagen der Rohstoffquellen: keine, nur Ernte, alle; Standard alle)
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
-//  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
+//  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/7, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
 //  8 Befunde. Jede Partie läuft für sich (eigene Daten, eigene Karte, eigener Zufall) – parallel, und trotzdem Wurf für Wurf gleich.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -42,7 +40,7 @@ static partial class Balancingbericht
     public static readonly Volk[] SpielbareVoelker = { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
 
     /// <summary>Häuser in der Messstadt (KI, die ersten n der Karte).</summary>
-    public static readonly int[] Hausstufen = { 1, 3, 5, 8 };
+    public static readonly int[] Hausstufen = { 1, 3, 5, 7 }; // 7 KI-Häuser und der Spieler: mehr als 8 Häuser passen gelost nicht in eine Partie (bis 16.11.2026: 8 KI auf festen Plätzen)
 
     /// <summary>Karten mit Fluss und Hafen für den Abschnitt Hafen und Stadtkasse (PR #199, #200).</summary>
     public static readonly string[] Hafenkarten = { "greybox", "probestadt" };
@@ -111,7 +109,7 @@ static partial class Balancingbericht
 
     /// <summary>Was ein Aufruf misst (aus den Argumenten nach „messen bericht“).</summary>
     sealed record Einstellung(int Jahre, int Startwerte, string Karte, HashSet<int> Teile, int Parallel, string? Datei, string[] Fairness, string[] VoelkerBerufe,
-        int? Rotationen = null, bool OhneSchwer = false)
+        bool OhneSchwer = false)
     {
         public IEnumerable<int> Werte => Enumerable.Range(1, Startwerte).Select(s => s * 101);
         public IReadOnlyList<int> Stich => Stichjahre(Jahre);
@@ -132,11 +130,9 @@ static partial class Balancingbericht
             Schalter("datei"),
             (Schalter("fairness") ?? "greybox,probestadt").Split(','),
             Schalter("voelkerberufe") is { } vb ? (vb == "alle" ? daten0.Berufe.Keys.ToArray() : vb.Split(',')) : Voelkerberufe,
-            Schalter("rotationen") is { } ro ? Math.Max(1, int.Parse(ro)) : null,
             Schalter("schwer") == "nein");
         var uhr = Stopwatch.StartNew();
         Messpartie.Haerte = Schalter("haerte") is { } hd ? Enum.Parse<HaerteDerZeit>(hd, ignoreCase: true) : HaerteDerZeit.Ueberliefert; // --haerte=mild|hart
-        Messpartie.OhneLos = Schalter("startplaetze") == "vorgabe"; // --startplaetze=vorgabe: ohne Los der Hofstellen (Vergleich, 09.11.2026)
         var lagen = Schalter("lagen") ?? "alle"; // --lagen=aus|ernte|alle (Datenversion 92)
         if (lagen is not ("aus" or "ernte" or "alle")) throw new ArgumentException("--lagen=aus|ernte|alle");
         var q = new Messquellen(Schalter("ohne"), anpassen: t => Messpartie.LagenWaehlen(t, lagen)); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
@@ -179,7 +175,7 @@ static partial class Balancingbericht
                 ["teile"] = new JsonArray(e.Teile.OrderBy(x => x).Select(x => (JsonNode)x).ToArray()),
                 ["band"] = $"±{Band} % um das Mittel", ["startvermoegen"] = daten.Allgemein.Startvermoegen,
                 ["ohneAbschnitt"] = Schalter("ohne"),
-                ["startplaetze"] = Messpartie.OhneLos ? "vorgabe" : "gelost",
+                ["startplaetze"] = "gelost", // seit 16.11.2026 immer: Startortlos in den Bauzonen
                 ["haerte"] = Messpartie.Haerte.ToString(),
                 ["lagen"] = lagen,
             },
@@ -234,12 +230,11 @@ static partial class Balancingbericht
                         foreach (var v in SpielbareVoelker) yield return Beruf(e, s, b) with { Volk = v };
                     break;
                 case 3:
-                    foreach (var (karte, haeuser) in Fairnesskarten(e))
-                        for (var r = 0; r < Rotationen(e, haeuser); r++) yield return new Messaufbau(karte, s, e.Jahre, Rotation: r, Startplaetze: Startplatzvergabe.Vorgabe);
+                    foreach (var karte in e.Fairness) yield return new Messaufbau(karte, s, e.Jahre);
                     break;
                 case 4:
                     foreach (var n in Hausstufen)
-                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true, Startplaetze: Startplatzvergabe.Vorgabe); // feste Plätze der Messstadt (9 Häuser; gelost passen seit 15.11.2026 höchstens 8)
+                        yield return new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true);
                     break;
                 case 5:
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);
@@ -272,16 +267,6 @@ static partial class Balancingbericht
     }
 
     private static Messaufbau Beruf(Einstellung e, int startwert, string beruf) => new(e.Karte, startwert, e.Jahre, Beruf: beruf);
-
-    /// <summary>
-    /// Wie viele Rotationen der Wohnhausplätze die Startfairness spielt: alle (Häuser + 1) oder höchstens <c>--rotationen=n</c>. Der Wohnhausplatz
-    /// wirkt im Kern nicht (jede Rotation gibt Wurf für Wurf dasselbe); eine reicht, wenn es nur um die Häuser geht (z. B. Köln, zehnmal so teuer).
-    /// </summary>
-    private static int Rotationen(Einstellung e, int haeuser) => Math.Min(haeuser + 1, e.Rotationen ?? int.MaxValue);
-
-    /// <summary>Die Karten der Startfairness mit der Zahl ihrer KI-Häuser (Rotation 0 … Häuser).</summary>
-    private static IEnumerable<(string Karte, int Haeuser)> Fairnesskarten(Einstellung e) =>
-        e.Fairness.Select(k => (k, JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(k)))!["start"]!["haeuser"]!.AsArray().Count));
 
     /// <summary>
     /// Die Einrichtung, die gleich mehr einbringt (Werkstatt: kürzere Zeit; Wache: Lohn; Geldleiher: Rahmen, Wechsel, Ausfall) und ab Stufe 1

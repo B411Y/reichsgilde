@@ -35,13 +35,10 @@ enum Bezugsart
 /// <summary>Eine Messpartie. Ein record: Zwei gleiche Aufbauten sind dieselbe Partie (der Bericht spielt sie nur einmal).</summary>
 /// <param name="Karte">Kennung der Karte in game/karten/ („greybox“, „probestadt“, „messstadt“).</param>
 /// <param name="Rivalen">Wie viele KI-Häuser der Karte mitspielen (0 = alle).</param>
-/// <param name="Rotation">Die Wohnhausplätze von Spieler und KI-Häusern um so viele Plätze weiterreichen (Startfairness); mit Hofstellen sitzt der
-/// Spieler stattdessen auf der r-ten Start-Hofstelle, die KI-Häuser ohne Los.</param>
 /// <param name="Einrichtung">Einrichtung, die der Spieler am Start für seine Werkstatt kauft (Kennungen mit Komma).</param>
 /// <param name="WachhausBeimErsten">Das erste KI-Haus bekommt am Start zusätzlich ein Wachhaus mit vier Gesellen (wie die Probe in Wirtschaftsmodell §27).</param>
 /// <param name="Schwierigkeit">Normal: Die KI-Häuser starten wie der Spieler; Schwer: mit Werkstatt und Umlandbetrieb (PR #177).</param>
 /// <param name="OhneSchiffshandel">Ohne Abschnitt „schiffshandel“ (sonst gleich): Niemand kauft ein Schiff – der Vergleich zur Exportnachfrage (PR #199).</param>
-/// <param name="Startplaetze">Gelost wie im Spiel (seit den Hofstellen, 09.11.2026) oder ohne Los nach der Startbelegung der Karte (wie vorher).</param>
 sealed record Messaufbau(
     string Karte,
     int Startwert,
@@ -51,13 +48,11 @@ sealed record Messaufbau(
     Bezugsart Bezug = Bezugsart.EinBetrieb,
     KiCharakter BezugCharakter = KiCharakter.Ausgewogen,
     int Rivalen = 0,
-    int Rotation = 0,
     string Einrichtung = "",
     bool WachhausBeimErsten = false,
     bool MarktMessen = false,
     Schwierigkeit Schwierigkeit = Schwierigkeit.Normal,
-    bool OhneSchiffshandel = false,
-    Startplatzvergabe Startplaetze = Startplatzvergabe.Gelost);
+    bool OhneSchiffshandel = false);
 
 /// <summary>Ein Haus am Ende eines Spieljahres.</summary>
 sealed class Jahreswert
@@ -80,7 +75,8 @@ sealed class Hausverlauf
     public bool IstSpieler;
     public Volk Volk;
     public string Startberuf = "";
-    public string? Wohnhausplatz;
+    /// <summary>Karrenweg der ersten Werkstatt in der Stadt zum Markt am Start, in Metern (null: keine Werkstatt, kein Weg, keine Karte).</summary>
+    public double? StartwegMeter;
     public readonly List<Jahreswert> Jahre = new();
     /// <summary>Das erste Jahr mit Reinvermögen ab der Schwelle des Bürgers (Ziel Z2) bzw. im Stand Bürger.</summary>
     public int? BuergerReinJahr, BuergerStandJahr, Stufe2Jahr, Stufe3Jahr, BankrottJahr, ErloschenJahr;
@@ -181,31 +177,8 @@ sealed class Messquellen
 
 static class Messpartie
 {
-    /// <summary>
-    /// Alle Partien ohne Los (<c>messen bericht … --startplaetze=vorgabe</c>): jedes Haus, wo die Startbelegung der Karte es hinsetzt – der Start vor
-    /// den Hofstellen, zum Vergleich mit dem Los. Wird nur vor den Partien gesetzt.
-    /// </summary>
-    public static bool OhneLos;
-
     /// <summary>„Härte der Zeit“ aller Partien (<c>--haerte=mild|ueberliefert|hart</c>; „Härte um 1400“ PR 1).</summary>
     public static HaerteDerZeit Haerte = HaerteDerZeit.Ueberliefert;
-
-    /// <summary>
-    /// Die Karte mit weitergereichten Wohnhausplätzen: Bei Rotation r wohnt der i-te (Spieler = 0, dann die KI-Häuser) dort, wo vorher der
-    /// (i + r)-te wohnte. Werkstattplätze bleiben – ihre Lage wirkt im Kern nicht (Fahrzeit nach Ort, nicht nach Weg).
-    /// </summary>
-    public static string KarteRotiert(string json, int rotation, int haeuser)
-    {
-        if (rotation == 0) return json;
-        var knoten = JsonNode.Parse(json)!.AsObject();
-        var start = knoten["start"]!.AsObject();
-        var stellen = new List<JsonObject> { start["spieler"]!.AsObject() };
-        stellen.AddRange(start["haeuser"]!.AsArray().Take(haeuser).Select(h => h!.AsObject()));
-        var plaetze = stellen.Select(s => (string?)s["wohnhaus"]).ToList();
-        for (var i = 0; i < stellen.Count; i++)
-            stellen[i]["wohnhaus"] = plaetze[(i + rotation) % stellen.Count];
-        return knoten.ToJsonString();
-    }
 
     /// <param name="jeStunde">Wird zu jeder vollen Stunde vor dem nächsten Takt gerufen (nur lesen; z. B. <c>messen schaenke</c>).</param>
     /// <param name="jahresende">Wird nach jedem Spieljahr gerufen (nur lesen), mit der Nummer des Jahres (1 = erstes).</param>
@@ -217,15 +190,11 @@ static class Messpartie
         var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
         var kartenText = q.Karte(a.Karte);
         var anzahl = a.Rivalen > 0 ? a.Rivalen : (JsonNode.Parse(kartenText)!["start"]?["haeuser"]?.AsArray().Count ?? 1);
-        // Mit Hofstellen (jede Karte mit Startbelegung, alte werden beim Lesen umgerechnet) rotiert der Spieler über die Hofstellen (unten), nicht die
-        // Wohnhäuser – sonst stünde ein Wohnhausplatz doppelt in der Belegung (Befund der Prüfung)
         var karte = Stadtkarte.AusJson(kartenText, Gebaeudekatalog.AusJson(q.Katalog));
-        if (!karte.HatHofstellen && a.Rotation > 0) karte = Stadtkarte.AusJson(KarteRotiert(kartenText, a.Rotation, anzahl), Gebaeudekatalog.AusJson(q.Katalog));
-        // Hofstellen (09.11.2026): wie im Spiel gelost; die Startfairness (Rotation) setzt den Spieler auf die r-te Start-Hofstelle, die KI-Häuser
-        // ohne Los (wer dort säße, bekommt die Hofstelle des Spielers)
-        var neu = new NeuePartie(Volk: a.Volk, Beruf: a.Beruf, Rivalen: anzahl, Startplaetze: OhneLos ? Startplatzvergabe.Vorgabe : a.Startplaetze);
-        if ((a.Rotation > 0 || a.Startplaetze == Startplatzvergabe.Vorgabe) && Hofstellenvergabe.Startplaetze(karte) is { Count: > 0 } plaetze)
-            neu = neu with { Hofstelle = plaetze[a.Rotation % plaetze.Count].Kennung, Startplaetze = Startplatzvergabe.Vorgabe };
+        // Wie im Spiel: Wo die Häuser wohnen und arbeiten, lost das Startortlos in den Bauzonen im Stadtinneren (seit 16.11.2026 ohne feste
+        // Plätze der Karte) – höchstens so viele KI-Häuser, wie mit dem Spieler hineinpassen.
+        anzahl = Math.Min(anzahl, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost, daten));
+        var neu = new NeuePartie(Volk: a.Volk, Beruf: a.Beruf, Rivalen: anzahl);
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit, HaerteDerZeit = Haerte },
             daten, neu, karte: karte);
@@ -268,7 +237,7 @@ static class Messpartie
             {
                 Name = k.Inhaber, IstSpieler = k == spieler, Volk = w.Familien.Von(k)?.Volk ?? Volk.Mensch,
                 Startberuf = eigene.FirstOrDefault()?.Artdaten.Beruf ?? "",
-                Wohnhausplatz = w.Bauen.IstAktiv ? w.Bauen.Grundstuecke.FirstOrDefault(g => g.Besitzer == k && g.Art == Grundstuecksart.Wohnhaus)?.Kennung : null,
+                StartwegMeter = eigene.FirstOrDefault(b => b.InDerStadt) is { } erste && w.Fahrten(erste) is { Hin.Count: > 0 } fahrt ? fahrt.Hin.Sum(x => x.Laenge) : null,
                 StartBetriebe = eigene.Count, StartArbeiter = eigene.Sum(b => b.Belegt), StartBar = k.Vermoegen,
                 StartGewinnErwartet = eigene.Sum(b => Kalkulation.ErwarteterJahresgewinn(w, b.Art, leistung: w.VolksFaktor(k, b.Artdaten.Beruf))),
             });

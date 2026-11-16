@@ -21,11 +21,10 @@ static partial class Balancingbericht
     {
         var karten = new JsonArray();
         var letztes = e.Stich[^1];
-        foreach (var (karte, anzahl) in Fairnesskarten(e))
+        foreach (var karte in e.Fairness)
         {
-            var rotationen = Rotationen(e, anzahl);
-            // ohne Los (Hofstellen, 9.11.2026): Rotation r setzt den Spieler auf die r-te Start-Hofstelle (Messpartie)
-            var laeufe = Gut(e.Werte.SelectMany(s => Enumerable.Range(0, rotationen).Select(r => p(new Messaufbau(karte, s, e.Jahre, Rotation: r, Startplaetze: Startplatzvergabe.Vorgabe)))));
+            // wie im Spiel gelost (Startortlos): jeder Startwert stellt die Häuser auf andere Grundstücke in den Bauzonen im Stadtinneren
+            var laeufe = Gut(e.Werte.Select(s => p(new Messaufbau(karte, s, e.Jahre))));
             if (laeufe.Count == 0) continue;
             var start = new JsonArray(laeufe[0].Haeuser.Select(h => (JsonNode)new JsonObject
             {
@@ -43,50 +42,58 @@ static partial class Balancingbericht
                 ["standAmEnde"] = Staende(g, daten), ["bankrott"] = g.Count(h => h.BankrottJahr is not null), ["erloschen"] = g.Count(h => h.ErloschenJahr is not null),
                 ["jeJahrImMittel"] = Zerlegung(g),
             }).ToArray());
-            var jePlatz = new JsonArray(alle.Where(h => h.Wohnhausplatz is not null).GroupBy(h => h.Wohnhausplatz!).OrderBy(g => g.Key, StringComparer.Ordinal)
-                .Select(g => (JsonNode)new JsonObject
+            // Startwege (seit 16.11.2026 statt der Wohnhausplätze): der Karrenweg der Startwerkstatt zum Markt, wie das Los ihn ergab – die Häuser
+            // nach der Weglänge in Drittel geteilt (kurz, mittel, lang) und je Drittel das Vermögen gegen das Mittel desselben Hauses.
+            var mitWeg = alle.Where(h => h.StartwegMeter is not null).OrderBy(h => h.StartwegMeter!.Value).ToList();
+            var drittel = new[] { "kurz", "mittel", "lang" }.Select((name, i) => (Name: name, Haeuser: mitWeg.Skip(i * mitWeg.Count / 3).Take((i + 1) * mitWeg.Count / 3 - i * mitWeg.Count / 3).ToList()))
+                .Where(x => x.Haeuser.Count > 0).ToList();
+            var jeStartweg = new JsonArray(drittel.Select(g => (JsonNode)new JsonObject
+            {
+                ["startweg"] = g.Name, ["n"] = g.Haeuser.Count, ["meter"] = Kennzahl(g.Haeuser.Select(h => h.StartwegMeter!.Value), 1),
+                ["jahre"] = JeJahr(e.Stich, j => new JsonObject
                 {
-                    ["wohnhausplatz"] = g.Key, ["n"] = g.Count(),
-                    ["jahre"] = JeJahr(e.Stich, j => new JsonObject
-                    {
-                        ["reinvermoegen"] = Kennzahl(g.Select(h => h.Im(j).Rein)),
-                        ["gegenHausmittelProzent"] = Kennzahl(g.Select(h => Abstand(h.Im(j).Rein, hausMittel[(h.IstSpieler, h.Name)][j])), 1),
-                    }),
-                    ["spielerReinvermoegen"] = JeJahr(e.Stich, j => Kennzahl(g.Where(h => h.IstSpieler).Select(h => h.Im(j).Rein))),
-                }).ToArray());
+                    ["reinvermoegen"] = Kennzahl(g.Haeuser.Select(h => h.Im(j).Rein)),
+                    ["gegenHausmittelProzent"] = Kennzahl(g.Haeuser.Select(h => Abstand(h.Im(j).Rein, hausMittel[(h.IstSpieler, h.Name)][j])), 1),
+                }),
+            }).ToArray());
+            var startwege = new JsonObject
+            {
+                ["alle"] = Kennzahl(mitWeg.Select(h => h.StartwegMeter!.Value), 1), ["ohneWeg"] = alle.Count - mitWeg.Count,
+                ["spieler"] = Kennzahl(mitWeg.Where(h => h.IstSpieler).Select(h => h.StartwegMeter!.Value), 1),
+                ["ki"] = Kennzahl(mitWeg.Where(h => !h.IstSpieler).Select(h => h.StartwegMeter!.Value), 1),
+            };
             var spieler = laeufe.Select(r => r.Spieler).ToList();
             var buerger = spieler.Where(h => h.BuergerReinJahr is not null).Select(h => (double)h.BuergerReinJahr!.Value).ToList();
             karten.Add(new JsonObject
             {
-                ["karte"] = karte, ["rotationen"] = rotationen, ["n"] = laeufe.Count, ["start"] = start, ["jeHaus"] = jeHaus, ["jeWohnhausplatz"] = jePlatz,
+                ["karte"] = karte, ["n"] = laeufe.Count, ["start"] = start, ["jeHaus"] = jeHaus, ["startwege"] = startwege, ["jeStartweg"] = jeStartweg,
                 ["spielerJahreBisBuerger"] = Kennzahl(buerger, 1), ["spielerBuergerErreicht"] = buerger.Count,
                 ["spielerBuergerIn8bis12"] = buerger.Count(x => x is >= 8 and <= 12),
             });
 
-            var platzSpanne = jePlatz.Select(x => (double)x!["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!).ToList();
+            var platzSpanne = jeStartweg.Select(x => (double)x!["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!).ToList();
             var spielerRein = hausMittel[(true, laeufe[0].Spieler.Name)][letztes];
             var kiRein = hausMittel.Where(x => !x.Key.IstSpieler).Average(x => x.Value[letztes]);
-            befunde.Add($"Startfairness {karte}: Wohnhausplatz verschiebt das Vermögen nach {letztes} Jahren um {Vz(platzSpanne.Min())} … {Vz(platzSpanne.Max())} % " +
-                        $"(gegen das Mittel desselben Hauses, {rotationen} Rotationen × {e.Startwerte} Startwerte); der Spieler mit einem Betrieb hat " +
+            befunde.Add($"Startfairness {karte}: Startweg {Zahl(mitWeg.Count > 0 ? mitWeg.Average(h => h.StartwegMeter!.Value) : double.NaN, "0.0")} m im Mittel ({Zahl(mitWeg.Count > 0 ? mitWeg[0].StartwegMeter!.Value : double.NaN, "0.0")}–{Zahl(mitWeg.Count > 0 ? mitWeg[^1].StartwegMeter!.Value : double.NaN, "0.0")} m); er verschiebt das Vermögen nach {letztes} Jahren um {Vz(platzSpanne.DefaultIfEmpty(double.NaN).Min())} … {Vz(platzSpanne.DefaultIfEmpty(double.NaN).Max())} % " +
+                        $"(Drittel kurz/mittel/lang gegen das Mittel desselben Hauses, {e.Startwerte} Startwerte, gelost); der Spieler mit einem Betrieb hat " +
                         $"{Text(spielerRein)} Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel {Text(kiRein)} ({Vz(Abstand(spielerRein, kiRein))} %). " +
                         $"Bürger (Reinvermögen 10.000): Ø Jahr {Zahl((buerger.Count > 0 ? buerger.Average() : double.NaN), "0.0")}, im Ziel 8–12 Jahre {buerger.Count(x => x is >= 8 and <= 12)}/{spieler.Count}.");
-            Console.WriteLine($"3 Startfairness {karte}: Plätze {string.Join(", ", jePlatz.Select(x => $"{x!["wohnhausplatz"]} {Vz((double)x["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!, 1)} %"))}");
+            Console.WriteLine($"3 Startfairness {karte}: Startwege {string.Join(", ", jeStartweg.Select(x => $"{x!["startweg"]} ({Zahl((double)x["meter"]!["mittel"]!, "0.0")} m) {Vz((double)x["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!, 1)} %"))}");
         }
         return new JsonObject
         {
             ["erklaerung"] = "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. " +
-                             "Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), " +
-                             "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt seit " +
-                             "Datenversion 65 über die Fahrzeit der Karren (Weglänge zum Markt), ist aber an das Haus gebunden; der Wohnhausplatz wirkt im Kern nicht " +
-                             "(Bürger kaufen am Markt, --rotationen=1 genügt dann). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
-                             "gegen das Mittel desselben Hauses über alle Plätze – trennt Platz und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter " +
+                             "Startfairness: Jeder Startwert lost Wohnhaus und Werkstatt jedes Hauses neu in die Bauzonen im Stadtinneren (Startortlos, wie im Spiel; " +
+                             "seit 16.11.2026 ohne feste Plätze der Karte und ohne Rotation). Die Lage wirkt über die Fahrzeit der Karren: „startwege“ nennt den " +
+                             "Karrenweg der Startwerkstatt zum Markt (Meter), „jeStartweg“ teilt die Häuser nach ihm in Drittel. „gegenHausmittelProzent“: Vermögen in diesem Drittel " +
+                             "gegen das Mittel desselben Hauses über alle Startwerte – trennt Lage und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter " +
                              "Jahresgewinn (Kalkulation, mit Völkerbonus) zu Beginn. Jahre bis Bürger: erstes Jahr mit Reinvermögen ≥ 10.000 (Ziel Z2: 8–12).",
             ["karten"] = karten,
         };
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  4 Häuser: 1, 3, 5, 8 KI-Häuser in der Messstadt
+    //  4 Häuser: 1, 3, 5, 7 KI-Häuser in der Messstadt (mit dem Spieler höchstens 8 Häuser je Partie)
     // ═════════════════════════════════════════════════════════════════════════
 
     private static JsonObject Haeuser(Einstellung e, Wirtschaftsdaten daten, Func<Messaufbau, Partieergebnis> p, List<string> befunde)
@@ -99,7 +106,7 @@ static partial class Balancingbericht
         Console.WriteLine($"4 Häuser (Messstadt) – Vermögen je KI-Haus nach {letztes} Jahren:");
         foreach (var n in Hausstufen)
         {
-            var laeufe = Gut(e.Werte.Select(s => p(new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true, Startplaetze: Startplatzvergabe.Vorgabe))));
+            var laeufe = Gut(e.Werte.Select(s => p(new Messaufbau("messstadt", s, e.Jahre, Bezug: Bezugsart.Geist, Rivalen: n, MarktMessen: true))));
             if (laeufe.Count == 0) continue;
             var ki = laeufe.SelectMany(r => r.Ki).ToList();
             mittelJeHaus[n] = e.Stich.ToDictionary(j => j, j => ki.Average(h => h.Im(j).Rein));
@@ -162,11 +169,12 @@ static partial class Balancingbericht
                     ["vermoegenJeHausGegen3Prozent"] = mittelJeHaus.ContainsKey(3) ? R(Abstand(mittelJeHaus[n][j], mittelJeHaus[3][j]), 1) : null,
                     ["gewinnJeHausGegen1Prozent"] = R(Abstand(gewinnJeHaus[n][j], gewinnJeHaus[1][j]), 1),
                 });
-        if (mittelJeHaus.ContainsKey(1) && mittelJeHaus.ContainsKey(8))
-            befunde.Add($"8 Häuser (Messstadt, {(daten.Stadt is null ? "feste Nachfrage" : $"Nachfrage nach Einwohnern ×{Zahl(daten.Stadt.Faktor(8), "0.00")} statt ×{Zahl(daten.Stadt.Faktor(3), "0.00")} bei 3")}): Vermögen je KI-Haus nach {letztes} Jahren {Text(mittelJeHaus[8][letztes])} statt " +
-                        $"{Text(mittelJeHaus[1][letztes])} allein ({Vz(Abstand(mittelJeHaus[8][letztes], mittelJeHaus[1][letztes]))} %)" +
-                        (mittelJeHaus.ContainsKey(3) ? $" und {Text(mittelJeHaus[3][letztes])} bei 3 Häusern ({Vz(Abstand(mittelJeHaus[8][letztes], mittelJeHaus[3][letztes]))} %)" : "") +
-                        $"; Preisindex der verkauften Waren {Zahl(preisindex.GetValueOrDefault(1), "0.00")} → {Zahl(preisindex.GetValueOrDefault(8), "0.00")}.");
+        var meist = Hausstufen[^1];
+        if (mittelJeHaus.ContainsKey(1) && mittelJeHaus.ContainsKey(meist))
+            befunde.Add($"{meist} Häuser (Messstadt, {(daten.Stadt is null ? "feste Nachfrage" : $"Nachfrage nach Einwohnern ×{Zahl(daten.Stadt.Faktor(meist), "0.00")} statt ×{Zahl(daten.Stadt.Faktor(3), "0.00")} bei 3")}): Vermögen je KI-Haus nach {letztes} Jahren {Text(mittelJeHaus[meist][letztes])} statt " +
+                        $"{Text(mittelJeHaus[1][letztes])} allein ({Vz(Abstand(mittelJeHaus[meist][letztes], mittelJeHaus[1][letztes]))} %)" +
+                        (mittelJeHaus.ContainsKey(3) ? $" und {Text(mittelJeHaus[3][letztes])} bei 3 Häusern ({Vz(Abstand(mittelJeHaus[meist][letztes], mittelJeHaus[3][letztes]))} %)" : "") +
+                        $"; Preisindex der verkauften Waren {Zahl(preisindex.GetValueOrDefault(1), "0.00")} → {Zahl(preisindex.GetValueOrDefault(meist), "0.00")}.");
         return new JsonObject
         {
             ["erklaerung"] = "Messstadt (tools/Kartenbau/Staedte/Messstadt.cs) mit den ersten n KI-Häusern der Karte (1: Schmied/Zwerg, 3: dazu Tischler/Elb " +

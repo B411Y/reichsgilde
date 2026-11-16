@@ -24,15 +24,20 @@ static class NurBauzonenKartenTests
 
     public static IEnumerable<(string, Action)> Alle()
     {
-        yield return ("Nur Bauzonen, Karten: Die Mitte jedes Werkstatt- und Wohnhausplatzes von Greybox, Probestadt und Köln liegt in einer Bauzone, und die Prüfung hat keinen Fehler", () =>
+        yield return ("Nur Bauzonen, Karten: Keine Karte führt noch Werkstatt- oder Wohnhausplätze; wo sie lagen, ist Bauzone, und die Prüfung hat keinen Fehler", () =>
         {
-            foreach (var kennung in new[] { "greybox", "probestadt", "koeln" })
+            // je Karte zwei Stellen, an denen bis zum 16.11.2026 ein Werkstattplatz lag: Sie liegen in einer Bauzone
+            var frueher = new Dictionary<string, Kartenort[]>
+            {
+                ["greybox"] = new[] { new Kartenort(-23, 16), new Kartenort(22, 13) }, ["probestadt"] = new[] { new Kartenort(-30, -10), new Kartenort(32, 10) },
+                ["koeln"] = new[] { new Kartenort(26.5, 79), new Kartenort(8.5, -84.5) }, ["messstadt"] = new[] { new Kartenort(-24, -10), new Kartenort(60, -10) },
+            };
+            foreach (var kennung in new[] { "greybox", "probestadt", "koeln", "messstadt" })
             {
                 var e = Oeffnen(kennung);
-                var plaetze = e.Gebaeude.Where(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz).ToList();
-                Pruefe.Wahr(plaetze.Count > 0, kennung + ": die Karte hat noch Plätze (bis der Kern sie nicht mehr braucht).");
-                foreach (var g in plaetze)
-                    Pruefe.Wahr(e.Bauzonen.Any(z => Kartengeometrie.ImVieleck(g.Punkt, z.Ecken)), $"{kennung}: die Mitte von {g.Kennung} liegt in keiner Bauzone.");
+                Pruefe.Gleich(0, e.Gebaeude.Count(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz), kennung + ": keine Plätze mehr");
+                foreach (var ort in frueher[kennung])
+                    Pruefe.Wahr(e.Bauzonen.Any(z => Kartengeometrie.ImVieleck(ort, z.Ecken)), $"{kennung}: {ort} liegt in keiner Bauzone.");
                 Pruefe.Wahr(!e.Befunde.Any(b => b.Schwere == Schwere.Fehler), kennung + ": " + string.Join(" / ", e.Befunde.Where(b => b.Schwere == Schwere.Fehler)));
             }
         });
@@ -60,9 +65,9 @@ static class NurBauzonenKartenTests
             Pruefe.Wahr(!mitHaus.Bauzonen.Any(z => Kartengeometrie.ImVieleck(mitHaus.Gebaeude[0].Punkt, z.Ecken)), "Ein festes Gebäude bleibt ausgespart.");
         });
 
-        yield return ("Nur Bauzonen, Kartenskript: pruefen berichtet die Startorte im Stadtinneren – Probestadt und Köln 8 Häuser, Greybox 4 mit Hinweis – und keine Hofstellen mehr", () =>
+        yield return ("Nur Bauzonen, Kartenskript: pruefen berichtet die Startorte im Stadtinneren – Probestadt, Köln und Messstadt 8 Häuser, Greybox 5 mit Hinweis – und keine Hofstellen mehr", () =>
         {
-            foreach (var (kennung, haeuser) in new[] { ("greybox", 4), ("probestadt", 8), ("koeln", 8) })
+            foreach (var (kennung, haeuser) in new[] { ("greybox", 5), ("probestadt", 8), ("koeln", 8), ("messstadt", 8) })
             {
                 var aus = new StringWriter();
                 var e = Oeffnen(kennung);

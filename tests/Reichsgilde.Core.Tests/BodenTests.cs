@@ -251,7 +251,7 @@ static class BodenTests
         {
             var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             Pruefe.Wahr(!e.Boden.IstLeer, "die Probestadt hat Bodentexturen");
-            var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
+            var (sim, spieler) = Probestadtvorlage.Ausprobieren(e, Daten.Value, "Schmied");
             var json = Speicherung.Speichern(sim, spieler);
             var (geladen, _) = Speicherung.Laden(json);
             var a = sim.Wirtschaft!.Karte!.Boden!;

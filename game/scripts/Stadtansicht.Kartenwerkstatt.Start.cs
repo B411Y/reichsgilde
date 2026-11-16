@@ -42,30 +42,12 @@ public partial class Stadtansicht
     private Belegungsanzeige? BelegungsanzeigeVon(EntwurfGebaeude g)
     {
         if (_entwurf is not { } e || e.BelegungVon(g.Kennung) is not [var b, ..] liste) return null;
-        var start = e.Start;
-        Belegungsanzeige anzeige;
-        if (b.IstSpieler)
-        {
-            var text = b.Art switch
-            {
-                Belegungsart.Wohnhaus => "Spieler · Wohnhaus",
-                _ when b.Beruf is { } beruf => $"Spieler · Startplatz {beruf}",
-                _ => "Spieler · Startplatz",
-            };
-            anzeige = new Belegungsanzeige(SpielerFahne, Farbe(start.SpielerFarbe) ?? Spieler, text, b.Beruf, Spieler: true);
-        }
-        else
-        {
-            var haus = start.Haeuser[b.Haus];
-            var farbe = Farbe(haus.Farbe) ?? new Color(0.6f, 0.6f, 0.6f);
-            if (b.Art == Belegungsart.Betrieb && b.Betrieb >= 0 && b.Betrieb < haus.Betriebe.Count)
-            {
-                var art = haus.Betriebe[b.Betrieb].Art;
-                var daten = e.Daten is { } d && d.KenntArt(art) ? d.Art(art) : null;
-                anzeige = new Belegungsanzeige(farbe, farbe, $"{haus.Name} · {daten?.Name ?? art.ToString()}", daten is { InDerStadt: true } ? daten.Beruf : null);
-            }
-            else anzeige = new Belegungsanzeige(farbe, farbe, $"{haus.Name} · Wohnhaus", null);
-        }
+        // Seit „nur noch Bauzonen“ (16.11.2026) belegt nur noch ein Umlandbetrieb eines KI-Hauses einen Platz der Karte
+        var haus = e.Start.Haeuser[b.Haus];
+        var farbe = Farbe(haus.Farbe) ?? new Color(0.6f, 0.6f, 0.6f);
+        var art = haus.Betriebe[b.Betrieb].Art;
+        var daten = e.Daten is { } d && d.KenntArt(art) ? d.Art(art) : null;
+        var anzeige = new Belegungsanzeige(farbe, farbe, $"{haus.Name} · {daten?.Name ?? art.ToString()}", null);
         return liste.Count > 1 ? anzeige with { Farbe = Fehlerrot, Text = anzeige.Text + $" (und {liste.Count - 1} weitere – doppelt vergeben)" } : anzeige;
     }
 
@@ -91,7 +73,7 @@ public partial class Stadtansicht
         if (_entwurf is null) return;
         foreach (var g in _entwurf.Gebaeude)
         {
-            if (!_stuecke.TryGetValue(g, out var s) || Equals(s.Belegung, BelegungsanzeigeVon(g)) && s.Hof == HofNummerVon(g)) continue;
+            if (!_stuecke.TryGetValue(g, out var s) || Equals(s.Belegung, BelegungsanzeigeVon(g))) continue;
             StueckEntfernen(g);
             StueckBauen(g);
             if (ReferenceEquals(WerkstattGewaehlt, g)) Auswahl = StueckKennung(g);

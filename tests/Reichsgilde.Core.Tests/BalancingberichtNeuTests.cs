@@ -16,17 +16,16 @@ static class BalancingberichtNeuTests
     {
         ("Bericht: Passiver Spieler arbeitet mit seinem Startlehrling (Datenversion 72: einer); Stadtkasse und Steuer je Jahr gemessen", () =>
         {
-            // ohne Los (Hofstellen, 9.11.2026): der Spieler auf seiner Vorgabe H1, wie vorher
-            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv, Startplaetze: Startplatzvergabe.Vorgabe), Quellen.Value);
+            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             Pruefe.Gleich(1, r.Spieler.StartArbeiter);
-            // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung im ersten Jahr noch (Greybox +52), im zweiten nicht mehr
-            // (−350) – wer nicht einstellt, zehrt langsam vom Startgeld, geht aber nicht bankrott.
-            Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Betriebe == 1) && r.Spieler.Jahre[0].Gewinn > 0, "die Werkstatt verdient im ersten Jahr ohne Führung: "
+            // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung über die zwei Jahre noch etwas – wer nicht einstellt, zehrt
+            // langsam vom Startgeld, geht aber nicht bankrott. Wo sie steht, lost die Partie (16.11.2026; mit diesem Startwert −30 und +954 Gulden,
+            // auf dem festen Platz der alten Karte +52 und −350).
+            Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Betriebe == 1) && r.Spieler.Jahre.Sum(j => j.Gewinn) > 0, "die Werkstatt verdient ohne Führung: "
                 + string.Join(" / ", r.Spieler.Jahre.Select(j => $"{j.Gewinn:0} {j.Rein:0}")));
             Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Rein > 3_000), "kein Absturz ohne Führung");
-            // Steuer je Haus und Jahr: Die KI-Häuser zahlen jedes Jahr, der passive Spieler im ersten (seit den fairen Hofstellen der Greybox verkauft er
-            // mit diesem Startwert im zweiten Jahr nichts mehr; vorher noch 33 Gulden Steuer)
+            // Steuer je Haus und Jahr: Die KI-Häuser zahlen jedes Jahr, der passive Spieler im ersten
             Pruefe.Wahr(r.Ki.All(h => h.Jahre.All(j => j.Steuer > 0)) && r.Spieler.Jahre[0].Steuer > 0, "jedes Haus zahlt Umsatzsteuer: "
                 + string.Join(" / ", r.Haeuser.Select(h => $"{h.Name} {string.Join(",", h.Jahre.Select(j => j.Steuer.ToString("0")))}")));
             Pruefe.Gleich(2, r.Kassenstand.Count);
@@ -109,7 +108,7 @@ static class BalancingberichtNeuTests
     /// <summary>Umsatzsteuer, die im ersten Jahr der Partie „greybox“ (Startwert 101, passiv) in die Kasse ging.</summary>
     static double SteuerImErstenJahr()
     {
-        var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Bezug: Bezugsart.Passiv, Startplaetze: Startplatzvergabe.Vorgabe), Quellen.Value); // wie oben ohne Los
+        var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Bezug: Bezugsart.Passiv), Quellen.Value); // wie oben ohne Los
         return r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer);
     }
 }

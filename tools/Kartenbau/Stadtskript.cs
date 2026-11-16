@@ -125,34 +125,16 @@ public abstract class Stadtskript
     }
 
     /// <summary>
-    /// Hofstellen aus der Startbelegung (seit 9.11.2026; ein Stadtskript, das mit <see cref="Kartenentwurf.Neu"/> beginnt, wird nicht umgerechnet):
-    /// Der Spieler und jedes KI-Haus bekommen als Start-Hofstelle („S1“, „S2“ …) ihren Wohnhausplatz und den Werkstattplatz ihres ersten
-    /// Startbetriebs; <paramref name="name"/> nennt die Lage (Name der Hofstelle, nach dem die Werkstatt des Spielers heißt: „Gießerei am Markt“).
-    /// Mit <paramref name="freie"/> bildet jeder übrige Werkstattplatz mit dem nächsten freien Wohnhausplatz eine freie Hofstelle („H1“ …).
-    /// Mit <paramref name="nummern"/> bekommen die Start-Hofstellen die Hofnummern 1, 2 … (Hof 1 = Spieler 1, 12.11.2026); ohne bleiben sie
-    /// unnummeriert (Messstadt). Nach der Startbelegung aufrufen.
+    /// Räumt die Werkstatt- und Wohnhausplätze wieder ab, die ein Skript nur gesetzt hat, um die Fläche beim Platzieren freizuhalten (Köln: die
+    /// früheren Startgrundstücke und Hofstellen – Einwohnerplätze und Kulissen weichen ihnen). Seit „nur noch Bauzonen“ (16.11.2026) stehen in
+    /// einer Karte keine solchen Plätze mehr; die frei gehaltene Fläche wird Bauzone (<see cref="Kartenentwurf.BauzonenAusRaster"/>).
+    /// Liefert, wie viele es waren.
     /// </summary>
-    protected void HofstellenAusStart(Func<EntwurfGebaeude, string?> name, bool freie = false, bool nummern = false)
+    protected int StadtplaetzeRaeumen()
     {
-        var start = E.Start;
-        var paare = new List<(string Werkstatt, string Wohnhaus)>();
-        if (start.SpielerWerkstatt is { } sw && start.SpielerWohnhaus is { } swh) paare.Add((sw.Platz, swh));
-        foreach (var haus in start.Haeuser)
-            if (haus.Wohnhaus is { } hw && haus.Betriebe.Select(b => b.Platz).FirstOrDefault(p => E.GebaeudeMit(p)?.Art == Bausteinart.Werkstattplatz) is { } wk)
-                paare.Add((wk, hw));
-        var n = 0;
-        foreach (var (werkstatt, wohnhaus) in paare)
-            E.HofstelleBilden(werkstatt, wohnhaus, start: true, name: name(E.GebaeudeMit(werkstatt)!), kennung: $"S{++n}");
-        if (nummern) for (var i = 1; i <= n; i++) E.HofstelleNummerSetzen($"S{i}", i);
-        if (!freie) return;
-        var belegt = paare.SelectMany(p => new[] { p.Werkstatt, p.Wohnhaus }).ToHashSet();
-        var wohnhaeuser = E.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz && !belegt.Contains(g.Kennung)).ToList();
-        foreach (var w in E.Gebaeude.Where(g => g.Art == Bausteinart.Werkstattplatz && !belegt.Contains(g.Kennung)).ToList())
-        {
-            if (wohnhaeuser.MinBy(h => h.Punkt.Abstand(w.Punkt)) is not { } nah) break;
-            wohnhaeuser.Remove(nah);
-            E.HofstelleBilden(w.Kennung, nah.Kennung, name: name(w));
-        }
+        var plaetze = E.Gebaeude.Where(g => g.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz).Select(g => g.Kennung).ToList();
+        foreach (var kennung in plaetze) E.Loeschen(kennung);
+        return plaetze.Count;
     }
 
     /// <summary>

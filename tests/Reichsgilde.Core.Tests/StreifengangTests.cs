@@ -46,7 +46,7 @@ static class StreifengangTests
             var sim = StadtkasseTests.NeueSimulation();
             var w = sim.Wirtschaft!;
             Pruefe.Gleich<Stadtviertel?>(null, w.Befugnisse.ViertelBei(10, 10));
-            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("probestadt"));
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("greybox")); // ihre Umlandbetriebe tragen Betriebsnamen (die Werkstattplätze der Probestadt gibt es seit 16.11.2026 nicht mehr)
             w.KarteSetzen(karte);
             var haus = StadtkasseTests.Haus(w, "Haus");
             var gesehen = new HashSet<Stadtviertel>();

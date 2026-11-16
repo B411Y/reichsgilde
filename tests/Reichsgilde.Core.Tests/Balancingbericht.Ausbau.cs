@@ -23,12 +23,12 @@ static partial class Balancingbericht
         var sb = new StringBuilder("karte;startwert;bezug;schwierigkeit;rotation;beruf;haus;hausname;jahr;betrieb;ort;art;neubau;seitJahr;fahrzeitHin;karren;fahrten;stillstandProzent;umsatz;gewinn\n");
         foreach (var p in partien.Where(p => p.Fehler is null)
                      .OrderBy(p => p.Aufbau.Karte, StringComparer.Ordinal).ThenBy(p => p.Aufbau.Bezug).ThenBy(p => p.Aufbau.Schwierigkeit)
-                     .ThenBy(p => p.Aufbau.Startwert).ThenBy(p => p.Aufbau.Rotation).ThenBy(p => p.Aufbau.Beruf, StringComparer.Ordinal))
+                     .ThenBy(p => p.Aufbau.Startwert).ThenBy(p => p.Aufbau.Beruf, StringComparer.Ordinal))
             foreach (var b in p.Betriebe)
             {
                 var a = p.Aufbau;
                 var name = b.Haus >= 0 && b.Haus < p.Haeuser.Count ? p.Haeuser[b.Haus].Name : "";
-                sb.Append(string.Join(';', a.Karte, a.Startwert, a.Bezug, a.Schwierigkeit, a.Rotation, a.Beruf, b.Haus, name, b.Jahr, b.Name, b.Ort, b.Art,
+                sb.Append(string.Join(';', a.Karte, a.Startwert, a.Bezug, a.Schwierigkeit, 0, a.Beruf, b.Haus, name, b.Jahr, b.Name, b.Ort, b.Art,
                     b.Neubau ? 1 : 0, b.SeitJahr, b.FahrzeitHin, b.Karren, b.Fahrten, F(b.StillstandProzent), F(b.Umsatz), F(b.Gewinn))).Append('\n');
             }
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(datei))!);

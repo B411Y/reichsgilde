@@ -8,14 +8,14 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Tafel „Start“ der Kartenwerkstatt – ein Teil der <c>partial class Kartenwerkstatt</c>: wer am Start wo wohnt und arbeitet
-/// (<see cref="EntwurfStart"/>). Oben der Spieler (Farbe, Wohnhaus, Startplatz allgemein und je Beruf), darunter die KI-Häuser (bis acht) als
-/// Liste; das gewählte Haus klappt auf: Name, Volk, Oberhaupt, Farbe, Wappen, Wohnhaus und Startbetriebe mit Ware.
+/// Die Tafel „Start“ der Kartenwerkstatt – ein Teil der <c>partial class Kartenwerkstatt</c>: wer am Start mitspielt
+/// (<see cref="EntwurfStart"/>). Oben der Spieler (Farbe), darunter die KI-Häuser (bis acht) als Liste; das gewählte Haus klappt auf: Name,
+/// Volk, Oberhaupt, Farbe, Wappen und Startbetriebe mit Ware. Wo die Häuser wohnen und arbeiten, steht nicht in der Karte – das lost jede
+/// Partie in den Bauzonen innerhalb der Mauer (seit 16.11.2026 ohne Werkstatt- und Wohnhausplätze und ohne Höfe).
 ///
-/// Plätze wählt man in der Karte: „Wählen“ bzw. „Betrieb hinzufügen“ fragt die Stadtansicht nach einem Platz
-/// (<see cref="Stadtansicht.WerkstattPlatzWaehlen"/>; passende Plätze grün), ein Klick übergibt ihn. Für einen Werkstattplatz kommt danach die
-/// Wahl der Betriebsart (<see cref="Kartenentwurf.BetriebsartenFuer"/>); ein Umlandbetrieb hat nur seine eigene. Ein Klick auf einen belegten Platz
-/// in der Karte klappt das Haus auf, dem er gehört. Jede Änderung ist ein Befehl des Entwurfs (mit Rückgängig).
+/// Betriebe: „Werkstatt“ fragt nur die Betriebsart (<see cref="Kartenentwurf.Stadtwerkstaetten"/>); „Umlandbetrieb“ fragt die Stadtansicht nach
+/// einem Platz (<see cref="Stadtansicht.WerkstattPlatzWaehlen"/>; passende grün), ein Klick übergibt ihn. Ein Klick auf einen belegten
+/// Umlandbetrieb in der Karte klappt das Haus auf, dem er gehört. Jede Änderung ist ein Befehl des Entwurfs (mit Rückgängig).
 /// </summary>
 public partial class Kartenwerkstatt
 {
@@ -118,35 +118,29 @@ public partial class Kartenwerkstatt
     {
         UiHilfe.KinderEntfernen(_startTafel);
         if (_startHaus >= Start.Haeuser.Count) _startHaus = Start.Haeuser.Count - 1;
-        if (_neuerBetrieb is { } nb && (nb.Haus >= Start.Haeuser.Count || _entwurf.GebaeudeMit(nb.Platz) is null)) _neuerBetrieb = null;
-        HoefeTeil(); // Kartenwerkstatt.Hoefe.cs: der Hof-Knopf
+        if (_neuerBetrieb is { } nb && (nb.Haus >= Start.Haeuser.Count || nb.Platz != "" && _entwurf.GebaeudeMit(nb.Platz) is null)) _neuerBetrieb = null;
+        // Seit „nur noch Bauzonen“ (16.11.2026) gibt es keine Höfe und Plätze mehr: Die Tafel nennt nur, wer mitspielt.
+        Hauptmenue.Text(_startTafel, "Wer am Start mitspielt. Wo die Häuser wohnen und arbeiten, lost jede Partie in den Bauzonen innerhalb der Mauer – "
+            + "der Spieler wählt seinen Platz beim Start selbst. Nur die Umlandbetriebe haben ihren Platz in der Karte; dort tragen sie die Hausfarbe und eine hohe Fahne.",
+            12, Grau, umbruchBreite: Rechtsbreite - 44);
+        SpielerTeil();
         _startTafel.AddChild(new HSeparator());
-        var tafel = _startTafel;
-        _startTafel = ErweitertTeil(); // die ausführliche Bearbeitung baut in den Behälter unter „Erweitert“
-        try
+        var kopf = new HBoxContainer();
+        kopf.AddThemeConstantOverride("separation", 8);
+        _startTafel.AddChild(kopf);
+        var titel = Hauptmenue.Text(kopf, $"KI-Häuser ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
+        titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var dazu = Knopf(kopf, "Haus hinzufügen", () =>
         {
-            Hauptmenue.Text(_startTafel, "Wer am Start wo wohnt und arbeitet. Plätze wählt ihr mit einem Klick in die Karte; dort tragen die Häuser die Hausfarbe und eine hohe Fahne: "
-                + "KI-Häuser in ihrer Farbe, der Spieler weiß mit goldenem Rand und Schwalbenschwanz.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
-            SpielerTeil();
-            _startTafel.AddChild(new HSeparator());
-            var kopf = new HBoxContainer();
-            kopf.AddThemeConstantOverride("separation", 8);
-            _startTafel.AddChild(kopf);
-            var titel = Hauptmenue.Text(kopf, $"KI-Häuser ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
-            titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            var dazu = Knopf(kopf, "Haus hinzufügen", () =>
-            {
-                var neu = _entwurf.HausHinzufuegen();
-                if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
-                StartZeigen();
-            }, "Ein neues KI-Haus mit freiem Namen, freier Farbe, freiem Wappen und dem ersten freien Wohnhausplatz");
-            dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
-            if (Start.Haeuser.Count == 0)
-                Hauptmenue.Text(_startTafel, "Noch keins – ohne eigene Häuser spielt die Karte mit den drei Häusern des Spiels (Eisenbart, Eichwald, Kieselbach).",
-                    12, Grau, umbruchBreite: Rechtsbreite - 44);
-            for (var i = 0; i < Start.Haeuser.Count; i++) HausZeile(i);
-        }
-        finally { _startTafel = tafel; }
+            var neu = _entwurf.HausHinzufuegen();
+            if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
+            StartZeigen();
+        }, "Ein neues KI-Haus mit freiem Namen, freier Farbe und freiem Wappen");
+        dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
+        if (Start.Haeuser.Count == 0)
+            Hauptmenue.Text(_startTafel, "Noch keins – dann würfelt jede Partie ihre KI-Häuser selbst (Name, Wappen, Volk und Beruf).",
+                12, Grau, umbruchBreite: Rechtsbreite - 44);
+        for (var i = 0; i < Start.Haeuser.Count; i++) HausZeile(i);
     }
 
     // ── Spieler ──────────────────────────────────────────────────────────────
@@ -157,29 +151,6 @@ public partial class Kartenwerkstatt
         var raster = Raster();
         _startTafel.AddChild(raster);
         Zeile(raster, "Farbe", Farbwahl(Start.SpielerFarbe, f => _entwurf.SpielerFarbeSetzen(f), "Die Farbe des Spielerhauses in der Stadt (Dächer, Fahnen)"));
-        HofstellenWahl(raster, Start.SpielerWohnhaus, Start.SpielerWerkstatt?.Platz, kennung => _entwurf.SpielerHofstelleSetzen(kennung),
-            "Setzt Wohnhaus und Startplatz des Spielers in einem Schritt auf diese Hofstelle (ohne Los; im Startmenü wählt der Spieler selbst)");
-        Zeile(raster, "Wohnhaus", PlatzZeile(Start.SpielerWohnhaus, () => PlatzFragen("Wohnhaus des Spielers: einen freien Wohnhausplatz anklicken",
-            g => WohnhausGrund(g, -1), g => _entwurf.SpielerWohnhausSetzen(g.Kennung)), () => _entwurf.SpielerWohnhausSetzen(null)));
-        Zeile(raster, "Startplatz", PlatzZeile(Start.SpielerWerkstatt?.Platz, () => StartplatzFragen(null), () => _entwurf.SpielerStartplatzEntfernen(),
-            "Die erste Werkstatt des Spielers – für jeden Beruf, der unten keinen eigenen hat"));
-        foreach (var (beruf, platz) in Start.JeBeruf)
-        {
-            var b = beruf;
-            Zeile(raster, $"  {beruf}", PlatzZeile(platz.Platz, () => StartplatzFragen(b), () => _entwurf.SpielerStartplatzEntfernen(b),
-                $"Startplatz, wenn der Spieler als {beruf} beginnt"));
-        }
-        var berufe = Berufe().Where(b => Start.JeBeruf.All(e => e.Key != b)).ToList();
-        if (berufe.Count == 0) return;
-        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Ein eigener Startplatz für einen Beruf (sonst gilt der allgemeine)" };
-        wahl.AddItem("Startplatz je Beruf …", -1);
-        foreach (var b in berufe) wahl.AddItem(b);
-        wahl.ItemSelected += i =>
-        {
-            if (i > 0) StartplatzFragen(berufe[(int)i - 1]);
-            wahl.Select(0);
-        };
-        _startTafel.AddChild(wahl);
     }
 
     /// <summary>Die Berufe, die eine Werkstatt in der Stadt haben (aus den Wirtschaftsdaten; ohne Daten die zehn des Hauptmenüs).</summary>
@@ -187,16 +158,6 @@ public partial class Kartenwerkstatt
         ? d.Betriebsarten.Values.Where(a => a.InDerStadt && a.Stufe == 1).Select(a => a.Beruf).Distinct().ToList()
         : new[] { "Schmied", "Tischler", "Steinmetz", "Alchimist", "Wirt", "Prediger", "Dieb", "Gardist", "Geldleiher", "Parfumeur" };
 
-    private void StartplatzFragen(string? beruf) => PlatzFragen(
-        beruf is null ? "Startplatz des Spielers: einen freien Werkstattplatz anklicken" : $"Startplatz als {beruf}: einen freien Werkstattplatz anklicken",
-        g => g.Art != Bausteinart.Werkstattplatz ? "kein Werkstattplatz"
-            : _entwurf.BelegungVon(g.Kennung).FirstOrDefault(b => !(b.IstSpieler && b.Art == Belegungsart.Startplatz)) is { Kennung: not null } x ? $"schon belegt: {Belegter(x)}"
-            : null,
-        g => _entwurf.SpielerStartplatzSetzen(g.Kennung, beruf));
-
-    // ── KI-Häuser ────────────────────────────────────────────────────────────
-
-    /// <summary>Eine Zeile je Haus: Farbe, Wappen, Name und was es hat; ein Klick klappt es auf (die Einzelheiten darunter).</summary>
     private void HausZeile(int i)
     {
         var h = Start.Haeuser[i];
@@ -204,7 +165,7 @@ public partial class Kartenwerkstatt
         var knopf = new Button
         {
             ToggleMode = true, ButtonPressed = auf, FocusMode = Control.FocusModeEnum.None, Alignment = HorizontalAlignment.Left,
-            CustomMinimumSize = new Vector2(0, 40), TooltipText = auf ? "Zuklappen" : "Aufklappen: Name, Volk, Farbe, Wappen, Wohnhaus, Betriebe",
+            CustomMinimumSize = new Vector2(0, 40), TooltipText = auf ? "Zuklappen" : "Aufklappen: Name, Volk, Farbe, Wappen, Betriebe",
         };
         var inhalt = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         inhalt.AddThemeConstantOverride("separation", 8);
@@ -222,7 +183,7 @@ public partial class Kartenwerkstatt
             _startHaus = auf ? -1 : i;
             _neuerBetrieb = null;
             StartZeigen();
-            if (!auf && h.Wohnhaus is { } w) _stadt.WerkstattWaehlen(w, hinfahren: true);
+            if (!auf && h.Betriebe.FirstOrDefault(b => b.Platz != "") is { } umland) _stadt.WerkstattWaehlen(umland.Platz, hinfahren: true);
         };
         _startTafel.AddChild(knopf);
         if (!auf) return;
@@ -231,38 +192,9 @@ public partial class Kartenwerkstatt
         _hausZeigen = false;
     }
 
-    /// <summary>
-    /// Die Zeile „Hofstelle“: alle Hofstellen der Karte zur Wahl, die gerade genutzte (Wohnhaus und Werkstatt passen) vorgewählt; belegte anderer
-    /// Häuser sind grau. Ohne Hofstellen in der Karte entfällt die Zeile. Die Felder Wohnhaus und Startplatz darunter bleiben zum Feinstellen.
-    /// </summary>
-    private void HofstellenWahl(GridContainer raster, string? wohnhaus, string? werkstatt, Action<string> setzen, string tipp)
-    {
-        if (Start.Hofstellen.Count == 0) return;
-        var frei = _entwurf.FreieHofstellen();
-        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = tipp };
-        wahl.AddItem("(keine gewählt)");
-        var aktuell = 0;
-        foreach (var h in Start.Hofstellen)
-        {
-            var istFrei = frei.Any(f => f.Kennung == h.Kennung);
-            var meine = h.Wohnhaus == wohnhaus && h.Werkstatt == werkstatt;
-            wahl.AddItem($"{h.Kennung} {h.Name ?? ""}".Trim() + (h.Start ? "" : " (kein Startplatz)") + (istFrei || meine ? "" : " – belegt"));
-            wahl.SetItemMetadata(wahl.ItemCount - 1, h.Kennung);
-            if (!istFrei && !meine) wahl.SetItemDisabled(wahl.ItemCount - 1, true);
-            if (meine) aktuell = wahl.ItemCount - 1;
-        }
-        wahl.Select(aktuell);
-        wahl.ItemSelected += i =>
-        {
-            if (i > 0) setzen(wahl.GetItemMetadata((int)i).AsString());
-        };
-        Zeile(raster, "Hofstelle", wahl);
-    }
-
     private string Zusammenfassung(EntwurfHaus h)
     {
         var teile = new List<string> { h.Volk.Einzahl() };
-        teile.Add(h.Wohnhaus is null ? "ohne Wohnhaus" : "Wohnhaus");
         teile.AddRange(h.Betriebe.Select(b => ArtName(b.Art)));
         return string.Join(" · ", teile);
     }
@@ -285,10 +217,6 @@ public partial class Kartenwerkstatt
         Zeile(raster, "Oberhaupt", geschlecht);
         Zeile(raster, "Farbe", Farbwahl(h.Farbe, f => _entwurf.HausFarbeSetzen(i, f), "Farbe des Hauses in der Stadt (Dächer, Fahnen, Rahmen in der Werkstatt)"));
         Zeile(raster, "Wappen", WappenWahl(h.Wappen, w => _entwurf.HausWappenSetzen(i, w)));
-        HofstellenWahl(raster, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _entwurf.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }),
-            kennung => _entwurf.HausHofstelleSetzen(i, kennung), "Setzt Wohnhaus und Werkstatt des Hauses in einem Schritt auf diese Hofstelle (ohne Los; der Betriebsname zieht mit)");
-        Zeile(raster, "Wohnhaus", PlatzZeile(h.Wohnhaus, () => PlatzFragen($"Wohnhaus für {h.Name}: einen freien Wohnhausplatz anklicken",
-            g => WohnhausGrund(g, i), g => _entwurf.HausWohnhausSetzen(i, g.Kennung)), () => _entwurf.HausWohnhausSetzen(i, null)));
 
         Hauptmenue.Text(_startTafel, h.Betriebe.Count == 0 ? "Betriebe: noch keiner (ein Haus ohne Betrieb hat am Start nichts zu tun)" : "Betriebe", 14, Gold,
             umbruchBreite: Rechtsbreite - 44);
@@ -297,24 +225,32 @@ public partial class Kartenwerkstatt
         var knoepfe = new HBoxContainer();
         knoepfe.AddThemeConstantOverride("separation", 8);
         _startTafel.AddChild(knoepfe);
-        Knopf(knoepfe, "Betrieb hinzufügen", () => PlatzFragen($"Betrieb für {h.Name}: einen freien Werkstattplatz oder Umlandbetrieb anklicken",
-            g => BetriebGrund(g), g => BetriebPlatzGewaehlt(i, g)), "Erst den Platz in der Karte anklicken, dann die Betriebsart wählen");
+        // Die Werkstatt in der Stadt hat keinen Platz in der Karte (die Partie lost sie in eine Bauzone); ein Umlandbetrieb steht auf seinem Platz.
+        Knopf(knoepfe, "Werkstatt", () =>
+        {
+            (_startHaus, _neuerBetrieb) = (i, (i, ""));
+            StartZeigen();
+        }, "Die Werkstatt des Hauses in der Stadt: nur die Betriebsart wählen – wo sie steht, lost jede Partie in den Bauzonen innerhalb der Mauer");
+        Knopf(knoepfe, "Umlandbetrieb", () => PlatzFragen($"Umlandbetrieb für {h.Name}: einen freien Umlandbetrieb in der Karte anklicken",
+            g => BetriebGrund(g), g => BetriebPlatzGewaehlt(i, g)), "Einen Umlandbetrieb der Karte anklicken (Grube, Holzschlag, Steinbruch …)");
         Knopf(knoepfe, "Haus entfernen", () =>
         {
             _entwurf.HausEntfernen(i);
             _startHaus = -1;
-        }, "Das Haus aus der Startbelegung nehmen (seine Plätze werden frei)");
+        }, "Das Haus aus der Startbelegung nehmen (seine Umlandbetriebe werden frei)");
         _startTafel.AddChild(new HSeparator());
     }
 
-    /// <summary>Ein Startbetrieb: Art auf welchem Platz, die erste Ware zur Wahl, Hinfahren und Entfernen.</summary>
+    /// <summary>Ein Startbetrieb: Art und Platz (die Werkstatt in der Stadt hat keinen), die erste Ware zur Wahl, Hinfahren und Entfernen.</summary>
     private void BetriebZeile(int haus, int nummer, EntwurfStartbetrieb b)
     {
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 6);
         _startTafel.AddChild(zeile);
-        var platz = _entwurf.GebaeudeMit(b.Platz);
-        var text = Wert($"{ArtName(b.Art)} · {platz?.Name ?? b.Platz}", $"Platz {b.Platz}" + (platz?.Betrieb is { } name ? $" („{name}“)" : ""));
+        var platz = b.Platz == "" ? null : _entwurf.GebaeudeMit(b.Platz);
+        var text = b.Platz == ""
+            ? Wert($"{ArtName(b.Art)} · in der Stadt", "Werkstatt in der Stadt: Wo sie steht, lost jede Partie in den Bauzonen innerhalb der Mauer")
+            : Wert($"{ArtName(b.Art)} · {platz?.Name ?? b.Platz}", $"Platz {b.Platz}" + (platz?.Betrieb is { } name ? $" („{name}“)" : ""));
         text.CustomMinimumSize = new Vector2(150, 0);
         text.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         zeile.AddChild(text);
@@ -328,8 +264,8 @@ public partial class Kartenwerkstatt
             ware.ItemSelected += x => _entwurf.BetriebProduktSetzen(haus, nummer, x <= 0 ? null : waren[(int)x - 1]);
             zeile.AddChild(ware);
         }
-        Knopf(zeile, "→", () => _stadt.WerkstattWaehlen(b.Platz, hinfahren: true), "Hinfahren");
-        Knopf(zeile, "×", () => _entwurf.BetriebEntfernen(haus, nummer), "Den Betrieb entfernen (der Name am Platz bleibt)");
+        if (b.Platz != "") Knopf(zeile, "→", () => _stadt.WerkstattWaehlen(b.Platz, hinfahren: true), "Hinfahren");
+        Knopf(zeile, "×", () => _entwurf.BetriebEntfernen(haus, nummer), "Den Betrieb entfernen (der Name an einem Umlandbetrieb bleibt)");
     }
 
     /// <summary>Nach der Wahl des Platzes: die Betriebsart (eine Werkstatt der Stufe 1); ein Umlandbetrieb hat nur seine – dann gleich hinzufügen.</summary>
@@ -347,12 +283,12 @@ public partial class Kartenwerkstatt
         StartZeigen();
     }
 
-    /// <summary>Die Wahl der Betriebsart für einen gewählten Werkstattplatz: Liste, „Hinzufügen“, „Abbrechen“.</summary>
+    /// <summary>Die Wahl der Betriebsart für die Werkstatt in der Stadt (Platz „“): Liste, „Hinzufügen“, „Abbrechen“.</summary>
     private void ArtWahl(int haus, string platz)
     {
-        var g = _entwurf.GebaeudeMit(platz);
-        var arten = g is null ? new List<Betriebsart>() : _entwurf.BetriebsartenFuer(g).ToList();
-        Hauptmenue.Text(_startTafel, $"Neuer Betrieb auf {g?.Name ?? platz}:", 13, Hell);
+        var g = platz == "" ? null : _entwurf.GebaeudeMit(platz);
+        var arten = platz == "" ? _entwurf.Stadtwerkstaetten().ToList() : g is null ? new List<Betriebsart>() : _entwurf.BetriebsartenFuer(g).ToList();
+        Hauptmenue.Text(_startTafel, platz == "" ? (arten.Count == 0 ? "Werkstatt in der Stadt: ohne Wirtschaftsdaten unbekannt" : "Werkstatt in der Stadt:") : $"Neuer Betrieb auf {g?.Name ?? platz}:", 13, Hell);
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 6);
         _startTafel.AddChild(zeile);
@@ -393,45 +329,15 @@ public partial class Kartenwerkstatt
     }
 
     /// <summary>Warum dieser Platz kein Wohnhaus für das Haus (−1: Spieler) sein kann – null: er kann.</summary>
-    private string? WohnhausGrund(EntwurfGebaeude g, int haus)
-    {
-        if (g.Art != Bausteinart.Wohnhausplatz) return "kein Wohnhausplatz";
-        return _entwurf.BelegungVon(g.Kennung).FirstOrDefault(b => !(b.Haus == haus && b.Art == Belegungsart.Wohnhaus)) is { Kennung: not null } x
-            ? $"schon belegt: {Belegter(x)}" : null;
-    }
-
-    /// <summary>Warum hier kein Startbetrieb hin kann – null: er kann.</summary>
     private string? BetriebGrund(EntwurfGebaeude g)
     {
-        if (g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Umlandbetrieb)) return "kein Werkstattplatz oder Umlandbetrieb";
+        if (g.Art != Bausteinart.Umlandbetrieb) return "kein Umlandbetrieb";
         if (_entwurf.BelegungVon(g.Kennung) is [var x, ..]) return $"schon belegt: {Belegter(x)}";
         if (_entwurf.BetriebsartenFuer(g).Count == 0) return _daten is null ? "ohne Wirtschaftsdaten unbekannt" : "hier passt keine Betriebsart";
         return null;
     }
 
-    private string Belegter(Platzbelegung b) => b.IstSpieler ? "Spieler" : Start.Haeuser[b.Haus].Name;
-
-    /// <summary>Ein Platz mit Name, „Wählen“ (in der Karte) und „×“ (entfernen); ein Klick auf den Namen fährt hin.</summary>
-    private Control PlatzZeile(string? kennung, Action waehlen, Action entfernen, string? tipp = null)
-    {
-        var zeile = new HBoxContainer();
-        zeile.AddThemeConstantOverride("separation", 6);
-        var g = _entwurf.GebaeudeMit(kennung);
-        var name = new Button
-        {
-            Text = kennung is null ? "—" : g?.Name ?? $"{kennung} (fehlt!)", Flat = true, FocusMode = Control.FocusModeEnum.None,
-            Alignment = HorizontalAlignment.Left, ClipText = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(110, 0),
-            TooltipText = tipp ?? (kennung is null ? "Noch keiner gewählt" : $"{kennung} – Klick fährt hin"),
-        };
-        name.AddThemeFontSizeOverride("font_size", 14);
-        name.AddThemeColorOverride("font_color", kennung is not null && g is null ? Rot : Hell);
-        if (kennung is not null) name.Pressed += () => _stadt.WerkstattWaehlen(kennung, hinfahren: true);
-        zeile.AddChild(name);
-        Knopf(zeile, "Wählen", waehlen, "In der Karte anklicken");
-        var weg = Knopf(zeile, "×", entfernen, "Entfernen");
-        weg.Disabled = kennung is null;
-        return zeile;
-    }
+    private string Belegter(Platzbelegung b) => Start.Haeuser[b.Haus].Name;
 
     // ── Farben und Wappen ────────────────────────────────────────────────────
 

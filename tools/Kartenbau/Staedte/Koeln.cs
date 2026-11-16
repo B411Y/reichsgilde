@@ -100,6 +100,9 @@ public sealed partial class Koeln : Stadtskript
         Arbeitsstellen();
         KreuzungenVerbinden();
         LagenVorbereiten();
+        // Nur noch Bauzonen (16.11.2026): Die Startgrundstücke und Hofstellen haben ihre Fläche bis hierher freigehalten (Einwohnerplätze und
+        // Kulissen sind ihnen gewichen) – jetzt fallen die Plätze weg, und die Fläche wird Bauzone.
+        Console.WriteLine($"   Plätze geräumt (jetzt Bauzone): {StadtplaetzeRaeumen()}");
         Bauzonen();
         Natur();
         Boden();
