@@ -168,17 +168,23 @@ def stangen_liegen(glb):
 
 
 def fenster_innen(haus, ordner, MOD):
-    """Pruefung 24 (Klicktest 16.11.2026: „ein Fenster schwebt mitten im Raum“): jede Glasflaeche jedes Innenmodells (Wohnstube,
-    Hinterzimmer, Bibliothek) liegt in einer Oeffnung der Huelle (gleiche Wandebene auf 3 cm, Mitte in der Oeffnung) – Glas ohne
-    Aussenfenster ist ein Fehler. Dazu die Tabelle Aussenfenster je Raum (aus Pruefung 3) gegen Fenster innen. `MOD` = das Messmodul der
-    Menschen (lade, fenster_aussen, glas, rechteck) dieser Stufe; seine Lage (Baurahmen) ist durch pruefe gesetzt."""
+    """Pruefung 24 (Klicktest 16.11.2026: „ein Fenster schwebt mitten im Raum“, „blaues Fenster ohne Rahmen“), je Innenmodell
+    (Wohnstube, Hinterzimmer, Bibliothek) und Wand:
+      a) jede Glasflaeche liegt in einer Oeffnung der Huelle (gleiche Wandebene auf 3 cm, Mitte in der Oeffnung);
+      b) jedes Fenster mit Glas hat innen einen Rahmen bzw. eine Laibung: Flaechen des Innenmodells (nicht Glas), die bis 6 cm um die
+         Oeffnung und bis 0,40 m vor der Glasebene liegen;
+      c) wandgrosse farbige Flaechen ohne Glas (Stoff „Hausfarbe“, ab 0,3 m2: Wandbehang) werden genannt, damit sie nicht als Fenster
+         gelesen werden; sie liegen auf einer Wand ohne Oeffnung (sonst Fehler).
+    Tabelle je Wand: Glas, Rahmen, Oeffnungen. `MOD` = das Messmodul der Menschen (lade, fenster_aussen, glas, rechteck, achse) dieser
+    Stufe; seine Lage (Baurahmen) ist durch pruefe gesetzt."""
     fa = MOD.fenster_aussen(MOD.lade(os.path.join(ordner, f"{haus}.glb")))
     zeilen, fehler = [], 0
     for teil in ("_innen", "_hinterzimmer_innen", "_bibliothek_innen"):
         pfad = os.path.join(ordner, f"{haus}{teil}.glb")
         if not os.path.exists(pfad): continue
-        gl = MOD.glas(MOD.lade(pfad))
-        getroffen, frei = set(), 0
+        fl = MOD.lade(pfad)
+        gl = MOD.glas(fl)
+        getroffen, frei, funde = {}, 0, []
         for ax, pts in gl:
             ge, gu0, gu1, gz0, gz1 = MOD.rechteck(pts, ax)
             cu, cz = (gu0 + gu1) / 2, (gz0 + gz1) / 2
@@ -186,11 +192,41 @@ def fenster_innen(haus, ordner, MOD):
                       if fax == ax and abs(ge - e) <= 0.03 and u0 - 0.02 <= cu <= u1 + 0.02 and z0 - 0.02 <= cz <= z1 + 0.02), None)
             if f is None:
                 frei += 1
-                zeilen.append(f"   FEHLER {teil[1:]}: Glas ohne Aussenfenster bei Ebene {ax} = {ge:.2f}, u {gu0:.2f}..{gu1:.2f}, z {gz0:.2f}..{gz1:.2f}")
+                funde.append(f"   FEHLER {teil[1:]}: Glas ohne Aussenfenster bei Ebene {ax} = {ge:.2f}, u {gu0:.2f}..{gu1:.2f}, z {gz0:.2f}..{gz1:.2f}")
             else:
-                getroffen.add(f)
-        fehler += frei
-        zeilen.insert(len(zeilen) - frei, f"   {teil[1:]}: {len(getroffen)} Fenster innen in Oeffnungen der Huelle, {frei} Glasflaechen ohne Oeffnung")
+                getroffen[f] = getroffen.get(f, 0) + 1
+        ohne_rahmen = 0
+        je_wand = {}
+        for f in getroffen:
+            fax, e, u0, u1, z0, z1 = fa[f]
+            rahmen = 0
+            for name, mat, pts, n, *_ in fl:
+                if mat in ("Innenglas", "Hausfarbe") or name == "Glas": continue
+                uu = [p.y if fax == "x" else p.x for p in pts]; ee = [p.x if fax == "x" else p.y for p in pts]
+                if (min(uu) < u1 + 0.06 and max(uu) > u0 - 0.06 and min(p.z for p in pts) < z1 + 0.06 and max(p.z for p in pts) > z0 - 0.06
+                        and all(abs(x - e) < 0.40 for x in ee)
+                        and not (min(uu) > u0 + 0.06 and max(uu) < u1 - 0.06 and min(p.z for p in pts) > z0 + 0.06 and max(p.z for p in pts) < z1 - 0.06)):
+                    rahmen += 1
+            wand = f"{fax}={e:.2f}"
+            g, r, o = je_wand.get(wand, (0, 0, 0)); je_wand[wand] = (g + 1, r + (1 if rahmen else 0), o + 1)
+            if not rahmen:
+                ohne_rahmen += 1
+                funde.append(f"   FEHLER {teil[1:]}: Fenster ohne Rahmen/Laibung innen bei {wand}, u {u0:.2f}..{u1:.2f}, z {z0:.2f}..{z1:.2f}")
+        behang = []
+        for name, mat, pts, n, *_ in fl:
+            ax = MOD.achse(n)
+            if mat != "Hausfarbe" or ax is None: continue
+            e, u0, u1, z0, z1 = MOD.rechteck(pts, ax)
+            if (u1 - u0) * (z1 - z0) < 0.3: continue
+            loch = any(fax == ax and abs(fe - e) < 0.40 and min(u1, fu1) - max(u0, fu0) > 0.05 and min(z1, fz1) - max(z0, fz0) > 0.05
+                       for fax, fe, fu0, fu1, fz0, fz1 in fa)
+            behang.append(f"{name} {ax}={e:.2f} {u1 - u0:.2f} x {z1 - z0:.2f} m" + (" FEHLER: vor einer Oeffnung" if loch else " (Wand ohne Oeffnung)"))
+            if loch: ohne_rahmen += 1
+        fehler += frei + ohne_rahmen
+        zeilen.append(f"   {teil[1:]}: {len(getroffen)} Fenster innen in Oeffnungen der Huelle, {frei} Glas ohne Oeffnung, {ohne_rahmen} ohne Rahmen; je Wand (Glas, Rahmen, Oeffnungen): "
+                      + ", ".join(f"{w} {g}/{r}/{o}" for w, (g, r, o) in sorted(je_wand.items())))
+        if behang: zeilen.append(f"   {teil[1:]}: farbige Wandflaechen ohne Glas (Wandbehang in der Hausfarbe, kein Fenster): " + "; ".join(sorted(set(behang))))
+        zeilen += funde
     return zeilen, fehler
 
 
