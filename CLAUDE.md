@@ -16,14 +16,25 @@ Jeder Agent liest diese Datei zu Beginn. Gearbeitet wird im **Teammodell**: Ein 
 |---|---|
 | **kern** | `src/Reichsgilde.Core/**` (außer `Ki/`, `Buerger/`), `tests/**`, `game/daten/wirtschaft.json` |
 | **spiel-ki** | `src/Reichsgilde.Core/Ki/**`, `src/Reichsgilde.Core/Buerger/**`, eigene Tests (`Ki*Tests.cs`, `Buerger*Tests.cs`) |
-| **darstellung** | `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera |
+| **darstellung** | `game/scripts/Stadtansicht*.cs`, `Kartenwerkstatt*.cs`, Szenen, Licht, Kamera |
 | **oberflaeche** | `game/scripts/*Anzeige.cs`, `Hauptmenue.cs`, `Hauptszene.cs` |
 | **leveldesign** | `docs/LEVELDESIGN.md`, `tools/Kartenbau/**`, `game/karten/*.json`, `docs/karten/*.svg` |
+| **modelle** | `tools/modelle/**`, `game/assets/modelle/**`, `game/assets/texturen/**`, `docs/modelle/` |
 | **sound** | `game/assets/audio/**`, Audio-Busse, `game/scripts/Klang*.cs` |
-| **infra** | `CLAUDE.md`, `.claude/**`, `.github/**`, `tools/**` (außer Kartenbau) |
+| **infra** | `CLAUDE.md`, `.claude/**`, `.github/**`, `tools/**` (außer `Kartenbau`, `modelle`) |
 
 Ohne eigenen Bereich: **integration** (Funktions-Branch, Klicktest, PR), **pruefer** und **suche** (nur lesen). Dateien außerhalb des eigenen Bereichs nur klein und begründet ändern und im Bericht nennen.
 Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.cs`; braucht ein anderer dort etwas, geht es an den Teamleiter. **Ausnahme spiel-ki:** kleine Andockstellen (Einzelheiten in `.claude/agents/spiel-ki.md`), jede im Bericht genannt. Bestehende Werte und Regeln ändert nur kern. Darstellung und Oberfläche **lesen den Kern nur**; fehlt eine Abfrage, kleine Ergänzung im Kern mit Test.
+
+## Arbeitsweise der Mitglieder
+
+- Zuerst die eigene Bereichsdatei `docs/bereiche/<bereich>.md` lesen (Offen, aktuelle Entscheidungen; Archiv nur bei Bedarf), dazu die betroffenen Abschnitte der Doku und bei Bedarf des Archivs `docs/ENTSCHEIDUNGEN.md`.
+- Arbeiten im Worktree auf dem Branch `phaseN/thema-<name>`, den der Auftrag nennt; nur lokal committen. **Nie pushen**, keine eigenen PRs, nicht nach `main` und nicht in andere Branches mergen (das tut nur der Push-Agent).
+- Vor dem Abschlussbericht einmal alle Tests; während der Arbeit gezielt. Commit endet mit `Agent: <name>` und der Co-Author-Zeile aus dem Auftrag.
+- Keine Tokens, Schlüssel, Passwörter oder interne IP-Adressen in Dateien, Commits oder Berichten (nur Werkzeugpfade).
+- Vorschläge an andere Mitglieder und Designfragen gehen über den Teamleiter (`SendMessage` an „main“), Designfragen mit einer empfohlenen Option.
+- **Zwischenmeldungen** nur bei Blockade oder fertiger Schnittstelle, kurz und **immer mit Prozent und Restzeit** (Nutzer, 15.11.2026).
+- **Abschlussbericht in fünf Zeilen** an „main“: 1. Branch und Commit, 2. was gebaut ist (ein Satz), 3. Tests und Klicktest (Zahlen, Fehler), 4. Entscheidungen und Offenes, 5. Ordner mit den Bildern. Danach nur noch auf Anweisung handeln.
 
 ## Feste Regeln
 
@@ -42,7 +53,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 ## Doku im selben PR
 
 - `docs/ARCHITEKTUR.md` ergänzen; Neues fürs Spiel in das passende Kapitel des **Spielbuchs** `docs/spielbuch/<thema>.md` (Übersicht in `docs/spielbuch/README.md`; ein neues Thema bekommt eine neue Datei mit Zeile im Inhaltsverzeichnis). Die README ist nur die Startseite: ein großes neues Thema zusätzlich als Zeile in „Was das Spiel schon kann“ (mit Link aufs Kapitel), sonst nichts hineinschreiben. Gemeinsame Dateien nur an der passenden Stelle ändern, nicht ans Ende hängen.
-- Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“, Erledigtes aus „Offen“ löschen, Neues unten anhängen. **Keine Nummern**, keine Liste „Erledigt“. Braucht ein anderer Bereich etwas: „(von <Bereich>) …“ unter „Offen“ in dessen Datei. `docs/ENTSCHEIDUNGEN.md` ist Archiv. Ältere Entscheidungen je Bereich liegen in `docs/bereiche/archiv/<bereich>.md`, ältere Messungen in `docs/archiv/` – **Agenten lesen standardmäßig nur die aktuellen Bereichsdateien, das Archiv nur bei Bedarf** (Verweis steht im Kopf der Datei). Wird eine Bereichsdatei wieder groß (über etwa 300 Zeilen), verschiebt der Bereich abgeschlossene Abschnitte wörtlich ins Archiv.
+- Entscheidungen und offene Punkte **nur in die eigene Bereichsdatei** `docs/bereiche/<bereich>.md`: Entscheidung als `### Thema (PR #…)` mit Tabelle unten unter „Entscheidungen“, Erledigtes aus „Offen“ löschen, Neues unten anhängen. **Keine Nummern**, keine Liste „Erledigt“. Braucht ein anderer Bereich etwas: „(von <Bereich>) …“ unter „Offen“ in dessen Datei. `docs/ENTSCHEIDUNGEN.md` ist Archiv. Ältere Entscheidungen je Bereich liegen in `docs/bereiche/archiv/<bereich>.md`, ältere Messungen in `docs/archiv/` – **Agenten lesen standardmäßig nur die aktuellen Bereichsdateien, das Archiv nur bei Bedarf** (Verweis steht im Kopf der Datei). Wird eine Bereichsdatei wieder groß (über etwa 300 Zeilen oder 40 KB), verschiebt der Bereich abgeschlossene Abschnitte wörtlich ins Archiv.
 - **Kein Asset ohne Protokolleintrag im selben PR:** Jede neue, geänderte oder gelöschte Datei unter `game/assets/` bekommt ihre Zeile in `docs/assets/protokoll.csv` (Werkzeug, Modell, Prompt nach `docs/assets/prompts/`, Unbelegtes „unbekannt“); `python3 tools/assets/protokoll_pruefen.py` muss grün sein (Einzelheiten `docs/assets/README.md`).
 
 ## Bauen, testen, ausprobieren

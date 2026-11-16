@@ -11,7 +11,7 @@ Gilt für die Hauptsitzung, die als **Teamleiter** Mitglieder startet. Die Regel
 
 ## Team aufstellen
 
-- **Mitglieder:** Rollen in `.claude/agents/<name>.md` (kern, spiel-ki, darstellung, oberflaeche, leveldesign, sound, integration, pruefer, infra, suche). Aufruf mit `subagent_type` = Name; Modell und Aufwand im Aufruf überschreiben die Vorgabe der Datei.
+- **Mitglieder:** Rollen in `.claude/agents/<name>.md` (kern, spiel-ki, darstellung, oberflaeche, leveldesign, sound, modelle, integration, pruefer, infra, suche). Aufruf mit `subagent_type` = Name; Modell und Aufwand im Aufruf überschreiben die Vorgabe der Datei.
 - **Zuschnitt nach Größe:** Kleine Funktionen bekommen zwei Mitglieder, „kern“ und „spiel“ (Oberfläche und Darstellung zusammen). Nur große Themen mit viel unabhängiger Arbeit bekommen ein Mitglied je Bereich. Jede zusätzliche Grenze kostet Abstimmung.
 - **Ein Funktions-Branch, ein PR:** Erst die Designfragen an den Nutzer. Dann entsteht der Funktions-Branch `phaseN/thema` (`fix/thema` für Fehler, `infra/thema` für Werkzeuge und Abläufe), lokal in einem Worktree. Mitglieder öffnen **keine eigenen PRs** und **pushen nie**: Jedes arbeitet auf `phaseN/thema-<name>`, committet lokal und meldet fertig; das Integrations-Mitglied mergt in den Funktions-Branch (mergen, nicht rebasen). Den PR legt erst der Push-Agent an, wenn der Branch an der Reihe ist (siehe „Merge-Ablauf Einbahnstraße“).
 - **Ein PR pro Funktion:** Es gibt weniger PRs, die durch die Einbahnstraße müssen. Kleinkram (Doku-Nachträge, bestätigte Entscheidungen, Aufräumen) fährt im nächsten Funktions-PR mit. Einen eigenen kleinen PR gibt es nur für Dringendes, etwa einen Fehler, der andere blockiert, oder eine kaputte CI.
@@ -33,7 +33,7 @@ Gilt für die Hauptsitzung, die als **Teamleiter** Mitglieder startet. Die Regel
 ## Unterwegs
 
 - **Entscheidungen unterwegs:** Taucht eine Designfrage auf, entscheidet der Teamleiter **einmal** (oder fragt den Nutzer) und schickt **eine** endgültige Nachricht an alle Betroffenen. Eine getroffene Entscheidung nicht nachträglich umwerfen: Nachrichten überholen sich, und dann baut jemand den alten Stand zurück.
-- **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, so kurz wie möglich.
+- **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, so kurz wie möglich und **immer mit Prozent und Restzeit** (Nutzer, 15.11.2026); das steht in jedem Auftrag.
 - **Abschlussbericht in fünf Zeilen** (Wunsch des Nutzers, 25.10.2026, Tokens sparen): 1. Branch und Commit, 2. was gebaut ist (ein Satz), 3. Tests und Klicktest (Zahlen, Fehler), 4. selbst getroffene Entscheidungen und Offenes, 5. Ordner mit den Bildern. Einzelheiten stehen in Doku und Commit; bei Bedarf nachfragen.
 - **Leerlauf prüfen:** Solange ein Team läuft, alle 30 Minuten prüfen, ob ein Mitglied untätig ist, obwohl seine Ausgabe fertig ist.
 - **Prüf-Agent bei Kern-PRs** (28.10.2026): Vor „bereit“ liest ein unabhängiger `pruefer` (Modell des geprüften Bereichs, Aufwand mittel) den Diff von Kern, Spiel-KI und Tests – er bekommt nur Code und Prüfauftrag, nicht die Einschätzung des Mitglieds. Befunde behebt das Mitglied vor dem Merge.
