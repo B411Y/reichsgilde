@@ -1,6 +1,6 @@
 # Bereich Oberfläche – Offen und Entscheidungen
 
-> **Archiv:** Ältere und abgelöste Entscheidungen (bis 26.10.2026) stehen in [archiv/oberflaeche.md](archiv/oberflaeche.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
+> **Archiv:** Ältere und abgelöste Entscheidungen (bis 26.10.2026) stehen in [archiv/oberflaeche.md](archiv/oberflaeche.md). Weitere gemergte Abschnitte (bis 16.11.2026) stehen **wörtlich** am Ende des Archivs unter „Entscheidungen (gemergt, verschoben 16.11.2026)“; Verweise in Code und Doku auf Abschnitte dieser Datei gelten auch dort. Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
 
 **Nur der Oberflächen-Chat schreibt hier.** Ausnahme: Ein anderer Bereich darf unter „Offen“ eine Zeile mit „(von …)“ anhängen, wenn er hier etwas braucht.
 
@@ -54,62 +54,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Lagen aller Rohstoffquellen (Branch phase5/lagen-oberflaeche)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Beginn | Kommt als Meldung vom Kern, erst wenn die Lage zu gelten beginnt (keine Ansage vorab: Nutzerentscheidung 15.11.2026 „der Spieler sieht nie in die Zukunft“; der Kern meldet nur noch den Beginn) (`Lagenwesen.Minute`, nur gute, schlechte und schwere, nicht gewöhnliche) über den vorhandenen Meldungsweg (Meldeleiste, Protokoll); die Oberfläche fügt nichts hinzu. Eigener Brief nicht gebaut: der Kern meldet mit Art „Sonstiges“, wie die Ernte | 15.11.2026 |
-| Texte | `game/scripts/LagenTexte.cs` (ohne Godot, vom Test mitübersetzt): Übersicht (nur die jetzt geltenden Lagen mit Ereignis, ohne Ernte) und Tooltip-Zeilen je Ware aus `Lagen.Gruende(ware)`; nichts Kommendes | 15.11.2026 |
-| Tooltip | Alle Waren im Marktfenster: „Grube 1404: Wassereinbruch – Eisen ×0,8“ (Faktor auf eine Stelle wie überall, `Zahlenformat.Kommazahl`) (nur geltende Lagen); die Ernte-Zeile bleibt eigen | 15.11.2026 |
-| Markt | Die Ernte-Zeile über den Waren wird zur Lagen-Übersicht: Ernte, dann je geltender Lage „Grube 1404: Wassereinbruch – Eisen und Silber, bis 1407“; keine Ansage; gewöhnliche Lagen stehen nicht da | 15.11.2026 |
-| Jahresbericht | Neuer Abschnitt „Lagen im Jahr“ (vor der Rangliste) mit denselben Zeilen; fehlt, wenn keine Lage mit Ereignis besteht | 15.11.2026 |
-| Aussehen | Keine neuen Farben oder Größen: Zeilen im Stil der übrigen Markt- und Berichtszeilen | 15.11.2026 |
-| Prüfhilfe | Startoption `--startwert=<n>` (Zufallsstartwert) für Bilder; `--startwert=12 --startrunde=4` zeigt das Jahr vor der Lage (nichts), `--startrunde=5` die gültige Lage „Wassereinbruch“ der Gruben (`docs/STARTOPTIONEN.md`) | 15.11.2026 |
-
-### Erntejahre in der Oberfläche (Branch phase5/haerte-oberflaeche, zu PR #475)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Härte der Zeit | Auswahl „Härte der Zeit“ (Milde Jahre, Wie überliefert, Harte Jahre) im aufklappbaren Bereich „Erweitert“ der Neuen Partie, bei den übrigen Partie-Einstellungen; Tooltip erklärt die drei Stufen; Standard „Wie überliefert“ | 15.11.2026 |
-| Ernte am Markt | Im Marktfenster eine Zeile über den Waren: gültige Ernte mit Jahr und Güte, keine Ansage der nächsten (seit 15.11.2026 entfällt sie); im Tooltip der Getreidewaren (`Ernte.Waren`) „Ernte 1402: eine Missernte – Menge ×0,6“. Aussehen wie die übrigen Markt-Zeilen, keine neuen Farben | 15.11.2026 |
-| Meldung | Kommt vom Kern (`Erntewesen.Minute`) erst zum Beginn der Ernte; die Oberfläche liest nur. Der Hinweis im Tooltip der „Härte der Zeit“ („ein Jahr vorher gibt es eine Ansage“) ist gestrichen | 15.11.2026 |
-
-### Versehrungen in der Oberfläche (Branch phase5/versehrt-oberflaeche, PR 2 zu #468)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Medaillons | Vier neue Zug-Medaillons `entstellt`, `einaeugig`, `lahm`, `verkrueppelt` (128 px, Eisenring „erworben“, kräftig gemalt wie die übrigen). Bilder mit der **lokalen Bild-KI** (ComfyUI, Qwen-Image, nicht Gemini), Ring mit `tools/zugmedaillons/schmiede.gd` (dort die vier Kennungen bei „eisen“ ergänzt). Motive und Läufe: `docs/assets/prompts/zug_medaillons_versehrt.md`; Protokollzeile steht. Die Narbe hatte schon ihr Medaillon. | 14.11.2026 |
-| Anzeige | Kein neuer Baustein: Die Versehrungen erscheinen im Charakterfenster in der Gruppe „Erworben“ und im Lexikon „Charakterzüge“ (Bilderreihe und Liste) wie alle Züge. Der Tooltip (`CharakterAnzeige.ZugTipp`) ergänzt für `Charakterzug.IstVersehrung` eine Zeile „Ursache: …“ (die Anlässe und Chancen aus `CharakterzugDaten.Anlaesse`, in Worte gefasst), „Bleibt fürs Leben.“ und was der Zug nimmt (`Verdraengt`, bei Entstellt „Schön“). Die Zahlen färbt der Tooltip selbst gold. Keine festen Farben oder Größen im Code. | 14.11.2026 |
-| Medicus | Beim Knochenbruch (Gesundheitsabschnitt im Familienfenster) nennt der Tooltip des Medicus-Knopfs „Verhindert ‚Lahm‘ (sonst 25 % Gefahr)“ – die Zahl aus den Zugdaten. Beim Entscheidungsbrief „Krankheit“ stehen die Knöpfe und ihre Texte im Kern; dort ist nichts ergänzt (Vorschlag an kern, falls gewünscht). | 14.11.2026 |
-| Prüfhilfe | Neue Startoption `--zug=<Kennung[,Kennung…]>[:oberhaupt|ehepartner|Nummer]` (nur mit `--entwickler=1`, über den vorhandenen Entwicklerbefehl `EntwicklerZug`), in `docs/STARTOPTIONEN.md`. | 14.11.2026 |
-
-### Ratsbaum (Branch phase5/ratsbaum, PR 3 der Ratssitzung)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Baum | Der Reiter „Ämter“ zeigt die Ämter als Baum nach `vorgesetzt` (`RatBaumAnzeige`); das Raster, der Block „Eure Laufbahn“ und der Block „Wahlstimmen“ entfallen. Layout: Blätter links nach rechts, Eltern mittig, Zeile = Tiefe; Linien in `_Draw` mit dunklem Umriss; Knoten sind Knöpfe (Tab, Pfeile, Eingabe) | 14.11.2026 |
-| Tafel zum Amt | Ein Klick auf einen Knoten öffnet unter dem Baum die Tafel zum Amt: Befugnis, Inhaber, bei Ratsherren Haltung, Meinung, Geschenk, Moschus; eigenes Amt: „Euer Amt“ mit den Befugnis-Knöpfen (F7, `AmtBefugnisAnzeige`); sonst die Voraussetzungen aus `BewerbungPruefen` (Erfülltes grün „+“, Fehlendes rot „–“) und „Bewerben“ (F2) | 14.11.2026 |
-| Bewerberreihe und Stimme | Porträts der Kandidaten; Klick = `WahlStimme`, gesetzte Stimme mit Siegel, zweiter Klick nimmt sie zurück (Vorgabe). Bewerbung zurückziehen (F8) am Knoten und in der Laufbahnzeile | 14.11.2026 |
-| Wähler | Beim Darüberfahren oder Fokussieren leuchten alle Inhaber höherer Stufen auf (F4); die Wahlregel bleibt wie sie ist | 14.11.2026 |
-| Theme | Alles über `rat_thema.tres`: neue Varianten `RatKnoten…`, `RatBewerber`, `RatKurz…`, `RatAuswahl`, `RatGold`, Farben `linie…`, Maße `knoten_…`, `bewerber_…`; `RatStil.Text` bekommt den Parameter `breite`, `RatStil.Container` nimmt jeden `Node` als Eltern | 14.11.2026 |
-| Kurzübersicht | „Euer Amt“ zeigt nur Amt und Einkommen mit Knopf „Euer Amt ansehen“ (öffnet die Ratskammer am eigenen Knoten); die Befugnis zog an den Knoten um. Im Rathaustext entfällt die Liste der Ämter (der Baum zeigt sie). Dadurch passt die Kurzübersicht ohne Scrollen in die Auswahltafel (Befund aus PR 2) | 14.11.2026 |
-| Geschenkbetrag | Das Zahlfeld „Geschenk je Klick“ steht bei den Beschenken-Knöpfen des gewählten Ratsherrn statt über dem Baum | 14.11.2026 |
-| Startoption | `--ratamt=<Amt>` wählt mit `--rat=` einen Knoten vor | 14.11.2026 |
 ### Entwicklerfenster: Gebäude wählen (Branch phase5/feuer-gebaeudebrand)| Thema | Entscheidung | Datum ||---|---|---|| Blitz und Brand auf Klick | Knöpfe „Blitz auf Gebäude …“ / „Brand hier …“ im Reiter Darstellung, einmaliger Wählmodus mit Hinweis und Fadenkreuz, Esc bricht ab; siehe darstellung.md | 11.11.2026 |
-
-### Neue Partie: Spieler einstellen, KI-Gegner, „Erweitert“ (Branch phase5/neue-partie-ui, PR 2 von 2)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ablauf | Stadt wählen → **Neue Partie** (eine Seite) → Partie beginnen. „Euer Oberhaupt“ ist keine Zwischenseite mehr, sondern über „Oberhaupt gestalten …“ erreichbar (Zurück/Fertig führen zur Seite). Das Volk wählt jetzt die Seite „Neue Partie“ und fehlt auf der Oberhaupt-Seite; das Porträt liest es. Gewählt statt zwei Wege zum Volk, damit Volk, Glaube und Berufswirkung nebeneinander stehen. | 11.11.2026 |
-| Vorschlag | Beim Öffnen: neuer Zufallsstartwert, dann `Partiebesetzung.SpielerWuerfeln`; Name, Wappen, Volk, Glaube, Beruf stehen vorbelegt und sind frei änderbar. Der Vorschlag wird nicht neu gewürfelt, wenn man den Startwert ändert (nur die Züge folgen ihm). Kein eigener Knopf „alles neu würfeln“ (nicht verlangt). | 11.11.2026 |
-| Züge | Drei Persönlichkeitszüge als Medaillons (`CharakterAnzeige.ZugIcon`, jetzt `internal`), Tooltip mit Beschreibung und Wirkung, „Neu würfeln“ über `ZuegeNeuWuerfeln`; `ZugWurf` beginnt bei 0. Ohne Charakterzüge in den Daten verschwindet die Zeile. Nur der Name des Gegenteils fehlt im Tooltip (die Seite hat keine Stadtwirtschaft). | 11.11.2026 |
-| KI | „KI-Gegner“: 0 bis `HoechstensKi`, vorbelegt höchstens 3 (Annahme der Oberfläche, nicht vom Nutzer vorgegeben). „Stärke der KI“ Leicht/Normal/Schwer, Normal vorbelegt, ein Satz Erklärung ohne Zahlen. Die Kartenkachel nennt „höchstens N KI-Gegner“ und die Höfe statt der Rivalen der Startbelegung. | 11.11.2026 |
-| Erweitert | Aufklappbar (Knopf „Erweitert anzeigen/verbergen“, zu Beginn zu). Je KI eine Zeile für Name, Wappen (die 12 Vorlagen), Volk, Glaube, Beruf – leer/„zufällig“ = gewürfelt; sichtbar so viele, wie KI-Gegner gewählt sind. Darunter die alte Schwierigkeit als **„KI-Häuser mit Umland“ (Nein/Ja)**, „Die KI-Häuser spielen“ (Charakter), Hofstelle, Siegbedingung, Endjahr, Zielvermögen, Dauer, Statut, Startvermögen, Aktionspunkte, Zufallsstartwert: also alle bisherigen Einstellungen, nur eine Ebene tiefer. Der Beruf des Spielers steht nicht in „Erweitert“, sondern oben. | 11.11.2026 |
-| Prüfung | `BesetzungProblem` meldet vor dem Start doppelte Namen, Wappen und Berufe (der Spieler zählt mit) und fängt `ArgumentException` des Kerns ab; der Text steht rot unter den Knöpfen. Die Namens- und Wappenprüfung gegen die Rivalen der Startbelegung alter Karten bleibt. | 11.11.2026 |
-| Daten | `Datenvorrat.Lesekopie()`: eine eigene lesende Kopie von `wirtschaft.json` für das Menü, einmal gelesen (rund 0,3 s beim ersten Öffnen der Seite); die Partie holt ihre Daten wie bisher über `Holen()`. | 11.11.2026 |
-| Startoption | `--neuepartie=1` öffnet die Seite (in `docs/STARTOPTIONEN.md`). | 11.11.2026 |
-| Offen | Die alten Pro-KI-Wappen sind nur die Vorlagen ohne Farbwahl. Ob die Obergrenze 3 vorbelegt bleibt, entscheidet der Nutzer. | 11.11.2026 |
 
 ### Rivalenwahl ohne Beruf (Branch phase5/kirchen-koeln, Prediger PR 1c)
 
@@ -128,7 +73,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Feder-Siegel | Ein `Siegel` mit `Dauerhaft` (kein Rechtsklick, keine Frist), Zähler = offene Fragen, steht in der Ecke, solange der Brief nicht vorn liegt; Klick holt die beiseitegelegten Fragen zurück. Ton `meldung_entscheidung` (selbst synthetisiert, Protokollzeile). | 10.11.2026 |
 | Frist verstrichen (selbst entschieden) | Läuft eine Frist ab (`Frist`, `Obergrenze`), kommt ein kurzer Brief „Frist verstrichen“ mit der gültigen Voreinstellung, damit nichts still entschieden wird; ausgenommen sind Antworten und hinfällige Fragen. Im Verlauf trägt jede Zeile der Art „Entscheidung“ eine kleine Feder. | 10.11.2026 |
 | Mahnung | „Kredit aufnehmen“ öffnet die Banktafel (in der eigenen Werkstatt, wenn man nicht schon drin ist), „Betrieb verkaufen“ wählt den ersten eigenen Betrieb aus (Wegweiser, Nutzer 10.11.2026). Die Gauner-Tafel bleibt als zweiter Weg. | 10.11.2026 |
-
 
 ### Lexikon mit Bildern und Siegel im Verlauf (PR „Oberfläche: Siegel für die Geheimnisse“)
 
@@ -157,198 +101,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Daten | `game/daten/danksagung.json` wird von `tools/assets/danksagung_bauen.py` aus `tools/assets/danksagung_quelle.json`, der Freesound-Tabelle in `game/assets/audio/umgebung/HERKUNFT.md` und dem Protokoll gebaut; `protokoll_pruefen.py` (CI) wird rot, wenn Fremdmaterial fehlt oder die Datei veraltet ist. Ablauf: `docs/assets/README.md`. | 31.10.2026 |
 | Namensnennung | CC BY, MIT, OFL und Apache mit Werk, Urheber, Adresse und Lizenz einzeln; CC0 (Kenney, Quaternius, ambientCG, Freesound-Urheber) als freiwilliger Dank. Wortlaut „mit Unterstützung von Claude (Anthropic)“ ist ein Vorschlag, der Nutzer entscheidet. | 31.10.2026 |
 
-### Waren-Knöpfe (PR #210)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Stil | Entscheidung des Nutzers nach Proben von Gemini: Waren-Icons als quadratische Knöpfe (Aufbau wie Befehlsknöpfe klassischer Strategiespiele, ohne Elemente eines bestimmten Spiels): Motiv groß, gemalter dunkler Hintergrund, schmaler Rahmen mit Licht oben links; Malstil des Motivs wie die Proben (kolorierter Holzschnitt mit Tusche-Umriss, Schraffur und Wasserfarbe). Ersetzt die Pixel-Icons; der Entwurf PR #113 (Python-Zeichenskript) wird geschlossen. | 26.10.2026 |
-| Rahmen nach Stufe | Der Rahmen zeigt die Stufe, ab der eine Ware hergestellt wird: Holz = Rohstoff (ohne Stufe), Stein = Stufe 1, Silber = Stufe 2, Gold = Stufe 3. | 26.10.2026 |
-| Hintergrund nach Beruf | Schmied Glutrot, Alchimist Smaragdgrün, Parfumeur Purpur, Prediger Nachtblau, Wirt Bernstein, Tischler Ockerbraun, Steinmetz Schiefergrau-blau, Rohstoffe Lehmbraun. | 26.10.2026 |
-| Bau | Zusammengesetzt: Gemini (Antigravity, Bild-Subagent) malt vier leere Rahmen, acht Hintergründe und 63 Motive auf Weiß; ein Skript stellt die Motive frei und setzt Hintergrund, Motiv und Rahmen je Ware zu einem Knopf zusammen. Jedes Teil ist einzeln austauschbar. Grafiken mit Gemini erzeugt, im PR gekennzeichnet. Erst Rahmen, Hintergründe und 8 Motive zur Abnahme durch den Nutzer, dann der Rest. | 26.10.2026 |
-| Umsetzung | Rahmen **7 %** der Kantenlänge (Fassung A), Motiv mit Lichthof (Mitte +35 %, Ecken −15 %), warmweißem Saum (60 %, bei hellem Motivrand bis 25 %) und Schlagschatten. Skript `tools/icons/knoepfe_bauen.gd` (Befehle `quellen`, `bauen`, `tafel`, Schalter `--rahmen=`, `--ohne-effekte`); `WarenIcons` zeigt 128 px linear mit Mipmaps. **Grafiken mit Gemini erzeugt** (Rahmen, Hintergründe, Motive; Modell gemini-3.1-flash-image über die API, 63 Motive). Neue Ware: Motiv erzeugen (kolorierter Holzschnitt auf Weiß), `quellen` ausführen oder als PNG in `tools/icons/quellen/motiv/<ware>.png` ablegen, dann `bauen`. | 26.10.2026 |
-| Herkunft (Berichtigung, PR #239) | Belegt ist der Weg **über die API** mit `gemini-3.1-flash-image` (Zeile „Umsetzung“, PR #210); die Zeile „Bau“ nennt „Antigravity, Bild-Subagent“ – welcher Weg es war, ist offen. Die Motive der Einrichtungs-Icons in `tools/icons/quellen/motiv/einrichtung_*` sind **nicht** von Gemini, sondern von Qwen-Image (PR #224). Herkunft je Datei: `docs/assets/protokoll.csv`. | 29.10.2026 |
-
-### Porträts (PR #211)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Umfang | Entscheidungen des Nutzers nach Gemini-Proben: Porträts für alle Personen der Dynastien (Spieler, Familie, Erben, KI-Familien, Ratsherren); Arbeiter und Bürger später. Stil der Proben: kolorierter Holzschnitt mit Wasserfarbe, Brustbild, Dreiviertelansicht. Grafiken mit Gemini erzeugt (wie die Waren-Knöpfe). | 26.10.2026 |
-| Aufbau | Person auf Weiß erzeugt, freigestellt und vor einen gemalten Hintergrund nach Standgruppe gesetzt (Gemeiner: Lehmwand, Bürger: Holzvertäfelung, Patrizier: Wandteppich, Adel – Edler, Freiherr, Reichsgraf: dunkles Gewölbe); kein Rahmen. So bewegt sich beim Atmen nur die Person. | 26.10.2026 |
-| Vielfalt | Je Volk und Geschlecht 5 Gesichter; Altersstufen Kind, jung, mittel, alt (aus demselben Gesicht per Gemini-Bearbeitung); Kleidung schlicht (Gemeiner, Bürger) und vornehm (Patrizier, Adel), Wechsel beim Aufstieg; Haar- und Augenfarbe wählbar bzw. vererbt, umgefärbt im Spiel. Ein Bild mit geschlossenen Augen je Gesicht und Altersstufe für das Blinzeln. | 26.10.2026 |
-| Leben im Bild | Blinzeln, leichtes Atmen, Kerzenlicht, kleines Nicken bei Gesprächen; keine Mimik. | 26.10.2026 |
-| Spielstart | Eigene Seite im Startmenü: Volk, Geschlecht, 5 Gesichter zum Anklicken, Haar- und Augenfarbe, großes Porträt mit Vorschau. | 26.10.2026 |
-| Orte | Familie und Wohnhaus (Familienbuch, Oberhaupt, Ehepartner, Kinder, Erbe), Rat und Ämter (Ratstafel, Sitzung, Antragsteller), Rivalen und Heirat (KI-Oberhäupter, Heiratskandidaten), kleines Porträt des eigenen Oberhaupts oben links. | 26.10.2026 |
-| Vererbung | Kind bekommt eines der Gesichter von Vater oder Mutter (gleiches Geschlecht bevorzugt), Haar- und Augenfarbe von einem Elternteil mit kleiner Chance auf eine andere; Volk nach den bestehenden Regeln. KI-Familien gewürfelt. | 26.10.2026 |
-| Vorgehen | In Etappen: erst Menschen komplett (≈ 120 Bilder) und Hintergründe, dazu ein Test zum Umfärben von Haar und Augen; Abnahme durch den Nutzer mit Kostenstand, dann die übrigen 5 Völker. Gesamt etwa 720 Bilder. | 26.10.2026 |
-| Umsetzung Oberfläche | `PortraetAnzeige` (Control) mit `portraet.gdshader`: Hintergrund nach Standgruppe, Person freigestellt davor; Haar und Augen über Graustufen-Masken umgefärbt (Helligkeit des Bildes bleibt, nur der Ton wechselt; ohne Masken aus), Blinzeln im Augenband (alle 3–7 s, selten doppelt), Atmen ±0,6 % von unten, Nicken, Kerzenlicht (in der Grafikstufe Niedrig aus). Bilder werden beim Laden mit Mipmaps versehen, damit 64 px scharf bleiben. Fehlt ein Bild (andere Völker, Gesichter noch nicht geliefert), steht eine Silhouette vor dem Hintergrund. Orte: Seite „Euer Oberhaupt“ im Startmenü (vor den Einstellungen der Partie; Volk, Geschlecht und Vorname wanderten dorthin), Kopfzeile, Familie (Oberhaupt und Ehepartner 128 px, Kinder und Brautschau 64 px), Rat (Inhaber der Ämter), Ratssitzung (wer spricht, nickt bei Zustimmung), Bericht „Rivalen“. | 26.10.2026 |
-| Blinzeln ohne Blitz (PR #216) | Ursache des Lichtblitzes: Der Shader multiplizierte sein Ergebnis mit `COLOR`, und das enthält beim Eintritt in `fragment()` schon das offene Bild – Iris und Lider des offenen Bildes schienen durch das „zu“-Bild (Wangen und Haar nahmen „alte Farbe“ an). Dazu: Haar, Brauen und Iris waren nur im offenen Bild umgefärbt, das Band lief über die ganze Breite, und die Bild-KI malt das „zu“-Bild mit leicht anderer Farbe und Schraffur. Jetzt: Der Shader merkt sich die Modulate-Farbe (`varying modulat`) und multipliziert mit dem Bild, das gerade gilt (offen/„zu“ überblendet); er färbt auch das „zu“-Bild mit denselben Masken um; überblendet wird nur in einer weichen Ellipse um jedes Auge (`PortraetAnzeige.Augenzonen` aus der Augenmaske), nicht im ganzen Band; die Iris-Umfärbung bleibt, bis das Lid sie überdeckt. Das Bauwerkzeug (`spiel`) gleicht jedes „zu“-Bild farblich an das offene an (Mittel und Streuung je Farbkanal im Augenband, Verstärkung höchstens ±10 %). `--blinzeln=<0–1>` hält ein halbes Blinzeln fest. | 27.10.2026 |
-| Halbling-Haut (PR #216) | Wangen und Nasen waren zu rot und gesättigt: Das Bauwerkzeug dämpft beim Schritt `spiel` für Halblinge die Sättigung roter Hauttöne (Farbton um 355°, Sättigung über 0,26 um 85 % des Überschusses, nur Gesichtshöhe 25–65 % und helle Pixel; Kleidung, Schmuck und Haar bleiben). Gilt auch für neue Bilder. | 27.10.2026 |
-| Haarmasken fehlen | `spiel` schreibt die Haarmasken von Elben, Halblingen und Zwerginnen nicht (Tabelle `KEINE_HAARMASKE`: angemalter Bart in der Maske), bis es neue gibt; dann Eintrag streichen. | 27.10.2026 |
-| Herkunft (Berichtigung, PR #239) | Gemini lieferte nur die Proben und die erste Menschen-Fassung (37ecc8aa); **ausgeliefert** sind Personen und Masken aller Völker von der lokalen Bild-KI (ComfyUI mit Qwen-Image, ab c16f5c20). „Grafiken mit Gemini erzeugt“ und „per Gemini-Bearbeitung“ in den Zeilen oben gelten nur für diese Proben. Werkzeug der vier Hintergründe: nicht belegt. Herkunft je Datei: `docs/assets/protokoll.csv`. | 29.10.2026 |
-
-### Lexikon (PR #214)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Vorbild | Das Lexikon in Crusader Kings 3, nur die Mechanik (Nutzer). Begriffe mit Verweisen untereinander, Suche, Live-Zahlen. | 27.10.2026 |
-| Daten | `game/daten/lexikon.json`: Liste aus Kennung, Titel, Gruppe, Text (etwa 160 Begriffe in zehn Gruppen, Erstfüllung aus dem Spielbuch). Verweise `[[kennung]]` oder `[[kennung\|Anzeigetext]]`, Zahlen `{wert:name}`. Feste Zahlen nur, wo sie nicht änderbar sind; sonst Platzhalter. | 27.10.2026 |
-| Platzhalter | `Lexikon.Werte`: Name → Abfrage der Wirtschaftsdaten (Steuersatz aus `Stadtwirtschaft.Kasse`, sonst `Wirtschaftsdaten`). Ohne Partie (Hauptmenü) lädt das Lexikon `wirtschaft.json` selbst. Ein neuer Platzhalter ist eine Zeile in `Lexikon.WerteBauen`. | 27.10.2026 |
-| Prüfung | `--lexikon-pruefen=1` (Godot ohne Fenster): Kennungen eindeutig und klein, jeder Verweis zeigt auf eine Kennung, jeder Platzhalter ist bekannt und hat in `wirtschaft.json` einen Wert, keine falschen Klammern. Rückgabewert 0/1. Wer Einträge ergänzt, ruft die Prüfung auf. | 27.10.2026 |
-| Tafel | Fenster in der Bildmitte (wie Hilfe und Markt), Taste L (frei, geprüft) und Knopf „Lexikon“ vor „Menü“ in der Betriebsleiste; Esc schließt (nach der Hilfe, vor den Tafeln). Links Suche und `Tree` nach Gruppen (ohne Suchtext), rechts Eintrag als `RichTextLabel` mit goldenen Verweisen, „Erwähnt in:“ als automatische Rückverweise, „Zurück“ über einen Verlauf. Die Zeit läuft weiter. | 27.10.2026 |
-| Tooltips | `Lexikon.Finde(kennung)` gibt `(Titel, Text)` als Klartext (Zahlen eingesetzt, Verweise als Wörter) oder null; `Lexikon.Oeffnen(kennung)` öffnet die Tafel. Der Teamleiter verdrahtet beides mit den Tooltips des Fensters (`BegriffSuchen`, `LexikonOeffnen`). | 27.10.2026 |
-### Interface: Tooltips festheften, Verweise, Fenster (PR #214)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Tooltips festheften | Füllkreis oben rechts im Tooltip; nach der Zeit aus den Einstellungen (Grundwert 1,5 s, 0,5–5 s, oder „nur mit Taste“) wird er ein festes, verschiebbares Fenster mit ✕; T oder mittlere Maustaste heftet sofort fest. Der Kreis zählt, solange die Maus auf dem Tooltip oder seiner Quelle ruht. Vorbild Crusader Kings 3, nur die Mechanik. | 27.10.2026 |
-| Wie ohne Umbau der ~170 Stellen | Der eingebaute Tooltip ist in `project.godot` ausgeschaltet; der Autoload `Tooltips` liest den Text über `GuiGetHoveredControl()`/`GetTooltip()` und zeigt ihn selbst. Neue `TooltipText`-Stellen gehen ohne Zutun. | 27.10.2026 |
-| Verweise | `[[kennung]]` oder `[[kennung\|Anzeigetext]]` im Tooltip-Text; nur mit Treffer von `Tooltips.BegriffSuchen` (vom Lexikon gesetzt) unterstrichen, sonst einfacher Text. Darüberfahren öffnet den Begriff (ab PR Interface-Feinschliff: 0,2 s, auch in festen Tooltips), Klick heftet ihn fest; beliebig tief. Im festen Tooltip eines Begriffs: Knopf „Im Lexikon“ (`Tooltips.LexikonOeffnen`). | 27.10.2026 |
-| Fenster | Alle Tafeln mit `Fensterrahmen` verschiebbar (oberer Rand), ✕, Lage gemerkt (geklemmt in den sichtbaren Bereich), Klick = nach vorn. Esc schließt das oberste, X alle. Nur ziehbar, ohne ✕ und Esc: Bautafel und Bau-Rückfrage (haben ihre eigenen Schritte). Starr: Spielmenü, Einstellungen, Hilfe, Jahresrechnung, Ratssitzung, Kartenwerkstatt. | 27.10.2026 |
-| Mehrere offen | Neuer Knopf „Festhalten“ (Nadel) bei Rat, Familie, Gericht, Hinterzimmer, Markt, Wohnhaus, Bericht, Hafen: Das Fenster bleibt, wenn eine andere Tafel „alles andere schließt“. Vor der Ratssitzung werden auch festgehaltene geschlossen. | 27.10.2026 |
-| Eigene ×-Knöpfe | Bericht, Hafen und Wohnhaus hatten ein eigenes ×; sie sind durch das ✕ des Rahmens ersetzt (Wohnhaus ruft weiter `Geschlossen`). | 27.10.2026 |
-| Automatische Verweise | Die vorhandenen Tooltips haben keine `[[…]]`: Der Haken `Tooltips.VerweiseErgaenzen` (von der Hauptszene auf `Lexikon.VerweiseEinsetzen` gesetzt) macht beim Aufbau des Tooltips aus dem ersten Vorkommen jedes Lexikon-Titels einen Verweis (ganzes Wort, Schreibung wie im Titel, Endungen -s/-n/-en/-e/-es, dazu das optionale Feld `auch` in `lexikon.json`; längere Titel zuerst, höchstens 6, nie in vorhandenem `[[…]]`, nie der Begriff in seinem eigenen Tooltip). Prüfung: Startoption `--verweistest=1` schreibt drei Beispielsätze mit Ergebnis ins Log. | 27.10.2026 |
-
-### Interface-Feinschliff (PR #217)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auswahl an der Maus | Ein Klick auf ein Gebäude setzt die Auswahl-Tafel wie einen Tooltip unten rechts neben den Zeiger (Abstand 14/22 Pixel, am rechten bzw. unteren Rand links bzw. über den Zeiger, `Tooltips.Lage`). Sie bleibt verschiebbar und schließbar; gezogen bleibt sie dort bis zur nächsten Auswahl. Gemerkte Lage gilt für sie nicht mehr (`Fensterrahmen.LageMerken = false`). Öffnet sie ohne Klick in die Welt (Taste, Leiste, Kopfzeile), steht sie wie bisher rechts unter der Kopfzeile. Technik: `Fensterrahmen.PlatzSetzen(Func<Größe, Sichtbar, Ecke>)`. | 27.10.2026 |
-| Verweise per Hover | Ursache des Klickzwangs in festen Tooltips: Der Verweis-Zweig in `Tooltips._Process` stand hinter `if (t.Fest) continue;`. Jetzt öffnet das Darüberfahren (0,2 s) den Begriff, auch in festen Tooltips, direkt neben der Maus; ein Klick heftet weiter sofort fest. Der neue Tooltip steht neben der Maus, aber nie über dem Eltern-Tooltip (sonst rechts oder links daneben, zuletzt darunter; `LageNebenEltern`). Er bleibt, solange die Maus auf dem Verweis oder in ihm ist (0,4 s Gnadenzeit), füllt seinen Kreis und wird nach der eingestellten Zeit fest. | 27.10.2026 |
-| Tooltips überall (Start) | Ursache fehlender Tooltips: Beschriftungen (`Label`) und Bilder haben `MouseFilter = Ignore` und fangen keine Maus. `Hauptmenue.Text` setzt jetzt `Pass` (alle bisher wirkungslosen Label-Tooltips gehen damit). `InnenTafel.Tipp`, `ZeileTipp` und `WarenTipp` (Marktpreis, Lager, Zeit, Zutaten samt Kosten, Ertrag je Stück aus Marktpreis minus Zutaten) hängen Tooltips an Zeilen und Spaltenköpfe von Produktion, Lager, Personal, Einrichtung; ebenso Karren, Personal und Förderung im Bedienfeld, Zustand und Angaben der Kurzübersicht, Uhrzeit und Tempoknöpfe oben. Auch Bericht, Jahresbericht, Rat, Hafen, Gericht, Gauner, Verkauf, Bau, Weg, Rathaus, Wachplan, Familie und Wohnhaus haben nun Tooltips auf Köpfen und Zeilen. Nicht lesbar aus dem Kern und deshalb weggelassen: Lohn je Arbeiter im Jahr (nur Grundlohn), Gewinn je Stück nach Lohn. | 27.10.2026 |
-
-### Fehler und Kleinkram (PR #219)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Kennung umbenennen | Die Eigenschaften-Tafel der Kartenwerkstatt hat ein Textfeld für die Kennung eines Gebäudes (nutzt `Kartenentwurf.KennungSetzen`, ein Rückgängig-Schritt). Fehler des Kerns (vergeben, ungültige Zeichen, leer) erscheinen rot unter dem Raster, das Feld springt zurück. Die Felder der Tafel lesen die Kennung jetzt beim Auslösen aus dem Gebäude, nicht mehr aus einer beim Bau der Tafel gemerkten Kopie (sonst hätte „Drehung“ nach dem Umbenennen die alte Kennung benutzt). Klicktest Probestadt, Marktplatz1 → Platz_Neu und „Bad_Zeichen!“ (Bilder im Notizordner `klein-spiel/k2`). | 27.10.2026 |
-| Hinweis Personalbuch | Schon erledigt mit dem Umbau der Betriebsleiste: `BetriebsUebersicht.Zustand` nennt für Umlandbetriebe „stellt unter „…“ Arbeitskräfte ein“. Kein weiterer Text mit „Personalbuch“ gilt für Umland. | 27.10.2026 |
-| Tooltips Lohn und Gewinn | Der Waren-Tooltip (`InnenTafel.WarenTipp`, Produktions- und Lagertafel) nennt für selbst hergestellte Waren einer Werkstatt „Gewinn je Stück“ aus `Kalkulation.GewinnJeStueck` mit Aufschlüsselung Preis − Steuer − Zutaten − Lohn − Unterhalt (ohne Personal mit einem Gesellen gerechnet, steht dabei); die Zeile „Ertrag (Preis minus Zutaten)“ bleibt nur für Waren, die der Betrieb nicht herstellt. Der Arbeiter-Tooltip im Personalbuch nennt den Lohn im Jahr (`Betrieb.LohnJeArbeiter`). Klicktest Gießerei (Bilder `klein-spiel/k4`, `k6`). | 27.10.2026 |
-| Ratsherren-Porträts | `PortraetAnzeige.ZeigenRatsherr` nimmt Geschlecht und Aussehen aus `Ratsherr.Geschlecht` und `Ratsherr.Aussehen` (Daten, Datenversion 58); nur die Altersstufe leitet die Oberfläche weiter aus dem Namen ab. Die Aufschlüsselung des Gewinns im Waren-Tooltip steht in drei Zeilen. | 27.10.2026 |
-
-### Talentbaum der Einrichtung (PR #224)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Aufbau | Einrichtung von Betrieben und Wohnhaus als Talentbaum (Vorbild WoW, nur Mechanik): 3 Spalten (Betrieb: Werkstatt / Lager & Handel / Schutz & Personal; Wohnhaus: Haushalt / Ansehen / Schutz) × 3 Reihen = Gebäudestufen; gesperrte Reihen grau, Linien zeigen Voraussetzungen; Icons im Holzschnitt-Stil der Waren-Knöpfe, Rahmen nach Zustand (gekauft, kaufbar, gesperrt); Tooltip mit Wirkung, Preis, Voraussetzung, Amortisation (festheftbar, Lexikon-Verweise). Öffnet über „Einrichtung“ außen und innen. Bezahlt mit Gulden. Entscheidung des Nutzers. | 28.10.2026 |
-| Personal | Personalbuch zeigt Stufe, Erfahrung bis zur nächsten Stufe, Lohn, Porträt und Namen; Knopf „Befördern“ (mit Brief-Kosten), beim Vorarbeiter Wahl aus drei Eigenschaften als Karten. Entscheidung des Nutzers. | 28.10.2026 |
-| Umsetzung Talentbaum | `TalentbaumAnsicht` (gemeinsam): 3 × 3 Zellen mit Stücken, Rahmen nach Zustand (gekauft grün, kaufbar golden, gerade nicht möglich blass golden, gesperrt grau), Linien Voraussetzung → Stück hinter Knöpfen und Beschriftungen, Tooltip aus `Tipp` (Wirkung, Preis, Stufe, Voraussetzung, Amortisation, Sperrgrund). `EinrichtenAnzeige` (Betrieb, innen an der Werkzeugwand und außen über „Einrichtung“ in der Kurzübersicht) und `WohnhausBaumAnzeige` (Knopf „Einrichtung …“ in der Wohnhaus-Tafel) ersetzen die Einrichtungsliste. Icons: `einrichtung_<kennung>.png` in `assets/oberflaeche/icons/`, sonst ein ähnliches Waren-Icon (Tabelle `Ersatz`), sonst der Anfangsbuchstabe; Bildbeschreibungen für die Bild-KI liegen im Notizordner des Teamleiters. | 28.10.2026 |
-| Umsetzung Personal | `PersonalAnzeige` zeigt je Arbeiter Porträt (`PortraetAnzeige`, Altersstufe aus Menschenjahren), Name, Stufe, Erfahrungsbalken (Stunden und Jahre bis zur nächsten Stufe), Lohn und Eigenschaft; „Befördern → Stufe“ mit Briefkosten im Tooltip; nach der Beförderung zum Vorarbeiter drei Eigenschaftskarten (`EigenschaftWaehlen`). Einstellen bietet nur den Anfänger. Die Innenräume färben Figuren nach Anfänger / Mittelstufe / Vorarbeiter (`Stadtansicht.IstAnfaenger`, `IstVorarbeiter`). | 28.10.2026 |
-| Herkunft der Icons (PR #239) | Motive von der lokalen Bild-KI (ComfyUI mit Qwen-Image und Qwen-Image-Edit), Rahmen und Hintergründe die Gemini-Teile aus PR #210. Die Bildbeschreibungen liegen jetzt in `docs/assets/prompts/einrichtung_icons.md`, Herkunft je Datei in `docs/assets/protokoll.csv`. | 29.10.2026 |
-
-### Charakterfenster (PR #227)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Fenster | Ein Klick auf jedes Porträt (Familienbuch, Rat, KI-Häuser, Vorarbeiter) öffnet ein Charakterfenster wie in CK3: großes Porträt, Talente, Charakterzüge als Icons mit Tooltip, Familie; später die Meinung zu einem mit Gründen (PR 2) und der Stammbaum. Entscheidung des Nutzers. | 28.10.2026 |
-| Icons | (Abgelöst durch „Stil der Zug-Icons“.) Runde Medaillons im Holzschnitt-Stil, Motiv per lokaler Bild-KI wie die Einrichtungs-Icons, Rahmen nach Art: Persönlichkeit Bronze, angeboren Silber, erworben Eisen; Abnahme an 6 Proben durch den Nutzer. Entscheidung des Nutzers. | 28.10.2026 |
-| Umsetzung Fenster | `CharakterAnzeige`: frei ziehbares, festhaltbares Fenster (Standardplatz rechts, 780 px breit); links großes Porträt, rechts Name, Volk, Alter, Rolle, Stand, Amt, Glaube, Krankheit und die fünf Talente; darunter Charakterzüge in drei Gruppen, unten die Familie (Eltern, Ehepartner, Kinder) als kleine Porträts mit „‹ Zurück“. Ratsherren: ohne Talente und Familie, mit Bestechlichkeit. Kinder zeigen „Die Persönlichkeit entwickelt sich erst mit der Volljährigkeit“. Öffnen über zwei Haken in `PortraetAnzeige` (`PersonOeffnen`, `RatsherrOeffnen`): jedes Porträt, das mit `Zeigen(Familienbuch, Person)` oder `ZeigenRatsherr` gefüllt wird, ist klickbar (Familie, Erbfolge, Brautschau, Rat, Kopfzeile, Rivalen im Bericht); Porträts mit Volk-Angaben (Hauptmenü, Personalbuch der Vorarbeiter) nicht. | 28.10.2026 |
-| Umsetzung Talente | Sechs Sterne je Talent, selbst gezeichnet: golden = Anlage, grün = Zugbonus, rot = Abzug durch Zug oder Krankheit; dahinter die Zahl mit Unterschied („4 (+1½)“); Tooltip: „Anlage 3, Gierig +1, Husten −1“ mit Lexikon-Verweisen. | 28.10.2026 |
-| Umsetzung Züge | Runde Medaillons (64 px) aus `res://assets/oberflaeche/zuege/<kennung>.png` (kleingeschrieben, 128 px, Rahmen eingemalt); ohne Bild ein gezeichneter Ring nach Art mit Anfangsbuchstaben. Tooltip: Name (Art), Beschreibung, Wirkung, Gegenteil, Verweis auf das Lexikon. Lexikon-Eintrag „Charakterzüge“ (Gruppe Haus und Familie) mit dem neuen Platzhalter `{wert:zuege_liste}`. | 28.10.2026 |
-| Stil der Zug-Icons | **Ausnahme vom Holzschnitt** nur für die Zug-Icons: kräftig gemalt mit dunklem Umriss und farbigem Leuchten je Zug (Farbe nach Zug, Rahmen nach Art). Motive als Stichpunkte vom Teamleiter, Bilder vom Nutzer mit Gemini erzeugt (Pilger und Gelehrt mit ChatGPT), Teamleiter schneidet sie rund aus; den geschmiedeten Ring rechnet seit PR #230 ein Skript dazu. Klug ist eine Eule auf einem Buch, Hochmütig ein stolzer Edelmann. Ein LoRA-Training war geplant und ist verworfen. Entscheidung des Nutzers. | 28.10.2026 |
-
-### Ränder der Zug-Medaillons (PR #230)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Form und Rand | Rund bleiben, aber ein dünner, schlichter Ring nach dem Vorbild der Warcraft-3-Knöpfe (nur die Machart): 4 px bei 64 px, abgeschrägt mit Lichtkante oben links und Schatten unten rechts, ohne Ornament und Nieten. Das Spiel zeichnet den Ring selbst (`ZugIcon`), die Bilder sind ohne Rahmen. Entscheidung des Nutzers. | 28.10.2026 |
-| Farben | Persönlichkeit **Kupfer** (rötlich), angeboren **Gold** (statt Silber), erworben **Eisen** – drei klar getrennte Töne. Entscheidung des Nutzers. | 28.10.2026 |
-| Machart (ersetzt „schlicht“) | Der schlichte Ring war dem Nutzer zu wenig: Der Ring ist jetzt **geschmiedet** – gewölbtes Profil mit Glanz und Spiegelung (oben hell, unten dunkel), Hammerschlag-Dellen, Schleifspuren und 2–3 **Kerben von Schwert- oder Axthieben** mit blank geschlagener Kante, je Zug an anderer Stelle (aus der Kennung gewürfelt), Licht immer oben links. Gerechnet vom Skript `tools/zugmedaillons/schmiede.gd` (256 px, gespeichert 128 px) und ins Bild gebacken; der gezeichnete WC3-Ring bleibt nur für Züge ohne Bild. Entscheidung des Nutzers. | 28.10.2026 |
-
-### Kartenwahl und Entwickler-Option (PR #229)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Kartenwahl | „Neue Partie“ beginnt mit der Seite „Stadt wählen“ (Kacheln mit Vorschaubild, Name, Kurztext, Kennzahlen), danach „Euer Oberhaupt“. Die letzte Wahl ist vorgewählt (`user://einstellungen.cfg`). Die Partie startet über `Stadtkarten.Gewaehlt`, denselben Weg wie `--karte=`. Entscheidung des Nutzers. | 28.10.2026 |
-| Welche Karten | Karten mit Kennzeichen `spielbar` in der Kartendatei (heute Probestadt; Köln, wenn fertig) und selbst gebaute aus `user://karten/`, soweit der Haken „In der Kartenwahl anbieten“ (Reiter „Karte“ der Werkstatt) gesetzt ist – eine neue Werkstattkarte hat ihn von Anfang an. Greybox, Köln und Messstadt nur im Entwickler-Modus („Testkarte“). | 28.10.2026 |
-| Entwickler-Option | Haken „Entwickler-Optionen“ unten rechts im Hauptmenü (`Entwickler.Aktiv`, gemerkt), zentrale Stelle für spätere Entwickler-Einstellungen (Debugging …); heute nur die Kartenliste. | 28.10.2026 |
-| Vorschaubilder | Einmal aus dem Spiel mit Vulkan gerendert (`tools/kartenbilder/kartenbilder.sh`, ganze Karte, Mittag, Sommer) nach `assets/oberflaeche/karten/`. Selbst gebaute Karten zeigen einen Platzhalter mit dem Namen (einfachste saubere Lösung). | 28.10.2026 |
-
-### Meinungen und Aktivitäten (PR #231)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Meinung im Charakterfenster | Bei jeder wichtigen Person außer dem eigenen Oberhaupt eine Zeile „Meinung über Euch“: Balken (−100 rot, 0 Mitte, +100 grün), Zahl in Farbe (grün ab +5, rot ab −5, sonst grau), Tooltip mit allen Gründen, feste zuerst, die aus Taten unter „verblassen jedes Jahr“. Heiratskandidaten und das eigene Oberhaupt zeigen nichts. | 28.10.2026 |
-| Aktivitäten | Knopf „Aktivitäten“ (nur bei wichtigen Personen und `Meinungswesen.IstAktiv`) schaltet das Fenster auf die Liste um: Name, AP und Gulden, Gefahr mit Unglück, Wirkung und Mittel, Hinweis zu Zügen, Sperrgrund rot und ausgegraut. Geschenk mit wählbarem Betrag. Ergebnis als Meldung oben in der Liste und im Protokoll; Fenster baut sich neu auf. | 28.10.2026 |
-| Rats-Tafel | Spalte „Eure Gunst“ heißt „Meinung“ (Zahl, Farbe, Gründe-Tooltip aus `MeinungsHilfe`); Tooltip am Knopf „Beschenken“ nennt `GunstJeGulden(r, konto)`; Texte mit „Gunst“ sprechen jetzt von Meinung. Lexikon: neue Einträge „Meinung“ und „Aktivitäten“, „Gunst“ verweist darauf. | 28.10.2026 |
-### Wege-Modus im Baumenü (PR #242)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Wege nur im Baumenü | Außerhalb des Baumenüs lassen sich Wege nicht mehr anklicken (kein Wegtreffer, kein Tooltip); Klicks gehen wie sonst an Gebäude und Boden. Entscheidung des Nutzers. | 29.10.2026 |
-| Umschalter | Im Baumenü (`BauAnzeige`) oben „Gebäude \| Wege (G)“. Auf „Wege“ leuchten alle Wege nach Belag (Trampelpfad dunkelbraun, Fahrweg ocker, Kies grau-blau, Pflaster hell, Baustelle orange), der Weg unter der Maus heller; die Bauzonen sind dann aus, die Tafel zeigt die Farblegende. Verlassen des Baumenüs (Esc, B, Schließen) beendet den Modus. Entscheidung des Nutzers. | 29.10.2026 |
-| Taste | **G** (W ist die Kamera): öffnet das Baumenü im Wege-Modus bzw. schaltet zwischen Gebäude und Wege um. Teamentscheidung, weil W belegt ist. | 29.10.2026 |
-| Tooltip | Am Zeiger: Wegname, Belag (mit „wird gebaut“), nächste Stufe (Kies, dann Pflaster) mit Länge, Kosten und Bauzeit des 50-m-Abschnitts um die Maus (`Wegebau.Vorschau`, derselbe Abschnitt, den die Wegtafel vorwählt, `WegAnzeige.Vorwahl`), Sperrgrund, „Klick: Wegtafel“. Kein Kern-Eingriff nötig. Eigenes kleines Feld statt des Tooltip-Systems (das hängt an Steuerelementen, hier ist es die 3D-Welt). | 29.10.2026 |
-| Wegtafel | Öffnet bei Klick links neben der Bautafel (`WegAnzeige.Oeffnen(…, versatz)`), Ausbau, Kosten und Bauzeit wie bisher. Esc schließt zuerst die Wegtafel, dann das Baumenü. | 29.10.2026 |
-
-### Handbuch-Stil Steuerung (PR #245)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Pilot | Nur das Kapitel „Steuerung“ im Spielbuch wird zum Handbuch-Kapitel (Entscheidung des Nutzers); gefällt der Stil, folgen die anderen zwölf Kapitel. | 29.10.2026 |
-| Stil | Kurze Abschnitte wie in Handbüchern klassischer Aufbauspiele (Erste Schritte, Bildschirm, Kamera, Gebäude, Bauen mit Wege-Modus, Fenster und Tooltips, Tastenübersicht, Einstellungen), Du-Form, Hinweisblöcke `> [!TIP]` und `> [!NOTE]`. PR-Nummern und Entwicklerhinweise stehen nicht im Spielerteil; der Godot-Editor-Hinweis und das Testtempo (16×/32×) stehen in `docs/ENTWICKLUNG.md`, das Testtempo außerdem als kleine Fußnote im Kapitel. | 29.10.2026 |
-| Bilder | Echte Bildschirmfotos aus dem Spiel (Vulkan, Tag, klares Wetter, Miniatur-Unschärfe aus) mit nummerierten Markierungen (Gold auf Dunkelbraun, Schrift des Spiels) und einer Legende als Tabelle darunter; `.webp`, 1280 px breit, unter `docs/bilder/handbuch/`. Vier Bilder: Bildschirm, Bauen, Wege-Modus, Tooltip (Ausschnitt). | 29.10.2026 |
-| Werkzeug | `tools/handbuch/`: `aufnehmen.sh` (Rohbilder mit dem Klicktest), `beschriften.sh` mit `beschriften.gd` (Godot unter Xvfb setzt Rahmen und Nummern nach `bilder.json`, schreibt `.webp`). Die Bilder lassen sich nach einer Änderung der Oberfläche neu erzeugen. | 29.10.2026 |
-| Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
-| Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
-
-### Befehle nur über den Boten (Mehrspieler M2, PR #251)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Regel | **Befehle nur über den Boten:** Keine Datei in `game/scripts/` ruft `Stadtwirtschaft.Ausfuehren` auf (Kontrolle: `git grep "\.Ausfuehren(" game/scripts` findet nichts). Eine Tafel schickt ihren Befehl mit `UiHilfe.Befehlen(simulation, spieler, befehl, this, ergebnis => { … })`; alles, was vom Ergebnis abhängt (Meldung, Neuaufbau, Schließen, „Beauftragt“), steht im Rückruf, nicht dahinter. Der Rückruf läuft nur, wenn der Besitzer (die Tafel, bei Klassen ohne Knoten ihr Wurzelknoten) noch gültig ist (`IsInstanceValid`) – im Mehrspieler wirkt der Befehl erst im Ziel-Tick, und die Tafel kann bis dahin zu sein. `UiHilfe.MeldungText` macht die übliche Meldung („✗ …“ bei Misserfolg). Neue Tafeln übernehmen das Muster in ihrer `Befehlen`-Methode. | 29.10.2026 |
-| Klicktest-Startoptionen | Brauchen sie das Ergebnis gleich (Schleifen, die bei Misserfolg abbrechen, Aufbau vor `--spulen`), nehmen sie `_simulation.Bote.SofortAusfuehren`; sonst `Bote.Einreihen` mit Rückruf (Meldung im Protokoll). Im Mehrspieler werfen die Sofort-Stellen – sie sind nur Testwerkzeug. | 29.10.2026 |
-| Einzelspiel | Verzögerung 0: Verhalten wie vorher. Klicktest (Vulkan, probestadt/greybox): Marktauftrag, Neubau mit Baurückfrage, Wegausbau, Geschenk im Rat, Werben in der Familie, Wohnhaus-Einrichtung, Schiffsauftrag in der Hafentafel und Geschenk im Charakterfenster – Gulden sinken, Meldung steht, Tafel baut sich neu auf bzw. schließt, kein SCRIPT ERROR. | 29.10.2026 |
-### Lesbarkeit und mittige Fenster (PR #250)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Fenster mittig | Jedes Fenster öffnet immer in der Bildschirmmitte (senkrecht zwischen Zeitstrahl und Betriebsleiste), auch nach dem Verschieben; Verschieben bei offenem Fenster bleibt möglich. **„Fensterlage merken“ (PR #214) entfällt** (Entscheidung des Nutzers); festgehaltene Fenster, die zugleich offen sind, sind um 28 px je Fenster versetzt. Ausnahmen (`Mittig = false`): Auswahl (am Mauszeiger, im Raum rechts), Bau- und Wegtafel (rechts, die Karte bleibt frei). | 29.10.2026 |
-| Schrift | Mindestgröße 14 px zentral in `Schriften` (Labels erhalten dazu weiter den Zuschlag von 1); Zeitstrahl-Namen 14 px (Band 20 px, `KopfHoehe` 140). Gleich breite Ziffern waren schon an (`tnum`). | 29.10.2026 |
-| Kontrast | Gemessen: die Grautöne (0,60–0,75) erreichen auf dem Tafelgrund 5,9–9,2 : 1; das blasse Aussehen kam von der Größe. `Schriften.LesbareFarbe` sichert 4,5 : 1 für Label-Farben ab. Gesperrte Knöpfe: Schrift 0,62/0,58/0,52. | 29.10.2026 |
-| Knöpfe und Schalter | `Oberflaechenstil` im Standard-Thema: Fläche, Rand, Hover, gedrückt und gesperrt; Schalter und Häkchen als gezeichnete Bilder. Die Holzbalken, Bücher und Schriftrollen (spätere Schritte) lösen es ab. | 29.10.2026 |
-| Tabellen | `Streifenraster`: jede zweite Zeile hinterlegt, Zeilenabstand 10 px (Produktion, Lager, Rat; Markt und Personal sind Kacheln bzw. Karten ohne Tabelle). | 29.10.2026 |
-| Kleine Fehler | F4 Rat: Der Rollbereich lässt Zeitstrahl und Betriebsleiste frei. F7: Marke über dem Band. F5 und F8: Beschriftungen im Raum (siehe Bericht). | 29.10.2026 |
-
-### Entwicklerfenster (PR #254)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auftrag | Wunsch des Nutzers: ein Entwickler- bzw. Cheat-Fenster wie ein Trainer. Es gibt es nur mit dem Haken „Entwickler-Optionen“ (`Entwickler.Aktiv`); ohne Haken fehlen Fenster, Taste F12 und Knopf. Der Kern liefert Befehle, Sperre und Abfragen (`kern.md`, „Entwicklerfenster, Kern“). | 29.10.2026 |
-| Fenster | `EntwicklerAnzeige.cs` (Gerüst, Reiter Haus und Zeit, Familie und Ereignisse, Wirtschaft) und `EntwicklerAnzeige.Darstellung.cs` (Wetter und Darstellung, Messwerte): mittiges Fenster wie das Lexikon (`Hauptmenue.Tafel`, `Fensterrahmen`, festhaltbar, Esc schließt es), unten immer die Meldung des letzten Eingriffs (grün, bei Ablehnung rot mit ✗), oben eine Stand-Zeile (Gulden, Stand, AP, Ansehen, Zeit, Sperre, Kennzeichen). Oben rechts wählt „Haus“ das Haus für die Hausbefehle (Standard: das eigene). Verbunden wird es in `Hauptszene.Entwickler.cs`. | 29.10.2026 |
-| Befehle | Alles, was die Partie ändert, geht als `EntwicklerBefehl` über `UiHilfe.Befehlen` (Boten-Regel aus M2); die Meldung des Kerns steht im Fenster. Auswahllisten (Haus, Stand, Person, Krankheit, Charakterzug, Heiratskandidat, Betrieb, Ware, Meinung von) füllt `Auffrischen` zweimal je Sekunde aus dem Zustand und behält die Wahl, solange es den Eintrag gibt. „Sterben lassen“ braucht zwei Klicks (drei Sekunden), alles andere wirkt gleich. | 29.10.2026 |
-| Zeit | Vorspulen um N Minuten, Stunden oder Jahren, bis zur Uhrzeit, bis Jahresende, bis Ratssitzung über `Simulation.Vorspulen…` (kein Befehl, rechnet im Bild, das Fenster hängt dabei kurz). Dazu Tempoknöpfe 1× bis 64×: **64× ist gefahrlos** – der Taktgeber gibt dabei etwa 80 Ticks je Sekunde aus (höchstens 240 je Bild, `MaxTicksProAufruf`), `Tempo` nimmt jeden Wert über 0, ein Spielstand nimmt es mit; im Klicktest liefen bei 64× zwölf Spielstunden ohne Fehler durch. Die Tempoleiste oben bleibt bei den bekannten Stufen. | 29.10.2026 |
-| Sperre und Kennzeichen | `Hauptszene.Entwickler.cs` setzt `Simulation.EntwicklerErlaubt = Entwickler.Aktiv` gleich nach dem Aufbau der Simulation – das gilt für Neubeginn, Laden und Probepartie, weil die Hauptszene für jede Partie neu entsteht. Ladeliste (Hauptmenü und Spielmenü): „[Entwicklerhilfe]“ hinter dem Titel mit Tooltip (`Speicherung.Kopf(json).MitEntwicklerhilfe`); Jahresbericht und Reiter „Jahresrechnung“ des Berichts: ein Satz „Diese Partie lief mit Entwicklerhilfe …“. Ein ⚙-Zeichen ging nicht: Die Schrift hat es nicht. | 29.10.2026 |
-| Wetter und Darstellung | Reine Darstellung, nichts wird gespeichert: Wetter und Jahreszeit der Ansicht (auch „Automatisch“) und ein Blitz über `Stadtansicht.Entwickler.cs` – derselbe Weg wie `--wetter` und `--jahreszeit` (`_wetterVorgabe`), die Werte stehen sofort; Dunst und Unschärfe über `Fenster.DunstSetzen` und `UnschaerfeSetzen` mit `speichern: false` (die Einstellungen der Datei bleiben unberührt); Hilfsanzeigen Wegenetz (jetzt auch schaltbar, `--wegenetz=1` nutzt denselben Weg) und Bauzonen (`BauzonenHilfe`, neben dem Baumodus). Die Schalter gleichen sich zweimal je Sekunde mit dem Ist-Stand ab. Ohne Weg und darum weggelassen: ein eigener Nachtdunst (es gibt nur den Morgendunst mit Bodennebel). | 29.10.2026 |
-| Messwerte | Aktualisieren sich zweimal je Sekunde: Bildrate, Bildzeit, Zeichenaufrufe, Objekte, Dreiecke (`RenderingServer.GetRenderingInfo`), Lichter im Bild (`Stadtansicht.LichterImBild` zählt alle sichtbaren `Light3D` im Baum, nur alle zwei Sekunden), Knoten, Speicher (Godot, .NET, Grafik, Texturen), Spielzeit und Tempo. Die Prüfsumme (`Zustandspruefsumme.Kurz`) rechnet nur auf Knopfdruck; der KI-Einblick (`KiEinblick.Alle`, Zeilen als Text) beim Öffnen des Reiters und auf Knopfdruck. | 29.10.2026 |
-| Startoption | `--entwicklerfenster=1` (mit `--entwickler=1` oder dem Haken) öffnet das Fenster gleich, `=2` bis `=5` auf dem Reiter 2 bis 5. | 29.10.2026 |
-| Klicktest | Vulkan (T400): Fenster mit jedem Reiter, Gulden geben (Kopfzeile 4.557 → 5.874 im Lauf, die Meldung im Fenster), Regen und Winter mit Wegenetz und Bauzonen, Bis Ratssitzung (Jahresbericht mit dem Satz zur Entwicklerhilfe, Spielstand mit dem Kennzeichen), Laden und F12 danach (Sperre offen, Gulden geben geht), 64×, Ladeliste mit „[Entwicklerhilfe]“. Kein SCRIPT ERROR. Nach dem Zusammenführen mit M1 und M2 (Integration, PR #254) noch einmal: Reiter 1, Gulden geben (+1.000), Wetter Regen, Messwerte mit Prüfsumme (b83e4195), Speichern und Ladeliste mit „[Entwicklerhilfe]“; ohne `--entwickler=1` kein Knopf und keine Reaktion auf F12. | 29.10.2026 |
-
-
-### Einstellungen-Umbau (PR #262)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auftrag | Wunsch des Nutzers: Das Fenster ist überladen. Sieben Reiter werden vier (Grafik, Ton, Spiel, Barrierefreiheit), Erklärtexte wandern in Tooltips, teure Optionen bekommen ein Zeichen, ausgeschaltete Schalter werden klar sichtbar, neu: Grafikschnittstelle Vulkan/DirectX 12. Werte und Speicherformat bleiben (alte `einstellungen.cfg` laden unverändert). | 29.10.2026 |
-| Aufteilung | **Grafik:** Voreinstellung (mit „Automatisch wählen“ und Vollbild), dann je Gruppe die Hauptregler: Leistung (Bildrate, VSync, FSR 2.2), Bild (Kantenglättung, Schatten), Stimmung (Bloom). Der Knopf **Erweitert** zeigt den Rest in denselben Gruppen: Dynamische Auflösung, Renderauflösung, Natur-Dichte, Passanten, Sichtweite; Boden, Gras, Nachschärfen, Umgebungsverdeckung, indirektes Licht; Bloom-Stärke, Unschärfe, Wolkenschatten, Dunst, Wetter, Farbstimmung; Grafikschnittstelle (Windows). **Ton** wie vorher, jetzt eine Zeile je Bus. **Spiel:** Ratssitzung. **Barrierefreiheit:** Größe, Farbfilter, Tooltips festheften und neu **Fahnen bewegen** (zog von „Stimmung“ um; sein Text nennt schon die Bewegung als Grund). Nichts gestrichen. | 29.10.2026 |
-| Erweitert gemerkt | `einstellungen.cfg`, Abschnitt `oberflaeche`, Schlüssel `grafik_erweitert` (Standard zu). `--reiter=GrafikErweitert` öffnet es nur für den Start; die alten Namen `Leistung`, `Bild`, `Stimmung` gehen weiter (= GrafikErweitert), `Voreinstellung` = Grafik. | 29.10.2026 |
-| Tooltips | Jede Zeile hat ihren Tooltip an Beschriftung, Feld und Wert. Bei Auswahllisten nennt er alle Stufen, die gewählte mit „»“ und „(gewählt)“. **Reiner Text:** BBCode wie `[b]` zeigt der Tooltip wörtlich (im Klicktest gesehen und zurückgenommen). Die kurzen Zeilen unter Reglern, die sich mit dem Stand ändern (Messergebnis, Stand der dynamischen Auflösung, „FSR glättet selbst“, Grafikschnittstelle), bleiben im Fenster. | 29.10.2026 |
-| Leistungszeichen | Eine Flamme (Glut, Hitze) im Holzschnitt-Stil, gezeichnet in `Oberflaechenstil.LeistungsSymbol()` (20×20, Umriss, Schraffur, Handfarbe 0,75 px versetzt), also kein Asset und kein Protokolleintrag. Ein vorhandenes Icon passte nicht (die Waren-Knöpfe sind Waren). Gesetzt bei: Dropdown-Einträgen MSAA 2×/4×/8×, Umgebungsverdeckung Hoch, Gras Sehr dicht, Morgendunst Hoch (Zeichen in der Liste und im geschlossenen Feld) und dem Schalter indirektes Licht. Nicht gesetzt, wo der Text „kostet etwas“ sagt (Bloom, Unschärfe). Der dunkle Umriss geht auf dem dunklen Tafelgrund fast unter; die Flamme liest sich vor allem an der Farbe. | 29.10.2026 |
-| Schalter | Aus: Grund (0,33 / 0,27 / 0,20) heller als die Tafel (0,12), Rand fast hell (0,92 / 0,84 / 0,66), Knopf cremeweiß links; an: golden, Knopf rechts. Dazu das Häkchenfeld heller. Ein Klick auf die Beschriftung schaltet auch. | 29.10.2026 |
-| Pfeilzeichen | „▸“ und „▾“ fehlen der Schrift der Knöpfe (Kästchen im Klicktest), deshalb steht „Erweitert aufklappen“ bzw. „zuklappen“ im Knopf. | 29.10.2026 |
-| Grafikschnittstelle | Nur unter Windows (`--schnittstellezeigen=1` zeigt die Zeile zum Ansehen). `project.godot` bekommt `application/config/project_settings_override="user://grafikschnittstelle.cfg"`; die Einstellung schreibt dorthin `rendering_device/driver.windows`. Belegt mit Godot 4.7.2 (Kopf-Skript ohne Fenster: ohne Datei `vulkan`, mit der Datei `d3d12`) und im Godot-Quelltext (`ProjectSettings::setup` lädt die Datei vor `Main::setup`). Rückfall: Godot selbst (`fallback_to_vulkan`, Grundwert an) bei Startfehler, dazu unser Vermerk gegen spätere Abstürze (`Grafikschnittstelle.cs`, Beschreibung in ARCHITEKTUR). Standard bleibt Vulkan. Nur der Nutzer kann DirectX 12 prüfen: [Testanleitung](../testanleitung-d3d12.md). | 29.10.2026 |
-### Ladebildschirm (PR #261)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auftrag | Ladebildschirm für neue Partie, Spielstand und Kartenwerkstatt (Teamleiter, nach der Messung vom 29.10.: alles lief in einem Zug auf dem Hauptthread, das Fenster stand 5 s, die Wohnhäuser kamen erst im zweiten Bild). | 29.10.2026 |
-| Aufbau der Tafel | `Ladebildschirm.cs`: oben „Ein Rat für unterwegs“ (Germania One, Gold) und ein Tipp, der alle 7 s wechselt; in der Mitte das Bild 16 : 9 im Holzschnitt-Rahmen (schwarzer Umriss, schmaler Pergamentrand); unten der `Ladebalken`. Grund dunkel wie die Tafeln. Größe folgt dem Fenster. | 29.10.2026 |
-| Bild (Platzhalter) | Die Kartenvorschau der Stadt aus `assets/oberflaeche/karten/<kennung>.png` (480 × 270, vergrößert, darum weich), sonst Köln. Gemalte Ladebilder kommen später über die Bild-KI (nicht neben der Arbeit, weil keine KI daneben laufen darf). Kein neues Asset, kein Protokolleintrag. | 29.10.2026 |
-| Fortschritt | Pergamentstreifen statt Balken: heller Streifen, oben und unten leicht gewellt, eingerollte Enden, Schraffur im unteren Drittel, die Füllung in rötlicher Handfarbe 3 px neben ihrem Tinten-Umriss; darauf der Abschnitt in Tinte („Wege werden gepflastert …“, „Häuser werden gebaut …“, „Die Bürger ziehen ein …“). Der Balken zeigt, was **vor** dem laufenden Abschnitt fertig ist, und läuft weich nach; die Anteile kommen aus der Messung (Köln). | 29.10.2026 |
-| Tipps | 20 Tipps in `game/daten/ladetipps.json`, jeder ein Satz aus dem Spielbuch (Steuerung, Spieltag, Gauner, Rat, Glaube, Familie, Karren, Markt, Wetter, Bauen); Quelle je Tipp geprüft. Neue nur, wenn sie so im Spielbuch stehen. | 29.10.2026 |
-| Ablauf | Das Hauptmenü öffnet ihn und wartet zwei Bilder, dann der Szenenwechsel; Hauptszene und Werkstatt öffnen ihn selbst, wenn er fehlt (Startoptionen, Probepartie, Laden im Spiel). Er blockiert die Maus, Eingaben der Szene ruhen, die Zeit steht. Er geht erst, wenn drei Bilder in Folge kürzer als 50 ms sind (höchstens 5 s), dann blendet er in 0,25 s aus. | 29.10.2026 |
-| Hauptszene in Abschnitten | `_Ready` baut die Tafeln, dann `PartieAufbauen` (async): Kern, Stadt in Abschnitten, `PartieStarten` (der frühere Rest von `_Ready`: Spielmenü, Ereignisse, Startoptionen), `ErsteBilderAbwarten`. Startoptionen, die eine fertige Stadt brauchen (`--blick`, `--innen`, `--wetter`), wirken dadurch wie bisher. Hauptmenue.cs/Hauptszene.cs: Änderung durch die Außenstelle im Auftrag. | 29.10.2026 |
-| Klicktest | `tools/klicktest/lauf.ps1`, Vulkan und D3D12 (RTX 4080), Köln: neue Partie, Spielstand, Kartenwerkstatt je 14 Bilder alle 0,5 s (Balken und Text laufen, Ausblenden, fertiges Bild vollständig mit Wohnhäusern und Nachtlicht), dazu Regen 8 s nach dem Start. Bilder: `C:\Reichsgilde_Austausch\aussenstelle\ladebild\` (`uebersicht-*.png`). | 29.10.2026 |
-
 ### Holzschnitt-Platzhalter im Ladebildschirm (PR #…, ersetzt durch das Köln-Bild, siehe unten)
 
 | Thema | Entscheidung | Datum |
@@ -371,20 +123,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tooltips der Unterschalter | Innenräume: was es tut (weiches Licht von Fenster, Glut, Lampe, dunklere Ecken, Glut warm), Räume etwa so hell wie ohne, Kosten (schwache Karte bei Mittel gut 70 % mehr Zeit je Bild, gemessen in `darstellung.md`), Standard an. Außenansicht: experimentell, nur grobe Felder von 5 m wegen der Kamerahöhe, kaum sichtbar, kühlere Schatten, Flecken auf großen Erdflächen, kostet trotzdem (rund 8 %, Hoch 17 %), neue Häuser und Fensterlicht kommen erst beim Verschieben nach, Standard aus. | 30.10.2026 |
 | Klicktest Unterschalter | Vulkan (T400, Greybox, `--einstellungen=1 --reiter=GrafikErweitert --sdfgi=2`): beide Zeilen unter „Globale Beleuchtung (SDFGI): Mittel“, eingerückt, Schalter in der Spalte von „Indirektes Licht“, Innenräume golden (an), Außenansicht hell (aus) mit Flamme und „– experimentell“; beide Tooltips nach 12 s Hover (heften sich fest). Umschalten in der Partie (`--innen=1`, Einstellungen über der Schmiede): Klick auf „Innenräume“ schaltet SDFGI im Raum dahinter sofort aus, ein zweiter Klick wieder an, ohne Neustart. Bilder: Scratchpad `sdfgi2/ui/` (`l2/`, `umschalten/`). | 30.10.2026 |
 | Tooltips nach der Prüfung (von Darstellung) | Niedrig nennt die leicht treppigen Kanten (halbe Auflösung), Mittel „auf voller Auflösung (glatte Kanten)“, Hoch „viermal so viele Strahlen wie Niedrig“. „Innenräume“: die Räume bleiben in jeder Stufe etwa so hell wie ohne; Kosten auf einer schwachen Karte rund 30 / 40 % (in Wohnhaus und Rathaus bis 75 %) / mehr als doppelt. „Außenansicht“: rund 7 % bei Niedrig, 15 % bei Mittel und Hoch. Messung: `docs/bereiche/darstellung.md`, „Prüfung“. | 31.10.2026 |
-### Kartenwerkstatt: Felspinsel P2 – Tafel und Tastenhilfe (Branch phase5/fels-p2, PR folgt)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Tafel Felsstück | `Kartenwerkstatt.Felslage.cs`: Tooltips der Gizmo-Knöpfe nennen die Tasten 1, 2, 3 (Achsen: 4); „Auf den Boden (End)“; neuer Knopf „Kopieren (Strg+D)“; neue Zeile Auswahl mit „Gleiche Form“, „Gleiches Gestein“, „Umkehren (Strg+I)“, „Alle (Strg+A)“. Die Hilfe unter den Knöpfen nennt die Gizmo-Tasten und das Schieben mit den Pfeiltasten in Worten (keine Pfeilzeichen: die Schrift hat sie vielleicht nicht) | 09.11.2026 |
-| Tastenhilfe unten | `Kartenwerkstatt.Tafeln.cs`: Zeile für ein gewähltes Felsstück mit 1/2/3/4 (Gruppen 1–4 erst nach Esc), Pfeiltasten zum Schieben (Umschalt, Strg, Alt), End/B, Q/E, Strg+D, Rahmen und Strg+A; beim Stempeln der Zusatz „danach steht der Gizmo an den neuen Stücken“; im Werkzeug Auswahl „Ziehen ins Leere: Rahmen um Felsen“. Entscheidungen zu Tasten und Verhalten in `darstellung.md` („Felspinsel P2“) | 09.11.2026 |
-
-### Handschuh-Zeiger aus echter Hand, Wahl in den Einstellungen (PR #330)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Bilder | Neue Hände (`tools/modelle/handschuh_mpfb.py`, MPFB-Grundnetz CC0, Runde 16) ersetzen alle 36 Handbilder; Türschloss unverändert. Stufe 3 (Waldgrün): nur ein schmales Messingband an der Stulpe (vorher drei). Zeigerpunkte jetzt je Größe 6/6, 9/10, 12/13 (`Mauszeiger.HandPunkte`), nicht mehr 1,5- bzw. 2-mal 32. | 05.11.2026 |
-| Wahl | Reihe aus sieben Kacheln (Auto + 6) mit 48-Pixel-Vorschau unter „Eigener Mauszeiger“ (Barrierefreiheit); alle sechs unabhängig vom Stand wählbar (nur Zierde), gespeichert als `zeiger_stufe` im Abschnitt „anzeige“ der Einstellungsdatei (0 = automatisch), nicht im Spielstand. Kacheln nur aktiv bei eingeschaltetem Zeiger; Name der Wahl darunter, Tooltip der Zeile listet alle. `--zeigerstufe` schlägt die Wahl nur für diesen Start. | 05.11.2026 |
-
 ### Neue Handschuh-Zeiger aus gezeichneten Vorlagen (PR „Oberfläche: neue Handschuh-Zeiger“)
 
 | Thema | Entscheidung | Datum |
@@ -423,19 +161,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Merken | Nichts im Spielstand: „neue Partie“ heißt Spielzeit 0. Keine Einstellung zum Abschalten, weil es kein Tipp-System gibt; ohne Startoptionen von selbst, sonst `--starthinweis=1` | 05.11.2026 |
 | Umzug | Zieht mit den Meldungen ins geplante Benachrichtigungssystem um (eine Methode, ein Aufruf in `PartieStarten`) | 05.11.2026 |
 
-### Benachrichtigungen Stufe 1: Siegel und Briefe (PR #322)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ort | Alle Meldungen kommen nach rechts unten (auch „✗“); die Zeile unten links entfällt. Siegel-Ecke über der Betriebsleiste (über der Raumleiste im Innenraum), Brief-Fenster darüber; Tafeln rechts lassen den Platz frei (`Rollbereich.EckeHoehe`). Nichts pausiert. | 05.11.2026 |
-| Stufen | Aus, Verlauf, Siegel, Brief; Wahl je Art im Reiter „Meldungen“ der Einstellungen (Abschnitt `[meldungen]` in `einstellungen.cfg`), gilt für Eigen und Stadt, Fremdes bleibt im Verlauf. | 05.11.2026 |
-| Zuordnung | `game/daten/meldungen.json` (Arten, Themen, Textmuster, Vorgabe je Betroffenheit, Absender, Ziel, Sammelregel) und `game/scripts/Meldungsordnung.cs` (ohne Godot, `MeldungsordnungTests`). | 05.11.2026 |
-| Bündeln | Jahreswechsel: ein Brief „Jahresbericht“ (Gericht, Rat, Steuer, Stand, Personal, Bank, Spitzel), einzeln nur Todesfall und eigene Anklage. Stillstand: ein Siegel je Betrieb nach 60 Spielminuten. Nacht (20–23 Uhr und Nachtgeschehen der Jahresabrechnung): ein Brief „Die Nacht“. Rivalen nur Verlauf. Fremde Unterwelt und fremde Spitzelberichte verworfen (`Gauner.DiesesJahr[^1].Fuer`, Auftraggeber). | 05.11.2026 |
-| Verlauf | Reiter „Verlauf“ im Bericht (Enum-Name bleibt `Protokoll`): alle Meldungen der Sitzung über die Jahre (3000), Filter Alles, Mein Haus, Rivalen; nicht im Spielstand. | 05.11.2026 |
-| Start-Hinweis | Der Hinweis zum Personalbuch (PR #321) kommt als Brief mit Knopf „Zum Personalbuch“. | 05.11.2026 |
-| Gestaltung | Siegel und Brief zeichnet der Code (schwarzer Umriss, Farbe leicht versetzt, Schraffur); „Siegel und Briefe bewegen“ schaltet Einblenden und Pulsieren ab. Startoptionen `--meldungen=demo|brief|jahr`. | 05.11.2026 |
-| Messung nachher | Siegel plus Briefe etwa 9 je Spieljahr statt gut 80 Zeilen (Messung `messen meldungen`, Mittel); Bündelung und Filter wirken zusätzlich. | 05.11.2026 |
-
 ### Benachrichtigungen Stufe 2: Porträt, Hinsehen, Verlauf aus dem Spielstand (PR #339)
 
 | Thema | Entscheidung | Datum |
@@ -444,26 +169,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Porträt | Person der Meldung, sonst bei Anklage, Schulden, Meisterprüfung und Aufstieg das Oberhaupt; am Siegel klein unten links (fängt keine Klicks), im Brief 64 px mit Name und Haus (Klick: Charakterfenster). | 06.11.2026 |
 | Hinsehen | Knopf im Brief (ersetzt „Zu <Betrieb>“), je Zeile in gestapelten Briefen, Klick auf eine Zeile im Verlauf: Kamera hin, eigener Betrieb → Kurzübersicht, fremdes Gebäude → Auswahl, eigenes Wohnhaus → Tafel, Blitzschlag → Ort; ohne Ort Charakterfenster der Person. Drinnen erst hinaus. | 06.11.2026 |
 | Verlauf | Nach dem Laden aus dem Spielstand (500 Meldungen des Kerns), ohne Siegel und Briefe neu auszulösen. | 06.11.2026 |
-
-### Ladebildschirm mit Bild, Tipps und geeichtem Balken (Branch phase5/ladebildschirm-bild)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auftrag | Balken neu eichen, ein großes Holzschnitt-Ladebild, 20–30 Tipps, Rahmen im Stil der Oberfläche (Teamleiter nach Nutzerwunsch). | 07.11.2026 |
-| Balken | Gemessen mit `--ladezeit=1` (Release, Köln und Greybox, je 3 Läufe, Vulkan RTX 4080): Die Anteile der Abschnitte in `Stadtansicht.Karte.cs`, `Stadtansicht.cs` und `Hauptszene.cs` folgen jetzt dem Mittel beider Karten (Anteil = Zeit, die davor verstrichen ist; Balken von 0,02 bis 1). Mittlere Abweichung des Balkens von der verstrichenen Zeit 5,4 → 0,6 Punkte (Köln), 4,7 → 0,8 (Greybox); größte Abweichung 12 → 1,4 Punkte. Die Phase hinter dem Ladebild (Gras, Vögel, Wetterprobe) hat eigene Stufen (`ErsteBilderAbwarten`: 0,784 / 0,79 / 0,925 bis 1). Die Kartenwerkstatt ist seit dem Nachtrag unten geeicht. Neu: Das Log zeigt je Abschnitt „Ladezeit: Balken <Anteil> „<Text>“ bei <ms>“; die Dauer eines Abschnitts ist der Abstand zur nächsten Zeile. | 07.11.2026 |
-| Bild | `ladebilder/koeln.webp` (1664 × 928): Köln am Rhein mit Dom-Baustelle, Kran und Schiffen, aus Qwen-Image 2512 + holzschnitt_v1 (Ablauf `docs/assets/prompts/ladebilder.md`). Es füllt das Fenster (zugeschnitten, bei sehr breiten Fenstern oben und unten beschnitten), in einem Holzrahmen. Die acht quadratischen Platzhalter entfallen. Drei Entwürfe liegen beim Nutzer zur Auswahl. | 07.11.2026 |
-| Tipps | `ladetipps.json`: 30 Tipps, alle aus dem Spielbuch (Wirtschaft, Hafen, Stände). Unten auf einer Pergamenttafel über dem Balken. | 07.11.2026 |
-| Bilder | `--ladebildfotos=<ordner>` speichert den Ladebildschirm bei 10, 50 und 90 % des Balkens. | 07.11.2026 |
-| Nachträge (Integration, NAS-Klicktest) | Der Tipp wechselt nach echter Zeit (`Time.GetTicksMsec`): während der Abschnitte blieb `delta` klein, auf der NAS wechselte er in 20 s nie. `--ladebildfotos` holt das 90-%-Bild beim Schließen nach (der Balken erreicht 90 % oft nicht vorher). Tipps ohne „✗ ⚠ ▲ ▼“ (fehlen der Text-Schrift, Kästchen). | 07.11.2026 |
-
-### Ladebalken der Kartenwerkstatt geeicht (Branch phase5/werkstatt-ladebalken)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Messung | `--kartenwerkstatt=koeln` und `=greybox` mit `--ladezeit=1`, je 3 Läufe vorher und 6 nachher (Vulkan, Grafikkarte der NAS, `-p:Optimize=true`; die NAS war durch andere Läufe belegt, Load 6–8, darum zwei Nachher-Sätze). Sollwert = `0,02 + 0,98 × verstrichen / Gesamtdauer` (Gesamtdauer von „Die Reise beginnt“ bis „Ladebild schließt“: Köln 15–26 s, Greybox 15–30 s), Anteil je Abschnitt = Sollwert an seinem Beginn, gemittelt über die Läufe und beide Karten (wie bei den Spiel-Anteilen). | 08.11.2026 |
-| Neue Anteile | Entwurf ausrollen 0,03 → 0,077; Gelände (`Durchlaufen` von 0,09 → 0,106); Häuser 0,228 → 0,202; Wege 0,457 → 0,422; Wald und Felder 0,462 → 0,445; Bäume 0,585 → 0,483; Mauer 0,587 → 0,493; Fluss 0,590 → 0,499; Ende des Abschnitts („Werkzeug wird bereitgelegt“) 0,60 → 0,532; erstes Bild 0,66 → 0,777 (siehe unten). In `Stadtansicht.Kartenwerkstatt.cs` sind die Anteile der Schritte relativ zum Weg von 0,106 bis 0,532 (0 / 0,225 / 0,742 / 0,796 / 0,885 / 0,908 / 0,923). Die alten Werte kamen von Köln vom 29.10. und liefen zu schnell voran (Wald und Bäume nahmen 0,5 Balken, kosteten aber 1,2 s). | 08.11.2026 |
-| Abweichung | Mittlere Abweichung des Balkens vom Sollwert an den Abschnittsgrenzen (ohne das erste Bild), Punkte: **Köln 4,3 → 1,6, Greybox 6,0 → 3,0** (größte 8,6 → 2,6 bzw. 11,7 → 4,7; in den ruhigen Läufen unter 1,5). Über die ganze Zeit gerechnet (Balken stückweise konstant) 10,0 → 8,7 bzw. 10,2 → 9,3, größte 33,6 → 23,8 bzw. 33,6 → 26,4. | 08.11.2026 |
-| Das erste Bild | In der Werkstatt dauert das erste Bild hinter dem Ladebild 8–11 s (Köln; Greybox 7–9 s, 45 % der Gesamtzeit), weil Felder (`WerkstattAktualisieren` 5 s), Wegeschicht (2 s) und Gras (1,4 s) erst hier rechnen; der Balken steht darin still. Seine Stufe steht deshalb auf dem Sollwert in der Mitte des Bildes (0,777), nicht an seinem Anfang (0,555): größte Abweichung 44 → 24 Punkte. Der Abschnitt davor ist unverändert. Wer den Balken dort wirklich gleichmäßig will, muss diese Arbeit in `EntwurfZeigenSchritte` oder `Stadtansicht.WerkstattAktualisieren` in Abschnitte teilen (Felder und Wegeschicht als eigene Schritte) – eigener Auftrag. | 08.11.2026 |
 
 ### Lebensweg im Charakterfenster (PR „Kern: Charaktersystem Teil 3a – Lebensweise“)
 
@@ -484,24 +189,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Aussehen | Messing-Dreieck mit Fragezeichen nach einer Vorlage des Nutzers (mit Gemini erstellt, Herkunft im Protokoll); freigestellt mit `tools/oberflaeche/zeiger_hilfe.py`, Höhe 48/64/80 wie die Hände, 1 Pixel dunkle Kontur, ohne Schein und ohne Hover-Fassung. Feine Gravur und Nieten gehen bei 48 Pixel weich verloren, Form und Farbe bleiben. | 09.11.2026 |
 | Einbau | `Mauszeiger` setzt `CursorShape.Help` je Größe, unabhängig von Stufe und Zustand, Zeigerpunkt (0, 0) = Dreiecksspitze; `ZeigerEntfernen` setzt ihn zurück. | 09.11.2026 |
-### Maus: nichts geht durch Fenster, Hilfe-Zeiger nur bei Tooltip (Branch fix/maus-durchgriff)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ursache Fragezeichen | Godot machte beim Setzen der Zeigerbilder (`SetCustomMouseCursor` für Pfeil, Hand, Hilfe nacheinander) die zuletzt bzw. mittig gesetzte Form zur aktuellen, bis sich die Maus wieder bewegte: nach jedem Wechsel des Zeigerzustands (z. B. am Rand eines Knopfes im Hauptmenü) blitzte kurz das Fragezeichen auf. Kein Steuerelement hatte dort einen Tooltip. | 10.11.2026 |
-| Lösung Zeiger | `Mauszeiger.Anwenden` merkt die Form vorher und stellt sie nach dem Setzen wieder her. Das Fragezeichen trägt der Hilfe-Platz nur, wenn `Tooltips.QuelleFinden` für das Steuerelement unter der Maus (und dessen Eltern bis zum ersten mit `MouseFilter Stop`) einen nicht leeren Tooltip liefert; sonst trägt er das Bild des Pfeils. Die Suche steht jetzt öffentlich in `Tooltips` und wird von beiden benutzt. | 10.11.2026 |
-| Ursache Durchgriff | Container und Beschriftungen haben `MouseFilter Pass`; was kein Knopf verbrauchte (Rand, Abstand zwischen Knöpfen, Text), kam in `Stadtansicht._UnhandledInput` an und zoomte oder wählte ein Gebäude – auch hinter dem Hauptmenü. | 10.11.2026 |
-| Lösung Durchgriff | `Stadtansicht.MausUeberOberflaeche` (Innentafel oder `GuiGetHoveredControl` nicht leer): Drücken und Rad der Maus erreichen die Welt (Auswahl, Bauen, Raum, Ego-Wahl, Kartenwerkstatt-Werkzeuge, Zoom, Ziehen) nur über freier Welt; Loslassen geht immer durch. `FreieKamera` ebenso (außer bei gefangener Maus). Neue Fenster brauchen keinen eigenen Schutz. | 10.11.2026 |
-
-### Werkstatt-Pinsel: Fehlerliste nach dem Strich, Ladebalken mit Vorwärmen (Branch phase5/werkstatt-pinsel-fluessig)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Fehlerliste | Kopf und Fehlerliste der Werkstatt (`Auffrischen`, mit der vollen Prüfung) frischen während eines Pinselstrichs (Gelände, Boden, Fels) und 0,3 s danach nicht auf, sondern merken es sich (`_auffrischenNachStrich`) und holen es in `_Process` nach (`Stadtansicht.WerkstattPruefungAufschieben`). Vorher rechnete jeder Tupfer die ganze Prüfung und baute bis zu 150 Knöpfe neu (Köln 12–40 ms je Tupfer). Rückgängig-Knopf und „ungespeichert“ stehen damit erst nach dem Strich neu. Einzelheiten und Messung in `darstellung.md` („Werkstatt-Pinsel malen ohne Ruckeln“) | 09.11.2026 |
-| Ladebalken | Neuer Abschnitt nach den Tafeln: 0,56 „Die Pinsel werden ausgewaschen …“ (`Stadtansicht.WerkstattVorwaermen`, Köln 76 ms, headless gemessen mit `--ladezeit=1`); die übrigen Anteile bleiben (0,532 Tafeln, 0,777 erstes Bild) | 09.11.2026 |
-| Messung | Startoption `--pinselmessung=<datei.md>` (`Kartenwerkstatt.Pinselmessung.cs`): malt nach dem Laden mit jeder Pinselart einen Strich aus 30 Tupfern, legt dazu einen Weg und eine Bauzone an, schreibt die Tabelle und beendet das Spiel. Nachtrag (Branch phase5/pinsel-nacharbeit): die Spalte „übriges Bild“ zählt eingerückte Teile (stecken in einem äußeren) nicht mehr doppelt und wird nicht mehr negativ; neu Rechenzeit des Hauptfadens je Bild (Linux), Spalten „über Leerlauf“, Spitzenbilder danach mit ihren größten Teilen, `--pinselmessung-nur=` | 09.11.2026 |
-| Messung | Startoption `--pinselmessung=<datei.md>` (`Kartenwerkstatt.Pinselmessung.cs`): malt nach dem Laden mit jeder Pinselart einen Strich aus 30 Tupfern, legt dazu einen Weg und eine Bauzone an, schreibt die Tabelle und beendet das Spiel | 09.11.2026 |
-
 ### Ego-Perspektive im Entwicklerfenster (PR „Oberfläche: Ego-Perspektive im Entwicklerfenster“)
 
 | Thema | Entscheidung | Datum |
@@ -521,20 +208,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Talente und Aktivitäten | Im Tooltip eines Talents die Zeile „Stress −½“ (`Stresslage.TalentAbzug`). In der Aktivitätenliste hinter dem Hinweis, was die Aktivität an Stress bewegt („Stress: Heinrich −15 (Im Wirtshaus zechen); Agnes −15 (…)“, aus `StressVorschau`). | 09.11.2026 |
 | Lexikon und Entwicklerfenster | Lexikon-Eintrag „Stress“ mit Live-Zahlen (`stress_stufe1`, `stress_stufe2`, `stress_hoechstwert`, `stress_danach`, `stress_abklingen`). Entwicklerfenster, Reiter „Familie und Ereignisse“: Zeile „Stress“ (Zahl 0–100, „Setzen“) für die gewählte Person; 100 löst den Zusammenbruch aus. | 09.11.2026 |
 | Medaillons | Schwermütig und Reizbar aus Vorlagen des Nutzers (mit Gemini erstellt, WebP), geschmiedet wie die übrigen erworbenen Züge: `tools/zugmedaillons/schmiede.gd` mit Eisenring, 128 px (`schwermuetig.png`, `reizbar.png`). Die Schmiede liest jetzt auch `.webp`, schneidet nicht quadratische Vorlagen mittig quadratisch zu und überspringt Züge ohne Bild – so lassen sich einzelne Medaillons nachschmieden, ohne die übrigen neu zu rechnen. Protokollzeile „Vorlage des Nutzers, mit Gemini erstellt“, Prompt-Datei `zug_medaillons.md` ergänzt. | 09.11.2026 |
-### Kartenwerkstatt: Felspinsel P3 – alle Regler in der Tafel (Branch phase5/fels-k-p3, PR folgt)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Pinsel | Streuen: Radius, Dichte, **Abstand** (0–10 m, „dicht an dicht“ bei 0), Größe und Streuung mit der Zeile „Größe … bis … ד darunter (Zufallsbereich Größe ohne neues Feld), Einsinken, **Einsinken ±** (0–50 %, Vorgabe 5 %), Neigung, Häkchen wie bisher. Stempel ohne Radius, Dichte und Abstand | 09.11.2026 |
-| Erweitert | Neuer Abschnitt **Erweitert**, zu Beginn zugeklappt: Bereiche von–bis mit Häkchen für Drehung, Kippen (X), Rollen (Z), Breite, Höhe, Tiefe, Höhenversatz (`BereichZeile`: Häkchen, zwei Zahlenfelder; ohne Häkchen null = Verhalten von vorher) und „Neigung bis“ (Häkchen, Grad) | 09.11.2026 |
-| Zugeklappt bleibt zu | `Kartenwerkstatt._abschnitteZu` merkt sich zugeklappte Abschnitte je Überschrift über den Neuaufbau der Tafel hinweg (eigene Wahl; vorher ging jeder Abschnitt beim Neuaufbau wieder auf). „Erweitert“ steht zu Beginn darin | 09.11.2026 |
-| Filter | Unter dem Filter (Steigung, Boden) die Zeile **Höhe** (Bereich in Metern, −20 … 60) für alle Felsarten | 09.11.2026 |
-| Radierer | Abschnitt **Formen** mit „Nur diese Formen“ und den Formen; Regler **Ausdünnen bis** (0 = „aus: alles weg“, bis 80 %) statt eines eigenen Werkzeugs (wie „Erase Density“ in Unreal; eigene Wahl: keine neue Palette, kein neues Symbol) | 09.11.2026 |
-| Neu verteilen | Tafel mit Formen und „Nur diese Formen“, Radius, Häkchen „Neu würfeln:“ (Größe, Achsen, Drehung, Kippen, Rollen, Höhe, Einsinken, Neigung), den Reglern für die Werte, „Erweitert“, Filter; bei einer Auswahl der Knopf „Auf die Auswahl anwenden (n)“. Die Tafel eines gewählten Stücks hat „Neu verteilen“ mit denselben Häkchen (`FelsWurfHaken`) | 09.11.2026 |
-| Texte | Palette: „Neu verteilen“, Tooltip des Radierers mit Ausdünnen; Tastenhilfe unten: Umschalt radiert beim Streuen, Ausdünnen, Neu verteilen | 09.11.2026 |
-| Startoptionen | `--werkstatt-fels=` kennt `pinsel:<feld>=<wert>,…`, `ausduennen:<radius>,<dichte>,…`, `verteilen:<werte>[,<radius>,…]` (STARTOPTIONEN); die Pinselmessung misst „Neu verteilen“ und „Ausdünnen bis 10 %“ mit | 09.11.2026 |
-| Offen | Kein Bild der Tafel (Godot nur headless); Breite der Bereichszeilen (Häkchen + zwei Zahlenfelder) bei 1280 px ungeprüft | 09.11.2026 |
-
 ### Geheimnisse im Charakterfenster (PR „Kern: Charaktersystem Teil 3c – Geheimnisse“, vom Kern mitgebaut)
 
 | Thema | Entscheidung | Datum |
@@ -545,51 +218,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lexikon, Entwicklerfenster, Startoption | Lexikon-Eintrag „Geheimnisse“ (Gruppe Haus und Familie) mit `{wert:geheimnis_spitzel}`, `geheimnis_spitzel_ratsherr`, `geheimnis_gerede`, `geheimnis_beichte`, `geheimnis_ansehen_jahre`, `geheimnis_busse`, `geheimnis_mord_busse`. Entwicklerfenster, Reiter „Familie und Ereignisse“: Zeile „Geheimnis“ mit Ehebruch, Ketzerei, Schulden (jeweils mit Wissen) für die gewählte Person. Startoption `--geheimnis=<Art>[:oberhaupt|ehepartner|rivale|ratsherr[:n]|Nummer]` und `--charakter=rivale` (`Hauptszene.Charakter.cs`). | 09.11.2026 |
 | Bilder | Keine: je Art nur Text (Platzhalter, nichts lädt ein Bild). Siehe Offen. | 09.11.2026 |
 
-### Hofstellen im Startmenü und in der Kartenwerkstatt (PR folgt, Branch phase5/hofstellen)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Startmenü | In „Euer Oberhaupt“ nach dem Startberuf die Zeile **Hofstelle**: „Zufall“ (Vorgabe) und je Start-Hofstelle der gewählten Karte „<Name> – <m> m zum <Markt>“ (`Hofstellenvergabe.Angebot`, nur beim Wechsel der Karte gerechnet, `HofstellenWahlFuellen`); ohne Hofstellen entfällt die Zeile; `NeuePartie.Hofstelle` null bei Zufall; Startplatzvergabe „Vorgabe“ wird im Menü nicht angeboten | 09.11.2026 |
-| Kartenkachel | Statt „Werkstattplätze“ „Hofstellen: <Start> zum Start, <frei> frei“ (frei = alle Hofstellen minus Spieler und Rivalen); Karten ohne Hofstellen zeigen weiter die Werkstattplätze | 09.11.2026 |
-| Startoption | `--hofstelle=<kennung oder zufall>` (Hauptszene.cs) | 09.11.2026 |
-| Werkzeug Hofstelle | Eigener Werkzeugwert `Werkstattwerkzeug.Hofstelle`, erster Eintrag der Gruppe Gebäude. Umriss beider Plätze: der Werkstattplatz mit dem gewöhnlichen Umriss samt Prüfung, der Wohnhausplatz als zweiter Umriss mit eigener Prüfung (`Stadtansicht.Kartenwerkstatt.Hofstelle.cs`); die Lagen rechnet die Oberfläche nur für die Vorschau, gesetzt wird im Kern (`HofstelleSetzen`) | 09.11.2026 |
-| Eigenschaften | Gruppe „Hofstelle“ bei Werkstatt- und Wohnhausplätzen (`Kartenwerkstatt.Hofstelle.cs`): Name, Haken Startplatz, auflösen, löschen; ohne Hofstelle Hinweis und „Hofstelle bilden“ mit dem nächsten freien Platz der anderen Art (einfachste Lösung, kein Wählen) | 09.11.2026 |
-| Tafel Start | Zeile „Hofstelle“ für Spieler und jedes Haus (alle Hofstellen der Karte, genutzte vorgewählt, belegte anderer Häuser ausgegraut); Wohnhaus, Startplatz und Betriebe bleiben | 09.11.2026 |
-| Bauzonen | Haken „nur Werkstätten“ bleibt, Tooltip „Veraltet – besser eine Hofstelle“ | 09.11.2026 |
-| Startoption Werkstatt | `--werkstatt-hofstelle=x,z[,grad[,start]]` (STARTOPTIONEN); Umriss mit `--werkstatt-umriss=hofstelle,x,z[,grad]` | 09.11.2026 |
-
-### Hofstellen: Hafentafel, Kamera-Start, Startbrief (Branch phase5/hofstellen)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Hafentafel (N7) | Bei ruhendem Schiffshandel nennt sie den Hafen-Aufschlag für Ausfuhrwaren (`schiffshandel.hafenAufschlag` über `Schiffahrt.Daten`, nur mit `karrenZumHafen`) und zeigt die Ausfuhrwaren (Waren, die eine ferne Stadt kauft) als Warenzeichen mit Tooltip „Ausfuhrware, +3 % am Hafen“; ist der Hafen zu, steht „Aufschlag entfällt solange“, die Zeichen sind weg. Keine neue Kern-Abfrage nötig | 10.11.2026 |
-| Kamera-Start (N8) | Neue Partie: Kamera sofort (ohne Fahrt) zwischen Werkstatt und Wohnhaus des Spielers (`Stadtansicht.KameraAufHofstelle`, `Hauptszene.KameraAufEigenenHof`), auch bei gelosteter Hofstelle. Ein Spielstand speichert keine Kamera (Kern, `Speicherstand.cs`); Laden und Probepartie behalten den Blick der Karte; `--blick` geht vor | 10.11.2026 |
-| Startbrief (N10) | Der vorhandene Start-Hinweis (Brief des Haushofmeisters) sagt „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein.“, als Dieb „Euer Unterschlupf“, als Gardist „Euer Wachhaus“ (Beruf des Startbetriebs); abschaltbar mit der Meldungsart „Personal“ (Aus oder Nur Verlauf, Vorgabe Siegel zeigt ihn) | 10.11.2026 |
-
 ### Offen (von Oberfläche, Hofstellen)
 
 - Kamera im Spielstand speichern (Kern: `Speicherstand.cs`), damit das Laden den letzten Blick wiederherstellt statt den Kartenblick.
-
-### 3D-Handschuh als Mauszeiger (Branch phase5/handschuh3d-einbau, Pixal3D v6)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Weg | Pixal3D-Hand (v6, `game/assets/modelle/zeiger/handschuh_zeiger.glb`, Skripte `tools/modelle/handschuh/`) statt des Blender-Entwurfs (`phase5/handschuh3d`, nicht gemergt, nur Verhaltens-Vorbild). Die 2D-Zeiger bleiben als Rückfall. | 10.11.2026 |
-| Bühne | `HandschuhZeiger`: `CanvasLayer` 128, `SubViewport` mit eigener Welt, durchsichtigem Grund, MSAA 4× und doppelter Auflösung, zwei Lichter und Umgebungslicht, Umriss-Hülle der .glb (ihre Flächen sind schon nach innen gedreht, Culling Back genügt, Material ohne Licht). `TextureRect` mit `MouseFilter Ignore`; Tasten nur über `Input` abgefragt; `MausUeberOberflaeche` und Klickweitergabe unverändert. | 10.11.2026 |
-| Haltungen | Ruhe, Zeigen (über Anklickbarem), Greifen (Taste gedrückt und mehr als 8 px Weg), Tippen (linker Klick, nur aus Zeigen: aus Ruhe erst Übergang). Clips, Namen und Längen aus der Datei gelesen (`Uebergang_<von>_<nach>`), Ruhe, Zeigen, Greifen als Schleife Linear, Tippen mit Tempo 1,5. Logik ohne Godot in `HandschuhModell.cs`, getestet. Neigung nach Mausgeschwindigkeit (höchstens 11 Grad, Zeitkonstante 0,09 s). | 10.11.2026 |
-| Zeigerpunkt | `Anker_Spitze` (am Knochen `finger2-3.R`) wird je Bild über `Skeleton3D.GetBoneGlobalPose` und die Kamera in Bildpunkte gerechnet, das Bild liegt so, dass sie auf der Mausposition liegt. | 10.11.2026 |
-| Fragezeichen | `Hilfe_Marke` und Umriss nur sichtbar, wenn `Mauszeiger` einen Tooltip meldet (`Tooltips.QuelleFinden`, wie #411). | 10.11.2026 |
-| Einstellung | „3D-Handschuh“ unter „Eigener Mauszeiger“ (Schlüssel `handschuh_3d`, Standard an), Startoption `--handschuh=0/1`. Gilt ab 48 px. Rückfall nur bei fehlender Datei; der Rückfall bei niedriger Bildrate ist wieder entfernt (11.11.2026, siehe unten). | 10.11.2026 |
-| Godot-Import | Befund beim Import (headless, 4.7.2): `COLOR_1` (Faltenfarbe) wird nicht gelesen, nur `COLOR_0` (weiß); darum tauscht `glb_faltenfarbe.py` die Ebenen, und `VertexColorUseAsAlbedo` wird im Code gesetzt (der Import tut es nicht). Knöchelspuren sind Positionsspuren (laut `bewertung_v6`). Das Material hat keine Normalkarte (nur Farbtextur). | 10.11.2026 |
-### Stammbaum und Hauschronik im Familienbuch (Branch phase5/stammbaum, PR folgt)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Reiter | Familienbuch (Taste F) mit den Reitern Familie / Stammbaum / Chronik; über Stammbaum und Chronik eine Hausreihe (Wappen, Name), alle Häuser der Stadt wählbar, auch erloschene und KI-Häuser. Der Reiter Familie bleibt das eigene Haus, wie bisher | 11.11.2026 |
-| Stammbaum | Raster aus Blockbreiten (Person plus Eingeheiratete), Eltern über der Mitte der Kinder; gezeichnet in einem Steuerelement (`Baumzeichnung`), nur Lebende mit echtem Porträt (52 px, ruhend), Verstorbene mit gezeichnetem Grabstein – das hält große Häuser flüssig. Verschieben, Mausrad-Zoom 0,3 bis 1,6, Einpassen, „Zum Oberhaupt“, Zweige einklappen. Klick öffnet das Charakterfenster (`PortraetAnzeige.PersonOeffnen`) | 11.11.2026 |
-| Kern-Ergänzung | `Familienbuch.Stammbaum` und `Familienbuch.Chronik` in `Familienbuch.Stammbaum.cs`: nur lesend, abgeleitet, kein Spielstand, keine Datenversion. Test `StammbaumTests` | 11.11.2026 |
-| Chronik | Zwei Quellen: Personen (Gründung, Geburt, Tod, Erbfolge – für immer) und `Meldungsverlauf` des Hauses (Hochzeit, Ämter, Stand, Meisterprüfung, Geheimnisse, Entscheidungen, Anklage, Feuer – nur die letzten 500 Meldungen). 25 Einträge je Seite mit Porträt | 11.11.2026 |
-| Herkunftswappen | Das Haus der Stadt mit dem Geburtsnamen, sonst `Wappen.AusName(Geburtsname)` (dasselbe Wappen wie überall) | 11.11.2026 |
 
 ### Offen (von Oberfläche, Stammbaum)
 
@@ -663,23 +294,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Prüfung | Ohne Klicktest auf Wunsch des Nutzers | 11.11.2026 |
 | Faust | Übergänge in die Ziehen-Faust und zurück (`Uebergang_*_Greifen`, `Greifen_*`) auf 0,12 s gekürzt: Tempo = Cliplänge der Datei / 0,12 (`HandschuhModell.FaustUebergangSekunden`), glb unverändert. Vorher (Tempo 1,8): Ruhe→Greifen 0,69 s, Greifen→Ruhe 0,56 s, Zeigen↔Greifen 0,28 s | 11.11.2026 |
 
-### Domprediger-Oberfläche (Branch phase5/domprediger-ui, Prediger und Dom PR 3)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ort | Abschnitt „Domprediger“ im Rathaus, Reiter Rat (`RatAnzeige.Dom.cs`), nach den Ämterwahlen: Inhaber, Konfession, Amtszeit bis, Bewerber, Knopf „Als Domprediger bewerben“ (Grund des Kerns grau daneben und als Tooltip), Kandidaten mit Punkten, eigene Stimme als Auswahl mit Vorgabe. Zusätzlich Zeile und Knopf in der Kirchenstube der eigenen Kirche. Gewählt statt eines eigenen Fensters, weil der Rat schon alle Wahlen zeigt. | 12.11.2026 |
-| Punkte | „Punkte“ ist der Schnitt von `Domamt.Punkte` über alle Ratsherren der Stadt (der Kern kennt keinen Gesamtwert); in der Sitzung als Tooltip am Wahlknopf. Annahme der Oberfläche. | 12.11.2026 |
-| Kollekte | Die Domkollekte steht im Jahresbericht unter „Außerdem“ (wie das Amtseinkommen) und in der Jahresrechnung der Berichtstafel, nicht in der Zeile „Gewinn“ (der Kern zählt sie nicht dazu). | 12.11.2026 |
-| Startoption | `--domwahl=1` lässt die geeigneten Häuser (auch den Spieler) sich bewerben (in `docs/STARTOPTIONEN.md`). | 12.11.2026 |
-| Offen | Infotafel am Stadt-Dom mit dem Domprediger und eigene Siegel für Wahl und Amtsende gehören zu darstellung bzw. Meldungen (der Kern meldet über `Meldungsart.Wahl`, Thema „Rat und Wahlen“). Das Amtssymbol gibt es nicht. | 12.11.2026 |
-
-### Neue Partie: „Erweitert“ verbreitert die Tafel nicht mehr (Branch fix/kleinkram-1411)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ursache | Die Wappenwahl je KI-Haus (`Hauptmenue.Besetzung.cs`, `KiZeilenBauen`) ist ein `OptionButton` mit `ClipText`, aber `FitToLongestItem` (Godot-Vorgabe an): Die längste Wappenbeschreibung setzte ihre Mindestbreite auf 672 px, die Zeile auf 920 px | 14.11.2026 |
-| Behebung | `FitToLongestItem = false` nur an dieser Wappenwahl; sie bleibt mindestens 120 px und füllt die Zeile (ExpandFill), lange Beschreibungen werden abgeschnitten. Sonst nichts geändert | 14.11.2026 |
-| Beleg | Headless-Messung (temporär, nicht eingecheckt) mit `--neuepartie=1`, Mindestbreite des Tafelinhalts vor/nach „Erweitert anzeigen“: vorher 716 → 972 px, jetzt 716 → 716 px. Kein Spielbild | 14.11.2026 |
 ### Ratskammer mit Reitern (Branch phase5/ratskammer, Ratssitzung und Ratsbaum PR 2)
 
 | Thema | Entscheidung | Datum |
@@ -689,29 +303,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bewerbung zurückziehen | Knopf „Bewerbung zurückziehen“ unter der eigenen Bewerbung (Befehl `BewerbungZurueckziehen`, ohne AP-Erstattung, der Tooltip sagt es). | 14.11.2026 |
 | Zentrales Thema | Aussehen steht in `game/scenes/rat_thema.tres` mit Typ-Varianten (RatTafel, RatReiter, RatTitel, RatAmtknopf …), `RatStil.cs` ist die Brücke; Aufbau in ARCHITEKTUR.md, Abschnitt „Das Thema der Ratskammer“. Gilt für alle neuen Elemente; die älteren Abschnitte der Ratskammer sind noch nicht umgestellt. | 14.11.2026 |
 
-### Zeiger-Symbole: Windrose und Messing-I (Branch phase5/zeiger-symbole, Nutzer 14.11.2026)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Windrose | Über einer verschiebbaren Fläche (`Mauszeiger.Art.Verschieben`: Form `Move` oder `Drag`, gesucht wie im Viewport nach oben; heute die Stammbaum-Fläche mit `Drag`, auf `fix/testbefunde-1` mit `Move` – beides gilt) steht die Messing-Windrose (vier Spitzen, kleiner Ring) am Platz des Fragezeichens. Das Fragezeichen hat keine Einblendkurve (sichtbar/unsichtbar), die Windrose genauso (`ZeigerMarken.Waehlen`); sie geht dem Fragezeichen vor. Gegenüber dem „?“ zum Betrachter gedreht (Spitzen genau oben/rechts/unten/links) und 0,12 m zur Kamera vorgezogen, damit die Hand sie nicht verdeckt (orthogonal: Lage und Größe gleich) | 14.11.2026 |
-| Ziehen auf der Fläche | Die Hand zeigt weiter (keine Faust), wie beim Auswahlrechteck; das gilt vom Drücken über der Fläche bis zum Loslassen, auch wenn die Maus sie verlässt | 14.11.2026 |
-| Messing-I statt Haltung Text | Über Textfeldern (Form `Ibeam`, auch in Popups und Dialogen: der `HandschuhSpiegel` des Fensters meldet es) schrumpft die Hand um die Fingerspitze bis weg, dann wächst ein römisches I aus Messing (Serifen oben und unten, schmaler Balken, Höhe etwa eine halbe Zeigergröße); beim Verlassen umgekehrt. Je Richtung 0,1 s Smoothstep (Nutzer 14.11.: doppelt so schnell wie zuerst 0,2 s; `SymbolWechsel`, ein Weg 0..2, Umkehr ohne Sprung, nie beides sichtbar). Zeigerpunkt ist die Mitte des I-Balkens, gewechselt wird, wenn beides weg ist. Das I steht ohne Neigung an der Kamera | 14.11.2026 |
-| Haltung Text entfernt | `HandPose.Text`, `Anker_Text`-Nutzung, `TextGewichtZeit`, `PoseDrehungGrad`, `AufrechtDrehungGrad`, `FingerBildwinkelGrad`, `HandschuhZeiger.Text.cs` und ihre Tests sind weg. Die neun Text-Clips bleiben in `handschuh_zeiger.glb` (Datei unverändert; sie kosten etwa 45 KB Animationsdaten von 5,2 MB, knapp 1 %; Entfernen lohnt nicht) | 14.11.2026 |
-| Material | Messing aus `tuerschloss_zeiger.glb` (Normalkarte gleich, Farbtextur mit denselben Patina-Flecken), aber je Kanal aufgehellt auf das Mittel 0,50/0,33/0,10 (linear): in der Schloss-Helligkeit verschwand die Windrose vor dem dunklen Leder. Umriss-Hülle wie beim Schloss (3,6 mm im Bild) | 14.11.2026 |
-### Meldungen und Pause (Branch phase5/meldungen-pause)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Pause am Jahresende | Im Einzelspiel ruht die Zeit zwingend über die Haltegründe des Takts (kern.md, „Haltegründe im Taktgeber“): vom Jahreswechsel bis zum Ende der Szene „Ratssitzung“, dann „Jahresbericht“, solange er offen ist; danach läuft die Zeit im alten Tempo weiter. `ZeitHalteAbgleichen` (Hauptszene.Ratssitzung.cs) leitet die Gründe jedes Bild aus dem ab, was offen ist; jeder Wechsel steht im Log („Zeit: angehalten (…) – Haltegründe: …“). Pause- und Tempoknöpfe sind gesperrt (Tooltip nennt den Grund), Leertaste und Zifferntasten wirkungslos (Log „Zeit: Taste wirkungslos“). Gilt auch für den selbst geöffneten Jahresbericht | 14.11.2026 |
-| Gericht | Der Gerichtstag hat keine eigene Szene (der Kern hält ihn in der Jahresabrechnung vor der Sitzung ab, sein Ergebnis steht im Jahresbericht); er ist damit in „Sitzung → Jahresbericht“ enthalten. Der Gerichtssaal (Tafel, selbst geöffnet) hält nicht an | 14.11.2026 |
-| Stimmrunde (#459) | Nutzer 14.11.2026: Im Einzelspiel hält die Stimmrunde die Zeit über den Haltegrund „Stimmrunde“ an (statt der gewöhnlichen Pause), bis „Fertig“ (`StimmrundeAnzeige.FertigDruecken`); Reihenfolge Stimmrunde → Ratssitzung → Jahresbericht → weiter im alten Tempo, Tasten und Knöpfe gesperrt. Mehrspieler unverändert (läuft bei laufender Zeit). Die Regel steht im Kern (`Zeithalt.Gruende`/`Abgleichen`). Startoption `--stimmrundefertig=<Sekunden>` drückt „Fertig“ von selbst (Klicktest ohne Maus) | 14.11.2026 |
-| Eigene Pause | Spielmenü, Entscheidungsbrief und „Letzte Ratssitzung ansehen“ merken sich nur die eigene Pause (`Takt.Spielerpause`), damit nach dem Schließen kein Haltegrund als Pause hängen bleibt | 14.11.2026 |
-| Verlauf: Befund | Schon da (Stufe 1 und 2): Reiter „Verlauf“ im Bericht, 3000 Meldungen der Sitzung, die letzten 500 des Kerns im Spielstand (Minute, Text, Art, Haus, Ort) – nichts fehlt im Spielstand, keine Datenversion; Klick nur bei Meldungen des Kerns mit Ort, Haus oder Person | 14.11.2026 |
-| Verlauf: ergänzt | Art als Text in jeder Zeile („1401 · 08:15 · Diebstahl: …“); Klick auch ohne „Hinsehen“-Ziel über den Knopf des Briefs der Art (`BriefAnzeige.ZielText`, `BriefZiel`); Knopf „Verlauf“ immer ganz rechts an der Siegel-Ecke (öffnet den Bericht auf dem Reiter). Aussehen über `game/scenes/meldung_thema.tres` (`MeldungStil`, Variante `MeldungVerlaufKnopf`, Maß `verlauf_breite`) | 14.11.2026 |
-| Zentrale Einblendung | `EinblendungAnzeige`: Jede Meldung der Stufe **Siegel** oder **Brief** (dieselbe Wahl je Art in Einstellungen → Meldungen, keine neue Einstellung) erscheint zuerst groß mittig am unteren Rand über der Leiste (Siegel des Themas, Art, Text, höchstens drei Zeilen), steht und wandert verkleinert in die Ecke; erst dann erscheint das Siegel (ein neues bleibt bis dahin unsichtbar und springt auf) bzw. geht der Brief auf. Stufe **Verlauf** und **Aus**: keine Einblendung. Die Stufe bestimmt Größe und Dauer: Brief größer und länger (4 s) als Siegel (2,5 s). „Siegel und Briefe bewegen“ aus: ohne Einblenden und Wandern. Auch Stillstand, Nacht- und Jahresbericht-Brief, Start-Hinweis | 14.11.2026 |
-| Einblendung: Reihe | Nacheinander; warten schon vier, kommt die nächste ohne Einblendung gleich in die Ecke (keine Flut, z. B. beim Laden oder Jahreswechsel). Während Innentafel, Ratssitzung, Jahresbericht oder Entscheidungsbrief offen sind, ist sie unsichtbar und die Reihe wartet | 14.11.2026 |
-| Einblendung: Thema | Alles Aussehen und alle Zeiten in `meldung_thema.tres`: Varianten `MeldungEinblendungSiegel`/`…Brief` (Pergament, schwarzer Umriss, versetzter Schatten), `MeldungEinblendungArt…`, `MeldungEinblendungText…`, `MeldungEinblendungReihe`; Maße `einblendung_breite_…`, `einblendung_siegel_…`, `einblendung_zeilen`, `einblendung_abstand_unten`, `einblendung_einblenden_ms`, `einblendung_stehen_siegel_ms`/`…brief_ms`, `einblendung_wandern_ms`, `einblendung_endgroesse_prozent`, `einblendung_hoechstens_wartend` | 14.11.2026 |
-| Einblendung: ruht (NAS-Klicktest) | Zwei Mängel behoben: Die Einblendung lag unter dem Brief-Fenster (es kommt später in den Baum) – gewählt **Warten, bis der Brief zu ist**, statt sie über alle Fenster zu legen (das hätte sie auch über Spielmenü und Hilfe gezogen). Und sie stand neben offenem Bericht weiter sichtbar. Jetzt ruht sie bei offenem Brief, Entscheidungsbrief, Bericht (rechts), Jahresbericht, Stimmrunde, Ratssitzung, Innentafel, Spielmenü, Einstellungen, Hilfe und jedem großen Fenster in der Mitte (`Fensterrahmen.MittigOffen`). Ruht sie, ist sie unsichtbar, eine laufende hält mitten im Einblenden oder Wandern an (Tween pausiert) und geht danach dort weiter; keine Meldung geht verloren. Logik ohne Godot in `Einblendungsreihe.cs` (`EinblendungsreiheTests`, in der Tests-csproj verlinkt) | 14.11.2026 |
 ### Tooltips der Talente mit Zahlen (Branch fix/attribut-tooltips)
 
 | Thema | Entscheidung | Datum |
@@ -721,41 +312,3 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Was nicht „Qualität“ ist | Handwerkskunst erhöht die **Leistung** (Arbeitstempo) aller Arbeitskräfte, nicht die Warenqualität; der Tooltip sagt es so. | 14.11.2026 |
 | Charakterzüge | Der Tooltip hatte schon Beschreibung und Wirkungstext aus den Daten; neu steht die Meinungswirkung (`Charakterzug.Meinungstext`: Punkte über Träger desselben Zugs, des Gegenteils und bei allen anderen) dabei. | 14.11.2026 |
 | Aussehen | Die Tooltips laufen über den Autoload `Tooltips` (Tafel, Schrift, Festheften). Es gibt kein Tooltip-Theme; Zahlen werden nicht farbig hervorgehoben, weil `Tooltips` BBCode entschärft. Eine Hervorhebung wäre eine Änderung am Autoload, nicht an der Anzeige. | 14.11.2026 |
-
-### Fehlerpaket 1: Testbefunde des Nutzers (Branch fix/testbefunde-1)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Wertmarkierung | Im Tooltip-Text färbt `{{+12 %}}` den Wert in der Wertfarbe des neuen Tooltip-Themas `game/scenes/tooltip_thema.tres` (Pseudo-Typen `TooltipTafel`, `TooltipFarben`, `TooltipMasse`: Flächen, Farben `gold`, `hell`, `verweis`, `wert`, Maße Schrift, Titel, Breite). `Tooltips.cs` entschärft weiter alles andere; nur dieses Zeichenpaar und `[[…]]` werden Auszeichnung. Die Talent- und Beförderungs-Tooltips nutzen es. | 14.11.2026 |
-| Innentafeln bauen sich neu | Ursache: `InnenTafel.Aktualisieren` baut die Tafel neu, sobald sich ihr Stand-Text ändert (Produktion: Fortschritt in Zwanzigsteln; Personal: Laune u. a.): gemessen headless mit `--tempo=8 --startstunde=9` rund 2,4 Neuaufbauten je Sekunde (Produktion) und 2,0 (Personal). Jeder Neuaufbau gab alle Steuerelemente frei – Tooltips, Hover und die offene Produktauswahl verschwanden. Jetzt: Neuaufbau wartet, solange eine Auswahlliste (PopupMenu) offen ist; ein offener Tooltip wird nach dem Neuaufbau an das Steuerelement derselben Stelle gehängt (`Tooltips.QuellePfad`/`QuelleWiederfinden`) und frischt seinen Text jedes Bild aus der Quelle auf (`Auffrischen`); die Marktpreise der Waren stehen im Stand, damit Waren-Tooltips neue Zahlen bekommen. Der Mauszeiger kennt offene Auswahllisten als anklickbar (`Mauszeiger.PopupUnterMaus`). | 14.11.2026 |
-| Tooltip und Handschuh | `TooltipLage` (ohne Godot, getestet) hält den Tooltip außerhalb des Zeigers: rechts neben dem Bild der Hand, sonst darunter, links, darüber. Das Rechteck kommt aus `HandschuhZeiger.BildRelativ` (Bild der Hand, Zeigergröße × 2, relativ zur Maus) bzw. beim 2D-Zeiger aus der Zeigergröße; es ist das ganze Bild, also vorsichtig groß. | 14.11.2026 |
-| Marktplatz | Der Klick öffnet das Marktfenster und schließt die Kurzinfo daneben (`AuswahlSchliessen`). | 14.11.2026 |
-| Kopfleiste | Ein Klick auf Porträt und Leiste öffnet das Familienfenster; das Wohnhaus öffnet man über das Gebäude. | 14.11.2026 |
-| Stammbaum | Die Fläche hat `CursorShape.Move` (✥ des Systems). Mit 3D-Handschuh blendet `Mauszeiger.UnsichtbarSetzen` Move und Drag aus: dort zeigt die vorhandene Faust (Greifen) das Ziehen. Die 2D-Hand hat kein Ziehbild. | 14.11.2026 |
-| Beförderung | Der Knopf nennt die AP („· 1 AP“, aus `aktionspunkte.kosten`), der Tooltip „Kostet 1 Aktionspunkt“; zu wenige AP sperren ihn mit Hinweis (`UiHilfe.ApKosten`). | 14.11.2026 |
-| Knopf „…“ | Nicht entfernt: Er ist der einzige Weg zu Ausbau, Verkaufen bzw. Pacht kündigen (und bei Umlandbetrieben zu Personal, Förderung, Karren). | 14.11.2026 |
-| Waren-Tooltip Gewinn je Stück | Zeigt die Rechnung des Kerns: Erlös = Marktpreis × Verkaufsfaktor (Verhandeln und Lebensweg) [× Hafenaufschlag], Lohn und Unterhalt je Stück = Jahresbetrag ÷ Stück im Jahr. Lexikon „Unterhalt“ erklärt die Umlage. | 14.11.2026 |
-
-### Erweitert: vergebene Wappen gesperrt (Branch fix/testbefunde-1, Antwort des Nutzers)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Sperre | Im Wappenfeld jeder KI-Zeile von „Erweitert“ sind die Vorlagen ausgegraut (Tooltip „Schon vergeben an <Haus>“), die ein Haus der Karte, ein anderes Haus der Partie oder der Spieler trägt. Sie wird bei jeder Wahl, jeder Änderung der KI-Zahl und jedem Wappen des Spielers neu gesetzt (`KiWappenSperren`); wählt ein anderes Haus ein anderes Wappen, ist das alte Kartenwappen wieder frei. Die Vorabprüfung kennt die Kartenhäuser jetzt auch für den Spieler („Das Wappen führt schon …“). Die Meldung des Kerns bei einem trotzdem auftretenden Duplikat bleibt. | 14.11.2026 |
-| Knopf „…“ (Punkt 8) | Noch offen: hinter „…“ liegt nicht nur Ausbau und Verkaufen, sondern die ganze Verwaltung (Personal mit Einstellen, Förderregler, Karrenliste, Gaststube, Wache, Geldleihe, Diebe, Kirche, Domprediger); das sind keine einzelnen Knöpfe. Empfehlung siehe Bericht. | 14.11.2026 |
-
-### Ausbau und Verkaufen als Knöpfe der Kurzübersicht (Branch fix/testbefunde-1, Entscheidung Nutzer Variante a)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Knöpfe | „Ausbau: …“ und „Verkaufen …“ bzw. „Pacht kündigen …“ stehen als zweite Knopfreihe unter „Hineingehen · Einrichtung · …“ (`BetriebsVerwaltung.KnoepfeAuslagern`); sie sind dieselben Knöpfe wie vorher im Untermenü (gleiche Rückfrage, gleiche Sperren und Tooltips) und stehen dort nicht mehr. Welche erscheinen, regelt `BetriebsKnoepfe` (ohne Godot, `BetriebsKnoepfeTests`): Ausbau nur in der Stadt, mit Meistergraden und wenn die Art einen Ausbau hat; Verkaufen immer. Die Zeile „Stufe …“ des Ausbaus bleibt als Auskunft unter „…“. „…“ bleibt für den Rest der Verwaltung; die volle Aufteilung kommt mit dem Neudesign. | 14.11.2026 |
-| Breite | Die Kurzübersicht ist rund 394 px breit. Reihe 1 (Hineingehen, Einrichtung, …) braucht mindestens 277 px; beide Knöpfe in einer Reihe passten nicht, darum Reihe 2. Die Texte sind mit `ClipText` gekürzt (Mindestbreite je Knopf 20 px), Entschieden (Nutzer): Der Ausbau-Knopf heißt „Ausbau (2.500 Gulden)“ (Betrag aus den Daten), der Stufenname steht als erste Tooltip-Zeile „Ausbau zu: …“. Gemessen headless: längste Beschriftung („Ausbau (12.500 Gulden)“, größter Betrag der Daten ist 5.000) 134 px bei Schrift 14, Knopfbreite 193 px: passt. | 14.11.2026 |
-### Ratsbaum: Holzschnitt-Grafiken (Branch phase5/ratsbaum-grafik, PR 4)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Auswahl | Je Motiv zwei Varianten aus ComfyUI (Qwen-Image 2512, LoRA holzschnitt_v1 Stand 2250, Stärke 1.0), der Nutzer wählte: Bürgermeister 1 (Stab und Schlüssel), Stadtrichter 1 (Schwert und Waage), Kämmerer 2 (Truhe), Stadthauptmann 2 (Helm und Schild), Marktmeister 1 (Waage), Gefängniswärter 1 (Schlüsselbund), Zöllner 2 (Fass); Pergament 2, Spruchband 1, Linie 2. Prompts und Seeds: `docs/assets/prompts/ratsbaum.md`. | 14.11.2026 |
-| Dateien | `game/assets/oberflaeche/ratsbaum/`: `amt_<amt>.png` (256 x 256, durchsichtig), `ratsbaum_pergament.png` (1024 x 768, mit Zierrahmen, unverändert), `ratsbaum_spruchband.png` (512 x 192, durchsichtig, **leer**, die Beschriftung setzt das Spiel), `ratsbaum_linie.png` (124 x 54). Erzeugt von `tools/oberflaeche/ratsbaum_freistellen.py` aus den 1024-px-Rohbildern. | 14.11.2026 |
-| Freistellen | Nur der mit dem Bildrand zusammenhängende Papierhintergrund wird durchsichtig (Abstand zur Randfarbe höchstens 30 je Kanal), Staubflecken unter 150 px verschwinden, der Rand wird einen Pixel nach innen gezogen und weich gemacht, Randfarben aus dem Inneren fortgesetzt (kein heller Saum); Verkleinern vormultipliziert (Lanczos). Weiße Innenflächen (Waagschalen) bleiben. Geprüft auf hellem und dunklem Grund bei 256, 96 und 64 px. | 14.11.2026 |
-| Linie | Das Seil ließ sich als Ganzes nicht nahtlos kacheln (sichtbarer Sprung). Gewählt: eine Seilwindung (124 px) als waagerecht wiederholbare Kachel, Naht über 24 px überblendet; im Spiel `TextureRect` mit `StretchMode.Tile` (kein 9-Slice nötig). Schräge Linien: Kachel drehen oder weiter `DrawPolyline` nutzen. | 14.11.2026 |
-| Anbindung | `rat_thema.tres` hält die Bilder (Familie `RatBilder`, Seil-/Spruchfarben, `RatBaumFlaeche` = Pergament als 9-Slice, `RatSpruch`); `RatStil.Grafik`, `AmtZeichen`, `Pergament`, `Spruchband(text)`, `Seil(...)` bauen daraus. | 14.11.2026 |
-| Wo sitzt was | **Porträt** des Inhabers bleibt das Hauptbild des Knotens (Entscheidung des Nutzers 14.11.2026). **Amtszeichen** klein (40 px, `knoten_amtszeichen`, Rand 4) oben rechts im Knoten, weil dort nur der kurze Amtsname steht; ein **freies Amt** zeigt sein Zeichen groß (72 px, `knoten_frei_zeichen`, so groß wie der Knoten erlaubt: 96 hätte die Knotenhöhe von 84 auf 108 getrieben) und blass (45 %, `knoten_frei_blass`) mit einem hellen „?“ darüber, statt des Schattens. Knotenhöhe wieder 84, Baum 624 x 402 wie vor der Änderung, Kammerbreite unverändert. **Pergament**: nur unter dem Baum (Reiter Ämter), nicht als Kammerhintergrund, weil die übrigen Texte hell auf dunkler Tafel stehen; Fläche 656 breit, unter den 676 der Kammer. **Seile**: `Line2D` mit der Kachel (`TextureMode.Tile`, Breite 14), weil es für jeden Winkel und jede Länge ohne Drehen geht; die Äste sind rechtwinklig, der Weg zum eigenen Amt golden getönt; `DrawPolyline` und die Farben und Maße `linie*` sind aus Code und Thema entfernt. **Spruchband** (Entscheidung des Nutzers 14.11.2026, Variante A): `RatStil.Spruchband(eltern, text)` hängt als **Titelband** über dem Text der Ratssitzung (`RatssitzungAnzeige`, Tagesordnungspunkt = `_titel`, mittig, Breite `spruchband_grafik_breite` 360, Höhe nach dem Bild 135; Schrift dunkel, Typ `RatSpruch` 17 pt im Thema; lange Titel werden nie abgeschnitten: `RatStil.SpruchTitel` bricht um (höchstens `spruch_zeilen_max` = 2 Zeilen) und verkleinert sonst bis `spruch_schrift_min` = 12 pt; Schriftfeld 266 px = Band ohne `spruch_rand_prozent` = 13 % je Seite. Gemessen: längster echter Titel „Antrag auf ein Bauvorhaben der Stadt“ 252 px, eine Zeile mit 17 pt; 58 Zeichen 2 Zeilen mit 17 pt, 77 Zeichen 2 Zeilen mit 16 pt, 113 Zeichen 3 Zeilen mit 12 pt). Das gebogene Band taugt nicht als 9-Slice-Fläche für das ganze Panel. Mindestgröße des Spruchband-Panels der Ratssitzung (ohne Textzeilen, headless gemessen) vorher 896 x 228, nachher 896 x 339 (+111, Breite unverändert; der Titel ist jetzt 135 statt etwa 28 hoch). | 14.11.2026 |
