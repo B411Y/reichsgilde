@@ -27,11 +27,14 @@ public static class Brueckenpruefung
     {
         var (katalog, daten) = (Gebaeudekatalog.AusDatei(o.Katalog), Reichsgilde.Core.Wirtschaft.Wirtschaftsdaten.AusDatei(o.Wirtschaft));
         var e = Befehle.Oeffnen(o, karte, katalog, daten);
-        var plan = e.Wasserplan;
         var stadt = e.ZuStadtkarte();
         var fehler = 0;
         var tauglich = new List<string>();
         var gewaesser = daten.Logistik?.Klappbruecke?.Gewaesser; // nur die Brücke über dieses Gewässer ist die Klappbrücke (Daten, seit Version 90)
+        // Der Wasserplan wie im Spiel (Stadtwirtschaft.KarteSetzen): Mit dem Gewässer der Klappbrücke rechnet er dort das Mittelteil statt der
+        // mittleren Pfeiler – ohne das meldete das Skript „Durchfahrt NEIN“, obwohl im Spiel 13 m frei sind (#490).
+        stadt.KlappbrueckeSetzen(gewaesser);
+        var plan = stadt.Wasserplan;
         string Z(double x) => x.ToString("0.0", CultureInfo.InvariantCulture);
         var bruecken = plan.Bruecken.Where(b => gewaesser is null || b.GewaesserName == gewaesser).ToList();
         aus.WriteLine($"Brücken in „{e.Kennung}“ über „{gewaesser ?? "alle Gewässer"}“: {bruecken.Count}");
@@ -43,14 +46,18 @@ public static class Brueckenpruefung
             if (weg.BreiteWirksam < Klappbrueckenmasse.FahrbahnLichtMin) tauglich.Add("Straße zu schmal");
             aus.WriteLine($"   Spiegel {Z(q.Spiegel)} m, Deck {Z(q.Deckhoehe)} m, Deck über Spiegel {Z(q.Deckhoehe - q.Spiegel)} m (Modell geschätzt {Z(Klappbrueckenmasse.DeckUeberWasser)} m), Tiefe {Z(q.Tiefe)} m");
 
-            // Durchfahrt: Lücken zwischen Ufer und Pfeilern entlang der Brückenachse (Pfeiler 2 m breit)
+            // Durchfahrt: Lücken zwischen Ufer und Pfeilern entlang der Brückenachse (Pfeiler 2 m breit; die beiden Torhauspfeiler der
+            // Klappbrücke 4 m – sie stehen links und rechts der Durchfahrt in der Flussmitte)
             var stellen = new List<(double Von, double Bis)>();
             var kanten = new List<double> { q.UferAStelle };
             var achse = q.Pfeiler.Select(p => Stelle(q, p.Ort)).OrderBy(s => s).ToList();
-            foreach (var s in achse) { kanten.Add(s - Wasserplan.SteinPfeiler / 2); kanten.Add(s + Wasserplan.SteinPfeiler / 2); }
+            var mitte = (q.UferAStelle + q.UferBStelle) / 2;
+            var torhaus = (Wasserplan.KlappMittelteil - Wasserplan.KlappDurchfahrt) / 2;
+            double Pfeilerbreite(double s) =>
+                q.Durchfahrt > 0 && Math.Abs(Math.Abs(s - mitte) - (q.Durchfahrt + torhaus) / 2) < 0.01 ? torhaus : Wasserplan.SteinPfeiler;
+            foreach (var s in achse) { kanten.Add(s - Pfeilerbreite(s) / 2); kanten.Add(s + Pfeilerbreite(s) / 2); }
             kanten.Add(q.UferBStelle);
             for (var i = 0; i + 1 < kanten.Count; i += 2) stellen.Add((kanten[i], kanten[i + 1]));
-            var mitte = (q.UferAStelle + q.UferBStelle) / 2;
             var beste = stellen.OrderByDescending(s => Math.Round(s.Bis - s.Von, 2)).ThenBy(s => Math.Abs((s.Von + s.Bis) / 2 - mitte)).First();
             aus.WriteLine($"   Pfeiler: {q.Pfeiler.Count} bei Stelle {string.Join(", ", achse.Select(s => Z(s - mitte)))} (Abstand zur Flussmitte, m)");
             aus.WriteLine($"   Lichte Weiten zwischen den Pfeilern: {string.Join(", ", stellen.Select(s => Z(s.Bis - s.Von)))} m; größte {Z(beste.Bis - beste.Von)} m, Mitte {Z((beste.Von + beste.Bis) / 2 - mitte)} m neben der Flussmitte");
