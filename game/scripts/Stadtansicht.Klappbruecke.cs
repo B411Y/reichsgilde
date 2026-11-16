@@ -76,9 +76,9 @@ public partial class Stadtansicht
         if (_neubauStoffe.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
         var stoff = new ShaderMaterial { Shader = _neubauShader, ResourceName = "Trim Klappbruecke" + (mitVerdeckung ? "" : " ohne Verdeckung") };
-        stoff.SetShaderParameter("albedo_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_trim_albedo.png"));
-        stoff.SetShaderParameter("normal_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_trim_normal.png"));
-        stoff.SetShaderParameter("orm_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_trim_orm.png"));
+        stoff.SetShaderParameter("albedo_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_ebenen_albedo.png"));
+        stoff.SetShaderParameter("normal_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_ebenen_normal.png"));
+        stoff.SetShaderParameter("orm_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "bruecke_ebenen_orm.png"));
         if (mitVerdeckung) stoff.SetShaderParameter("ao_uv2_tex", GD.Load<TextureLayered>(KlappbrueckeTexturen + "klappbruecke_ao_atlas.png"));
         else
         {

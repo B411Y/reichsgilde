@@ -1,6 +1,6 @@
 // Rumpf von building_trim.gdshader und building_trim_kante.gdshader (Neubau der Gebäude): Uniforms, vertex() und fragment().
 // Beschreibung im Kopf von building_trim.gdshader. Mit STROHKANTE (building_trim_kante.gdshader) schneidet der Shader die
-// Alpha-Cards der Strohkanten aus (Alpha Scissor, kante_schwelle).
+// Alpha-Cards der Strohkanten (Rathaus: Schieferkanten) aus (Alpha Scissor, kante_schwelle).
 
 #include "res://assets/shader/wetter.gdshaderinc"
 
@@ -15,6 +15,7 @@ uniform float pixel_look = 0.0;                 // 1 im Pixel-Look
 uniform float pixel_mip = 2.5;                  // um so viele Mip-Stufen gröber im Pixel-Look
 uniform float ao_grund : hint_range(0.0, 1.0) = 0.68;   // Grundmaß der Verdeckung: so dunkel wie die übrigen Modelle im Schatten und bei Nacht (Umgebungslicht)
 uniform float ao_stroh : hint_range(0.0, 1.0) = 0.6;
+uniform float stroh_dach = 1.0;                 // 0: das Dachband (UV.y unter 0,25) ist Schiefer (Rathaus) – keine Halmstriche im Pixel-Look
 uniform float haus_baender = 1.0;              // 1: Trim-Sheet der Häuser (Bänder: Stroh, Holz, Putz); 0: andere Blätter (Klappbrücke), ohne Strohdach, Holz- und Putzfarbe
 uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Regen im Haus)
 
@@ -88,7 +89,7 @@ void fragment() {
 	vec3 final_color = tex.rgb;
 
 	// Pixel-Look: Halmstriche im Stroh (nur die Dachfläche, nicht der Fransenstreifen)
-	if (haus_baender > 0.5 && pixel_look > 0.5 && UV.y < 0.1875) {
+	if (haus_baender > 0.5 && stroh_dach > 0.5 && pixel_look > 0.5 && UV.y < 0.1875) {
 		float bahn = floor(UV.x * 4.0 / 0.14);
 		float versatz = fract(sin(bahn * 12.9898) * 43758.5453);
 		float stueck = floor(UV.y / 0.1875 * 1.55 / 0.55 + versatz);
