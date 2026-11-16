@@ -45,7 +45,14 @@ public static class Kapazitaetspruefung
     public const double Strassennah = 7;
 
     /// <summary>
-    /// Was eine Partie mit 8 Häusern in der Stadt braucht (ohne die Plätze der Karte). Pflicht: je Haus zwei weitere Werkstätten (KI-Häuser
+    /// Die Startgebäude, Teil der Pflicht und vor ihr gesetzt (Nutzer 16.11.2026, „Platzprüfung ja“): je Haus ein Wohnhaus (Stufe 0, 8 × 10 m) und
+    /// eine Werkstatt (16 × 14 m), wie das <see cref="Partie.Startortlos"/> sie stellt – nur im Stadtinneren (Kern und Mauerring), denn in die
+    /// Vorstadt weicht kein Haus aus. Seit „nur noch Bauzonen“ stehen sie nicht mehr auf Plätzen der Karte, sondern selbst in den Zonen.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Art, int Anzahl)> Start = new[] { ("Werkstatt", Haeuser), ("Wohnhaus", Haeuser) };
+
+    /// <summary>
+    /// Was eine Partie mit 8 Häusern in der Stadt außer den <see cref="Start"/>gebäuden braucht. Pflicht: je Haus zwei weitere Werkstätten (KI-Häuser
     /// führen bis zu 3 Betriebe, ab Patrizier 4; einer ist die Startwerkstatt, einer liegt oft im Umland) und die Häuser der Einwohner (25 je
     /// Haus, Haushalte 4–6, im Mittel 5). Reserve: was wachsende Häuser später bauen könnten – jedes ein Stadtpalais, die Hälfte einen Stadthof.
     /// </summary>
@@ -133,24 +140,26 @@ public static class Kapazitaetspruefung
             var bericht = new List<string>();
             var gesamt = _felder.Length;
             bericht.Add($"Stadt-Bauzonen: {gesamt} Felder, davon fest belegt {gesamt - _freiAnzahl}");
-            foreach (var (art, anzahl) in Pflicht)
+            var kernUndRing = new HashSet<Lage> { Lage.Kern, Lage.Mauerring };
+            // erst die Startgebäude (nur im Stadtinneren), dann der Rest der Pflicht
+            foreach (var (art, anzahl, lagen, name) in Start.Select(x => (x.Art, x.Anzahl, kernUndRing, $"{x.Art} am Start (Kern und Mauerring)"))
+                         .Concat(Pflicht.Select(x => (x.Art, x.Anzahl, (HashSet<Lage>?)null, x.Art))))
             {
                 var gesetzt = 0;
                 for (var k = 0; k < anzahl; k++)
                 {
                     var passt = false;
-                    foreach (var t in Setzen(art, null, x => passt = x, "Kapazität: Pflicht")) yield return t;
+                    foreach (var t in Setzen(art, lagen, x => passt = x, "Kapazität: Pflicht")) yield return t;
                     if (passt) gesetzt++;
                     if (k % SetzenJeSchritt == SetzenJeSchritt - 1) yield return "Kapazität: Pflicht";
                 }
-                var text = $"Pflicht {art}: {gesetzt} von {anzahl} passen";
+                var text = $"Pflicht {name}: {gesetzt} von {anzahl} passen";
                 bericht.Add(text);
                 if (gesetzt != anzahl)
                     befunde.Add(new Befund(schwere, "kapazitaet", $"Kapazität (Partie mit 8 Häusern): {text} in die Bauzonen der Stadt.", Array.Empty<string>(), null));
                 yield return "Kapazität: Pflicht";
             }
             var nachPflicht = _freiAnzahl;
-            var kernUndRing = new HashSet<Lage> { Lage.Kern, Lage.Mauerring };
             foreach (var (art, anzahl) in Reserve)
             {
                 var gesetzt = 0;
@@ -356,7 +365,8 @@ public static class Kapazitaetspruefung
 
         /// <summary>
         /// Ab welcher Stelle der Reihenfolge eine Gebäudeart weitersucht: Felder davor passten schon beim letzten Mal nicht, und weil Felder nur
-        /// belegt, nie frei werden, passen sie auch später nicht (dasselbe Ergebnis, nur schneller).
+        /// belegt, nie frei werden, passen sie auch später nicht (dasselbe Ergebnis, nur schneller). Schlüssel: Art und erlaubte Lagen – eine
+        /// Werkstatt am Start (nur Kern und Mauerring) passt nicht, wo eine Werkstatt der übrigen Pflicht (auch Vorstadt) noch passen kann.
         /// </summary>
         private readonly Dictionary<string, int> _ab = new();
 
@@ -377,7 +387,8 @@ public static class Kapazitaetspruefung
             // erst i, dann j.
             var folge = werkstatt ? _folgeWerkstatt : _folgeWohnen;
             var geprueft = 0;
-            for (var n = _ab.GetValueOrDefault(art); n < folge.Length; n++)
+            var schluessel = erlaubt is null ? art : art + "|" + string.Join(",", erlaubt.Select(l => (int)l).Order());
+            for (var n = _ab.GetValueOrDefault(schluessel); n < folge.Length; n++)
             {
                 if (++geprueft % FelderJeSchritt == 0) yield return teil;
                 if (!_frei[folge[n]]) continue;
@@ -393,12 +404,12 @@ public static class Kapazitaetspruefung
                                 felder.Add((i0 + a, j0 + c));
                         Belegen(felder);
                         _gesetzt.Add(new Kapazitaetsplatz(art, felder));
-                        _ab[art] = n;
+                        _ab[schluessel] = n;
                         ergebnis(true);
                         yield break;
                     }
             }
-            _ab[art] = folge.Length;
+            _ab[schluessel] = folge.Length;
             ergebnis(false);
         }
 
