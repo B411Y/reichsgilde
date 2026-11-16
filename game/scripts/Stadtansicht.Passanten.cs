@@ -56,6 +56,11 @@ public partial class Stadtansicht
         public float Seitlich { get; set; }
         public int Seite { get; set; }
         public float Bremse { get; set; } = 1;
+
+        /// <summary>Klappbrücke (Stadtansicht.Klappbruecke.cs): auf welcher Seite der Schranken die Figur zuletzt draußen war (−1, 1; 0 unbekannt) und ob sie gerade vor der zu Schranke steht (nur Anzeige).</summary>
+        public int KlappbrueckeSeite { get; set; }
+
+        public bool KlappbrueckeHalt { get; set; }
         public float Rueckstand { get; set; }
         public float Haltezeit { get; set; }
         /// <summary>Wie viele Meter (Mittellinie) sie noch vom nächsten Ende ihres Weges ist (Anfang oder Ziel) – für die Messung.</summary>
@@ -659,6 +664,7 @@ public partial class Stadtansicht
             hier += p.VersatzJetzt;
         }
         else (p.VersatzJetzt, p.Geschwindigkeit) = (Vector3.Zero, Vector3.Zero);
+        p.KlappbrueckeHalt = KlappbrueckePassantHalt(p, ref hier);   // Schranke zu: Figur wartet nur zum Anschauen (Stadtansicht.Klappbruecke.cs)
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;
         // An der Tür (Schicht 4): Wer drinnen losgeht und dort warten muss, weil gerade jemand aus derselben Tür tritt, bleibt so lange drinnen; wer an
@@ -676,7 +682,7 @@ public partial class Stadtansicht
                               : p.Traegt ? ("Tragen", TragenTempo)
                               : ("Gehen", GehenTempo);
         // Fast angehalten (hinter jemandem, der nicht Platz macht): stehen statt auf der Stelle zu treten
-        if (p.Bremse < 0.2f && !SpurV1) BewegungSetzen(figur, "Stehen");
+        if ((p.Bremse < 0.2f && !SpurV1) || p.KlappbrueckeHalt) BewegungSetzen(figur, "Stehen");
         else BewegungSetzen(figur, bewegung, wirklich * bodenfaktor / (grund * bein));
     }
 

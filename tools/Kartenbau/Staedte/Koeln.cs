@@ -232,8 +232,10 @@ public sealed partial class Koeln : Stadtskript
         // Malzbüchel: von der Severinstraße zum Heumarkt, bis zur Rheingasse in seiner Mitte (seit 1.11.2026; vorher berührte der Kartäuserwall
         // den Platz – dort fuhr das dritte Startgrundstück des Heumarkts zum Platz)
         Weg(Wegklasse.Haupt, "Malzbüchel", P(-15.5, R - MarktVonMauer), MarktSued.Ort);
-        Weg(Wegklasse.Haupt, "Brückenstraße", P(0, 8), P(RheinX, 8));
-        Weg(Wegklasse.Haupt, "Rheinbrücke", P(RheinX, 8), P(126, 8));
+        // Die Brückenstraße reicht bis x = 56 (2 m vor dem Ufer), die Rheinbrücke ab dort 6,4 m breit statt 5 (Klappbrücke, 15.11.2026: lichte Fahrbahn
+        // des Modells; zwei Pferdekarren brauchen 6,0 m). Früher beginnt sie nicht: Die Werkstatt der Hofstelle R2 lässt nur 5 m Straße zu; sie endet bei x = 124 (2 m hinter dem Ufer), damit die Start-Hofstelle S8 an der Deutzer Freiheit nicht rückt.
+        Weg(Wegklasse.Haupt, "Brückenstraße", P(0, 8), P(56, 8));
+        E.WegBreiteSetzen(Weg(Wegklasse.Haupt, "Rheinbrücke", P(56, 8), P(124, 8)), 6.4);
         // Trankgasse und Krähenpforte bis 1.11.2026 9 m weiter nördlich (z = −70): Dort liegt jetzt das Startgrundstück an der Stadtseite des Alter Markts
         Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -61), P(RheinX, -61));
         Weg(Wegklasse.Gasse, "Hammergasse", P(-80, -45), P(HoheX, -45));
@@ -266,7 +268,7 @@ public sealed partial class Koeln : Stadtskript
         WegGlatt(Wegklasse.Land, "Bonner Straße", Bogen(162, R), P(-14, 190), P(-4, 250), P(6, 330), P(14, 440), P(20, 549));
 
         // Deutz
-        Weg(Wegklasse.Haupt, "Deutzer Freiheit", P(126, 8), P(170, 6), P(213, -3));
+        Weg(Wegklasse.Haupt, "Deutzer Freiheit", P(124, 8), P(126, 8), P(170, 6), P(213, -3));
         Weg(Wegklasse.Haupt, "Deutzer Kirchstraße", P(172, -47), P(170, 6), P(172, 41));
         WegGlatt(Wegklasse.Land, "Bensberger Straße", P(213, -3), P(270, -10), P(350, -25), P(450, -45), P(550, -70), P(599, -85));
         WegGlatt(Wegklasse.Land, "Mülheimer Weg", P(172, -47), P(160, -110), P(150, -160), P(146, -200), P(160, -300), P(175, -400), P(190, -499));

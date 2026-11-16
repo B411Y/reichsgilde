@@ -15,6 +15,7 @@ uniform float pixel_look = 0.0;                 // 1 im Pixel-Look
 uniform float pixel_mip = 2.5;                  // um so viele Mip-Stufen gröber im Pixel-Look
 uniform float ao_grund : hint_range(0.0, 1.0) = 0.68;   // Grundmaß der Verdeckung: so dunkel wie die übrigen Modelle im Schatten und bei Nacht (Umgebungslicht)
 uniform float ao_stroh : hint_range(0.0, 1.0) = 0.6;
+uniform float haus_baender = 1.0;              // 1: Trim-Sheet der Häuser (Bänder: Stroh, Holz, Putz); 0: andere Blätter (Klappbrücke), ohne Strohdach, Holz- und Putzfarbe
 uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Regen im Haus)
 
 // Stein-Mip (Nutzer, 15.11.2026): Mit pixel_mip 2,5 blieb von Bruchstein und Quadern im Pixel-Look nur der Grundton (Zoom nah: Mip 7,65,
@@ -87,7 +88,7 @@ void fragment() {
 	vec3 final_color = tex.rgb;
 
 	// Pixel-Look: Halmstriche im Stroh (nur die Dachfläche, nicht der Fransenstreifen)
-	if (pixel_look > 0.5 && UV.y < 0.1875) {
+	if (haus_baender > 0.5 && pixel_look > 0.5 && UV.y < 0.1875) {
 		float bahn = floor(UV.x * 4.0 / 0.14);
 		float versatz = fract(sin(bahn * 12.9898) * 43758.5453);
 		float stueck = floor(UV.y / 0.1875 * 1.55 / 0.55 + versatz);
@@ -96,7 +97,8 @@ void fragment() {
 	}
 
 	// 1. Variation über Trim-Sheet-Bänder (UV.y)
-	if (UV.y >= 0.25 && UV.y < 0.50) {
+	if (haus_baender < 0.5) {
+	} else if (UV.y >= 0.25 && UV.y < 0.50) {
 		final_color *= wood_tint;
 	} else if (UV.y >= 0.50 && UV.y < 0.70) {
 		final_color *= plaster_tint;
@@ -111,7 +113,7 @@ void fragment() {
 	float schnee = 0.0;   // wie weit Schnee die Fläche deckt: dort keine Halme (Normale) und keine Verdeckung der Textur
 	if (wetter_an > 0.5) {
 		// Wetter wie bei den übrigen Modellen: dach = Ort in der Dachebene (Meter; das Strohband ist 4 m breit, eine Stufe 1,55 m hoch)
-		bool stroh = UV.y < 0.25;
+		bool stroh = haus_baender > 0.5 && UV.y < 0.25;
 		vec3 wn = normalize(welt_normale);
 		// Das steile Strohdach (52°) hält den Schnee wie die flacheren Dächer der übrigen Häuser: Normale für das Wetter etwas aufgerichtet
 		if (stroh && wn.y > 0.2) wn = normalize(wn + vec3(0.0, 0.45 + 0.9 * step(0.001, wetter_dach), 0.0));   // bei Schnee wie ein flaches Dach: geschlossene Decke
@@ -134,7 +136,7 @@ void fragment() {
 
 	// Kombiniert Trim-Sheet-AO mit der individuellen Haus-AO (UV2)
 	// Stroh nimmt weniger Umgebungslicht an (ao_stroh): sonst sind die Dächer nachts heller als die übrigen Strohdächer; Schnee hebt das auf
-	float grund = mix(ao_grund * (UV.y < 0.25 ? ao_stroh : 1.0), 1.0, schnee);
+	float grund = mix(ao_grund * (haus_baender > 0.5 && UV.y < 0.25 ? ao_stroh : 1.0), 1.0, schnee);
 	AO = grund * mix(orm.r, 1.0, schnee) * mix(1.0, house_ao, ao_uv2_strength * (1.0 - schnee));
 	ROUGHNESS = rauheit;
 	METALLIC = orm.b;

@@ -206,6 +206,7 @@ public partial class Stadtansicht
 
     private void BrueckeBauen(Node3D eltern, Wasserquerung q, Wasserform form)
     {
+        if (KlappbrueckeBauen(eltern, q)) return;   // Köln: die Doppelklappbrücke (Stadtansicht.Klappbruecke.cs)
         var holz = q.Art == Uebergangsart.Holzbruecke;
         var (a, b) = (V2(q.UferA), V2(q.UferB)); // Uferkanten: dort setzen Endstück bzw. Rampe an, Y 0 der Teile ist die Uferhöhe
         var weite = a.DistanceTo(b);
