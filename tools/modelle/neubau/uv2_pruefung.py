@@ -119,7 +119,7 @@ def atlas_von(glb, atlas_json=None, gruppe=None, modell=None):
 
 def _lade_glb(glb):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=glb)
+    bpy.ops.import_scene.gltf(filepath=glb, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
 
 
 def _bild(pfad):

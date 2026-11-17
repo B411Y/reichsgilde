@@ -66,7 +66,7 @@ def zurueck(v, ist_normale=False):
 def lade(pfad):
     """GLB in eine leere Szene: Liste (Objektname ohne Endung, Material, Eckpunkte im Baurahmen, Normale) je Flaeche."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=pfad)
+    bpy.ops.import_scene.gltf(filepath=pfad, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     flaechen = []
     for o in bpy.data.objects:
         if o.type != "MESH": continue

@@ -55,7 +55,7 @@ U.normal_orm = lambda glb, texturen=None, blatt=None, **kw: _alt_normal(glb, tex
 
 def _objekte(glb):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=glb)
+    bpy.ops.import_scene.gltf(filepath=glb, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     return [o for o in bpy.data.objects if o.type == "MESH"]
 
 

@@ -53,7 +53,7 @@ def haus_fern(glb, lum):
     k = h // KLEIN
     klein = lum.reshape(KLEIN, k, KLEIN, k).mean(axis=(1, 3))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=glb)
+    bpy.ops.import_scene.gltf(filepath=glb, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     flach = ("Holz", "Eisen", "Hausfarbe", "Behang", "Behangsaum", "Fenster", "Bleinetz")      # Stoffe mit fester Farbe (nicht auf dem Blatt)
     summe, flaeche = 0.0, 0.0
     for o in bpy.data.objects:
