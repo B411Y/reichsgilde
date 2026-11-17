@@ -75,6 +75,70 @@ def umtoenen(blatt, band, ziel_srgb):
     blatt.albedo[a:e, :, :3] = linear_zu_srgb(np.clip(lin * (ziel / np.maximum(mittel, 1e-4)), 0, 1))
 
 
+MOOS = (0.27, 0.30, 0.19)            # Moos auf den Schindeln (Kunstwerk: gruene Flecken am Dach), Farbe in der gespeicherten PNG
+EFEU = (0.20, 0.30, 0.13)            # Efeublaetter (Kunstwerk: Efeu an Ecken und Giebel)
+
+
+def feld_rauschen(hoehe, breite, zellen_y, zellen_x, saat):
+    """Weiches 2D-Rauschen 0..1, waagerecht nahtlos (bilinear aus einem groben Zufallsgitter)."""
+    z = np.random.default_rng(saat).random((zellen_y + 1, zellen_x)).astype(np.float32)
+    y = np.linspace(0, zellen_y, hoehe, dtype=np.float32)[:, None]
+    x = np.linspace(0, zellen_x, breite, endpoint=False, dtype=np.float32)[None, :]
+    y0, x0 = np.floor(y).astype(int), np.floor(x).astype(int)
+    fy, fx = y - y0, x - x0
+    y1, x1 = np.minimum(y0 + 1, zellen_y), (x0 + 1) % zellen_x
+    x0 = x0 % zellen_x
+    g = lambda yy, xx: z[yy, xx]
+    oben = g(y0, x0) * (1 - fx) + g(y0, x1) * fx
+    unten = g(y1, x0) * (1 - fx) + g(y1, x1) * fx
+    return oben * (1 - fy) + unten * fy
+
+
+def moos(blatt, band, anteil=0.16):
+    """Sparsame Moosflecken auf den Schindeln (nur Textur, keine Flaechen): wo das grobe Rauschen ueber der Schwelle liegt, wird die
+    Farbe zum Moos hin gemischt, rauer und ohne Glanz; `anteil` ~ bedeckte Flaeche."""
+    a, e = blatt.zeilen(band)
+    r = feld_rauschen(e - a, N, 6, 24, 41) * 0.7 + feld_rauschen(e - a, N, 24, 96, 42) * 0.3
+    schwelle = np.quantile(r, 1 - anteil)
+    w = 0.75 * np.clip((r - schwelle) / 0.08, 0, 1)[..., None]
+    lin = srgb_zu_linear(blatt.albedo[a:e, :, :3])
+    moos_lin = srgb_zu_linear(np.array(gespeichert(MOOS), dtype=np.float32)) * (0.75 + 0.5 * feld_rauschen(e - a, N, 48, 192, 43))[..., None]
+    blatt.albedo[a:e, :, :3] = linear_zu_srgb(lin * (1 - w) + moos_lin * w)
+    blatt.orm[a:e, :, 1] = blatt.orm[a:e, :, 1] * (1 - w[..., 0]) + 0.95 * w[..., 0]
+
+
+def efeu(blatt, band, ranken=3, saat=51):
+    """Wenige Efeuranken im Putzband (nur Textur): je Ranke ein Stamm vom unteren Bandrand (Mauerfuss) nach oben, daran Blaetter;
+    das Band laeuft waagerecht 8 m, also drei Ranken auf 8 m Wand. Farbe, Normale (leicht erhaben) und Rauheit."""
+    a, e = blatt.zeilen(band)
+    h = e - a
+    z = np.random.default_rng(saat)
+    maske = np.zeros((h, N), dtype=np.float32)
+    for k in range(ranken):
+        x = (k + 0.25 + 0.4 * z.random()) * N / ranken
+        y = h - 1.0
+        oben = h * (0.25 + 0.35 * z.random())
+        while y > oben:
+            x += z.normal(0, 3.0); y -= 6.0
+            for _ in range(2):
+                bx, by = x + z.normal(0, 14), y + z.normal(0, 8)
+                rx, ry = 7 + 4 * z.random(), 5 + 3 * z.random()
+                x0, x1 = int(bx - rx - 1), int(bx + rx + 2); y0, y1 = max(int(by - ry - 1), 0), min(int(by + ry + 2), h)
+                xs = np.arange(x0, x1) % N
+                if y0 >= y1: continue
+                d = ((np.arange(x0, x1)[None, :] - bx) / rx) ** 2 + ((np.arange(y0, y1)[:, None] - by) / ry) ** 2
+                maske[y0:y1][:, xs] = np.maximum(maske[y0:y1][:, xs], (d < 1).astype(np.float32))
+    w = maske[..., None]
+    lin = srgb_zu_linear(blatt.albedo[a:e, :, :3])
+    blatt_lin = srgb_zu_linear(np.array(gespeichert(EFEU), dtype=np.float32)) * (0.7 + 0.6 * feld_rauschen(h, N, 40, 400, saat + 1))[..., None]
+    blatt.albedo[a:e, :, :3] = linear_zu_srgb(lin * (1 - w) + blatt_lin * w)
+    gy, gx = np.gradient(maske * 3.0)
+    blatt.normal[a:e, :, 0] = np.clip(blatt.normal[a:e, :, 0] - gx * 0.5, 0, 1)
+    blatt.normal[a:e, :, 1] = np.clip(blatt.normal[a:e, :, 1] + gy * 0.5, 0, 1)
+    blatt.orm[a:e, :, 0] = blatt.orm[a:e, :, 0] * (1 - 0.25 * maske)
+    blatt.orm[a:e, :, 1] = blatt.orm[a:e, :, 1] * (1 - maske) + 0.7 * maske
+
+
 def baue_aussen(quellen):
     B = BAENDER_AUSSEN
     blatt = Blatt()
@@ -83,6 +147,7 @@ def baue_aussen(quellen):
     for band in ("stroh", "stroh_franse"): entsaettigen(blatt, B[band], 0.8)
     umtoenen(blatt, B["stroh"], gespeichert(DACH))
     umtoenen(blatt, B["stroh_franse"], gespeichert(tuple(c * 0.92 for c in DACH)))
+    moos(blatt, B["stroh"])                               # Rueckmeldung des Nutzers 17.11.2026: Moos sparsam, als Textur
     holz = Quelle(quellen, "rough_wood", gedreht=True)
     for i, (name, ton, kontrast) in enumerate(zip(("balken_a", "balken_b", "balken_c"), BALKEN, (0.9, 1.0, 1.1))):
         a, e = blatt.zeilen(B[name])
@@ -95,6 +160,7 @@ def baue_aussen(quellen):
     f, n, arm = putz.streifen(e - a, ab=200)
     blatt.setze(B["putz"], faerbe(f, gespeichert(PUTZ), kontrast=0.75, eigenfarbe=0.1), n, arm)
     blatt.verlauf(B["putz"], 0.93, 0.80, 60)              # unten Spritzwasser, oben leichter Schatten (wie bei den Menschen)
+    efeu(blatt, B["putz"])                                # Rueckmeldung des Nutzers 17.11.2026: Efeu sparsam, als Textur
     planken = Quelle(quellen, "old_planks_02", kante=512, gedreht=True)
     a, e = blatt.zeilen(B["planken"])
     f, n, arm = planken.streifen(e - a, ab=8)
