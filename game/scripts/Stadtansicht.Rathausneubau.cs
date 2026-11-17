@@ -122,6 +122,13 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Die Fensterblick-Probe läuft nur bei einem Start mit Startoptionen (Klicktest), nicht im normalen Spiel: Sie liest die Dreiecke aller Netze
+    /// entlang der Strahlen (in Köln Fernbild und Äcker, zusammen rund eine Million) und kostete 0,7–0,9 s im Schwarz der Blende, je Raum beim
+    /// ersten Zeigen (Messung 17.11.2026).
+    /// </summary>
+    private static readonly bool RathausNeuProben = OS.GetCmdlineUserArgs().Length > 0;
+
+    /// <summary>
     /// Fensterblick-Probe (einmal je Raum ins Log, Zeile <c>[rathausneu] Fensterblick …</c>; Klicktest 4: In der Probestadt zeigte das Fenster der
     /// Amtsstube nur dunkles Glas): Von der Mitte jeder Scheibe (<c>Glas_…</c>) geht ein Strahl 150 m nach außen; verdeckt ist sie, wenn er näher als
     /// 1,5 m auf ein sichtbares Netz außerhalb des Hauses trifft (Hülle, Gelände). Gegenprobe „ohne Ausblenden“: dieselbe Frage mit den
@@ -129,6 +136,7 @@ public partial class Stadtansicht
     /// </summary>
     private void RathausNeuFensterblickPruefen(Node3D raum)
     {
+        if (!RathausNeuProben) return;
         if (!_rathausNeuFensterGeprueft.Add(raum.Name) || !IsInstanceValid(raum) || _rathausNeuInnen is not { } wurzel) return;
         var glaeser = raum.FindChildren("Glas_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>().ToList();
         if (glaeser.Count == 0) { GD.Print($"[rathausneu] Fensterblick {raum.Name}: keine Fenster"); return; }
@@ -142,7 +150,7 @@ public partial class Stadtansicht
         var gruende = new List<string>();
         foreach (var glas in glaeser)
         {
-            var e = RathausNeuEcken(glas);
+            var e = glas.Mesh is { } glasNetz ? glasNetz.GetFaces().Select(p => glas.GlobalTransform * p).ToArray() : Array.Empty<Vector3>();   // kleine Netze: GetFaces hält je Scheibe zwei Dreiecke beisammen
             for (var i = 0; i + 2 < e.Length; i += 6)   // je Scheibe zwei Dreiecke
             {
                 var mitte = (e[i] + e[i + 1] + e[i + 2]) / 3f;
@@ -156,8 +164,15 @@ public partial class Stadtansicht
                     var k = netz.GlobalTransform * netz.GetAabb();
                     if (!k.IntersectsSegment(von, bis)) continue;
                     var ecken = RathausNeuEcken(netz);
+                    var (unten, oben) = (von.Min(bis), von.Max(bis));
                     for (var j = 0; j + 2 < ecken.Length; j += 3)
                     {
+                        // Grobe Vorprüfung in C# (Kiste des Dreiecks gegen Kiste des Strahls): der Aufruf in die Engine je Dreieck kostete im
+                        // Gelände von Köln 0,7 s je Raum beim ersten Zeigen
+                        var (p0, p1, p2) = (ecken[j], ecken[j + 1], ecken[j + 2]);
+                        if (Math.Min(p0.X, Math.Min(p1.X, p2.X)) > oben.X || Math.Max(p0.X, Math.Max(p1.X, p2.X)) < unten.X
+                            || Math.Min(p0.Y, Math.Min(p1.Y, p2.Y)) > oben.Y || Math.Max(p0.Y, Math.Max(p1.Y, p2.Y)) < unten.Y
+                            || Math.Min(p0.Z, Math.Min(p1.Z, p2.Z)) > oben.Z || Math.Max(p0.Z, Math.Max(p1.Z, p2.Z)) < unten.Z) continue;
                         var treffer = Geometry3D.SegmentIntersectsTriangle(von, bis, ecken[j], ecken[j + 1], ecken[j + 2]);
                         if (treffer.VariantType != Variant.Type.Vector3) continue;
                         var d = von.DistanceTo(treffer.AsVector3());
@@ -557,6 +572,20 @@ public partial class Stadtansicht
         foreach (var (_, licht) in _rathausNeuSchattenlichter) licht.Visible = false;
         foreach (var gruppe in _rathausNeuSchilder.Values) gruppe.Visible = false;
         GD.Print($"[rathausneu] Raumansicht: Vorwärmen nach dem Laden {uhr.Elapsed.TotalMilliseconds:0} ms ({raeume} Räume je zwei Bilder in eigener Kamera)");
+        // Die großen Netze der Stadt gegen die Raumkisten vorrechnen (RathausNeuGrossRaeume): je Netz höchstens ein Bild, damit nichts ruckt
+        uhr.Restart();
+        var kisten = RathausNeuRaumkisten();
+        var netze = 0; double rechnen = 0;
+        foreach (var netz in RathausNeuGrosseNetze(wurzel, auchVerborgene: true).ToList())   // auch die gerade verborgenen (Fernstufen)
+        {
+            if (!IsInstanceValid(this) || !IsInstanceValid(wurzel) || _neubauInnen == wurzel) return;   // betreten: der Rest wird dort gerechnet
+            if (!IsInstanceValid(netz)) continue;
+            var t = System.Diagnostics.Stopwatch.StartNew();
+            RathausNeuGrossRaeume(netz, kisten);
+            netze++; rechnen += t.Elapsed.TotalMilliseconds;
+            if (t.Elapsed.TotalMilliseconds >= 4) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+        GD.Print($"[rathausneu] Raumansicht: {netze} große Netze gegen die Raumkisten vorgerechnet, {rechnen:0} ms Rechenzeit über {uhr.Elapsed.TotalMilliseconds:0} ms verteilt");
     }
 
     /// <summary>Licht, Fackeln, Wege und Gegenstände eines Raums aus seinen Ankern (einmal je Raum).</summary>
@@ -712,24 +741,85 @@ public partial class Stadtansicht
     private Vector3[] RathausNeuEcken(GeometryInstance3D netz)
     {
         if (_rathausNeuEcken.TryGetValue(netz, out var ecken)) return ecken;
-        ecken = netz is MeshInstance3D { Mesh: { } m } ? m.GetFaces().Select(e => netz.GlobalTransform * e).ToArray() : Array.Empty<Vector3>();
+        ecken = netz is MeshInstance3D { Mesh: { } m } ? RathausNeuDreiecke(m, netz.GlobalTransform) : Array.Empty<Vector3>();
         return _rathausNeuEcken[netz] = ecken;
+    }
+
+    /// <summary>
+    /// Die Dreiecke eines Netzes in Weltkoordinaten, direkt aus den Flächen-Arrays. Vorher <c>Mesh.GetFaces()</c>: das baut beim ersten Mal je
+    /// Netz einen Suchbaum (TriangleMesh) – für das Gelände von Köln rund 2 s beim ersten Betreten des Rathauses (Messung 17.11.2026).
+    /// </summary>
+    private static Vector3[] RathausNeuDreiecke(Mesh netz, Transform3D lage)
+    {
+        var liste = new List<Vector3>();
+        for (var i = 0; i < netz.GetSurfaceCount(); i++)
+        {
+            if (netz is ArrayMesh a && a.SurfaceGetPrimitiveType(i) != Mesh.PrimitiveType.Triangles) continue;
+            var felder = netz.SurfaceGetArrays(i);
+            if (felder.Count <= (int)Mesh.ArrayType.Index) continue;
+            var punkte = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+            var index = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? Array.Empty<int>() : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
+            if (index.Length > 0) { foreach (var j in index) liste.Add(lage * punkte[j]); }
+            else foreach (var p in punkte) liste.Add(lage * p);
+        }
+        while (liste.Count % 3 != 0) liste.RemoveAt(liste.Count - 1);
+        return liste.ToArray();
+    }
+
+    // Messung 17.11.2026 (Köln, Blendetest): Das erste Betreten dauerte 5,0 s statt 2,0 s. 2,0 s davon suchte diese zweite Stufe: Sie las je
+    // Raumwechsel die Dreiecke aller großen Netze (Fernbild 374 000, Äcker, Gelände) über Mesh.GetFaces(), das beim ersten Mal je Netz einen
+    // Suchbaum baut. Jetzt: nur die Eckpunkte, für alle Räume in einem Durchgang, je Netz gemerkt (solange Netz, Mesh, Lage und Hüllkiste gleich bleiben)
+    // und nach dem Laden über mehrere Bilder verteilt vorgerechnet (RathausNeuVorwaermen).
+    private readonly Dictionary<ulong, (ulong Mesh, Transform3D Lage, Aabb Kiste, HashSet<string> Raeume)> _rathausNeuGrossIn = new();
+    private static readonly HashSet<string> RathausNeuKeinRaum = new();
+
+    /// <summary>Sichtbare große Netze außerhalb des Hauses (über 60 m: Gelände, Äcker, Fernbild); die kleinen prüft <see cref="RathausNeuEindringlingeSuchen"/>.</summary>
+    private IEnumerable<GeometryInstance3D> RathausNeuGrosseNetze(Node3D wurzel, bool auchVerborgene = false)
+    {
+        foreach (var netz in FindChildren("*", nameof(GeometryInstance3D), true, false).OfType<GeometryInstance3D>())
+        {
+            if (wurzel.IsAncestorOf(netz) || netz is Label3D or Sprite3D or GpuParticles3D or CpuParticles3D || (!auchVerborgene && !netz.IsVisibleInTree())) continue;
+            if (!_rathausNeuFremdeHuelle && _rathausNeuHuelle is { } h && h.IsAncestorOf(netz)) continue;
+            var k = netz.GlobalTransform * netz.GetAabb();
+            if (k.Size.X <= 60 && k.Size.Z <= 60) continue;
+            yield return netz;
+        }
+    }
+
+    /// <summary>Die Räume, in deren Kiste eine Ecke dieses großen Netzes liegt (gemerkt je Netz; leer ohne einfache Dreiecke).</summary>
+    private HashSet<string> RathausNeuGrossRaeume(GeometryInstance3D netz, List<(string Raum, Aabb Kiste)> kisten)
+    {
+        if (netz is not MeshInstance3D { Mesh: { } m }) return RathausNeuKeinRaum;
+        var lage = netz.GlobalTransform;
+        var eigen = netz.GetAabb();   // ändert sich, wenn dasselbe Mesh neu gefüllt wird
+        if (_rathausNeuGrossIn.TryGetValue(netz.GetInstanceId(), out var alt) && alt.Mesh == m.GetInstanceId() && alt.Lage == lage && alt.Kiste == eigen) return alt.Raeume;
+        var raeume = new HashSet<string>();
+        var huelle = lage * eigen;
+        var offen = kisten.Where(k => k.Kiste.Intersects(huelle)).ToList();
+        for (var i = 0; i < m.GetSurfaceCount() && offen.Count > 0; i++)
+        {
+            if (m is ArrayMesh a && a.SurfaceGetPrimitiveType(i) != Mesh.PrimitiveType.Triangles) continue;
+            foreach (var p in m.SurfaceGetArrays(i)[(int)Mesh.ArrayType.Vertex].AsVector3Array())
+            {
+                var ort = lage * p;
+                for (var j = offen.Count - 1; j >= 0; j--)
+                    if (offen[j].Kiste.HasPoint(ort)) { raeume.Add(offen[j].Raum); offen.RemoveAt(j); }
+                if (offen.Count == 0) break;
+            }
+        }
+        _rathausNeuGrossIn[netz.GetInstanceId()] = (m.GetInstanceId(), lage, eigen, raeume);
+        return raeume;
     }
 
     /// <summary>Große Netze außerhalb des Hauses (über 60 m, Gelände), von denen eine Ecke in der Kiste dieses Raums liegt.</summary>
     private List<GeometryInstance3D> RathausNeuRaumEindringlingeSuchen(string kennung)
     {
         var erg = new List<GeometryInstance3D>();
-        if (_rathausNeuInnen is not { } wurzel || RathausNeuRaumkisten().FirstOrDefault(k => k.Raum == kennung) is not { Raum: not null } eintrag) return erg;
-        var kiste = eintrag.Kiste;
-        foreach (var netz in FindChildren("*", nameof(GeometryInstance3D), true, false).OfType<GeometryInstance3D>())
-        {
-            if (wurzel.IsAncestorOf(netz) || netz is Label3D or Sprite3D or GpuParticles3D or CpuParticles3D || !netz.IsVisibleInTree()) continue;
-            if (!_rathausNeuFremdeHuelle && _rathausNeuHuelle is { } h && h.IsAncestorOf(netz)) continue;
-            var k = netz.GlobalTransform * netz.GetAabb();
-            if ((k.Size.X <= 60 && k.Size.Z <= 60) || !k.Intersects(kiste)) continue;   // die kleinen prüft RathausNeuEindringlingeSuchen
-            if (RathausNeuEcken(netz).Any(kiste.HasPoint)) erg.Add(netz);
-        }
+        if (_rathausNeuInnen is not { } wurzel) return erg;
+        var kisten = RathausNeuRaumkisten();
+        if (kisten.All(k => k.Raum != kennung)) return erg;
+        foreach (var netz in RathausNeuGrosseNetze(wurzel))
+            if (RathausNeuGrossRaeume(netz, kisten).Contains(kennung)) erg.Add(netz);
         return erg;
     }
 
@@ -756,6 +846,7 @@ public partial class Stadtansicht
         {
             RathausNeuRaumEindringlingeZeigen(null);
             _rathausNeuEcken.Clear();
+            foreach (var id in _rathausNeuGrossIn.Keys.Where(id => !IsInstanceIdValid(id)).ToList()) _rathausNeuGrossIn.Remove(id);   // abgebaute Netze vergessen
             if (_rathausNeuEindringlinge is { } alt)
                 foreach (var (netz, war) in alt) if (IsInstanceValid(netz)) netz.Visible = war;
             _rathausNeuEindringlinge = null;
