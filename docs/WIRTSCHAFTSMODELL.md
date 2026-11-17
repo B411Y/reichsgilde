@@ -2571,3 +2571,27 @@ Gemessen auf main 51ddb625 (vorher) und main 51ddb625 + dieser PR (Commit 31a2a3
 | Dieb (wagemutig, nicht im Mittel) | 23.114 (±1.700) | 23.067 (−0,2 %) | 22.158 (±1.723) | 22.442 (+1,3 %) | 21.565 (±1.494) | 21.547 (−0,1 %) |
 
 Alle Abstände liegen unter zwei Fehlern des Mittels, also im Rauschen: Wie überliefert −1,0 bis +0,3 %, Milde Jahre −2,5 bis +1,6 %, Harte Jahre −2,3 bis +3,1 %. Das passt zur Größe der Änderung: Nur jedes vierte Jahr ist Winter, und nur die Winter mit Kälte zwischen den alten und neuen Schwellen wechseln (Wie überliefert 10 % der Winter, Milde Jahre 15 %); bei Harten Jahren ändert sich nur der Zuschlag. Außerhalb ±15 % gegen das Mittel der zehn Berufe liegen vorher wie nachher Geldleiher (+39 bis +44 %) und Gardist (−18 bis −20 %). Vier Berufe wechseln knapp an der Schwelle die Seite, jeweils um weniger als zwei Prozentpunkte: Wie überliefert Wirt −14,6 → −15,2 % und Prediger +14,8 → +15,0 %; Harte Jahre Schmied −14,7 → −16,2 % und Dieb +15,4 → +14,8 %. Werte nicht nachgesteuert. Kein Lauf mit Fehlerpartien. Dateien: `docs/messungen/balancing-2026-11-17-winter-{main,branch}-{mild,ueberliefert,hart}.json`.
+
+## Zufallsgegner: keine festen Häuser mehr – Messung vorher/nachher (17.11.2026, ohne neue Datenversion)
+
+Seit dem 17.11.2026 nennen die Karten keine festen KI-Häuser mehr; jede Partie würfelt ihre Gegner (Name, Wappen, Geschlecht, Volk, Glaube, Beruf). An den Werten ändert sich nichts: Volk, Glaube und Beruf loste die Startaufstellung schon vorher mit derselben Zufallsquelle, und mit N Gegnern kommen dieselben N Umland-Startplätze ins Spiel. Neu gewürfelt sind Name, Wappen und Geschlecht des Oberhaupts – das Geschlecht wirkt über Heirat und Kinder auf den Lauf einer Partie.
+
+**Messung** (`messen bericht 20 10 --karte=koeln --teile=4,5 --parallel=2`, 60 Partien zu 20 Jahren, 10 Startwerte; vorher gemessen auf main 6a4d7912, nachher auf main 6a4d7912 + dieser PR, beides mit Datenversion 93 – vor dem strengen Winter nach der Härte der Zeit, Datenversion 94; Dateien `docs/messungen/balancing-2026-11-17-zufallsgegner-vorher.json` und `…-nachher.json`):
+
+| Größe nach 20 Jahren | vorher | nachher | Unterschied |
+|---|---|---|---|
+| Messstadt, 1 KI-Haus: Vermögen je Haus | 38.649 | 41.041 | +6,2 % |
+| Messstadt, 3 KI-Häuser | 47.573 | 48.331 | +1,6 % |
+| Messstadt, 5 KI-Häuser | 53.944 | 55.597 | +3,1 % |
+| Messstadt, 7 KI-Häuser | 55.329 | 55.266 | −0,1 % |
+| Köln, 7 KI-Häuser „Normal“: KI-Häuser im Mittel (n = 70, Fehler des Mittels ± 4.300) | 64.655 | 64.163 | −0,8 % |
+| Köln „Normal“: Bezugsspieler (n = 10, Fehler des Mittels ± 11.000 bis 13.000) | 68.712 | 71.784 | +4,5 % |
+| Köln „Normal“: Verhältnis KI ÷ Bezug (Median) | 0,88 | 0,87 | |
+| Köln „Normal“: davongezogen (> 2×) / abgeschlagen (< ½) von 70 | 15 / 16 | 15 / 18 | |
+| Köln „Schwer“: KI-Häuser im Mittel | 75.177 | 77.776 | +3,5 % |
+| Köln „Schwer“: Bezugsspieler | 72.827 | 79.822 | +9,6 % |
+| Köln „Schwer“: Verhältnis KI ÷ Bezug (Median) | 1,09 | 1,02 | |
+| Bankrott / erloschen | 0 / 0 | 0 / 0 | |
+
+**Befund:** Das Vermögen der KI-Häuser bleibt gleich (Köln −0,8 %, Messstadt −0,1 bis +6,2 %) – alles innerhalb der Streuung von 10 Startwerten. Der Bezugsspieler liegt höher (+4,5 %, auf „Schwer“ +9,6 %), bei einem Fehler des Mittels von über 11.000 Gulden lässt sich das mit 10 Startwerten nicht von Zufall trennen. Nichts nachgesteuert. Wer es genauer wissen will: `messen bericht 20 20` (900 Partien) vorher und nachher.
+

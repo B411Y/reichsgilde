@@ -31,7 +31,7 @@ static class WappenKiZufallTests
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
-                var max = Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost);
+                var max = Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost, Daten.Value);
                 Pruefe.Wahr(max >= 3, $"{kennung}: mindestens 3 KI möglich ({max})");
                 var freie = Wappen.Vorlagen; // auch die Wappen der Kartenhäuser: die weichen aus
                 for (var ki = 1; ki <= max; ki++)
@@ -48,41 +48,42 @@ static class WappenKiZufallTests
             Pruefe.Wahr(geprueft > 100, $"genug Partien geprüft ({geprueft})");
         }),
 
-        ("Wappen KI-Zufall: Köln, Spieler wählt das Wappen von Haus Kleingedank, 7 KI – startet, Kleingedank würfelt ein anderes Wappen, zweimal gleich", () =>
+        ("Wappen KI-Zufall: Köln, Spieler wählt das Wappen, das früher Haus Kleingedank trug, 7 KI – startet, kein KI-Haus führt es oder seine Farbe, zweimal gleich; ohne Karte weicht das feste Haus weiter aus", () =>
         {
+            // Seit dem 17.11.2026 nennt Köln keine festen Häuser mehr: Jedes KI-Haus würfelt sein Wappen um das des Spielers herum.
             var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
-            var klein = koeln.Startbelegung.Haeuser.Single(h => h.Name == "Haus Kleingedank");
-            var lilie = klein.Wappen; // seit 17.11.2026 der silberne Turm in Orange (verschiedene Hauptfarben der Kartenhäuser), bis dahin die Lilie
-            Pruefe.Gleich(new Wappen(Teilung.Ohne, Tinktur.Orange, Tinktur.Silber, Figur.Turm), lilie, "Gegenprobe: das Wappen von Kleingedank in der Karte");
-            var max = Partiebesetzung.HoechstensKi(koeln, Aufstellungsart.Gelost);
+            var turm = new Wappen(Teilung.Ohne, Tinktur.Orange, Tinktur.Silber, Figur.Turm); // bis 17.11.2026 das Wappen von Haus Kleingedank in der Karte
+            Pruefe.Gleich(turm, Stadtkarte.AusDatei(Altkarte.Pfad("koeln")).Startbelegung.Haeuser.Single(h => h.Name == "Haus Kleingedank").Wappen, "Gegenprobe: die ältere Karte");
+            var max = Partiebesetzung.HoechstensKi(koeln, Aufstellungsart.Gelost, Daten.Value);
             Pruefe.Gleich(7, max, "Köln: 7 KI");
             foreach (var s in new[] { 1, 5, 42 })
             {
                 var d = Daten.Value;
                 var b = Partiebesetzung.SpielerWuerfeln(d, koeln, s);
                 (Simulation, Konto) Neu() => Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = s, Siegbedingung = Siegbedingung.Endlos }, d,
-                    new NeuePartie(Familienname: b.Familienname, Volk: b.Volk, Glaube: b.Glaube, Beruf: b.Beruf, Wappen: lilie, Rivalen: max), karte: koeln);
+                    new NeuePartie(Familienname: b.Familienname, Volk: b.Volk, Glaube: b.Glaube, Beruf: b.Beruf, Wappen: turm, Rivalen: max), karte: koeln);
                 var (sim, spieler) = Neu();
                 var konten = sim.Wirtschaft!.Konten;
-                Pruefe.Gleich(lilie, spieler.Wappen, $"Startwert {s}: Spieler führt die Lilie");
-                var kleinKonto = konten.Single(k => k.Inhaber == "Haus Kleingedank");
-                Pruefe.Wahr(kleinKonto.Wappen != lilie, $"Startwert {s}: Kleingedank hat ein anderes Wappen");
+                Pruefe.Gleich(turm, spieler.Wappen, $"Startwert {s}: Spieler führt den Turm");
+                Pruefe.Gleich(8, konten.Count, $"Startwert {s}: Spieler und sieben KI-Häuser");
                 Pruefe.Gleich(konten.Count, konten.Select(k => k.Wappen).Distinct().Count(), $"Startwert {s}: alle verschieden");
-                // Die anderen Kartenhäuser behalten ihr Wappen aus der Karte
-                foreach (var h in koeln.Startbelegung.Haeuser.Where(h => h != klein))
-                    Pruefe.Gleich(h.Wappen, konten.Single(k => k.Inhaber == h.Name).Wappen, $"{h.Name} behält sein Wappen");
-                Pruefe.Gleich(kleinKonto.Wappen, Neu().Item1.Wirtschaft!.Konten.Single(k => k.Inhaber == "Haus Kleingedank").Wappen, "deterministisch");
+                Pruefe.Wahr(konten.Skip(1).All(k => k.Wappen!.Hausfarbe() != turm.Hausfarbe()), $"Startwert {s}: kein KI-Haus in Orange");
+                Pruefe.Gleich(string.Join(" | ", konten.Select(k => $"{k.Inhaber} {k.Wappen}")),
+                    string.Join(" | ", Neu().Item1.Wirtschaft!.Konten.Select(k => $"{k.Inhaber} {k.Wappen}")), "deterministisch");
             }
-            // Gegenprobe: mit 3 KI spielt Kleingedank nicht mit – kein Wurf, die anderen unverändert
-            var kurz = Partiebesetzung.KiHaeuser(koeln, koeln.Startbelegung, Daten.Value, 3, lilie, null, 1);
-            Pruefe.Wahr(kurz.Select((h, i) => h.Wappen == koeln.Startbelegung.Haeuser[i].Wappen).All(x => x), "nicht mitspielende Häuser zählen nicht");
-            // Gegenprobe ohne Ausweichen: die rohe Karte hätte zweimal die Lilie
-            Pruefe.Wahr(koeln.Startbelegung.Haeuser.Take(max).Select(h => h.Wappen).Append(lilie).GroupBy(w => w).Any(g => g.Count() > 1), "ohne Ausweichen doppelt");
+            // Ohne Karte (Ersatz) stehen die festen Häuser noch: Wählt der Spieler das Wappen von Haus Eichwald, würfelt Eichwald ein anderes
+            var ersatz = Startbelegung.Ersatz;
+            var mit = Partiebesetzung.KiHaeuser(null, ersatz, Daten.Value, 3, Wappen.Eichwald, null, 1);
+            Pruefe.Gleich(Wappen.Eisenbart, mit[0].Wappen);
+            Pruefe.Wahr(mit[1].Name == Partieaufbau.ZweiterRivale && mit[1].Wappen != Wappen.Eichwald, "Eichwald weicht aus");
+            // Gegenprobe: mit einem KI-Haus spielt Eichwald nicht mit – kein Wurf
+            var kurz = Partiebesetzung.KiHaeuser(null, ersatz, Daten.Value, 1, Wappen.Eichwald, null, 1);
+            Pruefe.Wahr(kurz.Count == 1 && kurz[0].Wappen == Wappen.Eisenbart, "nicht mitspielende Häuser zählen nicht");
         }),
 
         ("Wappen KI-Zufall: ein Kartenhaus weicht auch einer Vorgabe aus „Erweitert“ eines anderen Hauses aus; eine eigene Vorgabe bleibt", () =>
         {
-            var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var koeln = Stadtkarte.AusDatei(Altkarte.Pfad("koeln")); // die ältere Karte mit festen Häusern (die Regel gilt heute noch ohne Karte)
             var h = koeln.Startbelegung.Haeuser;
             var spieler = Wappen.Vorlagen.First(w => h.All(k => k.Wappen != w));
             var vorgaben = new Hausvorgabe?[] { new(Wappen: h[1].Wappen), null };

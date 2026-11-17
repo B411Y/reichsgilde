@@ -120,25 +120,30 @@ public partial class Kartenwerkstatt
         if (_startHaus >= Start.Haeuser.Count) _startHaus = Start.Haeuser.Count - 1;
         if (_neuerBetrieb is { } nb && (nb.Haus >= Start.Haeuser.Count || nb.Platz != "" && _entwurf.GebaeudeMit(nb.Platz) is null)) _neuerBetrieb = null;
         // Seit „nur noch Bauzonen“ (16.11.2026) gibt es keine Höfe und Plätze mehr: Die Tafel nennt nur, wer mitspielt.
-        Hauptmenue.Text(_startTafel, "Wer am Start mitspielt. Wo die Häuser wohnen und arbeiten, lost jede Partie in den Bauzonen innerhalb der Mauer – "
-            + "der Spieler wählt seinen Platz beim Start selbst. Nur die Umlandbetriebe haben ihren Platz in der Karte; dort tragen sie die Hausfarbe und eine hohe Fahne.",
+        // Seit dem 17.11.2026 würfelt jede Partie ihre KI-Häuser: Häuser legt man hier nur noch zur Probe an („Karte ausprobieren“).
+        Hauptmenue.Text(_startTafel, "Jede Partie würfelt ihre KI-Häuser selbst (Name, Wappen, Volk, Glaube und Beruf) und lost sie in die Bauzonen innerhalb der Mauer – "
+            + "der Spieler wählt seinen Platz beim Start selbst. Häuser, die hier stehen, spielen nur in der Probe („Karte ausprobieren“) fest mit; "
+            + "im Spiel geben sie ihren Umlandbetrieb als Umland-Startplatz und ihren Namen als Namen der Stadt her.",
             12, Grau, umbruchBreite: Rechtsbreite - 44);
+        if (Start.Umland.Count > 0 || Start.Hausnamen.Count > 0)
+            Hauptmenue.Text(_startTafel, $"Umland-Startplätze: {(Start.Umland.Count == 0 ? "keine" : string.Join(", ", Start.Umland.Select(b => b.Platz)))}. "
+                + $"Namen der Stadt: {(Start.Hausnamen.Count == 0 ? "keine" : string.Join(", ", Start.Hausnamen))}.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
         SpielerTeil();
         _startTafel.AddChild(new HSeparator());
         var kopf = new HBoxContainer();
         kopf.AddThemeConstantOverride("separation", 8);
         _startTafel.AddChild(kopf);
-        var titel = Hauptmenue.Text(kopf, $"KI-Häuser ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
+        var titel = Hauptmenue.Text(kopf, $"Häuser zur Probe ({Start.Haeuser.Count} von {Kartenentwurf.HoechstensHaeuser})", 16, Gold);
         titel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         var dazu = Knopf(kopf, "Haus hinzufügen", () =>
         {
             var neu = _entwurf.HausHinzufuegen();
             if (neu >= 0) (_startHaus, _hausZeigen) = (neu, true);
             StartZeigen();
-        }, "Ein neues KI-Haus mit freiem Namen, freier Farbe und freiem Wappen");
+        }, "Ein festes KI-Haus zur Probe, mit freiem Namen und freiem Wappen – im Spiel würfelt jede Partie ihre Häuser");
         dazu.Disabled = Start.Haeuser.Count >= Kartenentwurf.HoechstensHaeuser;
         if (Start.Haeuser.Count == 0)
-            Hauptmenue.Text(_startTafel, "Noch keins – dann würfelt jede Partie ihre KI-Häuser selbst (Name, Wappen, Volk und Beruf).",
+            Hauptmenue.Text(_startTafel, "Keins – auch die Probe würfelt dann ihre KI-Häuser.",
                 12, Grau, umbruchBreite: Rechtsbreite - 44);
         for (var i = 0; i < Start.Haeuser.Count; i++) HausZeile(i);
     }

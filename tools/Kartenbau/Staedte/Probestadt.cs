@@ -97,11 +97,8 @@ public sealed class Probestadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(-195, -145), P(-60, -145), P(-60, -72), P(-120, -60), P(-195, -60) }, "Wald im Nordwesten");
         E.NaturflaecheAnlegen("wald", new[] { P(60, 70), P(195, 60), P(195, 145), P(40, 145) }, "Wald im Südosten");
 
-        // ── Start: der Spieler und zwei KI-Häuser ────────────────────────────
-        var tischler = E.HausHinzufuegen("Haus Ahlbeck");
-        E.BetriebHinzufuegen(tischler, "", Betriebsart.Tischlerei);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
-        var giesser = E.HausHinzufuegen("Haus Brendel");
-        E.BetriebHinzufuegen(giesser, "", Betriebsart.Giesserei);
+        // ── Start: keine festen Häuser mehr (17.11.2026) – jede Partie würfelt ihre KI-Häuser; die beiden früheren bleiben als Namen der Stadt
+        E.HausnamenSetzen(new[] { "Ahlbeck", "Brendel" });
 
         // ── Gelände: sanfter Hang an der östlichen Vorstadt, Hügel im Randstreifen, Unebenheit im Rand ──
         Huegel(P(280, 0), 220, 6);          // höchstens 1,5 · 6 / 220 ≈ 4 % – die Mauer bei x = 70 liegt am Fuß

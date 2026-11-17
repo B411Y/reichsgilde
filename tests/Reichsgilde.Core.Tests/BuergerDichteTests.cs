@@ -32,7 +32,7 @@ static class BuergerDichteTests
     /// <summary>Eine Partie mit allen KI-Häusern der Karte (Köln: 7, Greybox: 3) – wie im Spiel.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Partie(Wirtschaftsdaten daten, string? karte, int startwert = 1400)
     {
-        var rivalen = karte is null ? 0 : JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(karte)))!["start"]!["haeuser"]!.AsArray().Count;
+        var rivalen = karte is null ? 0 : Kartenhaeuser.Anzahl(File.ReadAllText(Datenpfad.Karte(karte)));
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
             daten, rivalen > 0 ? new NeuePartie(Rivalen: rivalen) : new NeuePartie(), karte: karte is null ? null : Stadtkarte.AusDatei(Datenpfad.Karte(karte)));
         sim.Tick(); // die Einwohner ziehen ein

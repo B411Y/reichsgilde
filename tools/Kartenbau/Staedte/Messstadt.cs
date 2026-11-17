@@ -119,16 +119,12 @@ public sealed class Messstadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(-235, -165), P(-60, -165), P(-60, -125), P(-235, -125) }, "Wald im Norden");
         E.NaturflaecheAnlegen("wald", new[] { P(60, 125), P(235, 125), P(235, 165), P(60, 165) }, "Wald im Süden");
 
-        // ── Start: der Spieler und acht KI-Häuser ────────────────────────────
+        // ── Start: keine festen Häuser mehr (17.11.2026) – jede Partie würfelt ihre KI-Häuser. Es bleiben acht Umland-Startplätze (der Betrieb
+        //    heißt nach dem früheren Haus, z. B. „Grube Ahlbeck“) und die acht Namen als Namen der Stadt.
+        var namen = Kartenentwurf.Hausnamen.Take(Haeuser.Length).Select(Reichsgilde.Core.Dynastie.Familie.NachnameAus).ToList();
         for (var i = 0; i < Haeuser.Length; i++)
-        {
-            var h = Haeuser[i];
-            var haus = E.HausHinzufuegen();
-            E.HausVolkSetzen(haus, h.Volk);
-            E.HausGeschlechtSetzen(haus, h.Geschlecht);
-            E.BetriebHinzufuegen(haus, "", h.Werkstatt);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
-            E.BetriebHinzufuegen(haus, umlandKi[i].Kennung, h.Umland);
-        }
+            E.StartumlandHinzufuegen(umlandKi[i].Kennung, "{art} " + namen[i]);
+        E.HausnamenSetzen(namen);
         // ── Bauzonen im Stadtinneren (seit 16.11.2026, „nur noch Bauzonen“): aus dem Raster gerechnet, was innerhalb der Mauer frei ist –
         //    dort stehen die Wohnhäuser und Werkstätten aller Häuser am Start. Die vier Zonen der Vorstadt bleiben von Hand.
         E.LagenSetzen(new[]

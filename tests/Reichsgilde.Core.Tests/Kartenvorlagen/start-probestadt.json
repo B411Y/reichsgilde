@@ -1,0 +1,18 @@
+ "start": {
+  "haeuser": [
+   {
+    "name": "Haus Ahlbeck",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
+    "betriebe": [{"art": "Tischlerei"}]
+   },
+   {
+    "name": "Haus Brendel",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
+    "betriebe": [{"art": "Giesserei"}]
+   }
+  ]
+ },

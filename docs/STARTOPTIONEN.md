@@ -103,7 +103,7 @@ Startoptionen (nach `--`). Jede Option steht einmal in einer Tabelle (Option, We
 | `--einstellungen` | `1` |  | Spiel |
 | `--wegenetz` | `1` | Gassennetz der Passanten einblenden | Spiel |
 | `--laden` | `<datei.json>` | aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende` | Spiel |
-| `--karte` | `<kennung>` | neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“ | Spiel |
+| `--karte` | `<kennung>` | neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“. Ohne Menü spielen drei gewürfelte KI-Häuser mit (wie im Menü vorgewählt; weniger, wenn nicht so viele in die Bauzonen passen) – seit dem 17.11.2026 nennen die Karten keine festen Häuser mehr | Spiel |
 | `--stadtwahl` | `1` | Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos | Spiel |
 | `--neuepartie` | `1` | Hauptmenü öffnet gleich die Seite „Neue Partie“ mit gewürfeltem Vorschlag für die Startkarte, für Bildschirmfotos; „Erweitert“ und „Neu würfeln“ per Klick | Spiel |
 | `--danksagung` | `1` | Hauptmenü öffnet gleich die Danksagung; `=lizenzen`: gleich die Lizenztexte der Engine; für Bildschirmfotos | Spiel |

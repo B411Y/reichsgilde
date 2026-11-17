@@ -135,64 +135,17 @@
   "pflanzen": []
  },
  "start": {
-  "haeuser": [
-   {
-    "name": "Haus Ahlbeck",
-    "volk": "Zwerg",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
-    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube1", "art": "Mine"}]
-   },
-   {
-    "name": "Haus Brendel",
-    "volk": "Elb",
-    "geschlecht": "Frau",
-    "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
-    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag1", "art": "Holzfaellerei"}]
-   },
-   {
-    "name": "Haus Dornbusch",
-    "volk": "Halbling",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Ohne", "farbe1": "Purpur", "farbe2": "Gold", "figur": "Krone"},
-    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch1", "art": "Steinbruch"}]
-   },
-   {
-    "name": "Haus Falkner",
-    "volk": "Mensch",
-    "geschlecht": "Frau",
-    "wappen": {"teilung": "Ohne", "farbe1": "Gruen", "farbe2": "Gold", "figur": "Aehre"},
-    "betriebe": [{"art": "Tinkturei"}, {"platz": "Kraeutergarten1", "art": "Kraeutergarten"}]
-   },
-   {
-    "name": "Haus Grünwald",
-    "volk": "Mensch",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Sparren", "farbe1": "Schwarz", "farbe2": "Silber", "figur": "Mond"},
-    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
-   },
-   {
-    "name": "Haus Hollerbach",
-    "volk": "Halbling",
-    "geschlecht": "Frau",
-    "wappen": {"teilung": "Gespalten", "farbe1": "Ocker", "farbe2": "Silber", "figur": "Schluessel"},
-    "betriebe": [{"art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
-   },
-   {
-    "name": "Haus Lindenau",
-    "volk": "Mensch",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Ohne", "farbe1": "Orange", "farbe2": "Silber", "figur": "Turm"},
-    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
-   },
-   {
-    "name": "Haus Rabenstein",
-    "volk": "Zwerg",
-    "geschlecht": "Frau",
-    "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Gold", "figur": "Lilie"},
-    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
-   }
-  ]
+  "umland": [
+   {"platz": "Grube1", "art": "Mine"},
+   {"platz": "Holzschlag1", "art": "Holzfaellerei"},
+   {"platz": "Steinbruch1", "art": "Steinbruch"},
+   {"platz": "Kraeutergarten1", "art": "Kraeutergarten"},
+   {"platz": "Grube2", "art": "Mine"},
+   {"platz": "Bauernhof1", "art": "Bauernhof"},
+   {"platz": "Holzschlag2", "art": "Holzfaellerei"},
+   {"platz": "Steinbruch2", "art": "Steinbruch"}
+  ],
+  "hausnamen": ["Ahlbeck", "Brendel", "Dornbusch", "Falkner", "Grünwald", "Hollerbach", "Lindenau", "Rabenstein"]
  },
  "kamera": {"punkt": [0, 0], "zoom": 140, "drehung": 0},
  "fiktion": ["Ganz erfunden: eine Stadt mit Platz für acht KI-Häuser, damit die Messung 1, 3, 5 und 8 Häuser vergleichen kann."],

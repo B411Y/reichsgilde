@@ -26,7 +26,7 @@ static class Bauortmessung
         foreach (var kennung in karten)
         {
             var text = File.ReadAllText(Datenpfad.Karte(kennung));
-            var haeuser = JsonNode.Parse(text)!["start"]?["haeuser"]?.AsArray().Count ?? 1;
+            var haeuser = Kartenhaeuser.Anzahl(text);
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, daten,
                 new NeuePartie(Rivalen: haeuser), karte: karte);

@@ -20,7 +20,7 @@ static class KirchenstartTests
     /// <summary>Die Greybox-Karte, deren erste KI-Häuser als Prediger beginnen (Werkstatt → Kirche); auf Wunsch mit anderem Volk.</summary>
     static Stadtkarte Karte(int prediger, Volk? volk = null)
     {
-        var pfad = Datenpfad.Karte("greybox");
+        var pfad = Altkarte.Pfad("greybox");
         var json = JsonNode.Parse(File.ReadAllText(pfad))!;
         var haeuser = json["start"]!["haeuser"]!.AsArray();
         for (var i = 0; i < prediger; i++)

@@ -40,7 +40,7 @@ static class BalancingTests
         ("Schwierigkeit: Normal (Vorgabe) – jedes KI-Haus beginnt wie der Spieler mit einer Werkstatt und zwei Lehrlingen (PR #224); der Umlandbetrieb ist frei zur Pacht", () =>
         {
             Pruefe.Gleich(Schwierigkeit.Normal, Partieeinstellungen.Standard.Schwierigkeit);
-            foreach (var karte in new[] { null, Stadtkarte.AusDatei(Datenpfad.Karte("greybox")) })
+            foreach (var karte in new[] { null, Stadtkarte.AusDatei(Altkarte.Pfad("greybox")) })
             {
                 var (sim, spieler) = Partieaufbau.Erstellen(Endlos(), Daten.Value, new NeuePartie(Aufstellung: Aufstellungsart.Vorgabe), karte: karte);
                 var w = sim.Wirtschaft!;
