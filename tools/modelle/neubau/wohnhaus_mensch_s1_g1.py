@@ -354,8 +354,9 @@ def baue_haus():
     h.kasten(holz, (-1.5, VORN - 0.38, 0.42), (-0.2, VORN - 0.06, 0.48), "balken_b", laengs="x")
     for x in (-1.36, -0.34):
         h.kasten(holz, (x - 0.05, VORN - 0.34, 0.0), (x + 0.05, VORN - 0.10, 0.42), "balken_c", ohne=("-z", "+z"), laengs="z")
-    # Scheitholz an der rechten Seitenwand unter der Auskragung, Regenfass an der linken vorderen Ecke
-    for i, (y, z) in enumerate([(0.55 + 0.19 * k, 0.09) for k in range(5)] + [(0.64 + 0.19 * k, 0.26) for k in range(4)] + [(0.74 + 0.19 * k, 0.43) for k in range(3)]):
+    # Scheitholz an der rechten Seitenwand unter der Auskragung, Regenfass an der linken vorderen Ecke; Achsabstand 0,18 m = 1 cm Fuge
+    # (vorher 2 cm: durch die Fugen sah man 0,6 m tief bis an die Hauswand, luecken_pruefung „Durchblick“; Mensch-Nachtrag 16.11.2026)
+    for i, (y, z) in enumerate([(0.55 + 0.18 * k, 0.09) for k in range(5)] + [(0.64 + 0.18 * k, 0.26) for k in range(4)] + [(0.73 + 0.18 * k, 0.43) for k in range(3)]):
         h.stab(holz, (BX + 0.03, y, z), (BX + 0.62, y + 0.008 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)   # schraeg, ohne sich zu durchdringen
         h.rechteck(holz, (BX + 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=MITTE, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
     h.dreh(holz, (-BX - 0.36, VORN + 0.45, 0.0), [(0.25, 0.0), (0.31, 0.3), (0.31, 0.5), (0.26, 0.8)], "planken", seiten=10, deckel=False, gedreht=True)
@@ -966,6 +967,43 @@ def baue_fahne():
     return f
 
 
+def dach_hoehe(dach, x, y, ohne=("Strohkante",)):
+    """Oberste Hoehe der Dachflaechen (Teil „Dach“, ohne die Alpha-Cards) ueber der Stelle (x, y); None ohne Flaeche."""
+    beste = None
+    for pts, uv, st, *_ in dach.flaechen:
+        if st in ohne: continue
+        for i in range(1, len(pts) - 1):
+            a, b, c = pts[0], pts[i], pts[i + 1]
+            det = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)
+            if abs(det) < 1e-9: continue
+            u = ((x - a.x) * (c.y - a.y) - (c.x - a.x) * (y - a.y)) / det
+            v = ((b.x - a.x) * (y - a.y) - (x - a.x) * (b.y - a.y)) / det
+            if u >= -1e-6 and v >= -1e-6 and u + v <= 1 + 1e-6:
+                z = a.z + u * (b.z - a.z) + v * (c.z - a.z)
+                beste = z if beste is None else max(beste, z)
+    return beste
+
+
+def fahne_verankern(f, dach):
+    """Der Fahnenmast steckt im Dach (Mensch-Nachtrag 16.11.2026, wie bei den Zwergen: bei Stufe 2/3 stand er 4 cm ueber den Ziegeln):
+    Der Mast wird bis 10 cm unter die Dachoberflaeche an seiner Stelle verlaengert und bekommt dort eine eiserne Schelle. `f` = Teil
+    „Fahne“ (Mast Stoff „Holz“), `dach` = Teil „Dach“ in derselben Lage. Ein zweiter Aufruf aendert nichts (Schelle schon da)."""
+    holz = [p for pts, uv, st, *_ in f.flaechen if st == "Holz" for p in pts]
+    unten = min(p.z for p in holz)
+    if any(p.z < unten + 0.5 for pts, uv, st, *_ in f.flaechen if st == "Eisen" for p in pts):
+        return f
+    fuss = [p for p in holz if p.z < unten + 1e-4]
+    x, y = sum(p.x for p in fuss) / len(fuss), sum(p.y for p in fuss) / len(fuss)
+    dz = dach_hoehe(dach, x, y)
+    if dz is None:
+        raise SystemExit(f"Fahne: keine Dachflaeche unter dem Mast bei ({x:.2f}, {y:.2f})")
+    if unten > dz - 0.10:
+        f.stab("Holz", (x, y, dz - 0.10), (x, y, unten), 0.08, "balken_a")
+    f.kasten("Eisen", (x - 0.07, y - 0.07, dz - 0.03), (x + 0.07, y + 0.07, dz + 0.09), "eisen")      # Schelle am Fuss
+    print(f"FAHNE Mast von {unten:.3f} bis auf {min(unten, dz - 0.10):.3f}, Dach bei {dz:.3f}, Schelle {dz - 0.03:.3f}..{dz + 0.09:.3f}")
+    return f
+
+
 def baue_leerstand():
     """Leerstand: Tuer und Fenster mit gekreuzten Brettern vernagelt (Knoten „Leerstand“, im Spiel nur bei leerem Haus sichtbar)."""
     l = Teil("Leerstand", BAENDER_AUSSEN, saat=71)
@@ -1357,7 +1395,7 @@ def main():
     huelle = [baue_haus(), baue_dach()]                                            # zaehlt zum Budget des Style-Guides
     scheiben = baue_scheiben()
     zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]                     # Besitz und Zustand, wie bei den bisherigen Haeusern
-    fahne = baue_fahne()
+    fahne = fahne_verankern(baue_fahne(), huelle[1])
     raum = [baue_raum(), baue_herd(), baue_vorrat(zimmertuer_frei=True), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
     gegenstaende = [baue_truhe(), baue_familienbuch(), baue_bauplan(), baue_werkzeug(), baue_geldkassette()]   # anklickbar: oeffnen je eine Tafel
     einrichtung = [baue_hausapotheke(), baue_hauswaechter(), baue_hauswappen()]
