@@ -560,7 +560,7 @@ public partial class Stadtansicht
                 // nur im gezeigten Raum (die Feuer der übrigen sechs Räume sieht man nicht)
                 Func<bool> brennt = art == "Kerze" ? () => _neubauInnen == wurzel && _rathausNeuGezeigt == raum && _ratssitzung is not null
                     : () => _neubauInnen == wurzel && _rathausNeuGezeigt == raum;
-                FlammeAnlegen(a, lokal - a.Mitte, vorgabe, groesse, brennt, wurzel);
+                FlammeAnlegen(a, lokal - a.Mitte, vorgabe, groesse, brennt, wurzel, art: art == "Kamin" ? Raumkamin() : null); // Kamin der Ratshalle: ohne Rauch (er füllte das Bild), die Glut zeichnet das Modell
             }
             else if (name.StartsWith("Tuer_") || name.StartsWith("Treppe_") || name.StartsWith("Leiter_"))
             {

@@ -864,6 +864,21 @@ public partial class Stadtansicht
         return false;
     }
 
+    /// <summary>
+    /// Der Kamin eines Wohnraums (<c>Feuer_Kamin_</c> der Bibliothek, Stufe 1 und 2): ohne Rauch. Die Vorgabe <see cref="FeuerVorgabe.Kamin"/> ist der Schornsteinrauch im Freien (Ballen des
+    /// gemeinsamen <see cref="Kaminrauch"/>, Höhe und Breite der Art zählen dort nicht) und füllte den ganzen Raum der Bibliothek mit grauem Nebel (Klicktest 17.11.2026); die Glut zeichnet das
+    /// Modell selbst, und der Rauch stiege durch den Rauchfang (wie bei der Esse, <see cref="Herdfeuer"/>). Die Bibliothek der Stufe 3 hat keinen Kamin und keinen Rauch.
+    /// </summary>
+    private static FeuerArt? _raumkamin;
+    private static FeuerArt Raumkamin()
+    {
+        if (_raumkamin is not null) return _raumkamin;
+        _raumkamin = (FeuerArt)FeuerArt.Neu(FeuerVorgabe.Kamin).Duplicate();
+        _raumkamin.Bezeichnung = "Kamin im Wohnraum";
+        _raumkamin.RauchMenge = 0f;
+        return _raumkamin;
+    }
+
     /// <summary>Das Feuer eines Kamins im Raum: mittelgroß, mit drei Zungen über dem Glutbett, ein paar Funken und nur einem Hauch Rauch (der Rauch steigt durch den Rauchfang).</summary>
     private static FeuerArt? _kaminfeuer;
     private static FeuerArt Kaminfeuer()

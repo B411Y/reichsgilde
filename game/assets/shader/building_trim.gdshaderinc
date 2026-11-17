@@ -25,6 +25,7 @@ uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Rege
 // Abtastgrenze (kein Flimmern beim Schwenken). Steinbänder je Blatt (v-Bereiche, -1 = keiner) setzt das Spiel (SteinMip.cs);
 // Standard: Band „bruchstein“ der Häuser (0,85–0,95). Putz, Holz, Stroh und Schiefer behalten pixel_mip.
 uniform float stein_mip = 1.0;
+uniform float stein_ruhe = 0.5;   // Pixel-Look: Anteil der groben Mip-Stufe (pixel_mip) in der Farbe der Steinbänder
 uniform vec4 stein_baender = vec4(0.85, 0.95, -1.0, -1.0);
 // Häuser-Array: Steinbänder je Ebene aus STEIN_EBENE (Reihenfolge wie Steinebenen.cs, dort derselbe Inhalt, SteinebenenTests vergleicht).
 // Eigene Arrays (Innenräume, Rathaus, Brücke) schalten das ab und setzen stein_baender.
@@ -81,9 +82,12 @@ void fragment() {
 	bool stein = (UV.y >= sb.x && UV.y < sb.y) || (UV.y >= sb.z && UV.y < sb.w);
 	bool scharf = pixel_look > 0.5 && wetter_an < 0.5;   // Pixel-Look im Haus
 	float grob = scharf ? 0.0 : pixel_look * (stein ? stein_mip : pixel_mip);
+	float grob_licht = scharf ? 0.0 : pixel_look * pixel_mip;   // Rauheit, Verdeckung und Normale immer so grob wie der Putz: nur die FARBE der Steinbänder bleibt feiner
 	float lod = textureQueryLod(albedo_tex, UV).y;     // Albedo und ORM sind gleich groß (2048²)
+
 	vec4 tex = scharf ? texel_scharf(albedo_tex, uvw, lod) : texture(albedo_tex, uvw, grob);
-	vec3 orm = scharf ? texel_scharf(orm_tex, uvw, lod).rgb : texture(orm_tex, uvw, grob).rgb;
+	if (!scharf && stein && pixel_look > 0.5) tex = mix(tex, texture(albedo_tex, uvw, grob_licht), stein_ruhe);
+	vec3 orm = scharf ? texel_scharf(orm_tex, uvw, lod).rgb : texture(orm_tex, uvw, grob_licht).rgb;
 	float house_ao = texture(ao_uv2_tex, vec3(UV2, float(ao_ebene))).r;
 
 	vec3 final_color = tex.rgb;
@@ -127,7 +131,7 @@ void fragment() {
 	}
 
 	ALBEDO = final_color;
-	NORMAL_MAP = texture(normal_tex, uvw, grob).rgb;
+	NORMAL_MAP = texture(normal_tex, uvw, grob_licht).rgb;
 	NORMAL_MAP_DEPTH = normal_strength * (scharf ? 0.25 : 1.0 - 0.6 * pixel_look) * (1.0 - schnee);
 	EMISSION = schimmer;
 	if (scharf) {

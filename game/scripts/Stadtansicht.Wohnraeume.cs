@@ -162,7 +162,7 @@ public partial class Stadtansicht
                 // Feuer_<Art>_<n>: Kerze, Ofen oder Kamin – brennt, solange man im Raum ist
                 var art = name.Split('_') is { Length: >= 2 } t ? t[1] : "Kerze";
                 var (vorgabe, groesse) = art switch { "Kerze" => (FeuerVorgabe.Kerze, 0.22f), "Ofen" => (FeuerVorgabe.Kamin, 0.7f), _ => (FeuerVorgabe.Kamin, 1.0f) };
-                FlammeAnlegen(a, lokal - a.Mitte, vorgabe, groesse, () => _neubauInnen == wurzel, wurzel);
+                FlammeAnlegen(a, lokal - a.Mitte, vorgabe, groesse, () => _neubauInnen == wurzel, wurzel, art: art == "Kamin" ? Raumkamin() : null); // Kamin: ohne Rauch (er stiege durch den Rauchfang), sonst füllte der Schornsteinrauch des Freien den Raum
             }
             else if (name.StartsWith("Tuer_") && ExtraText(knoten, "ziel") is { Length: > 0 } ziel)
             {
