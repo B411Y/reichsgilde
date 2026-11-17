@@ -153,12 +153,45 @@ def dach_heben(x, y, g, yw0, yw1, xe, vorn_walm):
     return max(traufe, ortgang)
 
 
+def _unterteilen(pts, uv, n_lang, quer):
+    """Viereck in n_lang x len(quer)-1 Vierecke (bilinear, Punkte und UV); die Seite pts[0]-pts[1] ist die lange, `quer` die Teilung
+    (0 .. 1) entlang pts[0]-pts[3]."""
+    p0, p1, p2, p3 = [Vector(p) for p in pts]
+    u0, u1, u2, u3 = uv
+    P = lambda s, t: p0 * (1 - s) * (1 - t) + p1 * s * (1 - t) + p2 * s * t + p3 * (1 - s) * t
+    U = lambda s, t: tuple(u0[k] * (1 - s) * (1 - t) + u1[k] * s * (1 - t) + u2[k] * s * t + u3[k] * (1 - s) * t for k in (0, 1))
+    teile = []
+    for i in range(n_lang):
+        for ta, tb in zip(quer[:-1], quer[1:]):
+            ecken = [(i / n_lang, ta), ((i + 1) / n_lang, ta), ((i + 1) / n_lang, tb), (i / n_lang, tb)]
+            teile.append(([P(s, t) for s, t in ecken], [U(s, t) for s, t in ecken]))
+    return teile
+
+
 def dach_schwingen(d, g, yw0, yw1, xe):
     """Hebt alle Punkte des Dachs (Teil „Dach“: Schindeln, Fuesse, Ortgang, Sparrenkoepfe, Schwuenge) nach dach_heben. UV bleibt (die
-    Schindeln laufen mit), die Normalen rechnet der Export neu."""
+    Schindeln laufen mit), die Normalen rechnet der Export neu. Lange Vierecke (die Grundflaeche jeder Dachseite unter den Schindeln
+    reicht von Giebel zu Giebel) werden vorher in ein Raster geteilt: sonst kippte ihre ganze Traufkante mit den gehobenen Ecken nach
+    oben und laege ueber den Schindeln (gebackene Verdeckung schwarz, Rueckseite sichtbar)."""
     walm = bool(g.walm)
+    flaechen = []
+    for pts, uv, st, fa, gl in d.flaechen:
+        ys = [p.y for p in pts]
+        if len(pts) == 4 and max(ys) - min(ys) > 1.5:
+            lang = (Vector(pts[1]) - Vector(pts[0])).length >= (Vector(pts[3]) - Vector(pts[0])).length
+            if not lang:                                     # die lange Seite nach vorn drehen
+                pts, uv = pts[1:] + pts[:1], uv[1:] + uv[:1]
+            n_lang = max(2, math.ceil((Vector(pts[1]) - Vector(pts[0])).length / 0.6))
+            xa, xb = abs(pts[0].x), abs(pts[3].x)                  # quer: von der Traufe zum First (oder umgekehrt); Schnitt an der Wandflucht
+            quer = [0.0, 1.0]
+            if abs(xa - xb) > 1e-6:
+                t = (g.OX - xa) / (xb - xa)
+                if 0.01 < t < 0.99: quer = [0.0, t, 1.0]
+            flaechen += [(q, u, st, fa, gl) for q, u in _unterteilen(pts, uv, n_lang, quer)]
+        else:
+            flaechen.append((pts, uv, st, fa, gl))
     d.flaechen = [([Vector((p.x, p.y, p.z + dach_heben(p.x, p.y, g, yw0, yw1, xe, walm and p.y < yw0))) for p in pts], uv, st, fa, gl)
-                  for pts, uv, st, fa, gl in d.flaechen]
+                  for pts, uv, st, fa, gl in flaechen]
 
 
 BOGEN_RAND = 0.08          # Breite des Bogenbretts (mittig auf der Bogenlinie: hoechstens 4 cm ueber die Oeffnung, Pruefung 1)
