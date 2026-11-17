@@ -564,7 +564,6 @@ public partial class Hauptszene
                 {
                     ("Rat", $"Wahl {jahr} – Stadtrichter: Haus Lyskirchen behält das Amt (6 Stimmen gegen 2)."),
                     ("Steuer", $"Jahressteuer {jahr}: Haus {name} zahlt 96 Gulden an die Stadtkasse."),
-                    ("Gericht", $"Gerichtstag {jahr}: Haus Overstolz wird wegen Wuchers zu 80 Gulden Buße verurteilt (Anklage: Haus {name})."),
                     ("Stand", $"Haus {name} steigt zum Bürger auf (Bürgerrecht der Stadt, Gebühr 300 Gulden)."),
                 });
             foreach (var (art, text) in posten)

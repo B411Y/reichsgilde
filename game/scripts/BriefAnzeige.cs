@@ -207,7 +207,7 @@ public sealed partial class BriefAnzeige : PanelContainer
         _bereich.ObenFrei = fenster.Y - Mathf.Min(BriefBuehne.Tafelhoehen(TafelBreite).Groesste, platz);
         // Bildzeit, nicht Spielzeit: Der Brief gehört zur Oberfläche und läuft unabhängig vom Spieltempo
         if (_verdeckt > 0) _verdeckt--;
-        else _ablauf.Weiter(Math.Min(delta, 0.1), Meldungseinstellungen.Bewegung);
+        else _ablauf.Weiter(Math.Min(delta, 0.25), Meldungseinstellungen.Bewegung);
         if (!_ablauf.Sichtbar)
         {
             _buehne.Ruhen();

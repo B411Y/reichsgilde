@@ -106,6 +106,8 @@ public sealed partial class BriefBuehne : Node
                 AlbedoTexture = _abbild.GetTexture(), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
                 TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
                 Uv1Scale = new Vector3(1, -1, 1), Uv1Offset = new Vector3(0, 1, 0), // das Bild eines SubViewports steht auf diesen Flächen sonst kopf (v läuft im Modell nach oben)
+                // Ohne Tiefenprüfung: Die Falze federn noch um ein, zwei Grad nach und stünden sonst vor dem Bild (der Fuß des Briefs fehlte kurz)
+                NoDepthTest = true, RenderPriority = 1,
             });
             _inhalt.Visible = false;
         }
