@@ -2549,3 +2549,25 @@ Die Lage wirkt stark. Die Häuser nach dem Startweg in Drittel geteilt, Reinverm
 | 8 bzw. 7 | 63.252 / 1,008 (8 Häuser) | 51.730 / 0,992 (7 Häuser) |
 
 **Befunde (nichts nachgesteuert):** (1) Das Los streut die Startwege weit – ein Haus nahe am Markt ist nach 20 Jahren um ein gutes Viertel reicher, eines am Ende der Ringgasse um ein gutes Fünftel ärmer als sein eigenes Mittel. Das gilt auch für den Spieler ohne Platzwahl (Messungen, Tests); im Spiel wählt er selbst. (2) Gegen die festen Plätze von früher verdient ein Haus mit einem Betrieb gelost deutlich weniger (−29 bis −42 %), weil die kuratierten Plätze 20–30 m vom Markt lagen und die Zonen im Schnitt 65–93 m. (3) Auf der Greybox sind die KI-Häuser gegen den Stand von main stärker (+9 bis +21 % nach 30 Jahren), weil kein Los mehr vor der Mauer landet. Ob die Fahrzeit der Handkarren, die Lage der Zonen oder das Los (z. B. näher am Markt) nachgestellt werden soll, ist eine Entscheidung des Nutzers – offen in `docs/bereiche/kern.md`.
+
+## Strenger Winter nach der Härte der Zeit (Datenversion 94, 17.11.2026)
+
+Wie oft ein Winter streng ist und wie stark die Winternachfrage dann wächst, hängt seit Datenversion 94 an der „Härte der Zeit“ (Nutzer 17.11.2026): Milde Jahre 15 % und Zuschlag 0,25, Wie überliefert 20 % und 0,5, Harte Jahre 30 % und 0,75. Vorher galten auf jeder Stufe 30 % und 0,5; **die Standardstufe „Wie überliefert“ hat damit ein Drittel weniger strenge Winter** (20 statt 30 %). Brennholz im strengen Winter: +50 / +60 / +70 % Nachfrage statt +40 %. Entscheidungen in `docs/bereiche/kern.md`, „Strenger Winter nach der Härte der Zeit“.
+
+Gemessen auf main 51ddb625 (vorher) und main 51ddb625 + dieser PR (Commit 31a2a34e), `messen bericht 20 20 --teile=1` (220 Partien je Lauf, 4 Kerne, nice 19), je Lauf `--haerte=mild|ueberliefert|hart`. Erst nach der Messung wurde main 6a4d7912 (#506, Hausfarben) eingemergt; damit ist nicht neu gemessen. Reinvermögen nach 20 Jahren, ein Betrieb, KI-geführt (main mit Fehler des Mittels):
+
+| Beruf | Milde Jahre: main | mit PR | Wie überliefert: main | mit PR | Harte Jahre: main | mit PR |
+|---|---|---|---|---|---|---|
+| Schmied | 27.055 (±2.294) | 26.377 (−2,5 %) | 26.552 (±2.018) | 26.287 (−1,0 %) | 25.595 (±2.234) | 25.168 (−1,7 %) |
+| Tischler | 28.172 (±1.713) | 28.053 (−0,4 %) | 28.723 (±1.954) | 28.442 (−1,0 %) | 28.264 (±1.727) | 28.412 (+0,5 %) |
+| Steinmetz | 31.015 (±1.898) | 30.863 (−0,5 %) | 30.858 (±2.141) | 30.944 (+0,3 %) | 30.880 (±2.312) | 30.632 (−0,8 %) |
+| Alchimist | 29.548 (±1.900) | 29.906 (+1,2 %) | 27.682 (±1.727) | 27.582 (−0,4 %) | 26.906 (±1.923) | 26.915 (+0,0 %) |
+| Wirt | 27.094 (±1.784) | 26.603 (−1,8 %) | 26.139 (±1.997) | 25.923 (−0,8 %) | 26.064 (±1.951) | 26.077 (+0,0 %) |
+| Prediger | 31.453 (±2.136) | 30.872 (−1,8 %) | 35.136 (±2.111) | 35.144 (+0,0 %) | 31.708 (±2.296) | 32.319 (+1,9 %) |
+| Dieb | 34.543 (±1.601) | 35.090 (+1,6 %) | 33.381 (±1.403) | 33.409 (+0,1 %) | 34.617 (±1.331) | 34.482 (−0,4 %) |
+| Parfumeur | 31.457 (±2.593) | 31.798 (+1,1 %) | 30.377 (±2.175) | 30.405 (+0,1 %) | 28.392 (±2.613) | 29.265 (+3,1 %) |
+| Geldleiher | 42.964 (±1.050) | 43.445 (+1,1 %) | 42.691 (±925) | 42.699 (+0,0 %) | 43.298 (±1.099) | 42.300 (−2,3 %) |
+| Gardist | 25.183 (±536) | 25.154 (−0,1 %) | 24.637 (±694) | 24.703 (+0,3 %) | 24.374 (±805) | 24.761 (+1,6 %) |
+| Dieb (wagemutig, nicht im Mittel) | 23.114 (±1.700) | 23.067 (−0,2 %) | 22.158 (±1.723) | 22.442 (+1,3 %) | 21.565 (±1.494) | 21.547 (−0,1 %) |
+
+Alle Abstände liegen unter zwei Fehlern des Mittels, also im Rauschen: Wie überliefert −1,0 bis +0,3 %, Milde Jahre −2,5 bis +1,6 %, Harte Jahre −2,3 bis +3,1 %. Das passt zur Größe der Änderung: Nur jedes vierte Jahr ist Winter, und nur die Winter mit Kälte zwischen den alten und neuen Schwellen wechseln (Wie überliefert 10 % der Winter, Milde Jahre 15 %); bei Harten Jahren ändert sich nur der Zuschlag. Außerhalb ±15 % gegen das Mittel der zehn Berufe liegen vorher wie nachher Geldleiher (+39 bis +44 %) und Gardist (−18 bis −20 %). Vier Berufe wechseln knapp an der Schwelle die Seite, jeweils um weniger als zwei Prozentpunkte: Wie überliefert Wirt −14,6 → −15,2 % und Prediger +14,8 → +15,0 %; Harte Jahre Schmied −14,7 → −16,2 % und Dieb +15,4 → +14,8 %. Werte nicht nachgesteuert. Kein Lauf mit Fehlerpartien. Dateien: `docs/messungen/balancing-2026-11-17-winter-{main,branch}-{mild,ueberliefert,hart}.json`.

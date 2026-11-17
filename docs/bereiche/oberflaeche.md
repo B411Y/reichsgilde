@@ -56,6 +56,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nur noch Bauzonen, Platzwahl) Während der Wahl wirken die Knöpfe für Wohnhaus, Bericht und Hafen nicht (die Bautafel kommt sofort wieder), ohne Hinweis; die Betriebsleiste ist bis zur Werkstatt leer.
 - (Bautafel, schon vor der Platzwahl) Die Zeichen „✔“ und „✗“ vor dem Zustand des Umrisses erscheinen im Klicktest als Kästchen (die Schrift hat sie nicht); betrifft Baumodus und Platzwahl.
 - (von Kern, 16.11.2026, „nur noch Bauzonen“ Teil 4) Kartenwerkstatt, Tafel „Start“: Der Hof-Knopf, „Erweitert“, die Zeilen Hofstelle, Wohnhaus und Startplatz und die Gruppe „Hofstelle“ in den Eigenschaften sind entfernt (`Kartenwerkstatt.Hoefe.cs` und `Kartenwerkstatt.Hofstelle.cs` gelöscht, `Kartenwerkstatt.Start.cs`, `.Tafeln.cs`, `.Palette.cs` angepasst – begründete Ausnahme, der Kern kennt die Felder nicht mehr). Neu: Je KI-Haus die Knöpfe „Werkstatt“ (nur die Betriebsart, ohne Platz) und „Umlandbetrieb“ (Platz in der Karte); die Palette bietet keine Werkstatt- und Wohnhausplätze mehr. Bitte gegenlesen und das Aussehen nachziehen; die zwei Hofstellen-Punkte oben sind damit erledigt.
+- (von Kern) „Härte der Zeit“ stellt seit Datenversion 94 auch den strengen Winter (15 / 20 / 30 % der Winter, Nachfragezuschlag 0,25 / 0,5 / 0,75). Der Tooltip der Auswahl unter „Neue Partie“ (`Hauptmenue.Besetzung.cs`) nennt bisher nur die Ernten; ein Halbsatz zu strengen Wintern fehlt. Keine neue Abfrage nötig.
 
 ## Entscheidungen
 
