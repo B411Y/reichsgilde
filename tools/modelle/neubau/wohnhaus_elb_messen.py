@@ -1,6 +1,6 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
-Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-31 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin) – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -16,6 +16,7 @@ import os
 import sys
 
 import bpy                                                                # noqa: F401
+from mathutils import Vector
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HIER)
@@ -164,6 +165,78 @@ def fussabdruck(glb, haus, ordner):
     return [f"   Elb x {e[0]:.2f}..{e[1]:.2f} y {e[2]:.2f}..{e[3]:.2f} Hoehe {e[4]:.2f}; Mensch x {m[0]:.2f}..{m[1]:.2f} y {m[2]:.2f}..{m[3]:.2f} Hoehe {m[4]:.2f} -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
 
+def innen_pruefen(haus, ordner, form, MS1):
+    """Pruefungen 28-31 der Wohnstube (Rueckmeldung des Nutzers 17.11.2026 zum Innenbild):
+      28 Dach innen geschlossen: von einem Raster ueber dem Boden des Dachgeschosses (0,5 m) trifft jeder Strahl nach oben eine Flaeche
+         des Innenmodells (kein Blick ins Leere zwischen den Sparren);
+      29 Haustuer innen: in der Oeffnung der Haustuer liegt innen ein Tuerblatt (Flaechen bis 0,15 m vor bzw. hinter der Innenwand
+         decken mindestens 60 % der Oeffnung), an derselben Stelle wie aussen;
+      30 Schlot ueber der Feuerstelle: Mitte (x, y) des Steins am Herd und des Schlots ueber der Haube hoechstens 0,10 m auseinander;
+      31 kein Holz im Kamin: keine Holzflaeche (Dielen, Balken) mit einer Ecke im Grundriss des Schlots oberhalb der Herdhaube."""
+    import wohnhaus_mensch_s1 as S1
+    from mathutils.bvhtree import BVHTree
+    from trimsheet import BAENDER_INNEN
+    S1.form_setzen(form)
+    F = S1.F
+    MS1.WELT = MS1.masse(form)["welt"]
+    fl = MS1.lade(os.path.join(ordner, f"{haus}_innen.glb"))
+    zeilen, fehler = [], 0
+    ecken, polys = [], []
+    for name, mat, pts, n, v in fl:
+        polys.append(list(range(len(ecken), len(ecken) + len(pts)))); ecken += [tuple(p) for p in pts]
+    baum = BVHTree.FromPolygons(ecken, polys)
+    frei = gesamt = 0
+    x = -F.IX + 0.3
+    while x <= F.IX - 0.3:
+        y = F.IV + 0.3
+        while y <= F.IH - 0.3:
+            gesamt += 1
+            if baum.ray_cast(Vector((x, y, S1.Z_TRAUFE + 0.05)), Vector((0, 0, 1)), 10.0)[0] is None: frei += 1
+            y += 0.5
+        x += 0.5
+    zeilen.append(f"28. Dach innen geschlossen: {gesamt} Strahlen nach oben, {frei} ins Leere -> {'ok' if not frei else 'FEHLER'}"); fehler += 1 if frei else 0
+    wand, (a0, a1), (z0, z1), _ = next(f for f in F.FENSTER if f[3] == "tuer")
+    (ox, oy), (ex, ey), _, (nx, ny) = F.WAENDE[wand]
+    ax = "y" if ex else "x"
+    e_innen = (oy if ex else ox) - (ny if ex else nx) * S1.T
+    vielecke = []
+    for name, mat, pts, n, v in fl:
+        if mat in ("Innenglas",) or MS1.achse(n) != ax: continue
+        ee = [p.y if ax == "y" else p.x for p in pts]
+        if any(abs(q - e_innen) > 0.15 for q in ee): continue
+        vielecke.append([((p.x if ax == "y" else p.y), p.z) for p in pts])
+
+    def drin(u, z, q):
+        an = False
+        for (ua, za), (ub, zb) in zip(q, q[1:] + q[:1]):
+            if (za > z) != (zb > z) and u < ua + (z - za) * (ub - ua) / (zb - za): an = not an
+        return an
+    probe = [(a0 + (a1 - a0) * (i + 0.5) / 12, z0 + (z1 - z0) * (j + 0.5) / 20) for i in range(12) for j in range(20)]
+    anteil = sum(1 for u, z in probe if any(drin(u, z, q) for q in vielecke)) / len(probe)
+    ok = anteil >= 0.6
+    zeilen.append(f"29. Haustuer innen an der Stelle der Oeffnung ({wand}, {a0:.2f}..{a1:.2f}): gedeckt {anteil * 100:.0f} % (Soll >= 60 %) -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    stein = BAENDER_INNEN["bruchstein"]; holz = [BAENDER_INNEN[b] for b in ("bohlen", "balken")]
+    in_band = lambda v, b: b[0] - 1e-3 <= v <= b[1] + 1e-3
+    herd = [p for name, mat, pts, n, v in fl if name.startswith("Herd") and in_band(v, stein) for p in pts]
+    schlot = [p for name, mat, pts, n, v in fl if name == "Raum" and in_band(v, stein) for p in pts if p.z > S1.Z_HAUBE + 0.3]
+    if herd and schlot:
+        mh = ((min(p.x for p in herd) + max(p.x for p in herd)) / 2, (min(p.y for p in herd) + max(p.y for p in herd)) / 2)
+        ms = ((min(p.x for p in schlot) + max(p.x for p in schlot)) / 2, (min(p.y for p in schlot) + max(p.y for p in schlot)) / 2)
+        d = ((mh[0] - ms[0]) ** 2 + (mh[1] - ms[1]) ** 2) ** 0.5
+        ok = d <= 0.10
+    else:
+        d, ok, mh, ms = -1.0, False, (0, 0), (0, 0)
+    zeilen.append(f"30. Schlot ueber der Feuerstelle: Herd ({mh[0]:.2f}, {mh[1]:.2f}), Schlot ({ms[0]:.2f}, {ms[1]:.2f}), Abstand {d:.2f} m (Soll <= 0,10) -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    kx0, kx1, ky0, ky1 = F.KAMIN
+    funde = []
+    for name, mat, pts, n, v in fl:
+        if not any(in_band(v, b) for b in holz): continue
+        if any(kx0 + 0.02 < p.x < kx1 - 0.02 and ky0 + 0.02 < p.y < ky1 - 0.02 and S1.Z_HAUBE < p.z < F.Z_FIRST for p in pts):
+            funde.append(name)
+    zeilen.append(f"31. Kein Holz im Kamin (Grundriss des Schlots ueber der Haube): {len(funde)} Holzflaechen -> {'ok' if not funde else 'FEHLER ' + ', '.join(sorted(set(funde)))}"); fehler += len(funde)
+    return zeilen, fehler
+
+
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
@@ -206,6 +279,7 @@ def main():
     zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
     z27, f27 = fussabdruck(glb, haus, ordner)
     zeilen.append(f"27. Fussabdruck der Grundform (Haus und Dach im Umriss des Menschenhauses): {'ok' if not f27 else 'FEHLER'}"); zeilen += z27; fehler += f27
+    z28, f28 = innen_pruefen(haus, ordner, form, MS1); zeilen += z28; fehler += f28
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
     kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
