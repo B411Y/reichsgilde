@@ -217,7 +217,8 @@ public partial class Hauptszene
                 if (!IsInstanceValid(siegel)) return;
                 siegel.Modulate = Colors.White;
                 siegel.MouseFilter = Control.MouseFilterEnum.Stop;
-                siegel.Aufleben();
+                if (neu) siegel.Erscheinen(); // die Rolle erscheint geschlossen und rollt auf
+                else siegel.Aufleben();
             });
     }
 
