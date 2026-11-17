@@ -256,7 +256,9 @@ static class GleichheitTests
         // Entscheidungen (Stufe 3) stehen im Spielstand: Öffnen, Befehl und Fristablauf laufen mit Speichern und Laden gleich. Bei 4711 schreibt
         // ein KI-Haus dem Menschen Erpresserbriefe – der Mensch zahlt einen (EntscheidungTreffen), ein anderer läuft ab (Frist). Seit der
         // Startaufstellung (PR 1c, KI-Häuser gelost) liegt der Brief, der abläuft, 1403 bis Anfang 1405; Lauf C lädt dazwischen, Minute(4, 12, 0),
-        // mit offener Frage (vorher Minute(2, 21, 37), die als Ladepunkt in der Gaunernacht bleibt).
+        // mit offener Frage (vorher Minute(2, 21, 37), die als Ladepunkt in der Gaunernacht bleibt). Seit den Zufallsgegnern (17.11.2026, auch
+        // Name, Wappen und Geschlecht der KI-Häuser gewürfelt) liegt der Brief, der abläuft, wieder früher – Mitte 1402 bis Anfang 1404 –, und
+        // der Ladepunkt mit offener Frage ist wieder Minute(2, 21, 37); Minute(4, 12, 0) bleibt als Ladepunkt.
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", b.Entscheidungen), "Entscheidungen mit deutscher Ländereinstellung");
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", c.Entscheidungen), "Entscheidungen mit Speichern und Laden");
         Pruefe.Gleich(string.Join(",", a.OffenAnLadepunkten.OrderBy(x => x.Key)), string.Join(",", c.OffenAnLadepunkten.OrderBy(x => x.Key)), "offene Entscheidungen an den Ladepunkten");
@@ -269,8 +271,8 @@ static class GleichheitTests
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains(" EntscheidungTreffen ok")), $"Kein erfolgreicher Befehl EntscheidungTreffen ({string.Join(" | ", a.Entscheidungen)})");
             Pruefe.Wahr(a.Entscheidungen.Any(z => z.Contains($" {Reichsgilde.Core.Entscheidungen.Entscheidungsabschluss.Frist} ")),
                 $"Kein Fristablauf einer Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
-            Pruefe.Wahr(c.OffenAnLadepunkten.GetValueOrDefault(Minute(4, 12, 0)) > 0,
-                $"Lauf C lädt bei Minute(4, 12, 0) ohne offene Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
+            Pruefe.Wahr(c.OffenAnLadepunkten.GetValueOrDefault(Minute(2, 21, 37)) > 0,
+                $"Lauf C lädt bei Minute(2, 21, 37) ohne offene Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
         }
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.

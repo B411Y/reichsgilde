@@ -181,7 +181,7 @@ static class ZwischenspeicherTests
     static void BauorteInDerPartie(string kennung, int jahre, int schritt, bool mussWechseln)
     {
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-        var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
+        var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(Datenpfad.Karte(kennung)));
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 101, Siegbedingung = Siegbedingung.Endlos },
             daten, new NeuePartie(Rivalen: haeuser, Startvermoegen: 200_000, Beruf: "Schmied"), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
         var w = sim.Wirtschaft!;

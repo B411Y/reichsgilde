@@ -189,7 +189,7 @@ static class Messpartie
         var ergebnis = new Partieergebnis { Aufbau = a };
         var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
         var kartenText = q.Karte(a.Karte);
-        var anzahl = a.Rivalen > 0 ? a.Rivalen : (JsonNode.Parse(kartenText)!["start"]?["haeuser"]?.AsArray().Count ?? 1);
+        var anzahl = a.Rivalen > 0 ? a.Rivalen : Kartenhaeuser.Anzahl(kartenText);
         var karte = Stadtkarte.AusJson(kartenText, Gebaeudekatalog.AusJson(q.Katalog));
         // Wie im Spiel: Wo die Häuser wohnen und arbeiten, lost das Startortlos in den Bauzonen im Stadtinneren (seit 16.11.2026 ohne feste
         // Plätze der Karte) – höchstens so viele KI-Häuser, wie mit dem Spieler hineinpassen.

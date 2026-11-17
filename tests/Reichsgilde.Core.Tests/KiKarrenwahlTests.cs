@@ -30,8 +30,8 @@ static class KiKarrenwahlTests
     /// <summary>Köln mit allen KI-Häusern der Karte, „Schwer“.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Koeln(Wirtschaftsdaten? daten = null)
     {
-        var pfad = Datenpfad.Karte("koeln");
-        var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
+        var pfad = Altkarte.Pfad("koeln");
+        var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(pfad));
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
             daten ?? Daten.Value, FesteStartorte.Partie("koeln", new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe)), karte: Stadtkarte.AusDatei(pfad));

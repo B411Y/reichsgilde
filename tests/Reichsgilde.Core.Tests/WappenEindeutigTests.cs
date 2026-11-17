@@ -38,7 +38,7 @@ static class WappenEindeutigTests
 
         ("Wappen: Sperre im Menü – Kartenhaus, anderes Haus und Spieler sperren; freies nicht; ein anderes Wappen gibt das alte frei", () =>
         {
-            var start = Stadtkarte.AusDatei(Datenpfad.Karte("koeln")).Startbelegung;
+            var start = Stadtkarte.AusDatei(Altkarte.Pfad("koeln")).Startbelegung;
             var h0 = start.Haeuser[0];
             var h1 = start.Haeuser[1];
             var spieler = Wappen.Vorlagen.First(w => start.Haeuser.All(h => h.Wappen != w));
@@ -63,7 +63,7 @@ static class WappenEindeutigTests
         ("Wappen: ein vorgegebenes Wappen, das ein Haus der Karte trägt, lässt dieses Haus neu würfeln; zwei gleiche Vorgaben weist er mit den Hausnamen ab", () =>
         {
             // Nutzer 15.11.2026: abgewiesen wird nur, was der Spieler selbst doppelt festlegt; ein Haus der Karte weicht aus.
-            var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var koeln = Stadtkarte.AusDatei(Altkarte.Pfad("koeln"));
             var fest = koeln.Startbelegung.Haeuser.First(h => !h.Gewuerfelt);
             var j = koeln.Startbelegung.Haeuser.ToList().IndexOf(fest);
             var vorgaben = new Hausvorgabe?[2];

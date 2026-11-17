@@ -18,7 +18,7 @@ static class HafenRuhtTests
 {
     static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
 
-    static Stadtkarte Karte(string kennung) => Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+    static Stadtkarte Karte(string kennung) => Stadtkarte.AusDatei(Altkarte.Pfad(kennung));
 
     /// <summary>Eine Stadt mit Karte zu dieser Minute (ohne Häuser), Daten aus der Datei.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Stadt(Wirtschaftsdaten daten, long minute = 9 * 60 - Spielzeit.TagesbeginnMinute, int startwert = 1400,

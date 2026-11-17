@@ -15,7 +15,7 @@ static class KartenformatTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneAktionspunkte()));
 
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
-    static string GreyboxPfad => Datenpfad.Karte("greybox");
+    static string GreyboxPfad => Altkarte.Pfad("greybox");
     static Gebaeudekatalog Katalog() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json"));
     static Stadtkarte Greybox() => Stadtkarte.AusDatei(GreyboxPfad);
 
@@ -232,7 +232,7 @@ static class KartenformatTests
             Pruefe.Gleich(Greybox().Bauzonen.Count, w.Karte.Bauzonen.Count); // die Zonen der Kartendatei (seit 4.11.2026 aus dem Raster: 9)
             Pruefe.Gleich(string.Join(" | ", sim.Wirtschaft!.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")),
                           string.Join(" | ", w.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")));
-            var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var koeln = Stadtkarte.AusDatei(Altkarte.Pfad("koeln"));
             Pruefe.WirftMitMeldung(() => Speicherung.Laden(alt, koeln), "gehört zur Karte „greybox“");
         }),
 
