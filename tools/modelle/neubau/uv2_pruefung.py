@@ -70,7 +70,7 @@ from mathutils import Vector
 HIER = os.path.dirname(os.path.abspath(__file__))
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 TEXTUREN = os.path.join(WURZEL, "game", "assets", "texturen", "neubau")
-TRIM_FREI = ("Fenster", "Bleinetz", "Hausfarbe", "Holz", "Eisen", "Innenglas", "Glas")
+TRIM_FREI = ("Fenster", "Bleinetz", "Hausfarbe", "Behang", "Behangsaum", "Holz", "Eisen", "Innenglas", "Glas")
 BAND_EISEN = 0.95                     # Eisen liegt im Blatt oberhalb v = 0,95 (Godot-Zaehlung); in Blender-UV unterhalb 0,05
 
 # Grenzwerte (siehe Kopf)

@@ -212,7 +212,7 @@ def luecken(glb, raster=0.01, min_groesse=0.02, bild=None):
                       f"gesehen {', '.join(f['blicke'][:3])}")
     return zeilen, len(einzeln), einzeln
 
-TRIM_FREI = ("Fenster", "Bleinetz", "Hausfarbe", "Holz", "Eisen", "Innenglas", "Glas")   # Stoffe ohne Trim-Sheet (wie uv2_pruefung.py)
+TRIM_FREI = ("Fenster", "Bleinetz", "Hausfarbe", "Behang", "Behangsaum", "Holz", "Eisen", "Innenglas", "Glas")   # Stoffe ohne Trim-Sheet (wie uv2_pruefung.py)
 UEBERLAUF_MIN = 0.01   # m: so weit darf eine Flaeche ueber den Rand ihres Bandes im Blatt hinausreichen (Filterrand)
 
 

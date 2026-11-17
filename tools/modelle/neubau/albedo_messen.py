@@ -54,7 +54,7 @@ def haus_fern(glb, lum):
     klein = lum.reshape(KLEIN, k, KLEIN, k).mean(axis=(1, 3))
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=glb)
-    flach = ("Holz", "Eisen", "Hausfarbe", "Fenster", "Bleinetz")      # Stoffe mit fester Farbe (nicht auf dem Blatt)
+    flach = ("Holz", "Eisen", "Hausfarbe", "Behang", "Behangsaum", "Fenster", "Bleinetz")      # Stoffe mit fester Farbe (nicht auf dem Blatt)
     summe, flaeche = 0.0, 0.0
     for o in bpy.data.objects:
         if o.type != "MESH" or o.name.split(".")[0] not in ("Haus", "Dach"): continue

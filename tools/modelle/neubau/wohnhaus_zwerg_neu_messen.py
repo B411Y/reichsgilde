@@ -201,7 +201,7 @@ def fenster_innen(haus, ordner, MOD):
             fax, e, u0, u1, z0, z1 = fa[f]
             rahmen = 0
             for name, mat, pts, n, *_ in fl:
-                if mat in ("Innenglas", "Hausfarbe") or name == "Glas": continue
+                if mat in ("Innenglas", "Hausfarbe", "Behang", "Behangsaum") or name == "Glas": continue
                 uu = [p.y if fax == "x" else p.x for p in pts]; ee = [p.x if fax == "x" else p.y for p in pts]
                 if (min(uu) < u1 + 0.06 and max(uu) > u0 - 0.06 and min(p.z for p in pts) < z1 + 0.06 and max(p.z for p in pts) > z0 - 0.06
                         and all(abs(x - e) < 0.40 for x in ee)
@@ -213,9 +213,14 @@ def fenster_innen(haus, ordner, MOD):
                 ohne_rahmen += 1
                 funde.append(f"   FEHLER {teil[1:]}: Fenster ohne Rahmen/Laibung innen bei {wand}, u {u0:.2f}..{u1:.2f}, z {z0:.2f}..{z1:.2f}")
         behang = []
+        # farbige Flaechen je Teil und Wandrichtung zusammengefasst: der Wandbehang besteht seit dem Feinschliff (17.11.2026) aus
+        # vielen kleinen Feldern im Stoff „Behang“ (Gelenke der Feder), frueher aus einer Flaeche „Hausfarbe“
+        gruppen = {}
         for name, mat, pts, n, *_ in fl:
             ax = MOD.achse(n)
-            if mat != "Hausfarbe" or ax is None: continue
+            if mat not in ("Hausfarbe", "Behang") or ax is None: continue
+            gruppen.setdefault((name, mat, ax), []).extend(pts)
+        for (name, mat, ax), pts in gruppen.items():
             e, u0, u1, z0, z1 = MOD.rechteck(pts, ax)
             if (u1 - u0) * (z1 - z0) < 0.3: continue
             loch = any(fax == ax and abs(fe - e) < 0.40 and min(u1, fu1) - max(u0, fu0) > 0.05 and min(z1, fz1) - max(z0, fz0) > 0.05
