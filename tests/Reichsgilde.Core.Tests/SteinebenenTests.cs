@@ -34,7 +34,9 @@ static class SteinebenenTests
             Pruefe.Gleich(2, Steinebenen.Ebene(Volk.Mensch, 3));
             Pruefe.Gleich(3, Steinebenen.Ebene(Volk.Zwerg, 1));
             Pruefe.Gleich(5, Steinebenen.Ebene(Volk.Zwerg, 3));
-            Pruefe.Gleich(6, Steinebenen.Ebene(Volk.Elb, 2));
+            Pruefe.Gleich(6, Steinebenen.Ebene(Volk.Elb, 1));
+            Pruefe.Gleich(8, Steinebenen.Ebene(Volk.Elb, 2));   // Stufen 2 und 3 der Elben hinter dem Halbling angehängt
+            Pruefe.Gleich(9, Steinebenen.Ebene(Volk.Elb, 3));
             Pruefe.Gleich(7, Steinebenen.Ebene(Volk.Halbling, 1));
             Pruefe.Gleich(1, Steinebenen.Ebene(Volk.Ork, 2));
             Pruefe.Gleich(0, Steinebenen.Ebene(Volk.Mensch, 0));   // außerhalb 1–3: geklemmt
@@ -45,7 +47,7 @@ static class SteinebenenTests
                     Pruefe.Wahr(Steinebenen.Ebene(v, s) != Steinebenen.Ebene(Volk.Mensch, s), $"{v} Stufe {s} nicht auf der Ebene der Menschen");
             for (var s = 1; s <= 3; s++)
                 foreach (var v in Enum.GetValues<Volk>())
-                    Pruefe.Wahr(Steinebenen.Ebene(v, s) is >= 0 and < 8, $"{v} Stufe {s} im Array");
+                    Pruefe.Wahr(Steinebenen.Ebene(v, s) >= 0 && Steinebenen.Ebene(v, s) < Steinebenen.Haeuser.Length, $"{v} Stufe {s} im Array");
         }),
         ("Steinebenen: Dateiname eines Außenhauses → Ebene und AO-Ebene, sonst keine", () =>
         {
@@ -55,6 +57,8 @@ static class SteinebenenTests
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s2_g1") == (4, 4), "Zwerg S2 (eigener AO-Atlas)");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s3_g4") == (5, 5), "Zwerg S3 (eigener AO-Atlas)");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_elb_s1_g2") == (6, 6), "Elb S1 (eigener AO-Atlas)");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_elb_s2_g1") == (8, 7), "Elb S2 (eigener AO-Atlas)");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_elb_s3_g4") == (9, 8), "Elb S3 (eigener AO-Atlas)");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_halbling_s2_g1") == (7, 0), "Halbling: Platzhalter ohne Atlas");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s1_g1_innen") is null, "innen gehört nicht ins Häuser-Array");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/rathaus") is null, "Rathaus hat ein eigenes Array");
@@ -75,6 +79,8 @@ static class SteinebenenTests
             Pruefe.Wahr(Steinebenen.Haeuser.All(e => e.Stein.Enthaelt(0.9f)), "Bruchstein ist überall Stein");
             Pruefe.Wahr(!Steinebenen.Haeuser[0].Stein.Enthaelt(0.6f) && Steinebenen.Haeuser[3].Stein.Enthaelt(0.6f), "Putz Mensch S1 nein, Zwerg ja");
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 1)].Stein.Enthaelt(0.6f), "Elb S1: im Putzband Kalkputz, kein Stein");
+            Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 2)].Stein.Enthaelt(0.6f), "Elb S2: Putzsockel und Gefache Kalkputz");
+            Pruefe.Wahr(Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 3)].Stein.Enthaelt(0.6f), "Elb S3: Werkstein (K5) im Putzband");
         }),
         ("Steinebenen: Arrays gleich groß, eine Ebene je Eintrag, 2048 breit, Import als Texture2DArray mit Mipmaps", () =>
         {
@@ -109,6 +115,8 @@ static class SteinebenenTests
             Pruefe.Gleich((4, 3), Steinebenen.InnenAusBlatt("innen_trim_s23_zwerg", "wohnhaus_zwerg_innen"));
             Pruefe.Gleich((5, 4), Steinebenen.InnenAusBlatt("raeume_innen_trim_zwerg", "wohnhaus_zwerg_dachraeume_innen"));
             Pruefe.Gleich((6, 6), Steinebenen.InnenAusBlatt("innen_trim_elb", "wohnhaus_elb_innen"));
+            Pruefe.Gleich((7, 6), Steinebenen.InnenAusBlatt("innen_trim_s23_elb", "wohnhaus_elb_innen"));
+            Pruefe.Gleich((8, 7), Steinebenen.InnenAusBlatt("raeume_innen_trim_elb", "wohnhaus_elb_raeume_innen"));
             // Gegenprobe des Kopflesers: ein Blatt mit einer Ebene ist nicht so hoch wie das Häuser-Array
             Pruefe.Wahr(PngKopf(Path.Combine(ordner, "trim_albedo.png")).Hoehe != 2048 * Steinebenen.Haeuser.Length, "Gegenprobe Höhe");
         }),

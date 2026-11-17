@@ -57,7 +57,7 @@ def pruefe(array, felder, zeilen, layout=None):
     if fehler:
         return fehler
     alb, nor, orm = felder["albedo"], felder["normal"], felder["orm"]
-    for i, (name, blatt, ersatz) in enumerate(ebenen):
+    for i, (name, blatt, ersatz, *_nach) in enumerate(ebenen):
         o0 = i * N
         werte = []
         for band, (v0, v1, _m) in baender.items():

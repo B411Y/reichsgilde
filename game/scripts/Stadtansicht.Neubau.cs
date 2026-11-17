@@ -62,8 +62,8 @@ public partial class Stadtansicht
     private static readonly int NeubauFormFest = int.TryParse(NeubauOption("--neubauform"), out var form) && form is >= 1 and <= NeubauGrundformen ? form : 0;
 
     /// <summary>Die Datei des neuen Wohnhauses einer Grundform und Stufe (1 Fachwerkhaus, 2 Bürgerhaus, 3 Steinhaus).</summary>
-    /// Zwerge wohnen in ihren eigenen Häusern (<c>wohnhaus_zwerg_s…</c>: Stein, Schindeln bzw. Schiefer), Elben in Stufe 1 ebenso
-    /// (<c>wohnhaus_elb_s1_…</c>: helles Fachwerk, Schindeln; fehlt die Datei, wie die Menschen), alle anderen Völker vorerst im Haus der Menschen.
+    /// Zwerge wohnen in ihren eigenen Häusern (<c>wohnhaus_zwerg_s…</c>: Stein, Schindeln bzw. Schiefer), Elben ebenso (<c>wohnhaus_elb_s…</c>:
+    /// helles Fachwerk, Schindeln bzw. Schiefer, Steinhaus mit Schildgiebel; fehlt eine Datei, wie die Menschen), alle anderen Völker vorerst im Haus der Menschen.
     private static string NeubauWohnhausForm(int form, int stufe = 1, Volk? volk = null) =>
         NeubauOrdner + $"wohnhaus_{(volk switch { Volk.Zwerg => "zwerg", Volk.Elb => "elb", _ => "mensch" })}_s{stufe}_g{form}";
 
@@ -111,7 +111,7 @@ public partial class Stadtansicht
         volk = NeubauVolkFest ?? volk;
         if (NeubauStufeFest > 0) stufe = NeubauStufeFest;
         var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe, volk);
-        if (volk is Volk.Zwerg or Volk.Elb && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Haus des Volks fehlt (Elben Stufe 2/3): Haus der Menschen
+        if (volk is Volk.Zwerg or Volk.Elb && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Haus des Volks fehlt: Haus der Menschen
         return stufe == 1 || ResourceLoader.Exists($"res://assets/modelle/{neu}.glb") ? neu : datei;
     }
 
@@ -142,9 +142,9 @@ public partial class Stadtansicht
     private static string NeubauBlatt(string datei)
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
-        // gleiche Bänder, anderer Inhalt: Zwerge (tools/modelle/neubau/trimsheet_zwerg*.py), Elben Stufe 1 (trimsheet_elb.py, ohne Räume)
+        // gleiche Bänder, anderer Inhalt: Zwerge (tools/modelle/neubau/trimsheet_zwerg*.py), Elben (trimsheet_elb.py, Räume raeume_trimsheet_elb.py)
         var volk = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : name.StartsWith("wohnhaus_elb_") ? "_elb" : "";
-        if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + (volk == "_elb" ? "" : volk);
+        if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + volk;
         if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
         var innen = name.EndsWith("_innen");
         var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;

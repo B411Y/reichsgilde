@@ -50,7 +50,7 @@ STEINE = {
 }
 
 # Je Array: Layout (Datei, Name des Dicts), Ordner der Blaetter und die Ebenen (Name, Blatt, {Band: Stein oder (Stein, Bezugsband)}).
-# Haeuser (Entscheidung Nutzer/Teamleiter 15.11.2026): 8 Ebenen = Volk x Stufe; die Reihenfolge gilt auch in Steinebenen.cs und
+# Haeuser (Entscheidung Nutzer/Teamleiter 15.11.2026): 8 Ebenen = Volk x Stufe (17.11.2026: 10, Elben Stufe 2 und 3 hinten angehaengt); die Reihenfolge gilt auch in Steinebenen.cs und
 # building_trim.gdshader (STEIN_EBENE). Nach der Rueckmeldung des Nutzers zum Vergleichsbild (15.11.2026): Mensch S1 behaelt den
 # bisherigen Sockelstein (K4 nicht am Sockel; das Aussenblatt hat kein Pflaster- oder Bodenband, K4 kommt also in keiner Ebene vor),
 # Mensch S2/S3 Mauer (Band "bruchstein") K1; die Zwerge behalten den bisherigen dunklen Stein (K3 zurueckgenommen); Halbling
@@ -73,18 +73,24 @@ ARRAYS = {
             # Haustein K2 im Bruchsteinband (Sockel, Schlot); K5 kommt in Stufe 1 nicht vor (das Kunstwerk zeigt keinen Backstein)
             ("elb_s1", "trim_elb", {"bruchstein": "k2"}),
             ("halbling", "trim_s3", {"bruchstein": "k2", "putz": "k5"}),
+            # Elben Stufe 2 und 3 (Auftrag 17.11.2026; hinter dem Halbling angehaengt, die Ebenen davor bleiben): Buergerhaus mit Putzsockel
+            # und Fachwerk (das Putzband bleibt Putz), Haustein K2; Steinhaus Mauer K2, Werkstein K5 im Putzband, danach der Efeu der
+            # Mauer wieder aufgetragen (elb_bewuchs.py, dieselben Ranken wie im Blatt trim_s3_elb)
+            ("elb_s2", "trim_s2_elb", {"bruchstein": "k2"}),
+            ("elb_s3", "trim_s3_elb", {"bruchstein": "k2", "putz": "k5"}, {"efeu": "bruchstein"}),
         ],
         # Reihenfolge wie Steinebenen.AoGruppen; Buergerhaus und Steinhaus haben je Volk eigene Atlanten (groessere Zellen), die Elben (Stufe 1) auch
-        ao=["wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb"]),
+        ao=["wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb",
+            "wohnhaus_elb_s2", "wohnhaus_elb_s3"]),
     # Innenraeume (vorerst ohne Steinwahl): dasselbe Array-Format, damit ein Shader fuer alle Gebaeude reicht.
     "innen": dict(
         layout=(os.path.join(HIER, "trimsheet.py"), "BAENDER_INNEN"), ordner=NEUBAU,
         # Reihenfolge wie Steinebenen.InnenBlaetter / InnenAoGruppen; die kleineren AO-Atlanten (512, 1024) werden auf N gebracht
         ebenen=[("innen", "innen_trim", {}), ("innen_s23", "innen_trim_s23", {}), ("raeume", "raeume_innen_trim", {}),
                 ("innen_zwerg", "innen_trim_zwerg", {}), ("innen_s23_zwerg", "innen_trim_s23_zwerg", {}), ("raeume_zwerg", "raeume_innen_trim_zwerg", {}),
-                ("innen_elb", "innen_trim_elb", {})],
+                ("innen_elb", "innen_trim_elb", {}), ("innen_s23_elb", "innen_trim_s23_elb", {}), ("raeume_elb", "raeume_innen_trim_elb", {})],
         ao=["wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
-            "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen"]),
+            "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen", "wohnhaus_elb_raeume_innen"]),
     # Rathaus (Mensch): Quader auf K1. Eine Ebene, eigenes Layout.
     "rathaus": dict(
         layout=(os.path.join(HIER, "rathaus_trimsheet.py"), "BAENDER_RATHAUS"), ordner=NEUBAU,
@@ -252,7 +258,7 @@ def baue(array, steine_ordner, blaetter, ziel, layout=None):
     ziel = ziel or cfg["ordner"]
     alb, nor, orm = [], [], []
     cache = {}
-    for name, blatt, ersatz in cfg["ebenen"]:
+    for name, blatt, ersatz, *nach in cfg["ebenen"]:
         pa, pn, po = blatt_finden(ordner, blatt)
         a, n, o = bild(pa, 4), bild(pn, 3), bild(po, 3)
         if a.shape[:2] != (N, N) or n.shape[:2] != (N, N) or o.shape[:2] != (N, N):
@@ -279,6 +285,13 @@ def baue(array, steine_ordner, blaetter, ziel, layout=None):
             n[z0:z1] = nn
             o[z0:z1] = oo
             print(f"   Band {band} (Zeilen {z0}-{z1}): {schluessel} {text}")
+        if nach and "efeu" in nach[0]:                     # Efeu der Elben auf dem eingesetzten Stein (elb_bewuchs.py, wie im Blatt)
+            sys.path.insert(0, HIER)
+            import elb_bewuchs
+            v0, v1, _m = baender[nach[0]["efeu"]]
+            z0, z1 = int(round(v0 * N)), int(round(v1 * N))
+            anteil = elb_bewuchs.efeu_auftragen(a, n, o, z0, z1, **elb_bewuchs.EFEU_S3)
+            print(f"   Band {nach[0]['efeu']}: Efeu wieder aufgetragen ({anteil:.3f} der Flaeche)")
         alb.append(a); nor.append(n); orm.append(o)
     os.makedirs(ziel, exist_ok=True)
     zahl = len(alb)
