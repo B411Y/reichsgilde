@@ -3,7 +3,7 @@
     python tools/modelle/neubau/elb_masse.py            # nur das Soll
 
 Regel (Auftrag 17.11.2026): Elben sind schlanker und hoeher (Elb 1,85 m, in der Passanten-Probe 1,80 bis 1,90 m, Elbinnen 5 %
-kleiner); Haustuer und Decken muessen fuer Elben, Menschen (1,75 m) und Zwerge passen. Gerechnet wird mit dem groessten Elb (1,90 m):
+kleiner); Haustuer, Decken und Dachgeschoss muessen fuer Elben und Menschen (1,75 m) passen (Zwerge gehen nicht in Elbenhaeuser). Gerechnet wird mit dem groessten Elb (1,90 m):
 Haustuer 1,90 + 0,20 = 2,10 m, Herdhaube 1,90 + 0,05 = 1,95 m. Die Figurenmasse und Zuschlaege kommen aus zwerg_masse.py.
 """
 import sys
@@ -14,7 +14,9 @@ ELB_GROESST = 1.90              # Passanten-Probe: 1,85 m Mitte, je Figur +-5 cm
 FIGUREN = dict(ZM.FIGUREN)
 FIGUREN["Elb (groesster)"] = (ELB_GROESST, 0.44)
 FIGUREN["Elbin"] = (round(1.85 * 0.95, 2), 0.42)
-PFLICHT = ("Elb (groesster)", "Elb", "Elbin", "Mensch", "Zwerg", "Zwergin")
+PFLICHT = ("Elb (groesster)", "Elb", "Elbin", "Mensch")      # Zwerge gehen nicht in Elbenhaeuser (Auftrag 17.11.2026, eigene Form)
+DG_LUFT = 0.10                # Dachgeschoss (Schlafen, Kehlbalken): Kopffreiheit ueber dem Scheitel
+DG_STEHBREITE = 1.0           # Breite, auf der man im Dachgeschoss aufrecht steht
 
 
 def soll():
@@ -38,6 +40,14 @@ def pruefe(form, ist, ausgabe=print):
             ok = ist_ + 1e-6 >= soll_
             zeilen.append((name, soll_, ist_, ok))
             fehler += 0 if ok else 1
+    if "dg_h" in ist:
+        for fig in PFLICHT:
+            hf = FIGUREN[fig][0]
+            ok = ist["dg_h"] + 1e-6 >= hf + DG_LUFT
+            zeilen.append((f"Dachgeschoss: lichte Hoehe unter dem Kehlbalken, {fig}", round(hf + DG_LUFT, 2), ist["dg_h"], ok)); fehler += 0 if ok else 1
+            b = ist["dg_breite"](hf + 0.05)
+            ok = b + 1e-6 >= DG_STEHBREITE
+            zeilen.append((f"Dachgeschoss: Breite aufrecht ({hf:.2f} m + 0,05), {fig}", DG_STEHBREITE, round(b, 2), ok)); fehler += 0 if ok else 1
     h = FIGUREN["Elb"][0]
     lo, hi = round(h * ZM.SITZ_FAKTOR[0], 2), round(h * ZM.SITZ_FAKTOR[1], 2)
     for name, sollwert, istwert, ok in (

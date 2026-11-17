@@ -46,10 +46,94 @@ def umbenennen(text):
     return text.replace("mensch", VOLK)
 
 
+# ── Eigene elbische Form (Rueckmeldung des Nutzers 17.11.2026: „Elben eigene Form“): niedrig und breit wie im Kunstwerk, ein Geschoss
+#    und Dachgeschoss unter einem steilen, tief heruntergezogenen, geschwungenen Dach. Alle vier Grundformen entstehen mit dem Bauskript
+#    der anderthalbgeschossigen Menschenhaeuser (wohnhaus_mensch_s1.py: Erdgeschoss in Fachwerk, Kniestock, Dachgeschoss); jede bleibt
+#    im Fussabdruck der Menschen-Grundform desselben Platzes (Pruefung 27). ──
+KNIE = 0.45                       # Kniestock (Menschen 0,80): das Dach setzt tief an (Traufe 3,00 m statt 3,35 m)
+NEIGUNG_GRAD = 55                 # steiler als bei den Menschen (50 Grad)
+KEHL = 1.75                       # Kehlbalken ueber der Traufe: 2,08 m ueber dem Boden des Dachgeschosses (Elb 1,90 + Kopf)
+UEBER = {1: 0.29, 2: 0.38, 3: 0.29, 4: 0.38}   # Dachueberstand an der Traufe je Grundform (bis an den Fussabdruck)
+
+
+def elb_form(n, alt):
+    """Grundform n der Elben (Baurahmen wie wohnhaus_mensch_s1): 2 und 4 mit den Grundrissen der Menschen (breite Traufseite zur
+    Gasse bzw. Laube unter dem Vordach), 1 und 3 neu: 5,0 x 4,4 m, Giebel zur Gasse, Holzunterstand unter dem tiefen hinteren Dach
+    (Kunstwerk); 1 mit der Tuer im Giebel, 3 an der Traufseite (gespiegelt und verschoben wie die Grundform 3 der Menschen)."""
+    alt(n if n in (2, 4) else 4)
+    F = s1.F
+    F.nr, F.name = n, f"wohnhaus_mensch_s1_g{n}"
+    s1.UEBER = zt.UEBER = UEBER[n]
+    if n in (1, 3):
+        F.BX, F.VORN, F.HINTEN = 2.5, -2.4, 2.0
+        _q = lambda k: g1.gefach(-F.BX, 2 * F.BX, k)               # Giebelseiten 5,0 m: fuenf Gefache
+        _l = lambda k: g1.gefach(F.VORN, F.HINTEN - F.VORN, k)     # Traufseiten 4,4 m: vier Gefache
+        F.DACH_VORN, F.DACH_HINTEN = -3.0, 2.58                    # hinten 0,58 m Ueberstand: darunter der Holzunterstand
+        F.STRASSE = "vorn_eg"
+        F.WELT = (((1, 0), (0, 1)), (0.0, 0.0)) if n == 1 else (((-1, 0), (0, 1)), (1.05, 0.0))
+        tuer, eg, gb = (s1.Z_BODEN, s1.Z_BODEN + TUER_HOCH), s1.EG_FENSTER, s1.GB_FENSTER
+        if n == 1:
+            # die Fenster liegen frei von den Moebeln der Wohnstube (Lage wie Grundform 4: Bauplan, Geld und Werkzeug links vorn, Herd
+            # rechts, Hausrat hinten links)
+            F.FENSTER = [("vorn_eg", _q(3), tuer, "tuer"), ("vorn_eg", _q(1), eg, "fenster"), ("vorn_gb", _q(2), gb, "fenster"),
+                         ("links_eg", _l(3), eg, "fenster"), ("hinten_eg", _q(2), eg, "fenster")]
+        else:
+            F.FENSTER = [("rechts_eg", _l(3), tuer, "tuer"), ("vorn_eg", _q(1), eg, "fenster"),
+                         ("vorn_gb", _q(2), gb, "fenster"), ("hinten_gb", _q(2), gb, "fenster"), ("links_eg", _l(3), eg, "fenster")]
+        F.WALM, F.LAUBE = None, False
+        F.GALERIE_AB, F.LEITER_X = 0.2, -1.0
+        F.KAMIN = (F.BX - s1.T - 0.60, F.BX - s1.T, -0.10, 0.60)
+        F.MATTEN = ((-0.6, -1.5, 1.5, 1.6), (-0.4, 1.15, 1.5, 0.6))
+        F.FAHNE = (0.0, F.DACH_HINTEN - 0.55)
+        F.WAPPEN = ((0.0 if n == 1 else sum(_q(3)) / 2, F.VORN, 1.53), (1, 0, 0), (0, -1, 0))   # Grundform 3: im freien rechten Gefach
+        F.BANK = ("vorn_eg", -1.55, -0.35)
+        F.FASS = (-2.05, F.VORN - 0.35)                             # Regenfass vor der Giebelwand (an der Seite laege es ausserhalb des Fussabdrucks)
+        F.SCHEIT = ("hinten_eg", 1.30)                             # an der Ecke, wo das Dach am tiefsten ist
+        F.GERUEST = dict(y=F.DACH_VORN + 0.08, x0=-2.6, x1=2.6, ebenen=(1.9, 3.6), innen=4.2, aussen=4.8, leiter_x=1.75)
+    # Masse aus dem Grundriss (wie am Ende von wohnhaus_mensch_s1.form_setzen, mit den Elben-Hoehen)
+    F.OX = F.BX
+    F.Z_FIRST = s1.Z_TRAUFE + F.OX * s1.NEIGUNG
+    F.IX, F.IV, F.IH = F.BX - s1.T, F.VORN + s1.T, F.HINTEN - s1.T
+    F.XK = F.OX - s1.KEHL / s1.NEIGUNG
+    F.ZK = s1.Z_TRAUFE + s1.KEHL
+    F.MITTE = Vector((0, (F.VORN + F.HINTEN) / 2, 3.0))
+    F.RAUM = Vector((0, (F.VORN + F.HINTEN) / 2, 1.6))
+    bx, v, h, xk = F.BX, F.VORN, F.HINTEN, F.XK
+    F.WAENDE = {
+        "vorn_eg": ((-bx, v), (1, 0), 2 * bx, (0, -1)), "hinten_eg": ((-bx, h), (1, 0), 2 * bx, (0, 1)),
+        "links_eg": ((-bx, v), (0, 1), h - v, (-1, 0)), "rechts_eg": ((bx, v), (0, 1), h - v, (1, 0)),
+        "vorn_og": ((-bx, v), (1, 0), 2 * bx, (0, -1)), "hinten_og": ((-bx, h), (1, 0), 2 * bx, (0, 1)),
+        "links_og": ((-bx, v), (0, 1), h - v, (-1, 0)), "rechts_og": ((bx, v), (0, 1), h - v, (1, 0)),
+        "vorn_gb": ((-xk, v), (1, 0), 2 * xk, (0, -1)), "hinten_gb": ((-xk, h), (1, 0), 2 * xk, (0, 1)),
+    }
+    if F.WALM:
+        xe = F.OX + s1.UEBER
+        F.X_WALM = xe / 3
+        F.Z_WALM = F.Z_FIRST - F.X_WALM * s1.NEIGUNG
+        F.D_WALM = (F.Z_FIRST - F.Z_WALM) / F.WALM
+
+
 def masse_anlegen():
-    """Elbenmasse in den Modulen der Menschen (auch fuer die Messung, einmal): Haustuer 2,10 m, Herdhaube 1,95 m licht."""
+    """Elbenmasse und -formen in den Modulen der Menschen (auch fuer die Messung, einmal): Haustuer 2,10 m, Herdhaube 1,95 m licht,
+    Kniestock, Dachneigung und Kehlbalken der Elben, die Grundformen (elb_form)."""
+    import math
     if _MASSE: return
     _MASSE.append(True)
+    s1.KNIE, s1.KEHL = KNIE, KEHL
+    s1.Z_TRAUFE = s1.Z_OG + KNIE
+    s1.NEIGUNG = math.tan(math.radians(NEIGUNG_GRAD))
+    s1.GB_FENSTER = (3.50, s1.Z_TRAUFE + KEHL - 0.08)
+    alt_form = s1.form_setzen
+    s1.form_setzen = lambda n: elb_form(n, alt_form)
+    alt_24 = s1.baue_form24
+
+    def form24():
+        t = alt_24()
+        if s1.F.nr in (1, 3):                          # Hauswappen innen neben das Giebelfenster (sonst hinge es davor, Pruefungen 4 und 24)
+            for teil in t["einrichtung"]:
+                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (1.15, 0.0))
+        return t
+    s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
     for m in (g1, s1):
         m.TUER_HOCH = TUER_HOCH
         m.Z_HAUBE = m.Z_HAUBE + HAUBE_HOEHER
@@ -121,19 +205,7 @@ def schicht_anlegen():
             if alt is None: continue
             setattr(modul, name, (lambda alt_, art_: lambda *a, **kw: merke(art_, alt_(*a, **kw)))(alt, art))
     # ── Spitzbogen aussen an Haustuer und Giebeloeffnung, Holzunterstand (Kunstwerk; Rueckmeldung des Nutzers 17.11.2026) ──
-    alt_haus1, alt_haus24 = g1.baue_haus, s1.baue_haus
-
-    def haus1():
-        h = alt_haus1()
-        wand, (a0, a1), (z0, z1), _ = next(f for f in g1.FENSTER if f[3] == "tuer")
-        (ox, oy), (ex, ey), _, n = g1.WAENDE[wand]
-        start = ox if ex else oy
-        et.spitzbogen(h, lambda s, z, w=wand: g1.punkt(w, s, z), (n[0], n[1], 0), a0 - start, a1 - start, z1)
-        (lx0, lx1), (lz0, lz1) = g1.LUKE                          # Ladeluke im vorderen Giebel: vor den Fluegeln (6 cm)
-        et.spitzbogen(h, lambda s, z: Vector((s, g1.OVORN, z)), (0, -1, 0), lx0, lx1, lz1, vor=0.065)
-        if FORM == 1: et.unterstand(h, g1.BX, 0.35, 1.65, 2.30)   # ueber dem Scheitholz an der rechten Seite (Grundform 3 hat den Schuppen)
-        return h
-    g1.baue_haus = haus1
+    alt_haus24 = s1.baue_haus
 
     def haus24():
         h = alt_haus24()
@@ -143,7 +215,19 @@ def schicht_anlegen():
             (ox, oy), (ex, ey), _, n = F.WAENDE[wand]
             start = ox if ex else oy
             et.spitzbogen(h, lambda s, zz, w=wand: s1.punkt(w, s, zz), (n[0], n[1], 0), a[0] - start, a[1] - start, z[1])
-        if F.nr == 4: et.unterstand(h, F.BX, 1.75, 3.05, 2.45)   # ueber dem Scheitholz an der rechten Seite
+        # Holzunterstand: Pfosten und Pfette unter dem tiefen Dach ueber dem Scheitholz (Kunstwerk), im Fussabdruck
+        walm = dict(walm=F.WALM, X_WALM=F.X_WALM, Z_WALM=F.Z_WALM, D_WALM=F.D_WALM) if F.WALM else {}
+        g = zt.DachMass(F.nr, F.OX, F.DACH_VORN, F.DACH_HINTEN, F.Z_FIRST, F.MITTE, s1.dach_z, s1.NEIGUNG, **walm)
+        xe = F.OX + zt.UEBER
+        unter = lambda x, y: s1.dach_z(abs(x)) + et.dach_heben(x, y, g, F.VORN, F.HINTEN, xe, bool(F.WALM) and y < F.VORN)
+        wand, a = F.SCHEIT
+        (ox, oy), (ex, ey), _, (nx, ny) = F.WAENDE[wand]
+        if ex:                                                     # Giebelwand (Grundform 1, 3): Pfosten 0,55 m vor der Wand
+            y = oy + ny * 0.55
+            et.traufstuetzen(h, [(a - 0.06, y), (a + 0.78, y)], unter)
+        else:                                                      # Traufwand (2, 4): Pfosten unter der Traufe
+            x = ox + nx * (zt.UEBER - 0.08)
+            et.traufstuetzen(h, [(x, a - 0.06), (x, a + 0.78)], unter)
         return h
     s1.baue_haus = haus24
     alt_versetze = s1.versetze_alle
@@ -195,11 +279,12 @@ def messen(form, ausgabe_ordner=None):
     """Ist-Masse aus der gebauten Szene und den Massen der Bauskripte; Soll gegen Ist: elb_masse.pruefe."""
     import elb_masse
     z0 = g1.Z_BODEN
-    fenster = g1.FENSTER if form in (1, 3) else s1.F.FENSTER
+    fenster = s1.F.FENSTER
     tuer = next(f for f in fenster if f[3] == "tuer")
     anker = {o.name: o.location.copy() for o in bpy.data.objects if o.type == "EMPTY"}
-    ist = dict(tuer_h=tuer[2][1] - tuer[2][0], tuer_b=tuer[1][1] - tuer[1][0], raum_h=g1.Z_OG - z0, haube_h=(g1.Z_HAUBE if form in (1, 3) else s1.Z_HAUBE) - z0,
-               sitz=g1.SITZ_HOEHE, tisch=g1.TISCH_HOEHE, auge=anker["Blick_Auge"].z - z0, stufe=z0)
+    ist = dict(tuer_h=tuer[2][1] - tuer[2][0], tuer_b=tuer[1][1] - tuer[1][0], raum_h=g1.Z_OG - z0, haube_h=s1.Z_HAUBE - z0,
+               dg_h=s1.Z_TRAUFE + s1.KEHL - s1.Z_GALERIE,
+               dg_breite=lambda h: max(0.0, 2 * min(s1.F.OX - s1.T, (s1.F.Z_FIRST - s1.Z_GALERIE - h) / s1.NEIGUNG)), sitz=g1.SITZ_HOEHE, tisch=g1.TISCH_HOEHE, auge=anker["Blick_Auge"].z - z0, stufe=z0)
     zeilen = []
     _z, fehler = elb_masse.pruefe(form, ist, ausgabe=zeilen.append)
     for z in zeilen: print(z)
@@ -216,8 +301,7 @@ def main():
     global FORM
     FORM = form
     schicht_anlegen()
-    if form == 1: g1.main()
-    else: s1.main()
+    s1.main()                                                       # alle vier Grundformen der Elben (elb_form)
     messen(form, opt.get("bilder"))
 
 

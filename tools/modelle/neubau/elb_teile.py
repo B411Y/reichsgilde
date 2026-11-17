@@ -95,9 +95,11 @@ def ortgang_schwung(d, g, xe, dick_unten, dick_oben, walm):
             ab = (traufe - first).normalized()
             punkte, breiten = [traufe], [0.17]
             for k in range(1, 4):
-                winkel = math.radians(70 * k / 3) * seite                 # in der x-z-Ebene nach oben drehen (rechts gegen den Uhrzeigersinn)
+                # in der x-z-Ebene nach oben gedreht (rechts gegen den Uhrzeigersinn), steil aufwaerts als Haken: der Schwung ragt
+                # hoechstens rund 6 cm ueber die Traufe hinaus (Fussabdruck der Grundform, Pruefung 27)
+                winkel = math.radians(115 + 20 * (k - 1)) * seite
                 r = Vector((ab.x * math.cos(winkel) - ab.z * math.sin(winkel), 0, ab.x * math.sin(winkel) + ab.z * math.cos(winkel)))
-                punkte.append(punkte[-1] + r * 0.14)
+                punkte.append(punkte[-1] + r * 0.12)
                 breiten.append(0.17 - 0.025 * k)
             streifen(d, "Fachwerk", punkte, breiten, n, "balken_c", 0.05, kappe=True, anfang=ab)
             if walm and aussen < 0: continue
@@ -126,8 +128,8 @@ def massfigur_elb(fusspunkte, hoehe=1.85):
 
 
 # ── Ueberarbeitung nach der Rueckmeldung des Nutzers zur Probe (17.11.2026): geschwungenes Dach, Spitzbogen, Holzunterstand ──
-SCHWUNG = 0.32             # so viel heben sich die Dachecken (Traufe am Giebel) im Kunstwerk etwa, in Metern
-SCHWUNG_LAENGE = 1.6       # ueber diese Laenge der Traufe (vom Giebel her) laeuft der Schwung aus
+SCHWUNG = 0.45             # so viel heben sich die Dachecken (Traufe am Giebel) im Kunstwerk etwa, in Metern
+SCHWUNG_LAENGE = 2.0       # ueber diese Laenge der Traufe (vom Giebel her) laeuft der Schwung aus
 
 
 def _glatt(t):
@@ -181,7 +183,7 @@ def dach_schwingen(d, g, yw0, yw1, xe):
             lang = (Vector(pts[1]) - Vector(pts[0])).length >= (Vector(pts[3]) - Vector(pts[0])).length
             if not lang:                                     # die lange Seite nach vorn drehen
                 pts, uv = pts[1:] + pts[:1], uv[1:] + uv[:1]
-            n_lang = max(2, math.ceil((Vector(pts[1]) - Vector(pts[0])).length / 0.6))
+            n_lang = max(2, math.ceil((Vector(pts[1]) - Vector(pts[0])).length / 1.0))
             xa, xb = abs(pts[0].x), abs(pts[3].x)                  # quer: von der Traufe zum First (oder umgekehrt); Schnitt an der Wandflucht
             quer = [0.0, 1.0]
             if abs(xa - xb) > 1e-6:
@@ -245,3 +247,14 @@ def unterstand(teil, x_wand, y0, y1, z_oben, tiefe=1.0, fall=0.35):
     for i in range(3):                                           # Stirnseiten (zur Wand hin keine: dort liegt das Dach an)
         a, b = ecken[i], ecken[i + 1]
         teil.vieleck("Fachwerk", [a, b, b + Vector((0, 0, d)), a + Vector((0, 0, d))], [(0, v1), (quer, v1), (quer, v1 - 0.1 * (v1 - v0)), (0, v1 - 0.1 * (v1 - v0))], weg_von=mitte)
+
+
+def traufstuetzen(teil, punkte, unter, staerke=0.10):
+    """Holzunterstand unter dem tiefen Dach (Kunstwerk; eigene Form der Elben 17.11.2026): zwei Pfosten und eine Pfette, die das Dach
+    ueber dem Scheitholz stuetzen; kein eigenes Dach, das Dach des Hauses reicht darueber. `unter(x, y)`: Unterkante des Dachs."""
+    oben = []
+    for x, y in punkte:
+        zo = unter(x, y) - 0.005
+        oben.append(Vector((x, y, zo - staerke / 2)))
+        teil.kasten("Fachwerk", (x - staerke / 2, y - staerke / 2, 0.0), (x + staerke / 2, y + staerke / 2, zo - staerke), "balken_a", ohne=("-z",), laengs="z")
+    teil.stab("Fachwerk", oben[0], oben[1], staerke * 0.8, "balken_c", kappen=True)   # schmaler als die Pfosten: keine deckungsgleichen Flaechen
