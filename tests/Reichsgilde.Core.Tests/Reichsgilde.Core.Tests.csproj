@@ -81,5 +81,7 @@
     <!-- Steinebenen je Volk: Zuordnung Volk/Stufe → Ebene des Häuser-Arrays – SteinebenenTests.cs -->
     <Compile Include="..\..\game\scripts\Steinebenen.cs" Link="Neubau\Steinebenen.cs" />
     <Compile Include="..\..\game\scripts\NeubauBrand.cs" Link="Neubau\NeubauBrand.cs" />
+    <!-- Behangton der Steinhaus-Stube zur Hausfarbe (gedaempfte Faerberfarben) – BehangfarbeTests.cs -->
+    <Compile Include="..\..\game\scripts\Behangfarbe.cs" Link="Neubau\Behangfarbe.cs" />
   </ItemGroup>
 </Project>
