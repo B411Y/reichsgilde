@@ -31,23 +31,24 @@ public static class Steinebenen
         ("zwerg_s1", PutzUndBruchstein),    // alter dunkler Stein: dunkler Quader (Referenzstein) im Putzband, dunkler Bruchstein (K3 zurückgenommen)
         ("zwerg_s2", PutzUndBruchstein),
         ("zwerg_s3", PutzUndBruchstein),    // dunkler Quader, im Bruchsteinband heller Haustein K2 (large_sandstone_blocks_01) für Gewände, Giebel, Eckquader
-        ("elb", PutzUndBruchstein),         // Akzent K5 (Bricks100) im Putzband, Flächen K2 (large_sandstone_blocks_01)
+        ("elb_s1", Bruchstein),             // Stufe 1 (trim_elb): Putz bleibt Putz (Kunstwerk), Haustein K2 (large_sandstone_blocks_01) im Bruchsteinband
         ("halbling", PutzUndBruchstein),
     };
 
-    /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>); Bürgerhaus und Steinhaus haben je Volk einen eigenen Atlas (größere Zellen).</summary>
-    public static readonly string[] AoGruppen = { "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3" };
+    /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>); Bürgerhaus und Steinhaus haben je Volk einen eigenen Atlas (größere Zellen),
+    /// die Elben (Stufe 1) einen mit Zellen von 1024 Bildpunkten.</summary>
+    public static readonly string[] AoGruppen = { "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb" };
 
     /// <summary>Die Ebenen des Innen-Arrays <c>innen_ebenen_*.png</c>: die Innenblätter (Stufe 1, Stufen 2/3, Räume) der Menschen und der
-    /// Zwerge (Steinwand und Pflaster statt Lehm und Dielen), gleiches Layout.</summary>
+    /// Zwerge (Steinwand und Pflaster statt Lehm und Dielen) und der Elben (Stufe 1: Kalkputz und Dielen), gleiches Layout.</summary>
     public static readonly string[] InnenBlaetter =
-        { "innen_trim", "innen_trim_s23", "raeume_innen_trim", "innen_trim_zwerg", "innen_trim_s23_zwerg", "raeume_innen_trim_zwerg" };
+        { "innen_trim", "innen_trim_s23", "raeume_innen_trim", "innen_trim_zwerg", "innen_trim_s23_zwerg", "raeume_innen_trim_zwerg", "innen_trim_elb" };
 
     /// <summary>Die AO-Atlanten der Innen-Gruppen (Array <c>innen_ao_ebenen.png</c>, alle auf 2048 gebracht).</summary>
     public static readonly string[] InnenAoGruppen =
     {
         "wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
-        "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen",
+        "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen",
     };
 
     /// <summary>Ebene und AO-Ebene eines Innenmodells aus Innenblatt und Innengruppe; unbekannte Namen fallen auf Ebene 0.</summary>
@@ -55,7 +56,7 @@ public static class Steinebenen
         => (System.Math.Max(0, System.Array.IndexOf(InnenBlaetter, blatt)), System.Math.Max(0, System.Array.IndexOf(InnenAoGruppen, gruppe)));
 
     /// <summary>Ebene eines Volkes in einer Stufe (1–3). Orks und Oger haben keine eigenen Häuser und wohnen wie Menschen;
-    /// Elben und Halblinge haben je eine Ebene für alle Stufen (Platzhalter, bis ihre Häuser gebaut werden).</summary>
+    /// Elben haben die Ebene ihrer Stufe 1 (Stufen 2 und 3 sind noch nicht gebaut, dort stehen Menschenhäuser), Halblinge eine Platzhalter-Ebene.</summary>
     public static int Ebene(Volk volk, int stufe)
     {
         var s = System.Math.Clamp(stufe, 1, 3) - 1;

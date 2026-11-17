@@ -37,8 +37,8 @@ const vec4 STEIN_EBENE[8] = vec4[8](
 	vec4(0.50, 0.70, 0.85, 0.95),   // 3 Zwerg Stufe 1: dunkler Quader im Putzband, Bruchstein (K3)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 4 Zwerg Stufe 2: dunkler Quader, Bruchstein (K3)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein
-	vec4(0.50, 0.70, 0.85, 0.95),   // 6 Elb: Akzent (K5), Flächen (K2)
-	vec4(0.50, 0.70, 0.85, 0.95)    // 7 Halbling: wie Elb
+	vec4(0.85, 0.95, -1.0, -1.0),   // 6 Elb Stufe 1: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz
+	vec4(0.50, 0.70, 0.85, 0.95)    // 7 Halbling: Platzhalter, Akzent (K5), Flächen (K2)
 );
 
 // Pixel-Look in Innenräumen (wetter_an = 0; aus dem Rathaus-Branch, Commit 9421283b, hier auf Arrays umgestellt): Aus der Nähe
