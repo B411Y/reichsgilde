@@ -145,12 +145,11 @@ public partial class Kartenwerkstatt
 
     // ── Spieler ──────────────────────────────────────────────────────────────
 
+    /// <summary>Der Spieler: nichts mehr einzustellen – seine Hausfarbe kommt aus dem Wappen, das er im Hauptmenü wählt (17.11.2026).</summary>
     private void SpielerTeil()
     {
         Hauptmenue.Text(_startTafel, "Spieler", 16, Gold);
-        var raster = Raster();
-        _startTafel.AddChild(raster);
-        Zeile(raster, "Farbe", Farbwahl(Start.SpielerFarbe, f => _entwurf.SpielerFarbeSetzen(f), "Die Farbe des Spielerhauses in der Stadt (Dächer, Fahnen)"));
+        Hauptmenue.Text(_startTafel, "Jedes Haus trägt die Farbe seines Wappens – auch das des Spielers.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
     }
 
     /// <summary>Die Berufe, die eine Werkstatt in der Stadt haben (aus den Wirtschaftsdaten; ohne Daten die zehn des Hauptmenüs).</summary>
@@ -171,7 +170,7 @@ public partial class Kartenwerkstatt
         inhalt.AddThemeConstantOverride("separation", 8);
         knopf.AddChild(inhalt);
         inhalt.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 4);
-        inhalt.AddChild(new ColorRect { Color = Farbe(h.Farbe), CustomMinimumSize = new Vector2(10, 30), MouseFilter = Control.MouseFilterEnum.Ignore });
+        inhalt.AddChild(new ColorRect { Color = Farbe(h.Hausfarbe), CustomMinimumSize = new Vector2(10, 30), MouseFilter = Control.MouseFilterEnum.Ignore });
         var wappen = WappenBild.Neu(h.Wappen, 30);
         wappen.MouseFilter = Control.MouseFilterEnum.Ignore;
         inhalt.AddChild(wappen);
@@ -215,7 +214,7 @@ public partial class Kartenwerkstatt
         geschlecht.Select(geschlecht.GetItemIndex((int)h.Geschlecht));
         geschlecht.ItemSelected += x => _entwurf.HausGeschlechtSetzen(i, (Geschlecht)geschlecht.GetItemId((int)x));
         Zeile(raster, "Oberhaupt", geschlecht);
-        Zeile(raster, "Farbe", Farbwahl(h.Farbe, f => _entwurf.HausFarbeSetzen(i, f), "Farbe des Hauses in der Stadt (Dächer, Fahnen, Rahmen in der Werkstatt)"));
+        // (keine Zeile „Farbe“ mehr: Das Haus trägt die Farbe seines Wappens, 17.11.2026)
         Zeile(raster, "Wappen", WappenWahl(h.Wappen, w => _entwurf.HausWappenSetzen(i, w)));
 
         Hauptmenue.Text(_startTafel, h.Betriebe.Count == 0 ? "Betriebe: noch keiner (ein Haus ohne Betrieb hat am Start nichts zu tun)" : "Betriebe", 14, Gold,

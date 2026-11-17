@@ -79,7 +79,7 @@ static class JahreszeitenTests
             Pruefe.Wahr(Kaputt("\"typen\": [ \"Fertigprodukt\", \"Heilmittel\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n", "\"typen\": [ \"Heilmittel\", \"Heilmittel\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n").Contains("zweimal"), "Warentyp doppelt");
         }),
 
-        ("Jahreszeiten: Der Winter eines Jahres ist fest aus Startwert und Jahr; etwa drei von zehn sind streng, Zufrieren 7–10 Uhr, 6–14 Stunden", () =>
+        ("Jahreszeiten: Der Winter eines Jahres ist fest aus Startwert und Jahr; etwa zwei von zehn sind streng (Wie überliefert, Datenversion 94), Zufrieren 7–10 Uhr, 6–14 Stunden", () =>
         {
             var w = Wirtschaft(1400);
             Pruefe.Gleich(null, w.Jahreszeiten.WinterVon(1402));
@@ -103,7 +103,7 @@ static class JahreszeitenTests
                 }
             }
             var anteil = (double)streng / winter;
-            Pruefe.Wahr(anteil is > 0.26 and < 0.34, $"Anteil strenger Winter {anteil:0.000}");
+            Pruefe.Wahr(anteil is > 0.16 and < 0.24, $"Anteil strenger Winter {anteil:0.000}");
             Pruefe.Wahr(bisEnde > 0 && bisEnde < streng, $"mal bis zum Jahresende zu, mal mit Eisgang ({bisEnde} von {streng})");
         }),
 

@@ -57,8 +57,16 @@ public sealed class Starthaus
     public Geschlecht Geschlecht { get; init; }
     public Wappen Wappen { get; init; } = Wappen.Vorlagen[0];
 
-    /// <summary>Farbe des Hauses in der Stadt (Fahnen, Dächer), als „#rrggbb“. Nur die Darstellung liest sie.</summary>
+    /// <summary>
+    /// Farbe des Hauses in der Stadt (Fahnen, Dächer), als „#rrggbb“. Nur die Darstellung liest sie. In einer Kartendatei steht sie seit dem
+    /// 17.11.2026 nicht mehr (ältere Karten nennen sie noch, dann gilt sie weiter): Beim Aufbau der Partie bekommt jedes Haus die Hausfarbe
+    /// seines Wappens (<see cref="Wappen.Hausfarbe"/>, <see cref="Startbelegung.MitHausfarben"/>).
+    /// </summary>
     public string? Farbe { get; init; }
+
+    /// <summary>Die Farbe, die das Haus trägt: die feste einer älteren Karte, sonst die seines Wappens.</summary>
+    [JsonIgnore]
+    public string Hausfarbe => Farbe ?? Wappen.Hausfarbe();
 
     /// <summary>Kennung des Wohnhausplatzes in der Karte.</summary>
     public string? Wohnhaus { get; init; }
@@ -93,7 +101,11 @@ public sealed class Spielerstart
     /// <summary>Kennung des Wohnhausplatzes in der Karte.</summary>
     public string? Wohnhaus { get; init; }
 
-    /// <summary>Farbe des Spielerhauses, als „#rrggbb“.</summary>
+    /// <summary>
+    /// Farbe des Spielerhauses, als „#rrggbb“. In einer Kartendatei steht sie seit dem 17.11.2026 nicht mehr (ältere Karten nennen sie noch,
+    /// dann gilt sie weiter): Beim Aufbau der Partie bekommt die Partiekarte hier die Hausfarbe des Wappens (<see cref="Wappen.Hausfarbe"/>,
+    /// <see cref="Startbelegung.MitHausfarben"/>) – so steht sie im Spielstand und ändert sich im laufenden Spiel nicht.
+    /// </summary>
     public string? Farbe { get; init; }
 
     /// <summary>Die erste Werkstatt – für jeden Beruf, der unter <see cref="JeBeruf"/> nicht steht.</summary>
@@ -132,6 +144,23 @@ public sealed class Startbelegung
     [JsonIgnore]
     public IReadOnlyList<Wappen> Rivalenwappen => Haeuser.Select(h => h.Wappen).ToList();
 
+    /// <summary>
+    /// Dieselbe Belegung, in der jedes KI-Haus seine Farbe nennt (<see cref="Starthaus.Hausfarbe"/>: die feste einer älteren Karte, sonst
+    /// die seines Wappens) und der Spieler die seines Wappens <paramref name="spielerWappen"/>, wenn die Karte keine feste nennt (17.11.2026).
+    /// So steht jede Farbe in der Partiekarte und im Spielstand. Häuser, die ihre Farbe schon nennen, bleiben dieselben Objekte.
+    /// </summary>
+    internal Startbelegung MitHausfarben(Wappen spielerWappen) => new()
+    {
+        Spieler = Spieler.Farbe is not null ? Spieler
+            : new Spielerstart { Wohnhaus = Spieler.Wohnhaus, Farbe = spielerWappen.Hausfarbe(), Werkstatt = Spieler.Werkstatt, JeBeruf = Spieler.JeBeruf },
+        Haeuser = Haeuser.Select(h => h.Farbe is not null ? h : new Starthaus
+        {
+            Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Hausfarbe, Wohnhaus = h.Wohnhaus,
+            Betriebe = h.Betriebe, Gewuerfelt = h.Gewuerfelt,
+        }).ToList(),
+        OhnePlaetze = OhnePlaetze,
+    };
+
     /// <summary>Die Farbe eines Hauses („#rrggbb“) – des Spielers, wenn <paramref name="istSpieler"/>, sonst des KI-Hauses mit diesem Namen; null, wenn keine.</summary>
     public string? Farbe(string inhaber, bool istSpieler = false) =>
         istSpieler ? Spieler.Farbe : Haeuser.FirstOrDefault(h => h.Name == inhaber)?.Farbe;
@@ -142,12 +171,12 @@ public sealed class Startbelegung
     /// </summary>
     public static readonly Startbelegung Ersatz = new()
     {
-        Spieler = new Spielerstart { Farbe = "#336bb8", Werkstatt = new Startwerkstatt { Name = "{art} am Weinmarkt" } },
+        Spieler = new Spielerstart { Werkstatt = new Startwerkstatt { Name = "{art} am Weinmarkt" } },
         Haeuser =
         {
             new Starthaus
             {
-                Name = Partieaufbau.Rivalenname, Volk = Partieaufbau.RivalenVolk, Geschlecht = Geschlecht.Mann, Wappen = Wappen.Eisenbart, Farbe = "#b33329",
+                Name = Partieaufbau.Rivalenname, Volk = Partieaufbau.RivalenVolk, Geschlecht = Geschlecht.Mann, Wappen = Wappen.Eisenbart,
                 Betriebe =
                 {
                     new Startbetrieb { Art = Betriebsart.Giesserei, Produkt = "Dolch", ErsatzName = "Gießerei Eisenbart" },
@@ -156,7 +185,7 @@ public sealed class Startbelegung
             },
             new Starthaus
             {
-                Name = Partieaufbau.ZweiterRivale, Volk = Partieaufbau.ZweiterRivaleVolk, Geschlecht = Geschlecht.Frau, Wappen = Wappen.Eichwald, Farbe = "#388c47",
+                Name = Partieaufbau.ZweiterRivale, Volk = Partieaufbau.ZweiterRivaleVolk, Geschlecht = Geschlecht.Frau, Wappen = Wappen.Eichwald,
                 Betriebe =
                 {
                     new Startbetrieb { Art = Betriebsart.Tischlerei, ErsatzName = "{art} Eichwald" },
@@ -165,7 +194,7 @@ public sealed class Startbelegung
             },
             new Starthaus
             {
-                Name = Partieaufbau.DritterRivale, Volk = Partieaufbau.DritterRivaleVolk, Geschlecht = Geschlecht.Mann, Wappen = Wappen.Kieselbach, Farbe = "#d9ad2e",
+                Name = Partieaufbau.DritterRivale, Volk = Partieaufbau.DritterRivaleVolk, Geschlecht = Geschlecht.Mann, Wappen = Wappen.Kieselbach,
                 Betriebe =
                 {
                     new Startbetrieb { Art = Betriebsart.Maurerei, ErsatzName = "{art} Kieselbach" },

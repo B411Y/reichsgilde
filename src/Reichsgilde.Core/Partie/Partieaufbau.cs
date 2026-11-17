@@ -146,6 +146,11 @@ public static class Partieaufbau
             rivalen = start.Haeuser.Count;
         }
 
+        // Hausfarbe (17.11.2026): Jedes Haus – Spieler wie KI – trägt die Palettenfarbe der ersten Farbe seines Wappens, wenn die Karte keine
+        // feste nennt (ältere Karten). Die Wappen stehen hier fest; die Farben stehen ab hier in der Partiekarte und damit im Spielstand.
+        start = start.MitHausfarben(wappen);
+        karte = karte?.MitBelegung(start, new Dictionary<string, string?>());
+
         // Nur noch Bauzonen (15.11.2026): Wohnhaus und Werkstatt jedes Hauses stehen auf gelosten Grundstücken in den Bauzonen im Stadtinneren
         // (Startortlos) – das erste Los gehört dem Spieler, die weiteren den KI-Häusern in ihrer Reihenfolge. Die Partie spielt auf der
         // Partiekarte ohne Stadtplätze; die Namen der Betriebe kommen weiter aus der Karte der Aufstellung (namenskarte).

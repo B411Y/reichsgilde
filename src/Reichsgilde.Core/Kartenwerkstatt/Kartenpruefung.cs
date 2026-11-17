@@ -1127,7 +1127,7 @@ public static class Kartenpruefung
             var teil = new EntwurfTeil[] { s };
             if (s.IstLeer)
             {
-                var text = "Start: Die Karte hat keine Startbelegung – im Spiel gälten die drei Häuser des Ersatzes, ihre Umlandbetriebe ohne Platz in der Karte. Eine Farbe für den Spieler oder ein KI-Haus genügt.";
+                var text = "Start: Die Karte hat keine Startbelegung – im Spiel gälten die drei Häuser des Ersatzes, ihre Umlandbetriebe ohne Platz in der Karte. Ein KI-Haus genügt (wird es wieder entfernt, würfelt die Partie ihre Häuser).";
                 if (_r.Stadtregeln) FehlerAn("start-fehlt", text, null, teil);
                 else HinweisAn("start-fehlt", text, null, teil);
                 return;
