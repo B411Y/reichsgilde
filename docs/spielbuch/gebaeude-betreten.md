@@ -39,7 +39,7 @@
 | Wechselstube | Wechseltisch mit Waage, Geldtruhe, Schreibpult, Regal (zweites Pult / Tresor) | Münzstapel nach der Kasse, Schuldscheine je Kredit, Kunden |
 | Siederei | Kupferkessel mit Kühlfass, Trockengestell, Mischtisch (Spindelpresse / Duftorgel) | Duft in der Farbe der Ware, Ofenglut |
 
-**Wandbehang des Steinhauses.** Jede Hausfarbe hat ihren gedämpften Ton; eine freie Farbe aus der Kartenwerkstatt nimmt den Ton der nächstliegenden. Der Saum ist derselbe Ton, dunkler.
+**Wandbehang des Steinhauses.** Jede Hausfarbe hat ihren gedämpften Ton; eine freie Farbe aus der Kartenwerkstatt nimmt den Ton der nächstliegenden. Der Saum ist derselbe Ton, dunkler. Der Stoff ist grob gewebte Wolle; die Farbe liegt auf dem Gewebe.
 
 | Hausfarbe | Behangfarbe | sRGB |
 |---|---|---|
