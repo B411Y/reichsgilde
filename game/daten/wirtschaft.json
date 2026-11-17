@@ -1,5 +1,5 @@
 {
-  "version": 93,
+  "version": 94,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2353,7 +2353,12 @@
       "nachfrage": { "Holz": 1.4, "Kerze": 1.25, "Kräuterschnaps": 1.25, "Heilsalbe": 1.15, "Kräuterlikör": 1.1, "Weingeist": 1.1 },
       "arbeit": { "Holzfaellerei": 0.85, "Steinbruch": 0.8, "Bauernhof": 0.8, "Kraeutergarten": 0.75, "Duftgarten": 0.75 }
     },
-    "strengerWinter": { "chance": 0.3, "nachfrageZuschlag": 0.5, "zufrierenVon": 7, "zufrierenBis": 10, "dauerMin": 6, "dauerMax": 14, "faehreMinuten": 120 },
+    "strengerWinter": {
+      "zufrierenVon": 7, "zufrierenBis": 10, "dauerMin": 6, "dauerMax": 14, "faehreMinuten": 120,
+      "mild": { "chance": 0.15, "nachfrageZuschlag": 0.25 },
+      "ueberliefert": { "chance": 0.2, "nachfrageZuschlag": 0.5 },
+      "hart": { "chance": 0.3, "nachfrageZuschlag": 0.75 }
+    },
     "festmaerkte": [
       { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 },
       { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt", "Heilmittel" ], "gaeste": 0.3, "besucher": 0.6 }

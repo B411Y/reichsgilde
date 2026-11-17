@@ -8,7 +8,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// <see cref="Spielzeit.MinuteImTag"/>; <see cref="TauwetterMinute"/> = <see cref="Spielzeit.MinutenProTag"/> heißt: zu bis zum Jahresende.
 /// </summary>
 /// <param name="Kaelte">Gewürfelt, 0 (mild) bis knapp 1 (bitterkalt).</param>
-/// <param name="Streng">Ab 1 − <see cref="StrengerWinterDaten.Chance"/>: Der Fluss friert zu, die Nachfrage wächst noch einmal.</param>
+/// <param name="Streng">Ab 1 − <see cref="WinterStufe.Chance"/> der Härte der Zeit: Der Fluss friert zu, die Nachfrage wächst noch einmal.</param>
 public sealed record Winterlage(int Jahr, double Kaelte, bool Streng, int ZufrierenMinute, int TauwetterMinute)
 {
     /// <summary>Ist der Fluss zu dieser Minute des Jahres zu?</summary>
@@ -22,7 +22,7 @@ public sealed record Winterlage(int Jahr, double Kaelte, bool Streng, int Zufrie
 /// Die Folgen der Jahreszeit für die Wirtschaft (Abschnitt „jahreszeiten“, Datenversion 69; Nutzer 31.10.2026, Weg B). Jedes Spieljahr hat eine
 /// Jahreszeit (<see cref="Spielzeit.Jahreszeit"/>), und sie gilt das ganze Jahr:
 ///   • <b>Winter:</b> mehr Nachfrage nach Brennholz, Kerzen und Schnaps; Arbeit im Freien (Holzschlag, Steinbruch, Höfe, Gärten) langsamer. In einem
-///     <b>strengen Winter</b> (gewürfelt, <see cref="Winterlage"/>) wächst die Nachfrage noch einmal, und der Fluss friert für einige Stunden zu:
+///     <b>strengen Winter</b> (gewürfelt, <see cref="Winterlage"/>; wie oft und wie stark, stellt die „Härte der Zeit“ der Partie) wächst die Nachfrage noch einmal, und der Fluss friert für einige Stunden zu:
 ///     Der Hafen nimmt keine Aufträge an, alle Schiffe ruhen (ihre Uhr steht still, auch auf dem Fluss), die Fähre kostet die Minuten aus
 ///     <see cref="StrengerWinterDaten.FaehreMinuten"/>.
 ///   • <b>Herbst:</b> Ernte – die Bauern des Umlands bringen mehr Gerste, Roggen und Kräuter (Grundversorgung höher, Preis tiefer), und die eigenen
@@ -92,10 +92,11 @@ public sealed class Jahreszeitenwesen
         var kaelte = z.NextDouble();
         var stundeWurf = z.Next(1000);
         var lage = new Winterlage(jahr, kaelte, false, Spielzeit.MinutenProTag, Spielzeit.MinutenProTag);
-        if (Daten.StrengerWinter is { Chance: > 0 } s && kaelte >= 1 - s.Chance)
+        // Wie oft ein Winter streng ist, stellt die Härte der Zeit der Partie (Datenversion 94). Die Würfe selbst bleiben dieselben.
+        if (Daten.StrengerWinter is { } s && s.Von(_w.HaerteDerZeit).Chance is > 0 and var chance && kaelte >= 1 - chance)
         {
             var stunde = s.ZufrierenVon + stundeWurf % (s.ZufrierenBis - s.ZufrierenVon + 1);
-            var anteil = Math.Clamp((kaelte - (1 - s.Chance)) / s.Chance, 0, 1); // 0 im mildesten strengen Winter, knapp 1 im kältesten
+            var anteil = Math.Clamp((kaelte - (1 - chance)) / chance, 0, 1); // 0 im mildesten strengen Winter, knapp 1 im kältesten
             var dauer = s.DauerMin + (int)Math.Round(anteil * (s.DauerMax - s.DauerMin), MidpointRounding.AwayFromZero);
             var zu = stunde * 60 - Spielzeit.TagesbeginnMinute;
             lage = lage with { Streng = true, ZufrierenMinute = zu, TauwetterMinute = Math.Min(Spielzeit.MinutenProTag, zu + dauer * 60) };
@@ -154,7 +155,7 @@ public sealed class Jahreszeitenwesen
     {
         if (Daten is null) return 1;
         var f = Daten.Von(jahreszeit).NachfrageVon(ware);
-        if (streng && jahreszeit == Jahreszeit.Winter && Daten.StrengerWinter is { } s) f = 1 + (f - 1) * (1 + s.NachfrageZuschlag);
+        if (streng && jahreszeit == Jahreszeit.Winter && Daten.StrengerWinter is { } s) f = 1 + (f - 1) * (1 + s.Von(_w.HaerteDerZeit).NachfrageZuschlag);
         return f * (festmarkt is not null && festmarkt.GiltFuer(_w.Daten.Waren.TryGetValue(ware, out var w) ? w.Typ : "") && !GaesteTragen(festmarkt, ware)
             ? 1 + festmarkt.Nachfrage : 1);
     }
