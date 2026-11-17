@@ -612,6 +612,7 @@ public partial class Stadtansicht : Node3D
     private Color Besitzerfarbe(Konto konto)
     {
         var istSpieler = konto == _spielerKonto;
+        if (istSpieler && Wasserarten.Startoption("hausfarbe") is { Length: > 0 } probe && Color.HtmlIsValid(probe)) return Color.FromHtml(probe); // Prüfhilfe, docs/STARTOPTIONEN.md
         var text = (_karte?.Startbelegung ?? Startbelegung.Ersatz).Farbe(konto.Inhaber, istSpieler);
         return text is not null && Color.HtmlIsValid(text) ? Color.FromHtml(text) : istSpieler ? Spieler : Rivale;
     }

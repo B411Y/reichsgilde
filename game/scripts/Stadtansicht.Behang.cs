@@ -21,6 +21,38 @@ public partial class Stadtansicht
     /// <summary>Zug zur Hängelage (hoch: nur ganz leichtes Schwingen), Dämpfung, Halbmesser der Gelenke und Stärke des Luftzugs.</summary>
     private const float BehangSteife = 1.6f, BehangDaempfung = 0.6f, BehangGelenk = 0.01f, BehangLuftzug = 0.08f;
 
+    /// <summary>Kantenlänge einer Kachel der Stofftextur in Metern (Dreiebenen-Abbildung im Objektraum, kein Umbau des Modells nötig).</summary>
+    private const float BehangKachel = 0.9f;
+
+    /// <summary>Schärfe der Dreiebenen-Mischung: hoch, damit auf dem schwingenden Tuch nur die Ebene der Wand zählt und das Gewebe nicht verläuft.</summary>
+    private const float BehangKachelSchaerfe = 32f;
+
+    private static Texture2D? _stoffAlbedo, _stoffNormal, _stoffRauheit;
+
+    /// <summary>
+    /// Gibt dem Stoff des Behangs (und Saums) die Webstruktur: graue Albedo (wird mit dem gedämpften Hausfarbton aus
+    /// <c>Behangfarbe</c> malgenommen), Normal- und Rauheitskarte, alles aus ambientCG „Fabric 045“ (CC0, grob gewebter Wollstoff). Die Textur liegt im Objektraum
+    /// des Behangs (Dreiebenen-Abbildung), unabhängig von den UV des Modells. Die Farbe setzt der Aufrufer danach über <c>AlbedoColor</c>.
+    /// </summary>
+    private static void BehangStoffGeben(StandardMaterial3D stoff)
+    {
+        _stoffAlbedo ??= GD.Load<Texture2D>("res://assets/texturen/stoff/stoff_albedo_grau.png");
+        _stoffNormal ??= GD.Load<Texture2D>("res://assets/texturen/stoff/stoff_normal.png");
+        _stoffRauheit ??= GD.Load<Texture2D>("res://assets/texturen/stoff/stoff_rauheit.png");
+        stoff.AlbedoTexture = _stoffAlbedo;
+        stoff.NormalEnabled = true;
+        stoff.NormalTexture = _stoffNormal;
+        stoff.NormalScale = 1.5f;
+        stoff.RoughnessTexture = _stoffRauheit;
+        stoff.RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Red;
+        stoff.Roughness = 1f;
+        stoff.Uv1Triplanar = true;
+        stoff.Uv1WorldTriplanar = false;
+        stoff.Uv1TriplanarSharpness = BehangKachelSchaerfe;
+        stoff.Uv1Scale = Vector3.One / BehangKachel;
+        stoff.TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic;
+    }
+
     /// <summary>Baut die Feder am Skelett des Behangs unter <paramref name="wurzel"/>; null ohne Behang oder bei <c>--behangfeder=0</c>.</summary>
     private static SpringBoneSimulator3D? BehangFederBauen(Node3D wurzel)
     {
