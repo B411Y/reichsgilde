@@ -624,7 +624,7 @@ public sealed class EinstellungenAnzeige
         // ── Meldungen ────────────────────────────────────────────────────────
         s = _seiten[3];
         Hinweis(s, "Was euch wie gemeldet wird: gar nicht, nur im Verlauf (Bericht), als Siegel in der Ecke unten rechts oder als Brief. Das gilt für euer Haus und die Stadt; was andere Häuser tun, steht immer nur im Verlauf.");
-        _siegelBewegung = Schalter(s, "Siegel und Briefe bewegen", () => "Aus: Neue Siegel erscheinen ohne Sprung, ungelesene pulsieren nicht und Briefe blenden nicht ein – für alle, denen die Bewegung im Bild unangenehm ist.",
+        _siegelBewegung = Schalter(s, "Siegel und Briefe bewegen", () => "Aus: Neue Schriftrollen stehen sofort offen (kein Aufrollen, kein Sprung), sie drehen sich nicht und verschwinden ohne Zurollen; Briefe blenden nicht ein – für alle, denen die Bewegung im Bild unangenehm ist.",
                                    an => Meldungseinstellungen.Bewegung = an);
         foreach (var thema in Meldungseinstellungen.Ordnung.Themen)
         {

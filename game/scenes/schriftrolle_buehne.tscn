@@ -1,0 +1,41 @@
+[gd_scene load_steps=2 format=3]
+
+; Die kleine 3D-Bühne der Schriftrollen in der Meldungsleiste: EIN SubViewport für alle Rollen (eigene Welt, durchsichtiger Grund).
+; Aussehen (Licht, Umgebungslicht, Kantenglättung) steht NUR hier, Maße und Zeiten in meldung_thema.tres (MeldungMasse/rolle_…),
+; Logik in SchriftrollenBuehne.cs / SchriftrolleAblauf.cs / Siegelecke.cs. Der Code kennt nur die Namen der Knoten (Kamera, Rollen).
+; Größe des Bildes, Sichtfeld und Abstand der Rollen setzt der Code aus den Maßen; die Lichter hängen an der Kamera.
+
+[sub_resource type="Environment" id="Umgebung"]
+ambient_light_source = 2
+ambient_light_color = Color(0.64, 0.61, 0.57, 1)
+ambient_light_energy = 0.8
+
+[node name="SchriftrollenBuehne" type="SubViewport"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+msaa_3d = 2
+gui_disable_input = true
+size = Vector2i(96, 96)
+render_target_update_mode = 0
+
+[node name="Kamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+environment = SubResource("Umgebung")
+projection = 1
+current = true
+size = 0.8
+near = 0.05
+far = 6.0
+
+[node name="Hauptlicht" type="DirectionalLight3D" parent="Kamera"]
+transform = Transform3D(0.848048, 0, -0.529919, -0.354585, 0.743145, -0.567455, 0.393807, 0.669131, 0.630223, 0, 0, 0)
+light_color = Color(1, 0.93, 0.82, 1)
+light_energy = 1.2
+
+[node name="Aufhelllicht" type="DirectionalLight3D" parent="Kamera"]
+transform = Transform3D(0.615661, 0, 0.788011, 0.243509, 0.951057, -0.19025, -0.749443, 0.309017, 0.585529, 0, 0, 0)
+light_color = Color(0.82, 0.88, 1, 1)
+light_energy = 0.5
+
+[node name="Rollen" type="Node3D" parent="."]

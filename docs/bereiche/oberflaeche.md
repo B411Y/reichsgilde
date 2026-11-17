@@ -330,3 +330,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Menü | Die Zeile „Hofstelle“ unter „Erweitert“ ist entfernt; die Kennzahlen der Kartenwahl nennen keine Höfe und Werkstattplätze mehr (höchstens n KI-Gegner, Fluss, Hafen, Maße). | 16.11.2026 |
 | Startoptionen | Ohne Menü wird das Haus gelost wie bisher (Klicktests behalten ihren Betrieb); `--startwahl=1` verlangt die Wahl (`--bauort2` setzt im Klicktest den Umriss der Werkstatt). `--hofstelle` wird nicht mehr gelesen. | 16.11.2026 |
 | Kamera und Hinweis | Mit Platzwahl beginnt der Blick im Blick der Karte; der Brief zum Personalbuch kommt nach der Wahl. | 16.11.2026 |
+
+### 3D-Schriftrollen in der Meldungsleiste (Branch phase5/schriftrolle-meldungen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weg 1 | Die 3D-Schriftrolle ersetzt schon jetzt die Wachssiegel in der heutigen Ecke unten rechts; der Umbau zur Zunftlade kommt später (Nutzer). Stufe, Einstellungen und Code heißen weiter „Siegel“. | 17.11.2026 |
+| Verhalten | Neue Meldung: Rolle erscheint geschlossen, rollt auf (Clip `aufrollen`) mit einem kurzen Sprung, dann steht das Symbol mit farbigem Rand der Meldungsart darauf. Sie bleibt offen, bis die Meldung erledigt ist; dann nur `zurollen` und weg, ohne Sprung (Nutzer, zweite Runde). Klick wie bisher. | 17.11.2026 |
+| Neigung und Leerlauf | 14° schräg nach oben zum Spieler, fest. Im Leerlauf dreht sich die offene Rolle nur um die Hochachse Y nach links und rechts, höchstens 2°, je Rolle eigene Phase und eigenes Tempo; X und Z bewegen sich nicht (Nutzer, zweite Runde; vorher alle drei Achsen bis 5°). | 17.11.2026 |
+| Eine Bühne | Ein gemeinsamer SubViewport für alle Rollen (12 Plätze), eigene Szene `schriftrolle_buehne.tscn`; Maße, Zeiten und Farben im Thema `meldung_thema.tres`, nichts davon im Code. | 17.11.2026 |
+| Symbol | Viereckige Marke auf der Symbolfläche: Rand in der Farbe der Art, heller Grund, schwarzer Umriss, Schraffur, Zeichen in Tinte (dieselben Zeichen wie die Siegel). | 17.11.2026 |
+| Abschalten | Kein neuer Schalter: „Siegel und Briefe bewegen“ (Einstellungen, Meldungen) gilt auch für die Rollen – aus: sofort offen, still, ohne Zurollen. | 17.11.2026 |
+| Pause und Tafeln | Die Rollen gehören zur Oberfläche und laufen unabhängig vom Spieltempo weiter, auch wenn das Spiel pausiert; ist die Ecke verdeckt (große Tafel, Ratssitzung), ruht die Bühne. | 17.11.2026 |
+| Unverändert | Größe des Feldes (56 Pixel), höchstens sieben Meldungen, Zähler, Tooltip; das Porträt sitzt etwas tiefer und weiter links, damit es das Zeichen nicht verdeckt; die zentrale Einblendung und der Fuß der Briefe zeigen weiter das Wachssiegel. | 17.11.2026 |

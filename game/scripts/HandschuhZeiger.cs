@@ -223,7 +223,7 @@ public partial class HandschuhZeiger : CanvasLayer
     /// Leder: Eckenfarbe (COLOR_0 = Faltenfarbe, in der .glb mit <c>glb_faltenfarbe.py</c> an die erste Stelle getauscht) als Albedo einschalten.
     /// Umriss-Hüllen: schwarz, ohne Licht; ihre Flächen sind in der Datei nach innen gedreht (invertierte Hülle), darum Rückseiten ausblenden (Back, wie importiert).
     /// </summary>
-    private static void MaterialienEinrichten(Node wurzel)
+    internal static void MaterialienEinrichten(Node wurzel)
     {
         foreach (var knoten in wurzel.FindChildren("*", "MeshInstance3D", true, false))
         {

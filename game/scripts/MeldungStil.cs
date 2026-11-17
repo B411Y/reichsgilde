@@ -17,4 +17,9 @@ public static class MeldungStil
 
     /// <summary>Ein Maß der Familie (z. B. „verlauf_breite“).</summary>
     public static int Mass(string name) => Thema.GetConstant(name, Masse);
+
+    public const string Rolle = "MeldungRolle";
+
+    /// <summary>Eine Farbe der Schriftrollen (z. B. „symbol_grund“).</summary>
+    public static Color RollenFarbe(string name) => Thema.GetColor(name, Rolle);
 }

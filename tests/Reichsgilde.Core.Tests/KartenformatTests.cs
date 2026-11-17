@@ -69,6 +69,8 @@ static class KartenformatTests
             fehlen.RemoveAll(d => d.StartsWith("requisiten/"));
             // Ohne Katalog: der 3D-Handschuh des Mauszeigers (zeiger/, Oberfläche, nicht Teil der Karte).
             fehlen.RemoveAll(d => d.StartsWith("zeiger/"));
+            // Ohne Katalog: Modelle der Oberfläche (oberflaeche/, z. B. die Schriftrolle der Meldungen); die Oberfläche setzt sie, nicht die Karte.
+            fehlen.RemoveAll(d => d.StartsWith("oberflaeche/"));
             // Ohne Katalog: die Baukästen der Restflächen-Füllung (props/fuellung_*, props_fuellung_kit); sie stellt die Stadtansicht nach restflaechen.json, nicht die Karte.
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
             // Ohne Katalog: die Probe zum Neubau der Gebäude (gebaeude/neubau/); sie steht nur mit Startoption (--neubauprobe, Stadtansicht.Neubau.cs), bis der Nutzer den Tausch freigibt.

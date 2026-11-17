@@ -108,6 +108,27 @@ public static class Siegelzeichner
         LinieFarbe(c, m, s, breite * 0.5f, f, (-0.15f, -0.05f), (0.25f, 0.2f));
     }
 
+    /// <summary>
+    /// Das Zeichen einer Meldungsart als Marke mit farbigem Rand – das Bild auf der Symbolfläche der 3D-Schriftrollen (<see cref="SchriftrollenBuehne"/>):
+    /// Rand in der Farbe der Art, heller Grund leicht versetzt (Handfarbe), schwarzer Umriss, Schraffur im Schatten unten rechts, das Zeichen in Tinte.
+    /// </summary>
+    public static void Marke(CanvasItem ziel, Rect2 feld, Color farbe, string thema, Color grund, float randAnteil)
+    {
+        var s = Mathf.Min(feld.Size.X, feld.Size.Y);
+        var strich = Mathf.Max(1.5f, s * 0.04f);
+        ziel.DrawRect(feld, farbe);
+        var innen = feld.Grow(-s * randAnteil);
+        ziel.DrawRect(new Rect2(innen.Position + new Vector2(strich * 0.5f, strich * 0.4f), innen.Size - new Vector2(strich * 0.5f, strich * 0.4f)), grund);
+        for (var k = 0; k < 3; k++)
+        {
+            var d = innen.Size.X * (0.16f + 0.10f * k);
+            ziel.DrawLine(new Vector2(innen.End.X - d, innen.End.Y), new Vector2(innen.End.X, innen.End.Y - d), Tinte with { A = 0.34f }, Mathf.Max(1f, strich * 0.5f), true);
+        }
+        ziel.DrawRect(innen, Tinte, false, strich);
+        ziel.DrawRect(feld.Grow(-strich / 2), Tinte, false, strich);
+        Zeichen(ziel, feld.GetCenter(), innen.Size.X * 0.30f, thema);
+    }
+
     /// <summary>Das Zeichen in der Mitte, gezeichnet in Tinte (Einheitskoordinaten von −1 bis 1, skaliert mit <paramref name="s"/>).</summary>
     private static void Zeichen(CanvasItem c, Vector2 m, float s, string thema)
     {
@@ -153,9 +174,11 @@ public static class Siegelzeichner
 }
 
 /// <summary>
-/// Ein Siegel in der Ecke: zeigt ein Thema (Farbe und Zeichen) und eine Zahl, wenn sich mehrere Meldungen stapeln. Linksklick liest den Brief, Rechtsklick
-/// legt es ungelesen beiseite (verwirft es). Neue Siegel blenden mit einem kleinen Sprung ein, ungelesene pulsieren leise – beides nur, wenn die Bewegung an ist
-/// (<see cref="Meldungseinstellungen.Bewegung"/>).
+/// Eine Meldung in der Ecke: eine 3D-Schriftrolle (<see cref="SchriftrollenBuehne"/>), die geschlossen erscheint, mit einem kurzen Sprung aufrollt und
+/// dann das Zeichen ihres Themas mit farbigem Rand zeigt; dazu eine Zahl, wenn sich mehrere Meldungen stapeln. Linksklick liest den Brief, Rechtsklick
+/// legt sie ungelesen beiseite (verwirft sie). Die Rolle bleibt offen und dreht sich ganz leicht nach links und rechts, bis die Meldung erledigt ist;
+/// dann rollt sie zu und verschwindet (<see cref="Schliessen"/>). Ohne Bewegung (<see cref="Meldungseinstellungen.Bewegung"/>) steht sie sofort offen und still.
+/// Steht die Bühne nicht (Modell fehlt, alle Plätze belegt), zeichnet sich die Meldung wie früher als Wachssiegel in 2D.
 /// </summary>
 public sealed partial class Siegel : Control
 {
@@ -176,6 +199,13 @@ public sealed partial class Siegel : Control
     public Func<Siegel, Brief>? BriefBauer;
     public event Action<Siegel>? Angeklickt, Verworfen;
 
+    /// <summary>Die gemeinsame Bühne der Schriftrollen (setzt die <see cref="Siegelecke"/> vor dem Einhängen).</summary>
+    public SchriftrollenBuehne? Buehne;
+    private SchriftrollenBuehne.Rolle? _rolle;
+    private Action? _geschlossen;
+    /// <summary>So viele Bilder zeichnet sich die Rolle nach dem Erscheinen noch nicht: Das Skelett übernimmt die neue Haltung erst mit dem nächsten Bild der Bühne.</summary>
+    private int _verdeckt;
+
     private double _alter;
     private bool _ueber;
     private readonly int _zufall = (int)(GD.Randi() % 100);
@@ -187,6 +217,47 @@ public sealed partial class Siegel : Control
         MouseDefaultCursorShape = CursorShape.PointingHand;
         MouseEntered += () => { _ueber = true; QueueRedraw(); };
         MouseExited += () => { _ueber = false; QueueRedraw(); };
+        _rolle = Buehne?.Nehmen(ThemaId, Farbe);
+        _rolle?.Ablauf.Erscheinen(Meldungseinstellungen.Bewegung);
+        Buehne?.Uebernehmen(_rolle);
+        _verdeckt = 2;
+    }
+
+    public override void _ExitTree()
+    {
+        Buehne?.Geben(_rolle);
+        _rolle = null;
+    }
+
+    /// <summary>Die Rolle erscheint (noch einmal) geschlossen und rollt auf – wenn die Einblendung in der Ecke ankommt.</summary>
+    public void Erscheinen()
+    {
+        _alter = 0;
+        _rolle?.Ablauf.Erscheinen(Meldungseinstellungen.Bewegung);
+        Buehne?.Uebernehmen(_rolle);
+        _verdeckt = 2;
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Die Meldung ist erledigt: Die Rolle rollt zu und verschwindet; danach ruft sie <paramref name="fertig"/>. Ohne Rolle, ohne Bewegung
+    /// oder unsichtbar (hinter einer großen Tafel, noch vor der Einblendung) sofort.
+    /// </summary>
+    public void Schliessen(Action fertig)
+    {
+        if (_geschlossen is not null) return;
+        MouseFilter = MouseFilterEnum.Ignore;
+        _bild?.QueueFree();
+        _bild = null;
+        Anzahl = 1;
+        if (_rolle is null || !Meldungseinstellungen.Bewegung || !IsVisibleInTree() || Modulate.A <= 0)
+        {
+            fertig();
+            return;
+        }
+        _geschlossen = fertig;
+        _rolle.Ablauf.Schliessen(true);
+        QueueRedraw();
     }
 
     /// <summary>
@@ -200,7 +271,7 @@ public sealed partial class Siegel : Control
         if (bild is null) return;
         bild.MouseFilter = MouseFilterEnum.Ignore;
         foreach (var kind in bild.FindChildren("*", owned: false).OfType<Control>()) kind.MouseFilter = MouseFilterEnum.Ignore;
-        bild.Position = new Vector2(-4, Groesse - 30);
+        bild.Position = new Vector2(-10, Groesse - 22); // unten links neben dem Zeichen der Rolle
         AddChild(bild);
     }
 
@@ -209,14 +280,30 @@ public sealed partial class Siegel : Control
     {
         Gelesen = false;
         _alter = 0.12;
+        _rolle?.Ablauf.Huepfen();
         QueueRedraw();
     }
 
     public override void _Process(double delta)
     {
         _alter += delta;
+        if (_verdeckt > 0 && --_verdeckt == 0) QueueRedraw();
+        if (_geschlossen is not null)
+        {
+            // Zurollen läuft: weg, sobald die Rolle fertig ist (oder die Bewegung inzwischen abgeschaltet wurde)
+            if (_rolle is null || _rolle.Ablauf.Zustand == RollenZustand.Weg || !Meldungseinstellungen.Bewegung)
+            {
+                var fertig = _geschlossen;
+                _geschlossen = null;
+                SetProcess(false);
+                fertig();
+                return;
+            }
+            QueueRedraw(); // Ausblenden am Ende
+            return;
+        }
         if (Frist > 0 && !Dauerhaft && _alter >= Frist) Verworfen?.Invoke(this);
-        if (Meldungseinstellungen.Bewegung && (_alter < 0.4 || (!Gelesen && !_ueber))) QueueRedraw();
+        if (_rolle is null && Meldungseinstellungen.Bewegung && (_alter < 0.4 || (!Gelesen && !_ueber))) QueueRedraw();
     }
 
     public override void _GuiInput(InputEvent ereignis)
@@ -229,6 +316,17 @@ public sealed partial class Siegel : Control
 
     public override void _Draw()
     {
+        if (_rolle is not null && Buehne?.Bild is { } bild)
+        {
+            if (_verdeckt > 0) return;
+            // Der Ausschnitt dieser Rolle aus dem einen Bild der Bühne, mittig über dem Feld (größer als das Feld: Platz für Sprung und Pendeln)
+            var seite = Buehne.Zelle * (_ueber && _geschlossen is null ? MeldungStil.Mass("rolle_ueber_prozent") / 100f : 1f);
+            var ton = Gelesen ? MeldungStil.RollenFarbe("gelesen") : Colors.White;
+            DrawTextureRectRegion(bild, new Rect2((new Vector2(Groesse, Groesse) - new Vector2(seite, seite)) / 2, new Vector2(seite, seite)), Buehne.Ausschnitt(_rolle),
+                                  ton with { A = (float)_rolle.Ablauf.Deckkraft });
+            Zaehler();
+            return;
+        }
         var bewegt = Meldungseinstellungen.Bewegung;
         var t = bewegt ? Mathf.Min(1f, (float)(_alter / 0.28)) : 1f;
         var groesse = 1f + (bewegt ? 0.55f * (1 - t) * (1 - t) : 0f);
@@ -238,6 +336,12 @@ public sealed partial class Siegel : Control
         DrawSetTransform(mitte, 0, new Vector2(groesse, groesse));
         Siegelzeichner.Zeichnen(this, Vector2.Zero, Groesse * 0.40f, Farbe with { A = bewegt ? t : 1f }, ThemaId, _zufall, Gelesen);
         DrawSetTransform(Vector2.Zero, 0, Vector2.One);
+        Zaehler();
+    }
+
+    /// <summary>Die Zahl oben rechts, wenn sich mehrere Meldungen stapeln.</summary>
+    private void Zaehler()
+    {
         if (Anzahl > 1)
         {
             var ort = new Vector2(Groesse - 12, 12);
@@ -252,15 +356,18 @@ public sealed partial class Siegel : Control
 }
 
 /// <summary>
-/// Die Ecke unten rechts, über der Betriebsleiste: eine Reihe von Siegeln, das neueste links, damit sich die älteren nie verschieben. Ein Siegel je Thema
-/// (mit Zähler); Stillstände haben je Betrieb ein eigenes. Fängt selbst keine Mausklicks ab. Die Höhe, die sie braucht, steht in
-/// <see cref="Rollbereich.EckeHoehe"/> – die Tafeln rechts lassen den Platz frei, statt verdeckt zu werden.
+/// Die Ecke unten rechts, über der Betriebsleiste: eine Reihe von Meldungen als 3D-Schriftrollen (im Code weiter „Siegel“), die neueste links, damit sich
+/// die älteren nie verschieben. Eine Rolle je Thema (mit Zähler); Stillstände haben je Betrieb eine eigene. Fängt selbst keine Mausklicks ab. Die Höhe, die
+/// sie braucht, steht in <see cref="Rollbereich.EckeHoehe"/> – die Tafeln rechts lassen den Platz frei, statt verdeckt zu werden. Alle Rollen teilen sich
+/// eine kleine 3D-Bühne (<see cref="SchriftrollenBuehne"/>), die nur rechnet, solange die Ecke zu sehen ist.
 /// </summary>
 public sealed partial class Siegelecke : Control
 {
     public const int Hoechstens = 7;
     private readonly HBoxContainer _reihe = new() { Alignment = BoxContainer.AlignmentMode.End, MouseFilter = MouseFilterEnum.Ignore };
     private readonly List<Siegel> _siegel = new();
+    private readonly SchriftrollenBuehne _buehne = new() { Name = "SchriftrollenBuehne" };
+    private int _schliessend;
 
     /// <summary>Das Siegel wurde angeklickt (gelesen werden soll).</summary>
     public event Action<Siegel>? Angeklickt;
@@ -274,6 +381,8 @@ public sealed partial class Siegelecke : Control
     {
         MouseFilter = MouseFilterEnum.Ignore;
         Theme = MeldungStil.Thema;
+        _buehne.Sichtbar = IsVisibleInTree;
+        AddChild(_buehne);
         _reihe.AddThemeConstantOverride("separation", 6);
         _reihe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(_reihe);
@@ -320,7 +429,7 @@ public sealed partial class Siegelecke : Control
         var s = new Siegel
         {
             Schluessel = schluessel, ThemaId = thema.Id, Farbe = Color.FromHtml(thema.Farbe), Frist = frist, BriefBauer = briefBauer, Dauerhaft = dauerhaft,
-            Posten = new List<Meldungsposten> { posten },
+            Posten = new List<Meldungsposten> { posten }, Buehne = _buehne,
         };
         s.Angeklickt += k => Angeklickt?.Invoke(k);
         s.Verworfen += Entfernen;
@@ -334,17 +443,42 @@ public sealed partial class Siegelecke : Control
         return true;
     }
 
-    public void Entfernen(Siegel s)
+    /// <summary>
+    /// Die Meldung ist erledigt (gelesen, beiseitegelegt, abgelaufen, verdrängt): Sie zählt sofort nicht mehr mit, ihre Rolle rollt aber erst zu und
+    /// verschwindet dann aus der Reihe (<see cref="Siegel.Schliessen"/>). Der Platz der Ecke bleibt so lange frei.
+    /// </summary>
+    public void Entfernen(Siegel s) => Entfernen(s, false);
+
+    private void Entfernen(Siegel s, bool sofort)
     {
         if (!_siegel.Remove(s)) return;
-        _reihe.RemoveChild(s);
-        s.QueueFree();
-        if (_siegel.Count == 0) Rollbereich.EckeHoehe = 0;
+        if (sofort)
+        {
+            Wegnehmen(s);
+            return;
+        }
+        _schliessend++;
+        s.Schliessen(() =>
+        {
+            _schliessend--;
+            Wegnehmen(s);
+        });
     }
 
+    private void Wegnehmen(Siegel s)
+    {
+        if (IsInstanceValid(s))
+        {
+            if (s.GetParent() == _reihe) _reihe.RemoveChild(s);
+            s.QueueFree();
+        }
+        if (_siegel.Count == 0 && _schliessend <= 0) Rollbereich.EckeHoehe = 0;
+    }
+
+    /// <summary>Alle Meldungen sofort weg, ohne Zurollen (neue Partie, Spielstand geladen).</summary>
     public void Leeren()
     {
-        foreach (var s in _siegel.ToList()) Entfernen(s);
+        foreach (var s in _siegel.ToList()) Entfernen(s, true);
     }
 
     /// <summary>Tooltips der Siegel auffrischen (erste Zeile des neuesten Postens).</summary>
