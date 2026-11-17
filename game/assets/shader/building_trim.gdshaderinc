@@ -25,7 +25,6 @@ uniform float wetter_an = 1.0;                  // 0 für Innenräume (kein Rege
 // Abtastgrenze (kein Flimmern beim Schwenken). Steinbänder je Blatt (v-Bereiche, -1 = keiner) setzt das Spiel (SteinMip.cs);
 // Standard: Band „bruchstein“ der Häuser (0,85–0,95). Putz, Holz, Stroh und Schiefer behalten pixel_mip.
 uniform float stein_mip = 1.0;
-uniform float schiefer_hell = 5.5;   // Pixel-Look: Faktor auf sehr dunkle Dachbänder (Schiefer)
 uniform float stein_ruhe = 0.5;   // Pixel-Look: Anteil der groben Mip-Stufe (pixel_mip) in der Farbe der Steinbänder
 uniform vec4 stein_baender = vec4(0.85, 0.95, -1.0, -1.0);
 // Häuser-Array: Steinbänder je Ebene aus STEIN_EBENE (Reihenfolge wie Steinebenen.cs, dort derselbe Inhalt, SteinebenenTests vergleicht).
@@ -100,14 +99,6 @@ void fragment() {
 		float stueck = floor(UV.y / 0.1875 * 1.55 / 0.55 + versatz);
 		float zufall = fract(sin(dot(vec2(bahn, stueck), vec2(127.1, 311.7))) * 43758.5453);
 		final_color *= 0.82 + 0.18 * floor(zufall * 3.0);   // drei Stufen: dunkel, mittel, hell
-	}
-
-	// Pixel-Look: Der Schiefer der Wohnhäuser (Dachband, Albedo nur sRGB 26–32) wird in der Rechnung des Pixel-Looks (Kontrast um die Mitte, Düsternis) zu einer
-	// schwarzen Fläche ohne Zeichnung; ohne Pixel-Look bleibt er durch Glanz und Schindelrelief lesbar. Sehr dunkle Albedo im Dachband wird darum angehoben
-	// (wie der Schiefer der Rathausdächer, sRGB um 60); hellere Dächer (Stroh, Ziegel) bleiben unberührt.
-	if (haus_baender > 0.5 && pixel_look > 0.5 && UV.y < 0.25) {
-		float tief = 1.0 - smoothstep(0.02, 0.05, dot(final_color, vec3(0.2126, 0.7152, 0.0722)));
-		final_color *= mix(1.0, schiefer_hell, tief);
 	}
 
 	// 1. Variation über Trim-Sheet-Bänder (UV.y)
