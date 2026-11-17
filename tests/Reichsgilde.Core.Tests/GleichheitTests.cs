@@ -507,10 +507,14 @@ static class GleichheitTests
                 foreach (var e in w.Entscheidungen.OffenFuer(spieler).Where(e => e.Nummer % 2 == 1).OrderBy(e => e.Nummer))
                     liste.Add(new EntscheidungTreffen(e.Nummer, e.Nummer % 4 == 1 ? Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Zahlen
                         : Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Ablehnen));
-            if (t == _wiederUm && _zweitbetrieb is not null)
+            // (seit den Zufallsgegnern, 17.11.2026, fehlt dem Tischler von 4711 im Jahr 7 zehn Minuten nach der Abgabe die erste Jahrespacht:
+            // Geht der Erwerb noch nicht, versucht er es alle zehn Minuten wieder, bis es geht)
+            if (_wiederUm >= 0 && t >= _wiederUm && (t - _wiederUm) % 10 == 0 && _zweitbetrieb is not null
+                && w.LiegenschaftErwerbVerboten(spieler, _zweitbetrieb) is null)
             {
                 liste.Add(new LiegenschaftErwerben(_zweitbetrieb));
                 _einstellenUm = t + 1;
+                _wiederUm = -1;
             }
             return liste;
         }
