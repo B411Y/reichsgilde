@@ -94,7 +94,7 @@ def feld_rauschen(hoehe, breite, zellen_y, zellen_x, saat):
     return oben * (1 - fy) + unten * fy
 
 
-def moos(blatt, band, anteil=0.16):
+def moos(blatt, band, anteil=0.28):
     """Sparsame Moosflecken auf den Schindeln (nur Textur, keine Flaechen): wo das grobe Rauschen ueber der Schwelle liegt, wird die
     Farbe zum Moos hin gemischt, rauer und ohne Glanz; `anteil` ~ bedeckte Flaeche."""
     a, e = blatt.zeilen(band)
@@ -107,9 +107,9 @@ def moos(blatt, band, anteil=0.16):
     blatt.orm[a:e, :, 1] = blatt.orm[a:e, :, 1] * (1 - w[..., 0]) + 0.95 * w[..., 0]
 
 
-def efeu(blatt, band, ranken=3, saat=51):
+def efeu(blatt, band, ranken=5, saat=51):
     """Wenige Efeuranken im Putzband (nur Textur): je Ranke ein Stamm vom unteren Bandrand (Mauerfuss) nach oben, daran Blaetter;
-    das Band laeuft waagerecht 8 m, also drei Ranken auf 8 m Wand. Farbe, Normale (leicht erhaben) und Rauheit."""
+    das Band laeuft waagerecht 8 m, also fuenf Ranken auf 8 m Wand (mehr Efeu: Rueckmeldung des Nutzers 17.11.2026). Farbe, Normale (leicht erhaben) und Rauheit."""
     a, e = blatt.zeilen(band)
     h = e - a
     z = np.random.default_rng(saat)
@@ -117,7 +117,7 @@ def efeu(blatt, band, ranken=3, saat=51):
     for k in range(ranken):
         x = (k + 0.25 + 0.4 * z.random()) * N / ranken
         y = h - 1.0
-        oben = h * (0.25 + 0.35 * z.random())
+        oben = h * (0.10 + 0.35 * z.random())
         while y > oben:
             x += z.normal(0, 3.0); y -= 6.0
             for _ in range(2):
