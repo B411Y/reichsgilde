@@ -1,6 +1,6 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
-Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -8,7 +8,7 @@ Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung – mit de
 Die Elbenmasse (Haustuer 2,10 m, Herdhaube; wohnhaus_elb_s1.masse_anlegen) gelten auch hier, damit die Pruefungen der Menschen dieselben
 Oeffnungen erwarten, die das Bauskript gebaut hat. Blaetter: trim_elb (aussen), innen_trim_elb (Wohnstube). Die Huellen liegen im
 AO-Atlas „wohnhaus_elb“ mit Zellen von 1024 Bildpunkten: die Grenzen des Inselrands (Pruefung 14) gelten im Verhaeltnis wie bei den
-Stufen 2 und 3 der Menschen. 21: Haustuer gegen Elb (bis 1,90 m), Elbin, Mensch, Zwerg und Zwergin (elb_masse.py; alles Pflicht).
+Stufen 2 und 3 der Menschen. 21: Haustuer gegen Elb (bis 1,90 m), Elbin und Mensch (elb_masse.py; alles Pflicht; Zwerge gehen nicht in Elbenhaeuser); 27 Fussabdruck.
 --gegenprobe: dieselben Pruefungen an einem anderen Stand (--ordner), die Fehler finden muessen; Rueckgabewert 1 bei Fehlern sonst.
 --mensch-tuer (nur mit --gegenprobe): die Masse der Menschen (Haustuer 2,00 m) statt der Elbenmasse – Pruefung 21 muss anschlagen.
 """
@@ -55,9 +55,7 @@ def tueren(form):
     """Pruefung 21: Haustuer gegen die Figuren (elb_masse: Hoehe + 0,20, Schulter + 0,30), alle Pflicht."""
     import wohnhaus_mensch_s1_g1 as G1
     import wohnhaus_mensch_s1 as S1
-    if form in (1, 3): fen = G1.FENSTER
-    else:
-        S1.form_setzen(form); fen = S1.F.FENSTER
+    S1.form_setzen(form); fen = S1.F.FENSTER                   # alle Grundformen der Elben entstehen im Rahmen von wohnhaus_mensch_s1
     t = next(f for f in fen if f[3] == "tuer")
     b, h = t[1][1] - t[1][0], t[2][1] - t[2][0]
     soll = EM.soll()
@@ -76,13 +74,7 @@ def grundform_masse(form):
     import wohnhaus_mensch_s1 as S1
     import zwerg_teile as ZT
     bogen = []
-    if form in (1, 3):
-        wand, (a0, a1), (z0, z1), _ = next(f for f in G1.FENSTER if f[3] == "tuer")
-        bogen.append(("y", G1.VORN, -1, a0, a1, z0, z1))
-        (lx0, lx1), (lz0, lz1) = G1.LUKE
-        bogen.append(("y", G1.OVORN, -1, lx0, lx1, lz0, lz1))
-        dach = dict(ox=G1.OX, dv=G1.DACH_VORN, dh=G1.DACH_HINTEN, yw=(G1.OVORN, G1.HINTEN), dach_z=G1.dach_z, walm=False)
-    else:
+    if True:
         S1.form_setzen(form)
         F = S1.F
         for wand, (a0, a1), (z0, z1), art in F.FENSTER:
@@ -157,6 +149,21 @@ def dach_verdeckung(glb, ordner):
     return [f"   Verdeckung der Schindeln (Median, {len(werte)} Flaechen): {m:.2f} (Soll >= 0,50) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
 
+def fussabdruck(glb, haus, ordner):
+    """Pruefung 27 (Fussabdruck der Grundform, eigene Form der Elben 17.11.2026): Haus und Dach des Elbenhauses bleiben in Lage im
+    Spiel innerhalb des Umrisses (x, y) von Haus und Dach des Menschenhauses derselben Grundform (2 cm), damit es auf jeden Bauplatz
+    passt, der diese Grundform bekommt. Die Hoehe ist frei (die Elben bauen niedriger)."""
+    def umriss(pfad):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.ops.import_scene.gltf(filepath=pfad)
+        pts = [o.matrix_world @ v.co for o in bpy.data.objects if o.type == "MESH" and o.name.split(".")[0] in ("Haus", "Dach") for v in o.data.vertices]
+        return min(p.x for p in pts), max(p.x for p in pts), min(p.y for p in pts), max(p.y for p in pts), max(p.z for p in pts)
+    m = umriss(os.path.join(WURZEL, "game", "assets", "modelle", "gebaeude", "neubau", haus.replace("_elb_", "_mensch_") + ".glb"))
+    e = umriss(glb)
+    ok = e[0] >= m[0] - 0.02 and e[1] <= m[1] + 0.02 and e[2] >= m[2] - 0.02 and e[3] <= m[3] + 0.02
+    return [f"   Elb x {e[0]:.2f}..{e[1]:.2f} y {e[2]:.2f}..{e[3]:.2f} Hoehe {e[4]:.2f}; Mensch x {m[0]:.2f}..{m[1]:.2f} y {m[2]:.2f}..{m[3]:.2f} Hoehe {m[4]:.2f} -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
+
+
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
@@ -164,8 +171,20 @@ def main():
     ordner = opt.get("ordner", os.path.join(WURZEL, "game", "assets", "modelle", "gebaeude", "neubau"))
     form = int(haus.rsplit("_g", 1)[1])
     glb = os.path.join(ordner, f"{haus}.glb")
-    if "mensch-tuer" not in opt: ELB.masse_anlegen()        # Gegenprobe 21: mit den Massen der Menschen (Haustuer 2,00 m)
+    import wohnhaus_mensch_s1 as S1
+    ELB.masse_anlegen()                                      # Formen und Masse der Elben
+    if "mensch-tuer" in opt:                                 # Gegenprobe 21: Haustuer der Menschen (2,00 m)
+        ELB.TUER_HOCH = S1.TUER_HOCH = 2.00
     import wohnhaus_mensch_s1_messen as MS1
+    alt_masse = MS1.masse
+
+    def masse(f):                                            # alle Grundformen im Rahmen von wohnhaus_mensch_s1 (eigene Form der Elben)
+        S1.form_setzen(f)
+        F = S1.F
+        return dict(giebel=[("vorn", F.VORN), ("hinten", F.HINTEN)], ox=F.OX, z_og=S1.Z_OG, zt=S1.Z_TRAUFE, zf=F.Z_FIRST,
+                    z_fachwerk=0.0, ymitte=(F.VORN + F.HINTEN) / 2, welt=F.WELT, giebel_ab={}, laenge=(F.VORN, F.HINTEN))
+    MS1.masse = masse
+    MS1.TUER_SOLL = {1: 0.80, 2: 0.80, 3: 0.80, 4: 0.80}     # jede Haustuer fuellt ein Gefach (wie Grundform 2 und 4 der Menschen)
     zeilen, fehler = MS1.pruefe(haus, ordner)
     z, f = Z.luecken(glb); zeilen += z; fehler += f
     z19, f19 = Z.wappen_frei(glb)
@@ -185,6 +204,8 @@ def main():
     z26, f26 = dachschwung_pruefen(hull, dach)
     z26c, f26c = dach_verdeckung(glb, ordner); z26 += z26c; f26 += f26c
     zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
+    z27, f27 = fussabdruck(glb, haus, ordner)
+    zeilen.append(f"27. Fussabdruck der Grundform (Haus und Dach im Umriss des Menschenhauses): {'ok' if not f27 else 'FEHLER'}"); zeilen += z27; fehler += f27
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
     kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
