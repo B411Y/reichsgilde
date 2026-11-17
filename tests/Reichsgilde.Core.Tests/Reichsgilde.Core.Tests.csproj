@@ -76,6 +76,8 @@
     <!-- Zuordnung Übergang zu Türklang – KlangTuerTests.cs -->
     <Compile Include="..\..\game\scripts\KlangTuerModell.cs" Link="Handschuh\KlangTuerModell.cs" />
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
+    <!-- Ablauf der 3D-Schriftrollen der Meldungsleiste (Aufrollen, Pendeln, Zurollen) kennt kein Godot – SchriftrolleAblaufTests.cs -->
+    <Compile Include="..\..\game\scripts\SchriftrolleAblauf.cs" Link="Handschuh\SchriftrolleAblauf.cs" />
     <!-- Wechsel Hand/Messing-I und Windrose des 3D-Zeigers – ZeigerSymboleTests.cs -->
     <Compile Include="..\..\game\scripts\ZeigerSymbole.cs" Link="Handschuh\ZeigerSymbole.cs" />
     <!-- Steinebenen je Volk: Zuordnung Volk/Stufe → Ebene des Häuser-Arrays – SteinebenenTests.cs -->
