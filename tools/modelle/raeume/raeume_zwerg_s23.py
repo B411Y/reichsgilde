@@ -47,58 +47,8 @@ def schicht_anlegen():
         return alt_uv(*a, **kw)
     R.uv2_und_ao = uv
     R.exportiere = lambda objekte, datei: alt_exp(objekte, umbenennen(datei))
-    R.fensterlaibung = fensterlaibung
-
-
-def fensterlaibung(teil, band, bank_band=None):
-    """Wie raeume_bib.fensterlaibung, aber ein Fensterpaar (Abstand unter 0,30 m) bekommt durchgehende Bretter oben und unten und einen
-    gemeinsamen Mittelpfosten: zwei einzelne Rahmen lagen im Pfeiler deckungsgleich uebereinander (uv2_pruefung 12)."""
-    S = R.S
-    for wand in ("vorn", "links"):
-        fen = sorted(R.fenster_der_wand(wand))
-        gruppen = []
-        for f in fen:
-            if gruppen and f[0] - gruppen[-1][-1][1] < 0.30 and abs(f[2] - gruppen[-1][-1][2]) < 1e-3: gruppen[-1].append(f)
-            else: gruppen.append([f])
-        n = R.wandpunkt(wand, 0, 0, 1) - R.wandpunkt(wand, 0, 0, 0)
-        for g in gruppen:
-            a0, a1, z0, z1 = g[0][0], g[-1][1], g[0][2], g[0][3]
-            bretter = [(R.wandpunkt(wand, a0 - 0.10, z0 - 0.04), R.wandpunkt(wand, a1 + 0.10, z0 - 0.04), 0.08),
-                       (R.wandpunkt(wand, a0 - 0.10, z1 + 0.04), R.wandpunkt(wand, a1 + 0.10, z1 + 0.04), 0.08),
-                       (R.wandpunkt(wand, a0 - 0.05, z0), R.wandpunkt(wand, a0 - 0.05, z1), 0.10),
-                       (R.wandpunkt(wand, a1 + 0.05, z0), R.wandpunkt(wand, a1 + 0.05, z1), 0.10)]
-            for (_, b_, _, _), (c_, _, _, _) in zip(g, g[1:]):          # Mittelpfosten im Pfeiler
-                bretter.append((R.wandpunkt(wand, (b_ + c_) / 2, z0), R.wandpunkt(wand, (b_ + c_) / 2, z1), c_ - b_))
-            for a, b, breite in bretter:
-                teil.brett(S, a, b, breite, n, band, tiefe=0.035)
-            if bank_band:
-                for f0, f1, _, _ in g:
-                    p0 = R.wandpunkt(wand, f0, z0, 0.04); p1 = R.wandpunkt(wand, f1, z0, -M.T / 2 + 0.03)
-                    teil.kasten(S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.03), (max(p0.x, p1.x), max(p0.y, p1.y), z0), bank_band)
-
-
-def dachbank_anheben(raeume_s23):
-    """Steinhaus: raum_bibliothek_dach.teile umhuellen (vorher die Masse des Steinhauses setzen: das Modul liest sie beim Import)."""
-    raeume_s23.HM.stufe_setzen(3)
-    import raum_bibliothek_dach as RD
-    from mathutils import Vector
-    alt_teile = RD.teile
-
-    def teile(Q):
-        """Dachbibliothek: die Fensterbank am Treppengiebel 4 mm hoeher, ihre Oberseite lag sonst in der Ebene der unteren
-        Laibung und deckte sie auf 2 cm Tiefe (deckungsgleich, uv2_pruefung 12)."""
-        t = alt_teile(Q)
-        a0, a1, z0, _ = RD.fenster_tg()
-        x0, x1, y0, y1 = a0 - 0.06 - 1e-4, a1 + 0.06 + 1e-4, RD.V - 0.02 - 1e-4, RD.V + 0.06 + 1e-4
-        for teil in t[:1]:
-            neu = []
-            for pts, uvs, st, fa, gl in teil.flaechen:
-                if all(x0 <= p.x <= x1 and y0 <= p.y <= y1 and z0 - 0.05 - 1e-4 <= p.z <= z0 + 1e-4 for p in pts):
-                    pts = [p + Vector((0, 0, 0.004)) for p in pts]
-                neu.append((pts, uvs, st, fa, gl))
-            teil.flaechen = neu
-        return t
-    RD.teile = teile
+    # Fensterpaare mit durchgehendem Rahmen und die 4 mm hoehere Fensterbank der Dachbibliothek baut das Mensch-Skript selbst
+    # (raeume_bib.fensterlaibung, raum_bibliothek_dach; Mensch-Nachtrag #501): die Umhuellungen der Zwerge sind gestrichen
 
 
 if __name__ == "__main__":
@@ -112,7 +62,4 @@ if __name__ == "__main__":
         {"hinterzimmer": raum_hinterzimmer, "bibliothek": raum_bibliothek}[opt["raum"]].main()
     else:
         import raeume_s23
-        stufe = int(opt["haus"].rsplit("_s", 1)[1].split("_")[0])
-        if stufe == 3 and opt.get("raum") == "bibliothek":
-            dachbank_anheben(raeume_s23)
         raeume_s23.main()

@@ -148,34 +148,8 @@ def schicht_anlegen():
             F.WAPPEN = ((-F.BX, (frei[0] + frei[1]) / 2, 1.53), (0, -1, 0), (-1, 0, 0))
     s1.form_setzen = form_setzen
 
-    # ── Luecken (luecken_pruefung, Pruefung 16): Scheitholz mit 1 cm Fuge statt 2 cm (durch die Fugen sah man 0,6 m tief bis an die
-    #    Hauswand – wie im Steinhaus der Menschen berichtigt), Felder der Laube (Grundform 4) und Spalt am Pultdach des Schuppens (3) ──
-    alt_s1_scheit = s1.scheitholz
-    s1.scheitholz = lambda h, wand, a_start: scheitholz_wand(h, wand, a_start)
-
-    def scheitholz_links(h):
-        h.flaechen = [fl for fl in h.flaechen if not ist_scheit_rechts(fl)]
-        scheitstapel(h, -g1.BX, -1, 0.75)
-    s1.scheitholz_links = scheitholz_links
-    alt_haus1_mit_scheiten = g1.baue_haus
-
-    def haus1_scheite():
-        h = alt_haus1_mit_scheiten()
-        h.flaechen = [fl for fl in h.flaechen if not ist_scheit_rechts(fl)]
-        scheitstapel(h, g1.BX, 1, 0.55)
-        return h
-    g1.baue_haus = haus1_scheite
-    alt_laube, alt_schuppen = s1.baue_laube, s1.baue_schuppen
-
-    def laube(h):
-        alt_laube(h)
-        laube_fuellen(h)
-    s1.baue_laube = laube
-
-    def schuppen(h):
-        alt_schuppen(h)
-        schuppen_spalt(h)
-    s1.baue_schuppen = schuppen
+    # ── Luecken (luecken_pruefung, Pruefung 16): Scheitholz mit 1 cm Fuge, gefuellte Laubenfelder (Grundform 4) und Windbrett am
+    #    Schuppen (3) baut das Mensch-Skript seit dem Mensch-Nachtrag (#501) selbst; die Umhuellungen der Zwerge sind gestrichen ──
     # ── Wappen Grundform 1 und 3: im Brustfeld des mittleren Gefachs, 5 cm unter dem Brustriegel und ueber der Schwelle; das Schild
     #    wird kleiner, wo die Hoehe nicht reicht (wie wappen_ort) ──
     g1.baue_wappen = wappen_g1
@@ -220,58 +194,6 @@ def wappen_g1():
     g1.prisma(w, "Hausfarbe", [(x * g, y * g) for x, y in g1.SCHILD], o, eu, ev, n, 0.045, 0.075, "farbholz", farbe=(1.0, 1.0, 1.0, 1.0))
     w.kasten("Bruchstein", (-0.02, g1.OVORN - 0.05, zw + 0.47 * g), (0.02, g1.OVORN, zw + 0.58 * g), "eisen", ohne=("+y",))
     return w
-
-
-def ist_scheit_rechts(fl):
-    """Flaeche des Scheitholzstapels an der rechten Seitenwand der Grundform 1 (wie s1.scheitholz_links)."""
-    return min(p.x for p in fl[0]) > g1.BX + 0.02 and max(p.z for p in fl[0]) < 0.6 and 0.3 < sum(p.y for p in fl[0]) / len(fl[0]) < 1.6
-
-
-def scheitstapel(h, x_wand, aussen, y0):
-    """Zwoelf Scheite in drei Lagen an einer Seitenwand (x = x_wand, nach aussen in Richtung `aussen`), Achsabstand 0,18 m: 1 cm Fuge."""
-    for i, (y, z) in enumerate([(y0 + 0.18 * k, 0.09) for k in range(5)] + [(y0 + 0.09 + 0.18 * k, 0.26) for k in range(4)] + [(y0 + 0.18 + 0.18 * k, 0.43) for k in range(3)]):
-        h.stab("Fachwerk", (x_wand + aussen * 0.03, y, z), (x_wand + aussen * 0.62, y + 0.008 * (i % 3 - 1), z), 0.17, "balken_a", kappen=False)
-        h.rechteck("Fachwerk", (x_wand + aussen * 0.62, y - 0.085, z - 0.085), (0, 1, 0), (0, 0, 1), 0.17, 0.17, "farbholz", weg_von=(0, y, z), anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
-
-
-def scheitholz_wand(h, wand, a_start):
-    """s1.scheitholz (Grundformen 2 und 4) mit 1 cm Fuge."""
-    F = s1.F
-    (ox, oy), (ex, ey), _, _ = F.WAENDE[wand]
-    start = ox if ex else oy
-    EZ = Vector((0, 0, 1))
-    for i, (ds, z) in enumerate([(0.18 * k, 0.09) for k in range(5)] + [(0.09 + 0.18 * k, 0.26) for k in range(4)] + [(0.18 + 0.18 * k, 0.43) for k in range(3)]):
-        s = a_start - start + ds
-        a, b = s1.punkt(wand, s, z, 0.03), s1.punkt(wand, s + 0.008 * (i % 3 - 1), z, 0.62)
-        h.stab("Fachwerk", a, b, 0.17, "balken_a", kappen=False)
-        quer = Vector((ex, ey, 0))
-        h.rechteck("Fachwerk", b - quer * 0.085 - EZ * 0.085, quer, EZ, 0.17, 0.17, "farbholz", weg_von=a, anteil=(0.1, 0.9), u_bereich=(0.1 + 0.07 * i, 0.14 + 0.07 * i))
-
-
-def laube_fuellen(h):
-    """Grundform 4: die Dreiecke zwischen Pfosten, Rahmholz und Kopfband der Laube mit Brettern fuellen (Teamleiter: „fuellen“; durch
-    die Felder sah man 0,6 m tief bis an die Hauswand, luecken_pruefung „Durchblick“). Bretter von beiden Seiten sichtbar."""
-    F = s1.F
-    yl = F.DACH_VORN + 0.18
-    zr = s1.Z_TRAUFE - 0.06
-    xs = (-F.BX + 0.09, 0.0, F.BX - 0.09)
-    for x, richtungen in ((xs[0], (1,)), (xs[1], (-1, 1)), (xs[2], (-1,))):
-        for r in richtungen:
-            a = Vector((x + r * 0.08, yl, zr - 0.72)); b = Vector((x + r * 0.08, yl, zr - 0.09)); c = Vector((x + r * 0.70, yl, zr - 0.09))
-            for dy, seite in ((-0.012, -1), (0.012, 1)):
-                v = Vector((0, dy, 0))
-                # stehende Bretter: u laeuft die Hoehe hinauf (Maserung senkrecht), v quer ueber die Bretter im Band „planken“
-                h.vieleck("Fachwerk", [a + v, b + v, c + v], [(0.10, 0.705), (0.2575, 0.705), (0.2575, 0.77)], weg_von=(x, yl - seite * 5, zr - 0.3))
-
-
-def schuppen_spalt(h):
-    """Grundform 3: Windbrett an Vorder- und Rueckwand des Schuppens unter dem Pultdach (zwischen Wandkrone und Dach blieb ein
-    Spalt von 2 cm, durch den man in den Schuppen sah, luecken_pruefung „Durchblick“)."""
-    S = s1.SCHUPPEN
-    for y, aussen in ((S["y0"], -1), (S["y1"], 1)):
-        a = Vector((g1.OX, y + aussen * 0.002, s1.schuppen_z(g1.OX) - 0.04))
-        b = Vector((S["x1"], y + aussen * 0.002, s1.schuppen_z(S["x1"]) - 0.04))
-        h.brett("Fachwerk", a, b, 0.11, (0, aussen, 0), "balken_c", tiefe=0.03)
 
 
 _FIGUREN = []
