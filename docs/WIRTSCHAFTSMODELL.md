@@ -2549,3 +2549,27 @@ Die Lage wirkt stark. Die Häuser nach dem Startweg in Drittel geteilt, Reinverm
 | 8 bzw. 7 | 63.252 / 1,008 (8 Häuser) | 51.730 / 0,992 (7 Häuser) |
 
 **Befunde (nichts nachgesteuert):** (1) Das Los streut die Startwege weit – ein Haus nahe am Markt ist nach 20 Jahren um ein gutes Viertel reicher, eines am Ende der Ringgasse um ein gutes Fünftel ärmer als sein eigenes Mittel. Das gilt auch für den Spieler ohne Platzwahl (Messungen, Tests); im Spiel wählt er selbst. (2) Gegen die festen Plätze von früher verdient ein Haus mit einem Betrieb gelost deutlich weniger (−29 bis −42 %), weil die kuratierten Plätze 20–30 m vom Markt lagen und die Zonen im Schnitt 65–93 m. (3) Auf der Greybox sind die KI-Häuser gegen den Stand von main stärker (+9 bis +21 % nach 30 Jahren), weil kein Los mehr vor der Mauer landet. Ob die Fahrzeit der Handkarren, die Lage der Zonen oder das Los (z. B. näher am Markt) nachgestellt werden soll, ist eine Entscheidung des Nutzers – offen in `docs/bereiche/kern.md`.
+
+## Zufallsgegner: keine festen Häuser mehr – Messung vorher/nachher (17.11.2026, Datenversion bleibt 93)
+
+Seit dem 17.11.2026 nennen die Karten keine festen KI-Häuser mehr; jede Partie würfelt ihre Gegner (Name, Wappen, Geschlecht, Volk, Glaube, Beruf). An den Werten ändert sich nichts: Volk, Glaube und Beruf loste die Startaufstellung schon vorher mit derselben Zufallsquelle, und mit N Gegnern kommen dieselben N Umland-Startplätze ins Spiel. Neu gewürfelt sind Name, Wappen und Geschlecht des Oberhaupts – das Geschlecht wirkt über Heirat und Kinder auf den Lauf einer Partie.
+
+**Messung** (`messen bericht 20 10 --karte=koeln --teile=4,5 --parallel=2`, 60 Partien zu 20 Jahren, 10 Startwerte; vorher gemessen auf main 6a4d7912, nachher auf main 6a4d7912 + dieser PR; Dateien `docs/messungen/balancing-2026-11-17-zufallsgegner-vorher.json` und `…-nachher.json`):
+
+| Größe nach 20 Jahren | vorher | nachher | Unterschied |
+|---|---|---|---|
+| Messstadt, 1 KI-Haus: Vermögen je Haus | 38.649 | 41.041 | +6,2 % |
+| Messstadt, 3 KI-Häuser | 47.573 | 48.331 | +1,6 % |
+| Messstadt, 5 KI-Häuser | 53.944 | 55.597 | +3,1 % |
+| Messstadt, 7 KI-Häuser | 55.329 | 55.266 | −0,1 % |
+| Köln, 7 KI-Häuser „Normal“: KI-Häuser im Mittel (n = 70, Fehler des Mittels ± 4.300) | 64.655 | 64.163 | −0,8 % |
+| Köln „Normal“: Bezugsspieler (n = 10, Fehler des Mittels ± 11.000 bis 13.000) | 68.712 | 71.784 | +4,5 % |
+| Köln „Normal“: Verhältnis KI ÷ Bezug (Median) | 0,88 | 0,87 | |
+| Köln „Normal“: davongezogen (> 2×) / abgeschlagen (< ½) von 70 | 15 / 16 | 15 / 18 | |
+| Köln „Schwer“: KI-Häuser im Mittel | 75.177 | 77.776 | +3,5 % |
+| Köln „Schwer“: Bezugsspieler | 72.827 | 79.822 | +9,6 % |
+| Köln „Schwer“: Verhältnis KI ÷ Bezug (Median) | 1,09 | 1,02 | |
+| Bankrott / erloschen | 0 / 0 | 0 / 0 | |
+
+**Befund:** Das Vermögen der KI-Häuser bleibt gleich (Köln −0,8 %, Messstadt −0,1 bis +6,2 %) – alles innerhalb der Streuung von 10 Startwerten. Der Bezugsspieler liegt höher (+4,5 %, auf „Schwer“ +9,6 %), bei einem Fehler des Mittels von über 11.000 Gulden lässt sich das mit 10 Startwerten nicht von Zufall trennen. Nichts nachgesteuert. Wer es genauer wissen will: `messen bericht 20 20` (900 Partien) vorher und nachher.
+
