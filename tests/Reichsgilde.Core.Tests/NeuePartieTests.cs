@@ -69,7 +69,7 @@ static class NeuePartieTests
             Pruefe.Gleich(8, namen.Distinct().Count(), string.Join(", ", namen));
             Pruefe.Wahr(start.Haeuser.All(h => h.Name.StartsWith("Haus ") && !Partieaufbau.Rivalennamen.Contains(h.Name)), string.Join(", ", namen));
             Pruefe.Gleich(8, w.Konten.Select(k => k.Wappen).Distinct().Count(), "Wappen verschieden");
-            // seit 17.11.2026 trägt jedes Haus die Farbe seines Wappens (sechs Hausfarben für acht Häuser – verschieden sind sie nicht mehr)
+            // seit 17.11.2026 trägt jedes Haus die Farbe seines Wappens (acht Hausfarben für acht Häuser – verschieden sind sie nicht mehr)
             Pruefe.Wahr(start.Haeuser.All(h => h.Farbe == h.Wappen.Hausfarbe()), "jedes Haus in der Farbe seines Wappens");
             var berufe = Berufe(w);
             Pruefe.Gleich(8, berufe.Distinct().Count(), string.Join(", ", berufe));
