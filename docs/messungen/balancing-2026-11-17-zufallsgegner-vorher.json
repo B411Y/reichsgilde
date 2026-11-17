@@ -1,0 +1,5829 @@
+{
+  "bericht": "Balancing-Messung 6",
+  "datum": "2026-11-17",
+  "mainCommit": "6a4d7912",
+  "commit": "6a4d7912",
+  "datenversion": 93,
+  "aufruf": "messen bericht 20 10 --karte=koeln --teile=4,5 --parallel=2 --datei=docs/messungen/balancing-2026-11-17-zufallsgegner-vorher.json",
+  "parameter": {
+    "jahre": 20,
+    "startwerte": 10,
+    "zufallsstartwerte": "101, 202 … 1010 (s × 101)",
+    "stichjahre": [
+      5,
+      10,
+      20
+    ],
+    "karte": "koeln",
+    "fairnesskarten": [
+      "greybox",
+      "probestadt"
+    ],
+    "teile": [
+      4,
+      5
+    ],
+    "band": "±15 % um das Mittel",
+    "startvermoegen": 4000,
+    "ohneAbschnitt": null,
+    "startplaetze": "gelost",
+    "haerte": "Ueberliefert",
+    "lagen": "alle"
+  },
+  "partien": 60,
+  "partienMitFehler": 0,
+  "haeuser": {
+    "erklaerung": "Messstadt (tools/Kartenbau/Staedte/Messstadt.cs) mit den ersten n KI-Häusern der Karte (1: Schmied/Zwerg, 3: dazu Tischler/Elb und Steinmetz/Halbling wie in der Greybox, 5: dazu Alchimist/Mensch und Schmied/Mensch, 8: dazu Wirt/Halbling, Tischler/Mensch, Steinmetz/Zwerg), jedes mit einer Werkstatt wie der Spieler (Schwierigkeit Normal), Profil ausgewogen. Der Spieler entlässt am Start seine Arbeiter und zählt nicht – auch nicht für die Einwohner: Nachfrage und Grundversorgung × Einwohnerfaktor = (einwohnerGrund + einwohnerJeHaus × n) ÷ (einwohnerGrund + einwohnerJeHaus × bezugHaeuser) (Abschnitt stadt, PR #177). Markt im letzten Stichjahr: Preisfaktor = Marktpreis ÷ Grundpreis im Mittel der Stunden; verkauft = Verkäufe aller Häuser im Jahr; Anteil der Häuser am Angebot = verkauft ÷ (Grundversorgung + verkauft); Anteile je Haus nach hergestellten Stück. Preisindex = Preisfaktor gewichtet mit den Verkäufen der Häuser. Druck: Vermögen bzw. Gewinn je Haus gegen 1 (und 3) Häuser.",
+    "stufen": [
+      {
+        "haeuser": 1,
+        "n": 10,
+        "einwohnerfaktorAmStart": 0.625,
+        "alleHaeuser": {
+          "5": {
+            "reinvermoegen": {
+              "n": 10,
+              "mittel": 5465,
+              "streuung": 2234,
+              "fehlerMittel": 706,
+              "min": 2463,
+              "q10": 2910,
+              "q25": 3410,
+              "median": 6385,
+              "q75": 6653,
+              "q90": 7321,
+              "max": 9238
+            },
+            "gewinn": {
+              "n": 10,
+              "mittel": 1246,
+              "streuung": 910,
+              "fehlerMittel": 288,
+              "min": -685,
+              "q10": 340,
+              "q25": 912,
+              "median": 1399,
+              "q75": 1552,
+              "q90": 2222,
+              "max": 2583
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 5465,
+              "streuung": 2234,
+              "fehlerMittel": 706,
+              "min": 2463,
+              "q10": 2910,
+              "q25": 3410,
+              "median": 6385,
+              "q75": 6653,
+              "q90": 7321,
+              "max": 9238
+            }
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 10,
+              "mittel": 7969,
+              "streuung": 2879,
+              "fehlerMittel": 910,
+              "min": 2566,
+              "q10": 4209,
+              "q25": 6941,
+              "median": 8069,
+              "q75": 10354,
+              "q90": 10878,
+              "max": 11672
+            },
+            "gewinn": {
+              "n": 10,
+              "mittel": 2475,
+              "streuung": 2555,
+              "fehlerMittel": 808,
+              "min": 317,
+              "q10": 865,
+              "q25": 1194,
+              "median": 1498,
+              "q75": 1966,
+              "q90": 6310,
+              "max": 8194
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 7969,
+              "streuung": 2879,
+              "fehlerMittel": 910,
+              "min": 2566,
+              "q10": 4209,
+              "q25": 6941,
+              "median": 8069,
+              "q75": 10354,
+              "q90": 10878,
+              "max": 11672
+            }
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 10,
+              "mittel": 38649,
+              "streuung": 22431,
+              "fehlerMittel": 7093,
+              "min": 19743,
+              "q10": 20910,
+              "q25": 23259,
+              "median": 24348,
+              "q75": 51477,
+              "q90": 67182,
+              "max": 83056
+            },
+            "gewinn": {
+              "n": 10,
+              "mittel": 7069,
+              "streuung": 4046,
+              "fehlerMittel": 1280,
+              "min": 2369,
+              "q10": 3939,
+              "q25": 4601,
+              "median": 6074,
+              "q75": 8361,
+              "q90": 9973,
+              "max": 16909
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 38649,
+              "streuung": 22431,
+              "fehlerMittel": 7093,
+              "min": 19743,
+              "q10": 20910,
+              "q25": 23259,
+              "median": 24348,
+              "q75": 51477,
+              "q90": 67182,
+              "max": 83056
+            }
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 3440,
+          "amtseinkommen": 87,
+          "familie": -286,
+          "geschenke": -7,
+          "gericht": -23,
+          "gaunerei": -0,
+          "investitionen": -1675,
+          "standesgebuehren": -240,
+          "zinsen": -0,
+          "davonSteuer": -444,
+          "davonSpitzel": -0,
+          "schiffeAmEnde": 0
+        },
+        "jeHaus": [
+          {
+            "haus": "Haus Ahlbeck",
+            "volk": "Mensch",
+            "beruf": "Steinmetz",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 5465,
+                  "streuung": 2234,
+                  "fehlerMittel": 706,
+                  "min": 2463,
+                  "q10": 2910,
+                  "q25": 3410,
+                  "median": 6385,
+                  "q75": 6653,
+                  "q90": 7321,
+                  "max": 9238
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1246,
+                  "streuung": 910,
+                  "fehlerMittel": 288,
+                  "min": -685,
+                  "q10": 340,
+                  "q25": 912,
+                  "median": 1399,
+                  "q75": 1552,
+                  "q90": 2222,
+                  "max": 2583
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7969,
+                  "streuung": 2879,
+                  "fehlerMittel": 910,
+                  "min": 2566,
+                  "q10": 4209,
+                  "q25": 6941,
+                  "median": 8069,
+                  "q75": 10354,
+                  "q90": 10878,
+                  "max": 11672
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2475,
+                  "streuung": 2555,
+                  "fehlerMittel": 808,
+                  "min": 317,
+                  "q10": 865,
+                  "q25": 1194,
+                  "median": 1498,
+                  "q75": 1966,
+                  "q90": 6310,
+                  "max": 8194
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 38649,
+                  "streuung": 22431,
+                  "fehlerMittel": 7093,
+                  "min": 19743,
+                  "q10": 20910,
+                  "q25": 23259,
+                  "median": 24348,
+                  "q75": 51477,
+                  "q90": 67182,
+                  "max": 83056
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 7069,
+                  "streuung": 4046,
+                  "fehlerMittel": 1280,
+                  "min": 2369,
+                  "q10": 3939,
+                  "q25": 4601,
+                  "median": 6074,
+                  "q75": 8361,
+                  "q90": 9973,
+                  "max": 16909
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          }
+        ],
+        "bankrott": 0,
+        "erloschen": 0,
+        "preisindex": 0.955,
+        "markt": {
+          "jahr": 20,
+          "waren": [
+            {
+              "ware": "Armbrust",
+              "typ": "Fertigprodukt",
+              "grundpreis": 211,
+              "preisfaktor": 1.127,
+              "nachfrage": 46.9,
+              "npcAngebot": 35,
+              "verkauftHaeuser": 4.9,
+              "anteilHaeuserAmAngebotProzent": 5.8,
+              "hergestellt": 5.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Beschlag",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 48,
+              "preisfaktor": 1.165,
+              "nachfrage": 93.8,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 0.9,
+              "anteilHaeuserAmAngebotProzent": 1.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Blume der Zwietracht",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.16,
+              "nachfrage": 93.2,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 11.6,
+              "anteilHaeuserAmAngebotProzent": 10.9,
+              "hergestellt": 11,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Bruchstein",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 1.102,
+              "nachfrage": 375,
+              "npcAngebot": 337.5,
+              "verkauftHaeuser": 16.3,
+              "anteilHaeuserAmAngebotProzent": 3.3,
+              "hergestellt": 16.2,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Dolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 141,
+              "preisfaktor": 1.178,
+              "nachfrage": 78,
+              "npcAngebot": 52.5,
+              "verkauftHaeuser": 2.3,
+              "anteilHaeuserAmAngebotProzent": 3.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Fechterduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 210,
+              "preisfaktor": 1.124,
+              "nachfrage": 57.7,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 0.1,
+              "anteilHaeuserAmAngebotProzent": 0.2,
+              "hergestellt": 0.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Festbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 218,
+              "preisfaktor": 1.167,
+              "nachfrage": 30.5,
+              "npcAngebot": 21.9,
+              "verkauftHaeuser": 1.2,
+              "anteilHaeuserAmAngebotProzent": 3.5,
+              "hergestellt": 4.2,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Gegengift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.122,
+              "nachfrage": 57.7,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 2.4,
+              "anteilHaeuserAmAngebotProzent": 3.5,
+              "hergestellt": 2.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Gehstock",
+              "typ": "Fertigprodukt",
+              "grundpreis": 81,
+              "preisfaktor": 1.18,
+              "nachfrage": 75.8,
+              "npcAngebot": 52.5,
+              "verkauftHaeuser": 0.4,
+              "anteilHaeuserAmAngebotProzent": 0.7,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Gerste",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.062,
+              "nachfrage": 375,
+              "npcAngebot": 337.5,
+              "verkauftHaeuser": 22.3,
+              "anteilHaeuserAmAngebotProzent": 4,
+              "hergestellt": 22.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Giftdolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 305,
+              "preisfaktor": 1.173,
+              "nachfrage": 92.6,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 3.6,
+              "anteilHaeuserAmAngebotProzent": 4.3,
+              "hergestellt": 3.6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Grabstein",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.206,
+              "nachfrage": 97.4,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 1.8,
+              "anteilHaeuserAmAngebotProzent": 2.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Granit",
+              "typ": "Rohstoff",
+              "grundpreis": 28,
+              "preisfaktor": 1.073,
+              "nachfrage": 125,
+              "npcAngebot": 112.5,
+              "verkauftHaeuser": 9.1,
+              "anteilHaeuserAmAngebotProzent": 4.5,
+              "hergestellt": 4.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Heilsalbe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 116,
+              "preisfaktor": 1.268,
+              "nachfrage": 110.7,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 0.4,
+              "anteilHaeuserAmAngebotProzent": 0.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Holz",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.419,
+              "nachfrage": 562.5,
+              "npcAngebot": 337.5,
+              "verkauftHaeuser": 18.9,
+              "anteilHaeuserAmAngebotProzent": 3.6,
+              "hergestellt": 18.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Holzzapfen",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.199,
+              "nachfrage": 93.8,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 4.6,
+              "anteilHaeuserAmAngebotProzent": 5.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Jasmin",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 1.039,
+              "nachfrage": 125,
+              "npcAngebot": 112.5,
+              "verkauftHaeuser": 20.6,
+              "anteilHaeuserAmAngebotProzent": 12.6,
+              "hergestellt": 16.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Kräuter",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.057,
+              "nachfrage": 375,
+              "npcAngebot": 337.5,
+              "verkauftHaeuser": 15.8,
+              "anteilHaeuserAmAngebotProzent": 3.7,
+              "hergestellt": 19,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Kräuterlikör",
+              "typ": "Fertigprodukt",
+              "grundpreis": 165,
+              "preisfaktor": 1.246,
+              "nachfrage": 68.6,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 6.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Kröte",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 1.053,
+              "nachfrage": 125,
+              "npcAngebot": 112.5,
+              "verkauftHaeuser": 7.3,
+              "anteilHaeuserAmAngebotProzent": 4.4,
+              "hergestellt": 8.5,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Körnermahlzeit",
+              "typ": "Fertigprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.256,
+              "nachfrage": 98.6,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 1.2,
+              "anteilHaeuserAmAngebotProzent": -10.3,
+              "hergestellt": 11.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Lavendel",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.072,
+              "nachfrage": 375,
+              "npcAngebot": 337.5,
+              "verkauftHaeuser": 62.3,
+              "anteilHaeuserAmAngebotProzent": 12,
+              "hergestellt": 43.2,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Moschusduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 220,
+              "preisfaktor": 1.131,
+              "nachfrage": 57.7,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 4.6,
+              "anteilHaeuserAmAngebotProzent": 6.5,
+              "hergestellt": 4.7,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Mühlstein",
+              "typ": "Fertigprodukt",
+              "grundpreis": 165,
+              "preisfaktor": 1.171,
+              "nachfrage": 72.4,
+              "npcAngebot": 52.5,
+              "verkauftHaeuser": 6.4,
+              "anteilHaeuserAmAngebotProzent": 5.5,
+              "hergestellt": 6.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Politur",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.166,
+              "nachfrage": 93.8,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 2.3,
+              "anteilHaeuserAmAngebotProzent": 3,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Roggen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 1.052,
+              "nachfrage": 312.5,
+              "npcAngebot": 281.3,
+              "verkauftHaeuser": 23.7,
+              "anteilHaeuserAmAngebotProzent": 4.9,
+              "hergestellt": 18.7,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Rosenwasser",
+              "typ": "Fertigprodukt",
+              "grundpreis": 115,
+              "preisfaktor": 1.168,
+              "nachfrage": 62.1,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 5.3,
+              "anteilHaeuserAmAngebotProzent": 5.5,
+              "hergestellt": 5.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Schemel",
+              "typ": "Fertigprodukt",
+              "grundpreis": 122,
+              "preisfaktor": 1.207,
+              "nachfrage": 94.8,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 5,
+              "anteilHaeuserAmAngebotProzent": 4.3,
+              "hergestellt": 5,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Schädelbrand",
+              "typ": "Fertigprodukt",
+              "grundpreis": 364,
+              "preisfaktor": 1.218,
+              "nachfrage": 32.7,
+              "npcAngebot": 21.9,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 2.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Starkbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 134,
+              "preisfaktor": 1.206,
+              "nachfrage": 65.7,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 1.9,
+              "anteilHaeuserAmAngebotProzent": 3,
+              "hergestellt": 5.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Säule",
+              "typ": "Fertigprodukt",
+              "grundpreis": 205,
+              "preisfaktor": 1.159,
+              "nachfrage": 60.3,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 2.6,
+              "anteilHaeuserAmAngebotProzent": 3.7,
+              "hergestellt": 2.7,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Taufbecken",
+              "typ": "Fertigprodukt",
+              "grundpreis": 259,
+              "preisfaktor": 1.19,
+              "nachfrage": 64.6,
+              "npcAngebot": 43.8,
+              "verkauftHaeuser": 1.1,
+              "anteilHaeuserAmAngebotProzent": 2,
+              "hergestellt": 1.2,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Truhe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 179,
+              "preisfaktor": 1.158,
+              "nachfrage": 70.4,
+              "npcAngebot": 52.5,
+              "verkauftHaeuser": 1.5,
+              "anteilHaeuserAmAngebotProzent": 2.2,
+              "hergestellt": 1.6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Weingeist",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 43,
+              "preisfaktor": 1.206,
+              "nachfrage": 105.5,
+              "npcAngebot": 65.6,
+              "verkauftHaeuser": 13.9,
+              "anteilHaeuserAmAngebotProzent": 11.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            }
+          ]
+        }
+      },
+      {
+        "haeuser": 3,
+        "n": 10,
+        "einwohnerfaktorAmStart": 0.875,
+        "alleHaeuser": {
+          "5": {
+            "reinvermoegen": {
+              "n": 30,
+              "mittel": 5936,
+              "streuung": 2643,
+              "fehlerMittel": 483,
+              "min": 1669,
+              "q10": 2329,
+              "q25": 3201,
+              "median": 6407,
+              "q75": 8482,
+              "q90": 9084,
+              "max": 9509
+            },
+            "gewinn": {
+              "n": 30,
+              "mittel": 1339,
+              "streuung": 877,
+              "fehlerMittel": 160,
+              "min": -775,
+              "q10": 427,
+              "q25": 692,
+              "median": 1411,
+              "q75": 1924,
+              "q90": 2270,
+              "max": 2907
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 17807,
+              "streuung": 3318,
+              "fehlerMittel": 1049,
+              "min": 13444,
+              "q10": 14096,
+              "q25": 15459,
+              "median": 17993,
+              "q75": 18866,
+              "q90": 20829,
+              "max": 24829
+            }
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 30,
+              "mittel": 6675,
+              "streuung": 3780,
+              "fehlerMittel": 690,
+              "min": 808,
+              "q10": 3193,
+              "q25": 3685,
+              "median": 5543,
+              "q75": 8371,
+              "q90": 11669,
+              "max": 16042
+            },
+            "gewinn": {
+              "n": 30,
+              "mittel": 2289,
+              "streuung": 2171,
+              "fehlerMittel": 396,
+              "min": -766,
+              "q10": -376,
+              "q25": 446,
+              "median": 1864,
+              "q75": 3417,
+              "q90": 5525,
+              "max": 6603
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 20025,
+              "streuung": 5101,
+              "fehlerMittel": 1613,
+              "min": 12951,
+              "q10": 13414,
+              "q25": 15725,
+              "median": 21360,
+              "q75": 22050,
+              "q90": 24188,
+              "max": 29175
+            }
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 30,
+              "mittel": 47573,
+              "streuung": 29202,
+              "fehlerMittel": 5332,
+              "min": 300,
+              "q10": 11667,
+              "q25": 24338,
+              "median": 44000,
+              "q75": 64459,
+              "q90": 82806,
+              "max": 117954
+            },
+            "gewinn": {
+              "n": 30,
+              "mittel": 9916,
+              "streuung": 5798,
+              "fehlerMittel": 1058,
+              "min": -1604,
+              "q10": 2954,
+              "q25": 7144,
+              "median": 9410,
+              "q75": 13324,
+              "q90": 18304,
+              "max": 22198
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 142719,
+              "streuung": 50633,
+              "fehlerMittel": 16012,
+              "min": 64817,
+              "q10": 93787,
+              "q25": 125941,
+              "median": 129784,
+              "q75": 165083,
+              "q90": 203387,
+              "max": 241956
+            }
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 3946,
+          "amtseinkommen": 96,
+          "familie": -323,
+          "geschenke": -11,
+          "gericht": -140,
+          "gaunerei": 27,
+          "investitionen": -1821,
+          "standesgebuehren": -281,
+          "zinsen": -0,
+          "davonSteuer": -403,
+          "davonSpitzel": -54,
+          "schiffeAmEnde": 0
+        },
+        "jeHaus": [
+          {
+            "haus": "Haus Ahlbeck",
+            "volk": "Mensch",
+            "beruf": "Steinmetz",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6179,
+                  "streuung": 3057,
+                  "fehlerMittel": 967,
+                  "min": 2198,
+                  "q10": 2329,
+                  "q25": 3201,
+                  "median": 7386,
+                  "q75": 8708,
+                  "q90": 9196,
+                  "max": 9509
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1498,
+                  "streuung": 1158,
+                  "fehlerMittel": 366,
+                  "min": -775,
+                  "q10": 316,
+                  "q25": 704,
+                  "median": 1898,
+                  "q75": 2225,
+                  "q90": 2619,
+                  "max": 2907
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7568,
+                  "streuung": 5194,
+                  "fehlerMittel": 1642,
+                  "min": 2226,
+                  "q10": 3120,
+                  "q25": 3517,
+                  "median": 5469,
+                  "q75": 11351,
+                  "q90": 15410,
+                  "max": 16042
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2276,
+                  "streuung": 1619,
+                  "fehlerMittel": 512,
+                  "min": 118,
+                  "q10": 149,
+                  "q25": 1586,
+                  "median": 1921,
+                  "q75": 3268,
+                  "q90": 3645,
+                  "max": 5485
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 45970,
+                  "streuung": 22278,
+                  "fehlerMittel": 7045,
+                  "min": 19728,
+                  "q10": 23347,
+                  "q25": 26758,
+                  "median": 42237,
+                  "q75": 62749,
+                  "q90": 74789,
+                  "max": 82329
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 11233,
+                  "streuung": 4594,
+                  "fehlerMittel": 1453,
+                  "min": 3023,
+                  "q10": 7634,
+                  "q25": 9382,
+                  "median": 10207,
+                  "q75": 14556,
+                  "q90": 16422,
+                  "max": 18936
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Brendel",
+            "volk": "Mensch",
+            "beruf": "Tischler",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 4900,
+                  "streuung": 2397,
+                  "fehlerMittel": 758,
+                  "min": 1669,
+                  "q10": 2641,
+                  "q25": 3009,
+                  "median": 4777,
+                  "q75": 6434,
+                  "q90": 7212,
+                  "max": 9204
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1253,
+                  "streuung": 612,
+                  "fehlerMittel": 194,
+                  "min": 505,
+                  "q10": 628,
+                  "q25": 901,
+                  "median": 1125,
+                  "q75": 1562,
+                  "q90": 1853,
+                  "max": 2577
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 4731,
+                  "streuung": 2316,
+                  "fehlerMittel": 732,
+                  "min": 808,
+                  "q10": 2843,
+                  "q25": 3238,
+                  "median": 4542,
+                  "q75": 6597,
+                  "q90": 7295,
+                  "max": 8428
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 947,
+                  "streuung": 1679,
+                  "fehlerMittel": 531,
+                  "min": -766,
+                  "q10": -480,
+                  "q25": -408,
+                  "median": 490,
+                  "q75": 1926,
+                  "q90": 2917,
+                  "max": 4358
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 42095,
+                  "streuung": 37879,
+                  "fehlerMittel": 11979,
+                  "min": 300,
+                  "q10": 4304,
+                  "q25": 13268,
+                  "median": 36990,
+                  "q75": 61237,
+                  "q90": 79692,
+                  "max": 117954
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 7041,
+                  "streuung": 5804,
+                  "fehlerMittel": 1835,
+                  "min": -1604,
+                  "q10": 606,
+                  "q25": 2727,
+                  "median": 8249,
+                  "q75": 9917,
+                  "q90": 11355,
+                  "max": 18233
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Dornbusch",
+            "volk": "Zwerg",
+            "beruf": "Prediger",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6728,
+                  "streuung": 2339,
+                  "fehlerMittel": 740,
+                  "min": 1762,
+                  "q10": 4078,
+                  "q25": 5739,
+                  "median": 7451,
+                  "q75": 8482,
+                  "q90": 8945,
+                  "max": 9075
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1267,
+                  "streuung": 849,
+                  "fehlerMittel": 269,
+                  "min": -356,
+                  "q10": 259,
+                  "q25": 688,
+                  "median": 1695,
+                  "q75": 1823,
+                  "q90": 1983,
+                  "max": 2236
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7726,
+                  "streuung": 2716,
+                  "fehlerMittel": 859,
+                  "min": 3555,
+                  "q10": 4823,
+                  "q25": 5358,
+                  "median": 8042,
+                  "q75": 9469,
+                  "q90": 11165,
+                  "max": 11571
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3644,
+                  "streuung": 2387,
+                  "fehlerMittel": 755,
+                  "min": -171,
+                  "q10": 1530,
+                  "q25": 1831,
+                  "median": 3546,
+                  "q75": 5718,
+                  "q90": 6441,
+                  "max": 6603
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 54654,
+                  "streuung": 26922,
+                  "fehlerMittel": 8513,
+                  "min": 3429,
+                  "q10": 37048,
+                  "q25": 41260,
+                  "median": 49798,
+                  "q75": 75080,
+                  "q90": 87763,
+                  "max": 93735
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 11475,
+                  "streuung": 6301,
+                  "fehlerMittel": 1993,
+                  "min": 4335,
+                  "q10": 5973,
+                  "q25": 7300,
+                  "median": 8453,
+                  "q75": 14672,
+                  "q90": 21258,
+                  "max": 22198
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          }
+        ],
+        "bankrott": 0,
+        "erloschen": 0,
+        "preisindex": 0.95,
+        "markt": {
+          "jahr": 20,
+          "waren": [
+            {
+              "ware": "Armbrust",
+              "typ": "Fertigprodukt",
+              "grundpreis": 211,
+              "preisfaktor": 1.126,
+              "nachfrage": 65.7,
+              "npcAngebot": 49,
+              "verkauftHaeuser": 3.5,
+              "anteilHaeuserAmAngebotProzent": 4.2,
+              "hergestellt": 3.7,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 91.9,
+                "Haus Brendel": 8.1
+              }
+            },
+            {
+              "ware": "Beschlag",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 48,
+              "preisfaktor": 1.095,
+              "nachfrage": 131.3,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 11.4,
+              "anteilHaeuserAmAngebotProzent": 9,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Blume der Zwietracht",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.185,
+              "nachfrage": 133,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 11,
+              "anteilHaeuserAmAngebotProzent": 9,
+              "hergestellt": 12.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 61.3,
+                "Haus Dornbusch": 27.4,
+                "Haus Brendel": 11.3
+              }
+            },
+            {
+              "ware": "Bruchstein",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.969,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 152.3,
+              "anteilHaeuserAmAngebotProzent": 22,
+              "hergestellt": 115.1,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 49.3,
+                "Haus Dornbusch": 34.5,
+                "Haus Ahlbeck": 16.2
+              }
+            },
+            {
+              "ware": "Dolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 141,
+              "preisfaktor": 1.221,
+              "nachfrage": 111.3,
+              "npcAngebot": 73.5,
+              "verkauftHaeuser": 1.8,
+              "anteilHaeuserAmAngebotProzent": 2.2,
+              "hergestellt": 1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Eisen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 1.046,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 33.4,
+              "anteilHaeuserAmAngebotProzent": 5.7,
+              "hergestellt": 34.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Farbe",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.148,
+              "nachfrage": 131.3,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 14.8,
+              "anteilHaeuserAmAngebotProzent": 11.4,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Festbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 218,
+              "preisfaktor": 1.161,
+              "nachfrage": 42.7,
+              "npcAngebot": 30.6,
+              "verkauftHaeuser": 2.7,
+              "anteilHaeuserAmAngebotProzent": 4.7,
+              "hergestellt": 15.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 60.1,
+                "Haus Dornbusch": 39.9
+              }
+            },
+            {
+              "ware": "Gegengift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.121,
+              "nachfrage": 81.1,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 2.5,
+              "anteilHaeuserAmAngebotProzent": 3.5,
+              "hergestellt": 3.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 64.7,
+                "Haus Dornbusch": 35.3
+              }
+            },
+            {
+              "ware": "Gehstock",
+              "typ": "Fertigprodukt",
+              "grundpreis": 81,
+              "preisfaktor": 1.181,
+              "nachfrage": 107.7,
+              "npcAngebot": 73.5,
+              "verkauftHaeuser": 9,
+              "anteilHaeuserAmAngebotProzent": 5.7,
+              "hergestellt": 8.8,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 100
+              }
+            },
+            {
+              "ware": "Gerste",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.005,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 78.3,
+              "anteilHaeuserAmAngebotProzent": 12,
+              "hergestellt": 58.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 39.8,
+                "Haus Dornbusch": 39.5,
+                "Haus Brendel": 20.7
+              }
+            },
+            {
+              "ware": "Giftdolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 305,
+              "preisfaktor": 1.191,
+              "nachfrage": 126.5,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 1.8,
+              "anteilHaeuserAmAngebotProzent": 1.8,
+              "hergestellt": 2,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 55,
+                "Haus Ahlbeck": 45
+              }
+            },
+            {
+              "ware": "Grabmal",
+              "typ": "Fertigprodukt",
+              "grundpreis": 486,
+              "preisfaktor": 1.199,
+              "nachfrage": 44.1,
+              "npcAngebot": 30.6,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 0.6,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 100
+              }
+            },
+            {
+              "ware": "Grabstein",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.165,
+              "nachfrage": 139.1,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 15.7,
+              "anteilHaeuserAmAngebotProzent": 13.3,
+              "hergestellt": 15.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 46.4,
+                "Haus Brendel": 33.8,
+                "Haus Ahlbeck": 19.9
+              }
+            },
+            {
+              "ware": "Granit",
+              "typ": "Rohstoff",
+              "grundpreis": 28,
+              "preisfaktor": 0.924,
+              "nachfrage": 175,
+              "npcAngebot": 157.5,
+              "verkauftHaeuser": 75.2,
+              "anteilHaeuserAmAngebotProzent": 28.7,
+              "hergestellt": 50.5,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 44.6,
+                "Haus Dornbusch": 39.6,
+                "Haus Ahlbeck": 15.8
+              }
+            },
+            {
+              "ware": "Heilsalbe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 116,
+              "preisfaktor": 1.234,
+              "nachfrage": 157.9,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 14.6,
+              "anteilHaeuserAmAngebotProzent": 10.5,
+              "hergestellt": 14.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 51.7,
+                "Haus Dornbusch": 48.3
+              }
+            },
+            {
+              "ware": "Hetzschrift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 185,
+              "preisfaktor": 1.117,
+              "nachfrage": 52.8,
+              "npcAngebot": 36.8,
+              "verkauftHaeuser": 10.8,
+              "anteilHaeuserAmAngebotProzent": 16.5,
+              "hergestellt": 11.5,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 65.2,
+                "Haus Dornbusch": 34.8
+              }
+            },
+            {
+              "ware": "Holz",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.423,
+              "nachfrage": 787.5,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 18.9,
+              "anteilHaeuserAmAngebotProzent": 2.9,
+              "hergestellt": 18.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Holzzapfen",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.121,
+              "nachfrage": 131.3,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 17.9,
+              "anteilHaeuserAmAngebotProzent": 13.1,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Jasmin",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 1.04,
+              "nachfrage": 175,
+              "npcAngebot": 157.5,
+              "verkauftHaeuser": 37,
+              "anteilHaeuserAmAngebotProzent": 17.4,
+              "hergestellt": 29.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 54,
+                "Haus Dornbusch": 32,
+                "Haus Brendel": 14.1
+              }
+            },
+            {
+              "ware": "Kerze",
+              "typ": "Fertigprodukt",
+              "grundpreis": 78,
+              "preisfaktor": 1.358,
+              "nachfrage": 187.7,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 11,
+              "anteilHaeuserAmAngebotProzent": 8.5,
+              "hergestellt": 11.9,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 66.4,
+                "Haus Brendel": 33.6
+              }
+            },
+            {
+              "ware": "Kräuter",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.018,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 53.6,
+              "anteilHaeuserAmAngebotProzent": 9.1,
+              "hergestellt": 44.6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 53.8,
+                "Haus Dornbusch": 46.2
+              }
+            },
+            {
+              "ware": "Kräuterlikör",
+              "typ": "Fertigprodukt",
+              "grundpreis": 165,
+              "preisfaktor": 1.252,
+              "nachfrage": 96,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 4.4,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Kröte",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 0.981,
+              "nachfrage": 175,
+              "npcAngebot": 157.5,
+              "verkauftHaeuser": 25.4,
+              "anteilHaeuserAmAngebotProzent": 11.4,
+              "hergestellt": 17.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 53.9,
+                "Haus Dornbusch": 46.1
+              }
+            },
+            {
+              "ware": "Körnermahlzeit",
+              "typ": "Fertigprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.249,
+              "nachfrage": 139.9,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 13.8,
+              "anteilHaeuserAmAngebotProzent": -0.3,
+              "hergestellt": 43.5,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 74.9,
+                "Haus Brendel": 15.2,
+                "Haus Ahlbeck": 9.9
+              }
+            },
+            {
+              "ware": "Lavendel",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.076,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 73,
+              "anteilHaeuserAmAngebotProzent": 12.4,
+              "hergestellt": 67.6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 51.5,
+                "Haus Dornbusch": 33.3,
+                "Haus Brendel": 15.2
+              }
+            },
+            {
+              "ware": "Lumpen",
+              "typ": "Rohstoff",
+              "grundpreis": 8,
+              "preisfaktor": 0.969,
+              "nachfrage": 525,
+              "npcAngebot": 472.5,
+              "verkauftHaeuser": 99.5,
+              "anteilHaeuserAmAngebotProzent": 14.7,
+              "hergestellt": 91.7,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 61.4,
+                "Haus Dornbusch": 38.6
+              }
+            },
+            {
+              "ware": "Moschusduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 220,
+              "preisfaktor": 1.138,
+              "nachfrage": 81.1,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 2.8,
+              "anteilHaeuserAmAngebotProzent": 3.1,
+              "hergestellt": 2.2,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Papier",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 36,
+              "preisfaktor": 1.081,
+              "nachfrage": 131.3,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 21.3,
+              "anteilHaeuserAmAngebotProzent": 14.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Psalter",
+              "typ": "Fertigprodukt",
+              "grundpreis": 299,
+              "preisfaktor": 1.137,
+              "nachfrage": 73,
+              "npcAngebot": 49,
+              "verkauftHaeuser": 4.8,
+              "anteilHaeuserAmAngebotProzent": 6.9,
+              "hergestellt": 5.5,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 81.8,
+                "Haus Dornbusch": 18.2
+              }
+            },
+            {
+              "ware": "Roggen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 1.003,
+              "nachfrage": 437.5,
+              "npcAngebot": 393.8,
+              "verkauftHaeuser": 59.8,
+              "anteilHaeuserAmAngebotProzent": 11.1,
+              "hergestellt": 49.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 39.6,
+                "Haus Dornbusch": 39.4,
+                "Haus Brendel": 21.1
+              }
+            },
+            {
+              "ware": "Rosenwasser",
+              "typ": "Fertigprodukt",
+              "grundpreis": 115,
+              "preisfaktor": 1.157,
+              "nachfrage": 88.7,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 4.8,
+              "anteilHaeuserAmAngebotProzent": 4.4,
+              "hergestellt": 4.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 100
+              }
+            },
+            {
+              "ware": "Schemel",
+              "typ": "Fertigprodukt",
+              "grundpreis": 122,
+              "preisfaktor": 1.191,
+              "nachfrage": 134.6,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 10.7,
+              "anteilHaeuserAmAngebotProzent": 7.3,
+              "hergestellt": 12.7,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 85.8,
+                "Haus Ahlbeck": 14.2
+              }
+            },
+            {
+              "ware": "Schleifziegel",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 65,
+              "preisfaktor": 1.155,
+              "nachfrage": 131.3,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 11.3,
+              "anteilHaeuserAmAngebotProzent": 9.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Schädelbrand",
+              "typ": "Fertigprodukt",
+              "grundpreis": 364,
+              "preisfaktor": 1.193,
+              "nachfrage": 44.3,
+              "npcAngebot": 30.6,
+              "verkauftHaeuser": 0.4,
+              "anteilHaeuserAmAngebotProzent": 1.2,
+              "hergestellt": 10.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 100
+              }
+            },
+            {
+              "ware": "Silber",
+              "typ": "Rohstoff",
+              "grundpreis": 30,
+              "preisfaktor": 1.006,
+              "nachfrage": 175,
+              "npcAngebot": 157.5,
+              "verkauftHaeuser": 17.1,
+              "anteilHaeuserAmAngebotProzent": 8,
+              "hergestellt": 15.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Silberkette",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.176,
+              "nachfrage": 84.8,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 0.5,
+              "anteilHaeuserAmAngebotProzent": 0.8,
+              "hergestellt": 0.6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Silberring",
+              "typ": "Fertigprodukt",
+              "grundpreis": 112,
+              "preisfaktor": 1.22,
+              "nachfrage": 139.1,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 1.5,
+              "anteilHaeuserAmAngebotProzent": 1.4,
+              "hergestellt": 1.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Starkbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 134,
+              "preisfaktor": 1.193,
+              "nachfrage": 93.2,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 5,
+              "anteilHaeuserAmAngebotProzent": 6.3,
+              "hergestellt": 20,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 50.5,
+                "Haus Brendel": 49.5
+              }
+            },
+            {
+              "ware": "Säule",
+              "typ": "Fertigprodukt",
+              "grundpreis": 205,
+              "preisfaktor": 1.103,
+              "nachfrage": 84.8,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 4.8,
+              "anteilHaeuserAmAngebotProzent": 6.1,
+              "hergestellt": 5.7,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 86,
+                "Haus Dornbusch": 14
+              }
+            },
+            {
+              "ware": "Taufbecken",
+              "typ": "Fertigprodukt",
+              "grundpreis": 259,
+              "preisfaktor": 1.125,
+              "nachfrage": 88.1,
+              "npcAngebot": 61.2,
+              "verkauftHaeuser": 12,
+              "anteilHaeuserAmAngebotProzent": 14.8,
+              "hergestellt": 12.1,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 47.9,
+                "Haus Dornbusch": 31.4,
+                "Haus Ahlbeck": 20.7
+              }
+            },
+            {
+              "ware": "Truhe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 179,
+              "preisfaktor": 1.136,
+              "nachfrage": 98.5,
+              "npcAngebot": 73.5,
+              "verkauftHaeuser": 4.9,
+              "anteilHaeuserAmAngebotProzent": 4,
+              "hergestellt": 4.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Wachs",
+              "typ": "Rohstoff",
+              "grundpreis": 20,
+              "preisfaktor": 0.964,
+              "nachfrage": 262.5,
+              "npcAngebot": 236.3,
+              "verkauftHaeuser": 67.4,
+              "anteilHaeuserAmAngebotProzent": 17.3,
+              "hergestellt": 39.8,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 55.3,
+                "Haus Dornbusch": 44.7
+              }
+            },
+            {
+              "ware": "Weingeist",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 43,
+              "preisfaktor": 1.176,
+              "nachfrage": 147.7,
+              "npcAngebot": 91.9,
+              "verkauftHaeuser": 36.7,
+              "anteilHaeuserAmAngebotProzent": 20.1,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            }
+          ]
+        }
+      },
+      {
+        "haeuser": 5,
+        "n": 10,
+        "einwohnerfaktorAmStart": 1.125,
+        "alleHaeuser": {
+          "5": {
+            "reinvermoegen": {
+              "n": 50,
+              "mittel": 6311,
+              "streuung": 2470,
+              "fehlerMittel": 349,
+              "min": 1431,
+              "q10": 2946,
+              "q25": 4286,
+              "median": 6675,
+              "q75": 8025,
+              "q90": 9305,
+              "max": 10544
+            },
+            "gewinn": {
+              "n": 50,
+              "mittel": 1476,
+              "streuung": 994,
+              "fehlerMittel": 141,
+              "min": -1256,
+              "q10": 338,
+              "q25": 823,
+              "median": 1640,
+              "q75": 2145,
+              "q90": 2867,
+              "max": 2978
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 31553,
+              "streuung": 3989,
+              "fehlerMittel": 1261,
+              "min": 26184,
+              "q10": 27326,
+              "q25": 28315,
+              "median": 31087,
+              "q75": 34703,
+              "q90": 36748,
+              "max": 37438
+            }
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 50,
+              "mittel": 7619,
+              "streuung": 4717,
+              "fehlerMittel": 667,
+              "min": 1286,
+              "q10": 2720,
+              "q25": 3472,
+              "median": 6547,
+              "q75": 10139,
+              "q90": 15515,
+              "max": 18286
+            },
+            "gewinn": {
+              "n": 50,
+              "mittel": 2869,
+              "streuung": 2465,
+              "fehlerMittel": 349,
+              "min": -1279,
+              "q10": 323,
+              "q25": 1264,
+              "median": 2157,
+              "q75": 4203,
+              "q90": 6290,
+              "max": 12193
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 38097,
+              "streuung": 8490,
+              "fehlerMittel": 2685,
+              "min": 19944,
+              "q10": 29564,
+              "q25": 35353,
+              "median": 38823,
+              "q75": 43535,
+              "q90": 45907,
+              "max": 49491
+            }
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 50,
+              "mittel": 53944,
+              "streuung": 29359,
+              "fehlerMittel": 4152,
+              "min": 4500,
+              "q10": 14446,
+              "q25": 32763,
+              "median": 57332,
+              "q75": 74134,
+              "q90": 95011,
+              "max": 117768
+            },
+            "gewinn": {
+              "n": 50,
+              "mittel": 10816,
+              "streuung": 5430,
+              "fehlerMittel": 768,
+              "min": -808,
+              "q10": 2607,
+              "q25": 8207,
+              "median": 10827,
+              "q75": 14337,
+              "q90": 16880,
+              "max": 23370
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 269722,
+              "streuung": 34531,
+              "fehlerMittel": 10920,
+              "min": 233042,
+              "q10": 238621,
+              "q25": 248195,
+              "median": 257640,
+              "q75": 287393,
+              "q90": 304183,
+              "max": 345890
+            }
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 4513,
+          "amtseinkommen": 91,
+          "familie": -340,
+          "geschenke": -23,
+          "gericht": -190,
+          "gaunerei": 4,
+          "investitionen": -1942,
+          "standesgebuehren": -321,
+          "zinsen": -0,
+          "davonSteuer": -407,
+          "davonSpitzel": -66,
+          "schiffeAmEnde": 0
+        },
+        "jeHaus": [
+          {
+            "haus": "Haus Ahlbeck",
+            "volk": "Mensch",
+            "beruf": "Steinmetz",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6639,
+                  "streuung": 3003,
+                  "fehlerMittel": 950,
+                  "min": 2952,
+                  "q10": 3211,
+                  "q25": 3661,
+                  "median": 7170,
+                  "q75": 9319,
+                  "q90": 10139,
+                  "max": 10273
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1494,
+                  "streuung": 1369,
+                  "fehlerMittel": 433,
+                  "min": -1256,
+                  "q10": 215,
+                  "q25": 854,
+                  "median": 1355,
+                  "q75": 2799,
+                  "q90": 2920,
+                  "max": 2923
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 9021,
+                  "streuung": 6035,
+                  "fehlerMittel": 1908,
+                  "min": 1286,
+                  "q10": 2508,
+                  "q25": 3715,
+                  "median": 8207,
+                  "q75": 14251,
+                  "q90": 16361,
+                  "max": 18286
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3093,
+                  "streuung": 1765,
+                  "fehlerMittel": 558,
+                  "min": 1229,
+                  "q10": 1356,
+                  "q25": 1936,
+                  "median": 2177,
+                  "q75": 4379,
+                  "q90": 5250,
+                  "max": 6281
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 54047,
+                  "streuung": 28980,
+                  "fehlerMittel": 9164,
+                  "min": 4500,
+                  "q10": 23122,
+                  "q25": 33912,
+                  "median": 55419,
+                  "q75": 75823,
+                  "q90": 85961,
+                  "max": 94731
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 9861,
+                  "streuung": 6020,
+                  "fehlerMittel": 1904,
+                  "min": 104,
+                  "q10": 2118,
+                  "q25": 5021,
+                  "median": 11263,
+                  "q75": 14766,
+                  "q90": 15973,
+                  "max": 16732
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Brendel",
+            "volk": "Mensch",
+            "beruf": "Tischler",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 5126,
+                  "streuung": 2664,
+                  "fehlerMittel": 843,
+                  "min": 1973,
+                  "q10": 2759,
+                  "q25": 2938,
+                  "median": 4576,
+                  "q75": 6804,
+                  "q90": 8723,
+                  "max": 9234
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1258,
+                  "streuung": 925,
+                  "fehlerMittel": 293,
+                  "min": 19,
+                  "q10": 227,
+                  "q25": 477,
+                  "median": 1176,
+                  "q75": 2032,
+                  "q90": 2454,
+                  "max": 2588
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 5942,
+                  "streuung": 3130,
+                  "fehlerMittel": 990,
+                  "min": 2254,
+                  "q10": 2984,
+                  "q25": 4405,
+                  "median": 5334,
+                  "q75": 6573,
+                  "q90": 8724,
+                  "max": 13382
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2015,
+                  "streuung": 1993,
+                  "fehlerMittel": 630,
+                  "min": -23,
+                  "q10": 79,
+                  "q25": 686,
+                  "median": 1702,
+                  "q75": 2470,
+                  "q90": 4354,
+                  "max": 6414
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 45503,
+                  "streuung": 36347,
+                  "fehlerMittel": 11494,
+                  "min": 6109,
+                  "q10": 9326,
+                  "q25": 14467,
+                  "median": 38847,
+                  "q75": 76167,
+                  "q90": 81621,
+                  "max": 105786
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 9633,
+                  "streuung": 7700,
+                  "fehlerMittel": 2435,
+                  "min": -808,
+                  "q10": 395,
+                  "q25": 3814,
+                  "median": 8653,
+                  "q75": 14464,
+                  "q90": 20262,
+                  "max": 21276
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Dornbusch",
+            "volk": "Zwerg",
+            "beruf": "Prediger",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6688,
+                  "streuung": 2483,
+                  "fehlerMittel": 785,
+                  "min": 1431,
+                  "q10": 4033,
+                  "q25": 5507,
+                  "median": 7412,
+                  "q75": 8567,
+                  "q90": 8909,
+                  "max": 9565
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1306,
+                  "streuung": 1066,
+                  "fehlerMittel": 337,
+                  "min": -729,
+                  "q10": 300,
+                  "q25": 717,
+                  "median": 1404,
+                  "q75": 1896,
+                  "q90": 2494,
+                  "max": 2904
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7914,
+                  "streuung": 4295,
+                  "fehlerMittel": 1358,
+                  "min": 2509,
+                  "q10": 3034,
+                  "q25": 5270,
+                  "median": 7251,
+                  "q75": 9639,
+                  "q90": 14514,
+                  "max": 15156
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3233,
+                  "streuung": 2395,
+                  "fehlerMittel": 757,
+                  "min": 328,
+                  "q10": 1006,
+                  "q25": 1256,
+                  "median": 2795,
+                  "q75": 4281,
+                  "q90": 6495,
+                  "max": 7610
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 56557,
+                  "streuung": 23947,
+                  "fehlerMittel": 7573,
+                  "min": 14469,
+                  "q10": 37323,
+                  "q25": 41276,
+                  "median": 54579,
+                  "q75": 73662,
+                  "q90": 78264,
+                  "max": 97900
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 11285,
+                  "streuung": 5190,
+                  "fehlerMittel": 1641,
+                  "min": -393,
+                  "q10": 6840,
+                  "q25": 9137,
+                  "median": 12198,
+                  "q75": 14404,
+                  "q90": 16579,
+                  "max": 17579
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Falkner",
+            "volk": "Mensch",
+            "beruf": "Gardist",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6554,
+                  "streuung": 2619,
+                  "fehlerMittel": 828,
+                  "min": 1989,
+                  "q10": 3051,
+                  "q25": 4958,
+                  "median": 7308,
+                  "q75": 7887,
+                  "q90": 8849,
+                  "max": 10544
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1562,
+                  "streuung": 994,
+                  "fehlerMittel": 314,
+                  "min": -357,
+                  "q10": 427,
+                  "q25": 1172,
+                  "median": 1640,
+                  "q75": 2029,
+                  "q90": 2786,
+                  "max": 2978
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7250,
+                  "streuung": 5197,
+                  "fehlerMittel": 1643,
+                  "min": 3141,
+                  "q10": 3245,
+                  "q25": 3329,
+                  "median": 4883,
+                  "q75": 9446,
+                  "q90": 15811,
+                  "max": 16442
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3629,
+                  "streuung": 3804,
+                  "fehlerMittel": 1203,
+                  "min": -1279,
+                  "q10": 116,
+                  "q25": 1615,
+                  "median": 2716,
+                  "q75": 5264,
+                  "q90": 7028,
+                  "max": 12193
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 61618,
+                  "streuung": 33969,
+                  "fehlerMittel": 10742,
+                  "min": 6969,
+                  "q10": 15426,
+                  "q25": 43487,
+                  "median": 69380,
+                  "q75": 74075,
+                  "q90": 99557,
+                  "max": 117768
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 12791,
+                  "streuung": 4677,
+                  "fehlerMittel": 1479,
+                  "min": 7914,
+                  "q10": 8140,
+                  "q25": 9852,
+                  "median": 11474,
+                  "q75": 14337,
+                  "q90": 17510,
+                  "max": 23370
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Grünwald",
+            "volk": "Zwerg",
+            "beruf": "Wirt",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6544,
+                  "streuung": 1455,
+                  "fehlerMittel": 460,
+                  "min": 4275,
+                  "q10": 5307,
+                  "q25": 5694,
+                  "median": 6188,
+                  "q75": 7331,
+                  "q90": 8191,
+                  "max": 9276
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1759,
+                  "streuung": 582,
+                  "fehlerMittel": 184,
+                  "min": 598,
+                  "q10": 1447,
+                  "q25": 1640,
+                  "median": 1647,
+                  "q75": 1986,
+                  "q90": 2210,
+                  "max": 2932
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7971,
+                  "streuung": 4878,
+                  "fehlerMittel": 1543,
+                  "min": 2073,
+                  "q10": 3123,
+                  "q25": 4282,
+                  "median": 6772,
+                  "q75": 11596,
+                  "q90": 14708,
+                  "max": 16000
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2379,
+                  "streuung": 1969,
+                  "fehlerMittel": 623,
+                  "min": -868,
+                  "q10": 652,
+                  "q25": 1026,
+                  "median": 1800,
+                  "q75": 4092,
+                  "q90": 4802,
+                  "max": 5074
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 51997,
+                  "streuung": 25456,
+                  "fehlerMittel": 8050,
+                  "min": 17900,
+                  "q10": 21782,
+                  "q25": 35862,
+                  "median": 56164,
+                  "q75": 58718,
+                  "q90": 73800,
+                  "max": 105635
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 10508,
+                  "streuung": 2995,
+                  "fehlerMittel": 947,
+                  "min": 6951,
+                  "q10": 7779,
+                  "q25": 8480,
+                  "median": 9697,
+                  "q75": 12206,
+                  "q90": 12924,
+                  "max": 17065
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          }
+        ],
+        "bankrott": 0,
+        "erloschen": 0,
+        "preisindex": 0.962,
+        "markt": {
+          "jahr": 20,
+          "waren": [
+            {
+              "ware": "Armbrust",
+              "typ": "Fertigprodukt",
+              "grundpreis": 211,
+              "preisfaktor": 1.116,
+              "nachfrage": 85.8,
+              "npcAngebot": 63,
+              "verkauftHaeuser": 9.5,
+              "anteilHaeuserAmAngebotProzent": 9.3,
+              "hergestellt": 9.5,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 54.7,
+                "Haus Brendel": 35.8,
+                "Haus Ahlbeck": 9.5
+              }
+            },
+            {
+              "ware": "Beschlag",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 48,
+              "preisfaktor": 1.087,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 24.3,
+              "anteilHaeuserAmAngebotProzent": 14.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Blume der Zwietracht",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.15,
+              "nachfrage": 174.5,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 30.5,
+              "anteilHaeuserAmAngebotProzent": 19,
+              "hergestellt": 30,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 39.7,
+                "Haus Ahlbeck": 24.3,
+                "Haus Brendel": 16,
+                "Haus Dornbusch": 15.7,
+                "Haus Grünwald": 4.3
+              }
+            },
+            {
+              "ware": "Bruchstein",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.948,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 227.8,
+              "anteilHaeuserAmAngebotProzent": 26.7,
+              "hergestellt": 188.4,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 35.4,
+                "Haus Dornbusch": 23.8,
+                "Haus Grünwald": 17.2,
+                "Haus Falkner": 13,
+                "Haus Ahlbeck": 10.6
+              }
+            },
+            {
+              "ware": "Dolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 141,
+              "preisfaktor": 1.218,
+              "nachfrage": 144.9,
+              "npcAngebot": 94.5,
+              "verkauftHaeuser": 6,
+              "anteilHaeuserAmAngebotProzent": 4.9,
+              "hergestellt": 3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 56.7,
+                "Haus Dornbusch": 26.7,
+                "Haus Falkner": 16.7
+              }
+            },
+            {
+              "ware": "Eisen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.992,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 136,
+              "anteilHaeuserAmAngebotProzent": 15.6,
+              "hergestellt": 140.9,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 59.5,
+                "Haus Ahlbeck": 17,
+                "Haus Falkner": 14.4,
+                "Haus Brendel": 9.1
+              }
+            },
+            {
+              "ware": "Farbe",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.17,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 9.3,
+              "anteilHaeuserAmAngebotProzent": 6.3,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Fechterduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 210,
+              "preisfaktor": 1.111,
+              "nachfrage": 106,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 6.9,
+              "anteilHaeuserAmAngebotProzent": 5.8,
+              "hergestellt": 6.7,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 40.3,
+                "Haus Ahlbeck": 35.8,
+                "Haus Falkner": 23.9
+              }
+            },
+            {
+              "ware": "Gegengift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.124,
+              "nachfrage": 106,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 6.7,
+              "anteilHaeuserAmAngebotProzent": 6.2,
+              "hergestellt": 7.2,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 87.5,
+                "Haus Ahlbeck": 6.9,
+                "Haus Dornbusch": 5.6
+              }
+            },
+            {
+              "ware": "Gehstock",
+              "typ": "Fertigprodukt",
+              "grundpreis": 81,
+              "preisfaktor": 1.192,
+              "nachfrage": 141.2,
+              "npcAngebot": 94.5,
+              "verkauftHaeuser": 6.8,
+              "anteilHaeuserAmAngebotProzent": 4.7,
+              "hergestellt": 6,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Gerste",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 0.998,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 110.7,
+              "anteilHaeuserAmAngebotProzent": 14.3,
+              "hergestellt": 88.8,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 27.4,
+                "Haus Ahlbeck": 25.7,
+                "Haus Dornbusch": 25.5,
+                "Haus Brendel": 21.5
+              }
+            },
+            {
+              "ware": "Giftdolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 305,
+              "preisfaktor": 1.177,
+              "nachfrage": 164.1,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 10.8,
+              "anteilHaeuserAmAngebotProzent": 6.6,
+              "hergestellt": 9.9,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 87.9,
+                "Haus Brendel": 10.1,
+                "Haus Ahlbeck": 2
+              }
+            },
+            {
+              "ware": "Gold",
+              "typ": "Rohstoff",
+              "grundpreis": 60,
+              "preisfaktor": 1.021,
+              "nachfrage": 227.3,
+              "npcAngebot": 213.8,
+              "verkauftHaeuser": 7.4,
+              "anteilHaeuserAmAngebotProzent": 3.1,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Grabmal",
+              "typ": "Fertigprodukt",
+              "grundpreis": 486,
+              "preisfaktor": 1.156,
+              "nachfrage": 56.8,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 8.1,
+              "anteilHaeuserAmAngebotProzent": 13,
+              "hergestellt": 8.1,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 64.2,
+                "Haus Falkner": 28.4,
+                "Haus Dornbusch": 7.4
+              }
+            },
+            {
+              "ware": "Grabstein",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.176,
+              "nachfrage": 181.1,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 10.6,
+              "anteilHaeuserAmAngebotProzent": 7.5,
+              "hergestellt": 11.8,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 31.4,
+                "Haus Grünwald": 20.3,
+                "Haus Falkner": 18.6,
+                "Haus Ahlbeck": 15.3,
+                "Haus Brendel": 14.4
+              }
+            },
+            {
+              "ware": "Granit",
+              "typ": "Rohstoff",
+              "grundpreis": 28,
+              "preisfaktor": 0.889,
+              "nachfrage": 227.3,
+              "npcAngebot": 202.5,
+              "verkauftHaeuser": 114.4,
+              "anteilHaeuserAmAngebotProzent": 34.6,
+              "hergestellt": 77.1,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 37.6,
+                "Haus Dornbusch": 24.8,
+                "Haus Grünwald": 14.7,
+                "Haus Falkner": 13.4,
+                "Haus Ahlbeck": 9.6
+              }
+            },
+            {
+              "ware": "Heiligenduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 384,
+              "preisfaktor": 1.159,
+              "nachfrage": 54.7,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 2.6,
+              "anteilHaeuserAmAngebotProzent": 4,
+              "hergestellt": 2.7,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            },
+            {
+              "ware": "Heilsalbe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 116,
+              "preisfaktor": 1.267,
+              "nachfrage": 207.3,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 22.4,
+              "anteilHaeuserAmAngebotProzent": 14,
+              "hergestellt": 24.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 35.8,
+                "Haus Dornbusch": 31.3,
+                "Haus Falkner": 22.6,
+                "Haus Grünwald": 10.3
+              }
+            },
+            {
+              "ware": "Hetzschrift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 185,
+              "preisfaktor": 1.125,
+              "nachfrage": 68.9,
+              "npcAngebot": 47.3,
+              "verkauftHaeuser": 9.7,
+              "anteilHaeuserAmAngebotProzent": 12.3,
+              "hergestellt": 9.6,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 78.1,
+                "Haus Dornbusch": 21.9
+              }
+            },
+            {
+              "ware": "Holz",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.37,
+              "nachfrage": 1022.6,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 71.3,
+              "anteilHaeuserAmAngebotProzent": 8.1,
+              "hergestellt": 76.1,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 50.7,
+                "Haus Ahlbeck": 24.8,
+                "Haus Falkner": 24.4
+              }
+            },
+            {
+              "ware": "Holzzapfen",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.143,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 22.7,
+              "anteilHaeuserAmAngebotProzent": 13.5,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Jasmin",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 1.012,
+              "nachfrage": 227.3,
+              "npcAngebot": 202.5,
+              "verkauftHaeuser": 55.4,
+              "anteilHaeuserAmAngebotProzent": 21.4,
+              "hergestellt": 42.1,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 42,
+                "Haus Dornbusch": 21.6,
+                "Haus Brendel": 18.5,
+                "Haus Grünwald": 9.3,
+                "Haus Ahlbeck": 8.6
+              }
+            },
+            {
+              "ware": "Kerze",
+              "typ": "Fertigprodukt",
+              "grundpreis": 78,
+              "preisfaktor": 1.386,
+              "nachfrage": 244.2,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 7.5,
+              "anteilHaeuserAmAngebotProzent": 4.8,
+              "hergestellt": 8.4,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 53.6,
+                "Haus Brendel": 46.4
+              }
+            },
+            {
+              "ware": "Kräuter",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 0.973,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 148.3,
+              "anteilHaeuserAmAngebotProzent": 17.9,
+              "hergestellt": 147.5,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 48.2,
+                "Haus Ahlbeck": 30.2,
+                "Haus Dornbusch": 15.5,
+                "Haus Grünwald": 6.2
+              }
+            },
+            {
+              "ware": "Kräuterlikör",
+              "typ": "Fertigprodukt",
+              "grundpreis": 165,
+              "preisfaktor": 1.262,
+              "nachfrage": 125.5,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 11.5,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 71.3,
+                "Haus Dornbusch": 28.7
+              }
+            },
+            {
+              "ware": "Kröte",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 0.909,
+              "nachfrage": 227.3,
+              "npcAngebot": 202.5,
+              "verkauftHaeuser": 82.7,
+              "anteilHaeuserAmAngebotProzent": 26,
+              "hergestellt": 57,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 44.4,
+                "Haus Ahlbeck": 33.5,
+                "Haus Dornbusch": 15.8,
+                "Haus Grünwald": 6.3
+              }
+            },
+            {
+              "ware": "Körnermahlzeit",
+              "typ": "Fertigprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.238,
+              "nachfrage": 183.5,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 17.1,
+              "anteilHaeuserAmAngebotProzent": 7.1,
+              "hergestellt": 43.6,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 43.8,
+                "Haus Ahlbeck": 33.5,
+                "Haus Grünwald": 19.3,
+                "Haus Brendel": 3.4
+              }
+            },
+            {
+              "ware": "Lavendel",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.031,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 137.2,
+              "anteilHaeuserAmAngebotProzent": 18.2,
+              "hergestellt": 105,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 42.5,
+                "Haus Dornbusch": 21.2,
+                "Haus Brendel": 18.6,
+                "Haus Grünwald": 9.2,
+                "Haus Ahlbeck": 8.5
+              }
+            },
+            {
+              "ware": "Lumpen",
+              "typ": "Rohstoff",
+              "grundpreis": 8,
+              "preisfaktor": 0.992,
+              "nachfrage": 681.8,
+              "npcAngebot": 607.5,
+              "verkauftHaeuser": 89.3,
+              "anteilHaeuserAmAngebotProzent": 11.3,
+              "hergestellt": 97.9,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 55.2,
+                "Haus Dornbusch": 44.8
+              }
+            },
+            {
+              "ware": "Moschusduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 220,
+              "preisfaktor": 1.112,
+              "nachfrage": 106,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 4.2,
+              "anteilHaeuserAmAngebotProzent": 4.6,
+              "hergestellt": 2.4,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 54.2,
+                "Haus Dornbusch": 45.8
+              }
+            },
+            {
+              "ware": "Papier",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 36,
+              "preisfaktor": 1.103,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 6.2,
+              "anteilHaeuserAmAngebotProzent": 4.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Politur",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.197,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 9.1,
+              "anteilHaeuserAmAngebotProzent": 5.5,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Psalter",
+              "typ": "Fertigprodukt",
+              "grundpreis": 299,
+              "preisfaktor": 1.155,
+              "nachfrage": 94.6,
+              "npcAngebot": 63,
+              "verkauftHaeuser": 10.2,
+              "anteilHaeuserAmAngebotProzent": 11.5,
+              "hergestellt": 10.8,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 50.9,
+                "Haus Brendel": 49.1
+              }
+            },
+            {
+              "ware": "Roggen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.998,
+              "nachfrage": 568.1,
+              "npcAngebot": 506.3,
+              "verkauftHaeuser": 90.4,
+              "anteilHaeuserAmAngebotProzent": 13.8,
+              "hergestellt": 76.1,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 26.7,
+                "Haus Ahlbeck": 26.5,
+                "Haus Dornbusch": 24.7,
+                "Haus Brendel": 22.1
+              }
+            },
+            {
+              "ware": "Rosenwasser",
+              "typ": "Fertigprodukt",
+              "grundpreis": 115,
+              "preisfaktor": 1.154,
+              "nachfrage": 116.4,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 3.5,
+              "anteilHaeuserAmAngebotProzent": 3.8,
+              "hergestellt": 1.6,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            },
+            {
+              "ware": "Schattendolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 477,
+              "preisfaktor": 1.163,
+              "nachfrage": 54.7,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 2.3,
+              "anteilHaeuserAmAngebotProzent": 3.7,
+              "hergestellt": 2.5,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            },
+            {
+              "ware": "Schemel",
+              "typ": "Fertigprodukt",
+              "grundpreis": 122,
+              "preisfaktor": 1.205,
+              "nachfrage": 176.5,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 16.2,
+              "anteilHaeuserAmAngebotProzent": 9.2,
+              "hergestellt": 15.7,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 49,
+                "Haus Brendel": 28.7,
+                "Haus Ahlbeck": 22.3
+              }
+            },
+            {
+              "ware": "Schleifziegel",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 65,
+              "preisfaktor": 1.169,
+              "nachfrage": 170.4,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 5.9,
+              "anteilHaeuserAmAngebotProzent": 4.1,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Schädelbrand",
+              "typ": "Fertigprodukt",
+              "grundpreis": 364,
+              "preisfaktor": 1.2,
+              "nachfrage": 57.6,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 0.7,
+              "anteilHaeuserAmAngebotProzent": 1.5,
+              "hergestellt": 4.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Silber",
+              "typ": "Rohstoff",
+              "grundpreis": 30,
+              "preisfaktor": 0.951,
+              "nachfrage": 227.3,
+              "npcAngebot": 202.5,
+              "verkauftHaeuser": 68.3,
+              "anteilHaeuserAmAngebotProzent": 21.1,
+              "hergestellt": 60.5,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 58,
+                "Haus Ahlbeck": 16.9,
+                "Haus Falkner": 16.5,
+                "Haus Brendel": 8.6
+              }
+            },
+            {
+              "ware": "Silberkette",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.14,
+              "nachfrage": 110,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 6.3,
+              "anteilHaeuserAmAngebotProzent": 6.3,
+              "hergestellt": 5,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 88,
+                "Haus Brendel": 12
+              }
+            },
+            {
+              "ware": "Silberring",
+              "typ": "Fertigprodukt",
+              "grundpreis": 112,
+              "preisfaktor": 1.181,
+              "nachfrage": 181.1,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 20.3,
+              "anteilHaeuserAmAngebotProzent": 12.6,
+              "hergestellt": 18.8,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 38.8,
+                "Haus Dornbusch": 30.9,
+                "Haus Falkner": 13.3,
+                "Haus Grünwald": 12.8,
+                "Haus Brendel": 4.3
+              }
+            },
+            {
+              "ware": "Starkbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 134,
+              "preisfaktor": 1.222,
+              "nachfrage": 122.3,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 4,
+              "anteilHaeuserAmAngebotProzent": 4.1,
+              "hergestellt": 37.8,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 30.7,
+                "Haus Brendel": 30.4,
+                "Haus Dornbusch": 29.1,
+                "Haus Ahlbeck": 9.8
+              }
+            },
+            {
+              "ware": "Steinfigur",
+              "typ": "Fertigprodukt",
+              "grundpreis": 454,
+              "preisfaktor": 1.147,
+              "nachfrage": 56.8,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 1.2,
+              "anteilHaeuserAmAngebotProzent": 2.4,
+              "hergestellt": 1.2,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 100
+              }
+            },
+            {
+              "ware": "Säule",
+              "typ": "Fertigprodukt",
+              "grundpreis": 205,
+              "preisfaktor": 1.159,
+              "nachfrage": 110,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 4.2,
+              "anteilHaeuserAmAngebotProzent": 4.3,
+              "hergestellt": 4,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 72.5,
+                "Haus Brendel": 27.5
+              }
+            },
+            {
+              "ware": "Taufbecken",
+              "typ": "Fertigprodukt",
+              "grundpreis": 259,
+              "preisfaktor": 1.12,
+              "nachfrage": 113.5,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 18.8,
+              "anteilHaeuserAmAngebotProzent": 17.6,
+              "hergestellt": 17.9,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 28.5,
+                "Haus Dornbusch": 22.3,
+                "Haus Ahlbeck": 19.6,
+                "Haus Grünwald": 18.4,
+                "Haus Falkner": 11.2
+              }
+            },
+            {
+              "ware": "Theriak",
+              "typ": "Fertigprodukt",
+              "grundpreis": 322,
+              "preisfaktor": 1.162,
+              "nachfrage": 54.7,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 1.9,
+              "anteilHaeuserAmAngebotProzent": 3.3,
+              "hergestellt": 1.2,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            },
+            {
+              "ware": "Truhe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 179,
+              "preisfaktor": 1.142,
+              "nachfrage": 128.7,
+              "npcAngebot": 94.5,
+              "verkauftHaeuser": 3.8,
+              "anteilHaeuserAmAngebotProzent": 3.4,
+              "hergestellt": 3.8,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 60.5,
+                "Haus Falkner": 39.5
+              }
+            },
+            {
+              "ware": "Wachs",
+              "typ": "Rohstoff",
+              "grundpreis": 20,
+              "preisfaktor": 0.982,
+              "nachfrage": 340.9,
+              "npcAngebot": 303.8,
+              "verkauftHaeuser": 69.7,
+              "anteilHaeuserAmAngebotProzent": 15.4,
+              "hergestellt": 46.4,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 51.3,
+                "Haus Brendel": 48.7
+              }
+            },
+            {
+              "ware": "Weingeist",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 43,
+              "preisfaktor": 1.181,
+              "nachfrage": 191.7,
+              "npcAngebot": 118.1,
+              "verkauftHaeuser": 20.2,
+              "anteilHaeuserAmAngebotProzent": 11.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Werkzeug",
+              "typ": "Fertigprodukt",
+              "grundpreis": 137,
+              "preisfaktor": 1.185,
+              "nachfrage": 120.7,
+              "npcAngebot": 78.8,
+              "verkauftHaeuser": 4.5,
+              "anteilHaeuserAmAngebotProzent": 4.4,
+              "hergestellt": 3.2,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 100
+              }
+            },
+            {
+              "ware": "Zinnober",
+              "typ": "Fertigprodukt",
+              "grundpreis": 362,
+              "preisfaktor": 1.179,
+              "nachfrage": 54.7,
+              "npcAngebot": 39.4,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 0.2,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            }
+          ]
+        }
+      },
+      {
+        "haeuser": 7,
+        "n": 10,
+        "einwohnerfaktorAmStart": 1.375,
+        "alleHaeuser": {
+          "5": {
+            "reinvermoegen": {
+              "n": 70,
+              "mittel": 6300,
+              "streuung": 2812,
+              "fehlerMittel": 336,
+              "min": 1438,
+              "q10": 2815,
+              "q25": 3865,
+              "median": 6679,
+              "q75": 8025,
+              "q90": 9545,
+              "max": 12957
+            },
+            "gewinn": {
+              "n": 70,
+              "mittel": 1476,
+              "streuung": 1146,
+              "fehlerMittel": 137,
+              "min": -1411,
+              "q10": -147,
+              "q25": 659,
+              "median": 1640,
+              "q75": 2191,
+              "q90": 3065,
+              "max": 3618
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 44098,
+              "streuung": 4269,
+              "fehlerMittel": 1350,
+              "min": 39366,
+              "q10": 39421,
+              "q25": 40466,
+              "median": 43560,
+              "q75": 47148,
+              "q90": 49870,
+              "max": 51045
+            }
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 70,
+              "mittel": 8521,
+              "streuung": 5035,
+              "fehlerMittel": 602,
+              "min": 1258,
+              "q10": 3068,
+              "q25": 4990,
+              "median": 7392,
+              "q75": 11694,
+              "q90": 16220,
+              "max": 21245
+            },
+            "gewinn": {
+              "n": 70,
+              "mittel": 3400,
+              "streuung": 2766,
+              "fehlerMittel": 331,
+              "min": -2015,
+              "q10": 704,
+              "q25": 1435,
+              "median": 2726,
+              "q75": 5407,
+              "q90": 6880,
+              "max": 12219
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 59644,
+              "streuung": 6566,
+              "fehlerMittel": 2076,
+              "min": 43810,
+              "q10": 55214,
+              "q25": 57620,
+              "median": 60175,
+              "q75": 64511,
+              "q90": 65294,
+              "max": 66467
+            }
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 70,
+              "mittel": 55329,
+              "streuung": 31165,
+              "fehlerMittel": 3725,
+              "min": 3884,
+              "q10": 12717,
+              "q25": 32505,
+              "median": 54166,
+              "q75": 75779,
+              "q90": 102107,
+              "max": 125045
+            },
+            "gewinn": {
+              "n": 70,
+              "mittel": 10597,
+              "streuung": 6013,
+              "fehlerMittel": 719,
+              "min": -2711,
+              "q10": 3323,
+              "q25": 6953,
+              "median": 10065,
+              "q75": 15391,
+              "q90": 17515,
+              "max": 30193
+            },
+            "summeReinvermoegen": {
+              "n": 10,
+              "mittel": 387300,
+              "streuung": 61982,
+              "fehlerMittel": 19600,
+              "min": 317531,
+              "q10": 328101,
+              "q25": 337027,
+              "median": 394399,
+              "q75": 400108,
+              "q90": 448014,
+              "max": 522702
+            }
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 4619,
+          "amtseinkommen": 85,
+          "familie": -336,
+          "geschenke": -25,
+          "gericht": -213,
+          "gaunerei": -2,
+          "investitionen": -1964,
+          "standesgebuehren": -355,
+          "zinsen": -0,
+          "davonSteuer": -392,
+          "davonSpitzel": -68,
+          "schiffeAmEnde": 0
+        },
+        "jeHaus": [
+          {
+            "haus": "Haus Ahlbeck",
+            "volk": "Mensch",
+            "beruf": "Steinmetz",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6963,
+                  "streuung": 3750,
+                  "fehlerMittel": 1186,
+                  "min": 1725,
+                  "q10": 3155,
+                  "q25": 3818,
+                  "median": 7199,
+                  "q75": 9247,
+                  "q90": 12229,
+                  "max": 12444
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1692,
+                  "streuung": 1317,
+                  "fehlerMittel": 417,
+                  "min": -484,
+                  "q10": 317,
+                  "q25": 785,
+                  "median": 1625,
+                  "q75": 2628,
+                  "q90": 3379,
+                  "max": 3618
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 10047,
+                  "streuung": 5791,
+                  "fehlerMittel": 1831,
+                  "min": 3091,
+                  "q10": 4618,
+                  "q25": 6390,
+                  "median": 8157,
+                  "q75": 14162,
+                  "q90": 17593,
+                  "max": 20504
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2882,
+                  "streuung": 1957,
+                  "fehlerMittel": 619,
+                  "min": 659,
+                  "q10": 1201,
+                  "q25": 1573,
+                  "median": 2251,
+                  "q75": 3809,
+                  "q90": 5761,
+                  "max": 6495
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 56665,
+                  "streuung": 34135,
+                  "fehlerMittel": 10794,
+                  "min": 4627,
+                  "q10": 12008,
+                  "q25": 34621,
+                  "median": 54982,
+                  "q75": 86277,
+                  "q90": 92095,
+                  "max": 103380
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 9006,
+                  "streuung": 5980,
+                  "fehlerMittel": 1891,
+                  "min": 1873,
+                  "q10": 1914,
+                  "q25": 4890,
+                  "median": 8437,
+                  "q75": 11857,
+                  "q90": 17398,
+                  "max": 19540
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Brendel",
+            "volk": "Mensch",
+            "beruf": "Tischler",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 5140,
+                  "streuung": 2778,
+                  "fehlerMittel": 879,
+                  "min": 1879,
+                  "q10": 1915,
+                  "q25": 2820,
+                  "median": 4643,
+                  "q75": 7878,
+                  "q90": 8105,
+                  "max": 8801
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1036,
+                  "streuung": 924,
+                  "fehlerMittel": 292,
+                  "min": -174,
+                  "q10": 24,
+                  "q25": 454,
+                  "median": 720,
+                  "q75": 1727,
+                  "q90": 2300,
+                  "max": 2490
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7451,
+                  "streuung": 4795,
+                  "fehlerMittel": 1516,
+                  "min": 1258,
+                  "q10": 2748,
+                  "q25": 3511,
+                  "median": 7156,
+                  "q75": 9473,
+                  "q90": 14676,
+                  "max": 15349
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3009,
+                  "streuung": 3516,
+                  "fehlerMittel": 1112,
+                  "min": -92,
+                  "q10": 104,
+                  "q25": 470,
+                  "median": 1038,
+                  "q75": 5561,
+                  "q90": 7548,
+                  "max": 9676
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 46253,
+                  "streuung": 40312,
+                  "fehlerMittel": 12748,
+                  "min": 3884,
+                  "q10": 4948,
+                  "q25": 9230,
+                  "median": 44935,
+                  "q75": 73374,
+                  "q90": 80357,
+                  "max": 116969
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 7600,
+                  "streuung": 6883,
+                  "fehlerMittel": 2177,
+                  "min": -1463,
+                  "q10": -146,
+                  "q25": 1733,
+                  "median": 6957,
+                  "q75": 12804,
+                  "q90": 16999,
+                  "max": 17416
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 1
+          },
+          {
+            "haus": "Haus Dornbusch",
+            "volk": "Zwerg",
+            "beruf": "Prediger",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 7614,
+                  "streuung": 3141,
+                  "fehlerMittel": 993,
+                  "min": 1438,
+                  "q10": 4021,
+                  "q25": 6232,
+                  "median": 7864,
+                  "q75": 9349,
+                  "q90": 10775,
+                  "max": 12319
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1500,
+                  "streuung": 1258,
+                  "fehlerMittel": 398,
+                  "min": -812,
+                  "q10": 392,
+                  "q25": 770,
+                  "median": 1628,
+                  "q75": 1892,
+                  "q90": 3114,
+                  "max": 3564
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 9336,
+                  "streuung": 5782,
+                  "fehlerMittel": 1828,
+                  "min": 3085,
+                  "q10": 3178,
+                  "q25": 4990,
+                  "median": 8089,
+                  "q75": 13898,
+                  "q90": 15546,
+                  "max": 20202
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 3839,
+                  "streuung": 3094,
+                  "fehlerMittel": 978,
+                  "min": -2015,
+                  "q10": 749,
+                  "q25": 2490,
+                  "median": 3191,
+                  "q75": 6562,
+                  "q90": 6987,
+                  "max": 8107
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 61777,
+                  "streuung": 25348,
+                  "fehlerMittel": 8016,
+                  "min": 26233,
+                  "q10": 29081,
+                  "q25": 45568,
+                  "median": 59581,
+                  "q75": 77556,
+                  "q90": 90648,
+                  "max": 104727
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 10942,
+                  "streuung": 4959,
+                  "fehlerMittel": 1568,
+                  "min": 3446,
+                  "q10": 6221,
+                  "q25": 7814,
+                  "median": 10520,
+                  "q75": 12567,
+                  "q90": 17519,
+                  "max": 20048
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Falkner",
+            "volk": "Mensch",
+            "beruf": "Gardist",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6565,
+                  "streuung": 2299,
+                  "fehlerMittel": 727,
+                  "min": 2208,
+                  "q10": 3106,
+                  "q25": 5543,
+                  "median": 7396,
+                  "q75": 8049,
+                  "q90": 8590,
+                  "max": 8910
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1605,
+                  "streuung": 1155,
+                  "fehlerMittel": 365,
+                  "min": -640,
+                  "q10": 348,
+                  "q25": 1010,
+                  "median": 1669,
+                  "q75": 2198,
+                  "q90": 3054,
+                  "max": 3127
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 8799,
+                  "streuung": 6035,
+                  "fehlerMittel": 1909,
+                  "min": 1992,
+                  "q10": 4506,
+                  "q25": 5347,
+                  "median": 6200,
+                  "q75": 11200,
+                  "q90": 17038,
+                  "max": 21245
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 4063,
+                  "streuung": 3763,
+                  "fehlerMittel": 1190,
+                  "min": -40,
+                  "q10": 634,
+                  "q25": 1764,
+                  "median": 2403,
+                  "q75": 6250,
+                  "q90": 7559,
+                  "max": 12219
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 61767,
+                  "streuung": 31591,
+                  "fehlerMittel": 9990,
+                  "min": 22928,
+                  "q10": 25391,
+                  "q25": 38661,
+                  "median": 58769,
+                  "q75": 79630,
+                  "q90": 108794,
+                  "max": 109849
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 13501,
+                  "streuung": 3731,
+                  "fehlerMittel": 1180,
+                  "min": 8759,
+                  "q10": 8999,
+                  "q25": 10459,
+                  "median": 13885,
+                  "q75": 16221,
+                  "q90": 16880,
+                  "max": 19469
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Grünwald",
+            "volk": "Zwerg",
+            "beruf": "Wirt",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6897,
+                  "streuung": 1925,
+                  "fehlerMittel": 609,
+                  "min": 2835,
+                  "q10": 4818,
+                  "q25": 6224,
+                  "median": 7162,
+                  "q75": 8406,
+                  "q90": 8871,
+                  "max": 9129
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1868,
+                  "streuung": 643,
+                  "fehlerMittel": 203,
+                  "min": 782,
+                  "q10": 1510,
+                  "q25": 1640,
+                  "median": 1684,
+                  "q75": 2003,
+                  "q90": 2782,
+                  "max": 3073
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 8588,
+                  "streuung": 5733,
+                  "fehlerMittel": 1813,
+                  "min": 1926,
+                  "q10": 2224,
+                  "q25": 3469,
+                  "median": 7465,
+                  "q75": 12116,
+                  "q90": 16341,
+                  "max": 17781
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 4241,
+                  "streuung": 2974,
+                  "fehlerMittel": 940,
+                  "min": 1493,
+                  "q10": 1846,
+                  "q25": 1969,
+                  "median": 3521,
+                  "q75": 5071,
+                  "q90": 7459,
+                  "max": 10847
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 63894,
+                  "streuung": 34837,
+                  "fehlerMittel": 11017,
+                  "min": 19999,
+                  "q10": 20033,
+                  "q25": 39547,
+                  "median": 62689,
+                  "q75": 86946,
+                  "q90": 104273,
+                  "max": 125045
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 10847,
+                  "streuung": 5141,
+                  "fehlerMittel": 1626,
+                  "min": 2224,
+                  "q10": 6599,
+                  "q25": 7985,
+                  "median": 9578,
+                  "q75": 14975,
+                  "q90": 17788,
+                  "max": 18293
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Hollerbach",
+            "volk": "Elb",
+            "beruf": "Parfumeur",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 4996,
+                  "streuung": 1964,
+                  "fehlerMittel": 621,
+                  "min": 3150,
+                  "q10": 3204,
+                  "q25": 3539,
+                  "median": 4600,
+                  "q75": 5597,
+                  "q90": 6784,
+                  "max": 9569
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1330,
+                  "streuung": 1226,
+                  "fehlerMittel": 388,
+                  "min": -319,
+                  "q10": -162,
+                  "q25": 283,
+                  "median": 1398,
+                  "q75": 1883,
+                  "q90": 2891,
+                  "max": 3325
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 6135,
+                  "streuung": 2760,
+                  "fehlerMittel": 873,
+                  "min": 1661,
+                  "q10": 3032,
+                  "q25": 4520,
+                  "median": 6024,
+                  "q75": 7746,
+                  "q90": 9283,
+                  "max": 10866
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2786,
+                  "streuung": 2194,
+                  "fehlerMittel": 694,
+                  "min": 302,
+                  "q10": 681,
+                  "q25": 1079,
+                  "median": 2295,
+                  "q75": 3964,
+                  "q90": 5636,
+                  "max": 6807
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 39041,
+                  "streuung": 18099,
+                  "fehlerMittel": 5723,
+                  "min": 6471,
+                  "q10": 11198,
+                  "q25": 32505,
+                  "median": 43819,
+                  "q75": 53083,
+                  "q90": 55938,
+                  "max": 58359
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 12339,
+                  "streuung": 7192,
+                  "fehlerMittel": 2274,
+                  "min": 4894,
+                  "q10": 6708,
+                  "q25": 8014,
+                  "median": 11119,
+                  "q75": 13833,
+                  "q90": 17936,
+                  "max": 30193
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          },
+          {
+            "haus": "Haus Lindenau",
+            "volk": "Elb",
+            "beruf": "Geldleiher",
+            "n": 10,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 5922,
+                  "streuung": 3114,
+                  "fehlerMittel": 985,
+                  "min": 1728,
+                  "q10": 3187,
+                  "q25": 3978,
+                  "median": 5521,
+                  "q75": 7097,
+                  "q90": 8409,
+                  "max": 12957
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 1304,
+                  "streuung": 1462,
+                  "fehlerMittel": 462,
+                  "min": -1411,
+                  "q10": -435,
+                  "q25": 491,
+                  "median": 1615,
+                  "q75": 2305,
+                  "q90": 2506,
+                  "max": 3492
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 9288,
+                  "streuung": 3976,
+                  "fehlerMittel": 1257,
+                  "min": 4323,
+                  "q10": 5550,
+                  "q25": 6186,
+                  "median": 8291,
+                  "q75": 12307,
+                  "q90": 13447,
+                  "max": 16821
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 2983,
+                  "streuung": 1579,
+                  "fehlerMittel": 499,
+                  "min": 988,
+                  "q10": 1143,
+                  "q25": 1897,
+                  "median": 2615,
+                  "q75": 4043,
+                  "q90": 4875,
+                  "max": 5710
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 10,
+                  "mittel": 57905,
+                  "streuung": 30086,
+                  "fehlerMittel": 9514,
+                  "min": 7059,
+                  "q10": 32045,
+                  "q25": 38864,
+                  "median": 58567,
+                  "q75": 75114,
+                  "q90": 88311,
+                  "max": 113253
+                },
+                "gewinn": {
+                  "n": 10,
+                  "mittel": 9943,
+                  "streuung": 7153,
+                  "fehlerMittel": 2262,
+                  "min": -2711,
+                  "q10": 4851,
+                  "q25": 6332,
+                  "median": 9124,
+                  "q75": 12243,
+                  "q90": 18115,
+                  "max": 23728
+                }
+              }
+            },
+            "bankrott": 0,
+            "erloschen": 0
+          }
+        ],
+        "bankrott": 0,
+        "erloschen": 1,
+        "preisindex": 0.989,
+        "markt": {
+          "jahr": 20,
+          "waren": [
+            {
+              "ware": "Armbrust",
+              "typ": "Fertigprodukt",
+              "grundpreis": 211,
+              "preisfaktor": 1.106,
+              "nachfrage": 103.1,
+              "npcAngebot": 77,
+              "verkauftHaeuser": 13.6,
+              "anteilHaeuserAmAngebotProzent": 12.8,
+              "hergestellt": 14,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 36.4,
+                "Haus Ahlbeck": 31.4,
+                "Haus Hollerbach": 26.4,
+                "Haus Falkner": 5.7
+              }
+            },
+            {
+              "ware": "Beschlag",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 48,
+              "preisfaktor": 1.084,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 47.7,
+              "anteilHaeuserAmAngebotProzent": 23.9,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Blume der Zwietracht",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.172,
+              "nachfrage": 210.7,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 19.4,
+              "anteilHaeuserAmAngebotProzent": 9.9,
+              "hergestellt": 19.3,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 36.3,
+                "Haus Dornbusch": 29,
+                "Haus Hollerbach": 18.1,
+                "Haus Lindenau": 11.9,
+                "Haus Brendel": 4.7
+              }
+            },
+            {
+              "ware": "Bruchstein",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.987,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 207.1,
+              "anteilHaeuserAmAngebotProzent": 21.3,
+              "hergestellt": 173.6,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 25.7,
+                "Haus Dornbusch": 20,
+                "Haus Grünwald": 12.1,
+                "Haus Lindenau": 11.3,
+                "Haus Hollerbach": 11.2,
+                "Haus Ahlbeck": 10.3,
+                "Haus Falkner": 9.4
+              }
+            },
+            {
+              "ware": "Dolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 141,
+              "preisfaktor": 1.173,
+              "nachfrage": 175.1,
+              "npcAngebot": 115.5,
+              "verkauftHaeuser": 40.2,
+              "anteilHaeuserAmAngebotProzent": 16.7,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Dünnbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 94,
+              "preisfaktor": 1.237,
+              "nachfrage": 220.3,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 1.3,
+              "anteilHaeuserAmAngebotProzent": 0.8,
+              "hergestellt": 11,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 90,
+                "Haus Lindenau": 10
+              }
+            },
+            {
+              "ware": "Eisen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 1.038,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 79.6,
+              "anteilHaeuserAmAngebotProzent": 8.4,
+              "hergestellt": 73.5,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 30.2,
+                "Haus Dornbusch": 21.8,
+                "Haus Falkner": 18,
+                "Haus Brendel": 16.6,
+                "Haus Lindenau": 13.5
+              }
+            },
+            {
+              "ware": "Farbe",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.155,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 17.9,
+              "anteilHaeuserAmAngebotProzent": 10.2,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Fechterduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 210,
+              "preisfaktor": 1.112,
+              "nachfrage": 127.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 6.3,
+              "anteilHaeuserAmAngebotProzent": 5.3,
+              "hergestellt": 3.9,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 79.5,
+                "Haus Brendel": 20.5
+              }
+            },
+            {
+              "ware": "Gegengift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.09,
+              "nachfrage": 127.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 13.1,
+              "anteilHaeuserAmAngebotProzent": 8.6,
+              "hergestellt": 12.1,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 46.3,
+                "Haus Hollerbach": 24,
+                "Haus Ahlbeck": 19.8,
+                "Haus Grünwald": 9.9
+              }
+            },
+            {
+              "ware": "Gehstock",
+              "typ": "Fertigprodukt",
+              "grundpreis": 81,
+              "preisfaktor": 1.16,
+              "nachfrage": 169.9,
+              "npcAngebot": 115.5,
+              "verkauftHaeuser": 5.6,
+              "anteilHaeuserAmAngebotProzent": 3.7,
+              "hergestellt": 5.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 100
+              }
+            },
+            {
+              "ware": "Gerste",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 0.987,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 156.9,
+              "anteilHaeuserAmAngebotProzent": 16.3,
+              "hergestellt": 141.5,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 44.1,
+                "Haus Ahlbeck": 25.2,
+                "Haus Dornbusch": 22.8,
+                "Haus Lindenau": 7.9
+              }
+            },
+            {
+              "ware": "Giftdolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 305,
+              "preisfaktor": 1.144,
+              "nachfrage": 196.1,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 23.5,
+              "anteilHaeuserAmAngebotProzent": 12.3,
+              "hergestellt": 21.9,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 48.9,
+                "Haus Falkner": 38.4,
+                "Haus Lindenau": 12.8
+              }
+            },
+            {
+              "ware": "Gold",
+              "typ": "Rohstoff",
+              "grundpreis": 60,
+              "preisfaktor": 1.017,
+              "nachfrage": 275.9,
+              "npcAngebot": 261.3,
+              "verkauftHaeuser": 12.4,
+              "anteilHaeuserAmAngebotProzent": 4.4,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Grabmal",
+              "typ": "Fertigprodukt",
+              "grundpreis": 486,
+              "preisfaktor": 1.102,
+              "nachfrage": 67.9,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 14,
+              "anteilHaeuserAmAngebotProzent": 19.4,
+              "hergestellt": 14,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 32.9,
+                "Haus Dornbusch": 26.4,
+                "Haus Grünwald": 17.9,
+                "Haus Falkner": 12.1,
+                "Haus Hollerbach": 10.7
+              }
+            },
+            {
+              "ware": "Grabstein",
+              "typ": "Fertigprodukt",
+              "grundpreis": 124,
+              "preisfaktor": 1.2,
+              "nachfrage": 218.9,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 13.4,
+              "anteilHaeuserAmAngebotProzent": 7.4,
+              "hergestellt": 12.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 47.9,
+                "Haus Lindenau": 28.1,
+                "Haus Ahlbeck": 24
+              }
+            },
+            {
+              "ware": "Granit",
+              "typ": "Rohstoff",
+              "grundpreis": 28,
+              "preisfaktor": 0.932,
+              "nachfrage": 275.9,
+              "npcAngebot": 247.5,
+              "verkauftHaeuser": 104.4,
+              "anteilHaeuserAmAngebotProzent": 28.5,
+              "hergestellt": 75,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 25.9,
+                "Haus Dornbusch": 20,
+                "Haus Grünwald": 12.5,
+                "Haus Lindenau": 11.2,
+                "Haus Hollerbach": 10.9,
+                "Haus Ahlbeck": 10.1,
+                "Haus Falkner": 9.3
+              }
+            },
+            {
+              "ware": "Heilsalbe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 116,
+              "preisfaktor": 1.276,
+              "nachfrage": 250.1,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 32.2,
+              "anteilHaeuserAmAngebotProzent": 15,
+              "hergestellt": 32.1,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 26.5,
+                "Haus Hollerbach": 25.2,
+                "Haus Dornbusch": 20.9,
+                "Haus Falkner": 14.3,
+                "Haus Grünwald": 13.1
+              }
+            },
+            {
+              "ware": "Hetzschrift",
+              "typ": "Fertigprodukt",
+              "grundpreis": 185,
+              "preisfaktor": 1.085,
+              "nachfrage": 84,
+              "npcAngebot": 57.7,
+              "verkauftHaeuser": 12.6,
+              "anteilHaeuserAmAngebotProzent": 13.9,
+              "hergestellt": 12.6,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 57.9,
+                "Haus Lindenau": 27,
+                "Haus Dornbusch": 15.1
+              }
+            },
+            {
+              "ware": "Holz",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.306,
+              "nachfrage": 1240.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 128.6,
+              "anteilHaeuserAmAngebotProzent": 13.2,
+              "hergestellt": 131.7,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 28.7,
+                "Haus Hollerbach": 28.2,
+                "Haus Ahlbeck": 14.4,
+                "Haus Falkner": 14.4,
+                "Haus Lindenau": 14.4
+              }
+            },
+            {
+              "ware": "Holzzapfen",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 40,
+              "preisfaktor": 1.107,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 39.8,
+              "anteilHaeuserAmAngebotProzent": 18.7,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Jasmin",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 1.009,
+              "nachfrage": 275.9,
+              "npcAngebot": 247.5,
+              "verkauftHaeuser": 73.1,
+              "anteilHaeuserAmAngebotProzent": 21.3,
+              "hergestellt": 37,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 23.8,
+                "Haus Lindenau": 22.7,
+                "Haus Falkner": 21.6,
+                "Haus Hollerbach": 19.5,
+                "Haus Brendel": 12.4
+              }
+            },
+            {
+              "ware": "Kerze",
+              "typ": "Fertigprodukt",
+              "grundpreis": 78,
+              "preisfaktor": 1.368,
+              "nachfrage": 294.9,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 21,
+              "anteilHaeuserAmAngebotProzent": 11.9,
+              "hergestellt": 22,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 42.7,
+                "Haus Dornbusch": 34.1,
+                "Haus Lindenau": 15.5,
+                "Haus Grünwald": 5,
+                "Haus Hollerbach": 2.7
+              }
+            },
+            {
+              "ware": "Kräuter",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 0.973,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 195.9,
+              "anteilHaeuserAmAngebotProzent": 19.2,
+              "hergestellt": 166.7,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 40.1,
+                "Haus Falkner": 25.1,
+                "Haus Dornbusch": 14.5,
+                "Haus Ahlbeck": 13.7,
+                "Haus Grünwald": 6.6
+              }
+            },
+            {
+              "ware": "Kröte",
+              "typ": "Rohstoff",
+              "grundpreis": 25,
+              "preisfaktor": 0.931,
+              "nachfrage": 275.9,
+              "npcAngebot": 247.5,
+              "verkauftHaeuser": 97.9,
+              "anteilHaeuserAmAngebotProzent": 25.2,
+              "hergestellt": 66.7,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 40.3,
+                "Haus Falkner": 25,
+                "Haus Dornbusch": 14.4,
+                "Haus Ahlbeck": 13.6,
+                "Haus Grünwald": 6.6
+              }
+            },
+            {
+              "ware": "Körnermahlzeit",
+              "typ": "Fertigprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.234,
+              "nachfrage": 220.3,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 17.9,
+              "anteilHaeuserAmAngebotProzent": 5.8,
+              "hergestellt": 65.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 40.2,
+                "Haus Grünwald": 30.9,
+                "Haus Ahlbeck": 23.8,
+                "Haus Lindenau": 3.7,
+                "Haus Brendel": 1.4
+              }
+            },
+            {
+              "ware": "Lavendel",
+              "typ": "Rohstoff",
+              "grundpreis": 10,
+              "preisfaktor": 1.057,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 127.9,
+              "anteilHaeuserAmAngebotProzent": 14.1,
+              "hergestellt": 93.5,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 23.7,
+                "Haus Dornbusch": 23.5,
+                "Haus Lindenau": 21.5,
+                "Haus Hollerbach": 19.5,
+                "Haus Brendel": 11.8
+              }
+            },
+            {
+              "ware": "Lumpen",
+              "typ": "Rohstoff",
+              "grundpreis": 8,
+              "preisfaktor": 0.949,
+              "nachfrage": 827.8,
+              "npcAngebot": 742.5,
+              "verkauftHaeuser": 172.3,
+              "anteilHaeuserAmAngebotProzent": 18.9,
+              "hergestellt": 175.2,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 31.6,
+                "Haus Dornbusch": 21.4,
+                "Haus Hollerbach": 19.9,
+                "Haus Lindenau": 17.1,
+                "Haus Grünwald": 10.1
+              }
+            },
+            {
+              "ware": "Moschusduft",
+              "typ": "Fertigprodukt",
+              "grundpreis": 220,
+              "preisfaktor": 1.121,
+              "nachfrage": 127.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 6.6,
+              "anteilHaeuserAmAngebotProzent": 5.4,
+              "hergestellt": 6.7,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 52.2,
+                "Haus Ahlbeck": 26.9,
+                "Haus Brendel": 19.4,
+                "Haus Dornbusch": 1.5
+              }
+            },
+            {
+              "ware": "Papier",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 36,
+              "preisfaktor": 1.118,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 30.5,
+              "anteilHaeuserAmAngebotProzent": 15.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Politur",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 56,
+              "preisfaktor": 1.162,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 30.7,
+              "anteilHaeuserAmAngebotProzent": 13,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Psalter",
+              "typ": "Fertigprodukt",
+              "grundpreis": 299,
+              "preisfaktor": 1.109,
+              "nachfrage": 114.3,
+              "npcAngebot": 77,
+              "verkauftHaeuser": 15.1,
+              "anteilHaeuserAmAngebotProzent": 14.6,
+              "hergestellt": 13.3,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 57.9,
+                "Haus Dornbusch": 21.1,
+                "Haus Lindenau": 18,
+                "Haus Grünwald": 3
+              }
+            },
+            {
+              "ware": "Roggen",
+              "typ": "Rohstoff",
+              "grundpreis": 12,
+              "preisfaktor": 0.995,
+              "nachfrage": 689.8,
+              "npcAngebot": 618.8,
+              "verkauftHaeuser": 120.5,
+              "anteilHaeuserAmAngebotProzent": 15.3,
+              "hergestellt": 120,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 43.3,
+                "Haus Ahlbeck": 24.8,
+                "Haus Dornbusch": 22.9,
+                "Haus Lindenau": 9
+              }
+            },
+            {
+              "ware": "Rosenwasser",
+              "typ": "Fertigprodukt",
+              "grundpreis": 115,
+              "preisfaktor": 1.149,
+              "nachfrage": 140.5,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 1.7,
+              "anteilHaeuserAmAngebotProzent": 1.6,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Schattendolch",
+              "typ": "Fertigprodukt",
+              "grundpreis": 477,
+              "preisfaktor": 1.15,
+              "nachfrage": 65.4,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 3.7,
+              "anteilHaeuserAmAngebotProzent": 4.6,
+              "hergestellt": 4.4,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 100
+              }
+            },
+            {
+              "ware": "Schemel",
+              "typ": "Fertigprodukt",
+              "grundpreis": 122,
+              "preisfaktor": 1.17,
+              "nachfrage": 212.4,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 21.6,
+              "anteilHaeuserAmAngebotProzent": 10.9,
+              "hergestellt": 21.8,
+              "anteileJeHausProzent": {
+                "Haus Hollerbach": 39.9,
+                "Haus Falkner": 31.2,
+                "Haus Lindenau": 19.7,
+                "Haus Brendel": 9.2
+              }
+            },
+            {
+              "ware": "Schleifziegel",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 65,
+              "preisfaktor": 1.175,
+              "nachfrage": 207,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 9.6,
+              "anteilHaeuserAmAngebotProzent": 5.7,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Schädelbrand",
+              "typ": "Fertigprodukt",
+              "grundpreis": 364,
+              "preisfaktor": 1.195,
+              "nachfrage": 68.4,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 0.4,
+              "anteilHaeuserAmAngebotProzent": 0.8,
+              "hergestellt": 17.3,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 44.5,
+                "Haus Ahlbeck": 43.4,
+                "Haus Grünwald": 12.1
+              }
+            },
+            {
+              "ware": "Silber",
+              "typ": "Rohstoff",
+              "grundpreis": 30,
+              "preisfaktor": 1,
+              "nachfrage": 275.9,
+              "npcAngebot": 247.5,
+              "verkauftHaeuser": 50.3,
+              "anteilHaeuserAmAngebotProzent": 14.2,
+              "hergestellt": 30.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 30.4,
+                "Haus Dornbusch": 20.7,
+                "Haus Brendel": 16.8,
+                "Haus Falkner": 16.8,
+                "Haus Lindenau": 15.2
+              }
+            },
+            {
+              "ware": "Silberkette",
+              "typ": "Fertigprodukt",
+              "grundpreis": 213,
+              "preisfaktor": 1.138,
+              "nachfrage": 132.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 6.2,
+              "anteilHaeuserAmAngebotProzent": 5.5,
+              "hergestellt": 6.9,
+              "anteileJeHausProzent": {
+                "Haus Ahlbeck": 68.1,
+                "Haus Brendel": 31.9
+              }
+            },
+            {
+              "ware": "Silberring",
+              "typ": "Fertigprodukt",
+              "grundpreis": 112,
+              "preisfaktor": 1.209,
+              "nachfrage": 218.9,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 10.1,
+              "anteilHaeuserAmAngebotProzent": 5.5,
+              "hergestellt": 9.9,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 29.3,
+                "Haus Dornbusch": 26.3,
+                "Haus Lindenau": 20.2,
+                "Haus Brendel": 19.2,
+                "Haus Ahlbeck": 5.1
+              }
+            },
+            {
+              "ware": "Starkbier",
+              "typ": "Fertigprodukt",
+              "grundpreis": 134,
+              "preisfaktor": 1.229,
+              "nachfrage": 146.9,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 3.2,
+              "anteilHaeuserAmAngebotProzent": 2.9,
+              "hergestellt": 13.8,
+              "anteileJeHausProzent": {
+                "Haus Grünwald": 46.4,
+                "Haus Dornbusch": 21,
+                "Haus Ahlbeck": 16.7,
+                "Haus Brendel": 15.9
+              }
+            },
+            {
+              "ware": "Steinfigur",
+              "typ": "Fertigprodukt",
+              "grundpreis": 454,
+              "preisfaktor": 1.149,
+              "nachfrage": 67.9,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 8.7,
+              "anteilHaeuserAmAngebotProzent": 13.3,
+              "hergestellt": 8.4,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 39.3,
+                "Haus Falkner": 21.4,
+                "Haus Hollerbach": 21.4,
+                "Haus Grünwald": 17.9
+              }
+            },
+            {
+              "ware": "Säule",
+              "typ": "Fertigprodukt",
+              "grundpreis": 205,
+              "preisfaktor": 1.179,
+              "nachfrage": 132.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 0,
+              "anteilHaeuserAmAngebotProzent": 0,
+              "hergestellt": 1.1,
+              "anteileJeHausProzent": {
+                "Haus Lindenau": 100
+              }
+            },
+            {
+              "ware": "Taufbecken",
+              "typ": "Fertigprodukt",
+              "grundpreis": 259,
+              "preisfaktor": 1.113,
+              "nachfrage": 135.8,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 4.7,
+              "anteilHaeuserAmAngebotProzent": 4.1,
+              "hergestellt": 9.1,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 50.5,
+                "Haus Brendel": 19.8,
+                "Haus Hollerbach": 13.2,
+                "Haus Falkner": 11,
+                "Haus Grünwald": 5.5
+              }
+            },
+            {
+              "ware": "Theriak",
+              "typ": "Fertigprodukt",
+              "grundpreis": 322,
+              "preisfaktor": 1.135,
+              "nachfrage": 65.4,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 3.6,
+              "anteilHaeuserAmAngebotProzent": 4.5,
+              "hergestellt": 3.2,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 78.1,
+                "Haus Hollerbach": 21.9
+              }
+            },
+            {
+              "ware": "Truhe",
+              "typ": "Fertigprodukt",
+              "grundpreis": 179,
+              "preisfaktor": 1.123,
+              "nachfrage": 154.7,
+              "npcAngebot": 115.5,
+              "verkauftHaeuser": 18.3,
+              "anteilHaeuserAmAngebotProzent": 11.4,
+              "hergestellt": 17.9,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 31.3,
+                "Haus Lindenau": 30.2,
+                "Haus Hollerbach": 24,
+                "Haus Brendel": 14.5
+              }
+            },
+            {
+              "ware": "Wachs",
+              "typ": "Rohstoff",
+              "grundpreis": 20,
+              "preisfaktor": 0.949,
+              "nachfrage": 413.9,
+              "npcAngebot": 371.3,
+              "verkauftHaeuser": 112.2,
+              "anteilHaeuserAmAngebotProzent": 22.7,
+              "hergestellt": 79.6,
+              "anteileJeHausProzent": {
+                "Haus Brendel": 30.5,
+                "Haus Dornbusch": 21.9,
+                "Haus Hollerbach": 21.4,
+                "Haus Lindenau": 16.2,
+                "Haus Grünwald": 10.1
+              }
+            },
+            {
+              "ware": "Weingeist",
+              "typ": "Zwischenprodukt",
+              "grundpreis": 43,
+              "preisfaktor": 1.118,
+              "nachfrage": 232.8,
+              "npcAngebot": 144.4,
+              "verkauftHaeuser": 68.7,
+              "anteilHaeuserAmAngebotProzent": 23.4,
+              "hergestellt": 0,
+              "anteileJeHausProzent": {}
+            },
+            {
+              "ware": "Werkzeug",
+              "typ": "Fertigprodukt",
+              "grundpreis": 137,
+              "preisfaktor": 1.186,
+              "nachfrage": 145.9,
+              "npcAngebot": 96.3,
+              "verkauftHaeuser": 17.6,
+              "anteilHaeuserAmAngebotProzent": 13.8,
+              "hergestellt": 8.3,
+              "anteileJeHausProzent": {
+                "Haus Dornbusch": 42.2,
+                "Haus Falkner": 36.1,
+                "Haus Ahlbeck": 21.7
+              }
+            },
+            {
+              "ware": "Zinnober",
+              "typ": "Fertigprodukt",
+              "grundpreis": 362,
+              "preisfaktor": 1.158,
+              "nachfrage": 65.4,
+              "npcAngebot": 48.1,
+              "verkauftHaeuser": 3.8,
+              "anteilHaeuserAmAngebotProzent": 5.6,
+              "hergestellt": 3.8,
+              "anteileJeHausProzent": {
+                "Haus Falkner": 60.5,
+                "Haus Hollerbach": 39.5
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "druck": {
+      "1": {
+        "5": {
+          "vermoegenJeHausGegen1Prozent": 0,
+          "vermoegenJeHausGegen3Prozent": -7.9,
+          "gewinnJeHausGegen1Prozent": 0
+        },
+        "10": {
+          "vermoegenJeHausGegen1Prozent": 0,
+          "vermoegenJeHausGegen3Prozent": 19.4,
+          "gewinnJeHausGegen1Prozent": 0
+        },
+        "20": {
+          "vermoegenJeHausGegen1Prozent": 0,
+          "vermoegenJeHausGegen3Prozent": -18.8,
+          "gewinnJeHausGegen1Prozent": 0
+        }
+      },
+      "3": {
+        "5": {
+          "vermoegenJeHausGegen1Prozent": 8.6,
+          "vermoegenJeHausGegen3Prozent": 0,
+          "gewinnJeHausGegen1Prozent": 7.5
+        },
+        "10": {
+          "vermoegenJeHausGegen1Prozent": -16.2,
+          "vermoegenJeHausGegen3Prozent": 0,
+          "gewinnJeHausGegen1Prozent": -7.5
+        },
+        "20": {
+          "vermoegenJeHausGegen1Prozent": 23.1,
+          "vermoegenJeHausGegen3Prozent": 0,
+          "gewinnJeHausGegen1Prozent": 40.3
+        }
+      },
+      "5": {
+        "5": {
+          "vermoegenJeHausGegen1Prozent": 15.5,
+          "vermoegenJeHausGegen3Prozent": 6.3,
+          "gewinnJeHausGegen1Prozent": 18.4
+        },
+        "10": {
+          "vermoegenJeHausGegen1Prozent": -4.4,
+          "vermoegenJeHausGegen3Prozent": 14.1,
+          "gewinnJeHausGegen1Prozent": 16
+        },
+        "20": {
+          "vermoegenJeHausGegen1Prozent": 39.6,
+          "vermoegenJeHausGegen3Prozent": 13.4,
+          "gewinnJeHausGegen1Prozent": 53
+        }
+      },
+      "7": {
+        "5": {
+          "vermoegenJeHausGegen1Prozent": 15.3,
+          "vermoegenJeHausGegen3Prozent": 6.1,
+          "gewinnJeHausGegen1Prozent": 18.5
+        },
+        "10": {
+          "vermoegenJeHausGegen1Prozent": 6.9,
+          "vermoegenJeHausGegen3Prozent": 27.6,
+          "gewinnJeHausGegen1Prozent": 37.4
+        },
+        "20": {
+          "vermoegenJeHausGegen1Prozent": 43.2,
+          "vermoegenJeHausGegen3Prozent": 16.3,
+          "gewinnJeHausGegen1Prozent": 49.9
+        }
+      }
+    }
+  },
+  "kiStaerke": {
+    "erklaerung": "Der Spieler (Schmied, Mensch) wird von der KI mit demselben Profil wie die KI-Häuser geführt („Bezugsspieler“: gleiche Strategie, Einrichtung wie die KI, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich mit einer Werkstatt und zwei Gesellen (PR #177); unter „schwer“ derselbe Vergleich, wenn die KI-Häuser mit Werkstatt und Umlandbetrieb (5 Arbeiter) beginnen. Verhältnis = Reinvermögen eines KI-Hauses ÷ Reinvermögen des Bezugsspielers derselben Partie; davongezogen > 2, abgeschlagen < 0,5. Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI zahlt keine Prämien und nimmt keine Kredite; Einrichtung kauft sie zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht (PR #177).",
+    "n": 10,
+    "bezug": {
+      "5": {
+        "n": 10,
+        "mittel": 6096,
+        "streuung": 2384,
+        "fehlerMittel": 754,
+        "min": 1956,
+        "q10": 3227,
+        "q25": 4080,
+        "median": 6831,
+        "q75": 7690,
+        "q90": 8169,
+        "max": 9217
+      },
+      "10": {
+        "n": 10,
+        "mittel": 10753,
+        "streuung": 4353,
+        "fehlerMittel": 1377,
+        "min": 3728,
+        "q10": 6151,
+        "q25": 8454,
+        "median": 10667,
+        "q75": 12846,
+        "q90": 14414,
+        "max": 19338
+      },
+      "20": {
+        "n": 10,
+        "mittel": 68712,
+        "streuung": 35148,
+        "fehlerMittel": 11115,
+        "min": 20563,
+        "q10": 22029,
+        "q25": 43873,
+        "median": 71350,
+        "q75": 83869,
+        "q90": 118797,
+        "max": 120072
+      }
+    },
+    "bezugStandAmEnde": {
+      "Patrizier": 3,
+      "Edler": 7
+    },
+    "bezugRang": {
+      "n": 10,
+      "mittel": 3.9,
+      "streuung": 2.33,
+      "fehlerMittel": 0.74,
+      "min": 1,
+      "q10": 1,
+      "q25": 3,
+      "median": 3,
+      "q75": 5,
+      "q90": 7.1,
+      "max": 8
+    },
+    "bezugBetriebe": {
+      "5": {
+        "n": 10,
+        "mittel": 1.1,
+        "streuung": 0.32,
+        "fehlerMittel": 0.1,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1.1,
+        "max": 2
+      },
+      "10": {
+        "n": 10,
+        "mittel": 2.7,
+        "streuung": 0.95,
+        "fehlerMittel": 0.3,
+        "min": 1,
+        "q10": 1,
+        "q25": 3,
+        "median": 3,
+        "q75": 3,
+        "q90": 3.1,
+        "max": 4
+      },
+      "20": {
+        "n": 10,
+        "mittel": 4.1,
+        "streuung": 0.32,
+        "fehlerMittel": 0.1,
+        "min": 4,
+        "q10": 4,
+        "q25": 4,
+        "median": 4,
+        "q75": 4,
+        "q90": 4.1,
+        "max": 5
+      }
+    },
+    "kiBetriebe": {
+      "5": {
+        "n": 70,
+        "mittel": 1.06,
+        "streuung": 0.29,
+        "fehlerMittel": 0.03,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1,
+        "max": 3
+      },
+      "10": {
+        "n": 70,
+        "mittel": 2.49,
+        "streuung": 1.11,
+        "fehlerMittel": 0.13,
+        "min": 1,
+        "q10": 1,
+        "q25": 1.25,
+        "median": 3,
+        "q75": 3,
+        "q90": 4,
+        "max": 5
+      },
+      "20": {
+        "n": 70,
+        "mittel": 4.06,
+        "streuung": 0.83,
+        "fehlerMittel": 0.1,
+        "min": 1,
+        "q10": 3,
+        "q25": 4,
+        "median": 4,
+        "q75": 5,
+        "q90": 5,
+        "max": 5
+      }
+    },
+    "bezugJeJahrImMittel": {
+      "gewinn": 5455,
+      "amtseinkommen": 148,
+      "familie": -354,
+      "geschenke": -26,
+      "gericht": -197,
+      "gaunerei": -5,
+      "investitionen": -2309,
+      "standesgebuehren": -385,
+      "zinsen": -0,
+      "davonSteuer": -525,
+      "davonSpitzel": -90,
+      "schiffeAmEnde": 0
+    },
+    "kiJeJahrImMittel": {
+      "gewinn": 5160,
+      "amtseinkommen": 69,
+      "familie": -348,
+      "geschenke": -30,
+      "gericht": -225,
+      "gaunerei": 0,
+      "investitionen": -2118,
+      "standesgebuehren": -428,
+      "zinsen": -0,
+      "davonSteuer": -407,
+      "davonSpitzel": -67,
+      "schiffeAmEnde": 0
+    },
+    "kiHaeuser": {
+      "5": {
+        "n": 70,
+        "mittel": 6132,
+        "streuung": 2894,
+        "fehlerMittel": 346,
+        "min": 1680,
+        "q10": 2609,
+        "q25": 3594,
+        "median": 6136,
+        "q75": 7768,
+        "q90": 9881,
+        "max": 14195
+      },
+      "10": {
+        "n": 70,
+        "mittel": 9293,
+        "streuung": 5846,
+        "fehlerMittel": 699,
+        "min": 1812,
+        "q10": 3452,
+        "q25": 5414,
+        "median": 7304,
+        "q75": 12766,
+        "q90": 17934,
+        "max": 25476
+      },
+      "20": {
+        "n": 70,
+        "mittel": 64655,
+        "streuung": 35920,
+        "fehlerMittel": 4293,
+        "min": 1971,
+        "q10": 19339,
+        "q25": 41498,
+        "median": 56563,
+        "q75": 86287,
+        "q90": 116779,
+        "max": 156009
+      }
+    },
+    "jeHaus": [
+      {
+        "haus": "Haus Overstolz",
+        "volk": "Mensch",
+        "beruf": "Steinmetz",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 7346,
+            "streuung": 4067,
+            "fehlerMittel": 1286,
+            "min": 2849,
+            "q10": 2915,
+            "q25": 4917,
+            "median": 5806,
+            "q75": 10084,
+            "q90": 13165,
+            "max": 14195
+          },
+          "10": {
+            "n": 10,
+            "mittel": 12058,
+            "streuung": 6913,
+            "fehlerMittel": 2186,
+            "min": 3526,
+            "q10": 5616,
+            "q25": 7271,
+            "median": 9303,
+            "q75": 17188,
+            "q90": 18728,
+            "max": 25476
+          },
+          "20": {
+            "n": 10,
+            "mittel": 70883,
+            "streuung": 35199,
+            "fehlerMittel": 11131,
+            "min": 18439,
+            "q10": 38826,
+            "q25": 46665,
+            "median": 61525,
+            "q75": 101499,
+            "q90": 115900,
+            "max": 121976
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 5,
+          "Edler": 2,
+          "Freiherr": 3
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5568,
+          "amtseinkommen": 151,
+          "familie": -341,
+          "geschenke": -12,
+          "gericht": -154,
+          "gaunerei": -25,
+          "investitionen": -2270,
+          "standesgebuehren": -505,
+          "zinsen": -0,
+          "davonSteuer": -418,
+          "davonSpitzel": -77,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Hardevust",
+        "volk": "Mensch",
+        "beruf": "Tischler",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 4758,
+            "streuung": 2277,
+            "fehlerMittel": 720,
+            "min": 2047,
+            "q10": 2110,
+            "q25": 2952,
+            "median": 4371,
+            "q75": 6683,
+            "q90": 7271,
+            "max": 8161
+          },
+          "10": {
+            "n": 10,
+            "mittel": 7258,
+            "streuung": 4292,
+            "fehlerMittel": 1357,
+            "min": 1967,
+            "q10": 2663,
+            "q25": 3957,
+            "median": 6697,
+            "q75": 8690,
+            "q90": 13991,
+            "max": 14333
+          },
+          "20": {
+            "n": 10,
+            "mittel": 56490,
+            "streuung": 34425,
+            "fehlerMittel": 10886,
+            "min": 1971,
+            "q10": 19616,
+            "q25": 39257,
+            "median": 55043,
+            "q75": 64160,
+            "q90": 104688,
+            "max": 117172
+          }
+        },
+        "standAmEnde": {
+          "Gemeiner": 1,
+          "Bürger": 1,
+          "Patrizier": 5,
+          "Edler": 2,
+          "Freiherr": 1
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 4570,
+          "amtseinkommen": 46,
+          "familie": -361,
+          "geschenke": -39,
+          "gericht": -287,
+          "gaunerei": -4,
+          "investitionen": -1853,
+          "standesgebuehren": -295,
+          "zinsen": -0,
+          "davonSteuer": -407,
+          "davonSpitzel": -66,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Lyskirchen",
+        "volk": "Zwerg",
+        "beruf": "Prediger",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6097,
+            "streuung": 3327,
+            "fehlerMittel": 1052,
+            "min": 2396,
+            "q10": 2682,
+            "q25": 3403,
+            "median": 5257,
+            "q75": 7699,
+            "q90": 10712,
+            "max": 12037
+          },
+          "10": {
+            "n": 10,
+            "mittel": 10777,
+            "streuung": 6764,
+            "fehlerMittel": 2139,
+            "min": 3470,
+            "q10": 3491,
+            "q25": 6598,
+            "median": 8653,
+            "q75": 14378,
+            "q90": 19734,
+            "max": 23718
+          },
+          "20": {
+            "n": 10,
+            "mittel": 68506,
+            "streuung": 43615,
+            "fehlerMittel": 13792,
+            "min": 19027,
+            "q10": 21444,
+            "q25": 39312,
+            "median": 57471,
+            "q75": 101418,
+            "q90": 131983,
+            "max": 136586
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 5,
+          "Edler": 3,
+          "Freiherr": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5374,
+          "amtseinkommen": 71,
+          "familie": -343,
+          "geschenke": -23,
+          "gericht": -211,
+          "gaunerei": -8,
+          "investitionen": -2267,
+          "standesgebuehren": -445,
+          "zinsen": -0,
+          "davonSteuer": -458,
+          "davonSpitzel": -77,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Gryn",
+        "volk": "Mensch",
+        "beruf": "Gardist",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6383,
+            "streuung": 2352,
+            "fehlerMittel": 744,
+            "min": 1680,
+            "q10": 4225,
+            "q25": 5674,
+            "median": 6530,
+            "q75": 7368,
+            "q90": 8061,
+            "max": 10821
+          },
+          "10": {
+            "n": 10,
+            "mittel": 8027,
+            "streuung": 6381,
+            "fehlerMittel": 2018,
+            "min": 2130,
+            "q10": 2341,
+            "q25": 3755,
+            "median": 6318,
+            "q75": 10036,
+            "q90": 14530,
+            "max": 22942
+          },
+          "20": {
+            "n": 10,
+            "mittel": 62904,
+            "streuung": 33359,
+            "fehlerMittel": 10549,
+            "min": 8489,
+            "q10": 33037,
+            "q25": 44923,
+            "median": 54209,
+            "q75": 82036,
+            "q90": 108538,
+            "max": 116736
+          }
+        },
+        "standAmEnde": {
+          "Bürger": 1,
+          "Patrizier": 4,
+          "Edler": 4,
+          "Freiherr": 1
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5241,
+          "amtseinkommen": 35,
+          "familie": -380,
+          "geschenke": -36,
+          "gericht": -234,
+          "gaunerei": 5,
+          "investitionen": -2320,
+          "standesgebuehren": -373,
+          "zinsen": -0,
+          "davonSteuer": -440,
+          "davonSpitzel": -59,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Scherfgin",
+        "volk": "Zwerg",
+        "beruf": "Wirt",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6057,
+            "streuung": 2249,
+            "fehlerMittel": 711,
+            "min": 2560,
+            "q10": 3074,
+            "q25": 4138,
+            "median": 6804,
+            "q75": 7500,
+            "q90": 7753,
+            "max": 9260
+          },
+          "10": {
+            "n": 10,
+            "mittel": 9034,
+            "streuung": 5957,
+            "fehlerMittel": 1884,
+            "min": 3697,
+            "q10": 3704,
+            "q25": 5993,
+            "median": 6973,
+            "q75": 9049,
+            "q90": 18289,
+            "max": 21527
+          },
+          "20": {
+            "n": 10,
+            "mittel": 62893,
+            "streuung": 34500,
+            "fehlerMittel": 10910,
+            "min": 6891,
+            "q10": 18125,
+            "q25": 45845,
+            "median": 63602,
+            "q75": 86858,
+            "q90": 96055,
+            "max": 120931
+          }
+        },
+        "standAmEnde": {
+          "Bürger": 2,
+          "Edler": 6,
+          "Freiherr": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5048,
+          "amtseinkommen": 26,
+          "familie": -344,
+          "geschenke": -14,
+          "gericht": -204,
+          "gaunerei": 14,
+          "investitionen": -2093,
+          "standesgebuehren": -510,
+          "zinsen": -0,
+          "davonSteuer": -323,
+          "davonSpitzel": -60,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Mommersloch",
+        "volk": "Elb",
+        "beruf": "Parfumeur",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 5647,
+            "streuung": 2866,
+            "fehlerMittel": 906,
+            "min": 2249,
+            "q10": 2577,
+            "q25": 2970,
+            "median": 5034,
+            "q75": 8150,
+            "q90": 9143,
+            "max": 9806
+          },
+          "10": {
+            "n": 10,
+            "mittel": 9409,
+            "streuung": 4500,
+            "fehlerMittel": 1423,
+            "min": 3961,
+            "q10": 5270,
+            "q25": 6388,
+            "median": 8527,
+            "q75": 10785,
+            "q90": 16949,
+            "max": 16962
+          },
+          "20": {
+            "n": 10,
+            "mittel": 57225,
+            "streuung": 41545,
+            "fehlerMittel": 13138,
+            "min": 7805,
+            "q10": 10060,
+            "q25": 25714,
+            "median": 51175,
+            "q75": 78527,
+            "q90": 113674,
+            "max": 130018
+          }
+        },
+        "standAmEnde": {
+          "Bürger": 2,
+          "Patrizier": 4,
+          "Edler": 2,
+          "Freiherr": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 4720,
+          "amtseinkommen": 74,
+          "familie": -345,
+          "geschenke": -36,
+          "gericht": -210,
+          "gaunerei": 2,
+          "investitionen": -1912,
+          "standesgebuehren": -390,
+          "zinsen": -0,
+          "davonSteuer": -455,
+          "davonSpitzel": -74,
+          "schiffeAmEnde": 0
+        }
+      },
+      {
+        "haus": "Haus Kleingedank",
+        "volk": "Elb",
+        "beruf": "Geldleiher",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6638,
+            "streuung": 2875,
+            "fehlerMittel": 909,
+            "min": 1952,
+            "q10": 2623,
+            "q25": 5164,
+            "median": 7076,
+            "q75": 8235,
+            "q90": 9496,
+            "max": 11243
+          },
+          "10": {
+            "n": 10,
+            "mittel": 8488,
+            "streuung": 5957,
+            "fehlerMittel": 1884,
+            "min": 1812,
+            "q10": 1970,
+            "q25": 4645,
+            "median": 7468,
+            "q75": 12089,
+            "q90": 15047,
+            "max": 20353
+          },
+          "20": {
+            "n": 10,
+            "mittel": 73684,
+            "streuung": 35269,
+            "fehlerMittel": 11153,
+            "min": 39892,
+            "q10": 48471,
+            "q25": 54243,
+            "median": 58747,
+            "q75": 78388,
+            "q90": 116361,
+            "max": 156009
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 2,
+          "Edler": 7,
+          "Freiherr": 1
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5599,
+          "amtseinkommen": 81,
+          "familie": -320,
+          "geschenke": -48,
+          "gericht": -272,
+          "gaunerei": 18,
+          "investitionen": -2109,
+          "standesgebuehren": -475,
+          "zinsen": -0,
+          "davonSteuer": -350,
+          "davonSpitzel": -57,
+          "schiffeAmEnde": 0
+        }
+      }
+    ],
+    "verhaeltnisKiZuBezug": {
+      "5": {
+        "n": 70,
+        "mittel": 1.31,
+        "streuung": 1.14,
+        "fehlerMittel": 0.14,
+        "min": 0.21,
+        "q10": 0.32,
+        "q25": 0.63,
+        "median": 0.95,
+        "q75": 1.49,
+        "q90": 3.08,
+        "max": 6.67
+      },
+      "10": {
+        "n": 70,
+        "mittel": 1.03,
+        "streuung": 0.88,
+        "fehlerMittel": 0.11,
+        "min": 0.17,
+        "q10": 0.27,
+        "q25": 0.51,
+        "median": 0.76,
+        "q75": 1.29,
+        "q90": 2.16,
+        "max": 4.82
+      },
+      "20": {
+        "n": 70,
+        "mittel": 1.42,
+        "streuung": 1.44,
+        "fehlerMittel": 0.17,
+        "min": 0.02,
+        "q10": 0.23,
+        "q25": 0.54,
+        "median": 0.88,
+        "q75": 1.71,
+        "q90": 3.15,
+        "max": 6.15
+      }
+    },
+    "davongezogen": {
+      "schwelle": 2,
+      "anzahl": 15,
+      "von": 70
+    },
+    "abgeschlagen": {
+      "schwelle": 0.5,
+      "anzahl": 16,
+      "von": 70
+    },
+    "kiBankrott": 0,
+    "kiErloschen": 0,
+    "kiStandAmEnde": {
+      "Gemeiner": 1,
+      "Bürger": 6,
+      "Patrizier": 25,
+      "Edler": 26,
+      "Freiherr": 12
+    },
+    "spielerMitEinemBetrieb": null,
+    "schwer": {
+      "n": 10,
+      "bezug": {
+        "5": {
+          "n": 10,
+          "mittel": 6090,
+          "streuung": 2337,
+          "fehlerMittel": 739,
+          "min": 2493,
+          "q10": 3008,
+          "q25": 4043,
+          "median": 6733,
+          "q75": 7686,
+          "q90": 8241,
+          "max": 9267
+        },
+        "10": {
+          "n": 10,
+          "mittel": 12363,
+          "streuung": 5033,
+          "fehlerMittel": 1592,
+          "min": 6159,
+          "q10": 7564,
+          "q25": 8994,
+          "median": 9858,
+          "q75": 16859,
+          "q90": 18081,
+          "max": 20524
+        },
+        "20": {
+          "n": 10,
+          "mittel": 72827,
+          "streuung": 32889,
+          "fehlerMittel": 10400,
+          "min": 23608,
+          "q10": 25122,
+          "q25": 56188,
+          "median": 75513,
+          "q75": 86647,
+          "q90": 117231,
+          "max": 120692
+        }
+      },
+      "kiHaeuser": {
+        "5": {
+          "n": 70,
+          "mittel": 6110,
+          "streuung": 2905,
+          "fehlerMittel": 347,
+          "min": 956,
+          "q10": 2515,
+          "q25": 3810,
+          "median": 6516,
+          "q75": 8016,
+          "q90": 9195,
+          "max": 13900
+        },
+        "10": {
+          "n": 70,
+          "mittel": 12173,
+          "streuung": 6635,
+          "fehlerMittel": 793,
+          "min": 443,
+          "q10": 3438,
+          "q25": 7202,
+          "median": 12697,
+          "q75": 16299,
+          "q90": 22533,
+          "max": 26642
+        },
+        "20": {
+          "n": 70,
+          "mittel": 75177,
+          "streuung": 30062,
+          "fehlerMittel": 3593,
+          "min": 1780,
+          "q10": 38674,
+          "q25": 58089,
+          "median": 73772,
+          "q75": 95501,
+          "q90": 117446,
+          "max": 130088
+        }
+      },
+      "verhaeltnisKiZuBezug": {
+        "5": {
+          "n": 70,
+          "mittel": 1.26,
+          "streuung": 0.99,
+          "fehlerMittel": 0.12,
+          "min": 0.12,
+          "q10": 0.38,
+          "q25": 0.57,
+          "median": 0.9,
+          "q75": 1.48,
+          "q90": 2.66,
+          "max": 5.26
+        },
+        "10": {
+          "n": 70,
+          "mittel": 1.18,
+          "streuung": 0.8,
+          "fehlerMittel": 0.1,
+          "min": 0.04,
+          "q10": 0.21,
+          "q25": 0.51,
+          "median": 1.05,
+          "q75": 1.79,
+          "q90": 2.49,
+          "max": 2.79
+        },
+        "20": {
+          "n": 70,
+          "mittel": 1.35,
+          "streuung": 1.05,
+          "fehlerMittel": 0.12,
+          "min": 0.06,
+          "q10": 0.47,
+          "q25": 0.68,
+          "median": 1.09,
+          "q75": 1.6,
+          "q90": 2.63,
+          "max": 5.32
+        }
+      },
+      "davongezogen": {
+        "schwelle": 2,
+        "anzahl": 11,
+        "von": 70
+      },
+      "kiBankrott": 0,
+      "kiErloschen": 0
+    }
+  },
+  "befunde": [
+    "7 Häuser (Messstadt, Nachfrage nach Einwohnern ×1,38 statt ×0,88 bei 3): Vermögen je KI-Haus nach 20 Jahren 55.329 statt 38.649 allein (+43 %) und 47.573 bei 3 Häusern (+16 %); Preisindex der verkauften Waren 0,95 → 0,99.",
+    "KI-Stärke (koeln, 20 Jahre): Bezugsspieler mit der Strategie der KI 68.712 Gulden, KI-Häuser Ø 64.655 (Verhältnis KI ÷ Bezug Median 0,88); davongezogen (> 2×) 15/70, abgeschlagen (< ½) 16/70, bankrott 0, erloschen 0.",
+    "KI-Stärke bei „Schwer“ (KI-Häuser mit Werkstatt und Umland): Bezug 72.827, KI-Häuser Ø 75.177 (Verhältnis Median 1,09; davongezogen 11/70)."
+  ],
+  "laufzeitSekunden": 571
+}

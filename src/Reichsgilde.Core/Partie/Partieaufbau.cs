@@ -16,8 +16,8 @@ namespace Reichsgilde.Core.Partie;
 /// <param name="Geschlecht">Patriarch oder Matriarchin.</param>
 /// <param name="Vorname">Vorname des Oberhaupts; null = ein zufälliger Name des Volkes.</param>
 /// <param name="Beruf">Startberuf: bestimmt die erste Werkstatt (Schmied → Gießerei, Tischler → Tischlerei, Steinmetz → Maurerei).</param>
-/// <param name="Rivalen">Wie viele KI-Häuser mitspielen: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler),
-/// 3 = dazu Haus Kieselbach (Steinmetz).</param>
+/// <param name="Rivalen">Wie viele KI-Häuser mitspielen – auf einer Karte genau so viele gewürfelte (17.11.2026, <see cref="Partiebesetzung.KiHaeuser"/>);
+/// ohne Karte die ersten des Ersatzes: 1 = Haus Eisenbart (Schmied), 2 = dazu Haus Eichwald (Tischler), 3 = dazu Haus Kieselbach (Steinmetz).</param>
 /// <param name="Glaube">Konfession des eigenen Hauses; null = Startglaube des Volkes.</param>
 /// <param name="Wappen">Wappen des eigenen Hauses; null = die erste Vorlage. Trägt ein mitspielendes Kartenhaus dasselbe, würfelt es neu (gewürfelte Aufstellung).</param>
 /// <param name="Aussehen">Gesicht, Haar und Augen des Oberhaupts im Porträt; null = gewürfelt. Muss zum Volk passen
@@ -66,12 +66,12 @@ public enum KiCharakter
 }
 
 /// <summary>
-/// Stellt eine neue Partie auf: das Haus des Spielers mit der Werkstatt seines Startberufs und – je nach Zahl der Rivalen – die
-/// KI-Häuser aus dem Abschnitt „start“ der Karte (<see cref="Startbelegung"/>), alle von der KI geführt. Ohne Karte gilt
-/// <see cref="Startbelegung.Ersatz"/>: Haus Eisenbart (Zwerge, Schmiede: Gießerei und Grube), Haus Eichwald (Elben, Tischler:
-/// Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge, Steinmetze: Maurerei und Steinbruch). Alle Oberhäupter beginnen ledig.
-/// Im Spiel (<see cref="Aufstellungsart.Gelost"/>) lost die <see cref="Startaufstellung"/> Beruf, Volk und Glauben jedes KI-Hauses neu – jeder Beruf
-/// höchstens einmal je Partie; Name, Wappen, Farbe, Geschlecht und Plätze bleiben die der Karte.
+/// Stellt eine neue Partie auf: das Haus des Spielers mit der Werkstatt seines Startberufs und so viele KI-Häuser, wie gewählt sind, alle von
+/// der KI geführt. Auf einer Karte ist im Spiel (<see cref="Aufstellungsart.Gelost"/>) jedes KI-Haus gewürfelt (Nutzer 17.11.2026: keine
+/// festen Dynastien mehr): Name, Wappen samt Hausfarbe, Geschlecht (<see cref="Partiebesetzung.KiHaeuser"/>), Volk, Glaube und Beruf
+/// (<see cref="Startaufstellung"/>, jeder Beruf höchstens einmal je Partie). Ohne Karte gilt <see cref="Startbelegung.Ersatz"/>: Haus Eisenbart
+/// (Zwerge, Schmiede: Gießerei und Grube), Haus Eichwald (Elben, Tischler: Tischlerei und Holzschlag) und Haus Kieselbach (Halblinge,
+/// Steinmetze: Maurerei und Steinbruch) – Name, Wappen und Geschlecht bleiben dort, Volk, Glaube und Beruf werden gelost. Alle Oberhäupter beginnen ledig.
 /// </summary>
 public static class Partieaufbau
 {
@@ -114,7 +114,8 @@ public static class Partieaufbau
         var start = karte?.Startbelegung ?? Startbelegung.Ersatz;
         var urkarte = karte; // an ihr hängen die gemerkten Stellen des Startortloses (die Aufstellung macht eine Kopie)
         var name = Hausname(neu.Familienname);
-        if (start.Rivalennamen.Contains(name))
+        // (auf einer Karte mit gewürfelter Aufstellung spielt kein festes Haus mit – die KI-Häuser würfeln um den Namen des Spielers herum)
+        if ((karte is null || neu.Aufstellung != Aufstellungsart.Gelost) && start.Rivalennamen.Contains(name))
             throw new ArgumentException($"„{name}“ ist schon der Name eines Rivalen.");
         var wappen = neu.Wappen ?? Wappen.Vorlagen[0];
         if (wappen.Fehler() is { } wappenFehler)

@@ -357,24 +357,7 @@
   {"art": "teich", "name": "Mühlenteich", "flaeche": [[110, -120], [150, -115], [155, -95], [125, -85], [105, -98]]}
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre am Sandfluss", "von": [-130, 113], "bis": [-130, 137]}],
- "start": {
-  "haeuser": [
-   {
-    "name": "Haus Ahlbeck",
-    "volk": "Mensch",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
-    "betriebe": [{"art": "Tischlerei"}]
-   },
-   {
-    "name": "Haus Brendel",
-    "volk": "Mensch",
-    "geschlecht": "Mann",
-    "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
-    "betriebe": [{"art": "Giesserei"}]
-   }
-  ]
- },
+ "start": {"hausnamen": ["Ahlbeck", "Brendel"]},
  "kamera": {"punkt": [0, 0], "zoom": 110, "drehung": 0},
  "fiktion": ["Ganz erfunden: eine kleine Stadt zum Ausprobieren von Kartenskript, Prüfung und Partie."],
  "hoehen": {

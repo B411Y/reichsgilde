@@ -1,0 +1,25 @@
+ "start": {
+  "haeuser": [
+   {
+    "name": "Haus Eisenbart",
+    "volk": "Zwerg",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Ohne", "farbe1": "Schwarz", "farbe2": "Gold", "figur": "Amboss"},
+    "betriebe": [{"art": "Giesserei", "produkt": "Dolch"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
+   },
+   {
+    "name": "Haus Eichwald",
+    "volk": "Elb",
+    "geschlecht": "Frau",
+    "wappen": {"teilung": "Bord", "farbe1": "Gruen", "farbe2": "Silber", "figur": "Baum"},
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag_Eichwald", "art": "Holzfaellerei"}]
+   },
+   {
+    "name": "Haus Kieselbach",
+    "volk": "Halbling",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Schildhaupt", "farbe1": "Blau", "farbe2": "Silber", "figur": "Wellen"},
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch_Kieselbach", "art": "Steinbruch"}]
+   }
+  ]
+ },

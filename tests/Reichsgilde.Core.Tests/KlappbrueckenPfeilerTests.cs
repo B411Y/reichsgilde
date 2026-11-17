@@ -126,7 +126,7 @@ static class KlappbrueckenPfeilerTests
 
         ("Klappbrücke: nach Speichern und Laden dieselben Pfeiler (Spielstand ohne neues Feld, das Gewässer kommt aus den Daten)", () =>
         {
-            var sim = KlappbrueckeTests.Partie(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")), KlappbrueckeTests.DatenMit(_ => { }));
+            var sim = KlappbrueckeTests.Partie(Stadtkarte.AusDatei(Altkarte.Pfad("koeln")), KlappbrueckeTests.DatenMit(_ => { }));
             var w = sim.Wirtschaft!;
             var text = Speicherung.Speichern(sim, w.Konten[0], new DateTime(2026, 1, 1));
             var (geladen, _) = Speicherung.Laden(text);

@@ -20,7 +20,7 @@ static class KartenwerkstattStartTests
 
     // Die Karten des Spiels haben seit 12.11.2026 Hofnummern (Greybox 1–4, Köln 1–8): Diese Tests prüfen das Bearbeiten der Startbelegung und
     // lesen die Karten deshalb ohne Nummern – sonst wären nur die nummerierten Höfe Startplätze (Nummern: KartenwerkstattHofKnopfTests).
-    static string Text(string kennung) => System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(Datenpfad.Karte(kennung)), ", \"nummer\": \\d+", "");
+    static string Text(string kennung) => System.Text.RegularExpressions.Regex.Replace(File.ReadAllText(Altkarte.Pfad(kennung)), ", \"nummer\": \\d+", "");
     static Kartenentwurf Oeffnen(string kennung) => Kartenentwurf.AusJson(Text(kennung), Katalog.Value);
 
     static Kartenentwurf GreyboxMit(Action<JsonObject> aenderung)
@@ -134,7 +134,7 @@ static class KartenwerkstattStartTests
         ("Mauerplan: Greybox und Köln – Türme, Ecktürme und Tore genau wie bisher im Spiel gezeichnet (Greybox: 4 Ecktürme, 3 Mauertürme, 3 Tore)", () =>
         {
             foreach (var kennung in new[] { "greybox", "koeln" })
-                foreach (var m in Stadtkarte.AusDatei(Datenpfad.Karte(kennung)).Mauern)
+                foreach (var m in Stadtkarte.AusDatei(Altkarte.Pfad(kennung)).Mauern)
                 {
                     var plan = Mauerplan.Von(m);
                     var (tuerme, ecken, tore) = WieImSpiel(m);
@@ -142,7 +142,7 @@ static class KartenwerkstattStartTests
                     GleicheOrte(ecken, plan.Ecktuerme, $"{kennung}, {m.Name}: Ecktürme");
                     GleicheOrte(tore, plan.Tore.Select(t => t.Lage), $"{kennung}, {m.Name}: Tore");
                 }
-            var greybox = Mauerplan.Von(Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Mauern[0]);
+            var greybox = Mauerplan.Von(Stadtkarte.AusDatei(Altkarte.Pfad("greybox")).Mauern[0]);
             Pruefe.Wahr(greybox.Stuecke.All(s => s.Laenge is >= 3 and <= 5), "Greybox: Mauerstücke 3 bis 5 m");
             Pruefe.Gleich(4, greybox.Ecktuerme.Count);
             // Nordseite ohne Tor zwei Türme (100 m: round(100 / 35) − 1), seit PR #199 auf der Südseite das Südtor und ein Turm
@@ -346,7 +346,7 @@ static class KartenwerkstattStartTests
             Folge(new[] { Betriebsart.Mine }, e.BetriebsartenFuer(e.GebaeudeMit("Grube_am_Silberberg")!).ToArray());
             Pruefe.Gleich(0, e.BetriebsartenFuer(e.Gebaeude.First(g => g.Katalog == "rathaus")).Count);
             // Dieselbe Belegung wie der Leser der Stadtkarte
-            var kern = Stadtkarte.AusDatei(Datenpfad.Karte("greybox")).Start!;
+            var kern = Stadtkarte.AusDatei(Altkarte.Pfad("greybox")).Start!;
             var entwurf = s.AlsStartbelegung();
             Folge(kern.Rivalennamen.ToArray(), entwurf.Rivalennamen.ToArray());
             Folge(kern.Rivalenwappen.ToArray(), entwurf.Rivalenwappen.ToArray());

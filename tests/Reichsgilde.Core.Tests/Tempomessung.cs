@@ -28,7 +28,7 @@ static class Tempomessung
         for (var s = 1; s <= startwerte; s++)
         {
             var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
+            var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(Datenpfad.Karte(kennung)));
             var aufbau = Stopwatch.StartNew();
             var (sim, _) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Zufallsstartwert = s * 101, Siegbedingung = Siegbedingung.Endlos },

@@ -89,6 +89,12 @@ public static class Startwegpruefung
                 Messen(h.Name, b.Platz, b.Art);
                 yield return 0;
             }
+        // Umland-Startplätze ohne Haus (17.11.2026)
+        foreach (var b in (start.Umland ?? new List<Startbetrieb>()).Where(b => b.Platz != "" && platzMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb }))
+        {
+            Messen("Umland-Startplatz", b.Platz, b.Art);
+            yield return 0;
+        }
     }
 
     /// <summary>

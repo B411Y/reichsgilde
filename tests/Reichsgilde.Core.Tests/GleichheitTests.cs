@@ -50,7 +50,9 @@ static class GleichheitTests
         // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
         // Startwert 1402 (bis Datenversion 93: 1401): Seit „Wie überliefert“ nur noch 20 % strenge Winter hat (Datenversion 94), war der Winter 1403
         // mit 1401 gewöhnlich. Mit 1402 ist er streng (Kälte 0,953), der Rhein ist von 8 bis 20 Uhr zu – Ladepunkt Jahr 3, 12 Uhr mitten im Eis.
-        new(1402, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
+        // Startwert 1405 seit den Zufallsgegnern (17.11.2026): Mit gewürfelten KI-Häusern erfuhr bei 1402 in vier Jahren niemand ein Geheimnis
+        // (das Skript verlangt Wissen). 1405 ist der nächste Startwert mit strengem Winter 1403 und Eis am Ladepunkt; dort gibt es Wissen.
+        new(1405, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
     };
 
     /// <summary>
@@ -226,9 +228,9 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
-        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis, Köln (1402) 1403 – sonst prüft der Test die Jahreszeiten nicht.
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis, Köln (1405) 1403 – sonst prüft der Test die Jahreszeiten nicht.
         // An den Ladepunkten Jahr 7, 12:30 Uhr bzw. Jahr 3, 12 Uhr muss der Fluss zu sein (Laden mitten im Eis, in Köln samt Fähre und Klappbrücke).
-        if (p.Startwert is 1400 or 1402)
+        if (p.Startwert is 1400 or 1405)
         {
             var (jahr, ladepunkt) = p.Startwert == 1400 ? (1407, Minute(7, 12, 30)) : (1403, Minute(3, 12, 0));
             var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
@@ -262,7 +264,9 @@ static class GleichheitTests
         // Entscheidungen (Stufe 3) stehen im Spielstand: Öffnen, Befehl und Fristablauf laufen mit Speichern und Laden gleich. Bei 4711 schreibt
         // ein KI-Haus dem Menschen Erpresserbriefe – der Mensch zahlt einen (EntscheidungTreffen), ein anderer läuft ab (Frist). Seit der
         // Startaufstellung (PR 1c, KI-Häuser gelost) liegt der Brief, der abläuft, 1403 bis Anfang 1405; Lauf C lädt dazwischen, Minute(4, 12, 0),
-        // mit offener Frage (vorher Minute(2, 21, 37), die als Ladepunkt in der Gaunernacht bleibt).
+        // mit offener Frage (vorher Minute(2, 21, 37), die als Ladepunkt in der Gaunernacht bleibt). Seit den Zufallsgegnern (17.11.2026, auch
+        // Name, Wappen und Geschlecht der KI-Häuser gewürfelt) liegt der Brief, der abläuft, wieder früher – Mitte 1402 bis Anfang 1404 –, und
+        // der Ladepunkt mit offener Frage ist wieder Minute(2, 21, 37); Minute(4, 12, 0) bleibt als Ladepunkt.
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", b.Entscheidungen), "Entscheidungen mit deutscher Ländereinstellung");
         Pruefe.Gleich(string.Join("\n", a.Entscheidungen), string.Join("\n", c.Entscheidungen), "Entscheidungen mit Speichern und Laden");
         Pruefe.Gleich(string.Join(",", a.OffenAnLadepunkten.OrderBy(x => x.Key)), string.Join(",", c.OffenAnLadepunkten.OrderBy(x => x.Key)), "offene Entscheidungen an den Ladepunkten");
@@ -275,8 +279,8 @@ static class GleichheitTests
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains(" EntscheidungTreffen ok")), $"Kein erfolgreicher Befehl EntscheidungTreffen ({string.Join(" | ", a.Entscheidungen)})");
             Pruefe.Wahr(a.Entscheidungen.Any(z => z.Contains($" {Reichsgilde.Core.Entscheidungen.Entscheidungsabschluss.Frist} ")),
                 $"Kein Fristablauf einer Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
-            Pruefe.Wahr(c.OffenAnLadepunkten.GetValueOrDefault(Minute(4, 12, 0)) > 0,
-                $"Lauf C lädt bei Minute(4, 12, 0) ohne offene Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
+            Pruefe.Wahr(c.OffenAnLadepunkten.GetValueOrDefault(Minute(2, 21, 37)) > 0,
+                $"Lauf C lädt bei Minute(2, 21, 37) ohne offene Entscheidung ({string.Join(" | ", a.Entscheidungen)})");
         }
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
@@ -511,10 +515,14 @@ static class GleichheitTests
                 foreach (var e in w.Entscheidungen.OffenFuer(spieler).Where(e => e.Nummer % 2 == 1).OrderBy(e => e.Nummer))
                     liste.Add(new EntscheidungTreffen(e.Nummer, e.Nummer % 4 == 1 ? Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Zahlen
                         : Reichsgilde.Core.Entscheidungen.Entscheidungswesen.Ablehnen));
-            if (t == _wiederUm && _zweitbetrieb is not null)
+            // (seit den Zufallsgegnern, 17.11.2026, fehlt dem Tischler von 4711 im Jahr 7 zehn Minuten nach der Abgabe die erste Jahrespacht:
+            // Geht der Erwerb noch nicht, versucht er es alle zehn Minuten wieder, bis es geht)
+            if (_wiederUm >= 0 && t >= _wiederUm && (t - _wiederUm) % 10 == 0 && _zweitbetrieb is not null
+                && w.LiegenschaftErwerbVerboten(spieler, _zweitbetrieb) is null)
             {
                 liste.Add(new LiegenschaftErwerben(_zweitbetrieb));
                 _einstellenUm = t + 1;
+                _wiederUm = -1;
             }
             return liste;
         }

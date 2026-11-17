@@ -82,8 +82,9 @@ static class KartenwerkstattTests
                 ("weg-ueber-umland", "Grube_am_Silberberg", "Weg zu Kräutergarten am Bach"),
                 ("weg-ueber-umland", "Grube_am_Silberberg", "Weg zum Abzweig Klosterhof am Osthang"),
                 // seit den Hofstellen (9.11.2026) die Fairness des Start-Umlands wie in Köln (die vier Start-Hofstellen liegen im Band)
-                ("startweg", "Grube_Eisenbart", "Haus Eisenbart"),
-                ("startweg", "Steinbruch_Kieselbach", "Haus Kieselbach"),
+                // (seit 17.11.2026 ohne feste Häuser: die Umland-Startplätze der Karte)
+                ("startweg", "Grube_Eisenbart", "Umland-Startplatz"),
+                ("startweg", "Steinbruch_Kieselbach", "Umland-Startplatz"),
             };
             Pruefe.Gleich(erwartet.Length, hinweise.Count, "Hinweise:\n  " + Liste(hinweise));
             foreach (var (regel, gebaeude, weiteres) in erwartet)
@@ -256,8 +257,9 @@ static class KartenwerkstattTests
                 k["wege"]!.AsArray().Add(JsonNode.Parse("""{"name": "Schleichweg", "klasse": "gasse", "linie": [[45, 30], [60, 30]], "gefahr": 1, "breite": 2}"""));
                 k["wege"]!.AsArray().Add(JsonNode.Parse("""{"name": "Inselweg", "klasse": "land", "linie": [[300, 300], [320, 300]], "gefahr": 1, "breite": 4}"""));
                 k["bauzonen"]!.AsArray().Add(JsonNode.Parse("""{"kennung": "X1", "art": "vorstadt", "flaeche": [[200, 200], [210, 200], [210, 210], [200, 210]]}"""));
-                k["start"]!["haeuser"]![0]!["betriebe"]![0]!["platz"] = "Ring1";
-                k["start"]!["haeuser"]![1]!["betriebe"]![1]!["platz"] = "Grube_Eisenbart";
+                // (seit 17.11.2026 nennt die Karte Umland-Startplätze statt fester Häuser)
+                k["start"]!["umland"]!.AsArray().Add(new JsonObject { ["platz"] = "Ring1", ["art"] = "Mine" });
+                k["start"]!["umland"]!.AsArray().Add(new JsonObject { ["platz"] = "Grube_Eisenbart", ["art"] = "Mine" });
             });
             var f = Fehler(e);
             var text = Liste(f);

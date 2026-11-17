@@ -102,13 +102,15 @@ static class BalancingberichtTests
             Pruefe.Ungefaehr(4000 - 650 - daten.Personal!.Handgeld * (r.Spieler.StartArbeiter - daten.Personal.StartJeBetrieb!.Value), r.Spieler.StartBar, 1e-6);
         }),
 
-        ("Messstadt: Bauzonen im Stadtinneren für 8 Häuser, keine Werkstatt- und Wohnhausplätze, 8 KI-Häuser in der Karte, 17 Umlandbetriebe; eine Partie mit 7 KI-Häusern und Geist läuft (8 Häuser, mehr passen gelost nicht)", () =>
+        ("Messstadt: Bauzonen im Stadtinneren für 8 Häuser, keine Werkstatt- und Wohnhausplätze, keine festen Häuser mehr (8 Umland-Startplätze, 8 Namen der Stadt), 17 Umlandbetriebe; eine Partie mit 7 KI-Häusern und Geist läuft (8 Häuser, mehr passen gelost nicht)", () =>
         {
             var karte = Stadtkarte.AusJson(Quellen.Value.Karte("messstadt"), Gebaeudekatalog.AusJson(Quellen.Value.Katalog));
             Pruefe.Gleich(0, karte.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count() + karte.GebaeudeDerArt(Bausteinart.Wohnhausplatz).Count());
             Pruefe.Gleich(17, karte.GebaeudeDerArt(Bausteinart.Umlandbetrieb).Count());
-            Pruefe.Gleich(8, karte.Startbelegung.Haeuser.Count);
-            Pruefe.Gleich("Zwerg,Elb,Halbling", string.Join(",", karte.Startbelegung.Haeuser.Take(3).Select(h => h.Volk)), "die ersten drei wie in der Greybox");
+            Pruefe.Gleich(0, karte.Startbelegung.Haeuser.Count); // seit 17.11.2026 würfelt jede Partie ihre KI-Häuser
+            Pruefe.Gleich(8, karte.Startbelegung.Umland!.Count);
+            Pruefe.Gleich(8, karte.Startbelegung.Hausnamen!.Count);
+            Pruefe.Gleich("Mine,Holzfaellerei,Steinbruch", string.Join(",", karte.Startbelegung.Umland.Take(3).Select(b => b.Art)), "die ersten drei wie in der Greybox");
             var daten = Wirtschaftsdaten.AusJson(Quellen.Value.Wirtschaft);
             Pruefe.Wahr(daten.Liegenschaften.All(l => karte.Gebaeude.Any(g => g.Betrieb == l.Name)), "jede Liegenschaft hat ihren Platz");
             var r = Messpartie.Spielen(new Messaufbau("messstadt", 101, 1, Bezug: Bezugsart.Geist, Rivalen: 8, MarktMessen: true), Quellen.Value); // 8 verlangt, 7 passen

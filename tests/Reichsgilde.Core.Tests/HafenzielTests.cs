@@ -146,7 +146,7 @@ static class HafenzielTests
         {
             foreach (var kennung in new[] { "greybox", "koeln" })
             {
-                var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
+                var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(Datenpfad.Karte(kennung)));
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                     Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), FesteStartorte.Partie(kennung, new NeuePartie(Rivalen: haeuser)), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung))); // feste Startorte nahe den Märkten (gelost kann eine Werkstatt näher am Hafen stehen)
                 var w = sim.Wirtschaft!;
