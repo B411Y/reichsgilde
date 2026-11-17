@@ -10,11 +10,27 @@ namespace Reichsgilde;
 /// in <see cref="SchriftrolleAblauf"/>. Aussehen und Maße kommen aus der Szene und aus <c>meldung_thema.tres</c> (<see cref="MeldungStil"/>), hier steht
 /// keine Farbe und keine Größe. Die Symbole aller Meldungsarten liegen auf einem zweiten, kleinen 2D-Bild (ein Blatt mit Feldern), das nur neu
 /// gezeichnet wird, wenn ein Symbol dazukommt oder sich die Größe ändert.
+/// Die Bühne kennt zwei Modelle (<see cref="Art"/>): die <b>Schriftrolle</b> (Clips, Marke auf der Symbolfläche) und den <b>kleinen Faltbrief</b>
+/// <c>brief_klein.glb</c> der Meldungsleiste (ohne Clips: erscheint mit einem Sprung, verschwindet durch Ausblenden; das Wachssiegel trägt die Farbe der
+/// Meldungsart, das Zeichen ist eingedrückt). Die Maße heißen im Thema je Modell <c>rolle_…</c> bzw. <c>brief_…</c>.
 /// Kosten: gerechnet wird nur, solange eine Rolle da und die Leiste sichtbar ist; ohne Bewegung nur nach einer Änderung.
 /// </summary>
 public sealed partial class SchriftrollenBuehne : Node
 {
-    private const string SzenePfad = "res://scenes/schriftrolle_buehne.tscn", ModellPfad = "res://assets/modelle/oberflaeche/schriftrolle.glb";
+    /// <summary>Welches Modell auf der Bühne steht.</summary>
+    public enum Modell { Rolle, Brief }
+
+    private const string SzenePfad = "res://scenes/schriftrolle_buehne.tscn";
+    private const string RollePfad = "res://assets/modelle/oberflaeche/schriftrolle.glb", BriefPfad = "res://assets/modelle/oberflaeche/brief_klein.glb";
+
+    /// <summary>Das Modell dieser Bühne – vor dem Einhängen setzen (Grundwert: die Schriftrolle).</summary>
+    public Modell Art { get; init; } = Modell.Rolle;
+
+    private bool IstBrief => Art == Modell.Brief;
+    private string ModellPfad => IstBrief ? BriefPfad : RollePfad;
+
+    /// <summary>Ein Maß dieses Modells aus dem Thema (<c>rolle_…</c> bzw. <c>brief_…</c>).</summary>
+    public int Mass(string name) => MeldungStil.Mass((IstBrief ? "brief_" : "rolle_") + name);
     private const int BlattSeite = 4; // Felder je Seite des Symbolblatts (16 Symbole; es gibt sieben Themen)
 
     /// <summary>Eine Rolle auf ihrem Platz der Bühne.</summary>
@@ -22,9 +38,10 @@ public sealed partial class SchriftrollenBuehne : Node
     {
         internal int Platz;
         internal Node3D Wurzel = null!;
-        internal AnimationPlayer Spieler = null!;
+        internal AnimationPlayer? Spieler;
         internal MeshInstance3D? Symbol;
         internal StandardMaterial3D? SymbolStoff;
+        internal StandardMaterial3D? SiegelStoff;
         internal string Clip = "";
         internal bool Belegt;
         public SchriftrolleAblauf Ablauf { get; internal set; } = null!;
@@ -53,7 +70,7 @@ public sealed partial class SchriftrollenBuehne : Node
     public Texture2D? Bild => _bild?.GetTexture();
 
     /// <summary>Seitenlänge eines Platzes in Oberflächen-Pixeln (bei 1600 × 900).</summary>
-    public float Zelle => MeldungStil.Mass("rolle_zelle");
+    public float Zelle => Mass("zelle");
 
     public override void _Ready()
     {
@@ -73,18 +90,18 @@ public sealed partial class SchriftrollenBuehne : Node
             _bild = null;
             return;
         }
-        _plaetze = new Rolle?[Math.Clamp(MeldungStil.Mass("rolle_plaetze"), 1, 32)];
-        _sicht = Math.Max(0.1f, MeldungStil.Mass("rolle_sicht_mm") / 1000f);
+        _plaetze = new Rolle?[Math.Clamp(Mass("plaetze"), 1, 32)];
+        _sicht = Math.Max(0.1f, Mass("sicht_mm") / 1000f);
         _kamera.Size = _sicht;
         _bild.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
         AddChild(_bild);
         // Das Blatt der Symbole: ein kleines 2D-Bild, dessen Felder die Symbolflächen der Rollen als Textur zeigen
         _blatt = new SubViewport
         {
-            Disable3D = true, TransparentBg = false, HandleInputLocally = false, GuiDisableInput = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled,
+            Disable3D = true, TransparentBg = IstBrief, HandleInputLocally = false, GuiDisableInput = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled,
             Size = new Vector2I(64, 64),
         };
-        _zeichner = new Symbolblatt { Symbole = _symbole, MouseFilter = Control.MouseFilterEnum.Ignore };
+        _zeichner = new Symbolblatt { Symbole = _symbole, Praegung = IstBrief, MouseFilter = Control.MouseFilterEnum.Ignore };
         _blatt.AddChild(_zeichner);
         AddChild(_blatt);
         Groesse();
@@ -98,11 +115,11 @@ public sealed partial class SchriftrollenBuehne : Node
         if (platz < 0) return null;
         var rolle = _plaetze[platz] ??= Bauen(platz);
         if (rolle is null) return null;
-        var m = MeldungStil.Mass;
-        var clip = rolle.Spieler.HasAnimation("aufrollen") ? rolle.Spieler.GetAnimation("aufrollen").Length : 0.9;
+        // Der Faltbrief hat keine Clips: Sein „Clip“ ist nur die kurze Zeit des Ausblendens beim Weggehen (und ebenso kurz steht er nach dem Erscheinen still)
+        var clip = IstBrief ? Mass("ausblenden_ms") / 1000.0 : rolle.Spieler?.HasAnimation("aufrollen") == true ? rolle.Spieler.GetAnimation("aufrollen").Length : 0.9;
         var masse = new RollenMasse(
-            ClipSekunden: clip, SymbolAb: m("rolle_symbol_ms") / 1000.0, NeigungGrad: m("rolle_neigung_grad"), PendelGrad: Math.Min(2, m("rolle_pendel_grad")),
-            HuepfHoehe: m("rolle_huepfen_mm") / 1000.0, HuepfSekunden: m("rolle_huepfen_ms") / 1000.0, AusblendSekunden: m("rolle_ausblenden_ms") / 1000.0);
+            ClipSekunden: clip, SymbolAb: IstBrief ? 0 : Mass("symbol_ms") / 1000.0, NeigungGrad: Mass("neigung_grad"), PendelGrad: Math.Min(2, Mass("pendel_grad")),
+            HuepfHoehe: Mass("huepfen_mm") / 1000.0, HuepfSekunden: Mass("huepfen_ms") / 1000.0, AusblendSekunden: Mass("ausblenden_ms") / 1000.0);
         rolle.Ablauf = new SchriftrolleAblauf(masse, GD.Randf(), GD.Randf());
         rolle.Belegt = true;
         rolle.Wurzel.Visible = true;
@@ -138,6 +155,7 @@ public sealed partial class SchriftrollenBuehne : Node
     private Rolle? Bauen(int platz)
     {
         if (_modell!.InstantiateOrNull<Node3D>() is not { } wurzel) return null;
+        if (IstBrief) return BriefBauen(platz, wurzel);
         if (wurzel.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().FirstOrDefault() is not { } spieler)
         {
             GD.PushWarning("[schriftrolle] Modell ohne AnimationPlayer.");
@@ -167,9 +185,50 @@ public sealed partial class SchriftrollenBuehne : Node
         return rolle;
     }
 
+    /// <summary>
+    /// Der kleine Faltbrief: kein Skelett, keine Clips. Das Wachs (<c>Siegel</c>) und das eingedrückte Zeichen (<c>Siegel_Symbol</c>) bekommen je Brief
+    /// einen eigenen Stoff; das Siegel wird um seine Mitte vergrößert (Maß <c>brief_siegel_prozent</c>), damit Farbe und Zeichen in der Leiste lesbar sind.
+    /// </summary>
+    private Rolle BriefBauen(int platz, Node3D wurzel)
+    {
+        _rollen!.AddChild(wurzel);
+        HandschuhZeiger.MaterialienEinrichten(wurzel);
+        var rolle = new Rolle { Platz = platz, Wurzel = wurzel };
+        var siegel = wurzel.FindChild("Siegel", true, false) as MeshInstance3D;
+        rolle.Symbol = wurzel.FindChild("Siegel_Symbol", true, false) as MeshInstance3D;
+        var faktor = Math.Clamp(Mass("siegel_prozent") / 100f, 0.5f, 3f);
+        if (siegel is not null)
+        {
+            rolle.SiegelStoff = siegel.GetActiveMaterial(0)?.Duplicate() as StandardMaterial3D ?? new StandardMaterial3D();
+            siegel.SetSurfaceOverrideMaterial(0, rolle.SiegelStoff);
+            // Um die Mitte des Siegels vergrößern (die Mitte seiner Hüllkiste, in den Raum des Modells gerechnet) – das Zeichen sitzt auf dem Siegel und wächst mit
+            var mitte = wurzel.GlobalTransform.AffineInverse() * (siegel.GlobalTransform * siegel.GetAabb().GetCenter());
+            foreach (var teil in new[] { siegel, rolle.Symbol })
+            {
+                if (teil is null) continue;
+                var lage = wurzel.GlobalTransform.AffineInverse() * teil.GlobalTransform;
+                var neu = new Transform3D(Basis.Identity.Scaled(Vector3.One * faktor), mitte - mitte * faktor) * lage;
+                teil.GlobalTransform = wurzel.GlobalTransform * neu;
+            }
+        }
+        if (rolle.Symbol is { } symbol && _blatt is not null)
+        {
+            rolle.SymbolStoff = new StandardMaterial3D
+            {
+                AlbedoTexture = _blatt.GetTexture(), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear,
+                // v läuft auf der Symbolfläche des Faltbriefs nach oben: das Feld des Blatts gespiegelt abgreifen (siehe SymbolSetzen), sonst stünde das Zeichen kopf
+                Uv1Scale = new Vector3(1f / BlattSeite, -1f / BlattSeite, 1), Roughness = rolle.SiegelStoff?.Roughness ?? 0.42f,
+            };
+            symbol.SetSurfaceOverrideMaterial(0, rolle.SymbolStoff);
+        }
+        GD.Print($"[schriftrolle] Faltbrief für Platz {platz} gebaut: Siegel {(siegel is null ? "fehlt" : "da")}, Zeichen {(rolle.Symbol is null ? "fehlt" : "da")}");
+        return rolle;
+    }
+
     /// <summary>Legt das Symbol der Meldungsart auf die Rolle: das Feld des Blatts, neu angelegt, wenn es diese Art noch nicht gab.</summary>
     private void SymbolSetzen(Rolle rolle, string themaId, Color farbe)
     {
+        if (rolle.SiegelStoff is not null) rolle.SiegelStoff.AlbedoColor = farbe; // Wachs in der Farbe der Meldungsart
         if (rolle.SymbolStoff is null) return;
         var feld = _symbole.FindIndex(s => s.Thema == themaId && s.Farbe == farbe);
         if (feld < 0 && _symbole.Count < BlattSeite * BlattSeite)
@@ -179,7 +238,7 @@ public sealed partial class SchriftrollenBuehne : Node
             BlattZeichnen();
         }
         if (feld < 0) feld = 0;
-        rolle.SymbolStoff.Uv1Offset = new Vector3(feld % BlattSeite / (float)BlattSeite, feld / BlattSeite / (float)BlattSeite, 0);
+        rolle.SymbolStoff.Uv1Offset = new Vector3(feld % BlattSeite / (float)BlattSeite, (feld / BlattSeite + (IstBrief ? 1 : 0)) / (float)BlattSeite, 0);
     }
 
     private void BlattZeichnen()
@@ -195,15 +254,17 @@ public sealed partial class SchriftrollenBuehne : Node
     {
         if (_bild is null || _blatt is null || _zeichner is null) return;
         var faktor = Math.Max(GetWindow().GetFinalTransform().Scale.X, 0.1f);
-        var pixel = Math.Clamp((int)Math.Round(Zelle * faktor * MeldungStil.Mass("rolle_abtastung_prozent") / 100f), 32, 512);
+        var pixel = Math.Clamp((int)Math.Round(Zelle * faktor * Mass("abtastung_prozent") / 100f), 32, 512);
         if (pixel == _zellePixel) return;
         _zellePixel = pixel;
         _bild.Size = new Vector2I(pixel * _plaetze.Length, pixel);
         // Die Plätze stehen nebeneinander, jeder genau ein Sichtfeld breit
         for (var i = 0; i < _plaetze.Length; i++)
             if (_plaetze[i] is { } r) r.Wurzel.Position = Ort(i);
-        // Ein Feld des Blatts etwa doppelt so fein, wie die Symbolfläche im Bild groß ist (0,2 m von einem Sichtfeld)
-        var feld = Math.Clamp((int)Math.Round(pixel * 0.2f / _sicht * 2), 24, 256);
+        // Ein Feld des Blatts etwa doppelt so fein, wie die Symbolfläche im Bild groß ist (Rolle: 0,2 m von einem Sichtfeld; Faltbrief: das kleine
+        // Zeichen auf dem Siegel, 15,4 mm mal Vergrößerung – dort mindestens 48 Pixel, damit die Striche glatt bleiben)
+        var symbolMeter = IstBrief ? 0.0154f * Mass("siegel_prozent") / 100f : 0.2f;
+        var feld = Math.Clamp((int)Math.Round(pixel * symbolMeter / _sicht * 2), IstBrief ? 48 : 24, 256);
         _blatt.Size = new Vector2I(feld * BlattSeite, feld * BlattSeite);
         _zeichner.Size = _blatt.Size;
         _zeichner.Feld = feld;
@@ -241,17 +302,18 @@ public sealed partial class SchriftrollenBuehne : Node
     private void Anwenden(Rolle r)
     {
         var a = r.Ablauf;
-        if (r.Spieler.HasAnimation(a.Clip))
+        if (r.Spieler is { } spieler && spieler.HasAnimation(a.Clip))
         {
-            if (r.Clip != a.Clip || !r.Spieler.IsPlaying())
+            if (r.Clip != a.Clip || !spieler.IsPlaying())
             {
-                r.Spieler.Play(a.Clip);
+                spieler.Play(a.Clip);
                 r.Clip = a.Clip;
             }
-            r.Spieler.Seek(Math.Min(a.Clipzeit, r.Spieler.GetAnimation(a.Clip).Length - 0.001), true);
-            r.Spieler.Advance(0); // im Modus Manual übernimmt erst das die Haltung sofort (sonst hinkt sie ein Bild nach)
+            spieler.Seek(Math.Min(a.Clipzeit, spieler.GetAnimation(a.Clip).Length - 0.001), true);
+            spieler.Advance(0); // im Modus Manual übernimmt erst das die Haltung sofort (sonst hinkt sie ein Bild nach)
         }
-        if (r.Symbol is { } symbol && symbol.Visible != a.SymbolSichtbar) symbol.Visible = a.SymbolSichtbar;
+        // Die Marke der Rolle erscheint erst, wenn sie offen ist; das Zeichen im Siegel des Faltbriefs steht immer
+        if (!IstBrief && r.Symbol is { } symbol && symbol.Visible != a.SymbolSichtbar) symbol.Visible = a.SymbolSichtbar;
         var (x, y, z) = a.Drehung;
         r.Wurzel.Position = Ort(r.Platz) + new Vector3(0, (float)a.Hoehe, 0);
         // Ablauf: positiv X = Oberkante nach hinten (Blick nach oben); in Godot dreht das eine negative Drehung um X
@@ -263,9 +325,18 @@ public sealed partial class SchriftrollenBuehne : Node
     {
         public List<(string Thema, Color Farbe)> Symbole = new();
         public int Feld = 16;
+        /// <summary>Faltbrief: nur das Zeichen, eingedrückt (das Wachs abgedunkelt), auf durchsichtigem Grund – statt der Marke mit Rand.</summary>
+        public bool Praegung;
 
         public override void _Draw()
         {
+            if (Praegung)
+            {
+                var dunkel = MeldungStil.Mass("brief_praegung_prozent") / 100f;
+                for (var i = 0; i < Symbole.Count; i++)
+                    Siegelzeichner.Praegung(this, new Rect2(i % BlattSeite * Feld, i / BlattSeite * Feld, Feld, Feld), Symbole[i].Farbe.Darkened(dunkel), Symbole[i].Thema);
+                return;
+            }
             var grund = MeldungStil.RollenFarbe("symbol_grund");
             var rand = MeldungStil.Mass("rolle_symbol_rand_prozent") / 100f;
             for (var i = 0; i < Symbole.Count; i++)

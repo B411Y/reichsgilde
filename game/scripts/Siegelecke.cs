@@ -86,10 +86,8 @@ public static class Siegelzeichner
         // Prägering
         ziel.DrawArc(mitte + new Vector2(0.8f, 0.6f), r * 0.66f, 0, Mathf.Tau, 28, farbe.Darkened(0.35f), 1.6f, true);
         ziel.DrawArc(mitte, r * 0.66f, Mathf.Pi * 0.9f, Mathf.Pi * 1.7f, 12, farbe.Lightened(0.35f), 1.4f, true); // Glanz oben links
-        Zeichen(ziel, mitte, r * 0.40f, thema);
+        Zeichen(ziel, mitte, r * 0.40f, thema, Tinte);
     }
-
-    private static void Linie(CanvasItem c, Vector2 mitte, float s, float breite, params (float X, float Y)[] punkte) => LinieFarbe(c, mitte, s, breite, Tinte, punkte);
 
     private static void LinieFarbe(CanvasItem c, Vector2 mitte, float s, float breite, Color farbe, params (float X, float Y)[] punkte)
     {
@@ -126,18 +124,26 @@ public static class Siegelzeichner
         }
         ziel.DrawRect(innen, Tinte, false, strich);
         ziel.DrawRect(feld.Grow(-strich / 2), Tinte, false, strich);
-        Zeichen(ziel, feld.GetCenter(), innen.Size.X * 0.30f, thema);
+        Zeichen(ziel, feld.GetCenter(), innen.Size.X * 0.30f, thema, Tinte);
     }
 
-    /// <summary>Das Zeichen in der Mitte, gezeichnet in Tinte (Einheitskoordinaten von −1 bis 1, skaliert mit <paramref name="s"/>).</summary>
-    private static void Zeichen(CanvasItem c, Vector2 m, float s, string thema)
+    /// <summary>
+    /// Nur das Zeichen einer Meldungsart in einer Farbe, ohne Grund – die Prägung im Wachssiegel der kleinen 3D-Faltbriefe
+    /// (<see cref="SchriftrollenBuehne"/>, Modell Brief): dieselben Zeichen wie die gezeichneten Siegel, in abgedunkeltem Wachs.
+    /// </summary>
+    public static void Praegung(CanvasItem ziel, Rect2 feld, Color farbe, string thema) =>
+        Zeichen(ziel, feld.GetCenter(), Mathf.Min(feld.Size.X, feld.Size.Y) * 0.40f, thema, farbe);
+
+    /// <summary>Das Zeichen in der Mitte, gezeichnet in einer Farbe (sonst Tinte; Einheitskoordinaten von −1 bis 1, skaliert mit <paramref name="s"/>).</summary>
+    private static void Zeichen(CanvasItem c, Vector2 m, float s, string thema, Color farbe)
     {
         var breite = Mathf.Max(1.8f, s * 0.2f);
+        void Linie(CanvasItem ziel, Vector2 mitte, float mass, float strich, params (float X, float Y)[] punkte) => LinieFarbe(ziel, mitte, mass, strich, farbe, punkte);
         switch (thema)
         {
             case "gefahr": // Ausrufezeichen
                 Linie(c, m, s, breite * 1.2f, (0, -0.95f), (0, 0.18f));
-                c.DrawCircle(m + new Vector2(0, 0.72f) * s, breite * 0.85f, Tinte);
+                c.DrawCircle(m + new Vector2(0, 0.72f) * s, breite * 0.85f, farbe);
                 break;
             case "handel": // Waage
                 Linie(c, m, s, breite, (-0.95f, -0.45f), (0.95f, -0.45f));
@@ -159,7 +165,7 @@ public static class Siegelzeichner
                 Linie(c, m, s, breite, (-0.95f, 0.65f), (-0.95f, -0.45f), (-0.45f, 0.1f), (0, -0.8f), (0.45f, 0.1f), (0.95f, -0.45f), (0.95f, 0.65f), (-0.95f, 0.65f));
                 break;
             case "entscheidung": // Feder
-                Feder(c, m, s * 1.05f, breite);
+                Feder(c, m, s * 1.05f, breite, farbe);
                 break;
             case "befehl": // Kreuz
                 Linie(c, m, s, breite * 1.2f, (-0.7f, -0.7f), (0.7f, 0.7f));
@@ -174,10 +180,12 @@ public static class Siegelzeichner
 }
 
 /// <summary>
-/// Eine Meldung in der Ecke: eine 3D-Schriftrolle (<see cref="SchriftrollenBuehne"/>), die geschlossen erscheint, mit einem kurzen Sprung aufrollt und
-/// dann das Zeichen ihres Themas mit farbigem Rand zeigt; dazu eine Zahl, wenn sich mehrere Meldungen stapeln. Linksklick liest den Brief, Rechtsklick
-/// legt sie ungelesen beiseite (verwirft sie). Die Rolle bleibt offen und dreht sich ganz leicht nach links und rechts, bis die Meldung erledigt ist;
-/// dann rollt sie zu und verschwindet (<see cref="Schliessen"/>). Ohne Bewegung (<see cref="Meldungseinstellungen.Bewegung"/>) steht sie sofort offen und still.
+/// Eine Meldung in der Ecke: ein kleiner 3D-Faltbrief mit Wachssiegel (<see cref="SchriftrollenBuehne"/> mit dem Modell Brief), der mit einem kurzen Sprung
+/// erscheint; das Siegel trägt Farbe und Zeichen seines Themas. Dazu eine Zahl, wenn sich mehrere Meldungen stapeln. Linksklick liest den Brief (der große
+/// Brief faltet sich in der Bildmitte auf, <see cref="BriefAnzeige"/>), Rechtsklick legt sie ungelesen beiseite (verwirft sie). Der Faltbrief dreht sich
+/// ganz leicht nach links und rechts (nur um die Hochachse), bis die Meldung erledigt ist; dann blendet er ohne Sprung aus und verschwindet
+/// (<see cref="Schliessen"/>). Ohne Bewegung (<see cref="Meldungseinstellungen.Bewegung"/>) steht er sofort da, still, und ist sofort weg.
+/// Im Code heißt er weiter „Rolle“ (dieselbe Bühne und derselbe Ablauf wie die 3D-Schriftrolle, die im Spiel bleibt).
 /// Steht die Bühne nicht (Modell fehlt, alle Plätze belegt), zeichnet sich die Meldung wie früher als Wachssiegel in 2D.
 /// </summary>
 public sealed partial class Siegel : Control
@@ -199,7 +207,7 @@ public sealed partial class Siegel : Control
     public Func<Siegel, Brief>? BriefBauer;
     public event Action<Siegel>? Angeklickt, Verworfen;
 
-    /// <summary>Die gemeinsame Bühne der Schriftrollen (setzt die <see cref="Siegelecke"/> vor dem Einhängen).</summary>
+    /// <summary>Die gemeinsame Bühne der Faltbriefe (setzt die <see cref="Siegelecke"/> vor dem Einhängen).</summary>
     public SchriftrollenBuehne? Buehne;
     private SchriftrollenBuehne.Rolle? _rolle;
     private Action? _geschlossen;
@@ -320,7 +328,7 @@ public sealed partial class Siegel : Control
         {
             if (_verdeckt > 0) return;
             // Der Ausschnitt dieser Rolle aus dem einen Bild der Bühne, mittig über dem Feld (größer als das Feld: Platz für Sprung und Pendeln)
-            var seite = Buehne.Zelle * (_ueber && _geschlossen is null ? MeldungStil.Mass("rolle_ueber_prozent") / 100f : 1f);
+            var seite = Buehne.Zelle * (_ueber && _geschlossen is null ? Buehne.Mass("ueber_prozent") / 100f : 1f);
             var ton = Gelesen ? MeldungStil.RollenFarbe("gelesen") : Colors.White;
             DrawTextureRectRegion(bild, new Rect2((new Vector2(Groesse, Groesse) - new Vector2(seite, seite)) / 2, new Vector2(seite, seite)), Buehne.Ausschnitt(_rolle),
                                   ton with { A = (float)_rolle.Ablauf.Deckkraft });
@@ -356,17 +364,17 @@ public sealed partial class Siegel : Control
 }
 
 /// <summary>
-/// Die Ecke unten rechts, über der Betriebsleiste: eine Reihe von Meldungen als 3D-Schriftrollen (im Code weiter „Siegel“), die neueste links, damit sich
-/// die älteren nie verschieben. Eine Rolle je Thema (mit Zähler); Stillstände haben je Betrieb eine eigene. Fängt selbst keine Mausklicks ab. Die Höhe, die
-/// sie braucht, steht in <see cref="Rollbereich.EckeHoehe"/> – die Tafeln rechts lassen den Platz frei, statt verdeckt zu werden. Alle Rollen teilen sich
-/// eine kleine 3D-Bühne (<see cref="SchriftrollenBuehne"/>), die nur rechnet, solange die Ecke zu sehen ist.
+/// Die Ecke unten rechts, über der Betriebsleiste: eine Reihe von Meldungen als kleine 3D-Faltbriefe mit Wachssiegel (im Code weiter „Siegel“), die neueste
+/// links, damit sich die älteren nie verschieben. Ein Brief je Thema (mit Zähler); Stillstände haben je Betrieb einen eigenen. Fängt selbst keine Mausklicks
+/// ab. Die Höhe, die sie braucht, steht in <see cref="Rollbereich.EckeHoehe"/> – die Tafeln rechts lassen den Platz frei, statt verdeckt zu werden. Alle
+/// Briefe teilen sich eine kleine 3D-Bühne (<see cref="SchriftrollenBuehne"/>, Modell Brief), die nur rechnet, solange die Ecke zu sehen ist.
 /// </summary>
 public sealed partial class Siegelecke : Control
 {
     public const int Hoechstens = 7;
     private readonly HBoxContainer _reihe = new() { Alignment = BoxContainer.AlignmentMode.End, MouseFilter = MouseFilterEnum.Ignore };
     private readonly List<Siegel> _siegel = new();
-    private readonly SchriftrollenBuehne _buehne = new() { Name = "SchriftrollenBuehne" };
+    private readonly SchriftrollenBuehne _buehne = new() { Name = "SchriftrollenBuehne", Art = SchriftrollenBuehne.Modell.Brief };
     private int _schliessend;
 
     /// <summary>Das Siegel wurde angeklickt (gelesen werden soll).</summary>
