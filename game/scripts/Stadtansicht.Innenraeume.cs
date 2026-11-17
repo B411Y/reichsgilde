@@ -220,13 +220,14 @@ public partial class Stadtansicht
     /// Gibt den Halter zurück (er steht am Fuß der Flamme und lässt sich wie jedes Teil einer Stufe zuordnen); die Flamme brennt, wenn <paramref name="an"/> gilt.
     /// <paramref name="herd"/>: die niedrigen Flammen einer Esse oder eines Herds (<see cref="Herdfeuer"/>) statt der Kerzenflamme.
     /// </summary>
-    private Node3D FlammeAnlegen(InnenAnsicht a, Vector3 ort, FeuerVorgabe vorgabe, float groesse, Func<bool>? an, Node3D? eltern = null, bool herd = false)
+    private Node3D FlammeAnlegen(InnenAnsicht a, Vector3 ort, FeuerVorgabe vorgabe, float groesse, Func<bool>? an, Node3D? eltern = null, bool herd = false, FeuerArt? art = null)
     {
         var halter = new Node3D { Position = a.Mitte + ort };
         (eltern ?? a.Innen!).AddChild(halter);
         var flamme = Feuer.Neu(vorgabe, false, -1f, groesse);
         flamme.Ausrichtung = FeuerAusrichtung.Hochachse; // aufrecht: Im Raum blickt die Kamera nur leicht von oben
         if (herd) flamme.Art = Herdfeuer();
+        else if (art is not null) flamme.Art = art;
         halter.AddChild(flamme);
         a.Flammen.Add((flamme, an));
         return halter;
