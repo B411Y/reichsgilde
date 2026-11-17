@@ -112,17 +112,39 @@ public sealed class JahreszeitDaten
 
 /// <summary>
 /// Der strenge Winter (nur in einem Winterjahr): Zu Jahresbeginn wird die Kälte des Winters gewürfelt (0–1, aus einer <see cref="Zufallsquelle"/>
-/// mit Startwert der Partie und Jahr). Ab 1 − <see cref="Chance"/> ist er streng: Die Nachfrage des Winters wächst noch einmal, und der Fluss friert
+/// mit Startwert der Partie und Jahr). Ab 1 − Chance ist er streng: Die Nachfrage des Winters wächst noch einmal, und der Fluss friert
 /// zu – um eine gewürfelte Stunde zwischen <see cref="ZufrierenVon"/> und <see cref="ZufrierenBis"/> Uhr, für eine Dauer, die mit der Kälte von
 /// <see cref="DauerMin"/> bis <see cref="DauerMax"/> Stunden wächst (bis höchstens zum Jahresende um 23 Uhr).
+/// Wie oft und wie stark, stellt die „Härte der Zeit“ der Partie (<see cref="Von"/>, ab Datenversion 94; Nutzer 17.11.2026).
 /// </summary>
 public sealed class StrengerWinterDaten
 {
-    /// <summary>So oft ist ein Winter streng (0,3 = in drei von zehn Wintern).</summary>
+    /// <summary>
+    /// So oft ist ein Winter streng (0,3 = in drei von zehn Wintern). Gilt nur für eine Stufe der Härte, die in den Daten fehlt
+    /// (Daten vor Version 94 kannten nur diesen einen Wert).
+    /// </summary>
     public double Chance { get; init; } = 0.3;
 
-    /// <summary>Im strengen Winter wächst jeder Nachfragefaktor des Winters um diesen Anteil seines Zuschlags (0,5: 1,4 → 1,6).</summary>
+    /// <summary>
+    /// Im strengen Winter wächst jeder Nachfragefaktor des Winters um diesen Anteil seines Zuschlags (0,5: 1,4 → 1,6). Gilt wie
+    /// <see cref="Chance"/> nur für eine Stufe, die in den Daten fehlt.
+    /// </summary>
     public double NachfrageZuschlag { get; init; } = 0.5;
+
+    /// <summary>Die Stufen der „Härte der Zeit“ (null: es gelten <see cref="Chance"/> und <see cref="NachfrageZuschlag"/>).</summary>
+    public WinterStufe? Mild { get; init; }
+    public WinterStufe? Ueberliefert { get; init; }
+    public WinterStufe? Hart { get; init; }
+
+    private WinterStufe? _grund;
+
+    /// <summary>Chance und Nachfragezuschlag bei dieser Härte der Zeit.</summary>
+    public WinterStufe Von(HaerteDerZeit h) => (h switch
+    {
+        HaerteDerZeit.Mild => Mild,
+        HaerteDerZeit.Hart => Hart,
+        _ => Ueberliefert,
+    }) ?? (_grund ??= new WinterStufe { Chance = Chance, NachfrageZuschlag = NachfrageZuschlag });
 
     /// <summary>Frühste und späteste Stunde, zu der der Fluss zufriert (volle Stunde, Uhrzeit).</summary>
     public int ZufrierenVon { get; init; } = 7;
@@ -146,6 +168,25 @@ public sealed class StrengerWinterDaten
             f.Add($"{p}: zufrierenVon und zufrierenBis müssen zwischen {erste} und {letzte} Uhr liegen (von vor bis).");
         if (DauerMin < 1 || DauerMax < DauerMin) f.Add($"{p}: dauerMin muss mindestens 1 sein und dauerMax mindestens dauerMin.");
         if (FaehreMinuten < 0) f.Add($"{p}.faehreMinuten darf nicht negativ sein.");
+        Mild?.Pruefen(f, $"{p}.mild");
+        Ueberliefert?.Pruefen(f, $"{p}.ueberliefert");
+        Hart?.Pruefen(f, $"{p}.hart");
+    }
+}
+
+/// <summary>Eine Stufe der „Härte der Zeit“ für den strengen Winter: wie oft ein Winter streng ist und wie stark die Nachfrage dann wächst.</summary>
+public sealed class WinterStufe
+{
+    /// <summary>So oft ist ein Winter streng (0,2 = in zwei von zehn Wintern).</summary>
+    public double Chance { get; init; } = 0.2;
+
+    /// <summary>Im strengen Winter wächst jeder Nachfragefaktor des Winters um diesen Anteil seines Zuschlags (0,5: 1,4 → 1,6).</summary>
+    public double NachfrageZuschlag { get; init; } = 0.5;
+
+    internal void Pruefen(List<string> f, string p)
+    {
+        if (Chance is < 0 or > 1) f.Add($"{p}.chance muss zwischen 0 und 1 liegen.");
+        if (NachfrageZuschlag is < 0 or > 2) f.Add($"{p}.nachfrageZuschlag muss zwischen 0 und 2 liegen.");
     }
 }
 
