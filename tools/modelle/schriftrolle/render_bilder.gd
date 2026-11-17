@@ -108,12 +108,26 @@ func _aufbau(mit_hand: bool) -> void:
 	cam.position = Vector3(0.0, 0.05, 1.85)
 	cam.look_at_from_position(cam.position, Vector3(-0.02, 0.0, 0.0), Vector3.UP)
 	sv.add_child(cam)
+	kamera = cam
+
+
+var kamera: Camera3D
+
+
+func cam_nah() -> void:
+	kamera.fov = 26.0
+	kamera.look_at_from_position(Vector3(0.0, 0.16, 0.95), Vector3(0.0, 0.14, 0.0), Vector3.UP)
+
+
+func cam_fern() -> void:
+	kamera.fov = 28.0
+	kamera.look_at_from_position(Vector3(0.0, 0.05, 1.85), Vector3(-0.02, 0.0, 0.0), Vector3.UP)
 
 
 func _pose(clip: String, t: float) -> void:
 	var sf := rolle.find_child("Symbolflaeche", true, false) as Node3D
 	if sf != null:
-		sf.visible = (clip == "aufrollen" and t >= 0.32) or (clip == "zurollen" and t <= 0.38)
+		sf.visible = (clip == "aufrollen" and t >= 0.233) or (clip == "zurollen" and t <= 0.233)
 	spieler_r.play(clip)
 	spieler_r.seek(t, true)
 	spieler_r.pause()
@@ -137,30 +151,39 @@ func _ablauf() -> void:
 	for ps in [1, 2, 3]:
 		_pose("aufrollen", 0.0)
 		await _bild("still_%d_zu.png" % ps, ps)
-		_pose("aufrollen", 0.35)
+		_pose("aufrollen", 0.30)
 		await _bild("still_%d_halb.png" % ps, ps)
-		_pose("aufrollen", 0.7)
+		_pose("aufrollen", 0.9)
 		await _bild("still_%d_offen.png" % ps, ps)
+	# Nahaufnahme offen: Staebe mit Papier
+	hand.visible = false
+	cam_nah()
+	for ps in [1, 2, 3]:
+		_pose("aufrollen", 0.9)
+		await _bild("nah_%d_offen.png" % ps, ps)
+		_pose("aufrollen", 0.0)
+		await _bild("nah_%d_zu.png" % ps, ps)
+	cam_fern()
 	# Bildfolge fuer das Video: Pixel 2, nur Rolle (Handschuh weg)
 	hand.visible = false
 	var n := 0
 	var folge: Array = []
-	for i in 22:
+	for i in 28:
 		folge.append(["aufrollen", i / 30.0])
 	for i in 30:
-		folge.append(["aufrollen", 0.7])
-	for i in 22:
+		folge.append(["aufrollen", 0.9])
+	for i in 28:
 		folge.append(["zurollen", i / 30.0])
 	for i in 30:
-		folge.append(["zurollen", 0.7])
-	for i in 64:
-		folge.append(["aufrollen", minf(i / 90.0, 0.7)])
+		folge.append(["zurollen", 0.9])
+	for i in 82:
+		folge.append(["aufrollen", minf(i / 90.0, 0.9)])
 	for i in 30:
-		folge.append(["aufrollen", 0.7])
-	for i in 64:
-		folge.append(["zurollen", minf(i / 90.0, 0.7)])
+		folge.append(["aufrollen", 0.9])
+	for i in 82:
+		folge.append(["zurollen", minf(i / 90.0, 0.9)])
 	for i in 30:
-		folge.append(["zurollen", 0.7])
+		folge.append(["zurollen", 0.9])
 	for f in folge:
 		_pose(f[0], f[1])
 		await _bild("video/f_%04d.png" % n, 2)

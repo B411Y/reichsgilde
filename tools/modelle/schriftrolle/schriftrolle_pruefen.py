@@ -24,7 +24,7 @@ jl = struct.unpack("<I", daten[12:16])[0]
 j = json.loads(daten[20:20 + jl].decode("utf-8"))
 
 knoten = {n.get("name") for n in j["nodes"]}
-for n in ("Schriftrolle_Geruest", "Schriftrolle", "Schriftrolle_Umriss", "Symbolflaeche", "Stab_oben", "Stab_unten") + tuple(f"Zeile_{i:02d}" for i in range(25)):
+for n in ("Schriftrolle_Geruest", "Schriftrolle", "Schriftrolle_Umriss", "Symbolflaeche", "Stab_oben", "Stab_unten") + tuple(f"Zeile_{i:02d}" for i in range(41)):
     pruefe(n in knoten, f"Knoten {n}")
 
 tris = {}
@@ -46,8 +46,8 @@ print("Clips:", clips)
 for c in ("aufrollen", "zurollen", "zu"):
     pruefe(c in clips, f"Clip {c}")
 for c in ("aufrollen", "zurollen"):
-    pruefe(c in clips and 0.6 <= clips[c] <= 0.8, f"Clip {c} dauert {clips.get(c)} s (0,6 bis 0,8)")
-pruefe(len(j.get("skins", [])) >= 1 and len(j["skins"][0]["joints"]) == 27, "Haut mit 27 Knochen")
+    pruefe(c in clips and 0.8 <= clips[c] <= 1.0, f"Clip {c} dauert {clips.get(c)} s (0,8 bis 1,0)")
+pruefe(len(j.get("skins", [])) >= 1 and len(j["skins"][0]["joints"]) == 43, "Haut mit 43 Knochen")
 mats = {m.get("name") for m in j["materials"]}
 for m in ("Schriftrolle_Holz", "Schriftrolle_Pergament", "Schriftrolle_Symbol", "Umriss"):
     pruefe(m in mats, f"Material {m}")
@@ -62,6 +62,9 @@ if mj and os.path.exists(mj):
     pruefe(b_zu[2] < 0.15 and b_of[2] > 0.4, "zu niedrig (< 0,15 m), offen hoch (> 0,4 m)")
     mitte = offen["symbol_mitte"]
     pruefe(abs(mitte[0]) < 0.01 and abs(mitte[2]) < 0.01, f"Symbolflaeche offen in der Mitte {mitte}")
+    pruefe(m["neigung_max_grad"] <= 0.5, f"Neigung (Pergamentnormale der Mitte, Stabachsen) in jedem Bild jedes Clips gleich: groesste Abweichung {m['neigung_max_grad']} Grad (<= 0,5); erster Stand: {m['neigung_erster_stand_max_grad']} Grad")
+    pruefe(m["masse"]["lagen_offen"] >= 2.0, f"offen noch {m['masse']['lagen_offen']} Lagen auf den Staeben (zu: {m['masse']['lagen_zu']})")
+    print("Symbolflaeche-Zeiten:", m["symbol_zeiten_s"])
     pruefe(abs(offen["symbol_max"][0] - offen["symbol_min"][0] - m["symbolflaeche_m"][0]) < 0.002, "Symbolflaeche offen so breit wie angegeben")
 
 print("FERTIG" if not fehler else f"{len(fehler)} Fehler")

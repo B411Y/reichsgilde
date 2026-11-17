@@ -4,10 +4,12 @@
 Schreibt <ausordner>/schriftrolle.glb (mit Clips), <ausordner>/schriftrolle.blend und <ausordner>/messwerte_schriftrolle.json.
 
 Aufbau (Meter, Blender-Koordinaten; Blick von vorn = -Y, X nach rechts, Z oben; Mittelpunkt des Pergaments = Ursprung):
-  - Geruest "Schriftrolle_Geruest": 27 Knochen ohne Eltern: Stab_oben, Stab_unten, Zeile_00..Zeile_24 (eine pro Querlinie des Pergaments).
-    Rast-Pose = "zu"; die Clips setzen je Bild die Lage jedes Knochens (Rolle wickelt sich auf einer Archimedes-Spirale, die Staebe drehen sich mit).
+  - Geruest "Schriftrolle_Geruest": 43 Knochen ohne Eltern: Stab_oben, Stab_unten, Zeile_00..Zeile_40 (eine pro Querlinie des Pergaments).
+    Rast-Pose = "zu"; die Clips setzen je Bild die Lage jedes Knochens (Pergament wickelt sich auf einer Archimedes-Spirale, die Staebe drehen sich mit).
   - Netze: "Schriftrolle" (Holz + Pergament), "Schriftrolle_Umriss" (invertierte Huelle, schwarz), "Symbolflaeche" (Quad auf dem Pergament, Material Schriftrolle_Symbol).
-  - Form: Die Rolle ist ein S: oberer und unterer Stab wickeln je die halbe Pergamentlaenge, im geschlossenen Zustand beruehren sich die Rollen in der Mitte.
+  - Form: Beide Staebe wickeln je ein Stueck Pergament auf (offen 0,20 m = etwa 2,6 Lagen, zu 0,37 m); der flache Teil dazwischen liegt in ALLEN Zustaenden
+    senkrecht in der Ebene y = 0 (Vorderseite nach -Y), die Rollen liegen davor (vorn, Vorderseite des Papiers innen). Beide Staebe stehen immer genau uebereinander
+    (gleiches y), nur die Rollen werden groesser bzw. kleiner: darum keine Neigung, die sich im Clip aendert.
 Gleiche Machart wie der Handschuh: Umriss durch invertierte Huelle (Ecken entlang der gemittelten Normalen verschoben, Flaechen gewendet), Knochengewichte 1,0.
 Texturen (Pergament, Holz) werden hier selbst gemalt (numpy, feste Saat) und in die .glb eingebettet."""
 import bpy, bmesh, math, os, sys, json, struct, zlib
@@ -20,24 +22,27 @@ os.makedirs(AUS, exist_ok=True)
 
 # ------------------------------------------------------------------ Masse (Meter)
 W = 0.30            # Breite des Pergaments
-L = 0.40            # Laenge des Pergaments (offen: Abstand der Stabmitten)
-T = 0.006           # Dicke des Pergaments (uebertrieben, damit die Rolle Kontur hat)
+FLACH = 0.40        # Laenge des flachen Teils im Zustand offen (Abstand der Aufwickelstellen)
+T = 0.004           # Dicke des Pergaments (uebertrieben, damit die Rolle Kontur hat)
 R0 = 0.015          # Radius der Staebe
 RS = R0 + T / 2     # Spirale beginnt auf dem Stab
 K = T / math.pi     # Flaechenzuwachs der Spirale: r^2 = RS^2 + K * Laenge
-N = 12              # Zeilen je Haelfte (insgesamt 2N+1 Querlinien)
+W_OFFEN = 0.20      # aufgewickelte Laenge je Stab im Zustand offen (r = 0,0233 m, etwa 2,6 Lagen)
+LGES = FLACH + 2 * W_OFFEN   # ganze Pergamentlaenge 0,80 m
+H = LGES / 2        # Pergamentlaenge je Haelfte
+N = 20              # Zeilen je Haelfte (insgesamt 2N+1 Querlinien, Abstand 0,02 m)
 SEG = 8             # Ecken der Staebe
 UMRISS = 0.005      # Abstand der Umriss-Huelle (wie beim Handschuh ca. 2 % der Groesse)
-SYM_ZEILEN = (7, 17)  # Zeilen der Symbolflaeche (Mitte = Zeile N)
-SYM_B = (SYM_ZEILEN[1] - SYM_ZEILEN[0]) * L / (2 * N)   # Hoehe = Breite der Symbolflaeche
+SYM_ZEILEN = (N - 5, N + 5)  # Zeilen der Symbolflaeche (Mitte = Zeile N)
+SYM_B = (SYM_ZEILEN[1] - SYM_ZEILEN[0]) * H / N   # Hoehe = Breite der Symbolflaeche (0,20 m)
 SYM_ABST = 0.0008   # Symbolflaeche schwebt 0,8 mm ueber dem Pergament (kein Z-Fighting)
 FPS = 30
-CLIP_BILDER = 21    # 0,7 s
+CLIP_BILDER = 27    # 0,9 s
 NAMEN_ZEILE = [f"Zeile_{i:02d}" for i in range(2 * N + 1)]
 STAB = ("Stab_oben", "Stab_unten")
 
-# Drechselprofil (x, r) fuer die rechte Haelfte; gespiegelt ergibt das beide Knaeufe: Schaft, Perle, Hals, Kugelknauf
-HALB = [(0.152, 0.015), (0.157, 0.0215), (0.163, 0.0215), (0.167, 0.0135), (0.178, 0.0135), (0.187, 0.027), (0.200, 0.027), (0.212, 0.012), (0.2145, 0.0)]
+# Drechselprofil (x, r) fuer die rechte Haelfte; gespiegelt ergibt das beide Knaeufe: Schaft, Hals, Kugelknauf
+HALB = [(0.152, 0.015), (0.157, 0.0125), (0.176, 0.0125), (0.186, 0.026), (0.200, 0.026), (0.212, 0.012), (0.2145, 0.0)]
 PROFIL = [(-x, r) for (x, r) in reversed(HALB)] + HALB
 
 
@@ -49,41 +54,58 @@ def trans(y, z):
     return Matrix.Translation((0.0, y, z))
 
 
+def _radius(s):
+    return math.sqrt(RS * RS + K * s)
+
+
+def _phi(s):
+    return 2.0 * (_radius(s) - RS) / K
+
+
+def _w_zu():
+    """Aufgewickelte Laenge im Zustand zu: Rollen beruehren sich (Abstand der Mitten = 2 x Aussenradius)."""
+    lo, hi = W_OFFEN, H
+    for _ in range(60):
+        m = (lo + hi) / 2
+        if (H - m) - (_radius(m) + T / 2) > 0.0005:
+            lo = m
+        else:
+            hi = m
+    return lo
+
+
+W_ZU = _w_zu()
+
+
 def zustand(u):
-    """Lage aller Zeilen und Staebe fuer Offenheit u (0 = zu, 1 = offen): Liste (y, z, winkel) je Zeile, Liste (y, z, winkel) je Stab."""
-    w = (1.0 - u) * L / 2
-    f = 1.0 - u
-    phi = lambda s: 2.0 * (math.sqrt(RS * RS + K * s) - RS) / K
-    rw = math.sqrt(RS * RS + K * w)
-    ad = -f * math.pi / 2
-    l = L / 2 - w
-    tau = (math.sin(ad), -math.cos(ad))
-    nn = (math.cos(ad), math.sin(ad))
-    C = (-l * tau[0] - rw * nn[0], -l * tau[1] - rw * nn[1])
-    Pd = (C[0] + rw * nn[0], C[1] + rw * nn[1])
+    """Lage aller Zeilen und Staebe fuer Offenheit u (0 = zu, 1 = offen, auch ausserhalb fuer Nachfedern): Liste (y, z, winkel) je Zeile, Liste (y, z, winkel) je Stab.
+    Der flache Teil bleibt immer senkrecht in y = 0; die Rollen liegen vor ihm, beide Staebe auf gleichem y (keine Neigung)."""
+    w = max(0.0, W_ZU + u * (W_OFFEN - W_ZU))
+    rw = _radius(w)
+    zt = H - w
+    C = (-rw, zt)
     zeilen = []
     for i in range(2 * N + 1):
-        s = i * L / (2 * N)
-        sig = s if i <= N else L - s
+        sig = i * H / N if i <= N else (2 * N - i) * H / N
         if sig <= w + 1e-9:
-            r = math.sqrt(RS * RS + K * sig)
-            a = ad + phi(w) - phi(sig)
+            r = _radius(sig)
+            a = _phi(w) - _phi(sig)
             p = (C[0] + r * math.cos(a), C[1] + r * math.sin(a))
             th = a
         else:
-            p = (Pd[0] + (sig - w) * tau[0], Pd[1] + (sig - w) * tau[1])
-            th = ad
+            p = (0.0, zt - (sig - w))
+            th = 0.0
         if i > N:
-            p = (-p[0], -p[1])
+            p = (p[0], -p[1])
+            th = -th
         zeilen.append((p[0], p[1], th))
-    th0 = ad + phi(w)
-    staebe = [(C[0], C[1], th0), (-C[0], -C[1], th0)]
+    th0 = _phi(w)
+    staebe = [(C[0], C[1], th0), (C[0], -C[1], -th0)]
     return zeilen, staebe
 
 
 def matrix_zeile(z):
     return trans(z[0], z[1]) @ rot_x(z[2])
-
 
 # ------------------------------------------------------------------ Texturen (selbst gemalt)
 def png_schreiben(pfad, rgb):
@@ -113,8 +135,7 @@ def vnoise(rng, h, b, gy, gx):
 
 def textur_pergament():
     rng = np.random.default_rng(1480)
-    h, b = 256, 192   # 3:4 wie das Pergament (Breite : Laenge = 0,30 : 0,40)
-    b, h = 192, 256
+    b, h = 192, 384   # 3:6 wie das Pergament (Breite : Laenge = 0,30 : 0,80)
     fleck = 0.55 * vnoise(rng, h, b, 4, 3) + 0.30 * vnoise(rng, h, b, 12, 9) + 0.15 * vnoise(rng, h, b, 40, 30)
     faser = vnoise(rng, h, b, 90, 6)
     farbe = np.array([0.86, 0.75, 0.52])
@@ -221,8 +242,7 @@ ZEILE = []
 for i, z in enumerate(zeilen0):
     M = matrix_zeile(z)
     R3 = M.to_3x3()
-    s = i * L / (2 * N)
-    vv = 1.0 - s / L
+    vv = 1.0 - i / (2 * N)
     g = NAMEN_ZEILE[i]
     d = {}
     for nm, ly, uvx in (("v", -T / 2, 0), ("h", T / 2, 1)):
@@ -388,8 +408,21 @@ def pose_setzen(u, frame=None):
             pb.keyframe_insert("rotation_quaternion", frame=frame, group=nm)
 
 
-def sanft(t):
-    return t * t * (3 - 2 * t)
+def verlauf(punkte):
+    """Offenheit u ueber die Zeit: Stuetzpunkte (Bild, u); zwischen je zwei Punkten Kosinus-Weiche (Steigung 0 an jedem Punkt) = gedaempftes Nachfedern."""
+    def f(bild):
+        for (b0, u0), (b1, u1) in zip(punkte, punkte[1:]):
+            if b0 <= bild <= b1:
+                x = (bild - b0) / (b1 - b0)
+                return u0 + (u1 - u0) * (1.0 - math.cos(math.pi * x)) / 2.0
+        return punkte[-1][1]
+    return f
+
+
+# aufrollen: weit ueber die Endstellung (+5 %), ein Stueck zurueck (-1,5 %), kleiner zweiter Ausschlag (+0,8 %), Ruhe bei 1
+AUF = [(0, 0.0), (14, 1.05), (20, 0.985), (24, 1.008), (27, 1.0)]
+# zurollen: kurz ueber "zu" hinaus (-3 %), zurueck, kleiner Ausschlag, Ruhe bei 0
+ZU = [(0, 1.0), (14, -0.03), (20, 0.012), (24, -0.003), (27, 0.0)]
 
 
 try:
@@ -405,16 +438,16 @@ def clip(name, bilder, offenheit):
     a.use_fake_user = True
     arm.animation_data.action = a
     for f in range(bilder + 1):
-        pose_setzen(offenheit(f / bilder), f)
+        pose_setzen(offenheit(f), f)
     a.frame_range = (0, bilder)
     a.use_frame_range = True
     a.use_cyclic = False
     aktionen[name] = a
 
 
-clip("aufrollen", CLIP_BILDER, lambda t: sanft(t))
-clip("zurollen", CLIP_BILDER, lambda t: sanft(1.0 - t))
-clip("zu", 1, lambda t: 0.0)
+clip("aufrollen", CLIP_BILDER, verlauf(AUF))
+clip("zurollen", CLIP_BILDER, verlauf(ZU))
+clip("zu", 1, lambda f: 0.0)
 arm.animation_data.action = aktionen["zu"]
 sc.frame_set(0)
 
@@ -437,14 +470,64 @@ def dreiecke(o):
 
 mess = {"dreiecke": {"Schriftrolle": dreiecke(ob), "Schriftrolle_Umriss": dreiecke(um), "Symbolflaeche": dreiecke(obs)}}
 mess["dreiecke"]["gesamt"] = sum(mess["dreiecke"].values())
-for zst, (fr, act) in (("zu", (0, "zu")), ("offen", (CLIP_BILDER, "aufrollen"))):
+for zst, (fr, act) in (("zu", (0, "zu")), ("halb", (9, "aufrollen")), ("offen", (CLIP_BILDER, "aufrollen"))):
     mn, mx = hoehe_netz(ob, fr, act)
     smn, smx = hoehe_netz(obs, fr, act)
     mess[zst] = {"schriftrolle_min": [round(float(x), 4) for x in mn], "schriftrolle_max": [round(float(x), 4) for x in mx],
                  "symbol_min": [round(float(x), 4) for x in smn], "symbol_max": [round(float(x), 4) for x in smx],
                  "symbol_mitte": [round(float((a + b) / 2), 4) for a, b in zip(smn, smx)]}
 mess["symbolflaeche_m"] = [round(SYM_B, 4), round(SYM_B, 4)]
-mess["masse"] = {"breite": W, "laenge": L, "dicke": T, "stabradius": R0, "knauf_radius": 0.027, "stablaenge_mit_knaeufen": 2 * 0.2145}
+mess["masse"] = {"breite": W, "flach_offen": FLACH, "papier_gesamt": LGES, "wickel_offen_m": W_OFFEN, "wickel_zu_m": round(W_ZU, 4), "lagen_offen": round((_radius(W_OFFEN) + T / 2 - R0) / T, 2),
+                 "lagen_zu": round((_radius(W_ZU) + T / 2 - R0) / T, 2), "dicke": T, "stabradius": R0, "knauf_radius": 0.027, "stablaenge_mit_knaeufen": 2 * 0.2145}
+
+
+# Neigung: in jedem Bild jedes Clips muss das Pergament (Normale der mittleren Zeile) nach -Y zeigen und die Stabmitten muessen auf gleichem y liegen
+def neigung_messen():
+    arm.animation_data.action = aktionen["zu"]
+    schlimmste = 0.0
+    for name in ("aufrollen", "zurollen", "zu"):
+        arm.animation_data.action = aktionen[name]
+        for f in range(int(aktionen[name].frame_range[1]) + 1):
+            sc.frame_set(f)
+            bpy.context.view_layer.update()
+            mid = arm.pose.bones[NAMEN_ZEILE[N]].matrix.to_3x3() @ Vector((0, -1, 0))
+            a_norm = math.degrees(math.acos(max(-1.0, min(1.0, mid.dot(Vector((0, -1, 0)))))))
+            d = arm.pose.bones["Stab_oben"].matrix.translation - arm.pose.bones["Stab_unten"].matrix.translation
+            a_stab = math.degrees(math.atan2(abs(d.y), abs(d.z)))
+            schlimmste = max(schlimmste, a_norm, a_stab)
+    return schlimmste
+
+
+def neigung_alt():
+    """Gegenprobe: die Rechnung des ersten Standes (S-Form, e4c2137f) auf dieselbe Messung angewendet: Winkel der Pergamentnormalen der Mitte ueber u in 0..1."""
+    Lalt, Talt, R0alt = 0.40, 0.006, 0.015
+    RSa = R0alt + Talt / 2
+    Ka = Talt / math.pi
+    schlimmste = 0.0
+    for k in range(0, 22):
+        u = k / 21.0
+        f = 1.0 - u
+        ad = -f * math.pi / 2
+        schlimmste = max(schlimmste, abs(math.degrees(ad)))
+    return schlimmste
+
+
+mess["neigung_max_grad"] = round(neigung_messen(), 4)
+mess["neigung_erster_stand_max_grad"] = round(neigung_alt(), 1)
+
+
+# Symbolflaeche: ab wann dauerhaft flach (aufrollen), bis wann flach (zurollen) - alle Symbolzeilen liegen auf dem flachen Teil (Abstand der Wickelstelle >= Zeile)
+def symbol_flach(u):
+    w = max(0.0, W_ZU + u * (W_OFFEN - W_ZU))
+    return w <= (N - 5) * H / N + 1e-9
+
+
+auf_f = [symbol_flach(verlauf(AUF)(f)) for f in range(CLIP_BILDER + 1)]
+zu_f = [symbol_flach(verlauf(ZU)(f)) for f in range(CLIP_BILDER + 1)]
+ab = next(f for f in range(CLIP_BILDER + 1) if all(auf_f[f:]))
+bis = max(f for f in range(CLIP_BILDER + 1) if all(zu_f[:f + 1]))
+mess["symbol_zeiten_s"] = {"aufrollen_sichtbar_ab": round(ab / FPS, 3), "zurollen_sichtbar_bis": round(bis / FPS, 3), "clip_dauer": round(CLIP_BILDER / FPS, 3)}
+mess["nachfedern"] = {"aufrollen": AUF, "zurollen": ZU}
 arm.animation_data.action = aktionen["zu"]
 sc.frame_set(0)
 print("MESSWERTE", json.dumps(mess))

@@ -4,4 +4,4 @@ Kein KI-Modell, kein Prompt: Das Modell entsteht rein aus Rechnung und Formen in
 
 Auftrag (Nutzer, 17.11.2026, über den Teamleiter): aufgerollte Schriftrolle mit zwei Holzstäben oben und unten, gedrechselten Knäufen an beiden Enden und Pergament dazwischen (offen: ausgerollt, zu: beide Stäbe zusammen, Pergament aufgewickelt); gleiche Machart wie der 3D-Handschuh (schwarzer Umriss als invertierte Hülle); Animationen `aufrollen` und `zurollen`; Symbolfläche in der Mitte; unter 1.500 Dreiecken. Die Form ist nachgebaut, nicht von der gezeigten Zeichnung abgepaust.
 
-Texturen: Pergament (192 x 256) und Holz (128 x 128) werden im Skript mit numpy aus festen Saaten gemalt (Wertrauschen, Fasern, dunkler Rand), keine Fremdbilder.
+Texturen: Pergament (192 x 384) und Holz (128 x 128) werden im Skript mit numpy aus festen Saaten gemalt (Wertrauschen, Fasern, dunkler Rand), keine Fremdbilder.
