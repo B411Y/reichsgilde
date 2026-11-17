@@ -101,10 +101,9 @@ public sealed partial class SchriftrollenBuehne : Node
         var m = MeldungStil.Mass;
         var clip = rolle.Spieler.HasAnimation("aufrollen") ? rolle.Spieler.GetAnimation("aufrollen").Length : 0.9;
         var masse = new RollenMasse(
-            ClipSekunden: clip, SymbolAb: m("rolle_symbol_ms") / 1000.0, NeigungGrad: m("rolle_neigung_grad"), PendelGrad: Math.Min(5, m("rolle_pendel_grad")),
-            HuepfHoehe: m("rolle_huepfen_mm") / 1000.0, HuepfSekunden: m("rolle_huepfen_ms") / 1000.0,
-            SchlussHuepfenAb: m("rolle_schluss_huepfen_ms") / 1000.0, AusblendSekunden: m("rolle_ausblenden_ms") / 1000.0);
-        rolle.Ablauf = new SchriftrolleAblauf(masse, GD.Randf(), GD.Randf(), GD.Randf(), GD.Randf());
+            ClipSekunden: clip, SymbolAb: m("rolle_symbol_ms") / 1000.0, NeigungGrad: m("rolle_neigung_grad"), PendelGrad: Math.Min(2, m("rolle_pendel_grad")),
+            HuepfHoehe: m("rolle_huepfen_mm") / 1000.0, HuepfSekunden: m("rolle_huepfen_ms") / 1000.0, AusblendSekunden: m("rolle_ausblenden_ms") / 1000.0);
+        rolle.Ablauf = new SchriftrolleAblauf(masse, GD.Randf(), GD.Randf());
         rolle.Belegt = true;
         rolle.Wurzel.Visible = true;
         SymbolSetzen(rolle, themaId, farbe);
@@ -238,7 +237,7 @@ public sealed partial class SchriftrollenBuehne : Node
         if (_bild.RenderTargetUpdateMode != modus) _bild.RenderTargetUpdateMode = modus;
     }
 
-    /// <summary>Überträgt den Stand des Ablaufs auf das Modell: Stelle im Clip, Symbol an oder aus, Sprung, Neigung und Pendeln.</summary>
+    /// <summary>Überträgt den Stand des Ablaufs auf das Modell: Stelle im Clip, Symbol an oder aus, Sprung, Neigung und Drehen im Leerlauf.</summary>
     private void Anwenden(Rolle r)
     {
         var a = r.Ablauf;

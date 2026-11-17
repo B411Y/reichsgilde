@@ -8,35 +8,30 @@ public enum RollenZustand { Zu, Aufrollen, Offen, Zurollen, Weg }
 /// die Cliplänge aus der .glb. Zeiten in Sekunden, Winkel in Grad, Höhe in Metern der kleinen 3D-Bühne.
 /// </summary>
 public readonly record struct RollenMasse(
-    double ClipSekunden, double SymbolAb, double NeigungGrad, double PendelGrad, double HuepfHoehe, double HuepfSekunden, double SchlussHuepfenAb, double AusblendSekunden);
+    double ClipSekunden, double SymbolAb, double NeigungGrad, double PendelGrad, double HuepfHoehe, double HuepfSekunden, double AusblendSekunden);
 
 /// <summary>
 /// Die reine Ablauflogik einer 3D-Schriftrolle (<see cref="SchriftrollenBuehne"/>) ohne Godot, damit sie sich testen lässt
-/// (<c>SchriftrolleAblaufTests.cs</c>): erscheint geschlossen, rollt mit einem kurzen Sprung auf, pendelt offen ganz leicht um alle drei Achsen
-/// (jede Rolle mit eigener Phase und eigenem Tempo), rollt zu, springt noch einmal kurz und ist weg. Die Neigung schaut immer schräg nach oben
-/// zum Spieler und kippt nie nach unten. Ohne Bewegung (Einstellung „Siegel und Briefe bewegen“ aus) steht die Rolle sofort offen und still.
+/// (<c>SchriftrolleAblaufTests.cs</c>): erscheint geschlossen, rollt mit einem kurzen Sprung auf, dreht sich offen ganz leicht nach links und rechts
+/// (nur um die Hochachse Y, jede Rolle mit eigener Phase und eigenem Tempo), rollt zu und ist weg – ohne Sprung. Die Neigung schaut immer schräg
+/// nach oben zum Spieler und bleibt fest. Ohne Bewegung (Einstellung „Siegel und Briefe bewegen“ aus) steht die Rolle sofort offen und still.
 /// </summary>
 public sealed class SchriftrolleAblauf
 {
-    /// <summary>Anteil des Pendelns je Achse (X nicken, Y drehen, Z kippen) – nie mehr als 1, so bleibt jede Achse innerhalb von <see cref="RollenMasse.PendelGrad"/>.</summary>
-    private static readonly double[] Anteil = { 0.6, 1.0, 0.5 };
-    /// <summary>Grunddauer einer Schwingung je Achse in Sekunden (ungleich, damit sich das Bild nicht wiederholt).</summary>
-    private static readonly double[] Periode = { 5.3, 6.7, 4.1 };
+    /// <summary>Grunddauer einer Schwingung nach links und rechts in Sekunden (das Tempo je Rolle streckt oder staucht sie).</summary>
+    private const double Periode = 6.7;
     private const double PendelAn = 0.7, PendelAus = 0.2;
 
     private readonly RollenMasse _m;
-    private readonly double[] _phase = new double[3];
+    private readonly double _phase;
     private readonly double _tempo;
     private double _zeit, _clipzeit, _huepfen = -1, _pendel;
-    private bool _schlussGehuepft;
 
-    /// <param name="zufall">Drei Zahlen von 0 bis 1 für die Phasen der Achsen und eine für das Tempo – je Rolle andere, damit nicht alle gleich pendeln.</param>
-    public SchriftrolleAblauf(RollenMasse masse, double zufallX, double zufallY, double zufallZ, double zufallTempo)
+    /// <summary>Zwei Zahlen von 0 bis 1 für Phase und Tempo – je Rolle andere, damit nicht alle gleich pendeln.</summary>
+    public SchriftrolleAblauf(RollenMasse masse, double zufallPhase, double zufallTempo)
     {
         _m = masse;
-        _phase[0] = zufallX * Math.Tau;
-        _phase[1] = zufallY * Math.Tau;
-        _phase[2] = zufallZ * Math.Tau;
+        _phase = zufallPhase * Math.Tau;
         _tempo = 0.75 + 0.5 * Math.Clamp(zufallTempo, 0, 1);
     }
 
@@ -59,7 +54,6 @@ public sealed class SchriftrolleAblauf
     public void Erscheinen(bool bewegt)
     {
         _pendel = 0;
-        _schlussGehuepft = false;
         if (!bewegt)
         {
             Zustand = RollenZustand.Offen;
@@ -72,7 +66,7 @@ public sealed class SchriftrolleAblauf
         _huepfen = 0;
     }
 
-    /// <summary>Die Meldung ist erledigt: zurollen, kurz springen, verschwinden; ohne Bewegung sofort weg.</summary>
+    /// <summary>Die Meldung ist erledigt: nur zurollen, dann verschwinden (kein Sprung); ohne Bewegung sofort weg.</summary>
     public void Schliessen(bool bewegt)
     {
         if (Zustand is RollenZustand.Zurollen or RollenZustand.Weg) return;
@@ -84,7 +78,7 @@ public sealed class SchriftrolleAblauf
         // Mitten im Aufrollen geschlossen: an der passenden Stelle des Zurollens weitermachen, statt erst ganz aufzuspringen
         _clipzeit = Zustand == RollenZustand.Aufrollen ? Math.Clamp(_m.ClipSekunden - _clipzeit, 0, _m.ClipSekunden) : 0;
         Zustand = RollenZustand.Zurollen;
-        _schlussGehuepft = false;
+        _huepfen = -1;
     }
 
     /// <summary>Ein kurzer Sprung auf der Stelle (eine weitere Meldung kam auf denselben Stapel).</summary>
@@ -134,15 +128,9 @@ public sealed class SchriftrolleAblauf
             case RollenZustand.Zurollen:
                 _pendel = Math.Max(0, _pendel - dt / PendelAus);
                 _clipzeit += dt;
-                if (!_schlussGehuepft && _clipzeit >= _m.SchlussHuepfenAb)
-                {
-                    _schlussGehuepft = true;
-                    _huepfen = 0;
-                }
                 if (_clipzeit >= _m.ClipSekunden)
                 {
                     _clipzeit = _m.ClipSekunden;
-                    _huepfen = -1;
                     Zustand = RollenZustand.Weg;
                 }
                 break;
@@ -161,17 +149,11 @@ public sealed class SchriftrolleAblauf
     }
 
     /// <summary>
-    /// Die Drehung in Grad um X, Y und Z: die feste Neigung nach oben zum Spieler plus das leise Pendeln. Positiv X heißt hier „Oberkante nach hinten“,
-    /// also Blick nach oben; der Wert wird nie negativ (die Rolle kippt nie nach unten).
+    /// Die Drehung in Grad um X, Y und Z: X ist die feste Neigung nach oben zum Spieler (positiv heißt hier „Oberkante nach hinten“, nie negativ),
+    /// Y das leise Drehen nach links und rechts im Leerlauf (höchstens <see cref="RollenMasse.PendelGrad"/>), Z bleibt 0.
     /// </summary>
-    public (double X, double Y, double Z) Drehung
-    {
-        get
-        {
-            double Achse(int i) => _pendel * _m.PendelGrad * Anteil[i] * Math.Sin(_zeit * _tempo * Math.Tau / Periode[i] + _phase[i]);
-            return (Math.Max(0, _m.NeigungGrad + Achse(0)), Achse(1), Achse(2));
-        }
-    }
+    public (double X, double Y, double Z) Drehung =>
+        (Math.Max(0, _m.NeigungGrad), _pendel * _m.PendelGrad * Math.Sin(_zeit * _tempo * Math.Tau / Periode + _phase), 0);
 
     /// <summary>Deckkraft von 0 bis 1: voll, nur am Ende des Zurollens blendet die Rolle kurz aus.</summary>
     public double Deckkraft

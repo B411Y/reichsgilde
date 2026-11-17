@@ -2,14 +2,14 @@ using Reichsgilde;
 
 /// <summary>
 /// Ablauf der 3D-Schriftrollen der Meldungsleiste ohne Godot (<c>game/scripts/SchriftrolleAblauf.cs</c>): Reihenfolge Aufrollen → offen → Zurollen → weg,
-/// Symbolzeiten des Modells, Sprung ohne Nachschwingen, Neigung nie nach unten, Pendeln höchstens ±5° und je Rolle versetzt, Stillstand ohne Bewegung.
+/// Symbolzeiten des Modells, Sprung nur beim Erscheinen und ohne Nachschwingen, feste Neigung, Drehen nur um Y mit höchstens ±2° und je Rolle versetzt, Stillstand ohne Bewegung.
 /// </summary>
 static class SchriftrolleAblaufTests
 {
-    static readonly RollenMasse Masse = new(ClipSekunden: 0.9, SymbolAb: 0.233, NeigungGrad: 14, PendelGrad: 5, HuepfHoehe: 0.07, HuepfSekunden: 0.26,
-                                            SchlussHuepfenAb: 0.5, AusblendSekunden: 0.16);
+    static readonly RollenMasse Masse = new(ClipSekunden: 0.9, SymbolAb: 0.233, NeigungGrad: 14, PendelGrad: 2, HuepfHoehe: 0.07, HuepfSekunden: 0.26,
+                                            AusblendSekunden: 0.16);
 
-    static SchriftrolleAblauf Neu(double x = 0.1, double y = 0.4, double z = 0.8, double tempo = 0.5) => new(Masse, x, y, z, tempo);
+    static SchriftrolleAblauf Neu(double phase = 0.4, double tempo = 0.5) => new(Masse, phase, tempo);
 
     static void Laufen(SchriftrolleAblauf a, double sekunden, Action<SchriftrolleAblauf>? jeBild = null)
     {
@@ -61,7 +61,7 @@ static class SchriftrolleAblaufTests
             a.Schliessen(true); // ein zweites Mal ändert nichts
             Pruefe.Gleich(RollenZustand.Weg, a.Zustand);
         }),
-        ("Schriftrolle: Sprung beim Erscheinen und vor dem Verschwinden, einmal hoch und zurück", () =>
+        ("Schriftrolle: Sprung nur beim Erscheinen, einmal hoch und zurück; beim Zurollen keiner", () =>
         {
             var a = Neu();
             a.Erscheinen(true);
@@ -81,12 +81,16 @@ static class SchriftrolleAblaufTests
             Pruefe.Ungefaehr(0, a.Hoehe, 1e-12);
             Laufen(a, 1);
             a.Schliessen(true);
-            Laufen(a, 0.45);
-            Pruefe.Ungefaehr(0, a.Hoehe, 1e-12);
-            Laufen(a, 0.15);
-            Wahr(a.Hoehe > 0, "Sprung am Ende des Zurollens");
+            Laufen(a, 1.0, x => Pruefe.Ungefaehr(0, x.Hoehe, 1e-12)); // das ganze Zurollen über kein Sprung
+            Pruefe.Gleich(RollenZustand.Weg, a.Zustand);
+            // Mitten im Sprung geschlossen: der Sprung bricht ab
+            var c = Neu();
+            c.Erscheinen(true);
+            Laufen(c, 0.1);
+            c.Schliessen(true);
+            Pruefe.Ungefaehr(0, c.Hoehe, 1e-12);
         }),
-        ("Schriftrolle: Neigung nach oben, Pendeln höchstens fünf Grad je Achse, nie nach unten", () =>
+        ("Schriftrolle: Neigung fest nach oben, Leerlauf nur um Y mit höchstens zwei Grad", () =>
         {
             var a = Neu();
             a.Erscheinen(true);
@@ -95,20 +99,18 @@ static class SchriftrolleAblaufTests
             Laufen(a, 120, x =>
             {
                 var (dx, dy, dz) = x.Drehung;
-                Wahr(dx > 0, "kippt nie nach unten");
-                Wahr(Math.Abs(dx - 14) <= 5 + 1e-9 && Math.Abs(dy) <= 5 + 1e-9 && Math.Abs(dz) <= 5 + 1e-9, $"höchstens ±5°, war {dx - 14}/{dy}/{dz}");
+                Pruefe.Ungefaehr(14, dx, 1e-9); // X bleibt fest: nie nach unten
+                Pruefe.Ungefaehr(0, dz, 1e-12); // Z bewegt sich nicht
+                Wahr(Math.Abs(dy) <= 2 + 1e-9, $"höchstens ±2°, war {dy}");
                 bewegt = Math.Max(bewegt, Math.Abs(dy));
             });
-            Wahr(bewegt > 1, "offene Rollen pendeln sichtbar");
-            // Eine Neigung, die kleiner ist als das Pendeln, kippt trotzdem nie nach unten
-            var flach = new SchriftrolleAblauf(Masse with { NeigungGrad = 1 }, 0.3, 0.6, 0.9, 0.2);
-            flach.Erscheinen(true);
-            Laufen(flach, 60, x => Wahr(x.Drehung.X >= 0, "auch flach nie nach unten"));
+            Wahr(bewegt > 1.5, $"offene Rollen drehen sich sichtbar, war {bewegt}");
+            Pruefe.Ungefaehr(0, new SchriftrolleAblauf(Masse with { NeigungGrad = -3 }, 0.3, 0.2).Drehung.X, 1e-12); // eine falsche Angabe kippt nie nach unten
         }),
         ("Schriftrolle: jede Rolle pendelt versetzt", () =>
         {
-            var a = Neu(0.1, 0.4, 0.8, 0.2);
-            var b = Neu(0.6, 0.9, 0.3, 0.9);
+            var a = Neu(0.4, 0.2);
+            var b = Neu(0.9, 0.9);
             a.Erscheinen(true);
             b.Erscheinen(true);
             double abstand = 0;
@@ -118,7 +120,7 @@ static class SchriftrolleAblaufTests
                 b.Weiter(1 / 60.0, true);
                 abstand = Math.Max(abstand, Math.Abs(a.Drehung.Y - b.Drehung.Y));
             }
-            Wahr(abstand > 1, $"zwei Rollen laufen nicht gleich, größter Abstand {abstand}");
+            Wahr(abstand > 0.8, $"zwei Rollen laufen nicht gleich, größter Abstand {abstand}");
         }),
         ("Schriftrolle: ohne Bewegung sofort offen und still, Schließen sofort weg", () =>
         {

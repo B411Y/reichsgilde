@@ -176,8 +176,8 @@ public static class Siegelzeichner
 /// <summary>
 /// Eine Meldung in der Ecke: eine 3D-Schriftrolle (<see cref="SchriftrollenBuehne"/>), die geschlossen erscheint, mit einem kurzen Sprung aufrollt und
 /// dann das Zeichen ihres Themas mit farbigem Rand zeigt; dazu eine Zahl, wenn sich mehrere Meldungen stapeln. Linksklick liest den Brief, Rechtsklick
-/// legt sie ungelesen beiseite (verwirft sie). Die Rolle bleibt offen und pendelt ganz leicht, bis die Meldung erledigt ist; dann rollt sie zu, springt
-/// kurz und verschwindet (<see cref="Schliessen"/>). Ohne Bewegung (<see cref="Meldungseinstellungen.Bewegung"/>) steht sie sofort offen und still.
+/// legt sie ungelesen beiseite (verwirft sie). Die Rolle bleibt offen und dreht sich ganz leicht nach links und rechts, bis die Meldung erledigt ist;
+/// dann rollt sie zu und verschwindet (<see cref="Schliessen"/>). Ohne Bewegung (<see cref="Meldungseinstellungen.Bewegung"/>) steht sie sofort offen und still.
 /// Steht die Bühne nicht (Modell fehlt, alle Plätze belegt), zeichnet sich die Meldung wie früher als Wachssiegel in 2D.
 /// </summary>
 public sealed partial class Siegel : Control
@@ -240,7 +240,7 @@ public sealed partial class Siegel : Control
     }
 
     /// <summary>
-    /// Die Meldung ist erledigt: Die Rolle rollt zu, springt kurz und verschwindet; danach ruft sie <paramref name="fertig"/>. Ohne Rolle, ohne Bewegung
+    /// Die Meldung ist erledigt: Die Rolle rollt zu und verschwindet; danach ruft sie <paramref name="fertig"/>. Ohne Rolle, ohne Bewegung
     /// oder unsichtbar (hinter einer großen Tafel, noch vor der Einblendung) sofort.
     /// </summary>
     public void Schliessen(Action fertig)

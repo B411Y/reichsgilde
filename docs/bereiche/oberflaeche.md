@@ -335,8 +335,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Weg 1 | Die 3D-Schriftrolle ersetzt schon jetzt die Wachssiegel in der heutigen Ecke unten rechts; der Umbau zur Zunftlade kommt später (Nutzer). Stufe, Einstellungen und Code heißen weiter „Siegel“. | 17.11.2026 |
-| Verhalten | Neue Meldung: Rolle erscheint geschlossen, rollt auf (Clip `aufrollen`) mit einem kurzen Sprung, dann steht das Symbol mit farbigem Rand der Meldungsart darauf. Sie bleibt offen, bis die Meldung erledigt ist; dann `zurollen`, kurzer Sprung, weg. Klick wie bisher. | 17.11.2026 |
-| Neigung und Pendeln | 14° schräg nach oben zum Spieler, nie nach unten; offen Pendeln um X, Y, Z mit höchstens 5° (X 3°, Y 5°, Z 2,5°), je Rolle eigene Phase und eigenes Tempo. | 17.11.2026 |
+| Verhalten | Neue Meldung: Rolle erscheint geschlossen, rollt auf (Clip `aufrollen`) mit einem kurzen Sprung, dann steht das Symbol mit farbigem Rand der Meldungsart darauf. Sie bleibt offen, bis die Meldung erledigt ist; dann nur `zurollen` und weg, ohne Sprung (Nutzer, zweite Runde). Klick wie bisher. | 17.11.2026 |
+| Neigung und Leerlauf | 14° schräg nach oben zum Spieler, fest. Im Leerlauf dreht sich die offene Rolle nur um die Hochachse Y nach links und rechts, höchstens 2°, je Rolle eigene Phase und eigenes Tempo; X und Z bewegen sich nicht (Nutzer, zweite Runde; vorher alle drei Achsen bis 5°). | 17.11.2026 |
 | Eine Bühne | Ein gemeinsamer SubViewport für alle Rollen (12 Plätze), eigene Szene `schriftrolle_buehne.tscn`; Maße, Zeiten und Farben im Thema `meldung_thema.tres`, nichts davon im Code. | 17.11.2026 |
 | Symbol | Viereckige Marke auf der Symbolfläche: Rand in der Farbe der Art, heller Grund, schwarzer Umriss, Schraffur, Zeichen in Tinte (dieselben Zeichen wie die Siegel). | 17.11.2026 |
 | Abschalten | Kein neuer Schalter: „Siegel und Briefe bewegen“ (Einstellungen, Meldungen) gilt auch für die Rollen – aus: sofort offen, still, ohne Zurollen. | 17.11.2026 |
