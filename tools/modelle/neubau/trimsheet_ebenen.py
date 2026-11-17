@@ -54,7 +54,10 @@ STEINE = {
 # building_trim.gdshader (STEIN_EBENE). Nach der Rueckmeldung des Nutzers zum Vergleichsbild (15.11.2026): Mensch S1 behaelt den
 # bisherigen Sockelstein (K4 nicht am Sockel; das Aussenblatt hat kein Pflaster- oder Bodenband, K4 kommt also in keiner Ebene vor),
 # Mensch S2/S3 Mauer (Band "bruchstein") K1; die Zwerge behalten den bisherigen dunklen Stein (K3 zurueckgenommen); Elb und Halbling
-# als Platzhalter auf dem Blatt des Steinhauses (Mensch S3), Flaechen K2, Akzent (Werksteinband "putz") K5.
+# als Platzhalter auf dem Blatt des Steinhauses (Mensch S3), Flaechen K2, Akzent (Werksteinband "putz") K5. Zwerge Stufe 3 (Auftrag
+# 16.11.2026): das Werksteinband "bruchstein" des Blatts trim_s3_zwerg war ein einfarbig brauner 0,4-m-Ausschnitt eines grossen
+# Sandsteinquaders; dort jetzt K2 (heller Haustein mit Fugen und Verwitterung, in eigener Farbe); der
+# dunkle Quader im Band "putz" bleibt.
 # Ein Stein kann als (Stein, Bezugsband) auf Mittel und Farbton eines Bands desselben Blatts getoent werden (derzeit nicht genutzt).
 ARRAYS = {
     "haeuser": dict(
@@ -65,19 +68,20 @@ ARRAYS = {
             ("mensch_s3", "trim_s3", {"bruchstein": "k1"}),
             ("zwerg_s1", "trim_zwerg", {}),
             ("zwerg_s2", "trim_s2_zwerg", {}),
-            ("zwerg_s3", "trim_s3_zwerg", {}),
+            ("zwerg_s3", "trim_s3_zwerg", {"bruchstein": "k2"}),   # heller Haustein mit Struktur in eigener Farbe (getoent auf den alten Sandstein waere er dunkelbraun)
             ("elb", "trim_s3", {"bruchstein": "k2", "putz": "k5"}),
             ("halbling", "trim_s3", {"bruchstein": "k2", "putz": "k5"}),
         ],
-        # Reihenfolge wie Steinebenen.AoGruppen; Buergerhaus und Steinhaus haben eigene Atlanten (groessere Zellen),
-        # der Zwergenatlas liegt im Zwergen-Branch (neubau-zwerg), nicht in diesem
-        ao=["wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3"]),
+        # Reihenfolge wie Steinebenen.AoGruppen; Buergerhaus und Steinhaus haben je Volk eigene Atlanten (groessere Zellen)
+        ao=["wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3"]),
     # Innenraeume (vorerst ohne Steinwahl): dasselbe Array-Format, damit ein Shader fuer alle Gebaeude reicht.
     "innen": dict(
         layout=(os.path.join(HIER, "trimsheet.py"), "BAENDER_INNEN"), ordner=NEUBAU,
         # Reihenfolge wie Steinebenen.InnenBlaetter / InnenAoGruppen; die kleineren AO-Atlanten (512, 1024) werden auf N gebracht
-        ebenen=[("innen", "innen_trim", {}), ("innen_s23", "innen_trim_s23", {}), ("raeume", "raeume_innen_trim", {})],
-        ao=["wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen"]),
+        ebenen=[("innen", "innen_trim", {}), ("innen_s23", "innen_trim_s23", {}), ("raeume", "raeume_innen_trim", {}),
+                ("innen_zwerg", "innen_trim_zwerg", {}), ("innen_s23_zwerg", "innen_trim_s23_zwerg", {}), ("raeume_zwerg", "raeume_innen_trim_zwerg", {})],
+        ao=["wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
+            "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen"]),
     # Rathaus (Mensch): Quader auf K1. Eine Ebene, eigenes Layout.
     "rathaus": dict(
         layout=(os.path.join(HIER, "rathaus_trimsheet.py"), "BAENDER_RATHAUS"), ordner=NEUBAU,

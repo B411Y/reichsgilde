@@ -82,7 +82,21 @@ Urheber laut Poly-Haven-Schnittstelle (`api.polyhaven.com/assets`, Abzug im Quel
 | Kürzel | Asset-ID | Urheber | Seite | Reale Größe | Verwendet für |
 |---|---|---|---|---|---|
 | K1 | `castle_wall_varriation` | Rob Tuytel | https://polyhaven.com/a/castle_wall_varriation | 2 × 2 m | Menschen: Mauern (Stufe 2 und 3) |
-| K2 | `large_sandstone_blocks_01` | Rob Tuytel | https://polyhaven.com/a/large_sandstone_blocks_01 | 3 × 3 m | Elben und Halblinge: Flächen |
+| K2 | `large_sandstone_blocks_01` | Rob Tuytel | https://polyhaven.com/a/large_sandstone_blocks_01 | 3 × 3 m | Elben und Halblinge: Flächen; Zwerge Stufe 3: heller Haustein im Band „bruchstein“ (seit 16.11.2026) |
 | K5 | `Bricks100` | ambientCG (kein Einzelurheber genannt) | https://ambientcg.com/view?id=Bricks100 | unbekannt, angenommen 2 × 1 m | Elben und Halblinge: Akzent |
 
 Nachbearbeitung (alles im Skript): in eigener Farbe eingesetzt (nicht umgefärbt); auf Bandhöhe zugeschnitten, Ober- und Unterkante auf dunkle Lagerfugen gelegt; waagerecht in 2^k Kacheln je Band (nahtlos) und dafür im Maßstab angepasst (K2 1,33, sonst 1,0). K3 (`stone_wall_04`) und K4 (`PavingStones142`) aus der Auswahl vom 15.11.2026 sind nach der Rückmeldung des Nutzers nicht eingesetzt. Keine Bild-KI.
+
+## Zwergenhäuser (`trim_zwerg_*`, `innen_trim_zwerg_*`, `trim_s2_zwerg_*`, `trim_s3_zwerg_*`, `innen_trim_s23_zwerg_*`, `raeume_innen_trim_zwerg_*`)
+
+Die Trim-Sheets der Zwergenhäuser haben dieselben Bandgrenzen wie die der Menschen, aber anderen Inhalt: `tools/modelle/neubau/trimsheet_zwerg.py` (Stufe 1: Band „Putz“ behauener Quader, Band „Stroh“ selbst gezeichnete Holzschindeln aus `old_planks_02` mit Alpha an den Füßen; innen Steinwand und Pflaster), `trimsheet_zwerg_stufen.py` (Stufe 2 und 3: Schiefer, Sandstein, Schachbrett) und `tools/modelle/raeume/raeume_trimsheet_zwerg.py` (Räume: Quaderwand, Pflaster im Hinterzimmer, Parkett der Menschen in der Bibliothek). Alle Quellen Poly Haven, **CC0 1.0 Universal**, Zitat von https://polyhaven.com/license wie oben; Abruf 14.11.2026 (2K-JPG); die Quelldateien liegen nicht im Repository. Keine Bild-KI.
+
+| Asset-ID | Name | Urheber | Seite | Verwendet für (Zwerg) |
+|---|---|---|---|---|
+| `rough_block_wall` | Rough Block Wall | Rob Tuytel | https://polyhaven.com/a/rough_block_wall | außen: Quader (Mauer, Fachwerkfüllung); innen und Räume: Steinwand |
+| `castle_wall_slates` | Castle Wall Slates | Rob Tuytel | https://polyhaven.com/a/castle_wall_slates | außen: Bruchstein (Sockel, Schlot, Findlinge); innen: Schlot und Herd |
+| `cobblestone_floor_01` | Cobblestone Floor 01 | Rob Tuytel | https://polyhaven.com/a/cobblestone_floor_01 | innen und Hinterzimmer: Steinpflaster |
+| `roof_slates_02`, `sandstone_blocks_08`, `large_floor_tiles_02` | wie oben | Rob Tuytel | siehe oben | Stufe 2/3: Schiefer, Haustein, Schachbrett |
+| `old_planks_02`, `rough_wood`, `rusty_metal_02`, `hessian_230`, `knitted_fleece`, `bark_brown_02`, `reed_roof_03`, `clay_plaster` | wie oben | wie oben | siehe oben | Schindeln, Balken, Planken, Eisen, Kleinteile (anders umgefärbt) |
+
+Die AO-Atlanten `wohnhaus_zwerg{,_s2,_s3,_innen,_raeume_innen,_dachraeume_innen}_ao_atlas.png` sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles; Plätze in `tools/modelle/neubau/ao_atlas.json` und `tools/modelle/raeume/ao_atlas.json`).
