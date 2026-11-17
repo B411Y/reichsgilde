@@ -160,49 +160,16 @@ def fensterlaibung(teil, band, bank_band=None):
                     teil.kasten(S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.03), (max(p0.x, p1.x), max(p0.y, p1.y), z0), bank_band)
 
 
-def spitzbogenfenster(teil, band, rahmen_band, wand, a0, a1, z0, z1, kaempfer, glas_teil=None):
-    """Spitzbogen in die rechteckige Oeffnung der Huelle: Zwickel ueber dem Bogen auf der Innenwand gefuellt (Band `band`),
-    Bogenleiste aus Stuecken (Band `rahmen_band`), Glas (Butzen) als Dreiecksfaecher. kaempfer: Hoehe, an der der Bogen ansetzt."""
+def bibliotheksfenster(teil, rahmen_band, wand, a0, a1, z0, z1, glas_teil=None):
+    """Fenster der Bibliothek, rechteckig wie die Oeffnung der Huelle (Nutzer 17.11.2026; vorher ein Spitzbogen mit gefuelltem Zwickel):
+    Gewaende aus zwei Pfosten bis ueber die Oberkante und einem Sturz dazwischen (Band `rahmen_band`, 2 cm vor der Wand; der Sturz
+    endet 1 mm vor den Pfosten, damit keine Flaechen deckungsgleich liegen), Glas (Butzen) als Rechteck in der Oeffnung."""
     n = wandpunkt(wand, 0, 0, 1) - wandpunkt(wand, 0, 0, 0)
-    am = (a0 + a1) / 2; halb = (a1 - a0) / 2
-    hoch = z1 - kaempfer
-    teile = 10
-    def bogen(t, r_ab=0.0):
-        """Punkt auf dem Spitzbogen: t von 0 (linker Kaempfer) bis 1 (rechter Kaempfer); zwei Kreisboegen mit Radius r um die
-        Gegenseite (gedrueckter Spitzbogen: Scheitel in z1)."""
-        r = (halb * halb + hoch * hoch) / (2 * halb)          # Radius, damit der Bogen bei a0/a1 senkrecht ansetzt und in z1 spitz endet
-        if t <= 0.5:
-            mx = a0 + r; w0 = math.pi; w1 = math.pi - math.atan2(hoch, r - halb)
-            w = w0 + (w1 - w0) * (t / 0.5)
-        else:
-            mx = a1 - r; w0 = math.atan2(hoch, r - halb); w1 = 0.0
-            w = w0 + (w1 - w0) * ((t - 0.5) / 0.5)
-        rr = r - r_ab
-        return mx + rr * math.cos(w), kaempfer + rr * math.sin(w)
-    pts = [bogen(i / teile) for i in range(teile + 1)]
-    # Zwickel: zwischen Bogen und Oberkante der Oeffnung, auf der Wandflaeche
-    v0, v1, m = teil.baender[band]
-    def uv(a, z): return ((a - a0) / m, v1 - min(max((z - z0) / 2.4, 0), 1) * (v1 - v0))
-    for (aa, za), (ab, zb) in zip(pts[:-1], pts[1:]):
-        if abs(zb - z1) < 1e-4 and abs(za - z1) < 1e-4: continue
-        ecken = [(aa, za), (ab, zb), (ab, z1), (aa, z1)]
-        if abs(zb - z1) < 1e-4: ecken = [(aa, za), (ab, zb), (aa, z1)]           # am Scheitel ein Dreieck (kein Viereck mit doppelter Ecke)
-        elif abs(za - z1) < 1e-4: ecken = [(aa, za), (ab, zb), (ab, z1)]
-        teil.vieleck(S, [wandpunkt(wand, a, z) for a, z in ecken], [uv(a, z) for a, z in ecken], zu=wandpunkt(wand, (aa + ab) / 2, z1, 1))
-    # Bogenleiste und Gewaende
-    for (aa, za), (ab, zb) in zip(pts[:-1], pts[1:]):
-        teil.stab(S, wandpunkt(wand, aa, za, 0.02), wandpunkt(wand, ab, zb, 0.02), 0.04, rahmen_band, breite=0.07, oben=n)
     for a in (a0, a1):
-        teil.stab(S, wandpunkt(wand, a, z0, 0.02), wandpunkt(wand, a, kaempfer, 0.02), 0.04, rahmen_band, breite=0.07, oben=n)
+        teil.stab(S, wandpunkt(wand, a, z0, 0.02), wandpunkt(wand, a, z1 + 0.035, 0.02), 0.04, rahmen_band, breite=0.07, oben=n)
+    teil.stab(S, wandpunkt(wand, a0 + 0.036, z1, 0.02), wandpunkt(wand, a1 - 0.036, z1, 0.02), 0.04, rahmen_band, breite=0.07, oben=n)
     if glas_teil is not None:
-        # Glas in der Mitte der Wand (wie die Wohnstube), UV in Metern ab der linken unteren Ecke der Oeffnung
-        raus = -M.T / 2 + 0.004   # wie das Glas der Wohnstube: in der Wandmitte vor dem Fensterkreuz der Huelle
-        rand = [(a0, z0), (a1, z0), (a1, kaempfer)] + [p for p in reversed(pts[1:-1])] + [(a0, kaempfer)]
-        mitte = (am, (z0 + kaempfer) / 2)
-        for p, q in zip(rand, rand[1:] + rand[:1]):
-            dreieck = [wandpunkt(wand, mitte[0], mitte[1], raus), wandpunkt(wand, p[0], p[1], raus), wandpunkt(wand, q[0], q[1], raus)]
-            uvs = [(mitte[0] - a0, 1 - (mitte[1] - z0)), (p[0] - a0, 1 - (p[1] - z0)), (q[0] - a0, 1 - (q[1] - z0))]
-            glas_teil.vieleck("Innenglas", dreieck, uvs, zu=wandpunkt(wand, mitte[0], mitte[1], 2))
+        rechteckglas(glas_teil, wand, a0, a1, z0, z1)
 
 
 def rechteckglas(glas_teil, wand, a0, a1, z0, z1):
