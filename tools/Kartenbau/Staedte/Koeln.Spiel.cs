@@ -10,16 +10,20 @@ namespace Reichsgilde.Kartenbau.Staedte;
 
 public sealed partial class Koeln
 {
-    /// <summary>Die acht Häuser: der Spieler auf dem ersten Startgrundstück, die KI-Häuser auf den übrigen (Volk, Werkstatt, Umlandbetrieb).</summary>
-    private static readonly (string Name, Volk Volk, Geschlecht Geschlecht, Betriebsart Werkstatt, Betriebsart Umland)[] KiHaeuser =
+    /// <summary>
+    /// Keine festen Dynastien mehr (Nutzer 17.11.2026): Jede Partie würfelt ihre KI-Häuser. Die Kölner Geschlechter bleiben als Familiennamen
+    /// der Stadt (Abschnitt „hausnamen“), und je Name bleibt ein Umland-Startplatz dieser Art (Abschnitt „umland“, in dieser Reihenfolge –
+    /// der Betrieb heißt weiter nach dem Geschlecht, z. B. „Grube Overstolz“).
+    /// </summary>
+    private static readonly (string Name, Betriebsart Umland)[] Geschlechter =
     {
-        ("Haus Overstolz", Volk.Zwerg, Geschlecht.Mann, Betriebsart.Giesserei, Betriebsart.Mine),
-        ("Haus Hardevust", Volk.Elb, Geschlecht.Frau, Betriebsart.Tischlerei, Betriebsart.Holzfaellerei),
-        ("Haus Lyskirchen", Volk.Halbling, Geschlecht.Mann, Betriebsart.Maurerei, Betriebsart.Steinbruch),
-        ("Haus Gryn", Volk.Mensch, Geschlecht.Frau, Betriebsart.Tinkturei, Betriebsart.Kraeutergarten),
-        ("Haus Scherfgin", Volk.Mensch, Geschlecht.Mann, Betriebsart.Giesserei, Betriebsart.Mine),
-        ("Haus Mommersloch", Volk.Halbling, Geschlecht.Frau, Betriebsart.Schaenke, Betriebsart.Bauernhof),
-        ("Haus Kleingedank", Volk.Mensch, Geschlecht.Mann, Betriebsart.Tischlerei, Betriebsart.Holzfaellerei),
+        ("Overstolz", Betriebsart.Mine),
+        ("Hardevust", Betriebsart.Holzfaellerei),
+        ("Lyskirchen", Betriebsart.Steinbruch),
+        ("Gryn", Betriebsart.Kraeutergarten),
+        ("Scherfgin", Betriebsart.Mine),
+        ("Mommersloch", Betriebsart.Bauernhof),
+        ("Kleingedank", Betriebsart.Holzfaellerei),
     };
 
     /// <summary>
@@ -161,17 +165,13 @@ public sealed partial class Koeln
     private void Start()
     {
         var frei = _umland.Where(g => g.Betrieb is null).ToList();
-        for (var i = 0; i < KiHaeuser.Length; i++)
+        foreach (var h in Geschlechter)
         {
-            var h = KiHaeuser[i];
-            var haus = E.HausHinzufuegen(h.Name);
-            E.HausVolkSetzen(haus, h.Volk);
-            E.HausGeschlechtSetzen(haus, h.Geschlecht);
-            E.BetriebHinzufuegen(haus, "", h.Werkstatt);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
             var umland = frei.FirstOrDefault(g => E.Katalog.Finde(g.Katalog)?.BetriebsartWert == h.Umland);
             if (umland is null) { Console.WriteLine($"   !!! {h.Name}: kein Umlandbetrieb {h.Umland}"); continue; }
             frei.Remove(umland);
-            E.BetriebHinzufuegen(haus, umland.Kennung, h.Umland);
+            E.StartumlandHinzufuegen(umland.Kennung, "{art} " + h.Name);
         }
+        E.HausnamenSetzen(Geschlechter.Select(h => h.Name));
     }
 }

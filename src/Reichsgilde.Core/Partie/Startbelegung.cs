@@ -8,8 +8,9 @@ namespace Reichsgilde.Core.Partie;
 // ═════════════════════════════════════════════════════════════════════════════
 //  Wer am Anfang einer Partie in der Stadt wohnt und arbeitet (Abschnitt „start“ der Karte, Format 2)
 //
-//  Die Karte legt die KI-Häuser fest (Name, Volk, Wappen, Farbe, Wohnhausplatz, Startbetriebe auf Plätzen der Karte)
-//  und den Startplatz des Spielers. Ohne Karte gilt Startbelegung.Ersatz – die Häuser, die es vor Format 2 fest im Code gab.
+//  Bis zum 17.11.2026 legte die Karte die KI-Häuser fest (Name, Volk, Wappen, Farbe, Startbetriebe auf Plätzen der Karte); solche Karten und
+//  Spielstände laden weiter. Seitdem nennt eine Karte keine Häuser mehr – jede Partie würfelt ihre KI-Gegner (Partiebesetzung) –, nur noch
+//  die Umland-Startplätze („umland“) und die Familiennamen der Stadt („hausnamen“). Ohne Karte gilt Startbelegung.Ersatz – die Häuser, die es vor Format 2 fest im Code gab.
 //  Wie viele Gesellen und Umlandkräfte ein Startbetrieb bekommt, bleibt eine Regel des Kerns (Partieaufbau).
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -126,6 +127,23 @@ public sealed class Startbelegung
 {
     public Spielerstart Spieler { get; init; } = new();
     public List<Starthaus> Haeuser { get; init; } = new();
+
+    /// <summary>
+    /// Die Umland-Startplätze der Karte (Abschnitt „umland“, seit 17.11.2026 – die Karten nennen keine festen Häuser mehr): Umlandbetriebe der
+    /// Karte (Kennung und Betriebsart), die mit den gewürfelten KI-Häusern ins Spiel kommen – mit N gewürfelten Häusern die ersten N, in dieser
+    /// Reihenfolge (so viele wie früher mit den ersten N Häusern der Karte). Wer welchen bekommt, lost die <see cref="Startaufstellung"/>; die
+    /// übrigen stehen frei zur Pacht. Null: keine. Nie in der Partiekarte eines Spielstands.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Startbetrieb>? Umland { get; init; }
+
+    /// <summary>
+    /// Familiennamen dieser Stadt (Abschnitt „hausnamen“, ohne „Haus“ davor; seit 17.11.2026): Ein gewürfeltes KI-Haus zieht seinen Namen aus
+    /// diesen und den Familiennamen seines Volkes (<see cref="Partiebesetzung.NameWuerfeln"/>), keiner doppelt. Null: nur die Namen des Volkes.
+    /// Nie in der Partiekarte eines Spielstands.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<string>? Hausnamen { get; init; }
 
     /// <summary>
     /// Die Belegung einer Partie seit „nur noch Bauzonen“ (15.11.2026, <see cref="Stadtkarte.OhneStadtplaetze"/>): Sie nennt nur noch, wer

@@ -24,8 +24,8 @@ static class KarrenHoechstzahlTests
     /// <summary>Köln, „Schwer“: die KI-Häuser mit Werkstatt und Umlandbetrieb.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Koeln(Wirtschaftsdaten? daten = null)
     {
-        var pfad = Datenpfad.Karte("koeln");
-        var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
+        var pfad = Altkarte.Pfad("koeln");
+        var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(pfad));
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
             daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Stadtkarte.AusDatei(pfad));
@@ -37,7 +37,7 @@ static class KarrenHoechstzahlTests
         ("Karren-Höchstzahl: Daten ab 66 – Werkstatt 3, Umland 5; Prüfung meldet unbekannte Orte und Werte unter 1", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(93, d.Version);
+            Pruefe.Gleich(94, d.Version);
             Pruefe.Gleich(3, d.Logistik.HoechstKarren(Arbeitsort.Werkstatt));
             Pruefe.Gleich(5, d.Logistik.HoechstKarren(Arbeitsort.Umland));
             Pruefe.Wirft(() => DatenMit(j => j["logistik"]!["karrenHoechstens"]!["Umland"] = 0));

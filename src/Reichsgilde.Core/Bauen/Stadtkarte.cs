@@ -775,6 +775,7 @@ public sealed class Stadtkarte
                     Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = h.Wappen, Farbe = h.Farbe,
                     Betriebe = h.Betriebe.Select(OhnePlatz).ToList(), Gewuerfelt = h.Gewuerfelt,
                 }).ToList(),
+                Umland = s.Umland, Hausnamen = s.Hausnamen,
             };
         }
         if (alte.Count > 0) _gebaeude = Gebaeude.Where(g => !Alt(g)).ToList();
@@ -1040,7 +1041,23 @@ public sealed class Stadtkarte
             f.Add($"Start: Das Haus „{doppelt.Key}“ steht doppelt.");
         foreach (var doppelt in s.Haeuser.GroupBy(h => h.Wappen).Where(x => x.Count() > 1))
             f.Add($"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).");
-        foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
+        // Umland-Startplätze ohne Haus (17.11.2026): Umlandbetriebe der Karte mit Namen und passender Art
+        foreach (var b in s.Umland ?? new List<Startbetrieb>())
+        {
+            var platz = GebaeudeMit(b.Platz);
+            if (platz is not { Art: Bausteinart.Umlandbetrieb })
+                f.Add($"Start, Umland: „{b.Platz}“ ist kein Umlandbetrieb der Karte.");
+            else if (string.IsNullOrWhiteSpace(platz.Betrieb))
+                f.Add($"Start, Umland: Am Platz „{b.Platz}“ fehlt der Name des Betriebs (betrieb).");
+            else if (platz.Baustein!.BetriebsartWert != b.Art)
+                f.Add($"Start, Umland: Auf „{b.Platz}“ steht {platz.Baustein.Anzeigename}, nicht {b.Art}.");
+        }
+        foreach (var n in s.Hausnamen ?? new List<string>())
+            if (string.IsNullOrWhiteSpace(n)) f.Add("Start: Ein Hausname ist leer.");
+        foreach (var doppelt in (s.Hausnamen ?? new List<string>()).GroupBy(Partieaufbau.Hausname).Where(x => x.Count() > 1))
+            f.Add($"Start: Der Hausname „{doppelt.First()}“ steht doppelt.");
+        foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat((s.Umland ?? new List<Startbetrieb>()).Select(b => b.Platz))
+                     .Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
             f.Add($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.");
     }
 

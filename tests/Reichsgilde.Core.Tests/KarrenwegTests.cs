@@ -22,10 +22,10 @@ static class KarrenwegTests
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
     static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)
     {
-        var haeuser = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
+        var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(Altkarte.Pfad(kennung)));
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
             daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe),
-            karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
+            karte: Stadtkarte.AusDatei(Altkarte.Pfad(kennung)));
         return sim.Wirtschaft!;
     }
 
@@ -276,7 +276,7 @@ static class KarrenwegTests
             var gedreht = (Mitte: new Kartenort(0, 0), DrehungGrad: 45.0, Halb: 15.5);
             Pruefe.Ungefaehr(15.5 * Math.Sqrt(2), Karrenweg.BisZumHalt(Fahrt((40, 0), (0, 0)), gedreht).Punkte[^1].X, 1e-6);
             // Zubringer: Anker am Hof – nur das Stück vom Hof zum Weg; Hof auf dem Weg – nur Anker → Hof; ohne Fahrt leer
-            var flach = Stadtkarte.AusDatei(Datenpfad.Karte("probestadt")).Gelaendeform;
+            var flach = Stadtkarte.AusDatei(Altkarte.Pfad("probestadt")).Gelaendeform;
             var netz = Fahrt((0, 0), (10, 0));
             var z1 = Karrenweg.MitZubringer(netz, new Kartenort(0, 5), new Kartenort(0, 5), flach);
             Pruefe.Gleich((2, 3), (z1.Stuecke.Count, z1.Punkte.Count));

@@ -28,6 +28,8 @@ static class NeuePartieTests
         var start = k["start"]!.AsObject();
         start.Remove("haeuser");
         start.Remove("spieler");
+        start.Remove("umland");     // (seit 17.11.2026 nennen die Karten Umland-Startplätze und Namen der Stadt – hier ganz ohne: nur die Namen der Völker)
+        start.Remove("hausnamen");
         return k.ToJsonString();
     }
 
@@ -135,8 +137,9 @@ static class NeuePartieTests
 
         ("Neue Partie: höchstens acht Häuser – die Messstadt nennt acht KI-Häuser, mit dem Spieler passen sieben; ein achtes wird abgewiesen, gewürfelt wie nach der Karte", () =>
         {
-            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
+            var karte = Stadtkarte.AusDatei(Altkarte.Pfad("messstadt")); // die ältere Karte mit festen Häusern (seit 17.11.2026 nennt die Messstadt keine mehr)
             Pruefe.Gleich(8, karte.Startbelegung.Haeuser.Count);
+            Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")), daten: Daten.Value), "die heutige Karte: ebenso sieben");
             Pruefe.Gleich(9, Partiebesetzung.Hoefe(karte));
             Pruefe.Gleich(8, Startortlos.Haeuser(karte, Daten.Value));
             Pruefe.Gleich(7, Partiebesetzung.HoechstensKi(karte, daten: Daten.Value));
@@ -148,17 +151,22 @@ static class NeuePartieTests
             Partie(Knapp("messstadt"), new NeuePartie(Rivalen: 7));
         }),
 
-        ("Neue Partie: Karten im ausführlichen Format – die Häuser der Karte spielen mit ihren Namen mit, soweit sie in die Bauzonen passen (Greybox 3, Probestadt 2, Köln 7, Messstadt 7 von 8)", () =>
+        ("Neue Partie: ältere Karten im ausführlichen Format – ihre Häuser spielen nur noch zur Probe (Vorgabe) mit ihren Namen mit, soweit sie in die Bauzonen passen (Greybox 3, Probestadt 2, Köln 7, Messstadt 7 von 8); im Spiel würfelt die Partie", () =>
         {
             foreach (var (kennung, haeuser, ki) in new[] { ("greybox", 3, 3), ("koeln", 7, 7), ("probestadt", 2, 2), ("messstadt", 8, 7) })
             {
-                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                var karte = Stadtkarte.AusDatei(Altkarte.Pfad(kennung));
                 Pruefe.Gleich(1 + haeuser, Partiebesetzung.Hoefe(karte), kennung);
                 Pruefe.Gleich(haeuser, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Vorgabe), kennung + ": ohne Daten die Häuser der Karte");
                 Pruefe.Gleich(ki, Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Vorgabe, Daten.Value), kennung);
-                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki), 11);
+                var (w, _) = Partie(karte, new NeuePartie(Rivalen: ki, Aufstellung: Aufstellungsart.Vorgabe), 11);
                 var namen = karte.Startbelegung.Haeuser.Take(ki).Select(h => h.Name).ToList();
-                Pruefe.Gleich(string.Join(",", namen), string.Join(",", w.Konten.Skip(1).Select(k => k.Inhaber)), $"{kennung}: die Häuser der Karte");
+                Pruefe.Gleich(string.Join(",", namen), string.Join(",", w.Konten.Skip(1).Select(k => k.Inhaber)), $"{kennung}: zur Probe die Häuser der Karte");
+                // im Spiel (gelost) genau so viele gewürfelte Häuser – dieselben wie auf der heutigen Karte ohne feste Häuser
+                var (spiel, _) = Partie(karte, new NeuePartie(Rivalen: ki), 11);
+                var (heute, _) = Partie(Stadtkarte.AusDatei(Datenpfad.Karte(kennung)), new NeuePartie(Rivalen: ki), 11);
+                Pruefe.Gleich(ki + 1, spiel.Konten.Count, kennung);
+                Pruefe.Gleich(string.Join(",", heute.Konten.Select(k => k.Inhaber)), string.Join(",", spiel.Konten.Select(k => k.Inhaber)), $"{kennung}: gewürfelt wie auf der heutigen Karte");
             }
             Pruefe.Gleich(4, Partiebesetzung.Hoefe(null));
             Pruefe.Gleich(3, Partiebesetzung.HoechstensKi(null));

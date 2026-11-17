@@ -12,7 +12,7 @@ static class StartwegpruefungTests
 {
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "katalog.json")));
 
-    static Kartenentwurf Oeffnen(string kennung) => Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte(kennung)), Katalog.Value);
+    static Kartenentwurf Oeffnen(string kennung) => Kartenentwurf.AusJson(File.ReadAllText(Altkarte.Pfad(kennung)), Katalog.Value);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
@@ -34,7 +34,7 @@ static class StartwegpruefungTests
         {
             foreach (var kennung in new[] { "koeln", "greybox" })
             {
-                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                var karte = Stadtkarte.AusDatei(Altkarte.Pfad(kennung));
                 var wege = Startwegpruefung.Rechnen(karte).ToDictionary(w => w.Platz);
                 var haeuser = karte.Start!.Haeuser.Count;
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },

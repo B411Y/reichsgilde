@@ -10,8 +10,13 @@ namespace Reichsgilde.Core.Partie;
 //  Neue Partie und Höfe (Nutzerentscheidungen 11.11.2026)
 //
 //  • In einer Partie beginnen bis zu acht Häuser (HoechstensHoefe) – so viele, wie in die Bauzonen im Stadtinneren passen (Startortlos; seit
-//    16.11.2026 gibt es keine Hofstellen und keine Plätze der Karte mehr). Die Karte nennt nur ihre KI-Häuser (Abschnitt „start“ →
-//    „haeuser“) – sie sind die Vorlage („Erweitert“); Namen, Wappen und Berufe würfelt sonst jede Partie neu.
+//    16.11.2026 gibt es keine Hofstellen und keine Plätze der Karte mehr).
+//  • Keine festen Dynastien mehr (Nutzer 17.11.2026): Die Karte nennt keine KI-Häuser. Jede Partie würfelt genau so viele KI-Gegner, wie gewählt
+//    sind – Name, Wappen, Geschlecht, Volk, Glaube, Beruf. Erst zählt die Hauptfarbe des Spielers, dann bekommt jedes KI-Haus eine noch freie der
+//    acht Hausfarben (keine doppelt); kein Name doppelt. Die Karte nennt nur noch die Umland-Startplätze (Abschnitt „start“ → „umland“) und die
+//    Familiennamen der Stadt („hausnamen“, z. B. die Kölner Geschlechter) – aus ihnen und den Namen des Volkes wird gewürfelt. Eine ältere Karte
+//    mit festen Häusern („haeuser“) lädt weiter; ihre Häuser spielen im Spiel nicht mehr fest mit (nur noch zur Probe: Aufstellungsart.Vorgabe)
+//    und geben ihre Umlandbetriebe und Namen her. Ohne Karte (Tests, Messungen) gilt weiter der Ersatz mit seinen drei festen Häusern.
 //  • Bei jedem Partiestart wird gewürfelt, was niemand festlegt: für jedes KI-Haus Name, Wappen, Volk, Glaube und Beruf, für den Spieler,
 //    was er offen lässt (SpielerWuerfeln). Es gelten die Regeln der Startaufstellung (jeder Beruf einmal, der Spieler zuerst; Glaube nach Volk).
 //  • Persönlichkeitszüge sind immer gewürfelt, auch beim Spieler: drei, nie zwei Gegenteile. Vor Partiebeginn darf er sie neu würfeln
@@ -130,8 +135,9 @@ public static class Partiebesetzung
     // ── Höfe ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Wie viele Häuser (Spieler und KI) die Startbelegung dieser Karte nennt: der Spieler und ihre KI-Häuser (ohne Karte:
-    /// <see cref="Startbelegung.Ersatz"/>). Wie viele wirklich Platz finden, sagt <see cref="HoechstensKi"/> mit den Daten.
+    /// Wie viele Häuser (Spieler und KI) die Startbelegung dieser Karte nennt: der Spieler und ihre festen KI-Häuser (ohne Karte:
+    /// <see cref="Startbelegung.Ersatz"/>; die Karten des Spiels nennen seit dem 17.11.2026 keine mehr – dann 1). Wie viele wirklich Platz
+    /// finden, sagt <see cref="HoechstensKi"/> mit den Daten.
     /// </summary>
     public static int Hoefe(Stadtkarte? karte) => 1 + (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
 
@@ -234,10 +240,22 @@ public static class Partiebesetzung
         return volk;
     }
 
-    /// <summary>Ein Familienname des Volkes, den noch kein Haus trägt (genau ein Wurf; sind alle vergeben, mit angehängter Zahl).</summary>
-    internal static string NameWuerfeln(Wirtschaftsdaten daten, Zufallsquelle z, Volk volk, IReadOnlyCollection<string> belegt)
+    /// <summary>
+    /// Ein Familienname, den noch kein Haus trägt (genau ein Wurf; sind alle vergeben, mit angehängter Zahl): aus den Namen des Volkes und –
+    /// für die KI-Häuser (17.11.2026) – den Familiennamen der Stadt (<paramref name="stadtnamen"/>, <see cref="Startbelegung.Hausnamen"/>;
+    /// sie stehen vorn, jeder Name zählt einmal).
+    /// </summary>
+    internal static string NameWuerfeln(Wirtschaftsdaten daten, Zufallsquelle z, Volk volk, IReadOnlyCollection<string> belegt,
+        IReadOnlyList<string>? stadtnamen = null)
     {
         var namen = daten.Dynastie.Voelker.TryGetValue(volk, out var v) && v.Familiennamen.Count > 0 ? v.Familiennamen : new List<string> { "Hammerschmid" };
+        if (stadtnamen is { Count: > 0 })
+        {
+            var alle = new List<string>();
+            foreach (var n in stadtnamen.Select(Familie.NachnameAus).Concat(namen))
+                if (n != "" && !alle.Contains(n, StringComparer.Ordinal)) alle.Add(n);
+            namen = alle;
+        }
         var frei = namen.Where(n => !belegt.Contains(Partieaufbau.Hausname(n))).ToList();
         var wurf = z.Next(Math.Max(1, frei.Count));
         if (frei.Count > 0) return frei[wurf];
@@ -250,14 +268,19 @@ public static class Partiebesetzung
     // ── KI-Häuser ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Die mitspielenden KI-Häuser vor dem Los: die ersten <paramref name="anzahl"/> der Startbelegung (deren Betriebsarten die Daten kennen; die
-    /// ausführliche Beschreibung alter Karten), und für jedes weitere ein gewürfeltes Haus (<see cref="Starthaus.Gewuerfelt"/>) mit Wappen,
-    /// Farbe und Geschlecht – ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/>. Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>.
+    /// Die mitspielenden KI-Häuser vor dem Los. Seit dem 17.11.2026 nennen die Karten keine festen Häuser mehr: Jedes KI-Haus ist gewürfelt
+    /// (<see cref="Starthaus.Gewuerfelt"/>) – Wappen (keines doppelt, keine schon vergebene Hauptfarbe: erst der Spieler, dann jedes KI-Haus eine
+    /// noch freie, <see cref="Wappen.Zufall"/>) und Geschlecht hier, ohne Platz: Wo es wohnt und arbeitet, lost das <see cref="Startortlos"/>.
+    /// Name, Volk, Glaube und Beruf würfelt danach die <see cref="Startaufstellung"/>. Eine ältere Karte (oder der Ersatz ohne Karte) mit festen
+    /// Häusern: zuerst die ersten <paramref name="anzahl"/> der Startbelegung (deren Betriebsarten die Daten kennen), dann für jedes weitere ein gewürfeltes.
     /// </summary>
     internal static List<Starthaus> KiHaeuser(Stadtkarte? karte, Startbelegung start, Wirtschaftsdaten daten, int anzahl, Wappen spielerWappen,
         IReadOnlyList<Hausvorgabe?>? vorgaben, int zufallsstartwert)
     {
-        var ausKarte = start.Haeuser.Take(anzahl).ToList();
+        // Feste Häuser spielen nur noch ohne Karte mit (der Ersatz der Tests und Messungen): Auf einer Karte ist jedes KI-Haus gewürfelt, auch
+        // wenn eine ältere Karte noch Häuser nennt – die geben dann nur ihre Umland-Startplätze und Namen her (Startaufstellung).
+        var ausKarte = karte is null ? start.Haeuser.Take(anzahl).ToList() : new List<Starthaus>();
+        var feste = karte is null ? start.Haeuser : new List<Starthaus>();
         var haeuser = KartenwappenEindeutig(ausKarte.Where(h => h.Betriebe.All(b => daten.KenntArt(b.Art))).ToList(), spielerWappen, vorgaben, zufallsstartwert);
         var fehlen = anzahl - ausKarte.Count;
         if (fehlen <= 0) return haeuser;
@@ -265,10 +288,10 @@ public static class Partiebesetzung
             throw new ArgumentException($"Ohne Karte spielen höchstens {start.Haeuser.Count} KI-Häuser mit.");
 
         var art = daten.Berufe[Startaufstellung.Berufe(daten)[0]].Werkstatt; // Platzhalter: den Beruf würfelt die Startaufstellung
-        var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
+        var wappen = feste.Select(h => h.Wappen).Append(spielerWappen)
             .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
-            .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
-        // vergebene Hausfarben: der Spieler, die mitspielenden Häuser der Karte und die Wappen aus „Erweitert“
+            .Concat(haeuser.Select(h => h.Wappen).Where(w => !feste.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
+        // vergebene Hausfarben: zuerst der Spieler, dann die Wappen aus „Erweitert“ (und ohne Karte die mitspielenden festen Häuser)
         var farben = haeuser.Select(h => h.Hausfarbe).Append(start.Spieler.Farbe ?? spielerWappen.Hausfarbe())
             .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen?.Hausfarbe()).OfType<string>()).ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
@@ -276,8 +299,13 @@ public static class Partiebesetzung
         {
             var geschlecht = z.Next(2) == 0 ? Geschlecht.Mann : Geschlecht.Frau;
             var w = Wappen.Zufall(z, wappen, farben); // keine schon vergebene Hauptfarbe, solange eine frei ist (17.11.2026)
-            wappen.Add(w);
-            farben.Add(w.Hausfarbe());
+            // Führt das Haus ein Wappen aus „Erweitert“, zählt das gewürfelte nicht (es wird nie getragen) – sonst fehlte den letzten Häusern eine freie Farbe.
+            var platz = haeuser.Count;
+            if (vorgaben is null || platz >= vorgaben.Count || vorgaben[platz]?.Wappen is null)
+            {
+                wappen.Add(w);
+                farben.Add(w.Hausfarbe());
+            }
             haeuser.Add(new Starthaus
             {
                 Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, // die Farbe kommt aus dem Wappen (Partieaufbau, 17.11.2026)

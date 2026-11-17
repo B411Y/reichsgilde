@@ -86,7 +86,7 @@ static class MarktplaetzeTests
         {
             foreach (var kennung in new[] { "greybox", "probestadt", "messstadt" })
             {
-                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                var karte = Stadtkarte.AusDatei(Altkarte.Pfad(kennung));
                 Pruefe.Gleich(1, karte.Marktplaetze.Count, kennung);
                 Pruefe.Gleich(0, Karrennetz.Marktlinien(karte).Count, kennung);
             }
@@ -151,7 +151,7 @@ static class MarktplaetzeTests
 
         ("Köln: zwei Plätze an den Enden der Mauer (eine Hausreihe vor dem Tor), einer in Deutz; jede Startwerkstatt fährt zu ihrem Platz – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
         {
-            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var karte = Stadtkarte.AusDatei(Altkarte.Pfad("koeln"));
             // Lage nach der Kennung (Entscheidung des Nutzers 31.10.2026): Süden hinter dem Bayentor, Norden hinter dem Kunibertstor (beide innen am
             // Rhein, an der Rheingasse), Deutz rechts des Rheins innerhalb der Deutzer Mauer. Der Platz des Spielers (Süden) steht zuerst.
             Pruefe.Gleich("MarktSued, MarktNord, MarktDeutz", string.Join(", ", karte.Marktplaetze.Select(m => m.Kennung)));
@@ -241,7 +241,7 @@ static class MarktplaetzeTests
 
         ("Marktplatz als Kreuzung nur mit der Fahrzeit nach Weglänge: Ein alter Kölner Stand (ein Markt, Daten vor Version 65) fährt auf seinem alten Netz", () =>
         {
-            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!;
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Altkarte.Pfad("koeln")))!;
             var gebaeude = json["gebaeude"]!.AsArray();
             foreach (var g in gebaeude.Where(g => (string?)g!["kennung"] is "MarktNord" or "MarktDeutz").ToList()) gebaeude.Remove(g); // bleibt der Heumarkt
             // Eine Straße, die den Platz nur berührt: Der Malzbüchel endet hier am Westrand des Heumarkts statt in seiner Mitte (in der Karte führen
@@ -269,7 +269,7 @@ static class MarktplaetzeTests
         ("Kartenprüfung: ein Marktplatz, den keine Karrenstraße berührt, gibt einen Hinweis „markt“; die Plätze der Karten nicht", () =>
         {
             foreach (var kennung in new[] { "greybox", "probestadt", "messstadt", "koeln" })
-                Pruefe.Wahr(!Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte(kennung)), Katalog.Value).Befunde.Any(b => b.Regel == "markt"), kennung);
+                Pruefe.Wahr(!Kartenentwurf.AusJson(File.ReadAllText(Altkarte.Pfad(kennung)), Katalog.Value).Befunde.Any(b => b.Regel == "markt"), kennung);
             var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             var abseits = e.Setzen("markt", -130, -30); // im Feld zwischen den Feldwegen, kein Weg berührt ihn
             var befunde = e.Befunde.Where(b => b.Regel == "markt").ToList();
@@ -279,7 +279,7 @@ static class MarktplaetzeTests
 
         ("Mehrere Marktplätze: Abstand zum nächsten (Standortwahl der KI) – ein Markt im Ursprung genau x² + z², ohne Markt der Ursprung", () =>
         {
-            var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+            var greybox = Stadtkarte.AusDatei(Altkarte.Pfad("greybox"));
             foreach (var (x, z) in new[] { (3.0, 4.0), (-17.25, 31.5), (0.1, -0.3) })
                 Pruefe.Gleich(x * x + z * z, greybox.MarktAbstandQuadrat(x, z), $"{x} | {z}");
             var (_, _, karte) = Probestadt(("Ostmarkt", 60));

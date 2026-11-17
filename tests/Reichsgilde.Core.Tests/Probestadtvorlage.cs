@@ -15,7 +15,12 @@ static class Probestadtvorlage
     {
         var datenordner = Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
         // Die Daten ändern am Text nichts (sie dienen der Prüfung der Startbelegung); das Skript braucht welche.
-        return new Probestadt().Bauen(Gebaeudekatalog.AusDatei(Path.Combine(datenordner, "katalog.json")), Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft())).ZuJson();
+        var e = new Probestadt().Bauen(Gebaeudekatalog.AusDatei(Path.Combine(datenordner, "katalog.json")), Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+        // Seit dem 17.11.2026 nennt die Probestadt keine festen Häuser mehr (jede Partie würfelt ihre Gegner). Die Vorlage der Tests behält die
+        // zwei von früher zur Probe – Tischler Ahlbeck und Gießer Brendel –, damit bekannte Betriebe an bekannten Stellen stehen.
+        e.BetriebHinzufuegen(e.HausHinzufuegen("Haus Ahlbeck"), "", Betriebsart.Tischlerei);
+        e.BetriebHinzufuegen(e.HausHinzufuegen("Haus Brendel"), "", Betriebsart.Giesserei);
+        return e.ZuJson();
     });
 
     /// <summary>Ein frischer Entwurf der Probestadt mit diesen Daten (wie <c>new Probestadt().Bauen(katalog, daten)</c>, nur ohne Geschichte).</summary>

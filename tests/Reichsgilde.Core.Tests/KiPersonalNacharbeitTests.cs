@@ -72,8 +72,8 @@ static class KiPersonalNacharbeitTests
         {
             (Stadtwirtschaft W, Reichsgilde.Core.Ki.KiRivale Ki, Betrieb B) Aufbau(Wirtschaftsdaten daten)
             {
-                var pfad = Datenpfad.Karte("koeln");
-                var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
+                var pfad = Altkarte.Pfad("koeln");
+                var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(pfad));
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400, Schwierigkeit = Schwierigkeit.Schwer },
                     daten, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(pfad));
                 var w = sim.Wirtschaft!;

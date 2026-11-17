@@ -15,7 +15,7 @@ static class AlteKartenfelderTests
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    static string Heute => File.ReadAllText(Datenpfad.Karte("probestadt"));
+    static string Heute => File.ReadAllText(Altkarte.Pfad("probestadt"));
 
     /// <summary>Die Probestadt, wie sie bis zum 16.11.2026 war: vier Werkstatt- und zwei Wohnhausplätze, Start auf Plätzen, Hofstellen.</summary>
     static string Alt(Action<JsonObject>? aendern = null)
@@ -76,11 +76,11 @@ static class AlteKartenfelderTests
             // die Karten des Spiels haben die alten Felder nicht mehr, und ihre Umlandbetriebe stehen weiter im Start
             foreach (var kennung in new[] { "greybox", "koeln", "probestadt", "messstadt" })
             {
-                var text = File.ReadAllText(Datenpfad.Karte(kennung));
+                var text = File.ReadAllText(Altkarte.Pfad(kennung));
                 foreach (var feld in new[] { "\"werkstattplatz\"", "\"wohnhausplatz", "\"hofstellen\"", "\"wohnhaus\"" })
                     Pruefe.Wahr(!text.Contains(feld), $"{kennung}: kein {feld}");
             }
-            var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var koeln = Stadtkarte.AusDatei(Altkarte.Pfad("koeln"));
             Pruefe.Wahr(koeln.Startbelegung.Haeuser.All(h => h.Betriebe.Count(b => b.Platz == "") == 1 && h.Betriebe.Any(b => koeln.GebaeudeMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb })),
                 "Köln: je Haus eine Werkstatt ohne Platz und ein Umlandbetrieb mit Platz");
         }),
@@ -119,7 +119,7 @@ static class AlteKartenfelderTests
 
         ("Alte Kartenfelder: Die Startwege (Regel „startweg“) messen nur noch die Umlandbetriebe der KI-Häuser – Köln sieben, die Probestadt keinen", () =>
         {
-            var koeln = Startwegpruefung.Rechnen(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
+            var koeln = Startwegpruefung.Rechnen(Stadtkarte.AusDatei(Altkarte.Pfad("koeln")));
             Pruefe.Gleich(7, koeln.Count);
             Pruefe.Wahr(koeln.All(w => w.Ort == Arbeitsort.Umland && w.Meter is > 0), "alle im Umland, alle mit Weg");
             Pruefe.Gleich(0, Startwegpruefung.Rechnen(Stadtkarte.AusJson(Alt(), Katalog.Value)).Count);
@@ -131,7 +131,7 @@ static class AlteKartenfelderTests
                 string.Join("\n", befunde.Select(b => $"{b.Schwere} {b.Regel}: {b.Text} @ {b.Ort} [{string.Join(",", b.Gebaeude)}] ({string.Join(",", b.Andere.Select(t => t.Bezeichnung))})"));
             static string Wege(IEnumerable<Startweg> wege) =>
                 string.Join("\n", wege.Select(w => $"{w.Wer} {w.Platz} {w.Ort} {(w.Meter is { } m ? BitConverter.DoubleToInt64Bits(m) : -1)} {w.Markt}"));
-            var e = Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte("koeln")), Katalog.Value);
+            var e = Kartenentwurf.AusJson(File.ReadAllText(Altkarte.Pfad("koeln")), Katalog.Value);
             _ = e.Befunde.Count;
             var betrieb = e.GebaeudeMit("Grube4")!.Betrieb;
             e.BetriebSetzen("Grube4", null);

@@ -11,9 +11,9 @@ using Reichsgilde.Core.Wirtschaft;
 static class StartaufstellungTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
-    static readonly Lazy<Stadtkarte> Greybox = new(() => Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
-    static readonly Lazy<Stadtkarte> Messstadt = new(() => Stadtkarte.AusDatei(Datenpfad.Karte("messstadt")));
-    static readonly Lazy<Stadtkarte> Koeln = new(() => Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
+    static readonly Lazy<Stadtkarte> Greybox = new(() => Stadtkarte.AusDatei(Altkarte.Pfad("greybox")));
+    static readonly Lazy<Stadtkarte> Messstadt = new(() => Stadtkarte.AusDatei(Altkarte.Pfad("messstadt")));
+    static readonly Lazy<Stadtkarte> Koeln = new(() => Stadtkarte.AusDatei(Altkarte.Pfad("koeln")));
 
     static Stadtwirtschaft Partie(Stadtkarte? karte, NeuePartie neu, int startwert, Schwierigkeit s = Schwierigkeit.Normal) =>
         Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = s },
@@ -127,9 +127,11 @@ static class StartaufstellungTests
             Pruefe.Wahr(glauben.SetEquals(new[] { Konfession.Katholisch, Konfession.Evangelisch }), string.Join(", ", glauben));
 
             // In der Partie trägt das Oberhaupt Volk und Glauben der Aufstellung
+            // (seit 17.11.2026 würfelt die Partie auf einer Karte auch die Namen – verglichen wird mit der Belegung in der Partiekarte)
             var w = Partie(Greybox.Value, new NeuePartie(), 9);
-            var e = Losen(Greybox.Value, "Schmied", 3, 9);
-            foreach (var h in e.Belegung.Haeuser)
+            var belegung = w.Karte!.Startbelegung.Haeuser;
+            Pruefe.Gleich(3, belegung.Count);
+            foreach (var h in belegung)
             {
                 var o = w.Familien.Von(w.Konten.Single(k => k.Inhaber == h.Name))!.Oberhaupt;
                 Pruefe.Gleich(h.Volk, o.Volk, h.Name);

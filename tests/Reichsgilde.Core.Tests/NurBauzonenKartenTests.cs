@@ -87,7 +87,9 @@ static class NurBauzonenKartenTests
             var w = sim.Wirtschaft!;
             Pruefe.Wahr(w.Bauen.StartwahlVon(spieler) is { WohnhausOffen: true }, "Die Platzwahl ist offen, zuerst das Wohnhaus.");
             Pruefe.Wahr(!w.Betriebe.Any(b => b.Konto == spieler), "Der Spieler hat noch keinen Betrieb.");
-            Pruefe.Gleich(4, w.Konten.Count, "Spieler und die drei KI-Häuser der Greybox");
+            // (seit 17.11.2026 nennt die Greybox keine festen Häuser mehr: Die Probe würfelt so viele, wie in die Bauzonen passen)
+            Pruefe.Gleich(1 + Partiebesetzung.HoechstensKi(Oeffnen("greybox").ZuStadtkarte(), daten: Daten.Value), w.Konten.Count, "Spieler und die gewürfelten KI-Häuser der Greybox");
+            Pruefe.Gleich(5, w.Konten.Count, "fünf Häuser passen ins Stadtinnere der Greybox");
             foreach (var ki in w.Konten.Where(k => k != spieler))
                 Pruefe.Wahr(w.Bauen.Grundstuecke.Any(g => g.Besitzer == ki && g.Art == Grundstuecksart.Wohnhaus && g.Kennung is null),
                     $"{ki.Inhaber}: Wohnhaus auf einem gelosten Grundstück (kein Platz der Karte).");

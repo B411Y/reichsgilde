@@ -22,7 +22,7 @@ public enum Aufstellungsart
 /// Die Startaufstellung einer neuen Partie (Nutzerentscheidung 11.11.2026):
 ///
 ///   • <b>Jeder Beruf höchstens einmal je Partie</b> – der Spieler und alle KI-Häuser zusammen. Der Beruf des Spielers steht zuerst fest.
-///   • Jedes mitspielende KI-Haus bekommt in der Reihenfolge der Karte <b>Volk, Glaube und Beruf gelost</b>, in dieser Reihenfolge, mit einer
+///   • Jedes mitspielende KI-Haus bekommt der Reihe nach <b>Volk, Glaube und Beruf gelost</b>, in dieser Reihenfolge, mit einer
 ///     eigenen Zufallsquelle aus dem Startwert der Partie (<see cref="Losquelle"/>, wie das Los der Startorte): Alle übrigen Würfe bleiben, wie sie
 ///     ohne dieses Los wären, und jeder Rechner einer Mehrspielerpartie lost dasselbe. Je Haus genau drei Würfe (auch wenn eine Liste nur einen
 ///     Eintrag hat – die Reihe der Würfe bleibt fest).
@@ -32,7 +32,8 @@ public enum Aufstellungsart
 ///     überschreiten würden (kirche.kirchenJeGlaube; mit „jeder Beruf einmal“ gibt es ohnehin höchstens einen Prediger). Das ersetzt die Startregel
 ///     aus PR 1a (KI-Haus nimmt statt einer zweiten Kirche einen anderen Beruf).
 ///   • Plätze: Die Werkstatt des neuen Berufs steht auf dem Werkstattplatz des Hauses (jeder Werkstattplatz taugt für jede Werkstatt). Der
-///     Umlandbetrieb kommt auf einen Umland-Startplatz der Karte dieser Art (Startbetrieb eines mitspielenden Hauses): den ersten, den noch
+///     Umlandbetrieb kommt auf einen Umland-Startplatz der Karte dieser Art (<see cref="Startbelegung.Umland"/>: mit N gewürfelten Häusern
+///     die ersten N der Liste; bei älteren Karten der Startbetrieb eines mitspielenden Hauses): den ersten, den noch
 ///     niemand hat, in der Reihenfolge der Häuser. Ein Haus, das seinen Beruf behält, behält auch seinen Platz – jede Umlandart gehört zu genau
 ///     einem Beruf, und jeder Beruf kommt nur einmal vor. Gibt es keinen (die Karten haben heute keine Start-Duftgärten, Klosterhöfe, Wachtürme), beginnt das
 ///     Haus nur mit der Werkstatt – bei „Normal“ ändert das nichts, dort steht der Umlandbetrieb ohnehin frei zur Pacht. Die freien Liegenschaften
@@ -134,7 +135,17 @@ public static class Startaufstellung
         bool AufWerkstattplatz(Startbetrieb b) => daten.Art(b.Art).InDerStadt && !AufUmlandplatz(b);
 
         // Die Umland-Startplätze der mitspielenden Häuser (in ihrer Reihenfolge) – wer welchen bekommt, steht unten
-        var umland = mitspielend.SelectMany(h => h.Betriebe.Where(AufUmlandplatz)).ToList();
+        // – dazu die Umland-Startplätze der Karte (17.11.2026): je gewürfeltem Haus einer, in der Reihenfolge der Karte (bei einer älteren
+        // Karte mit festen Häusern zuerst deren Umlandbetriebe – die Häuser selbst spielen nicht mehr mit)
+        var ohneHaus = new List<Startbetrieb>();
+        var stadtnamen = new List<string>(start.Hausnamen ?? new List<string>());
+        if (karte is not null)
+        {
+            ohneHaus.AddRange(start.Haeuser.Where(h => !mitspielend.Contains(h)).SelectMany(h => h.Betriebe).Concat(start.Umland ?? new List<Startbetrieb>())
+                .Where(AufUmlandplatz).Take(mitspielend.Count(h => h.Gewuerfelt)));
+            stadtnamen.AddRange(start.Haeuser.Where(h => !mitspielend.Contains(h)).Select(h => h.Name));
+        }
+        var umland = mitspielend.SelectMany(h => h.Betriebe.Where(AufUmlandplatz)).Concat(ohneHaus).ToList();
         var belegt = new List<Startbetrieb>();
 
         var namen = new List<(string Platz, string Name)>(); // neue Namen an Plätzen der Karte
@@ -160,7 +171,7 @@ public static class Startaufstellung
             if (v?.Name is { } vn) name = Partieaufbau.Hausname(vn);
             else if (h.Gewuerfelt)
             {
-                name = Partieaufbau.Hausname(Partiebesetzung.NameWuerfeln(daten, namensquelle, volk, hausnamen));
+                name = Partieaufbau.Hausname(Partiebesetzung.NameWuerfeln(daten, namensquelle, volk, hausnamen, stadtnamen));
                 hausnamen.Add(name);
             }
             else name = h.Name;

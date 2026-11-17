@@ -24,7 +24,7 @@ static class KiUmlandTests
     static (Stadtwirtschaft W, KiRivale Ki) Partie(string karte, Wirtschaftsdaten? daten = null)
     {
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, daten ?? Daten.Value,
-            FesteStartorte.Partie(karte, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe)), karte: Stadtkarte.AusDatei(Datenpfad.Karte(karte))); // mit drei Häusern sind Grube Overstolz, Holzschlag Hardevust und Steinbruch Lyskirchen frei
+            FesteStartorte.Partie(karte, new NeuePartie(Rivalen: 3, Aufstellung: Aufstellungsart.Vorgabe)), karte: Stadtkarte.AusDatei(Altkarte.Pfad(karte))); // mit drei Häusern sind Grube Overstolz, Holzschlag Hardevust und Steinbruch Lyskirchen frei
         var w = sim.Wirtschaft!;
         return (w, w.Rivalen[0]);
     }
@@ -42,8 +42,8 @@ static class KiUmlandTests
     {
         ("KI-Umland: Im gebremsten Holzschlag (Köln, „Schwer“, ein Jahr) wählt der Vorarbeiter „Ordnungsliebend“ (mehr Lager: jeder Pferdekarren lädt 60 statt 40) – gerechnet wie beim Karrenkauf", () =>
         {
-            var pfad = Datenpfad.Karte("koeln");
-            var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;
+            var pfad = Altkarte.Pfad("koeln");
+            var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(pfad));
             var (sim, _) = Partieaufbau.Erstellen(
                 Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, FesteStartorte.Partie("koeln", new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe)), karte: Stadtkarte.AusDatei(pfad));

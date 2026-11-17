@@ -121,8 +121,9 @@ static class BauenTests
             Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran")!.Katalog == "rheinkran", "Hafen am Ufer; am Hafensteg entlädt ein Kran, dazu steht seit Paket 3 der Wahrzeichen der Rheinkran als Schwimmkran am Ufer");
             Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
             Pruefe.Wahr(k.Start is not null, "Köln hat eine Startbelegung");
-            Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser
-            Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
+            Pruefe.Gleich(0, k.Startbelegung.Haeuser.Count); // keine festen KI-Häuser mehr (17.11.2026): sieben Umland-Startplätze und sieben Namen
+            Pruefe.Gleich(7, k.Startbelegung.Umland!.Count);
+            Pruefe.Gleich("Overstolz", k.Startbelegung.Hausnamen![0]);
             Pruefe.Wahr(k.Startbelegung.Spieler.Wohnhaus is null && k.Startbelegung.Haeuser.All(h => h.Wohnhaus is null && h.Betriebe[0].Platz == ""), "niemand sitzt auf einem Platz der Karte");
 
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 14, Tiefe: 30 }, "St. Gereon 14 × 30 wie im Kapazitätswerkzeug (seit dem Modell, 9.11.2026; vorher der Block 16 × 14)");
@@ -496,7 +497,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(93, Daten.Value.Version);
+            Pruefe.Gleich(94, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

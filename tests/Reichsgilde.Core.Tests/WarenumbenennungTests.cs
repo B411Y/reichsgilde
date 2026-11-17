@@ -105,7 +105,7 @@ static class WarenumbenennungTests
 
         ("Dolch statt Rapier: Eine eigene Karte mit „produkt“: „Rapier“ lädt – in der Partie, in der Kartenprüfung und in der Kartenwerkstatt heißt die Ware Dolch", () =>
         {
-            var pfad = Datenpfad.Karte("greybox");
+            var pfad = Altkarte.Pfad("greybox");
             var json = File.ReadAllText(pfad);
             var alt = json.Replace("\"produkt\": \"Dolch\"", "\"produkt\": \"Rapier\"");
             Pruefe.Wahr(alt != json, "die Greybox hat einen Startbetrieb mit Dolch");
@@ -127,7 +127,7 @@ static class WarenumbenennungTests
 
         ("Dolch statt Rapier: Die Kartenwerkstatt speichert eine Karte mit „Rapier“ wieder mit „Dolch“", () =>
         {
-            var pfad = Datenpfad.Karte("greybox");
+            var pfad = Altkarte.Pfad("greybox");
             var alt = File.ReadAllText(pfad).Replace("\"produkt\": \"Dolch\"", "\"produkt\": \"Rapier\"");
             Pruefe.Wahr(alt.Contains("Rapier"), "die Greybox hat einen Startbetrieb mit Dolch");
             var entwurf = Kartenentwurf.AusJson(alt, Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(pfad)));

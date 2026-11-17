@@ -201,12 +201,16 @@ public sealed class Torwache
         var haeuser = _w.Konten.Select(k => _w.Familien.Von(k)?.Nachname).Where(n => n is not null).ToHashSet();
         var namen = _ew.Einwohner.Select(e => e.Name).Concat(_waechter.Select(t => t.Person.Name)).ToHashSet();
         (string, string) wahl = default;
+        (string, string)? ohneHaus = null; // der letzte Wurf ohne Hausnamen – findet sich kein ganz freier Name, gilt er (17.11.2026: seit die
+                                           // KI-Häuser Namen ihres Volkes würfeln, träfe der letzte Wurf sonst öfter den Namen eines Hauses)
         for (var versuch = 0; versuch < 10; versuch++)
         {
             wahl = (vornamen[_zufall.Next(vornamen.Count)], vd.Familiennamen[_zufall.Next(vd.Familiennamen.Count)]);
-            if (!haeuser.Contains(wahl.Item2) && !namen.Contains($"{wahl.Item1} {wahl.Item2}")) break;
+            if (haeuser.Contains(wahl.Item2)) continue;
+            ohneHaus = wahl;
+            if (!namen.Contains($"{wahl.Item1} {wahl.Item2}")) break;
         }
-        return wahl;
+        return ohneHaus ?? wahl;
     }
 
     private T Gewichtet<T>(List<(T Wert, double Gewicht)> liste)

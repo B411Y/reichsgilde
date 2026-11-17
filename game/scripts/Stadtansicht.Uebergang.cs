@@ -80,16 +80,26 @@ public partial class Stadtansicht
 
     // ── Messung ─────────────────────────────────────────────────────────────
 
-    /// <summary><c>--blendetest=Kennung</c>: betritt das Gebäude mit der Schwarzblende, wartet, verlässt es wieder und schreibt Phasen, Dauern und Bildzahl ins Log (<c>[blende]</c>).</summary>
-    public async void BlendeTestStarten(string kennung)
+    /// <summary>
+    /// <c>--blendetest=Kennung[,Sekunden[,Runden]]</c>: betritt das Gebäude mit der Schwarzblende, wartet, verlässt es wieder und schreibt Dauern und
+    /// Bildzahl ins Log (<c>[blende]</c>). <c>Sekunden</c> wartet vor dem ersten Betreten (gleich nach dem Laden läuft noch die Arbeit des Spielstarts,
+    /// z. B. das Backen der Passanten – die Messung zeigt dann den Start, nicht das Betreten); <c>Runden</c> wiederholt (die zweite Runde ist „warm“).
+    /// </summary>
+    public async void BlendeTestStarten(string angabe)
     {
+        var teile = angabe.Split(',');
+        var kennung = teile[0];
+        var warten = teile.Length > 1 && double.TryParse(teile[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s) ? s : 0;
+        var runden = teile.Length > 2 && int.TryParse(teile[2], out var n) ? Math.Max(1, n) : 1;
+        if (warten > 0) await ToSignal(GetTree().CreateTimer(warten), SceneTreeTimer.SignalName.Timeout);
+        for (var runde = 1; runde <= runden; runde++)
         foreach (var richtung in new[] { UebergangRichtung.Betreten, UebergangRichtung.Verlassen })
         {
             var anfang = Time.GetTicksMsec();
             var bilder = Uebergangsblende.Gezeichnet();
             var ok = richtung == UebergangRichtung.Betreten ? InnenansichtBetretenMitBlende(kennung) : Verlassen();
             while (UebergangLaeuft) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
-            GD.Print($"[blende] {richtung}: angenommen={ok}, {Time.GetTicksMsec() - anfang} ms, {Uebergangsblende.Gezeichnet() - bilder} Bilder, drinnen={(InnenKennung ?? "nein")}");
+            GD.Print($"[blende] {richtung}{(runden > 1 ? $" (Runde {runde})" : "")}: angenommen={ok}, {Time.GetTicksMsec() - anfang} ms, {Uebergangsblende.Gezeichnet() - bilder} Bilder, drinnen={(InnenKennung ?? "nein")}");
             for (var i = 0; i < 30; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
         GD.Print("[blende] Ende");

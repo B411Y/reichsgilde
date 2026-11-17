@@ -256,7 +256,8 @@ static class KartenbauTests
             Pruefe.Gleich(8, Startortlos.Haeuser(e.ZuStadtkarte(), Daten.Value)); // dafür Platz für acht Häuser in den Bauzonen im Stadtinneren
             Pruefe.Wahr(e.Gebaeude.Count(g => g.Art == Bausteinart.Einwohnerplatz) >= 10, "Einwohnerplätze");
             Pruefe.Gleich(2, e.Mauern[0].Tore.Count);
-            Pruefe.Gleich(2, e.Start.Haeuser.Count);
+            Pruefe.Gleich(0, e.Start.Haeuser.Count); // keine festen Häuser mehr (17.11.2026): die zwei früheren als Namen der Stadt
+            Pruefe.Gleich("Ahlbeck, Brendel", string.Join(", ", e.Start.Hausnamen));
             Pruefe.Wahr(e.Wege.Any(w => w.IstGlatt), "ein Weg als Kurve");
             Pruefe.Wahr(e.Naturflaechen.Count >= 1 && e.Bauzonen.Count >= 1, "Wald und Bauzonen");
             Pruefe.Gleich(0, Kapazitaetspruefung.Pruefen(e).Befunde.Count);
@@ -270,14 +271,15 @@ static class KartenbauTests
                         && json.IndexOf("\"kamera\"", StringComparison.Ordinal) < json.IndexOf("\"fiktion\"", StringComparison.Ordinal), "kamera und fiktion hinten");
         }),
 
-        ("Kartenskript Probestadt: eine Partie aus ihr läuft ein Spieljahr (1140 Ticks) ohne Fehler, mit beiden KI-Häusern", () =>
+        ("Kartenskript Probestadt: eine Partie aus ihr läuft ein Spieljahr (1140 Ticks) ohne Fehler, mit sieben gewürfelten KI-Häusern (so viele passen hinein)", () =>
         {
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
-            Pruefe.Gleich(3, w.Konten.Count);
+            Pruefe.Gleich(8, w.Konten.Count); // seit 17.11.2026 würfelt auch die Probe ihre KI-Häuser
             Pruefe.Wahr(w.Betriebe.Any(b => b.Konto == spieler), "der Spieler hat seine Werkstatt");
-            Pruefe.Wahr(w.Betriebe.Any(b => b.Art == Betriebsart.Tischlerei) && w.Betriebe.Any(b => b.Art == Betriebsart.Giesserei), "Tischlerei und Gießerei");
+            Pruefe.Wahr(w.Konten.All(k => w.Betriebe.Count(b => b.Konto == k && b.InDerStadt) == 1), "jedes Haus mit einer Werkstatt in der Stadt");
+            Pruefe.Gleich(8, w.Betriebe.Where(b => b.InDerStadt).Select(b => b.Art).Distinct().Count(), "jeder Beruf einmal");
             var jahr = sim.Zeit.Jahr;
             for (var t = 0; t < Spielzeit.MinutenProTag; t++) sim.Tick();
             Pruefe.Gleich(jahr + 1, sim.Zeit.Jahr, "ein Jahr vergangen");
@@ -339,7 +341,9 @@ static class KartenbauTests
             Pruefe.Wahr(svg.Contains(">Westtor</text>") && svg.Contains(">Osttor</text>"), "Tore");
             var waldweg = e.Wege.Single(w => w.Name == "Waldweg");
             Pruefe.Wahr(waldweg.Verlauf.Count > waldweg.Punkte.Count * 5, "die Kurve ist abgetastet");
-            Pruefe.Wahr(svg.Contains(">Haus Ahlbeck</text>") && svg.Contains("fill=\"#336bb8\""), "Legende und Spielerfarbe");
+            Pruefe.Wahr(svg.Contains(">Spieler</text>") && svg.Contains("fill=\"#336bb8\"") && !svg.Contains(">Haus Ahlbeck</text>"), "Legende und Spielerfarbe, keine festen Häuser");
+            // mit Häusern zur Probe (wie bis zum 17.11.2026 in der Karte) stehen sie in der Legende
+            Pruefe.Wahr(Vorschau.Zeichnen(Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value)).Contains(">Haus Ahlbeck</text>"), "Legende mit Probehäusern");
             Pruefe.Wahr(!svg.Contains("opacity=\"0.75\""), "ohne Belegung");
             Pruefe.Wahr(Vorschau.Zeichnen(e, belegung: true).Contains("fill=\"#8C5A2B\" opacity=\"0.75\""), "Kapazität: Werkstätten");
             Pruefe.Wahr(Vorschau.Zeichnen(Oeffnen("greybox"), belegung: true).Contains("stroke=\"#1F2326\" stroke-width=\"0.3\"/>\n<circle"), "Greybox: Probeplan");

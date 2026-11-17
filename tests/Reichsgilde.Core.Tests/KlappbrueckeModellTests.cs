@@ -95,7 +95,7 @@ public static class KlappbrueckeModellTests
         });
         yield return ("Klappbrücke Zierschiff: Das Zierschiff fährt nach seinem Plan genau dann unter der Brücke durch, wenn sie offen ist (Köln, 60 Fenster); Gegenprobe: Schiffe von der anderen Seite brauchen keine Öffnung", () =>
         {
-            var sim = KlappbrueckeTests.Partie(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")), KlappbrueckeTests.DatenMit(_ => { }));
+            var sim = KlappbrueckeTests.Partie(Stadtkarte.AusDatei(Altkarte.Pfad("koeln")), KlappbrueckeTests.DatenMit(_ => { }));
             var w = sim.Wirtschaft!;
             var kb = w.Klappbruecke;
             var hafen = w.Schiffahrt.Haefen[0];

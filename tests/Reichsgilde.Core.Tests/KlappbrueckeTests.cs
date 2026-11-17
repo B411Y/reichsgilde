@@ -29,7 +29,7 @@ static class KlappbrueckeTests
     /// <summary>Köln ohne den Neumarkt in Deutz: Die Häuser in Deutz fahren über die Rheinbrücke zu Heumarkt oder Alter Markt.</summary>
     internal static Stadtkarte Pruefkarte()
     {
-        var pfad = Datenpfad.Karte("koeln");
+        var pfad = Altkarte.Pfad("koeln");
         var karte = JsonNode.Parse(File.ReadAllText(pfad))!.AsObject();
         var gebaeude = karte["gebaeude"]!.AsArray();
         gebaeude.Remove(gebaeude.Single(g => (string?)g!["kennung"] == "MarktDeutz"));
@@ -39,7 +39,7 @@ static class KlappbrueckeTests
     /// <summary>Eine Partie „Schwer“ mit allen KI-Häusern der Karte.</summary>
     internal static Simulation Partie(Stadtkarte karte, Wirtschaftsdaten daten, int startwert = 1400)
     {
-        var haeuser = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!["start"]!["haeuser"]!.AsArray().Count;
+        var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(Altkarte.Pfad("koeln")));
         var (sim, _) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer, Zufallsstartwert = startwert },
             daten, FesteStartorte.Partie("koeln", new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe)), karte: karte); // feste Startorte: drei Häuser in Deutz
@@ -49,7 +49,7 @@ static class KlappbrueckeTests
     static Stadtwirtschaft Mit(Wirtschaftsdaten daten)
     {
         var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, new Spielzeit(0), daten);
-        sim.Wirtschaft!.KarteSetzen(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
+        sim.Wirtschaft!.KarteSetzen(Stadtkarte.AusDatei(Altkarte.Pfad("koeln")));
         return sim.Wirtschaft;
     }
 
@@ -70,7 +70,7 @@ static class KlappbrueckeTests
         ("Klappbrücke: Daten ab 90 – Rhein, 20 Minuten je Durchfahrt; Prüfung meldet leeres Gewässer und Dauer außerhalb 1–60; ohne Abschnitt keine Brücke", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(93, d.Version);
+            Pruefe.Gleich(94, d.Version);
             Pruefe.Gleich("Rhein", d.Logistik.Klappbruecke!.Gewaesser);
             Pruefe.Gleich(20, d.Logistik.Klappbruecke.OeffnungMinuten);
             Pruefe.WirftMitMeldung(() => DatenMit(j => j["logistik"]!["klappbruecke"]!["oeffnungMinuten"] = 0), "oeffnungMinuten");
@@ -108,7 +108,7 @@ static class KlappbrueckeTests
             var andere = Mit(DatenMit(j => j["logistik"]!["klappbruecke"]!["gewaesser"] = "Duffesbach"));
             Pruefe.Wahr(!andere.Klappbruecke.Gibt, "Duffesbach: kein Hafen an diesem Gewässer");
             var (grey, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
-                new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+                new NeuePartie(Rivalen: 1), karte: Stadtkarte.AusDatei(Altkarte.Pfad("greybox")));
             Pruefe.Wahr(!grey.Wirtschaft!.Klappbruecke.Gibt, "Greybox: keine Klappbrücke");
         }),
 
@@ -150,7 +150,7 @@ static class KlappbrueckeTests
             Pruefe.Gleich(20, warten, "jede Minute der Öffnung einmal");
             Pruefe.Wahr(nicht > 0, "vorher und nachher keine Wartezeit");
 
-            var koeln = Partie(Stadtkarte.AusDatei(Datenpfad.Karte("koeln")), Daten.Value).Wirtschaft!;
+            var koeln = Partie(Stadtkarte.AusDatei(Altkarte.Pfad("koeln")), Daten.Value).Wirtschaft!;
             foreach (var x in koeln.Betriebe)
                 Pruefe.Wahr(koeln.Fahrten(x) is not var (h2, z2) || (!koeln.Klappbruecke.FuehrtUeber(h2) && !koeln.Klappbruecke.FuehrtUeber(z2)), $"{x.Name} bleibt auf seiner Seite");
         }),

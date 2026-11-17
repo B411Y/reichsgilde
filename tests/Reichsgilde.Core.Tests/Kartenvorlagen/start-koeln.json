@@ -1,0 +1,53 @@
+ "start": {
+  "haeuser": [
+   {
+    "name": "Haus Overstolz",
+    "volk": "Zwerg",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
+   },
+   {
+    "name": "Haus Hardevust",
+    "volk": "Elb",
+    "geschlecht": "Frau",
+    "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
+   },
+   {
+    "name": "Haus Lyskirchen",
+    "volk": "Halbling",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Ohne", "farbe1": "Purpur", "farbe2": "Gold", "figur": "Krone"},
+    "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
+   },
+   {
+    "name": "Haus Gryn",
+    "volk": "Mensch",
+    "geschlecht": "Frau",
+    "wappen": {"teilung": "Ohne", "farbe1": "Gruen", "farbe2": "Gold", "figur": "Aehre"},
+    "betriebe": [{"art": "Tinkturei"}, {"platz": "Kraeutergarten2", "art": "Kraeutergarten"}]
+   },
+   {
+    "name": "Haus Scherfgin",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Sparren", "farbe1": "Schwarz", "farbe2": "Silber", "figur": "Mond"},
+    "betriebe": [{"art": "Giesserei"}, {"platz": "Grube4", "art": "Mine"}]
+   },
+   {
+    "name": "Haus Mommersloch",
+    "volk": "Halbling",
+    "geschlecht": "Frau",
+    "wappen": {"teilung": "Gespalten", "farbe1": "Ocker", "farbe2": "Silber", "figur": "Schluessel"},
+    "betriebe": [{"art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
+   },
+   {
+    "name": "Haus Kleingedank",
+    "volk": "Mensch",
+    "geschlecht": "Mann",
+    "wappen": {"teilung": "Ohne", "farbe1": "Orange", "farbe2": "Silber", "figur": "Turm"},
+    "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag3", "art": "Holzfaellerei"}]
+   }
+  ]
+ },
