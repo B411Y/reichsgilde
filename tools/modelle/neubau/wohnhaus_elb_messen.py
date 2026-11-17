@@ -1,6 +1,6 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
-Rahmen und Oeffnung je Wand – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -69,6 +69,71 @@ def tueren(form):
     return [f"21. Haustuer licht {b:.2f} x {h:.2f} m: passt " + ", ".join(teile) + (" -> ok" if not fehler else " -> FEHLER")], fehler
 
 
+def grundform_masse(form):
+    """Was 25 und 26 von der Grundform wissen muessen (Baurahmen): Oeffnungen mit Spitzbogen (Wandachse, Ebene, Aussenrichtung,
+    u0, u1, z0, z1) und die Dachmasse (OX, Traufe xe, DV, DH, Giebelwaende, dach_z, Walm vorn)."""
+    import wohnhaus_mensch_s1_g1 as G1
+    import wohnhaus_mensch_s1 as S1
+    import zwerg_teile as ZT
+    bogen = []
+    if form in (1, 3):
+        wand, (a0, a1), (z0, z1), _ = next(f for f in G1.FENSTER if f[3] == "tuer")
+        bogen.append(("y", G1.VORN, -1, a0, a1, z0, z1))
+        (lx0, lx1), (lz0, lz1) = G1.LUKE
+        bogen.append(("y", G1.OVORN, -1, lx0, lx1, lz0, lz1))
+        dach = dict(ox=G1.OX, dv=G1.DACH_VORN, dh=G1.DACH_HINTEN, yw=(G1.OVORN, G1.HINTEN), dach_z=G1.dach_z, walm=False)
+    else:
+        S1.form_setzen(form)
+        F = S1.F
+        for wand, (a0, a1), (z0, z1), art in F.FENSTER:
+            if art != "tuer" and not wand.endswith("_gb"): continue
+            (ox, oy), (ex, ey), _, (nx, ny) = F.WAENDE[wand]
+            bogen.append(("y", oy, ny, a0, a1, z0, z1) if ex else ("x", ox, nx, a0, a1, z0, z1))
+        dach = dict(ox=F.OX, dv=F.DACH_VORN, dh=F.DACH_HINTEN, yw=(F.VORN, F.HINTEN), dach_z=S1.dach_z, walm=bool(F.WALM))
+    dach["xe"] = dach["ox"] + ZT.UEBER
+    return bogen, dach
+
+
+def spitzbogen_pruefen(hull, bogen):
+    """Pruefung 25 (Spitzbogen nur aussen, innen = aussen): vor jeder Haustuer und Giebeloeffnung liegt ein Spitzbogen – Holz
+    (Bogenbrett, mindestens 6 Flaechen) und Putz (Zwickel) ganz in der Oeffnung (4 cm Rand fuer das Brett), zwischen Wandflucht und
+    15 cm davor. Die Oeffnung der Huelle und die Innenseite bleiben rechteckig (Glas innen = aussen: Pruefungen 3 und 24)."""
+    zeilen, fehler = [], 0
+    for ax, e, aussen, u0, u1, z0, z1 in bogen:
+        holz = putz = 0
+        for name, mat, pts, n, v in hull:
+            if name != "Haus" or mat not in ("Fachwerk", "Lehmputz"): continue
+            uu = [p.x if ax == "y" else p.y for p in pts]; ee = [(p.y if ax == "y" else p.x) for p in pts]
+            if min(uu) < u0 - 0.045 or max(uu) > u1 + 0.045 or min(p.z for p in pts) < z0 + 0.25 or max(p.z for p in pts) > z1 + 0.005: continue
+            d = [(x - e) * aussen for x in ee]
+            if min(d) < -0.005 or max(d) > 0.15: continue        # nur vor der Wandflucht (Fensterstock und Tuerblatt liegen dahinter)
+            if max(p.z for p in pts) < z1 - 1.3 * (u1 - u0) / 2 - 0.01: continue
+            if mat == "Fachwerk": holz += 1
+            else: putz += 1
+        ok = holz >= 6 and putz >= 2
+        fehler += 0 if ok else 1
+        zeilen.append(f"   {ax}={e:+.2f} u {u0:.2f}..{u1:.2f} bis z {z1:.2f}: Bogenbrett {holz}, Zwickel {putz} -> {'ok' if ok else 'FEHLER'}")
+    return zeilen, fehler
+
+
+def dachschwung_pruefen(hull, dach):
+    """Pruefung 26 (Dachschwung): (a) die Dachecken stehen hoeher als die Traufmitte (mindestens 15 cm; Schindeln „Stroh“ am Rand der
+    Traufe), (b) ueber der Wandflucht liegt das Dach wie vorher auf der Dachlinie (-6 bis +12 cm ueber dach_z): dort keine Luecke zu
+    Wand und Giebel. Geschlossenheit: Pruefung 16, Mast: 22."""
+    ox, xe, dv, dh, (yw0, yw1), dz = dach["ox"], dach["xe"], dach["dv"], dach["dh"], dach["yw"], dach["dach_z"]
+    rand = [p for name, mat, pts, n, v in hull if name == "Dach" and mat == "Stroh" for p in pts if abs(p.x) > xe - 0.12]
+    ecke = max((p.z for p in rand if p.y > dh - 0.4), default=0.0)
+    if not dach["walm"]: ecke = max(ecke, max((p.z for p in rand if p.y < dv + 0.4), default=0.0))
+    ym = (dv + dh) / 2
+    mitte = max((p.z for p in rand if abs(p.y - ym) < 0.5), default=0.0)
+    ab = [p.z - dz(abs(p.x)) for name, mat, pts, n, v in hull if name == "Dach" and mat == "Stroh" for p in pts
+          if abs(p.x) < ox - 0.02 and yw0 + 0.02 < p.y < yw1 - 0.02]
+    ok_a, ok_b = ecke - mitte >= 0.15, bool(ab) and -0.06 <= min(ab) and max(ab) <= 0.12
+    zeilen = [f"   Ecke {ecke:.2f}, Traufmitte {mitte:.2f}: Schwung {ecke - mitte:+.2f} m (Soll >= 0,15) -> {'ok' if ok_a else 'FEHLER'}",
+              f"   ueber der Wandflucht {len(ab)} Punkte, Abstand zur Dachlinie {min(ab, default=0):+.3f}..{max(ab, default=0):+.3f} m (Soll -0,06..+0,12) -> {'ok' if ok_b else 'FEHLER'}"]
+    return zeilen, (0 if ok_a else 1) + (0 if ok_b else 1)
+
+
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
@@ -89,6 +154,13 @@ def main():
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
     zeilen.append("23. Schwerstangen: entfaellt (Schindeldach ohne Stangen und Findlinge, wie im Kunstwerk)")
+    bogen, dach = grundform_masse(form)
+    MS1.WELT = MS1.masse(form)["welt"]
+    hull = MS1.lade(glb)
+    z25, f25 = spitzbogen_pruefen(hull, bogen)
+    zeilen.append(f"25. Spitzbogen nur aussen vor Haustuer und Giebeloeffnung (innen = aussen): {'ok' if not f25 else str(f25) + ' FEHLER'}"); zeilen += z25; fehler += f25
+    z26, f26 = dachschwung_pruefen(hull, dach)
+    zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
     kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
