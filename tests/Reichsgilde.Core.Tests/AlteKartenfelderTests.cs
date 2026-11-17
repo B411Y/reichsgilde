@@ -35,7 +35,8 @@ static class AlteKartenfelderTests
         gebaeude.Add(Platz("Wohnhausplatz2", "wohnhausplatz", -28, -44, 0));
         gebaeude.Add(Platz("Wohnhausplatz3", "wohnhausplatz", -16, -44, 0));
         var start = k["start"]!.AsObject();
-        var spieler = start["spieler"]!.AsObject();
+        var spieler = new JsonObject { ["farbe"] = "#336bb8" }; // bis zum 17.11.2026 nannte die Karte die Farbe des Spielers
+        start["spieler"] = spieler;
         spieler["wohnhaus"] = "Wohnhausplatz2";
         spieler["werkstatt"] = new JsonObject { ["platz"] = "Werkstattplatz1", ["name"] = "{art} am Markt" };
         spieler["jeBeruf"] = new JsonObject { ["Tischler"] = new JsonObject { ["platz"] = "Werkstattplatz1", ["name"] = "{art} an der Hauptstraße" } };
@@ -86,7 +87,8 @@ static class AlteKartenfelderTests
 
         ("Alte Kartenfelder: Die Kartenwerkstatt öffnet die alte Karte ohne Fehler und schreibt sie ohne die alten Felder – Zeichen für Zeichen wie die heutige", () =>
         {
-            var e = Kartenentwurf.AusJson(Alt(), Katalog.Value);
+            // ohne die feste Farbe des Spielers: Die bleibt einer alten Karte erhalten (HausfarbeWappenTests), die heutige hat keine mehr
+            var e = Kartenentwurf.AusJson(Alt(k => k["start"]!["spieler"]!.AsObject().Remove("farbe")), Katalog.Value);
             e.Daten = Daten.Value;
             Pruefe.Wahr(e.Gebaeude.All(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)), "keine Plätze im Entwurf");
             Pruefe.Wahr(e.Start.Haeuser.All(h => h.Betriebe[0].Platz == ""), "die Werkstatt in der Stadt ohne Platz");

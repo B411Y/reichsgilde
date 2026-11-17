@@ -331,7 +331,7 @@ static class KartenwerkstattStartTests
             e.Daten = Daten.Value;
             var s = e.Start;
             Folge(new[] { "Haus Eisenbart", "Haus Eichwald", "Haus Kieselbach" }, s.Haeuser.Select(h => h.Name).ToArray());
-            Pruefe.Gleich("#336bb8", s.SpielerFarbe);
+            Pruefe.Wahr(s.SpielerFarbe is null, "keine Farbe für den Spieler (sie kommt aus dem Wappen)");
             Pruefe.Gleich(Wappen.Eichwald, s.Haeuser[1].Wappen);
             Pruefe.Gleich(new EntwurfStartbetrieb("", Betriebsart.Giesserei, "Dolch"), s.Haeuser[0].Betriebe[0]); // die Werkstatt in der Stadt hat keinen Platz
             Pruefe.Gleich(new EntwurfStartbetrieb("Grube_Eisenbart", Betriebsart.Mine), s.Haeuser[0].Betriebe[1]);

@@ -1122,7 +1122,6 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre Mülheim", "von": [51, -200], "bis": [146, -200]}],
  "start": {
-  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Overstolz",

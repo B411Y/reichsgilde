@@ -265,7 +265,8 @@ public static class Partiebesetzung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
             .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
             .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
-        var farben = start.Haeuser.Select(h => h.Farbe).Append(start.Spieler.Farbe).OfType<string>().ToList();
+        // die Farbe des Spielers: die feste einer älteren Karte, sonst die seines Wappens (17.11.2026) – ein gewürfeltes Haus nimmt sie nicht
+        var farben = start.Haeuser.Select(h => h.Farbe).Append(start.Spieler.Farbe ?? spielerWappen.Hausfarbe()).OfType<string>().ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
         {

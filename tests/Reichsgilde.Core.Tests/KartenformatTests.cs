@@ -139,7 +139,7 @@ static class KartenformatTests
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => w2.Familien.Von(k)?.Oberhaupt.Volk)), string.Join(", ", w1.Konten.Select(k => w1.Familien.Von(k)?.Oberhaupt.Volk)));
             Pruefe.Gleich(string.Join(", ", Startbelegung.Ersatz.Rivalennamen), string.Join(", ", Greybox().Startbelegung.Rivalennamen));
             Pruefe.Gleich("#b33329", Greybox().Startbelegung.Farbe("Haus Eisenbart"));
-            Pruefe.Gleich("#336bb8", Greybox().Startbelegung.Farbe("Haus Hammerschmid", istSpieler: true));
+            Pruefe.Wahr(Greybox().Startbelegung.Farbe("Haus Hammerschmid", istSpieler: true) is null, "die Karte nennt keine Farbe für den Spieler (sie kommt aus dem Wappen)");
             // Jeder Betrieb hat seinen Platz: die Werkstätten in der Stadt ein Grundstück, die Umlandbetriebe ihr Gebäude der Karte.
             Pruefe.Wahr(w1.Betriebe.All(b => w1.Bauen.PlatzVon(b.Name) is { } p && (b.InDerStadt ? p.Grundstueck is not null : p.Gebaeude is not null)),
                 "jeder Startbetrieb steht auf seinem Platz");
@@ -195,6 +195,7 @@ static class KartenformatTests
             // Felder alter Karten (Wohnhaus, Startplatz des Spielers) liest der Kern nicht mehr – kein Fehler, was auch darin steht
             var alt = GreyboxJson();
             alt["start"]!["haeuser"]![1]!["wohnhaus"] = "Markt";
+            alt["start"]!["spieler"] = new JsonObject { ["farbe"] = "#336bb8" };
             alt["start"]!["spieler"]!["werkstatt"] = new JsonObject { ["platz"] = "Grube_Eisenbart", ["name"] = "{art} am Markt" };
             var gelesen = Stadtkarte.AusJson(alt.ToJsonString(), Katalog());
             Pruefe.Wahr(gelesen.Startbelegung.Haeuser[1].Wohnhaus is null && gelesen.Startbelegung.Spieler.Werkstatt.Platz == "", "alte Felder vergessen");

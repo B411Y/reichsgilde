@@ -358,7 +358,6 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre am Sandfluss", "von": [-130, 113], "bis": [-130, 137]}],
  "start": {
-  "spieler": {"farbe": "#336bb8"},
   "haeuser": [
    {
     "name": "Haus Ahlbeck",

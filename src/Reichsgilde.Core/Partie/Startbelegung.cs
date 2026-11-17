@@ -93,7 +93,11 @@ public sealed class Spielerstart
     /// <summary>Kennung des Wohnhausplatzes in der Karte.</summary>
     public string? Wohnhaus { get; init; }
 
-    /// <summary>Farbe des Spielerhauses, als „#rrggbb“.</summary>
+    /// <summary>
+    /// Farbe des Spielerhauses, als „#rrggbb“. In einer Kartendatei steht sie seit dem 17.11.2026 nicht mehr (ältere Karten nennen sie noch,
+    /// dann gilt sie weiter): Beim Aufbau der Partie bekommt die Partiekarte hier die Hausfarbe des Wappens (<see cref="Wappen.Hausfarbe"/>,
+    /// <see cref="Stadtkarte.MitSpielerfarbe"/>) – so steht sie im Spielstand und ändert sich im laufenden Spiel nicht.
+    /// </summary>
     public string? Farbe { get; init; }
 
     /// <summary>Die erste Werkstatt – für jeden Beruf, der unter <see cref="JeBeruf"/> nicht steht.</summary>
@@ -142,7 +146,7 @@ public sealed class Startbelegung
     /// </summary>
     public static readonly Startbelegung Ersatz = new()
     {
-        Spieler = new Spielerstart { Farbe = "#336bb8", Werkstatt = new Startwerkstatt { Name = "{art} am Weinmarkt" } },
+        Spieler = new Spielerstart { Werkstatt = new Startwerkstatt { Name = "{art} am Weinmarkt" } },
         Haeuser =
         {
             new Starthaus

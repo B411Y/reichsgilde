@@ -156,6 +156,9 @@ public static class Partieaufbau
             throw new ArgumentException($"Feste Startorte: {fest.Count} genannt, es beginnen {1 + haeuser.Count} Häuser.");
         var orte = !bauzonen ? null : neu.Startorte ?? Startortlos.Losen(urkarte!, daten, einstellungen.Zufallsstartwert, 1 + haeuser.Count);
         if (bauzonen) karte = karte!.OhneStadtplaetze();
+        // Hausfarbe (17.11.2026): Nennt die Karte keine Farbe für den Spieler, trägt sein Haus die Palettenfarbe seiner ersten Wappenfarbe.
+        // Sie steht ab hier in der Partiekarte und damit im Spielstand.
+        karte = karte?.MitSpielerfarbe(wappen.Hausfarbe());
 
         var simulation = new Simulation(einstellungen, startzeit, daten);
         var w = simulation.Wirtschaft!;

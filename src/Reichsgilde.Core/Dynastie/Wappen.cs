@@ -45,6 +45,25 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
 
     public static bool IstMetall(Tinktur t) => t is Tinktur.Gold or Tinktur.Silber;
 
+    /// <summary>
+    /// Die Hausfarbe zu diesem Wappen („#rrggbb“, Fahnen, Dächer, Wandbehang; Nutzer 17.11.2026): die Palettenfarbe der ersten Wappenfarbe
+    /// (<see cref="Farbe1"/>) aus <see cref="Partie.Partiebesetzung.Hausfarben"/>. Silber hat dort keine Farbe – dann zählt die zweite
+    /// (<see cref="Farbe2"/>). Eine feste Tabelle, kein Zufall: dasselbe Wappen gibt auf jedem Rechner dieselbe Farbe.
+    /// </summary>
+    public string Hausfarbe() => Palettenfarbe(Farbe1) ?? Palettenfarbe(Farbe2) ?? Palettenfarbe(Tinktur.Schwarz)!;
+
+    /// <summary>Die Palettenfarbe einer Wappenfarbe („#rrggbb“) – null bei Silber (keine Hausfarbe ist weiß).</summary>
+    public static string? Palettenfarbe(Tinktur t) => t switch
+    {
+        Tinktur.Rot => "#b33329",
+        Tinktur.Blau => "#336bb8",
+        Tinktur.Gruen => "#388c47",
+        Tinktur.Gold => "#d9ad2e",
+        Tinktur.Purpur => "#7a3b8f",
+        Tinktur.Schwarz => "#5c5c5c",
+        _ => null,
+    };
+
     /// <summary>Was an diesem Wappen nicht stimmt, oder null. Gleiche Farben verschwimmen zu einer Fläche.</summary>
     public string? Fehler() => Farbe1 == Farbe2 ? "Ein Wappen braucht zwei verschiedene Farben." : null;
 

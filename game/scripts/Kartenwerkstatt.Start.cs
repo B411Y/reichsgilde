@@ -145,12 +145,11 @@ public partial class Kartenwerkstatt
 
     // ── Spieler ──────────────────────────────────────────────────────────────
 
+    /// <summary>Der Spieler: nichts mehr einzustellen – seine Hausfarbe kommt aus dem Wappen, das er im Hauptmenü wählt (17.11.2026).</summary>
     private void SpielerTeil()
     {
         Hauptmenue.Text(_startTafel, "Spieler", 16, Gold);
-        var raster = Raster();
-        _startTafel.AddChild(raster);
-        Zeile(raster, "Farbe", Farbwahl(Start.SpielerFarbe, f => _entwurf.SpielerFarbeSetzen(f), "Die Farbe des Spielerhauses in der Stadt (Dächer, Fahnen)"));
+        Hauptmenue.Text(_startTafel, "Das Haus des Spielers trägt die Farbe seines Wappens.", 12, Grau, umbruchBreite: Rechtsbreite - 44);
     }
 
     /// <summary>Die Berufe, die eine Werkstatt in der Stadt haben (aus den Wirtschaftsdaten; ohne Daten die zehn des Hauptmenüs).</summary>
