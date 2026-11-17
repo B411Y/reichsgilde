@@ -135,3 +135,25 @@ MeldungMasse/constants/einblendung_stehen_brief_ms = 4000
 MeldungMasse/constants/einblendung_wandern_ms = 700
 MeldungMasse/constants/einblendung_endgroesse_prozent = 20
 MeldungMasse/constants/einblendung_hoechstens_wartend = 4
+; ── 3D-Schriftrollen der Meldungsleiste (SchriftrollenBuehne.cs, Szene schriftrolle_buehne.tscn) ──
+; Platz je Rolle im Bild (Pixel bei 1600 × 900; größer als das Feld in der Leiste, damit Sprung und Pendeln nicht abgeschnitten werden),
+; Sichtfeld je Platz (Millimeter der Bühne; kleiner = Rolle größer), Zahl der Plätze der gemeinsamen Bühne, Überabtastung des Bildes
+MeldungMasse/constants/rolle_zelle = 104
+MeldungMasse/constants/rolle_sicht_mm = 760
+MeldungMasse/constants/rolle_plaetze = 12
+MeldungMasse/constants/rolle_abtastung_prozent = 150
+; Neigung schräg nach oben zum Spieler und Pendeln im Leerlauf (Grad; Pendeln höchstens 5), Sprung (Millimeter, Millisekunden),
+; Sprung vor dem Verschwinden ab dieser Stelle des Zurollens, Ausblenden am Ende, Symbol sichtbar ab bzw. bis (Zeit des Modells)
+MeldungMasse/constants/rolle_neigung_grad = 14
+MeldungMasse/constants/rolle_pendel_grad = 5
+MeldungMasse/constants/rolle_huepfen_mm = 70
+MeldungMasse/constants/rolle_huepfen_ms = 260
+MeldungMasse/constants/rolle_schluss_huepfen_ms = 520
+MeldungMasse/constants/rolle_ausblenden_ms = 150
+MeldungMasse/constants/rolle_symbol_ms = 233
+; Vergrößerung unter der Maus (Prozent), Rand des Symbols (Prozent der Symbolfläche)
+MeldungMasse/constants/rolle_ueber_prozent = 106
+MeldungMasse/constants/rolle_symbol_rand_prozent = 17
+; Farben: Grund des Symbols (der Rand hat die Farbe der Meldungsart aus meldungen.json, die Tinte ist die der Siegel), Schleier einer gelesenen Rolle
+MeldungRolle/colors/symbol_grund = Color(0.95, 0.9, 0.76, 1)
+MeldungRolle/colors/gelesen = Color(0.72, 0.7, 0.66, 1)
