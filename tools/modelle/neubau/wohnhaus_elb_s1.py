@@ -90,10 +90,8 @@ def elb_form(n, alt):
         F.FASS = (-2.05, F.VORN - 0.35)                             # Regenfass vor der Giebelwand (an der Seite laege es ausserhalb des Fussabdrucks)
         F.SCHEIT = ("hinten_eg", 1.30)                             # an der Ecke, wo das Dach am tiefsten ist
         F.GERUEST = dict(y=F.DACH_VORN + 0.08, x0=-2.6, x1=2.6, ebenen=(1.9, 3.6), innen=4.2, aussen=4.8, leiter_x=1.75)
-    # Schlot so tief wie die Feuerstelle des Herds (0,98 m statt 0,60 m): seine Mitte liegt ueber der Mitte der Feuerstelle (Pruefung 30;
-    # Rueckmeldung des Nutzers 17.11.2026 „der Schornsteinzug sitzt nicht ueber der Feuerstelle“), wie der grosse Steinkamin im Kunstwerk
-    kx0, kx1, ky0, ky1 = F.KAMIN
-    F.KAMIN = (kx0, kx1, ky0, ky0 + 0.98) if n == 2 else (kx1 - 0.98, kx1, ky0, ky1)
+    # Der Schlot bleibt an der Stelle der Menschenhaeuser (0,60 m tief an der Wand): Rueckmeldung des Nutzers 17.11.2026 nach Runde 4,
+    # die Vertiefung auf 0,98 m war ein Missverstaendnis; gemeint war die Einfassung der Feuerstelle (innen_fertig)
     # Masse aus dem Grundriss (wie am Ende von wohnhaus_mensch_s1.form_setzen, mit den Elben-Hoehen)
     F.OX = F.BX
     F.Z_FIRST = s1.Z_TRAUFE + F.OX * s1.NEIGUNG
@@ -133,9 +131,9 @@ def masse_anlegen():
 
     def form24():
         t = alt_24()
-        if s1.F.nr in (1, 3):                          # Hauswappen innen unter das Giebelfenster, ins Erdgeschoss (sonst hinge es davor, Pruefungen 4 und 24)
+        if s1.F.nr in (1, 3):                          # Hauswappen innen im Dachgeschoss neben dem Giebelfenster (wie Runde 3; Pruefung 32)
             for teil in t["einrichtung"]:
-                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (0.0, 0.0), dz=-1.5)
+                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (1.15, 0.0))
         innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
@@ -264,7 +262,7 @@ def innen_fertig(t):
     """Wohnstube nach der Rueckmeldung des Nutzers (17.11.2026, Bild innen): (1) Dachschraegen innen geschlossen – je Dachseite eine
     verputzte Flaeche 5 mm unter dem Dach, ueber den Sparren (vorher sah man zwischen den Sparren ins Leere); (4) Kamin und Schlot ganz
     aus Stein: Holz, das in den Schlot laeuft (Sparren, Balken), faellt dort weg, Holzteile des Herds im Grundriss des Schlots werden
-    Stein. Die Feuerstelle des Herds liegt genau unter dem Schlot (F.KAMIN, Pruefung 30)."""
+    Stein, ebenso die ganze Einfassung der Feuerstelle (Sturz, Seiten). Der Schlot steht ueber der Feuerstelle (Pruefung 30)."""
     from trimsheet import BAENDER_INNEN
     F = s1.F
     raum = next(x for x in t["raum"] if x.name == "Raum")
@@ -290,11 +288,18 @@ def innen_fertig(t):
             continue
         neu.append(f)
     raum.flaechen = neu
+    # Einfassung der Feuerstelle (Rueckmeldung nach Runde 4: links Stein, Sturz und rechte Seite Holz): alle Holzflaechen des Herds und
+    # des Raums im Grundriss des Herdsteins (bis unter die Haube) werden Stein
+    herdstein = [p for x in t["raum"] if x.name.startswith("Herd") for pts, uv, *_ in x.flaechen
+                 if all(stein[0] - 1e-4 <= v <= stein[1] + 1e-4 for _, v in uv) for p in pts]
+    hx0, hx1 = min(p.x for p in herdstein) - 0.03, max(p.x for p in herdstein) + 0.03
+    hy0, hy1 = min(p.y for p in herdstein) - 0.03, max(p.y for p in herdstein) + 0.03
+    in_herd = lambda p: hx0 <= p.x <= hx1 and hy0 <= p.y <= hy1 and p.z <= s1.Z_HAUBE + 0.35
     stein_neu = 0
     for x in t["raum"]:
-        if not x.name.startswith("Herd"): continue
+        if not (x.name.startswith("Herd") or x.name == "Raum"): continue
         for i, (pts, uv, st, fa, gl) in enumerate(x.flaechen):
-            if ist_holz(uv) and all(im_schlot(p, 0.06) for p in pts):
+            if ist_holz(uv) and (all(in_herd(p) for p in pts) or (x.name.startswith("Herd") and all(im_schlot(p, 0.06) for p in pts))):
                 v0, v1 = next((a, b) for a, b, _ in holz if all(a - 1e-4 <= v <= b + 1e-4 for _, v in uv))
                 uv = [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv]
                 x.flaechen[i] = (pts, uv, st, fa, gl); stein_neu += 1

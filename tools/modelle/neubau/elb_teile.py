@@ -194,6 +194,11 @@ def dach_schwingen(d, g, yw0, yw1, xe):
             flaechen.append((pts, uv, st, fa, gl))
     d.flaechen = [([Vector((p.x, p.y, p.z + dach_heben(p.x, p.y, g, yw0, yw1, xe, walm and p.y < yw0))) for p in pts], uv, st, fa, gl)
                   for pts, uv, st, fa, gl in flaechen]
+    # Schindelfuesse (Alpha-Cards) einer Dachstufe, die genau ueber der Wandflucht endet, fallen weg: sie haengen in den engen Spalt
+    # zwischen Traufe und Rahm und backten schwarz (Pruefung 12, Grundform 2; beim flacheren Dach der Menschen kommt das nicht vor)
+    alt_n = len(d.flaechen)
+    d.flaechen = [f for f in d.flaechen if not (f[2] == "Strohkante" and abs(sum(abs(p.x) for p in f[0]) / len(f[0]) - g.OX) < 0.08)]
+    print(f"DACH Schindelfuesse ueber der Wand weggelassen: {alt_n - len(d.flaechen)}")
 
 
 BOGEN_RAND = 0.08          # Breite des Bogenbretts (mittig auf der Bogenlinie: hoechstens 4 cm ueber die Oeffnung, Pruefung 1)
