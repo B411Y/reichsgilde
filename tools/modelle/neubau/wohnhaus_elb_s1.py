@@ -37,6 +37,11 @@ ELB_HOEHE = 1.85
 TUER_HOCH = 2.10                  # lichte Hoehe der Haustuer: groesster Elb 1,90 m + 0,20 (elb_masse.py); Menschen 2,00
 HAUBE_HOEHER = 0.15               # Herdhaube 1,95 m statt 1,80 m ueber dem Fussboden (Elb 1,90 + 0,05)
 BLICK_HOEHER = 0.12               # Augenhoehe 1,72 m statt 1,60 m (1,85 * 0,93)
+EINFASSUNG_RAND = 0.08            # Rand um den Herdstein: was ganz darin liegt (bis unter die Haube), ist Einfassung aus Stein (Pruefung 31)
+FAHNE_VOR_WALM = 0.45             # Grundform 4: Fahnenmast 0,45 m vor der Spitze des Walms (statt 0,45 m dahinter)
+LATERNE_G2_Y = -1.00              # Grundform 2: Laterne an der Strassenwand zwischen Haustuer (-0,40..0,40) und Fenster (-2,35..-1,55)
+WAPPEN_G4_TIEFER = 0.28           # Grundform 4: Hauswappen innen 0,28 m tiefer (Unterkante 2,75 m), unter dem Galerierand frei (Pruefung 34)
+BLICK_G3 = ((-0.60, 1.45), (2.20, -0.40, 1.30))   # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (Pruefung 35; weiter links verdeckt die Leiter das Wappen)
 _MASSE = []
 FORM = 1                          # gebaute Grundform (main)
 LETZT = {}                        # zuletzt gebaute Teile (Haus, Dach, Scheiben, Wappen) fuer die Wappenregel
@@ -113,6 +118,10 @@ def elb_form(n, alt):
         F.X_WALM = xe / 3
         F.Z_WALM = F.Z_FIRST - F.X_WALM * s1.NEIGUNG
         F.D_WALM = (F.Z_FIRST - F.Z_WALM) / F.WALM
+    if n == 4:
+        # Fahne vor die Spitze des Walms (Rueckmeldung des Nutzers 17.11.2026: „die Fahne sitzt direkt am Schlot“ – im Stadtblick nach
+        # Nordosten lag das Tuch vor dem Schlot); der Mast steckt im Walm (Pruefung 22), Abstand im Bild Pruefung 36
+        F.FAHNE = (0.0, F.DACH_VORN + F.D_WALM - FAHNE_VOR_WALM)
 
 
 def masse_anlegen():
@@ -134,6 +143,15 @@ def masse_anlegen():
         if s1.F.nr in (1, 3):                          # Hauswappen innen im Dachgeschoss neben dem Giebelfenster (wie Runde 3; Pruefung 32)
             for teil in t["einrichtung"]:
                 if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (1.15, 0.0))
+        if s1.F.nr == 4:                               # unter dem Galerierand im Innenblick ganz zu sehen, weiter im Dachgeschoss (Pruefung 32, 34)
+            for teil in t["einrichtung"]:
+                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, dz=-WAPPEN_G4_TIEFER)
+        if s1.F.nr == 2:                               # Laterne hing vor dem Tuerblatt (Rueckmeldung 17.11.2026; Pruefung 33)
+            laterne_versetzen(t)
+        if s1.F.nr == 3:                               # Haustuer im Innenblick (lag neben der Kamera hinter dem Herd)
+            for a in t["anker_innen"]:
+                if a.name == "Blick_Auge": a.ort = Vector((*BLICK_G3[0], s1.Z_BODEN + 1.60 + BLICK_HOEHER))
+                if a.name == "Blick_Ziel": a.ort = Vector((BLICK_G3[1][0], BLICK_G3[1][1], s1.Z_BODEN + BLICK_G3[1][2] + BLICK_HOEHER))
         innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
@@ -292,8 +310,10 @@ def innen_fertig(t):
     # des Raums im Grundriss des Herdsteins (bis unter die Haube) werden Stein
     herdstein = [p for x in t["raum"] if x.name.startswith("Herd") for pts, uv, *_ in x.flaechen
                  if all(stein[0] - 1e-4 <= v <= stein[1] + 1e-4 for _, v in uv) for p in pts]
-    hx0, hx1 = min(p.x for p in herdstein) - 0.03, max(p.x for p in herdstein) + 0.03
-    hy0, hy1 = min(p.y for p in herdstein) - 0.03, max(p.y for p in herdstein) + 0.03
+    # 8 cm Rand (Rueckmeldung 17.11.2026 nach Runde 5): der Balken unter der Haube (Sturz) steht 4 cm ueber den Herdstein vor und
+    # blieb mit 3 cm Holz
+    hx0, hx1 = min(p.x for p in herdstein) - EINFASSUNG_RAND, max(p.x for p in herdstein) + EINFASSUNG_RAND
+    hy0, hy1 = min(p.y for p in herdstein) - EINFASSUNG_RAND, max(p.y for p in herdstein) + EINFASSUNG_RAND
     in_herd = lambda p: hx0 <= p.x <= hx1 and hy0 <= p.y <= hy1 and p.z <= s1.Z_HAUBE + 0.35
     stein_neu = 0
     for x in t["raum"]:
@@ -304,6 +324,23 @@ def innen_fertig(t):
                 uv = [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv]
                 x.flaechen[i] = (pts, uv, st, fa, gl); stein_neu += 1
     print(f"INNEN Dachschraegen geschlossen, Holz am Schlot: {weg} Flaechen weg, {stein_neu} Flaechen des Herds zu Stein")
+
+
+def laterne_versetzen(t):
+    """Grundform 2: Die Laterne des Hauswaechters (Probe: (-1,66, IV + 0,13), dort versetzt wie in wohnhaus_mensch_s1.baue_form24)
+    hing an der Strassenwand bei y = -0,13 – mitten vor dem Tuerblatt. Sie rueckt an derselben Wand nach LATERNE_G2_Y, zwischen Tuer
+    und Fenster. Ausgewaehlt wie in teile_auf: Schwerpunkt der Flaeche hoechstens 12 cm von der Laterne."""
+    F = s1.F
+    lx, ly = (s1.G1_IV + 0.11) + (-F.IX - s1.G1_IV), 1.66 - 1.79      # Lage nach der Drehung der Grundform 2 (Baurahmen)
+    w = next(x for x in t["einrichtung"] if x.name == "Einrichtung_Hauswaechter")
+    neu, n = [], 0
+    for pts, uv, st, fa, gl in w.flaechen:
+        m = sum(pts, Vector()) / len(pts)
+        if (m.x - lx) ** 2 + (m.y - ly) ** 2 < 0.12 ** 2 and m.z > 1.3:
+            pts = [Vector((p.x, p.y + LATERNE_G2_Y - ly, p.z)) for p in pts]; n += 1
+        neu.append((pts, uv, st, fa, gl))
+    w.flaechen = neu
+    print(f"INNEN Laterne: {n} Flaechen von y {ly:.2f} nach {LATERNE_G2_Y:.2f}")
 
 
 def merke(art, teil):

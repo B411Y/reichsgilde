@@ -1,6 +1,7 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
-Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-32 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin und in der Einfassung, Hauswappen im Dachgeschoss) – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-32 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin und in der Einfassung, Hauswappen im Dachgeschoss), 33 Laterne frei vor Tuer, Fenster, Herd und Wappen, 34 Hauswappen im
+Standard-Innenblick frei, 35 Haustuer im Standard-Innenblick, 36 Fahne frei vom Schlot im Stadtblick – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -237,7 +238,8 @@ def innen_pruefen(haus, ordner, form, MS1):
             funde.append(name)
     for name, mat, pts, n, v in fl:                       # Einfassung der Feuerstelle
         if not any(in_band(v, b) for b in holz): continue
-        if all(bh[0] - 0.03 <= p.x <= bh[1] + 0.03 and bh[2] - 0.03 <= p.y <= bh[3] + 0.03 and p.z <= S1.Z_HAUBE + 0.35 for p in pts):
+        r = ELB.EINFASSUNG_RAND                           # 8 cm: auch der vorstehende Sturz unter der Haube (Runde 5 hatte 3 cm und liess ihn Holz)
+        if all(bh[0] - r <= p.x <= bh[1] + r and bh[2] - r <= p.y <= bh[3] + r and p.z <= S1.Z_HAUBE + 0.35 for p in pts):
             funde.append(name + " (Einfassung)")
     zeilen.append(f"31. Kein Holz im Kamin (Schlot ueber der Haube, Einfassung der Feuerstelle): {len(funde)} Holzflaechen -> {'ok' if not funde else 'FEHLER ' + ', '.join(sorted(set(funde)))}"); fehler += len(funde)
     wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
@@ -250,7 +252,177 @@ def innen_pruefen(haus, ordner, form, MS1):
     else:
         ok, text = True, "kein Hauswappen im Modell"
     zeilen.append(f"32. Hauswappen innen im Dachgeschoss: {text} -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    z, f = laterne_frei(fl, F, MS1, S1); zeilen += z; fehler += f
+    z, f = blick_frei(fl, baum, F, MS1, S1); zeilen += z; fehler += f
     return zeilen, fehler
+
+
+def _oeffnungen(F, S1):
+    """Oeffnungen im Baurahmen: (Art, Wand, Normalenachse, Ebene innen, Richtung in den Raum, a0, a1, z0, z1)."""
+    out = []
+    for wand, (a0, a1), (z0, z1), art in F.FENSTER:
+        (ox, oy), (ex, ey), _, (nx, ny) = F.WAENDE[wand]
+        ax = "y" if ex else "x"
+        e = (oy if ex else ox) - (ny if ex else nx) * S1.T
+        out.append((art, wand, ax, e, -(ny if ex else nx), a0, a1, z0, z1))
+    return out
+
+
+def laterne_frei(fl, F, MS1, S1):
+    """33 Laterne des Hauswaechters frei (Rueckmeldung 17.11.2026, Grundform 2: sie hing vor dem Tuerblatt): die Laterne (Hornscheiben
+    im Farbfeld „glut“ des Hauswaechters und alles bis 15 cm daneben) haengt mindestens 0,30 m neben der Oeffnung der Haustuer und
+    0,10 m neben jedem Fenster derselben Wand (bei Hoehenueberlappung), nicht ueber dem Herdstein (0,30 m Rand) und nicht vor dem
+    Hauswappen."""
+    import wohnhaus_mensch_s1_g1 as G1
+    from trimsheet import BAENDER_INNEN
+    u0, u1 = G1.feld("glut")
+    k0, k1, _ = BAENDER_INNEN["kleinteile"]
+    glut = []
+    for o in bpy.data.objects:
+        if o.type != "MESH" or not o.name.startswith("Einrichtung_Hauswaechter"): continue
+        uvl = o.data.uv_layers[0]
+        for p in o.data.polygons:
+            uu = sum(uvl.data[i].uv[0] for i in p.loop_indices) / len(p.loop_indices)
+            vv = 1.0 - sum(uvl.data[i].uv[1] for i in p.loop_indices) / len(p.loop_indices)
+            if u0 - 1e-3 <= uu <= u1 + 1e-3 and k0 - 1e-3 <= vv <= k1 + 1e-3:
+                glut += [MS1.zurueck(o.matrix_world @ o.data.vertices[i].co) for i in p.vertices]
+    if not glut:
+        return ["33. Laterne frei vor Tuer, Fenster, Herd und Wappen: keine Laterne im Modell -> FEHLER"], 1
+    c = sum(glut, Vector()) / len(glut)
+    lat = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswaechter")
+           and all(abs(q.x - c.x) < 0.15 and abs(q.y - c.y) < 0.15 and c.z - 0.35 < q.z < c.z + 0.45 for q in pts) for p in pts]
+    lx0, lx1, ly0, ly1 = min(p.x for p in lat), max(p.x for p in lat), min(p.y for p in lat), max(p.y for p in lat)
+    lz0, lz1 = min(p.z for p in lat), max(p.z for p in lat)
+    zeilen, fehler = [], 0
+    for art, wand, ax, e, rein, a0, a1, z0, z1 in _oeffnungen(F, S1):
+        ebene = c.y if ax == "y" else c.x
+        if abs(ebene - e) > 0.40 or lz1 < z0 or lz0 > z1: continue
+        b0, b1 = (lx0, lx1) if ax == "y" else (ly0, ly1)
+        abstand = max(a0 - b1, b0 - a1)
+        soll = 0.30 if art == "tuer" else 0.10
+        ok = abstand >= soll
+        zeilen.append(f"   {('Haustuer' if art == 'tuer' else 'Fenster')} {wand} {a0:.2f}..{a1:.2f}: Laterne {b0:.2f}..{b1:.2f}, Abstand {abstand:+.2f} m (Soll >= {soll:.2f}) -> {'ok' if ok else 'FEHLER'}")
+        fehler += 0 if ok else 1
+    herd = [p for name, mat, pts, n, v in fl if name.startswith("Herd") for p in pts]
+    hx0, hx1, hy0, hy1 = min(p.x for p in herd), max(p.x for p in herd), min(p.y for p in herd), max(p.y for p in herd)
+    ueber_herd = lx1 > hx0 - 0.3 and lx0 < hx1 + 0.3 and ly1 > hy0 - 0.3 and ly0 < hy1 + 0.3
+    wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
+    vor_wappen = bool(wap) and lx1 > min(p.x for p in wap) - 0.3 and lx0 < max(p.x for p in wap) + 0.3 and ly1 > min(p.y for p in wap) - 0.3 \
+        and ly0 < max(p.y for p in wap) + 0.3 and lz1 > min(p.z for p in wap) and lz0 < max(p.z for p in wap)
+    fehler += int(ueber_herd) + int(vor_wappen)
+    kopf = (f"33. Laterne frei vor Tuer, Fenster, Herd und Wappen (Laterne x {lx0:.2f}..{lx1:.2f} y {ly0:.2f}..{ly1:.2f} z {lz0:.2f}..{lz1:.2f}"
+            f"{', ueber dem Herd' if ueber_herd else ''}{', vor dem Wappen' if vor_wappen else ''}): {'ok' if not fehler else str(fehler) + ' FEHLER'}")
+    return [kopf] + zeilen, fehler
+
+
+def blick_frei(fl, baum, F, MS1, S1):
+    """34 Hauswappen im Standard-Innenblick frei (Grundform 4: ein Galeriebalken verdeckte die obere Haelfte): neun Sichtstrahlen vom
+    Anker Blick_Auge auf die Vorderseite des Wappens (je 15/50/85 % von Breite und Hoehe, 2 cm davor) treffen vorher keine Flaeche.
+    35 Haustuer im Standard-Innenblick (Grundform 3: sie lag neben der Kamera im Schatten hinter dem Herd): ihre Mitte liegt im Bild
+    der Raumkamera (Oeffnungswinkel 66 Grad senkrecht, 16:9; mit Rand: hoechstens 45 Grad zur Seite, 28 Grad nach oben/unten) und von
+    neun Sichtstrahlen auf die Innenseite der Oeffnung (5 cm davor) sind die Mitte und mindestens sechs frei."""
+    an = {o.name.split(".")[0]: MS1.zurueck(o.matrix_world.translation.copy()) for o in bpy.data.objects}
+    auge, ziel = an.get("Blick_Auge"), an.get("Blick_Ziel")
+    if auge is None or ziel is None:
+        return ["34./35. Standard-Innenblick: Anker Blick_Auge/Blick_Ziel fehlen -> FEHLER"], 1
+    namen = [name for name, *_ in fl]
+
+    def frei(p):
+        d = p - auge
+        h = baum.ray_cast(auge, d.normalized(), d.length - 0.03)
+        return h[0] is None, (namen[h[2]] if h[0] is not None else "")
+    zeilen, fehler = [], 0
+    wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
+    if wap:
+        x0, x1, y0, y1 = min(p.x for p in wap), max(p.x for p in wap), min(p.y for p in wap), max(p.y for p in wap)
+        z0, z1 = min(p.z for p in wap), max(p.z for p in wap)
+        if x1 - x0 < y1 - y0:                                   # haengt an einer Wand quer zu x
+            xv = x1 + 0.02 if F.RAUM.x > (x0 + x1) / 2 else x0 - 0.02
+            probe = [Vector((xv, y0 + (y1 - y0) * a, z0 + (z1 - z0) * b)) for a in (0.15, 0.5, 0.85) for b in (0.15, 0.5, 0.85)]
+        else:
+            yv = y1 + 0.02 if F.RAUM.y > (y0 + y1) / 2 else y0 - 0.02
+            probe = [Vector((x0 + (x1 - x0) * a, yv, z0 + (z1 - z0) * b)) for a in (0.15, 0.5, 0.85) for b in (0.15, 0.5, 0.85)]
+        zu = [frei(p)[1] for p in probe if not frei(p)[0]]
+        ok = not zu
+        zeilen.append(f"34. Hauswappen im Standard-Innenblick frei (Auge {auge.x:.2f}, {auge.y:.2f}, {auge.z:.2f}): {9 - len(zu)} von 9 Sichtstrahlen frei"
+                      + (f", verdeckt von {', '.join(sorted(set(zu)))}" if zu else "") + f" -> {'ok' if ok else 'FEHLER'}")
+        fehler += 0 if ok else 1
+    art, wand, ax, e, rein, a0, a1, z0, z1 = next(o for o in _oeffnungen(F, S1) if o[0] == "tuer")
+    ev = e + rein * 0.05
+    punkt = (lambda s, z: Vector((s, ev, z))) if ax == "y" else (lambda s, z: Vector((ev, s, z)))
+    probe = [punkt(a0 + (a1 - a0) * a, z0 + (z1 - z0) * b) for a in (0.2, 0.5, 0.8) for b in (0.2, 0.5, 0.8)]
+    mitte = probe[4]
+    vorn = (ziel - auge).normalized()
+    d = (mitte - auge).normalized()
+    import math
+    seite = math.degrees(math.atan2(abs(vorn.x * d.y - vorn.y * d.x), vorn.x * d.x + vorn.y * d.y))
+    hoch = math.degrees(abs(math.asin(max(-1.0, min(1.0, d.z))) - math.asin(max(-1.0, min(1.0, vorn.z)))))
+    im_bild = seite <= 45.0 and hoch <= 28.0
+    zu = [frei(p)[1] for p in probe if not frei(p)[0]]
+    ok = im_bild and frei(mitte)[0] and len(zu) <= 3
+    zeilen.append(f"35. Haustuer im Standard-Innenblick: Mitte {seite:.0f} Grad zur Seite, {hoch:.0f} Grad hoch/tief ({'im Bild' if im_bild else 'NICHT im Bild'}),"
+                  f" {9 - len(zu)} von 9 Sichtstrahlen frei" + (f" (verdeckt von {', '.join(sorted(set(zu)))})" if zu else "") + f" -> {'ok' if ok else 'FEHLER'}")
+    fehler += 0 if ok else 1
+    return zeilen, fehler
+
+
+def _huelle2d(pts):
+    pts = sorted(set(pts))
+    if len(pts) < 3: return pts
+    kreuz = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    unten, oben = [], []
+    for p in pts:
+        while len(unten) >= 2 and kreuz(unten[-2], unten[-1], p) <= 0: unten.pop()
+        unten.append(p)
+    for p in reversed(pts):
+        while len(oben) >= 2 and kreuz(oben[-2], oben[-1], p) <= 0: oben.pop()
+        oben.append(p)
+    return unten[:-1] + oben[:-1]
+
+
+def _poly_abstand(a, b):
+    """Abstand zweier konvexer Vielecke in der Ebene (0 bei Ueberschneidung)."""
+    def drin(p, q):
+        return all((q[(i + 1) % len(q)][0] - q[i][0]) * (p[1] - q[i][1]) - (q[(i + 1) % len(q)][1] - q[i][1]) * (p[0] - q[i][0]) >= 0 for i in range(len(q)))
+    if any(drin(p, b) for p in a) or any(drin(p, a) for p in b): return 0.0
+
+    def seg(p, s, t):
+        dx, dy = t[0] - s[0], t[1] - s[1]
+        k = max(0.0, min(1.0, ((p[0] - s[0]) * dx + (p[1] - s[1]) * dy) / (dx * dx + dy * dy or 1e-12)))
+        return ((p[0] - s[0] - k * dx) ** 2 + (p[1] - s[1] - k * dy) ** 2) ** 0.5
+
+    def schneiden(p1, p2, p3, p4):
+        d = lambda a, b, c: (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+        return d(p1, p2, p3) * d(p1, p2, p4) < 0 and d(p3, p4, p1) * d(p3, p4, p2) < 0
+    ka = list(zip(a, a[1:] + a[:1])); kb = list(zip(b, b[1:] + b[:1]))
+    if any(schneiden(*x, *y) for x in ka for y in kb): return 0.0
+    return min([seg(p, *k) for p in a for k in kb] + [seg(p, *k) for p in b for k in ka])
+
+
+def fahne_frei(hull, F, S1):
+    """36 Fahne frei vom Schlot im Stadtblick (Rueckmeldung 17.11.2026, Grundform 4: „die Fahne sitzt direkt am Schlot“): Die
+    Stadtkamera blickt 40 Grad schraeg von oben und dreht in Vierteldrehungen (Nordost, Nordwest, Suedwest, Suedost). In allen vier
+    Blicken liegen Fahne (Mast, Knauf, Tuch) und Schlot (Haustein ueber dem Dach) im Bild mindestens 0,40 m auseinander (gemessen in der
+    Bildebene, in Metern). Die Lage im Spiel ist eine Drehung um Vielfache von 90 Grad bzw. Spiegelung: die vier Blicke bleiben dieselben."""
+    import math
+    kx0, kx1, ky0, ky1 = F.KAMIN
+    fahne = [p for name, mat, pts, n, v in hull if name == "Fahne" for p in pts]
+    schlot = [p for name, mat, pts, n, v in hull if name == "Haus" and mat == "Bruchstein"
+              for p in pts if p.z > S1.Z_TRAUFE + 1.0 and kx0 - 0.15 <= p.x <= kx1 + 0.15 and ky0 - 0.15 <= p.y <= ky1 + 0.15]
+    if not fahne or not schlot:
+        return [f"36. Fahne frei vom Schlot im Stadtblick: {'keine Fahne' if not fahne else 'kein Schlot'} gefunden -> FEHLER"], 1
+    werte = []
+    for gier in (45, 135, 225, 315):
+        t, n = math.radians(gier), math.radians(40)
+        d = Vector((math.cos(t) * math.cos(n), math.sin(t) * math.cos(n), -math.sin(n)))
+        r = d.cross(Vector((0, 0, 1))).normalized(); u = r.cross(d)
+        a = _huelle2d([(round(p.dot(r), 4), round(p.dot(u), 4)) for p in fahne])
+        b = _huelle2d([(round(p.dot(r), 4), round(p.dot(u), 4)) for p in schlot])
+        werte.append((_poly_abstand(a, b), gier))
+    m, g = min(werte)
+    ok = m >= 0.40
+    return [f"36. Fahne frei vom Schlot im Stadtblick (40 Grad, vier Drehungen): kleinster Abstand im Bild {m:.2f} m (Blick {g} Grad; "
+            + ", ".join(f"{w:.2f}" for w, _ in werte) + f") (Soll >= 0,40) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
 
 def main():
@@ -295,6 +467,11 @@ def main():
     zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
     z27, f27 = fussabdruck(glb, haus, ordner)
     zeilen.append(f"27. Fussabdruck der Grundform (Haus und Dach im Umriss des Menschenhauses): {'ok' if not f27 else 'FEHLER'}"); zeilen += z27; fehler += f27
+    z36, f36 = fahne_frei(hull, S1.F, S1)
+    if form != 4 and f36:                                    # Pflicht nur fuer Grundform 4 (Rueckmeldung); sonst Hinweis (Bericht, Offen)
+        z36 = [z36[0].replace("-> FEHLER", "-> Hinweis (Pflicht nur Grundform 4)")]
+        f36 = 0
+    zeilen += z36; fehler += f36
     z28, f28 = innen_pruefen(haus, ordner, form, MS1); zeilen += z28; fehler += f28
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
