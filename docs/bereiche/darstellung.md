@@ -613,3 +613,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Efeu, Moos | Mehr, weiter nur Textur: Moos auf rund 28 % der Schindeln, fünf Efeuranken je 8 m Putz, höher hinauf. | 17.11.2026 |
 | Prüfung | `wohnhaus_elb_messen.py` 1–27 (neu 27 Fußabdruck; alle Grundformen im Rahmen von wohnhaus_mensch_s1, Türsoll 0,80 m, Dachgeschoss in elb_masse): alle vier Häuser 0 Fehler. Gegenproben: Stand vor der eigenen Form 27 (Fußabdruck überschritten), Menschentür 21. Dreiecke der Hülle 3.290 / 3.830 / 3.330 / 3.623. | 17.11.2026 |
 
+### Wohnhaus Elb, Stufe 1: Wohnstube (Rückmeldung des Nutzers zum Innenbild, 17.11.2026; Branch phase5/neubau-elb-form)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dach innen | Je Dachseite eine verputzte Dachschräge 5 mm unter dem Dach, über Sparren und Firstpfette (`wohnhaus_elb_s1.innen_fertig`); vorher sah man zwischen den Sparren ins Leere. Prüfung 28: von einem Raster (0,5 m) über dem Dachgeschossboden trifft jeder Strahl nach oben das Innenmodell. | 17.11.2026 |
+| Kamin | Ganz aus Stein: Holz, das in den Schlot liefe (Sparren, Galeriebalken), fällt dort weg; Holzteile des Herds im Grundriss des Schlots werden Stein; die Galerie beginnt bei Grundform 1/3 hinter dem Schlot (y 0,75). Der Schlot ist so tief wie die Feuerstelle (0,98 m), seine Mitte liegt über ihr. Prüfungen 30 (Mitte höchstens 0,10 m auseinander) und 31 (kein Holz im Grundriss des Schlots über der Haube). | 17.11.2026 |
+| Haustür innen | Die Tür der Menschen sitzt innen in der Öffnung (unverändert); Prüfung 29 misst, dass sie die Öffnung von innen deckt. Die Innenbilder blicken jetzt aus der Raumecke auf Tür und Herd. | 17.11.2026 |
+
