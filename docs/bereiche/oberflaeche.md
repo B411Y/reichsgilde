@@ -343,3 +343,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Abschalten | Kein neuer Schalter: „Siegel und Briefe bewegen“ (Einstellungen, Meldungen) gilt auch für die Rollen – aus: sofort offen, still, ohne Zurollen. | 17.11.2026 |
 | Pause und Tafeln | Die Rollen gehören zur Oberfläche und laufen unabhängig vom Spieltempo weiter, auch wenn das Spiel pausiert; ist die Ecke verdeckt (große Tafel, Ratssitzung), ruht die Bühne. | 17.11.2026 |
 | Unverändert | Größe des Feldes (56 Pixel), höchstens sieben Meldungen, Zähler, Tooltip; das Porträt sitzt etwas tiefer und weiter links, damit es das Zeichen nicht verdeckt; die zentrale Einblendung und der Fuß der Briefe zeigen weiter das Wachssiegel. | 17.11.2026 |
+
+### 3D-Briefe für Meldungen (Branch phase5/briefe-meldungen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Briefe statt Rollen | Um 1400 gab es gefaltete Briefe mit Wachssiegel, keine Rollen: In der Meldungsleiste liegt statt der Schriftrolle ein kleiner Faltbrief (`brief_klein.glb`). Die Schriftrolle bleibt im Spiel (Modell, Bühne, Ablauf, Thema-Maße `rolle_…`); die Bühne kennt jetzt beide Modelle (Nutzer). | 17.11.2026 |
+| Siegel | Das Wachs trägt die Farbe der Meldungsart (wie bisher Rand der Marke), das Zeichen ist eingedrückt (Wachs um 60 % abgedunkelt; dieselben Zeichen wie die gezeichneten Siegel). Weil das Siegel im Modell in der Leiste nur etwa 13 Pixel groß wäre, vergrößert die Oberfläche es um seine Mitte auf 175 % (Maß `brief_siegel_prozent`; selbst entschieden, damit Farbe und Zeichen lesbar sind). | 17.11.2026 |
+| Verhalten in der Leiste | Erscheinen mit leichtem Hüpfen; Leerlauf nur Drehung um Y, höchstens 2°, je Brief zeitversetzt; Weggehen ohne Hüpfen (kurzes Ausblenden). Neigung 12° nach oben zum Spieler, fest (Nutzer). | 17.11.2026 |
+| Öffnen | Klick: Der große Brief (`brief_gross.glb`) erscheint zu in der Bildmitte, das Siegel bricht, er faltet sich auf (0,9 s). Ab 0,733 s liegt der Inhalt als Bild auf der Inhaltsfläche, offen liegt genau darüber die echte 2D-Tafel (scharfer Text, Knöpfe). Erledigt (Weglegen, ✕, Esc): zufalten ohne Hüpfen und weg (Nutzer). | 17.11.2026 |
+| Ein Fenster | Es bleibt bei dem einen Brief-Fenster: Auch Briefe, die von selbst kommen (Stufe „Brief“, nach der Einblendung), falten sich jetzt in der Bildmitte auf statt rechts unten aufzugehen (selbst entschieden; dem Teamleiter gemeldet). Stapel, Blättern, Aufschub während der Ratssitzung und alle Knöpfe wie bisher. | 17.11.2026 |
+| Größe und Strecken | Die Tafel ist 372 Pixel breit (= Inhaltsfläche 0,26 m; das Blatt damit 429 × 601 Pixel bei 1600 × 900, früheres Fenster 484 Pixel breit). Lange Briefe strecken das Blatt bis 0,60 m (859 Pixel) nach der Streckregel des Modells; was dann noch nicht passt, rollt. Kurze Briefe füllen das Blatt nicht: Knöpfe und Siegel stehen unten am Blatt. | 17.11.2026 |
+| Abschalten | Kein neuer Schalter: „Siegel und Briefe bewegen“ aus – Faltbriefe stehen sofort da und still, der große Brief liegt sofort offen da und ist sofort weg. | 17.11.2026 |
+| Unverändert | Feld 56 Pixel, höchstens sieben Meldungen, Zähler, Tooltip, Porträt am Siegel, Töne; die zentrale Einblendung und der Fuß der Briefe zeigen weiter das gezeichnete Wachssiegel bzw. die Medaille des Geheimnisses. | 17.11.2026 |
