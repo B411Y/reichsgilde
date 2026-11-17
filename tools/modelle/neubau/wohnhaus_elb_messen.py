@@ -32,7 +32,12 @@ WURZEL = Z.WURZEL
 def _blatt(glb, blatt):
     """Blatt der Elben: das der Menschen mit "_elb"."""
     if blatt is None:
-        blatt = "innen_trim" if os.path.basename(glb).endswith("_innen.glb") else "trim"
+        name = os.path.basename(glb)
+        stufe = int(name.split("_s", 1)[1].split("_")[0]) if "_s" in name else 1
+        if stufe >= 2:
+            blatt = "innen_trim_s23" if name.endswith("_innen.glb") else f"trim_s{stufe}"
+        else:
+            blatt = "innen_trim" if name.endswith("_innen.glb") else "trim"
     return blatt if blatt.endswith("_elb") else blatt + "_elb"
 
 
@@ -128,7 +133,7 @@ def dachschwung_pruefen(hull, dach):
     return zeilen, (0 if ok_a else 1) + (0 if ok_b else 1)
 
 
-def dach_verdeckung(glb, ordner):
+def dach_verdeckung(glb, ordner, stoff="Stroh"):
     """Pruefung 26 c: die Schindelflaechen liegen obenauf – die gebackene Verdeckung in der Mitte jeder Schindelflaeche (Stoff „Stroh“,
     Normale nach oben) ist im Median mindestens 0,5 (kippt eine lange Grundflaeche ueber die Schindeln, backt das Dach schwarz)."""
     import numpy as np
@@ -142,7 +147,7 @@ def dach_verdeckung(glb, ordner):
         if o.type != "MESH" or not o.name.startswith("Dach"): continue
         me = o.data; uv2 = me.uv_layers[1].data
         for p in me.polygons:
-            if not me.materials[p.material_index].name.startswith("Stroh") or me.materials[p.material_index].name.startswith("Strohkante"): continue
+            if not me.materials[p.material_index].name.startswith(stoff) or me.materials[p.material_index].name.startswith("Strohkante"): continue
             if (o.matrix_world.to_3x3() @ p.normal).z < 0.5: continue
             u = sum(uv2[i].uv[0] for i in p.loop_indices) / p.loop_total; v = sum(uv2[i].uv[1] for i in p.loop_indices) / p.loop_total
             werte.append(float(px[min(int(v * H), H - 1), min(int(u * W), W - 1), 0]))
@@ -424,6 +429,245 @@ def fahne_frei(hull, F, S1):
     return [f"36. Fahne frei vom Schlot im Stadtblick (40 Grad, vier Drehungen): kleinster Abstand im Bild {m:.2f} m (Blick {g} Grad; "
             + ", ".join(f"{w:.2f}" for w, _ in werte) + f") (Soll >= 0,40) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
+# ── Stufe 2 und 3 (wohnhaus_elb_s23.py) ─────────────────────────────────────────────────────────────────────────────────
+
+RAEUME_JSON = os.path.join(os.path.dirname(HIER), "raeume", "ao_atlas.json")
+
+
+def raeume_s23(haus, ordner, texturen):
+    """12-15 in Hinterzimmer und Bibliothek (Blatt raeume_innen_trim_elb, Atlas wohnhaus_elb_raeume_innen, Plaetze <raum>_s23; die Bibliothek
+    des Steinhauses liegt wie im Buergerhaus rechteckig im Obergeschoss) und die Dreiecke der Raeume (getrennt von der Huelle)."""
+    zeilen, fehler = [], 0
+    for raum in ("hinterzimmer", "bibliothek"):
+        glb = os.path.join(ordner, f"{haus}_{raum}_innen.glb")
+        if not os.path.exists(glb):
+            zeilen.append(f"12. Raum {raum}: Modell fehlt -> FEHLER"); fehler += 1
+            continue
+        atl = Z._alt_atlas(glb, RAEUME_JSON, "wohnhaus_elb_raeume_innen", f"{raum}_s23")
+        blatt = "raeume_innen_trim_elb"
+        z12, f12 = Z._alt_schwarz(glb, texturen=texturen, blatt=blatt, atlas=atl)
+        zeilen.append(f"12. Keine schwarze Flaeche {raum}: {'ok' if not f12 else str(f12) + ' FEHLER'}"); zeilen += z12; fehler += f12
+        zu, fu, _w = U.uv2_inseln(glb, atlas=atl)
+        zeilen.append(f"13. UV2-Inseln {raum}: {'ok' if not fu else str(fu) + ' FEHLER'}"); zeilen += zu; fehler += fu
+        k = (atl["kante"] / atl["zellen"]) / 512.0
+        zd, fd, _w = U.uv2_dichte(glb, atlas=atl, rand_min=U.RAND_TYP_MIN * k, rand_max=U.RAND_TYP_MAX * k)
+        zeilen.append(f"14. UV2-Dichte und Inselrand {raum}: {'ok' if not fd else str(fd) + ' FEHLER'}"); zeilen += zd; fehler += fd
+        zn, fn = Z._alt_normal(glb, texturen=texturen, blatt=blatt, atlas=atl)
+        zeilen.append(f"15. Normalmap und ORM {raum}: {'ok' if not fn else str(fn) + ' FEHLER'}"); zeilen += zn; fehler += fn
+        n = sum(len(p.vertices) - 2 for o in Z._objekte(glb) for p in o.data.polygons)
+        zeilen.append(f"20. Dreiecke Raum {raum} (eigenes Modell, nicht in der Huelle): {n}")
+    return zeilen, fehler
+
+
+def tueren_s23(M, form, stufe):
+    """Pruefung 21: Haustuer und Zimmertueren gegen Elb (bis 1,90 m), Elbin und Mensch (elb_masse; alles Pflicht)."""
+    fen = M.fenster(form, stufe)
+    t = next(f for f in fen if f[3] == "tuer")
+    soll = EM.soll()
+    zeilen, fehler = [], 0
+    for name, (b, h) in (("Haustuer", (t[1][1] - t[1][0], t[2][1] - t[2][0])), ("Zimmertuer", M.ZIMMERTUER)):
+        teile, f = [], 0
+        for fig in EM.PFLICHT:
+            ok = b + 1e-6 >= soll[fig]["tuer_b"] and h + 1e-6 >= soll[fig]["tuer_h"]
+            teile.append(f"{fig} {'ja' if ok else 'nein'}"); f += 0 if ok else 1
+        zeilen.append(f"21. {name} licht {b:.2f} x {h:.2f} m: passt " + ", ".join(teile) + (" -> ok" if not f else " -> FEHLER")); fehler += f
+    return zeilen, fehler
+
+
+def masse_s23(S23, form, stufe):
+    """Was 25 und 26 von Stufe 2 und 3 wissen muessen: Oeffnungen mit Spitzbogen (Tuer, Giebel, Schildgiebel; um dx verschoben) und die
+    Dachmasse der Menschen (Wandflucht OX, Traufe xe, Giebelenden); vorn im Steinhaus kein Schwung (Schildgiebel)."""
+    M = S23.M
+    dx = M.FORMEN[form]["dx"]
+    bogen = []
+    for wand, (a0, a1), (z0, z1), art in M.fenster(form, stufe):
+        if art != "tuer" and not wand.endswith(("_gb", "_tg")): continue
+        (ox, oy), (ex, ey), _, (nx, ny) = S23.WAENDE[wand]
+        bogen.append(("y", oy, ny, a0 + dx, a1 + dx, z0, z1) if ex else ("x", ox + dx, nx, a0, a1, z0, z1))
+    dach = dict(ox=M.OX, xe=M.OX + M.UEBER, dv=M.OVORN - M.UEBER_ORTGANG_VORN, dh=M.HINTEN + M.UEBER_ORTGANG, yw=(M.OVORN, M.HINTEN),
+                dach_z=M.z_dach, vorn=stufe == 2, dx=dx, quergiebel=S23.GAUBE["y"] if stufe == 2 else None)
+    return bogen, dach
+
+
+def spitzbogen_s23(hull, bogen, stein):
+    """Pruefung 25 fuer Stufe 2/3: wie Stufe 1 (Bogenbrett und Zwickel ganz in der Oeffnung, vor der Wandflucht); im Steinhaus sind beide
+    aus Werkstein (Stoff Haustein): mindestens 8 Flaechen (3 Abschnitte je Seite: 6 Zwickel, 6 Bogenstuecke)."""
+    if not stein:
+        return spitzbogen_pruefen(hull, bogen)
+    zeilen, fehler = [], 0
+    for ax, e, aussen, u0, u1, z0, z1 in bogen:
+        n = 0
+        for name, mat, pts, nn, v in hull:
+            if name != "Haus" or mat != "Haustein": continue
+            uu = [p.x if ax == "y" else p.y for p in pts]; ee = [(p.y if ax == "y" else p.x) for p in pts]
+            if min(uu) < u0 - 0.045 or max(uu) > u1 + 0.045 or min(p.z for p in pts) < z0 + 0.25 or max(p.z for p in pts) > z1 + 0.005: continue
+            d = [(x - e) * aussen for x in ee]
+            if min(d) < -0.005 or max(d) > 0.15: continue
+            if max(p.z for p in pts) < z1 - 1.3 * (u1 - u0) / 2 - 0.01: continue
+            n += 1
+        ok = n >= 8
+        fehler += 0 if ok else 1
+        zeilen.append(f"   {ax}={e:+.2f} u {u0:.2f}..{u1:.2f} bis z {z1:.2f}: Werkstein im Bogen {n} -> {'ok' if ok else 'FEHLER'}")
+    return zeilen, fehler
+
+
+def dachschwung_s23(hull, dach, stoff):
+    """Pruefung 26 fuer Stufe 2/3: (a) die Traufecken (am hinteren Giebel, im Buergerhaus auch vorn) stehen mindestens 15 cm hoeher als die
+    Traufmitte, (b) ueber der Wandflucht liegt die Deckung wie bei den Menschen auf der Dachlinie (Unterseite dach_z, Deckung 0,10 und
+    Lagenstufe 0,03: 0 bis +0,16 m), (c) die Deckung liegt obenauf (dach_verdeckung)."""
+    ox, xe, dv, dh, (yw0, yw1), dx, dz = dach["ox"], dach["xe"], dach["dv"], dach["dh"], dach["yw"], dach["dx"], dach["dach_z"]
+    rand = [p for name, mat, pts, n, v in hull if name == "Dach" and mat == stoff for p in pts if abs(p.x - dx) > xe - 0.12]
+    ecke = max((p.z for p in rand if p.y > dh - 0.4), default=0.0)
+    if dach["vorn"]: ecke = max(ecke, max((p.z for p in rand if p.y < dv + 0.4), default=0.0))
+    ym = (dv + dh) / 2
+    mitte = max((p.z for p in rand if abs(p.y - ym) < 0.5), default=0.0)
+    # Flaechen ganz innerhalb der Wandflucht (die Lagen reichen von Giebel zu Giebel, ihre Ecken liegen an den Enden), ohne den Quergiebel
+    qy = dach.get("quergiebel")
+    ab = [p.z - dz(p.x - dx) for name, mat, pts, n, v in hull if name == "Dach" and mat == stoff and all(abs(q.x - dx) < ox - 0.02 for q in pts)
+          and min(q.z for q in pts) > dz(ox) - 0.1                                     # nur das Hauptdach (nicht Fluegel und Schuppen)
+          and not (qy and any(qy[0] - 0.3 < q.y < qy[1] + 0.3 and abs(q.x - dx) > 1.0 for q in pts)) for p in pts]
+    ok_a, ok_b = ecke - mitte >= 0.15, bool(ab) and -0.01 <= min(ab) and max(ab) <= 0.16
+    zeilen = [f"   Ecke {ecke:.2f}, Traufmitte {mitte:.2f}: Schwung {ecke - mitte:+.2f} m (Soll >= 0,15) -> {'ok' if ok_a else 'FEHLER'}",
+              f"   ueber der Wandflucht {len(ab)} Punkte, Abstand zur Dachlinie {min(ab, default=0):+.3f}..{max(ab, default=0):+.3f} m (Soll 0..+0,16) -> {'ok' if ok_b else 'FEHLER'}"]
+    return zeilen, (0 if ok_a else 1) + (0 if ok_b else 1)
+
+
+def innen_s23(haus, ordner, M, dx, lade):
+    """Pruefungen 28-32 der Wohnstube (Stufe 2/3; wie Stufe 1, Rueckmeldungen des Nutzers 17.11.2026):
+      28 Decke geschlossen: von einem Raster 0,3 m unter der Decke (0,5 m) trifft jeder Strahl nach oben eine Flaeche;
+      29 Haustuer innen an der Stelle der Oeffnung (60 %);
+      30 Schlot ueber der Feuerstelle: Grundriss des Schlots (Stein ueber der Haube) im Grundriss des Herdsteins (2 cm);
+      31 kein Holz im Schlot (oberhalb der Haube bis zur Decke) und keine Holzflaeche ganz in der Einfassung der Feuerstelle;
+      32 Hauswappen hoch (Unterkante mindestens 1,85 m ueber dem Fussboden: ueber dem Kopf eines Elben) und nicht an der Wand der Haustuer."""
+    from mathutils.bvhtree import BVHTree
+    from trimsheet import BAENDER_INNEN
+    import wohnhaus_mensch_s1_g1 as G1
+    fl = lade(os.path.join(ordner, f"{haus}_innen.glb"))
+    zeilen, fehler = [], 0
+    ecken, polys = [], []
+    for name, mat, pts, n, v in fl:
+        polys.append(list(range(len(ecken), len(ecken) + len(pts)))); ecken += [tuple(p) for p in pts]
+    baum = BVHTree.FromPolygons(ecken, polys)
+    frei = gesamt = 0
+    x = -M.IX + 0.3
+    while x <= M.IX - 0.3:
+        y = M.IV + 0.3
+        while y <= M.STUBE_HINTEN - 0.3:
+            gesamt += 1
+            if baum.ray_cast(Vector((x + dx, y, M.Z_EG_DECKE - 0.3)), Vector((0, 0, 1)), 10.0)[0] is None: frei += 1
+            y += 0.5
+        x += 0.5
+    zeilen.append(f"28. Decke der Wohnstube geschlossen: {gesamt} Strahlen nach oben, {frei} ins Leere -> {'ok' if not frei else 'FEHLER'}"); fehler += 1 if frei else 0
+    tuer = next(f for f in M.FENSTER if f[3] == "tuer")
+    a0, a1 = tuer[1][0] + dx, tuer[1][1] + dx
+    z0, z1 = tuer[2]
+    e_innen = M.VORN + M.T
+    vielecke = [[(p.x, p.z) for p in pts] for name, mat, pts, n, v in fl
+                if mat != "Innenglas" and abs(n.y) > 0.9 and all(abs(p.y - e_innen) <= 0.15 for p in pts)]
+
+    def drin(u, z, q):
+        an = False
+        for (ua, za), (ub, zb) in zip(q, q[1:] + q[:1]):
+            if (za > z) != (zb > z) and u < ua + (z - za) * (ub - ua) / (zb - za): an = not an
+        return an
+    probe = [(a0 + (a1 - a0) * (i + 0.5) / 12, z0 + (z1 - z0) * (j + 0.5) / 20) for i in range(12) for j in range(20)]
+    anteil = sum(1 for u, z in probe if any(drin(u, z, q) for q in vielecke)) / len(probe)
+    ok = anteil >= 0.6
+    zeilen.append(f"29. Haustuer innen an der Stelle der Oeffnung (vorn, {a0:.2f}..{a1:.2f}): gedeckt {anteil * 100:.0f} % (Soll >= 60 %) -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    stein = BAENDER_INNEN["bruchstein"]; holz = [BAENDER_INNEN[b] for b in ("bohlen", "balken")]
+    in_band = lambda v, b: b[0] - 1e-3 <= v <= b[1] + 1e-3
+    z_haube = G1.Z_HAUBE
+    herd = [p for name, mat, pts, n, v in fl if name.startswith("Herd") and in_band(v, stein) for p in pts]
+    schlot = [p for name, mat, pts, n, v in fl if name == "Fensterseiten" and in_band(v, stein) for p in pts if p.z > z_haube + 0.3]
+    bh = bs = None
+    if herd and schlot:
+        bh = (min(p.x for p in herd), max(p.x for p in herd), min(p.y for p in herd), max(p.y for p in herd))
+        bs = (min(p.x for p in schlot), max(p.x for p in schlot), min(p.y for p in schlot), max(p.y for p in schlot))
+        ok = bs[0] >= bh[0] - 0.02 and bs[1] <= bh[1] + 0.02 and bs[2] >= bh[2] - 0.02 and bs[3] <= bh[3] + 0.02
+        text = f"Herdstein x {bh[0]:.2f}..{bh[1]:.2f} y {bh[2]:.2f}..{bh[3]:.2f}, Schlot x {bs[0]:.2f}..{bs[1]:.2f} y {bs[2]:.2f}..{bs[3]:.2f}"
+    else:
+        ok, text = False, "Herd oder Schlot (Stein) nicht gefunden"
+    zeilen.append(f"30. Schlot ueber der Feuerstelle (Schlot im Grundriss des Herdsteins): {text} -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    funde = []
+    if bh and bs:
+        for name, mat, pts, n, v in fl:
+            if not any(in_band(v, b) for b in holz): continue
+            if any(bs[0] + 0.02 < p.x < bs[1] - 0.02 and bs[2] + 0.02 < p.y < bs[3] - 0.02 and z_haube < p.z < M.Z_EG_DECKE - 0.005 for p in pts):
+                funde.append(name)
+            if all(bh[0] - 0.03 <= p.x <= bh[1] + 0.03 and bh[2] - 0.03 <= p.y <= bh[3] + 0.03 and p.z <= z_haube + 0.35 for p in pts):
+                funde.append(name + " (Einfassung)")
+    zeilen.append(f"31. Kein Holz im Kamin (Schlot ueber der Haube, Einfassung der Feuerstelle): {len(funde)} Holzflaechen -> "
+                  + ('ok' if not funde and bh else 'FEHLER ' + ', '.join(sorted(set(funde)))))
+    fehler += len(funde) + (0 if bh else 1)
+    wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
+    if wap:
+        unten = min(p.z for p in wap) - M.Z_BODEN
+        an_tuer = all(abs(p.y - M.IV) < 0.30 for p in wap)
+        ok = unten >= 1.85 and not an_tuer
+        text = f"Unterkante {unten:.2f} m ueber dem Fussboden (Soll >= 1,85)" + (", an der Wand der Haustuer" if an_tuer else "")
+    else:
+        ok, text = False, "kein Hauswappen im Modell"
+    zeilen.append(f"32. Hauswappen innen hoch, nicht an der Haustuerwand: {text} -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+    return zeilen, fehler
+
+
+def main_s23(haus, ordner, form, stufe, opt):
+    """Messung der Stufen 2 und 3: die Pruefungen der Menschen (wohnhaus_mensch_s23_messen: 1-11, 12-15 Huelle und Wohnstube, 16-19), Raeume
+    (12-15), 20 Dreiecke (Huelle; Raeume getrennt), 21 Tueren, 22 Fahnenmast, 24 Glas innen, 25 Spitzbogen, 26 Dachschwung, 27 Fussabdruck,
+    28-32 Wohnstube. 23 entfaellt (kein Legschindeldach)."""
+    import wohnhaus_elb_s23 as E23
+    import wohnhaus_mensch_s23 as S23
+    import wohnhaus_mensch_s23_messen as MS23
+    glb = os.path.join(ordner, f"{haus}.glb")
+    E23.masse_anlegen(stufe, tuer_hoch=2.00 if "mensch-tuer" in opt else E23.TUER_HOCH)
+    M = S23.M
+    M.stufe_setzen(stufe)
+    S23.waende_setzen()
+    M.FENSTER = M.fenster(form, stufe)
+    MS23.DACH_BIBLIOTHEK = False                              # die Bibliothek der Elben liegt auch im Steinhaus im Obergeschoss
+    MS23.wappen_frei = Z.wappen_frei
+    alt_kein = MS23.kein_fachwerk
+
+    def kein_fachwerk(fl, dx=0.0):
+        """Pruefung 10 der Menschen, aber die Holzakzente der Elben sind erlaubt (Nutzer 17.11.2026: Holzunterstand wie in Stufe 1, Ortgang):
+        Holz ausserhalb der Mauern unter der Auskragung (Holzunterstand, Schuppen der Grundform 3) und die aufgeschwungenen Ortgangbretter
+        hinter dem hinteren Giebel."""
+        def elb_holz(f):
+            name, mat, pts = f[0], f[1], f[2]
+            if mat != "Fachwerk": return False
+            if name == "Dach" and min(p.y for p in pts) > M.HINTEN - 0.05: return True
+            return all(abs(p.x - dx) > M.BX - 0.05 for p in pts) and max(p.z for p in pts) < M.Z_EG_DECKE
+        return alt_kein([f for f in fl if not elb_holz(f)], dx)
+    MS23.kein_fachwerk = kein_fachwerk
+    texturen = opt.get("texturen")
+    zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
+    z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
+    je, summe = Z.dreiecke(glb)
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
+    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    z, f = tueren_s23(M, form, stufe); zeilen += z; fehler += f
+    z22, f22 = Z.fahne_steht(glb)
+    zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
+    zeilen.append("23. Schwerstangen: entfaellt (Schieferdach ohne Stangen und Findlinge)")
+    bogen, dach = masse_s23(S23, form, stufe)
+    hull = MS23.lade(glb)
+    z25, f25 = spitzbogen_s23(hull, bogen, stufe == 3)
+    zeilen.append(f"25. Spitzbogen nur aussen vor Haustuer und Giebeloeffnungen (innen = aussen): {'ok' if not f25 else str(f25) + ' FEHLER'}"); zeilen += z25; fehler += f25
+    stoff = "Schiefer" if stufe == 3 else "Dachziegel"          # Stoffnamen der Menschen (Brandschaden, Russ); im Blatt der Elben Schiefer
+    z26, f26 = dachschwung_s23(hull, dach, stoff)
+    z26c, f26c = dach_verdeckung(glb, ordner, stoff); z26 += z26c; f26 += f26c
+    zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
+    z27, f27 = fussabdruck(glb, haus, ordner)
+    zeilen.append(f"27. Fussabdruck der Grundform (Haus und Dach im Umriss des Menschenhauses): {'ok' if not f27 else 'FEHLER'}"); zeilen += z27; fehler += f27
+    z28, f28 = innen_s23(haus, ordner, M, M.FORMEN[form]["dx"], MS23.lade); zeilen += z28; fehler += f28
+    z24, f24 = Z.fenster_innen(haus, ordner, MS23)
+    zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
+    kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
+    print("MESSUNG " + kopf)
+    for z in zeilen: print("MESSUNG " + z)
+    print(f"MESSUNG Ergebnis: {fehler} Fehler")
+    if "gegenprobe" not in opt and fehler: sys.exit(1)
+
 
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -432,6 +676,9 @@ def main():
     ordner = opt.get("ordner", os.path.join(WURZEL, "game", "assets", "modelle", "gebaeude", "neubau"))
     form = int(haus.rsplit("_g", 1)[1])
     glb = os.path.join(ordner, f"{haus}.glb")
+    stufe = int(haus.rsplit("_s", 1)[1].split("_")[0])
+    if stufe >= 2:
+        return main_s23(haus, ordner, form, stufe, opt)
     import wohnhaus_mensch_s1 as S1
     ELB.masse_anlegen()                                      # Formen und Masse der Elben
     if "mensch-tuer" in opt:                                 # Gegenprobe 21: Haustuer der Menschen (2,00 m)
