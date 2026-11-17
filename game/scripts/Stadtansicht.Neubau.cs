@@ -485,9 +485,11 @@ public partial class Stadtansicht
         }).ToArray();
         var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
         var familienStand = "";
+        var behangFeder = BehangFederBauen(wurzel); // Stadtansicht.Behang.cs
         a.Raumzustaende.Add((zeit, arbeitszeit) =>
         {
             if (!IsInstanceValid(wurzel) || _neubauInnen != wurzel) return;
+            BehangFederLaufen(behangFeder, arbeitszeit);
             foreach (var (kennung, teil, schild) in gegenstaende)
             {
                 var an = _unterDerMaus == kennung;
