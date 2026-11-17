@@ -224,11 +224,12 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
-        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis (Köln 1401: 1403) – sonst prüft der Test die Jahreszeiten nicht.
-        if (p.Startwert is 1400 or 1401)
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis – sonst prüft der Test die Jahreszeiten nicht.
+        // (Köln 1401 hatte bis Datenversion 93 im Jahr 1403 einen; seit „Wie überliefert“ 20 statt 30 % strenge Winter hat, ist er gewöhnlich.)
+        if (p.Startwert is 1400)
         {
             var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
-                .Jahreszeiten.WinterVon(p.Startwert == 1400 ? 1407 : 1403);
+                .Jahreszeiten.WinterVon(1407);
             Pruefe.Wahr(winter is { Streng: true }, $"Startwert {p.Startwert}: kein strenger Winter im Testzeitraum – Winterfall anpassen");
         }
         var a = Spielen(p, laden: false);
