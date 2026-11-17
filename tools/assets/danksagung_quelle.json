@@ -135,6 +135,17 @@
           ]
         },
         {
+          "werk": "Fabric 045 (Stoff des Wandbehangs)",
+          "autor": "ambientCG",
+          "quelle": "https://ambientcg.com/view?id=Fabric045",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/texturen/stoff/"
+          ]
+        },
+        {
           "werk": "Schwein „Pig“ (Quaternius, über poly.pizza) und Ziege „Goat“ (Copabrangorandel, OpenGameArt) für die Restflächen (bearbeitet)",
           "autor": "Quaternius; Copabrangorandel",
           "quelle": "https://poly.pizza/m/TNvG3QUFlp ; https://opengameart.org/node/142490",

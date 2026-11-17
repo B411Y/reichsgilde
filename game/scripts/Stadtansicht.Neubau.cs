@@ -415,7 +415,11 @@ public partial class Stadtansicht
                     kopie.VertexColorUseAsAlbedo = false;
                     teil.SetSurfaceOverrideMaterial(i, kopie);
                     if (stoff.ResourceName == "Hausfarbe") hausfarben.Add(kopie);
-                    else behaenge.Add((kopie, stoff.ResourceName == "Behangsaum"));
+                    else
+                    {
+                        BehangStoffGeben(kopie);
+                        behaenge.Add((kopie, stoff.ResourceName == "Behangsaum"));
+                    }
                 }
         }
         Vector3? Ort(string name) => wurzel.FindChild(name, true, false) is Node3D n ? wurzel.ToLocal(n.GlobalPosition) : null;
