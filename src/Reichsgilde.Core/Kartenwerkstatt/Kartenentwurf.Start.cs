@@ -85,6 +85,19 @@ public sealed class EntwurfStart : EntwurfTeil
     /// <summary>Die KI-Häuser in Konto-Reihenfolge.</summary>
     public IReadOnlyList<EntwurfHaus> Haeuser => _haeuser;
 
+    private List<EntwurfStartbetrieb> _umland = new();
+
+    /// <summary>
+    /// Die Umland-Startplätze ohne Haus (Abschnitt „umland“, 17.11.2026): Umlandbetriebe der Karte, die mit den gewürfelten KI-Häusern ins Spiel
+    /// kommen (<see cref="Startbelegung.Umland"/>).
+    /// </summary>
+    public IReadOnlyList<EntwurfStartbetrieb> Umland => _umland;
+
+    private List<string> _hausnamen = new();
+
+    /// <summary>Die Familiennamen der Stadt für gewürfelte KI-Häuser (Abschnitt „hausnamen“, 17.11.2026; <see cref="Startbelegung.Hausnamen"/>).</summary>
+    public IReadOnlyList<string> Hausnamen => _hausnamen;
+
     /// <summary>Der Eintrag „spieler“ aus der Datei (unbekannte Felder beim Schreiben).</summary>
     private JsonObject? _spielerVorlage;
 
@@ -95,9 +108,11 @@ public sealed class EntwurfStart : EntwurfTeil
     public bool Angelegt { get; private set; }
 
     /// <summary>Steht nichts drin? Dann schreibt der Entwurf keinen Abschnitt „start“, und es gilt <see cref="Startbelegung.Ersatz"/>.</summary>
-    public bool IstLeer => !Angelegt && _haeuser.Count == 0 && SpielerFarbe is null;
+    public bool IstLeer => !Angelegt && _haeuser.Count == 0 && _umland.Count == 0 && _hausnamen.Count == 0 && SpielerFarbe is null;
 
     internal void HaeuserSetzen(IEnumerable<EntwurfHaus> haeuser) => (_haeuser, Angelegt) = (haeuser.ToList(), true);
+    internal void UmlandSetzen(IEnumerable<EntwurfStartbetrieb> umland) => (_umland, Angelegt) = (umland.ToList(), true);
+    internal void HausnamenSetzen(IEnumerable<string> namen) => (_hausnamen, Angelegt) = (namen.ToList(), true);
 
     /// <summary>Die Belegung, wie das Spiel sie liest.</summary>
     public Startbelegung AlsStartbelegung() => JsonSerializer.Deserialize<Startbelegung>(AlsJson().ToJsonString(), Stadtkarte.Optionen)!;
@@ -128,13 +143,19 @@ public sealed class EntwurfStart : EntwurfTeil
                 }).ToList(),
             };
         }).ToList();
+        var umland = vorlage?["umland"] as JsonArray;
+        e._umland = (s.Umland ?? new List<Startbetrieb>()).Select((b, j) => new EntwurfStartbetrieb(b.Platz, b.Art, b.Produkt)
+        {
+            Vorlage = umland is not null && j < umland.Count ? umland[j]?.DeepClone() as JsonObject : null,
+        }).ToList();
+        e._hausnamen = (s.Hausnamen ?? new List<string>()).ToList();
         return e;
     }
 
     internal override EntwurfTeil KopieTeil()
     {
         var k = new EntwurfStart { SpielerFarbe = SpielerFarbe, Vorlage = Vorlage, _spielerVorlage = _spielerVorlage, Angelegt = Angelegt };
-        k._haeuser = _haeuser.ToList();
+        (k._haeuser, k._umland, k._hausnamen) = (_haeuser.ToList(), _umland.ToList(), _hausnamen.ToList());
         return k;
     }
 
@@ -142,6 +163,7 @@ public sealed class EntwurfStart : EntwurfTeil
     {
         var o = (EntwurfStart)werte;
         (SpielerFarbe, Vorlage, _spielerVorlage, _haeuser, Angelegt) = (o.SpielerFarbe, o.Vorlage, o._spielerVorlage, o._haeuser.ToList(), o.Angelegt);
+        (_umland, _hausnamen) = (o._umland.ToList(), o._hausnamen.ToList());
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfStart o && IstLeer == o.IstLeer && AlsJson().ToJsonString() == o.AlsJson().ToJsonString();
@@ -152,7 +174,9 @@ public sealed class EntwurfStart : EntwurfTeil
         var spieler = Zusammensetzen(_spielerVorlage, ("wohnhaus", null), ("farbe", SpielerFarbe is null ? null : JsonValue.Create(SpielerFarbe)),
             ("werkstatt", null), ("jeBeruf", null));
         return Zusammensetzen(Vorlage, ("hofstellen", null), ("spieler", spieler.Count == 0 ? null : spieler),
-            ("haeuser", new JsonArray(_haeuser.Select(h => (JsonNode)h.AlsJson()).ToArray())));
+            ("haeuser", _haeuser.Count == 0 && (_umland.Count > 0 || _hausnamen.Count > 0) ? null : new JsonArray(_haeuser.Select(h => (JsonNode)h.AlsJson()).ToArray())),
+            ("umland", _umland.Count == 0 ? null : new JsonArray(_umland.Select(b => (JsonNode)b.AlsJson()).ToArray())),
+            ("hausnamen", _hausnamen.Count == 0 ? null : new JsonArray(_hausnamen.Select(n => (JsonNode)JsonValue.Create(n)!).ToArray())));
     }
 }
 
@@ -205,10 +229,10 @@ public sealed partial class Kartenentwurf
     /// <summary>Wer dieses Gebäude am Start nutzt (leer: niemand).</summary>
     public IReadOnlyList<Platzbelegung> BelegungVon(string kennung) => Belegung().Where(b => b.Kennung == kennung).ToList();
 
-    /// <summary>Die Umlandbetriebe der Karte, die noch kein Haus am Start führt.</summary>
+    /// <summary>Die Umlandbetriebe der Karte, die noch kein Haus am Start führt und die kein Umland-Startplatz sind.</summary>
     public IReadOnlyList<EntwurfGebaeude> FreieBetriebsplaetze()
     {
-        var belegt = Belegung().Select(b => b.Kennung).ToHashSet();
+        var belegt = Belegung().Select(b => b.Kennung).Concat(_start.Umland.Select(b => b.Platz)).ToHashSet();
         return _gebaeude.Where(g => g.Art == Bausteinart.Umlandbetrieb && !belegt.Contains(g.Kennung)).ToList();
     }
 
@@ -314,6 +338,45 @@ public sealed partial class Kartenentwurf
         {
             Betriebe = h.Betriebe.Select((b, i) => i == betrieb ? b with { Produkt = string.IsNullOrWhiteSpace(produkt) ? null : produkt } : b).ToList(),
         });
+    }
+
+    // ── Befehle: Umland-Startplätze und Hausnamen (17.11.2026) ───────────────
+
+    /// <summary>
+    /// Macht einen Umlandbetrieb der Karte zum Umland-Startplatz (hinten angehängt): Er kommt mit einem gewürfelten KI-Haus ins Spiel
+    /// (<see cref="Startbelegung.Umland"/>). Hat er noch keinen Namen, bekommt er <paramref name="betriebsname"/> („{art}“ = Name der Betriebsart; ohne Angabe „Art Kennung“).
+    /// Liefert den Index.
+    /// </summary>
+    public int StartumlandHinzufuegen(string platz, string? betriebsname = null)
+    {
+        var g = GebaeudeMit(platz) ?? throw new ArgumentException($"Kein Gebäude „{platz}“.", nameof(platz));
+        if (g.Art != Bausteinart.Umlandbetrieb || g.Baustein?.BetriebsartWert is not { } art)
+            throw new ArgumentException($"„{platz}“ ist kein Umlandbetrieb.", nameof(platz));
+        if (_start.Umland.Any(b => b.Platz == platz)) throw new ArgumentException($"„{platz}“ ist schon ein Umland-Startplatz.", nameof(platz));
+        var befehle = new List<IKartenbefehl>();
+        if (Aenderung(_start, n => n.UmlandSetzen(n.Umland.Append(new EntwurfStartbetrieb(platz, art)))) is { } eigener) befehle.Add(eigener);
+        if (string.IsNullOrWhiteSpace(g.Betrieb))
+        {
+            var artName = Daten is { } d && d.KenntArt(art) ? d.Art(art).Name : art.ToString();
+            var name = FreierName(string.IsNullOrWhiteSpace(betriebsname) ? $"{artName} {platz}" : betriebsname.Replace("{art}", artName), _gebaeude.Select(x => x.Betrieb).OfType<string>());
+            if (Aenderung(g, x => x.Betrieb = name) is { } benennen) befehle.Add(benennen);
+        }
+        Buendeln($"Umland-Startplatz {platz} hinzugefügt", befehle.FirstOrDefault(), befehle.Skip(1));
+        return _start.Umland.Count - 1;
+    }
+
+    /// <summary>Nimmt einen Umland-Startplatz aus der Liste (der Betriebsname am Platz bleibt stehen).</summary>
+    public void StartumlandEntfernen(int index)
+    {
+        Pruefen(_start, index, _start.Umland.Count);
+        Aendern(_start, $"Umland-Startplatz {_start.Umland[index].Platz} entfernt", n => n.UmlandSetzen(n.Umland.Where((_, i) => i != index)));
+    }
+
+    /// <summary>Die Familiennamen der Stadt für gewürfelte KI-Häuser („Haus …“ davor wird abgeschnitten; leere fallen weg).</summary>
+    public void HausnamenSetzen(IEnumerable<string> namen)
+    {
+        var liste = namen.Select(n => Familie.NachnameAus((n ?? "").Trim())).Where(n => n != "").ToList();
+        Aendern(_start, "Hausnamen geändert", n => n.HausnamenSetzen(liste));
     }
 
     // ── Befehle: Spieler ─────────────────────────────────────────────────────

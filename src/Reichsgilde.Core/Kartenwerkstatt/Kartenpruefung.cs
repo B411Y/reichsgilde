@@ -304,7 +304,7 @@ public static class Kartenpruefung
             yield return 0;
             Teil = "Startwege";
             // Startwege (Regel „startweg“): die Umlandbetriebe der KI-Häuser – die Werkstätten in der Stadt haben keinen Platz mehr (16.11.2026)
-            if (_e.Start.Haeuser.Any(h => h.Betriebe.Any(b => b.Platz != "")))
+            if (_e.Start.Haeuser.Any(h => h.Betriebe.Any(b => b.Platz != "")) || _e.Start.Umland.Count > 0)
             {
                 Teil = "Startwege";
                 foreach (var teil in _e.StartwegSchritte()) { Teil = teil; yield return 0; }
@@ -1127,7 +1127,7 @@ public static class Kartenpruefung
             var teil = new EntwurfTeil[] { s };
             if (s.IstLeer)
             {
-                var text = "Start: Die Karte hat keine Startbelegung – im Spiel gälten die drei Häuser des Ersatzes, ihre Umlandbetriebe ohne Platz in der Karte. Ein KI-Haus genügt (wird es wieder entfernt, würfelt die Partie ihre Häuser).";
+                var text = "Start: Die Karte hat keine Startbelegung – im Spiel würfelt jede Partie ihre KI-Häuser, aber ohne Umland-Startplätze und Namen der Stadt; die Probe nähme die drei Häuser des Ersatzes. Ein KI-Haus zur Probe genügt (wird es wieder entfernt, bleibt der Abschnitt stehen).";
                 if (_r.Stadtregeln) FehlerAn("start-fehlt", text, null, teil);
                 else HinweisAn("start-fehlt", text, null, teil);
                 return;
@@ -1171,7 +1171,20 @@ public static class Kartenpruefung
                 StartFehler($"Start: Das Haus „{doppelt.Key}“ steht doppelt.", null);
             foreach (var doppelt in s.Haeuser.GroupBy(h => h.Wappen).Where(x => x.Count() > 1))
                 StartFehler($"Start: Zwei Häuser führen dasselbe Wappen ({string.Join(", ", doppelt.Select(h => h.Name))}).", null);
-            foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
+            // Umland-Startplätze ohne Haus und Hausnamen der Stadt (17.11.2026)
+            foreach (var b in s.Umland)
+            {
+                var platz = Platz(b.Platz);
+                if (platz is not { Art: Bausteinart.Umlandbetrieb })
+                    StartFehler($"Start, Umland: „{b.Platz}“ ist kein Umlandbetrieb der Karte.", b.Platz);
+                else if (string.IsNullOrWhiteSpace(platz.Betrieb))
+                    StartFehler($"Start, Umland: Am Platz „{b.Platz}“ fehlt der Name des Betriebs.", b.Platz);
+                else if (platz.Baustein?.BetriebsartWert != b.Art)
+                    StartFehler($"Start, Umland: Auf „{b.Platz}“ steht {platz.Baustein?.Anzeigename}, kein Platz für {b.Art}.", b.Platz);
+            }
+            foreach (var doppelt in s.Hausnamen.GroupBy(Partieaufbau.Hausname).Where(x => x.Count() > 1))
+                StartFehler($"Start: Der Hausname „{doppelt.First()}“ steht doppelt.", null);
+            foreach (var doppelt in s.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat(s.Umland.Select(b => b.Platz)).Where(p => p != "").GroupBy(p => p).Where(x => x.Count() > 1))
                 StartFehler($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.", doppelt.Key);
         }
 

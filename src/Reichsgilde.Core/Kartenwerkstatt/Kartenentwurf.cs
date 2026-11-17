@@ -551,7 +551,8 @@ public sealed partial class Kartenentwurf
     private IEnumerable<string> StartwegLauf()
     {
         var start = Start.AlsStartbelegung();
-        var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Where(p => p != "").ToHashSet(StringComparer.Ordinal);
+        var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Concat((start.Umland ?? new List<Startbetrieb>()).Select(b => b.Platz))
+            .Where(p => p != "").ToHashSet(StringComparer.Ordinal);
         _startplaetze = (kennungen, kennungen.Select(GebaeudeMit).OfType<EntwurfGebaeude>().ToHashSet(ReferenceEqualityComparer.Instance));
         foreach (var t in StartnetzSchritte()) yield return t;
         var liste = new List<Startweg>();
