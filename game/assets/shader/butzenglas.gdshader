@@ -13,12 +13,38 @@ uniform vec3 bleifarbe : source_color = vec3(0.10, 0.10, 0.11);
 uniform float brechung : hint_range(0.0, 0.1) = 0.004;            // wie stark die Ringe das Bild dahinter verziehen
 uniform float truebung : hint_range(0.0, 4.0) = 0.4;              // Unschärfe (Mip-Stufe des Bilds dahinter)
 uniform float helligkeit : hint_range(0.0, 2.0) = 1.0;
+// Windeisen und Rahmen (Rathaus, Stadtansicht.Rathausneubau.cs): Breite und Höhe der Scheibe in Metern; 0 = ohne (Wohnhäuser). Die Bleiruten
+// sind 8 mm breit und verschwimmen aus der Ferne und im Pixel-Look zu einem gleichmäßigen Schleier – die Scheibe war dann eine flache Fläche in
+// der Farbe des Himmels. Die Eisen (Querstäbe etwa alle 0,48 m, ein Stab in der Mitte, Rahmen am Rand) sind immer mindestens einen Bildpunkt breit.
+instance uniform vec2 fenstermass = vec2(0.0);
+const float WINDEISEN = 0.03;           // Breite der Stäbe (Meter)
+const float WINDEISEN_FELD = 0.48;      // gewünschte Höhe eines Felds (Meter); die Höhe der Scheibe wird in gleiche Felder geteilt
+
+// Deckung eines Stabs (0–1): `abstand` zur Mitte des Stabs und `fein` (Meter je Bildpunkt) in derselben Richtung
+float stab(float abstand, float fein) {
+	float halb = 0.5 * max(WINDEISEN, 1.5 * fein);   // nie schmaler als anderthalb Bildpunkte
+	return 1.0 - smoothstep(halb - 0.5 * fein, halb + 0.5 * fein, abstand);
+}
 
 void fragment() {
 	float kennung;
 	vec4 b = butzen(UV, kennung);
 	float fein = max(fwidth(UV.x), fwidth(UV.y));
 	float blei = butzen_blei(b.y, fein);
+	if (fenstermass.y > 0.0) {
+		// Querstäbe: gleiche Felder über die Höhe; am Rand zählt der Abstand halb, damit der Rahmen ganz in der Scheibe liegt
+		float hoehe = fenstermass.y;
+		float feld = hoehe / max(round(hoehe / WINDEISEN_FELD), 1.0);
+		float y = 1.0 - UV.y;
+		float rand = min(y, hoehe - y);
+		float quer = rand < 0.5 * feld ? 0.5 * rand : abs(fract(y / feld + 0.5) - 0.5) * feld;
+		blei = max(blei, stab(quer, fwidth(UV.y)));
+	}
+	if (fenstermass.x > 0.0) {
+		float breite = fenstermass.x;
+		float hoch = min(0.5 * min(UV.x, breite - UV.x), abs(UV.x - 0.5 * breite));
+		blei = max(blei, stab(hoch, fwidth(UV.x)));
+	}
 	float radius = 0.5 * BUTZEN_TEILUNG;
 	bool zwickel = b.x > radius;
 	// Schleuderringe: Wellen um die Mitte, zum Nabel hin steiler; Zwickel sind flache Scherben mit eigener Neigung

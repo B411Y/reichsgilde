@@ -468,6 +468,7 @@ public partial class Stadtansicht
             wurzel.AddChild(raum);
             einsetzen += uhr.Elapsed.TotalMilliseconds; uhr.Restart();
             NeubauEinkleiden(RathausRaumDatei(datei), raum);
+            RathausNeuFenstermass(raum);
             kleiden += uhr.Elapsed.TotalMilliseconds;
             _rathausNeuRaum[kennung] = raum;
             var gruppe = new Node3D { Name = "Schilder_" + datei, Visible = false };
@@ -492,6 +493,33 @@ public partial class Stadtansicht
         });
         GD.Print($"[rathausneu] InteriorRoot: {_rathausNeuRaum.Count} Räume ({string.Join(", ", _rathausNeuRaum.Keys)}), Klickflächen im Haus: {a.Raumklicks.Count(k => IsInstanceValid(k) && wurzel.IsAncestorOf(k))}");
         RathausNeuVorwaermen(wurzel);
+    }
+
+    /// <summary>
+    /// Klicktest 15.11.2026 (Köln, Ratshalle): Die Fenster waren im Pixel-Look flache blaue Flächen – die 8 mm breiten Bleiruten der Butzenscheiben
+    /// verschwimmen aus der Entfernung des Saals zu einem Schleier, dahinter stand in Köln nur Himmel. Darum bekommen die Scheiben des Rathauses
+    /// Windeisen und Rahmen (<c>butzenglas.gdshader</c>, <c>fenstermass</c>): Breite und Höhe der Scheibe stehen in den UV des Modells (Meter; u von 0
+    /// bis Breite, v von 1 hinunter bis 1 − Höhe). Haben die Scheiben eines Netzes verschiedene Breiten bzw. Höhen, bleibt dieser Wert 0 (ohne Stab).
+    /// </summary>
+    private static void RathausNeuFenstermass(Node3D raum)
+    {
+        foreach (var glas in raum.FindChildren("Glas_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (glas.Mesh is not { } netz) continue;
+            var breiten = new HashSet<int>(); var hoehen = new HashSet<int>();   // in Zentimetern
+            for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            {
+                if (netz.SurfaceGetArrays(i)[(int)Mesh.ArrayType.TexUV].AsVector2Array() is not { Length: > 0 } uv) continue;
+                foreach (var p in uv)
+                {
+                    if (p.X > 0.01f) breiten.Add(Mathf.RoundToInt(p.X * 100));
+                    if (p.Y < 0.99f) hoehen.Add(Mathf.RoundToInt((1 - p.Y) * 100));
+                }
+            }
+            var mass = new Vector2(breiten.Count == 1 ? breiten.First() / 100f : 0, hoehen.Count == 1 ? hoehen.First() / 100f : 0);
+            glas.SetInstanceShaderParameter("fenstermass", mass);
+            GD.Print($"[rathausneu] Fenstermaß {raum.Name}/{glas.Name}: {mass.X:0.00} × {mass.Y:0.00} m (0 = ohne Stab)");
+        }
     }
 
     /// <summary>
