@@ -118,7 +118,10 @@ public static class Partiebesetzung
 
     internal static Zufallsquelle Besetzungsquelle(int zufallsstartwert, int zweck) => new(Zugwuerfel.Mischen(zufallsstartwert, BesetzungSchluessel, zweck));
 
-    /// <summary>Farben für gewürfelte Häuser („#rrggbb“, Fahnen und Dächer): die erste, die noch kein Haus hat.</summary>
+    /// <summary>
+    /// Die Hausfarben („#rrggbb“, Fahnen und Dächer). Seit dem 17.11.2026 trägt jedes Haus die seiner ersten Wappenfarbe
+    /// (<see cref="Wappen.Palettenfarbe"/>: Blau, Rot, Grün, Gelb, Purpur, Grau); die übrigen kommen nur noch in älteren Karten und Spielständen vor.
+    /// </summary>
     public static readonly IReadOnlyList<string> Hausfarben = new[]
     {
         "#336bb8", "#b33329", "#388c47", "#d9ad2e", "#7a3b8f", "#2a8c8a", "#c4672a", "#5c5c5c", "#8c6239", "#b84d86",
@@ -265,19 +268,15 @@ public static class Partiebesetzung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
             .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
             .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
-        // die Farbe des Spielers: die feste einer älteren Karte, sonst die seines Wappens (17.11.2026) – ein gewürfeltes Haus nimmt sie nicht
-        var farben = start.Haeuser.Select(h => h.Farbe).Append(start.Spieler.Farbe ?? spielerWappen.Hausfarbe()).OfType<string>().ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
         {
             var geschlecht = z.Next(2) == 0 ? Geschlecht.Mann : Geschlecht.Frau;
             var w = Wappen.Zufall(z, wappen);
             wappen.Add(w);
-            var farbe = Hausfarben.FirstOrDefault(f => !farben.Contains(f));
-            if (farbe is not null) farben.Add(farbe);
             haeuser.Add(new Starthaus
             {
-                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, Farbe = farbe,
+                Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, // die Farbe kommt aus dem Wappen (Partieaufbau, 17.11.2026)
                 Betriebe = { new Startbetrieb { Art = art } },
             });
         }

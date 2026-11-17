@@ -138,7 +138,7 @@ static class KartenformatTests
             Pruefe.Wahr(w1.Betriebe[0].Name.StartsWith("Gießerei a", StringComparison.Ordinal) && w1.Betriebe[0].Name != "Gießerei am Weinmarkt", w1.Betriebe[0].Name);
             Pruefe.Gleich(string.Join(", ", w2.Konten.Select(k => w2.Familien.Von(k)?.Oberhaupt.Volk)), string.Join(", ", w1.Konten.Select(k => w1.Familien.Von(k)?.Oberhaupt.Volk)));
             Pruefe.Gleich(string.Join(", ", Startbelegung.Ersatz.Rivalennamen), string.Join(", ", Greybox().Startbelegung.Rivalennamen));
-            Pruefe.Gleich("#b33329", Greybox().Startbelegung.Farbe("Haus Eisenbart"));
+            Pruefe.Wahr(Greybox().Startbelegung.Farbe("Haus Eisenbart") is null, "die Karte nennt keine Farbe für ein KI-Haus (sie kommt aus dem Wappen)");
             Pruefe.Wahr(Greybox().Startbelegung.Farbe("Haus Hammerschmid", istSpieler: true) is null, "die Karte nennt keine Farbe für den Spieler (sie kommt aus dem Wappen)");
             // Jeder Betrieb hat seinen Platz: die Werkstätten in der Stadt ein Grundstück, die Umlandbetriebe ihr Gebäude der Karte.
             Pruefe.Wahr(w1.Betriebe.All(b => w1.Bauen.PlatzVon(b.Name) is { } p && (b.InDerStadt ? p.Grundstueck is not null : p.Gebaeude is not null)),

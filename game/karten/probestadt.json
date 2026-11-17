@@ -364,7 +364,6 @@
     "volk": "Mensch",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
-    "farbe": "#b33329",
     "betriebe": [{"art": "Tischlerei"}]
    },
    {
@@ -372,7 +371,6 @@
     "volk": "Mensch",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
-    "farbe": "#388c47",
     "betriebe": [{"art": "Giesserei"}]
    }
   ]

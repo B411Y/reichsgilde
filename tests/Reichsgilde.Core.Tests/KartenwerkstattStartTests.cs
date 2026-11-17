@@ -363,7 +363,7 @@ static class KartenwerkstattStartTests
             Pruefe.Gleich(3, i);
             var h = e.Start.Haeuser[3];
             Pruefe.Gleich("Haus Ahlbeck", h.Name);
-            Pruefe.Wahr(h.Farbe is not null && h.Farbe != "#b33329" && h.Farbe != "#336bb8", $"eine freie Farbe ({h.Farbe})");
+            Pruefe.Wahr(h.Farbe is null && h.Hausfarbe == h.Wappen.Hausfarbe(), $"keine feste Farbe – die des Wappens ({h.Hausfarbe})");
             Pruefe.Wahr(!e.Start.Haeuser.Take(3).Any(x => x.Wappen == h.Wappen), "ein freies Wappen");
             Pruefe.Wahr(meldungen[^1] is { Teil: Kartenteil.Start } m && ReferenceEquals(m.Start, e.Start), "Ereignis für die Startbelegung");
             Pruefe.Wahr(Fehler(e).Any(b => b.Text.Contains("Haus Ahlbeck: Ein Haus braucht mindestens einen Betrieb")), "noch ohne Betrieb");

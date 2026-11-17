@@ -605,9 +605,9 @@ public partial class Stadtansicht : Node3D
     }
 
     /// <summary>
-    /// Farbe der Fahnen, Dächer und Karren eines Hauses: aus der Startbelegung der Partiekarte (Haus Eisenbart rot, Haus Eichwald grün,
-    /// Haus Kieselbach ocker in der Greybox; der Spieler in der Hausfarbe seines Wappens, die der Kern beim Aufbau der Partie einträgt –
-    /// <c>Wappen.Hausfarbe</c>, 17.11.2026); ein Haus ohne Farbe in der Karte ist rot, der Spieler blau.
+    /// Farbe der Fahnen, Dächer und Karren eines Hauses: aus der Startbelegung der Partiekarte – jedes Haus, Spieler wie KI, in der Hausfarbe
+    /// seines Wappens, die der Kern beim Aufbau der Partie einträgt (<c>Wappen.Hausfarbe</c>, 17.11.2026; ältere Karten und Spielstände mit
+    /// ihren festen Farben). Ein Haus ohne Farbe in der Karte ist rot, der Spieler blau.
     /// </summary>
     private Color Besitzerfarbe(Konto konto)
     {

@@ -141,7 +141,6 @@
     "volk": "Zwerg",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Geteilt", "farbe1": "Blau", "farbe2": "Gold", "figur": "Stern"},
-    "farbe": "#b33329",
     "betriebe": [{"art": "Giesserei"}, {"platz": "Grube1", "art": "Mine"}]
    },
    {
@@ -149,7 +148,6 @@
     "volk": "Elb",
     "geschlecht": "Frau",
     "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
-    "farbe": "#388c47",
     "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag1", "art": "Holzfaellerei"}]
    },
    {
@@ -157,7 +155,6 @@
     "volk": "Halbling",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Silber", "figur": "Turm"},
-    "farbe": "#d9ad2e",
     "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch1", "art": "Steinbruch"}]
    },
    {
@@ -165,7 +162,6 @@
     "volk": "Mensch",
     "geschlecht": "Frau",
     "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
-    "farbe": "#7a4a9e",
     "betriebe": [{"art": "Tinkturei"}, {"platz": "Kraeutergarten1", "art": "Kraeutergarten"}]
    },
    {
@@ -173,7 +169,6 @@
     "volk": "Mensch",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Purpur", "farbe2": "Gold", "figur": "Krone"},
-    "farbe": "#2e8c8c",
     "betriebe": [{"art": "Giesserei"}, {"platz": "Grube2", "art": "Mine"}]
    },
    {
@@ -181,7 +176,6 @@
     "volk": "Halbling",
     "geschlecht": "Frau",
     "wappen": {"teilung": "Ohne", "farbe1": "Gruen", "farbe2": "Gold", "figur": "Aehre"},
-    "farbe": "#c26a1f",
     "betriebe": [{"art": "Schaenke"}, {"platz": "Bauernhof1", "art": "Bauernhof"}]
    },
    {
@@ -189,7 +183,6 @@
     "volk": "Mensch",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Blau", "farbe2": "Gold", "figur": "Lilie"},
-    "farbe": "#5c5c5c",
     "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag2", "art": "Holzfaellerei"}]
    },
    {
@@ -197,7 +190,6 @@
     "volk": "Zwerg",
     "geschlecht": "Frau",
     "wappen": {"teilung": "Geviert", "farbe1": "Silber", "farbe2": "Rot", "figur": "Rose"},
-    "farbe": "#a3476b",
     "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch2", "art": "Steinbruch"}]
    }
   ]

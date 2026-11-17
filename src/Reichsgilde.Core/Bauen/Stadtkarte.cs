@@ -736,23 +736,6 @@ public sealed class Stadtkarte
     }
 
     /// <summary>
-    /// Die Partiekarte mit der Hausfarbe des Spielers („#rrggbb“, aus seinem Wappen – <see cref="Wappen.Hausfarbe"/>, 17.11.2026). Nennt die
-    /// Karte selbst eine Farbe (ältere Kartendateien), bleibt es bei der – dann kommt diese Karte unverändert zurück.
-    /// </summary>
-    internal Stadtkarte MitSpielerfarbe(string farbe)
-    {
-        var alt = Startbelegung;
-        if (alt.Spieler.Farbe is not null) return this;
-        var k = (Stadtkarte)MemberwiseClone();
-        k._start = new Startbelegung
-        {
-            Spieler = new Spielerstart { Wohnhaus = alt.Spieler.Wohnhaus, Farbe = farbe, Werkstatt = alt.Spieler.Werkstatt, JeBeruf = alt.Spieler.JeBeruf },
-            Haeuser = alt.Haeuser, OhnePlaetze = alt.OhnePlaetze,
-        };
-        return k;
-    }
-
-    /// <summary>
     /// Die Partiekarte seit „nur noch Bauzonen“ (15.11.2026): dieselbe Karte, aber kein Werkstattplatz trägt mehr einen Betrieb, und die
     /// Startbelegung setzt niemanden mehr auf einen Platz (<see cref="Startbelegung.OhnePlaetze"/>) – Wohnhäuser und
     /// Werkstätten stehen als Grundstücke in den Bauzonen (<see cref="Bauwesen"/>). Die Umlandbetriebe behalten Platz und Namen.

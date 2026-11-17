@@ -547,7 +547,6 @@
     "volk": "Zwerg",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Ohne", "farbe1": "Schwarz", "farbe2": "Gold", "figur": "Amboss"},
-    "farbe": "#b33329",
     "betriebe": [{"art": "Giesserei", "produkt": "Dolch"}, {"platz": "Grube_Eisenbart", "art": "Mine"}]
    },
    {
@@ -555,7 +554,6 @@
     "volk": "Elb",
     "geschlecht": "Frau",
     "wappen": {"teilung": "Bord", "farbe1": "Gruen", "farbe2": "Silber", "figur": "Baum"},
-    "farbe": "#388c47",
     "betriebe": [{"art": "Tischlerei"}, {"platz": "Holzschlag_Eichwald", "art": "Holzfaellerei"}]
    },
    {
@@ -563,7 +561,6 @@
     "volk": "Halbling",
     "geschlecht": "Mann",
     "wappen": {"teilung": "Schildhaupt", "farbe1": "Blau", "farbe2": "Silber", "figur": "Wellen"},
-    "farbe": "#d9ad2e",
     "betriebe": [{"art": "Maurerei"}, {"platz": "Steinbruch_Kieselbach", "art": "Steinbruch"}]
    }
   ]
