@@ -81,7 +81,7 @@ def elb_form(n, alt):
             F.FENSTER = [("rechts_eg", _l(3), tuer, "tuer"), ("vorn_eg", _q(1), eg, "fenster"),
                          ("vorn_gb", _q(2), gb, "fenster"), ("hinten_gb", _q(2), gb, "fenster"), ("links_eg", _l(3), eg, "fenster")]
         F.WALM, F.LAUBE = None, False
-        F.GALERIE_AB, F.LEITER_X = 0.2, -1.0
+        F.GALERIE_AB, F.LEITER_X = 0.75, -1.0                      # die Galerie beginnt hinter dem Schlot (kein Holz am Kamin)
         F.KAMIN = (F.BX - s1.T - 0.60, F.BX - s1.T, -0.10, 0.60)
         F.MATTEN = ((-0.6, -1.5, 1.5, 1.6), (-0.4, 1.15, 1.5, 0.6))
         F.FAHNE = (0.0, F.DACH_HINTEN - 0.55)
@@ -90,6 +90,10 @@ def elb_form(n, alt):
         F.FASS = (-2.05, F.VORN - 0.35)                             # Regenfass vor der Giebelwand (an der Seite laege es ausserhalb des Fussabdrucks)
         F.SCHEIT = ("hinten_eg", 1.30)                             # an der Ecke, wo das Dach am tiefsten ist
         F.GERUEST = dict(y=F.DACH_VORN + 0.08, x0=-2.6, x1=2.6, ebenen=(1.9, 3.6), innen=4.2, aussen=4.8, leiter_x=1.75)
+    # Schlot so tief wie die Feuerstelle des Herds (0,98 m statt 0,60 m): seine Mitte liegt ueber der Mitte der Feuerstelle (Pruefung 30;
+    # Rueckmeldung des Nutzers 17.11.2026 „der Schornsteinzug sitzt nicht ueber der Feuerstelle“), wie der grosse Steinkamin im Kunstwerk
+    kx0, kx1, ky0, ky1 = F.KAMIN
+    F.KAMIN = (kx0, kx1, ky0, ky0 + 0.98) if n == 2 else (kx1 - 0.98, kx1, ky0, ky1)
     # Masse aus dem Grundriss (wie am Ende von wohnhaus_mensch_s1.form_setzen, mit den Elben-Hoehen)
     F.OX = F.BX
     F.Z_FIRST = s1.Z_TRAUFE + F.OX * s1.NEIGUNG
@@ -129,9 +133,10 @@ def masse_anlegen():
 
     def form24():
         t = alt_24()
-        if s1.F.nr in (1, 3):                          # Hauswappen innen neben das Giebelfenster (sonst hinge es davor, Pruefungen 4 und 24)
+        if s1.F.nr in (1, 3):                          # Hauswappen innen unter das Giebelfenster, ins Erdgeschoss (sonst hinge es davor, Pruefungen 4 und 24)
             for teil in t["einrichtung"]:
-                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (1.15, 0.0))
+                if teil.name == "Einrichtung_Hauswappen": s1.versetze(teil, ((1, 0), (0, 1)), (0.0, 0.0), dz=-1.5)
+        innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
     for m in (g1, s1):
@@ -253,6 +258,47 @@ def schicht_anlegen():
         alt_form(n)
         s1.F.name = umbenennen(s1.F.name)
     s1.form_setzen = form_setzen
+
+
+def innen_fertig(t):
+    """Wohnstube nach der Rueckmeldung des Nutzers (17.11.2026, Bild innen): (1) Dachschraegen innen geschlossen – je Dachseite eine
+    verputzte Flaeche 5 mm unter dem Dach, ueber den Sparren (vorher sah man zwischen den Sparren ins Leere); (4) Kamin und Schlot ganz
+    aus Stein: Holz, das in den Schlot laeuft (Sparren, Balken), faellt dort weg, Holzteile des Herds im Grundriss des Schlots werden
+    Stein. Die Feuerstelle des Herds liegt genau unter dem Schlot (F.KAMIN, Pruefung 30)."""
+    from trimsheet import BAENDER_INNEN
+    F = s1.F
+    raum = next(x for x in t["raum"] if x.name == "Raum")
+    IX, IV, IH = F.IX, F.IV, F.IH
+    zw = s1.dach_z(IX) - 0.005
+    zf = F.Z_FIRST - 0.005
+    unten = F.RAUM + Vector((0, 0, 1.0))
+    for sx in (-1, 1):
+        raum.welt("Innen", [(sx * IX, IV, zw), (sx * IX, IH, zw), (0, IH, zf), (0, IV, zf)], "lehmwand", (-IX, IV, 0), (0, 1, 0), zw, zf - zw, zu=unten)
+    kx0, kx1, ky0, ky1 = F.KAMIN
+    holz = [BAENDER_INNEN[b] for b in ("bohlen", "balken")]
+    stein = BAENDER_INNEN["bruchstein"]
+    im_schlot = lambda p, r=0.01: kx0 - r < p.x < kx1 + r and ky0 - r < p.y < ky1 + r
+
+    def ist_holz(uv):
+        return any(all(v0 - 1e-4 <= v <= v1 + 1e-4 for _, v in uv) for v0, v1, _ in holz)
+    weg = 0
+    neu = []
+    for f in raum.flaechen:
+        pts, uv = f[0], f[1]
+        if ist_holz(uv) and max(p.z for p in pts) > s1.Z_HAUBE and any(im_schlot(p) for p in pts):
+            weg += 1
+            continue
+        neu.append(f)
+    raum.flaechen = neu
+    stein_neu = 0
+    for x in t["raum"]:
+        if not x.name.startswith("Herd"): continue
+        for i, (pts, uv, st, fa, gl) in enumerate(x.flaechen):
+            if ist_holz(uv) and all(im_schlot(p, 0.06) for p in pts):
+                v0, v1 = next((a, b) for a, b, _ in holz if all(a - 1e-4 <= v <= b + 1e-4 for _, v in uv))
+                uv = [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv]
+                x.flaechen[i] = (pts, uv, st, fa, gl); stein_neu += 1
+    print(f"INNEN Dachschraegen geschlossen, Holz am Schlot: {weg} Flaechen weg, {stein_neu} Flaechen des Herds zu Stein")
 
 
 def merke(art, teil):
