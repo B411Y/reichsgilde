@@ -388,6 +388,8 @@ def feuerstelle(raum):
     hy0, hy1 = min(p.y for p in herdstein) - 0.03, max(p.y for p in herdstein) + 0.03
     z_haube = g1.Z_HAUBE
     in_herd = lambda p: hx0 <= p.x <= hx1 and hy0 <= p.y <= hy1 and p.z <= z_haube + 0.35
+    # Sturz und Haube ueber der Feuerstelle (stehen ueber den Herdstein vor): auch Stein – die ganze Einfassung (Nutzer, Stufe 1)
+    in_haube = lambda p: hx0 - 0.15 <= p.x <= hx1 + 0.15 and hy0 - 0.15 <= p.y <= hy1 + 0.15 and z_haube - 0.40 <= p.z
 
     def zu_stein(pts, uv):
         v0, v1 = next((a, b) for a, b, _ in holz if all(a - 1e-4 <= v <= b + 1e-4 for _, v in uv))
@@ -399,7 +401,7 @@ def feuerstelle(raum):
             for pts, uv, st, fa, gl in t.flaechen:
                 if ist_holz(uv) and max(p.z for p in pts) > z_haube and any(im_schlot(p) for p in pts):
                     weg += 1; continue
-                if ist_holz(uv) and (all(in_herd(p) for p in pts) or all(im_schlot(p, 0.06) for p in pts)):
+                if ist_holz(uv) and (all(in_herd(p) for p in pts) or all(im_schlot(p, 0.06) for p in pts) or all(in_haube(p) for p in pts)):
                     uv = zu_stein(pts, uv); neu_stein += 1
                 bleib.append((pts, uv, st, fa, gl))
             t.flaechen = bleib

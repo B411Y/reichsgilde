@@ -596,7 +596,9 @@ def innen_s23(haus, ordner, M, dx, lade):
                 funde.append(name)
             if all(bh[0] - 0.03 <= p.x <= bh[1] + 0.03 and bh[2] - 0.03 <= p.y <= bh[3] + 0.03 and p.z <= z_haube + 0.35 for p in pts):
                 funde.append(name + " (Einfassung)")
-    zeilen.append(f"31. Kein Holz im Kamin (Schlot ueber der Haube, Einfassung der Feuerstelle): {len(funde)} Holzflaechen -> "
+            if name.startswith("Herd") and all(bh[0] - 0.15 <= p.x <= bh[1] + 0.15 and bh[2] - 0.15 <= p.y <= bh[3] + 0.15 and p.z >= z_haube - 0.40 for p in pts):
+                funde.append(name + " (Sturz, Haube)")
+    zeilen.append(f"31. Kein Holz im Kamin (Schlot ueber der Haube, Einfassung der Feuerstelle mit Sturz und Haube): {len(funde)} Holzflaechen -> "
                   + ('ok' if not funde and bh else 'FEHLER ' + ', '.join(sorted(set(funde)))))
     fehler += len(funde) + (0 if bh else 1)
     wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
