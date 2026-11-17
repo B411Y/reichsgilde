@@ -160,7 +160,6 @@ public sealed partial class Koeln
 
     private void Start()
     {
-        E.SpielerFarbeSetzen("#336bb8");
         var frei = _umland.Where(g => g.Betrieb is null).ToList();
         for (var i = 0; i < KiHaeuser.Length; i++)
         {

@@ -437,7 +437,7 @@ public static class Vorschau
 
     /// <summary>Die Farbe eines KI-Hauses: aus der Karte, sonst die Hausfarbe an seiner Stelle.</summary>
     private static string Hausfarbe(Kartenentwurf e, int haus) =>
-        e.Start.Haeuser[haus].Farbe ?? Kartenentwurf.Hausfarben[haus % Kartenentwurf.Hausfarben.Count];
+        e.Start.Haeuser[haus].Hausfarbe;
 
     /// <summary>Oben links: wer welche Farbe hat (nur mit Startbelegung).</summary>
     private static void Legende(Kartenentwurf e, double x0, double z0, double breite, Action<string> zeile)

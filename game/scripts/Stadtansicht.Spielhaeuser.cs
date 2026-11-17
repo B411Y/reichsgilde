@@ -28,7 +28,8 @@ public partial class Stadtansicht
     {
         if (_karte is null) return;
         var start = _karte.Startbelegung;
-        var farben = start.Haeuser.Select(h => h.Farbe).Prepend(start.Spieler.Farbe).ToList();
+        // jedes Haus in der Farbe seines Wappens (17.11.2026); der Spieler mit dem Vorgabe-Wappen des Menüs, ältere Karten mit ihrer festen Farbe
+        var farben = start.Haeuser.Select(h => (string?)h.Hausfarbe).Prepend(start.Spieler.Farbe ?? Reichsgilde.Core.Dynastie.Wappen.Vorlagen[0].Hausfarbe()).ToList();
         var plaetze = _karte.Wohnhausplaetze.Take(MusterSpielhaeuser).ToList();
         for (var i = 0; i < plaetze.Count; i++)
         {
