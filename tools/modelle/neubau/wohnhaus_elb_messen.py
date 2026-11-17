@@ -1,6 +1,6 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
-Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-31 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin) – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-32 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin und in der Einfassung, Hauswappen im Dachgeschoss) – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -171,8 +171,10 @@ def innen_pruefen(haus, ordner, form, MS1):
          des Innenmodells (kein Blick ins Leere zwischen den Sparren);
       29 Haustuer innen: in der Oeffnung der Haustuer liegt innen ein Tuerblatt (Flaechen bis 0,15 m vor bzw. hinter der Innenwand
          decken mindestens 60 % der Oeffnung), an derselben Stelle wie aussen;
-      30 Schlot ueber der Feuerstelle: Mitte (x, y) des Steins am Herd und des Schlots ueber der Haube hoechstens 0,10 m auseinander;
-      31 kein Holz im Kamin: keine Holzflaeche (Dielen, Balken) mit einer Ecke im Grundriss des Schlots oberhalb der Herdhaube."""
+      30 Schlot ueber der Feuerstelle: der Grundriss des Schlots ueber der Haube liegt im Grundriss des Herdsteins (2 cm);
+      31 kein Holz im Kamin: keine Holzflaeche (Dielen, Balken) mit einer Ecke im Grundriss des Schlots oberhalb der Herdhaube und keine
+         Holzflaeche ganz im Grundriss des Herdsteins bis unter die Haube (Einfassung der Feuerstelle: Sturz, Seiten);
+      32 Hauswappen innen im Dachgeschoss (Unterkante ueber dem Galerieboden), nicht im Erdgeschoss an der Wand mit der Haustuer."""
     import wohnhaus_mensch_s1 as S1
     from mathutils.bvhtree import BVHTree
     from trimsheet import BAENDER_INNEN
@@ -220,20 +222,34 @@ def innen_pruefen(haus, ordner, form, MS1):
     herd = [p for name, mat, pts, n, v in fl if name.startswith("Herd") and in_band(v, stein) for p in pts]
     schlot = [p for name, mat, pts, n, v in fl if name == "Raum" and in_band(v, stein) for p in pts if p.z > S1.Z_HAUBE + 0.3]
     if herd and schlot:
-        mh = ((min(p.x for p in herd) + max(p.x for p in herd)) / 2, (min(p.y for p in herd) + max(p.y for p in herd)) / 2)
-        ms = ((min(p.x for p in schlot) + max(p.x for p in schlot)) / 2, (min(p.y for p in schlot) + max(p.y for p in schlot)) / 2)
-        d = ((mh[0] - ms[0]) ** 2 + (mh[1] - ms[1]) ** 2) ** 0.5
-        ok = d <= 0.10
+        bh = (min(p.x for p in herd), max(p.x for p in herd), min(p.y for p in herd), max(p.y for p in herd))
+        bs = (min(p.x for p in schlot), max(p.x for p in schlot), min(p.y for p in schlot), max(p.y for p in schlot))
+        ok = bs[0] >= bh[0] - 0.02 and bs[1] <= bh[1] + 0.02 and bs[2] >= bh[2] - 0.02 and bs[3] <= bh[3] + 0.02
+        text = f"Herdstein x {bh[0]:.2f}..{bh[1]:.2f} y {bh[2]:.2f}..{bh[3]:.2f}, Schlot x {bs[0]:.2f}..{bs[1]:.2f} y {bs[2]:.2f}..{bs[3]:.2f}"
     else:
-        d, ok, mh, ms = -1.0, False, (0, 0), (0, 0)
-    zeilen.append(f"30. Schlot ueber der Feuerstelle: Herd ({mh[0]:.2f}, {mh[1]:.2f}), Schlot ({ms[0]:.2f}, {ms[1]:.2f}), Abstand {d:.2f} m (Soll <= 0,10) -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
+        ok, text, bh = False, "Herd oder Schlot nicht gefunden", (0, 0, 0, 0)
+    zeilen.append(f"30. Schlot ueber der Feuerstelle (Schlot im Grundriss des Herdsteins): {text} -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
     kx0, kx1, ky0, ky1 = F.KAMIN
     funde = []
     for name, mat, pts, n, v in fl:
         if not any(in_band(v, b) for b in holz): continue
         if any(kx0 + 0.02 < p.x < kx1 - 0.02 and ky0 + 0.02 < p.y < ky1 - 0.02 and S1.Z_HAUBE < p.z < F.Z_FIRST for p in pts):
             funde.append(name)
-    zeilen.append(f"31. Kein Holz im Kamin (Grundriss des Schlots ueber der Haube): {len(funde)} Holzflaechen -> {'ok' if not funde else 'FEHLER ' + ', '.join(sorted(set(funde)))}"); fehler += len(funde)
+    for name, mat, pts, n, v in fl:                       # Einfassung der Feuerstelle
+        if not any(in_band(v, b) for b in holz): continue
+        if all(bh[0] - 0.03 <= p.x <= bh[1] + 0.03 and bh[2] - 0.03 <= p.y <= bh[3] + 0.03 and p.z <= S1.Z_HAUBE + 0.35 for p in pts):
+            funde.append(name + " (Einfassung)")
+    zeilen.append(f"31. Kein Holz im Kamin (Schlot ueber der Haube, Einfassung der Feuerstelle): {len(funde)} Holzflaechen -> {'ok' if not funde else 'FEHLER ' + ', '.join(sorted(set(funde)))}"); fehler += len(funde)
+    wap = [p for name, mat, pts, n, v in fl if name.startswith("Einrichtung_Hauswappen") for p in pts]
+    if wap:
+        unten = min(p.z for p in wap)
+        tw = (oy if ex else ox)                              # Wand der Haustuer (Baurahmen)
+        an_tuer = all(abs((p.y if ex else p.x) - tw) < 0.45 for p in wap) and unten < S1.Z_OG
+        ok = unten >= S1.Z_GALERIE - 0.05 and not an_tuer
+        text = f"Unterkante {unten:.2f} m (Galerieboden {S1.Z_GALERIE:.2f})" + (", an der Wand der Haustuer" if an_tuer else "")
+    else:
+        ok, text = True, "kein Hauswappen im Modell"
+    zeilen.append(f"32. Hauswappen innen im Dachgeschoss: {text} -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
     return zeilen, fehler
 
 
