@@ -110,7 +110,7 @@ public partial class Stadtansicht
                 if (k == _spielerKonto && !leer && _brandVorgabe.Remove("haus")) // --brand=haus: das eigene Wohnhaus brennt, nur in der Darstellung
                     brennt = minute;
                 return SpielhausModell(Mitte3(gr), DrehungY(gr), (float)gr.Breite, (float)gr.Tiefe, HausFront(gr), g.Stufe, bau, brandStart is not null || brennt is not null, leer,
-                    leer ? null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber, leer ? $"Leerstand, {(k.IstBankrott ? "bankrott" : "erloschen")}" : null, brennt: brennt);
+                    leer ? null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber, leer ? $"Leerstand, {(k.IstBankrott ? "bankrott" : "erloschen")}" : null, brennt: brennt, volk: NeubauVolk(w, k));
             }
             case Bauzustand.Baustelle:
                 return BaustellenModell(g, w, minute);
@@ -210,7 +210,7 @@ public partial class Stadtansicht
         {
             // Das Haus steht schon: neu verputzt und mit Gerüst
             wurzel = SpielhausModell(Mitte3(gr), DrehungY(gr), breite, tiefe, front, g.Stufe, true, false, false, null, kennung, besitzer, titel,
-                ankerKennung: g.Besitzer is { } bk ? WohnhausKennung(bk) : null); // dieselben Anker wie das bewohnte Haus
+                ankerKennung: g.Besitzer is { } bk ? WohnhausKennung(bk) : null, volk: NeubauVolk(w, g.Besitzer)); // dieselben Anker wie das bewohnte Haus
             Holzstapel(wurzel, new Vector3(-(Mathf.Min(breite, 10) / 2 - 1.4f), 0, front + 1.0f));
             return wurzel;
         }

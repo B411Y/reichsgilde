@@ -51,7 +51,10 @@ static class SteinebenenTests
         {
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s1_g1") == (0, 0), "Mensch S1");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s3_g4") == (2, 3), "Mensch S3 (eigener AO-Atlas)");
-            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s2_g1") == (4, 1), "Zwerg S2");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s1_g3") == (3, 1), "Zwerg S1");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s2_g1") == (4, 4), "Zwerg S2 (eigener AO-Atlas)");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_zwerg_s3_g4") == (5, 5), "Zwerg S3 (eigener AO-Atlas)");
+            Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_elb_s2_g1") == (6, 0), "Elb: Platzhalter ohne Atlas");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s1_g1_innen") is null, "innen gehört nicht ins Häuser-Array");
             Pruefe.Wahr(Steinebenen.AusDatei("gebaeude/neubau/rathaus") is null, "Rathaus hat ein eigenes Array");
         }),
@@ -101,6 +104,8 @@ static class SteinebenenTests
             Pruefe.Gleich((1, 2), Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s2_g3")!.Value);
             Pruefe.Gleich((2, 3), Steinebenen.AusDatei("gebaeude/neubau/wohnhaus_mensch_s3_g1")!.Value);
             Pruefe.Gleich((2, 2), Steinebenen.InnenAusBlatt("raeume_innen_trim", "wohnhaus_mensch_raeume_innen"));
+            Pruefe.Gleich((4, 3), Steinebenen.InnenAusBlatt("innen_trim_s23_zwerg", "wohnhaus_zwerg_innen"));
+            Pruefe.Gleich((5, 4), Steinebenen.InnenAusBlatt("raeume_innen_trim_zwerg", "wohnhaus_zwerg_dachraeume_innen"));
             // Gegenprobe des Kopflesers: ein Blatt mit einer Ebene ist nicht so hoch wie das Häuser-Array
             Pruefe.Wahr(PngKopf(Path.Combine(ordner, "trim_albedo.png")).Hoehe != 2048 * Steinebenen.Haeuser.Length, "Gegenprobe Höhe");
         }),
