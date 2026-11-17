@@ -119,7 +119,7 @@ def spitzbogen_pruefen(hull, bogen):
 def dachschwung_pruefen(hull, dach):
     """Pruefung 26 (Dachschwung): (a) die Dachecken stehen hoeher als die Traufmitte (mindestens 15 cm; Schindeln „Stroh“ am Rand der
     Traufe), (b) ueber der Wandflucht liegt das Dach wie vorher auf der Dachlinie (-6 bis +12 cm ueber dach_z): dort keine Luecke zu
-    Wand und Giebel. Geschlossenheit: Pruefung 16, Mast: 22."""
+    Wand und Giebel, (c) die Schindeln liegen obenauf (dach_verdeckung). Geschlossenheit: Pruefung 16, Mast: 22."""
     ox, xe, dv, dh, (yw0, yw1), dz = dach["ox"], dach["xe"], dach["dv"], dach["dh"], dach["yw"], dach["dach_z"]
     rand = [p for name, mat, pts, n, v in hull if name == "Dach" and mat == "Stroh" for p in pts if abs(p.x) > xe - 0.12]
     ecke = max((p.z for p in rand if p.y > dh - 0.4), default=0.0)
@@ -132,6 +132,29 @@ def dachschwung_pruefen(hull, dach):
     zeilen = [f"   Ecke {ecke:.2f}, Traufmitte {mitte:.2f}: Schwung {ecke - mitte:+.2f} m (Soll >= 0,15) -> {'ok' if ok_a else 'FEHLER'}",
               f"   ueber der Wandflucht {len(ab)} Punkte, Abstand zur Dachlinie {min(ab, default=0):+.3f}..{max(ab, default=0):+.3f} m (Soll -0,06..+0,12) -> {'ok' if ok_b else 'FEHLER'}"]
     return zeilen, (0 if ok_a else 1) + (0 if ok_b else 1)
+
+
+def dach_verdeckung(glb, ordner):
+    """Pruefung 26 c: die Schindelflaechen liegen obenauf – die gebackene Verdeckung in der Mitte jeder Schindelflaeche (Stoff „Stroh“,
+    Normale nach oben) ist im Median mindestens 0,5 (kippt eine lange Grundflaeche ueber die Schindeln, backt das Dach schwarz)."""
+    import numpy as np
+    atl = U.atlas_von(glb)
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=glb)
+    im = bpy.data.images.load(os.path.normpath(os.path.join(ordner, "..", "..", "..", "texturen", "neubau", atl["datei"]))); W, H = im.size   # Atlas neben dem Modellordner
+    px = np.empty(W * H * 4, dtype=np.float32); im.pixels.foreach_get(px); px = px.reshape(H, W, 4)
+    werte = []
+    for o in bpy.data.objects:
+        if o.type != "MESH" or not o.name.startswith("Dach"): continue
+        me = o.data; uv2 = me.uv_layers[1].data
+        for p in me.polygons:
+            if not me.materials[p.material_index].name.startswith("Stroh") or me.materials[p.material_index].name.startswith("Strohkante"): continue
+            if (o.matrix_world.to_3x3() @ p.normal).z < 0.5: continue
+            u = sum(uv2[i].uv[0] for i in p.loop_indices) / p.loop_total; v = sum(uv2[i].uv[1] for i in p.loop_indices) / p.loop_total
+            werte.append(float(px[min(int(v * H), H - 1), min(int(u * W), W - 1), 0]))
+    m = float(np.median(werte)) if werte else 0.0
+    ok = m >= 0.5
+    return [f"   Verdeckung der Schindeln (Median, {len(werte)} Flaechen): {m:.2f} (Soll >= 0,50) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
 
 def main():
@@ -160,6 +183,7 @@ def main():
     z25, f25 = spitzbogen_pruefen(hull, bogen)
     zeilen.append(f"25. Spitzbogen nur aussen vor Haustuer und Giebeloeffnung (innen = aussen): {'ok' if not f25 else str(f25) + ' FEHLER'}"); zeilen += z25; fehler += f25
     z26, f26 = dachschwung_pruefen(hull, dach)
+    z26c, f26c = dach_verdeckung(glb, ordner); z26 += z26c; f26 += f26c
     zeilen.append(f"26. Dachschwung: Ecken gehoben, ueber den Waenden unveraendert: {'ok' if not f26 else str(f26) + ' FEHLER'}"); zeilen += z26; fehler += f26
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
