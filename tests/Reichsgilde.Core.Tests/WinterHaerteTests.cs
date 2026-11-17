@@ -1,5 +1,6 @@
 using Reichsgilde.Core;
 using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -27,6 +28,7 @@ static class WinterHaerteTests
         winter.Remove("hart");
         winter["chance"] = 0.3;
         winter["nachfrageZuschlag"] = 0.5;
+        wurzel["version"] = 93;
         return wurzel.ToJsonString();
     }
 
@@ -164,6 +166,34 @@ static class WinterHaerteTests
                 var ist = Winter(h, 40, daten: OhneStufen.Value);
                 for (var i = 0; i < ist.Count; i++) Pruefe.Gleich(soll[i], ist[i]);
                 Pruefe.Wahr(Math.Abs(Wirtschaft(1, h, OhneStufen.Value).Jahreszeiten.NachfrageFaktor("Holz", Jahreszeit.Winter, true, null) - 1.6) < 1e-9, "Holz 1,6");
+            }
+        }),
+
+        ("Winterhärte: Ein Spielstand mit den Daten der Version 93 lädt ohne Stufen – bei jeder Härte weiter 30 % und Zuschlag 0,5, dieselben Winter", () =>
+        {
+            foreach (var h in Stufen)
+            {
+                var (sim, spieler) = Partieaufbau.Erstellen(
+                    Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, HaerteDerZeit = h }, OhneStufen.Value, new NeuePartie());
+                var json = Speicherung.Speichern(sim, spieler, new DateTime(2026, 11, 17, 12, 0, 0));
+                var (geladen, _) = Speicherung.Laden(json);
+                var w = geladen.Wirtschaft!;
+                Pruefe.Gleich(93, w.Daten.Version);
+                Pruefe.Gleich(h, w.HaerteDerZeit);
+                var winter = w.Daten.Jahreszeiten!.StrengerWinter!;
+                Pruefe.Wahr(winter.Mild is null && winter.Ueberliefert is null && winter.Hart is null, "keine Stufen nach dem Laden");
+                Pruefe.Gleich(0.3, winter.Von(h).Chance);
+                Pruefe.Gleich(0.5, winter.Von(h).NachfrageZuschlag);
+                var streng = 0;
+                for (var jahr = 1403; jahr < 1403 + 4 * 200; jahr += 4)
+                {
+                    var l = w.Jahreszeiten.WinterVon(jahr)!;
+                    Pruefe.Gleich(sim.Wirtschaft!.Jahreszeiten.WinterVon(jahr), l);
+                    Pruefe.Gleich(l.Kaelte >= 1 - 0.3, l.Streng);
+                    if (l.Streng) streng++;
+                }
+                Pruefe.Wahr(streng is > 40 and < 80, $"{h}: etwa 30 % strenge Winter ({streng} von 200)");
+                Pruefe.Wahr(Math.Abs(w.Jahreszeiten.NachfrageFaktor("Holz", Jahreszeit.Winter, true, null) - 1.6) < 1e-9, $"{h}: Holz 1,6");
             }
         }),
 

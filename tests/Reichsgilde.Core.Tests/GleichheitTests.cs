@@ -48,19 +48,21 @@ static class GleichheitTests
         // bis zur gemeinsamen Strecke von Kern und Bild (31.10.2026) 2026 – dort stirbt seither das Oberhaupt des Menschen im Jahr 1 ohne Erben, das Skript hätte nichts abzugeben
         new(2027, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
         // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
-        new(1401, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
+        // Startwert 1402 (bis Datenversion 93: 1401): Seit „Wie überliefert“ nur noch 20 % strenge Winter hat (Datenversion 94), war der Winter 1403
+        // mit 1401 gewöhnlich. Mit 1402 ist er streng (Kälte 0,953), der Rhein ist von 8 bis 20 Uhr zu – Ladepunkt Jahr 3, 12 Uhr mitten im Eis.
+        new(1402, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
     };
 
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
-    /// Dazu mitten in einem offenen Erpresserbrief (4711, Jahr 4, 12 Uhr – seit der Startaufstellung PR 1c), mitten im Eis des strengen Winters 1407 (Startwert 1400: der Grenzfluss ist von 7 bis 19 Uhr zu, Datenversion 69)
+    /// Dazu mitten in einem offenen Erpresserbrief (4711, Jahr 4, 12 Uhr – seit der Startaufstellung PR 1c), mitten im Eis des strengen Winters 1407 (Startwert 1400: der Grenzfluss ist von 7 bis 19 Uhr zu, Datenversion 69), mitten im Eis des strengen Winters 1403 in Köln (Startwert 1402, Jahr 3, 12 Uhr: der Rhein ist von 8 bis 20 Uhr zu, die Fähre liegt fest; Datenversion 94)
     /// und mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
     /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
     /// Die Einschläge (samt übergesprungener Feuer und anstehender Sprünge) stehen seit dem Blitzschaden (3.11.2026) im Spielstand; an jedem
     /// Ladepunkt vergleicht der Test zusätzlich Lager und Vermögen der Häuser, deren Gebäude gerade brennt (<see cref="Brandlage"/>).
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(4, 12, 0), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(7, 12, 30), Minute(8, 19, 0), Minute(9, 4, 1) };
+    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(3, 12, 0), Minute(4, 12, 0), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(7, 12, 30), Minute(8, 19, 0), Minute(9, 4, 1) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
@@ -224,13 +226,16 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
-        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis – sonst prüft der Test die Jahreszeiten nicht.
-        // (Köln 1401 hatte bis Datenversion 93 im Jahr 1403 einen; seit „Wie überliefert“ 20 statt 30 % strenge Winter hat, ist er gewöhnlich.)
-        if (p.Startwert is 1400)
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis, Köln (1402) 1403 – sonst prüft der Test die Jahreszeiten nicht.
+        // An den Ladepunkten Jahr 7, 12:30 Uhr bzw. Jahr 3, 12 Uhr muss der Fluss zu sein (Laden mitten im Eis, in Köln samt Fähre und Klappbrücke).
+        if (p.Startwert is 1400 or 1402)
         {
+            var (jahr, ladepunkt) = p.Startwert == 1400 ? (1407, Minute(7, 12, 30)) : (1403, Minute(3, 12, 0));
             var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
-                .Jahreszeiten.WinterVon(1407);
+                .Jahreszeiten.WinterVon(jahr);
             Pruefe.Wahr(winter is { Streng: true }, $"Startwert {p.Startwert}: kein strenger Winter im Testzeitraum – Winterfall anpassen");
+            Pruefe.Wahr(Ladepunkte.Contains(ladepunkt) && winter!.ZuUm(new Spielzeit(ladepunkt).MinuteImTag),
+                $"Startwert {p.Startwert}: Am Ladepunkt im Jahr {jahr} ist der Fluss nicht zu – Ladepunkt anpassen");
         }
         var a = Spielen(p, laden: false);
         var b = MitKultur("de-DE", () => Spielen(p, laden: false));

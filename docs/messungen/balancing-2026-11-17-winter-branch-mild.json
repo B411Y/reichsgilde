@@ -1,7 +1,7 @@
 {
   "bericht": "Balancing-Messung 6",
   "datum": "2026-11-17",
-  "mainCommit": "6a4d7912",
+  "mainCommit": "51ddb625",
   "commit": "31a2a34e",
   "datenversion": 94,
   "aufruf": "messen bericht 20 20 --teile=1 --parallel=4 --haerte=mild --datei=/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/haerte_winter/winter-zweig-mild.json",
