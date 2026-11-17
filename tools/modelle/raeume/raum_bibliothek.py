@@ -6,7 +6,7 @@ Schreibt game/assets/modelle/gebaeude/neubau/wohnhaus_mensch_s1_g1_bibliothek_in
 Haus, Stadtansicht.Wohnraeume.cs) und Zelle 1 des AO-Atlas wohnhaus_mensch_raeume_innen_ao_atlas.png.
 
 Vorlage: Artwork des Nutzers „bibliothek.webp“ (nur Stil): Taefelung, Buecherregale bis unter die Decke mit Leiter, Schreibtisch mit
-Globus, Lesepult, Sessel am Sandsteinkamin, Spitzbogenfenster mit Butzenglas, Teppich, Truhe mit Folianten. Masse aus raeume_masse.py
+Globus, Lesepult, Sessel am Sandsteinkamin, Rechteckfenster mit Butzenglas (bis 16.11.2026 Spitzbogen), Teppich, Truhe mit Folianten. Masse aus raeume_masse.py
 (Soll/Ist dort). Das Lesepult ist der Gegenstand des Raums (Klick: Familienbuch mit den Lehrschriften); alles andere ist Ausstattung.
 """
 import math
@@ -26,7 +26,6 @@ from mathutils import Vector                                              # noqa
 S = R.S
 ZB = M.Z_BODEN
 _orte = {}
-FENSTER_BOGEN = {"vorn": 0.62, "links": 0.55}            # Stich des Spitzbogens ueber dem Kaempfer
 
 
 # ── Wandkoordinaten: a entlang der Wand, t von der Wand in den Raum ──────────────────────────────────────────────────
@@ -107,7 +106,7 @@ def regal(teil, wand, a0, a1, saat):
 
 
 def baue_raum():
-    """Huelle: Parkett, Taefelung bis 1,0 m, Kalkputz, Bretterdecke mit Balken, Spitzbogenfenster mit Bogenleiste, Teppich, Tuer zur Wohnstube."""
+    """Huelle: Parkett, Taefelung bis 1,0 m, Kalkputz, Bretterdecke mit Balken, Rechteckfenster mit Gewaende, Teppich, Tuer zur Wohnstube."""
     r = Teil("Raum", B, saat=61)
     R.boden(r, "parkett", -M.IX, M.IX, M.IV, M.IH, ZB, laengs="x")
     R.waende(r, "putz", tafel="moebel", tafel_hoehe=1.0)
@@ -122,10 +121,10 @@ def baue_raum():
             if f[2] - ZB < 1.06: stuecke = [(s0, min(s1, f[0])) for s0, s1 in stuecke] + [(f[1], a0 + laenge)]
         for s0, s1 in stuecke:
             if s1 - s0 > 0.05: r.brett(S, R.wandpunkt(wand, s0, ZB + 1.0), R.wandpunkt(wand, s1, ZB + 1.0), 0.06, n, "moebel", tiefe=0.03)
-    # Spitzbogenfenster (in der rechteckigen Oeffnung der Huelle)
+    # Fenster rechteckig wie die Oeffnung der Huelle (Nutzer 17.11.2026; vorher Spitzbogen)
     for wand in ("vorn", "links"):
         for a0, a1, z0, z1 in R.fenster_der_wand(wand):
-            R.spitzbogenfenster(r, "putz", "moebel", wand, a0, a1, z0, z1, z1 - FENSTER_BOGEN[wand])
+            R.bibliotheksfenster(r, "moebel", wand, a0, a1, z0, z1)
             n = R.wandpunkt(wand, 0, 0, 1) - R.wandpunkt(wand, 0, 0, 0)
             p0 = R.wandpunkt(wand, a0 - 0.06, z0 - 0.03, 0.06); p1 = R.wandpunkt(wand, a1 + 0.06, z0, -0.02)
             r.kasten(S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.05), (max(p0.x, p1.x), max(p0.y, p1.y), z0), "quader")   # Fensterbank aus Sandstein
@@ -336,7 +335,7 @@ def baue_glas():
     for wand in ("vorn", "links"):
         for a0, a1, z0, z1 in R.fenster_der_wand(wand):
             dummy = Teil("_", B)
-            R.spitzbogenfenster(dummy, "putz", "moebel", wand, a0, a1, z0, z1, z1 - FENSTER_BOGEN[wand], glas_teil=g)
+            R.bibliotheksfenster(dummy, "moebel", wand, a0, a1, z0, z1, glas_teil=g)
     return g
 
 

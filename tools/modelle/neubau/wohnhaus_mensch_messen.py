@@ -48,7 +48,7 @@ U.atlas_von = _atlas
 
 def _objekte(glb):
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=glb)
+    bpy.ops.import_scene.gltf(filepath=glb, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     return [o for o in bpy.data.objects if o.type == "MESH"]
 
 
@@ -115,27 +115,13 @@ def fenster_innen(haus, ordner, MOD):
     """Pruefung 24 (Klicktest der Zwerge 16.11.2026: „ein Fenster schwebt mitten im Raum“): jede Glasflaeche jedes Innenmodells
     (Wohnstube, Hinterzimmer, Bibliothek) liegt in einer Oeffnung der Huelle (gleiche Wandebene auf 3 cm, Mitte in der Oeffnung) –
     Glas ohne Aussenfenster ist ein Fehler. `MOD` = das Messmodul dieser Stufe (lade, fenster_aussen, glas, rechteck); seine Lage
-    (Baurahmen) ist durch pruefe gesetzt."""
-    fa = MOD.fenster_aussen(MOD.lade(os.path.join(ordner, f"{haus}.glb")))
-    zeilen, fehler = [], 0
-    for teil in ("_innen", "_hinterzimmer_innen", "_bibliothek_innen"):
-        pfad = os.path.join(ordner, f"{haus}{teil}.glb")
-        if not os.path.exists(pfad): continue
-        gl = MOD.glas(MOD.lade(pfad))
-        getroffen, frei = set(), 0
-        for ax, pts in gl:
-            ge, gu0, gu1, gz0, gz1 = MOD.rechteck(pts, ax)
-            cu, cz = (gu0 + gu1) / 2, (gz0 + gz1) / 2
-            f = next((i for i, (fax, e, u0, u1, z0, z1) in enumerate(fa)
-                      if fax == ax and abs(ge - e) <= 0.03 and u0 - 0.02 <= cu <= u1 + 0.02 and z0 - 0.02 <= cz <= z1 + 0.02), None)
-            if f is None:
-                frei += 1
-                zeilen.append(f"   FEHLER {teil[1:]}: Glas ohne Aussenfenster bei Ebene {ax} = {ge:.2f}, u {gu0:.2f}..{gu1:.2f}, z {gz0:.2f}..{gz1:.2f}")
-            else:
-                getroffen.add(f)
-        fehler += frei
-        zeilen.insert(len(zeilen) - frei, f"   {teil[1:]}: {len(getroffen)} Fenster innen in Oeffnungen der Huelle, {frei} Glasflaechen ohne Oeffnung")
-    return zeilen, fehler
+    (Baurahmen) ist durch pruefe gesetzt.
+    Seit dem Haeuser-Feinschliff (17.11.2026) dieselbe Pruefung wie bei den Zwergen (wohnhaus_zwerg_neu_messen.fenster_innen): dazu
+    Rahmen bzw. Laibung innen je Fenster und die Tabelle je Wand (Glas, Rahmen, Oeffnungen); der Wandbehang wird genannt."""
+    gesichert = (U.atlas_von, U.schwarze_flaechen, U.normal_orm)
+    import wohnhaus_zwerg_neu_messen as Z                    # setzt beim Laden die Blattnamen der Zwerge: gleich zuruecknehmen
+    U.atlas_von, U.schwarze_flaechen, U.normal_orm = gesichert
+    return Z.fenster_innen(haus, ordner, MOD)
 
 
 def wappen_frei(glb, abstand=0.05):

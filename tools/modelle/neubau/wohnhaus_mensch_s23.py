@@ -1169,16 +1169,98 @@ def baue_hund():
     return c
 
 
+BEHANG = dict(x0=-0.30, x1=0.85, unten=0.62, oben=1.68, wand=0.02)   # Lage an der Rueckwand (x, Hoehe ueber ZB, Abstand zur Wand)
+BEHANG_SPALTEN, BEHANG_BAHNEN, BEHANG_GLIEDER = 10, 5, 3            # Felder quer; Ketten der Feder (Bahnen) und Glieder je Bahn
+BEHANG_SAUM, BEHANG_SAUM_STREIFEN, BEHANG_FRANSEN = 0.07, 4, 0.05   # Saum 7 cm aus 4 Streifen, Fransen 5 cm lang
+
+
+def behang_masse():
+    """(x0, x1, z0, z1, y) des Behangs in der Wohnstube (vor dem Versatz dx der Grundform)."""
+    b = BEHANG
+    return b["x0"], b["x1"], ZB + b["unten"], ZB + b["oben"], IH - b["wand"]
+
+
 def baue_wandbehang():
-    """Schmuck ab Steinhaus (alte Wohnstube: Wandbehang in der Hausfarbe): Behang an einer Stange an der Rueckwand unter dem Tellerbord."""
+    """Schmuck ab Steinhaus (alte Wohnstube: Wandbehang in der Hausfarbe): Behang an einer Stange an der Rueckwand unter dem Tellerbord.
+    Feinschliff (Nutzer 17.11.2026): Stoff „Behang“ (das Spiel faerbt ihn im gedaempften Ton der Hausfarbe, Behangfarbe.cs), unten ein
+    dunklerer Saum „Behangsaum“ aus 4 Streifen (7 cm, leicht gefaltet: abwechselnd 4 mm vor der Stoffebene) und Fransen (5 cm); Stange und
+    Quasten wie bisher. Das Netz ist in Felder geteilt, deren Zeilen auf den Gelenken der Feder liegen (BEHANG_GLIEDER, behang_skelett)."""
     c = Teil("Schmuck_Wandbehang", BI, saat=125)
-    x0, x1, z0, z1 = -0.30, 0.85, ZB + 0.62, ZB + 1.68
-    y = IH - 0.02
-    c.vieleck("Hausfarbe", [(x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1)], [(0.1, 0.8)] * 4, zu=(0, 0, 1.2))
+    x0, x1, z0, z1, y = behang_masse()
+    uv = [(0.1, 0.8)] * 4
+    xs = [x0 + (x1 - x0) * i / BEHANG_SPALTEN for i in range(BEHANG_SPALTEN + 1)]
+    zs = sorted({z1 - (z1 - z0) * k / BEHANG_GLIEDER for k in range(BEHANG_GLIEDER)} | {z0 + BEHANG_SAUM}, reverse=True)
+    zu = (0, 0, 1.2)
+    for za, zb in zip(zs, zs[1:]):                    # Stoff: Zeilen an den Gelenken, bis zum Saum
+        for xa, xb in zip(xs, xs[1:]):
+            c.vieleck("Behang", [(xa, y, zb), (xb, y, zb), (xb, y, za), (xa, y, za)], uv, zu=zu)
+    h = BEHANG_SAUM / BEHANG_SAUM_STREIFEN            # Saum: Streifen abwechselnd schraeg nach vorn und zurueck (Licht und Schatten)
+    tiefe = lambda k: y - (0.004 if k % 2 else 0.0)
+    for k in range(BEHANG_SAUM_STREIFEN):
+        za, zb = z0 + BEHANG_SAUM - k * h, z0 + BEHANG_SAUM - (k + 1) * h
+        for xa, xb in zip(xs, xs[1:]):
+            c.vieleck("Behangsaum", [(xa, tiefe(k + 1), zb), (xb, tiefe(k + 1), zb), (xb, tiefe(k), za), (xa, tiefe(k), za)], uv, zu=zu)
+    n = 23                                            # Fransen: schmale Streifen, oben an der Unterkante des Saums
+    for i in range(n):
+        xm = x0 + 0.02 + (x1 - x0 - 0.04) * i / (n - 1)
+        c.vieleck("Behangsaum", [(xm - 0.005, y, z0 - BEHANG_FRANSEN), (xm + 0.005, y, z0 - BEHANG_FRANSEN),
+                                 (xm + 0.006, y, z0), (xm - 0.006, y, z0)], uv, zu=zu)
     c.stab(S, (x0 - 0.08, y - 0.03, z1 + 0.03), (x1 + 0.08, y - 0.03, z1 + 0.03), 0.035, "balken", kappen=True)
     for x in (x0 + 0.10, (x0 + x1) / 2, x1 - 0.10):
         c.vieleck(S, [(x - 0.04, y - 0.005, z0 - 0.08), (x + 0.04, y - 0.005, z0 - 0.08), (x, y - 0.005, z0)], [(feld("zwiebel_gelb")[0], BI["kleinteile"][1]), (feld("zwiebel_gelb")[1], BI["kleinteile"][1]), (feld("zwiebel_gelb")[1], BI["kleinteile"][0])], zu=(x, y - 1, z0))
     return c
+
+
+def behang_skelett(objekte, dx):
+    """Knochen fuer die Stoff-Feder des Wandbehangs (wie die Roecke, Stoff-Feder #486; Nutzer 17.11.2026): Armatur „Behang_Skelett“ mit
+    dem Wurzelknochen „Behang“ an der Stange und je Bahn b (0 links bis BEHANG_BAHNEN-1 rechts) der Kette „Behang_<b>_0“ bis
+    „Behang_<b>_3“: Glied 0 setzt an der Stange an, Glied 3 ist der Endknochen am Saum (Laenge = Fransen). Gewichte: Stange und oberste
+    Zeile ganz an „Behang“ (haengt fest), darunter je Zeile das Glied, in dessen Abschnitt sie liegt (Saum, Fransen und Quasten am
+    Glied 2), quer linear zwischen den beiden naechsten Bahnen. Der Behang haengt in allen Steinhaeusern frei an der Stange (unten nicht
+    befestigt), also schwingt er (die Feder schaltet das Spiel ein). Rueckgabe: [Armatur] oder [] ohne Behang (Stufe 2)."""
+    netz = next((o for o in objekte if o.name.split(".")[0] == "Schmuck_Wandbehang"), None)
+    if netz is None:
+        return []
+    x0, x1, z0, z1, y = behang_masse()
+    x0, x1 = x0 + dx, x1 + dx
+    daten = bpy.data.armatures.new("Behang_Skelett")
+    arm = bpy.data.objects.new("Behang_Skelett", daten)
+    bpy.context.scene.collection.objects.link(arm)
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True); bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    wurzel = daten.edit_bones.new("Behang")
+    wurzel.head, wurzel.tail = Vector(((x0 + x1) / 2, y, z1)), Vector(((x0 + x1) / 2, y, z1 + 0.06))
+    hoehen = [z1 - (z1 - z0) * k / BEHANG_GLIEDER for k in range(BEHANG_GLIEDER + 1)] + [z0 - BEHANG_FRANSEN]
+    for b in range(BEHANG_BAHNEN):
+        x = x0 + (x1 - x0) * (b + 0.5) / BEHANG_BAHNEN
+        eltern = wurzel
+        for g in range(BEHANG_GLIEDER + 1):
+            k = daten.edit_bones.new(f"Behang_{b}_{g}")
+            k.head, k.tail = Vector((x, y, hoehen[g])), Vector((x, y, hoehen[g + 1]))
+            k.parent = eltern; k.use_connect = g > 0
+            eltern = k
+    bpy.ops.object.mode_set(mode="OBJECT")
+    gruppen = {"Behang": netz.vertex_groups.new(name="Behang")}
+    for b in range(BEHANG_BAHNEN):
+        for g in range(BEHANG_GLIEDER + 1):
+            gruppen[f"Behang_{b}_{g}"] = netz.vertex_groups.new(name=f"Behang_{b}_{g}")
+    for v in netz.data.vertices:
+        p = netz.matrix_world @ v.co
+        if p.z >= z1 - 1e-3:
+            gruppen["Behang"].add([v.index], 1.0, "REPLACE"); continue
+        t = (z1 - p.z) / (z1 - z0)
+        g = min(int(t * BEHANG_GLIEDER - 1e-6), BEHANG_GLIEDER - 1)
+        s = min(max((p.x - x0) / (x1 - x0) * BEHANG_BAHNEN - 0.5, 0.0), BEHANG_BAHNEN - 1.0)
+        b0 = min(int(s), BEHANG_BAHNEN - 1); f = s - b0
+        gruppen[f"Behang_{b0}_{g}"].add([v.index], 1.0 - f, "REPLACE")
+        if f > 1e-6:
+            gruppen[f"Behang_{b0 + 1}_{g}"].add([v.index], f, "REPLACE")
+    netz.parent = arm
+    mod = netz.modifiers.new("Skelett", "ARMATURE"); mod.object = arm
+    print("BEHANG Knochen:", len(daten.bones), "Bahnen", BEHANG_BAHNEN, "Glieder je Bahn", BEHANG_GLIEDER, "+ Endknochen; Dreiecke",
+          sum(len(p.vertices) - 2 for p in netz.data.polygons))
+    return [arm]
 
 
 def baue_hauswappen_klein():
@@ -1259,7 +1341,9 @@ def main():
         "Hausfarbe": stoff("Hausfarbe", farbe=(0.55, 0.12, 0.10)), "Holz": stoff("Holz", farbe=(0.30, 0.22, 0.15)), "Eisen": stoff("Eisen", farbe=(0.12, 0.12, 0.13), rauheit=0.5),
     }
     innen_stoffe = {"Innen": stoff("Innen", blatt_innen), "Innenglas": stoff("Innenglas", farbe=(0.55, 0.62, 0.6), alpha=0.16, rauheit=0.15),
-                    "Hausfarbe": aussen_stoffe["Hausfarbe"]}
+                    "Hausfarbe": aussen_stoffe["Hausfarbe"],
+                    # Wandbehang: Vorgabe Krapprot (Behang zu Rot, Behangfarbe.cs), Saum dunkler; das Spiel setzt den Ton der Hausfarbe
+                    "Behang": stoff("Behang", farbe=(0.557, 0.165, 0.141)), "Behangsaum": stoff("Behangsaum", farbe=(0.334, 0.099, 0.085))}
 
     huelle = [baue_haus(), baue_dach()]
     scheiben = baue_scheiben()
@@ -1334,7 +1418,8 @@ def main():
     for a in a_aussen + a_innen:
         a.versetze(t=(dx, 0.0))
     g1.exportiere(aussen + [a.objekt() for a in a_aussen], os.path.join(g1.ZIEL_MODELL, f"{name}.glb"))
-    g1.exportiere(innen + [a.objekt() for a in a_innen], os.path.join(g1.ZIEL_MODELL, f"{name}_innen.glb"))
+    skelett = behang_skelett(o_raum, dx)          # Knochen des Wandbehangs (Stufe 3), nach dem Backen: AO und UV2 ohne Armatur
+    g1.exportiere(innen + skelett + [a.objekt() for a in a_innen], os.path.join(g1.ZIEL_MODELL, f"{name}_innen.glb"))
 
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)

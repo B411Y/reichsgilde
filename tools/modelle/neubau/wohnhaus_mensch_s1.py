@@ -488,7 +488,15 @@ def baue_dach():
         ab = Vector((seite * 0.10, 0, -0.17))
         d.vieleck("Strohkante", [rand[0], rand[-1], rand[-1] + ab, rand[0] + ab], [(0.6, f0), (0.6 + laenge / fm, f0), (0.6 + laenge / fm, f1), (0.6, f1)], weg_von=M)
         for j, aussen in ((0, -1), (felder, 1)):
-            d.vieleck("Stroh", [rand[j], kamm[j], Vector((0, kamm[j].y, zf - 0.05))], [(0.1, v0 + 0.03), (0.2, v0 + 0.03), (0.15, v0 + 0.06)], weg_von=(0, kamm[j].y - aussen * 9, 5))
+            mitte_unten = Vector((0, kamm[j].y, zf - 0.05))
+            if walm and aussen < 0:                    # vorn auf dem Walm: wie bisher (dort fand die Pruefung kein Loch)
+                d.vieleck("Stroh", [rand[j], kamm[j], mitte_unten], [(0.1, v0 + 0.03), (0.2, v0 + 0.03), (0.15, v0 + 0.06)], weg_von=(0, kamm[j].y - aussen * 9, 5))
+                continue
+            # Firstkappe am Ortgang bis ins Stroh der obersten Stufe hinab (Feinschliff 17.11.2026): zwischen Wulst und Dachflaeche blieben
+            # 2-3 cm Loch (luecken_pruefung, Pruefung 16)
+            fuss = Vector((seite * 0.42, kamm[j].y, dach_z(seite * 0.42) + 0.10))
+            d.vieleck("Stroh", [fuss, rand[j], kamm[j], mitte_unten], [(0.1, v0 + 0.02), (0.1, v0 + 0.03), (0.2, v0 + 0.03), (0.15, v0 + 0.06)],
+                      weg_von=(0, kamm[j].y - aussen * 9, 5))
     # Windbretter am Giebel (nicht am Walm)
     for y in ((DH + 0.03,) if walm else (DV - 0.03, DH + 0.03)):
         for seite in (-1, 1):
@@ -992,6 +1000,7 @@ def main():
     m_welt, t_welt = F.WELT
     alle = t["huelle"] + [t["scheiben"]] + t["zusatz"] + t["raum"] + t["gegenstaende"] + t["einrichtung"] + [t["glas"]]
     versetze_alle(alle + t["anker_aussen"] + t["anker_innen"] + t["steht"] + [t["fahne_ort"]], m_welt, t_welt)
+    g1.wappen_frei_ruecken(t["zusatz"][0], t["huelle"] + [t["scheiben"]])        # Regel wappen_ort: 5 cm frei (Feinschliff 17.11.2026)
     fahne = g1.fahne_verankern(baue_fahne(*t["fahne_ort"].ort), t["huelle"][1])     # Mast im Dach verankert (Mensch-Nachtrag 16.11.2026)
     if F.nr != 3: t["zusatz"].append(baue_geruest(**F.GERUEST))
 

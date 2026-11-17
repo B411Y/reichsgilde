@@ -453,7 +453,11 @@ def baue_dach():
         ab = Vector((seite * 0.10, 0, -0.17))
         d.vieleck("Strohkante", [rand[0], rand[-1], rand[-1] + ab, rand[0] + ab], [(0.6, f0), (0.6 + laenge / fm, f0), (0.6 + laenge / fm, f1), (0.6, f1)], weg_von=MITTE)
         for j, aussen in ((0, -1), (felder, 1)):
-            d.vieleck("Stroh", [rand[j], kamm[j], Vector((0, kamm[j].y, zf - 0.05))], [(0.1, v0 + 0.03), (0.2, v0 + 0.03), (0.15, v0 + 0.06)], weg_von=(0, kamm[j].y - aussen, 5))
+            # Firstkappe am Ortgang bis ins Stroh der obersten Stufe hinab (Feinschliff 17.11.2026): zwischen Wulst und Dachflaeche blieben
+            # 2-3 cm Loch (luecken_pruefung, Pruefung 16)
+            fuss = Vector((seite * 0.42, kamm[j].y, dach_z(seite * 0.42) + 0.10))
+            d.vieleck("Stroh", [fuss, rand[j], kamm[j], Vector((0, kamm[j].y, zf - 0.05))], [(0.1, v0 + 0.02), (0.1, v0 + 0.03), (0.2, v0 + 0.03), (0.15, v0 + 0.06)],
+                      weg_von=(0, kamm[j].y - aussen, 5))
     # Windbretter: am Giebel gekreuzte Bretter ueber dem First (halten das Stroh am Ortgang)
     for y in (DACH_VORN - 0.03, DACH_HINTEN + 0.03):
         for seite in (-1, 1):
@@ -932,14 +936,90 @@ def prisma(teil, stoff, umriss, o, eu, ev, n, t0, t1, band, farbe_uv=(0.1, 0.2),
         teil.vieleck(stoff, [P(ax, ay, t0), P(bx, by, t0), P(bx, by, t1), P(ax, ay, t1)], [uv(ax, ay), uv(bx, by), uv(bx, by), uv(ax, ay)], weg_von=mitte, **kw)
 
 
+WAPPEN_ABSTAND = 0.05     # Mindestabstand des Wappens zu Laden, Fenster, Gewaende, Holz und Vordach (Pruefung 19, wappen_ort)
+
+
+def _vieleck_trifft(pts2, u0, u1, z0, z1):
+    """Schneidet das ebene, konvexe Vieleck (u, z) das Rechteck? Trennende Achsen wie Pruefung 19 (wohnhaus_mensch_messen)."""
+    if min(p[0] for p in pts2) >= u1 or max(p[0] for p in pts2) <= u0 or min(p[1] for p in pts2) >= z1 or max(p[1] for p in pts2) <= z0:
+        return False
+    ecken = ((u0, z0), (u1, z0), (u1, z1), (u0, z1))
+    for (ax, ay), (bx, by) in zip(pts2, pts2[1:] + pts2[:1]):
+        nx, ny = by - ay, ax - bx
+        if abs(nx) + abs(ny) < 1e-9: continue
+        a = [nx * x + ny * y for x, y in pts2]; b = [nx * x + ny * y for x, y in ecken]
+        if max(a) <= min(b) + 1e-9 or max(b) <= min(a) + 1e-9:
+            return False
+    return True
+
+
+def wappen_frei_ruecken(wappen, teile, abstand=WAPPEN_ABSTAND + 0.005):
+    """Regel wappen_ort fuer Stufe 1 (Feinschliff 17.11.2026): Haelt das Wappen in der Ansicht seiner Wand nicht `abstand` zu allem, was
+    vor der Mauerflucht steht (Laden, Gewaende, Fachwerk, Vordach, Tuer) und zu den Scheiben – dieselbe Rechnung wie Pruefung 19 –, wird
+    es so wenig wie moeglich verschoben (bis 0,6 m in der Wand) und nur wenn noetig kleiner (bis zur Haelfte). Liegt es frei, bleibt
+    alles, wie es ist. `teile`: Haus, Dach, Scheiben (Teile vor dem Export)."""
+    import numpy as np
+    pw = [p for fl in wappen.flaechen for p in fl[0]]
+    ph = [p for t in teile if t.name == "Haus" for fl in t.flaechen for p in fl[0]]
+    ausd = [max(p[i] for p in pw) - min(p[i] for p in pw) for i in (0, 1)]
+    ax = 0 if ausd[0] < ausd[1] else 1
+    au = 1 - ax
+    mitte_h = (max(p[ax] for p in ph) + min(p[ax] for p in ph)) / 2
+    s = 1.0 if sum(p[ax] for p in pw) / len(pw) > mitte_h else -1.0
+    wand = min(s * p[ax] for p in pw)
+    hindernisse = []
+    for t in teile:
+        for pts, _uv, stoff_, *_ in t.flaechen:
+            d = [s * q[ax] for q in pts]
+            glas = stoff_ in ("Fenster", "Bleinetz") and abs(sum(d) / len(d) - wand) < 0.4
+            vor = max(d) > wand + 0.004 and min(d) < wand + 0.40
+            if glas or vor:
+                hindernisse.append([(q[au], q.z) for q in pts])
+    u0, u1 = min(p[au] for p in pw), max(p[au] for p in pw)
+    z0, z1 = min(p.z for p in pw), max(p.z for p in pw)
+    uc, zc = (u0 + u1) / 2, (z0 + z1) / 2
+    def frei(k, du, dz):
+        hu, hz = (u1 - u0) / 2 * k + abstand, (z1 - z0) / 2 * k + abstand
+        return not any(_vieleck_trifft(h, uc + du - hu, uc + du + hu, zc + dz - hz, zc + dz + hz) for h in hindernisse)
+    if frei(1.0, 0.0, 0.0):
+        print("WAPPEN frei, bleibt an seinem Ort")
+        return
+    boxen = np.array([(min(p[0] for p in h), max(p[0] for p in h), min(p[1] for p in h), max(p[1] for p in h)) for h in hindernisse])
+    schritte = np.arange(-0.60, 0.6001, 0.01)
+    du_, dz_ = np.meshgrid(schritte, schritte)
+    du_, dz_ = du_.ravel(), dz_.ravel()
+    reihe = np.argsort(du_ * du_ + dz_ * dz_, kind="stable")
+    for k in np.arange(1.0, 0.499, -0.02):
+        hu, hz = (u1 - u0) / 2 * k + abstand, (z1 - z0) / 2 * k + abstand
+        for i in reihe:
+            du, dz = float(du_[i]), float(dz_[i])
+            a0, a1, b0, b1 = uc + du - hu, uc + du + hu, zc + dz - hz, zc + dz + hz
+            nah = (boxen[:, 0] < a1) & (boxen[:, 1] > a0) & (boxen[:, 2] < b1) & (boxen[:, 3] > b0)
+            if any(_vieleck_trifft(hindernisse[j], a0, a1, b0, b1) for j in np.nonzero(nah)[0]):
+                continue
+            def neu(p):                                   # in der Wandebene verkleinern und schieben; die Tiefe (Achse ax) bleibt
+                q = Vector(p)
+                q[au] = uc + (p[au] - uc) * k + du
+                q.z = zc + (p.z - zc) * k + dz
+                return q
+            wappen.flaechen = [([neu(p) for p in pts], uv, st, fa, gl) for pts, uv, st, fa, gl in wappen.flaechen]
+            print(f"WAPPEN gerueckt: {du * 100:+.0f} cm entlang der Wand, {dz * 100:+.0f} cm in der Hoehe, Groesse x {k:.2f}")
+            return
+    print("WAPPEN FEHLER: kein freier Ort gefunden")
+
+
 def baue_wappen():
     """Wappenschild im mittleren Gefach des Obergeschosses, zwischen den beiden Fenstern (dort verdeckt es nichts): Rahmen aus Holz, Schild im Material „Hausfarbe“ (das Spiel
     faerbt es in der Farbe des Besitzers), Eisenhaken. Nur mit Besitzer sichtbar."""
     w = Teil("Wappen", BAENDER_AUSSEN, saat=61)
-    g = 0.62
     # Bruestungsfeld des mittleren Gefachs zur Gasse (zwischen Schwelle und Brustriegel): zwischen den offenen Laeden der
-    # Fenster, die je ein ganzes Gefach fuellen, bleiben nur 0,28 m frei; der Haken haengt am Brustriegel
-    zw = (Z_OG + 0.20 + OG_FENSTER[0] - RIEGEL) / 2 + (0.44 - 0.42) * 1.12 * g / 2
+    # Fenster, die je ein ganzes Gefach fuellen, bleiben nur 0,28 m frei; der Haken haengt am Brustriegel.
+    # Feinschliff 17.11.2026 (Regel wappen_ort wie bei den Zwergen): 5 cm (+ 5 mm) Abstand zu Schwelle und Brustriegel, das Schild wird
+    # kleiner, wo die Hoehe nicht reicht; was dann noch zu nah ist, rueckt wappen_frei_ruecken weg
+    unten = Z_OG + 0.20 + WAPPEN_ABSTAND + 0.005                     # Oberkante der Schwelle
+    oben = OG_FENSTER[0] - RIEGEL - WAPPEN_ABSTAND - 0.005           # Unterkante des Brustriegels
+    g = min(0.62, (oben - unten) / (0.44 * 1.12 + 0.58))
+    zw = unten + 0.44 * 1.12 * g
     o = (0.0, OVORN, zw)
     eu, ev, n = (1, 0, 0), (0, 0, 1), (0, -1, 0)
     prisma(w, "Fachwerk", [(x * 1.16 * g, y * 1.12 * g) for x, y in SCHILD], o, eu, ev, n, 0.0, 0.045, "balken_c")
@@ -1395,6 +1475,7 @@ def main():
     huelle = [baue_haus(), baue_dach()]                                            # zaehlt zum Budget des Style-Guides
     scheiben = baue_scheiben()
     zusatz = [baue_wappen(), baue_leerstand(), baue_geruest()]                     # Besitz und Zustand, wie bei den bisherigen Haeusern
+    wappen_frei_ruecken(zusatz[0], huelle + [scheiben])                             # Regel wappen_ort: 5 cm frei (Feinschliff 17.11.2026)
     fahne = fahne_verankern(baue_fahne(), huelle[1])
     raum = [baue_raum(), baue_herd(), baue_vorrat(zimmertuer_frei=True), baue_tisch(), baue_schlafplatz(), baue_hausrat()]
     gegenstaende = [baue_truhe(), baue_familienbuch(), baue_bauplan(), baue_werkzeug(), baue_geldkassette()]   # anklickbar: oeffnen je eine Tafel

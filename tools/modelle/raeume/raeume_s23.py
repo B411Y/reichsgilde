@@ -115,10 +115,9 @@ def main():
     teile = teile() if dach else [t() for t in teile]
     rechts = [(a0, a1, z0, z1) for a0, a1, z0, z1 in _fenster_der_wand("rechts")]
     glas = next(t for t in teile if t.name == "Glas")
-    for a0, a1, z0, z1 in ([] if dach else rechts):                      # Fenster der rechten Aussenwand: Glas, in der Bibliothek als Spitzbogen mit Sandsteinbank
+    for a0, a1, z0, z1 in ([] if dach else rechts):                      # Fenster der rechten Aussenwand: Glas, in der Bibliothek rechteckig mit Gewaende und Sandsteinbank
         if raum == "bibliothek":
-            Q.FENSTER_BOGEN["rechts"] = 0.62
-            R.spitzbogenfenster(teile[0], "putz", "moebel", "rechts", a0, a1, z0, z1, z1 - 0.62, glas_teil=glas)
+            R.bibliotheksfenster(teile[0], "moebel", "rechts", a0, a1, z0, z1, glas_teil=glas)
             p0 = R.wandpunkt("rechts", a0 - 0.06, z0 - 0.03, 0.06); p1 = R.wandpunkt("rechts", a1 + 0.06, z0, -0.02)
             teile[0].kasten(R.S, (min(p0.x, p1.x), min(p0.y, p1.y), z0 - 0.05), (max(p0.x, p1.x), max(p0.y, p1.y), z0), "quader")
         else:

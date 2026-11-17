@@ -267,6 +267,8 @@ public partial class Stadtansicht
                         break; // Fensterlicht: ModellEinsetzen hat das Material der Gruppe schon gesetzt
                     case "Hausfarbe" or "Holz" or "Eisen":
                         break; // Wappen und Fahne: die Farbe des Besitzers setzt ModellEinsetzen wie bei den bisherigen Häusern
+                    case "Behang" or "Behangsaum":
+                        break; // Wandbehang der Stube: eigener Stoff, Farbe aus der Hausfarbe (NeubauInnenBeleben, Behangfarbe.cs)
                     case "Bleinetz":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauBleinetz());
                         break;
@@ -396,6 +398,8 @@ public partial class Stadtansicht
         if (_wohnhausAnsicht is not { } a) return;
         var stuecke = new Dictionary<string, MeshInstance3D>();
         var hausfarben = new List<StandardMaterial3D>();
+        // Wandbehang der Steinhaus-Stube: gedämpfter Ton der Hausfarbe, Saum dunkler (Behangfarbe.cs, Nutzer 17.11.2026)
+        var behaenge = new List<(StandardMaterial3D Stoff, bool Saum)>();
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -405,12 +409,13 @@ public partial class Stadtansicht
                 teil.Visible = false;
             }
             for (var i = 0; i < (teil.Mesh?.GetSurfaceCount() ?? 0); i++)
-                if (teil.Mesh!.SurfaceGetMaterial(i) is StandardMaterial3D { ResourceName: "Hausfarbe" } stoff)
+                if (teil.Mesh!.SurfaceGetMaterial(i) is StandardMaterial3D { ResourceName: "Hausfarbe" or "Behang" or "Behangsaum" } stoff)
                 {
                     var kopie = (StandardMaterial3D)stoff.Duplicate();
                     kopie.VertexColorUseAsAlbedo = false;
                     teil.SetSurfaceOverrideMaterial(i, kopie);
-                    hausfarben.Add(kopie);
+                    if (stoff.ResourceName == "Hausfarbe") hausfarben.Add(kopie);
+                    else behaenge.Add((kopie, stoff.ResourceName == "Behangsaum"));
                 }
         }
         Vector3? Ort(string name) => wurzel.FindChild(name, true, false) is Node3D n ? wurzel.ToLocal(n.GlobalPosition) : null;
@@ -480,9 +485,11 @@ public partial class Stadtansicht
         }).ToArray();
         var figuren = new List<(Arbeiterfigur Figur, bool NurAbends)>();
         var familienStand = "";
+        var behangFeder = BehangFederBauen(wurzel); // Stadtansicht.Behang.cs
         a.Raumzustaende.Add((zeit, arbeitszeit) =>
         {
             if (!IsInstanceValid(wurzel) || _neubauInnen != wurzel) return;
+            BehangFederLaufen(behangFeder, arbeitszeit);
             foreach (var (kennung, teil, schild) in gegenstaende)
             {
                 var an = _unterDerMaus == kennung;
@@ -496,6 +503,12 @@ public partial class Stadtansicht
             foreach (var (kennung, knoten) in stuecke)
                 knoten.Visible = konto is not null && w?.Wohnen.Daten?.Stueck(kennung) is { } stueck && w.Wohnen.HatEinrichtung(konto, stueck);
             foreach (var stoff in hausfarben) stoff.AlbedoColor = farbe;
+            if (behaenge.Count > 0)
+            {
+                var (br, bg, bb) = Behangfarbe.Behang(farbe.R, farbe.G, farbe.B);
+                var (sr, sg, sb) = Behangfarbe.Saum(farbe.R, farbe.G, farbe.B);
+                foreach (var (stoff, saum) in behaenge) stoff.AlbedoColor = saum ? new Color(sr, sg, sb) : new Color(br, bg, bb);
+            }
             var familie = konto is not null ? w?.Familien.Von(konto) : null;
             var stand = familie is null ? "" : farbe + string.Join(",", familie.Lebende.Select(p => $"{p.Nummer}:{(w!.Familien.IstVolljaehrig(p) ? 1 : 0)}"));
             if (stand != familienStand)

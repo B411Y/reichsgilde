@@ -52,7 +52,7 @@ TOL = 0.005
 def lade(pfad):
     """GLB in eine leere Szene: Liste (Objektname ohne Endung, Material, Eckpunkte in Welt, Normale) je Flaeche."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=pfad)
+    bpy.ops.import_scene.gltf(filepath=pfad, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     flaechen = []
     for o in bpy.data.objects:
         if o.type != "MESH": continue
@@ -323,7 +323,7 @@ def wappen_frei(glb, abstand=0.05):
     """Pruefung 19: Das Wappen (Knoten „Wappen“) haelt in der Ansicht der Gassenwand (x, z) mindestens `abstand` zu allem, was vor
     der Mauerflucht steht (Laden, Gewaende, Pfosten, Fachwerkholz, Vordach, Tuer) und zu den Scheiben."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=glb)
+    bpy.ops.import_scene.gltf(filepath=glb, disable_bone_shape=True)   # ohne Knochenformen (Icosphere) des Wandbehangs
     wap = [o for o in bpy.data.objects if o.type == "MESH" and o.name.split(".")[0] == "Wappen"]
     if not wap:
         return ["   FEHLER kein Wappen im Modell"], 1
