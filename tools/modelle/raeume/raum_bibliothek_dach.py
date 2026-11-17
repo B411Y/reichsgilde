@@ -70,7 +70,9 @@ def baue_raum():
     tiefe = HM.TG_DICKE
     for p, richtung, laenge in (((a0, V, z0), Vector((1, 0, 0)), a1 - a0), ((a0, V, z1), Vector((1, 0, 0)), a1 - a0), ((a0, V, z0), EZ, z1 - z0), ((a1, V, z0), EZ, z1 - z0)):
         r.rechteck(S, p, richtung, (0, -1, 0), laenge, tiefe, "quader", zu=Vector(((a0 + a1) / 2, V - tiefe / 2, (z0 + z1) / 2)), anteil=(0.0, 0.6))
-    r.kasten(S, (a0 - 0.06, V - 0.02, z0 - 0.05), (a1 + 0.06, V + 0.06, z0), "quader", laengs="x")
+    # Fensterbank 4 mm ueber der unteren Laibung: ihre Oberseite lag sonst in deren Ebene und deckte sie auf 2 cm Tiefe
+    # (deckungsgleich, uv2_pruefung 12; Mensch-Nachtrag 16.11.2026, wie bei den Zwergen)
+    r.kasten(S, (a0 - 0.06, V - 0.02, z0 - 0.046), (a1 + 0.06, V + 0.06, z0 + 0.004), "quader", laengs="x")
     # Schraegen: Bretter auf Sparren (rechts die Oeffnung der Gaube)
     gy0, gy1 = GAUBE["y"]
     zb, zt, fz0 = gaube_masse()
