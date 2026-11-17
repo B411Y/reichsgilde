@@ -4,7 +4,7 @@ Keine Bild-KI und keine Image-to-3D-KI. Modell, UV und Texturen entstehen aus Sk
 
 **Vorgaben (Auftrag des Teamleiters, vom Nutzer am 17.11.2026 freigegeben):** der Style-Guide „3D-Asset-Pipeline & Style-Guide: Reichsgilde (Stand: November 2026)“ (Polybudget, Dachstufung, Dual-UV, Trim-Sheet, Möbel-Cluster, `InteriorRoot`), die Konzeptbilder „Wohnhaus Elb, Stufe 1“ (außen `wohnhaus_lvl1_elb`, innen `wohnhaus_in_lvl1_elb`) als reine Stilvorlage, „wie Mensch bzw. Zwerg“ (die vier Grundformen der Menschenhäuser), Türen und Decken für Elben (1,85 m), Menschen und Zwerge, Wappenregel `wappen_ort`, Fahnenmast im Dach verankert, Dreiecksgrenze 4.000 je Haus, Steinebene der Elben (K2 für Flächen). Die Bilder sind kein Teil des Repositorys und wurden nicht verarbeitet, nur angesehen; die Farben sind Proben aus ihnen (Zahlen im Kopf von `trimsheet_elb.py`).
 
-Aus dem Kunstwerk übernommen: Fachwerk aus hellem, grau verwittertem Holz mit Kalkputz in blassem Gelbgrün, gebogene Streben, grau-olivgrünes Schindeldach, an Traufe und First aufgeschwungene Ortgangbretter, Schlot aus hellem Haustein; innen cremeweißer Putz und Dielen. Nicht gebaut: Spitzbogen von Tür und Giebelfenster, Efeu und Moos, der seitliche Unterstand.
+Aus dem Kunstwerk übernommen: Fachwerk aus hellem, grau verwittertem Holz mit Kalkputz in blassem Gelbgrün, gebogene Streben, grau-olivgrünes Schindeldach, an Traufe und First aufgeschwungene Ortgangbretter, Schlot aus hellem Haustein; innen cremeweißer Putz und Dielen. In der ersten Probe nicht gebaut, nach der Rückmeldung des Nutzers (17.11.2026) ergänzt: hochgezogene Dachecken, Spitzbogen außen an Haustür und Giebelöffnung, Efeu und Moos als Textur, Holzunterstand an der Seite (Grundform 1 und 4).
 
 **Ablauf**
 
