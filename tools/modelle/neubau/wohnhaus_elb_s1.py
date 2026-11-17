@@ -160,7 +160,7 @@ def schicht_anlegen():
     alt_fahne1, alt_fahne24 = g1.baue_fahne, s1.baue_fahne
 
     def wappen_regel():
-        et.wappen_frei_ruecken(LETZT["wappen"], [LETZT[k] for k in ("haus", "dach", "scheiben")])
+        g1.wappen_frei_ruecken(LETZT["wappen"], [LETZT[k] for k in ("haus", "dach", "scheiben")])   # Feinschliff der Menschen (#504); nach dem Dach der Elben noch einmal
     g1.baue_fahne = lambda: (wappen_regel(), zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH))[1]
     s1.baue_fahne = lambda x, y, z: (wappen_regel(), zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH))[1]
     alt_form = s1.form_setzen
