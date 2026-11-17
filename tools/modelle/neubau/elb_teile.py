@@ -198,3 +198,92 @@ def wappen_frei_ruecken(wappen, teile, abstand=WAPPEN_ABSTAND + 0.005):
             print(f"WAPPEN gerueckt: {du * 100:+.0f} cm entlang der Wand, {dz * 100:+.0f} cm in der Hoehe, Groesse x {k:.2f}")
             return
     print("WAPPEN FEHLER: kein freier Ort gefunden")
+
+
+# ── Ueberarbeitung nach der Rueckmeldung des Nutzers zur Probe (17.11.2026): geschwungenes Dach, Spitzbogen, Holzunterstand ──
+SCHWUNG = 0.32             # so viel heben sich die Dachecken (Traufe am Giebel) im Kunstwerk etwa, in Metern
+SCHWUNG_LAENGE = 1.6       # ueber diese Laenge der Traufe (vom Giebel her) laeuft der Schwung aus
+
+
+def _glatt(t):
+    t = min(max(t, 0.0), 1.0)
+    return t * t * (3 - 2 * t)
+
+
+def dach_heben(x, y, g, yw0, yw1, xe, vorn_walm):
+    """Hebung eines Dachpunkts (Kunstwerk: hochgezogene Ecken). Nur im Dachueberstand, ausserhalb der Wandflucht – ueber den Waenden
+    bleibt das Dach, wie es ist (keine Luecke zu Wand und Giebel, Mast und Schlot unberuehrt):
+      Traufe:  SCHWUNG * (Anteil im Ueberstand)^1,5 * glatt(Naehe zum Giebelende ueber SCHWUNG_LAENGE)
+      Ortgang: SCHWUNG * (Anteil im Giebelueberstand) * |x| / xe  (linear in x: das Ortgangbrett bleibt gerade auf der Dachkante)
+    Am Krueppelwalm (Grundform 4 vorn, ueber der Laube) hebt sich nichts."""
+    ax = abs(x)
+    tx = min(max((ax - g.OX) / max(xe - g.OX, 1e-6), 0.0), 1.0)
+    naehe_v = 0.0 if vorn_walm else 1.0 - min(max((y - g.DV) / SCHWUNG_LAENGE, 0.0), 1.0)
+    naehe_h = 1.0 - min(max((g.DH - y) / SCHWUNG_LAENGE, 0.0), 1.0)
+    traufe = SCHWUNG * tx ** 1.5 * _glatt(max(naehe_v, naehe_h))
+    if y < yw0 and not vorn_walm: uy = (yw0 - y) / max(yw0 - g.DV, 1e-6)
+    elif y > yw1: uy = (y - yw1) / max(g.DH - yw1, 1e-6)
+    else: uy = 0.0
+    ortgang = SCHWUNG * min(max(uy, 0.0), 1.0) * min(ax / xe, 1.0)
+    return max(traufe, ortgang)
+
+
+def dach_schwingen(d, g, yw0, yw1, xe):
+    """Hebt alle Punkte des Dachs (Teil „Dach“: Schindeln, Fuesse, Ortgang, Sparrenkoepfe, Schwuenge) nach dach_heben. UV bleibt (die
+    Schindeln laufen mit), die Normalen rechnet der Export neu."""
+    walm = bool(g.walm)
+    d.flaechen = [([Vector((p.x, p.y, p.z + dach_heben(p.x, p.y, g, yw0, yw1, xe, walm and p.y < yw0))) for p in pts], uv, st, fa, gl)
+                  for pts, uv, st, fa, gl in d.flaechen]
+
+
+BOGEN_RAND = 0.08          # Breite des Bogenbretts (mittig auf der Bogenlinie: hoechstens 4 cm ueber die Oeffnung, Pruefung 1)
+BOGEN_STUECKE = 6
+
+
+def spitzbogen(teil, P, n, s0, s1, oben, vor=0.01):
+    """Spitzbogen NUR AUSSEN in einer rechteckigen Oeffnung (Kunstwerk: Haustuer und Giebelfenster): zwei Kreisboegen vom Kaempfer an
+    den Laibungen bis zum Scheitel in der Mitte der Oberkante; die Zwickel zwischen Bogen und oberen Ecken sind mit Putz geschlossen,
+    darauf ein Bogenbrett. Die Oeffnung der Huelle bleibt rechteckig, innen aendert sich nichts (innen = aussen, Pruefungen 3 und 24).
+    Stich 1,3 x halbe Weite (spitz: Radius groesser als die halbe Weite). P(s, z): Punkt auf der Aussenflaeche der Wand; `vor`: Abstand
+    der Zwickel vor der Wand (vor Laeden der Luke weiter)."""
+    n = Vector(n).normalized()
+    a = (s1 - s0) / 2
+    h = 1.3 * a
+    r = (a * a + h * h) / (2 * a)
+    zs = oben - h
+    winkel = math.atan2(h, a - r)
+    links = []
+    for k in range(BOGEN_STUECKE + 1):
+        t = math.pi + (winkel - math.pi) * k / BOGEN_STUECKE
+        links.append((s0 + r + r * math.cos(t), zs + r * math.sin(t)))
+    rechts = [(s0 + s1 - s, z) for s, z in links]
+    Q = lambda s, z, dv=0.0: Vector(P(s, z)) + n * (vor + dv)
+    hinten = Q((s0 + s1) / 2, oben) - n
+    for seite, ecke in ((links, (s0, oben)), (rechts, (s1, oben))):
+        for (sa, za), (sb, zb) in zip(seite[:-1], seite[1:]):
+            pts = [Q(*ecke), Q(sa, za), Q(sb, zb)]
+            teil.welt("Lehmputz", pts, "putz", Q(s0, 0.0), (Q(s1, 0.0) - Q(s0, 0.0)).normalized(), 0.0, 2.2, weg_von=hinten)
+        streifen(teil, "Fachwerk", [Q(s, z) for s, z in seite], [BOGEN_RAND] * len(seite), n, "balken_c", 0.047, kappe=False)   # Sichtseite 5 mm vor Staendern und Pfosten (0,05): nicht deckungsgleich
+
+
+def unterstand(teil, x_wand, y0, y1, z_oben, tiefe=1.0, fall=0.35):
+    """Holzunterstand am Haus (Kunstwerk: offener Unterstand mit Pultdach an der Seite, darunter Brennholz): Wandbalken, zwei Pfosten,
+    Pfette, Pultdach aus Brettern. An der Seitenwand bei x = x_wand (> 0), von y0 bis y1; Dach von z_oben an der Wand bis z_oben - fall."""
+    xa = x_wand + tiefe
+    dz = lambda x: z_oben - fall * (x - x_wand) / tiefe          # Unterkante des Dachs
+    teil.kasten("Fachwerk", (x_wand, y0, z_oben - 0.14), (x_wand + 0.10, y1, z_oben), "balken_c", ohne=("-x",), laengs="y")   # Wandbalken
+    xp = xa - 0.12
+    teil.kasten("Fachwerk", (xp - 0.06, y0, dz(xp) - 0.14), (xp + 0.06, y1, dz(xp + 0.06) - 0.005), "balken_c", laengs="y")    # Pfette
+    for y in (y0 + 0.08, y1 - 0.08):
+        teil.kasten("Fachwerk", (xp - 0.05, y - 0.05, 0.0), (xp + 0.05, y + 0.05, dz(xp) - 0.14), "balken_a", ohne=("-z",), laengs="z")  # Pfosten
+    d = 0.04
+    ecken = [Vector((x_wand, y0 - 0.10, z_oben)), Vector((xa + 0.10, y0 - 0.10, dz(xa + 0.10))), Vector((xa + 0.10, y1 + 0.10, dz(xa + 0.10))), Vector((x_wand, y1 + 0.10, z_oben))]
+    oben_ = [p + Vector((0, 0, d)) for p in ecken]
+    v0, v1, m = teil.baender["planken"]
+    lang, quer = (y1 - y0 + 0.2) / m, (xa + 0.10 - x_wand) / m
+    mitte = sum(ecken, Vector()) / 4 + Vector((0, 0, d / 2))
+    teil.vieleck("Fachwerk", oben_, [(0, v1), (0, v0), (lang, v0), (lang, v1)], zu=mitte + Vector((0, 0, 9)))
+    teil.vieleck("Fachwerk", ecken, [(0, v1), (0, v0), (lang, v0), (lang, v1)], zu=mitte - Vector((0, 0, 9)))
+    for i in range(3):                                           # Stirnseiten (zur Wand hin keine: dort liegt das Dach an)
+        a, b = ecken[i], ecken[i + 1]
+        teil.vieleck("Fachwerk", [a, b, b + Vector((0, 0, d)), a + Vector((0, 0, d))], [(0, v1), (quer, v1), (quer, v1 - 0.1 * (v1 - v0)), (0, v1 - 0.1 * (v1 - v0))], weg_von=mitte)

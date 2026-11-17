@@ -38,6 +38,7 @@ TUER_HOCH = 2.10                  # lichte Hoehe der Haustuer: groesster Elb 1,9
 HAUBE_HOEHER = 0.15               # Herdhaube 1,95 m statt 1,80 m ueber dem Fussboden (Elb 1,90 + 0,05)
 BLICK_HOEHER = 0.12               # Augenhoehe 1,72 m statt 1,60 m (1,85 * 0,93)
 _MASSE = []
+FORM = 1                          # gebaute Grundform (main)
 LETZT = {}                        # zuletzt gebaute Teile (Haus, Dach, Scheiben, Wappen) fuer die Wappenregel
 
 
@@ -55,8 +56,9 @@ def masse_anlegen():
     g1.FENSTER = [(w, a, (z[0], g1.Z_BODEN + TUER_HOCH), art) if art == "tuer" else (w, a, z, art) for w, a, z, art in g1.FENSTER]
 
 
-def elb_dach(g):
-    """Schindeldach der Zwerge ohne Schwerstangen und Findlinge, mit aufgeschwungenen Ortgangbrettern."""
+def elb_dach(g, yw0, yw1):
+    """Schindeldach der Zwerge ohne Schwerstangen und Findlinge, mit aufgeschwungenen Ortgangbrettern und hochgezogenen Ecken
+    (elb_teile.dach_schwingen; yw0, yw1: Giebelwaende, ueber denen das Dach unveraendert bleibt)."""
     alt = zt.dachsteine
     zt.dachsteine = lambda *a, **kw: None
     try:
@@ -64,6 +66,7 @@ def elb_dach(g):
     finally:
         zt.dachsteine = alt
     et.ortgang_schwung(d, g, g.OX + zt.UEBER, 0.07, 0.015, g.walm)
+    et.dach_schwingen(d, g, yw0, yw1, g.OX + zt.UEBER)
     return d
 
 
@@ -100,12 +103,12 @@ def schicht_anlegen():
         alt_init(self, name, anker_ort(name, ort), blick, **extras)
     s1.Anker.__init__ = anker_init
     # ── Dach: Schindeln, Ortgang aufgeschwungen ──
-    g1.baue_dach = lambda: merke("dach", elb_dach(zt.DachMass(1, g1.OX, g1.DACH_VORN, g1.DACH_HINTEN, g1.Z_FIRST, g1.MITTE, g1.dach_z, g1.NEIGUNG)))
+    g1.baue_dach = lambda: merke("dach", elb_dach(zt.DachMass(1, g1.OX, g1.DACH_VORN, g1.DACH_HINTEN, g1.Z_FIRST, g1.MITTE, g1.dach_z, g1.NEIGUNG), g1.OVORN, g1.HINTEN))
 
     def dach_24():
         F = s1.F
         walm = dict(walm=F.WALM, X_WALM=F.X_WALM, Z_WALM=F.Z_WALM, D_WALM=F.D_WALM) if F.WALM else {}
-        return merke("dach", elb_dach(zt.DachMass(F.nr, F.OX, F.DACH_VORN, F.DACH_HINTEN, F.Z_FIRST, F.MITTE, s1.dach_z, s1.NEIGUNG, **walm)))
+        return merke("dach", elb_dach(zt.DachMass(F.nr, F.OX, F.DACH_VORN, F.DACH_HINTEN, F.Z_FIRST, F.MITTE, s1.dach_z, s1.NEIGUNG, **walm), F.VORN, F.HINTEN))
     s1.baue_dach = dach_24
     # ── Fachwerk: gebogene Streben (Eckgefache, Giebel) ──
     alt_wand, alt_giebel = g1.fachwerk_wand, g1.giebel_fachwerk
@@ -117,6 +120,32 @@ def schicht_anlegen():
             alt = getattr(modul, name, None)
             if alt is None: continue
             setattr(modul, name, (lambda alt_, art_: lambda *a, **kw: merke(art_, alt_(*a, **kw)))(alt, art))
+    # ── Spitzbogen aussen an Haustuer und Giebeloeffnung, Holzunterstand (Kunstwerk; Rueckmeldung des Nutzers 17.11.2026) ──
+    alt_haus1, alt_haus24 = g1.baue_haus, s1.baue_haus
+
+    def haus1():
+        h = alt_haus1()
+        wand, (a0, a1), (z0, z1), _ = next(f for f in g1.FENSTER if f[3] == "tuer")
+        (ox, oy), (ex, ey), _, n = g1.WAENDE[wand]
+        start = ox if ex else oy
+        et.spitzbogen(h, lambda s, z, w=wand: g1.punkt(w, s, z), (n[0], n[1], 0), a0 - start, a1 - start, z1)
+        (lx0, lx1), (lz0, lz1) = g1.LUKE                          # Ladeluke im vorderen Giebel: vor den Fluegeln (6 cm)
+        et.spitzbogen(h, lambda s, z: Vector((s, g1.OVORN, z)), (0, -1, 0), lx0, lx1, lz1, vor=0.065)
+        if FORM == 1: et.unterstand(h, g1.BX, 0.35, 1.65, 2.30)   # ueber dem Scheitholz an der rechten Seite (Grundform 3 hat den Schuppen)
+        return h
+    g1.baue_haus = haus1
+
+    def haus24():
+        h = alt_haus24()
+        F = s1.F
+        for wand, a, z, art in F.FENSTER:
+            if art != "tuer" and not wand.endswith("_gb"): continue
+            (ox, oy), (ex, ey), _, n = F.WAENDE[wand]
+            start = ox if ex else oy
+            et.spitzbogen(h, lambda s, zz, w=wand: s1.punkt(w, s, zz), (n[0], n[1], 0), a[0] - start, a[1] - start, z[1])
+        if F.nr == 4: et.unterstand(h, F.BX, 1.75, 3.05, 2.45)   # ueber dem Scheitholz an der rechten Seite
+        return h
+    s1.baue_haus = haus24
     alt_versetze = s1.versetze_alle
 
     def versetze_alle(dinge, m, t, dz=0.0):
@@ -184,6 +213,8 @@ def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     form = int(opt.get("form", "1"))
+    global FORM
+    FORM = form
     schicht_anlegen()
     if form == 1: g1.main()
     else: s1.main()
