@@ -50,7 +50,9 @@ static class GleichheitTests
         // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
         // Startwert 1402 (bis Datenversion 93: 1401): Seit „Wie überliefert“ nur noch 20 % strenge Winter hat (Datenversion 94), war der Winter 1403
         // mit 1401 gewöhnlich. Mit 1402 ist er streng (Kälte 0,953), der Rhein ist von 8 bis 20 Uhr zu – Ladepunkt Jahr 3, 12 Uhr mitten im Eis.
-        new(1402, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
+        // Startwert 1405 seit den Zufallsgegnern (17.11.2026): Mit gewürfelten KI-Häusern erfuhr bei 1402 in vier Jahren niemand ein Geheimnis
+        // (das Skript verlangt Wissen). 1405 ist der nächste Startwert mit strengem Winter 1403 und Eis am Ladepunkt; dort gibt es Wissen.
+        new(1405, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
     };
 
     /// <summary>
@@ -226,9 +228,9 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
-        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis, Köln (1402) 1403 – sonst prüft der Test die Jahreszeiten nicht.
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis, Köln (1405) 1403 – sonst prüft der Test die Jahreszeiten nicht.
         // An den Ladepunkten Jahr 7, 12:30 Uhr bzw. Jahr 3, 12 Uhr muss der Fluss zu sein (Laden mitten im Eis, in Köln samt Fähre und Klappbrücke).
-        if (p.Startwert is 1400 or 1402)
+        if (p.Startwert is 1400 or 1405)
         {
             var (jahr, ladepunkt) = p.Startwert == 1400 ? (1407, Minute(7, 12, 30)) : (1403, Minute(3, 12, 0));
             var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
