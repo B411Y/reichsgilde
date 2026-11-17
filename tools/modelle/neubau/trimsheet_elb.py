@@ -217,9 +217,106 @@ def baue_innen(quellen):
     blatt.speichere("innen_trim_elb")
 
 
+# ── Stufe 2 (Buergerhaus) und Stufe 3 (Steinhaus) der Elben (Auftrag 17.11.2026; Kunstwerke wohnhaus_lvl2_elb, wohnhaus_lvl3_elb,
+#    wohnhaus_in_lvl2_elb, wohnhaus_in_lvl3_elb): abgeleitet aus trim_elb / innen_trim_elb wie trimsheet_stufen.py bei den Menschen.
+#    trim_s2_elb:        Schiefer wie Mensch S3 (roof_slates_02, gleiche Helligkeit), mit Moos; Putz, Holz, Efeu, Haustein der Stufe 1
+#    trim_s3_elb:        wie trim_s2_elb, dazu Mauer im Band "bruchstein" aus K2 (large_sandstone_blocks_01) mit Efeu und Werkstein im
+#                        Band "putz" aus K5 (Bricks100) – im Spiel setzt die Steinebene elb_s3 K2 und K5 noch einmal in eigener Farbe ein
+#                        und traegt den Efeu wieder auf (elb_bewuchs.py, gleiche Ranken)
+#    innen_trim_s23_elb: innen_trim_elb (Kalkputz, Dielen, heller Stein), Bodenfeld "lehmboden" links helle Steinfliesen, rechts
+#                        Schachbrett aus hellem und graugruenem Stein (Kunstwerke innen: heller Steinboden)
+#    blender -b --python tools/modelle/neubau/trimsheet_elb.py -- --quellen=<ordner> --steine=<ordner mit Bricks100> --nur=s23
+EFEU_S2 = dict(ranken=2, saat=71, blatt_px=1.0)      # Efeu im Putz des Buergerhauses (2 Ranken auf 8 m Band)
+EFEU_S3 = __import__("elb_bewuchs").EFEU_S3            # Efeu auf der Mauer des Steinhauses (dieselben Ranken in trimsheet_ebenen.py)
+WERKSTEIN_K5 = (0.66, 0.60, 0.48)                     # Ton des Werksteins (K5) im Blatt, nur fuer die Vorschau in Blender
+
+
+class QuelleAcg(Quelle):
+    """Wie trimsheet.Quelle, aber aus den 1K-Dateien von ambientCG (K5 Bricks100: Color, NormalGL, AmbientOcclusion, Roughness); die
+    Kachel (Breite, Hoehe in Metern) wird auf die Bildpunkte des Bands umgerechnet (`px_m` Bildpunkte je Meter)."""
+
+    def __init__(self, ordner, name, kachel, px_m):
+        import trimsheet as ts
+        o = os.path.join(ordner, name)
+        b, h = int(round(kachel[0] * px_m)), int(round(kachel[1] * px_m))
+        self.farbe = ts.skaliere(ts.lade(os.path.join(o, f"{name}_1K-JPG_Color.jpg")), b, h)
+        self.normale = ts.skaliere(ts.lade(os.path.join(o, f"{name}_1K-JPG_NormalGL.jpg"), daten=True), b, h)
+        ao = ts.skaliere(ts.lade(os.path.join(o, f"{name}_1K-JPG_AmbientOcclusion.jpg"), daten=True), b, h)
+        rau = ts.skaliere(ts.lade(os.path.join(o, f"{name}_1K-JPG_Roughness.jpg"), daten=True), b, h)
+        self.arm = np.stack([ao[..., 0], rau[..., 0], np.zeros_like(ao[..., 0])], axis=-1)
+        self.kante = b
+        self.hoehe = h
+
+    def streifen(self, hoehe, ab=0, versatz=0):
+        zeilen = (ab + np.arange(hoehe)) % self.hoehe
+        spalten = (versatz + np.arange(N)) % self.kante
+        hole = lambda f: f[zeilen][:, spalten].copy()
+        return hole(self.farbe), hole(self.normale), hole(self.arm)
+
+
+def baue_s23(quellen, steine):
+    import elb_bewuchs
+    import trimsheet_stufen as st
+    B = BAENDER_AUSSEN
+    schiefer = Quelle(quellen, "roof_slates_02", kante=1024)
+    for stufe in (2, 3):
+        blatt = st.lade_blatt("trim_elb")
+        st.dach_band(blatt, schiefer, (0.38, 0.39, 0.42), kontrast=1.2, eigenfarbe=0.08)
+        st.dach_aufhellen(blatt, st.SCHIEFER_HELL)
+        for band in ("stroh", "stroh_franse"):
+            moos(blatt, B[band], anteil=0.20)             # Moos sparsam auf dem Schiefer (wie die Schindeln der Stufe 1)
+        if stufe == 2:
+            # Putz neu und mit weniger Efeu: am Buergerhaus liegt das Band in vielen schmalen Gefachen und in zwei Lagen im Putzsockel –
+            # die fuenf Ranken der Stufe 1 standen dort wie Streifen in jedem zweiten Gefach
+            putz = Quelle(quellen, "white_plaster_rough_01")
+            a, e = blatt.zeilen(B["putz"])
+            f, n, arm = putz.streifen(e - a, ab=200)
+            blatt.setze(B["putz"], faerbe(f, gespeichert(PUTZ), kontrast=0.75, eigenfarbe=0.1), n, arm)
+            blatt.verlauf(B["putz"], 0.93, 0.80, 60)
+            anteil = elb_bewuchs.efeu_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, **EFEU_S2)
+            print(f"Efeu im Putz: {anteil:.3f} der Flaeche")
+        if stufe == 3:
+            a, e = blatt.zeilen(B["bruchstein"])
+            k2 = Quelle1k(quellen, "large_sandstone_blocks_01", kante=int(round(3.0 * N / B["bruchstein"][2])))   # Kachel 3 x 3 m
+            f, n, arm = k2.streifen(e - a, ab=300)
+            blatt.setze(B["bruchstein"], f, n, arm)
+            anteil = elb_bewuchs.efeu_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, **EFEU_S3)
+            print(f"Efeu auf der Mauer (Bruchsteinband): {anteil:.3f} der Flaeche")
+            k5 = QuelleAcg(steine, "Bricks100", (2.0, 1.0), N / B["putz"][2])
+            a, e = blatt.zeilen(B["putz"])
+            f, n, arm = k5.streifen(e - a)
+            blatt.setze(B["putz"], faerbe(f, gespeichert(WERKSTEIN_K5), kontrast=1.0, eigenfarbe=0.5), n, arm)
+        blatt.speichere(f"trim_s{stufe}_elb")
+    # Innen
+    I = BAENDER_INNEN
+    i = st.lade_blatt("innen_trim_elb")
+    fliesen = Quelle(quellen, "large_floor_tiles_02", kante=1024)
+    a, e = i.zeilen(I["lehmboden"])
+    h = e - a
+    f, n, arm = fliesen.streifen(h, ab=40)
+    kachel_x, kachel_y = int(round(st.FLIESEN_U * N)) / 6, h / 2
+    xx = np.arange(N)[None, :] % (N // 2)
+    yy = np.arange(h)[:, None]
+    kx = np.minimum(xx // kachel_x, 5).astype(int); ky = np.minimum(yy // kachel_y, 1).astype(int)
+    fuge = (np.minimum(xx % kachel_x, kachel_x - xx % kachel_x) < 3) | (np.minimum(yy % kachel_y, kachel_y - yy % kachel_y) < 3)
+    rechts = np.arange(N)[None, :] >= N // 2
+    hell = faerbe(f, gespeichert((0.80, 0.78, 0.71)), kontrast=0.9, eigenfarbe=0.15)
+    gruen = faerbe(f, gespeichert((0.60, 0.64, 0.58)), kontrast=0.9, eigenfarbe=0.15)
+    links = faerbe(f, gespeichert((0.76, 0.73, 0.64)), kontrast=0.9, eigenfarbe=0.2)
+    schach = np.where(((kx + ky) % 2 == 0)[..., None], hell, gruen)
+    farbe = np.where(rechts[..., None], schach, links)
+    zufall = np.random.default_rng(7).uniform(0.94, 1.05, (2, 6, 2))
+    farbe = farbe * zufall[ky, kx, rechts.astype(int)][..., None]
+    farbe = np.where(fuge[..., None], farbe * 0.55, farbe)
+    arm = arm.copy(); arm[..., 0] = np.where(fuge, arm[..., 0] * 0.6, arm[..., 0])
+    i.setze(I["lehmboden"], np.clip(farbe, 0, 1), n, arm)
+    i.speichere("innen_trim_s23_elb")
+
+
 if __name__ == "__main__":
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict(a[2:].split("=", 1) for a in args if a.startswith("--") and "=" in a)
     nur = opt.get("nur", "")
     if nur in ("", "aussen"): baue_aussen(opt["quellen"])
     if nur in ("", "innen"): baue_innen(opt["quellen"])
+    if nur in ("", "s23"): baue_s23(opt["quellen"], opt["steine"])
