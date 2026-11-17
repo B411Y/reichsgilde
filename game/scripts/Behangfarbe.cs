@@ -29,6 +29,7 @@ public static class Behangfarbe
         new("#5c5c5c", "Eisengrau", "#484848"),
         new("#8c6239", "Walnussbraun", "#5e4128"),
         new("#b84d86", "Kermesrosa", "#8a3a5c"),
+        new("#a88a3a", "Goldocker", "#8a7032"),
     };
 
     /// <summary>Der Saum ist der Behangton mal diesem Faktor (in sRGB).</summary>

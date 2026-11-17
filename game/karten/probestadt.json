@@ -370,7 +370,7 @@
     "name": "Haus Brendel",
     "volk": "Mensch",
     "geschlecht": "Mann",
-    "wappen": {"teilung": "Gespalten", "farbe1": "Silber", "farbe2": "Rot", "figur": "Schluessel"},
+    "wappen": {"teilung": "Schraeg", "farbe1": "Gold", "farbe2": "Schwarz", "figur": "Rad"},
     "betriebe": [{"art": "Giesserei"}]
    }
   ]

@@ -53,6 +53,7 @@
 | Grau #5c5c5c | Eisengrau | #484848 (72, 72, 72) |
 | Braun #8c6239 | Walnussbraun | #5e4128 (94, 65, 40) |
 | Rosa #b84d86 | Kermesrosa | #8a3a5c (138, 58, 92) |
+| Ocker #a88a3a | Goldocker | #8a7032 (138, 112, 50) |
 
 **Rathaus und Dom von innen.**
 - **Rathaus:** vier Räume – **Ratssaal** (U-Tisch, die Ratsherren sitzen nach Rang, Häuser in ihrer Farbe mit Namensschild, der Bürgermeister trägt die Amtskette, eine Rolle liegt aus, solange ein Antrag läuft), **Gerichtssaal** (Richterpodest; bei einem Verfahren drei Richter, Ankläger und Beklagter, sonst schreibt der Stadtrichter), **Amtsstube** (Stadtschreiber, Stadtkasse, Ständetafel mit eurem Stand) und **Kerker** (hinter Gittern die einsitzenden Oberhäupter, davor ein Wächter). Besetzt ist das Rathaus von 8 bis 20 Uhr. Ein **Klick in den Raum** öffnet seine Tafel: Ratssaal → Stadtrat, Gerichtssaal und Kerker → Stadtgericht; in der Amtsstube steht das Rathausfenster mit dem Knopf zum Aufsteigen.

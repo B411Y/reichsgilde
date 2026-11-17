@@ -4,7 +4,7 @@ namespace Reichsgilde.Core.Dynastie;
 /// Die Farben der Heraldik („Tinkturen“). Gold und Silber heißen „Metalle“, die übrigen „Farben“.
 /// Alte Faustregel der Wappenkunst: nie Metall auf Metall oder Farbe auf Farbe – dann ist ein Wappen von weitem lesbar.
 /// </summary>
-public enum Tinktur { Gold, Silber, Rot, Blau, Gruen, Schwarz, Purpur }
+public enum Tinktur { Gold, Silber, Rot, Blau, Gruen, Schwarz, Purpur, Ocker, Orange } // Ocker und Orange seit 17.11.2026 (acht Hausfarben für acht Häuser); neue nur hinten anfügen
 
 /// <summary>Wie der Schild aufgeteilt ist. Die ersten fünf teilen das Feld in zwei Farben, die übrigen legen ein Band („Heroldsbild“) darüber.</summary>
 public enum Teilung { Ohne, Geteilt, Gespalten, Schraeg, Geviert, Schildhaupt, Balken, Pfahl, Sparren, Bord }
@@ -47,7 +47,7 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
 
     /// <summary>
     /// Die Hausfarbe zu diesem Wappen („#rrggbb“, Fahnen, Dächer, Wandbehang; Nutzer 17.11.2026): die Palettenfarbe der ersten Wappenfarbe
-    /// (<see cref="Farbe1"/>) aus <see cref="Partie.Partiebesetzung.Hausfarben"/>. Silber hat dort keine Farbe – dann zählt die zweite
+    /// (<see cref="Farbe1"/>) aus <see cref="Partie.Partiebesetzung.Hausfarben"/> – acht Farben für acht Häuser. Silber hat dort keine Farbe – dann zählt die zweite
     /// (<see cref="Farbe2"/>). Eine feste Tabelle, kein Zufall: dasselbe Wappen gibt auf jedem Rechner dieselbe Farbe.
     /// </summary>
     public string Hausfarbe() => Palettenfarbe(Farbe1) ?? Palettenfarbe(Farbe2) ?? Palettenfarbe(Tinktur.Schwarz)!;
@@ -61,8 +61,13 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
         Tinktur.Gold => "#d9ad2e",
         Tinktur.Purpur => "#7a3b8f",
         Tinktur.Schwarz => "#5c5c5c",
+        Tinktur.Ocker => "#a88a3a",
+        Tinktur.Orange => "#c4672a",
         _ => null,
     };
+
+    /// <summary>Die acht Hausfarben, die ein Wappen geben kann (in der Reihenfolge der Wappenfarben; Silber hat keine).</summary>
+    public static readonly IReadOnlyList<string> Wappenhausfarben = Enum.GetValues<Tinktur>().Select(Palettenfarbe).OfType<string>().ToList();
 
     /// <summary>Was an diesem Wappen nicht stimmt, oder null. Gleiche Farben verschwimmen zu einer Fläche.</summary>
     public string? Fehler() => Farbe1 == Farbe2 ? "Ein Wappen braucht zwei verschiedene Farben." : null;
@@ -76,31 +81,42 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
     {
         uint h = 2166136261; // FNV-1a
         foreach (var c in name) { h ^= c; h *= 16777619; }
-        return Zufall(new Random((int)(h & 0x7FFFFFFF)));
+        var zufall = new Random((int)(h & 0x7FFFFFFF));
+        return Zufall((von, bis) => von == 0 ? zufall.Next(bis) : zufall.Next(von, bis), AlteFarben); // wie vor Ocker und Orange: derselbe Name, dasselbe Wappen
     }
 
+    /// <summary>Bis hierher (ausschließlich) reichten die Wappenfarben bis zum 17.11.2026 – ohne Ocker und Orange.</summary>
+    private const int AlteFarben = (int)Tinktur.Purpur + 1;
+
     /// <summary>Ein zufälliges, gut lesbares Wappen (je ein Metall und eine Farbe), das keinem KI-Haus gehört.</summary>
-    public static Wappen Zufall(Random zufall) => Zufall((von, bis) => von == 0 ? zufall.Next(bis) : zufall.Next(von, bis)); // dieselben Aufrufe wie bisher
+    public static Wappen Zufall(Random zufall) => Zufall((von, bis) => von == 0 ? zufall.Next(bis) : zufall.Next(von, bis), Enum.GetValues<Tinktur>().Length);
 
     /// <summary>
     /// Dasselbe aus einer <see cref="Zufallsquelle"/> (Neue Partie, 11.11.2026): ein Wappen, das keinem KI-Haus der Vorlagen gehört und nicht
     /// in <paramref name="belegt"/> steht. Je Versuch genau fünf Würfe.
+    /// <paramref name="vergebeneFarben"/> (Nutzer 17.11.2026): Hausfarben, die schon ein Haus trägt („#rrggbb“) – solange eine der acht
+    /// <see cref="Wappenhausfarben"/> frei ist, bekommt das Wappen keine vergebene Hauptfarbe (es wird neu gewürfelt, aus derselben Quelle).
     /// </summary>
-    public static Wappen Zufall(Zufallsquelle zufall, IReadOnlyCollection<Wappen>? belegt = null)
+    public static Wappen Zufall(Zufallsquelle zufall, IReadOnlyCollection<Wappen>? belegt = null, IReadOnlyCollection<string>? vergebeneFarben = null)
     {
+        var meiden = vergebeneFarben is not null && Wappenhausfarben.Any(f => !vergebeneFarben.Contains(f));
         while (true)
         {
-            var w = Zufall((von, bis) => von + zufall.Next(bis - von));
-            if (belegt is null || !belegt.Contains(w)) return w;
+            var w = Zufall((von, bis) => von + zufall.Next(bis - von), Enum.GetValues<Tinktur>().Length);
+            if (belegt is not null && belegt.Contains(w)) continue;
+            if (meiden && vergebeneFarben!.Contains(w.Hausfarbe())) continue;
+            return w;
         }
     }
 
-    private static Wappen Zufall(Func<int, int, int> next)
+    /// <summary><paramref name="farben"/>: Die Farbe kommt aus den Wappenfarben 2 bis hierher (ausschließlich).</summary>
+    private static Wappen Zufall(Func<int, int, int> next, int farben)
     {
         while (true)
         {
             var metall = next(0, 2) == 0 ? Tinktur.Gold : Tinktur.Silber;
-            var farbe = (Tinktur)next(2, 7);
+            var farbe = (Tinktur)next(2, farben);
+            if (farbe is Tinktur.Ocker or Tinktur.Orange) metall = Tinktur.Silber; // neben Gold kaum zu lesen
             var (f1, f2) = next(0, 3) == 0 ? (metall, farbe) : (farbe, metall);
             var w = new Wappen((Teilung)next(0, Enum.GetValues<Teilung>().Length), f1, f2,
                 (Figur)next(0, Enum.GetValues<Figur>().Length));
@@ -140,13 +156,13 @@ public sealed record Wappen(Teilung Teilung, Tinktur Farbe1, Tinktur Farbe2, Fig
     public static string Name(Tinktur t) => t switch
     {
         Tinktur.Gold => "Gold", Tinktur.Silber => "Silber", Tinktur.Rot => "Rot", Tinktur.Blau => "Blau",
-        Tinktur.Gruen => "Grün", Tinktur.Schwarz => "Schwarz", _ => "Purpur",
+        Tinktur.Gruen => "Grün", Tinktur.Schwarz => "Schwarz", Tinktur.Ocker => "Ocker", Tinktur.Orange => "Orange", _ => "Purpur",
     };
 
     private static string Adjektiv(Tinktur t) => t switch
     {
         Tinktur.Gold => "golden", Tinktur.Silber => "silbern", Tinktur.Rot => "rot", Tinktur.Blau => "blau",
-        Tinktur.Gruen => "grün", Tinktur.Schwarz => "schwarz", _ => "purpurn",
+        Tinktur.Gruen => "grün", Tinktur.Schwarz => "schwarz", Tinktur.Ocker => "ockerfarben", Tinktur.Orange => "orangefarben", _ => "purpurn",
     };
 
     public static string Figurname(Figur f) => f switch

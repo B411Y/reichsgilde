@@ -233,10 +233,27 @@ public sealed partial class Kartenentwurf
         var namen = s.Haeuser.Select(h => h.Name).ToHashSet();
         name = !string.IsNullOrWhiteSpace(name) ? name : Hausnamen.FirstOrDefault(n => !namen.Contains(n)) ?? FreierName("Haus Neuburg", namen);
         var wappen = s.Haeuser.Select(h => h.Wappen).ToHashSet();
-        var neu = new EntwurfHaus(name, Volk.Mensch, Geschlecht.Mann,
-            Wappen.Vorlagen.Skip(1).FirstOrDefault(w => !wappen.Contains(w)) ?? Wappen.AusName(name), null); // die Farbe kommt aus dem Wappen (17.11.2026)
+        var neu = new EntwurfHaus(name, Volk.Mensch, Geschlecht.Mann, NeuesWappen(name, wappen), null); // die Farbe kommt aus dem Wappen (17.11.2026)
         Aendern(s, $"{name} hinzugefügt", n => n.HaeuserSetzen(n.Haeuser.Append(neu)));
         return s.Haeuser.Count - 1;
+    }
+
+    /// <summary>
+    /// Das Wappen eines neuen KI-Hauses (17.11.2026): die erste freie Vorlage, deren Hauptfarbe (<see cref="Wappen.Hausfarbe"/>) noch kein
+    /// Haus der Karte trägt und die nicht die des Vorgabe-Wappens des Spielers ist (Rot). Hat keine Vorlage mehr eine freie Hauptfarbe, die
+    /// erste freie Vorlage (mit noch unbenutzter Figur zuerst) in der ersten freien Wappenfarbe auf Silber; sind alle acht Hausfarben vergeben, die erste freie Vorlage, wie sie ist.
+    /// </summary>
+    private static Wappen NeuesWappen(string name, IReadOnlyCollection<Wappen> wappen)
+    {
+        var farben = wappen.Select(w => w.Hausfarbe()).Append(Wappen.Vorlagen[0].Hausfarbe()).ToHashSet();
+        // freie Vorlagen, die mit noch unbenutzter Figur zuerst
+        var frei = Wappen.Vorlagen.Skip(1).Where(w => !wappen.Contains(w)).OrderBy(w => wappen.Any(x => x.Figur == w.Figur) ? 1 : 0).ToList();
+        if (frei.FirstOrDefault(w => !farben.Contains(w.Hausfarbe())) is { } passend) return passend;
+        foreach (var t in Enum.GetValues<Tinktur>())
+            if (Wappen.Palettenfarbe(t) is { } f && !farben.Contains(f) && t != Tinktur.Gold)
+                foreach (var v in frei)
+                    if (v with { Farbe1 = t, Farbe2 = Tinktur.Silber } is var w && !wappen.Contains(w)) return w;
+        return frei.FirstOrDefault() ?? Wappen.AusName(name);
     }
 
     /// <summary>Entfernt ein KI-Haus (die Häuser dahinter rücken auf; ihre Betriebe und Wohnhäuser werden frei).</summary>

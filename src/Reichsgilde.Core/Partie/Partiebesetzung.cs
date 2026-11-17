@@ -120,11 +120,11 @@ public static class Partiebesetzung
 
     /// <summary>
     /// Die Hausfarben („#rrggbb“, Fahnen und Dächer). Seit dem 17.11.2026 trägt jedes Haus die seiner ersten Wappenfarbe
-    /// (<see cref="Wappen.Palettenfarbe"/>: Blau, Rot, Grün, Gelb, Purpur, Grau); die übrigen kommen nur noch in älteren Karten und Spielständen vor.
+    /// (<see cref="Wappen.Palettenfarbe"/>: Blau, Rot, Grün, Gelb, Purpur, Orange, Grau, Ocker – acht Farben für acht Häuser); die übrigen kommen nur noch in älteren Karten und Spielständen vor.
     /// </summary>
     public static readonly IReadOnlyList<string> Hausfarben = new[]
     {
-        "#336bb8", "#b33329", "#388c47", "#d9ad2e", "#7a3b8f", "#2a8c8a", "#c4672a", "#5c5c5c", "#8c6239", "#b84d86",
+        "#336bb8", "#b33329", "#388c47", "#d9ad2e", "#7a3b8f", "#2a8c8a", "#c4672a", "#5c5c5c", "#8c6239", "#b84d86", "#a88a3a",
     };
 
     // ── Höfe ────────────────────────────────────────────────────────────────
@@ -268,12 +268,16 @@ public static class Partiebesetzung
         var wappen = start.Haeuser.Select(h => h.Wappen).Append(spielerWappen)
             .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen).OfType<Wappen>())
             .Concat(haeuser.Select(h => h.Wappen).Where(w => !start.Haeuser.Any(k => k.Wappen == w))).ToList(); // neu gewürfelte Kartenwappen
+        // vergebene Hausfarben: der Spieler, die mitspielenden Häuser der Karte und die Wappen aus „Erweitert“
+        var farben = haeuser.Select(h => h.Hausfarbe).Append(start.Spieler.Farbe ?? spielerWappen.Hausfarbe())
+            .Concat((vorgaben ?? Array.Empty<Hausvorgabe?>()).Select(v => v?.Wappen?.Hausfarbe()).OfType<string>()).ToList();
         var z = Besetzungsquelle(zufallsstartwert, ZweckKiHaeuser);
         for (var i = 0; i < fehlen; i++)
         {
             var geschlecht = z.Next(2) == 0 ? Geschlecht.Mann : Geschlecht.Frau;
-            var w = Wappen.Zufall(z, wappen);
+            var w = Wappen.Zufall(z, wappen, farben); // keine schon vergebene Hauptfarbe, solange eine frei ist (17.11.2026)
             wappen.Add(w);
+            farben.Add(w.Hausfarbe());
             haeuser.Add(new Starthaus
             {
                 Name = "", Gewuerfelt = true, Volk = Volk.Mensch, Geschlecht = geschlecht, Wappen = w, // die Farbe kommt aus dem Wappen (Partieaufbau, 17.11.2026)
@@ -307,9 +311,11 @@ public static class Partiebesetzung
             {
                 z ??= Besetzungsquelle(zufallsstartwert, ZweckKartenwappen);
                 var belegt = fest.Concat(vergeben).Concat(haeuser.Select(k => k.Wappen)).ToList();
+                // die Hauptfarben der anderen (17.11.2026): das neue Wappen meidet sie, solange eine Hausfarbe frei ist
+                var farben = fest.Concat(vergeben).Concat(haeuser.Where((_, k) => k > i).Select(k => k.Wappen)).Select(w => w.Hausfarbe()).ToList();
                 h = new Starthaus
                 {
-                    Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = Wappen.Zufall(z, belegt), Farbe = h.Farbe,
+                    Name = h.Name, Volk = h.Volk, Glaube = h.Glaube, Geschlecht = h.Geschlecht, Wappen = Wappen.Zufall(z, belegt, farben), Farbe = h.Farbe,
                     Wohnhaus = h.Wohnhaus, Betriebe = h.Betriebe.ToList(), Gewuerfelt = h.Gewuerfelt,
                 };
             }
