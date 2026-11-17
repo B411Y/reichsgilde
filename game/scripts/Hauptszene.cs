@@ -1057,12 +1057,12 @@ public partial class Hauptszene : Node
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
         var karte = Stadtkarten.Startkarte; // --karte=koeln: eine andere Karte, nur für diesen Start (das Hauptmenü nimmt dieselbe)
-        // Rivalen: alle KI-Häuser der Karte, wie im Menü vorgewählt (Probestadt zwei, ohne Startbelegung die drei des Ersatzes); mehr als die Karte
-        // hat, geht nicht – auch eine Wahl aus dem Menü wird darauf begrenzt
-        var haeuser = (karte?.Startbelegung ?? Startbelegung.Ersatz).Haeuser.Count;
+        // Rivalen: Seit dem 17.11.2026 nennen die Karten keine festen Häuser mehr – ohne Menü drei gewürfelte KI-Häuser wie dort vorgewählt,
+        // höchstens so viele, wie mit dem Spieler in die Bauzonen passen; auch eine Wahl aus dem Menü wird darauf begrenzt
+        var haeuser = Partiebesetzung.HoechstensKi(karte, neu?.Aufstellung ?? Aufstellungsart.Gelost, daten);
         neu ??= new NeuePartie(Startvermoegen: startvermoegen, Beruf: optionen.GetValueOrDefault("beruf", "Schmied"),
             Glaube: optionen.TryGetValue("glaube", out var g) && Enum.TryParse<Reichsgilde.Core.Glaube.Konfession>(g, true, out var konfession) ? konfession : null,
-            Rivalen: haeuser,
+            Rivalen: Math.Min(3, haeuser),
             Startwahl: optionen.GetValueOrDefault("startwahl") == "1"); // --startwahl=1: der Spieler setzt Wohnhaus und Werkstatt selbst (Hauptszene.Startwahl.cs)
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
         einstellungen ??= Partieeinstellungen.Standard;
