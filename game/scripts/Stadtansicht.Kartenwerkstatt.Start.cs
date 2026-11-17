@@ -44,7 +44,7 @@ public partial class Stadtansicht
         if (_entwurf is not { } e || e.BelegungVon(g.Kennung) is not [var b, ..] liste) return null;
         // Seit „nur noch Bauzonen“ (16.11.2026) belegt nur noch ein Umlandbetrieb eines KI-Hauses einen Platz der Karte
         var haus = e.Start.Haeuser[b.Haus];
-        var farbe = Farbe(haus.Farbe) ?? new Color(0.6f, 0.6f, 0.6f);
+        var farbe = Farbe(haus.Hausfarbe) ?? new Color(0.6f, 0.6f, 0.6f);
         var art = haus.Betriebe[b.Betrieb].Art;
         var daten = e.Daten is { } d && d.KenntArt(art) ? d.Art(art) : null;
         var anzeige = new Belegungsanzeige(farbe, farbe, $"{haus.Name} · {daten?.Name ?? art.ToString()}", null);

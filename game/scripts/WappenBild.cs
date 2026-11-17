@@ -47,6 +47,8 @@ public partial class WappenBild : Control
         Tinktur.Blau => new Color("2b4a86"),
         Tinktur.Gruen => new Color("2f6a3a"),
         Tinktur.Schwarz => new Color("2a2626"),
+        Tinktur.Ocker => new Color("8f6f2c"),   // gedämpfter, bräunlicher als Gold (17.11.2026)
+        Tinktur.Orange => new Color("b85e28"),
         _ => new Color("6b2f6b"),
     };
 

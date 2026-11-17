@@ -37,6 +37,9 @@ public sealed record EntwurfStartbetrieb(string Platz, Betriebsart Art, string? 
 /// <summary>Ein KI-Haus am Start, wie die Kartenwerkstatt es bearbeitet.</summary>
 public sealed record EntwurfHaus(string Name, Volk Volk, Geschlecht Geschlecht, Wappen Wappen, string? Farbe)
 {
+    /// <summary>Die Farbe, die das Haus im Spiel trägt („#rrggbb“): die feste einer älteren Karte (<see cref="Farbe"/>), sonst die seines Wappens.</summary>
+    public string Hausfarbe => Farbe ?? Wappen.Hausfarbe();
+
     /// <summary>Die Startbetriebe (zuerst die Werkstatt).</summary>
     public IReadOnlyList<EntwurfStartbetrieb> Betriebe { get; init; } = Array.Empty<EntwurfStartbetrieb>();
 
@@ -74,7 +77,7 @@ public sealed class EntwurfStart : EntwurfTeil
     public override Kartenteil Teil => Kartenteil.Start;
     public override string Bezeichnung => "Startbelegung";
 
-    /// <summary>Farbe des Spielerhauses („#rrggbb“) – oder null.</summary>
+    /// <summary>Farbe des Spielerhauses („#rrggbb“) – nur noch aus älteren Karten gelesen und so wieder geschrieben; sonst null (die Farbe kommt aus dem Wappen, 17.11.2026).</summary>
     public string? SpielerFarbe { get; internal set; }
 
     private List<EntwurfHaus> _haeuser = new();
@@ -85,10 +88,16 @@ public sealed class EntwurfStart : EntwurfTeil
     /// <summary>Der Eintrag „spieler“ aus der Datei (unbekannte Felder beim Schreiben).</summary>
     private JsonObject? _spielerVorlage;
 
-    /// <summary>Steht nichts drin? Dann schreibt der Entwurf keinen Abschnitt „start“, und es gilt <see cref="Startbelegung.Ersatz"/>.</summary>
-    public bool IstLeer => _haeuser.Count == 0 && SpielerFarbe is null;
+    /// <summary>
+    /// Gibt es den Abschnitt „start“ – aus der Datei oder weil hier schon ein KI-Haus angelegt wurde? Dann bleibt er auch ohne KI-Haus stehen
+    /// (die Partie würfelt ihre Häuser). Bis zum 17.11.2026 hielt ihn die Farbe des Spielers; die steht nicht mehr in der Karte.
+    /// </summary>
+    public bool Angelegt { get; private set; }
 
-    internal void HaeuserSetzen(IEnumerable<EntwurfHaus> haeuser) => _haeuser = haeuser.ToList();
+    /// <summary>Steht nichts drin? Dann schreibt der Entwurf keinen Abschnitt „start“, und es gilt <see cref="Startbelegung.Ersatz"/>.</summary>
+    public bool IstLeer => !Angelegt && _haeuser.Count == 0 && SpielerFarbe is null;
+
+    internal void HaeuserSetzen(IEnumerable<EntwurfHaus> haeuser) => (_haeuser, Angelegt) = (haeuser.ToList(), true);
 
     /// <summary>Die Belegung, wie das Spiel sie liest.</summary>
     public Startbelegung AlsStartbelegung() => JsonSerializer.Deserialize<Startbelegung>(AlsJson().ToJsonString(), Stadtkarte.Optionen)!;
@@ -102,6 +111,7 @@ public sealed class EntwurfStart : EntwurfTeil
     {
         var e = new EntwurfStart { Vorlage = vorlage };
         if (s is null) return e;
+        e.Angelegt = true;
         e._spielerVorlage = (vorlage?["spieler"] as JsonObject)?.DeepClone() as JsonObject;
         e.SpielerFarbe = s.Spieler.Farbe;
         var haeuser = vorlage?["haeuser"] as JsonArray;
@@ -123,7 +133,7 @@ public sealed class EntwurfStart : EntwurfTeil
 
     internal override EntwurfTeil KopieTeil()
     {
-        var k = new EntwurfStart { SpielerFarbe = SpielerFarbe, Vorlage = Vorlage, _spielerVorlage = _spielerVorlage };
+        var k = new EntwurfStart { SpielerFarbe = SpielerFarbe, Vorlage = Vorlage, _spielerVorlage = _spielerVorlage, Angelegt = Angelegt };
         k._haeuser = _haeuser.ToList();
         return k;
     }
@@ -131,10 +141,10 @@ public sealed class EntwurfStart : EntwurfTeil
     internal override void UebernimmTeil(EntwurfTeil werte)
     {
         var o = (EntwurfStart)werte;
-        (SpielerFarbe, Vorlage, _spielerVorlage, _haeuser) = (o.SpielerFarbe, o.Vorlage, o._spielerVorlage, o._haeuser.ToList());
+        (SpielerFarbe, Vorlage, _spielerVorlage, _haeuser, Angelegt) = (o.SpielerFarbe, o.Vorlage, o._spielerVorlage, o._haeuser.ToList(), o.Angelegt);
     }
 
-    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfStart o && AlsJson().ToJsonString() == o.AlsJson().ToJsonString();
+    internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfStart o && IstLeer == o.IstLeer && AlsJson().ToJsonString() == o.AlsJson().ToJsonString();
 
     internal override JsonObject AlsJson()
     {
@@ -157,7 +167,7 @@ public sealed partial class Kartenentwurf
         "Haus Ahlbeck", "Haus Brendel", "Haus Dornbusch", "Haus Falkner", "Haus Grünwald", "Haus Hollerbach", "Haus Lindenau", "Haus Rabenstein",
     };
 
-    /// <summary>Farben für neue KI-Häuser (die erste freie; der Spieler hat in der Greybox #336bb8).</summary>
+    /// <summary>Feste Hausfarben älterer Karten (bis 17.11.2026 bekam ein neues KI-Haus die erste freie; heute trägt jedes Haus die Farbe seines Wappens).</summary>
     public static readonly IReadOnlyList<string> Hausfarben = new[] { "#b33329", "#388c47", "#d9ad2e", "#7a4a9e", "#2e8c8c", "#c26a1f", "#5c5c5c", "#a3476b" };
 
     /// <summary>Die Startbelegung (immer da; leer, wenn die Datei keinen Abschnitt <c>start</c> hat).</summary>
@@ -214,7 +224,7 @@ public sealed partial class Kartenentwurf
 
     /// <summary>
     /// Fügt ein KI-Haus hinten an (bis <see cref="HoechstensHaeuser"/>): erster freier Name aus <see cref="Hausnamen"/> (oder
-    /// <paramref name="name"/>), Mensch, Mann, ein freies Wappen und eine freie Farbe, noch ohne Betrieb. Gibt den Index zurück; −1 (kein Schritt), wenn schon acht Häuser da sind.
+    /// <paramref name="name"/>), Mensch, Mann, ein freies Wappen, noch ohne Betrieb. Gibt den Index zurück; −1 (kein Schritt), wenn schon acht Häuser da sind.
     /// </summary>
     public int HausHinzufuegen(string? name = null)
     {
@@ -223,11 +233,27 @@ public sealed partial class Kartenentwurf
         var namen = s.Haeuser.Select(h => h.Name).ToHashSet();
         name = !string.IsNullOrWhiteSpace(name) ? name : Hausnamen.FirstOrDefault(n => !namen.Contains(n)) ?? FreierName("Haus Neuburg", namen);
         var wappen = s.Haeuser.Select(h => h.Wappen).ToHashSet();
-        var neu = new EntwurfHaus(name, Volk.Mensch, Geschlecht.Mann,
-            Wappen.Vorlagen.Skip(1).FirstOrDefault(w => !wappen.Contains(w)) ?? Wappen.AusName(name),
-            Hausfarben.FirstOrDefault(f => f != s.SpielerFarbe && s.Haeuser.All(h => h.Farbe != f)));
+        var neu = new EntwurfHaus(name, Volk.Mensch, Geschlecht.Mann, NeuesWappen(name, wappen), null); // die Farbe kommt aus dem Wappen (17.11.2026)
         Aendern(s, $"{name} hinzugefügt", n => n.HaeuserSetzen(n.Haeuser.Append(neu)));
         return s.Haeuser.Count - 1;
+    }
+
+    /// <summary>
+    /// Das Wappen eines neuen KI-Hauses (17.11.2026): die erste freie Vorlage, deren Hauptfarbe (<see cref="Wappen.Hausfarbe"/>) noch kein
+    /// Haus der Karte trägt und die nicht die des Vorgabe-Wappens des Spielers ist (Rot). Hat keine Vorlage mehr eine freie Hauptfarbe, die
+    /// erste freie Vorlage (mit noch unbenutzter Figur zuerst) in der ersten freien Wappenfarbe auf Silber; sind alle acht Hausfarben vergeben, die erste freie Vorlage, wie sie ist.
+    /// </summary>
+    private static Wappen NeuesWappen(string name, IReadOnlyCollection<Wappen> wappen)
+    {
+        var farben = wappen.Select(w => w.Hausfarbe()).Append(Wappen.Vorlagen[0].Hausfarbe()).ToHashSet();
+        // freie Vorlagen, die mit noch unbenutzter Figur zuerst
+        var frei = Wappen.Vorlagen.Skip(1).Where(w => !wappen.Contains(w)).OrderBy(w => wappen.Any(x => x.Figur == w.Figur) ? 1 : 0).ToList();
+        if (frei.FirstOrDefault(w => !farben.Contains(w.Hausfarbe())) is { } passend) return passend;
+        foreach (var t in Enum.GetValues<Tinktur>())
+            if (Wappen.Palettenfarbe(t) is { } f && !farben.Contains(f) && t != Tinktur.Gold)
+                foreach (var v in frei)
+                    if (v with { Farbe1 = t, Farbe2 = Tinktur.Silber } is var w && !wappen.Contains(w)) return w;
+        return frei.FirstOrDefault() ?? Wappen.AusName(name);
     }
 
     /// <summary>Entfernt ein KI-Haus (die Häuser dahinter rücken auf; ihre Betriebe und Wohnhäuser werden frei).</summary>

@@ -120,7 +120,6 @@ public sealed class Messstadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(60, 125), P(235, 125), P(235, 165), P(60, 165) }, "Wald im Süden");
 
         // ── Start: der Spieler und acht KI-Häuser ────────────────────────────
-        E.SpielerFarbeSetzen("#336bb8");
         for (var i = 0; i < Haeuser.Length; i++)
         {
             var h = Haeuser[i];

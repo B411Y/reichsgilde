@@ -39,6 +39,7 @@ static class LangsameTests
         ("ZwischenspeicherTests", "Bauorte in einer Greybox-Partie", 1),               // 3 s: drei Jahre, Bauorte ohne Speicher alle vier Stunden (14.11.2026)
         ("ZwischenspeicherTests", "Bauorte in einer Köln-Partie", 1),                  // 3 s: zwei Jahre Köln, Bauorte ohne Speicher zweimal am Tag
         ("KlappbrueckeTests", "Karren warten in der Partie", 1),                       // 8 s: bis zu drei Jahre Köln-Prüfkarte, Spielstand, Gegenprobe (15.11.2026)
+        ("HausfarbeWappenTests", "Keine zwei Häuser in derselben Farbe", 1),          // 18 s: 13 Fälle × 25 Partien (17.11.2026)
     };
 
     public static bool IstLangsam(Testfall test) =>

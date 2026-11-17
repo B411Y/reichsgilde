@@ -98,7 +98,6 @@ public sealed class Probestadt : Stadtskript
         E.NaturflaecheAnlegen("wald", new[] { P(60, 70), P(195, 60), P(195, 145), P(40, 145) }, "Wald im Südosten");
 
         // ── Start: der Spieler und zwei KI-Häuser ────────────────────────────
-        E.SpielerFarbeSetzen("#336bb8");
         var tischler = E.HausHinzufuegen("Haus Ahlbeck");
         E.BetriebHinzufuegen(tischler, "", Betriebsart.Tischlerei);   // die Werkstatt in der Stadt hat keinen Platz – das Los setzt sie in eine Bauzone
         var giesser = E.HausHinzufuegen("Haus Brendel");

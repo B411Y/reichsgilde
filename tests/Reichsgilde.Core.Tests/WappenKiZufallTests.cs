@@ -48,12 +48,12 @@ static class WappenKiZufallTests
             Pruefe.Wahr(geprueft > 100, $"genug Partien geprüft ({geprueft})");
         }),
 
-        ("Wappen KI-Zufall: Köln, Spieler wählt die Lilie von Haus Kleingedank, 7 KI – startet, Kleingedank würfelt ein anderes Wappen, zweimal gleich", () =>
+        ("Wappen KI-Zufall: Köln, Spieler wählt das Wappen von Haus Kleingedank, 7 KI – startet, Kleingedank würfelt ein anderes Wappen, zweimal gleich", () =>
         {
             var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             var klein = koeln.Startbelegung.Haeuser.Single(h => h.Name == "Haus Kleingedank");
-            var lilie = Wappen.Vorlagen[7];
-            Pruefe.Gleich(lilie, klein.Wappen, "Gegenprobe: Kleingedank führt in der Karte die Lilie");
+            var lilie = klein.Wappen; // seit 17.11.2026 der silberne Turm in Orange (verschiedene Hauptfarben der Kartenhäuser), bis dahin die Lilie
+            Pruefe.Gleich(new Wappen(Teilung.Ohne, Tinktur.Orange, Tinktur.Silber, Figur.Turm), lilie, "Gegenprobe: das Wappen von Kleingedank in der Karte");
             var max = Partiebesetzung.HoechstensKi(koeln, Aufstellungsart.Gelost);
             Pruefe.Gleich(7, max, "Köln: 7 KI");
             foreach (var s in new[] { 1, 5, 42 })
