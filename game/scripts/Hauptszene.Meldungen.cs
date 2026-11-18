@@ -57,7 +57,6 @@ public partial class Hauptszene
         _ecke = new Siegelecke();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_ecke);
         _ecke.Angeklickt += SiegelGelesen;
-        _ecke.VerlaufGewuenscht += () => BerichtOeffnen(BerichtAnzeige.Reiter.Protokoll);
         _einblendung = new EinblendungAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_einblendung);
         _brief = new BriefAnzeige();
@@ -628,9 +627,9 @@ public partial class Hauptszene
             Hauptmenue.Text(raster, was, 14);
         }
         Hauptmenue.Text(spalte,
-            "Oben links steht euer Haus (ein Klick öffnet das Wohnhaus), oben in der Mitte die Zeit. Unten die Betriebsleiste: ein Klick fährt zum Betrieb und " +
+            "Oben in der Mitte steht die Zeit, unten die Lade: links die Werte eures Hauses und eure Betriebe, in der Mitte euer Porträt (ein Klick öffnet die Familie), rechts die Befehle. Ein Klick auf einen Betrieb fährt hin und " +
             "zeigt seine Kurzübersicht, ein Doppelklick geht hinein – drinnen stellt ihr Produktion, Personal, Lager, Karren und Einrichtung ein. " +
-            "Ein Klick auf das Rathaus zeigt Rat, Ämter, Statut und Gericht, ein Klick auf den Markt die Preise. Meldungen kommen als Siegel unten rechts über der Leiste (ein Klick liest den Brief) " +
+            "Ein Klick auf das Rathaus zeigt Rat, Ämter, Statut und Gericht, ein Klick auf den Markt die Preise. Meldungen kommen als Faltbrief rechts über der Lade (ein Klick liest den Brief) " +
             "oder als Brief; alles steht im Bericht unter „Verlauf“. Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);
         var zu = Hauptmenue.Knopf(spalte, "Schließen", HilfeSchliessen);
         zu.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;

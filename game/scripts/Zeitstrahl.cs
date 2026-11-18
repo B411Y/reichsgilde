@@ -4,7 +4,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Band des Zeitstrahls oben in der Mitte (PR #197): der Spieltag von 4 bis 23 Uhr in seinen vier Phasen (Zunftglocke, Hoher Mittag, Vesper,
+/// Das Band des Tages ganz oben in der Zeitleiste (PR #197; seit dem UI-Umbau „Zunftlade“ über Pause und Tempo): der Spieltag von 4 bis 23 Uhr in seinen vier Phasen (Zunftglocke, Hoher Mittag, Vesper,
 /// Nacht), Striche für die vollen Stunden und als Zeiger die Sonne – nachts der Mond. Wann es Nacht ist, sagen die Sonnenzeiten der Jahreszeit
 /// (<see cref="Sonnenzeiten"/>, dieselben wie beim Licht der Stadt): Die Felder dunkeln vor der Dämmerung und nach dem Dunkelwerden ab, dazwischen
 /// gehen sie weich ineinander über; Sonne als Zeiger zwischen Aufgang und Untergang, sonst der Mond. Nur gezeichnet, keine Knöpfe: Die Hauptszene
@@ -67,6 +67,9 @@ public sealed partial class Zeitstrahl : Control
 
     private static readonly Color NachtFarbe = new(0.18f, 0.20f, 0.32f);
 
+    /// <summary>Der dunkle Streifen über dem Band, vor dem Sonne und Mond laufen (die Zeitleiste setzt ihn aus dem Thema der Lade).</summary>
+    public Color Himmel { get; set; } = new(0.16f, 0.15f, 0.13f);
+
     /// <summary>Minuten seit Tagesbeginn (0 = 04:00, 1140 = 23:00; negativ vor 4 Uhr nur für Bildschirmfotos).</summary>
     public int Minute
     {
@@ -101,6 +104,7 @@ public sealed partial class Zeitstrahl : Control
     {
         var oben = Zeigerplatz;
         var schrift = GetThemeDefaultFont();
+        DrawRect(new Rect2(0, 0, Size.X, Zeigerplatz), Himmel);
         for (var i = 0; i < Phasen.Length; i++)
         {
             var (ab, farbe, name) = Phasen[i];
@@ -145,7 +149,7 @@ public sealed partial class Zeitstrahl : Control
         else
         {
             DrawCircle(mitte, 6, new Color(0.9f, 0.9f, 0.82f));
-            DrawCircle(mitte + new Vector2(3, -2), 5, new Color(0.16f, 0.15f, 0.13f)); // Sichel: Grund der Tafel darüber
+            DrawCircle(mitte + new Vector2(3, -2), 5, Himmel); // Sichel: der Himmel darüber
             DrawArc(mitte, 6, 0, Mathf.Tau, 16, new Color(0.1f, 0.1f, 0.14f), 1);
         }
     }

@@ -1,49 +1,10 @@
-[gd_resource type="Theme" load_steps=8 format=3]
+[gd_resource type="Theme" load_steps=6 format=3]
 
-; Das Thema der Meldungen (Siegel-Ecke, Knopf „Verlauf“, zentrale Einblendung neuer Meldungen). Aussehen und Zeiten stehen NUR hier, Logik in Siegelecke.cs / EinblendungAnzeige.cs / Hauptszene.Meldungen.cs / MeldungStil.cs.
+; Das Thema der Meldungen (Faltbriefe über der Lade, zentrale Einblendung neuer Meldungen). Aussehen und Zeiten stehen NUR hier, Logik in Siegelecke.cs / EinblendungAnzeige.cs / Hauptszene.Meldungen.cs / MeldungStil.cs.
 ; Stil: Pergament mit schwarzem Umriss und leicht versetztem Schatten wie Brief und Siegel (kolorierter Holzschnitt).
 ; Typ-Varianten (Meldung…) erben von einem Godot-Typ; Maße der Familie stehen unter dem Pseudo-Typ MeldungMasse.
 
 [ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
-
-; ── Knopf „Verlauf“ an der Siegel-Ecke ──
-[sub_resource type="StyleBoxFlat" id="VerlaufKnopf"]
-bg_color = Color(0.9, 0.84, 0.68, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.09, 0.07, 0.05, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 1
-shadow_offset = Vector2(3, 3)
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
-
-[sub_resource type="StyleBoxFlat" id="VerlaufKnopfUeber"]
-bg_color = Color(0.97, 0.9, 0.72, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.09, 0.07, 0.05, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.45)
-shadow_size = 1
-shadow_offset = Vector2(3, 3)
-content_margin_left = 10.0
-content_margin_top = 3.0
-content_margin_right = 10.0
-content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxEmpty" id="Leer"]
 
@@ -87,20 +48,6 @@ content_margin_right = 28.0
 content_margin_bottom = 16.0
 
 [resource]
-MeldungVerlaufKnopf/base_type = &"Button"
-MeldungVerlaufKnopf/styles/normal = SubResource("VerlaufKnopf")
-MeldungVerlaufKnopf/styles/hover = SubResource("VerlaufKnopfUeber")
-MeldungVerlaufKnopf/styles/pressed = SubResource("VerlaufKnopfUeber")
-MeldungVerlaufKnopf/styles/hover_pressed = SubResource("VerlaufKnopfUeber")
-MeldungVerlaufKnopf/styles/focus = SubResource("Leer")
-MeldungVerlaufKnopf/fonts/font = ExtResource("1_titel")
-MeldungVerlaufKnopf/font_sizes/font_size = 15
-MeldungVerlaufKnopf/colors/font_color = Color(0.09, 0.07, 0.05, 1)
-MeldungVerlaufKnopf/colors/font_hover_color = Color(0.32, 0.12, 0.08, 1)
-MeldungVerlaufKnopf/colors/font_pressed_color = Color(0.32, 0.12, 0.08, 1)
-MeldungVerlaufKnopf/colors/font_hover_pressed_color = Color(0.32, 0.12, 0.08, 1)
-; Platz, den die Siegel-Ecke rechts für den Knopf freihält
-MeldungMasse/constants/verlauf_breite = 78
 ; ── Zentrale Einblendung: Tafel je Stufe (Siegel kleiner und kürzer, Brief größer und länger) ──
 MeldungEinblendungSiegel/base_type = &"PanelContainer"
 MeldungEinblendungSiegel/styles/panel = SubResource("EinblendungSiegel")
@@ -128,7 +75,7 @@ MeldungMasse/constants/einblendung_breite_brief = 580
 MeldungMasse/constants/einblendung_siegel_siegel = 64
 MeldungMasse/constants/einblendung_siegel_brief = 84
 MeldungMasse/constants/einblendung_zeilen = 3
-MeldungMasse/constants/einblendung_abstand_unten = 24
+MeldungMasse/constants/einblendung_abstand_unten = 56
 MeldungMasse/constants/einblendung_einblenden_ms = 350
 MeldungMasse/constants/einblendung_stehen_siegel_ms = 2500
 MeldungMasse/constants/einblendung_stehen_brief_ms = 4000

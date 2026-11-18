@@ -364,7 +364,7 @@ public sealed partial class Siegel : Control
 }
 
 /// <summary>
-/// Die Ecke unten rechts, über der Betriebsleiste: eine Reihe von Meldungen als kleine 3D-Faltbriefe mit Wachssiegel (im Code weiter „Siegel“), die neueste
+/// Die Meldungen rechts über der Lade (früher die Ecke unten rechts über der Betriebsleiste): eine Reihe von Meldungen als kleine 3D-Faltbriefe mit Wachssiegel (im Code weiter „Siegel“), die neueste
 /// links, damit sich die älteren nie verschieben. Ein Brief je Thema (mit Zähler); Stillstände haben je Betrieb einen eigenen. Fängt selbst keine Mausklicks
 /// ab. Die Höhe, die sie braucht, steht in <see cref="Rollbereich.EckeHoehe"/> – die Tafeln rechts lassen den Platz frei, statt verdeckt zu werden. Alle
 /// Briefe teilen sich eine kleine 3D-Bühne (<see cref="SchriftrollenBuehne"/>, Modell Brief), die nur rechnet, solange die Ecke zu sehen ist.
@@ -382,9 +382,6 @@ public sealed partial class Siegelecke : Control
 
     public IReadOnlyList<Siegel> Alle => _siegel;
 
-    /// <summary>Der Knopf „Verlauf“ rechts in der Ecke: alle Meldungen, auch die gelesenen und beiseitegelegten, im Bericht nachlesen.</summary>
-    public event Action? VerlaufGewuenscht;
-
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
@@ -394,25 +391,17 @@ public sealed partial class Siegelecke : Control
         _reihe.AddThemeConstantOverride("separation", 6);
         _reihe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(_reihe);
-        // Der Knopf „Verlauf“ steht immer ganz rechts (Siegel kommen links dazu) – auch wenn keine Siegel mehr da sind
-        var verlauf = new Button
-        {
-            Text = "Verlauf", ThemeTypeVariation = "MeldungVerlaufKnopf", FocusMode = FocusModeEnum.None, SizeFlagsVertical = SizeFlags.ShrinkEnd,
-            TooltipText = "Alle Meldungen nachlesen, auch gelesene und beiseitegelegte (Bericht, Reiter „Verlauf“) – mit Datum und Art; ein Klick auf eine Zeile führt hin.",
-        };
-        verlauf.Pressed += () => VerlaufGewuenscht?.Invoke();
-        _reihe.AddChild(verlauf);
-        // Unten rechts, über der Betriebsleiste; wächst nach links
+        // Rechts über der Lade angedockt (Hauptszene.Lade.cs ruft Andocken); wächst nach links
         SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, 16);
-        CustomMinimumSize = new Vector2(Siegel.Groesse * (Hoechstens + 1) + 6 * (Hoechstens + 1) + MeldungStil.Mass("verlauf_breite"), Siegel.Groesse + 6); // Platz für die dauerhafte Feder und den Knopf
-        OffsetLeft = -16 - CustomMinimumSize.X;
-        OffsetRight = -16;
-        Hoehe(Rollbereich.LeistenHoehe);
+        CustomMinimumSize = new Vector2(Siegel.Groesse * (Hoechstens + 1) + 6 * (Hoechstens + 1), Siegel.Groesse + 6); // Platz für die dauerhafte Feder
+        Andocken(16, Rollbereich.LeistenHoehe);
     }
 
-    /// <summary>Setzt den Abstand zum unteren Rand (über der Leiste bzw. der Raumleiste).</summary>
-    public void Hoehe(float vonUnten)
+    /// <summary>Dockt die Reihe an: Abstand ihrer rechten Kante zum rechten Bildrand und ihrer Unterkante zum unteren Bildrand.</summary>
+    public void Andocken(float vonRechts, float vonUnten)
     {
+        OffsetRight = -vonRechts;
+        OffsetLeft = -vonRechts - CustomMinimumSize.X;
         OffsetBottom = -vonUnten;
         OffsetTop = -vonUnten - Siegel.Groesse - 6;
     }

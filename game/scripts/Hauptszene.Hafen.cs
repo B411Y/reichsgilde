@@ -78,19 +78,21 @@ public partial class Hauptszene
         return false;
     }
 
-    /// <summary>Der Knopf „Hafen“ in der Betriebsleiste (vor „+ Bauen“): nur, wenn die Stadt Schiffshandel hat. Klick: hinfahren und die Hafentafel.</summary>
-    private void HafenKnopfBauen(HBoxContainer reihe)
+    /// <summary>Der Knopf „Hafen“ im Fach der Befehle (vor „Bauen“): nur, wenn die Stadt Schiffshandel hat. Klick: hinfahren und die Hafentafel.</summary>
+    private void HafenKnopfBauen(Container fach)
     {
-        var knopf = new Button { ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(150, 48), ClipContents = true, Visible = false,
-                                 SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
-        reihe.AddChild(knopf);
-        var spalte = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center };
-        spalte.AddThemeConstantOverride("separation", 0);
-        spalte.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect, Control.LayoutPresetMode.KeepSize, 6);
-        knopf.AddChild(spalte);
-        Hauptmenue.Text(spalte, "Hafen", 13).MouseFilter = Control.MouseFilterEnum.Ignore;
-        _leisteHafenZustand = Hauptmenue.Text(spalte, "", 12, new Color(0.75f, 0.75f, 0.75f));
-        _leisteHafenZustand.MouseFilter = Control.MouseFilterEnum.Ignore;
+        var knopf = LadeStil.Knopf(fach, "", "", null);
+        knopf.ToggleMode = true;
+        knopf.ClipContents = true;
+        knopf.Visible = false;
+        knopf.SizeFlagsHorizontal = knopf.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        var rand = LadeStil.Behaelter<MarginContainer>(knopf, "LadeKnopfInhalt");
+        rand.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        var spalte = LadeStil.Behaelter<VBoxContainer>(rand, "LadeSpalteEng");
+        spalte.Alignment = BoxContainer.AlignmentMode.Center;
+        LadeStil.Text(spalte, "Hafen").HorizontalAlignment = HorizontalAlignment.Center;
+        _leisteHafenZustand = LadeStil.Text(spalte, "", "LadeTextLeise");
+        _leisteHafenZustand.HorizontalAlignment = HorizontalAlignment.Center;
         _leisteHafenZustand.ClipText = true;
         knopf.Pressed += () =>
         {
@@ -101,7 +103,7 @@ public partial class Hauptszene
         _leisteHafen = knopf;
     }
 
-    /// <summary>Viermal je Sekunde (mit der Leiste): sichtbar, gedrückt, Zustand der eigenen Schiffe.</summary>
+    /// <summary>Viermal je Sekunde (mit der Lade): sichtbar, gedrückt, Zustand der eigenen Schiffe.</summary>
     private void HafenKnopfAnzeigen(Stadtwirtschaft w)
     {
         if (_leisteHafen is not { } knopf || _leisteHafenZustand is not { } zustand) return;
