@@ -153,6 +153,38 @@ MeldungMasse/constants/rolle_symbol_ms = 233
 ; Vergrößerung unter der Maus (Prozent), Rand des Symbols (Prozent der Symbolfläche)
 MeldungMasse/constants/rolle_ueber_prozent = 106
 MeldungMasse/constants/rolle_symbol_rand_prozent = 17
+; ── Kleiner 3D-Faltbrief der Meldungsleiste (SchriftrollenBuehne.cs mit Modell Brief, brief_klein.glb, Szene schriftrolle_buehne.tscn) ──
+; Platz je Brief im Bild (Pixel bei 1600 × 900), Sichtfeld je Platz (Millimeter; der Brief ist 121 mm breit), Plätze, Überabtastung
+MeldungMasse/constants/brief_zelle = 104
+MeldungMasse/constants/brief_sicht_mm = 225
+MeldungMasse/constants/brief_plaetze = 12
+MeldungMasse/constants/brief_abtastung_prozent = 200
+; Neigung nach oben zum Spieler, Drehen im Leerlauf (Grad; höchstens 2, nur um die Hochachse), Sprung beim Erscheinen (Millimeter, Millisekunden),
+; Ausblenden beim Weggehen (ohne Sprung), Vergrößerung unter der Maus
+MeldungMasse/constants/brief_neigung_grad = 12
+MeldungMasse/constants/brief_pendel_grad = 2
+MeldungMasse/constants/brief_huepfen_mm = 22
+MeldungMasse/constants/brief_huepfen_ms = 260
+MeldungMasse/constants/brief_ausblenden_ms = 180
+MeldungMasse/constants/brief_ueber_prozent = 106
+; Wachssiegel: Vergrößerung um seine Mitte (Prozent; 100 = wie im Modell), Abdunklung des eingedrückten Zeichens gegen das Wachs (Prozent)
+MeldungMasse/constants/brief_siegel_prozent = 175
+MeldungMasse/constants/brief_praegung_prozent = 60
+; ── Großer 3D-Brief (BriefAnzeige.cs, BriefBuehne.cs, brief_gross.glb, Szene brief_buehne.tscn) ──
+; Breite der 2D-Tafel = Breite der Inhaltsfläche des Blatts (Pixel bei 1600 × 900; das Blatt ist um 2 × 2 cm breiter, also 30/26 davon),
+; Innenabstand der Tafel, freier Rand des Bildes um das Blatt (Millimeter; Platz für Umriss, Nachfedern und die Siegelhälften),
+; Abstand des gestreckten Blatts zum Fensterrand, Überabtastung des 3D-Bildes
+MeldungMasse/constants/brief_gross_breite = 372
+MeldungMasse/constants/brief_gross_innen = 8
+MeldungMasse/constants/brief_gross_rand_mm = 60
+MeldungMasse/constants/brief_gross_fensterrand = 10
+MeldungMasse/constants/brief_gross_abtastung_prozent = 100
+; Einblenden am Anfang des Auffaltens und Ausblenden am Ende des Zufaltens (Millisekunden); Inhalt als Bild auf der Inhaltsfläche:
+; beim Auffalten ab, beim Zufalten bis (Zeiten des Modells, docs/bereiche/darstellung.md)
+MeldungMasse/constants/brief_gross_einblenden_ms = 100
+MeldungMasse/constants/brief_gross_ausblenden_ms = 150
+MeldungMasse/constants/brief_gross_inhalt_ab_ms = 733
+MeldungMasse/constants/brief_gross_inhalt_bis_ms = 67
 ; Farben: Grund des Symbols (der Rand hat die Farbe der Meldungsart aus meldungen.json, die Tinte ist die der Siegel), Schleier einer gelesenen Rolle
 MeldungRolle/colors/symbol_grund = Color(0.95, 0.9, 0.76, 1)
 MeldungRolle/colors/gelesen = Color(0.72, 0.7, 0.66, 1)
