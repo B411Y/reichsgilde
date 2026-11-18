@@ -98,6 +98,7 @@ public partial class Stadtansicht
     /// <summary>Raumansicht an oder aus: Kamera umschalten, Sonne aus, Räume zeigen und anklickbar machen.</summary>
     private void RaumansichtUmschalten(InnenAnsicht a, bool innen)
     {
+        BuchSchauAbbrechen(); // Buchkamera aus, bevor die Kamera wechselt (Stadtansicht.Innenbuecher.cs)
         a.Innen!.Visible = innen;
         foreach (var klick in a.Raumklicks) klick.Disabled = !innen;
         _sonne.Visible = !innen;
@@ -122,6 +123,7 @@ public partial class Stadtansicht
     private void RaumZeigen(Raum r, bool melden = true)
     {
         if (_innen?.Innen is not { } innen) return;
+        BuchSchauAbbrechen(); // ein offenes Buch bleibt im alten Raum zurück (Stadtansicht.Innenbuecher.cs)
         _raum = r;
         if (NeubauInnenAbgleichen()) // Probe: die Wohnstube liegt im Haus in der Stadt, die Kamera steht dort (Stadtansicht.Neubau.cs)
         {
@@ -169,6 +171,11 @@ public partial class Stadtansicht
     private void RaumEingabe(InputEvent eingabe)
     {
         if (_ratssitzung is not null) return; // während der Ratssitzung bleibt man im Ratssaal (Stadtansicht.Ratssitzung.cs)
+        if (BuchEingabe(eingabe)) // Klick auf ein Buch, laufende Buchschau (Stadtansicht.Innenbuecher.cs)
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (_raum?.Blicke is not null && ModellRaumEingabe(eingabe)) // Raum aus einem Modell: Bedienung, Rahmen, Rechtsklick (Stadtansicht.Innenkamera.cs)
         {
             GetViewport().SetInputAsHandled();
@@ -427,6 +434,7 @@ public partial class Stadtansicht
             Teil(a, s + new Vector3(0.4f, FigurenBaukasten.Sitzflaeche - 0.05f, dz), new Vector3(2.4f, 0.1f, 0.35f), holz); // Sitzhöhe des Baukastens
         Rund(a, s + new Vector3(0.1f, 0.88f, 0), 0.2f, 0.08f, Material(new Color(0.55f, 0.45f, 0.32f)));       // Brotschale
         Rund(a, s + new Vector3(0.9f, 0.93f, 0.1f), 0.08f, 0.2f, Metall(new Color(0.6f, 0.6f, 0.62f)), segmente: 8); // Krug
+        FamilienbuchAnlegen(a, s, haus.Farbe); // das Familienbuch links auf dem Tisch (Stadtansicht.Innenbuecher.cs)
         // Bett (hinten rechts), Truhe, Wiege
         Teil(a, s + new Vector3(3.1f, 0.3f, -2.0f), new Vector3(1.7f, 0.5f, 2.4f), holz);
         Teil(a, s + new Vector3(3.1f, 0.62f, -1.75f), new Vector3(1.6f, 0.14f, 1.8f), Material(new Color(0.45f, 0.18f, 0.16f)));

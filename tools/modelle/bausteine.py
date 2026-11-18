@@ -35,7 +35,7 @@ VORSCHAU = os.path.join(WURZEL, "docs", "modelle")
 UMLAND_MODELLE = {"grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof", "wachturm",
                   "berg_grube", "umland_stellen"}
 # Requisiten (Unterordner requisiten/): einzelne Gegenstände, die das Spiel bei Ereignissen setzt (Eimer der Löschkette).
-REQUISITEN_MODELLE = {"eimer"}
+REQUISITEN_MODELLE = {"eimer", "lesepult", "schreibpult"}
 
 KAMERA_NEIGUNG = 40.0        # Grad, wie im Spiel
 UNSICHTBAR_Z = -0.77         # Normale mit z darunter (> 50° nach unten) sieht die Kamera nie

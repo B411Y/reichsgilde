@@ -217,7 +217,7 @@ public partial class Hauptszene
                 if (!IsInstanceValid(siegel)) return;
                 siegel.Modulate = Colors.White;
                 siegel.MouseFilter = Control.MouseFilterEnum.Stop;
-                if (neu) siegel.Erscheinen(); // die Rolle erscheint geschlossen und rollt auf
+                if (neu) siegel.Erscheinen(); // der kleine Faltbrief erscheint mit einem Sprung
                 else siegel.Aufleben();
             });
     }
@@ -521,7 +521,10 @@ public partial class Hauptszene
         _ecke.TippsAuffrischen();
     }
 
-    /// <summary>Startoption <c>--meldungen=demo|brief</c>: legt Siegel (und mit <c>brief</c> einen Brief) mit echten Wortlauten für Klicktests an.</summary>
+    /// <summary>
+    /// Startoption <c>--meldungen=demo|brief|jahr|lang</c>: legt Siegel (und mit <c>brief</c> Briefe, mit <c>jahr</c> einen Jahresbericht, mit <c>lang</c>
+    /// einen langen Jahresbericht, der das Blatt des großen Briefs streckt) mit echten Wortlauten für Klicktests an.
+    /// </summary>
     private void MeldungenVorfuehren(string wahl)
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
@@ -547,15 +550,23 @@ public partial class Hauptszene
         _stillstaende[betrieb] = (_simulation.Zeit.VergangeneMinuten - 3 * 60, "Es fehlt Holz – die Arbeit ruht.", 2, true);
         _meldungsUhr = 1;
         MeldungenAltern(0);
-        if (wahl == "jahr") // Jahresbericht vorführen: Posten wie am Jahreswechsel (Gericht, Rat, Steuer, Stand) sammeln und ausgeben
+        if (wahl is "jahr" or "lang") // Jahresbericht vorführen: Posten wie am Jahreswechsel (Gericht, Rat, Steuer, Stand) sammeln und ausgeben
         {
-            foreach (var (art, text) in new[]
+            var posten = new List<(string Art, string Text)>
             {
                 ("Rat", $"Wahl {jahr} – Marktmeister: {_spieler.Inhaber} löst Bertram Kesselflick ab (5 Stimmen gegen 3)."),
                 ("Steuer", $"Ratssitzung {jahr}: Antrag von {_spieler.Inhaber} – Steuer auf 12 % – ANGENOMMEN (5 dafür, 2 dagegen)."),
                 ("Gericht", $"Gerichtstag {jahr}: {_spieler.Inhaber} wird freigesprochen (Anklage: Haus Lyskirchen; 4 von 5 Richtern: unschuldig)."),
                 ("Stand", $"Anna {name} legt die Meisterprüfung ab und ist nun Meisterin (Gebühr 120 Gulden)."),
-            })
+            };
+            if (wahl == "lang") // ein langer Brief: das Blatt streckt sich in der Höhe (Streckregel des Modells)
+                posten.AddRange(new[]
+                {
+                    ("Rat", $"Wahl {jahr} – Stadtrichter: Haus Lyskirchen behält das Amt (6 Stimmen gegen 2)."),
+                    ("Steuer", $"Jahressteuer {jahr}: Haus {name} zahlt 96 Gulden an die Stadtkasse."),
+                    ("Stand", $"Haus {name} steigt zum Bürger auf (Bürgerrecht der Stadt, Gebühr 300 Gulden)."),
+                });
+            foreach (var (art, text) in posten)
                 _jahresSammler.Add(new Meldungsposten { Zeit = _simulation.Zeit.UhrzeitText, Jahr = jahr, Text = text, Original = text, Art = Ordnung.Art(art), Bezug = Betroffenheit.Eigen, Stufe = Meldestufe.Brief });
             JahresberichtAusgeben(jahr);
         }

@@ -34,6 +34,9 @@ public partial class FamilienAnzeige : PanelContainer
     // ── Reiter: Familie (das bisherige Buch) · Stammbaum · Chronik (PR Stammbaum) ──
     public enum Reiter { Familie, Stammbaum, Chronik }
     private Reiter _reiter = Reiter.Familie;
+
+    /// <summary>Der gezeigte Reiter (das 3D-Familienbuch blättert um, wenn er wechselt – Hauptszene.Buecher.cs).</summary>
+    public Reiter ReiterJetzt => _reiter;
     private Konto? _ansicht; // das Haus, dessen Stammbaum und Chronik gezeigt werden (null: das eigene)
     private readonly List<Button> _reiterKnoepfe = new();
     private HBoxContainer _haeuser = null!;
