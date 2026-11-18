@@ -459,6 +459,24 @@ def raeume_s23(haus, ordner, texturen):
     return zeilen, fehler
 
 
+def blick_licht_s23(haus, ordner, texturen):
+    """12b Rueckseite offen an der Huelle, 12c ohne Licht im Standardblick in Wohnstube, Hinterzimmer und Bibliothek
+    (blick_licht_pruefung.py; Klicktest 18.11.2026: Vordach, Feuerstelle und Balken fast schwarz, Pruefung 12 sah es nicht)."""
+    import blick_licht_pruefung as B
+    texturen = texturen or U.TEXTUREN
+    zeilen, fehler = [], 0
+    z, f = B.rueckseite_offen(os.path.join(ordner, f"{haus}.glb"))
+    zeilen.append(f"12b. Keine offene Rueckseite aussen (von oben nur die Rueckseite sichtbar): {'ok' if not f else str(f) + ' FEHLER'}")
+    zeilen += z; fehler += f
+    for raum, blatt in (("", "innen_trim_s23_elb"), ("_hinterzimmer", "raeume_innen_trim_elb"), ("_bibliothek", "raeume_innen_trim_elb")):
+        glb = os.path.join(ordner, f"{haus}{raum}_innen.glb")
+        if not os.path.exists(glb): continue
+        z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"))
+        zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht ({raum[1:] or 'wohnstube'}): {'ok' if not f else str(f) + ' FEHLER'}")
+        zeilen += z; fehler += f
+    return zeilen, fehler
+
+
 def tueren_s23(M, form, stufe):
     """Pruefung 21: Haustuer und Zimmertueren gegen Elb (bis 1,90 m), Elbin und Mensch (elb_masse; alles Pflicht)."""
     fen = M.fenster(form, stufe)
@@ -644,6 +662,7 @@ def main_s23(haus, ordner, form, stufe, opt):
     texturen = opt.get("texturen")
     zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
     z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
+    z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = Z.dreiecke(glb)
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
