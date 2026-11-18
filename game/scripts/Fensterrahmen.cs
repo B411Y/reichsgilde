@@ -86,6 +86,9 @@ public partial class Fensterrahmen : Node
         _bewegt = true;
     }
 
+    /// <summary>Die Leiste mit ✕ (und „Festhalten“) zeigen? false, solange die Tafel selbst noch nicht zu sehen ist (der Brief, der sich gerade auffaltet).</summary>
+    public bool LeisteSichtbar { get; set; } = true;
+
     /// <summary>Zählt bei Esc mit (false für die Auswahl, die im Ablauf von Esc ihren festen Platz hat).</summary>
     public bool FuerEsc { get; set; } = true;
 
@@ -362,6 +365,7 @@ public partial class Fensterrahmen : Node
         }
         if (_leiste is not null)
         {
+            if (_leiste.Visible != LeisteSichtbar) _leiste.Visible = LeisteSichtbar;
             var ort = _tafel.GlobalPosition + new Vector2(_tafel.Size.X - _leiste.Size.X - 10, 6);
             if (!_leiste.GlobalPosition.IsEqualApprox(ort)) _leiste.GlobalPosition = ort;
         }
