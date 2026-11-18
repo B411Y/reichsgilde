@@ -628,6 +628,20 @@ def schicht_anlegen(stufe):
         LETZT["dach"] = d
         return d
     S23.baue_dach = dach
+    alt_schuppen = S23.FM.schuppen
+
+    def schuppen(h, d, box, ziegelflaeche):
+        """Grundform 3 (Pruefung 12b, 18.11.2026): Die Lagen des Pultdachs zeigen bei den Menschen von der Hausmitte weg (weg_von=MITTE,
+        z 3,0) – beim Schuppen (Dach um 2 m) also nach unten: von oben sah man nur ihre Rueckseiten (im Spiel durchsichtig). Hier nach oben."""
+        ab = len(d.flaechen)
+        alt_schuppen(h, d, box, ziegelflaeche)
+        gedreht = 0
+        for i in range(ab, len(d.flaechen)):
+            pts, uv, st, fa, gl = d.flaechen[i]
+            if st == "Dachziegel" and len(pts) >= 3 and (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized().z < -0.5:
+                d.flaechen[i] = (pts[::-1], list(uv)[::-1], st, fa, gl); gedreht += 1
+        print(f"SCHUPPEN Dachlagen nach oben gedreht: {gedreht}")
+    S23.FM.schuppen = schuppen
     alt_scheiben = S23.baue_scheiben
 
     def scheiben():
