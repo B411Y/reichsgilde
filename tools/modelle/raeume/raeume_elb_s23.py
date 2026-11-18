@@ -18,11 +18,13 @@ sys.path.insert(0, HIER)
 sys.path.insert(0, os.path.join(os.path.dirname(HIER), "neubau"))
 import raeume_masse as M                                                  # noqa: E402
 import raeume_bib as R                                                    # noqa: E402
+from mathutils import Vector                                              # noqa: E402
 # raeume_s23 erst unten laden: es setzt beim Import die Masse in raeume_masse.py auf das Obergeschoss um
 
 VOLK = "elb"
 TUER_H = 2.10                     # Zimmertuer licht (wohnhaus_elb_s23.ZIMMERTUER_HOCH)
 BLICK_HOEHER = 0.12               # Augenhoehe 1,72 m (wohnhaus_elb_s23.BLICK_HOEHER)
+LICHT_ZUM_AUGE = 0.6              # Grundlicht zum Blickpunkt hin (wohnhaus_elb_s23.LICHT_ZUM_AUGE)
 
 
 def umbenennen(text):
@@ -60,6 +62,16 @@ def schicht_anlegen():
         return alt_uv(*a, **kw)
     R.uv2_und_ao = uv
     R.exportiere = lambda objekte, datei: alt_exp(objekte, umbenennen(datei))
+    # Grundlicht zum Blickpunkt hin wie in der Wohnstube (wohnhaus_elb_s23.licht_zum_auge): sonst fast schwarze Balkenseiten zur Kamera
+    alt_anker, auge = R.anker, {}
+
+    def anker(name, ort, *a, **kw):
+        if name == "Blick_Auge": auge["o"] = Vector(ort)
+        if name == "Licht_Raum" and "o" in auge:
+            o, z = Vector(ort), auge["o"]
+            ort = (o.x + (z.x - o.x) * LICHT_ZUM_AUGE, o.y + (z.y - o.y) * LICHT_ZUM_AUGE, o.z)
+        return alt_anker(name, ort, *a, **kw)
+    R.anker = anker
 
 
 if __name__ == "__main__":

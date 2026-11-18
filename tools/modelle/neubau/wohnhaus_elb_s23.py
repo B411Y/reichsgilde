@@ -52,9 +52,20 @@ BOGEN_STUECKE = 3                 # Spitzbogen: Abschnitte je Seite (Stufe 1: 6;
 BOGEN_RAND = et.BOGEN_RAND
 QUERGIEBEL = dict(y=(0.55, 2.15), fenster=(0.66, 0.66))   # Stufe 2: Quergiebel in der Flucht der rechten Wand, hinter dem Schornstein
 UNTERSTAND = dict(y0=0.75, y1=2.20, z=2.33, tiefe=0.60, fall=0.30)   # ueber dem Scheitholz an der linken Wand, unter der Auskragung
+VORDACH_DICKE = 0.025             # Vordach als Platte: Untersicht so weit unter der Dachflaeche (vorher deckungsgleich, siehe vordach_platte)
+LICHT_WAND = 0.25                 # Grundlicht der Wohnstube so weit vor der linken Wand, auf der Hoehe (y) des Blickpunkts (licht_vor_den_herd)
 STUFE = [2]
 FORM = [1]
 LETZT = {}
+
+
+def licht_vor_den_herd(licht, auge):
+    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten, Stadtansicht.Neubau.cs) auf die Seite der Kamera, nahe der linken
+    Wand auf der Hoehe des Blickpunkts (Klicktest 18.11.2026): In der Raummitte (y = -0,3 wie bei den Menschen) stand es hinter den
+    Flaechen, die zur Kamera zeigen – rechte Seiten von Sturz, Wange und Sockel, die Seite des Unterzugs und die Seiten der Deckenbalken
+    bekamen nur Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es
+    nicht auf; Pruefung 12c). Die Hoehe bleibt."""
+    return Vector((-S23.IX + LICHT_WAND, auge.y, licht.z))
 
 
 def umbenennen(text):
@@ -394,7 +405,7 @@ def feuerstelle(raum):
     def zu_stein(pts, uv):
         v0, v1 = next((a, b) for a, b, _ in holz if all(a - 1e-4 <= v <= b + 1e-4 for _, v in uv))
         return [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv]
-    weg = neu_stein = 0
+    weg = neu_stein = leiste = 0
     for t in raum:
         if t.name.startswith("Herd"):
             bleib = []
@@ -414,6 +425,11 @@ def feuerstelle(raum):
                     if r: stuecke = r
                 liste = []
                 for q, u in stuecke:
+                    # Leisten der Taefelung (stehen vor der Wand) im Grundriss der Feuerstelle entfallen: die Brueststange lief sonst hell
+                    # quer durch die Feueroeffnung (Klicktest 18.11.2026); die Wand dahinter ist geschlossen, der Herd deckt die Enden
+                    if (ist_holz(u) and hy0 < sum(p.y for p in q) / len(q) < hy1 and all(abs(p.x - S23.IX) < 0.05 and p.z <= z_haube for p in q)
+                            and any(S23.IX - p.x > 0.004 for p in q)):
+                        leiste += 1; continue
                     if ist_holz(u) and all(in_herd(p) or (abs(p.x - S23.IX) < 0.05 and hy0 - 1e-3 <= p.y <= hy1 + 1e-3 and p.z <= z_haube) for p in q):
                         u = zu_stein(q, u); neu_stein += 1
                     liste.append((q, list(u), st, fa, gl))
@@ -425,7 +441,8 @@ def feuerstelle(raum):
                     v0, v1, _ = BI["lehmwand"]
                     if all(v0 - 1e-4 <= v <= v1 + 1e-4 for _, v in uv):
                         t.flaechen[i] = (pts, [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv], st, fa, gl); neu_stein += 1
-    print(f"INNEN Feuerstelle: {weg} Holzflaechen im Schlot weg, {neu_stein} Flaechen zu Stein (Einfassung, Taefelung, Schlot)")
+    print(f"INNEN Feuerstelle: {weg} Holzflaechen im Schlot weg, {neu_stein} Flaechen zu Stein (Einfassung, Taefelung, Schlot), "
+          f"{leiste} Leistenflaechen in der Feueroeffnung weg")
 
 
 def baue_hauswappen_klein():
@@ -442,6 +459,69 @@ def baue_hauswappen_klein():
 
 
 WAPPEN_INNEN_Y = -0.45
+
+
+# ── Vordach als Platte, Dach frei vom Schornstein ────────────────────────────────────────────────────────────────────────
+
+def vordach_platte(h, ab):
+    """Vordach der Menschen (Dachflaeche und Untersicht auf denselben Punkten, ohne Dicke) als Platte (Klicktest 18.11.2026): Beim
+    Verschmelzen der Punkte vor dem Backen (wohnhaus_mensch_s1_g1.verschmelzen) wurden die beiden Flaechen deckungsgleich und Blender
+    loeschte je Paar eine – welche, hing von der Reihenfolge ab (G2: rechte Dachflaeche weg, das Spiel zeigte dort die Rueckseite der
+    Untersicht, dunkel bzw. durchsichtig). Die Untersicht liegt jetzt VORDACH_DICKE unter der Dachflaeche, Traufe und Stirn sind
+    geschlossen (Pruefung „Rueckseite im Blick“, wohnhaus_elb_messen.py)."""
+    neu = []
+    for i in range(ab, len(h.flaechen)):
+        pts, uv, st, fa, gl = h.flaechen[i]
+        if st != "Dachziegel" or len(pts) != 4: continue
+        n = (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+        if n.z < 0: n = -n
+        schluessel = sorted((round(p.x, 4), round(p.y, 4), round(p.z, 4)) for p in pts)
+        for k in range(ab, len(h.flaechen)):
+            q, u, st2, fa2, gl2 = h.flaechen[k]
+            if st2 == "Fachwerk" and len(q) == 4 and sorted((round(p.x, 4), round(p.y, 4), round(p.z, 4)) for p in q) == schluessel:
+                h.flaechen[k] = ([p - n * VORDACH_DICKE for p in q], u, st2, fa2, gl2)
+                break
+        else:
+            continue
+        mitte = sum(pts, Vector()) / 4 - n * (VORDACH_DICKE / 2)
+        zmin, ymin = min(p.z for p in pts), min(p.y for p in pts)
+        for a, b in zip(pts, pts[1:] + pts[:1]):
+            traufe = abs(a.z - zmin) < 1e-3 and abs(b.z - zmin) < 1e-3
+            stirn = abs(a.y - ymin) < 1e-3 and abs(b.y - ymin) < 1e-3
+            if traufe or stirn:
+                neu.append(([a, b, b - n * VORDACH_DICKE, a - n * VORDACH_DICKE], mitte))
+    for q, mitte in neu:
+        h.vieleck("Fachwerk", q, [(0.1, 0.772), (0.3, 0.772), (0.3, 0.766), (0.1, 0.766)], weg_von=mitte)   # im Band „planken“ (Pruefung 17)
+    print(f"VORDACH Platte: {len(neu)} Stirnflaechen, Untersicht {VORDACH_DICKE * 100:.1f} cm unter der Dachflaeche")
+
+
+def schlot_frei(d):
+    """Dachflaechen im Grundriss des Schornsteins entfallen (Klicktest 18.11.2026): Das Dach lief durch den Schornstein, das Stueck darin
+    backte schwarz, und seine Verdeckung lief ueber die Bildpunkte am Rand als dunkler, fleckiger Fleck neben dem Schornstein aufs Dach.
+    Die Flaechen werden an den Fluchten des Schornsteins geteilt, die Stuecke darin entfallen."""
+    x0, x1, y0, y1 = S23.M.SCHORNSTEIN_RECHTS
+    z_oben = S23.M.Z_FIRST - 0.6
+    drin = lambda p: x0 - 1e-3 <= p.x <= x1 + 1e-3 and y0 - 1e-3 <= p.y <= y1 + 1e-3 and p.z <= z_oben + 1e-3
+    neu_je, weg, geteilt = [], 0, 0
+    for pts, uv, st, fa, gl in d.flaechen:
+        stuecke = [(pts, uv)]
+        if (min(p.x for p in pts) < x1 and max(p.x for p in pts) > x0 and min(p.y for p in pts) < y1 and max(p.y for p in pts) > y0
+                and min(p.z for p in pts) < z_oben):
+            for f, werte in ((lambda p: p.y, (y0, y1)), (lambda p: p.x, (x0, x1))):
+                naechste = []
+                for q, u in stuecke:
+                    r = schnitt(q, u, f, werte)
+                    naechste += r if r else [(q, u)]
+                stuecke = naechste
+            geteilt += 1
+        liste = []
+        for q, u in stuecke:
+            if all(drin(p) for p in q):
+                weg += 1; continue
+            liste.append((list(q), list(u), st, fa, gl))
+        neu_je.append(liste)
+    flaechen_ersetzen(d, neu_je)
+    print(f"DACH Schornstein: {geteilt} Flaechen geteilt, {weg} Stuecke im Schornstein weg")
 
 
 # ── Schicht ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -483,6 +563,8 @@ def schicht_anlegen(stufe):
     def ort(name, o):
         o = Vector(o)
         if name in ("Blick_Auge", "Blick_Ziel"): o.z += BLICK_HOEHER
+        if name == "Blick_Auge": LETZT["auge"] = o.copy()
+        if name == "Licht_Raum" and "auge" in LETZT: o = licht_vor_den_herd(o, LETZT["auge"])
         return o
     g1.anker = lambda name, o, blick=None, **kw: alt_anker(name, ort(name, o), blick, **kw)
     s1.Anker.__init__ = lambda self, name, o, blick=None, **ex: alt_init(self, name, ort(name, o), blick, **ex)
@@ -498,6 +580,7 @@ def schicht_anlegen(stufe):
             pts, uv, st, fa, gl = h.flaechen[i]
             if st == "Fachwerk" and all(v0 - 1e-4 <= v <= 0.78 + 1e-4 for _, v in uv) and max(v for _, v in uv) > v1:
                 h.flaechen[i] = (pts, [(u, min(v, v1 - 0.002)) for u, v in uv], st, fa, gl)
+        vordach_platte(h, ab)
     S23.vordach = vordach
     if stufe == 2:
         # Putzsockel: Erdgeschoss aus Kalkputz der Elben (Band „putz“), Eckquader, Gewaende und Schornstein aus Haustein
@@ -539,6 +622,9 @@ def schicht_anlegen(stufe):
             vorher = d.dreiecke()
             alt_gaube(d, a[0] if a else kw.get("stoff", "Dachziegel"))
             print("DREIECKE Quergiebel:", d.dreiecke() - vorher)
+        vorher = d.dreiecke()
+        schlot_frei(d)
+        print("DREIECKE Schornstein frei:", d.dreiecke() - vorher)
         LETZT["dach"] = d
         return d
     S23.baue_dach = dach
