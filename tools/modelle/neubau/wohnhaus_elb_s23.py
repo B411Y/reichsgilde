@@ -53,19 +53,19 @@ BOGEN_RAND = et.BOGEN_RAND
 QUERGIEBEL = dict(y=(0.55, 2.15), fenster=(0.66, 0.66))   # Stufe 2: Quergiebel in der Flucht der rechten Wand, hinter dem Schornstein
 UNTERSTAND = dict(y0=0.75, y1=2.20, z=2.33, tiefe=0.60, fall=0.30)   # ueber dem Scheitholz an der linken Wand, unter der Auskragung
 VORDACH_DICKE = 0.025             # Vordach als Platte: Untersicht so weit unter der Dachflaeche (vorher deckungsgleich, siehe vordach_platte)
-LICHT_WAND = 0.25                 # Grundlicht der Wohnstube so weit vor der linken Wand, auf der Hoehe (y) des Blickpunkts (licht_vor_den_herd)
 STUFE = [2]
 FORM = [1]
 LETZT = {}
 
 
 def licht_vor_den_herd(licht, auge):
-    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten, Stadtansicht.Neubau.cs) auf die Seite der Kamera, nahe der linken
-    Wand auf der Hoehe des Blickpunkts (Klicktest 18.11.2026): In der Raummitte (y = -0,3 wie bei den Menschen) stand es hinter den
-    Flaechen, die zur Kamera zeigen – rechte Seiten von Sturz, Wange und Sockel, die Seite des Unterzugs und die Seiten der Deckenbalken
-    bekamen nur Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es
-    nicht auf; Pruefung 12c). Die Hoehe bleibt."""
-    return Vector((-S23.IX + LICHT_WAND, auge.y, licht.z))
+    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten, Stadtansicht.Neubau.cs) ueber dem Blickpunkt, in der Hoehe der
+    Menschen (Klicktest 18.11.2026): In der Raummitte (y = -0,3 wie bei den Menschen) stand es hinter den Flaechen, die zur Kamera
+    zeigen – rechte Seiten von Sturz, Wange und Sockel, die Seite des Unterzugs und die Seiten der Deckenbalken bekamen nur
+    Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es nicht auf).
+    Ueber dem Blickpunkt beleuchtet es jede Flaeche, die die Kamera sieht, auch beim Umschauen (Fix 4: an der linken Wand lag es hinter
+    der Seite des ersten Balkens; Pruefung 12c)."""
+    return Vector((auge.x, auge.y, licht.z))
 
 
 def umbenennen(text):
