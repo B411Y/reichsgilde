@@ -11,6 +11,7 @@
 #   TREIBER      opengl3 (Standard), vulkan (Mesa-Software) oder nvidia (Vulkan auf der Grafikkarte).
 #                opengl3 zeigt Gebäude untexturiert – für Bilder mit Texturen, Schatten und
 #                Kantenglättung Vulkan nehmen.
+#   GROESSE      Größe des virtuellen Bildschirms und des Spielfensters, Standard 1600x900 (z. B. 1920x1080, 2560x1080, 1280x800)
 #   DATEN        Ablageort für Spieldaten/Spielstände (XDG_DATA_HOME); Standard <ausgabeordner>/daten
 #
 # Aktionen (durch ; getrennt):
@@ -25,6 +26,7 @@
 X=~/werkzeuge/xvfb
 WORKTREE=${WORKTREE:-$(cd "$(dirname "$0")/../.." && pwd)}
 DISPLAY_NR=${DISPLAY_NR:-93}
+GROESSE=${GROESSE:-1600x900}
 GODOT=~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64
 export LD_LIBRARY_PATH=$X/root/usr/lib/x86_64-linux-gnu:$X/root/lib/x86_64-linux-gnu
 export LIBGL_DRIVERS_PATH=$X/root/usr/lib/x86_64-linux-gnu/dri
@@ -39,10 +41,10 @@ mkdir -p /tmp/xkb; ln -sf $X/root/usr/bin/xkbcomp /tmp/xkb/xkbcomp
 OUT=$1; WARTEN=$2; AKT=$3; shift 4
 export XDG_DATA_HOME=${DATEN:-$OUT/daten}
 mkdir -p "$OUT"
-$X/Xvfb-gepatcht :$DISPLAY_NR -screen 0 1600x900x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > "$OUT/xvfb.log" 2>&1 &
+$X/Xvfb-gepatcht :$DISPLAY_NR -screen 0 ${GROESSE}x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > "$OUT/xvfb.log" 2>&1 &
 XPID=$!
 sleep 2
-DISPLAY=:$DISPLAY_NR $GODOT --rendering-driver ${TREIBER:-opengl3} --path "$WORKTREE/game" --resolution 1600x900 -- "$@" > "$OUT/godot.log" 2>&1 &
+DISPLAY=:$DISPLAY_NR $GODOT --rendering-driver ${TREIBER:-opengl3} --path "$WORKTREE/game" --resolution $GROESSE -- "$@" > "$OUT/godot.log" 2>&1 &
 GPID=$!
 sleep $WARTEN
 XD="env DISPLAY=:$DISPLAY_NR $X/root/usr/bin/xdotool"
