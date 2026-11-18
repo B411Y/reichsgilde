@@ -28,8 +28,10 @@ from trimsheet import (BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN, N, Blatt, Qu
 # linear ab (bei den Menschen wird aus dem Ziel 0,40 im Bild 0,13): `gespeichert` rechnet das Ziel so um, dass im Bild die Probe steht.
 DACH = (0.42, 0.41, 0.34)
 PUTZ = (0.74, 0.72, 0.57)
-BALKEN = ((0.55, 0.50, 0.42), (0.52, 0.47, 0.40), (0.45, 0.41, 0.35))     # balken_a, _b, _c (Schwellen, Sparrenkoepfe dunkler)
-PLANKEN = (0.50, 0.46, 0.40)
+# Holz aussen: warmes Mittelbraun wie Fichte/Tanne (Entscheidung des Nutzers 18.11.2026, alle Stufen; vorher grau verwittert
+# 0,55/0,50/0,42 nach dem Kunstwerk – im Pixel-Look nahm das helle Fachwerk der Fassade den Hell-Dunkel-Wechsel)
+BALKEN = ((0.50, 0.37, 0.24), (0.47, 0.35, 0.22), (0.40, 0.29, 0.18))     # balken_a, _b, _c (Schwellen, Sparrenkoepfe dunkler)
+PLANKEN = (0.46, 0.35, 0.23)
 STEIN = (0.60, 0.57, 0.50)
 # Innen (Kunstwerk innen): Putz cremeweiss, Dielen und Balken grau-braun, Herd aus hellem Stein
 INNEN_PUTZ = (0.80, 0.77, 0.68)
