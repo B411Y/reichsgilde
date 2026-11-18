@@ -47,6 +47,7 @@ import luecken_pruefung as L                                              # noqa
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 TOL = 0.005
+DACH_BIBLIOTHEK = True     # Steinhaus: Bibliothek im Dachgeschoss (Menschen, Zwerge); die Elben setzen das ab (rechteckig im Obergeschoss)
 
 
 def lade(pfad):
@@ -412,10 +413,10 @@ def pruefe(haus, ordner, texturen=None):
         elif z1 <= M.Z_OG_DECKE + 0.2:
             geschoss = "OG"
             im_raum = rx0 - 0.05 <= x_mitte <= rx1 + 0.25 and y_mitte <= M.RAUM_Y[1] + 0.05 and (ax == "y" or x_mitte > rx1 - 0.1)
-            if stufe == 3: raeume = ["Hinterzimmer"] if im_raum else []         # Steinhaus: die Bibliothek liegt im Dachgeschoss
+            if stufe == 3 and DACH_BIBLIOTHEK: raeume = ["Hinterzimmer"] if im_raum else []         # Steinhaus: die Bibliothek liegt im Dachgeschoss
             else: raeume = ["Hinterzimmer", "Bibliothek"] if im_raum else []
             ort = "/".join(raeume) if raeume else ("Flur" if y_mitte < M.STUBE_HINTEN else "Treppengang")
-        elif stufe == 3 and y_mitte < M.STUBE_HINTEN and z0 < M.Z_FIRST:
+        elif stufe == 3 and DACH_BIBLIOTHEK and y_mitte < M.STUBE_HINTEN and z0 < M.Z_FIRST:
             geschoss, raeume, ort = "Dach", ["Bibliothek"], "Bibliothek (Dachgeschoss)"
         else:
             geschoss, raeume, ort = "Dach", [], "Dachboden (Schlafkammern, nicht begehbar)"
@@ -434,7 +435,7 @@ def pruefe(haus, ordner, texturen=None):
         wand = f"{ax}={e:.2f}"
         zeilen.append(f"   {wand:9} u {u0:5.2f}..{u1:5.2f} z {z0:4.2f}..{z1:4.2f}  {geschoss:5} {ort:28} " + ("; ".join(befund) if befund else "kein Raum: kein Glas innen erwartet"))
     # 8. Steinhaus: Moebel der Bibliothek unter den Schraegen (Abstand 3 cm), begehbare Zone
-    if stufe == 3 and "Bibliothek" in innen:
+    if stufe == 3 and DACH_BIBLIOTHEK and "Bibliothek" in innen:
         zu_hoch = set()
         for name, mat, pts, n, *_ in innen["Bibliothek"]:
             if name in ("Raum", "Glas"): continue

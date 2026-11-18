@@ -39,6 +39,10 @@ M.BI_BEISTELL = (M.BI_BEISTELL[0], 1.20, M.BI_BEISTELL[2])
 
 import raeume_bib as R                                                    # noqa: E402
 
+# Steinhaus (Stufe 3): Bibliothek im Dachgeschoss (Menschen, Zwerge). Die Elben setzen das ab (raeume_elb_s23.py): ihr Steinhaus hat
+# keine Gaube, die Bibliothek bleibt rechteckig im Obergeschoss am Platz des Hinterzimmers (Nutzer 17.11.2026).
+DACH_BIBLIOTHEK = True
+
 
 def _fenster_der_wand(wand):
     """Wie raeume_bib.fenster_der_wand, fuer alle vier Waende (die Raeume der Stufe 1 hatten Fenster nur vorn und links)."""
@@ -82,7 +86,7 @@ def main():
     form = int(haus.rsplit("_g", 1)[1])               # Grundform aus dem Namen des Hauses (der Kern ist je Grundform verschoben)
     stufe = int(haus.rsplit("_s", 1)[1].split("_")[0])
     HM.stufe_setzen(stufe)
-    dach = raum == "bibliothek" and stufe == 3
+    dach = raum == "bibliothek" and stufe == 3 and DACH_BIBLIOTHEK
     if raum == "hinterzimmer":
         import raum_hinterzimmer as Q
         teile = [Q.baue_raum, Q.baue_kartentisch, Q.baue_sitzgruppe, Q.baue_waffenstaender, Q.baue_garderobe, Q.baue_vorrat, Q.baue_truhe, Q.baue_ofen, Q.baue_borde, Q.baue_glas]
@@ -90,7 +94,7 @@ def main():
         sichten = [("raumkamera", eye, ziel), ("tuer", eye, (-1.98, 1.30, 1.0)), ("fenster", (-0.9, 1.2, M.Z_BODEN + 1.6), (1.4, -1.9, 1.5))]
         uebersicht, schnitt = ((4.2, -5.0, 5.4), (0.0, 0.1, 0.5)), ("vorn", "rechts")
         mass = [(-1.55, 1.30, M.Z_BODEN, 1.75, 0.44), (0.95, -1.20, M.Z_BODEN, 1.85, 0.44)]
-    elif raum == "bibliothek" and stufe == 3:          # Steinhaus: Bibliothek im Dachgeschoss unter den Schraegen
+    elif dach:                                         # Steinhaus: Bibliothek im Dachgeschoss unter den Schraegen
         import raum_bibliothek as Q
         import raum_bibliothek_dach as RD
         R.GRUPPE = "wohnhaus_mensch_dachraeume_innen"

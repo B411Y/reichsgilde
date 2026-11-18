@@ -22,5 +22,11 @@
     "kante": 512,
     "zellen": 1,
     "plaetze": {"bibliothek_dach": 0}
+  },
+  "wohnhaus_elb_raeume_innen": {
+    "datei": "wohnhaus_elb_raeume_innen_ao_atlas.png",
+    "kante": 1024,
+    "zellen": 2,
+    "plaetze": {"hinterzimmer_s23": 2, "bibliothek_s23": 3}
   }
 }

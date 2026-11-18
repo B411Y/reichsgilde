@@ -61,7 +61,21 @@
     "datei": "wohnhaus_elb_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_elb_s1_g1": 0, "wohnhaus_elb_s1_g2": 1, "wohnhaus_elb_s1_g3": 2, "wohnhaus_elb_s1_g4": 3}
+    "plaetze": {"wohnhaus_elb_s1_g1": 0, "wohnhaus_elb_s1_g2": 1, "wohnhaus_elb_s1_g3": 2, "wohnhaus_elb_s1_g4": 3,
+               "wohnhaus_elb_s2_g1": 4, "wohnhaus_elb_s2_g2": 5, "wohnhaus_elb_s2_g3": 6, "wohnhaus_elb_s2_g4": 7,
+               "wohnhaus_elb_s3_g1": 8, "wohnhaus_elb_s3_g2": 9, "wohnhaus_elb_s3_g3": 10, "wohnhaus_elb_s3_g4": 11}
+  },
+  "wohnhaus_elb_s2": {
+    "datei": "wohnhaus_elb_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 2,
+    "plaetze": {"wohnhaus_elb_s2_g1": 0, "wohnhaus_elb_s2_g2": 1, "wohnhaus_elb_s2_g3": 2, "wohnhaus_elb_s2_g4": 3}
+  },
+  "wohnhaus_elb_s3": {
+    "datei": "wohnhaus_elb_s3_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 2,
+    "plaetze": {"wohnhaus_elb_s3_g1": 0, "wohnhaus_elb_s3_g2": 1, "wohnhaus_elb_s3_g3": 2, "wohnhaus_elb_s3_g4": 3}
   },
   "klappbruecke": {
     "datei": "klappbruecke_ao_atlas.png",

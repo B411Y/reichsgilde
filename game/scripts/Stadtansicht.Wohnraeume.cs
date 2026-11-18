@@ -68,7 +68,7 @@ public partial class Stadtansicht
     /// </summary>
     private static string? WohnraumGruppe(string name) =>
         System.Text.RegularExpressions.Regex.Match(name, "^(.+)_s(\\d+)_g\\d+_([a-z]+)_innen$") is not { Success: true } m ? null
-        : m.Groups[2].Value == "3" && m.Groups[3].Value == "bibliothek" ? m.Groups[1].Value + "_dachraeume_innen"   // Steinhaus: Bibliothek im Dachgeschoss, eigener AO-Atlas
+        : m.Groups[2].Value == "3" && m.Groups[3].Value == "bibliothek" && !m.Groups[1].Value.EndsWith("_elb") ? m.Groups[1].Value + "_dachraeume_innen"   // Steinhaus: Bibliothek im Dachgeschoss, eigener AO-Atlas (Elben: rechteckig im Obergeschoss)
         : m.Groups[1].Value + "_raeume_innen";
 
     /// <summary>Hat das Haus des Spielers diesen Raum (Kern), und steht es als Neubau? Mit <c>--neubauraeume</c> für Bilder auch ohne Anbau.</summary>
