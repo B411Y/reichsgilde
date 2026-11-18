@@ -36,6 +36,10 @@ def baue(quellen):
     band("balken", Quelle(quellen, "rough_wood", gedreht=True), te.INNEN_BALKEN, ab=300, kontrast=1.0, eigenfarbe=0.15)
     band("moebel", Quelle(quellen, "wood_table_001", gedreht=True), tuple(c * 0.95 for c in te.INNEN_BALKEN), ab=200, kontrast=1.05, eigenfarbe=0.2)
     band("bruchstein", te.Quelle1k(quellen, "large_sandstone_blocks_01"), te.INNEN_STEIN, ab=300, eigenfarbe=0.5)
+    import elb_schnitzwerk                                  # geschnitzte Ranke auf Balken und Moebeln (Nutzer 18.11.2026)
+    for name, saat in (("balken", 21), ("moebel", 22)):
+        a, e = blatt.zeilen(B[name])
+        elb_schnitzwerk.ranke_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, B[name][2], saat=saat)
     blatt.speichere("raeume_innen_trim_elb")
 
 

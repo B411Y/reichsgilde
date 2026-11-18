@@ -28,10 +28,11 @@ from trimsheet import (BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN, N, Blatt, Qu
 # linear ab (bei den Menschen wird aus dem Ziel 0,40 im Bild 0,13): `gespeichert` rechnet das Ziel so um, dass im Bild die Probe steht.
 DACH = (0.42, 0.41, 0.34)
 PUTZ = (0.74, 0.72, 0.57)
-# Holz aussen: warmes Mittelbraun wie Fichte/Tanne (Entscheidung des Nutzers 18.11.2026, alle Stufen; vorher grau verwittert
-# 0,55/0,50/0,42 nach dem Kunstwerk – im Pixel-Look nahm das helle Fachwerk der Fassade den Hell-Dunkel-Wechsel)
-BALKEN = ((0.50, 0.37, 0.24), (0.47, 0.35, 0.22), (0.40, 0.29, 0.18))     # balken_a, _b, _c (Schwellen, Sparrenkoepfe dunkler)
-PLANKEN = (0.46, 0.35, 0.23)
+# Holz aussen und innen: helles Fichten-/Tannenbraun (Entscheidungen des Nutzers 18.11.2026, alle Stufen): Mitte zwischen dem grau
+# verwitterten Holz des Kunstwerks (0,55/0,50/0,42) und dem ersten Fichtenbraun (0,50/0,37/0,24)
+BALKEN = ((0.525, 0.435, 0.33), (0.495, 0.41, 0.31), (0.425, 0.35, 0.265))   # balken_a, _b, _c (Schwellen, Sparrenkoepfe dunkler)
+PLANKEN = (0.48, 0.405, 0.315)
+SCHNITZWERK = ("balken_a", "balken_b", "balken_c")   # Baender mit geschnitzter Ranke (elb_schnitzwerk.py; Nutzer 18.11.2026)
 STEIN = (0.60, 0.57, 0.50)
 # Innen (Kunstwerk innen): Putz cremeweiss, Dielen und Balken grau-braun, Herd aus hellem Stein
 INNEN_PUTZ = (0.80, 0.77, 0.68)
@@ -158,6 +159,9 @@ def baue_aussen(quellen):
         blatt.setze(B[name], faerbe(f, gespeichert(ton), kontrast=kontrast, eigenfarbe=0.1), n, arm)
         blatt.verlauf(B[name], 0.7, 0.7, 9)
         blatt.fase(B[name])
+        if name in SCHNITZWERK:
+            import elb_schnitzwerk
+            elb_schnitzwerk.ranke_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, B[name][2], saat=1 + i)
     putz = Quelle(quellen, "white_plaster_rough_01")
     a, e = blatt.zeilen(B["putz"])
     f, n, arm = putz.streifen(e - a, ab=200)
@@ -195,6 +199,9 @@ def baue_innen(quellen):
     dielen = Quelle(quellen, "old_planks_02", gedreht=True)
     band("bohlen", dielen, gespeichert(INNEN_DIELEN), ab=60)
     band("balken", Quelle(quellen, "rough_wood", gedreht=True), gespeichert(INNEN_BALKEN), ab=300, kontrast=1.0, eigenfarbe=0.15)
+    import elb_schnitzwerk                                  # geschnitzte Ranke auf Balken, Rahmen und Moebeln (Nutzer 18.11.2026)
+    a, e = blatt.zeilen(B["balken"])
+    elb_schnitzwerk.ranke_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, B["balken"][2], saat=11)
     band("lehmwand", Quelle(quellen, "white_plaster_rough_01"), gespeichert(INNEN_PUTZ), ab=200, kontrast=0.7, eigenfarbe=0.1)   # Kalkputz statt Lehm
     blatt.verlauf(B["lehmwand"], 0.92, 0.82, 50)
     band("lehmboden", dielen, gespeichert(tuple(c * 0.95 for c in INNEN_DIELEN)), ab=700, versatz=400)        # Dielenboden statt Lehm (Kunstwerk)
