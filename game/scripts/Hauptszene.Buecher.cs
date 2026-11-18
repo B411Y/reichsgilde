@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// (<c>Stadtansicht.Innenbuecher.cs</c>: Kamera-Schwenk, Aufklappen, Umblättern, Zuklappen) mit den echten 2D-Tafeln.
 ///
 ///   • Personalbuch (Lesepult) → Personaltafel, Familienbuch (Stubentisch) → Familienbuch, Kontorbuch (Schreibpult) → Bericht
-///     (Jahresrechnung, Rivalen, Umsätze, Verlauf; solange das Buch offen ist, steht er in der Bildmitte über dem Buch statt rechts).
+///     (Jahresrechnung, Rivalen, Umsätze, Verlauf; er öffnet wie alle Fenster in der Bildmitte, also über dem Buch).
 ///   • Die Tafel öffnet sich erst, wenn die Seiten flach liegen. Wechselt ihr Reiter, blättert das Buch um; die Tafel ist so lange ausgeblendet.
 ///   • Schließt der Spieler die Tafel (Esc, ✕, eine andere Tafel) oder klickt er neben das Buch, klappt es zu und die Kamera fährt zurück.
 ///   • Während des Schwenks liegt eine unsichtbare Sperre über der ganzen Oberfläche: nichts ist anklickbar, Esc tut nichts.
@@ -96,7 +96,6 @@ public partial class Hauptszene
                 }
                 _buchReiter = BuchReiter(_buchArt);
                 _buchPhase = BuchPhase.TafelOffen;
-                if (_buchArt == BuchArt.Kontor) BerichtMittig();
                 break;
             case BuchPhase.TafelOffen when !tafel.Visible: // der Spieler hat die Tafel geschlossen (Esc, ✕, andere Tafel)
                 tafel.Modulate = Colors.White;
@@ -114,15 +113,7 @@ public partial class Hauptszene
                 var soll = _stadt.BuchTafelSichtbar ? 1f : 0f;
                 var ist = tafel.Modulate.A;
                 tafel.Modulate = new Color(1, 1, 1, soll < ist ? 0 : Mathf.MoveToward(ist, soll, (float)delta * 10));
-                if (_buchArt == BuchArt.Kontor) BerichtMittig();
                 break;
         }
-    }
-
-    /// <summary>Der Bericht steht sonst rechts; über dem Kontorbuch gehört er in die Bildmitte. Beim nächsten gewöhnlichen Öffnen heftet er sich wieder rechts an.</summary>
-    private void BerichtMittig()
-    {
-        var fenster = GetViewport().GetVisibleRect().Size;
-        _berichtTafel.GlobalPosition = ((fenster - _berichtTafel.Size) / 2).Round();
     }
 }

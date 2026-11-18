@@ -34,19 +34,19 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Platz des Schreibpults im Werkraum je Innenmodell: Ort auf dem Boden und Drehung um die Hochachse in Grad (0: der Schreiber steht südlich
-    /// und blickt nach Norden). An der Wand, frei von Möbeln, Arbeitsplätzen und Türen (aus den Belegungskarten der Modelle, im Klicktest angesehen).
+    /// und blickt nach Norden). An der Wand, frei von Möbeln, Arbeitsplätzen, Türen und Hoftor (aus den Belegungskarten der Modelle, im Klicktest angesehen).
     /// </summary>
     private static readonly Dictionary<string, (Vector3 Ort, float Grad)> SchreibpultPlaetze = new()
     {
         ["innen/alchimist_innen"] = (new Vector3(2.6f, 0, 3.05f), 180),
-        ["innen/dieb_innen"] = (new Vector3(4.5f, 0, 1.0f), -90),
-        ["innen/gardist_innen"] = (new Vector3(5.3f, 0, 3.55f), 180),
+        ["innen/dieb_innen"] = (new Vector3(-2.55f, 0, 2.95f), 180),
+        ["innen/gardist_innen"] = (new Vector3(5.6f, 0, -0.5f), -90),
         ["innen/geldleiher_innen"] = (new Vector3(5.6f, 0, -0.9f), -90),
-        ["innen/parfumeur_innen"] = (new Vector3(-3.5f, 0, 1.0f), 90),
-        ["innen/prediger_innen"] = (new Vector3(-9.7f, 0, -2.4f), 90),
-        ["innen/schmied_innen"] = (new Vector3(-4.1f, 0, -0.25f), 90),
+        ["innen/parfumeur_innen"] = (new Vector3(2.9f, 0, 2.95f), 180),
+        ["innen/prediger_innen"] = (new Vector3(-9.2f, 0, -0.7f), 90),
+        ["innen/schmied_innen"] = (new Vector3(4.1f, 0, 0.95f), -90),
         ["innen/steinmetz_innen"] = (new Vector3(3.62f, 0, 1.0f), -90),
-        ["innen/tischler_innen"] = (new Vector3(-3.5f, 0, 0.8f), 90),
+        ["innen/tischler_innen"] = (new Vector3(1.0f, 0, 2.95f), 180),
         ["innen/wirt_innen"] = (new Vector3(-0.42f, 0, 3.0f), 180),
     };
 
@@ -108,6 +108,8 @@ public partial class Stadtansicht
             InnenKlickAnlegen(a, md, schreibpult, "bedienung:Kontor:Buch"); // Namensschild unter der Maus wie bei den anderen Gegenständen
             _buchStaende[(a, BuchArt.Kontor)] = kontor;
         }
+        GD.Print($"[buecher] {datei}: Lesepult {(_buchStaende.TryGetValue((a, BuchArt.Personal), out var p) ? p.Buch.GlobalPosition.ToString("0.00") : "fehlt")}, " +
+                 $"Schreibpult {(_buchStaende.TryGetValue((a, BuchArt.Kontor), out var k) ? k.Buch.GlobalPosition.ToString("0.00") : "fehlt")}");
     }
 
     /// <summary>Wohnstube: das Familienbuch liegt links auf dem Stubentisch, das Wappenfeld des Einbands trägt die Hausfarbe.</summary>
@@ -186,6 +188,7 @@ public partial class Stadtansicht
                 else if (name == "Wappenfeld")
                 {
                     wappen = (StandardMaterial3D)stoff.Duplicate();
+                    wappen.AlbedoTexture = null; // die reine Hausfarbe, nicht mit dem Platzhalterbild des Modells gemischt
                     teil.SetSurfaceOverrideMaterial(i, wappen);
                 }
             }
@@ -261,6 +264,21 @@ public partial class Stadtansicht
         return true;
     }
 
+    /// <summary>
+    /// Prüfhilfe (Startoption <c>--buchblick=</c>, nur für Bildschirmfotos): stellt die Raumkamera schräg vor das Buch, damit man Pult, Buch und
+    /// Umgebung sieht. Gibt false zurück, wenn es das Buch im gezeigten Raum nicht gibt.
+    /// </summary>
+    public bool BuchBlickPruefen(BuchArt art)
+    {
+        if (BuchStandHier(art) is not { } stand) return false;
+        var buch = stand.Buch.GlobalTransform;
+        var vorn = new Vector3(buch.Basis.Z.X, 0, buch.Basis.Z.Z).Normalized();
+        var seite = new Vector3(vorn.Z, 0, -vorn.X);
+        _raumKamera.LookAtFromPosition(buch.Origin + vorn * 2.4f + seite * 0.9f + Vector3.Up * 1.3f, buch.Origin + Vector3.Down * 0.3f, Vector3.Up);
+        _blickZiel = _raumKamera.GlobalTransform;
+        return true;
+    }
+
     /// <summary>Reiterwechsel der Tafel: Das Buch blättert um (vorwärts oder zurück).</summary>
     public void BuchUmblaettern(bool vorwaerts) => _buchAblauf?.Blaettern(vorwaerts, Meldungseinstellungen.Bewegung);
 
@@ -330,7 +348,7 @@ public partial class Stadtansicht
         var buch = stand.Buch.GlobalTransform;
         Rect2? flaeche = null;
         foreach (var x in new[] { -halbX, halbX })
-        foreach (var y in new[] { 0f, 0.08f })
+        foreach (var y in offen ? new[] { mitte.Y } : new[] { 0f, 0.08f }) // offen: die Ebene der Seiten; zu: der ganze Buchblock
         foreach (var z in new[] { -halbZ, halbZ })
         {
             var punkt = buch * (new Vector3(mitte.X + x, y, z));

@@ -735,6 +735,7 @@ public partial class Hauptszene : Node
             if (optionen.TryGetValue("arbeiter", out var arbeiter))
                 _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
             if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
+            if (optionen.TryGetValue("buchblick", out var buchBlick) && Enum.TryParse<BuchArt>(buchBlick, true, out var blickArt)) _stadt.BuchBlickPruefen(blickArt); // Prüfhilfe: Raumkamera vor das Pult
             if (optionen.TryGetValue("buch", out var buchName) && Enum.TryParse<BuchArt>(buchName, true, out var buchArt)) BuchAngeklickt(buchArt); // 3D-Buch im gezeigten Raum öffnen
         }
 
