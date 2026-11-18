@@ -35,8 +35,9 @@ PLANKEN = (0.46, 0.35, 0.23)
 STEIN = (0.60, 0.57, 0.50)
 # Innen (Kunstwerk innen): Putz cremeweiss, Dielen und Balken grau-braun, Herd aus hellem Stein
 INNEN_PUTZ = (0.80, 0.77, 0.68)
-INNEN_DIELEN = (0.50, 0.43, 0.35)
-INNEN_BALKEN = (0.47, 0.42, 0.35)
+# Holz innen wie aussen: Fichte/Tanne (Entscheidung des Nutzers 18.11.2026; vorher grau-braun 0,50/0,43/0,35 und 0,47/0,42/0,35)
+INNEN_DIELEN = PLANKEN
+INNEN_BALKEN = BALKEN[0]
 INNEN_STEIN = (0.60, 0.58, 0.53)
 
 
