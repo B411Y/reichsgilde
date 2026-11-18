@@ -125,7 +125,9 @@ def schuppen(h, d, box, ziegelflaeche):
     xe = x1 + 0.25
     unten = lambda y: Vector((xe, y, z_dach(xe) + dick))
     oben = lambda y: Vector((x0, y, z_hoch + dick))
-    ziegelflaeche(d, "Dachziegel", unten, oben, (y0 - 0.2, y1 + 0.2), saat=9)
+    # Lagen von einem Punkt unter dem Schuppen weg (Pruefung 12b, 18.11.2026): mit der Hausmitte (z 3,0, ueber dem Pultdach) zeigten
+    # sie nach unten, von oben sah man nur ihre Rueckseiten (im Spiel durchsichtig)
+    ziegelflaeche(d, "Dachziegel", unten, oben, (y0 - 0.2, y1 + 0.2), saat=9, weg_von=((x0 + x1) / 2, (y0 + y1) / 2, 0.0))
     d.vieleck("Fachwerk", [Vector((xe, y0 - 0.2, z_dach(xe))), Vector((xe, y1 + 0.2, z_dach(xe))), Vector((x0, y1 + 0.2, z_hoch)), Vector((x0, y0 - 0.2, z_hoch))],
               [(0, 0.775), (1, 0.775), (1, 0.70), (0, 0.70)], zu=(x0, 0, 0))
     for y, aussen in ((y0 - 0.2, -1), (y1 + 0.2, 1)):
