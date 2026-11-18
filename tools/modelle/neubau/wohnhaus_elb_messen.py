@@ -656,6 +656,9 @@ def main_s23(haus, ordner, form, stufe, opt):
             name, mat, pts = f[0], f[1], f[2]
             if mat != "Fachwerk": return False
             if name == "Dach" and min(p.y for p in pts) > M.HINTEN - 0.05: return True
+            # Vordach aus Holzschindeln (Entscheidung des Nutzers 18.11.2026): vor der Gassenwand in Hoehe der Erdgeschossdecke
+            if name == "Haus" and max(p.y for p in pts) <= M.VORN + 0.01 and all(M.Z_EG_DECKE - 0.8 <= p.z <= M.Z_EG_DECKE + 0.6 for p in pts):
+                return True
             return all(abs(p.x - dx) > M.BX - 0.05 for p in pts) and max(p.z for p in pts) < M.Z_EG_DECKE
         return alt_kein([f for f in fl if not elb_holz(f)], dx)
     MS23.kein_fachwerk = kein_fachwerk

@@ -69,7 +69,9 @@ def schicht_anlegen():
         if name == "Blick_Auge": auge["o"] = Vector(ort)
         if name == "Licht_Raum" and "o" in auge:
             o, z = Vector(ort), auge["o"]
-            ort = (o.x + (z.x - o.x) * LICHT_ZUM_AUGE, o.y + (z.y - o.y) * LICHT_ZUM_AUGE, o.z)
+            # nur in y (quer zu den Deckenbalken): in x bleibt es in der Raummitte, sonst lag die linke Haelfte der Balkenseite 2-3 m
+            # vom Licht entfernt und blieb dunkel (Klicktest 18.11.2026, Fix 3)
+            ort = (o.x, o.y + (z.y - o.y) * LICHT_ZUM_AUGE, o.z)
         return alt_anker(name, ort, *a, **kw)
     R.anker = anker
 

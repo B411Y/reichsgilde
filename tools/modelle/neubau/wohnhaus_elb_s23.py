@@ -483,6 +483,13 @@ def vordach_platte(h, ab):
                 break
         else:
             continue
+        # Holzschindeln wie das Pultdach des Holzunterstands (Band „planken“, Stoff Fachwerk) statt Schiefer (Entscheidung des Nutzers
+        # 18.11.2026): der dunkle Schiefer wirkte unter der Auskragung fast schwarz
+        vs0, vs1, ms = h.baender["stroh"]
+        vp0, vp1, mp = h.baender["planken"]
+        vs_min = min(v for _, v in uv)
+        uv = [(u * ms / mp, vp0 + (v - vs_min) / max(vs1 - vs_min, 1e-6) * (vp1 - 0.003 - vp0)) for u, v in uv]
+        h.flaechen[i] = (pts, uv, "Fachwerk", fa, gl)
         mitte = sum(pts, Vector()) / 4 - n * (VORDACH_DICKE / 2)
         zmin, ymin = min(p.z for p in pts), min(p.y for p in pts)
         for a, b in zip(pts, pts[1:] + pts[:1]):
