@@ -78,6 +78,8 @@
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
     <!-- Ablauf der 3D-Schriftrollen der Meldungsleiste (Aufrollen, Pendeln, Zurollen) kennt kein Godot – SchriftrolleAblaufTests.cs -->
     <Compile Include="..\..\game\scripts\SchriftrolleAblauf.cs" Link="Handschuh\SchriftrolleAblauf.cs" />
+    <!-- Ablauf der 3D-Bücher der Innenansichten (Schwenk, Aufklappen, Umblättern, Zuklappen) kennt kein Godot – BuchAblaufTests.cs -->
+    <Compile Include="..\..\game\scripts\BuchAblauf.cs" Link="Handschuh\BuchAblauf.cs" />
     <!-- Ablauf des großen 3D-Briefs (Siegelbruch, Auffalten, Tafel, Zufalten, Streckregel) kennt kein Godot – BriefAblaufTests.cs -->
     <Compile Include="..\..\game\scripts\BriefAblauf.cs" Link="Handschuh\BriefAblauf.cs" />
     <!-- Wechsel Hand/Messing-I und Windrose des 3D-Zeigers – ZeigerSymboleTests.cs -->

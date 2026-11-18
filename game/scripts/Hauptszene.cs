@@ -517,6 +517,7 @@ public partial class Hauptszene : Node
         }
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
+        BuecherVerbinden(); // 3D-Bücher: Kamera-Schwenk, Aufklappen, Tafel darüber (Hauptszene.Buecher.cs)
         _uebersicht.Gemeldet += Protokollieren;
         _uebersicht.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _uebersicht.HineinGewuenscht += BetriebBetreten;
@@ -734,6 +735,8 @@ public partial class Hauptszene : Node
             if (optionen.TryGetValue("arbeiter", out var arbeiter))
                 _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
             if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
+            if (optionen.TryGetValue("buchblick", out var buchBlick) && Enum.TryParse<BuchArt>(buchBlick, true, out var blickArt)) _stadt.BuchBlickPruefen(blickArt); // Prüfhilfe: Raumkamera vor das Pult
+            if (optionen.TryGetValue("buch", out var buchName) && Enum.TryParse<BuchArt>(buchName, true, out var buchArt)) BuchAngeklickt(buchArt); // 3D-Buch im gezeigten Raum öffnen
         }
 
         if (_simulation.Zeit.VergangeneMinuten == 0) // nur bei einer neuen Partie, nicht nach dem Laden
@@ -1343,6 +1346,7 @@ public partial class Hauptszene : Node
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));
         BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
+        BuecherAktualisieren(delta); // 3D-Bücher: Sperre, Tafel über dem Buch, Umblättern (Hauptszene.Buecher.cs)
     }
 
     /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen, 5–6 = Testtempo 16×/32×. (Kamera: siehe Stadtansicht)</summary>
@@ -1352,7 +1356,8 @@ public partial class Hauptszene : Node
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
             // Esc geht einen Schritt zurück: feste Tooltips → Fenster (das oberste) → Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
-            if (Tooltips.ObersteFesteSchliessen()) { /* ein festgeheftetes Tooltip-Fenster ist zu */ }
+            if (_stadt.BuchGesperrt) { /* während des Kamera-Schwenks zum Buch und zurück geschieht nichts (Hauptszene.Buecher.cs) */ }
+            else if (Tooltips.ObersteFesteSchliessen()) { /* ein festgeheftetes Tooltip-Fenster ist zu */ }
             else if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
                 HilfeSchliessen();
@@ -1370,6 +1375,8 @@ public partial class Hauptszene : Node
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
+            else if (_stadt.BuchSchauAktiv)
+                BuchSchliessen(); // offenes Buch: zuklappen, Kamera zurück – das Haus verlässt man erst danach
             else if (_stadt.InnenKennung is not null)
                 _stadt.InnenansichtVerlassenMitBlende();
             else if (_berichtTafel.Visible)

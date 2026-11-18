@@ -365,6 +365,7 @@ public partial class Stadtansicht
         GiFensterGewichten(md.Lichter.Where(l => l.Art == LichtArt.Fenster).Select(l => l.Licht)); // viele Fenster in einem Raum: jedes trägt weniger zu SDFGI bei (Stadtansicht.GlobaleBeleuchtung.cs)
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke, Dampf und Flammen
+        InnenBuecherAnlegen(a, md, wurzel, datei); // Lesepult mit Personalbuch, Schreibpult mit Kontorbuch (Stadtansicht.Innenbuecher.cs)
 
         // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (Sägehalle, Bauhütte, Laden, Laborturm, Duftpavillon) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
@@ -1264,6 +1265,7 @@ public partial class Stadtansicht
     private static string BedienungName(Werkstil stil, string tafel, string ding) => (tafel, ding) switch
     {
         ("Personal", _) => "Personalbuch",
+        ("Kontor", _) => "Kontorbuch",
         ("Auftraege", _) => "Kartentisch – Aufträge",
         ("Wache", _) => "Wachplan",
         ("Bank", _) => "Hauptbuch",
@@ -1311,6 +1313,7 @@ public partial class Stadtansicht
                 return (BedienungName(a.Stil, teile[1], teile[2]), teile[1] switch
                 {
                     "Personal" => "Klick: Arbeiter einstellen, befördern, entlassen, Lohn und Prämie",
+                    "Kontor" => "Klick: Jahresrechnung, Rivalen, Umsätze und Verlauf",
                     "Auftraege" => "Klick: Aufträge, Banden und Erpresserbriefe im Hinterzimmer",
                     "Wache" => "Klick: Wachplan – Streife, Geleit, Zelle, Sold und Razzien",
                     "Bank" => "Klick: Bankgeschäft – Kasse, Zins für Häuser und offene Kredite",

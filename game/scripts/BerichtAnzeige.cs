@@ -24,6 +24,9 @@ public partial class BerichtAnzeige : PanelContainer
     private Simulation? _simulation;
     private Konto? _spieler;
     private TabContainer _reiter = null!;
+
+    /// <summary>Nummer des gezeigten Reiters (das 3D-Kontorbuch blättert um, wenn er wechselt – Hauptszene.Buecher.cs).</summary>
+    public int ReiterNummer => _reiter.CurrentTab;
     private Label _jahr = null!;
     private Button _berichtKnopf = null!;
     private VBoxContainer _rivalen = null!;
