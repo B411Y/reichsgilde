@@ -381,7 +381,31 @@ def baue_decke():
             r.kasten(S, (x - 0.08, ya, M.Z_EG_DECKE - 0.16), (x + 0.08, yb, M.Z_EG_DECKE), "balken", ohne=("+z", "-y", "+y"), laengs="y")
     xe = sx0 if sy0 < 0.10 and sy1 > -0.10 else IX
     r.kasten(S, (-IX, -0.10, M.Z_EG_DECKE - 0.24), (xe, 0.10, M.Z_EG_DECKE - 0.16), "balken", ohne=("-x", "+x"), laengs="x")   # Unterzug
+    # Geschnitzte Kopfbaender (Nutzer 18.11.2026): unter dem Unterzug an der linken Wand und unter den Balken der linken Haelfte an der
+    # Rueckwand (dort liegen weder Fenster noch Tueren; rechts stehen Herd, Schlot und die Zimmertuer)
+    zu, zb = M.Z_EG_DECKE - 0.24, M.Z_EG_DECKE - 0.16
+    kopfband(r, S, Vector((-IX, 0.0, zu)), Vector((1, 0, 0)))
+    for i in range(3):
+        x = -IX + 0.40 + i * (2 * IX - 0.80) / 5
+        kopfband(r, S, Vector((x, IH, zb)), Vector((0, -1, 0)))
     return r
+
+
+KOPFBAND = dict(laenge=0.50, bogen=0.10, dicke=0.08, breite=0.10, stuecke=4)
+
+
+def kopfband(r, S, ecke, raus):
+    """Geschwungenes Kopfband in der Ecke zwischen Wand und Balken: `ecke` = Unterkante des Balkens an der Wand, `raus` = waagrecht
+    von der Wand in den Raum. Ein Bogen (quadratische Bezierkurve, zur Ecke hin gewoelbt) aus KOPFBAND["stuecke"] Kantholzstuecken
+    im Band „balken“ (geschnitzte Ranke); beide Enden stecken 5 cm in Wand bzw. Balken."""
+    L, b = KOPFBAND["laenge"], KOPFBAND["bogen"]
+    wand = ecke - raus * 0.05 + Vector((0, 0, -L))
+    balken = ecke + raus * L + Vector((0, 0, 0.05))
+    mitte = ecke + raus * (L / 2 - b) + Vector((0, 0, -(L / 2 - b)))
+    pkt = [wand * (1 - t) ** 2 + mitte * 2 * t * (1 - t) + balken * t * t for t in (k / KOPFBAND["stuecke"] for k in range(KOPFBAND["stuecke"] + 1))]
+    quer = raus.cross(Vector((0, 0, 1)))
+    for a, c in zip(pkt[:-1], pkt[1:]):
+        r.stab(S, a, c, KOPFBAND["dicke"], "balken", breite=KOPFBAND["breite"], oben=quer)
 
 
 def feuerstelle(raum):
