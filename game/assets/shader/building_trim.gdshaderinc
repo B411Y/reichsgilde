@@ -30,7 +30,7 @@ uniform vec4 stein_baender = vec4(0.85, 0.95, -1.0, -1.0);
 // Häuser-Array: Steinbänder je Ebene aus STEIN_EBENE (Reihenfolge wie Steinebenen.cs, dort derselbe Inhalt, SteinebenenTests vergleicht).
 // Eigene Arrays (Innenräume, Rathaus, Brücke) schalten das ab und setzen stein_baender.
 uniform bool stein_je_ebene = true;
-const vec4 STEIN_EBENE[10] = vec4[10](
+const vec4 STEIN_EBENE[12] = vec4[12](
 	vec4(0.85, 0.95, -1.0, -1.0),   // 0 Mensch Stufe 1: Sockel (K4)
 	vec4(0.85, 0.95, -1.0, -1.0),   // 1 Mensch Stufe 2: Mauer (K1)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 2 Mensch Stufe 3: Werkstein im Putzband, Mauer (K1)
@@ -38,9 +38,11 @@ const vec4 STEIN_EBENE[10] = vec4[10](
 	vec4(0.50, 0.70, 0.85, 0.95),   // 4 Zwerg Stufe 2: dunkler Quader, Bruchstein (K3)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein
 	vec4(0.85, 0.95, -1.0, -1.0),   // 6 Elb Stufe 1: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz
-	vec4(0.50, 0.70, 0.85, 0.95),   // 7 Halbling: Platzhalter, Akzent (K5), Flächen (K2)
+	vec4(0.85, 0.95, -1.0, -1.0),   // 7 Halbling Stufe 1: K2 im Bruchsteinband (Sockel, Schlot), im Putzband Lehmputz
 	vec4(0.85, 0.95, -1.0, -1.0),   // 8 Elb Stufe 2: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz (Putzsockel, Gefache)
-	vec4(0.50, 0.70, 0.85, 0.95)    // 9 Elb Stufe 3: Werkstein (K5) im Putzband, Mauer (K2)
+	vec4(0.50, 0.70, 0.85, 0.95),   // 9 Elb Stufe 3: Werkstein (K5) im Putzband, Mauer (K2)
+	vec4(0.85, 0.95, -1.0, -1.0),   // 10 Halbling Stufe 2: Backstein K6 im Bruchsteinband (Erdgeschoss), im Putzband Lehmputz
+	vec4(0.50, 0.70, 0.85, 0.95)    // 11 Halbling Stufe 3: Werkstein im Putzband, Mauer Backstein K6
 );
 
 // Pixel-Look in Innenräumen (wetter_an = 0; aus dem Rathaus-Branch, Commit 9421283b, hier auf Arrays umgestellt): Aus der Nähe
@@ -80,7 +82,7 @@ void vertex() {
 
 void fragment() {
 	vec3 uvw = vec3(UV, float(ebene));
-	vec4 sb = stein_je_ebene ? STEIN_EBENE[clamp(ebene, 0, 9)] : stein_baender;
+	vec4 sb = stein_je_ebene ? STEIN_EBENE[clamp(ebene, 0, 11)] : stein_baender;
 	bool stein = (UV.y >= sb.x && UV.y < sb.y) || (UV.y >= sb.z && UV.y < sb.w);
 	bool scharf = pixel_look > 0.5 && wetter_an < 0.5;   // Pixel-Look im Haus
 	float grob = scharf ? 0.0 : pixel_look * (stein ? stein_mip : pixel_mip);
