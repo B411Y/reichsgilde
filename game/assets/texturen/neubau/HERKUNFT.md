@@ -82,8 +82,8 @@ Urheber laut Poly-Haven-Schnittstelle (`api.polyhaven.com/assets`, Abzug im Quel
 | Kürzel | Asset-ID | Urheber | Seite | Reale Größe | Verwendet für |
 |---|---|---|---|---|---|
 | K1 | `castle_wall_varriation` | Rob Tuytel | https://polyhaven.com/a/castle_wall_varriation | 2 × 2 m | Menschen: Mauern (Stufe 2 und 3) |
-| K2 | `large_sandstone_blocks_01` | Rob Tuytel | https://polyhaven.com/a/large_sandstone_blocks_01 | 3 × 3 m | Elben und Halblinge: Flächen; Zwerge Stufe 3: heller Haustein im Band „bruchstein“ (seit 16.11.2026) |
-| K5 | `Bricks100` | ambientCG (kein Einzelurheber genannt) | https://ambientcg.com/view?id=Bricks100 | unbekannt, angenommen 2 × 1 m | Elben und Halblinge: Akzent |
+| K2 | `large_sandstone_blocks_01` | Rob Tuytel | https://polyhaven.com/a/large_sandstone_blocks_01 | 3 × 3 m | Halblinge: Flächen; Elben Stufe 1: Haustein im Band „bruchstein“ (Sockel, Schlot; seit 17.11.2026); Zwerge Stufe 3: heller Haustein im Band „bruchstein“ (seit 16.11.2026) |
+| K5 | `Bricks100` | ambientCG (kein Einzelurheber genannt) | https://ambientcg.com/view?id=Bricks100 | unbekannt, angenommen 2 × 1 m | Halblinge: Akzent (in Elben Stufe 1 nicht eingesetzt: das Kunstwerk zeigt keinen Backstein) |
 
 Nachbearbeitung (alles im Skript): in eigener Farbe eingesetzt (nicht umgefärbt); auf Bandhöhe zugeschnitten, Ober- und Unterkante auf dunkle Lagerfugen gelegt; waagerecht in 2^k Kacheln je Band (nahtlos) und dafür im Maßstab angepasst (K2 1,33, sonst 1,0). K3 (`stone_wall_04`) und K4 (`PavingStones142`) aus der Auswahl vom 15.11.2026 sind nach der Rückmeldung des Nutzers nicht eingesetzt. Keine Bild-KI.
 
@@ -100,3 +100,9 @@ Die Trim-Sheets der Zwergenhäuser haben dieselben Bandgrenzen wie die der Mensc
 | `old_planks_02`, `rough_wood`, `rusty_metal_02`, `hessian_230`, `knitted_fleece`, `bark_brown_02`, `reed_roof_03`, `clay_plaster` | wie oben | wie oben | siehe oben | Schindeln, Balken, Planken, Eisen, Kleinteile (anders umgefärbt) |
 
 Die AO-Atlanten `wohnhaus_zwerg{,_s2,_s3,_innen,_raeume_innen,_dachraeume_innen}_ao_atlas.png` sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles; Plätze in `tools/modelle/neubau/ao_atlas.json` und `tools/modelle/raeume/ao_atlas.json`).
+
+## Elbenhäuser Stufe 1 (`trim_elb_*`, `innen_trim_elb_*`)
+
+Dieselben Bandgrenzen wie bei den Menschen, anderer Inhalt nach dem Kunstwerk „Wohnhaus Elb, Stufe 1“: `tools/modelle/neubau/trimsheet_elb.py` (Band „Stroh“: die selbst gezeichneten Holzschindeln der Zwerge aus `old_planks_02`, entsättigt und grau-olivgrün umgetönt; Balken hell und grau verwittert aus `rough_wood`; Kalkputz blass gelbgrün aus `white_plaster_rough_01`; Band „bruchstein“ heller Haustein aus `large_sandstone_blocks_01` (im Spiel ersetzt die Ebene `elb_s1` des Häuser-Arrays das Band durch K2); innen cremeweißer Kalkputz, Dielen auch im Band „lehmboden“, Herd aus `large_sandstone_blocks_01`). Keine neue Quelle: alle Texturen stehen oben (Poly Haven, **CC0 1.0 Universal**, Zitat von https://polyhaven.com/license wie oben; Abruf 14. bzw. 15.11.2026; `large_sandstone_blocks_01` in 1K wie im Abruf der Steinebenen). Moosflecken auf den Schindeln und Efeuranken im Putz zeichnet das Skript selbst (Rauschen, Ellipsen; seit 17.11.2026). Farben: Proben aus den Kunstwerken (Zahlen im Kopf des Skripts). Keine Bild-KI.
+
+Die AO-Atlanten `wohnhaus_elb{,_innen}_ao_atlas.png` sind keine Fremdtexturen: gebackene Verdeckung der Modelle auf UV2 (Blender Cycles; Plätze in `tools/modelle/neubau/ao_atlas.json`; außen 2 × 2 Zellen zu 1024 Bildpunkten).
