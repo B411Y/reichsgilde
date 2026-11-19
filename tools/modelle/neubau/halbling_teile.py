@@ -43,6 +43,9 @@ def strohdach(s1, feld=0.8, wulst_teile=None, wulst=None):
     v0, v1, m = BAENDER_AUSSEN["stroh"]
     f0, f1, fm = BAENDER_AUSSEN["stroh_franse"]
     walm = F.WALM
+    if walm:   # Grundform 4: Am First endet der Walm hinter der ersten Feldgrenze (y -1,92 gegen -2,08); die oberste Stufe des ersten Felds
+        #        faltete sich dort (ein Dreieck zeigte nach unten, von oben nur die Rueckseite: Pruefung 12b). Die Grenze liegt darum 5 cm dahinter.
+        ys[1] = max(ys[1], DV + max(0.0, dach_z(0.0) - F.Z_WALM) / walm + 0.05)
 
     def kante(x, y):
         if not walm or y > DV + 1e-6: return y

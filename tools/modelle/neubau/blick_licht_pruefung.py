@@ -54,6 +54,34 @@ def _stiche(o, p):
     return [g0 * e[0] + g1 * e[k] + g2 * e[k + 1] for k in range(1, len(e) - 1) for g0, g1, g2 in GEW], e
 
 
+WAND_ABSTAND_MIN = 0.80               # Pruefung 38: so weit steht das Auge mindestens vor jeder Wand, die das Standardbild zeigt
+
+
+def blick_wand(glb):
+    """38 Standardblick nicht dicht vor einer Wand (Klicktest NAS 19.11.2026, Halbling S1 G3: das Auge stand 0,17 m vor der Wand mit
+    der Haustuer und sah an ihr entlang; die rechte Bildseite war Wand): Strahlen vom Blick_Auge ueber das Standardbild (66 Grad hoch,
+    16:9, 41 x 21); trifft einer zuerst eine Wand des Raums (Objekt Raum, Normale fast waagerecht), zaehlt der Abstand des Auges zur
+    Ebene dieser Flaeche. Fehler, wenn der kleinste Abstand unter WAND_ABSTAND_MIN liegt. Rueckgabe (Zeilen, Fehlerzahl)."""
+    dg, sz = _laden(glb)
+    an = {o.name.split(".")[0]: o.matrix_world.translation.copy() for o in bpy.data.objects if o.type == "EMPTY"}
+    if "Blick_Auge" not in an or "Blick_Ziel" not in an:
+        return ["   Raumkamera fehlt (Blick_Auge, Blick_Ziel) -> FEHLER"], 1
+    auge, ziel = an["Blick_Auge"], an["Blick_Ziel"]
+    vor = (ziel - auge).normalized(); rechts = vor.cross(Vector((0, 0, 1))).normalized(); oben = rechts.cross(vor)
+    th = math.tan(math.radians(FOV_HOCH / 2)); tb = th * SEITEN
+    best, wo = float("inf"), None
+    for j in range(21):
+        for i in range(41):
+            d = (vor + rechts * (i / 20 - 1) * tb + oben * (j / 10 - 1) * th).normalized()
+            hit, ort, n, _f, o, _m = sz.ray_cast(dg, auge, d, distance=50.0)
+            if not hit or o.name.split(".")[0] != "Raum" or abs(n.z) > 0.3: continue
+            a = abs((auge - ort).dot(n))
+            if a < best: best, wo = a, ort
+    ok = best >= WAND_ABSTAND_MIN
+    text = f"{best:.2f} m (Wand bei {wo.x:.2f}, {wo.y:.2f}, {wo.z:.2f})" if wo is not None else "keine Wand im Bild"
+    return [f"   Auge ({auge.x:.2f}, {auge.y:.2f}, {auge.z:.2f}), naechste Wand im Standardbild {text} (Soll ab {WAND_ABSTAND_MIN:.2f} m) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
+
+
 def _melden(fehler, art, ort):
     fehler.setdefault(art, []).append(ort)
 

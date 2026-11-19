@@ -3,7 +3,9 @@ und Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fah
 Oeffnung je Wand, 25 Rundbogen nur aussen, 26 Strohdach (Zwerchhaus und Wulst nicht im Dachgeschoss, Stroh obenauf), 27 Fussabdruck,
 28-32 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin und in der Einfassung, Hauswappen im
 Dachgeschoss), 33 Laterne frei vor Tuer, Fenster, Herd und Wappen, 34 Hauswappen im Standard-Innenblick frei, 35 Haustuer im
-Standard-Innenblick, 36 Fahne frei vom Schlot im Stadtblick – Muster: wohnhaus_elb_messen.py (Funktionen der Zwergen-Messung
+Standard-Innenblick, 36 Fahne frei vom Schlot im Stadtblick, dazu 12b/12c (blick_licht_pruefung.py, auch in Stufe 1), 37 Pixel-Look reine
+Baender (pixel_mip_pruefung.py, nur Stufe 2/3; --alter-shader rechnet den Shader vor BAND_REIN), 38 Standardblick nicht dicht vor einer
+Wand (Wohnstube; Klicktest NAS 19.11.2026) – Muster: wohnhaus_elb_messen.py (Funktionen der Zwergen-Messung
 wohnhaus_zwerg_neu_messen.py), mit den Blaettern der Halblinge.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_halbling_messen.py -- --haus=wohnhaus_halbling_s1_g<1-4>
@@ -503,7 +505,39 @@ def blick_licht_s23(haus, ordner, texturen):
         z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"))
         zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht ({raum[1:] or 'wohnstube'}): {'ok' if not f else str(f) + ' FEHLER'}")
         zeilen += z; fehler += f
+        if raum: continue                                      # 38 nur in der Wohnstube (Hinterzimmer und Bibliothek sind enger)
+        z, f = B.blick_wand(glb)
+        zeilen.append(f"38. Standardblick nicht dicht vor einer Wand (wohnstube): {'ok' if not f else 'FEHLER'}"); zeilen += z; fehler += f
     return zeilen, fehler
+
+
+def blick_licht_s1(haus, ordner, texturen):
+    """Stufe 1 (Klicktest NAS 19.11.2026): 12b an der Huelle, 12c und 38 in der Wohnstube (Blatt innen_trim_halbling)."""
+    import blick_licht_pruefung as B
+    texturen = texturen or U.TEXTUREN
+    zeilen, fehler = [], 0
+    z, f = B.rueckseite_offen(os.path.join(ordner, f"{haus}.glb"))
+    zeilen.append(f"12b. Keine offene Rueckseite aussen (von oben nur die Rueckseite sichtbar): {'ok' if not f else str(f) + ' FEHLER'}")
+    zeilen += z; fehler += f
+    glb = os.path.join(ordner, f"{haus}_innen.glb")
+    z, f = B.licht_im_blick(glb, os.path.join(texturen, "innen_trim_halbling_albedo.png"))
+    zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht (wohnstube): {'ok' if not f else str(f) + ' FEHLER'}")
+    zeilen += z; fehler += f
+    z, f = B.blick_wand(glb)
+    zeilen.append(f"38. Standardblick nicht dicht vor einer Wand (wohnstube): {'ok' if not f else 'FEHLER'}"); zeilen += z; fehler += f
+    return zeilen, fehler
+
+
+def pixel_baender(glb, stufe, texturen, opt):
+    """37 Pixel-Look, reine Baender (pixel_mip_pruefung.py, Klicktest NAS 19.11.2026): Deckung blau und matt, Steinbaender ohne
+    Streifen und ohne Metall, wie der Shader mit BAND_REIN im Pixel-Look liest (Pixel 2 und 3, Zoom 25/50/100). --alter-shader:
+    Gegenprobe mit dem Shader vor BAND_REIN."""
+    import pixel_mip_pruefung as PM
+    tex = texturen or U.TEXTUREN
+    stein = (0.85, 0.95) if stufe == 2 else (0.50, 0.70, 0.85, 0.95)       # STEIN_EBENE 10 und 11 (building_trim.gdshaderinc)
+    z, f = PM.pruefe(glb, os.path.join(tex, f"trim_s{stufe}_halbling_albedo.png"), stein, "alter-shader" not in opt)
+    zeilen = [f"37. Pixel-Look: Deckung blau und matt, Stein ohne Streifen{' (Shader vor BAND_REIN)' if 'alter-shader' in opt else ''}: {'ok' if not f else str(f) + ' FEHLER'}"]
+    return zeilen + z, f
 
 
 def tueren_s23(M, form, stufe):
@@ -730,6 +764,7 @@ def main_s23(haus, ordner, form, stufe, opt):
     zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
     z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
     z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f
+    z, f = pixel_baender(glb, stufe, texturen, opt); zeilen += z; fehler += f
     je, summe = Z.dreiecke(glb)
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
@@ -814,6 +849,7 @@ def main():
         f36 = 0
     zeilen += z36; fehler += f36
     z28, f28 = innen_pruefen(haus, ordner, form, MS1); zeilen += z28; fehler += f28
+    z, f = blick_licht_s1(haus, ordner, opt.get("texturen")); zeilen += z; fehler += f
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
     kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"

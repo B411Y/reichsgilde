@@ -38,7 +38,10 @@ HALBLING_TISCH, HALBLING_SITZ = 0.56, 0.30      # Menschen 0,74 / 0,44; Soll Hal
 BLICK_TIEFER = 0.58                             # Augenhoehe 1,02 m statt 1,60 m (1,10 * 0,93)
 APOTHEKE_TIEFER, BAUPLAN_TIEFER = 0.42, 0.28    # Greifhoehe 1,10 * 1,25 = 1,38 m: Oberkante 1,77 -> 1,35 m und 1,65 -> 1,37 m
 LATERNE_G2_Y = -1.00                            # Grundform 2: Laterne an der Strassenwand zwischen Haustuer (-0,40..0,40) und Fenster (wie bei den Elben)
-BLICK_G3 = ((-0.60, 1.45), (2.00, -0.40, 1.30))  # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (wie bei den Elben, Pruefung 35)
+BLICK_G3 = ((-0.60, 0.80), (2.00, -0.40, 1.30))  # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (wie bei den Elben, Pruefung 35);
+#                                                  Auge 0,82 m vor der Wand mit der Haustuer (vorher y 1,45: 0,17 m, Klicktest NAS 19.11.2026, Pruefung 38),
+#                                                  hinter den Balken und Holmen der Leiter, deren Seiten es sonst von vorn saehe (12c)
+LICHT_RAUM = {1: (0.06, None), 2: (0.06, None), 3: (-0.06, 2.6), 4: (0.06, None)}   # Grundlicht: Versatz vom Blickpunkt zum Ziel (m), Hoehe (None: wie bei den Menschen)
 FAHNE_VOR_WALM = 0.45                           # Grundform 4: Fahnenmast 0,45 m vor der Spitze des Walms (Pruefung 36)
 WULST_RUECK = 0.10                              # Grundformen 2 und 4: Ortgang um so viel zurueck, damit der Wulst im Fussabdruck bleibt (Pruefung 27)
 EINFASSUNG_RAND = 0.08                         # Rand um den Herdstein: was ganz darin liegt (bis unter die Haube), ist Einfassung aus Stein (Pruefung 31)
@@ -154,6 +157,7 @@ def masse_anlegen():
             for a in t["anker_innen"]:
                 if a.name == "Blick_Auge": a.ort = Vector((*BLICK_G3[0], s1.Z_BODEN + 1.60 - BLICK_TIEFER))
                 if a.name == "Blick_Ziel": a.ort = Vector((BLICK_G3[1][0], BLICK_G3[1][1], s1.Z_BODEN + BLICK_G3[1][2] - BLICK_TIEFER))
+        licht_zum_auge(t)
         innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
@@ -298,6 +302,24 @@ def innen_fertig(t):
                 uv = [(u, stein[0] + (v - v0) / (v1 - v0) * (stein[1] - stein[0])) for u, v in uv]
                 x.flaechen[i] = (pts, uv, st, fa, gl); stein_neu += 1
     print(f"INNEN Dachschraegen geschlossen, Holz am Schlot: {weg} Flaechen weg, {stein_neu} Flaechen des Herds zu Stein")
+
+
+def licht_zum_auge(t):
+    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten) ueber den Blickpunkt, LICHT_RAUM[form] zum Ziel hin versetzt (wie
+    wohnhaus_halbling_s23.licht_vor_den_herd; Klicktest NAS 19.11.2026, G1: schwarze Seiten der Balken unter der Galerie). Bei den
+    Menschen steht es 1,0 m hinter der Gassenwand, die Kamera hinten unter der Galerie: alle Flaechen, die zur Kamera zeigen (Balken unter
+    der Galerie, Herdseiten, Pfosten), lagen hinter dem Licht und bekamen nur Umgebungslicht (Pruefung 12c, alle vier Grundformen: 21
+    bis 24 Flaechen). 6 cm zum Ziel hin liegt es zwischen den Seiten des Galeriebalkens ueber der Kamera (beide bekommen Licht); in
+    Grundform 3 (Auge vor dem Balken) 6 cm dahinter und tiefer (2,6 m), damit auch die schraeg nach unten zeigenden Holme der Leiter
+    Licht bekommen. Gesucht mit Pruefung 12c ueber die Lage des Lichts (Raster je Grundform)."""
+    an = {a.name: a for a in t["anker_innen"] if a.name in ("Blick_Auge", "Blick_Ziel", "Licht_Raum")}
+    if len(an) < 3: return
+    l, auge, ziel = an["Licht_Raum"], Vector(an["Blick_Auge"].ort), Vector(an["Blick_Ziel"].ort)
+    versatz, hoehe = LICHT_RAUM[s1.F.nr]
+    d = Vector((ziel.x - auge.x, ziel.y - auge.y, 0.0)).normalized()
+    alt = Vector(l.ort)
+    l.ort = Vector((auge.x + d.x * versatz, auge.y + d.y * versatz, hoehe if hoehe is not None else alt.z))
+    print(f"INNEN Licht_Raum: ({alt.x:.2f}, {alt.y:.2f}, {alt.z:.2f}) -> ({l.ort.x:.2f}, {l.ort.y:.2f}, {l.ort.z:.2f})")
 
 
 def laterne_versetzen(t):
