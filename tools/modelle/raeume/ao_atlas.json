@@ -28,5 +28,11 @@
     "kante": 1024,
     "zellen": 2,
     "plaetze": {"hinterzimmer_s23": 2, "bibliothek_s23": 3}
+  },
+  "wohnhaus_halbling_raeume_innen": {
+    "datei": "wohnhaus_halbling_raeume_innen_ao_atlas.png",
+    "kante": 1024,
+    "zellen": 2,
+    "plaetze": {"hinterzimmer_s23": 2, "bibliothek_s23": 3}
   }
 }
