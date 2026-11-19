@@ -1,0 +1,7 @@
+# Drei 3D-Gegenstände: Kartentisch, Geldtruhe, Siegelstempel (3D-Modelle, eigene Skripte)
+
+Kein KI-Modell, kein Prompt: Die Modelle entstehen rein aus Rechnung und Formen in `tools/modelle/gegenstaende3d/` (Blender 5.2.3, `-b`): `bau.py` (Aufruf), `gemeinsam.py` (Teil-Klasse, Drehkörper, Umriss-Hülle, Gerüst, Clips, Messung, Export), je Gegenstand ein Modul mit Maßen, Knochen und Clips (`kartentisch.py`, `geldtruhe.py`, `siegelstempel.py`).
+
+Auftrag (Teamleiter, 18.11.2026): drei 3D-Gegenstände im Stil der 3D-Bücher und Briefe mit Clips für die Interaktion, realistisch, im Pixel-Look noch lesbar, Köln um 1400: Kartentisch mit Pergamentkarte (Karte entrollt sich, glättet sich, rollt wieder zusammen; Kartenfläche als Inhaltsfläche), Geldtruhe mit Schloss (Deckel springt auf und schließt; Münzen in vier Füllstufen), Siegelstempel mit Wachs (Stempel drückt ins Wachs, Abdruck mit Wappenfläche). Die Formen sind frei erfunden (Bocktisch, beschlagene Truhe auf Kufen, Petschaft mit Buchsbaumgriff), nicht von einer Vorlage abgepaust, nichts aus „Die Gilde“.
+
+Texturen: Holz (Eiche, Buchsbaum, mit Jahresringen, Poren, Ästen und Brettfugen), Eisen (Hammerschlag, Rost), Messing (Patina), Pergament, Urkunde (Schriftzeilen als Wortblöcke), Münzhaufen, Beutelleder und der Platzhalter des Siegelabdrucks (Ring und Schild) werden in `texturen.py` mit numpy aus festen Saaten gemalt (Wertrauschen, Streifen, Kreise), keine Fremdbilder, keine KI. Karte und Wappen in den Vorschaubildern sind Platzhalter von `bilder.py`/`texturen.py` und liegen nicht im Spiel.
