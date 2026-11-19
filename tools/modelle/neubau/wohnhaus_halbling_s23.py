@@ -57,6 +57,22 @@ BLICK = ((-0.25, 1.45), (1.90, -1.20, 1.30))
 STUFE = [2]
 FORM = [1]
 LETZT = {}
+# Stufe 3 belebt (Nutzer 19.11.2026: „zu langweilig“): Eckquader auch im Obergeschoss, eine Hausecke dicht mit Efeu bewachsen.
+# Efeu an der Ecke vorn rechts (im Stadtblick und in der Vorschau sichtbar): je Geschoss eine Flaeche vor der Gassenwand und eine vor der
+# rechten Wand, 4,5 cm vor der Mauer (vor den Eckquadern), Umriss (Abstand von der Ecke, Hoehe ueber dem Fuss) sternfoermig um den Fuss
+# an der Ecke; EG vorn bis vor die Haustuer (0,62 m Abstand bleiben), OG rechts bis vor das Fenster; im EG bis 2,34 m (darueber stehen die
+# Balkenkoepfe unter der Auskragung durch die Ebene des Efeus, Pruefung 12).
+EFEU_ECKE = (1, -1)
+EFEU_VOR = 0.045
+EFEU_UMRISS = {
+    "eg_vorn": [(0, 0), (0, 2.34), (0.30, 2.32), (0.45, 2.18), (0.62, 2.25), (0.78, 1.95), (0.72, 1.55), (0.80, 1.15), (0.55, 0.70), (0.42, 0.35), (0.22, 0)],
+    "eg_seite": [(0, 0), (0, 2.34), (0.40, 2.31), (0.65, 2.14), (0.90, 2.27), (1.20, 1.90), (1.35, 1.55), (1.15, 1.05), (1.25, 0.70), (0.80, 0.40), (0.45, 0.12), (0.30, 0)],
+    "og_vorn": [(0, 0), (0, 1.95), (0.25, 1.80), (0.40, 2.05), (0.65, 1.60), (0.85, 1.45), (1.05, 1.00), (1.25, 0.75), (1.10, 0.30), (1.30, 0)],
+    "og_seite": [(0, 0), (0, 2.10), (0.20, 1.90), (0.38, 2.00), (0.55, 1.55), (0.75, 1.30), (0.95, 0.85), (0.85, 0.40), (1.00, 0)],
+}
+EFEU_V, KUPFER_V = (0.004, 0.121), (0.125, 0.1875)     # trimsheet_halbling.EFEU_STUFE3 / KUPFER_STUFE3 (Band „stroh“ geteilt)
+OG_QUADER_AB = 0.12                                     # Eckquader des OG ueber dem Gesims (Z_EG_DECKE - 0,04 bis + 0,12) ...
+OG_QUADER_BIS = 0.10                                    # ... bis unter das Traufgesims (Z_TRAUFE - 0,10)
 
 
 def umbenennen(text):
@@ -177,6 +193,8 @@ def baue_dach_halbling(stoff="Dachziegel", first="Firstziegel"):
     „stroh“: Kupfer mit Gruenspan). Frei vom Schornstein (Elben, Klicktest 18.11.2026)."""
     d = _ALT["baue_dach"](stoff, first)
     schlot_frei(d)
+    if S23.ist_stein():
+        print(f"BELEBT Kupfer im Dach umgelegt: {kupfer_umlegen(d)} Flaechen")
     LETZT["dach"] = d
     return d
 
@@ -226,10 +244,112 @@ class OhneMitte:
         return getattr(self._teil, name)
 
 
+def _im_umriss(umriss, d, z):
+    """Liegt der Punkt (Abstand d von der Ecke, Hoehe z ueber dem Fuss) in der Efeuflaeche (Strahltest)?"""
+    drin = False
+    for (d0, z0), (d1, z1) in zip(umriss, umriss[1:] + umriss[:1]):
+        if (z0 > z) != (z1 > z) and d < d0 + (z - z0) * (d1 - d0) / (z1 - z0): drin = not drin
+    return drin
+
+
+def _bedeckt(umriss, breite, z_oben, z_fuss, z_unten):
+    """Liegt eine Seite eines Eckquaders (Breite ab der Ecke, z_unten bis z_oben) ganz hinter der Efeuflaeche (Raster 5 x 5, 2 cm innen)?"""
+    return all(_im_umriss(umriss, 0.02 + (breite - 0.02) * i / 4, z_unten - z_fuss + 0.02 + (z_oben - z_unten) * k / 4) for i in range(5) for k in range(5))
+
+
+def eckquader(h, X, Y0, Y1, z0, z1, geschoss):
+    """Eckquader aus Werkstein wie im Erdgeschoss der Menschen (wohnhaus_mensch_s23.baue_haus: Laeufer 0,48 / Binder 0,22 m, Hoehen 0,34 /
+    0,26 m, 3 cm vor der Mauer), aber als ein Winkel aus vier Flaechen: vorn, Seite (Stirn des Laeufers und Seite des Binders liegen in
+    einer Ebene), die zwei Stirnen zur Wand. Die Quader stossen ohne offene Fuge aneinander (die Fuge zeichnet der Wechsel der Textur;
+    durch eine offene Fuge sah man in den Schacht hinter der Ecke, Pruefung 16); einen Deckel bekommt nur der oberste Quader eines Stapels.
+    8 statt 18 Dreiecke je Quader: so passen die Quader des Obergeschosses unter die Grenze von 4.000 Dreiecken. Hinter dem Efeu liegende
+    Quader entfallen."""
+    band, stein = S23.WERKSTEIN, "Bruchstein"
+    n = 0
+    for sx in (-1, 1):
+        for y, sy in ((Y0, -1), (Y1, 1)):
+            efeu = (sx, sy) == EFEU_ECKE
+            stapel, z, i = [], z0, 0
+            oben = z1 if (geschoss == "eg" or sy < 0) else z1 + OG_QUADER_BIS   # OG hinten: bis unter das Ortgangbrett (kein Traufgesims)
+            while z < oben - (0.3 if geschoss == "eg" else 0.05):             # OG: der oberste Quader reicht bis oben (sonst Schlitz unter dem Dach, 16)
+                hq = 0.34 if i % 2 == 0 else 0.26
+                lx, ly = (0.48, 0.22) if i % 2 == 0 else (0.22, 0.48)
+                zb = min(z + hq, oben - 0.02)
+                weg = efeu and _bedeckt(EFEU_UMRISS[f"{geschoss}_vorn"], lx + 0.03, zb + 0.02, z0, z) and _bedeckt(EFEU_UMRISS[f"{geschoss}_seite"], ly + 0.03, zb + 0.02, z0, z)
+                stapel.append((z, zb, lx, ly, not weg))
+                z, i = zb, i + 1
+            xa, ya = sx * (X + 0.03), y + sy * 0.03
+            for k, (z, zb, lx, ly, da) in enumerate(stapel):
+                if not da: continue
+                innen = Vector((sx * (X - 0.3), y - sy * 0.3, (z + zb) / 2))
+                h.rechteck(stein, (min(xa, sx * (X - lx)), ya, z), (1, 0, 0), (0, 0, 1), lx + 0.03, zb - z, band, weg_von=innen)
+                h.rechteck(stein, (xa, min(ya, y - sy * ly), z), (0, 1, 0), (0, 0, 1), ly + 0.03, zb - z, band, weg_von=innen)
+                h.rechteck(stein, (sx * (X - lx), min(y - sy * 0.01, ya), z), (0, 1, 0), (0, 0, 1), 0.04, zb - z, band, weg_von=(sx * (X + 1), y, z))
+                h.rechteck(stein, (min(sx * (X - 0.01), xa), y - sy * ly, z), (1, 0, 0), (0, 0, 1), 0.04, zb - z, band, weg_von=(sx * X, y + sy, z))
+                if k == len(stapel) - 1 or not stapel[k + 1][4]:      # Deckel (Laeufer und Binder) auf dem obersten Quader
+                    h.rechteck(stein, (min(xa, sx * (X - lx)), min(ya, y - sy * 0.01), zb), (1, 0, 0), (0, 1, 0), lx + 0.03, 0.04, band, zu=(0, 0, zb + 1))
+                    h.rechteck(stein, (min(xa, sx * (X - 0.01)), min(y - sy * 0.01, y - sy * ly), zb), (1, 0, 0), (0, 1, 0), 0.04, ly - 0.01, band, zu=(0, 0, zb + 1))
+                n += 1
+    return n
+
+
+def efeu_ecke(h):
+    """Efeu an der Ecke EFEU_ECKE (Erd- und Obergeschoss, vorn und Seite), Stoff „Efeu“ im oberen Teil des Bands „stroh“ (gedreht: UV.x die
+    Wand hinauf, UV.y von der Ecke weg). Jede Flaeche ein Faecher von Dreiecken um den Fuss an der Ecke."""
+    M = S23.M
+    sx, sy = EFEU_ECKE
+    ecken = {"eg": (M.BX, M.VORN if sy < 0 else M.HINTEN, 0.0), "og": (M.OX, M.OVORN if sy < 0 else M.HINTEN, M.Z_EG_DECKE + OG_QUADER_AB)}
+    v0, v1 = EFEU_V
+    dreiecke, u0 = 0, 0.0
+    for geschoss, (X, Y, zf) in ecken.items():
+        ex, ey = sx * (X + EFEU_VOR), Y + sy * EFEU_VOR
+        for seite, richtung, innen in (("vorn", Vector((-sx, 0, 0)), Vector((ex - sx, ey - sy, zf + 1))), ("seite", Vector((0, -sy, 0)), Vector((ex - sx, ey - sy, zf + 1)))):
+            umriss = EFEU_UMRISS[f"{geschoss}_{seite}"]
+            breite = max(d for d, _ in umriss)
+            p = [Vector((ex, ey, zf)) + richtung * d + Vector((0, 0, hz)) for d, hz in umriss]
+            uv = [(u0 + hz / 4.0, v0 + (v1 - v0) * d / breite) for d, hz in umriss]
+            for k in range(1, len(p) - 1):
+                h.vieleck("Efeu", [p[0], p[k], p[k + 1]], [uv[0], uv[k], uv[k + 1]], weg_von=innen)
+                dreiecke += 1
+            u0 += 0.27
+    return dreiecke
+
+
+def kupfer_umlegen(teil):
+    """Stufe 3: Flaechen im Band „stroh“ (Kupfer der Gauben und des Firsts) in dessen unteren Teil KUPFER_V; oben liegt der Efeu."""
+    k0, k1 = KUPFER_V
+    n = 0
+    for i, (pts, uv, st, fa, gl) in enumerate(teil.flaechen):
+        if st == "Efeu" or not all(v <= 0.1875 + 1e-6 for _u, v in uv): continue
+        teil.flaechen[i] = (pts, [(u, k0 + (k1 - k0) * v / 0.1875) for u, v in uv], st, fa, gl)
+        n += 1
+    return n
+
+
 def haus_halbling():
-    h = _ALT["baue_haus"]()
     M = S23.M
     stein = S23.ist_stein()
+    alt_kasten = netzbau.Teil.kasten
+    weg = []
+
+    def kasten(self, stoff, mn, mx, band, *a, **kw):           # Steinhaus: die Eckquader der Menschen entfallen (eckquader() ersetzt sie)
+        if stein and band == S23.WERKSTEIN and max(abs(mn[0]), abs(mx[0])) > M.BX + 0.029 and max(abs(mn[0]), abs(mx[0])) < M.BX + 0.031 and mx[2] <= M.Z_EG_DECKE:
+            weg.append(1)
+            return None
+        return alt_kasten(self, stoff, mn, mx, band, *a, **kw)
+    netzbau.Teil.kasten = kasten
+    try:
+        h = _ALT["baue_haus"]()
+    finally:
+        netzbau.Teil.kasten = alt_kasten
+    if stein:
+        vorher = h.dreiecke()
+        n_eg = eckquader(h, M.BX, M.VORN, M.HINTEN, 0.0, M.Z_EG_DECKE, "eg")
+        n_og = eckquader(h, M.OX, M.OVORN, M.HINTEN, M.Z_EG_DECKE + OG_QUADER_AB, M.Z_TRAUFE - OG_QUADER_BIS, "og")
+        n_k = kupfer_umlegen(h)
+        n_e = efeu_ecke(h)
+        print(f"BELEBT Eckquader der Menschen weg: {len(weg)} Kaesten; neu EG {n_eg}, OG {n_og} Quader; Kupfer umgelegt {n_k}; Efeu {n_e} Dreiecke; "
+              f"Dreiecke {vorher} -> {h.dreiecke()}")
     vorher = h.dreiecke()
     for wand, a, z, art in M.FENSTER:
         if art != "tuer": continue
