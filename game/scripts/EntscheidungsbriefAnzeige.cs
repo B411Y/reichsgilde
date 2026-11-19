@@ -228,7 +228,7 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         var leiste = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter };
         leiste.AddThemeConstantOverride("separation", 8);
         fuss.AddChild(leiste);
-        var spaeter = new Button { Text = "Später", FocusMode = FocusModeEnum.None, TooltipText = "Legt den Brief beiseite. Die Frist läuft weiter; das Feder-Siegel unten rechts holt ihn zurück." };
+        var spaeter = new Button { Text = "Später", FocusMode = FocusModeEnum.None, TooltipText = "Legt den Brief beiseite. Die Frist läuft weiter; der Brief mit der Feder rechts über der Lade holt ihn zurück." };
         spaeter.AddThemeFontSizeOverride("font_size", 14);
         spaeter.Pressed += () => Spaeter?.Invoke();
         leiste.AddChild(spaeter);

@@ -192,9 +192,9 @@ public partial class Hauptszene : Node
         _stadt = GetNode<Stadtansicht>("%Stadt");
         AddChild(new Mauszeiger { Stadt = _stadt, StandAbfrage = () => _spieler?.Stand }); // Lederhandschuh nach Stand (Mauszeiger.cs)
         // Oben, unten links und die Leiste zuerst: Schon beim Aufbau der Partie kommen Meldungen.
-        KopfBauen();
+        ZeitleisteBauen();
         MeldungenBauen();
-        LeisteBauen();
+        LadeBauen();
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         AuswahlWappenEinbauen();
@@ -406,28 +406,6 @@ public partial class Hauptszene : Node
             if (baustelle is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(baustelle);
         };
 
-        _pauseKnopf.SetMeta("klang", "still");
-        _pauseKnopf.Pressed += PauseUmschalten;
-        foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
-        {
-            var knopf = new Button
-            {
-                Text = $"{tempo}×",
-                ToggleMode = true,
-                FocusMode = Control.FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(46, 0),
-            };
-            knopf.SetMeta("klang", "still");
-            knopf.Pressed += () => TempoSetzen(tempo);
-            if (!Taktgeber.Tempostufen.Contains(tempo)) // TESTTEMPO: Teststufen orange und mit Hinweis
-            {
-                knopf.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.25f));
-                knopf.TooltipText = "Nur zum Testen – wird vor der Veröffentlichung entfernt";
-            }
-            else knopf.TooltipText = $"Spielgeschwindigkeit {tempo}-fach (Zifferntasten wählen die Stufen, Leertaste pausiert)";
-            _tempoleiste.AddChild(knopf);
-            _tempoKnoepfe.Add(knopf);
-        }
         if (optionen.TryGetValue("tempo", out var t) && double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var tempoWert))
             TempoSetzen(tempoWert);
 
@@ -1321,7 +1299,7 @@ public partial class Hauptszene : Node
         ZeitHalteAbgleichen(); // Einzelspiel: Sitzung und Jahresbericht halten die Zeit an (Hauptszene.Ratssitzung.cs)
 
         Anzeigen();
-        LeisteAnzeigen(delta);
+        LadeAnzeigen(delta);
         MeldungenAltern(delta);
         EntscheidungenAbgleichen();
         _berichtTafel.Aktualisieren(delta);
@@ -1335,9 +1313,6 @@ public partial class Hauptszene : Node
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
-        _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
-        _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
-        _einblendung.AbstandUnten = _brief.AbstandUnten;
         // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
         _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
                             || _stimmrunde.Visible || _brief.Ruht?.Invoke() == true || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
@@ -1478,7 +1453,8 @@ public partial class Hauptszene : Node
     /// <summary>Überträgt den Zustand der Simulation auf Kopfzeile, Zeitstrahl und die offenen Tafeln rechts.</summary>
     private void Anzeigen()
     {
-        KopfAnzeigen();
+        ZeitleisteAnzeigen();
+        LadeWerteAnzeigen();
         _wohnhaus.Aktualisieren();
         _uebersicht.Aktualisieren();
     }
@@ -1580,22 +1556,14 @@ public partial class Hauptszene : Node
     /// <summary>Im neuen Rathaus wurde das Anschlagbrett angeklickt: die Übersicht steht rechts, bis der Raum wechselt.</summary>
     private bool _rathausAushang;
 
-    /// <summary>Leiste unten rechts (dort ist in jedem Raum Platz): ein Knopf je Raum, der gezeigte ist gedrückt, dazu „Zur Stadt".</summary>
+    /// <summary>Das Schild der Räume links über der Lade: ein Knopf je Raum, der gezeigte ist gedrückt („Zur Stadt" ist ein Fach der Lade).</summary>
     private void RaumleisteBauen()
     {
-        _raumleiste = new PanelContainer { Visible = false };
-        _raumleiste.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
-            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-            ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 8, ContentMarginBottom = 8,
-        });
-        _raumknoepfe = new HBoxContainer();
-        _raumknoepfe.AddThemeConstantOverride("separation", 8);
-        _raumleiste.AddChild(_raumknoepfe);
+        _raumleiste = LadeStil.Flaeche(null, "LadeSchild");
+        _raumleiste.Visible = false;
+        LadeStil.Anwenden(_raumleiste);
+        _raumknoepfe = LadeStil.Behaelter<HBoxContainer>(_raumleiste, "LadeReihe");
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_raumleiste);
-        _raumleiste.GrowHorizontal = Control.GrowDirection.Begin;
-        _raumleiste.GrowVertical = Control.GrowDirection.Begin;
     }
 
     private void RaumleisteAufbauen()
@@ -1609,16 +1577,13 @@ public partial class Hauptszene : Node
         if (!_raumleiste.Visible) return;
         foreach (var (kennung, name) in _stadt.InnenRaeume)
         {
-            var knopf = new Button { Text = name, ToggleMode = true, ButtonPressed = kennung == _stadt.RaumKennung, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(90, 0) };
-            knopf.Pressed += () => _stadt.RaumWaehlen(kennung);
-            _raumknoepfe.AddChild(knopf);
+            var knopf = LadeStil.Knopf(_raumknoepfe, name, "", () => _stadt.RaumWaehlen(kennung));
+            knopf.ToggleMode = true;
+            knopf.ButtonPressed = kennung == _stadt.RaumKennung;
         }
-        var zurueck = new Button { Text = "Zur Stadt (Esc)", FocusMode = Control.FocusModeEnum.None };
-        zurueck.Pressed += _stadt.InnenansichtVerlassenMitBlende;
-        _raumknoepfe.AddChild(zurueck);
-        // Breite neu messen, dann wieder in die Ecke setzen
+        // Breite neu messen, dann wieder links über die Lade setzen
         _raumleiste.ResetSize();
-        _raumleiste.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight, Control.LayoutPresetMode.Minsize, 16);
+        RaumleisteEinpassen();
     }
 
     private Betrieb? AusgewaehlterBetrieb() =>
