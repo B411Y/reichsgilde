@@ -120,7 +120,7 @@ def band_lesen(kette, u, v, v0, v1, stufe):
     return c
 
 
-def shader_lesen(kette, u, v, lod, stein_baender, rein, art="farbe"):
+def shader_lesen(kette, u, v, lod, stein_baender, rein, art="farbe", stroh_teil=0.0):
     """Pixel-Look aussen wie building_trim: art "farbe" (Albedo) oder "licht" (Rauheit, Verdeckung, Normale: immer pixel_mip)."""
     lod = np.broadcast_to(np.asarray(lod, np.float64), np.shape(u)).copy()
     vw = v % 1.0
@@ -136,7 +136,8 @@ def shader_lesen(kette, u, v, lod, stein_baender, rein, art="farbe"):
         c = lesen(kette, u, v, lod + PIXEL_MIP)
     if not rein:
         return c
-    for a, e in list(DACH) + [b for b in st_b if b[0] >= 0]:
+    dach = ((0.0, stroh_teil), (stroh_teil, 0.1875), DACH[1]) if stroh_teil > 0 else DACH   # STROH_TEIL (Efeu und Kupfer, Halbling S3)
+    for a, e in list(dach) + [b for b in st_b if b[0] >= 0]:
         i = (vw >= a) & (vw < e)
         if not i.any(): continue
         ist_stein = stein[i]
@@ -180,7 +181,7 @@ def _mittel(proben, cols):
     return {k: (s[0] / max(s[1], 1e-9), s[1]) for k, s in g.items()}
 
 
-def pruefe(glb, albedo, stein_baender=(0.85, 0.95), rein=True, ausgabe_alles=False):
+def pruefe(glb, albedo, stein_baender=(0.85, 0.95), rein=True, ausgabe_alles=False, stroh_teil=0.0):
     """Zeilen und Fehlerzahl der Pruefung 37 fuer ein Haus (alle Netze)."""
     orm_pfad = albedo.replace("_albedo.png", "_orm.png")
     k_alb, k_orm = mip_kette(albedo), mip_kette(orm_pfad)
@@ -197,8 +198,8 @@ def pruefe(glb, albedo, stein_baender=(0.85, 0.95), rein=True, ausgabe_alles=Fal
     deck = ("stroh_franse",)
     for pix, stufen in GRUND.items():
         for zoom, lod in zip((25, 50, 100), stufen):
-            an_f = _mittel(proben, je_flaeche(shader_lesen(k_alb, u, v, lod, stein_baender, rein)))
-            an_o = _mittel(proben, je_flaeche(shader_lesen(k_orm, u, v, lod, stein_baender, rein, "licht")))
+            an_f = _mittel(proben, je_flaeche(shader_lesen(k_alb, u, v, lod, stein_baender, rein, stroh_teil=stroh_teil)))
+            an_o = _mittel(proben, je_flaeche(shader_lesen(k_orm, u, v, lod, stein_baender, rein, "licht", stroh_teil)))
             for key in sorted(an_f, key=lambda k: -an_f[k][1]):
                 c, fl = an_f[key]
                 if fl < 0.3: continue

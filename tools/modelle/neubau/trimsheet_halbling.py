@@ -187,6 +187,50 @@ def kupfer(blatt, band, saat=17):
     print(f"Kupfer: Falz alle {falz} Bildpunkte, Gruenspan {float(anteil.mean()):.2f}")
 
 
+# Stufe 3 belebt (Nutzer 19.11.2026): eine Hausecke dicht mit Efeu bewachsen. Das Band „stroh“ des Blatts trim_s3_halbling teilt sich:
+# oben (v 0 bis 0,125) der Efeu, darunter (0,125 bis 0,1875) das Kupfer der Gauben (wohnhaus_halbling_s23 legt die Kupferflaechen dorthin).
+# Die Efeuflaechen am Haus liegen gedreht im Band: UV.x laeuft die Wand HINAUF (4 m je Einheit), UV.y quer von der Hausecke weg.
+EFEU_STUFE3 = (0.0, 0.125, 4.0)
+KUPFER_STUFE3 = (0.125, 0.1875, 4.0)
+EFEU_FARBE = (0.20, 0.30, 0.13)            # wie elb_bewuchs.EFEU (Kunstwerk der Elben), sRGB
+
+
+def efeu_dicht(blatt, band, saat=73):
+    """Dichter Efeu, selbst gemalt (numpy, keine Fremdtextur): dunkler Grund aus Laub im Schatten, darueber viele Blaetter in drei
+    Helligkeiten, zur Hausecke (Zeile 0) dichter; senkrecht (Spalten = Hoehe, 2 mm je Bildpunkt) nahtlos. Die Zeilen stehen fuer bis zu
+    1,3 m Breite (etwa 5 mm je Bildpunkt): die Blaetter sind darum in den Zeilen schmaler gemalt, an der Wand wirken sie rund (etwa 6 cm)."""
+    a, e = blatt.zeilen(band)
+    h, w = e - a, N
+    rng = np.random.default_rng(saat)
+    grund = np.array(EFEU_FARBE, np.float32) * 0.42
+    farbe = np.broadcast_to(grund, (h, w, 3)).copy()
+    hoehe = np.zeros((h, w), np.float32)
+    zeile = np.arange(h, dtype=np.float32)[:, None]
+    for _ in range(5200):
+        bx, by = rng.uniform(0, w), rng.uniform(0, h) ** 1.15 / h ** 0.15         # zur Ecke hin dichter
+        rx, ry = rng.uniform(11, 19), rng.uniform(5, 9)
+        x0, x1 = int(bx - rx - 1), int(bx + rx + 2)
+        y0, y1 = max(int(by - ry - 1), 0), min(int(by + ry + 2), h)
+        if y0 >= y1: continue
+        xs = np.arange(x0, x1)
+        d = ((xs[None, :] - bx) / rx) ** 2 + ((zeile[y0:y1] - by) / ry) ** 2
+        drin = d < 1.0
+        hell = rng.uniform(0.75, 1.30) * (1.0 - 0.25 * by / h)
+        ton = np.array(EFEU_FARBE, np.float32) * hell * np.array([rng.uniform(0.9, 1.1), 1.0, rng.uniform(0.85, 1.1)], np.float32)
+        spalten = xs % w
+        f = farbe[y0:y1][:, spalten]
+        f[drin] = ton * (0.85 + 0.15 * (1 - d[drin]))[:, None]
+        farbe[y0:y1, spalten] = f
+        hh = hoehe[y0:y1][:, spalten]
+        hh[drin] = np.maximum(hh[drin], 1.0 - d[drin])
+        hoehe[y0:y1, spalten] = hh
+    blatt.albedo[a:e, :, :3] = np.clip(farbe, 0, 1); blatt.albedo[a:e, :, 3] = 1.0
+    gy, gx = np.gradient(hoehe * 2.0)
+    blatt.normal[a:e] = np.stack([np.clip(0.5 - gx * 0.5, 0, 1), np.clip(0.5 + gy * 0.5, 0, 1), np.full((h, w), 0.95, np.float32)], axis=-1)
+    blatt.orm[a:e] = np.stack([0.55 + 0.45 * hoehe, np.full((h, w), 0.75, np.float32), np.zeros((h, w), np.float32)], axis=-1)
+    print(f"Efeu: Blaetter auf {float((hoehe > 0).mean()):.2f} der Flaeche")
+
+
 def baue_s23(steine, backstein=BACKSTEIN):
     B = te.layout_lesen(os.path.join(HIER, "trimsheet.py"), "BAENDER_AUSSEN")
     alle = steine + ";" + backstein
@@ -202,7 +246,8 @@ def baue_s23(steine, backstein=BACKSTEIN):
     # Stufe 3: Steinhaus der Menschen, Schiefer blau, Kupfer, Backstein
     blatt = Blatt("trim_s3")
     blau_toenen(blatt, B["stroh_franse"])
-    kupfer(blatt, B["stroh"])
+    kupfer(blatt, KUPFER_STUFE3)                             # Band „stroh“: unten Kupfer, oben Efeu (Stufe 3 belebt, 19.11.2026)
+    efeu_dicht(blatt, EFEU_STUFE3)
     for name, ton in zip(("balken_a", "balken_b", "balken_c"), BALKEN):
         umtoenen(blatt, B[name], ton)
     umtoenen(blatt, B["planken"], PLANKEN)

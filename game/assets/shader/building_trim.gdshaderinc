@@ -57,6 +57,8 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 // (Stroh, Ziegel, Schiefer: Farbe bis 0,23, Rauheit bis −0,2; Steinbänder: Metall bis +0,25 aus dem Eisenband, Streifen), mit band_lesen
 // höchstens 0,03. Ohne Pixel-Look greift der Zweig nicht (pixel_look > 0,5), dort bleibt alles bildpunktgleich.
 const float BAND_REIN[12] = float[12](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);   // 0 = Ebene ohne reine Bänder
+// Geteiltes Band „stroh“ (Halbling Stufe 3, belebt 19.11.2026): oben Efeu (v bis 0,125), darunter Kupfer – zwei reine Bänder; 0 = ungeteilt
+const float STROH_TEIL[12] = float[12](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.125);
 
 float band_y(float y, float a, float e, float m) {
 	float t = exp2(m);
@@ -132,6 +134,8 @@ void fragment() {
 	float yb = fract(UV.y);
 	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(ebene, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
 		vec2 bd = yb < 0.1875 ? vec2(0.0, 0.1875) : (yb < 0.25 ? vec2(0.1875, 0.25) : ((UV.y >= sb.x && UV.y < sb.y) ? sb.xy : sb.zw));
+		float teil = STROH_TEIL[clamp(ebene, 0, 11)];
+		if (teil > 0.0 && yb < 0.1875) bd = yb < teil ? vec2(0.0, teil) : vec2(teil, 0.1875);
 		tex = band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob);
 		if (stein) tex = mix(tex, band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob_licht), stein_ruhe);
 		orm = band_lesen(orm_tex, uvw, bd.x, bd.y, lod + grob_licht).rgb;
