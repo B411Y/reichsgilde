@@ -12,7 +12,7 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Hauptszene
 {
-    private Button? _leisteHafen;
+    private Button? _leisteHafen; // seit der Zunftlade (Entwurf 3) ohne Knopf: Der Entwurf hat keinen Platz für den Hafen; der Zustandstext unten wartet auf eine Entscheidung
     private Label? _leisteHafenZustand;
 
     /// <summary>Hafen, Kran, Schuppen („hafen:…“) oder ein eigenes Schiff („schiff:…“) angeklickt: die Hafentafel. False, wenn die Kennung keins davon ist.</summary>
@@ -76,31 +76,6 @@ public partial class Hauptszene
             if (meldung.StartsWith(s.Besitzer.Inhaber + ": ") && meldung.Contains(s.Name)) return true; // Züge der KI: „Haus Brendel: schickt Möwe nach …“
         }
         return false;
-    }
-
-    /// <summary>Der Knopf „Hafen“ im Fach der Befehle (vor „Bauen“): nur, wenn die Stadt Schiffshandel hat. Klick: hinfahren und die Hafentafel.</summary>
-    private void HafenKnopfBauen(Container fach)
-    {
-        var knopf = LadeStil.Knopf(fach, "", "", null);
-        knopf.ToggleMode = true;
-        knopf.ClipContents = true;
-        knopf.Visible = false;
-        knopf.SizeFlagsHorizontal = knopf.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        var rand = LadeStil.Behaelter<MarginContainer>(knopf, "LadeKnopfInhalt");
-        rand.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        var spalte = LadeStil.Behaelter<VBoxContainer>(rand, "LadeSpalteEng");
-        spalte.Alignment = BoxContainer.AlignmentMode.Center;
-        LadeStil.Text(spalte, "Hafen").HorizontalAlignment = HorizontalAlignment.Center;
-        _leisteHafenZustand = LadeStil.Text(spalte, "", "LadeTextLeise");
-        _leisteHafenZustand.HorizontalAlignment = HorizontalAlignment.Center;
-        _leisteHafenZustand.ClipText = true;
-        knopf.Pressed += () =>
-        {
-            if (_simulation.Wirtschaft is not { } w || HafenDesSpielers(w) is not { } hafen) return;
-            if (_hafenTafel.Visible) _hafenTafel.Hide();
-            else HafenOeffnen(hafen, null, hinfahren: true);
-        };
-        _leisteHafen = knopf;
     }
 
     /// <summary>Viermal je Sekunde (mit der Lade): sichtbar, gedrückt, Zustand der eigenen Schiffe.</summary>

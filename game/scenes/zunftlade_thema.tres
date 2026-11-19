@@ -1,8 +1,8 @@
-[gd_resource type="Theme" load_steps=19 format=3]
+[gd_resource type="Theme" load_steps=39 format=3]
 
 ; Das Thema der Zunftlade (UI-Umbau „Zunftlade“, Teil 1): die Lade unten, die Zeitleiste oben, das Schild der Raumleiste.
 ; Aussehen steht NUR hier: Stoffe (Holz, Stein, Pergament), Farben, Schriften, Abstände und Maße. Logik in Hauptszene.Lade.cs und
-; Hauptszene.Zeitleiste.cs, die Brücke ist LadeStil.cs, gezeichnet wird in LadeFlaeche.cs.
+; Hauptszene.Zeitleiste.cs, die Brücke ist LadeStil.cs, gezeichnet wird in LadeFlaeche.cs (LadeFlaeche, LadeFach, LadeZeichner).
 ; Stoffe: Rand aus Stein, Hauptflächen aus abgenutztem Holz, Schilder auf Pergament – nur die freien Texturen, keine Verläufe und keine Schatten.
 ; Eine LadeFlaeche liest unter ihrer Typ-Variante: icons/grund (Textur), constants/grund_kachel (Kantenlänge einer Kachel im Bild; 0 = deckend
 ; gestreckt), icons/rahmen (9 Felder), constants/rahmen_quelle (Rand in der Textur), constants/rahmen_breite (Rand im Bild),
@@ -16,14 +16,46 @@
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/pergament.webp" id="5_pergament"]
 [ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="6_titel"]
 
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/gulden.svg" id="s_gulden"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/ansehen.svg" id="s_ansehen"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/familie.svg" id="s_familie"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/hammer.svg" id="s_hammer"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/bauen.svg" id="s_bauen"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/personal.svg" id="s_personal"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/lager.svg" id="s_lager"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/markt.svg" id="s_markt"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/hinterzimmer.svg" id="s_hinterzimmer"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/menue.svg" id="s_menue"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/rat.svg" id="s_rat"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/bericht.svg" id="s_bericht"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/lexikon.svg" id="s_lexikon"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/karren.svg" id="s_karren"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/talentbaum.svg" id="s_talentbaum"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/stadt.svg" id="s_stadt"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/pause.svg" id="s_pause"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/weiter.svg" id="s_weiter"]
+
+[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/Alegreya-Variabel.ttf" id="7_text"]
+
+; Alegreya fett (Gewicht 700, Ziffern in Versalhöhe und gleich breit) für Werte, Uhrzeit und Namensschild; 2003265652 = „wght“, 1819178349 = „lnum“, 1953396077 = „tnum“
+[sub_resource type="FontVariation" id="Fett"]
+base_font = ExtResource("7_text")
+variation_opentype = {
+2003265652: 700
+}
+opentype_features = {
+1819178349: 1,
+1953396077: 1
+}
+
 [sub_resource type="StyleBoxEmpty" id="Leer"]
 
 ; ── Innenabstände der Flächen (Steinrand eingerechnet) ──
 [sub_resource type="StyleBoxEmpty" id="KorpusRand"]
 content_margin_left = 28.0
-content_margin_top = 24.0
+content_margin_top = 23.0
 content_margin_right = 28.0
-content_margin_bottom = 10.0
+content_margin_bottom = 9.0
 
 [sub_resource type="StyleBoxEmpty" id="ZeitRand"]
 content_margin_left = 24.0
@@ -56,15 +88,15 @@ border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.071, 0.043, 0.02, 1)
+border_color = Color(0.165, 0.102, 0.047, 1)
 corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
-content_margin_left = 8.0
+content_margin_left = 10.0
 content_margin_top = 2.0
-content_margin_right = 8.0
-content_margin_bottom = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxFlat" id="WertfachUeber"]
 bg_color = Color(0.2, 0.14, 0.07, 0.6)
@@ -77,10 +109,10 @@ corner_radius_top_left = 3
 corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
-content_margin_left = 8.0
+content_margin_left = 10.0
 content_margin_top = 2.0
-content_margin_right = 8.0
-content_margin_bottom = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 2.0
 
 ; ── Knöpfe auf dem Holz: durchscheinend, das Holz bleibt zu sehen ──
 [sub_resource type="StyleBoxFlat" id="Knopf"]
@@ -148,22 +180,26 @@ content_margin_right = 10.0
 content_margin_bottom = 4.0
 
 [resource]
-; ── Maße (Einheiten der Oberfläche) ──
-; Lade: Breite höchstens (schmaler, wenn das Fenster schmaler ist) und Höhe; Porträt-Fach mit Abstand zum unteren Rand, Rand des Bogens
+; ── Maße (Einheiten der Oberfläche), wie im Entwurf 3 ──
+; Lade: Breite höchstens (schmaler, wenn das Fenster schmaler ist) und Höhe; Porträt-Fach mit Abstand zum unteren Rand, Rand des Bogens,
+; Luft zwischen Porträt-Fach und den Seiten; Namensschild
 LadeMasse/constants/lade_breite = 1280
 LadeMasse/constants/lade_hoehe = 210
 LadeMasse/constants/portraet_breite = 232
 LadeMasse/constants/portraet_hoehe = 214
-LadeMasse/constants/portraet_unten = 44
+LadeMasse/constants/portraet_unten = 53
 LadeMasse/constants/portraet_rand = 14
 LadeMasse/constants/portraet_luft = 10
-LadeMasse/constants/namensschild_hoehe = 36
-LadeMasse/constants/namensschild_unten = 5
-LadeMasse/constants/wappen = 26
-; Fächer: Mindestbreite eines Werte-Fachs, Spalten der Werte und der Befehle, Zeile eines Betriebs, Symbol der Ware
-LadeMasse/constants/wertfach_breite = 100
-LadeMasse/constants/werte_spalten = 2
-LadeMasse/constants/befehl_spalten = 3
+LadeMasse/constants/namensschild_hoehe = 38
+LadeMasse/constants/namensschild_unten = 9
+; Schiene über den Fächern (Werte, kleine Knöpfe): Höhe, Mindesthöhe von Werte-Feld und kleinem Knopf, Symbolgrößen
+LadeMasse/constants/schiene_hoehe = 40
+LadeMasse/constants/wert_hoehe = 34
+LadeMasse/constants/symbol_wert = 22
+LadeMasse/constants/symbol_klein = 18
+LadeMasse/constants/symbol_fach = 26
+; Liste der Betriebe über der Lade: Breite, Zeile eines Betriebs, Symbol der Ware
+LadeMasse/constants/betriebe_breite = 300
 LadeMasse/constants/betrieb_hoehe = 44
 LadeMasse/constants/betrieb_symbol = 32
 ; Zeitleiste: Breite mindestens, Abstand zum oberen Rand, Knöpfe
@@ -174,11 +210,30 @@ LadeMasse/constants/tempo_breite = 52
 ; Was die übrige Oberfläche frei lässt: oben (Zeitleiste), unten (Lade)
 LadeMasse/constants/kopf_hoehe = 140
 LadeMasse/constants/leisten_hoehe = 218
-; Meldungen (3D-Faltbriefe) rechts über der Lade, das Schild der Raumleiste links: Abstand zum unteren Rand, Einzug von der Kante der Lade
-LadeMasse/constants/meldungen_unten = 216
+; Meldungen (3D-Faltbriefe) rechts über der Lade, das Schild der Räume und die Liste der Betriebe links: Abstand zum unteren Rand, Einzug von der Kante der Lade
+LadeMasse/constants/meldungen_unten = 218
 LadeMasse/constants/meldungen_einzug = 30
 LadeMasse/constants/schild_unten = 216
 LadeMasse/constants/schild_einzug = 30
+; ── Symbole (schlichte Zeichen des Entwurfs) ──
+LadeSymbole/icons/gulden = ExtResource("s_gulden")
+LadeSymbole/icons/ansehen = ExtResource("s_ansehen")
+LadeSymbole/icons/familie = ExtResource("s_familie")
+LadeSymbole/icons/hammer = ExtResource("s_hammer")
+LadeSymbole/icons/bauen = ExtResource("s_bauen")
+LadeSymbole/icons/personal = ExtResource("s_personal")
+LadeSymbole/icons/lager = ExtResource("s_lager")
+LadeSymbole/icons/markt = ExtResource("s_markt")
+LadeSymbole/icons/hinterzimmer = ExtResource("s_hinterzimmer")
+LadeSymbole/icons/menue = ExtResource("s_menue")
+LadeSymbole/icons/rat = ExtResource("s_rat")
+LadeSymbole/icons/bericht = ExtResource("s_bericht")
+LadeSymbole/icons/lexikon = ExtResource("s_lexikon")
+LadeSymbole/icons/karren = ExtResource("s_karren")
+LadeSymbole/icons/talentbaum = ExtResource("s_talentbaum")
+LadeSymbole/icons/stadt = ExtResource("s_stadt")
+LadeSymbole/icons/pause = ExtResource("s_pause")
+LadeSymbole/icons/weiter = ExtResource("s_weiter")
 ; ── Farben, die der Code beim Namen nennt ──
 LadeFarben/colors/portraet_grund = Color(0.118, 0.106, 0.09, 1)
 LadeFarben/colors/zeit_himmel = Color(0.09, 0.07, 0.05, 1)
@@ -197,12 +252,33 @@ LadeZeit/constants/grund_kachel = 720
 LadeZeit/icons/rahmen = ExtResource("3_rahmen")
 LadeZeit/constants/rahmen_quelle = 32
 LadeZeit/constants/rahmen_breite = 14
-LadeFach/base_type = &"PanelContainer"
-LadeFach/styles/panel = SubResource("FachRand")
+LadeFach/base_type = &"Button"
+LadeFach/styles/normal = SubResource("Leer")
+LadeFach/styles/hover = SubResource("Leer")
+LadeFach/styles/pressed = SubResource("Leer")
+LadeFach/styles/hover_pressed = SubResource("Leer")
+LadeFach/styles/disabled = SubResource("Leer")
+LadeFach/styles/focus = SubResource("Leer")
 LadeFach/icons/grund = ExtResource("2_fachholz")
 LadeFach/constants/grund_kachel = 330
-LadeFach/colors/kante = Color(0.071, 0.043, 0.02, 1)
 LadeFach/constants/kante_breite = 2
+LadeFach/colors/kante_oben = Color(0.353, 0.247, 0.133, 1)
+LadeFach/colors/kante_rechts = Color(0.071, 0.043, 0.02, 1)
+LadeFach/colors/kante_unten = Color(0.043, 0.027, 0.016, 1)
+LadeFach/colors/kante_links = Color(0.165, 0.102, 0.047, 1)
+LadeFach/colors/griff = Color(0.071, 0.043, 0.02, 1)
+LadeFach/constants/griff_breite = 48
+LadeFach/constants/griff_hoehe = 12
+LadeFach/constants/griff_strich = 4
+LadeFach/constants/griff_oben = 6
+LadeFach/colors/ueber = Color(1, 0.88, 0.67, 0.12)
+LadeFach/colors/gedrueckt = Color(0.78, 0.56, 0.2, 0.3)
+LadeFach/colors/gesperrt = Color(0.05, 0.04, 0.03, 0.5)
+LadeFachInhalt/base_type = &"MarginContainer"
+LadeFachInhalt/constants/margin_left = 4
+LadeFachInhalt/constants/margin_top = 18
+LadeFachInhalt/constants/margin_right = 4
+LadeFachInhalt/constants/margin_bottom = 4
 LadeSchild/base_type = &"PanelContainer"
 LadeSchild/styles/panel = SubResource("SchildRand")
 LadeSchild/icons/grund = ExtResource("1_holz")
@@ -233,20 +309,29 @@ LadeKnopf/styles/hover_pressed = SubResource("KnopfGedrueckt")
 LadeKnopf/styles/disabled = SubResource("KnopfGesperrt")
 LadeKnopf/styles/focus = SubResource("Leer")
 LadeKnopf/font_sizes/font_size = 17
+LadeKnopf/constants/h_separation = 8
+LadeKnopf/constants/icon_max_width = 18
 LadeKnopf/colors/font_color = Color(0.914, 0.851, 0.682, 1)
 LadeKnopf/colors/font_hover_color = Color(1, 0.953, 0.753, 1)
 LadeKnopf/colors/font_pressed_color = Color(1, 1, 1, 1)
 LadeKnopf/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
 LadeKnopf/colors/font_focus_color = Color(0.914, 0.851, 0.682, 1)
 LadeKnopf/colors/font_disabled_color = Color(0.62, 0.58, 0.52, 1)
+LadeKnopfKlein/base_type = &"LadeKnopf"
+LadeKnopfKlein/constants/h_separation = 5
+LadeKnopfKlein/constants/icon_max_width = 18
 ; Teststufen des Tempos (nur mit Entwickler-Optionen sichtbar)
 LadeKnopfTest/base_type = &"LadeKnopf"
 LadeKnopfTest/colors/font_color = Color(1, 0.6, 0.25, 1)
 ; ── Schrift ──
 LadeFachtitel/base_type = &"Label"
 LadeFachtitel/fonts/font = ExtResource("6_titel")
-LadeFachtitel/font_sizes/font_size = 17
-LadeFachtitel/colors/font_color = Color(0.788, 0.643, 0.333, 1)
+LadeFachtitel/font_sizes/font_size = 22
+LadeFachtitel/colors/font_color = Color(0.914, 0.851, 0.682, 1)
+LadeFachGesperrt/base_type = &"Label"
+LadeFachGesperrt/fonts/font = ExtResource("6_titel")
+LadeFachGesperrt/font_sizes/font_size = 22
+LadeFachGesperrt/colors/font_color = Color(0.62, 0.58, 0.52, 1)
 LadeText/base_type = &"Label"
 LadeText/font_sizes/font_size = 16
 LadeText/colors/font_color = Color(0.914, 0.851, 0.682, 1)
@@ -254,33 +339,43 @@ LadeTextLeise/base_type = &"Label"
 LadeTextLeise/font_sizes/font_size = 15
 LadeTextLeise/colors/font_color = Color(0.79, 0.74, 0.62, 1)
 LadeTextWarnung/base_type = &"Label"
+LadeTextWarnung/fonts/font = SubResource("Fett")
 LadeTextWarnung/font_sizes/font_size = 15
-LadeTextWarnung/colors/font_color = Color(1, 0.55, 0.47, 1)
+LadeTextWarnung/colors/font_color = Color(1, 0.769, 0.706, 1)
 LadeTextGut/base_type = &"Label"
 LadeTextGut/font_sizes/font_size = 16
 LadeTextGut/colors/font_color = Color(0.6, 0.88, 0.54, 1)
 LadeWertname/base_type = &"Label"
 LadeWertname/font_sizes/font_size = 15
-LadeWertname/colors/font_color = Color(0.788, 0.643, 0.333, 1)
+LadeWertname/colors/font_color = Color(0.79, 0.74, 0.62, 1)
 LadeWert/base_type = &"Label"
-LadeWert/font_sizes/font_size = 20
+LadeWert/fonts/font = SubResource("Fett")
+LadeWert/font_sizes/font_size = 17
 LadeWert/colors/font_color = Color(1, 0.96, 0.84, 1)
 LadeWertSchlecht/base_type = &"Label"
-LadeWertSchlecht/font_sizes/font_size = 20
+LadeWertSchlecht/fonts/font = SubResource("Fett")
+LadeWertSchlecht/font_sizes/font_size = 17
 LadeWertSchlecht/colors/font_color = Color(1, 0.55, 0.47, 1)
 LadeName/base_type = &"Label"
-LadeName/fonts/font = ExtResource("6_titel")
-LadeName/font_sizes/font_size = 19
+LadeName/fonts/font = SubResource("Fett")
+LadeName/font_sizes/font_size = 17
 LadeName/colors/font_color = Color(0.141, 0.094, 0.051, 1)
 LadeZeitText/base_type = &"Label"
 LadeZeitText/font_sizes/font_size = 17
 LadeZeitText/colors/font_color = Color(0.914, 0.851, 0.682, 1)
 LadeZeitUhr/base_type = &"Label"
-LadeZeitUhr/font_sizes/font_size = 20
+LadeZeitUhr/fonts/font = SubResource("Fett")
+LadeZeitUhr/font_sizes/font_size = 19
 LadeZeitUhr/colors/font_color = Color(0.95, 0.82, 0.48, 1)
 ; ── Abstände der Behälter ──
-LadeFluegel/base_type = &"HBoxContainer"
-LadeFluegel/constants/separation = 10
+LadeSeite/base_type = &"VBoxContainer"
+LadeSeite/constants/separation = 8
+LadeSchiene/base_type = &"HBoxContainer"
+LadeSchiene/constants/separation = 8
+LadeFaecher/base_type = &"HBoxContainer"
+LadeFaecher/constants/separation = 8
+LadeWertReihe/base_type = &"HBoxContainer"
+LadeWertReihe/constants/separation = 6
 LadeSpalte/base_type = &"VBoxContainer"
 LadeSpalte/constants/separation = 4
 LadeSpalteEng/base_type = &"VBoxContainer"
@@ -291,6 +386,10 @@ LadeZeitSpalte/base_type = &"VBoxContainer"
 LadeZeitSpalte/constants/separation = 7
 LadeZeitReihe/base_type = &"HBoxContainer"
 LadeZeitReihe/constants/separation = 14
+LadeTempoReihe/base_type = &"HBoxContainer"
+LadeTempoReihe/constants/separation = 5
+LadeZeitTextReihe/base_type = &"HBoxContainer"
+LadeZeitTextReihe/constants/separation = 7
 LadeKnopfInhalt/base_type = &"MarginContainer"
 LadeKnopfInhalt/constants/margin_left = 6
 LadeKnopfInhalt/constants/margin_top = 2

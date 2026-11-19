@@ -627,7 +627,7 @@ public partial class Hauptszene
             Hauptmenue.Text(raster, was, 14);
         }
         Hauptmenue.Text(spalte,
-            "Oben in der Mitte steht die Zeit, unten die Lade: links die Werte eures Hauses und eure Betriebe, in der Mitte euer Porträt (ein Klick öffnet die Familie), rechts die Befehle. Ein Klick auf einen Betrieb fährt hin und " +
+            "Oben in der Mitte steht die Zeit, unten die Lade: oben die Werte eures Hauses, in der Mitte euer Porträt (ein Klick öffnet die Familie), links und rechts die Fächer. Das Fach „Betriebe“ zeigt eure Betriebe: ein Klick fährt hin und " +
             "zeigt seine Kurzübersicht, ein Doppelklick geht hinein – drinnen stellt ihr Produktion, Personal, Lager, Karren und Einrichtung ein. " +
             "Ein Klick auf das Rathaus zeigt Rat, Ämter, Statut und Gericht, ein Klick auf den Markt die Preise. Meldungen kommen als Faltbrief rechts über der Lade (ein Klick liest den Brief) " +
             "oder als Brief; alles steht im Bericht unter „Verlauf“. Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);

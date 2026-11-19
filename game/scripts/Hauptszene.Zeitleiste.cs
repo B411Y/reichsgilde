@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die <b>Zeitleiste</b> oben in der Mitte (UI-Umbau „Zunftlade“, Teil 1; vorher Kopfzeile und Zeitstrahl aus PR #197) – ein Teil der
 /// <c>partial class Hauptszene</c>: ganz oben das Band des Tages mit Sonne bzw. Mond (<see cref="Zeitstrahl"/>), darunter links Pause und
-/// Tempo, rechts Jahreszeit, Jahr, Uhrzeit, Tagesabschnitt und Wetter mit Aussicht. Holz mit Steinrand; das Aussehen steht im Thema der Lade
+/// Tempo, rechts Jahreszeit, Jahr, Uhrzeit, Tagesabschnitt und Wetter mit Aussicht. Holz mit Steinrand, Maße wie im Entwurf 3; das Aussehen steht im Thema der Lade
 /// (<see cref="LadeStil"/>). Die Werte des Hauses stehen unten in der Lade (<c>Hauptszene.Lade.cs</c>).
 /// </summary>
 public partial class Hauptszene
@@ -36,15 +36,15 @@ public partial class Hauptszene
 
         var spalte = LadeStil.Behaelter<VBoxContainer>(_zeitTafel, "LadeZeitSpalte");
         // Ganz oben: das Band des Tages
-        _zeitstrahl = new Zeitstrahl { Himmel = LadeStil.Farbe("zeit_himmel") };
+        _zeitstrahl = new Zeitstrahl { Strichzeiger = true }; // wie im Entwurf: Band ohne Zeigerplatz, ein heller Strich zeigt die Uhrzeit
         spalte.AddChild(_zeitstrahl);
         // Darunter links Pause und Tempo, rechts Jahreszeit, Jahr, Uhrzeit, Tagesabschnitt und Wetter
         var reihe = LadeStil.Behaelter<HBoxContainer>(spalte, "LadeZeitReihe");
-        var knoepfe = LadeStil.Behaelter<HBoxContainer>(reihe, "LadeReihe");
+        var knoepfe = LadeStil.Behaelter<HBoxContainer>(reihe, "LadeTempoReihe");
         _pauseKnopf = LadeStil.Knopf(knoepfe, "", "Pause (Leertaste)", PauseUmschalten);
         _pauseKnopf.CustomMinimumSize = new Vector2(LadeStil.Mass("pause_breite"), 0);
         _pauseKnopf.SetMeta("klang", "still");
-        _tempoleiste = LadeStil.Behaelter<HBoxContainer>(knoepfe, "LadeReihe");
+        _tempoleiste = LadeStil.Behaelter<HBoxContainer>(knoepfe, "LadeTempoReihe");
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
         {
             // TESTTEMPO: Die Teststufen stehen nur mit den Entwickler-Optionen in der Leiste (orange, mit Hinweis); die Zifferntasten wählen sie weiter.
@@ -60,7 +60,7 @@ public partial class Hauptszene
         }
         var luft = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         reihe.AddChild(luft);
-        var text = LadeStil.Behaelter<HBoxContainer>(reihe, "LadeReihe");
+        var text = LadeStil.Behaelter<HBoxContainer>(reihe, "LadeZeitTextReihe");
         text.MouseFilter = Control.MouseFilterEnum.Stop; // für den Hinweis
         text.TooltipText = "Jahreszeit, Jahr, Uhrzeit und Tagesabschnitt. Ein Spieltag dauert von 4 bis 23 Uhr, gearbeitet wird von 8 bis 20 Uhr; 1140 Ticks sind ein Jahr.";
         _zeitDatum = LadeStil.Text(text, "", "LadeZeitText");
@@ -77,12 +77,16 @@ public partial class Hauptszene
         var takt = _simulation.Takt;
         Setzen(_zeitDatum, $"{KalenderTexte.Name(zeit.Jahreszeit)} · {zeit.Jahr} ·");
         Setzen(_zeitUhr, zeit.UhrzeitText);
-        Setzen(_zeitPhase, $"· {KalenderTexte.Name(zeit.Tagesphase)}");
+        Setzen(_zeitPhase, $"· {KalenderTexte.Name(zeit.Tagesphase)} ·");
         _wetter.Zeigen(_stadt.WetterJetzt, _stadt.WetterAussicht(3));
         _zeitstrahl.Jahreszeit = _stadt.JahreszeitErzwungen ?? zeit.Jahreszeit; // Nacht und Mond nach den Sonnenzeiten der Jahreszeit, wie das Licht der Stadt
         _zeitstrahl.Minute = _stadt.LichtUhrErzwungen is { } lichtUhr ? (int)(lichtUhr * 60) - Spielzeit.TagesbeginnMinute : zeit.MinuteImTag;
-        var pause = _simulation.IstBeendet ? "Partie beendet" : takt.IstPausiert ? "▶ Weiter" : "❚❚ Pause";
-        if (_pauseKnopf.Text != pause) _pauseKnopf.Text = pause;
+        var pause = _simulation.IstBeendet ? "Partie beendet" : takt.IstPausiert ? "Weiter" : "Pause";
+        if (_pauseKnopf.Text != pause)
+        {
+            _pauseKnopf.Text = pause;
+            _pauseKnopf.Icon = _simulation.IstBeendet ? null : LadeStil.Bild(takt.IstPausiert ? "weiter" : "pause", "LadeSymbole");
+        }
         // Ein Haltegrund (Ratssitzung, Jahresbericht im Einzelspiel) sperrt Pause und Tempo, bis das Fenster zu ist
         var gesperrt = takt.IstAngehalten;
         _pauseKnopf.Disabled = _simulation.IstBeendet || gesperrt;
@@ -107,14 +111,14 @@ public partial class Hauptszene
     }
 
     /// <summary>
-    /// Lebensweise (Teil 3a): Der Knopf bei den Werten der Lade zeigt freie Punkte der eigenen Leute; wird einer neu frei, kommt eine Meldung
+    /// Lebensweise (Teil 3a): Das Fach „Familie“ der Lade zeigt in seiner Zustandszeile freie Punkte der eigenen Leute; wird einer neu frei, kommt eine Meldung
     /// („Neuigkeiten aus dem Haus“). Der Kern sagt es nicht von selbst – darum liest die Oberfläche die Punkte jedes Bild (ein paar Rechnungen).
     /// </summary>
     private void LebenswegPunkteAnzeigen(Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w)
     {
         if (_spieler is null || !w.Familien.HatLebensweise || w.Familien.Von(_spieler) is not { } haus)
         {
-            _ladePunkte.Visible = false;
+            Setzen(_fachFamilie.Zustand, "");
             _lebenswegFrei = null;
             return;
         }
@@ -135,21 +139,15 @@ public partial class Hauptszene
                 }
         _lebenswegFrei = jetzt;
         var summe = jetzt.Values.Sum();
-        _ladePunkte.Visible = summe > 0;
-        if (summe <= 0) return;
-        Setzen(_ladePunkte, summe == 1 ? "1 Punkt frei" : $"{summe} Punkte frei");
-        _ladePunkte.TooltipText = "Freie Punkte der Lebensweise – ein Klick öffnet den Lebensweg:\n" + string.Join("\n", personen.Where(p => jetzt[p.Nummer] > 0).Select(p => $"{p.Vorname}: {jetzt[p.Nummer]}"));
+        Setzen(_fachFamilie.Zustand, summe <= 0 ? "" : summe == 1 ? "1 Punkt frei" : $"{summe} Punkte frei");
+        var tipp = "Eure Familie: Oberhaupt, Ehepartner, Kinder, Stammbaum"
+                   + (summe > 0 ? "\nFreie Punkte der Lebensweise (Charakterfenster, Reiter „Lebensweg“):\n" + string.Join("\n", personen.Where(p => jetzt[p.Nummer] > 0).Select(p => $"{p.Vorname}: {jetzt[p.Nummer]}")) : "");
+        if (_fachFamilie.Knopf.TooltipText != tipp) _fachFamilie.Knopf.TooltipText = tipp;
     }
 
     /// <summary>Setzt einen Text nur bei einer Änderung (sonst misst Godot die Tafel jedes Bild neu).</summary>
     private static void Setzen(Label label, string text)
     {
         if (label.Text != text) label.Text = text;
-    }
-
-    /// <summary>Wie <see cref="Setzen(Label, string)"/>, für die Beschriftung eines Knopfs.</summary>
-    private static void Setzen(Button knopf, string text)
-    {
-        if (knopf.Text != text) knopf.Text = text;
     }
 }

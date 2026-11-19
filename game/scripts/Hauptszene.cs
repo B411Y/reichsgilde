@@ -1556,7 +1556,7 @@ public partial class Hauptszene : Node
     /// <summary>Im neuen Rathaus wurde das Anschlagbrett angeklickt: die Übersicht steht rechts, bis der Raum wechselt.</summary>
     private bool _rathausAushang;
 
-    /// <summary>Das Schild der Räume links über der Lade: ein Knopf je Raum, der gezeigte ist gedrückt, dazu „Zur Stadt".</summary>
+    /// <summary>Das Schild der Räume links über der Lade: ein Knopf je Raum, der gezeigte ist gedrückt („Zur Stadt" ist ein Fach der Lade).</summary>
     private void RaumleisteBauen()
     {
         _raumleiste = LadeStil.Flaeche(null, "LadeSchild");
@@ -1581,7 +1581,6 @@ public partial class Hauptszene : Node
             knopf.ToggleMode = true;
             knopf.ButtonPressed = kennung == _stadt.RaumKennung;
         }
-        LadeStil.Knopf(_raumknoepfe, "Zur Stadt (Esc)", "", _stadt.InnenansichtVerlassenMitBlende);
         // Breite neu messen, dann wieder links über die Lade setzen
         _raumleiste.ResetSize();
         RaumleisteEinpassen();

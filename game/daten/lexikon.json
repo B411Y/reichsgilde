@@ -51,13 +51,13 @@
   "kennung": "kopfzeile",
   "titel": "Lade: Werte und Porträt",
   "gruppe": "Spiel",
-  "text": "Unten in der Mitte steht die Lade, darin euer [[haus]]. Links die Werte: Bargeld (der Tooltip nennt Bargeld und [[reinvermoegen]]), [[aktionspunkte]], Ansehen und [[stress|Stress]] des Oberhaupts. In der Mitte das Porträt des Oberhaupts, darunter Wappen, Name und [[stand]] (der Tooltip nennt den Weg zum nächsten). Ein Klick auf das Porträt öffnet die Familie."
+  "text": "Unten in der Mitte steht die Lade, darin euer [[haus]]. Oben links die Werte: Gulden (der Tooltip nennt Bargeld und [[reinvermoegen]]), Ansehen und [[stress|Stress]] des Oberhaupts, oben rechts die [[aktionspunkte]]. In der Mitte das Porträt des Oberhaupts, darunter Name und [[stand]] (der Tooltip nennt den Weg zum nächsten). Ein Klick auf das Porträt öffnet die Familie."
  },
  {
   "kennung": "betriebsleiste",
-  "titel": "Lade: Betriebe und Befehle",
+  "titel": "Lade: Fächer",
   "gruppe": "Spiel",
-  "text": "In der Lade unten, links das Fach der Betriebe: je eigener Betrieb ein Knopf mit dem Symbol seiner Ware und seinem Zustand (läuft, steht, Lager voll, Karren unterwegs). Ein Warnzeichen zeigt einen stehenden Betrieb. Ein Klick fährt die Kamera hin und öffnet die [[kurzuebersicht]], ein Doppelklick geht hinein. Rechts das Fach der Befehle: Hafen, Bauen, Rat, Bericht, Lexikon und Menü. Meldungen liegen als Faltbriefe rechts über der Lade."
+  "text": "Die Lade hat links und rechts je drei Fächer. In der Stadt: Familie, Betriebe, Bauen und Rat, Bericht, Lexikon. Das Fach Betriebe klappt die Liste eurer Betriebe auf: je Betrieb ein Knopf mit dem Symbol seiner Ware und seinem Zustand (läuft, steht, Lager voll, Karren unterwegs). Ein Klick fährt die Kamera hin und öffnet die [[kurzuebersicht]], ein Doppelklick geht hinein. In der Innenansicht stehen dort Personal, Produktion, Lager und Karren, Talentbaum, Zur Stadt. Über den Fächern rechts: Markt, Hinterzimmer und Menü. Meldungen liegen als Faltbriefe rechts über der Lade."
  },
  {
   "kennung": "kurzuebersicht",
@@ -297,7 +297,7 @@
   "kennung": "hafen",
   "titel": "Hafen",
   "gruppe": "Hafen und Wege",
-  "text": "Liegt die Stadt an einem Fluss mit Hafen, handelt ihr mit fernen Städten am Kartenrand. Ein Klick auf den Hafen (oder der Knopf „Hafen“ in der [[betriebsleiste|Lade]]) öffnet die Hafentafel: dort kauft ihr ein [[flussschiff]] und gebt ihm einen Auftrag. Der Hafen bringt der Stadt [[zoll]] ein."
+  "text": "Liegt die Stadt an einem Fluss mit Hafen, handelt ihr mit fernen Städten am Kartenrand. Ein Klick auf den Hafen öffnet die Hafentafel: dort kauft ihr ein [[flussschiff]] und gebt ihm einen Auftrag. Der Hafen bringt der Stadt [[zoll]] ein."
  },
  {
   "kennung": "flussschiff",

@@ -12,7 +12,24 @@ namespace Reichsgilde;
 /// </summary>
 public sealed partial class Zeitstrahl : Control
 {
-    private const float Bandhoehe = 20, Zeigerplatz = 16;
+    private float Bandhoehe => _strich ? 24 : 20;
+    private float Zeigerplatz => _strich ? 0 : 16;
+    private bool _strich;
+
+    /// <summary>
+    /// Zunftlade (Entwurf 3): Das Band steht ganz oben, ohne Platz für Sonne und Mond darüber; ein heller Strich im Band zeigt die Uhrzeit.
+    /// Die goldene Linie der Arbeitszeit unter dem Band entfällt dann (sie stand außerhalb des Bandes).
+    /// </summary>
+    public bool Strichzeiger
+    {
+        get => _strich;
+        set
+        {
+            _strich = value;
+            CustomMinimumSize = new Vector2(340, Bandhoehe + Zeigerplatz + (_strich ? 0 : 2));
+            QueueRedraw();
+        }
+    }
 
     /// <summary>Schriftgrad der Namen im Band (nicht unter <see cref="Schriften.MindestGroesse"/>).</summary>
     private const int Schriftgrad = Schriften.MindestGroesse;
@@ -104,7 +121,7 @@ public sealed partial class Zeitstrahl : Control
     {
         var oben = Zeigerplatz;
         var schrift = GetThemeDefaultFont();
-        DrawRect(new Rect2(0, 0, Size.X, Zeigerplatz), Himmel);
+        if (!_strich) DrawRect(new Rect2(0, 0, Size.X, Zeigerplatz), Himmel);
         for (var i = 0; i < Phasen.Length; i++)
         {
             var (ab, farbe, name) = Phasen[i];
@@ -119,7 +136,7 @@ public sealed partial class Zeitstrahl : Control
             // Der Name klein ins Feld, wenn er hineinpasst
             var breite = schrift.GetStringSize(name, HorizontalAlignment.Left, -1, Schriftgrad).X;
             if (breite + 4 < feld.Size.X)
-                DrawString(schrift, new Vector2(feld.Position.X + (feld.Size.X - breite) / 2, oben + Bandhoehe - 5), name, HorizontalAlignment.Left, -1, Schriftgrad,
+                DrawString(schrift, new Vector2(feld.Position.X + (feld.Size.X - breite) / 2, oben + Bandhoehe - (_strich ? 7 : 5)), name, HorizontalAlignment.Left, -1, Schriftgrad,
                            Tageslicht((ab + bis) / 2) < 0.5f ? new Color(0.92f, 0.92f, 0.96f) : new Color(0.08f, 0.06f, 0.04f));
         }
         // Volle Stunden als kurze Striche am unteren Rand, die Arbeitszeit (8–20 Uhr) als dünne Linie darunter
@@ -128,10 +145,17 @@ public sealed partial class Zeitstrahl : Control
             var x = X(Ab(stunde));
             DrawLine(new Vector2(x, oben + Bandhoehe - 3), new Vector2(x, oben + Bandhoehe), new Color(0, 0, 0, 0.5f));
         }
-        DrawLine(new Vector2(X(Ab(8)), oben + Bandhoehe + 1), new Vector2(X(Ab(20)), oben + Bandhoehe + 1), new Color(0.95f, 0.82f, 0.45f, 0.7f), 2);
+        if (!_strich) DrawLine(new Vector2(X(Ab(8)), oben + Bandhoehe + 1), new Vector2(X(Ab(20)), oben + Bandhoehe + 1), new Color(0.95f, 0.82f, 0.45f, 0.7f), 2);
         DrawRect(new Rect2(0, oben, Size.X, Bandhoehe), new Color(0.05f, 0.04f, 0.03f), false, 1);
 
         if (_minute == OhneMinute) return; // noch keine Zeit gesetzt (vor 4 Uhr, per --lichtuhr, sitzt der Zeiger am linken Rand)
+        if (_strich)
+        {
+            var x = Mathf.Clamp(X(_minute), 2, Size.X - 2);
+            DrawRect(new Rect2(x - 2.5f, oben, 5, Bandhoehe), new Color(0, 0, 0));
+            DrawRect(new Rect2(x - 1.5f, oben, 3, Bandhoehe), new Color(1, 1, 1));
+            return;
+        }
         // Der Zeiger: eine Sonne mit Strahlen über dem Band, in der Nacht ein Mond
         // Die Marke sitzt ganz über dem Band (F7: Sie verdeckte sonst den Namen des Abschnitts); nur eine kurze Spitze zeigt auf die Minute.
         var mitte = new Vector2(Mathf.Clamp(X(_minute), 7, Size.X - 7), oben - 8);

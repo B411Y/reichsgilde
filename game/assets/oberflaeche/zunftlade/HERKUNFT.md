@@ -13,3 +13,7 @@ Lizenz Poly Haven, wörtlich von https://polyhaven.com/license (Zitat wie in `ga
 | `pergament.webp` | Wikimedia Commons, „Pergament.1.jpg“ (Oberfläche eines mittelalterlichen Pergaments) | Membeth | https://commons.wikimedia.org/wiki/File:Pergament.1.jpg | auf einen Streifen 1024 × 512 px zugeschnitten, etwas wärmer und dunkler eingefärbt |
 
 **Keine hinzugerechneten Effekte** (Entscheidung des Nutzers, 18.11.2026): keine Kerben, Flecken, Verläufe oder Schatten – nur Zuschnitt, Verkleinern, Drehen, Biegen, Farbe und die Schattierung des Holzes aus den Karten derselben Textur. Keine Bild-KI.
+
+## Symbole (`symbole/*.svg`)
+
+Kein Fremdmaterial: schlichte Zeichen aus dem HTML-Entwurf der Zunftlade, dort als SVG-Pfade von Hand als Code geschrieben. Einzelheiten: `docs/assets/prompts/zunftlade_symbole.md`.

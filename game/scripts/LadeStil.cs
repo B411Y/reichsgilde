@@ -64,4 +64,18 @@ public static class LadeStil
         eltern?.AddChild(f);
         return f;
     }
+
+    /// <summary>Ein Symbol der Familie „LadeSymbole“ (z. B. „gulden“) in der Größe des Maßes <paramref name="mass"/>; fängt keine Maus.</summary>
+    public static TextureRect Symbol(Node eltern, string name, string mass)
+    {
+        var groesse = Mass(mass);
+        var bild = new TextureRect
+        {
+            Texture = Bild(name, "LadeSymbole"), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(groesse, groesse), MouseFilter = Control.MouseFilterEnum.Ignore, TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        eltern.AddChild(bild);
+        return bild;
+    }
 }
