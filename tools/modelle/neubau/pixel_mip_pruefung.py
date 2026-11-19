@@ -11,6 +11,7 @@ Steinbaender je Stufe nur aus Texeln im eigenen Band (band_lesen); diese Pruefun
 Je Flaeche der GLB (Ecken und Schwerpunkt der UV) im Pixel-Look gegen ohne Pixel-Look (Grundstufe eine feiner, ohne Zuschlag):
   (a) Deckung blau: Dachband „stroh_franse“ im Pixel-Look Blau > 1,05 Rot und Blau > Gruen (wie 26c an der Textur);
   (b) Deckung matt: Rauheit des Dachbands im Pixel-Look hoechstens 0,05 unter der ohne Pixel-Look (sonst Glanzflecken);
+  (d) Efeu (Stoff Efeublatt) im Pixel-Look klar gruen: Gruen ueber 1,15 x Rot und Blau, Helligkeit (sRGB) ab 0,28 (der Efeu vom 19.11. mit 0,21 galt als fast schwarz);
   (c) Stein ohne Streifen: in jedem Steinband, das die Waende nutzen, schwankt die Helligkeit quer zum Band (ueber den v-Bereich der
       Flaechen, Mittel ueber u) im Pixel-Look hoechstens um den Faktor 1,15 (ohne Pixel-Look 1,10), und Metall bleibt unter 0,05.
 
@@ -210,6 +211,8 @@ def pruefe(glb, albedo, stein_baender=(0.85, 0.95), rein=True, ausgabe_alles=Fal
                 if key[1] in deck:
                     if not (c[2] > c[0] * 1.05 and c[2] > c[1]): f.append("(a) Deckung nicht blau")
                     if r1 < r0 - 0.05: f.append("(b) Deckung glaenzt")
+                if key[0] == "Efeublatt" and fl >= 0.3:          # (d) Efeu im Pixel-Look klar gruen, nicht fast schwarz (Nutzer 19.11.2026)
+                    if not (c[1] > c[0] * 1.15 and c[1] > c[2] * 1.15 and float(c @ LUM) >= 0.28): f.append("(d) Efeu nicht klar gruen")
                 if f or ausgabe_alles:
                     zeilen.append(zeile + (" -> FEHLER " + ", ".join(f) if f else ""))
                 fehler += len(f)
