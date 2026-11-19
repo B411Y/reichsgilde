@@ -185,15 +185,6 @@ MeldungMasse/constants/brief_gross_einblenden_ms = 100
 MeldungMasse/constants/brief_gross_ausblenden_ms = 150
 MeldungMasse/constants/brief_gross_inhalt_ab_ms = 733
 MeldungMasse/constants/brief_gross_inhalt_bis_ms = 67
-; ── Siegelstempel (SiegelstempelBuehne.cs, siegelstempel.glb, Szene siegelstempel_buehne.tscn) ──
-; Kantenlänge des Bildes (Pixel bei 1600 × 900), Überabtastung des 3D-Bildes (Prozent), wie lange das fertige Siegel stehen bleibt und
-; das Ausblenden danach (Millisekunden); Aufhellung des Wachstons unter dem Wappen des Abdrucks (Prozent; die Farben des Wappens liegen
-; darüber und dunkeln ihn je Feld verschieden ab, so bleibt das Wappen im Wachs lesbar)
-MeldungMasse/constants/siegelstempel_groesse = 320
-MeldungMasse/constants/siegelstempel_abdruck_hell_prozent = 35
-MeldungMasse/constants/siegelstempel_abtastung_prozent = 150
-MeldungMasse/constants/siegelstempel_halten_ms = 350
-MeldungMasse/constants/siegelstempel_ausblenden_ms = 150
 ; Farben: Grund des Symbols (der Rand hat die Farbe der Meldungsart aus meldungen.json, die Tinte ist die der Siegel), Schleier einer gelesenen Rolle
 MeldungRolle/colors/symbol_grund = Color(0.95, 0.9, 0.76, 1)
 MeldungRolle/colors/gelesen = Color(0.72, 0.7, 0.66, 1)

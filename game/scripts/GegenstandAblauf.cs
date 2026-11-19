@@ -1,6 +1,6 @@
 namespace Reichsgilde;
 
-/// <summary>Die 3D-Gegenstände der Innenansichten mit eigener Schau: Kartentisch und Geldtruhe (der Siegelstempel hat <see cref="SiegelAblauf"/>).</summary>
+/// <summary>Die 3D-Gegenstände der Innenansichten mit eigener Schau: Kartentisch und Geldtruhe.</summary>
 public enum GegenstandArt { Kartentisch, Geldtruhe }
 
 /// <summary>Wo die Schau eines Gegenstands gerade steht: Ruhe → Hin (Schwenk, der Gegenstand öffnet sich) → Offen → Zurueck (schließen, Schwenk zurück) → Ruhe.</summary>
@@ -15,11 +15,11 @@ public readonly record struct GegenstandMasse(
     string ClipZu, string ClipOffen, string ClipOeffnen, string ClipSchliessen, double Oeffnen, double Schliessen, double OffenAb,
     double MitteX, double MitteY, double MitteZ, double Breite, double Tiefe, double Neigung)
 {
-    /// <summary>Die Werte der Modelle <c>kartentisch.glb</c> (Karte 0,70 × 0,50 m auf der Platte in 0,78 m Höhe) und <c>geldtruhe.glb</c> (Kasten 0,60 × 0,38 m, Deckel offen bis 0,68 m).</summary>
+    /// <summary>Die Werte der Modelle <c>kartentisch.glb</c> (Karte 0,70 × 0,50 m auf der Platte in 0,78 m Höhe) und <c>geldtruhe.glb</c> (Kasten 0,60 × 0,38 m, Deckel offen bis 0,68 m; der Blick zielt 0,30 m neben die Truhe, damit sie links im Bild steht und der Bericht rechts daneben Platz hat).</summary>
     public static GegenstandMasse Von(GegenstandArt art) => art switch
     {
         GegenstandArt.Kartentisch => new GegenstandMasse("zu", "offen", "entrollen", "zusammenrollen", 1.233, 1.000, 1.000, -0.01, 0.78, 0, 0.84, 0.60, 12),
-        _ => new GegenstandMasse("zu", "offen", "aufspringen", "zuklappen", 1.033, 0.700, 0.467, 0, 0.32, -0.08, 0.96, 0.96, 42),
+        _ => new GegenstandMasse("zu", "offen", "aufspringen", "zuklappen", 1.033, 0.700, 0.467, 0.30, 0.32, -0.08, 0.96, 0.96, 42),
     };
 }
 
@@ -134,60 +134,6 @@ public sealed class GegenstandAblauf
         {
             Zustand = GegenstandZustand.Ruhe;
             _zeit = 0;
-        }
-    }
-}
-
-/// <summary>Wo der Siegelstempel steht: bereit (frisches Wachs), er siegelt (Clip <c>siegeln</c>), gesiegelt (Abdruck im Wachs).</summary>
-public enum SiegelZustand { Bereit, Siegeln, Gesiegelt }
-
-/// <summary>
-/// Die reine Ablauflogik des Siegelstempels (<c>siegelstempel.glb</c>) ohne Godot: Der Clip <c>siegeln</c> dauert 1,267 s, der Stempel berührt das
-/// Wachs bei 0,533 s, der Abdruck ist ab 0,800 s zu sehen (dann ist die Stempelfläche mindestens 3 mm über dem Wachs). Ohne Bewegung ist sofort gesiegelt.
-/// </summary>
-public sealed class SiegelAblauf
-{
-    /// <summary>Länge des Clips <c>siegeln</c>, Berührung des Wachses (Zeitpunkt für den Klang) und Schwelle des Abdrucks in Sekunden (Doku des Modells).</summary>
-    public const double SiegelnSekunden = 1.267, BeruehrtAb = 0.533, AbdruckAb = 0.800;
-
-    private double _zeit;
-
-    public SiegelZustand Zustand { get; private set; } = SiegelZustand.Bereit;
-
-    /// <summary>Der Clip des Modells, der gerade gilt, und die Stelle darin (Sekunden).</summary>
-    public string Clip => Zustand switch { SiegelZustand.Siegeln => "siegeln", SiegelZustand.Gesiegelt => "gesiegelt", _ => "bereit" };
-    public double Clipzeit => Zustand == SiegelZustand.Siegeln ? _zeit : 0;
-
-    /// <summary>Ist der Abdruck (Knoten <c>Abdruck_Wappen</c>) zu sehen?</summary>
-    public bool AbdruckSichtbar => Zustand == SiegelZustand.Gesiegelt || (Zustand == SiegelZustand.Siegeln && _zeit >= AbdruckAb);
-
-    /// <summary>Hat der Stempel das Wachs schon berührt?</summary>
-    public bool Beruehrt => Zustand == SiegelZustand.Gesiegelt || (Zustand == SiegelZustand.Siegeln && _zeit >= BeruehrtAb);
-
-    /// <summary>Beginnt zu siegeln. Gibt false zurück, wenn der Stempel schon läuft oder gesiegelt hat.</summary>
-    public bool Siegeln(bool bewegt)
-    {
-        if (Zustand != SiegelZustand.Bereit) return false;
-        _zeit = 0;
-        Zustand = bewegt ? SiegelZustand.Siegeln : SiegelZustand.Gesiegelt;
-        return true;
-    }
-
-    /// <summary>Zurück auf frisches Wachs (für das nächste Schriftstück).</summary>
-    public void Zuruecksetzen()
-    {
-        _zeit = 0;
-        Zustand = SiegelZustand.Bereit;
-    }
-
-    public void Weiter(double delta)
-    {
-        if (Zustand != SiegelZustand.Siegeln) return;
-        _zeit += Math.Max(0, delta);
-        if (_zeit >= SiegelnSekunden)
-        {
-            _zeit = 0;
-            Zustand = SiegelZustand.Gesiegelt;
         }
     }
 }

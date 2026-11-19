@@ -2,7 +2,7 @@ using Reichsgilde;
 
 /// <summary>
 /// Ablauf der 3D-Gegenstände ohne Godot (<c>game/scripts/GegenstandAblauf.cs</c>): Kartentisch und Geldtruhe (Hin → Offen → Zurück → Ruhe,
-/// Schwenk 0,8 s, Sperre während des Schwenks, Stillstand ohne Bewegung), Siegelstempel (Abdruck ab 0,8 s) und die Füllstufen der Truhe.
+/// Schwenk 0,8 s, Sperre während des Schwenks, Stillstand ohne Bewegung) und die Füllstufen der Truhe.
 /// </summary>
 static class GegenstandAblaufTests
 {
@@ -104,31 +104,6 @@ static class GegenstandAblaufTests
             Wahr(k.ClipOeffnen == "entrollen" && k.ClipSchliessen == "zusammenrollen" && k.Oeffnen == 1.233 && k.Schliessen == 1.000, "Kartentisch: Clips und Längen");
             Wahr(t.ClipOeffnen == "aufspringen" && t.ClipSchliessen == "zuklappen" && t.Oeffnen == 1.033 && t.Schliessen == 0.700, "Geldtruhe: Clips und Längen");
             Wahr(k.OffenAb <= k.Oeffnen && t.OffenAb <= t.Oeffnen, "die Schwelle liegt im Clip");
-        });
-        yield return ("Siegelstempel: Abdruck erst ab 0,8 s, nach 1,267 s gesiegelt", () =>
-        {
-            var s = new SiegelAblauf();
-            Wahr(s.Zustand == SiegelZustand.Bereit && s.Clip == "bereit" && !s.AbdruckSichtbar && !s.Beruehrt, "bereit: kein Abdruck");
-            Wahr(s.Siegeln(true) && !s.Siegeln(true), "einmal siegeln");
-            for (var i = 0; i < 31; i++) s.Weiter(Bild); // 0,517 s
-            Wahr(s.Clip == "siegeln" && !s.Beruehrt && !s.AbdruckSichtbar, "vor 0,533 s: noch nicht berührt");
-            for (var i = 0; i < 3; i++) s.Weiter(Bild); // 0,567 s
-            Wahr(s.Beruehrt && !s.AbdruckSichtbar, "berührt, der Stempel verdeckt den Abdruck");
-            for (var i = 0; i < 13; i++) s.Weiter(Bild); // 0,783 s
-            Wahr(!s.AbdruckSichtbar, "kurz vor 0,8 s noch verdeckt");
-            for (var i = 0; i < 2; i++) s.Weiter(Bild); // 0,817 s
-            Wahr(s.AbdruckSichtbar && s.Zustand == SiegelZustand.Siegeln, "ab 0,8 s sichtbar");
-            Wahr(s.Clipzeit is > 0.8 and < SiegelAblauf.SiegelnSekunden, "die Clipzeit läuft mit");
-            for (var i = 0; i < 30; i++) s.Weiter(Bild);
-            Wahr(s.Zustand == SiegelZustand.Gesiegelt && s.Clip == "gesiegelt" && s.AbdruckSichtbar && s.Clipzeit == 0, "gesiegelt");
-            s.Zuruecksetzen();
-            Wahr(s.Zustand == SiegelZustand.Bereit && !s.AbdruckSichtbar, "zurückgesetzt");
-        });
-        yield return ("Siegelstempel: ohne Bewegung sofort gesiegelt", () =>
-        {
-            var s = new SiegelAblauf();
-            s.Siegeln(false);
-            Wahr(s.Zustand == SiegelZustand.Gesiegelt && s.AbdruckSichtbar && s.Beruehrt, "sofort gesiegelt");
         });
         yield return ("Geldtruhe: Füllstufe nach Bargeld", () =>
         {

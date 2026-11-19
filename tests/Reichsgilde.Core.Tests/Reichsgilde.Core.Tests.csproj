@@ -80,7 +80,7 @@
     <Compile Include="..\..\game\scripts\SchriftrolleAblauf.cs" Link="Handschuh\SchriftrolleAblauf.cs" />
     <!-- Ablauf der 3D-Bücher der Innenansichten (Schwenk, Aufklappen, Umblättern, Zuklappen) kennt kein Godot – BuchAblaufTests.cs -->
     <Compile Include="..\..\game\scripts\BuchAblauf.cs" Link="Handschuh\BuchAblauf.cs" />
-    <!-- Ablauf der 3D-Gegenstände (Kartentisch, Geldtruhe, Siegelstempel) und Füllstufen der Truhe kennen kein Godot – GegenstandAblaufTests.cs -->
+    <!-- Ablauf der 3D-Gegenstände (Kartentisch, Geldtruhe) und Füllstufen der Truhe kennen kein Godot – GegenstandAblaufTests.cs -->
     <Compile Include="..\..\game\scripts\GegenstandAblauf.cs" Link="Handschuh\GegenstandAblauf.cs" />
     <!-- Ablauf des großen 3D-Briefs (Siegelbruch, Auffalten, Tafel, Zufalten, Streckregel) kennt kein Godot – BriefAblaufTests.cs -->
     <Compile Include="..\..\game\scripts\BriefAblauf.cs" Link="Handschuh\BriefAblauf.cs" />
