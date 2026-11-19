@@ -16,7 +16,7 @@ Wortlaut der Regel vor der Angabe an der Quelle prüfen; die Zusammenfassung sta
 
 ## Ausgeliefert und für Spieler sichtbar (Pre-Generated)
 
-Zusammen: 168 × Audio, 1811 × Bild, 1 × Modell, 1 × Textur.
+Zusammen: 168 × Audio, 1829 × Bild, 1 × Modell, 1 × Textur.
 
 | Inhalt | Anzahl | Art | Werkzeug | Modell | Bemerkung |
 |---|---|---|---|---|---|
@@ -100,6 +100,7 @@ Zusammen: 168 × Audio, 1811 × Bild, 1 × Modell, 1 × Textur.
 | `game/assets/oberflaeche/zuege/{entstellt,einaeugig,lahm,verkrueppelt}.png` | 4 | Bild | ComfyUI auf dem Grafik-PC des Nutzers: Qwen-Image (Text zu Bild), Aufrufskript bild.py | unbekannt (Qwen-Image, Standard-Workflow reichsgilde_text_api mit Lightning-LoRA; Modelldatei nicht abgefragt) | Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository; Lizenzangabe des Modells nicht belegt, Qwen-Image steht sonst unter Apache-2.0 laut Protokoll der Geheimnis-Siegel |
 | `game/assets/oberflaeche/zuege/{pilger,gelehrt}.png` | 2 | Bild | ChatGPT-Bilderzeugung (OpenAI, App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App bzw. ChatGPT erzeugt, Modellversion dort nicht angezeigt) | Gemini-Limit erreicht, daher ChatGPT; Rohbilder nicht im Repository |
 | `game/assets/oberflaeche/zuege/{schwermuetig,reizbar}.png` | 2 | Bild | Google Gemini (App/Web), vom Nutzer selbst bedient | unbekannt (vom Nutzer in der Gemini-App erzeugt, Modellversion dort nicht angezeigt) | Vorlage des Nutzers, mit Gemini erstellt (Austauschordner: vorlage_schwermuetig.webp – Mann mit dem Kopf in der Hand, Kerze; vorlage_reizbar.webp – Faust schlägt auf den Tisch); Ausnahme vom Holzschnitt-Stil (kräftig gemalt); Rohbilder nicht im Repository |
+| `game/assets/oberflaeche/zunftlade/symbole/*.svg` | 18 | Bild | Claude Code (Anthropic): SVG-Pfade als Code geschrieben, im HTML-Entwurf der Zunftlade (Entwurf 3) | unbekannt | Schlichte Zeichen der Lade und der Zeitleiste (Gulden, Ansehen, Familie, Hammer, Bauen, Personal, Lager, Markt, Hinterzimmer, Menü, Rat, Bericht, Lexikon, Karren, Talentbaum, Zur Stadt, Pause, Weiter). Platzhalter des Entwurfs, kein Holzschnitt; keine Bild-KI, kein Fremdmaterial |
 
 ## KI-Inhalte im Repository, die das Spiel nicht zeigt
 

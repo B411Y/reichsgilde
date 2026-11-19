@@ -209,6 +209,17 @@
           ]
         },
         {
+          "werk": "Stoffe der Oberfläche (Holz der Lade, Steinrand, Pergament)",
+          "autor": "Poly Haven (Amal Kumar, Dimitrios Savva, Rico Cilliers, Rob Tuytel) und Wikimedia Commons (Membeth)",
+          "quelle": "https://polyhaven.com/a/dark_wooden_planks ; https://polyhaven.com/a/wood_table_worn ; https://polyhaven.com/a/large_sandstone_blocks ; https://commons.wikimedia.org/wiki/File:Pergament.1.jpg",
+          "lizenz": "CC0 1.0",
+          "hinweis": "Aufnahmen und Materialien, vom Spiel zugeschnitten und eingefärbt.",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/oberflaeche/zunftlade/"
+          ]
+        },
+        {
           "werk": "Steinebenen der neuen Gebäude (Mauerwerk, Sandstein, Ziegel)",
           "autor": "Poly Haven (Rob Tuytel) und ambientCG",
           "quelle": "https://polyhaven.com/a/castle_wall_varriation ; https://polyhaven.com/a/large_sandstone_blocks_01 ; https://polyhaven.com/a/medieval_red_brick ; https://ambientcg.com/view?id=Bricks100",

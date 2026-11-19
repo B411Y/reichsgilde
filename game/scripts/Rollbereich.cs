@@ -25,8 +25,11 @@ public partial class Rollbereich : ScrollContainer
     public float ObenFrei { get; set; }
     public float UntenFrei { get; set; }
 
-    /// <summary>Höhe, die oben für Kopfzeile und Zeitstrahl frei bleibt, und unten für die Betriebsleiste (Einheiten der Oberfläche).</summary>
-    public const float KopfHoehe = 140, LeistenHoehe = 84;
+    /// <summary>Höhe, die oben für die Zeitleiste frei bleibt (Einheiten der Oberfläche; aus dem Thema der Lade).</summary>
+    public static float KopfHoehe => LadeStil.Mass("kopf_hoehe");
+
+    /// <summary>Höhe, die unten für die Lade frei bleibt (Einheiten der Oberfläche; aus dem Thema der Lade).</summary>
+    public static float LeistenHoehe => LadeStil.Mass("leisten_hoehe");
 
     /// <summary>Höhe der Siegel-Ecke unten rechts (0: keine Siegel). Die Tafeln rechts lassen den Platz frei, statt die Siegel zu verdecken (Benachrichtigungen).</summary>
     public static float EckeHoehe { get; set; }
