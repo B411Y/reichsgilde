@@ -24,7 +24,8 @@ from mathutils import Vector                                              # noqa
 VOLK = "elb"
 TUER_H = 2.10                     # Zimmertuer licht (wohnhaus_elb_s23.ZIMMERTUER_HOCH)
 BLICK_HOEHER = 0.12               # Augenhoehe 1,72 m (wohnhaus_elb_s23.BLICK_HOEHER)
-LICHT_ZUM_AUGE = 0.6              # Grundlicht zum Blickpunkt hin (wohnhaus_elb_s23.LICHT_ZUM_AUGE)
+BALKEN_WAND = 0.06                # erster und letzter Deckenbalken so weit vor der Wand (Tiefe des Deckenkranzes, an ihm anliegend)
+LICHT_ZUM_AUGE = 1.0             # Grundlicht quer zu den Balken auf die Hoehe des Blickpunkts (Fix 4: auch beim Umschauen vor jeder Balkenseite)
 
 
 def umbenennen(text):
@@ -74,6 +75,18 @@ def schicht_anlegen():
             ort = (o.x, o.y + (z.y - o.y) * LICHT_ZUM_AUGE, o.z)
         return alt_anker(name, ort, *a, **kw)
     R.anker = anker
+
+    def decke(teil, bretter="dielen", balken="balken"):
+        """Balkendecke wie bei den Menschen (raeume_bib.decke), aber der erste und der letzte Balken liegen an der Wand (vor dem
+        Deckenkranz, BALKEN_WAND vor der Wandflucht) statt 0,3–0,75 m davor (Klicktest 18.11.2026, Fix 4): Die Balkenseite zum Spalt
+        backte fast schwarz (Verdeckung 0,06) bzw. lag hinter dem Grundlicht; die Raumkamera sah sie (Bibliothek: Blick aus dem Spalt)."""
+        R.boden(teil, bretter, -M.IX, M.IX, M.IV, M.IH, M.DECKE, oben=False, laengs="x", saat=11)
+        n = len(M.BALKEN_Y)
+        y0, y1 = M.IV + BALKEN_WAND + 0.08, M.IH - BALKEN_WAND - 0.08
+        for i in range(n):
+            y = y0 + i * (y1 - y0) / (n - 1)
+            teil.kasten(R.S, (-M.IX, y - 0.08, M.DECKE - M.DECKENBALKEN), (M.IX, y + 0.08, M.DECKE), balken, ohne=("+z", "-x", "+x"), laengs="x")
+    R.decke = decke
 
 
 if __name__ == "__main__":

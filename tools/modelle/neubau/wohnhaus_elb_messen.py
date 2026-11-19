@@ -468,10 +468,12 @@ def blick_licht_s23(haus, ordner, texturen):
     z, f = B.rueckseite_offen(os.path.join(ordner, f"{haus}.glb"))
     zeilen.append(f"12b. Keine offene Rueckseite aussen (von oben nur die Rueckseite sichtbar): {'ok' if not f else str(f) + ' FEHLER'}")
     zeilen += z; fehler += f
-    for raum, blatt in (("", "innen_trim_s23_elb"), ("_hinterzimmer", "raeume_innen_trim_elb"), ("_bibliothek", "raeume_innen_trim_elb")):
+    for raum, blatt, atlas in (("", "innen_trim_s23_elb", "wohnhaus_elb_innen_ao_atlas.png"),
+                               ("_hinterzimmer", "raeume_innen_trim_elb", "wohnhaus_elb_raeume_innen_ao_atlas.png"),
+                               ("_bibliothek", "raeume_innen_trim_elb", "wohnhaus_elb_raeume_innen_ao_atlas.png")):
         glb = os.path.join(ordner, f"{haus}{raum}_innen.glb")
         if not os.path.exists(glb): continue
-        z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"))
+        z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"), os.path.join(texturen, atlas))
         zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht ({raum[1:] or 'wohnstube'}): {'ok' if not f else str(f) + ' FEHLER'}")
         zeilen += z; fehler += f
     return zeilen, fehler

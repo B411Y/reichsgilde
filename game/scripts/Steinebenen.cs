@@ -32,22 +32,31 @@ public static class Steinebenen
         ("zwerg_s2", PutzUndBruchstein),
         ("zwerg_s3", PutzUndBruchstein),    // dunkler Quader, im Bruchsteinband heller Haustein K2 (large_sandstone_blocks_01) für Gewände, Giebel, Eckquader
         ("elb_s1", Bruchstein),             // Stufe 1 (trim_elb): Putz bleibt Putz (Kunstwerk), Haustein K2 (large_sandstone_blocks_01) im Bruchsteinband
-        ("halbling", PutzUndBruchstein),
+        ("halbling_s1", Bruchstein),        // Stufe 1 (trim_halbling): ockergelber Lehmputz (Kunstwerk), K2 (large_sandstone_blocks_01) im Bruchsteinband (Sockel, Schlot)
         ("elb_s2", Bruchstein),             // Bürgerhaus (trim_s2_elb): Putzsockel und Gefache Kalkputz, Haustein K2 im Bruchsteinband
         ("elb_s3", PutzUndBruchstein),      // Steinhaus (trim_s3_elb): Werkstein K5 (Bricks100) im Putzband, Mauer K2 mit Efeu
+        ("halbling_s2", Bruchstein),        // Bürgerhaus (trim_s2_halbling, Vorlage): Erdgeschoss roter Backstein K6 (medieval_red_brick), Fachwerk mit Lehmputz, blaues Schieferdach
+        ("halbling_s3", PutzUndBruchstein), // Steinhaus (trim_s3_halbling, Vorlage): roter Backstein K6, Werkstein der Menschen im Putzband, Schiefer, Kupfer
     };
 
+    /// <summary>Index einer Ebene im Häuser-Array über ihren Namen (−1: fehlt). So hängt <see cref="Ebene"/> nicht an der Reihenfolge.</summary>
+    static int Index(string name) => System.Array.FindIndex(Haeuser, e => e.Name == name);
+
     /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>); Bürgerhaus und Steinhaus haben je Volk einen eigenen Atlas (größere Zellen),
-    /// die Elben auch in Stufe 1 (Zellen von 1024 Bildpunkten).</summary>
+    /// die Elben und die Halblinge auch in Stufe 1 (Zellen von 1024 Bildpunkten).</summary>
     public static readonly string[] AoGruppen =
-        { "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb", "wohnhaus_elb_s2", "wohnhaus_elb_s3" };
+    {
+        "wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb", "wohnhaus_elb_s2", "wohnhaus_elb_s3",
+        "wohnhaus_halbling", "wohnhaus_halbling_s2", "wohnhaus_halbling_s3",
+    };
 
     /// <summary>Die Ebenen des Innen-Arrays <c>innen_ebenen_*.png</c>: die Innenblätter (Stufe 1, Stufen 2/3, Räume) der Menschen und der
-    /// Zwerge (Steinwand und Pflaster statt Lehm und Dielen) und der Elben (Kalkputz, Dielen, heller Stein), gleiches Layout.</summary>
+    /// Zwerge (Steinwand und Pflaster statt Lehm und Dielen), der Elben (Kalkputz, Dielen, heller Stein) und der Halblinge (Stufe 1: warmer
+    /// Lehmputz, Dielen, Herd aus Stein; Stufen 2/3: heller Putz, Tonfliesen, Herd aus Stein; Räume), gleiches Layout.</summary>
     public static readonly string[] InnenBlaetter =
     {
         "innen_trim", "innen_trim_s23", "raeume_innen_trim", "innen_trim_zwerg", "innen_trim_s23_zwerg", "raeume_innen_trim_zwerg",
-        "innen_trim_elb", "innen_trim_s23_elb", "raeume_innen_trim_elb",
+        "innen_trim_elb", "innen_trim_s23_elb", "raeume_innen_trim_elb", "innen_trim_halbling", "innen_trim_s23_halbling", "raeume_innen_trim_halbling",
     };
 
     /// <summary>Die AO-Atlanten der Innen-Gruppen (Array <c>innen_ao_ebenen.png</c>, alle auf 2048 gebracht).</summary>
@@ -55,6 +64,7 @@ public static class Steinebenen
     {
         "wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
         "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen", "wohnhaus_elb_raeume_innen",
+        "wohnhaus_halbling_innen", "wohnhaus_halbling_raeume_innen",
     };
 
     /// <summary>Ebene und AO-Ebene eines Innenmodells aus Innenblatt und Innengruppe; unbekannte Namen fallen auf Ebene 0.</summary>
@@ -62,15 +72,15 @@ public static class Steinebenen
         => (System.Math.Max(0, System.Array.IndexOf(InnenBlaetter, blatt)), System.Math.Max(0, System.Array.IndexOf(InnenAoGruppen, gruppe)));
 
     /// <summary>Ebene eines Volkes in einer Stufe (1–3). Orks und Oger haben keine eigenen Häuser und wohnen wie Menschen;
-    /// Elben haben je Stufe eine Ebene (Stufe 1 auf Platz 6, Stufen 2 und 3 hinten angehängt: 8 und 9), Halblinge eine Platzhalter-Ebene.</summary>
+    /// Elben und Halblinge haben je Stufe eine Ebene (über den Namen gesucht, <see cref="Index"/>: die Reihenfolge im Array ist frei).</summary>
     public static int Ebene(Volk volk, int stufe)
     {
         var s = System.Math.Clamp(stufe, 1, 3) - 1;
         return volk switch
         {
             Volk.Zwerg => 3 + s,
-            Volk.Elb => s == 0 ? 6 : 7 + s,
-            Volk.Halbling => 7,
+            Volk.Elb => Index($"elb_s{s + 1}"),
+            Volk.Halbling => Index($"halbling_s{s + 1}"),
             _ => s,
         };
     }

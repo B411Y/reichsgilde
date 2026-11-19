@@ -333,9 +333,11 @@ def fensterstock(h, wand, s0, s1_, z0, z1):
     h.stab(st, P(s0 + 0.05, zm), P(s1_ - 0.05, zm), 0.06, band, breite=0.045, oben=n3)   # 5 mm dicker als der Pfosten: am Kreuz nicht deckungsgleich
 
 
-def ziegelflaeche(d, stoff, unten, oben, ys, saat, lage=M.LAGE, band="stroh_franse", stufe=0.03):
+def ziegelflaeche(d, stoff, unten, oben, ys, saat, lage=M.LAGE, band="stroh_franse", stufe=0.03, weg_von=None):
     """Dachflaeche aus Lagen von `lage` Metern (jede fuellt das Band; kleine Stufe am Fuss jeder Lage): `unten`, `oben` sind
-    Funktionen y -> Punkt an der Traufe bzw. am First; ys die Grenzen entlang des Firsts (Anfang, Ende)."""
+    Funktionen y -> Punkt an der Traufe bzw. am First; ys die Grenzen entlang des Firsts (Anfang, Ende). Die Lagen zeigen von
+    `weg_von` weg (Standard die Hausmitte MITTE; ein Dach unterhalb von MITTE braucht einen Punkt unter sich, siehe schuppen)."""
+    weg_von = MITTE if weg_von is None else Vector(weg_von)
     v0, v1, m = d.baender[band]
     y0, y1 = ys
     a, b = unten(y0), oben(y0)
@@ -352,7 +354,7 @@ def ziegelflaeche(d, stoff, unten, oben, ys, saat, lage=M.LAGE, band="stroh_fran
         hub = normale * stufe
         uu = u0 + 0.37 * k
         lu = (q0 - p0).length / m
-        d.vieleck(stoff, [p0 + hub, q0 + hub, q1, p1], [(uu, v1), (uu + lu, v1), (uu + lu, v0), (uu, v0)], weg_von=MITTE)
+        d.vieleck(stoff, [p0 + hub, q0 + hub, q1, p1], [(uu, v1), (uu + lu, v1), (uu + lu, v0), (uu, v0)], weg_von=weg_von)
         d.vieleck(stoff, [p0, q0, q0 + hub, p0 + hub], [(uu, v1 - 0.002), (uu + lu, v1 - 0.002), (uu + lu, v1 - 0.01), (uu, v1 - 0.01)], weg_von=MITTE + EZ * 30)
 
 
@@ -1301,7 +1303,9 @@ def anker_innen(tuer_mitten):
     tm = (tuer[1][0] + tuer[1][1]) / 2
     liste = [
         A("Blick_Auge", M.STUBE_AUGE), A("Blick_Ziel", M.STUBE_ZIEL),
-        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (0.0, -0.3, M.Z_EG_DECKE - 0.35)),
+        # Grundlicht (OmniLight ohne Schatten) in x in der Raummitte, in y auf der Hoehe des Blickpunkts (Pruefung 12c, 18.11.2026):
+        # bei y = -0,3 stand es hinter den Flaechen zur Kamera (Seite des Schlots ueber dem Herd), die nur Umgebungslicht bekamen
+        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (0.0, M.STUBE_AUGE[1], M.Z_EG_DECKE - 0.35)),
         A("Feuer_Herd", ((kx0 + kx1) / 2 - 0.18 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.53)),
         A("Tuer_Innen", (tm, IV, ZB + M.TUER_LICHT[1] / 2)),
         A("Platz_Oberhaupt", (*an_rueckwand(g1.BANK_X, g1.TISCH[2] + 0.52), ZB), "nord", haltung="sitzt", rolle="oberhaupt", sitzhoehe=g1.SITZ_HOEHE),

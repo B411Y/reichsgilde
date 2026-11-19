@@ -31,6 +31,8 @@ LICHT_ALBEDO_MIN = 0.30
 LICHT_COS_MIN = 0.02                  # der Anker liegt vor der Flaeche (streifendes Licht genuegt; dahinter = kein direktes Licht)
 LICHT_WEITE = 6.5
 LICHT_NZ_MIN = -0.7                   # Unterseiten (Rauchfang im Herd, Untersichten) bleiben unbewertet: gewollt dunkel bzw. vom Boden aufgehellt
+UMSCHAUEN = True                      # sichtbar = vom Blickpunkt frei zu sehen (Umschauen im Spiel), nicht nur im Standardbild
+AO_BLICK_MIN = 0.12                  # wie AO_MIN von Pruefung 12 (uv2_pruefung.py)
 LICHT_OBJEKTE = ("Raum", "Decke", "Fensterseiten", "Herd_Set")
 FOV_HOCH = 66.0
 SEITEN = 16 / 9
@@ -50,6 +52,34 @@ def _stiche(o, p):
     mw = o.matrix_world
     e = [mw @ o.data.vertices[o.data.loops[i].vertex_index].co for i in p.loop_indices]
     return [g0 * e[0] + g1 * e[k] + g2 * e[k + 1] for k in range(1, len(e) - 1) for g0, g1, g2 in GEW], e
+
+
+WAND_ABSTAND_MIN = 0.80               # Pruefung 38: so weit steht das Auge mindestens vor jeder Wand, die das Standardbild zeigt
+
+
+def blick_wand(glb):
+    """38 Standardblick nicht dicht vor einer Wand (Klicktest NAS 19.11.2026, Halbling S1 G3: das Auge stand 0,17 m vor der Wand mit
+    der Haustuer und sah an ihr entlang; die rechte Bildseite war Wand): Strahlen vom Blick_Auge ueber das Standardbild (66 Grad hoch,
+    16:9, 41 x 21); trifft einer zuerst eine Wand des Raums (Objekt Raum, Normale fast waagerecht), zaehlt der Abstand des Auges zur
+    Ebene dieser Flaeche. Fehler, wenn der kleinste Abstand unter WAND_ABSTAND_MIN liegt. Rueckgabe (Zeilen, Fehlerzahl)."""
+    dg, sz = _laden(glb)
+    an = {o.name.split(".")[0]: o.matrix_world.translation.copy() for o in bpy.data.objects if o.type == "EMPTY"}
+    if "Blick_Auge" not in an or "Blick_Ziel" not in an:
+        return ["   Raumkamera fehlt (Blick_Auge, Blick_Ziel) -> FEHLER"], 1
+    auge, ziel = an["Blick_Auge"], an["Blick_Ziel"]
+    vor = (ziel - auge).normalized(); rechts = vor.cross(Vector((0, 0, 1))).normalized(); oben = rechts.cross(vor)
+    th = math.tan(math.radians(FOV_HOCH / 2)); tb = th * SEITEN
+    best, wo = float("inf"), None
+    for j in range(21):
+        for i in range(41):
+            d = (vor + rechts * (i / 20 - 1) * tb + oben * (j / 10 - 1) * th).normalized()
+            hit, ort, n, _f, o, _m = sz.ray_cast(dg, auge, d, distance=50.0)
+            if not hit or o.name.split(".")[0] != "Raum" or abs(n.z) > 0.3: continue
+            a = abs((auge - ort).dot(n))
+            if a < best: best, wo = a, ort
+    ok = best >= WAND_ABSTAND_MIN
+    text = f"{best:.2f} m (Wand bei {wo.x:.2f}, {wo.y:.2f}, {wo.z:.2f})" if wo is not None else "keine Wand im Bild"
+    return [f"   Auge ({auge.x:.2f}, {auge.y:.2f}, {auge.z:.2f}), naechste Wand im Standardbild {text} (Soll ab {WAND_ABSTAND_MIN:.2f} m) -> {'ok' if ok else 'FEHLER'}"], 0 if ok else 1
 
 
 def _melden(fehler, art, ort):
@@ -94,11 +124,26 @@ def _albedo(o, p, alb):
     return sum(werte) / len(werte)
 
 
-def licht_im_blick(glb, albedo_pfad):
-    """12c an einem Innenraum. Rueckgabe (Zeilen, Fehlerzahl)."""
+def _verdeckung(o, p, ao, idx):
+    """Gebackene Verdeckung (UV2, Atlas `ao`) an den Stichproben `idx` (Reihenfolge wie _stiche)."""
+    import uv2_pruefung as U
+    uv2 = o.data.uv_layers[1]
+    w = [uv2.data[i].uv for i in p.loop_indices]
+    alle = [(g0 * w[0].x + g1 * w[k].x + g2 * w[k + 1].x, g0 * w[0].y + g1 * w[k].y + g2 * w[k + 1].y)
+            for k in range(1, len(w) - 1) for g0, g1, g2 in GEW]
+    werte = [U._bilinear(ao, *alle[i]) for i in idx]
+    return sum(werte) / max(len(werte), 1)
+
+
+def licht_im_blick(glb, albedo_pfad, atlas_pfad=None):
+    """12c an einem Innenraum. Mit `atlas_pfad` (AO-Atlas des Raums) auch: im Standardblick sichtbar und gebackene Verdeckung unter
+    AO_BLICK_MIN (Pruefung 12 laesst solche Stellen gelten, wenn die Nachrechnung sie bestaetigt – enge Spalte zwischen Balken und Wand;
+    sieht die Raumkamera sie, sind sie im Spiel schwarz: Klicktest 18.11.2026, Balkenseite 0,34 m vor der Rueckwand der Bibliothek).
+    Rueckgabe (Zeilen, Fehlerzahl)."""
     import uv2_pruefung as U
     dg, sz = _laden(glb)
     alb = U._bild(albedo_pfad)
+    ao = U._bild(atlas_pfad) if atlas_pfad else None
     an = {o.name.split(".")[0]: o.matrix_world.translation.copy() for o in bpy.data.objects if o.type == "EMPTY"}
     if "Blick_Auge" not in an or "Blick_Ziel" not in an:
         return ["   Raumkamera fehlt (Blick_Auge, Blick_Ziel) -> FEHLER"], 1
@@ -125,9 +170,16 @@ def licht_im_blick(glb, albedo_pfad):
             c = o.matrix_world @ p.center
             if n.dot(auge - c) <= 0 or n.z < LICHT_NZ_MIN: continue
             stiche, _e = _stiche(o, p)
-            sichtbar = [q for q in stiche if im_bild(q) and frei(q + n * 1e-3, auge)]
+            # sichtbar vom Blickpunkt aus, auch beim Umschauen (Stadtansicht.Neubau: Gier/Nick um den Standardblick), nicht nur im Bild
+            idx = [i for i, q in enumerate(stiche) if (UMSCHAUEN or im_bild(q)) and frei(q + n * 1e-3, auge)]
+            sichtbar = [stiche[i] for i in idx]
             if len(sichtbar) < 3 or _albedo(o, p, alb) < LICHT_ALBEDO_MIN: continue
             geprueft += 1
+            if ao is not None and len(o.data.uv_layers) > 1:
+                m = _verdeckung(o, p, ao, idx)
+                if m < AO_BLICK_MIN:
+                    _melden(fehler, "im Standardblick mit gebackener Verdeckung unter 0,12 (wirkt schwarz)",
+                            f"{o.name.split('.')[0]} ({c.x:.2f}, {c.y:.2f}, {c.z:.2f}) n=({n.x:.1f}, {n.y:.1f}, {n.z:.1f}) {m:.2f}")
             dunkel = 0
             for q in sichtbar:
                 s = q + n * 1e-3

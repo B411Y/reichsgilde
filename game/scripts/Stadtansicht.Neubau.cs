@@ -63,13 +63,15 @@ public partial class Stadtansicht
 
     /// <summary>Die Datei des neuen Wohnhauses einer Grundform und Stufe (1 Fachwerkhaus, 2 Bürgerhaus, 3 Steinhaus).</summary>
     /// Zwerge wohnen in ihren eigenen Häusern (<c>wohnhaus_zwerg_s…</c>: Stein, Schindeln bzw. Schiefer), Elben ebenso (<c>wohnhaus_elb_s…</c>:
-    /// helles Fachwerk, Schindeln bzw. Schiefer, Steinhaus mit Schildgiebel; fehlt eine Datei, wie die Menschen), alle anderen Völker vorerst im Haus der Menschen.
+    /// helles Fachwerk, Schindeln bzw. Schiefer, Steinhaus mit Schildgiebel), Halblinge ebenso (<c>wohnhaus_halbling_s…</c>: Stufe 1 Fachwerk unter
+    /// dickem Stroh, Stufen 2/3 roter Backstein und blaues Schieferdach nach den Vorlagen); fehlt eine Datei, wie die Menschen. Alle anderen
+    /// Völker vorerst im Haus der Menschen.
     private static string NeubauWohnhausForm(int form, int stufe = 1, Volk? volk = null) =>
-        NeubauOrdner + $"wohnhaus_{(volk switch { Volk.Zwerg => "zwerg", Volk.Elb => "elb", _ => "mensch" })}_s{stufe}_g{form}";
+        NeubauOrdner + $"wohnhaus_{(volk switch { Volk.Zwerg => "zwerg", Volk.Elb => "elb", Volk.Halbling => "halbling", _ => "mensch" })}_s{stufe}_g{form}";
 
-    /// <summary>Startoption <c>--neubauvolk=zwerg|elb|mensch</c> (mit <c>--neubauprobe=1</c>): alle neuen Wohnhäuser im Stil dieses Volks, gleich wem sie
+    /// <summary>Startoption <c>--neubauvolk=zwerg|elb|halbling|mensch</c> (mit <c>--neubauprobe=1</c>): alle neuen Wohnhäuser im Stil dieses Volks, gleich wem sie
     /// gehören – nur für Bilder und Klicktests (auch die Häuser von <c>--neubaureihe</c>, die keinen Besitzer haben).</summary>
-    private static readonly Volk? NeubauVolkFest = NeubauOption("--neubauvolk")?.ToLowerInvariant() switch { "zwerg" => Volk.Zwerg, "elb" => Volk.Elb, "mensch" => Volk.Mensch, _ => null };
+    private static readonly Volk? NeubauVolkFest = NeubauOption("--neubauvolk")?.ToLowerInvariant() switch { "zwerg" => Volk.Zwerg, "elb" => Volk.Elb, "halbling" => Volk.Halbling, "mensch" => Volk.Mensch, _ => null };
 
     /// <summary>Das Volk, in dessen Stil ein Haus gebaut wird: das Volk des Oberhaupts seines Besitzers (null: ohne Familie, dann wie die Menschen).</summary>
     private static Volk? NeubauVolk(Stadtwirtschaft w, Konto? besitzer) => besitzer is null ? null : w.Familien.Von(besitzer)?.Oberhaupt.Volk;
@@ -111,7 +113,7 @@ public partial class Stadtansicht
         volk = NeubauVolkFest ?? volk;
         if (NeubauStufeFest > 0) stufe = NeubauStufeFest;
         var neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe, volk);
-        if (volk is Volk.Zwerg or Volk.Elb && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Haus des Volks fehlt: Haus der Menschen
+        if (volk is Volk.Zwerg or Volk.Elb or Volk.Halbling && !ResourceLoader.Exists($"res://assets/modelle/{neu}.glb")) neu = NeubauWohnhausForm(NeubauGrundform(platz), stufe); // Haus des Volks fehlt: Haus der Menschen
         return stufe == 1 || ResourceLoader.Exists($"res://assets/modelle/{neu}.glb") ? neu : datei;
     }
 
@@ -142,8 +144,9 @@ public partial class Stadtansicht
     private static string NeubauBlatt(string datei)
     {
         var name = datei[(datei.LastIndexOf('/') + 1)..];
-        // gleiche Bänder, anderer Inhalt: Zwerge (tools/modelle/neubau/trimsheet_zwerg*.py), Elben (trimsheet_elb.py, Räume raeume_trimsheet_elb.py)
-        var volk = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : name.StartsWith("wohnhaus_elb_") ? "_elb" : "";
+        // gleiche Bänder, anderer Inhalt: Zwerge (tools/modelle/neubau/trimsheet_zwerg*.py), Elben (trimsheet_elb.py, Räume raeume_trimsheet_elb.py),
+        // Halblinge (trimsheet_halbling.py; Räume ab Stufe 2 raeume_innen_trim_halbling)
+        var volk = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : name.StartsWith("wohnhaus_elb_") ? "_elb" : name.StartsWith("wohnhaus_halbling_") ? "_halbling" : "";
         if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + volk;
         if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
         var innen = name.EndsWith("_innen");
@@ -253,8 +256,9 @@ public partial class Stadtansicht
         var trim = NeubauStoff(datei);
         var ort = modell.GlobalPosition;
         var saat = NeubauPlatzSaat(ort);
-        // Elben: der blasse gelbgrüne Kalkputz steht schon im Blatt (Kunstwerk) – wie bei den Zwergen nur helle, fast neutrale Töne
-        var putz = (datei.Contains("wohnhaus_zwerg_") || datei.Contains("wohnhaus_elb_") ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length];
+        // Elben und Halblinge: der Putz (blass gelbgrün bzw. ockergelb) steht schon im Blatt (Kunstwerk) – wie bei den Zwergen nur helle,
+        // fast neutrale Töne
+        var putz = (datei.Contains("wohnhaus_zwerg_") || datei.Contains("wohnhaus_elb_") || datei.Contains("wohnhaus_halbling_") ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         var ebenen = innen ? Steinebenen.InnenAusBlatt(NeubauBlatt(datei), NeubauGruppe(datei)) : Steinebenen.AusDatei(datei) ?? (0, 0);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())

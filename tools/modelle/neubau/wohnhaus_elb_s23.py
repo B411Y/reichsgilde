@@ -53,19 +53,19 @@ BOGEN_RAND = et.BOGEN_RAND
 QUERGIEBEL = dict(y=(0.55, 2.15), fenster=(0.66, 0.66))   # Stufe 2: Quergiebel in der Flucht der rechten Wand, hinter dem Schornstein
 UNTERSTAND = dict(y0=0.75, y1=2.20, z=2.33, tiefe=0.60, fall=0.30)   # ueber dem Scheitholz an der linken Wand, unter der Auskragung
 VORDACH_DICKE = 0.025             # Vordach als Platte: Untersicht so weit unter der Dachflaeche (vorher deckungsgleich, siehe vordach_platte)
-LICHT_WAND = 0.25                 # Grundlicht der Wohnstube so weit vor der linken Wand, auf der Hoehe (y) des Blickpunkts (licht_vor_den_herd)
 STUFE = [2]
 FORM = [1]
 LETZT = {}
 
 
 def licht_vor_den_herd(licht, auge):
-    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten, Stadtansicht.Neubau.cs) auf die Seite der Kamera, nahe der linken
-    Wand auf der Hoehe des Blickpunkts (Klicktest 18.11.2026): In der Raummitte (y = -0,3 wie bei den Menschen) stand es hinter den
-    Flaechen, die zur Kamera zeigen – rechte Seiten von Sturz, Wange und Sockel, die Seite des Unterzugs und die Seiten der Deckenbalken
-    bekamen nur Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es
-    nicht auf; Pruefung 12c). Die Hoehe bleibt."""
-    return Vector((-S23.IX + LICHT_WAND, auge.y, licht.z))
+    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten, Stadtansicht.Neubau.cs) ueber dem Blickpunkt, in der Hoehe der
+    Menschen (Klicktest 18.11.2026): In der Raummitte (y = -0,3 wie bei den Menschen) stand es hinter den Flaechen, die zur Kamera
+    zeigen – rechte Seiten von Sturz, Wange und Sockel, die Seite des Unterzugs und die Seiten der Deckenbalken bekamen nur
+    Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es nicht auf).
+    Ueber dem Blickpunkt beleuchtet es jede Flaeche, die die Kamera sieht, auch beim Umschauen (Fix 4: an der linken Wand lag es hinter
+    der Seite des ersten Balkens; Pruefung 12c)."""
+    return Vector((auge.x, auge.y, licht.z))
 
 
 def umbenennen(text):
@@ -381,7 +381,31 @@ def baue_decke():
             r.kasten(S, (x - 0.08, ya, M.Z_EG_DECKE - 0.16), (x + 0.08, yb, M.Z_EG_DECKE), "balken", ohne=("+z", "-y", "+y"), laengs="y")
     xe = sx0 if sy0 < 0.10 and sy1 > -0.10 else IX
     r.kasten(S, (-IX, -0.10, M.Z_EG_DECKE - 0.24), (xe, 0.10, M.Z_EG_DECKE - 0.16), "balken", ohne=("-x", "+x"), laengs="x")   # Unterzug
+    # Geschnitzte Kopfbaender (Nutzer 18.11.2026): unter dem Unterzug an der linken Wand und unter den Balken der linken Haelfte an der
+    # Rueckwand (dort liegen weder Fenster noch Tueren; rechts stehen Herd, Schlot und die Zimmertuer)
+    zu, zb = M.Z_EG_DECKE - 0.24, M.Z_EG_DECKE - 0.16
+    kopfband(r, S, Vector((-IX, 0.0, zu)), Vector((1, 0, 0)))
+    for i in range(3):
+        x = -IX + 0.40 + i * (2 * IX - 0.80) / 5
+        kopfband(r, S, Vector((x, IH, zb)), Vector((0, -1, 0)))
     return r
+
+
+KOPFBAND = dict(laenge=0.50, bogen=0.10, dicke=0.08, breite=0.10, stuecke=4)
+
+
+def kopfband(r, S, ecke, raus):
+    """Geschwungenes Kopfband in der Ecke zwischen Wand und Balken: `ecke` = Unterkante des Balkens an der Wand, `raus` = waagrecht
+    von der Wand in den Raum. Ein Bogen (quadratische Bezierkurve, zur Ecke hin gewoelbt) aus KOPFBAND["stuecke"] Kantholzstuecken
+    im Band „balken“ (geschnitzte Ranke); beide Enden stecken 5 cm in Wand bzw. Balken."""
+    L, b = KOPFBAND["laenge"], KOPFBAND["bogen"]
+    wand = ecke - raus * 0.05 + Vector((0, 0, -L))
+    balken = ecke + raus * L + Vector((0, 0, 0.05))
+    mitte = ecke + raus * (L / 2 - b) + Vector((0, 0, -(L / 2 - b)))
+    pkt = [wand * (1 - t) ** 2 + mitte * 2 * t * (1 - t) + balken * t * t for t in (k / KOPFBAND["stuecke"] for k in range(KOPFBAND["stuecke"] + 1))]
+    quer = raus.cross(Vector((0, 0, 1)))
+    for a, c in zip(pkt[:-1], pkt[1:]):
+        r.stab(S, a, c, KOPFBAND["dicke"], "balken", breite=KOPFBAND["breite"], oben=quer)
 
 
 def feuerstelle(raum):

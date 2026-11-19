@@ -47,6 +47,7 @@ STEINE = {
     "k2": dict(name="large_sandstone_blocks_01", art="ph", kachel=(3.0, 3.0)),  # Elb/Halbling: Flaechen; Bruecke: elbisches Zierwerk
     # K3 stone_wall_04 und K4 PavingStones142 (Auswahl vom 15.11.2026) sind nach der Rueckmeldung des Nutzers nicht mehr eingesetzt
     "k5": dict(name="Bricks100", art="acg", kachel=(2.0, 1.0)),                 # Elb/Halbling: nur Akzent
+    "k6": dict(name="medieval_red_brick", art="ph", kachel=(2.0, 2.0)),         # Halbling Stufe 2/3: roter Backstein (Vorlagen; Abruf 18.11.2026)
 }
 
 # Je Array: Layout (Datei, Name des Dicts), Ordner der Blaetter und die Ebenen (Name, Blatt, {Band: Stein oder (Stein, Bezugsband)}).
@@ -72,25 +73,35 @@ ARRAYS = {
             # Elben Stufe 1 (Auftrag 17.11.2026): eigenes Blatt trim_elb (Kunstwerk: Fachwerk mit Kalkputz, das Putzband bleibt Putz),
             # Haustein K2 im Bruchsteinband (Sockel, Schlot); K5 kommt in Stufe 1 nicht vor (das Kunstwerk zeigt keinen Backstein)
             ("elb_s1", "trim_elb", {"bruchstein": "k2"}),
-            ("halbling", "trim_s3", {"bruchstein": "k2", "putz": "k5"}),
+            # Halblinge Stufe 1 (Auftrag 17.11.2026): eigenes Blatt trim_halbling (Kunstwerk: Fachwerk mit ockergelbem Lehmputz, das Putzband
+            # bleibt Putz), K2 als Flaeche im Bruchsteinband (Sockel, Schlot); K5 (Akzent) kommt in Stufe 1 nicht vor
+            ("halbling_s1", "trim_halbling", {"bruchstein": "k2"}),
             # Elben Stufe 2 und 3 (Auftrag 17.11.2026; hinter dem Halbling angehaengt, die Ebenen davor bleiben): Buergerhaus mit Putzsockel
             # und Fachwerk (das Putzband bleibt Putz), Haustein K2; Steinhaus Mauer K2, Werkstein K5 im Putzband, danach der Efeu der
             # Mauer wieder aufgetragen (elb_bewuchs.py, dieselben Ranken wie im Blatt trim_s3_elb)
             ("elb_s2", "trim_s2_elb", {"bruchstein": "k2"}),
             ("elb_s3", "trim_s3_elb", {"bruchstein": "k2", "putz": "k5"}, {"efeu": "bruchstein"}),
+            # Halblinge Stufe 2 und 3 nach den Vorlagen (Nutzer 18.11.2026; hinter den Elben angehaengt): roter Backstein K6
+            # (medieval_red_brick) im Bruchsteinband (Buergerhaus: Erdgeschoss; Steinhaus: Mauer, Werkstein der Menschen im Putzband),
+            # blaues Schieferdach, im Steinhaus Kupfer
+            ("halbling_s2", "trim_s2_halbling", {"bruchstein": "k6"}),
+            ("halbling_s3", "trim_s3_halbling", {"bruchstein": "k6"}),
         ],
-        # Reihenfolge wie Steinebenen.AoGruppen; Buergerhaus und Steinhaus haben je Volk eigene Atlanten (groessere Zellen), die Elben (Stufe 1) auch
+        # Reihenfolge wie Steinebenen.AoGruppen; Buergerhaus und Steinhaus haben je Volk eigene Atlanten (groessere Zellen), Elben und Halblinge auch in Stufe 1
         ao=["wohnhaus_mensch", "wohnhaus_zwerg", "wohnhaus_mensch_s2", "wohnhaus_mensch_s3", "wohnhaus_zwerg_s2", "wohnhaus_zwerg_s3", "wohnhaus_elb",
-            "wohnhaus_elb_s2", "wohnhaus_elb_s3"]),
+            "wohnhaus_elb_s2", "wohnhaus_elb_s3", "wohnhaus_halbling", "wohnhaus_halbling_s2", "wohnhaus_halbling_s3"]),
     # Innenraeume (vorerst ohne Steinwahl): dasselbe Array-Format, damit ein Shader fuer alle Gebaeude reicht.
     "innen": dict(
         layout=(os.path.join(HIER, "trimsheet.py"), "BAENDER_INNEN"), ordner=NEUBAU,
         # Reihenfolge wie Steinebenen.InnenBlaetter / InnenAoGruppen; die kleineren AO-Atlanten (512, 1024) werden auf N gebracht
         ebenen=[("innen", "innen_trim", {}), ("innen_s23", "innen_trim_s23", {}), ("raeume", "raeume_innen_trim", {}),
                 ("innen_zwerg", "innen_trim_zwerg", {}), ("innen_s23_zwerg", "innen_trim_s23_zwerg", {}), ("raeume_zwerg", "raeume_innen_trim_zwerg", {}),
-                ("innen_elb", "innen_trim_elb", {}), ("innen_s23_elb", "innen_trim_s23_elb", {}), ("raeume_elb", "raeume_innen_trim_elb", {})],
+                ("innen_elb", "innen_trim_elb", {}), ("innen_s23_elb", "innen_trim_s23_elb", {}), ("raeume_elb", "raeume_innen_trim_elb", {}),
+                ("innen_halbling", "innen_trim_halbling", {}), ("innen_s23_halbling", "innen_trim_s23_halbling", {}),
+                ("raeume_halbling", "raeume_innen_trim_halbling", {})],
         ao=["wohnhaus_mensch_innen", "wohnhaus_mensch_dachraeume_innen", "wohnhaus_mensch_raeume_innen",
-            "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen", "wohnhaus_elb_raeume_innen"]),
+            "wohnhaus_zwerg_innen", "wohnhaus_zwerg_dachraeume_innen", "wohnhaus_zwerg_raeume_innen", "wohnhaus_elb_innen", "wohnhaus_elb_raeume_innen",
+            "wohnhaus_halbling_innen", "wohnhaus_halbling_raeume_innen"]),
     # Rathaus (Mensch): Quader auf K1. Eine Ebene, eigenes Layout.
     "rathaus": dict(
         layout=(os.path.join(HIER, "rathaus_trimsheet.py"), "BAENDER_RATHAUS"), ordner=NEUBAU,
@@ -124,7 +135,8 @@ def bild(pfad, kanaele):
 
 def stein_laden(ordner, schluessel):
     s = STEINE[schluessel]
-    d = os.path.join(ordner, s["name"])
+    # mehrere Ordner mit ";" (der Backstein K6 liegt in einem eigenen Abrufordner): der erste, der den Stein enthaelt
+    d = next((os.path.join(o, s["name"]) for o in ordner.split(";") if os.path.isdir(os.path.join(o, s["name"]))), os.path.join(ordner, s["name"]))
     n = s["name"]
     if s["art"] == "ph":
         farbe = bild(os.path.join(d, f"{n}_diff_1k.jpg"), 3)
