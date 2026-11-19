@@ -24,7 +24,7 @@ public partial class GaunerAnzeige : PanelContainer
 
     private Simulation? _simulation;
     private Konto? _spieler;
-    private VBoxContainer _inhalt = null!;
+    private HBoxContainer _inhalt = null!;
 
     /// <summary>Aufgeschlagenes Kapitel und Haus (Inhaber) – bleiben über jeden Neuaufbau und jedes Öffnen erhalten.</summary>
     private Kapitel _kapitel = Kapitel.Haeuser;
@@ -56,11 +56,12 @@ public partial class GaunerAnzeige : PanelContainer
 
     public override void _Ready()
     {
+        // Die Tafel ist der Einband (Leder), darauf eine Prägelinie; innen links das Buch, rechts am Buchrand die Lesebänder.
         HinterzimmerStil.Anwenden(this);
         ThemeTypeVariation = "HzTafel";
         var rand = HinterzimmerStil.Container<MarginContainer>(this, "HzRand");
-        var spalte = HinterzimmerStil.Container<VBoxContainer>(rand, "HzSpalte");
-        _inhalt = HinterzimmerStil.Container<VBoxContainer>(spalte, "HzSpalte");
+        var praegung = HinterzimmerStil.Container<PanelContainer>(rand, "HzPraegung");
+        _inhalt = HinterzimmerStil.Container<HBoxContainer>(praegung, "HzBlaetter");
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Hinterzimmer", festhaltbar: true);
         Hide();
@@ -112,15 +113,15 @@ public partial class GaunerAnzeige : PanelContainer
     /// </summary>
     private string? Hauptsperre(Befehl muster) => _kerker ?? _w.Wohnen.BefehlOhneRaum(_spieler!, muster);
 
-    /// <summary>Die Arten von Befehlen des Hinterzimmers, mit dem Namen für die Zeile „Betrifft“ der Sperrleiste.</summary>
+    /// <summary>Die Arten von Befehlen des Hinterzimmers, mit dem Namen für die Sperrleiste („Gesperrt (Banden, Erpresserbriefe): …“).</summary>
     private static readonly (string Was, Befehl Muster)[] Befehlsarten =
     {
-        ("Banden anheuern", new Beauftragen("", Gaunerstueck.Diebstahl)),
-        ("Erpresserbriefe schreiben", new Erpressen("", 0)),
+        ("Banden", new Beauftragen("", Gaunerstueck.Diebstahl)),
+        ("Erpresserbriefe", new Erpressen("", 0)),
         ("Giftanschlag", new Giftanschlag("", "")),
         ("Hetzschrift", new HetzschriftVerbreiten("")),
-        ("Zwietracht säen", new ZwietrachtSaeen("", "")),
-        ("eigene Leute schicken", new Auskundschaften("")),
+        ("Zwietracht", new ZwietrachtSaeen("", "")),
+        ("eigene Leute", new Auskundschaften("")),
     };
 
     /// <summary>Baut den Inhalt neu auf – beim Öffnen, nach jedem Befehl, zur Nacht und zum Jahreswechsel.</summary>
@@ -133,8 +134,9 @@ public partial class GaunerAnzeige : PanelContainer
         var unterwelt = w.Gauner;
         if (!unterwelt.IstAktiv)
         {
-            HinterzimmerStil.Text(_inhalt, "Hinterzimmer", "HzTitel");
-            HinterzimmerStil.Text(_inhalt, "In dieser Stadt gibt es keine Unterwelt (Spielstand von vor den Gaunern).", "HzKlein");
+            var leer = HinterzimmerStil.Container<VBoxContainer>(HinterzimmerStil.Container<MarginContainer>(_inhalt, "HzBandkopf"), "HzSpalte");
+            HinterzimmerStil.Text(leer, "Hinterzimmer", "HzEinbandTitel");
+            HinterzimmerStil.Text(leer, "In dieser Stadt gibt es keine Unterwelt (Spielstand von vor den Gaunern).", "HzEinbandText");
             return;
         }
         var gericht = w.Justiz;
@@ -148,48 +150,50 @@ public partial class GaunerAnzeige : PanelContainer
         if (_kapitel == Kapitel.Leute && versteck is null) _kapitel = Kapitel.Haeuser;
         var bestellt = Bestelltes().ToList();
         var post = BriefeAnEuch();
+        var g = unterwelt.Daten;
 
-        // ── Kopf: Titel, Aktionspunkte, Bestelltes ──
-        var kopf = HinterzimmerStil.Container<HBoxContainer>(_inhalt, "HzZeile");
-        HinterzimmerStil.Text(kopf, "Hinterzimmer", "HzTitel").SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        HinterzimmerStil.Text(kopf, $"Heute Nacht bestellt: {bestellt.Count}", bestellt.Count > 0 ? "HzGold" : "HzKlein",
-            tipp: "Was ihr für diese Nacht bestellt habt – die Liste steht im Kapitel „Heute Nacht“.");
-        HinterzimmerStil.Text(kopf, $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat}", "HzText",
-            tipp: $"Viele Taten kosten Aktionspunkte. Zum Jahreswechsel kommen {w.AktionspunkteJeRunde} dazu.");
-
-        // ── Ganz oben: was gesperrt ist, Post an euch, Rückmeldung ──
-        Sperrleiste();
+        // ── Links: über dem Buch die Zettel (Sperre, Post, Rückmeldung), dann Register und Doppelseite ──
+        var buchSpalte = HinterzimmerStil.Container<VBoxContainer>(_inhalt, "HzSpalte");
+        Sperrleiste(buchSpalte);
         if (post > 0 && _kapitel != Kapitel.Schutz)
         {
-            var leiste = HinterzimmerStil.Container<PanelContainer>(_inhalt, "HzPost");
+            var leiste = HinterzimmerStil.Container<PanelContainer>(buchSpalte, "HzPost");
             var zeile = HinterzimmerStil.Container<HBoxContainer>(leiste, "HzZeile");
             HinterzimmerStil.Text(zeile, post == 1 ? "Ein Brief an euch wartet auf Antwort." : $"{post} Briefe an euch warten auf Antwort.", "HzText")
                 .SizeFlagsHorizontal = SizeFlags.ExpandFill;
             HinterzimmerStil.Knopf(zeile, "Zu den Briefen", () => Aufschlagen(Kapitel.Schutz));
         }
         if (_meldung != "")
-            HinterzimmerStil.Text(_inhalt, _meldung, _meldungGut ? "HzGut" : "HzSchlecht", "kopf_breite");
+            HinterzimmerStil.Text(HinterzimmerStil.Container<PanelContainer>(buchSpalte, "HzZettel"), _meldung, _meldungGut ? "HzGut" : "HzSchlecht", "kopf_breite");
 
-        // ── Das Buch: Register, Doppelseite, Lesebänder ──
-        var mitte = HinterzimmerStil.Container<HBoxContainer>(_inhalt, "HzBlaetter");
-        var buchSpalte = HinterzimmerStil.Container<VBoxContainer>(mitte, "HzDicht");
-        var register = HinterzimmerStil.Container<HBoxContainer>(buchSpalte, "HzEng");
+        var block = HinterzimmerStil.Container<VBoxContainer>(buchSpalte, "HzDicht");
+        var register = HinterzimmerStil.Container<HBoxContainer>(block, "HzRegisterzeile");
         register.CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("register_hoehe")); // auch ohne Register: das Buch springt nicht
         register.Alignment = BoxContainer.AlignmentMode.End;
-        var buch = HinterzimmerStil.Container<PanelContainer>(buchSpalte, "HzBuch");
+        var buch = HinterzimmerStil.Container<PanelContainer>(block, "HzBuch");
         var blaetter = HinterzimmerStil.Container<HBoxContainer>(buch, "HzBlaetter");
-        var links = Blatt(blaetter);
-        HinterzimmerStil.Container<PanelContainer>(blaetter, "HzFalz");
-        var rechts = Blatt(blaetter);
+        var links = Blatt(blaetter, "HzBlatt");
+        HinterzimmerStil.Container<PanelContainer>(blaetter, "HzFalz").ZIndex = 1; // der Schatten des Falzes liegt über beiden Seiten
+        var rechts = Blatt(blaetter, "HzBlattRechts");
 
-        var baender = HinterzimmerStil.Container<VBoxContainer>(mitte, "HzSeite");
-        baender.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("register_hoehe") + HinterzimmerStil.Mass("band_oben")) });
-        Band(baender, Kapitel.Nacht, "Heute Nacht", bestellt.Count, "Was für diese Nacht bestellt ist und was zuletzt geschah.");
-        Band(baender, Kapitel.Haeuser, "Die Häuser", 0, "Eine Doppelseite je Haus: alles, was ihr ihm antun könnt.");
-        Band(baender, Kapitel.Leute, "Eigene Leute", 0, versteck is null
+        // ── Rechts auf dem Einband: Titel, Aktionspunkte, Bestelltes (neben ✕ und Nadel), darunter die Lesebänder am Buchrand ──
+        var bandSpalte = HinterzimmerStil.Container<VBoxContainer>(_inhalt, "HzBandspalte");
+        bandSpalte.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("kopf_frei")) });
+        var kopf = HinterzimmerStil.Container<VBoxContainer>(HinterzimmerStil.Container<MarginContainer>(bandSpalte, "HzBandkopf"), "HzDicht");
+        HinterzimmerStil.Text(kopf, "Hinterzimmer", "HzEinbandTitel",
+            tipp: $"Bei Nacht und Nebel: Bestellt wird jetzt, ausgeführt heute um 20 Uhr, bezahlt im Voraus. Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, " +
+                  $"und mit {Prozent(g.ZeugenChance)} Chance (bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}) erkennt euch ein Zeuge. Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.");
+        HinterzimmerStil.Text(kopf, $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat}", "HzEinbandText",
+            tipp: $"Viele Taten kosten Aktionspunkte. Zum Jahreswechsel kommen {w.AktionspunkteJeRunde} dazu.");
+        HinterzimmerStil.Text(kopf, $"Bestellt: {bestellt.Count}", bestellt.Count > 0 ? "HzEinbandGold" : "HzEinbandText",
+            tipp: "Was ihr für diese Nacht bestellt habt – die Liste steht im Kapitel „Heute Nacht“.");
+        bandSpalte.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("band_oben")) });
+        Band(bandSpalte, 1, Kapitel.Nacht, "Heute Nacht", bestellt.Count, "Was für diese Nacht bestellt ist und was zuletzt geschah.");
+        Band(bandSpalte, 2, Kapitel.Haeuser, "Die Häuser", 0, "Eine Doppelseite je Haus: alles, was ihr ihm antun könnt.");
+        Band(bandSpalte, 3, Kapitel.Leute, "Eigene Leute", 0, versteck is null
             ? $"Eigene Leute hat nur, wer einen Betrieb als {w.Diebe.Daten.Beruf} führt."
             : "Eure Diebe: ausspähen, Schutzgeld verlangen, entführen.", gesperrt: versteck is null);
-        Band(baender, Kapitel.Schutz, "Wachen, Briefe", post, "Wächter für eure Betriebe, Briefe an euch und eure eigenen Forderungen.");
+        Band(bandSpalte, 4, Kapitel.Schutz, "Wachen, Briefe", post, "Wächter für eure Betriebe, Briefe an euch und eure eigenen Forderungen.");
 
         switch (_kapitel)
         {
@@ -198,31 +202,25 @@ public partial class GaunerAnzeige : PanelContainer
             case Kapitel.Schutz: SchutzSeiten(links, rechts); break;
             default: Register(register, haeuser, ziel); HausSeiten(links, rechts, haeuser, ziel, versteck); break;
         }
-
-        // ── Fuß: die Regel in einer Zeile, der Rest im Tooltip ──
-        var g = unterwelt.Daten;
-        HinterzimmerStil.Text(_inhalt, $"Bestellt wird jetzt, ausgeführt heute um 20 Uhr, bezahlt im Voraus. Zeuge: {Prozent(g.ZeugenChance)}, bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}.", "HzKlein",
-            tipp: "Bei Nacht und Nebel: Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und mit dieser Chance erkennt euch ein Zeuge. " +
-                  $"Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.");
     }
 
     /// <summary>
-    /// Die Sperrleiste ganz oben: Kerker oder fehlender Raum – mit Grund, was betroffen ist (in der Überschrift) und dem nächsten Schritt. Ohne Sperre entsteht nichts.
+    /// Die Sperrleiste ganz oben, ein Zettel über dem Buch: Kerker oder fehlender Raum – in zwei Zeilen, was betroffen ist mit dem Grund
+    /// des Kerns, darunter der nächste Schritt und der Knopf „Zum Wohnhaus“. Ohne Sperre entsteht nichts.
     /// Den nächsten Schritt nennt der Kern (<c>Wohnungswesen.RaumAnbauenVerboten</c>); angebaut wird in der Tafel des Wohnhauses.
     /// </summary>
-    private void Sperrleiste()
+    private void Sperrleiste(Container eltern)
     {
         var gesperrt = Befehlsarten.Select(b => (b.Was, Grund: Hauptsperre(b.Muster), b.Muster)).Where(b => b.Grund is not null).ToList();
         if (gesperrt.Count == 0) return;
-        var leiste = HinterzimmerStil.Container<PanelContainer>(_inhalt, "HzSperre");
-        var spalte = HinterzimmerStil.Container<VBoxContainer>(leiste, "HzSeite");
-        HinterzimmerStil.Text(spalte, gesperrt.Count == Befehlsarten.Length ? "Gesperrt: Hier lässt sich gerade nichts bestellen."
-            : "Gesperrt: " + string.Join(", ", gesperrt.Select(b => b.Was)) + ".", "HzSperrtitel", "kopf_breite");
-        HinterzimmerStil.Text(spalte, gesperrt[0].Grund!, "HzText", "kopf_breite");
+        var leiste = HinterzimmerStil.Container<PanelContainer>(eltern, "HzSperre");
+        var spalte = HinterzimmerStil.Container<VBoxContainer>(leiste, "HzDicht");
+        var was = gesperrt.Count == Befehlsarten.Length ? "Gesperrt: " : $"Gesperrt ({string.Join(", ", gesperrt.Select(b => b.Was))}): ";
+        HinterzimmerStil.Text(spalte, was + gesperrt[0].Grund, "HzSperrtitel", "kopf_breite");
         var zeile = HinterzimmerStil.Container<HBoxContainer>(spalte, "HzZeile");
         if (_kerker is not null)
         {
-            HinterzimmerStil.Text(zeile, "Nächster Schritt: abwarten. Briefe an euch könnt ihr weiter beantworten, die Betriebe laufen weiter.", "HzGold", "kopf_breite");
+            HinterzimmerStil.Text(zeile, "Nächster Schritt: abwarten. Briefe an euch könnt ihr weiter beantworten, die Betriebe laufen weiter.", "HzText", "schritt_breite");
             return;
         }
         var wohnen = _w.Wohnen;
@@ -231,31 +229,32 @@ public partial class GaunerAnzeige : PanelContainer
         var schritt = hindernis is null
             ? $"Am Wohnhaus den Raum „{raum.Name}“ anbauen ({Gulden(_w.Baupreis(_spieler!, raum.Preis))}, endgültig)."
             : wohnen.FreiePlaetze(_spieler!) == 0 ? $"das Wohnhaus ausbauen. {hindernis}" : hindernis;
-        if (raum.BerufStattRaum is { } beruf) schritt += $" Oder einen Betrieb als {beruf} führen – von dort geht es auch ohne den Raum.";
-        HinterzimmerStil.Text(zeile, "Nächster Schritt: " + schritt, "HzGold", "schritt_breite").SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        var oder = raum.BerufStattRaum is { } beruf ? $"Oder einen Betrieb als {beruf} führen – von dort geht es auch ohne den Raum." : "";
+        HinterzimmerStil.Text(zeile, "Nächster Schritt: " + schritt, "HzText", "schritt_breite", oder).SizeFlagsHorizontal = SizeFlags.ExpandFill;
         HinterzimmerStil.Knopf(zeile, "Zum Wohnhaus", () => WohnhausGewuenscht?.Invoke(), tipp: "Öffnet die Tafel eures Wohnhauses: Ausbau und Räume.")
             .SizeFlagsVertical = SizeFlags.ShrinkCenter;
     }
 
-    /// <summary>Eine Buchseite: Fläche mit fester Mindestgröße, darin die Spalte für den Inhalt.</summary>
-    private static VBoxContainer Blatt(Container blaetter)
+    /// <summary>Eine Buchseite aus Pergament („HzBlatt“ links, „HzBlattRechts“ rechts) mit fester Mindestgröße, darin die Spalte für den Inhalt.</summary>
+    private static VBoxContainer Blatt(Container blaetter, string variante)
     {
-        var blatt = HinterzimmerStil.Container<PanelContainer>(blaetter, "HzBlatt");
+        var blatt = HinterzimmerStil.Container<PanelContainer>(blaetter, variante);
         blatt.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("seite_breite"), HinterzimmerStil.Mass("seite_hoehe"));
         return HinterzimmerStil.Container<VBoxContainer>(blatt, "HzSeite");
     }
 
-    /// <summary>Ein Leseband: schlägt sein Kapitel auf; das aufgeschlagene bleibt gedrückt. <paramref name="zahl"/> &gt; 0 steht dahinter.</summary>
-    private void Band(Container eltern, Kapitel kapitel, string name, int zahl, string tipp, bool gesperrt = false)
+    /// <summary>Ein Leseband am Buchrand (Farbe <paramref name="nummer"/> 1–4): schlägt sein Kapitel auf; das aufgeschlagene steht weiter heraus. <paramref name="zahl"/> &gt; 0 steht dahinter.</summary>
+    private void Band(Container eltern, int nummer, Kapitel kapitel, string name, int zahl, string tipp, bool gesperrt = false)
     {
-        var band = HinterzimmerStil.Knopf(eltern, zahl > 0 ? $"{name} ({zahl})" : name, () => Aufschlagen(kapitel), "HzBand", tipp, gesperrt);
+        var band = HinterzimmerStil.Knopf(eltern, zahl > 0 ? $"{name} ({zahl})" : name, () => Aufschlagen(kapitel), $"HzBand{nummer}", tipp, gesperrt);
         band.ToggleMode = true;
         band.ButtonPressed = kapitel == _kapitel;
         band.Alignment = HorizontalAlignment.Left;
         band.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("band_breite"), 0);
+        band.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
     }
 
-    /// <summary>Das Register über dem Buch: ein Reiter je Haus, dahinter die Zahl dessen, was heute Nacht gegen es bestellt ist.</summary>
+    /// <summary>Das Register über der rechten Seite: ein Reiter je Haus, dahinter die Zahl dessen, was heute Nacht gegen es bestellt ist.</summary>
     private void Register(Container register, List<Konto> haeuser, Konto? ziel)
     {
         foreach (var haus in haeuser)
@@ -266,7 +265,9 @@ public partial class GaunerAnzeige : PanelContainer
                 $"{inhaber} · {_w.StandVon(haus).Name} · {Gulden(haus.Reinvermoegen)}");
             reiter.ToggleMode = true;
             reiter.ButtonPressed = haus == ziel;
+            reiter.SizeFlagsVertical = SizeFlags.ShrinkEnd;
         }
+        register.AddChild(new Control { CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("register_rechts"), 0) });
     }
 
     /// <summary>Blättert zur Doppelseite eines Hauses.</summary>
@@ -279,8 +280,9 @@ public partial class GaunerAnzeige : PanelContainer
     /// <summary>Überschrift einer Gruppe von Taten und das Raster ihrer Zeilen (vier Spalten: Tat, Chance, Kosten, Knopf).</summary>
     private static GridContainer Gruppe(Container seite, string titel, string tipp = "")
     {
-        if (seite.GetChildCount() > 0) HinterzimmerStil.Container<HSeparator>(seite, "HzTrenner");
+        if (seite.GetChildCount() > 0) HinterzimmerStil.Container<HSeparator>(seite, "HzAbstand");
         HinterzimmerStil.Text(seite, titel, "HzGruppe", tipp: tipp);
+        HinterzimmerStil.Container<HSeparator>(seite, "HzGruppenlinie");
         var raster = HinterzimmerStil.Container<GridContainer>(seite, "HzRaster");
         raster.Columns = 4;
         return raster;

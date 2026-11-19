@@ -30,25 +30,19 @@ public partial class GaunerAnzeige
         var fremd = w.Familien.Von(haus);
         var beweise = gericht.IstAktiv ? gericht.Beweise(_spieler!, haus).Count() : 0;
 
-        // ── Links: Steckbrief ──
-        HinterzimmerStil.Text(links, inhaber, "HzSeitentitel");
+        // ── Links: Steckbrief – Wappen, daneben Name und zwei Zeilen ──
         var steck = HinterzimmerStil.Container<HBoxContainer>(links, "HzZeile");
         var wappen = WappenBild.Neu(haus.Wappen, HinterzimmerStil.Mass("wappen"));
-        wappen.SizeFlagsVertical = SizeFlags.ShrinkBegin;
+        wappen.SizeFlagsVertical = SizeFlags.ShrinkCenter;
         steck.AddChild(wappen);
-        var daten = HinterzimmerStil.Container<GridContainer>(steck, "HzSteckbrief");
-        daten.Columns = 2;
-        void Angabe(string was, string wert, string tipp = "")
-        {
-            HinterzimmerStil.Text(daten, was, "HzKlein");
-            HinterzimmerStil.Text(daten, wert, "HzText", tipp: tipp);
-        }
-        if (fremd is not null)
-            Angabe("Oberhaupt", $"{fremd.Oberhaupt.OberhauptTitel} {fremd.Oberhaupt.Vorname}{(fremd.Oberhaupt.Krankheit is { } k ? $" (krank: {k.Name})" : "")}");
-        Angabe("Stand", w.Rat.IstAktiv ? $"{w.StandVon(haus).Name} · Ansehen {Zahlenformat.Ganz(w.Rat.Ansehen(haus))}" : w.StandVon(haus).Name);
-        Angabe("Vermögen", Gulden(haus.Reinvermoegen), "Reinvermögen des Hauses.");
-        if (gericht.IstAktiv)
-            Angabe("Beweise", $"{beweise} von {g.ErpressungMindestBeweise}", "Eure Beweise gegen dieses Haus – Grundlage für Erpressung und Anklage.");
+        var daten = HinterzimmerStil.Container<VBoxContainer>(steck, "HzDicht");
+        HinterzimmerStil.Text(daten, inhaber, "HzSeitentitel");
+        var stand = w.Rat.IstAktiv ? $"{w.StandVon(haus).Name} · Ansehen {Zahlenformat.Ganz(w.Rat.Ansehen(haus))}" : w.StandVon(haus).Name;
+        HinterzimmerStil.Text(daten, fremd is null ? stand
+            : $"{fremd.Oberhaupt.OberhauptTitel} {fremd.Oberhaupt.Vorname}{(fremd.Oberhaupt.Krankheit is { } leiden ? $" (krank: {leiden.Name})" : "")} · {stand}", "HzText", "steckbrief_breite",
+            "Oberhaupt, Stand und Ansehen des Hauses.");
+        HinterzimmerStil.Text(daten, $"Vermögen {Gulden(haus.Reinvermoegen)}" + (gericht.IstAktiv ? $" · Beweise {beweise} von {g.ErpressungMindestBeweise}" : ""), "HzKlein", "steckbrief_breite",
+            "Reinvermögen des Hauses und eure Beweise gegen es – Grundlage für Erpressung und Anklage.");
 
         // ── Links: Betriebe ──
         foreach (var b in w.Betriebe.Where(b => b.Konto == haus))
@@ -78,11 +72,12 @@ public partial class GaunerAnzeige
         }
 
         // ── Links: Wohnhaus und Umland ──
+        GridContainer? umland = null;
         if (unterwelt.GegenWohnhaus && w.Wohnen.Stufe(haus) is { } hausStufe)
         {
             var beschaedigt = w.Wohnen.IstBeschaedigt(haus);
-            var raster = Gruppe(links, $"Wohnhaus · {hausStufe.Name}{(haus.Hauswaechter ? " (Hauswächter)" : "")}{(beschaedigt ? " – abgebrannt" : "")}",
-                "Das Wohnhaus als Ziel: Einbruch und Brandstiftung sind möglich, ein Hauswächter senkt die Chance.");
+            var raster = umland = Gruppe(links, $"Wohnhaus und Umland · {hausStufe.Name}{(haus.Hauswaechter ? " (Hauswächter)" : "")}{(beschaedigt ? " – abgebrannt" : "")}",
+                "Das Wohnhaus als Ziel: Einbruch und Brandstiftung sind möglich, ein Hauswächter senkt die Chance. Karren im Umland können Wegelagerer überfallen.");
             var wh = g.Wohnhaus!;
             Tat(raster, "Einbruch", $"Bargeld aus der Truhe, Beute ≈ {Zahlenformat.Ganz(unterwelt.Hausbeute(haus))}",
                 new Beauftragen("", Gaunerstueck.Hauseinbruch), () => Befehlen(new Beauftragen(inhaber, Gaunerstueck.Hauseinbruch)),
@@ -98,7 +93,7 @@ public partial class GaunerAnzeige
                 tipp: "Feuer am Wohnhaus: Reparatur, und bis zur Instandsetzung fehlt dem Haus das Ansehen. Die Stufe bleibt.");
         }
         {
-            var raster = Gruppe(links, "Karren im Umland", "Karren im Umland können Wegelagerer überfallen.");
+            var raster = umland ?? Gruppe(links, "Umland", "Karren im Umland können Wegelagerer überfallen.");
             var lauert = unterwelt.Hinterhalte.Any(h => h.Auftraggeber == _spieler && h.Ziel == haus);
             Tat(raster, "Überfall auf Karren", $"Wegelagerer, Stärke {Zahlenformat.Kommazahl(unterwelt.Staerke(_spieler))}, lauern einer Fahrt auf.",
                 new Beauftragen("", Gaunerstueck.Ueberfall), () => Befehlen(new Beauftragen(inhaber, Gaunerstueck.Ueberfall)),

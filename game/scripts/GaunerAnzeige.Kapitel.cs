@@ -36,6 +36,11 @@ public partial class GaunerAnzeige
         var nachrichten = unterwelt.NachrichtenFuer(_spieler!, false).Reverse().Concat(unterwelt.NachrichtenFuer(_spieler!, true).Reverse()).Take(6).ToList();
         if (nachrichten.Count == 0) HinterzimmerStil.Text(rechts, "Noch ist nichts geschehen.", "HzKlein");
         foreach (var n in nachrichten) HinterzimmerStil.Text(rechts, "• " + n, "HzText", "text_breite");
+        rechts.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
+        var g = unterwelt.Daten;
+        HinterzimmerStil.Text(rechts, $"Bestellt wird jetzt, ausgeführt heute um 20 Uhr, bezahlt im Voraus. Zeuge: {Prozent(g.ZeugenChance)}, bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}. " +
+                                      $"Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.", "HzKlein", "text_breite",
+            "Bei Nacht und Nebel: Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und mit dieser Chance erkennt euch ein Zeuge.");
     }
 
     // ── Eigene Leute ────────────────────────────────────────────────────────
