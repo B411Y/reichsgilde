@@ -38,6 +38,10 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
     private bool _wartet;
     private double _alter = 1;
     private string _stand = "";
+    // Der Siegelstempel (3D, SiegelstempelBuehne.cs) siegelt nach einer gelungenen Wahl über dem Siegel im Fuß; erst danach gilt der Brief als beantwortet
+    private SiegelstempelBuehne _stempel = null!;
+    private Control? _siegelBild;
+    private Action? _nachStempel;
 
     /// <summary>Eine Meldung der Oberfläche (abgelehnter Befehl „✗ …“) – die Hauptszene legt sie ins Protokoll.</summary>
     public event Action<string>? Gemeldet;
@@ -85,6 +89,9 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         _inhalt.AddThemeConstantOverride("separation", 8);
         rand.AddChild(_inhalt);
         Rollbereich.Einhuellen(this);
+        _stempel = new SiegelstempelBuehne { Name = "Siegelstempel", TopLevel = true, ZIndex = 1 };
+        AddChild(_stempel);
+        VisibilityChanged += () => { if (!IsVisibleInTree()) StempelAbschliessen(); }; // Brief weg, während der Stempel läuft: die Antwort gilt trotzdem
         // Mittig über der Betriebsleiste (der gewöhnliche Brief sitzt rechts darüber)
         var rahmen = Fensterrahmen.Anmelden(this, "Entscheidung", () => Spaeter?.Invoke());
         rahmen.PlatzSetzen((groesse, sichtbar) => new Vector2((sichtbar.X - groesse.X) / 2,
@@ -105,6 +112,7 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
     /// </summary>
     public void Setzen(IReadOnlyList<Entscheidung> fragen)
     {
+        if (_nachStempel is not null) return; // der Stempel siegelt noch: der Brief bleibt stehen, danach gleicht die Hauptszene neu ab
         if (fragen.Count == 0)
         {
             if (Visible) Hide();
@@ -134,6 +142,7 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
     public override void _Process(double delta)
     {
         if (!Visible) return;
+        if (_stempel.Laeuft) StempelStellen();
         if (_alter < 1)
         {
             _alter += delta / 0.22;
@@ -242,7 +251,8 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
             Hauptmenue.Text(leiste, $"Brief {_nr + 1} von {_stapel.Count}", 14, Blass).SizeFlagsVertical = SizeFlags.ShrinkCenter;
             leiste.AddChild(weiter);
         }
-        fuss.AddChild(new BriefAnzeige.SiegelBild { Farbe = Farbe, Thema = "entscheidung", CustomMinimumSize = new Vector2(52, 52) });
+        _siegelBild = new BriefAnzeige.SiegelBild { Farbe = Farbe, Thema = "entscheidung", CustomMinimumSize = new Vector2(52, 52) };
+        fuss.AddChild(_siegelBild);
         if (vorgabe < 0) { /* keine Voreinstellung bekannt: nichts weiter */ }
     }
 
@@ -272,6 +282,26 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         Hauptmenue.Text(namen, (vonAbsender ? "Absender, " : person.Lebt ? "" : "† ") + "Haus " + person.Familienname, 13, Blass);
     }
 
+    /// <summary>Der Stempel ist fertig (oder der Brief verschwand vorher): Jetzt gilt die Wahl als beantwortet – genau einmal.</summary>
+    private void StempelAbschliessen()
+    {
+        if (_nachStempel is not { } weiter) return;
+        _nachStempel = null;
+        _stempel.Abbrechen();
+        weiter();
+    }
+
+    /// <summary>
+    /// Legt das Bild des Stempels so über den Brief, dass das Wachs auf dem Siegel im Fuß sitzt (im Bild liegt das Wachs bei 38 % der Breite
+    /// und 64 % der Höhe: Lage im Modell, Blick der Szene <c>siegelstempel_buehne.tscn</c>).
+    /// </summary>
+    private void StempelStellen()
+    {
+        var kante = SiegelstempelBuehne.Groesse;
+        var ziel = _siegelBild is { } siegel && IsInstanceValid(siegel) ? siegel.GetGlobalRect().GetCenter() : GetGlobalRect().End - new Vector2(40, 40);
+        _stempel.GlobalPosition = ziel - new Vector2(0.38f * kante, 0.64f * kante);
+    }
+
     private void Waehlen(Entscheidung e, int wahl)
     {
         if (_wartet) return;
@@ -280,14 +310,22 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         Aufbauen();
         UiHilfe.Befehlen(_simulation, _spieler, new EntscheidungTreffen(e.Nummer, wahl), this, ergebnis =>
         {
-            _wartet = false;
             if (ergebnis.Erfolg)
             {
-                if (e.Art == Entscheidungsart.Mahnung && wahl == Entscheidungswesen.ZumKredit) Wegweiser?.Invoke("bank");
-                else if (e.Art == Entscheidungsart.Mahnung && wahl == Entscheidungswesen.ZumVerkauf) Wegweiser?.Invoke("betriebe");
-                Beantwortet?.Invoke();
+                // Erst siegelt der Stempel (Wachs in der Farbe des Briefs, Abdruck mit dem Wappen des Hauses), dann ist der Brief beantwortet.
+                // Die Knöpfe bleiben so lange gesperrt (_wartet). Ohne Bewegung oder ohne Modell geht es sofort weiter.
+                _nachStempel = () =>
+                {
+                    _wartet = false;
+                    if (e.Art == Entscheidungsart.Mahnung && wahl == Entscheidungswesen.ZumKredit) Wegweiser?.Invoke("bank");
+                    else if (e.Art == Entscheidungsart.Mahnung && wahl == Entscheidungswesen.ZumVerkauf) Wegweiser?.Invoke("betriebe");
+                    Beantwortet?.Invoke();
+                };
+                StempelStellen();
+                _stempel.Siegeln(Farbe, _spieler?.Wappen, StempelAbschliessen);
                 return;
             }
+            _wartet = false;
             // „✗“: Die Frage bleibt offen, der Brief bleibt stehen und nennt den Grund
             _fehler = "Das geht nicht: " + ergebnis.Meldung; // ohne „✗“ – die Schrift hat das Zeichen nicht (das Protokoll zeigt es als Siegel)
             Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
