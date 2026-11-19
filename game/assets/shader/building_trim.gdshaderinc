@@ -45,6 +45,38 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 	vec4(0.50, 0.70, 0.85, 0.95)    // 11 Halbling Stufe 3: Werkstein im Putzband, Mauer Backstein K6
 );
 
+// Pixel-Look, reine Bänder (Klicktest NAS 19.11.2026, Halblinge Stufe 2/3): Die grobe Mip-Stufe (aussen etwa 7,6 bis 10,2) mischt die
+// Nachbarbänder bei. Das Dachband „stroh_franse“ ist nur 128 Bildpunkte hoch: Der blaue Schiefer wurde mit dem Kupfer darüber (Stufe 3)
+// dunkelgrün, mit dem Holz darunter (Stufe 2) grau, die Rauheit fiel von 0,85 auf 0,65 (Glanzfleck). Das Backsteinband bekam oben das
+// helle Farbholz, unten das dunkle Eisen (Metall 0,2) bei: je Wandstreifen von 0,4 m oben hell, unten dunkel, wie Bohlen eines
+// Blockhauses. Für die Ebenen mit BAND_REIN liest der Shader im Pixel-Look die Dachbänder und Steinbänder darum je Mip-Stufe nur aus
+// Texeln, die ganz im eigenen Band liegen (v auf deren Mitten geklemmt), höchstens bis zur gröbsten Stufe, die noch einen solchen
+// Texel hat (Dach 7 bzw. 8, Backstein 7; bei Zoom 100 mit Pixel 3, Grundstufe 7,7, bis 0,7 Stufen feiner als der Bildpunkt: im reinen
+// Band ist die Stufe 7 schon so gemittelt, dass nichts flimmert). Nachgerechnet: tools/modelle/neubau/pixel_mip_pruefung.py.
+const float BAND_REIN[12] = float[12](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0);   // 10, 11: Halbling Stufe 2 und 3
+
+float band_y(float y, float a, float e, float m) {
+	float t = exp2(m);
+	float lo = (ceil(a / t) + 0.5) * t, hi = (floor(e / t) - 0.5) * t;
+	return lo <= hi ? clamp(y, lo, hi) : 0.5 * (a + e);
+}
+
+vec4 band_lesen(sampler2DArray t, vec3 uvw, float v0, float v1, float stufe) {
+	float h = float(textureSize(t, 0).y);
+	float a = v0 * h, e = v1 * h;
+	float mmax = 0.0;
+	for (int k = 1; k <= 11; k++) {
+		float s = exp2(float(k));
+		if (floor(e / s) - 1.0 >= ceil(a / s)) mmax = float(k);
+	}
+	float st = clamp(stufe, 0.0, mmax);
+	float m0 = floor(st);
+	float y = fract(uvw.y) * h;
+	vec4 c0 = textureLod(t, vec3(uvw.x, band_y(y, a, e, m0) / h, uvw.z), m0);
+	vec4 c1 = textureLod(t, vec3(uvw.x, band_y(y, a, e, m0 + 1.0) / h, uvw.z), m0 + 1.0);
+	return mix(c0, c1, st - m0);
+}
+
 // Pixel-Look in Innenräumen (wetter_an = 0; aus dem Rathaus-Branch, Commit 9421283b, hier auf Arrays umgestellt): Aus der Nähe
 // verwischte die um pixel_mip gröbere Mip-Stufe die Wände (kein Bildpunkt-Raster, nur Brei), und der Putz der Trim-Sheets (Rauheit im
 // Mittel 0,53, stellenweise 0,3) glänzte mit der flachen Normale unter den Lampen. Darum innen: jeder Bildpunkt genau ein Texel der
@@ -92,6 +124,16 @@ void fragment() {
 	vec4 tex = scharf ? texel_scharf(albedo_tex, uvw, lod) : texture(albedo_tex, uvw, grob);
 	if (!scharf && stein && pixel_look > 0.5) tex = mix(tex, texture(albedo_tex, uvw, grob_licht), stein_ruhe);
 	vec3 orm = scharf ? texel_scharf(orm_tex, uvw, lod).rgb : texture(orm_tex, uvw, grob_licht).rgb;
+	vec3 normal_tx = texture(normal_tex, uvw, grob_licht).rgb;
+	// Reine Bänder (BAND_REIN, siehe oben): Dachbänder „stroh“ und „stroh_franse“, die Steinbänder der Ebene
+	float yb = fract(UV.y);
+	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(ebene, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
+		vec2 bd = yb < 0.1875 ? vec2(0.0, 0.1875) : (yb < 0.25 ? vec2(0.1875, 0.25) : ((UV.y >= sb.x && UV.y < sb.y) ? sb.xy : sb.zw));
+		tex = band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob);
+		if (stein) tex = mix(tex, band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob_licht), stein_ruhe);
+		orm = band_lesen(orm_tex, uvw, bd.x, bd.y, lod + grob_licht).rgb;
+		normal_tx = band_lesen(normal_tex, uvw, bd.x, bd.y, lod + grob_licht).rgb;
+	}
 	float house_ao = texture(ao_uv2_tex, vec3(UV2, float(ao_ebene))).r;
 
 	vec3 final_color = tex.rgb;
@@ -135,7 +177,7 @@ void fragment() {
 	}
 
 	ALBEDO = final_color;
-	NORMAL_MAP = texture(normal_tex, uvw, grob_licht).rgb;
+	NORMAL_MAP = normal_tx;
 	NORMAL_MAP_DEPTH = normal_strength * (scharf ? 0.25 : 1.0 - 0.6 * pixel_look) * (1.0 - schnee);
 	EMISSION = schimmer;
 	if (scharf) {
