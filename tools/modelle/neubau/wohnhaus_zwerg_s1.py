@@ -256,7 +256,9 @@ def main():
     form = int(opt.get("form", "1"))
     schicht_anlegen()
     if form == 1: g1.main()
-    else: s1.main()
+    else:
+        s1.GALERIE_LICHT = True                                    # Grundlicht unter der Galerie wie bei den Menschen
+        s1.main()
     messen(form, opt.get("bilder"))
 
 
