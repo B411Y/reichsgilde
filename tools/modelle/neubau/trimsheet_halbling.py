@@ -187,48 +187,85 @@ def kupfer(blatt, band, saat=17):
     print(f"Kupfer: Falz alle {falz} Bildpunkte, Gruenspan {float(anteil.mean()):.2f}")
 
 
-# Stufe 3 belebt (Nutzer 19.11.2026): eine Hausecke dicht mit Efeu bewachsen. Das Band „stroh“ des Blatts trim_s3_halbling teilt sich:
-# oben (v 0 bis 0,125) der Efeu, darunter (0,125 bis 0,1875) das Kupfer der Gauben (wohnhaus_halbling_s23 legt die Kupferflaechen dorthin).
-# Die Efeuflaechen am Haus liegen gedreht im Band: UV.x laeuft die Wand HINAUF (4 m je Einheit), UV.y quer von der Hausecke weg.
+# Stufe 3, Efeu (Nutzer 19.11.2026: „realistisch“, Alpha-Blattkarten statt Platten): Das Band „stroh“ des Blatts trim_s3_halbling teilt
+# sich: oben (v 0 bis 0,125) acht Efeu-Bilder zu 256 x 256 Bildpunkten mit Alpha (Stoff „Efeublatt“, Alpha-Schnitt), darunter (0,125 bis
+# 0,1875) das Kupfer der Gauben. Vorlage (nur angesehen, Farben gemessen): CC0-Fotos aus dem WordPress-Fotoverzeichnis (Bigul Malayi:
+# Efeu auf Backstein, Central Park, 62689963cc; Efeu an einer Hauswand, Muenchen, 20567d9486), siehe docs/assets/protokoll.csv.
+# Hedera helix kletternd: Jugendform, Blaetter drei- bis fuenflappig, 5 bis 10 cm, dunkel- bis hellgruen (junge Blaetter gelblich hell),
+# dicht am Fuss, oben lichter, einzelne Triebe voraus.
 EFEU_STUFE3 = (0.0, 0.125, 4.0)
 KUPFER_STUFE3 = (0.125, 0.1875, 4.0)
-EFEU_FARBE = (0.20, 0.30, 0.13)            # wie elb_bewuchs.EFEU (Kunstwerk der Elben), sRGB
+EFEU_TOENE = ((0.16, 0.27, 0.10), (0.24, 0.38, 0.14), (0.33, 0.48, 0.19), (0.45, 0.60, 0.25), (0.56, 0.68, 0.30))   # sRGB, aus dem Foto (10. bis 90. Perzentil), etwas heller
+EFEU_BILDER = ("dicht", "dicht", "dicht", "dicht", "locker", "locker", "trieb", "trieb")   # Reihenfolge der acht Bilder (UV.x je 1/8)
 
 
-def efeu_dicht(blatt, band, saat=73):
-    """Dichter Efeu, selbst gemalt (numpy, keine Fremdtextur): dunkler Grund aus Laub im Schatten, darueber viele Blaetter in drei
-    Helligkeiten, zur Hausecke (Zeile 0) dichter; senkrecht (Spalten = Hoehe, 2 mm je Bildpunkt) nahtlos. Die Zeilen stehen fuer bis zu
-    1,3 m Breite (etwa 5 mm je Bildpunkt): die Blaetter sind darum in den Zeilen schmaler gemalt, an der Wand wirken sie rund (etwa 6 cm)."""
+def _efeublatt(gross, rng):
+    """Ein Blatt der Jugendform als Maske (gross x gross): fuenf Lappen, der mittlere laenger, Stiel unten."""
+    y, x = np.mgrid[0:gross, 0:gross].astype(np.float32)
+    cx, cy = gross / 2, gross * 0.55
+    dx, dy = x - cx, cy - y
+    r = np.hypot(dx, dy) / (gross * 0.45)
+    th = np.arctan2(dx, dy)
+    lappen = 0.62 + 0.38 * np.abs(np.cos(th * 2.5)) ** 0.7
+    lappen *= np.where(np.abs(th) < 0.45, 1.0 + 0.12 * (1 - np.abs(th) / 0.45), 1.0)
+    maske = (r < lappen) & (np.abs(th) < 2.55)
+    ader = (np.abs(np.sin(th * 2.5)) < 0.10) & (r < lappen * 0.85)
+    return maske, ader
+
+
+def efeu_blaetter(blatt, band, saat=73):
+    """Acht Efeu-Bilder mit Alpha (selbst gemalt, numpy): „dicht“ (Masse mit ausgefranstem Rand, unten breit), „locker“ (Luecken),
+    „trieb“ (ein Trieb mit einzelnen Blaettern). Unter durchsichtigen Bildpunkten liegt Blattgruen (die Mip-Stufen bleiben gruen),
+    8 Bildpunkte Rand ringsum frei. Normale je Blatt leicht gewoelbt, Rauheit 0,55 (Blaetter glaenzen etwas), keine Verdeckung im Blatt."""
     a, e = blatt.zeilen(band)
-    h, w = e - a, N
+    h = e - a
     rng = np.random.default_rng(saat)
-    grund = np.array(EFEU_FARBE, np.float32) * 0.42
-    farbe = np.broadcast_to(grund, (h, w, 3)).copy()
-    hoehe = np.zeros((h, w), np.float32)
-    zeile = np.arange(h, dtype=np.float32)[:, None]
-    for _ in range(5200):
-        bx, by = rng.uniform(0, w), rng.uniform(0, h) ** 1.15 / h ** 0.15         # zur Ecke hin dichter
-        rx, ry = rng.uniform(11, 19), rng.uniform(5, 9)
-        x0, x1 = int(bx - rx - 1), int(bx + rx + 2)
-        y0, y1 = max(int(by - ry - 1), 0), min(int(by + ry + 2), h)
-        if y0 >= y1: continue
-        xs = np.arange(x0, x1)
-        d = ((xs[None, :] - bx) / rx) ** 2 + ((zeile[y0:y1] - by) / ry) ** 2
-        drin = d < 1.0
-        hell = rng.uniform(0.75, 1.30) * (1.0 - 0.25 * by / h)
-        ton = np.array(EFEU_FARBE, np.float32) * hell * np.array([rng.uniform(0.9, 1.1), 1.0, rng.uniform(0.85, 1.1)], np.float32)
-        spalten = xs % w
-        f = farbe[y0:y1][:, spalten]
-        f[drin] = ton * (0.85 + 0.15 * (1 - d[drin]))[:, None]
-        farbe[y0:y1, spalten] = f
-        hh = hoehe[y0:y1][:, spalten]
-        hh[drin] = np.maximum(hh[drin], 1.0 - d[drin])
-        hoehe[y0:y1, spalten] = hh
-    blatt.albedo[a:e, :, :3] = np.clip(farbe, 0, 1); blatt.albedo[a:e, :, 3] = 1.0
-    gy, gx = np.gradient(hoehe * 2.0)
-    blatt.normal[a:e] = np.stack([np.clip(0.5 - gx * 0.5, 0, 1), np.clip(0.5 + gy * 0.5, 0, 1), np.full((h, w), 0.95, np.float32)], axis=-1)
-    blatt.orm[a:e] = np.stack([0.55 + 0.45 * hoehe, np.full((h, w), 0.75, np.float32), np.zeros((h, w), np.float32)], axis=-1)
-    print(f"Efeu: Blaetter auf {float((hoehe > 0).mean()):.2f} der Flaeche")
+    toene = np.array(EFEU_TOENE, np.float32)
+    farbe = np.broadcast_to(toene[1], (h, N, 3)).copy()
+    alpha = np.zeros((h, N), np.float32)
+    hoehe = np.zeros((h, N), np.float32)
+    rand = 8
+    for k, art in enumerate(EFEU_BILDER):
+        x0 = k * 256
+        if art == "trieb":
+            pfad = [(x0 + 128 + 30 * np.sin(t * 2.2 + k), 248 - t * 230) for t in np.linspace(0, 1, 60)]
+            for px, py in pfad[::3]:                               # Stiel
+                alpha[int(py) - 1:int(py) + 2, int(px) - 1:int(px) + 2] = 1.0
+                farbe[int(py) - 1:int(py) + 2, int(px) - 1:int(px) + 2] = (0.30, 0.24, 0.15)
+            orte = [(px + rng.normal(0, 14), py + rng.normal(0, 6)) for px, py in pfad[::5]]
+            groesse = (18, 30)
+        else:
+            anzahl = 330 if art == "dicht" else 110
+            orte = []
+            while len(orte) < anzahl:
+                px, py = rng.uniform(rand + 12, 256 - rand - 12), rng.uniform(rand + 12, 256 - rand - 12)
+                dx, dy = (px - 128) / 118, (py - 256) / 236           # Masse unten breit, oben ausgefranst
+                grenze = 1.0 if art == "dicht" else 0.85
+                if dx * dx + dy * dy * 0.8 < grenze * (0.75 + 0.25 * rng.random()):
+                    orte.append((x0 + px, py))
+            groesse = (16, 34)
+        for px, py in orte:
+            g = int(rng.integers(*groesse))
+            maske, ader = _efeublatt(g, rng)
+            if rng.random() < 0.5: maske, ader = maske[:, ::-1], ader[:, ::-1]
+            ya, xa = int(py - g / 2), int(px - g / 2)
+            ya, xa = max(ya, rand), min(max(xa, x0 + rand), x0 + 256 - rand - g)
+            if ya + g > h - rand: ya = h - rand - g
+            hell = rng.choice(len(toene), p=(0.22, 0.28, 0.25, 0.17, 0.08))
+            ton = toene[hell] * rng.uniform(0.92, 1.08)
+            f = farbe[ya:ya + g, xa:xa + g]; al = alpha[ya:ya + g, xa:xa + g]; ho = hoehe[ya:ya + g, xa:xa + g]
+            f[maske] = ton; f[ader & maske] = ton * 0.78
+            al[maske] = 1.0
+            yy, xx = np.mgrid[0:g, 0:g]
+            wolb = 1.0 - (np.hypot(xx - g / 2, yy - g * 0.55) / (g * 0.5)) ** 2
+            ho[maske] = np.maximum(ho[maske], np.clip(wolb[maske], 0, 1))
+    blatt.albedo[a:e, :, :3] = np.clip(farbe, 0, 1)
+    blatt.albedo[a:e, :, 3] = alpha
+    gy, gx = np.gradient(hoehe * 3.0)
+    blatt.normal[a:e] = np.stack([np.clip(0.5 - gx * 0.5, 0, 1), np.clip(0.5 + gy * 0.5, 0, 1), np.full((h, N), 0.95, np.float32)], axis=-1)
+    blatt.orm[a:e] = np.stack([np.ones((h, N), np.float32), np.full((h, N), 0.55, np.float32), np.zeros((h, N), np.float32)], axis=-1)
+    for k, art in enumerate(EFEU_BILDER):
+        print(f"Efeu Bild {k} ({art}): Deckung {float(alpha[:, k * 256:(k + 1) * 256].mean()):.2f}")
 
 
 def baue_s23(steine, backstein=BACKSTEIN):
@@ -247,7 +284,7 @@ def baue_s23(steine, backstein=BACKSTEIN):
     blatt = Blatt("trim_s3")
     blau_toenen(blatt, B["stroh_franse"])
     kupfer(blatt, KUPFER_STUFE3)                             # Band „stroh“: unten Kupfer, oben Efeu (Stufe 3 belebt, 19.11.2026)
-    efeu_dicht(blatt, EFEU_STUFE3)
+    efeu_blaetter(blatt, EFEU_STUFE3)
     for name, ton in zip(("balken_a", "balken_b", "balken_c"), BALKEN):
         umtoenen(blatt, B[name], ton)
     umtoenen(blatt, B["planken"], PLANKEN)
