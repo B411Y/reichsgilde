@@ -10,7 +10,8 @@ Prueft:
            Fensterbreite, 6 Fenster buendig im Gefach, 7 Staender im Raster, 8 Haustuer, 12-15 aussen und Wohnstube), dazu
            16-18 Lueckenpruefung und 19 Wappen frei (genauer Flaechentest).
   Stufe 2/3: wohnhaus_mensch_s23_messen.pruefe (1-11, 12-15 aussen und Wohnstube, 16-18 Lueckenpruefung, 19 Wappen frei).
-  Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim, AO-Atlanten der Raeume), 20 Dreiecke der Huelle
+  Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim, AO-Atlanten der Raeume), 12b Rueckseite offen an der
+        Huelle und 12c Licht im Standardblick in Wohnstube und Raeumen (blick_licht_haeuser.py), 20 Dreiecke der Huelle
         (Haus, Dach, Scheiben) hoechstens 4.000 (Nutzer 15.11.2026), 21 Haustuer und Zimmertueren fuer einen Menschen (1,75 m + 0,20
         hoch, Schulter 0,46 + 0,30 breit; Elb zur Kenntnis), 22 Fahnenmast steht auf dem Dach (Luft hoechstens 1 cm), 23 entfaellt bei
         den Menschen (kein Legschindeldach mit Schwerstangen), 24 jedes Glas innen liegt in einer Oeffnung der Huelle.
@@ -257,6 +258,8 @@ def main():
         zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
         MOD = MS23
     z, f = raeume(haus, ordner, texturen, opt.get("raeume-json", RAEUME_JSON)); zeilen += z; fehler += f
+    import blick_licht_haeuser as BL
+    z, f = BL.blick_licht(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = dreiecke(glb)
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= DREIECKE_HUELLE else 1

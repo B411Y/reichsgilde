@@ -152,6 +152,14 @@ def masse_anlegen():
             for a in t["anker_innen"]:
                 if a.name == "Blick_Auge": a.ort = Vector((*BLICK_G3[0], s1.Z_BODEN + 1.60 + BLICK_HOEHER))
                 if a.name == "Blick_Ziel": a.ort = Vector((BLICK_G3[1][0], BLICK_G3[1][1], s1.Z_BODEN + BLICK_G3[1][2] + BLICK_HOEHER))
+        # Grundlicht unter die Galerie, in der Lage im Spiel (s1.F.WELT, Drehung bzw. Spiegelung + Verschiebung) auf die Hoehe (y) des Blickpunkts
+        (a_, b_), (c_, d_) = s1.F.WELT[0]
+        tx, ty = s1.F.WELT[1]
+        welt = lambda p: Vector((a_ * p.x + b_ * p.y + tx, c_ * p.x + d_ * p.y + ty, p.z))
+        zurueck = lambda p: Vector((a_ * (p.x - tx) + c_ * (p.y - ty), b_ * (p.x - tx) + d_ * (p.y - ty), p.z))   # orthogonal: Inverse = Transponierte
+        auge = welt(next(a.ort for a in t["anker_innen"] if a.name == "Blick_Auge"))
+        for a in t["anker_innen"]:
+            if a.name == "Licht_Raum": a.ort = zurueck(licht_unter_empore(welt(a.ort), auge))
         innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
@@ -159,6 +167,17 @@ def masse_anlegen():
         m.TUER_HOCH = TUER_HOCH
         m.Z_HAUBE = m.Z_HAUBE + HAUBE_HOEHER
     g1.FENSTER = [(w, a, (z[0], g1.Z_BODEN + TUER_HOCH), art) if art == "tuer" else (w, a, z, art) for w, a, z, art in g1.FENSTER]
+
+
+LETZT_AUGE = {}
+LICHT_UNTER_OG = 0.55             # Grundlicht so weit unter der Unterkante des Obergeschosses: 0,35 m unter den Deckenbalken (2,35 m)
+
+
+def licht_unter_empore(licht, auge):
+    """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten) unter die Schlafgalerie und auf die Hoehe (y) des Blickpunkts
+    (12c mit Unterseiten, 18.11.2026): in 3,4–3,6 m stand es ueber der Galerie (Unterkante 2,55 m) und den Deckenbalken (2,35 m) –
+    deren Unterseiten und die Flaechen zur Kamera bekamen kein direktes Licht, im hellen Holz der Elben fast schwarz. In x bleibt es."""
+    return Vector((licht.x, auge.y, min(licht.z, g1.Z_OG - LICHT_UNTER_OG)))
 
 
 def elb_dach(g, yw0, yw1):
@@ -202,7 +221,13 @@ def schicht_anlegen():
         ort = Vector(ort)
         if name in ("Blick_Auge", "Blick_Ziel"): ort.z += BLICK_HOEHER
         return ort
-    g1.anker = lambda name, ort, blick=None, **kw: alt_g1_anker(name, anker_ort(name, ort), blick, **kw)
+
+    def g1_anker_ort(name, ort):                 # Grundform 1 (Lage im Spiel = Baurahmen); 2 bis 4: form24
+        ort = anker_ort(name, ort)
+        if name == "Blick_Auge": LETZT_AUGE["o"] = ort.copy()
+        if name == "Licht_Raum" and "o" in LETZT_AUGE: ort = licht_unter_empore(ort, LETZT_AUGE["o"])
+        return ort
+    g1.anker = lambda name, ort, blick=None, **kw: alt_g1_anker(name, g1_anker_ort(name, ort), blick, **kw)
 
     def anker_init(self, name, ort, blick=None, **extras):
         alt_init(self, name, anker_ort(name, ort), blick, **extras)

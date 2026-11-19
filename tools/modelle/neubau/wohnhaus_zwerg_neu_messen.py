@@ -9,7 +9,8 @@ Prueft (Nummern wie bei den Menschen):
            Fensterbreite, 6 Fenster buendig im Gefach - bei den Zwergen erst ab dem Obergeschoss, das Erdgeschoss ist Stein -, 7 Staender
            im Raster, 8 Haustuer licht fuer einen Menschen, 12-15 aussen und Wohnstube), dazu 16-18 Lueckenpruefung und 19 Wappen frei.
   Stufe 2/3: wohnhaus_mensch_s23_messen.pruefe (1-11, 12-15 aussen und Wohnstube, 16-18 Lueckenpruefung, 19 Wappen frei an der Gassenwand).
-  Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim_zwerg, AO-Atlanten der Raeume), 20 Dreiecke der Huelle
+  Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim_zwerg, AO-Atlanten der Raeume), 12b Rueckseite offen
+        an der Huelle und 12c Licht im Standardblick in Wohnstube und Raeumen (blick_licht_haeuser.py), 20 Dreiecke der Huelle
         (Haus, Dach, Scheiben) hoechstens 4.000 (Nutzer 15.11.2026), 21 Haustuer und Zimmertueren mindestens fuer einen Menschen
         (1,75 m + 0,20 hoch, Schulter 0,46 + 0,30 breit; Elb zur Kenntnis; Ork und Oger werden nicht betrachtet, Nutzer 16.11.2026),
         22 Fahnenmast steht auf dem Dach (Luft hoechstens 1 cm); Stufe 1: 23 Schwerstangen liegen auf den Schindeln, Findlinge auf den Stangen.
@@ -395,6 +396,8 @@ def main():
         MS23.kein_fachwerk = kein_fachwerk
         zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
     z, f = raeume(haus, ordner, texturen, opt.get("raeume-json", RAEUME_JSON)); zeilen += z; fehler += f
+    import blick_licht_haeuser as BL
+    z, f = BL.blick_licht(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = dreiecke(glb)
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
     fehler += 0 if summe <= DREIECKE_HUELLE else 1

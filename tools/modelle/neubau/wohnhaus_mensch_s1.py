@@ -38,6 +38,8 @@ from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN                # noqa: E402
 import wohnhaus_mensch_s1_g1 as g1                                 # noqa: E402  (die Probe: Moebel, Gegenstaende, Blender-Helfer)
 
 ZIEL_MODELL = g1.ZIEL_MODELL
+GALERIE_LICHT = False      # Grundlicht unter der Galerie (main): nur Menschen und Zwerge setzen es (eigene Einstiege);
+                           # die Schichten der Elben und Halblinge setzen ihr Grundlicht selbst und bleiben unveraendert
 feld = g1.feld
 EZ = Vector((0, 0, 1))
 
@@ -1000,6 +1002,10 @@ def main():
     m_welt, t_welt = F.WELT
     alle = t["huelle"] + [t["scheiben"]] + t["zusatz"] + t["raum"] + t["gegenstaende"] + t["einrichtung"] + [t["glas"]]
     versetze_alle(alle + t["anker_aussen"] + t["anker_innen"] + t["steht"] + [t["fahne_ort"]], m_welt, t_welt)
+    if GALERIE_LICHT:   # Grundlicht unter der Galerie, in der Lage im Spiel auf der Hoehe (y) des Blickpunkts (wie Grundform 1, g1.LICHT_UNTER_OG)
+        auge = next(a.ort for a in t["anker_innen"] if a.name == "Blick_Auge")
+        for a in t["anker_innen"]:
+            if a.name == "Licht_Raum": a.ort = Vector((a.ort.x, auge.y, min(a.ort.z, g1.Z_OG - g1.LICHT_UNTER_OG)))
     g1.wappen_frei_ruecken(t["zusatz"][0], t["huelle"] + [t["scheiben"]])        # Regel wappen_ort: 5 cm frei (Feinschliff 17.11.2026)
     fahne = g1.fahne_verankern(baue_fahne(*t["fahne_ort"].ort), t["huelle"][1])     # Mast im Dach verankert (Mensch-Nachtrag 16.11.2026)
     if F.nr != 3: t["zusatz"].append(baue_geruest(**F.GERUEST))
@@ -1066,4 +1072,5 @@ def main():
 
 
 if __name__ == "__main__":
+    GALERIE_LICHT = True
     main()
