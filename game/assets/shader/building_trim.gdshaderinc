@@ -53,7 +53,10 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 // Texeln, die ganz im eigenen Band liegen (v auf deren Mitten geklemmt), höchstens bis zur gröbsten Stufe, die noch einen solchen
 // Texel hat (Dach 7 bzw. 8, Backstein 7; bei Zoom 100 mit Pixel 3, Grundstufe 7,7, bis 0,7 Stufen feiner als der Bildpunkt: im reinen
 // Band ist die Stufe 7 schon so gemittelt, dass nichts flimmert). Nachgerechnet: tools/modelle/neubau/pixel_mip_pruefung.py.
-const float BAND_REIN[12] = float[12](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0);   // 10, 11: Halbling Stufe 2 und 3
+// Seit 19.11.2026 (Nutzer) für alle Ebenen: nachgerechnet je Volk und Stufe mischte die grobe Stufe überall die Nachbarbänder bei
+// (Stroh, Ziegel, Schiefer: Farbe bis 0,23, Rauheit bis −0,2; Steinbänder: Metall bis +0,25 aus dem Eisenband, Streifen), mit band_lesen
+// höchstens 0,03. Ohne Pixel-Look greift der Zweig nicht (pixel_look > 0,5), dort bleibt alles bildpunktgleich.
+const float BAND_REIN[12] = float[12](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);   // 0 = Ebene ohne reine Bänder
 
 float band_y(float y, float a, float e, float m) {
 	float t = exp2(m);
