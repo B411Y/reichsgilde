@@ -726,9 +726,16 @@ public partial class Kartenwerkstatt
 
     private void OeffnenZeigen()
     {
-        var (tafel, spalte) = Hauptmenue.Tafel(520);
-        Hauptmenue.Text(spalte, "Karte öffnen", 26, Gold, zentriert: true);
-        var fehler = Hauptmenue.Text(spalte, "", 14, Rot, umbruchBreite: 460);
+        var (tafel, aussen) = Hauptmenue.Tafel(520);
+        Hauptmenue.Text(aussen, "Karte öffnen", 26, Gold, zentriert: true);
+        var fehler = Hauptmenue.Text(aussen, "", 14, Rot, umbruchBreite: 460);
+        // Die Liste rollt, damit viele Karten nicht aus dem Fenster wachsen; Abbrechen bleibt darunter sichtbar.
+        var rollen = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            CustomMinimumSize = new Vector2(480, Math.Min(460, Math.Max(200, GetViewport().GetVisibleRect().Size.Y - 330))) };
+        aussen.AddChild(rollen);
+        var spalte = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        spalte.AddThemeConstantOverride("separation", 6);
+        rollen.AddChild(spalte);
         void Liste(string titel, string ordner, bool nurLesen, string leer)
         {
             Hauptmenue.Text(spalte, titel, 17, Gold);
@@ -748,8 +755,8 @@ public partial class Kartenwerkstatt
         if (Entwicklung) Liste("Karten des Spiels (game/karten – Speichern schreibt direkt dorthin)", Mitgeliefert, false, "Keine gefunden.");
         Liste("Eigene Karten", Ordner, false, $"Noch keine – gespeichert wird im Ordner {ProjectSettings.GlobalizePath(Ordner)}.");
         if (!Entwicklung) Liste("Karten des Spiels (nur lesen)", Mitgeliefert, true, "Keine gefunden.");
-        spalte.MoveChild(fehler, spalte.GetChildCount() - 1);
-        Hauptmenue.Knopf(spalte, "Abbrechen", DialogSchliessen);
+        aussen.MoveChild(fehler, aussen.GetChildCount() - 1);
+        Hauptmenue.Knopf(aussen, "Abbrechen", DialogSchliessen);
         DialogZeigen(tafel);
     }
 
