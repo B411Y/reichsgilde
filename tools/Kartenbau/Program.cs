@@ -423,7 +423,7 @@ public static class Befehle
     private static string Tausend(double x) => x.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.');
 
     /// <summary>Der Gebäudekatalog und die Wirtschaftsdaten des Projekts (einmal je Lauf).</summary>
-    private static (Gebaeudekatalog Katalog, Wirtschaftsdaten Daten) Laden(Projektordner o) =>
+    public static (Gebaeudekatalog Katalog, Wirtschaftsdaten Daten) Laden(Projektordner o) =>
         (Gebaeudekatalog.AusDatei(o.Katalog), Wirtschaftsdaten.AusDatei(o.Wirtschaft));
 
     /// <summary>Öffnet eine Karte: Kennung (game/karten/&lt;kennung&gt;.json) oder Pfad.</summary>
