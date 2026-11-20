@@ -4,7 +4,8 @@ namespace Reichsgilde;
 
 /// <summary>
 /// <b>3D-Bücher in den Innenansichten</b> – ein Teil der <c>partial class Stadtansicht</c> (Bereich Oberfläche): das Personalbuch auf dem Lesepult
-/// und das Kontorbuch am Schreibpult im Werkraum jeder Werkstatt, das Familienbuch auf dem Stubentisch der Wohnstube.
+/// und das Kontorbuch am Schreibpult im Werkraum jeder Werkstatt, das Familienbuch auf dem Stubentisch der Wohnstube, das Schwarze Buch auf dem
+/// Kartentisch im Hinterzimmer des Wohnhauses (nur im gebauten Raum; die Tafel dazu ist das Hinterzimmer, Taste H öffnet sie weiter ohne Buch).
 ///
 /// Ein Klick auf ein Buch meldet <see cref="BuchAngeklickt"/>; die Hauptszene (<c>Hauptszene.Buecher.cs</c>) prüft, ob es das eigene Haus ist, und ruft
 /// <see cref="BuchSchauOeffnen"/>. Dann schwenkt eine <b>eigene Kamera</b> („Buchkamera“, nicht die Raumkamera und nicht die Bühne der Schriftrollen)
@@ -78,7 +79,7 @@ public partial class Stadtansicht
     public bool BuchImRaum(BuchArt art) => BuchStandHier(art) is not null;
 
     private BuchStand? BuchStandHier(BuchArt art) =>
-        _innen is { } a && _raum is { } raum && _buchStaende.TryGetValue((a, art), out var stand) && stand.RaumKennung == raum.Kennung && stand.Buch.IsVisibleInTree()
+        _innen is { } a && _raum is { } raum && _buchStaende.TryGetValue((a, art), out var stand) && stand.RaumKennung == raum.Kennung && IsInstanceValid(stand.Buch) && stand.Buch.IsVisibleInTree()
             ? stand : null;
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -120,6 +121,93 @@ public partial class Stadtansicht
         stand.Buch.Position = a.Mitte + s + new Vector3(-0.5f, 0.83f, 0.05f); // Tischplatte: Mitte 0,78 m, 0,1 m dick
         BuchMitteMessen(stand);
         _buchStaende[(a, BuchArt.Familie)] = stand;
+    }
+
+    /// <summary>
+    /// Hinterzimmer des Wohnhauses (Raummodell „…_hinterzimmer_innen“, <c>Stadtansicht.Wohnraeume.cs</c>): das Schwarze Buch liegt zu auf dem
+    /// Kartentisch (Netz <c>Gegenstand_Kartentisch</c>), der Fuß mit den Lesebändern zum Betrachter. Der Tisch ist in jedem Haus derselbe, steht
+    /// aber je Volk und Grundform anders und trägt Karte, Briefe, Kerze, Dolch und Flasche im selben Netz; darum sucht <see cref="TischplatzSuchen"/>
+    /// die freie, ebene Stelle. Das Buch hängt am Raum: ohne gebautes Hinterzimmer gibt es den Raum nicht und damit kein Buch.
+    /// </summary>
+    private void SchwarzesBuchAnlegen(InnenAnsicht a, Node3D wurzel)
+    {
+        if (wurzel.FindChild("Gegenstand_Kartentisch", true, false) is not MeshInstance3D tisch || tisch.Mesh is not { } netz) return;
+        var ecken = netz.GetFaces();
+        var inRaum = wurzel.GlobalTransform.AffineInverse() * tisch.GlobalTransform;
+        for (var i = 0; i < ecken.Length; i++) ecken[i] = inRaum * ecken[i];
+        var auge = wurzel.FindChild("Blick_Auge", true, false) is Node3D blick ? wurzel.ToLocal(blick.GlobalPosition) : (Vector3?)null;
+        if (TischplatzSuchen(ecken, auge) is not var (ort, grad) || BuchLaden(BuchArt.Schwarz, RaumHinterzimmer, null) is not { } stand) return;
+        wurzel.AddChild(stand.Buch);
+        stand.Buch.Position = ort;
+        stand.Buch.RotationDegrees = new Vector3(0, grad, 0);
+        BuchMitteMessen(stand);
+        _buchStaende[(a, BuchArt.Schwarz)] = stand;
+        GD.Print($"[buecher] Schwarzes Buch auf dem Kartentisch: {ort.ToString("0.00")}, {grad:0}°");
+    }
+
+    /// <summary>
+    /// Sucht auf einem runden Tisch (Dreiecke im Raum, y nach oben) den Platz für ein zugeklapptes Buch: auf einem Ring um die Tischmitte die Stelle,
+    /// unter der die Auflage eben ist (höchstens Papier darunter, kein Leuchter, kein Dolch), möglichst nahe der Tischmitte und nicht am vorderen Rand (den verdeckt die Leiste der Oberfläche). Das Buch
+    /// zeigt mit dem Fuß zum Betrachter, leicht verdreht. Gibt Ort (Unterseite des Buchs) und Drehung um die Hochachse zurück.
+    /// </summary>
+    private static (Vector3 Ort, float Grad)? TischplatzSuchen(Vector3[] ecken, Vector3? auge)
+    {
+        if (ecken.Length < 3) return null;
+        var (min, max) = (ecken[0], ecken[0]);
+        foreach (var e in ecken) (min, max) = (min.Min(e), max.Max(e));
+        var mitte = (min + max) / 2;
+        var radius = Mathf.Min(max.X - min.X, max.Z - min.Z) / 2;
+        var zumAuge = auge is { } p && new Vector2(p.X - mitte.X, p.Z - mitte.Z) is { } r && r.LengthSquared() > 0.01f ? r.Normalized() : new Vector2(0, 1);
+        var links = new Vector2(-zumAuge.Y, zumAuge.X); // links vom Betrachter aus
+        const float halbBreit = 0.115f, halbTief = 0.15f, eben = 0.008f; // Buch zu: 0,21 × 0,28 m mit etwas Luft; mehr als 8 mm Stufe ist ein Gegenstand
+        (Vector3 Ort, float Grad)? bester = null;
+        var besteNote = float.MaxValue;
+        foreach (var ring in new[] { 0.15f, 0.30f, 0.45f })
+        for (var schritt = 0; schritt < 24; schritt++)
+        {
+            var winkel = schritt * Mathf.Tau / 24;
+            var seite = new Vector2(Mathf.Cos(winkel), Mathf.Sin(winkel)) * ring;
+            var ort = new Vector2(mitte.X, mitte.Z) + seite * radius;
+            // das Buch schaut zum Betrachter (sein +z), dazu 12° verdreht, damit es nicht ausgerichtet daliegt
+            var grad = Mathf.RadToDeg(Mathf.Atan2(zumAuge.X, zumAuge.Y)) + 12;
+            var basis = Basis.FromEuler(new Vector3(0, Mathf.DegToRad(grad), 0));
+            var (tief, hoch, getroffen) = (float.MaxValue, float.MinValue, true);
+            for (var ix = -2; ix <= 2 && getroffen; ix++)
+            for (var iz = -3; iz <= 3; iz++)
+            {
+                var probe = basis * new Vector3(ix * halbBreit / 2, 0, iz * halbTief / 3);
+                if (HoeheUnter(ecken, ort.X + probe.X, ort.Y + probe.Z) is not { } h) { getroffen = false; break; }
+                (tief, hoch) = (Mathf.Min(tief, h), Mathf.Max(hoch, h));
+            }
+            if (!getroffen) continue;
+            // Note: uneben ist schlecht (je mm über der Grenze); vorn am Tischrand verdeckt die Leiste der Oberfläche das Buch, also lieber
+            // zur Tischmitte hin und etwas links vom Betrachter aus
+            var vorn = seite.Dot(zumAuge);
+            var note = Mathf.Max(0, hoch - tief - eben) * 1000 + 4 * Mathf.Max(0, vorn - 0.1f) + Mathf.Abs(vorn) + 0.3f * (ring - seite.Dot(links));
+            if (note >= besteNote) continue;
+            besteNote = note;
+            bester = (new Vector3(ort.X, hoch + 0.001f, ort.Y), grad);
+        }
+        return bester;
+    }
+
+    /// <summary>Die höchste Stelle der Dreiecke senkrecht unter (x, z); null, wenn dort nichts liegt.</summary>
+    private static float? HoeheUnter(Vector3[] ecken, float x, float z)
+    {
+        float? hoch = null;
+        for (var i = 0; i + 2 < ecken.Length; i += 3)
+        {
+            var (a, b, c) = (ecken[i], ecken[i + 1], ecken[i + 2]);
+            if ((x < a.X && x < b.X && x < c.X) || (x > a.X && x > b.X && x > c.X) || (z < a.Z && z < b.Z && z < c.Z) || (z > a.Z && z > b.Z && z > c.Z)) continue;
+            var nenner = (b.Z - c.Z) * (a.X - c.X) + (c.X - b.X) * (a.Z - c.Z);
+            if (Mathf.Abs(nenner) < 1e-9f) continue;
+            var u = ((b.Z - c.Z) * (x - c.X) + (c.X - b.X) * (z - c.Z)) / nenner;
+            var v = ((c.Z - a.Z) * (x - c.X) + (a.X - c.X) * (z - c.Z)) / nenner;
+            if (u < 0 || v < 0 || u + v > 1) continue;
+            var h = u * a.Y + v * b.Y + (1 - u - v) * c.Y;
+            if (hoch is null || h > hoch) hoch = h;
+        }
+        return hoch;
     }
 
     /// <summary>Mitte und Richtung des alten Ständers aus seinem Netz: Die hohe Kante der schrägen Platte liegt vom Leser weg.</summary>
