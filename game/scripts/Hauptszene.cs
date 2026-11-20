@@ -1090,7 +1090,7 @@ public partial class Hauptszene : Node
         var (tafel, spalte) = Hauptmenue.Tafel(420);
         _spielmenue = tafel;
         FensterStil.Bekleiden(tafel);
-        var mitte = Hauptmenue.Mitte();
+        var mitte = UeberLade.Neu(); // über der Lade wie die Fenster, nicht mehr in der Bildmitte
         GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
         mitte.AddChild(tafel);
         Hauptmenue.Text(spalte, "Spielmenü", 26, new Color(0.95f, 0.82f, 0.45f), zentriert: true);

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcvfg23sac0ub"
-path="res://.godot/imported/hammer.svg-97192a2640a98896fb7dc586506ea811.ctex"
+uid="uid://dwkrtpprni3f3"
+path="res://.godot/imported/produktion.svg-7904067b7973a7379d164e7bba3b377d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/oberflaeche/zunftlade/symbole/hammer.svg"
-dest_files=["res://.godot/imported/hammer.svg-97192a2640a98896fb7dc586506ea811.ctex"]
+source_file="res://assets/oberflaeche/zunftlade/symbole/produktion.svg"
+dest_files=["res://.godot/imported/produktion.svg-7904067b7973a7379d164e7bba3b377d.ctex"]
 
 [params]
 
