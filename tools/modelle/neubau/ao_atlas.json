@@ -258,5 +258,27 @@
       "tor": 13,
       "hinterhaus": 14
     }
+  },
+  "zeile_mensch_s2": {
+    "datei": "zeile_mensch_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 4,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14
+    }
   }
 }
