@@ -76,6 +76,7 @@ BAND_EISEN = 0.95                     # Eisen liegt im Blatt oberhalb v = 0,95 (
 # Grenzwerte (siehe Kopf)
 ALBEDO_MIN = 0.025
 AO_MIN = 0.12
+AO_FREI = ("Efeublatt",)              # Blattkarten mit Alpha: der Shader liest fuer sie die gebackene Verdeckung nicht (efeu_blatt)
 AO_ABSTAND = 0.25                     # Verdeckung schwarz nur, wenn die Nachrechnung um mehr als 0,25 heller ist
 AO_REICHWEITE = 1.1                   # wie beim Backen (light_settings.distance in uv2_und_ao)
 AO_FLAECHE_MIN = 0.01
@@ -318,7 +319,7 @@ def schwarze_flaechen(glb, texturen=None, blatt=None, atlas=None, trim_frei=TRIM
             # sichtbar: auf 8 cm vor dem Punkt liegt nichts und die Stelle liegt nicht auf einem anderen Teil auf; deckungsgleiche
             # Flaechen (gleiche Richtung) zaehlen als sichtbar - genau sie backen schwarz
             sicht = [x for x in stich if not szene.ray_cast(dg, x[4] + n * 1e-4, n, distance=SICHT_TIEFE)[0] and not _aufliegend(lagen, x[4], n)]
-            if p.area >= AO_FLAECHE_MIN and len(sicht) >= 3 and not eisen:
+            if p.area >= AO_FLAECHE_MIN and len(sicht) >= 3 and not eisen and mat not in AO_FREI:
                 mittel = sum(_bilinear(ao, x[2], x[3]) for x in sicht) / len(sicht)
                 if mittel < AO_MIN:
                     # nachrechnen: so hell muesste die Verdeckung dort sein (Strahlen ueber die Halbkugel, Reichweite wie beim Backen);

@@ -535,7 +535,7 @@ def pixel_baender(glb, stufe, texturen, opt):
     import pixel_mip_pruefung as PM
     tex = texturen or U.TEXTUREN
     stein = (0.85, 0.95) if stufe == 2 else (0.50, 0.70, 0.85, 0.95)       # STEIN_EBENE 10 und 11 (building_trim.gdshaderinc)
-    z, f = PM.pruefe(glb, os.path.join(tex, f"trim_s{stufe}_halbling_albedo.png"), stein, "alter-shader" not in opt)
+    z, f = PM.pruefe(glb, os.path.join(tex, f"trim_s{stufe}_halbling_albedo.png"), stein, "alter-shader" not in opt, stroh_teil=0.125 if stufe == 3 else 0.0)
     zeilen = [f"37. Pixel-Look: Deckung blau und matt, Stein ohne Streifen{' (Shader vor BAND_REIN)' if 'alter-shader' in opt else ''}: {'ok' if not f else str(f) + ' FEHLER'}"]
     return zeilen + z, f
 
