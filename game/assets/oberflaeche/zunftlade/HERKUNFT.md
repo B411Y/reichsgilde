@@ -20,4 +20,4 @@ Lizenz Poly Haven, wörtlich von https://polyhaven.com/license (Zitat wie in `ga
 
 ## Symbole (`symbole/*.svg`)
 
-Kein Fremdmaterial: schlichte Zeichen aus dem HTML-Entwurf der Zunftlade, dort als SVG-Pfade von Hand als Code geschrieben. Einzelheiten: `docs/assets/prompts/zunftlade_symbole.md`.
+Kein Fremdmaterial. Die 15 Zeichen der Fächer und kleinen Knöpfe sind eigene, plastische Zeichnungen (alter Messingbeschlag mit gezeichneter Licht- und Schattenkante, Patina, Dellen und Kratzern), erzeugt von `tools/oberflaeche/zunftlade_zeichen.py`; Einzelheiten: `docs/assets/prompts/zunftlade_zeichen.md`. Die übrigen (Gulden, Ansehen, Pause, Weiter, Schloss, Gefahr) sind schlichte Zeichen aus dem HTML-Entwurf der Zunftlade, dort als SVG-Pfade von Hand als Code geschrieben; Einzelheiten: `docs/assets/prompts/zunftlade_symbole.md`.

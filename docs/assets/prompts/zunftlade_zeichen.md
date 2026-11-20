@@ -1,0 +1,15 @@
+# Plastische Zeichen der Fächer (Zunftlade)
+
+Dateien: 15 Zeichen in `game/assets/oberflaeche/zunftlade/symbole/` – `familie`, `betriebe`, `bauen`, `rat`, `bericht`, `lexikon`, `personal`, `produktion`, `lager`, `karren`, `talentbaum`, `stadt` (Zur Stadt), `markt`, `hinterzimmer`, `menue` (je 48 x 48 Pixel, Zeichenfläche 24 x 24). Protokoll: `docs/assets/protokoll.csv`.
+
+**Herkunft.** Eigene Zeichnung für dieses Spiel (20.11.2026): Ein Claude-Agent (Claude Code, Modell `claude-fable-5-2`) hat die Formen als SVG-Pfade von Hand als Code geschrieben, im Skript `tools/oberflaeche/zunftlade_zeichen.py`. Keine Bild-KI, keine Vorlage, kein Fremdmaterial. Die Motive folgen den Platzhaltern des Entwurfs 3 (`docs/assets/prompts/zunftlade_symbole.md`); neu gewählt sind der Amboss für „Produktion“ (vorher derselbe Hammer wie „Betriebe“), der Staffelgiebel für „Rat“ (vorher Tempel) und das Stadttor für „Zur Stadt“ (vorher Tür).
+
+**Auftrag (Nutzer, 20.11.2026, sinngemäß).** Die Oberfläche ist seit dem Neudesign plastisch (Holz, Pergament, Stein), nicht Holzschnitt. Die Platzhalter der Fächer werden durch eigene, plastisch wirkende Zeichen ersetzt: geprägt bzw. geschnitzt wirkend, mit leichter Tiefe, aber ohne hinzugerechnete Effekte – als gezeichnete Form mit Licht- und Schattenkante im SVG, nicht als Shader-Effekt. Ein einheitlicher Satz für alle Fächer.
+
+**Rückmeldung des Nutzers zur ersten Probe (20.11.2026): „rauer und älter“.** Formen leicht unregelmäßig wie handgeschmiedet oder gegossen, Messing gedämpfter und dunkler, an den Kanten blank gerieben, in Vertiefungen dunkle Patina (als gezeichnete Flächen), weniger glatter Icon-Satz, mehr altes Beschlagstück; lesbar in 18 und 26 Pixel.
+
+**Machart.** Jedes Zeichen ist ein alter, abgegriffener Beschlag aus Messing auf dem dunklen Holz des Fachs, das Licht kommt von links oben. Das Skript zeichnet jedes Teil als schlichte Flächen übereinander: Schlagschatten (versetzt, halb durchsichtig), Schmutzrand (dunkle Patina in der Fuge zum Holz und zum Teil dahinter), Schattenkante (dunkel, nach rechts unten versetzt), Lichtkante (blank gerieben, nach links oben versetzt), darüber die Fläche in einem von drei Tönen (vorn, dahinter, tief mit grünlicher Patina). Darauf die Spuren des Alters, je Zeichen von Hand gesetzt: blank geriebene Stellen, Dellen mit Patina, Kratzer; eingeritzte Linien sind ein dunkler Strich mit hellem Strich daneben. Jeder Eckpunkt ist um einen festen kleinen Betrag verschoben (aus Name und Ort gerechnet, kein Zufall – jeder Lauf schreibt dieselben Dateien), darum sind die Kanten leicht ungerade und nichts ist genau symmetrisch. Es gibt keinen Filter, keinen Verlauf und keinen Shader; die Farben stehen fest in der Datei.
+
+**Neu erzeugen.** `python3 tools/oberflaeche/zunftlade_zeichen.py` schreibt alle 15 Dateien neu (Formen, Töne und Versatz stehen oben im Skript). Nachbearbeitung von Hand: keine.
+
+**Nicht ersetzt.** `gulden`, `ansehen`, `pause`, `weiter`, `schloss`, `gefahr` sind weiter die schlichten Zeichen des Entwurfs (keine Fächer). `hammer.svg` ist entfallen.

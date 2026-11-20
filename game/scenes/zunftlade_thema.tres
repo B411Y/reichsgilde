@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=39 format=3]
+[gd_resource type="Theme" load_steps=40 format=3]
 
 ; Das Thema der Zunftlade (UI-Umbau „Zunftlade“, Teil 1): die Lade unten, die Zeitleiste oben, das Schild der Raumleiste.
 ; Aussehen steht NUR hier: Stoffe (Holz, Stein, Pergament), Farben, Schriften, Abstände und Maße. Logik in Hauptszene.Lade.cs und
@@ -19,7 +19,8 @@
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/gulden.svg" id="s_gulden"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/ansehen.svg" id="s_ansehen"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/familie.svg" id="s_familie"]
-[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/hammer.svg" id="s_hammer"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/betriebe.svg" id="s_betriebe"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/produktion.svg" id="s_produktion"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/bauen.svg" id="s_bauen"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/personal.svg" id="s_personal"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/lager.svg" id="s_lager"]
@@ -197,7 +198,7 @@ LadeMasse/constants/schiene_hoehe = 40
 LadeMasse/constants/wert_hoehe = 34
 LadeMasse/constants/symbol_wert = 22
 LadeMasse/constants/symbol_klein = 18
-LadeMasse/constants/symbol_fach = 26
+LadeMasse/constants/symbol_fach = 32
 ; Liste der Betriebe über der Lade: Breite, Zeile eines Betriebs, Symbol der Ware
 ; Zeitleiste: Breite mindestens, Abstand zum oberen Rand, Knöpfe
 LadeMasse/constants/zeit_breite = 840
@@ -212,11 +213,12 @@ LadeMasse/constants/meldungen_unten = 218
 LadeMasse/constants/meldungen_einzug = 30
 LadeMasse/constants/schild_unten = 216
 LadeMasse/constants/schild_einzug = 30
-; ── Symbole (schlichte Zeichen des Entwurfs) ──
+; ── Symbole: die Zeichen der Fächer und kleinen Knöpfe plastisch als Messingbeschlag (tools/oberflaeche/zunftlade_zeichen.py), die übrigen schlicht aus dem Entwurf ──
 LadeSymbole/icons/gulden = ExtResource("s_gulden")
 LadeSymbole/icons/ansehen = ExtResource("s_ansehen")
 LadeSymbole/icons/familie = ExtResource("s_familie")
-LadeSymbole/icons/hammer = ExtResource("s_hammer")
+LadeSymbole/icons/betriebe = ExtResource("s_betriebe")
+LadeSymbole/icons/produktion = ExtResource("s_produktion")
 LadeSymbole/icons/bauen = ExtResource("s_bauen")
 LadeSymbole/icons/personal = ExtResource("s_personal")
 LadeSymbole/icons/lager = ExtResource("s_lager")
