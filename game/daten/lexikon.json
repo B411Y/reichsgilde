@@ -57,7 +57,7 @@
   "kennung": "betriebsleiste",
   "titel": "Lade: Fächer",
   "gruppe": "Spiel",
-  "text": "Die Lade hat links und rechts je drei Fächer. In der Stadt: Familie, Betriebe, Bauen und Rat, Bericht, Lexikon. Das Fach Betriebe klappt die Liste eurer Betriebe auf: je Betrieb ein Knopf mit dem Symbol seiner Ware und seinem Zustand (läuft, steht, Lager voll, Karren unterwegs). Ein Klick fährt die Kamera hin und öffnet die [[kurzuebersicht]], ein Doppelklick geht hinein. In der Innenansicht stehen dort Personal, Produktion, Lager und Karren, Talentbaum, Zur Stadt. Über den Fächern rechts: Markt, Hinterzimmer und Menü. Meldungen liegen als Faltbriefe rechts über der Lade."
+  "text": "Die Lade hat links und rechts je drei Fächer. In der Stadt: Familie, Betriebe, Bauen und Rat, Bericht, Lexikon. Jedes Fach zeigt eine Zeile Zustand und öffnet sein Lade-Fenster über der Lade: Kurzwerte und Befehle mit Kosten in Gulden und Aktionspunkten, Wirkung und – wenn gesperrt – dem Grund. Das Fach Betriebe nennt je Betrieb den Zustand (läuft, steht, Lager voll, Karren unterwegs) und bietet an, hineinzugehen oder hinzufahren und die [[kurzuebersicht]] zu öffnen. In der Innenansicht stehen dort Personal, Produktion, Lager und Karren, Talentbaum, Zur Stadt. Über den Fächern rechts: Markt, Hinterzimmer und Menü. Meldungen liegen als Faltbriefe rechts über der Lade."
  },
  {
   "kennung": "kurzuebersicht",

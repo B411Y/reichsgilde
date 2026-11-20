@@ -14,6 +14,42 @@
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/fenster/knopf.webp" id="8_knopf"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/fenster/knopf_an.webp" id="9_knopf_an"]
 [ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="6_titel"]
+[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/Alegreya-Variabel.ttf" id="7_text"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/schloss.svg" id="s_schloss"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/symbole/gefahr.svg" id="s_gefahr"]
+
+; Alegreya fett (Gewicht 700, Ziffern in Versalhöhe und gleich breit); 2003265652 = „wght“, 1819178349 = „lnum“, 1953396077 = „tnum“
+[sub_resource type="FontVariation" id="Fett"]
+base_font = ExtResource("7_text")
+variation_opentype = {
+2003265652: 700
+}
+opentype_features = {
+1819178349: 1,
+1953396077: 1
+}
+
+; ── Lade-Fenster (Teil 3): Zeile mit Strich darunter, gesperrter Befehl ──
+[sub_resource type="StyleBoxFlat" id="ZeileStrich"]
+bg_color = Color(0, 0, 0, 0)
+border_width_bottom = 1
+border_color = Color(0.235, 0.157, 0.04, 0.28)
+content_margin_left = 0.0
+content_margin_top = 5.0
+content_margin_right = 0.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="BefehlGesperrt"]
+bg_color = Color(0.28, 0.265, 0.24, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.663, 0.647, 0.612, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 ; ── Innenabstand der Tafel: Steinrand (16) plus 2 Luft (die Tafeln bringen ihren eigenen Rand mit); mit Kopf oben zusätzlich 46 ──
 [sub_resource type="StyleBoxEmpty" id="TafelRand"]
@@ -540,3 +576,71 @@ PopupMenu/colors/font_disabled_color = Color(0.62, 0.58, 0.52, 1)
 PopupMenu/colors/font_separator_color = Color(0.886, 0.831, 0.69, 1)
 PanelContainer/styles/panel = SubResource("FeldFlach")
 Panel/styles/panel = SubResource("FeldFlach")
+; ── Lade-Fenster der Fächer (Teil 3, LadeFensterAnzeige.cs): feste Größe wie im Entwurf, Inhalt höchstens 760 breit ──
+LadeFensterMasse/constants/breite = 1280
+LadeFensterMasse/constants/hoehe = 530
+LadeFensterMasse/constants/inhalt_breite = 760
+LadeFensterLeib/base_type = &"MarginContainer"
+LadeFensterLeib/constants/margin_left = 16
+LadeFensterLeib/constants/margin_top = 10
+LadeFensterLeib/constants/margin_right = 16
+LadeFensterLeib/constants/margin_bottom = 12
+LadeFensterSpalte/base_type = &"VBoxContainer"
+LadeFensterSpalte/constants/separation = 8
+FensterVor/base_type = &"Label"
+FensterVor/colors/font_color = Color(0.333, 0.251, 0.122, 1)
+FensterVor/font_sizes/font_size = 17
+FensterZeilen/base_type = &"VBoxContainer"
+FensterZeilen/constants/separation = 0
+FensterZeile/base_type = &"PanelContainer"
+FensterZeile/styles/panel = SubResource("ZeileStrich")
+FensterZeileReihe/base_type = &"HBoxContainer"
+FensterZeileReihe/constants/separation = 6
+FensterZeileName/base_type = &"Label"
+FensterZeileName/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+FensterZeileName/font_sizes/font_size = 17
+FensterZeileWert/base_type = &"Label"
+FensterZeileWert/fonts/font = SubResource("Fett")
+FensterZeileWert/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+FensterZeileWert/font_sizes/font_size = 17
+FensterZeileWarnung/base_type = &"Label"
+FensterZeileWarnung/fonts/font = SubResource("Fett")
+FensterZeileWarnung/colors/font_color = Color(0.49, 0.122, 0.102, 1)
+FensterZeileWarnung/font_sizes/font_size = 17
+FensterZeichen/icons/schloss = ExtResource("s_schloss")
+FensterZeichen/icons/gefahr = ExtResource("s_gefahr")
+FensterZeichenWarnung/constants/groesse = 18
+FensterZeichenWarnung/colors/farbe = Color(0.49, 0.122, 0.102, 1)
+FensterZeichenSperre/constants/groesse = 17
+FensterZeichenSperre/colors/farbe = Color(1, 0.886, 0.722, 1)
+FensterBefehle/base_type = &"VBoxContainer"
+FensterBefehle/constants/separation = 6
+; Der Befehl: Knopf aus dem Holz der Fächer (erbt die Stile von Button), gesperrt grau
+FensterBefehl/base_type = &"Button"
+FensterBefehl/styles/disabled = SubResource("Knopf")
+FensterBefehlGesperrt/base_type = &"Button"
+FensterBefehlGesperrt/styles/normal = SubResource("BefehlGesperrt")
+FensterBefehlGesperrt/styles/hover = SubResource("BefehlGesperrt")
+FensterBefehlGesperrt/styles/pressed = SubResource("BefehlGesperrt")
+FensterBefehlGesperrt/styles/disabled = SubResource("BefehlGesperrt")
+FensterBefehlInhalt/base_type = &"MarginContainer"
+FensterBefehlInhalt/constants/margin_left = 12
+FensterBefehlInhalt/constants/margin_top = 5
+FensterBefehlInhalt/constants/margin_right = 12
+FensterBefehlInhalt/constants/margin_bottom = 6
+FensterBefehlSpalte/base_type = &"VBoxContainer"
+FensterBefehlSpalte/constants/separation = 0
+FensterBefehlTitel/base_type = &"Label"
+FensterBefehlTitel/fonts/font = SubResource("Fett")
+FensterBefehlTitel/colors/font_color = Color(0.953, 0.902, 0.769, 1)
+FensterBefehlTitel/font_sizes/font_size = 18
+FensterBefehlKosten/base_type = &"Label"
+FensterBefehlKosten/fonts/font = SubResource("Fett")
+FensterBefehlKosten/colors/font_color = Color(1, 0.878, 0.541, 1)
+FensterBefehlKosten/font_sizes/font_size = 17
+FensterBefehlFolge/base_type = &"Label"
+FensterBefehlFolge/colors/font_color = Color(0.886, 0.831, 0.69, 1)
+FensterBefehlFolge/font_sizes/font_size = 15
+FensterBefehlSperre/base_type = &"Label"
+FensterBefehlSperre/colors/font_color = Color(1, 0.886, 0.722, 1)
+FensterBefehlSperre/font_sizes/font_size = 15
