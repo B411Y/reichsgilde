@@ -590,6 +590,7 @@ public partial class Hauptszene
     {
         var (tafel, spalte) = Hauptmenue.Tafel(620);
         _hilfe = tafel;
+        FensterStil.Bekleiden(tafel);
         var mitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
         mitte.AddChild(tafel);

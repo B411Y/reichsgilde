@@ -265,7 +265,9 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton? _schnittstelle;
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
-    private readonly CheckButton _fahnen, _zeiger, _handschuh3d;
+    private readonly CheckButton _fahnen, _zeiger, _handschuh3d, _groesseAuto;
+    private readonly HSlider _randabstand;
+    private readonly Label _randabstandWert;
     private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Haende + 1];
     private readonly Label _zeigerName;
     private readonly HSlider _groesse;
@@ -672,6 +674,12 @@ public sealed class EinstellungenAnzeige
         // ── Barrierefreiheit ─────────────────────────────────────────────────
         s = _seiten[4];
         Abschnitt(s, "Darstellung");
+        _groesseAuto = Schalter(s, "Größe nach Fensterhöhe", () => "An: Die Oberfläche ist für ein Bild von 1080 Punkten Höhe gezeichnet und wächst oder schrumpft mit dem Fenster "
+            + "(1440p: 133 %, 4K: 200 %, Steam Deck: 80 %); der Regler darunter verstellt sie von da aus. Aus: Der Regler gilt unverändert, gleich wie groß das Fenster ist.", an =>
+        {
+            Fenster.OberflaecheAutomatischSetzen(an);
+            Auffrischen();
+        });
         (_groesse, _groesseWert, _) = Regler(s, "Größe der Oberfläche", 75, 200, 5, " %", wert =>
         {
             // Erst beim Loslassen anwenden: Sonst wächst die Tafel unter der Maus, während man zieht
@@ -683,6 +691,8 @@ public sealed class EinstellungenAnzeige
             _groesseZiehen = false;
             OberflaecheAnwenden((int)_groesse.Value);
         };
+        (_randabstand, _randabstandWert, _) = Regler(s, "Randabstand rechts", 0, 600, 20, "", wert => Fenster.RandabstandSetzen(wert),
+            () => "Für sehr breite Bilder (21:9): So weit rücken die Tafeln am rechten Rand (Auswahl, Wohnhaus, Bericht, Bauen) von der Kante ins Bild. Lade, Zeitleiste und die Fenster in der Mitte bleiben in der Mitte.");
         zeile = Zeile(s, "Farbfilter", () => Liste("Gilt für das ganze Bild mit Tafeln, Wappen und Warenzeichen: Farben, die sich für das Auge kaum unterscheiden, werden in Helligkeit und andere Farbtöne verschoben.",
                                                    Farbfilterarten.Select(f => (f.Name, f.Erklaerung)), IndexVon(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter)));
         _farbfilter = Auswahl(zeile, Farbfilterarten.Select(f => f.Name), nummer =>
@@ -891,6 +901,8 @@ public sealed class EinstellungenAnzeige
         }
         _zeigerName.Text = "Handschuh: " + ZeigerWahlNamen().ElementAt(Fenster.ZeigerStufe);
         if (!_groesseZiehen) WertSetzen(_groesse, _groesseWert, Fenster.Oberflaechengroesse, " %");
+        _groesseAuto.SetPressedNoSignal(Fenster.OberflaecheAutomatisch);
+        WertSetzen(_randabstand, _randabstandWert, Fenster.Randabstand, "");
         _farbfilter.Select(Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter));
         _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
         _tooltipZeitWert.Text = Fenster.TooltipFestZeit.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " s";

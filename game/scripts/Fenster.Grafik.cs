@@ -132,6 +132,8 @@ public partial class Fenster
                            Wert("kontrast", 100).AsInt32(), Wert("saettigung", 100).AsInt32(), false);
         SchaerfeSetzen(Wert("schaerfe", StandardSchaerfe).AsInt32(), false);
         FahnenSetzen(Wert("fahnen", true).AsBool(), false);
+        OberflaecheAutomatisch = Wert("uiauto", true).AsBool();
+        Randabstand = Math.Clamp(Wert("uirand", 0).AsInt32(), 0, 600);
         OberflaechengroesseSetzen(Wert("uigroesse", 100).AsInt32(), false);
         ZeigerLaden(datei, geladen); // eigener Mauszeiger, Standard an (Fenster.Zeiger.cs)
         PixelLaden(datei, geladen); // Pixel-Look, Standard aus (Fenster.Pixel.cs)
@@ -429,8 +431,55 @@ public partial class Fenster
     //  Barrierefreiheit
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Größe der Oberfläche in Prozent (75–200): alle Tafeln, Schriften und Knöpfe.</summary>
+    /// <summary>
+    /// Größe der Oberfläche in Prozent (75–200): alle Tafeln, Schriften und Knöpfe. Mit <see cref="OberflaecheAutomatisch"/> ist das der Wert
+    /// <b>bezogen auf ein Bild von 1080 Punkten Höhe</b> – das Spiel rechnet ihn auf die Höhe des Fensters um.
+    /// </summary>
     public static int Oberflaechengroesse { get; private set; } = 100;
+
+    /// <summary>
+    /// Größe nach der Fensterhöhe (UI-Umbau „Zunftlade“, Teil 5; Standard an): Die Oberfläche ist für 1920 × 1080 gezeichnet (Lade 1280 breit) und
+    /// wächst bzw. schrumpft mit der Höhe des Fensters – 1440p: 133 %, 4K: 200 %, Steam Deck (1280 × 800): 80 %. Aus: der Wert gilt unverändert.
+    /// </summary>
+    public static bool OberflaecheAutomatisch { get; private set; } = true;
+
+    /// <summary>Höhe des Bildes, für das die Oberfläche gezeichnet ist.</summary>
+    public const float OberflaechenBezugshoehe = 1080f;
+
+    /// <summary>Kleinster automatischer Faktor: Darunter wäre die Schrift der Lade (15) am Gerät kleiner als 12 Pixel.</summary>
+    public const float OberflaechenFaktorMin = 0.8f;
+
+    /// <summary>
+    /// Abstand der Tafeln am rechten Bildrand zur Kante, in Einheiten der Oberfläche (0–600) – für sehr breite Bilder (21:9), damit Auswahl,
+    /// Wohnhaus, Bericht und Bautafel nicht weit draußen stehen. Lade, Zeitleiste und die Fenster in der Mitte betrifft er nicht.
+    /// </summary>
+    public static int Randabstand { get; private set; }
+
+    /// <summary>Der Faktor, mit dem die Oberfläche gerade gezeichnet wird (aus Prozentwert und, wenn automatisch, Fensterhöhe).</summary>
+    public static float OberflaechenFaktor(float fensterhoehe) =>
+        Oberflaechengroesse / 100f * (OberflaecheAutomatisch ? Math.Clamp(fensterhoehe / OberflaechenBezugshoehe, OberflaechenFaktorMin, 2f) : 1f);
+
+    private static void OberflaecheAnwenden()
+    {
+        if (_instanz?.GetTree().Root is not { } fenster) return;
+        var faktor = OberflaechenFaktor(fenster.Size.Y);
+        if (!Mathf.IsEqualApprox(fenster.ContentScaleFactor, faktor)) fenster.ContentScaleFactor = faktor;
+    }
+
+    public static void OberflaecheAutomatischSetzen(bool an, bool speichern = true)
+    {
+        OberflaecheAutomatisch = an;
+        OberflaecheAnwenden();
+        if (speichern) Speichern("uiauto", an);
+        Melden();
+    }
+
+    public static void RandabstandSetzen(int einheiten, bool speichern = true)
+    {
+        Randabstand = Math.Clamp(einheiten, 0, 600);
+        if (speichern) Speichern("uirand", Randabstand);
+        Melden();
+    }
 
     public static Farbfilter AktuellerFarbfilter { get; private set; } = Farbfilter.Aus;
 
@@ -442,7 +491,7 @@ public partial class Fenster
     public static void OberflaechengroesseSetzen(int prozent, bool speichern = true)
     {
         Oberflaechengroesse = Math.Clamp(prozent, 75, 200);
-        if (_instanz?.GetTree().Root is { } fenster) fenster.ContentScaleFactor = Oberflaechengroesse / 100f;
+        OberflaecheAnwenden();
         if (speichern) Speichern("uigroesse", Oberflaechengroesse);
         Melden();
     }
@@ -717,7 +766,9 @@ public partial class Fenster
                                Zahl("saettigung", out var saettigung) ? saettigung : Saettigung, speichern: false);
         if (Zahl("schaerfe", out var schaerfe)) SchaerfeSetzen(schaerfe, speichern: false);
         if (optionen.TryGetValue("fahnen", out var fahnen)) FahnenSetzen(An(fahnen), speichern: false);
+        if (optionen.TryGetValue("uiauto", out var uiauto)) OberflaecheAutomatischSetzen(An(uiauto), speichern: false);
         if (Zahl("uigroesse", out var uigroesse)) OberflaechengroesseSetzen(uigroesse, speichern: false);
+        if (Zahl("uirand", out var uirand)) RandabstandSetzen(uirand, speichern: false);
         if (Art<Farbfilter>("farbfilter", out var farbfilter)) FarbfilterSetzen(farbfilter, speichern: false);
         ZeigerStartoptionen(optionen); // --zeiger=0|1, --zeigerstufe=1..8 (Fenster.Zeiger.cs)
         PixelStartoptionen(optionen); // --pixellook=0|2|3, --pixelgluehen=0|1 (Fenster.Pixel.cs)

@@ -25,10 +25,11 @@ public static class Schriften
     public const int TextZuschlag = 1;
 
     /// <summary>
-    /// Kleinster Schriftgrad für lesbaren Text (bei 1600×900): Tabellenköpfe, Hilfezeilen, Fußzeilen und Beschriftungen, die Tafeln mit 11–13 angeben,
+    /// Kleinster Schriftgrad für lesbaren Text – 15, damit die Schrift auch bei der kleinsten automatischen Oberfläche (80 %, Steam Deck) am Gerät
+    /// 12 Pixel hat (UI-Umbau „Zunftlade“, Teil 5; vorher 14): Tabellenköpfe, Hilfezeilen, Fußzeilen und Beschriftungen, die Tafeln mit 11–13 angeben,
     /// werden beim Eintritt in den Baum auf diesen Wert angehoben. Eine Stelle für das ganze Spiel.
     /// </summary>
-    public const int MindestGroesse = 14;
+    public const int MindestGroesse = 15;
 
     /// <summary>Grund der Tafeln (Tafelfarbe aus <see cref="Hauptmenue.Tafel"/>): Gegen ihn wird der Kontrast gemessen.</summary>
     private static readonly Color TafelGrund = new(0.12f, 0.11f, 0.10f);

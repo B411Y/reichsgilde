@@ -31,11 +31,11 @@ corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="ReiterAktiv"]
-bg_color = Color(0.22, 0.18, 0.13, 1)
+bg_color = Color(0.353, 0.224, 0.11, 1)
 border_width_left = 1
 border_width_top = 2
 border_width_right = 1
-border_color = Color(0.95, 0.82, 0.45, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 content_margin_left = 14.0
@@ -44,11 +44,11 @@ content_margin_right = 14.0
 content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="ReiterPassiv"]
-bg_color = Color(0.15, 0.13, 0.1, 1)
+bg_color = Color(0.804, 0.725, 0.541, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_color = Color(0.4, 0.34, 0.24, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 content_margin_left = 14.0
@@ -57,11 +57,11 @@ content_margin_right = 14.0
 content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="ReiterUeber"]
-bg_color = Color(0.3, 0.24, 0.15, 1)
+bg_color = Color(0.87, 0.8, 0.62, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
-border_color = Color(0.95, 0.82, 0.45, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 content_margin_left = 14.0
@@ -70,23 +70,23 @@ content_margin_right = 14.0
 content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="Seite"]
-bg_color = Color(0.1, 0.09, 0.08, 1)
+bg_color = Color(0.275, 0.176, 0.059, 0.08)
 border_width_left = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.4, 0.34, 0.24, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 content_margin_left = 12.0
 content_margin_top = 10.0
 content_margin_right = 12.0
 content_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="KurzTafel"]
-bg_color = Color(0.14, 0.12, 0.1, 1)
+bg_color = Color(0.886, 0.781, 0.59, 0.97)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.4, 0.34, 0.24, 1)
+border_color = Color(0.235, 0.157, 0.04, 0.5)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -98,12 +98,12 @@ content_margin_bottom = 8.0
 
 [sub_resource type="StyleBoxFlat" id="Spruchband"]
 ; Platzhalter, bis das Holzschnitt-Spruchband (9-Slice-Bild) aus dem Grafik-PC kommt: dann nur diese Fläche tauschen
-bg_color = Color(0.14, 0.12, 0.1, 1)
+bg_color = Color(0.886, 0.781, 0.59, 0.97)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.76, 0.656, 0.36, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -115,12 +115,12 @@ content_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxFlat" id="Ratsbuch"]
 ; Platzhalter für die Pergamentseite des Ratsbuchs
-bg_color = Color(0.2, 0.17, 0.12, 1)
+bg_color = Color(0.886, 0.781, 0.59, 0.97)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.4, 0.34, 0.24, 1)
+border_color = Color(0.29, 0.18, 0.09, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -495,9 +495,9 @@ RatReiter/styles/panel = SubResource("Seite")
 RatReiter/styles/tab_selected = SubResource("ReiterAktiv")
 RatReiter/styles/tab_unselected = SubResource("ReiterPassiv")
 RatReiter/styles/tab_hovered = SubResource("ReiterUeber")
-RatReiter/colors/font_selected_color = Color(0.95, 0.82, 0.45, 1)
-RatReiter/colors/font_unselected_color = Color(0.72, 0.72, 0.72, 1)
-RatReiter/colors/font_hovered_color = Color(1, 0.95, 0.78, 1)
+RatReiter/colors/font_selected_color = Color(0.953, 0.902, 0.769, 1)
+RatReiter/colors/font_unselected_color = Color(0.141, 0.094, 0.051, 1)
+RatReiter/colors/font_hovered_color = Color(0.353, 0.114, 0.078, 1)
 RatReiter/font_sizes/font_size = 16
 RatReiter/constants/side_margin = 0
 
@@ -505,22 +505,22 @@ RatReiter/constants/side_margin = 0
 RatTitel/base_type = &"Label"
 RatTitel/fonts/font = ExtResource("1_titel")
 RatTitel/font_sizes/font_size = 26
-RatTitel/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatTitel/colors/font_color = Color(0.353, 0.114, 0.078, 1)
 RatAbschnitt/base_type = &"Label"
 RatAbschnitt/font_sizes/font_size = 17
-RatAbschnitt/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatAbschnitt/colors/font_color = Color(0.353, 0.114, 0.078, 1)
 RatText/base_type = &"Label"
 RatText/font_sizes/font_size = 15
-RatText/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatText/colors/font_color = Color(0.141, 0.094, 0.051, 1)
 RatHinweis/base_type = &"Label"
 RatHinweis/font_sizes/font_size = 14
-RatHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
+RatHinweis/colors/font_color = Color(0.333, 0.251, 0.122, 1)
 RatGut/base_type = &"Label"
 RatGut/font_sizes/font_size = 15
-RatGut/colors/font_color = Color(0.55, 0.85, 0.5, 1)
+RatGut/colors/font_color = Color(0.153, 0.345, 0.11, 1)
 RatSchlecht/base_type = &"Label"
 RatSchlecht/font_sizes/font_size = 15
-RatSchlecht/colors/font_color = Color(0.95, 0.45, 0.4, 1)
+RatSchlecht/colors/font_color = Color(0.49, 0.122, 0.102, 1)
 
 ; ── Knöpfe ──
 RatAmtknopf/base_type = &"Button"
@@ -612,7 +612,7 @@ RatBewerberSpalte/base_type = &"VBoxContainer"
 RatBewerberSpalte/constants/separation = 2
 RatGold/base_type = &"Label"
 RatGold/font_sizes/font_size = 15
-RatGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatGold/colors/font_color = Color(0.353, 0.114, 0.078, 1)
 RatAuswahl/base_type = &"OptionButton"
 RatAuswahl/styles/normal = SubResource("AuswahlNormal")
 RatAuswahl/styles/hover = SubResource("KnotenUeber")
@@ -622,10 +622,10 @@ RatAuswahl/colors/font_color = Color(0.92, 0.88, 0.8, 1)
 ; ── Kurzübersicht im Rathaus: schmale Schrift (Breite „kurz_breite“) ──
 RatKurzHinweis/base_type = &"Label"
 RatKurzHinweis/font_sizes/font_size = 12
-RatKurzHinweis/colors/font_color = Color(0.72, 0.72, 0.72, 1)
+RatKurzHinweis/colors/font_color = Color(0.333, 0.251, 0.122, 1)
 RatKurzGold/base_type = &"Label"
 RatKurzGold/font_sizes/font_size = 14
-RatKurzGold/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatKurzGold/colors/font_color = Color(0.353, 0.114, 0.078, 1)
 
 ; ── Holzschnitt-Grafiken des Ratsbaums (PR 4): Bilder der Familie „RatBilder“, abgefragt mit RatStil.Grafik(name) ──
 RatBilder/icons/amt_buergermeister = ExtResource("2_amt_buergermeister")
@@ -668,14 +668,14 @@ RatsbuchTafel/styles/panel = SubResource("Ratsbuch")
 RatSpruchbandTitel/base_type = &"Label"
 RatSpruchbandTitel/fonts/font = ExtResource("1_titel")
 RatSpruchbandTitel/font_sizes/font_size = 20
-RatSpruchbandTitel/colors/font_color = Color(0.95, 0.82, 0.45, 1)
+RatSpruchbandTitel/colors/font_color = Color(0.353, 0.114, 0.078, 1)
 RatSpruchbandText/base_type = &"Label"
 RatSpruchbandText/font_sizes/font_size = 17
-RatSpruchbandText/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatSpruchbandText/colors/font_color = Color(0.141, 0.094, 0.051, 1)
 RatsbuchStrich/base_type = &"Label"
 RatsbuchStrich/fonts/font = ExtResource("1_titel")
 RatsbuchStrich/font_sizes/font_size = 22
-RatsbuchStrich/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatsbuchStrich/colors/font_color = Color(0.141, 0.094, 0.051, 1)
 RatsbuchName/base_type = &"Label"
 RatsbuchName/font_sizes/font_size = 15
-RatsbuchName/colors/font_color = Color(0.92, 0.88, 0.8, 1)
+RatsbuchName/colors/font_color = Color(0.141, 0.094, 0.051, 1)

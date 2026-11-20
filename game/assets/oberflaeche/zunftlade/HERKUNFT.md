@@ -14,6 +14,10 @@ Lizenz Poly Haven, wörtlich von https://polyhaven.com/license (Zitat wie in `ga
 
 **Keine hinzugerechneten Effekte** (Entscheidung des Nutzers, 18.11.2026): keine Kerben, Flecken, Verläufe oder Schatten – nur Zuschnitt, Verkleinern, Drehen, Biegen, Farbe und die Schattierung des Holzes aus den Karten derselben Textur. Keine Bild-KI.
 
+## Knopfflächen der Fenster (`fenster/*.webp`)
+
+`knopf.webp` und `knopf_an.webp` sind aus `fachholz.webp` gebaut (Poly Haven, „Wood Table Worn“, CC0 1.0, siehe oben): auf 300 Pixel verkleinert, mit einer schlichten Kante von 3 Pixel in den Farben des Entwurfs; `knopf_an.webp` zusätzlich golden eingefärbt. Skript: `tools/oberflaeche/zunftlade_knopf.py`. Keine Verläufe, keine Schatten.
+
 ## Symbole (`symbole/*.svg`)
 
 Kein Fremdmaterial: schlichte Zeichen aus dem HTML-Entwurf der Zunftlade, dort als SVG-Pfade von Hand als Code geschrieben. Einzelheiten: `docs/assets/prompts/zunftlade_symbole.md`.

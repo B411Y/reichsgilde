@@ -121,7 +121,6 @@ public partial class Hauptszene
             }
         }
 
-        _entscheidungsbrief.AbstandUnten = LadeUeberstand; // in der Mitte ragt der Porträtbogen über die Lade
         _entscheidungsbrief.Setzen(gesperrt ? Array.Empty<Entscheidung>() : sichtbar);
 
         // Nichts mehr zu entscheiden (alles beantwortet oder beiseitegelegt): die Pause wie vorher

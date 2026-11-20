@@ -195,6 +195,7 @@ public partial class Hauptszene : Node
         ZeitleisteBauen();
         MeldungenBauen();
         LadeBauen();
+        LadeFensterBauen();
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         AuswahlWappenEinbauen();
@@ -360,6 +361,11 @@ public partial class Hauptszene : Node
         _ratskammer.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }; // „Euer Amt“ am eigenen Knoten des Ratsbaums
         _ratskammer.MarktGewuenscht += MarktOeffnen;
         _charakter.Gemeldet += Protokollieren;
+        _charakter.FamilienbuchGewuenscht += stammbaum => // Reiter „Stammbaum“ und „Chronik“ der Charakterseite
+        {
+            TafelnSchliessen();
+            _familientafel.Oeffnen(stammbaum ? FamilienAnzeige.Reiter.Stammbaum : FamilienAnzeige.Reiter.Chronik);
+        };
         _rathausTafel.RatGewuenscht += reiter => RatOeffnen(reiter);
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;
@@ -603,6 +609,7 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("fach", out var fach) && !optionen.ContainsKey("innen")) FachStartoption(fach); // Lade-Fenster eines Fachs (Hauptszene.Faecher.cs)
         if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
@@ -714,6 +721,7 @@ public partial class Hauptszene : Node
             if (optionen.TryGetValue("arbeiter", out var arbeiter))
                 _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
             if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
+            if (optionen.TryGetValue("fach", out var fachInnen)) FachStartoption(fachInnen);
             if (optionen.TryGetValue("buchblick", out var buchBlick) && Enum.TryParse<BuchArt>(buchBlick, true, out var blickArt)) _stadt.BuchBlickPruefen(blickArt); // Prüfhilfe: Raumkamera vor das Pult
             if (optionen.TryGetValue("gegenstandblick", out var gBlick) && Enum.TryParse<GegenstandArt>(gBlick, true, out var gBlickArt)) _stadt.GegenstandBlickPruefen(gBlickArt); // Prüfhilfe: Raumkamera vor Kartentisch oder Geldtruhe
             if (optionen.TryGetValue("gegenstand", out var gName) && Enum.TryParse<GegenstandArt>(gName, true, out var gArt)) GegenstandAngeklickt(gArt); // Kartentisch oder Geldtruhe im gezeigten Raum öffnen
@@ -731,6 +739,7 @@ public partial class Hauptszene : Node
         // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
         foreach (var tafel in new Control[] { _ratskammer, _familientafel, _charakter, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
             Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
+        if (_ladeFenster.Visible) _ladeFenster.Schliessen();
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         _wohnhausBaum.Hide();
@@ -1067,6 +1076,7 @@ public partial class Hauptszene : Node
     {
         var (tafel, spalte) = Hauptmenue.Tafel(420);
         _spielmenue = tafel;
+        FensterStil.Bekleiden(tafel);
         var mitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
         mitte.AddChild(tafel);
@@ -1110,6 +1120,7 @@ public partial class Hauptszene : Node
             }
         };
         _einstellungen = new EinstellungenAnzeige(EinstellungenSchliessen);
+        FensterStil.Bekleiden(_einstellungen.Tafel); // im Spiel auf Pergament; im Hauptmenü bleibt dieselbe Tafel dunkel wie das Menü
         mitte.AddChild(_einstellungen.Tafel);
         _einstellungen.Tafel.Hide();
 
@@ -1697,7 +1708,7 @@ public partial class Hauptszene : Node
                 Rollbereich.RechtsAnheften(_auswahl);
                 // Ohne Klick in die Welt (Taste, Leiste, Kopfzeile) steht sie wie früher rechts am Rand
                 if (_auswahlKlickBild != Engine.GetProcessFrames())
-                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16 - Fenster.Randabstand, Rollbereich.KopfHoehe));
             }
         }
     }

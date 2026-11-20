@@ -199,9 +199,6 @@ LadeMasse/constants/symbol_wert = 22
 LadeMasse/constants/symbol_klein = 18
 LadeMasse/constants/symbol_fach = 26
 ; Liste der Betriebe über der Lade: Breite, Zeile eines Betriebs, Symbol der Ware
-LadeMasse/constants/betriebe_breite = 300
-LadeMasse/constants/betrieb_hoehe = 44
-LadeMasse/constants/betrieb_symbol = 32
 ; Zeitleiste: Breite mindestens, Abstand zum oberen Rand, Knöpfe
 LadeMasse/constants/zeit_breite = 840
 LadeMasse/constants/zeit_oben = 12

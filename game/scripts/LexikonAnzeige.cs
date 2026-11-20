@@ -280,7 +280,8 @@ public partial class LexikonAnzeige : CenterContainer
         var erwaehnt = Lexikon.Alle.Where(o => o.Kennung != b.Kennung && ErwaehntBegriff(o.Text, b.Kennung))
             .OrderBy(o => o.Titel, StringComparer.CurrentCultureIgnoreCase).ToList();
         if (erwaehnt.Count > 0)
-            neu += "\n\n[color=#bfbfbf]Erwähnt in: [/color]" + string.Join(" · ", erwaehnt.Select(o => $"[url={o.Kennung}][color=#e8c872]{o.Titel}[/color][/url]"));
+            neu += $"\n\n[color=#{FensterStil.Farbe("tinte_leise").ToHtml(false)}]Erwähnt in: [/color]"
+                   + string.Join(" · ", erwaehnt.Select(o => $"[url={o.Kennung}][color=#{FensterStil.Farbe("akzent").ToHtml(false)}]{o.Titel}[/color][/url]"));
         if (neu == _gezeigt) return;
         _gezeigt = neu;
         var stelle = _text.GetVScrollBar().Value;

@@ -118,7 +118,7 @@ public partial class Hauptszene
     {
         if (_spieler is null || !w.Familien.HatLebensweise || w.Familien.Von(_spieler) is not { } haus)
         {
-            Setzen(_fachFamilie.Zustand, "");
+            _lebenswegSumme = 0;
             _lebenswegFrei = null;
             return;
         }
@@ -139,7 +139,7 @@ public partial class Hauptszene
                 }
         _lebenswegFrei = jetzt;
         var summe = jetzt.Values.Sum();
-        Setzen(_fachFamilie.Zustand, summe <= 0 ? "" : summe == 1 ? "1 Punkt frei" : $"{summe} Punkte frei");
+        _lebenswegSumme = summe; // die Zustandszeile des Fachs „Familie“ schreibt FachZustaendeAnzeigen (Hauptszene.Faecher.cs)
         var tipp = "Eure Familie: Oberhaupt, Ehepartner, Kinder, Stammbaum"
                    + (summe > 0 ? "\nFreie Punkte der Lebensweise (Charakterfenster, Reiter „Lebensweg“):\n" + string.Join("\n", personen.Where(p => jetzt[p.Nummer] > 0).Select(p => $"{p.Vorname}: {jetzt[p.Nummer]}")) : "");
         if (_fachFamilie.Knopf.TooltipText != tipp) _fachFamilie.Knopf.TooltipText = tipp;
