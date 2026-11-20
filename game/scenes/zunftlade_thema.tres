@@ -213,7 +213,7 @@ LadeMasse/constants/meldungen_unten = 218
 LadeMasse/constants/meldungen_einzug = 30
 LadeMasse/constants/schild_unten = 216
 LadeMasse/constants/schild_einzug = 30
-; ── Symbole: die Zeichen der Fächer und kleinen Knöpfe plastisch als Messingbeschlag (tools/oberflaeche/zunftlade_zeichen.py), die übrigen schlicht aus dem Entwurf ──
+; ── Symbole: die Zeichen der Fächer und kleinen Knöpfe als Messingbeschlag (Formen von game-icons.net, CC BY 3.0; tools/oberflaeche/zunftlade_zeichen.py), die übrigen schlicht aus dem Entwurf ──
 LadeSymbole/icons/gulden = ExtResource("s_gulden")
 LadeSymbole/icons/ansehen = ExtResource("s_ansehen")
 LadeSymbole/icons/familie = ExtResource("s_familie")
