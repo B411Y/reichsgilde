@@ -361,6 +361,11 @@ public partial class Hauptszene : Node
         _ratskammer.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }; // „Euer Amt“ am eigenen Knoten des Ratsbaums
         _ratskammer.MarktGewuenscht += MarktOeffnen;
         _charakter.Gemeldet += Protokollieren;
+        _charakter.FamilienbuchGewuenscht += stammbaum => // Reiter „Stammbaum“ und „Chronik“ der Charakterseite
+        {
+            TafelnSchliessen();
+            _familientafel.Oeffnen(stammbaum ? FamilienAnzeige.Reiter.Stammbaum : FamilienAnzeige.Reiter.Chronik);
+        };
         _rathausTafel.RatGewuenscht += reiter => RatOeffnen(reiter);
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;

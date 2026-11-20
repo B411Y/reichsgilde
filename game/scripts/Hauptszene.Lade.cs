@@ -108,11 +108,11 @@ public partial class Hauptszene
         _ladePortraetfach = new Control
         {
             MouseFilter = Control.MouseFilterEnum.Stop, MouseDefaultCursorShape = Control.CursorShape.PointingHand, Visible = false,
-            TooltipText = "Euer Haus – ein Klick öffnet die Familie (Oberhaupt, Ehepartner, Kinder, Stammbaum)",
+            TooltipText = "Euer Oberhaupt – ein Klick öffnet die Charakterseite: Stand, Gulden, AP, Stress, Amt, Talente, Charakterzüge, Familie",
         };
         _ladePortraetfach.GuiInput += eingabe =>
         {
-            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) FachOeffnen("familie", FamilieInhalt);
+            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) CharakterseiteOeffnen();
         };
         _lade.AddChild(_ladePortraetfach);
         var rand = LadeStil.Mass("portraet_rand");
@@ -142,6 +142,15 @@ public partial class Hauptszene
         _ladeName = LadeStil.Text(_ladeNamensschild, "", "LadeName");
         _ladeName.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         _ladeName.HorizontalAlignment = HorizontalAlignment.Center;
+    }
+
+    /// <summary>Klick aufs Porträt: die Charakterseite des eigenen Oberhaupts (ein zweiter Klick schließt sie).</summary>
+    private void CharakterseiteOeffnen()
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null || w.Familien.Von(_spieler)?.Oberhaupt is not { } oberhaupt) return;
+        var offen = _charakter.Visible;
+        TafelnSchliessen();
+        if (!offen) _charakter.Oeffnen(oberhaupt);
     }
 
     /// <summary>Die Schiene einer Seite: eine Reihe fester Höhe über den Fächern.</summary>
