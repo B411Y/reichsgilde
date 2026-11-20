@@ -45,11 +45,38 @@ EZ = Vector((0, 0, 1))
 
 # ── Saetze: Volk x Stufe ──────────────────────────────────────────────────────────────────────────────────────────────
 # blatt: Trim-Sheet fuer die Kontrollbilder (im Spiel waehlt die Ebene des Haeuser-Arrays, Steinebenen.cs)
-# eg/og: "fachwerk" | "stein" | "putz"; dach: "stroh" (Stufen zu 1,55 m im Band „stroh“) | "ziegel" (Lagen zu 0,25 m im Band „stroh_franse“)
+# geschosse: Hoehen der Geschosse (EG zuerst); eg/og: Wandart "fachwerk" | "putz" | "mauer" (Mauerwerk im Band mauer_band);
+# werk_band: Band des Werksteins fuer Eckquader (None: keine); dach: "stroh" (Stufen 1,55 m, Band „stroh“), "schindel" (Reihen 0,74 m,
+# Band „stroh“, duenn), "ziegel" (Lagen 0,25 m, Band „stroh_franse“; Ziegel bzw. Schiefer je Blatt); treppe: Treppengiebel vorn an den
+# Giebelhaeusern; erker: Eckerker am Eckhaus (Nutzer: nur Eckhaus, ab Stufe 2); fb: Fensterbreite; putz_lage: Lagenhoehe im Band
+# „putz“ (None: eine Lage je Geschoss wie im ersten Stand mensch_s1). Masse der Neubau-Haeuser als Vorbild, Hoehen Annahme (Konzept 4.7).
 SAETZE = {
-    "mensch_s1": dict(blatt="trim", eg="fachwerk", og="fachwerk", dach="stroh", z_og=3.0, z_traufe=5.6, neig_g=50, neig_t=45,
-                      sockel="bruchstein", erker=False),
+    "mensch_s1": dict(blatt="trim", eg="fachwerk", og="fachwerk", dach="stroh", geschosse=(3.0, 2.6), neig_g=50, neig_t=45,
+                      mauer_band="bruchstein", werk_band=None, erker=False, treppe=False, fb=0.75, putz_lage=None),
+    "mensch_s2": dict(blatt="trim_s2", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.4, 3.0), neig_g=52, neig_t=45,
+                      mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.8, putz_lage=1.6),
+    "mensch_s3": dict(blatt="trim_s3", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=52, neig_t=45,
+                      mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.8, putz_lage=1.6),
+    "zwerg_s1": dict(blatt="trim_zwerg", eg="mauer", og="mauer", dach="schindel", geschosse=(2.8, 2.4), neig_g=45, neig_t=40,
+                     mauer_band="putz", werk_band="bruchstein", erker=False, treppe=False, fb=0.8, putz_lage=1.6),
+    "zwerg_s2": dict(blatt="trim_s2_zwerg", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=48, neig_t=42,
+                     mauer_band="putz", werk_band="bruchstein", erker=True, treppe=False, fb=0.8, putz_lage=1.6),
+    "zwerg_s3": dict(blatt="trim_s3_zwerg", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.0, 2.6, 2.4), neig_g=48, neig_t=42,
+                     mauer_band="putz", werk_band="bruchstein", erker=True, treppe=True, fb=0.8, putz_lage=1.6),
+    "elb_s1": dict(blatt="trim_elb", eg="putz", og="putz", dach="schindel", geschosse=(3.2, 2.8), neig_g=58, neig_t=52,
+                   mauer_band="bruchstein", werk_band="bruchstein", erker=False, treppe=False, fb=0.6, putz_lage=1.6),
+    "elb_s2": dict(blatt="trim_s2_elb", eg="putz", og="fachwerk", dach="ziegel", geschosse=(3.4, 3.0), neig_g=58, neig_t=52,
+                   mauer_band="bruchstein", werk_band="bruchstein", erker=True, treppe=False, fb=0.6, putz_lage=1.6),
+    "elb_s3": dict(blatt="trim_s3_elb", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=58, neig_t=52,
+                   mauer_band="bruchstein", werk_band="putz", erker=True, treppe=False, fb=0.6, putz_lage=1.6),
+    "halbling_s1": dict(blatt="trim_halbling", eg="fachwerk", og="fachwerk", dach="stroh", geschosse=(3.0, 1.0), neig_g=48, neig_t=45,
+                        mauer_band="bruchstein", werk_band=None, erker=False, treppe=False, fb=0.7, putz_lage=1.6),
+    "halbling_s2": dict(blatt="trim_s2_halbling", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=50, neig_t=45,
+                        mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.7, putz_lage=1.6),
+    "halbling_s3": dict(blatt="trim_s3_halbling", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.2, 2.8), neig_g=50, neig_t=45,
+                        mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.7, putz_lage=1.6),
 }
+BANDLAGE = {"bruchstein": 0.4, "putz": 1.6}      # natuerliche Hoehe eines Bandes in Metern (Bandhoehe x Breite des Bands / 2048)
 MODULE = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "seite_blind", "seite_offen", "kappe_brand", "kappe_offen", "gasse", "eck",
           "mauer", "pfeiler", "tor", "hinterhaus"]
 
@@ -68,8 +95,51 @@ S = {}                 # Werte des gewaehlten Satzes (main)
 def stil(satz):
     S.clear(); S.update(SAETZE[satz]); S["satz"] = satz
     S["krag"] = KRAG if S["og"] == "fachwerk" else 0.0
+    S["z_og"] = S["geschosse"][0]
+    S["z_traufe"] = sum(S["geschosse"])
     S["tg"], S["tt"] = math.tan(math.radians(S["neig_g"])), math.tan(math.radians(S["neig_t"]))
-    S["dick"] = 0.28 if S["dach"] == "stroh" else 0.12
+    S["dick"] = {"stroh": 0.28, "schindel": 0.10, "ziegel": 0.12}[S["dach"]]
+
+
+def stockwerke():
+    """Die Geschosse: Liste (z0, z1, Wandart, ist_eg)."""
+    aus, z = [], 0.0
+    for i, h in enumerate(S["geschosse"]):
+        aus.append((z, z + h, S["eg"] if i == 0 else S["og"], i == 0)); z += h
+    return aus
+
+
+def fenster_hoehen(z0, z1, eg):
+    """Bruestung und Sturz der Fenster eines Geschosses (wie die Neubauten: EG 1,10/2,10 bei 3 m, OG 0,85/1,95 ueber dem Boden bei 2,6 m;
+    ein niedriger Kniestock bekommt kleine Fenster)."""
+    h = z1 - z0
+    if h < 1.6: return z0 + 0.2, z1 - 0.2
+    return (z0 + 0.37 * h, z0 + 0.70 * h) if eg else (z0 + 0.33 * h, z0 + 0.75 * h)
+
+
+def wandseite(teil, eb_eg, eb_og, b_eg, b_og, anker, modul, n_eg, n_og, tuer=None, blind=False, breite=None):
+    """Alle Geschosse einer Wand: EG in der Ebene eb_eg (Breite b_eg), die Obergeschosse in eb_og (b_og, auskragend). n_eg/n_og:
+    Fensterachsen, tuer: None, "links" oder "rechts" (die Tuer nimmt eine weitere Achse im EG). blind: ohne Oeffnungen, Fachwerk
+    wird Putz (die Wand liegt am Nachbarn)."""
+    fb = breite or S["fb"]
+    for z0, z1, art, eg in stockwerke():
+        eb, b = (eb_eg, b_eg) if eg else (eb_og, b_og)
+        if blind:
+            art = "putz" if art == "fachwerk" else art
+            oeff = []
+        else:
+            fa, fz = fenster_hoehen(z0, z1, eg)
+            n = n_eg if eg else n_og
+            schmal = z1 - z0 < 1.6
+            plaetze = achsen(b, n + (1 if (eg and tuer) else 0), 0.5 if schmal else fb) if n + (1 if (eg and tuer) else 0) > 0 else []
+            oeff = []
+            for i, (a0, a1) in enumerate(plaetze):
+                if eg and tuer and i == (0 if tuer == "links" else len(plaetze) - 1):
+                    m = (a0 + a1) / 2
+                    oeff.append((m - 0.48, m + 0.48, 0.0, min(2.15, z1 - 0.45), "tuer"))
+                else:
+                    oeff.append((a0, a1, fa, fz, "fenster"))
+        geschoss(teil, eb, b, z0, z1, oeff, art, anker, modul, sockel=eg)
 
 
 # ── Vieleck-Werkzeuge (konvexe Vielecke in einer Ebene: (s, t)-Koordinaten) ───────────────────────────────────────────
@@ -186,7 +256,7 @@ def fenster(teil, ebene, loch, laeden=True):
     teil.brett("Fachwerk", ebene.p((s0 + s1) / 2, t0, -0.06), ebene.p((s0 + s1) / 2, t1, -0.06), 0.05, n, "balken_c", tiefe=0.02, seiten=False)
     pts = [ebene.p(s0, t0, -0.10), ebene.p(s1, t0, -0.10), ebene.p(s1, t1, -0.10), ebene.p(s0, t1, -0.10)]
     teil.vieleck("Fenster", pts, [(0, 0), (1, 0), (1, 1), (0, 1)], weg_von=ebene.innen)
-    if laeden and S["og"] == "fachwerk":
+    if laeden and S["og"] == "fachwerk" and S["satz"].startswith(("mensch", "halbling")):
         breite = (s1 - s0) / 2
         for sa in (s0 - breite - 0.04, s1 + 0.04):
             teil.rechteck("Fachwerk", ebene.p(sa, t0, 0.025), ebene.eu, ebene.ev, breite, t1 - t0, "farbholz", laengs="v", weg_von=ebene.innen, farbe=ROT)
@@ -236,21 +306,45 @@ def fachwerk_geschoss(teil, ebene, b, z0, z1, oeffnungen, riegel_mitte=True):
 
 
 def geschoss(teil, ebene, b, z0, z1, oeffnungen, art, anker, modul, sockel=False):
-    """Eine Geschosswand der Breite b (s von 0 bis b) mit Oeffnungen (s0, s1, t0, t1, "fenster"|"tuer"); art fachwerk|stein|putz."""
+    """Eine Geschosswand der Breite b (s von 0 bis b) mit Oeffnungen (s0, s1, t0, t1, "fenster"|"tuer"); art fachwerk|putz|mauer
+    (Mauerwerk im Band des Satzes, "stein" = mauer). Bei Mauer und Putz mit Werkstein: Eckquader an beiden Enden."""
+    if art == "stein": art = "mauer"
     loecher = [(o[0], o[1], o[2], o[3]) for o in oeffnungen]
     poly = [(0, z0), (b, z0), (b, z1), (0, z1)]
-    if sockel and z0 < Z_SOCKEL:
+    if sockel and z0 < Z_SOCKEL and not (art == "mauer" and S["mauer_band"] == "bruchstein"):
         unten = [(0, z0), (b, z0), (b, Z_SOCKEL), (0, Z_SOCKEL)]
         lagenflaeche(teil, "Bruchstein", ebene, unten, "bruchstein", 0.4, [l for l in loecher if l[2] < Z_SOCKEL], raus=0.03, u_saat=teil.zufall.random())
         poly = [(0, Z_SOCKEL), (b, Z_SOCKEL), (b, z1), (0, z1)]
-    if art == "stein":
-        lagenflaeche(teil, "Bruchstein", ebene, poly, "bruchstein", 0.4, loecher, u_saat=teil.zufall.random())
+    putz_lage = S["putz_lage"] or max(z1 - poly[0][1], 0.5)
+    if art == "mauer":
+        band = S["mauer_band"]
+        lagenflaeche(teil, "Bruchstein", ebene, poly, band, BANDLAGE[band], loecher, u_saat=teil.zufall.random())
     else:
-        lagenflaeche(teil, "Lehmputz", ebene, poly, "putz", max(z1 - poly[0][1], 0.5), loecher, u_saat=teil.zufall.random())
+        lagenflaeche(teil, "Lehmputz", ebene, poly, "putz", putz_lage, loecher, u_saat=teil.zufall.random())
         if art == "fachwerk": fachwerk_geschoss(teil, ebene, b, poly[0][1], z1, oeffnungen)
+    if art in ("mauer", "putz") and S["werk_band"] and b > 1.5 and not S.get("ohne_quader"):
+        eckquader(teil, ebene, b, poly[0][1], z1)
     for o in oeffnungen:
         if o[4] == "fenster": fenster(teil, ebene, o[:4])
         else: tuer(teil, ebene, o[:4], anker, modul)
+
+
+def eckquader(teil, ebene, b, z0, z1):
+    """Eckquader aus Werkstein an beiden Enden der Wand: abwechselnd lang (0,55 m) und kurz (0,32 m), je etwa 0,4 m hoch, 2 cm vor der Wand."""
+    band = S["werk_band"]
+    v0, v1, m = BA[band]
+    lage = BANDLAGE[band]
+    n = max(1, int(round((z1 - z0) / 0.4)))
+    hoch = (z1 - z0) / n
+    for k in range(n):
+        lang = 0.55 if k % 2 == 0 else 0.32
+        for links in (True, False):
+            s0, s1 = (0.0, lang) if links else (b - lang, b)
+            ta, tb = z0 + k * hoch, z0 + (k + 1) * hoch - 0.015
+            u0 = 0.13 * k + (0.5 if links else 0.0)
+            vt = v1 - min(1.0, (tb - ta) / lage) * (v1 - v0)
+            pts = [ebene.p(s0, ta, 0.02), ebene.p(s1, ta, 0.02), ebene.p(s1, tb, 0.02), ebene.p(s0, tb, 0.02)]
+            teil.vieleck("Bruchstein", pts, [(u0, v1), (u0 + lang / m, v1), (u0 + lang / m, vt), (u0, vt)], weg_von=ebene.innen)
 
 
 def achsen(b, n, breite):
@@ -260,20 +354,9 @@ def achsen(b, n, breite):
 
 
 def fassade(teil, ebene, b, oben_z, krag_ebene, anker, modul, n_eg, n_og, mit_tuer, tuer_links=True, b_og=None):
-    """Erdgeschoss und Obergeschoss einer Schauseite (Breite b, oben b_og). `krag_ebene`: Ebene des auskragenden Obergeschosses."""
-    z_og, z_t = S["z_og"], oben_z
-    b_og = b if b_og is None else b_og
-    eg = []
-    plaetze = achsen(b, n_eg + (1 if mit_tuer else 0), 0.75)
-    for i, (s0, s1) in enumerate(plaetze):
-        if mit_tuer and i == (0 if tuer_links else len(plaetze) - 1):
-            m = (s0 + s1) / 2
-            eg.append((m - 0.48, m + 0.48, 0.0, 2.15, "tuer"))
-        else:
-            eg.append((s0, s1, 1.10, 2.10, "fenster"))
-    geschoss(teil, ebene, b, 0.0, z_og, eg, S["eg"], anker, modul, sockel=True)
-    og = [(s0, s1, z_og + 0.85, z_og + 1.95, "fenster") for s0, s1 in achsen(b_og, n_og, 0.75)]
-    geschoss(teil, krag_ebene, b_og, z_og, z_t, og, S["og"], anker, modul)
+    """Schauseite: alle Geschosse (Breite b, Obergeschosse b_og in der auskragenden Ebene)."""
+    wandseite(teil, ebene, krag_ebene, b, b if b_og is None else b_og, anker, modul, n_eg, n_og,
+              tuer=("links" if tuer_links else "rechts") if mit_tuer else None)
 
 
 def krag_boden(teil, x0, x1, y_eg, y_og, z, richtung):
@@ -290,7 +373,7 @@ def krag_boden(teil, x0, x1, y_eg, y_og, z, richtung):
 
 # ── Dach ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-def dachflaeche(d, poly_sq, fuss, entlang, hang, unten_punkt, kanten=(), karten=True):
+def dachflaeche(d, poly_sq, fuss, entlang, hang, unten_punkt, kanten=(), karten=True, stirn=True):
     """Eine Dachseite als konvexes Vieleck (s entlang der Traufe, q hangaufwaerts ab `fuss`) auf der Oberseite der Deckung:
     Stroh in Stufen zu 1,55 m (Band „stroh“), Ziegel/Schiefer in Lagen zu 0,25 m (Band „stroh_franse“), jede Stufe am Fuss etwas
     angehoben (Stirn). `kanten`: Indizes der Randkanten (i, i+1) mit Stirnflaeche der Deckung (Traufe, Ortgang). `unten_punkt`: unter dem Dach."""
@@ -298,8 +381,8 @@ def dachflaeche(d, poly_sq, fuss, entlang, hang, unten_punkt, kanten=(), karten=
     normale = entlang.cross(hang).normalized()
     if normale.z < 0: normale = -normale
     stroh = S["dach"] == "stroh"
-    band = "stroh" if stroh else "stroh_franse"
-    lage, stufe = (1.55, 0.07) if stroh else (0.25, 0.025)
+    band = "stroh_franse" if S["dach"] == "ziegel" else "stroh"
+    lage, stufe = {"stroh": (1.55, 0.07), "schindel": (0.74, 0.03), "ziegel": (0.25, 0.025)}[S["dach"]]
     v0, v1, m = BA[band]
     P = lambda s, q, h=0.0: fuss + entlang * s + hang * q + normale * h
     q_max = max(q for _, q in poly_sq)
@@ -315,7 +398,7 @@ def dachflaeche(d, poly_sq, fuss, entlang, hang, unten_punkt, kanten=(), karten=
             d.vieleck("Stroh", pts, uvs, weg_von=unten_punkt)
         # Stirn der Stufe am Fuss
         unten = sorted((p for p in streifen if abs(p[1] - k * lage) < 1e-6), key=lambda p: p[0])
-        if len(unten) >= 2:
+        if stirn and len(unten) >= 2:
             a, b = unten[0], unten[-1]
             d.vieleck("Stroh", [P(a[0], a[1]), P(b[0], b[1]), P(b[0], b[1], stufe), P(a[0], a[1], stufe)],
                       [(uu, v1 - 0.002), (uu + (b[0] - a[0]) / m, v1 - 0.002), (uu + (b[0] - a[0]) / m, v1 - 0.012), (uu, v1 - 0.012)],
@@ -382,17 +465,21 @@ def koerper_giebel(w, modul):
     fassade(h, vorn, b, z_t, vorn_og, anker, modul, n_og - 1, n_og, True, tuer_links=(w != 6))
     krag_boden(h, EIN, w - EIN, 0.0, -krag, S["z_og"], -1)
     hinten = Ebene((w - EIN, TIEFE, 0), (-1, 0, 0), (0, 0, 1), innen)
-    geschoss(h, hinten, b, 0.0, S["z_og"], [(s0, s1, 1.1, 2.1, "fenster") for s0, s1 in achsen(b, max(1, n_og - 1), 0.7)], S["eg"], anker, modul, sockel=True)
-    geschoss(h, hinten, b, S["z_og"], z_t, [(s0, s1, S["z_og"] + 0.85, S["z_og"] + 1.9, "fenster") for s0, s1 in achsen(b, max(1, n_og - 1), 0.7)], S["og"], anker, modul)
+    wandseite(h, hinten, hinten, b, b, anker, modul, max(1, n_og - 1), max(1, n_og - 1))
     # Giebeldreiecke vorn und hinten bis unter die Dachflaeche
     tg = S["tg"]
     first_z = z_t + (w / 2 - EIN) * tg
+    treppe = S["treppe"]
+    if treppe:
+        treppengiebel(h, vorn_og, b, z_t, first_z, -krag)
     for eb, y in ((vorn_og, -krag), (hinten, TIEFE)):
+        if treppe and eb is vorn_og: continue
         poly = [(0, z_t), (b, z_t), (b / 2, first_z - 0.02)]
         loch = (b / 2 - 0.30, b / 2 + 0.30, z_t + 0.55, z_t + 1.35) if first_z - z_t > 2.1 else None
         art = S["og"]
-        if art == "stein":
-            lagenflaeche(h, "Bruchstein", eb, poly, "bruchstein", 0.4, [loch] if loch else [], u_saat=h.zufall.random())
+        if art in ("mauer", "putz"):
+            band = S["mauer_band"] if art == "mauer" else "putz"
+            lagenflaeche(h, "Bruchstein" if art == "mauer" else "Lehmputz", eb, poly, band, BANDLAGE[band], [loch] if loch else [], u_saat=h.zufall.random())
         else:
             lagenflaeche(h, "Lehmputz", eb, poly, "putz", first_z - z_t, [loch] if loch else [], u_saat=h.zufall.random())
             n = eb.n()
@@ -406,7 +493,7 @@ def koerper_giebel(w, modul):
         if loch: fenster(h, eb, loch, laeden=False)
     # Dach: zwei Seiten, Traufe an der Parzellengrenze (x = 0 bzw. w)
     dick = S["dick"]
-    y0, y1 = -krag - ORTGANG, TIEFE + ORTGANG
+    y0, y1 = (-krag + 0.15 if treppe else -krag - ORTGANG), TIEFE + ORTGANG
     z_fuss = z_t - EIN * tg + dick / math.cos(math.radians(S["neig_g"]))
     breite_hang = (w / 2) / math.cos(math.radians(S["neig_g"]))
     unten_punkt = (w / 2, TIEFE / 2, z_t)
@@ -417,11 +504,12 @@ def koerper_giebel(w, modul):
         hang = Vector((-seite * (w / 2), 0, (w / 2) * tg)).normalized()
         laenge = y1 - y0
         poly = [(0, 0), (laenge, 0), (laenge, breite_hang), (0, breite_hang)]
-        dachflaeche(h, poly, fuss, entlang, hang, unten_punkt, kanten=(0, 1, 3))
+        dachflaeche(h, poly, fuss, entlang, hang, unten_punkt, kanten=((0, 3) if seite < 0 else (0, 1)) if treppe else (0, 1, 3))
     zf = z_t + (w / 2 - EIN) * tg + dick / math.cos(math.radians(S["neig_g"]))
     first(h, (w / 2, y0, zf), (w / 2, y1, zf), (-0.35, 0, -0.35 * tg + 0.1), (0.35, 0, -0.35 * tg + 0.1), unten_punkt)
     # Windbretter am Ortgang
     for y, aussen in ((y0, -1), (y1, 1)):
+        if treppe and aussen < 0: continue   # vorn steckt der Ortgang im Treppengiebel
         for seite in (-1, 1):
             a = Vector((w / 2 + seite * (w / 2), y, z_fuss - dick - 0.02)); bb = Vector((w / 2, y, zf - 0.04))
             h.brett("Fachwerk", a, bb, 0.20, (0, aussen, 0), "balken_c", tiefe=0.03)
@@ -430,8 +518,58 @@ def koerper_giebel(w, modul):
     return h, anker
 
 
+def treppengiebel(h, eb, b, z_t, first_z, y_wand, stufen=4, dicke=0.32):
+    """Treppengiebel vorn (Stufe 3 der Menschen, Zwerge, Halblinge; Vorbild Overstolzenhaus): die Giebelwand steigt in Stufen 0,45 m ueber
+    die Deckung, mit Abdeckplatten aus Werkstein; das Dach beginnt hinter der Wand. Mauer im Band des Satzes, Luke in der Mitte."""
+    tg, dick = S["tg"], S["dick"]
+    cos = math.cos(math.radians(S["neig_g"]))
+    mitte = 0.35
+    oben = lambda s: z_t + min(s, b - s) * tg + dick / cos + 0.45      # Oberkante ueber der Deckung bei s
+    grenzen = [i * (b / 2 - mitte) / stufen for i in range(stufen + 1)]
+    streifen = []
+    for i in range(stufen):
+        a0, a1 = grenzen[i], grenzen[i + 1]
+        streifen.append((a0, a1, oben(a1)))
+        streifen.append((b - a1, b - a0, oben(a1)))
+    streifen.append((b / 2 - mitte, b / 2 + mitte, z_t + (b / 2) * tg + dick / cos + 0.75))
+    streifen.sort()
+    band = S["mauer_band"]
+    stoff = "Bruchstein"
+    loch = (b / 2 - 0.30, b / 2 + 0.30, z_t + 0.55, z_t + 1.35) if first_z - z_t > 2.1 else None
+    werk = S["werk_band"] or band
+    wv0, wv1, wm = BA[werk]
+    n = eb.n()
+    hinten = Ebene(eb.o - n * dicke, eb.eu, eb.ev, eb.o + n * 1.0)      # Rueckseite, sichtbar ueber dem Dach
+    for k, (a0, a1, top) in enumerate(streifen):
+        poly = [(a0, z_t), (a1, z_t), (a1, top), (a0, top)]
+        lagenflaeche(h, stoff, eb, poly, band, BANDLAGE[band], [loch] if loch else [], u_saat=0.11 * k)
+        unten_hinten = z_t + min(a0, b - a1) * tg
+        lagenflaeche(h, stoff, hinten, [(a0, unten_hinten), (a1, unten_hinten), (a1, top), (a0, top)], band, BANDLAGE[band], u_saat=0.23 * k)
+        # Abdeckplatte
+        p0 = eb.p(a0 - 0.03, top, 0.04)
+        h.rechteck(stoff, p0, eb.eu, -n, a1 - a0 + 0.06, dicke + 0.08, werk, weg_von=eb.p((a0 + a1) / 2, top - 1.0, -dicke / 2))
+    # Stossflaechen zwischen den Stufen und an den Enden (zur niedrigeren Seite)
+    for i, (a0, a1, top) in enumerate(streifen):
+        for s_kante, nachbar in ((a0, streifen[i - 1][2] if i > 0 else z_t), (a1, streifen[i + 1][2] if i + 1 < len(streifen) else z_t)):
+            if top - nachbar < 0.01: continue
+            p = eb.p(s_kante, nachbar)
+            richtung = -1 if s_kante == a0 else 1
+            h.rechteck(stoff, p, -n, (0, 0, 1), dicke, top - nachbar, band, laengs="u",
+                       weg_von=eb.p(s_kante - richtung * 0.5, (top + nachbar) / 2, -dicke / 2))
+    if loch: fenster(h, eb, loch, laeden=False)
+
+
 def koerper_trauf(w, modul):
-    """Traufstaendiger Koerper der Breite w (6/8 m): Waende bis an die Grenzen, First entlang x, keine Seitenwaende."""
+    """Traufstaendiger Koerper der Breite w (6/8 m): Waende bis an die Grenzen, First entlang x, keine Seitenwaende (ohne Eckquader:
+    das Haus stoesst an die Nachbarn)."""
+    S["ohne_quader"] = True
+    try:
+        return _koerper_trauf(w, modul)
+    finally:
+        S["ohne_quader"] = False
+
+
+def _koerper_trauf(w, modul):
     h = Teil(modul, BA, saat=sum(map(ord, modul)))
     anker = []
     z_t = S["z_traufe"]
@@ -443,8 +581,7 @@ def koerper_trauf(w, modul):
     fassade(h, vorn, w, z_t, vorn_og, anker, modul, n_og - 1, n_og, True, tuer_links=False)
     krag_boden(h, 0.0, w, 0.0, -krag, S["z_og"], -1)
     hinten = Ebene((w, TIEFE, 0), (-1, 0, 0), (0, 0, 1), innen)
-    geschoss(h, hinten, w, 0.0, S["z_og"], [(s0, s1, 1.1, 2.1, "fenster") for s0, s1 in achsen(w, n_og - 1, 0.7)], S["eg"], anker, modul, sockel=True)
-    geschoss(h, hinten, w, S["z_og"], z_t, [(s0, s1, S["z_og"] + 0.85, S["z_og"] + 1.9, "fenster") for s0, s1 in achsen(w, n_og - 1, 0.7)], S["og"], anker, modul)
+    wandseite(h, hinten, hinten, w, w, anker, modul, n_og - 1, n_og - 1)
     trauf_dach(h, 0.0, w, z_t, krag, kanten_enden=False)
     zf = trauf_first_z(z_t, krag)
     schornstein(h, w * 0.68, (TIEFE - krag) / 2 + 0.8, z_t, zf + 0.6)
@@ -455,7 +592,7 @@ def trauf_first_z(z_t, krag):
     return z_t + ((TIEFE + krag) / 2) * S["tt"] + S["dick"] / math.cos(math.radians(S["neig_t"]))
 
 
-def trauf_dach(h, x0, x1, z_t, krag, kanten_enden):
+def trauf_dach(h, x0, x1, z_t, krag, kanten_enden, stirn=True):
     """Satteldach mit First entlang x zwischen x0 und x1 (Traufe vorn vor dem Obergeschoss, hinten vor der Rueckwand)."""
     tt, dick = S["tt"], S["dick"]
     cos = math.cos(math.radians(S["neig_t"]))
@@ -473,7 +610,7 @@ def trauf_dach(h, x0, x1, z_t, krag, kanten_enden):
         hang = Vector((0, -seite * halb, halb * tt)).normalized()
         L = x1 - x0
         poly = [(0, 0), (L, 0), (L, hang_l), (0, hang_l)]
-        dachflaeche(h, poly, fuss, entlang, hang, unten_punkt, kanten=(0, 1, 3) if kanten_enden else (0,))
+        dachflaeche(h, poly, fuss, entlang, hang, unten_punkt, kanten=(0, 1, 3) if kanten_enden else (0,), stirn=stirn)
     zf = trauf_first_z(z_t, krag)
     first(h, (x0, y_first, zf), (x1, y_first, zf), (0, -0.35, -0.35 * tt + 0.1), (0, 0.35, -0.35 * tt + 0.1), unten_punkt)
 
@@ -494,13 +631,8 @@ def seite_giebelhaus(offen, modul):
     krag, z_og, z_t = S["krag"], S["z_og"], S["z_traufe"]
     innen = (EIN + 2.0, TIEFE / 2, 2.0)
     eg = Ebene((EIN, TIEFE, 0), (0, -1, 0), (0, 0, 1), innen)           # s von hinten (y = TIEFE) nach vorn
-    if offen:
-        eg_l = [(s0, s1, 1.1, 2.1, "fenster") for s0, s1 in achsen(TIEFE, 3, 0.7)]
-        og_l = [(s0, s1, z_og + 0.85, z_og + 1.9, "fenster") for s0, s1 in achsen(TIEFE + krag, 3, 0.7)]
-    else:
-        eg_l, og_l = [], []
-    geschoss(h, eg, TIEFE, 0.0, z_og, eg_l, S["eg"] if offen else ("stein" if S["eg"] == "stein" else "putz"), anker, modul, sockel=True)
-    geschoss(h, eg, TIEFE + krag, z_og, z_t, og_l, S["og"] if offen else ("stein" if S["og"] == "stein" else "putz"), anker, modul)
+    # offen: wenige Fensterachsen (Dreiecksgrenze der Kappen, Konzept 4.9: 300)
+    wandseite(h, eg, eg, TIEFE, TIEFE + krag, anker, modul, 1, 1, blind=not offen)
     return h, anker
 
 
@@ -529,9 +661,9 @@ def kappe(brand, modul):
                    [(s_vorn_og, z_tr - 0.15), (s_tr_v, z_tr - 0.15), (s_tr_v, z_t), (s_vorn_og, z_t)]]
         innen_eb = Ebene((d, TIEFE, 0), (0, -1, 0), (0, 0, 1), (-1.0, TIEFE / 2, 2.0))
         for k, poly in enumerate(stuecke):
-            lagenflaeche(h, "Bruchstein", eb, poly, "bruchstein", 0.4, u_saat=0.13 * k)
+            lagenflaeche(h, "Bruchstein", eb, poly, S["mauer_band"], BANDLAGE[S["mauer_band"]], u_saat=0.13 * k)
             if k == 2:   # innen nur ueber dem eigenen Dach sichtbar
-                lagenflaeche(h, "Bruchstein", innen_eb, poly, "bruchstein", 0.4, u_saat=0.29)
+                lagenflaeche(h, "Bruchstein", innen_eb, poly, S["mauer_band"], BANDLAGE[S["mauer_band"]], u_saat=0.29)
         # Stirnseiten und Abdeckung
         for s, z0, z1 in ((s_tr_h, z_tr - 0.15, z_tr + ueber), (s_tr_v, z_tr - 0.15, z_tr + ueber)):
             y = TIEFE - s
@@ -543,15 +675,13 @@ def kappe(brand, modul):
             h.rechteck("Bruchstein", o, pb - pa, (1, 0, 0), (pb - pa).length, d + 0.08, "bruchstein", laengs="u",
                        weg_von=(d / 2, (pa.y + pb.y) / 2, (pa.z + pb.z) / 2 - 1))
     else:
-        eg_l = [(s0, s1, 1.1, 2.1, "fenster") for s0, s1 in achsen(TIEFE, 2, 0.7)]
-        og_l = [(s0, s1, z_og + 0.85, z_og + 1.9, "fenster") for s0, s1 in achsen(TIEFE + krag, 3, 0.7)]
-        geschoss(h, eb, TIEFE, 0.0, z_og, eg_l, S["eg"], anker, modul, sockel=True)
-        geschoss(h, eb, TIEFE + krag, z_og, z_t, og_l, S["og"], anker, modul)
+        wandseite(h, eb, eb, TIEFE, TIEFE + krag, anker, modul, 0, 1)
         b = TIEFE + krag
         poly = [(0, z_t), (b, z_t), (s_first, z_first - 0.02)]
         loch = (s_first - 0.3, s_first + 0.3, z_t + 0.6, z_t + 1.4)
-        if S["og"] == "stein":
-            lagenflaeche(h, "Bruchstein", eb, poly, "bruchstein", 0.4, [loch], u_saat=0.5)
+        if S["og"] in ("mauer", "putz"):
+            band = S["mauer_band"] if S["og"] == "mauer" else "putz"
+            lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, poly, band, BANDLAGE[band], [loch], u_saat=0.5)
         else:
             lagenflaeche(h, "Lehmputz", eb, poly, "putz", z_first - z_t, [loch], u_saat=0.5)
             n = eb.n()
@@ -563,7 +693,7 @@ def kappe(brand, modul):
             h.brett("Fachwerk", eb.p(s_first - ks + 0.08, kz), eb.p(s_first + ks - 0.08, kz), RIEGEL, n, "balken_b", tiefe=0.04)
         fenster(h, eb, loch, laeden=False)
         # Ortgang: Dach 0,3 m ueber die Giebelwand hinaus, Windbretter
-        trauf_dach(h, -ORTGANG, 0.0, z_t, krag, kanten_enden=True)
+        trauf_dach(h, -ORTGANG, 0.0, z_t, krag, kanten_enden=True, stirn=False)   # Ortgang ohne Stirn der Lagen (Dreiecksgrenze 300)
         zf = trauf_first_z(z_t, krag)
         z_fuss = z_t - UEBER * tt + dick / cos
         for y_tr in (-krag - UEBER, TIEFE + UEBER):
@@ -612,12 +742,8 @@ def eckhaus(modul):
         v0, v1, m = BA["planken"]
         h.vieleck("Fachwerk", [Vector((B, oy, z_og)), Vector((Q, oy, z_og)), Vector((Q, B, z_og)), Vector((B, B, z_og))],
                   [(0, v1), (0, v0), ((B - oy) / m, v0), ((B - oy) / m, v1)], weg_von=(B + k / 2, B / 2, z_og + 1))
-    blind_eg = "stein" if S["eg"] == "stein" else "putz"
-    blind_og = "stein" if S["og"] == "stein" else "putz"
-    geschoss(h, links, B, 0.0, z_og, [], blind_eg, anker, modul, sockel=True)
-    geschoss(h, links, Q, z_og, z_t, [], blind_og, anker, modul)
-    geschoss(h, hinten, B, 0.0, z_og, [], blind_eg, anker, modul, sockel=True)
-    geschoss(h, hinten_og, Q, z_og, z_t, [], blind_og, anker, modul)
+    wandseite(h, links, links, B, Q, anker, modul, 0, 0, blind=True)
+    wandseite(h, hinten, hinten_og, B, Q, anker, modul, 0, 0, blind=True)
     # Zeltdach: z = z_t + tg * min(x, Q - x, y - oy, Q - (y - oy)), Ueberstand vorn und rechts
     tg, dick = S["tg"], S["dick"]
     cos = math.cos(math.radians(S["neig_g"]))
@@ -663,10 +789,20 @@ def erker(h, Q, oy):
     mitte = ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
     for o, eu, breite in (((x0, y0, 0), (1, 0, 0), x1 - x0), ((x1, y0, 0), (0, 1, 0), y1 - y0)):
         eb = Ebene(o, eu, (0, 0, 1), mitte)
-        loch = (0.35, breite - 0.35, z0 + 0.7, z1 - 0.4)
-        lagenflaeche(h, "Bruchstein" if S["og"] == "stein" else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)],
-                     "bruchstein" if S["og"] == "stein" else "putz", 0.4 if S["og"] == "stein" else z1 - z0, [loch])
-        fenster(h, eb, loch, laeden=False)
+        loecher = [(0.35, breite - 0.35, fa, fz) for g0, g1, _, eg in stockwerke() if not eg for fa, fz in [fenster_hoehen(g0, g1, False)]]
+        band = S["mauer_band"] if S["og"] == "mauer" else "putz"
+        lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)],
+                     band, BANDLAGE[band], loecher)
+        if S["og"] == "fachwerk":
+            n = eb.n()
+            for sx in (0.06, breite - 0.06):
+                h.brett("Fachwerk", eb.p(sx, z0), eb.p(sx, z1), 0.12, n, "balken_a", tiefe=0.04)
+        for loch in loecher: fenster(h, eb, loch, laeden=False)
+    # die zwei kurzen Seiten zwischen Erker und Hauswand (0,6 m, ohne Fenster)
+    for o, eu, breite in (((x0, oy, 0), (0, -1, 0), oy - y0), ((Q, y1, 0), (1, 0, 0), x1 - Q)):
+        eb = Ebene(o, eu, (0, 0, 1), mitte)
+        band = S["mauer_band"] if S["og"] == "mauer" else "putz"
+        lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)], band, BANDLAGE[band])
     h.kasten("Bruchstein", (x0, y0, z0 - 0.25), (x1, y1, z0), "bruchstein", ohne=("-x", "-y"))
     spitze = Vector(((x0 + x1) / 2, (y0 + y1) / 2, z1 + 1.1))
     ecken = [Vector((x0 - 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y1 + 0.08, z1)), Vector((x0 - 0.08, y1 + 0.08, z1))]

@@ -49,7 +49,7 @@ def stuecke(parzellen):
                 aus.append(("seite_blind" if n is not None else "seite_offen", x, spiegel))
                 if n is not None: aus.append(("gasse", x, spiegel))
             elif st == "trauf" and profil_hoeher(p, n):
-                stein = Z.S["og"] == "stein"
+                stein = Z.S["og"] == "mauer"
                 aus.append(("kappe_brand" if (n is not None or stein) else "kappe_offen", x, spiegel))
         x += w
     return aus, x
@@ -147,10 +147,11 @@ def main():
     for name, abstand in blicke.items():
         richtung = Vector((0.55, -0.75, 0.62)).normalized()
         auge = Vector(ziel) + richtung * abstand
-        for px in pixel:
+        for px in (pixel if name == "zoom50" else [1]):
             vor = "" if px == 1 else f"_pixel{px}_rechenvorschau"
             rendern(os.path.join(ordner, f"{satz}_{name}{vor}.png"), auge, ziel, 35, pixel=px)
     rendern(os.path.join(ordner, f"{satz}_ego_ecke.png"), (k.x + 4.5, k.y - 5.5, 1.7), (k.x - 6, k.y + 4, 3.6), 18)
+    rendern(os.path.join(ordner, f"{satz}_gasse_nah.png"), (k.x - 17, k.y - 9, 2.2), (k.x - 17, k.y + 4, 4.5), 22)
     rendern(os.path.join(ordner, f"{satz}_ruecken.png"), (k.x - 14, k.y + 40, 16), (k.x - 12, k.y + 6, 3.0), 28)
 
 
