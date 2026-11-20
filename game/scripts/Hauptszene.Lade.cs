@@ -31,10 +31,8 @@ public partial class Hauptszene
     private Control[] _faecherStadt = null!, _faecherInnen = null!;
     private (LadeFach Knopf, Label Name, Label Zustand) _fachFamilie, _fachBetriebe, _fachBauen, _fachPersonal, _fachProduktion, _fachLager,
         _fachRat, _fachBericht, _fachLexikon, _fachKarren, _fachTalentbaum, _fachStadt;
-    private LadeFlaeche _betriebeListe = null!;
-    private VBoxContainer _leistenBetriebe = null!;
-    private readonly List<(Betrieb Betrieb, Button Knopf, Label Zustand)> _leistenKnoepfe = new();
     private double _leisteSeit;
+    private int _lebenswegSumme;
     private Vector2 _ladeBild = new(-1, -1);
 
     /// <summary>So weit ragt der Porträtbogen über die Oberkante der Lade.</summary>
@@ -73,14 +71,13 @@ public partial class Hauptszene
 
         // ── Links: Fächer – in der Stadt Familie, Betriebe, Bauen; drinnen Personal, Produktion, Lager ──
         var stadtLinks = Faecher(links);
-        _fachFamilie = Fach(stadtLinks, "familie", "Familie", "Eure Familie: Oberhaupt, Ehepartner, Kinder, Stammbaum", FamilieOeffnen);
-        _fachBetriebe = Fach(stadtLinks, "hammer", "Betriebe", "Eure Betriebe: klappt die Liste über der Lade auf", BetriebeUmschalten);
-        _fachBetriebe.Knopf.ToggleMode = true;
-        _fachBauen = Fach(stadtLinks, "bauen", "Bauen", "Wohnhaus oder Werkstatt bauen – auf Bauplätzen und in den Bauzonen (B)", BauenOeffnen);
+        _fachFamilie = Fach(stadtLinks, "familie", "Familie", "Eure Familie: Oberhaupt, Ehepartner, Kinder, Stammbaum", () => FachOeffnen("familie", FamilieInhalt));
+        _fachBetriebe = Fach(stadtLinks, "hammer", "Betriebe", "Eure Betriebe: Zustand, hineingehen, hinfahren", () => FachOeffnen("betriebe", BetriebeInhalt));
+        _fachBauen = Fach(stadtLinks, "bauen", "Bauen", "Wohnhaus ausbauen, Wohnhaus oder Werkstatt bauen, Wege ausbauen", () => FachOeffnen("bauen", BauenInhalt));
         var innenLinks = Faecher(links);
-        _fachPersonal = Fach(innenLinks, "personal", "Personal", "Das Personalbuch dieser Werkstatt", () => InnenTafelOeffnen("personal"));
-        _fachProduktion = Fach(innenLinks, "hammer", "Produktion", "Was diese Werkstatt herstellt", () => InnenTafelOeffnen("produktion"));
-        _fachLager = Fach(innenLinks, "lager", "Lager", "Das Lager dieser Werkstatt", () => InnenTafelOeffnen("lager"));
+        _fachPersonal = Fach(innenLinks, "personal", "Personal", "Das Personal dieser Werkstatt", () => FachOeffnen("personal", PersonalInhalt));
+        _fachProduktion = Fach(innenLinks, "hammer", "Produktion", "Was diese Werkstatt herstellt", () => FachOeffnen("produktion", ProduktionInhalt));
+        _fachLager = Fach(innenLinks, "lager", "Lager", "Das Lager dieser Werkstatt", () => FachOeffnen("lager", LagerInhalt));
 
         // ── Rechts: Schiene mit den Aktionspunkten und den kleinen Knöpfen Markt, Hinterzimmer, Menü ──
         var schieneRechts = Schiene(rechts);
@@ -88,20 +85,20 @@ public partial class Hauptszene
         var luft = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         schieneRechts.AddChild(luft);
         var klein = LadeStil.Behaelter<HBoxContainer>(schieneRechts, "LadeReihe");
-        KleinerKnopf(klein, "markt", "Markt", "Der Markt der Stadt: Waren kaufen und verkaufen, Preise (M)", MarktOeffnen);
+        KleinerKnopf(klein, "markt", "Markt", "Der Markt der Stadt: Preise eurer Waren, Markt öffnen (M)", () => FachOeffnen("markt", MarktInhalt));
         KleinerKnopf(klein, "hinterzimmer", "Hinterzimmer", "Das Hinterzimmer: was das Licht scheut (H)", HinterzimmerOeffnen);
         KleinerKnopf(klein, "menue", "Menü", "Spielmenü: Speichern, Laden, Einstellungen, Hilfe (Esc)", SpielmenueOeffnen);
 
         // ── Rechts: Fächer – in der Stadt Rat, Bericht, Lexikon; drinnen Karren, Talentbaum, Zur Stadt ──
         var stadtRechts = Faecher(rechts);
-        _fachRat = Fach(stadtRechts, "rat", "Rat", "Die Ratskammer: Ämter, Wahlen, Anträge (R). Das Rathaus selbst zeigt dazu Statut und Gericht.", RatOeffnen);
-        _fachBericht = Fach(stadtRechts, "bericht", "Bericht", "Jahresrechnung, Rivalen, Umsätze und alle Meldungen zum Nachlesen",
-            () => BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung));
-        _fachLexikon = Fach(stadtRechts, "lexikon", "Lexikon", "Begriffe und Regeln des Spiels nachschlagen (L)", () => _lexikon.Oeffnen());
+        _fachRat = Fach(stadtRechts, "rat", "Rat", "Der Rat der Stadt: nächste Sitzung, euer Amt, Ämter, Anträge, Kasse (R öffnet die Ratskammer)", () => FachOeffnen("rat", RatInhalt));
+        _fachBericht = Fach(stadtRechts, "bericht", "Bericht", "Das Jahr bisher, Jahresrechnung, Rivalen, Umsätze und alle Meldungen zum Nachlesen",
+            () => FachOeffnen("bericht", BerichtInhalt));
+        _fachLexikon = Fach(stadtRechts, "lexikon", "Lexikon", "Begriffe und Regeln des Spiels nachschlagen (L)", () => FachOeffnen("lexikon", LexikonInhalt));
         _fachLexikon.Zustand.Text = "Nachschlagen";
         var innenRechts = Faecher(rechts);
-        _fachKarren = Fach(innenRechts, "karren", "Karren", "Der Karrenhof dieser Werkstatt", () => InnenTafelOeffnen("karren"));
-        _fachTalentbaum = Fach(innenRechts, "talentbaum", "Talentbaum", "Der Talentbaum der Einrichtung dieser Werkstatt", () => InnenTafelOeffnen("talentbaum"));
+        _fachKarren = Fach(innenRechts, "karren", "Karren", "Die Karren dieser Werkstatt", () => FachOeffnen("karren", KarrenInhalt));
+        _fachTalentbaum = Fach(innenRechts, "talentbaum", "Talentbaum", "Der Talentbaum der Einrichtung dieser Werkstatt", () => FachOeffnen("talentbaum", TalentbaumInhalt));
         _fachStadt = Fach(innenRechts, "stadt", "Zur Stadt", "Zurück in die Stadt (Esc)", () => _stadt.InnenansichtVerlassenMitBlende());
         _faecherStadt = new Control[] { stadtLinks, stadtRechts };
         _faecherInnen = new Control[] { innenLinks, innenRechts };
@@ -115,7 +112,7 @@ public partial class Hauptszene
         };
         _ladePortraetfach.GuiInput += eingabe =>
         {
-            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) FamilieOeffnen();
+            if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) FachOeffnen("familie", FamilieInhalt);
         };
         _lade.AddChild(_ladePortraetfach);
         var rand = LadeStil.Mass("portraet_rand");
@@ -145,14 +142,6 @@ public partial class Hauptszene
         _ladeName = LadeStil.Text(_ladeNamensschild, "", "LadeName");
         _ladeName.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         _ladeName.HorizontalAlignment = HorizontalAlignment.Center;
-
-        // ── Die Liste der eigenen Betriebe, die das Fach „Betriebe“ über der Lade aufklappt ──
-        _betriebeListe = LadeStil.Flaeche(null, "LadeSchild");
-        _betriebeListe.Visible = false;
-        _betriebeListe.CustomMinimumSize = new Vector2(LadeStil.Mass("betriebe_breite"), 0);
-        LadeStil.Anwenden(_betriebeListe);
-        GetNode<CanvasLayer>("Oberflaeche").AddChild(_betriebeListe);
-        _leistenBetriebe = LadeStil.Behaelter<VBoxContainer>(_betriebeListe, "LadeSpalte");
     }
 
     /// <summary>Die Schiene einer Seite: eine Reihe fester Höhe über den Fächern.</summary>
@@ -231,6 +220,7 @@ public partial class Hauptszene
     private static (LadeFach Knopf, Label Name, Label Zustand) Fach(Node eltern, string symbol, string name, string tipp, Action aktion)
     {
         var knopf = new LadeFach { TooltipText = tipp, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill, ClipContents = true };
+        knopf.ToggleMode = true; // das Fach, dessen Lade-Fenster offen ist, bleibt eingedrückt (LadeAnzeigen gleicht es jedes Bild ab)
         knopf.Pressed += aktion;
         eltern.AddChild(knopf);
         var rand = LadeStil.Behaelter<MarginContainer>(knopf, "LadeFachInhalt");
@@ -265,32 +255,9 @@ public partial class Hauptszene
         fach.Knopf.QueueRedraw();
     }
 
-    /// <summary>Das Fach „Betriebe“: klappt die Liste der eigenen Betriebe über der Lade auf und wieder zu.</summary>
-    private void BetriebeUmschalten()
-    {
-        _betriebeListe.Visible = _fachBetriebe.Knopf.ButtonPressed;
-        if (_betriebeListe.Visible) BetriebeEinpassen();
-    }
-
-    private void BetriebeSchliessen()
-    {
-        _betriebeListe.Visible = false;
-        _fachBetriebe.Knopf.SetPressedNoSignal(false);
-        _fachBetriebe.Knopf.QueueRedraw();
-    }
-
-    /// <summary>Die Liste der Betriebe steht links über der Lade (ihre Höhe wechselt mit der Zahl der Betriebe).</summary>
-    private void BetriebeEinpassen()
-    {
-        if (_ladeBild.X < 0) return;
-        _betriebeListe.ResetSize();
-        var kante = (_ladeBild.X - Mathf.Min(LadeStil.Mass("lade_breite"), _ladeBild.X)) / 2;
-        _betriebeListe.Position = new Vector2(kante + LadeStil.Mass("schild_einzug"), _ladeBild.Y - LadeStil.Mass("schild_unten") - _betriebeListe.Size.Y);
-    }
-
     /// <summary>
     /// Stellt die Lade unten mittig ins Bild (höchstens so breit wie im Thema, sonst so breit wie das Fenster) und dockt an, was an ihr hängt:
-    /// die Meldungen rechts über der Lade, das Schild der Räume und die Liste der Betriebe links. Rechnet nur, wenn sich die Bildgröße ändert.
+    /// die Meldungen rechts über der Lade und das Schild der Räume links. Rechnet nur, wenn sich die Bildgröße ändert.
     /// </summary>
     private void LadeEinpassen()
     {
@@ -311,7 +278,6 @@ public partial class Hauptszene
         // Was an der Lade hängt
         _ecke.Andocken((bild.X - breite) / 2 + LadeStil.Mass("meldungen_einzug"), LadeStil.Mass("meldungen_unten"));
         RaumleisteEinpassen();
-        BetriebeEinpassen();
     }
 
     /// <summary>Das Schild der Räume steht links über der Lade (die Breite wechselt mit den Räumen).</summary>
@@ -331,7 +297,6 @@ public partial class Hauptszene
             if (f.Visible == drinnen) f.Visible = !drinnen;
         foreach (var f in _faecherInnen)
             if (f.Visible != drinnen) f.Visible = drinnen;
-        if (drinnen && _betriebeListe.Visible) BetriebeSchliessen();
 
         var mitSpieler = _simulation.Wirtschaft is not null && _spieler is not null;
         foreach (var feld in new[] { _wertGeld.Feld, _wertAnsehen.Feld, _wertStress.Feld, _wertAp.Feld })
@@ -381,7 +346,7 @@ public partial class Hauptszene
         }
     }
 
-    /// <summary>Fächer freigeben und beschriften, die Liste der Betriebe neu bauen, wenn einer dazukommt oder wegfällt; Zustände viermal je Sekunde.</summary>
+    /// <summary>Fächer freigeben, das offene Fach eindrücken; die Zustandszeilen viermal je Sekunde (<c>Hauptszene.Faecher.cs</c>).</summary>
     private void LadeAnzeigen(double delta)
     {
         if (_simulation.Wirtschaft is not { } w) return;
@@ -397,70 +362,27 @@ public partial class Hauptszene
 
         var eigene = w.Betriebe.Where(b => b.Konto == _spieler).ToList();
         FachFreigeben(_fachBetriebe, eigene.Count > 0);
-        if (!eigene.SequenceEqual(_leistenKnoepfe.Select(k => k.Betrieb)))
+        // Das Fach, dessen Lade-Fenster offen ist, bleibt eingedrückt
+        foreach (var (fach, name) in new[] { (_fachFamilie, "familie"), (_fachBetriebe, "betriebe"), (_fachBauen, "bauen"), (_fachRat, "rat"), (_fachBericht, "bericht"),
+                     (_fachLexikon, "lexikon"), (_fachPersonal, "personal"), (_fachProduktion, "produktion"), (_fachLager, "lager"), (_fachKarren, "karren"),
+                     (_fachTalentbaum, "talentbaum"), (_fachStadt, "") })
         {
-            UiHilfe.KinderEntfernen(_leistenBetriebe);
-            _leistenKnoepfe.Clear();
-            foreach (var b in eigene) _leistenKnoepfe.Add(BetriebsKnopf(b));
-            _leisteSeit = 1;
-            if (eigene.Count == 0) BetriebeSchliessen();
-            else if (_betriebeListe.Visible) BetriebeEinpassen();
+            var offen = name.Length > 0 && _ladeFenster.Visible && _ladeFenster.Fach == name;
+            if (fach.Knopf.ButtonPressed == offen) continue;
+            fach.Knopf.SetPressedNoSignal(offen);
+            fach.Knopf.QueueRedraw();
         }
         _leisteSeit += delta;
-        var auswahl = (_auswahl.Visible ? AusgewaehlterBetrieb() : null);
-        foreach (var (b, knopf, zustand) in _leistenKnoepfe)
-            if (knopf.ButtonPressed != (b == auswahl)) knopf.SetPressedNoSignal(b == auswahl);
         if (_leisteSeit < 0.25) return;
         _leisteSeit = 0;
-        var stehen = 0;
-        foreach (var (b, knopf, zustand) in _leistenKnoepfe)
-        {
-            var (kurz, lang, warnung, _) = BetriebsUebersicht.Zustand(b);
-            if (warnung) stehen++;
-            Setzen(zustand, kurz);
-            LadeStil.Variante(zustand, warnung ? "LadeTextWarnung" : "LadeTextLeise");
-            var tipp = $"{b.Name} ({b.Artdaten.Name}): {lang}\nKlick: hinfahren und Kurzübersicht · Doppelklick: hineingehen";
-            if (knopf.TooltipText != tipp) knopf.TooltipText = tipp;
-        }
-        // Zustand des Fachs wie im Entwurf: „1 läuft · 1 steht“
+        // Zustand des Fachs „Betriebe“ wie im Entwurf: „1 läuft · 1 steht“
+        var stehen = eigene.Count(b => BetriebsUebersicht.Zustand(b).Warnung);
         var laufen = eigene.Count - stehen;
         var teile = new List<string>();
         if (laufen > 0) teile.Add(laufen == 1 ? "1 läuft" : $"{laufen} laufen");
         if (stehen > 0) teile.Add(stehen == 1 ? "1 steht" : $"{stehen} stehen");
-        Setzen(_fachBetriebe.Zustand, string.Join(" · ", teile));
-        LadeStil.Variante(_fachBetriebe.Zustand, stehen > 0 ? "LadeTextWarnung" : "LadeTextLeise");
-    }
-
-    /// <summary>Ein Betrieb in der Liste: Symbol der Ware, Name und Zustand. Die Kinder fangen keine Maus, der Knopf selbst nimmt Klick und Doppelklick.</summary>
-    private (Betrieb, Button, Label) BetriebsKnopf(Betrieb b)
-    {
-        var knopf = LadeStil.Knopf(_leistenBetriebe, "", "", null);
-        knopf.ToggleMode = true;
-        knopf.ClipContents = true;
-        knopf.CustomMinimumSize = new Vector2(0, LadeStil.Mass("betrieb_hoehe"));
-        knopf.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        var rand = LadeStil.Behaelter<MarginContainer>(knopf, "LadeKnopfInhalt");
-        rand.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        var inhalt = LadeStil.Behaelter<HBoxContainer>(rand, "LadeReihe");
-        var ware = b.IstWerkstatt ? b.Produkt : b.Rohstoffe.Count > 0 ? b.Rohstoffe[0] : b.Artdaten.Name;
-        var symbol = WarenIcons.Bild(ware, LadeStil.Mass("betrieb_symbol"));
-        symbol.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        inhalt.AddChild(symbol);
-        var spalte = LadeStil.Behaelter<VBoxContainer>(inhalt, "LadeSpalteEng");
-        spalte.Alignment = BoxContainer.AlignmentMode.Center;
-        spalte.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        var name = LadeStil.Text(spalte, b.Name);
-        name.ClipText = true;
-        var zustand = LadeStil.Text(spalte, "", "LadeTextLeise");
-        zustand.ClipText = true;
-        // Doppelklick: hineingehen. Der erste Klick des Doppelklicks hat die Kurzübersicht schon geöffnet.
-        knopf.GuiInput += eingabe =>
-        {
-            if (eingabe is InputEventMouseButton { Pressed: true, DoubleClick: true, ButtonIndex: MouseButton.Left })
-                BetriebBetreten(b, null);
-        };
-        knopf.Pressed += () => BetriebAuswaehlen(b, hinfahren: true);
-        return (b, knopf, zustand);
+        FachZustand(_fachBetriebe, string.Join(" · ", teile), stehen > 0);
+        if (_spieler is not null) FachZustaendeAnzeigen(w, _spieler);
     }
 
     /// <summary>Zeigt die Kurzübersicht eines eigenen Betriebs rechts (und fährt auf Wunsch die Kamera hin).</summary>

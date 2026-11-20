@@ -29,8 +29,27 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | **1** | **Dein Haus** (in der Lade unten) | Links oben die Werte: Gulden, Ansehen und Stress, rechts oben die Aktionspunkte (AP, z. B. 4/12). In der Mitte dein Porträt im Steinbogen, darunter Name und Stand. Ein Klick auf das Porträt öffnet das **Familienfenster** (das Wohnhaus öffnest du mit einem Klick auf das Gebäude). |
 | **2** | **Zeitleiste** (oben in der Mitte) | Rechts Jahreszeit, Jahr, Uhrzeit und Tageszeit, dazu das Wetter mit Aussicht. Das Band ganz oben zeigt den Spieltag von 4 bis 23 Uhr (Zunftglocke, Hoher Mittag, Vesper, Nacht); ein heller Strich zeigt die Uhrzeit. Wann das Band dunkel wird, richtet sich nach den Sonnenzeiten der Jahreszeit (Tabelle im Kapitel „Stadt und Ansicht“, der Tooltip nennt sie). |
 | **3** | **Pause und Tempo** (links in der Zeitleiste) | Pause (Leertaste) und Tempo 1×, 2×, 4× und 8× (Tasten **1** bis **4**). |
-| **4** | **Fächer links** (in der Lade) | In der Stadt: **Familie**, **Betriebe**, **Bauen**. „Betriebe“ klappt über der Lade die Liste deiner Betriebe auf, je Betrieb ein Knopf mit seinem Zustand („läuft“, „steht“, „Karren unterwegs“): Ein **Klick** fährt hin und zeigt die Kurzübersicht, ein **Doppelklick** geht hinein. Drinnen: **Personal**, **Produktion**, **Lager**. |
-| **5** | **Fächer und Knöpfe rechts** (in der Lade) | In der Stadt die Fächer **Rat**, **Bericht**, **Lexikon**, drinnen **Karren**, **Talentbaum** und **Zur Stadt**; darüber die kleinen Knöpfe **Markt**, **Hinterzimmer** und **Menü**. |
+| **4** | **Fächer links** (in der Lade) | In der Stadt: **Familie**, **Betriebe**, **Bauen**. Drinnen: **Personal**, **Produktion**, **Lager**. Jedes Fach zeigt unter seinem Namen eine Zeile Zustand („1 Brief offen“, „1 läuft · 1 steht“, „Ausbau läuft“, „1 von 2“, „Lager voll“) und öffnet sein **Lade-Fenster** über der Lade, siehe unten. |
+| **5** | **Fächer und Knöpfe rechts** (in der Lade) | In der Stadt die Fächer **Rat**, **Bericht**, **Lexikon**, drinnen **Karren**, **Talentbaum** und **Zur Stadt**; darüber die kleinen Knöpfe **Markt**, **Hinterzimmer** und **Menü**. Zustandszeilen: beim Rat das eigene Amt, „tagt am Jahresende“ oder „Stimmrunde läuft“, beim Bericht der Gewinn des Jahres („Jahr +312“), bei den Karren „unterwegs“, beim Talentbaum die Stücke, die zu haben sind. |
+
+**Lade-Fenster.** Ein Klick auf ein Fach (oder auf „Markt“) öffnet über der Lade ein Fenster mit drei Teilen: oben eine Zeile Einleitung, darunter **Kurzwerte** (links der Name, rechts der Wert; was Aufmerksamkeit braucht, steht rot mit Warnzeichen), darunter die **Befehle** als Knöpfe aus Holz. Ein Befehl nennt rechts seine **Kosten** (Gulden, AP) und darunter seine **Wirkung**; ein gesperrter Befehl ist grau und nennt hinter dem Schloss den **Grund** und den nächsten Schritt. Manche Befehle wirken sofort (Wohnhaus ausbauen, Lehrling einstellen, ein Stück der Einrichtung kaufen), die anderen öffnen das ausführliche Fenster (Familienbuch, Ratskammer, Bericht, Markt, Personalbuch, Lager …). Ein zweiter Klick auf das Fach, **Esc** oder das ✕ schließt es; das offene Fach bleibt eingedrückt.
+
+| Fach | Kurzwerte | Befehle |
+|---|---|---|
+| Familie | Ehepartner, Kinder, Erbe, freie Punkte des Lebenswegs | offene Briefe öffnen, Familienbuch, Stammbaum, Chronik, Erben bestimmen |
+| Betriebe | je Betrieb der Zustand | hineingehen (bei Stillstand gleich zur passenden Tafel), hinfahren und Kurzübersicht |
+| Bauen | Wohnhaus, laufender Ausbau, Bauzonen | Wohnhaus ausbauen, Gebäude bauen, Wege ausbauen |
+| Rat | nächste Sitzung, euer Amt, Punkte der Tagesordnung | Ämterbaum, Anträge, Stadtglaube, Stadtkasse |
+| Bericht | die Posten des laufenden Jahres und der Gewinn bisher | Jahresrechnung, Rivalen, Umsätze, Verlauf |
+| Lexikon | – | Stichwort suchen, Hilfe zur Steuerung |
+| Markt | Preise der Waren eurer Betriebe | Markt öffnen |
+| Personal | die Arbeiter mit Arbeit und Laune | Lehrling einstellen, Personalbuch |
+| Produktion | Hauptware, Arbeiter je Ware, Stillstand | Auftrag ändern |
+| Lager | Bestand je Ware | Lager öffnen, Regale kaufen |
+| Karren | je Karren, wo er ist | Karrenhof, Handel am Markt |
+| Talentbaum | Stufe, eingerichtete Stücke | die nächsten Stücke kaufen, ganzen Talentbaum ansehen |
+
+„Hinterzimmer“ öffnet seine Tafel direkt, „Menü“ das Spielmenü.
 | **6** | **Meldungen** | Die letzten vier Ereignisse mit Uhrzeit. Sie verblassen nach 20 Sekunden; Warnungen (✗ ein Befehl ging nicht, ⚠ Gefahr) bleiben, bis du sie anklickst. Ein Klick öffnet das **Protokoll des Jahres** mit allen Meldungen. |
 | **7** | **Tafel rechts** | Erscheint nur, wenn du etwas anklickst, hier die Kurzübersicht der Gießerei. |
 | **8** | **Tooltip** | Ein Hinweistext, wenn die Maus auf einer Zeile ruht; hier ist er festgeheftet (✕). Mehr unter [Fenster und Tooltips](#fenster-und-tooltips). |
@@ -65,7 +84,7 @@ Klicks auf Gebäude gehen wie gewohnt. Mausrad, Q/E und das Ziehen mit der recht
 ## Gebäude anklicken und betreten
 
 - **Linksklick** auf ein Gebäude öffnet seine Tafel neben dem Zeiger; sie lässt sich verschieben und schließen. Bei deinem **Betrieb** ist es die Kurzübersicht, beim eigenen **Wohnhaus** das Wohnhaus mit Reitern, beim **Rathaus** der Rat mit Ämtern, Statut und Gericht, beim **Marktplatz** der Markt mit den Preisen. Hafen, Kran, Schuppen und eigene Schiffe öffnen die Hafentafel.
-- **Doppelklick** auf eine Werkstatt, das Wohnhaus, das Rathaus oder den Dom geht **hinein**. In der Liste der Betriebe (Fach **Betriebe** in der Lade) gilt dasselbe: Klick = hinfahren und Kurzübersicht, Doppelklick = hinein.
+- **Doppelklick** auf eine Werkstatt, das Wohnhaus, das Rathaus oder den Dom geht **hinein**. Das Fach **Betriebe** in der Lade bietet für jeden Betrieb dasselbe als Befehl: hineingehen oder hinfahren und Kurzübersicht.
 - **Drinnen** wechselst du den Raum mit der **Raumleiste** (Holzschild links über der Lade; hinaus führt das Fach **Zur Stadt**) oder mit **Q** und **E**. Ein **Klick** auf einen Gegenstand öffnet seine Tafel (Produktion, Personal, Lager, Karren, Einrichtung …), ein Klick auf eine Tür wechselt den Raum. **Rechtsklick** oder **Esc** führt wieder hinaus. Die Ansicht im Raum ist fest: Zoomen und Verschieben gibt es nur draußen.
 - In Räumen mit mehreren Blickpunkten schwenkst du, indem du die **Maus kurz an den Bildrand** hältst; goldene Pfeile zeigen, wohin es noch geht. Mehrere Arbeiter wählst du mit einem **Rahmen** (linke Taste auf freier Fläche ziehen) oder mit **Umschalt** bzw. **Strg** beim Anklicken.
 - Ein Klick auf ein **Porträt** (zum Beispiel im Familienbuch, im Rat oder bei den Rivalen im Bericht) öffnet das **Charakterfenster**: Talente, Charakterzüge, Familie – und bei wichtigen Personen den Knopf **Aktivitäten** (Geschenk, Gastmahl, Zechen, Messe, Brettspiel, Jagd). Bei Oberhaupt, Ehepartner und Erbe gibt es dazu den Reiter **Lebensweg** (Pfad wählen, Knoten lernen); freie Punkte meldet das Fach **Familie** der Lade („n Punkte frei“). Mehr dazu in [Haus und Dynastie](haus-und-dynastie.md).

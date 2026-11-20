@@ -195,6 +195,7 @@ public partial class Hauptszene : Node
         ZeitleisteBauen();
         MeldungenBauen();
         LadeBauen();
+        LadeFensterBauen();
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         AuswahlWappenEinbauen();
@@ -602,6 +603,7 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("fach", out var fach) && !optionen.ContainsKey("innen")) FachStartoption(fach); // Lade-Fenster eines Fachs (Hauptszene.Faecher.cs)
         if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
@@ -713,6 +715,7 @@ public partial class Hauptszene : Node
             if (optionen.TryGetValue("arbeiter", out var arbeiter))
                 _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
             if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
+            if (optionen.TryGetValue("fach", out var fachInnen)) FachStartoption(fachInnen);
             if (optionen.TryGetValue("buchblick", out var buchBlick) && Enum.TryParse<BuchArt>(buchBlick, true, out var blickArt)) _stadt.BuchBlickPruefen(blickArt); // Prüfhilfe: Raumkamera vor das Pult
             if (optionen.TryGetValue("buch", out var buchName) && Enum.TryParse<BuchArt>(buchName, true, out var buchArt)) BuchAngeklickt(buchArt); // 3D-Buch im gezeigten Raum öffnen
         }
@@ -728,6 +731,7 @@ public partial class Hauptszene : Node
         // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
         foreach (var tafel in new Control[] { _ratskammer, _familientafel, _charakter, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
             Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
+        if (_ladeFenster.Visible) _ladeFenster.Schliessen();
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         _wohnhausBaum.Hide();
