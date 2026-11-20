@@ -1,30 +1,35 @@
-"""Kölner Dom um 1400 – die Baustelle (Sonderbau, nur für Köln). Belegte Fläche 14 × 34 m.
+"""Kölner Dom, fertig gebaut (Sonderbau, nur für Köln). Belegte Fläche 14 × 34 m.
 
     blender -b --python tools/modelle/koelner_dom.py -- [--schnell] [--ohne-bilder] [--nur-anker] [--nur-nacht]
     python tools/modelle/koelner_dom.py [--schnell] [--ohne-bilder]
 
 Schreibt game/assets/modelle/gebaeude/koelner_dom.glb und Bilder nach docs/modelle/. Der Dom der übrigen Karten (dom.glb) bleibt.
 
-Mischung aus Geschichte und Fantasy (Entscheidung des Nutzers, 27.10.2026, docs/bereiche/leveldesign.md „Köln-Wahrzeichen“):
-    Chor        fertig, sehr hoch, Werk elbischer Steinmetze: heller, leicht silbriger Stein („Elbenstein“), kupfergrünes
-                Dach, schlanke Fialen, Strebewerk mit Bögen, Maßwerk mit Ranken, grünlich-gläserne Fenster, Dachreiter
-    Westwand    provisorische Bretterwand mit Holzrahmen vor dem Chor (belegt: seit 1304)
-    Langhaus    niedriger Stumpf (Kapitellhöhe) aus grauem Haustein unter flachen Notdächern aus Schindeln, Querhausarme
-    Nordturm    halb hoch (Fantasy), oben offen mit zerbrochener Mauerkrone und Gerüst
-    Südturm     Stumpf mit hölzernem Tretrad-Baukran (Kranhaus, zwei Treträder, Ausleger über das Langhaus, Seil, Steinlast)
-Menschenwerk ist grauer, gröberer Stein, elbisches Werk heller und feiner.
+Alternativgeschichte (Entscheidung des Nutzers, 19.11.2026): Zwerge und Elben haben den Dom schneller vollendet – im Spiel steht der FERTIGE
+Dom, ohne Kran, Baustelle, Bretterwand und Notdach. Die elbischen Zutaten bleiben (docs/bereiche/leveldesign.md „Köln-Wahrzeichen“, 27.10.2026):
+    Chor        Hochchor und Umgang, sehr hoch, heller, leicht silbriger Stein („Elbenstein“), kupfergrünes Dach, schlanke Fialen,
+                Strebewerk mit fliegenden Bögen, Maßwerk mit Ranken, grünlich-gläserne Fenster, Dachreiter
+    Langhaus    Mittelschiff in Höhe des Hochchors unter durchgehendem Dach, niedrigere Seitenschiffe mit Pultdach, Strebewerk wie am Chor,
+                Querhausarme als Giebel (nur 0,8 m vorspringend, die Fläche ist 14 m breit)
+    Westfassade Hauptportal zwischen den Türmen mit gestuftem Gewände, Blendbögen, hohem Maßwerkfenster mit Ranken und Wimperg
+    Türme       zwei gleiche, vollendete Türme: Quadratgeschoss mit Maßwerkfenstern, Blendbogenreihen und Eckfialen, darüber das Achteck
+                mit acht Fenstern und der steinerne Helm mit Rippen, Wimpergen und Kreuzblume
+Alles ist ein Stein: Menschenwerk und Elbenwerk unterscheiden sich nur noch in der Feinheit des Maßwerks.
 
 Objekte im GLB:
-    Chor, Westwand, Langhaus, Nordturm, Suedturm, Kranhaus, Tretrad    (Teile, alle sichtbar)
-    Anker_Tuer          vor dem Notportal zwischen den Türmen (Westseite, −Y)
-    Anker_EwigesLicht   im Bogen des Notportals (wie beim Dom der übrigen Karten)
+    Chor, Langhausdach          (unter „Dach“: beim Hineinsehen aus)
+    Wand_links, Wand_rechts     Seitenschiffwand, Hochwand und Strebewerk des Langhauses je Seite (blendet das Spiel nach der Kamera aus)
+    Wand_vorne                  Innenseite der Westwand zwischen den Seitenwänden
+    Nordturm, Suedturm, Portal  (unter „Turm“: beim Hineinsehen aus)
+    Anker_Tuer                  vor dem Hauptportal zwischen den Türmen (Westseite, −Y)
+    Anker_EwigesLicht           im Bogen des Hauptportals (wie beim Dom der übrigen Karten)
 Keine Zustände und keine Hausfarbe: Der Dom gehört der Stadt (`pruefen.py … 14 34 --sonderbau`).
 
 Aufbau (Blender: Z oben, Westseite mit den Türmen bei −Y, Chor bei +Y, Süden = +X; Ursprung in der Mitte der Fläche):
-    y −17 … −11,6   zwei Turmstümpfe (x ±1,4 … ±6,8) mit Notportal dazwischen
-    y −11,6 … 3     Langhaus- und Querhausstumpf (Wände 6,5 m) unter einem Notdach, Querhausarme bis x ±7
-    y 3 … 16        Chor: Hochchor 6 m breit, Traufe 28 m, Dach bis 32 m, Dachreiter bis etwa 41 m; Umgang mit Pultdach;
-                    zwölf Strebepfeiler mit Fialen und fliegenden Bögen
+    y −16,4 … −11,6   zwei Türme (x ±1,6 … ±6,3, 58 m hoch) mit der Portalwand dazwischen
+    y −11,6 … 3       Langhaus: Mittelschiff x ±3 (Traufe 28 m), Seitenschiffe bis x ±6 (Traufe 11,5 m), Querhausarme bis x ±6,8
+    y 3 … 16          Chor: Hochchor 6 m breit, Traufe 28 m, Dach bis 32 m, Dachreiter bis etwa 41 m; Umgang mit Pultdach;
+                      zwölf Strebepfeiler mit Fialen und fliegenden Bögen
 """
 
 import math
@@ -56,13 +61,19 @@ Z_UM = 14.5                  # Anschluss des Umgangdachs an den Hochchor
 NEIGUNG = 55                 # Dach des Chors
 APSIS = (0, 36, 72, 108, 144, 180)     # Ecken der Apsis (Grad von +X)
 STATIONEN = (3.5, 5.9, 8.3, Y_A)       # Strebepfeiler der geraden Seiten
-Z_L = 6.5                    # Wandoberkante des Langhausstumpfs
-Y_L0 = -11.6                 # Westende des Langhauses (Ostkante der Türme)
+STATIONEN_L = (-4.2, -6.6, -9.0)  # Strebepfeiler des Langhauses (zwischen −3,6 und 3,1 liegt das Querhaus)
+Y_Q0, Y_Q1 = -3.2, 2.4       # Querhausarme: y-Bereich, x von 6 bis 6,8
+Y_L0 = -11.0                 # Westende des Langhauses (Ostkante der Türme)
 Y_T0 = -16.4                 # Westkante der Türme (Strebepfeiler ragen bis −17)
-H_SUED, H_NORD = 13.5, 21.0
-SUED = (1.6, 6.3)            # Türme: x-Bereich (Strebepfeiler ragen bis ±6,9)
-NORD = (-6.3, -1.6)
-KRAN = Vector((3.95, -14.0, 0.0))       # Mitte des Kranhauses auf dem Südturm
+H_Q = 34.0                   # Quadratgeschoss der Türme
+H_ACHT = 8.0                # Achteck darüber
+H_HELM = 15.5                # steinerner Helm: Spitze bei 58 m
+SUED = (1.4, 6.4)            # Türme: x-Bereich, 5 m breit, y −16,4 … −11 (Strebepfeiler ragen bis ±6,95)
+NORD = (-6.4, -1.4)
+STUFEN = ((0.0, 14.0, 0.0), (14.0, 26.0, 0.25), (26.0, H_Q, 0.5))   # Turmstufen: von z, bis z, Einzug an Außen- und Westseite
+# Nur noch Vorgaben für kran_bauen (St. Severin und Kölner Stadtbauten rufen es mit eigenen Werten auf); der Dom hat keinen Kran mehr
+H_SUED = 13.5
+KRAN = Vector((3.95, -14.0, 0.0))
 
 
 def wm(punkt, phi):
@@ -88,30 +99,24 @@ def gruppe(name, kinder):
 def bauen():
     bs.neue_szene()
     st = bs.Stoffe()
-    # Ein einheitlicher Quaderstein für den ganzen Bau (Entscheidung des Nutzers, 28.10.2026): Die Bauphase zeigen Form, Kran und Gerüst
+    # Ein einheitlicher Quaderstein für den ganzen Bau (Entscheidung des Nutzers, 28.10.2026)
     for alt in ("Haustein", "Bruchstein", "Bruchstein dunkel"):
         st[alt] = st["Elbenstein"]
-    chor, west = bs.Netz("Chor"), bs.Netz("Wand_hinten")
+    chor = bs.Netz("Chor")
     chor_bauen(chor, st)
-    westwand_bauen(west, st)
     wand_l, wand_r, wand_v = bs.Netz("Wand_links"), bs.Netz("Wand_rechts"), bs.Netz("Wand_vorne")
-    notdach, portal = bs.Netz("Notdach"), bs.Netz("Notportal")
-    langhaus_bauen(wand_l, wand_r, wand_v, notdach, portal, st)
+    dach_l, portal = bs.Netz("Langhausdach"), bs.Netz("Portal")
+    langhaus_bauen(wand_l, wand_r, wand_v, dach_l, st)
+    portal_bauen(portal, st)
     nord, sued = bs.Netz("Nordturm"), bs.Netz("Suedturm")
-    nordturm_bauen(nord, st)
-    suedturm_bauen(sued, st)
-    haus, rad = bs.Netz("Kranhaus"), bs.Netz("Tretrad", alle=True)
-    kran_bauen(haus, rad, st)
-    o = {n.name: n.objekt() for n in (chor, west, wand_l, wand_r, wand_v, notdach, portal, nord, sued, haus, rad)}
-    # Das Spiel dreht den Knoten „Tretrad“ um seinen Ursprung: Der gehört in die Radachse (sonst kreisen die Räder um den ganzen Dom)
-    achse = Vector((KRAN.x, KRAN.y, H_SUED + 0.15 + 1.55 + 1.3))
-    o["Tretrad"].data.transform(Matrix.Translation(-achse))
-    o["Tretrad"].location = achse
-    # Gruppen für die Innenansicht: „Dach“ (Chor und Notdach) und „Turm“ (Türme, Notportal, Kran) werden beim Hineinsehen ausgeblendet,
-    # dazu die Wände zur Kamera (Wand_vorne = Westwand des Langhauses, Wand_hinten = Bretterwand des Chors)
-    dach = gruppe("Dach", [o["Chor"], o["Notdach"]])
-    turm = gruppe("Turm", [o["Nordturm"], o["Suedturm"], o["Kranhaus"], o["Tretrad"], o["Notportal"]])
-    return [dach, turm, o["Wand_hinten"], o["Wand_links"], o["Wand_rechts"], o["Wand_vorne"],
+    turm_fertig(nord, st, NORD[0], NORD[1])
+    turm_fertig(sued, st, SUED[0], SUED[1])
+    o = {n.name: n.objekt() for n in (chor, wand_l, wand_r, wand_v, dach_l, portal, nord, sued)}
+    # Gruppen für die Innenansicht: „Dach“ (Chor und Langhausdach) und „Turm“ (Türme, Portalwand) werden beim Hineinsehen ausgeblendet,
+    # dazu die Wände zur Kamera (Wand_vorne = Westwand des Langhauses)
+    dach = gruppe("Dach", [o["Chor"], o["Langhausdach"]])
+    turm = gruppe("Turm", [o["Nordturm"], o["Suedturm"], o["Portal"]])
+    return [dach, turm, o["Wand_links"], o["Wand_rechts"], o["Wand_vorne"],
             bs.anker("Anker_Tuer", (0.0, Y_T0 + 0.15, 0.3)),
             bs.anker("Anker_EwigesLicht", (0.0, Y_T0 + 0.7 - 0.12, 4.3), 180.0)]
 
@@ -168,11 +173,12 @@ def chor_bauen(netz, st):
         netz.quader((s * (R_U - 0.3), (Y_W + Y_A) / 2, Z_U / 2), (0.6, laenge, Z_U), st["Elbenstein"], ohne=("-z",))
         netz.quader((s * (R_U + 0.04), (Y_W + Y_A) / 2, 0.45), (0.2, laenge, 0.9), st["Elbenstein"], ohne=("-z",))   # Sockel
         netz.quader((s * (R_H + 0.08), (Y_W + Y_A) / 2, Z_H - 0.3), (0.3, laenge + 0.1, 0.5), st["Elbenstein"], ohne=("-z",))
-        for y in bays:
+        for (a_, b_), y in zip(zip(STATIONEN, STATIONEN[1:]), bays):      # Fensterbreite nach dem freien Raum zwischen den Pfeilern (0,8 m breit)
+            frei = b_ - a_ - 0.8
             Mw = wm((s * R_H, y, 0), 0 if s > 0 else 180)
-            elbenfenster(netz, st, Mw, 0.0, 15.3, 1.5, 11.3, "Fenster", ranken=True)
+            elbenfenster(netz, st, Mw, 0.0, 15.3, min(1.3, frei - 0.32), 11.3, "Fenster", ranken=True)
             Mu = wm((s * R_U, y, 0), 0 if s > 0 else 180)
-            elbenfenster(netz, st, Mu, 0.0, 3.0, 1.5, 7.2, "Elbenglas")
+            elbenfenster(netz, st, Mu, 0.0, 3.0, min(1.1, frei - 0.4), 7.2, "Elbenglas")
     for i in range(5):                                    # Apsis des Hochchors und des Umgangs
         a, b = APSIS[i], APSIS[i + 1]
         for r, h, d in ((R_H, Z_H, 0.8), (R_U, Z_U, 0.6)):
@@ -267,82 +273,79 @@ def strebe(netz, st, basis, richt):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Provisorische Westwand des Chors
+#  Langhaus und Querhausarme
 # ─────────────────────────────────────────────────────────────────────────────
 
-def westwand_bauen(netz, st):
-    M = bs.wandmatrix((0, Y_W - 0.5, 0), "vorne")
-    zg = Z_H + R_H * math.tan(math.radians(NEIGUNG))
-    umriss = [(-R_U, 5.5), (-R_U, Z_U), (-R_H, Z_UM), (-R_H, Z_H), (0, zg), (R_H, Z_H), (R_H, Z_UM), (R_U, Z_U), (R_U, 5.5)]
-    bs.platte(netz, M, umriss, 0, 0.5, st["Bretter"])
-    holz = st["Geruestholz"]
-    for u, v0, v1 in ((-5.6, 5.5, Z_U - 0.6), (-3.0, 5.5, Z_H), (0.0, 5.5, zg - 0.4), (3.0, 5.5, Z_H), (5.6, 5.5, Z_U - 0.6)):
-        bs.balken(netz, M, u, v0, u, v1, holz, vor=0.12, breite=0.24)
-    for v, h in ((7.5, R_U), (14.2, R_H), (21.0, R_H), (Z_H - 0.1, R_H)):
-        bs.balken(netz, M, -h, v, h, v, holz, vor=0.12, breite=0.22)
-    for u0, v0, u1, v1 in ((-5.6, 7.5, -3.0, 14.2), (5.6, 7.5, 3.0, 14.2), (-3.0, 14.2, 0.0, 21.0), (3.0, 14.2, 0.0, 21.0),
-                           (-3.0, 21.0, 0.0, Z_H), (3.0, 21.0, 0.0, Z_H)):
-        bs.balken(netz, M, u0, v0, u1, v1, holz, vor=0.1, breite=0.18)
-    # Strebe zur Wand: zwei schräge Stützbalken von unten
-    for s in (-1, 1):
-        netz.stab((s * 2.2, Y_W - 1.6, 5.5), (s * 2.2, Y_W - 0.6, 13.0), 0.24, 0.24, st["Geruestholz"], quer=(1, 0, 0))
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Langhaus- und Querhausstumpf
-# ─────────────────────────────────────────────────────────────────────────────
-
-def langhaus_bauen(wand_l, wand_r, wand_v, dach, portal, st):
-    """Langhaus- und Querhausstumpf, aufgeteilt in die Teile, die das Spiel beim Hineinsehen einzeln ausblendet:
-    Wand_links/Wand_rechts (Seitenwände mit Pfeilerstümpfen, Fensteransätzen, Querhausarmen), Wand_vorne (Westwand zwischen den Türmen),
-    Notdach (mit Bretter-Giebel) und das Notportal mit den Baustoffen davor (gehört zu den Türmen)."""
-    ym = (Y_L0 + 2.5) / 2
-    laenge = 2.5 - Y_L0
+def langhaus_bauen(wand_l, wand_r, wand_v, dach, st):
+    """Langhaus von der Ostkante der Türme bis zum Chor, aufgeteilt in die Teile, die das Spiel beim Hineinsehen einzeln ausblendet:
+    Wand_links/Wand_rechts (Seitenschiffwand, Hochwand mit Fenstern, Strebewerk, Querhausarm), Wand_vorne (Westwand zwischen den
+    Seitenwänden) und Langhausdach (Satteldach des Mittelschiffs, Pultdächer der Seitenschiffe, Giebeldächer der Querhausarme)."""
+    ym, laenge = (Y_L0 + Y_W) / 2, Y_W - Y_L0
+    bays = [(a + b) / 2 for a, b in zip(STATIONEN_L, STATIONEN_L[1:])] + [(STATIONEN_L[-1] - 0.4 + Y_L0) / 2]   # letzte Achse zwischen Pfeiler und Turm
+    yq = (Y_Q0 + Y_Q1) / 2
+    elbenstein = st["Elbenstein"]
     for s_, netz in ((-1, wand_l), (1, wand_r)):
-        netz.quader((s_ * 5.6, ym, Z_L / 2), (0.8, laenge, Z_L), st["Haustein"], ohne=("-z",))
-        netz.quader((s_ * 5.95, ym, 0.45), (0.3, laenge + 0.1, 0.9), st["Bruchstein dunkel"], ohne=("-z",))
-        netz.quader((s_ * 5.98, ym, Z_L - 0.15), (0.3, laenge + 0.1, 0.3), st["Bruchstein"], ohne=("-z",))
-        for y in (-9.6, -6.8, -4.0):                      # Pfeilerstümpfe außen, rau abgebrochen
-            netz.quader((s_ * 6.4, y, 3.7), (0.9, 0.8, 7.4), st["Haustein"], ohne=("-z",))
-            netz.quader((s_ * 6.4, y, 7.5), (1.0, 0.9, 0.2), st["Bruchstein"], ohne=("-z",))
-        for y in (-8.2, -5.4):                            # Fensteransätze: dunkle Öffnung, Sohlbank, Holzbrett statt Bogen
-            Mw = wm((s_ * 6.0, y, 0), 0 if s_ > 0 else 180)
-            bs.platte(netz, Mw, [(-0.6, 1.6), (0.6, 1.6), (0.6, 5.0), (-0.6, 5.0)], -0.03, -0.004, st["Loch"])
-            netz.quader((0, -0.06, 1.5), (1.5, 0.12, 0.14), st["Bruchstein"], Mw, ohne=("+y",))
-            netz.quader((0, -0.05, 5.0), (1.5, 0.1, 0.5), st["Holz alt"], Mw, ohne=("+y",))
-        # Querhausarm: niedriger Anbau mit Pultdach
-        netz.quader((s_ * 6.5, -0.4, 2.8), (0.6, 5.0, 5.6), st["Haustein"], ohne=("-z",))
-        netz.quader((s_ * 6.8, -0.4, 5.5), (0.2, 5.0, 0.3), st["Bruchstein"], ohne=("-z",))
-        t = Matrix.Translation((s_ * 6.4, -0.4, 5.85)) @ Matrix.Rotation(math.radians(s_ * 21.8), 4, "Y")       # fällt nach außen
-        netz.quader((0, 0, 0), (1.1, 5.4, 0.1), st["Holz alt"], t)
-    # Westwand des Langhauses zwischen den Türmen
-    wand_v.quader((0, Y_L0 + 0.2, 3.25), (11.6, 0.5, 6.5), st["Haustein"], ohne=("-z",))
-    # Notdach: flaches Satteldach aus Schindeln über Langhaus und Querhaus, im Westen ein Giebel aus Brettern
+        netz.quader((s_ * (R_H - 0.4), ym, Z_H / 2), (0.8, laenge, Z_H), elbenstein, ohne=("-z",))
+        netz.quader((s_ * (R_U - 0.3), ym, Z_U / 2), (0.6, laenge, Z_U), elbenstein, ohne=("-z",))
+        netz.quader((s_ * (R_U + 0.04), ym, 0.45), (0.2, laenge, 0.9), elbenstein, ohne=("-z",))                  # Sockel
+        netz.quader((s_ * (R_H + 0.08), ym, Z_H - 0.3), (0.3, laenge + 0.1, 0.5), elbenstein, ohne=("-z",))        # Gesims
+        for y in bays + [yq + 0.05]:                              # Obergaden: wie am Hochchor, über dem Querhaus ein Fenster mehr
+            Mw = wm((s_ * R_H, y, 0), 0 if s_ > 0 else 180)
+            elbenfenster(netz, st, Mw, 0.0, 15.3, 1.3, 11.3, "Fenster", ranken=True)
+        for y in bays:                                            # Seitenschiffe
+            Mu = wm((s_ * R_U, y, 0), 0 if s_ > 0 else 180)
+            elbenfenster(netz, st, Mu, 0.0, 3.0, 1.1, 7.2, "Elbenglas")
+        for y in STATIONEN_L:                                     # Strebewerk wie am Chor
+            strebe(netz, st, Vector((s_ * R_U, y, 0)), Vector((s_, 0, 0)))
+        # Querhausarm: Giebelwand mit hohem Fenster, springt nur 0,8 m vor (die Fläche ist 14 m breit)
+        netz.quader((s_ * 6.4, yq, Z_U / 2), (0.8, Y_Q1 - Y_Q0, Z_U), elbenstein, ohne=("-z",))
+        netz.quader((s_ * 6.84, yq, 0.45), (0.2, Y_Q1 - Y_Q0 + 0.2, 0.9), elbenstein, ohne=("-z",))
+        Ma = wm((s_ * 6.8, yq, 0), 0 if s_ > 0 else 180)
+        elbenfenster(netz, st, Ma, 0.0, 1.5, 2.2, 8.2, "Elbenglas", ranken=True)
+        x0, x1 = (5.9, 6.65) if s_ > 0 else (-6.65, -5.9)
+        arm = bs.satteldach(dach, st, x0, x1, Y_Q0, Y_Q1, Z_U, NEIGUNG, traufe=0.2, ortgang=0.15, dicke=0.18, reihe=0.5, stufe=0.03,
+                            deckung="Elbendach", kante="Elbendach", first="Elbenstein", first_dicke=0.2, enden="Elbenstein")
+        fiale(dach, st, s_ * 6.75, yq, arm["z_first"] - 0.1, 0.2, 2.4)
+        # Pultdach des Seitenschiffs
+        zl = Z_U + 0.1 - 0.3 * (Z_UM - Z_U) / (R_U - R_H)
+        dach.vieleck_nach([(s_ * (R_U + 0.3), Y_L0 + 0.05, zl), (s_ * (R_U + 0.3), Y_W - 0.2, zl),
+                           (s_ * R_H, Y_W - 0.2, Z_UM), (s_ * R_H, Y_L0 + 0.05, Z_UM)], (s_ * 1, 0, 1), st["Elbendach"])
+    # Satteldach des Mittelschiffs, endet 0,15 m vor dem Dach des Chors (das beginnt bei Y_W − 0,35)
     drehung = Matrix.Rotation(math.radians(90), 4, "Z")
-    d = bs.satteldach(dach, st, Y_L0 + 0.4, 2.5, -6.0, 6.0, Z_L, 24, traufe=0.45, ortgang=0.3, enden="Holz alt", matrix=drehung,
-                      **bs.SCHINDEL)
-    hoch = 6.0 * d["tan"]
-    M = bs.wandmatrix((0, Y_L0 - 0.5, Z_L), "vorne")
-    bs.platte(dach, M, [(-6.0, 0), (6.0, 0), (0, hoch)], 0, 0.75, st["Bretter"])
-    for u in (-4.0, -2.0, 2.0, 4.0):                       # Sparren des Dachstuhls, die an der Westseite herausschauen
-        dach.stab((u, Y_L0 - 0.55, Z_L + 0.1), (u * 0.5, Y_L0 - 0.55, Z_L + hoch * 0.8), 0.18, 0.12, st["Geruestholz"], quer=(0, 1, 0))
-    # Steinblöcke und Bauholz vor dem Notportal
-    rnd = random.Random(11)
-    for k in range(7):
-        if k % 2:
-            portal.quader((-4.0 + 1.3 * k, Y_T0 + 1.0 + rnd.random() * 0.6, 0.4), (0.9, 0.7, 0.8), st["Haustein"], ohne=("-z",))
-        else:
-            portal.quader((-3.7 + 1.3 * k, Y_T0 + 0.9 + rnd.random() * 0.5, 0.15), (1.8, 0.2, 0.3), st["Geruestholz"], ohne=("-z",))
-    # Notportal zwischen den Türmen: Mauer, Spitzbogentür, Gewände, Stufen, Holzabdeckung
+    bs.satteldach(dach, st, Y_L0 + 0.15, Y_W - 0.5, -R_H, R_H, Z_H, NEIGUNG, traufe=0.2, ortgang=0.15, dicke=0.18,
+                  reihe=0.5, stufe=0.03, deckung="Elbendach", kante="Elbendach", first="Elbenstein", first_dicke=0.2,
+                  enden="Elbenstein", matrix=drehung)
+    # Westwand des Langhauses zwischen den Türmen (von außen verdeckt, im Einblick zu sehen)
+    wand_v.quader((0, Y_L0 + 0.2, Z_H / 2), (2 * (R_H - 0.4), 0.5, Z_H), elbenstein, ohne=("-z",))
+    for s_ in (-1, 1):
+        wand_v.quader((s_ * 4.25, Y_L0 + 0.2, Z_U / 2), (2.9, 0.5, Z_U), elbenstein, ohne=("-z",))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Hauptportal zwischen den Türmen
+# ─────────────────────────────────────────────────────────────────────────────
+
+def portal_bauen(netz, st):
+    """Westfassade zwischen den Türmen: Portalwand (2,8 m breit, 0,7 m hinter den Turmflächen) mit Spitzbogenportal, gestuftem Gewände,
+    Blendbögen, hohem Maßwerkfenster mit Ranken, Gesims und Wimperg mit Fialen und Kreuzblume."""
     yp = Y_T0 + 0.7
-    portal.quader((0, yp + 0.5, 4.0), (3.4, 1.0, 8.0), st["Haustein"], ohne=("-z",))
+    elbenstein = st["Elbenstein"]
+    netz.quader((0, (yp + Y_L0) / 2, Z_H / 2), (2.9, Y_L0 - yp, Z_H), elbenstein, ohne=("-z",))
     Mp = bs.wandmatrix((0, yp, 0), "vorne")
-    bs.platte(portal, Mp, dom.spitzbogen(0.0, 0.0, 2.0, 4.6), -0.03, -0.002, st["Holz alt"])
-    dom.spitzring(portal, Mp, 0.0, 0.0, 2.0, 4.6, 0.25, -0.16, -0.004, st["Bruchstein"])
-    for v in (0.9, 2.1, 3.2):
-        portal.quader((0, -0.06, v), (1.8, 0.03, 0.09), st["Eisen"], Mp, ohne=("+y",))
-    portal.quader((0, -0.25, 0.075), (2.8, 0.5, 0.15), st["Bruchstein"], Mp, ohne=("+y", "-z"))
-    portal.quader((0, yp + 0.6, 8.1), (3.2, 1.4, 0.25), st["Holz alt"], ohne=("-z",))
+    bs.platte(netz, Mp, dom.spitzbogen(0.0, 0.0, 1.7, 5.0), -0.03, -0.002, st["Holz alt"])
+    dom.spitzring(netz, Mp, 0.0, 0.0, 1.7, 5.0, 0.2, -0.16, -0.004, elbenstein)
+    dom.spitzring(netz, Mp, 0.0, 0.0, 2.1, 5.9, 0.18, -0.30, -0.10, elbenstein)
+    for v in (0.9, 2.1, 3.2, 4.0):
+        netz.quader((0, -0.06, v), (1.4, 0.03, 0.09), st["Eisen"], Mp, ohne=("+y",))
+    netz.quader((0, -0.25, 0.075), (2.6, 0.5, 0.15), elbenstein, Mp, ohne=("+y", "-z"))
+    for u in (-0.8, 0.0, 0.8):                                    # Blendbögen über dem Portal
+        elbenfenster(netz, st, Mp, u, 7.6, 0.6, 2.4, "Elbenglas", stein="Elbenstein", pfosten=0)
+    elbenfenster(netz, st, Mp, 0.0, 11.0, 1.6, 14.0, "Elbenglas", ranken=True)
+    netz.quader((0, -0.1, Z_H - 0.25), (2.9, 0.3, 0.5), elbenstein, Mp, ohne=("+y", "-z"))      # Gesims
+    bs.platte(netz, Mp, [(-1.45, Z_H), (1.45, Z_H), (0.0, Z_H + 1.8)], -0.2, 1.0, elbenstein)  # Wimperg
+    for x in (-1.0, 1.0):
+        fiale(netz, st, x, yp + 0.1, Z_H, 0.25, 3.4)
+    fiale(netz, st, 0.0, yp + 0.4, Z_H + 1.7, 0.2, 2.2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -369,9 +372,10 @@ def turm_pfeiler(netz, st, cx, sx, hoehe, koerper, kappe, fiale_r, fiale_h, fial
         fiale(netz, st, mitte.x, mitte.y, hh + 0.14, fiale_r, fiale_h, fiale_stoff)
 
 
-def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zier):
-    """Gotischer Turmstumpf: Sockel, Gesimsbänder, Eckstrebepfeiler, spitzbogige Maßwerkfenster und zerbrochene Mauerkrone (Steine bis
-    `krone` Meter hoch). `zier`: elbische Zierde oben (Blendbogenreihe, Band, Fialen, Fenster mit Ranken)."""
+def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zier, baender=None):
+    """Gotischer Turm: Sockel, Gesimsbänder (`baender`: Höhen, sonst bei 36 und 70 Prozent), Eckstrebepfeiler, spitzbogige Maßwerkfenster
+    und, wenn `krone` > 0, eine zerbrochene Mauerkrone (Steine bis `krone` Meter hoch). `zier`: elbische Zierde (Blendbogenreihe, Band,
+    Fialen, Fenster mit Ranken); über 25 m Höhe kommen zwei weitere Fensterreihen dazu."""
     y0, y1 = Y_T0, Y_L0
     xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
     if hohl:
@@ -392,8 +396,8 @@ def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zie
         netz.quader((x1, ym, z), (d, y1 - y0 - d, h), st[stoff], ohne=("-z",))
 
     ring(0.55, 1.1, 0.1, "Bruchstein dunkel")
-    for f in (0.36, 0.7):
-        ring(hoehe * f, 0.3, 0.08, band)
+    for z_band in (baender or (hoehe * 0.36, hoehe * 0.7)):
+        ring(z_band, 0.3, 0.08, band)
     sued = x0 > 0
     sx = 1 if sued else -1
     cx = x1 if sued else x0
@@ -410,17 +414,27 @@ def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zie
     # Außenseite und Innenseite zum Portal: Lanzette unten, Fenster darüber
     elbenfenster(netz, st, aussen, 0.0, 2.2, 0.9, 3.4, glas, stein=rahmen, pfosten=0)
     elbenfenster(netz, st, aussen, 0.0, 6.4, 1.3, 4.2, glas, stein=rahmen)
-    elbenfenster(netz, st, innen, 0.0, 2.2, 0.8, 3.2, glas, stein=rahmen, pfosten=0)
-    elbenfenster(netz, st, innen, 0.0, 6.6, 0.9, 3.6, glas, stein=rahmen, pfosten=0)
+    if krone or not zier:                                      # Innenseiten liegen am Portal: nur beim Turmstumpf Fenster unten
+        elbenfenster(netz, st, innen, 0.0, 2.2, 0.8, 3.2, glas, stein=rahmen, pfosten=0)
+        elbenfenster(netz, st, innen, 0.0, 6.6, 0.9, 3.6, glas, stein=rahmen, pfosten=0)
     if zier:
         for M in (west, aussen, innen):
+            if not krone and M is innen:                      # hinter der Portalwand erst ab 30 m sichtbar
+                continue
             elbenfenster(netz, st, M, 0.0, 11.6, 1.3, 5.0, "Elbenglas", ranken=(M is west), stein="Elbenstein")
             for u in (-1.35, 0.0, 1.35):                  # Blendbogenreihe unter dem Rand
                 elbenfenster(netz, st, M, u, 17.5, 0.9, 2.0, "Elbenglas", stein="Elbenstein", pfosten=0)
+        if hoehe > 25:                                        # zwei weitere Reihen: Fenster bei 22 m und 30,8 m
+            for M in (west, aussen, innen):
+                if krone or M is not innen:
+                    elbenfenster(netz, st, M, 0.0, 22.0, 1.3, 6.2, "Elbenglas", ranken=(M is west), stein="Elbenstein")
+                elbenfenster(netz, st, M, 0.0, 30.8, 1.3, 5.0, "Elbenglas", stein="Elbenstein")
         ring(hoehe - 0.7, 0.45, 0.1, "Elbenstein")
         for qx in (x0 + 0.5, x1 - 0.5):
             for qy in (y0 + 0.5, y1 - 0.5):
                 fiale(netz, st, qx, qy, hoehe - 0.45, 0.28, 3.4)
+    if not krone:
+        return
     # Mauerkrone: Steine in unterschiedlicher Höhe, die Mauer ist nie fertig geworden
     rnd = random.Random(5 if hohl else 9)
     n = 5
@@ -435,39 +449,89 @@ def turm_aussen(netz, st, x0, x1, hoehe, hohl, krone, koerper, band, rahmen, zie
         netz.quader((px, py, hoehe + h / 2 - 0.05), (0.85, 0.85, h), st[koerper] if rnd.random() < 0.6 else st[band], ohne=("-z",))
 
 
-def geruest(netz, st, x0, x1, y0, y1, z_fuss, ebenen):
-    """Gerüst im Innern eines offenen Turms: Eckstangen von `z_fuss` bis über die oberste Ebene, Riegel und Bohlen auf den Ebenen, Leiter."""
-    holz = st["Geruestholz"]
-    kopf = ebenen[-1] + 1.6
-    for x in (x0, x1):
-        for y in (y0, y1):
-            netz.stab((x, y, z_fuss), (x, y, kopf), 0.14, 0.14, holz)
-    for z in ebenen:
-        for y in (y0, y1):
-            netz.stab((x0 - 0.1, y, z), (x1 + 0.1, y, z), 0.1, 0.1, holz)
-        for x in (x0, x1):
-            netz.stab((x, y0 - 0.1, z), (x, y1 + 0.1, z), 0.1, 0.1, holz, quer=(1, 0, 0))
-    for k in range(4):
-        netz.quader(((x0 + x1) / 2, y0 + (y1 - y0) * (k + 0.5) / 4, ebenen[0] + 0.08), (x1 - x0 + 0.5, (y1 - y0) / 4 - 0.04, 0.06), holz)
-    for dx in (-0.2, 0.2):
-        netz.stab(((x0 + x1) / 2 + dx, y0 - 0.3, z_fuss), ((x0 + x1) / 2 + dx, y0 - 0.05, ebenen[0] + 0.9), 0.07, 0.05, holz, quer=(1, 0, 0))
+def turm_gestuft(netz, st, x0, x1):
+    """Gestufter Turmunterbau (Westfassade nach Fassadenriss F): drei Stufen (`STUFEN`), jede an der Außen- und der Westseite eingezogen,
+    mit Gesims, Maßwerkfenstern und Strebepfeilern an der Westecke außen. Die Fenster liegen zwischen den Pfeilern (Pfeiler 0,8 m breit an
+    der Ecke, das nächste Fenster endet deutlich davor). Gibt die Mitte der obersten Stufe (x, y) zurück."""
+    sued = x0 > 0
+    sx = 1 if sued else -1
+    cx = x1 if sued else x0                      # Außenkante der untersten Stufe
+    xin = x0 if sued else x1                     # Seite zum Portal
+    y0, y1 = Y_T0, Y_L0
+    el = st["Elbenstein"]
+    letzte = None
+    for k, (z0, z1, e) in enumerate(STUFEN):
+        xo = cx - sx * e
+        ya = y0 + e
+        xa, xb = sorted((xin, xo))
+        xm, ym = (xa + xb) / 2, (ya + y1) / 2
+        netz.quader((xm, ym, (z0 + z1) / 2), (xb - xa, y1 - ya, z1 - z0), el, ohne=("-z",))
+        g = 0.12                                  # Gesims über der Stufe, nach außen und Westen vorkragend
+        ga, gb = (xa, xb + g) if sued else (xa - g, xb)
+        netz.quader(((ga + gb) / 2, (ya - g + y1) / 2, z1 - 0.2), (gb - ga, y1 - ya + g, 0.4), el, ohne=("-z",))
+        west = wm((xm, ya, 0), -90)
+        aussen = wm((xo, ym, 0), 0 if sued else 180)
+        innen = wm((xin, ym, 0), 180 if sued else 0)
+        if k == 0:
+            netz.quader(((ga + gb) / 2, (ya - 0.1 + y1) / 2, 0.5), (gb - ga, y1 - ya + 0.1, 1.0), el, ohne=("-z",))   # Sockel
+            for u in (-0.95, 0.95):
+                elbenfenster(netz, st, west, u, 2.0, 0.7, 3.4, "Elbenglas", stein="Elbenstein", pfosten=0)
+            elbenfenster(netz, st, west, 0.0, 6.4, 1.5, 6.0, "Elbenglas", stein="Elbenstein")
+            elbenfenster(netz, st, aussen, 0.0, 2.0, 0.9, 3.4, "Elbenglas", stein="Elbenstein", pfosten=0)
+            elbenfenster(netz, st, aussen, 0.0, 6.4, 1.5, 6.0, "Elbenglas", stein="Elbenstein")
+        elif k == 1:
+            for u in (-1.05, 1.05):
+                elbenfenster(netz, st, west, u, 15.6, 1.0, 8.2, "Elbenglas", ranken=True, stein="Elbenstein")
+            elbenfenster(netz, st, aussen, 0.0, 15.6, 1.3, 8.2, "Elbenglas", stein="Elbenstein")
+        else:
+            for M in (west, aussen, innen):       # innen sieht man erst über der Portalwand (28 m)
+                elbenfenster(netz, st, M, 0.0, 29.0 if M is innen else 27.4, 1.3, 3.8 if M is innen else 5.6, "Elbenglas", ranken=(M is west), stein="Elbenstein")
+            for qx in (xa + 0.45, xb - 0.45):
+                for qy in (ya + 0.45, y1 - 0.45):
+                    fiale(netz, st, qx, qy, z1 + 0.05, 0.28, 3.4)
+        letzte = (xm, ym)
+    turm_pfeiler(netz, st, cx, sx, H_Q - 4.0, "Haustein", "Bruchstein", 0.3, 3.0, "Elbenstein")
+    return letzte
 
 
-def nordturm_bauen(netz, st):
-    turm_aussen(netz, st, NORD[0], NORD[1], H_NORD, hohl=True, krone=1.4, koerper="Haustein", band="Bruchstein", rahmen="Bruchstein",
-                zier=True)
-    # Boden aus Bohlen im Innern, damit man beim Hineinsehen nicht ins Leere schaut
-    netz.quader(((NORD[0] + NORD[1]) / 2, (Y_T0 + Y_L0) / 2, H_NORD - 3.0), (NORD[1] - NORD[0] - 2.4, Y_L0 - Y_T0 - 2.4, 0.2), st["Holz alt"])
-    geruest(netz, st, -4.9, -3.7, -15.0, -13.2, H_NORD - 2.9, (H_NORD + 1.0, H_NORD + 2.2))
-    for k in range(3):                                     # gestapelte Steine für den Weiterbau
-        netz.quader((-2.9 + 0.1 * (k % 2), -13.6 - 0.5 * k, H_NORD - 2.9 + 0.25), (0.6, 0.5, 0.5), st["Haustein"])
+def turm_fertig(netz, st, x0, x1):
+    """Vollendeter Turm (Nord- und Südturm gleich): Quadratgeschoss `H_Q`, darüber das Achteck mit acht Fenstern und der steinerne Helm
+    mit Rippen, vier Wimpergen, Eckfialen und Kreuzblume. Die Spitzbögen der Turmfenster haben 4 statt 6 Teile je Bogen (spart Dreiecke;
+    aus der Ferne nicht zu sehen)."""
+    standard = dom.spitzbogen.__defaults__
+    dom.spitzbogen.__defaults__ = (4,)
+    try:
+        _turm_fertig(netz, st, x0, x1)
+    finally:
+        dom.spitzbogen.__defaults__ = standard
 
 
-def suedturm_bauen(netz, st):
-    turm_aussen(netz, st, SUED[0], SUED[1], H_SUED, hohl=False, krone=0.8, koerper="Bruchstein", band="Bruchstein dunkel",
-                rahmen="Bruchstein dunkel", zier=False)
-    # Bohlenboden für den Kran, die Mauerkrone steht außen herum
-    netz.quader(((SUED[0] + SUED[1]) / 2, (Y_T0 + Y_L0) / 2, H_SUED + 0.02), (SUED[1] - SUED[0] - 1.2, Y_L0 - Y_T0 - 1.2, 0.14), st["Bretter"])
+def _turm_fertig(netz, st, x0, x1):
+    xm, ym = turm_gestuft(netz, st, x0, x1)
+    z_acht = H_Q + H_ACHT
+    r = 2.45
+    ap = r * math.cos(math.radians(22.5))                         # Mittelpunkt der Achteckseiten
+    mitte = (xm, ym, H_Q)
+    bs.achteck(netz, st, mitte, 2.75, -0.1, 0.25, "Elbenstein")
+    bs.achteck(netz, st, mitte, r, 0.0, H_ACHT - 0.05, "Elbenstein")
+    bs.achteck(netz, st, mitte, 2.65, H_ACHT - 0.4, H_ACHT, "Elbenstein")
+    for k in range(8):
+        w = 45 * k
+        M = wm((xm + ap * math.cos(math.radians(w)), ym + ap * math.sin(math.radians(w)), H_Q), w)
+        elbenfenster(netz, st, M, 0.0, 1.2, 0.9, 5.0, "Elbenglas", stein="Elbenstein")
+        a = math.radians(22.5 + w)
+        fiale(netz, st, xm + r * math.cos(a), ym + r * math.sin(a), z_acht, 0.16, 2.4)
+    bs.turmhelm(netz, st, Vector((xm, ym, 0)), 2.55, z_acht, H_HELM, stoff="Elbenstein", n=8)
+    spitze = Vector((xm, ym, z_acht + H_HELM))
+    for k in range(8):                                            # Rippen an den acht Kanten
+        a = math.radians(22.5 + 45 * k)
+        fuss = Vector((xm + 2.55 * math.cos(a), ym + 2.55 * math.sin(a), z_acht))
+        netz.stab(fuss, fuss + (spitze - fuss) * 0.93, 0.16, 0.16, st["Elbenstein"])
+    ap_h = 2.55 * math.cos(math.radians(22.5))
+    for w in (0, 90, 180, 270):                                   # Wimperge mit Fenster
+        M = wm((xm + ap_h * math.cos(math.radians(w)), ym + ap_h * math.sin(math.radians(w)), z_acht), w)
+        bs.platte(netz, M, [(-0.8, 0.3), (0.8, 0.3), (0.0, 2.9)], -0.45, 0.5, st["Elbenstein"])
+        elbenfenster(netz, st, M @ Matrix.Translation((0, -0.45, 0)), 0.0, 0.5, 0.5, 1.4, "Elbenglas", stein="Elbenstein", pfosten=0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -560,7 +624,7 @@ def main():
         return
     schnell = "--schnell" in sys.argv
     alles = lambda o: True                                                         # noqa: E731
-    bs.vorschau_buehne(FLAECHE, ziel_hoehe=19.0, ausschnitt=74.0, schnell=schnell)
+    bs.vorschau_buehne(FLAECHE, ziel_hoehe=28.0, ausschnitt=80.0, schnell=schnell)
     if "--nur-nacht" in sys.argv:
         print(bs.nachtbild(NAME, alles, 3))
         return
@@ -569,20 +633,30 @@ def main():
         return
     print(bs.rendern(NAME, alles, 3))                                              # Nordwest (vorne links)
     print(bs.rendern(NAME + "-suedost", alles, 1))                                 # Südost (hinten rechts)
-    # Einblick wie im Spiel: Dach (Chor, Notdach), Turm und die zwei Wände zur Kamera aus
+    # Einblick wie im Spiel: Dach (Chor, Langhausdach), Turm und die Wand zur Kamera aus
     ausgeblendet = ("Dach", "Turm")
-    print(bs.rendern(NAME + "-innen", lambda o: not (o.parent and o.parent.name in ausgeblendet) and o.name not in ("Wand_hinten", "Wand_rechts"), 1))
+    print(bs.rendern(NAME + "-innen", lambda o: not (o.parent and o.parent.name in ausgeblendet) and o.name != "Wand_rechts", 1))
     if "--nah" in sys.argv:
         szene = bpy.context.scene
         for o in szene.objects:
             if o.type == "MESH":
                 o.hide_render = False
-        for name, drehung, ziel, breite in (("-nah-chor", 1, (0, 9, 16), 34.0), ("-nah-kran", 0, (3.9, -13, 15), 26.0),
-                                            ("-nah-nordturm", 3, (-4, -14, 16), 26.0)):
+        for name, drehung, ziel, breite in (("-nah-chor", 1, (0, 9, 16), 34.0), ("-nah-west", 3, (0, -14, 30), 50.0),
+                                            ("-nah-turm", 3, (-4, -14, 42), 38.0)):
             szene["_ziel"] = 0.0
             bs.blick(drehung)
             kam = szene.camera
             kam.location += Vector(ziel)
+            kam.data.ortho_scale = breite
+            print(bs.rendern_einzeln(NAME + name))
+        for name, az, neig, ziel, breite in (("-ans-west", -90, 8, (0, -14, 29), 75.0), ("-ans-portal", -90, 6, (0, -16, 15), 30.0),
+                                             ("-ans-sued", 0, 8, (0, -2, 29), 80.0), ("-ans-ost", 90, 8, (0, 9, 20), 70.0)):
+            szene["_ziel"] = 0.0
+            bs.blick(3)                                    # Sonne wie bei den Schrägansichten
+            kam = szene.camera
+            a, n = math.radians(az), math.radians(neig)
+            kam.location = Vector(ziel) + 80 * Vector((math.cos(a) * math.cos(n), math.sin(a) * math.cos(n), math.sin(n)))
+            kam.rotation_euler = (math.radians(90 - neig), 0, a + math.radians(90))
             kam.data.ortho_scale = breite
             print(bs.rendern_einzeln(NAME + name))
         szene["_ziel"] = 16.0
