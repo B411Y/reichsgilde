@@ -174,6 +174,93 @@ def einband_kontor(b=512, h=768):
     return _fertig(bild)
 
 
+def leder_abgegriffen(lederkachel):
+    """Schwarzes Buch, Ruecken und Deckelkanten: dieselbe Kachel, fleckig braun durchgerieben (kachelbar)."""
+    n = lederkachel.shape[0]
+    rng = np.random.default_rng(4141)
+    bild = lederkachel.astype(float) / 255.0
+    fleck = np.clip((0.6 * vnoise(rng, n, n, 6, 6) + 0.4 * vnoise(rng, n, n, 20, 20) - 0.47) * 4.0, 0, 1)
+    braun = np.array([0.24, 0.16, 0.105])
+    bild = bild * (1.0 - 0.40 * fleck[..., None]) + braun * (0.40 * fleck[..., None])
+    return _fertig(bild)
+
+
+def _praegelinie(bild, maske):
+    """Blind gepraegte Linie: dunkle Rille, daneben (unten rechts) ein heller Grat."""
+    grat = np.roll(np.roll(maske, 2, axis=0), 2, axis=1) & ~maske
+    bild[grat] = bild[grat] * 0.55 + np.array([0.27, 0.20, 0.15]) * 0.45
+    bild[maske] = bild[maske] * 0.30
+
+
+def einband_schwarz(lederkachel, b=512, h=768):
+    """Schwarzes Buch: fast schwarzes Leder, an Rand, Ecken und in der Griffmitte braun abgegriffen, blind gepraegte Doppellinie als Rahmen,
+    Raute in der Mitte mit Linien zu den Ecken des Rahmens, Kratzer und ein Wachsfleck."""
+    rng = np.random.default_rng(4104)
+    bild = kachel_gross(lederkachel, h, b)
+    yy, xx = np.mgrid[0:h, 0:b]
+    rand = np.minimum.reduce([xx, b - 1 - xx, yy, h - 1 - yy]).astype(float)
+    ecke = np.minimum.reduce([np.hypot(xx - ex, yy - ey) for ex in (0, b - 1) for ey in (0, h - 1)])
+    rau = 0.55 * vnoise(rng, h, b, 9, 6) + 0.45 * vnoise(rng, h, b, 40, 28)
+    # abgegriffen: Kanten und Ecken durchgerieben (braun), dazu eine Griffstelle rechts der Mitte (wo die Hand das Buch aufschlaegt)
+    abrieb = np.clip(1.0 - rand / 34.0, 0, 1) ** 1.5 * 0.9 + np.clip(1.0 - ecke / 120.0, 0, 1) ** 1.3 * 0.9
+    griff = np.exp(-(((xx - b * 0.80) / 70.0) ** 2 + ((yy - h * 0.52) / 150.0) ** 2)) * 0.55
+    abrieb = np.clip((abrieb + griff) * (0.45 + 1.1 * rau), 0, 1)
+    braun = np.array([0.26, 0.17, 0.11])
+    bild = bild * (1.0 - 0.6 * abrieb[..., None]) + braun * (0.6 * abrieb[..., None]) * (0.75 + 0.5 * rau[..., None])
+    # Praegung: Doppellinie als Rahmen
+    maske = np.zeros((h, b), bool)
+    for ab, dicke in ((40, 4), (54, 2)):
+        m = np.zeros((h, b, 1))
+        _rechteck_linie(m, ab, ab, b - 1 - ab, h - 1 - ab, dicke, (1.0,))
+        maske |= m[..., 0] > 0.5
+    # Raute in der Mitte (Doppellinie) und Linien von ihren Spitzen zum Rahmen
+    cx, cy = (b - 1) / 2.0, (h - 1) / 2.0
+    r = np.abs(xx - cx) / 150.0 + np.abs(yy - cy) / 225.0
+    maske |= (np.abs(r - 1.0) < 0.016) | (np.abs(r - 0.86) < 0.008)
+    innen = (xx > 56) & (xx < b - 57) & (yy > 56) & (yy < h - 57)
+    maske |= innen & (r > 1.0) & ((np.abs(xx - cx) < 1.6) | (np.abs(yy - cy) < 1.6))
+    _praegelinie(bild, maske)
+    # Kratzer (hell durchgerieben) in alle Richtungen
+    for _ in range(34):
+        x, y = rng.integers(20, b - 20), rng.integers(20, h - 20)
+        l = rng.integers(16, 80)
+        wi = rng.random() * 2 * np.pi
+        for k in range(l):
+            xi, yi = int(x + k * np.cos(wi)), int(y + k * np.sin(wi))
+            if 0 <= xi < b and 0 <= yi < h:
+                bild[yi, xi] = bild[yi, xi] * 0.5 + np.array([0.30, 0.21, 0.15]) * 0.5
+    # Wachsfleck (Kerze): stumpf heller Tropfen links unten
+    wachs = np.exp(-(((xx - b * 0.27) / 17.0) ** 2 + ((yy - h * 0.80) / 13.0) ** 2))
+    wm = (wachs > 0.5)[..., None]
+    bild = np.where(wm, bild * 0.35 + np.array([0.62, 0.55, 0.42]) * 0.65, bild)
+    return _fertig(bild)
+
+
+def seiten_schwarz(b=512, h=768):
+    """Schwarzes Buch: vergilbtes, fleckiges Papier, enge Zeilen, geschwaerzte Stellen, rote Randzeichen (Kapitel)."""
+    rng = np.random.default_rng(4124)
+    bild = _papier(rng, h, b, (0.84, 0.75, 0.56), 0.16)
+    tinte = (0.16, 0.11, 0.08)
+    rot = np.array([0.50, 0.14, 0.10])
+    for i, y in enumerate(range(72, h - 70, 23)):
+        x1 = b - 44 - int(rng.integers(0, 40))
+        _wortzeile(bild, rng, y, 62, x1, 3, tinte, wort=(10, 46), luecke=8)
+        if i % 7 == 3:      # geschwaerzter Name
+            x = int(rng.integers(90, b - 190))
+            bild[y - 2:y + 6, x:x + 90] = np.array(tinte)
+        if i % 5 == 1:      # Randzeichen
+            bild[y - 2:y + 6, 40:48] = rot
+    return _fertig(bild)
+
+
+def schnitt_schwarz(n=64):
+    rng = np.random.default_rng(4134)
+    lagen = vnoise(rng, n, n, 22, 2)
+    bild = np.array([0.52, 0.43, 0.29]) * (0.62 + 0.50 * lagen[..., None])
+    bild[::7] *= 0.70
+    return _fertig(bild)
+
+
 def riemen(saat=4110, n=128):
     """Helles, gegerbtes Riemenleder (kachelbar)."""
     return leder(saat, (0.62, 0.45, 0.26), n=n, falten=0.5, narbung=0.15)
