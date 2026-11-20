@@ -99,6 +99,7 @@ public partial class Stadtansicht
     private void RaumansichtUmschalten(InnenAnsicht a, bool innen)
     {
         BuchSchauAbbrechen(); // Buchkamera aus, bevor die Kamera wechselt (Stadtansicht.Innenbuecher.cs)
+        GegenstandSchauAbbrechen(); // ebenso Kartentisch und Geldtruhe (Stadtansicht.Innengegenstaende.cs)
         a.Innen!.Visible = innen;
         foreach (var klick in a.Raumklicks) klick.Disabled = !innen;
         _sonne.Visible = !innen;
@@ -124,6 +125,7 @@ public partial class Stadtansicht
     {
         if (_innen?.Innen is not { } innen) return;
         BuchSchauAbbrechen(); // ein offenes Buch bleibt im alten Raum zurück (Stadtansicht.Innenbuecher.cs)
+        GegenstandSchauAbbrechen();
         _raum = r;
         if (NeubauInnenAbgleichen()) // Probe: die Wohnstube liegt im Haus in der Stadt, die Kamera steht dort (Stadtansicht.Neubau.cs)
         {
@@ -171,7 +173,7 @@ public partial class Stadtansicht
     private void RaumEingabe(InputEvent eingabe)
     {
         if (_ratssitzung is not null) return; // während der Ratssitzung bleibt man im Ratssaal (Stadtansicht.Ratssitzung.cs)
-        if (BuchEingabe(eingabe)) // Klick auf ein Buch, laufende Buchschau (Stadtansicht.Innenbuecher.cs)
+        if (GegenstandEingabe(eingabe) || BuchEingabe(eingabe)) // Klick auf Kartentisch, Geldtruhe oder ein Buch, laufende Schau (Stadtansicht.Innengegenstaende.cs, Stadtansicht.Innenbuecher.cs)
         {
             GetViewport().SetInputAsHandled();
             return;
@@ -367,11 +369,14 @@ public partial class Stadtansicht
         for (var fach = 0; fach < 4; fach++)
             for (var i = 0; i < 6; i++)
                 Teil(a, k + new Vector3(-3.12f, 0.45f + fach * 0.7f, -2.0f + i * 0.38f), new Vector3(0.08f, 0.5f, 0.3f), Material(ruecken[(fach + i) % ruecken.Length]));
-        // Geldtruhe mit Münzen an der Ostwand
-        Teil(a, k + new Vector3(2.9f, 0.4f, -0.6f), new Vector3(1.2f, 0.8f, 0.8f), holz);
-        Teil(a, k + new Vector3(2.9f, 0.82f, -0.6f), new Vector3(1.25f, 0.06f, 0.85f), Metall(new Color(0.30f, 0.31f, 0.34f)));
-        foreach (var (dx, hoch) in new[] { (-0.3f, 0.2f), (0f, 0.3f), (0.3f, 0.15f) })
-            Rund(a, k + new Vector3(2.9f + dx, 0.85f + hoch / 2, 0.1f), 0.1f, hoch, gold, segmente: 10);
+        // Geldtruhe an der Ostwand und Kartentisch als 3D-Gegenstände (Stadtansicht.Innengegenstaende.cs); fehlt das Modell, die alte Truhe mit Münzen
+        if (!KontorGegenstaendeAnlegen(a, k, haus))
+        {
+            Teil(a, k + new Vector3(2.9f, 0.4f, -0.6f), new Vector3(1.2f, 0.8f, 0.8f), holz);
+            Teil(a, k + new Vector3(2.9f, 0.82f, -0.6f), new Vector3(1.25f, 0.06f, 0.85f), Metall(new Color(0.30f, 0.31f, 0.34f)));
+            foreach (var (dx, hoch) in new[] { (-0.3f, 0.2f), (0f, 0.3f), (0.3f, 0.15f) })
+                Rund(a, k + new Vector3(2.9f + dx, 0.85f + hoch / 2, 0.1f), 0.1f, hoch, gold, segmente: 10);
+        }
 
         var schild = Beschriftung("", a.Mitte + k + new Vector3(0, 3.9f, -1.4f), 30, a.Innen);
         Arbeiterfigur? figur = null;

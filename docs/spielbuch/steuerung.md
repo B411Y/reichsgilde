@@ -28,6 +28,9 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | **3** | **Pause und Tempo** (links in der Zeitleiste) | Pause (Leertaste) und Tempo 1×, 2×, 4× und 8× (Tasten **1** bis **4**). |
 | **4** | **Fächer links** (in der Lade) | In der Stadt: **Familie**, **Betriebe**, **Bauen**. Drinnen: **Personal**, **Produktion**, **Lager**. Jedes Fach zeigt unter seinem Namen eine Zeile Zustand („1 Brief offen“, „1 läuft · 1 steht“, „Ausbau läuft“, „1 von 2“, „Lager voll“) und öffnet sein **Lade-Fenster** über der Lade, siehe unten. |
 | **5** | **Fächer und Knöpfe rechts** (in der Lade) | In der Stadt die Fächer **Rat**, **Bericht**, **Lexikon**, drinnen **Karren**, **Talentbaum** und **Zur Stadt**; darüber die kleinen Knöpfe **Markt**, **Hinterzimmer** und **Menü**. Zustandszeilen: beim Rat das eigene Amt, „tagt am Jahresende“ oder „Stimmrunde läuft“, beim Bericht der Gewinn des Jahres („Jahr +312“), bei den Karren „unterwegs“, beim Talentbaum die Stücke, die zu haben sind. |
+| **6** | **Meldungen** | Rechts über der Lade liegen die Meldungen als gesiegelte **Faltbriefe**, die Farbe des Siegels zeigt das Thema; eine neue Meldung erscheint zuerst groß in der Mitte über der Lade. Ein Klick öffnet den Brief. Mehr im Kapitel [Meldungen](meldungen.md). |
+| **7** | **Tafel rechts** | Erscheint nur, wenn du etwas anklickst, hier die Kurzübersicht der Gießerei. |
+| **8** | **Tooltip** | Ein Hinweistext auf einer kleinen Holztafel, wenn die Maus auf einer Zeile ruht; hier ist er festgeheftet (✕). Mehr unter [Fenster und Tooltips](#fenster-und-tooltips). |
 
 **Lade-Fenster.** Ein Klick auf ein Fach (oder auf „Markt“) öffnet über der Lade ein Fenster mit drei Teilen: oben eine Zeile Einleitung, darunter **Kurzwerte** (links der Name, rechts der Wert; was Aufmerksamkeit braucht, steht rot mit Warnzeichen), darunter die **Befehle** als Knöpfe aus Holz. Ein Befehl nennt rechts seine **Kosten** (Gulden, AP) und darunter seine **Wirkung**; ein gesperrter Befehl ist grau und nennt hinter dem Schloss den **Grund** und den nächsten Schritt. Manche Befehle wirken sofort (Wohnhaus ausbauen, Lehrling einstellen, ein Stück der Einrichtung kaufen), die anderen öffnen das ausführliche Fenster (Familienbuch, Ratskammer, Bericht, Markt, Personalbuch, Lager …). Ein zweiter Klick auf das Fach, **Esc** oder das ✕ schließt es; das offene Fach bleibt eingedrückt.
 
@@ -47,9 +50,6 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | Talentbaum | Stufe, eingerichtete Stücke | die nächsten Stücke kaufen, ganzen Talentbaum ansehen |
 
 „Hinterzimmer“ öffnet seine Tafel direkt, „Menü“ das Spielmenü.
-| **6** | **Meldungen** | Rechts über der Lade liegen die Meldungen als gesiegelte **Faltbriefe**, die Farbe des Siegels zeigt das Thema; eine neue Meldung erscheint zuerst groß in der Mitte über der Lade. Ein Klick öffnet den Brief. Mehr im Kapitel [Meldungen](meldungen.md). |
-| **7** | **Tafel rechts** | Erscheint nur, wenn du etwas anklickst, hier die Kurzübersicht der Gießerei. |
-| **8** | **Tooltip** | Ein Hinweistext auf einer kleinen Holztafel, wenn die Maus auf einer Zeile ruht; hier ist er festgeheftet (✕). Mehr unter [Fenster und Tooltips](#fenster-und-tooltips). |
 
 > [!NOTE]
 > Die Tempostufen **16×** und **32×** (Tasten **5** und **6**) sind nur zum Testen gedacht und fallen vor der Veröffentlichung weg. Ihre Knöpfe (orange) stehen nur mit dem Haken **Entwickler-Optionen** in der Zeitleiste; die Tasten wirken immer.

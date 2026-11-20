@@ -370,6 +370,15 @@ public partial class Kartenwerkstatt
             }
         };
         Zeile(raster, "Verlauf", geschlossen);
+        var kaesten = _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Mauer).ToList();
+        var baukasten = new OptionButton { FocusMode = Control.FocusModeEnum.None,
+            TooltipText = kaesten.Count > 1 ? "Der Mauer-Baukasten des Katalogs (Mauer, Türme, Tore)" : "Der Katalog hat nur diesen einen Mauer-Baukasten – gibt es mehr, wählt man hier" };
+        foreach (var k in kaesten) baukasten.AddItem(k.Name ?? k.Kennung);
+        if (kaesten.FindIndex(k => k.Kennung == m.Katalog) is var gewaehlt and >= 0) baukasten.Select(gewaehlt);
+        else { baukasten.AddItem($"{m.Katalog} (unbekannt)"); baukasten.Select(baukasten.ItemCount - 1); }
+        baukasten.Disabled = kaesten.Count < 2;
+        baukasten.ItemSelected += i => { if (i < kaesten.Count) _entwurf.MauerKatalogSetzen(m, kaesten[(int)i].Kennung); };
+        Zeile(raster, "Baukasten", baukasten);
         var laenge = 0.0;
         for (var i = 0; i < m.Strecken; i++) laenge += m.Strecke(i).A.Abstand(m.Strecke(i).B);
         Zeile(raster, "Länge", Wert($"{Math.Round(laenge)} m · {m.Ecken.Count} Ecken"));

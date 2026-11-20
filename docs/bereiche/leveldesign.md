@@ -22,9 +22,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Greybox mit weniger als 8 Häusern: Auf den Wohnhausplätzen 5 bis 8 standen bisher Einwohnerhäuser; Format 2 hat dort keine Einwohnerplätze. Ob unbenutzte Wohnhausplätze Einwohner aufnehmen, entscheiden Darstellung und Kern
 - Kartenwerkstatt: Das Gassennetz der Werkstatt hängt Markt, Tore, Höfe, Karrenplätze und (seit PR #172) die Gatter der Arbeitsstellen an, aber nicht die Türen von Rathaus, Dom und Häusern (im Spiel schon) – „alles verbunden“ heißt dort also nur: alle Wege und diese Ziele
 - Kartenwerkstatt: Das Raster einer Bauzone zeigt jedes Feld, dessen Mitte in der Zone liegt, mit allen vier Kanten – an schrägen Rändern ragt es über die Fläche hinaus (wie im Baumodus des Spiels)
-- Kartenwerkstatt: Der Mauer-Baukasten ist nicht wählbar (es gibt nur `stadtmauer`)
 - Kartenwerkstatt: Beim ersten Klicktest der Probepartie (neue Karte, PR #172) meldete Godot einmal beim Laden der Figurenmodelle „Handle is not initialized“ (`GCHandle`, 81-mal); in drei weiteren Probeläufen nicht wieder, in Schritt 4 (PR #174) in drei Probepartien auch nicht – wohl aber 5-mal im ersten Start nach `--headless --import` (Kartenwerkstatt mit der Greybox, `ResourceLoader.Load` in `Stadtansicht.Modell` → `ScriptManagerBridge.SwapGCHandleForType`), im nächsten Start nicht mehr. Hängt also am ersten Start nach dem Import, nicht an der Probepartie. Beobachten
-- Kartenwerkstatt: Der Speicherort im exportierten Spiel (Karten des Spiels nur lesen, `Entwicklung` = false) ist nur gebaut, nicht im Klicktest gesehen – beim ersten Export einmal öffnen und speichern
 - Kartenwerkstatt: „Öffnen“ zeigt alle Karten untereinander ohne Rollbalken – bei vielen eigenen Karten wird die Rückfrage höher als das Fenster
 - Kartenwerkstatt: Die Vorschau beim Ziehen einer Mauerecke rechnet die wandernden Tore wie der Kern nach (`ToreNachher`); ändert der Kern die Regel (`AufStrecke`/`AufLinie`), muss die Vorschau mit
 - Probestadt: Der Sandfluss schneidet sich im Rand bei (≈ 410 | 195) 1,58 m über den Freibord ein – knapp unter der Hinweisgrenze von 1,6 m; ändert jemand das Gelände dort, kommt der Hinweis „läuft bergauf“
@@ -91,3 +89,13 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Doku | Abschnitt 9 „Kartendatei“ der `docs/LEVELDESIGN.md` (424 Zeilen: Kartenformat 2, Gebäudekatalog, Kartenwerkstatt, Kartenskript, Greybox-Karte) steht in `docs/leveldesign/kartendatei.md` (Text wörtlich, Überschriften eine Stufe höher); die Verweise in Code und Doku zeigen dorthin, auch `docs/architektur/stadtplan.md` | 16.11.2026 |
 | Tests | Neu `NurBauzonenKartenTests` (4). Neue Zahlen in `BauenTests`, `GreyboxTests`, `KartenbauTests` (Kapazität), `RasterBauzonenTests`, `RestflaechenfuellungTests` (Köln: Hof 1, Pferch 0, Wasserstelle 3, Heuschober 2), `StartortlosTests` (Greybox 4); `RasterBauzonenTests` nimmt als Hindernis einen Leerstand statt eines Werkstattplatzes; `BrueckenpruefungTests` prüft die Durchfahrt | 16.11.2026 |
 | Datenversion | Nicht berührt; keine Messung | 16.11.2026 |
+
+### Kleinkram Kartenwerkstatt (Branch phase5/editor-kleinkram)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Öffnen | Die Kartenliste im Dialog „Karte öffnen“ sitzt in einem Rollbereich (Höhe höchstens 460 px, sonst Fensterhöhe minus 330); Abbrechen bleibt darunter sichtbar | 19.11.2026 |
+| Mauer-Baukasten | Die Mauer-Tafel hat die Zeile „Baukasten“ (alle Katalog-Bausteine der Art Mauer, `MauerKatalogSetzen`); mit nur `stadtmauer` ausgegraut, Tooltip erklärt es. Nichts Neues im Katalog erfunden | 19.11.2026 |
+| Kennung | Das Feld „Kennung“ der Gebäude (Kern `KennungSetzen`, Doppelte und ungültige Zeichen werden unter dem Raster gemeldet, Tooltip warnt vor Startbelegung und Spielständen) war schon gebaut und ist jetzt im Bild gesehen | 19.11.2026 |
+| Speicherort im Export | Mit einem Linux-Export (Klicktest, Greybox) geprüft: „Karte öffnen“ zeigt „Eigene Karten“ (user://karten, hier `…/app_userdata/Reichsgilde/karten/`) und „Karten des Spiels (nur lesen)“; Speichern der Spielkarte legt die Datei im Ordner der eigenen Karten an (die Karten des Spiels bleiben unberührt) und sie erscheint sofort in der Liste | 19.11.2026 |
+| Nicht angefasst | Unschärfe, Wolkenschatten und Dunst der Kartenwerkstatt (nur auf Nutzerwunsch); Felspinsel-Reste (Randabstand, Hang-Geist, Messung Zoom 100) brauchen Plan, Bild bzw. Messung und sind nicht klein | 19.11.2026 |
