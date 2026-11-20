@@ -57,6 +57,31 @@ BLICK = ((-0.25, 1.45), (1.90, -1.20, 1.30))
 STUFE = [2]
 FORM = [1]
 LETZT = {}
+# Stufe 3 belebt (Nutzer 19.11.2026: „zu langweilig“): Eckquader auch im Obergeschoss. Efeu (Nutzer 19.11.2026: „realistisch“): Blattkarten
+# mit Alpha (Stoff „Efeublatt“, Bilder in trimsheet_halbling.efeu_blaetter) auf zwei bis drei Wandflaechen je Grundform: eine dicht
+# bewachsene Ecke (Umriss EFEU_UMRISS: Abstand von der Ecke, Hoehe ueber dem Fuss; unten dicht, oben lichter, einzelne Triebe voraus),
+# dazu lichterer Bewuchs an weiteren Waenden (EFEU_FLAECHEN). Fenster, Tueren, Wappen, Schornstein und Anbauten bleiben frei.
+# Hinter der dichten Ecke entfallen die Eckquader (Dreiecksgrenze; in Grundform 3 nur so Platz fuer die Karten).
+EFEU_ECKE = {1: (1, -1), 2: (-1, -1), 3: (1, -1), 4: (-1, -1)}   # dichte Ecke je Grundform (sx, sy): vorn rechts bzw. vorn links
+EFEU_VOR = 0.045
+EFEU_UMRISS = {
+    "eg_vorn": [(0, 0), (0, 2.34), (0.30, 2.32), (0.45, 2.18), (0.62, 2.25), (0.78, 1.95), (0.72, 1.55), (0.80, 1.15), (0.55, 0.70), (0.42, 0.35), (0.22, 0)],
+    "eg_seite": [(0, 0), (0, 2.34), (0.40, 2.31), (0.65, 2.14), (0.90, 2.27), (1.20, 1.90), (1.35, 1.55), (1.15, 1.05), (1.25, 0.70), (0.80, 0.40), (0.45, 0.12), (0.30, 0)],
+    "og_vorn": [(0, 0), (0, 1.95), (0.25, 1.80), (0.40, 2.05), (0.65, 1.60), (0.85, 1.45), (1.05, 1.00), (1.25, 0.75), (1.10, 0.30), (1.30, 0)],
+    "og_seite": [(0, 0), (0, 2.10), (0.20, 1.90), (0.38, 2.00), (0.55, 1.55), (0.75, 1.30), (0.95, 0.85), (0.85, 0.40), (1.00, 0)],
+}
+# weitere Flaechen je Grundform: (Wand, Geschoss, von, bis (Lage entlang der Wand), groesste Hoehe ueber dem Fuss)
+EFEU_FLAECHEN = {
+    1: [("rechts", "eg", 0.5, 3.8, 1.9), ("rechts", "og", 0.5, 3.0, 1.4), ("links", "eg", -1.2, 0.6, 1.6)],
+    2: [("hinten", "eg", 0.4, 2.4, 2.2), ("hinten", "og", 0.8, 2.4, 1.2)],
+    3: [("links", "eg", -2.4, -1.0, 1.9), ("links", "og", -2.6, -1.4, 1.0)],
+    4: [("rechts", "eg", 0.5, 3.8, 1.8), ("rechts", "og", 0.5, 3.0, 1.2), ("hinten", "eg", -2.4, -0.8, 1.3)],
+}
+EFEU_REST = {1: 120, 2: 250, 3: 440, 4: 230}   # Dreiecke, die nach dem Efeu noch ins Haus kommen (Anbauten, Rundbogen, Ochsenauge; gemessen + 10 Reserve)
+DACH_UND_SCHEIBEN = {1: 459, 2: 533, 3: 505, 4: 519}   # Dreiecke ausser dem Haus (Messung 19.11.2026): Budget der Karten bis 3.990
+EFEU_V, KUPFER_V = (0.004, 0.121), (0.125, 0.1875)     # trimsheet_halbling.EFEU_STUFE3 / KUPFER_STUFE3 (Band „stroh“ geteilt)
+OG_QUADER_AB = 0.12                                     # Eckquader des OG ueber dem Gesims (Z_EG_DECKE - 0,04 bis + 0,12) ...
+OG_QUADER_BIS = 0.10                                    # ... bis unter das Traufgesims (Z_TRAUFE - 0,10)
 
 
 def umbenennen(text):
@@ -177,6 +202,8 @@ def baue_dach_halbling(stoff="Dachziegel", first="Firstziegel"):
     „stroh“: Kupfer mit Gruenspan). Frei vom Schornstein (Elben, Klicktest 18.11.2026)."""
     d = _ALT["baue_dach"](stoff, first)
     schlot_frei(d)
+    if S23.ist_stein():
+        print(f"BELEBT Kupfer im Dach umgelegt: {kupfer_umlegen(d)} Flaechen")
     LETZT["dach"] = d
     return d
 
@@ -226,10 +253,213 @@ class OhneMitte:
         return getattr(self._teil, name)
 
 
+def _im_umriss(umriss, d, z):
+    """Liegt der Punkt (Abstand d von der Ecke, Hoehe z ueber dem Fuss) in der Efeuflaeche (Strahltest)?"""
+    drin = False
+    for (d0, z0), (d1, z1) in zip(umriss, umriss[1:] + umriss[:1]):
+        if (z0 > z) != (z1 > z) and d < d0 + (z - z0) * (d1 - d0) / (z1 - z0): drin = not drin
+    return drin
+
+
+def _bedeckt(umriss, breite, z_oben, z_fuss, z_unten):
+    """Liegt eine Seite eines Eckquaders (Breite ab der Ecke, z_unten bis z_oben) ganz hinter der Efeuflaeche (Raster 5 x 5, 2 cm innen)?"""
+    return all(_im_umriss(umriss, 0.02 + (breite - 0.02) * i / 4, z_unten - z_fuss + 0.02 + (z_oben - z_unten) * k / 4) for i in range(5) for k in range(5))
+
+
+def eckquader(h, X, Y0, Y1, z0, z1, geschoss):
+    """Eckquader aus Werkstein wie im Erdgeschoss der Menschen (wohnhaus_mensch_s23.baue_haus: Laeufer 0,48 / Binder 0,22 m, Hoehen 0,34 /
+    0,26 m, 3 cm vor der Mauer), aber als ein Winkel aus vier Flaechen: vorn, Seite (Stirn des Laeufers und Seite des Binders liegen in
+    einer Ebene), die zwei Stirnen zur Wand. Die Quader stossen ohne offene Fuge aneinander (die Fuge zeichnet der Wechsel der Textur;
+    durch eine offene Fuge sah man in den Schacht hinter der Ecke, Pruefung 16); einen Deckel bekommt nur der oberste Quader eines Stapels.
+    8 statt 18 Dreiecke je Quader: so passen die Quader des Obergeschosses unter die Grenze von 4.000 Dreiecken. Hinter dem Efeu liegende
+    Quader entfallen."""
+    band, stein = S23.WERKSTEIN, "Bruchstein"
+    n = 0
+    for sx in (-1, 1):
+        for y, sy in ((Y0, -1), (Y1, 1)):
+            efeu = (sx, sy) == EFEU_ECKE[FORM[0]]
+            stapel, z, i = [], z0, 0
+            oben = z1 if (geschoss == "eg" or sy < 0) else z1 + OG_QUADER_BIS   # OG hinten: bis unter das Ortgangbrett (kein Traufgesims)
+            while z < oben - (0.3 if geschoss == "eg" else 0.05):             # OG: der oberste Quader reicht bis oben (sonst Schlitz unter dem Dach, 16)
+                hq = 0.34 if i % 2 == 0 else 0.26
+                lx, ly = (0.48, 0.22) if i % 2 == 0 else (0.22, 0.48)
+                zb = min(z + hq, oben - 0.02)
+                weg = efeu and _bedeckt(EFEU_UMRISS[f"{geschoss}_vorn"], lx + 0.03, zb + 0.02, z0, z) and _bedeckt(EFEU_UMRISS[f"{geschoss}_seite"], ly + 0.03, zb + 0.02, z0, z)
+                stapel.append((z, zb, lx, ly, not weg))
+                z, i = zb, i + 1
+            xa, ya = sx * (X + 0.03), y + sy * 0.03
+            for k, (z, zb, lx, ly, da) in enumerate(stapel):
+                if not da: continue
+                innen = Vector((sx * (X - 0.3), y - sy * 0.3, (z + zb) / 2))
+                h.rechteck(stein, (min(xa, sx * (X - lx)), ya, z), (1, 0, 0), (0, 0, 1), lx + 0.03, zb - z, band, weg_von=innen)
+                h.rechteck(stein, (xa, min(ya, y - sy * ly), z), (0, 1, 0), (0, 0, 1), ly + 0.03, zb - z, band, weg_von=innen)
+                h.rechteck(stein, (sx * (X - lx), min(y - sy * 0.01, ya), z), (0, 1, 0), (0, 0, 1), 0.04, zb - z, band, weg_von=(sx * (X + 1), y, z))
+                h.rechteck(stein, (min(sx * (X - 0.01), xa), y - sy * ly, z), (1, 0, 0), (0, 0, 1), 0.04, zb - z, band, weg_von=(sx * X, y + sy, z))
+                if k == len(stapel) - 1 or not stapel[k + 1][4]:      # Deckel (Laeufer und Binder) auf dem obersten Quader
+                    h.rechteck(stein, (min(xa, sx * (X - lx)), min(ya, y - sy * 0.01), zb), (1, 0, 0), (0, 1, 0), lx + 0.03, 0.04, band, zu=(0, 0, zb + 1))
+                    h.rechteck(stein, (min(xa, sx * (X - 0.01)), min(y - sy * 0.01, y - sy * ly), zb), (1, 0, 0), (0, 1, 0), 0.04, ly - 0.01, band, zu=(0, 0, zb + 1))
+                n += 1
+    return n
+
+
+def _efeu_hindernisse(M, wand):
+    """Rechtecke (von, bis entlang der Wand, z unten, z oben), die der Efeu freilaesst: Oeffnungen (Tuer mit Rundbogen und Vordach
+    weiter), Hauswappen, Schornstein, Scheitholz, Anbauten der Grundformen, Erker."""
+    frei = []
+    for w, (a0, a1), (z0, z1), art in M.FENSTER:
+        if w.split("_")[0] != wand: continue
+        r = 0.22 if art == "tuer" else 0.12
+        rs = r if art == "tuer" else (a1 - a0) / 2 + 0.08              # Fenster: die offenen Laeden daneben bleiben frei
+        frei.append((a0 - rs, a1 + rs, z0 - r, z1 + r + (0.45 if art == "tuer" else 0.0)))
+    F = M.FORMEN[FORM[0]]
+    if wand == "vorn": frei.append((0.39, 1.01, 2.83, 3.60))                       # Hauswappen
+    if wand == "rechts":
+        x0, x1, y0, y1 = M.SCHORNSTEIN_RECHTS
+        frei.append((y0 - 0.15, y1 + 0.15, -1, 99))
+        for k in ("fluegel", "schuppen"):
+            if k in F: frei.append((F[k][2] - 0.15, F[k][3] + 0.15, -1, 99))
+    if wand == "links":
+        frei.append((0.85, 2.20, -1, 0.75))                                          # Scheitholz
+        if "erker" in F: frei.append((F["erker"][0] - 0.15, F["erker"][1] + 0.15, F["erker"][2] - 0.2, 99))
+    return frei
+
+
+def _umriss_bei(umriss, d):
+    """Hoehe des Umrisses im Abstand d von der Ecke (groesste Hoehe der Kanten ueber d)."""
+    best = 0.0
+    for (d0, z0), (d1, z1) in zip(umriss, umriss[1:] + umriss[:1]):
+        if min(d0, d1) <= d <= max(d0, d1) and abs(d1 - d0) > 1e-9:
+            best = max(best, z0 + (z1 - z0) * (d - d0) / (d1 - d0))
+    return best
+
+
+def efeu_karten(h, budget):
+    """Efeu als Blattkarten (je 2 Dreiecke, 4,5 bis 7,5 cm vor der Mauer, im Spiel beidseitig): erst die dichte Ecke EFEU_ECKE (Raster
+    unter dem Umriss, unten Bilder „dicht“, oben „locker“, ueber dem Rand je Spalte ein Trieb), dann EFEU_FLAECHEN (licht). Hoechstens
+    `budget` Karten. Rueckgabe: Zahl der Karten."""
+    import random
+    M = S23.M
+    rng = random.Random(17 + FORM[0])
+    karten = []
+    sx, sy = EFEU_ECKE[FORM[0]]
+
+    def ebene(wand, geschoss):
+        """(Achse entlang der Wand, feste Koordinate, Normale nach aussen, Bereich entlang der Wand, z unten, z oben)."""
+        X = M.BX if geschoss == "eg" else M.OX
+        yv = M.VORN if geschoss == "eg" else M.OVORN
+        z0, z1 = (0.03, M.Z_EG_DECKE - 0.20) if geschoss == "eg" else (M.Z_EG_DECKE + 0.15, M.Z_TRAUFE - 0.25)
+        if wand == "vorn": return ("x", yv, Vector((0, -1, 0)), (-X, X), z0, z1)
+        if wand == "hinten": return ("x", M.HINTEN, Vector((0, 1, 0)), (-X, X), z0, z1)
+        s = -1 if wand == "links" else 1
+        return ("y", s * X, Vector((s, 0, 0)), (yv, M.HINTEN), z0, z1)
+
+    def setzen(wand, geschoss, s0, s1, z0, z1, bild):
+        achse, fest, n, (b0, b1), zmin, zmax = ebene(wand, geschoss)
+        if s0 < b0 - EFEU_VOR or s1 > b1 + EFEU_VOR or z0 < zmin - 1e-6 or z1 > zmax + 1e-6 or z1 - z0 < 0.2: return False   # bis an die Ecke
+        for a0, a1, c0, c1 in _efeu_hindernisse(M, wand):
+            if s0 < a1 and s1 > a0 and z0 < c1 and z1 > c0: return False
+        karten.append((achse, fest, n, s0, s1, z0, z1, bild, len(karten)))
+        return True
+
+    def bild(art):
+        return {"dicht": rng.randrange(0, 4), "locker": rng.choice((4, 5)), "trieb": rng.choice((6, 7))}[art]
+
+    # 1. dichte Ecke
+    for geschoss in ("eg", "og"):
+        for seite in ("vorn", "seite"):
+            wand = "vorn" if seite == "vorn" else ("rechts" if sx > 0 else "links")
+            umriss = EFEU_UMRISS[f"{geschoss}_{seite}"]
+            achse, fest, n, (b0, b1), zmin, zmax = ebene(wand, geschoss)
+            ecke = sx * (M.BX if geschoss == "eg" else M.OX) if seite == "vorn" else (M.VORN if geschoss == "eg" else M.OVORN)
+            richtung = -sx if seite == "vorn" else 1
+            breite = max(d for d, _ in umriss)
+            d = 0.0
+            while d < breite:
+                hoch = _umriss_bei(umriss, d + 0.2)
+                z = zmin
+                while True:
+                    gr = rng.uniform(0.5, 0.75)                  # Groesse und Lage etwas gestreut: kein Raster sichtbar
+                    if z + gr * 0.6 >= zmin + hoch: break
+                    art = "dicht" if z < zmin + hoch * 0.6 else "locker"
+                    dd = max(0.0, d + rng.uniform(-0.08, 0.08))
+                    s0, s1 = sorted((ecke + richtung * dd, ecke + richtung * (dd + gr)))
+                    setzen(wand, geschoss, s0, s1, z, min(z + gr, zmax), bild(art))
+                    z += gr * rng.uniform(0.5, 0.7)
+                s0, s1 = sorted((ecke + richtung * (d + 0.1), ecke + richtung * (d + 0.52)))
+                setzen(wand, geschoss, s0, s1, z, min(z + 0.6, zmax), bild("trieb"))
+                d += 0.40
+    # 2. lichte Flaechen
+    for wand, geschoss, a0, a1, hoch in EFEU_FLAECHEN[FORM[0]]:
+        achse, fest, n, (b0, b1), zmin, zmax = ebene(wand, geschoss)
+        s = a0
+        while s < a1 - 0.3:
+            spalte = hoch * rng.uniform(0.45, 1.0)
+            z = zmin
+            while True:
+                gr = rng.uniform(0.45, 0.65)
+                if z + gr * 0.6 >= zmin + spalte: break
+                ss = s + rng.uniform(-0.06, 0.06)
+                setzen(wand, geschoss, ss, ss + gr, z, min(z + gr, zmax), bild("dicht" if z < zmin + 0.4 else "locker"))
+                z += gr * rng.uniform(0.55, 0.75)
+            setzen(wand, geschoss, s + 0.08, s + 0.50, z, min(z + 0.6, zmax), bild("trieb"))
+            s += 0.48
+    karten = karten[:budget]
+    v0, v1 = EFEU_V
+    # Lagen 4 mm auseinander, nicht in der Ebene der Fensterlaeden und Rahmen (5 cm vor der Mauer)
+    ABSTAENDE = [a for a in (EFEU_VOR + 0.004 * i for i in range(30)) if abs(a - 0.05) >= 0.003][:24]
+    lagen = []                                                     # je Karte eine eigene Ebene vor der Mauer, wo sie sich ueberdecken
+    for i, (achse, fest, n, s0, s1, z0, z1, b, k) in enumerate(karten):
+        belegt = {lagen[j] for j in range(i) if karten[j][:2] == (achse, fest) and karten[j][3] < s1 and karten[j][4] > s0
+                  and karten[j][5] < z1 and karten[j][6] > z0}
+        lagen.append(next((l for l in range(24) if l not in belegt), i % 24))
+    for (achse, fest, n, s0, s1, z0, z1, b, k), lage in zip(karten, lagen):
+        vor = ABSTAENDE[lage]                                       # 4 mm je Lage (deckungsgleich ab 2 mm, Pruefung 12)
+        if achse == "x":
+            p = [Vector((s0, fest, z0)), Vector((s1, fest, z0)), Vector((s1, fest, z1)), Vector((s0, fest, z1))]
+        else:
+            p = [Vector((fest, s0, z0)), Vector((fest, s1, z0)), Vector((fest, s1, z1)), Vector((fest, s0, z1))]
+        p = [q + n * vor for q in p]
+        u0, u1 = b / 8 + 0.002, (b + 1) / 8 - 0.002
+        if k % 2: u0, u1 = u1, u0                                  # gespiegelt
+        h.vieleck("Efeublatt", p, [(u0, v1), (u1, v1), (u1, v0), (u0, v0)], weg_von=p[0] - n)
+    return len(karten)
+
+
+def kupfer_umlegen(teil):
+    """Stufe 3: Flaechen im Band „stroh“ (Kupfer der Gauben und des Firsts) in dessen unteren Teil KUPFER_V; oben liegt der Efeu."""
+    k0, k1 = KUPFER_V
+    n = 0
+    for i, (pts, uv, st, fa, gl) in enumerate(teil.flaechen):
+        if st == "Efeublatt" or not all(v <= 0.1875 + 1e-6 for _u, v in uv): continue
+        teil.flaechen[i] = (pts, [(u, k0 + (k1 - k0) * v / 0.1875) for u, v in uv], st, fa, gl)
+        n += 1
+    return n
+
+
 def haus_halbling():
-    h = _ALT["baue_haus"]()
     M = S23.M
     stein = S23.ist_stein()
+    alt_kasten = netzbau.Teil.kasten
+    weg = []
+
+    def kasten(self, stoff, mn, mx, band, *a, **kw):           # Steinhaus: die Eckquader der Menschen entfallen (eckquader() ersetzt sie)
+        if stein and band == S23.WERKSTEIN and max(abs(mn[0]), abs(mx[0])) > M.BX + 0.029 and max(abs(mn[0]), abs(mx[0])) < M.BX + 0.031 and mx[2] <= M.Z_EG_DECKE:
+            weg.append(1)
+            return None
+        return alt_kasten(self, stoff, mn, mx, band, *a, **kw)
+    netzbau.Teil.kasten = kasten
+    try:
+        h = _ALT["baue_haus"]()
+    finally:
+        netzbau.Teil.kasten = alt_kasten
+    if stein:
+        vorher = h.dreiecke()
+        n_eg = eckquader(h, M.BX, M.VORN, M.HINTEN, 0.0, M.Z_EG_DECKE, "eg")
+        n_og = eckquader(h, M.OX, M.OVORN, M.HINTEN, M.Z_EG_DECKE + OG_QUADER_AB, M.Z_TRAUFE - OG_QUADER_BIS, "og")
+        n_k = kupfer_umlegen(h)
+        n_e = efeu_karten(h, max(0, (3990 - DACH_UND_SCHEIBEN[FORM[0]] - h.dreiecke() - EFEU_REST[FORM[0]]) // 2))
+        print(f"BELEBT Eckquader der Menschen weg: {len(weg)} Kaesten; neu EG {n_eg}, OG {n_og} Quader; Kupfer umgelegt {n_k}; Efeu {n_e} Karten; "
+              f"Dreiecke {vorher} -> {h.dreiecke()}")
     vorher = h.dreiecke()
     for wand, a, z, art in M.FENSTER:
         if art != "tuer": continue
@@ -450,7 +680,7 @@ def schicht_anlegen(stufe):
         fehlt = sorted({fl[2] for fl in self.flaechen} - set(stoffe))
         if fehlt:
             stoffe = dict(stoffe)
-            for n in fehlt: stoffe[n] = g1.stoff(n, f"trim_s{STUFE[0]}", schere=n == "Strohkante")
+            for n in fehlt: stoffe[n] = g1.stoff(n, f"trim_s{STUFE[0]}", schere=n in ("Strohkante", "Efeublatt"))
         return alt_objekt(self, stoffe, *a, **kw)
     netzbau.Teil.objekt = objekt
     # Blick und Licht

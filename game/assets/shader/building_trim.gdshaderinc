@@ -57,6 +57,8 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 // (Stroh, Ziegel, Schiefer: Farbe bis 0,23, Rauheit bis −0,2; Steinbänder: Metall bis +0,25 aus dem Eisenband, Streifen), mit band_lesen
 // höchstens 0,03. Ohne Pixel-Look greift der Zweig nicht (pixel_look > 0,5), dort bleibt alles bildpunktgleich.
 const float BAND_REIN[12] = float[12](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);   // 0 = Ebene ohne reine Bänder
+// Geteiltes Band „stroh“ (Halbling Stufe 3, belebt 19.11.2026): oben Efeu (v bis 0,125), darunter Kupfer – zwei reine Bänder; 0 = ungeteilt
+const float STROH_TEIL[12] = float[12](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.125);
 
 float band_y(float y, float a, float e, float m) {
 	float t = exp2(m);
@@ -103,6 +105,10 @@ instance uniform int ao_ebene = 0;   // Ebene im Array der AO-Atlanten (Gruppe, 
 uniform vec3 russ_tint : source_color = vec3(1.0);
 #ifdef STROHKANTE
 uniform float kante_schwelle = 0.5;   // Alpha Scissor der Strohkanten; im Pixel-Look 1,01 (ganz aus), NeubauBrand.KantenSchwelle
+// Efeublatt (Halbling Stufe 3, Nutzer 19.11.2026): Blattkarten mit Alpha im Efeu-Teil des Bands „stroh“ (STROH_TEIL). Anders als die
+// Strohfransen bleiben sie im Pixel-Look sichtbar: Schwelle immer 0,5, das Alpha aus der feinen Mip-Stufe ohne Pixel-Zuschlag (und nur aus
+// dem Efeu-Band, nicht aus dem Kupfer darunter); die Farbe kommt wie sonst aus dem reinen Band (band_lesen).
+uniform bool efeu_blatt = false;
 #endif
 
 varying vec3 welt_ort;
@@ -132,17 +138,26 @@ void fragment() {
 	float yb = fract(UV.y);
 	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(ebene, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
 		vec2 bd = yb < 0.1875 ? vec2(0.0, 0.1875) : (yb < 0.25 ? vec2(0.1875, 0.25) : ((UV.y >= sb.x && UV.y < sb.y) ? sb.xy : sb.zw));
+		float teil = STROH_TEIL[clamp(ebene, 0, 11)];
+		if (teil > 0.0 && yb < 0.1875) bd = yb < teil ? vec2(0.0, teil) : vec2(teil, 0.1875);
 		tex = band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob);
 		if (stein) tex = mix(tex, band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob_licht), stein_ruhe);
 		orm = band_lesen(orm_tex, uvw, bd.x, bd.y, lod + grob_licht).rgb;
 		normal_tx = band_lesen(normal_tex, uvw, bd.x, bd.y, lod + grob_licht).rgb;
 	}
 	float house_ao = texture(ao_uv2_tex, vec3(UV2, float(ao_ebene))).r;
+#ifdef STROHKANTE
+	if (efeu_blatt) house_ao = 1.0;   // Blattkarten: die gebackene Verdeckung (Karten hintereinander, deckend gebacken) gilt fuer sie nicht
+#endif
 
 	vec3 final_color = tex.rgb;
 
 	// Pixel-Look: Halmstriche im Stroh (nur die Dachfläche, nicht der Fransenstreifen)
-	if (haus_baender > 0.5 && stroh_dach > 0.5 && pixel_look > 0.5 && UV.y < 0.1875) {
+	bool efeu = false;
+#ifdef STROHKANTE
+	efeu = efeu_blatt;
+#endif
+	if (haus_baender > 0.5 && stroh_dach > 0.5 && pixel_look > 0.5 && UV.y < 0.1875 && !efeu) {
 		float bahn = floor(UV.x * 4.0 / 0.14);
 		float versatz = fract(sin(bahn * 12.9898) * 43758.5453);
 		float stueck = floor(UV.y / 0.1875 * 1.55 / 0.55 + versatz);
@@ -197,5 +212,10 @@ void fragment() {
 #ifdef STROHKANTE
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = kante_schwelle;
+	if (efeu_blatt) {
+		float teil_e = STROH_TEIL[clamp(ebene, 0, 11)];
+		ALPHA = teil_e > 0.0 ? band_lesen(albedo_tex, uvw, 0.0, teil_e, lod).a : texture(albedo_tex, uvw).a;
+		ALPHA_SCISSOR_THRESHOLD = 0.5;
+	}
 #endif
 }
