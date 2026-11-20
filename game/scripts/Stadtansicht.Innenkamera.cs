@@ -224,6 +224,7 @@ public partial class Stadtansicht
 
     private void RaumBildAktualisieren(double delta)
     {
+        if (GegenstandSchauAktualisieren(delta)) return; // Schau von Kartentisch oder Geldtruhe (Stadtansicht.Innengegenstaende.cs)
         if (BuchSchauAktualisieren(delta)) return; // Buchschau: eigene Kamera, kein Randschwenk, kein Namensschild (Stadtansicht.Innenbuecher.cs)
         if (NeubauUmschauen(delta)) return; // Raum im neuen Haus: stufenloses Umschauen am Bildrand (Stadtansicht.Neubau.cs)
         if (_raum?.Blicke is null) return;

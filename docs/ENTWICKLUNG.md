@@ -135,6 +135,10 @@ Startet man das Spiel im Godot-Editor, läuft es im Reiter **Game** eingebettet.
 
 Die Tempostufen 16× und 32× (Tasten 5 und 6) sind Testtempo für die Entwicklung; im Code stehen sie in `Taktgeber.TestTempostufen` (Suche nach `TESTTEMPO`) und fallen vor der Veröffentlichung weg.
 
+## Kartenbau per KI (MCP-Server)
+
+`tools/kartenbau-mcp/`: kleiner MCP-Server (nur stdio), mit dem eine KI Karten auflisten, lesen, bauen, prüfen und als Bild ansehen kann. Einrichtung und Werkzeuge: `docs/werkzeuge/kartenbau-mcp.md`.
+
 ## Bilder für das Spielbuch
 
 Die beschrifteten Bilder im Spielbuch (`docs/bilder/handbuch/`) entstehen aus echten Bildschirmfotos: `tools/handbuch/aufnehmen.sh` nimmt die Rohbilder mit dem Klicktest auf, `tools/handbuch/beschriften.sh` setzt die Nummern (Datei `tools/handbuch/bilder.json`: Bild, Stelle der Nummer, Rahmen, Ausschnitt) und schreibt `.webp`. Ändert sich die Oberfläche, Rohbilder neu aufnehmen und die Stellen in `bilder.json` prüfen.
