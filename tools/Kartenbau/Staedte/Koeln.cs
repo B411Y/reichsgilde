@@ -23,7 +23,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      Norden hinter dem Kunibertstor, im Süden hinter dem Bayentor, seit 1.11.2026 mit einer Hausreihe zwischen Mauer und Platz (40 m vom Tor
 //      an der Rheingasse, am Südplatz kommt der Malzbüchel von Westen an) –, der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
 //      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon,
-//      St. Aposteln, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
+//      St. Aposteln, der fertige Dom im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
 //    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Straßen, die auf die Marktplätze führen, je 36 m vom nächsten (der
 //      Werkstattweg vom Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit): der Spieler und zwei
 //      KI-Häuser am Südplatz, zwei am Nordplatz, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
@@ -36,7 +36,7 @@ public sealed partial class Koeln : Stadtskript
 {
     public override string Kennung => "koeln";
     public override string Stadt => "Köln";
-    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, drei Marktplätze, Dom-Baustelle, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
+    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, drei Marktplätze, Dom, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
     public override (double Breite, double Tiefe) Groesse => (700, 450);
 
     // ── Maße ─────────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ public sealed partial class Koeln : Stadtskript
     protected override void Anlegen()
     {
         E.GroesseSetzen(700, 450, P(-50, 25));
-        E.VorlageSetzen("Köln um 1400 (Dom als Baustelle), auf etwa ein Zehntel verkleinert; Lage der Wahrzeichen und Straßennamen nach der Stadt");
+        E.VorlageSetzen("Köln um 1400 (Dom fertig gebaut, Alternativgeschichte), auf etwa ein Zehntel verkleinert; Lage der Wahrzeichen und Straßennamen nach der Stadt");
         E.FiktionHinzufuegen("Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).");
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
         E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
