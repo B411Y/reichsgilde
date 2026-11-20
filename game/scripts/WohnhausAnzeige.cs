@@ -452,6 +452,13 @@ public partial class WohnhausAnzeige : PanelContainer
         if (_ausbauKnopf.TooltipText != tipp) _ausbauKnopf.TooltipText = tipp;
     }
 
+    /// <summary>Beschriftung über das Thema der Fenster (Typvariation in <c>fenster_thema.tres</c>) statt fester Farbe.</summary>
+    private static Label Typ(Label label, string variante)
+    {
+        label.ThemeTypeVariation = variante;
+        return label;
+    }
+
     private static string RaumWirkung(string kennung) => kennung switch
     {
         "Hinterzimmer" => "Bande beauftragen, Erpresserbriefe, Wächter anwerben.",
@@ -484,14 +491,15 @@ public partial class WohnhausAnzeige : PanelContainer
         if (stand == _raumStand) return;
         _raumStand = stand;
         UiHilfe.KinderEntfernen(_raumListe);
-        Hauptmenue.Text(_raumListe, "Räume zum Anbauen (endgültig)", 14, Gold, umbruchBreite: Breite);
+        Typ(Hauptmenue.Text(_raumListe, "Räume zum Anbauen (endgültig)", 14, null, umbruchBreite: Breite), "WohnraumTitel");
         foreach (var z in zeilen)
         {
             var kopf = new HBoxContainer();
             kopf.AddThemeConstantOverride("separation", 8);
             _raumListe.AddChild(kopf);
             var text = Hauptmenue.Text(kopf, $"{z.Name}\n{z.Wirkung}" + (z.Da ? "\nSchon angebaut." : z.Grund is null ? "" : $"\n{z.Grund} {z.Schritt}"),
-                13, z.Da || z.Grund is null ? null : Grau, umbruchBreite: 240);
+                13, null, umbruchBreite: 190);
+            Typ(text, z.Da || z.Grund is null ? "WohnraumText" : "WohnraumGesperrt");
             text.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             if (z.Da) continue;
             var kennung = z.Kennung;
@@ -500,7 +508,7 @@ public partial class WohnhausAnzeige : PanelContainer
             {
                 var frage = new VBoxContainer();
                 kopf.AddChild(frage);
-                Hauptmenue.Text(frage, $"Endgültig, {preisText}. Anbauen?", 13, Gold, umbruchBreite: 130);
+                Typ(Hauptmenue.Text(frage, $"Endgültig, {preisText}. Anbauen?", 13, null, umbruchBreite: 130), "WohnraumTitel");
                 var jn = new HBoxContainer();
                 frage.AddChild(jn);
                 KleinerKnopf(jn, () => { _raumFrage = null; Senden(new RaumAnbauen(kennung)); }).Text = "Ja";
