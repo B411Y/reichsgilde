@@ -40,7 +40,7 @@ public partial class Rollbereich : ScrollContainer
     /// </summary>
     public static void RechtsAnheften(PanelContainer tafel)
     {
-        tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
+        tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16 + Fenster.Randabstand); // Randabstand: Einstellung für breite Bilder
         tafel.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
         tafel.GrowVertical = Control.GrowDirection.End;
         tafel.Position = new Vector2(tafel.Position.X, KopfHoehe);

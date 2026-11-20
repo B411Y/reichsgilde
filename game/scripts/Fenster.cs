@@ -67,6 +67,7 @@ public partial class Fenster : Node
         SigtermAbfangen();
         Schriften.Einrichten(GetTree());
         FensterStil.Einrichten(GetTree());
+        GetTree().Root.SizeChanged += OberflaecheAnwenden; // automatische Größe der Oberfläche folgt der Fensterhöhe (Fenster.Grafik.cs)
         Oberflaechenstil.Einrichten();
         Grafikschnittstelle.Starten(this);
         KlangOberflaeche.Einrichten(GetTree());
