@@ -23,10 +23,10 @@ public partial class Fensterrahmen : Node
     private float Griffhoehe => _kleid?.Griffhoehe ?? FensterStil.Mass("griff_ohne_kopf");
 
     /// <summary>
-    /// Fenster, die ihr Aussehen selbst mitbringen und darum kein <see cref="Fensterkleid"/> bekommen: der 3D-Faltbrief (eigenes Blatt), der
-    /// Entscheidungsbrief (kommt mit Teil 4 in den neuen Stoff) und das Hinterzimmer (eigenes Thema, wird getrennt gebaut).
+    /// Fenster, die ihr Aussehen selbst mitbringen und darum kein <see cref="Fensterkleid"/> bekommen: der 3D-Faltbrief (eigenes Blatt) und das
+    /// Hinterzimmer (eigenes Thema, wird getrennt gebaut).
     /// </summary>
-    private static readonly string[] OhneKleid = { "Brief", "Entscheidung", "Hinterzimmer" };
+    private static readonly string[] OhneKleid = { "Brief", "Hinterzimmer" };
 
     private Fensterkleid? _kleid;
 

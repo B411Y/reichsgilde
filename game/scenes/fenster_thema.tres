@@ -29,6 +29,26 @@ opentype_features = {
 1953396077: 1
 }
 
+[sub_resource type="StyleBoxFlat" id="BriefMarke"]
+bg_color = Color(0.48, 0.23, 0.37, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 10.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="TalentStrich"]
+bg_color = Color(0, 0, 0, 0)
+border_width_bottom = 1
+border_color = Color(0.235, 0.157, 0.04, 0.2)
+content_margin_left = 0.0
+content_margin_top = 2.0
+content_margin_right = 0.0
+content_margin_bottom = 2.0
+
 ; ── Lade-Fenster (Teil 3): Zeile mit Strich darunter, gesperrter Befehl ──
 [sub_resource type="StyleBoxFlat" id="ZeileStrich"]
 bg_color = Color(0, 0, 0, 0)
@@ -644,3 +664,60 @@ FensterBefehlFolge/font_sizes/font_size = 15
 FensterBefehlSperre/base_type = &"Label"
 FensterBefehlSperre/colors/font_color = Color(1, 0.886, 0.722, 1)
 FensterBefehlSperre/font_sizes/font_size = 15
+; ── Charakterseite (Teil 4, CharakterAnzeige.Seite.cs): Reiter, drei Spalten (Porträt | Werte und Züge | Talente und Familie) ──
+CharakterMasse/constants/rand = 22
+CharakterMasse/constants/bild = 210
+CharakterMasse/constants/bild_klein = 58
+CharakterMasse/constants/wertname = 78
+CharakterMasse/constants/talentzahl = 78
+CharakterReiter/base_type = &"TabBar"
+CharakterReiter/font_sizes/font_size = 17
+CharakterSpalten/base_type = &"HBoxContainer"
+CharakterSpalten/constants/separation = 18
+CharakterSpalte/base_type = &"VBoxContainer"
+CharakterSpalte/constants/separation = 6
+CharakterWer/base_type = &"HFlowContainer"
+CharakterWer/constants/h_separation = 6
+CharakterWer/constants/v_separation = 0
+CharakterWertReihe/base_type = &"HBoxContainer"
+CharakterWertReihe/constants/separation = 10
+CharakterZusatz/base_type = &"Label"
+CharakterZusatz/colors/font_color = Color(0.333, 0.251, 0.122, 1)
+CharakterZusatz/font_sizes/font_size = 15
+CharakterAbschnitt/base_type = &"Label"
+CharakterAbschnitt/fonts/font = ExtResource("6_titel")
+CharakterAbschnitt/colors/font_color = Color(0.353, 0.114, 0.078, 1)
+CharakterAbschnitt/font_sizes/font_size = 22
+CharakterGut/base_type = &"Label"
+CharakterGut/colors/font_color = Color(0.153, 0.345, 0.11, 1)
+CharakterGut/font_sizes/font_size = 17
+CharakterZuege/base_type = &"HFlowContainer"
+CharakterZuege/constants/h_separation = 10
+CharakterZuege/constants/v_separation = 4
+CharakterFamilie/base_type = &"HFlowContainer"
+CharakterFamilie/constants/h_separation = 16
+CharakterFamilie/constants/v_separation = 6
+CharakterTalentZeile/base_type = &"PanelContainer"
+CharakterTalentZeile/styles/panel = SubResource("TalentStrich")
+CharakterUeben/base_type = &"Button"
+CharakterUeben/font_sizes/font_size = 15
+; ── Entscheidungsbrief (Teil 4, EntscheidungsbriefAnzeige.cs): links der Brief, rechts die Wahlen ──
+BriefMasse/constants/bild = 60
+BriefMasse/constants/text_breite = 420
+BriefMasse/constants/frist_hoehe = 10
+BriefSpalten/base_type = &"HBoxContainer"
+BriefSpalten/constants/separation = 28
+BriefText/base_type = &"Label"
+BriefText/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+BriefText/font_sizes/font_size = 18
+BriefText/constants/line_spacing = 4
+BriefMarke/base_type = &"PanelContainer"
+BriefMarke/styles/panel = SubResource("BriefMarke")
+BriefMarkeText/base_type = &"Label"
+BriefMarkeText/fonts/font = SubResource("Fett")
+BriefMarkeText/colors/font_color = Color(1, 1, 1, 1)
+BriefMarkeText/font_sizes/font_size = 15
+BriefFrist/colors/grund = Color(0.235, 0.157, 0.04, 0.2)
+BriefFrist/colors/fuellung = Color(0.48, 0.23, 0.37, 1)
+BriefFrist/colors/knapp = Color(0.639, 0.149, 0.114, 1)
+BriefFrist/colors/rand = Color(0.114, 0.071, 0.031, 1)
