@@ -34,6 +34,9 @@ public partial class WohnhausAnzeige : PanelContainer
     private Label _wohnhausText = null!;
     private Button _ausbauKnopf = null!;
     private Button _hauswaechterKnopf = null!;
+    private VBoxContainer _raumListe = null!;
+    private string _raumStand = "";
+    private string? _raumFrage; // Kennung des Raums, bei dem die Rückfrage „Endgültig …“ offen ist
     private Label _apZeile = null!;
     private Label _familienZeile = null!;
     private Label _vermoegen = null!;
@@ -116,6 +119,9 @@ public partial class WohnhausAnzeige : PanelContainer
         var einrichtungKnopf = KleinerKnopf(hausKnoepfe, () => EinrichtungGewuenscht?.Invoke());
         einrichtungKnopf.Text = "Einrichtung …";
         einrichtungKnopf.TooltipText = "Haushalt, Ansehen und Schutz: der Talentbaum der Einrichtung des Wohnhauses.";
+        _raumListe = new VBoxContainer();
+        _raumListe.AddThemeConstantOverride("separation", 4);
+        haus.AddChild(_raumListe);
         _apZeile = NeuesLabel(haus, 14, Gold, umbruch: Breite);
         _apZeile.MouseFilter = MouseFilterEnum.Stop; // für den Tooltip
         _statutZeile = NeuesLabel(haus, 13, Grau, umbruch: Breite);
@@ -403,8 +409,10 @@ public partial class WohnhausAnzeige : PanelContainer
         if (!w.Wohnen.IstAktiv || _spieler is null)
         {
             _ausbauKnopf.Visible = _hauswaechterKnopf.Visible = false;
+            _raumListe.Visible = false;
             return;
         }
+        RaeumeAktualisieren(w, waehrung);
         var stufe = w.Wohnen.Stufe(_spieler)!;
         var instand = _spieler.WohnhausInstandBis is { } bis && _simulation is { } s
             ? Math.Max(0, bis - s.Zeit.VergangeneMinuten) : (long?)null;
@@ -442,6 +450,69 @@ public partial class WohnhausAnzeige : PanelContainer
         var tipp = grund ?? $"Ausbau zum {naechste.Name}: +{Zahlenformat.Ganz(naechste.Ansehen)} Ansehen, Unterhalt {Zahlenformat.Ganz(naechste.Unterhalt)} {waehrung} im Jahr. " +
                    $"Bauzeit {w.Wohnen.Daten!.BauzeitMinuten / 60.0:0.#} Stunden.";
         if (_ausbauKnopf.TooltipText != tipp) _ausbauKnopf.TooltipText = tipp;
+    }
+
+    private static string RaumWirkung(string kennung) => kennung switch
+    {
+        "Hinterzimmer" => "Bande beauftragen, Erpresserbriefe, Wächter anwerben.",
+        "Bibliothek" => "Lehrschriften lesen; die Kinder lernen ein Viertel schneller.",
+        _ => "Ein Raum zur Wahl im Wohnhaus.",
+    };
+
+    /// <summary>
+    /// Die Räume zur Wahl (Hinterzimmer, Bibliothek …): je Raum Name, Wirkung, Preis und „Anbauen“. Der Kern nennt den Grund, wenn es nicht geht;
+    /// weil das Anbauen endgültig ist, fragt ein Klick erst „Endgültig, X Gulden. Anbauen?“. Neu gebaut wird nur, wenn sich der Stand ändert.
+    /// </summary>
+    private void RaeumeAktualisieren(Stadtwirtschaft w, string waehrung)
+    {
+        var wohnen = w.Wohnen;
+        var arten = wohnen.HatRaumregeln ? wohnen.Daten!.Raeume!.Waehlbar : new List<string>();
+        _raumListe.Visible = arten.Count > 0;
+        if (arten.Count == 0) return;
+        var zeilen = new List<(string Kennung, string Name, string Wirkung, double Preis, bool Da, string? Grund, string Schritt)>();
+        foreach (var kennung in arten)
+        {
+            var art = wohnen.Daten!.Raeume!.Art(kennung)!;
+            var preis = w.Baupreis(_spieler!, art.Preis);
+            var da = wohnen.HatRaum(_spieler!, kennung);
+            var grund = da ? null : wohnen.RaumAnbauenVerboten(_spieler!, kennung);
+            var schritt = grund is null ? "" : wohnen.FreiePlaetze(_spieler!) == 0 ? "Nächster Schritt: das Wohnhaus ausbauen." : "Nächster Schritt: Geld zurücklegen.";
+            zeilen.Add((kennung, art.Name, RaumWirkung(kennung), preis, da, grund, schritt));
+        }
+        if (_raumFrage is not null && zeilen.All(z => z.Kennung != _raumFrage || z.Da || z.Grund is not null)) _raumFrage = null;
+        var stand = _raumFrage + "|" + string.Join("|", zeilen.Select(z => $"{z.Kennung}:{z.Da}:{z.Preis}:{z.Grund}"));
+        if (stand == _raumStand) return;
+        _raumStand = stand;
+        UiHilfe.KinderEntfernen(_raumListe);
+        Hauptmenue.Text(_raumListe, "Räume zum Anbauen (endgültig)", 14, Gold, umbruchBreite: Breite);
+        foreach (var z in zeilen)
+        {
+            var kopf = new HBoxContainer();
+            kopf.AddThemeConstantOverride("separation", 8);
+            _raumListe.AddChild(kopf);
+            var text = Hauptmenue.Text(kopf, $"{z.Name}\n{z.Wirkung}" + (z.Da ? "\nSchon angebaut." : z.Grund is null ? "" : $"\n{z.Grund} {z.Schritt}"),
+                13, z.Da || z.Grund is null ? null : Grau, umbruchBreite: 240);
+            text.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            if (z.Da) continue;
+            var kennung = z.Kennung;
+            var preisText = $"{Zahlenformat.Ganz(z.Preis)} {waehrung}";
+            if (_raumFrage == kennung)
+            {
+                var frage = new VBoxContainer();
+                kopf.AddChild(frage);
+                Hauptmenue.Text(frage, $"Endgültig, {preisText}. Anbauen?", 13, Gold, umbruchBreite: 130);
+                var jn = new HBoxContainer();
+                frage.AddChild(jn);
+                KleinerKnopf(jn, () => { _raumFrage = null; Senden(new RaumAnbauen(kennung)); }).Text = "Ja";
+                KleinerKnopf(jn, () => { _raumFrage = null; _raumStand = ""; Aktualisieren(); }).Text = "Nein";
+                continue;
+            }
+            var knopf = KleinerKnopf(kopf, () => { _raumFrage = kennung; _raumStand = ""; Aktualisieren(); });
+            knopf.Text = $"Anbauen ({preisText})";
+            knopf.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+            knopf.Disabled = z.Grund is not null;
+            knopf.TooltipText = z.Grund is null ? $"{z.Name} anbauen: {z.Wirkung} Endgültig, es folgt eine Rückfrage." : z.Grund + " " + z.Schritt;
+        }
     }
 
     private void Senden(Befehl befehl)
