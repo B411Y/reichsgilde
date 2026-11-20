@@ -75,7 +75,8 @@ namespace Reichsgilde;
 ///   --domwahl=1        alle geeigneten Häuser bewerben sich um das Amt des Dompredigers (Hauptszene.Ratssitzung.cs; mit --sitzung=1 steht der Dom-Punkt in der Sitzung)
 ///   --familie=1        gleich zu Beginn die Familientafel öffnen
 ///   --gericht=1        gleich zu Beginn den Gerichtssaal öffnen
-///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen
+///   --hinterzimmer=1   gleich zu Beginn das Hinterzimmer öffnen (statt 1 auch ein Kapitel: nacht, haeuser, leute, schutz)
+///   --raumanbauen=Hinterzimmer   einen Raum am Wohnhaus anbauen (nach --aufsteigen=1 --vermoegen=30000)
 ///   --markt=1          gleich zu Beginn das Marktfenster öffnen
 ///   --verkaufen=1      gleich zu Beginn die Rückfrage zum Verkauf der eigenen Werkstatt öffnen (=2: vorher eine freie
 ///                      Liegenschaft dazukaufen und bis Mittag laufen lassen, damit der Verkauf erlaubt ist und Ware im Lager liegt)
@@ -374,6 +375,7 @@ public partial class Hauptszene : Node
         _wohnhaus.HinterzimmerGewuenscht += HinterzimmerOeffnen;
         _wohnhaus.Geschlossen += () => { if (_auswahlKennung == EigenesWohnhaus) _auswahlKennung = null; };
         _hinterzimmer.Gemeldet += Protokollieren;
+        _hinterzimmer.WohnhausGewuenscht += () => { _hinterzimmer.Hide(); WohnhausOeffnen(WohnhausAnzeige.Reiter.Haus); }; // Sperrleiste: „Zum Wohnhaus“
         _berichtTafel.JahresberichtGewuenscht += () =>
         {
             if (_spieler is null || _spieler.Vorjahr is null) return;
@@ -620,8 +622,12 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("entscheidung", out var entscheidungWert)) _entscheidungWartet = entscheidungWert; // ebenso (Benachrichtigungen Stufe 3)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
-        if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
-            _hinterzimmer.Oeffnen();
+        if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer))
+        {
+            if (hinterzimmer == "1") _hinterzimmer.Oeffnen();
+            else if (Enum.TryParse<GaunerAnzeige.Kapitel>(hinterzimmer, true, out var kapitel)) { _hinterzimmer.Oeffnen(); _hinterzimmer.Aufschlagen(kapitel); }
+            else Protokollieren($"--hinterzimmer={hinterzimmer}: gemeint ist 1, nacht, haeuser, leute oder schutz.");
+        }
         if (optionen.TryGetValue("markt", out var markt) && markt == "1")
             _markt.Oeffnen();
         if (optionen.TryGetValue("verkaufen", out var verkaufen) && verkaufen is "1" or "2" && _eigeneGiesserei is { } werkstatt)
@@ -631,6 +637,13 @@ public partial class Hauptszene : Node
             _verkauf.Oeffnen(werkstatt);
         }
         if (optionen.TryGetValue("aufsteigen", out var aufsteigen) && aufsteigen == "1") AufsteigenVorbereiten();
+        if (optionen.TryGetValue("raumanbauen", out var raumanbauen) && _spieler is not null)
+        {
+            // Nur für den Klicktest: einen Raum am Wohnhaus anbauen, mit dem gewöhnlichen Befehl (braucht --aufsteigen=1 --vermoegen=30000).
+            var anbau = _simulation.Bote.SofortAusfuehren(_spieler, new RaumAnbauen(raumanbauen));
+            if (!anbau.Erfolg) Protokollieren($"--raumanbauen={raumanbauen}: {anbau.Meldung}");
+        }
+        if (_hinterzimmer.Visible) _hinterzimmer.Aufbauen(); // --aufsteigen und --raumanbauen ändern, was im Hinterzimmer gesperrt ist
         if (optionen.TryGetValue("ausbauen", out var ausbauen) && int.TryParse(ausbauen, out var stufen)) AusbauenVorbereiten(stufen);
         RatssitzungStartoptionen(optionen); // --sitzung, --sitzungzeigen (Hauptszene.Ratssitzung.cs); nach --amt und --aufsteigen (Bewerbung braucht den Stand Bürger)
         if (optionen.TryGetValue("einstellen", out var einstellen) && _eigeneGiesserei is { } einsteller && _simulation.Wirtschaft is { } wEin && _spieler is not null)

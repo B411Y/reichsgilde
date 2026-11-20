@@ -1,0 +1,704 @@
+[gd_resource type="Theme" format=3]
+
+; Das Thema des Hinterzimmers, „Das Schwarze Buch“ (19.11.2026): die Tafel als aufgeschlagenes Buch.
+; Aussehen steht NUR hier, Logik in GaunerAnzeige*.cs, die Brücke ist HinterzimmerStil.cs.
+; Typ-Varianten (Hz…) erben von einem Godot-Typ; Farben und Maße der Familie stehen unter den Pseudo-Typen HzFarben und HzMasse.
+; Einband: Leder (gekachelt), Seiten: Papier mit feinen Einschlüssen, pergamentfarben getönt. Beide Texturen sind fremde CC0-Aufnahmen und unverändert (Herkunft:
+; game/assets/oberflaeche/hinterzimmer/HERKUNFT.md); dunkler bzw. wärmer wird nur hier über modulate_color, die Ausschnitte der
+; linken und rechten Seite stehen in region_rect. Schrift auf den Seiten ist dunkle Tinte, auf dem Einband Gold.
+
+[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/papier.jpg" id="2_papier"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/leder.jpg" id="3_leder"]
+; Zeichen vor den Taten (dunkler Strich) und an den Lesebändern („_hell“), aus dem Entwurf übernommen (docs/assets/prompts/hinterzimmer_zeichen.md)
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/auge.svg" id="z_auge"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/blatt.svg" id="z_blatt"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/blume.svg" id="z_blume"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/brand.svg" id="z_brand"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/brief.svg" id="z_brief"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/dolch.svg" id="z_dolch"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/flamme.svg" id="z_flamme"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/flasche.svg" id="z_flasche"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/karren.svg" id="z_karren"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/kette.svg" id="z_kette"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/leute.svg" id="z_leute"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/leute_hell.svg" id="z_leute_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/mond.svg" id="z_mond"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/mond_hell.svg" id="z_mond_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/muenze.svg" id="z_muenze"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/sack.svg" id="z_sack"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/sack_hell.svg" id="z_sack_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schild.svg" id="z_schild"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schild_hell.svg" id="z_schild_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schluessel.svg" id="z_schluessel"]
+
+; ── Einband und Seiten ──
+[sub_resource type="StyleBoxTexture" id="Einband"]
+texture = ExtResource("3_leder")
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+modulate_color = Color(0.62, 0.5, 0.45, 1)
+
+[sub_resource type="StyleBoxTexture" id="SeiteLinks"]
+texture = ExtResource("2_papier")
+region_rect = Rect2(0, 0, 794, 600)
+modulate_color = Color(1, 0.93, 0.74, 1)
+content_margin_left = 16.0
+content_margin_top = 9.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+
+[sub_resource type="StyleBoxTexture" id="SeiteRechts"]
+texture = ExtResource("2_papier")
+region_rect = Rect2(0, 424, 794, 600)
+modulate_color = Color(1, 0.93, 0.74, 1)
+content_margin_left = 14.0
+content_margin_top = 9.0
+content_margin_right = 16.0
+content_margin_bottom = 7.0
+
+[sub_resource type="StyleBoxFlat" id="Praegung"]
+bg_color = Color(0, 0, 0, 0)
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.29, 0.16, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 0.0
+content_margin_bottom = 9.0
+
+; Buchblock: der Schnitt der Blätter unter den zwei aufgeschlagenen Seiten
+[sub_resource type="StyleBoxFlat" id="Buchblock"]
+bg_color = Color(0.55, 0.47, 0.33, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.09, 0.06, 0.04, 1)
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 5.0
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 5
+
+[sub_resource type="StyleBoxFlat" id="Falz"]
+bg_color = Color(0.22, 0.14, 0.07, 0.6)
+content_margin_left = 3.0
+content_margin_top = 0.0
+content_margin_right = 3.0
+content_margin_bottom = 0.0
+shadow_color = Color(0.2, 0.12, 0.04, 0.4)
+shadow_size = 18
+
+; Zettel über dem Buch: Sperre (rot), Post (ocker), Rückmeldung
+[sub_resource type="StyleBoxFlat" id="Sperre"]
+bg_color = Color(0.82, 0.74, 0.57, 1)
+border_width_left = 7
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.58, 0.08, 0.06, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 14.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Post"]
+bg_color = Color(0.82, 0.75, 0.58, 1)
+border_width_left = 7
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.27, 0.02, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 14.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="Zettel"]
+bg_color = Color(0.82, 0.75, 0.58, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.27, 0.17, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 14.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="Marke"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.58, 0.08, 0.06, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 5.0
+content_margin_top = 0.0
+content_margin_right = 5.0
+content_margin_bottom = 0.0
+
+; ── Lesebänder (Kapitel): vier Farben, das aufgeschlagene steht weiter heraus ──
+[sub_resource type="StyleBoxFlat" id="Band1"]
+bg_color = Color(0.43, 0.13, 0.1, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band1Ueber"]
+bg_color = Color(0.537, 0.163, 0.125, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band1An"]
+bg_color = Color(0.537, 0.163, 0.125, 1)
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.72, 0.4, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Band2"]
+bg_color = Color(0.17, 0.29, 0.43, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band2Ueber"]
+bg_color = Color(0.213, 0.362, 0.537, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band2An"]
+bg_color = Color(0.213, 0.362, 0.537, 1)
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.72, 0.4, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Band3"]
+bg_color = Color(0.24, 0.35, 0.16, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band3Ueber"]
+bg_color = Color(0.3, 0.438, 0.2, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band3An"]
+bg_color = Color(0.3, 0.438, 0.2, 1)
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.72, 0.4, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Band4"]
+bg_color = Color(0.48, 0.35, 0.09, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band4Ueber"]
+bg_color = Color(0.6, 0.438, 0.112, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Band4An"]
+bg_color = Color(0.6, 0.438, 0.112, 1)
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.72, 0.4, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+expand_margin_right = 12.0
+
+[sub_resource type="StyleBoxFlat" id="BandGesperrt"]
+bg_color = Color(0.27, 0.24, 0.22, 1)
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+
+; ── Register (Häuser): Reiter aus Pergament über der Seite ──
+[sub_resource type="StyleBoxFlat" id="Register"]
+bg_color = Color(0.58, 0.51, 0.37, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_color = Color(0.09, 0.06, 0.04, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 11.0
+content_margin_top = 3.0
+content_margin_right = 11.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="RegisterUeber"]
+bg_color = Color(0.69, 0.62, 0.46, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_color = Color(0.09, 0.06, 0.04, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 11.0
+content_margin_top = 3.0
+content_margin_right = 11.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="RegisterAn"]
+bg_color = Color(0.79, 0.72, 0.55, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_color = Color(0.09, 0.06, 0.04, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+content_margin_left = 11.0
+content_margin_top = 3.0
+content_margin_right = 11.0
+content_margin_bottom = 3.0
+expand_margin_top = 3.0
+
+; ── Knöpfe auf Pergament ──
+[sub_resource type="StyleBoxFlat" id="Knopf"]
+bg_color = Color(0.165, 0.1, 0.047, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.54, 0.42, 0.24, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="KnopfUeber"]
+bg_color = Color(0.27, 0.17, 0.08, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.72, 0.4, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="KnopfGesperrt"]
+bg_color = Color(0.165, 0.1, 0.047, 0.16)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.41, 0.34, 0.26, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 2.0
+content_margin_right = 8.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxEmpty" id="Leer"]
+content_margin_left = 2.0
+content_margin_top = 0.0
+content_margin_right = 2.0
+content_margin_bottom = 0.0
+
+; ── Chance als Balken ──
+[sub_resource type="StyleBoxFlat" id="BalkenGrund"]
+bg_color = Color(0.68, 0.61, 0.45, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.27, 0.17, 1)
+
+[sub_resource type="StyleBoxFlat" id="BalkenFuellung"]
+bg_color = Color(0.45, 0.12, 0.08, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.27, 0.17, 1)
+
+[sub_resource type="StyleBoxFlat" id="BalkenFuellungBlass"]
+bg_color = Color(0.56, 0.49, 0.38, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.27, 0.17, 1)
+
+[sub_resource type="StyleBoxFlat" id="Trenner"]
+bg_color = Color(0.36, 0.27, 0.17, 0.55)
+content_margin_left = 0.0
+content_margin_top = 1.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxFlat" id="Gruppenlinie"]
+bg_color = Color(0.14, 0.09, 0.05, 1)
+content_margin_top = 2.0
+
+[sub_resource type="StyleBoxEmpty" id="Abstand"]
+
+[resource]
+; ── Familie: Farben und Maße (abgefragt über HinterzimmerStil.Farbe / .Mass) ──
+HzFarben/colors/tinte = Color(0.14, 0.09, 0.05, 1)
+HzFarben/colors/tinte_blass = Color(0.36, 0.27, 0.17, 1)
+HzFarben/colors/rot = Color(0.58, 0.08, 0.06, 1)
+HzFarben/colors/gruen = Color(0.12, 0.34, 0.11, 1)
+HzFarben/colors/gold = Color(0.86, 0.72, 0.4, 1)
+HzFarben/colors/initiale = Color(0.64, 0.15, 0.11, 1)
+HzFarben/colors/punktlinie = Color(0.235, 0.157, 0.04, 0.5)
+; Breite und Mindesthöhe einer Buchseite, Umbruchbreiten, Spalten der Tat-Zeile, Breite der Lesebänder, freier Platz für ✕ und Nadel
+HzMasse/constants/seite_breite = 594
+HzMasse/constants/seite_hoehe = 440
+HzMasse/constants/kopf_breite = 1120
+HzMasse/constants/schritt_breite = 960
+HzMasse/constants/text_breite = 552
+HzMasse/constants/text_breite_siegel = 482
+HzMasse/constants/steckbrief_breite = 440
+HzMasse/constants/tat_breite = 270
+HzMasse/constants/chance_breite = 60
+HzMasse/constants/chance_hoehe = 8
+HzMasse/constants/kosten_breite = 58
+HzMasse/constants/aktion_breite = 100
+HzMasse/constants/band_breite = 168
+HzMasse/constants/band_oben = 14
+HzMasse/constants/kopf_frei = 22
+HzMasse/constants/register_hoehe = 29
+HzMasse/constants/register_rechts = 40
+HzMasse/constants/zahlfeld_breite = 150
+HzMasse/constants/wappen = 52
+HzMasse/constants/siegel = 56
+; Zeichen vor einer Tat (Größe, Deckkraft der gesperrten Tat in Prozent), rote Initiale der Seitentitel, gepunktete Linie zwischen den Taten
+HzMasse/constants/zeichen = 27
+HzMasse/constants/zeichen_blass = 55
+HzMasse/constants/initiale_groesse = 34
+HzMasse/constants/punkt = 2
+HzMasse/constants/punktlinie_hoehe = 5
+HzZeichen/icons/auge = ExtResource("z_auge")
+HzZeichen/icons/blatt = ExtResource("z_blatt")
+HzZeichen/icons/blume = ExtResource("z_blume")
+HzZeichen/icons/brand = ExtResource("z_brand")
+HzZeichen/icons/brief = ExtResource("z_brief")
+HzZeichen/icons/dolch = ExtResource("z_dolch")
+HzZeichen/icons/flamme = ExtResource("z_flamme")
+HzZeichen/icons/flasche = ExtResource("z_flasche")
+HzZeichen/icons/karren = ExtResource("z_karren")
+HzZeichen/icons/kette = ExtResource("z_kette")
+HzZeichen/icons/leute = ExtResource("z_leute")
+HzZeichen/icons/leute_hell = ExtResource("z_leute_hell")
+HzZeichen/icons/mond = ExtResource("z_mond")
+HzZeichen/icons/mond_hell = ExtResource("z_mond_hell")
+HzZeichen/icons/muenze = ExtResource("z_muenze")
+HzZeichen/icons/sack = ExtResource("z_sack")
+HzZeichen/icons/sack_hell = ExtResource("z_sack_hell")
+HzZeichen/icons/schild = ExtResource("z_schild")
+HzZeichen/icons/schild_hell = ExtResource("z_schild_hell")
+HzZeichen/icons/schluessel = ExtResource("z_schluessel")
+
+; ── Einband ──
+HzTafel/base_type = &"PanelContainer"
+HzTafel/styles/panel = SubResource("Einband")
+HzRand/base_type = &"MarginContainer"
+HzRand/constants/margin_left = 9
+HzRand/constants/margin_top = 8
+HzRand/constants/margin_right = 9
+HzRand/constants/margin_bottom = 8
+HzPraegung/base_type = &"PanelContainer"
+HzPraegung/styles/panel = SubResource("Praegung")
+HzBandspalte/base_type = &"VBoxContainer"
+HzBandspalte/constants/separation = 6
+HzBandkopf/base_type = &"MarginContainer"
+HzBandkopf/constants/margin_left = 12
+HzBandkopf/constants/margin_top = 0
+HzBandkopf/constants/margin_right = 14
+HzBandkopf/constants/margin_bottom = 0
+HzEinbandTitel/base_type = &"Label"
+HzEinbandTitel/fonts/font = ExtResource("1_titel")
+HzEinbandTitel/font_sizes/font_size = 22
+HzEinbandTitel/colors/font_color = Color(0.86, 0.72, 0.4, 1)
+HzEinbandText/base_type = &"Label"
+HzEinbandText/font_sizes/font_size = 14
+HzEinbandText/colors/font_color = Color(0.86, 0.81, 0.7, 1)
+HzEinbandGold/base_type = &"Label"
+HzEinbandGold/font_sizes/font_size = 14
+HzEinbandGold/colors/font_color = Color(0.93, 0.79, 0.44, 1)
+
+; ── Container ──
+HzSpalte/base_type = &"VBoxContainer"
+HzSpalte/constants/separation = 5
+HzSeite/base_type = &"VBoxContainer"
+HzSeite/constants/separation = 3
+HzDicht/base_type = &"VBoxContainer"
+HzDicht/constants/separation = 0
+HzZeile/base_type = &"HBoxContainer"
+HzZeile/constants/separation = 10
+HzEng/base_type = &"HBoxContainer"
+HzEng/constants/separation = 4
+HzBlaetter/base_type = &"HBoxContainer"
+HzBlaetter/constants/separation = 0
+HzRegisterzeile/base_type = &"HBoxContainer"
+HzRegisterzeile/constants/separation = 3
+HzTatzeile/base_type = &"HBoxContainer"
+HzTatzeile/constants/separation = 8
+HzBuch/base_type = &"PanelContainer"
+HzBuch/styles/panel = SubResource("Buchblock")
+HzBlatt/base_type = &"PanelContainer"
+HzBlatt/styles/panel = SubResource("SeiteLinks")
+HzBlattRechts/base_type = &"PanelContainer"
+HzBlattRechts/styles/panel = SubResource("SeiteRechts")
+HzFalz/base_type = &"PanelContainer"
+HzFalz/styles/panel = SubResource("Falz")
+HzSperre/base_type = &"PanelContainer"
+HzSperre/styles/panel = SubResource("Sperre")
+HzPost/base_type = &"PanelContainer"
+HzPost/styles/panel = SubResource("Post")
+HzZettel/base_type = &"PanelContainer"
+HzZettel/styles/panel = SubResource("Zettel")
+HzTrenner/base_type = &"HSeparator"
+HzTrenner/styles/separator = SubResource("Trenner")
+HzTrenner/constants/separation = 5
+HzGruppenlinie/base_type = &"HSeparator"
+HzGruppenlinie/styles/separator = SubResource("Gruppenlinie")
+HzGruppenlinie/constants/separation = 2
+HzAbstand/base_type = &"HSeparator"
+HzAbstand/styles/separator = SubResource("Abstand")
+HzAbstand/constants/separation = 5
+
+; ── Schrift auf Pergament: dunkle Tinte ──
+; Seitentitel: RichTextLabel, weil die Initiale rot und größer ist (Farbe „initiale“, Größe „initiale_groesse“)
+HzSeitentitel/base_type = &"RichTextLabel"
+HzSeitentitel/fonts/normal_font = ExtResource("1_titel")
+HzSeitentitel/font_sizes/normal_font_size = 25
+HzSeitentitel/colors/default_color = Color(0.14, 0.09, 0.05, 1)
+HzGruppe/base_type = &"Label"
+HzGruppe/fonts/font = ExtResource("1_titel")
+HzGruppe/font_sizes/font_size = 19
+HzGruppe/colors/font_color = Color(0.14, 0.09, 0.05, 1)
+HzSperrtitel/base_type = &"Label"
+HzSperrtitel/font_sizes/font_size = 15
+HzSperrtitel/colors/font_color = Color(0.58, 0.08, 0.06, 1)
+HzText/base_type = &"Label"
+HzText/font_sizes/font_size = 15
+HzText/colors/font_color = Color(0.14, 0.09, 0.05, 1)
+HzGesperrt/base_type = &"Label"
+HzGesperrt/font_sizes/font_size = 15
+HzGesperrt/colors/font_color = Color(0.41, 0.34, 0.26, 1)
+HzKlein/base_type = &"Label"
+HzKlein/font_sizes/font_size = 14
+HzKlein/colors/font_color = Color(0.36, 0.27, 0.17, 1)
+HzGold/base_type = &"Label"
+HzGold/font_sizes/font_size = 14
+HzGold/colors/font_color = Color(0.45, 0.27, 0.02, 1)
+HzGut/base_type = &"Label"
+HzGut/font_sizes/font_size = 15
+HzGut/colors/font_color = Color(0.12, 0.34, 0.11, 1)
+HzSchlecht/base_type = &"Label"
+HzSchlecht/font_sizes/font_size = 15
+HzSchlecht/colors/font_color = Color(0.58, 0.08, 0.06, 1)
+HzGrund/base_type = &"Label"
+HzGrund/font_sizes/font_size = 14
+HzGrund/colors/font_color = Color(0.58, 0.08, 0.06, 1)
+; Marke „Kerker“ an schweren Vergehen
+HzMarke/base_type = &"Label"
+HzMarke/styles/normal = SubResource("Marke")
+HzMarke/font_sizes/font_size = 14
+HzMarke/colors/font_color = Color(0.58, 0.08, 0.06, 1)
+
+; ── Knöpfe ──
+HzKnopf/base_type = &"Button"
+HzKnopf/styles/normal = SubResource("Knopf")
+HzKnopf/styles/hover = SubResource("KnopfUeber")
+HzKnopf/styles/pressed = SubResource("KnopfUeber")
+HzKnopf/styles/hover_pressed = SubResource("KnopfUeber")
+HzKnopf/styles/disabled = SubResource("KnopfGesperrt")
+HzKnopf/font_sizes/font_size = 14
+HzKnopf/colors/font_color = Color(0.95, 0.9, 0.77, 1)
+HzKnopf/colors/font_hover_color = Color(1, 0.96, 0.84, 1)
+HzKnopf/colors/font_pressed_color = Color(1, 0.96, 0.84, 1)
+HzKnopf/colors/font_hover_pressed_color = Color(1, 0.96, 0.84, 1)
+HzKnopf/colors/font_disabled_color = Color(0.41, 0.34, 0.26, 1)
+HzBand1/base_type = &"Button"
+HzBand1/styles/normal = SubResource("Band1")
+HzBand1/styles/hover = SubResource("Band1Ueber")
+HzBand1/styles/pressed = SubResource("Band1An")
+HzBand1/styles/hover_pressed = SubResource("Band1An")
+HzBand1/styles/disabled = SubResource("BandGesperrt")
+HzBand1/font_sizes/font_size = 15
+HzBand1/constants/icon_max_width = 20
+HzBand1/constants/h_separation = 6
+HzBand1/colors/font_color = Color(0.93, 0.9, 0.82, 1)
+HzBand1/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
+HzBand1/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand1/colors/font_hover_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand1/colors/font_disabled_color = Color(0.6, 0.56, 0.5, 1)
+HzBand2/base_type = &"Button"
+HzBand2/styles/normal = SubResource("Band2")
+HzBand2/styles/hover = SubResource("Band2Ueber")
+HzBand2/styles/pressed = SubResource("Band2An")
+HzBand2/styles/hover_pressed = SubResource("Band2An")
+HzBand2/styles/disabled = SubResource("BandGesperrt")
+HzBand2/font_sizes/font_size = 15
+HzBand2/constants/icon_max_width = 20
+HzBand2/constants/h_separation = 6
+HzBand2/colors/font_color = Color(0.93, 0.9, 0.82, 1)
+HzBand2/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
+HzBand2/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand2/colors/font_hover_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand2/colors/font_disabled_color = Color(0.6, 0.56, 0.5, 1)
+HzBand3/base_type = &"Button"
+HzBand3/styles/normal = SubResource("Band3")
+HzBand3/styles/hover = SubResource("Band3Ueber")
+HzBand3/styles/pressed = SubResource("Band3An")
+HzBand3/styles/hover_pressed = SubResource("Band3An")
+HzBand3/styles/disabled = SubResource("BandGesperrt")
+HzBand3/font_sizes/font_size = 15
+HzBand3/constants/icon_max_width = 20
+HzBand3/constants/h_separation = 6
+HzBand3/colors/font_color = Color(0.93, 0.9, 0.82, 1)
+HzBand3/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
+HzBand3/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand3/colors/font_hover_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand3/colors/font_disabled_color = Color(0.6, 0.56, 0.5, 1)
+HzBand4/base_type = &"Button"
+HzBand4/styles/normal = SubResource("Band4")
+HzBand4/styles/hover = SubResource("Band4Ueber")
+HzBand4/styles/pressed = SubResource("Band4An")
+HzBand4/styles/hover_pressed = SubResource("Band4An")
+HzBand4/styles/disabled = SubResource("BandGesperrt")
+HzBand4/font_sizes/font_size = 15
+HzBand4/constants/icon_max_width = 20
+HzBand4/constants/h_separation = 6
+HzBand4/colors/font_color = Color(0.93, 0.9, 0.82, 1)
+HzBand4/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
+HzBand4/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand4/colors/font_hover_pressed_color = Color(1, 0.93, 0.7, 1)
+HzBand4/colors/font_disabled_color = Color(0.6, 0.56, 0.5, 1)
+HzRegister/base_type = &"Button"
+HzRegister/styles/normal = SubResource("Register")
+HzRegister/styles/hover = SubResource("RegisterUeber")
+HzRegister/styles/pressed = SubResource("RegisterAn")
+HzRegister/styles/hover_pressed = SubResource("RegisterAn")
+HzRegister/font_sizes/font_size = 15
+HzRegister/colors/font_color = Color(0.36, 0.27, 0.17, 1)
+HzRegister/colors/font_hover_color = Color(0.14, 0.09, 0.05, 1)
+HzRegister/colors/font_pressed_color = Color(0.14, 0.09, 0.05, 1)
+HzRegister/colors/font_hover_pressed_color = Color(0.14, 0.09, 0.05, 1)
+; „‹ voriges Haus“ / „nächstes Haus ›“ am Fuß der Seite
+HzBlaettern/base_type = &"Button"
+HzBlaettern/styles/normal = SubResource("Leer")
+HzBlaettern/styles/hover = SubResource("Leer")
+HzBlaettern/styles/pressed = SubResource("Leer")
+HzBlaettern/styles/disabled = SubResource("Leer")
+HzBlaettern/font_sizes/font_size = 14
+HzBlaettern/colors/font_color = Color(0.36, 0.27, 0.17, 1)
+HzBlaettern/colors/font_hover_color = Color(0.5, 0.1, 0.07, 1)
+HzBlaettern/colors/font_pressed_color = Color(0.5, 0.1, 0.07, 1)
+
+; ── Chance ──
+HzChance/base_type = &"ProgressBar"
+HzChance/styles/background = SubResource("BalkenGrund")
+HzChance/styles/fill = SubResource("BalkenFuellung")
+HzChanceBlass/base_type = &"ProgressBar"
+HzChanceBlass/styles/background = SubResource("BalkenGrund")
+HzChanceBlass/styles/fill = SubResource("BalkenFuellungBlass")

@@ -1,66 +1,67 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Gauner;
-using Reichsgilde.Core.Geheimnisse;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
 /// <summary>
-/// Das Hinterzimmer: Banden anheuern (Diebstahl, Sabotage, Überfall), Erpresserbriefe schicken und beantworten,
-/// Wächter für die eigenen Betriebe – und was nachts geschah.
+/// Das Hinterzimmer als „Schwarzes Buch“ (Schritt 1: die 2D-Tafel im Buch-Aufbau, noch ohne Buchmodell): eine Doppelseite, rechts daneben
+/// vier Lesebänder als Kapitel – „Heute Nacht“, „Die Häuser“, „Eigene Leute“, „Wachen, Briefe“. Im Kapitel „Die Häuser“ hat jedes Haus
+/// seine eigene Doppelseite (Register darüber, Blättern am Fuß): links Steckbrief, Betriebe und Wohnhaus, rechts Oberhaupt, Ruf und Erpressung.
+/// Jede Tat ist eine Zeile mit festen Spalten: Name und Folge, Chance als Balken, Kosten, Knopf.
 ///
-/// Wie alle Bedienfelder ändert es nichts selbst, sondern schickt Befehle an die Stadtwirtschaft.
+/// Was gerade gar nicht geht (fehlender Raum „Hinterzimmer“, Kerker), steht <b>oben</b> in der Sperrleiste, mit Grund und nächstem Schritt;
+/// die Zeilen darunter sind dann sichtbar gesperrt. Auch die Rückmeldung des letzten Befehls steht oben.
+///
+/// Wie alle Bedienfelder ändert die Tafel nichts selbst, sondern schickt Befehle an die Stadtwirtschaft. Aussehen steht nur im Thema
+/// (<see cref="HinterzimmerStil"/>, <c>hinterzimmer_thema.tres</c>). Aufbau der Kapitel: <c>GaunerAnzeige.Haeuser.cs</c>, <c>GaunerAnzeige.Kapitel.cs</c>.
 /// </summary>
 public partial class GaunerAnzeige : PanelContainer
 {
-    private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
-    private static readonly Color Grau = new(0.72f, 0.72f, 0.72f);
-    private static readonly Color Gruen = new(0.55f, 0.85f, 0.5f);
-    private static readonly Color Rot = new(0.95f, 0.45f, 0.4f);
-    private const int Breite = 780;
+    /// <summary>Die Kapitel des Buchs (Lesebänder).</summary>
+    public enum Kapitel { Nacht, Haeuser, Leute, Schutz }
 
     private Simulation? _simulation;
     private Konto? _spieler;
-    private VBoxContainer _inhalt = null!;
-    private Label _meldung = null!;
+    private HBoxContainer _inhalt = null!;
+
+    /// <summary>Aufgeschlagenes Kapitel und Haus (Inhaber) – bleiben über jeden Neuaufbau und jedes Öffnen erhalten.</summary>
+    private Kapitel _kapitel = Kapitel.Haeuser;
+    private string? _ziel;
+
+    /// <summary>Rückmeldung des letzten Befehls (steht oben, bis die Tafel neu geöffnet wird).</summary>
+    private string _meldung = "";
+    private bool _meldungGut;
+
+    // Nur während eines Aufbaus gültig: was jede Zeile braucht.
+    private Stadtwirtschaft _w = null!;
+    private string _waehrung = "";
+    private string? _kerker;
 
     /// <summary>Gewünschtes Schweigegeld je Haus – nur der Wert wird gemerkt, das Feld entsteht bei jedem Aufbau neu.</summary>
     private readonly Dictionary<string, double> _schweigegeld = new();
 
-    /// <summary>Gewünschtes Schutzgeld und Lösegeld je Haus, gewählte Geisel je Haus (Nummer der Person).</summary>
+    /// <summary>Gewünschtes Schutzgeld und Lösegeld je Haus, gewählte Geisel je Haus (Nummer der Person), gewählter Ratsherr je Haus.</summary>
     private readonly Dictionary<string, double> _schutzgeld = new();
     private readonly Dictionary<string, double> _loesegeld = new();
     private readonly Dictionary<string, int> _geisel = new();
+    private readonly Dictionary<string, string> _ratsherr = new();
 
     /// <summary>Ergebnis eines Befehls – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
+    /// <summary>Knopf „Zum Wohnhaus“ der Sperrleiste: Die Hauptszene öffnet die Tafel des eigenen Wohnhauses.</summary>
+    public event Action? WohnhausGewuenscht;
+
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(Breite, 0);
-        AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.10f, 0.09f, 0.09f, 1f),
-            BorderColor = new Color(0.55f, 0.45f, 0.35f),
-            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
-        });
-        var rand = new MarginContainer();
-        foreach (var seite in new[] { "left", "right", "top", "bottom" })
-            rand.AddThemeConstantOverride($"margin_{seite}", 22);
-        AddChild(rand);
-        var spalte = new VBoxContainer();
-        spalte.AddThemeConstantOverride("separation", 8);
-        rand.AddChild(spalte);
-
-        _inhalt = new VBoxContainer();
-        _inhalt.AddThemeConstantOverride("separation", 5);
-        spalte.AddChild(_inhalt);
-
-        _meldung = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite - 50);
-        var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
-        schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        // Die Tafel ist der Einband (Leder), darauf eine Prägelinie; innen links das Buch, rechts am Buchrand die Lesebänder.
+        HinterzimmerStil.Anwenden(this);
+        ThemeTypeVariation = "HzTafel";
+        var rand = HinterzimmerStil.Container<MarginContainer>(this, "HzRand");
+        var praegung = HinterzimmerStil.Container<PanelContainer>(rand, "HzPraegung");
+        _inhalt = HinterzimmerStil.Container<HBoxContainer>(praegung, "HzBlaetter");
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Hinterzimmer", festhaltbar: true);
         Hide();
@@ -70,472 +71,313 @@ public partial class GaunerAnzeige : PanelContainer
     {
         _simulation = simulation;
         _spieler = spieler;
+        _ziel = null;
+        _kapitel = Kapitel.Haeuser;
     }
 
     public void Oeffnen()
     {
-        _meldung.Text = "";
+        _meldung = "";
         Aufbauen();
         Show();
+    }
+
+    /// <summary>Schlägt ein Kapitel auf (Lesebänder, Verweise, Klicktest).</summary>
+    public void Aufschlagen(Kapitel kapitel)
+    {
+        _kapitel = kapitel;
+        Aufbauen();
     }
 
     private void Befehlen(Befehl befehl)
     {
         UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
         {
-            _meldung.Text = UiHilfe.MeldungText(ergebnis);
-            _meldung.AddThemeColorOverride("font_color", ergebnis.Erfolg ? Gruen : Rot);
-            Gemeldet?.Invoke(_meldung.Text);
+            _meldung = UiHilfe.MeldungText(ergebnis);
+            _meldungGut = ergebnis.Erfolg;
+            Gemeldet?.Invoke(_meldung);
             Aufbauen();
         });
     }
 
-    private Label Text(Container eltern, string text, int groesse, Color? farbe = null, bool umbrechen = false)
-    {
-        var label = Hauptmenue.Text(eltern, text, groesse, farbe, umbruchBreite: umbrechen ? Breite - 50 : 0);
-        if (label.TooltipText == "") label.TooltipText = Erklaerung(text);
-        return label;
-    }
-
-    /// <summary>Kurze Erklärung zu einer Zeile des Hinterzimmers, nach ihrem Anfang gewählt (Tooltip).</summary>
-    private static string Erklaerung(string t) =>
-        t.StartsWith("Erpresserbrief") ? "Jemand droht mit einer Anklage. Zahlen, bestreiten oder dem Gericht stellen sind möglich; Beweise machen die Drohung ernst."
-        : t.StartsWith("Lösegeld") || t.StartsWith("Zahlt ihr nicht bis") ? "Eine Angehörige wurde entführt. Wer nicht zahlt, verliert sie bis zum Jahresende an Sklavenhändler."
-        : t.StartsWith("Schutzgeld") || t.StartsWith("Zahlt ihr nicht, legen") ? "Eine Bande verlangt Schutzgeld. Wer nicht zahlt, riskiert Brandstiftung an einem Betrieb."
-        : t.StartsWith("Eure Leute ·") ? "Das Versteck eurer Gauner: Stufe und Besetzung bestimmen, wie viele Aufträge je Nacht möglich sind."
-        : t.StartsWith("Noch ") ? "Aufträge, die in dieser Nacht noch ohne Zusatzkosten möglich sind."
-        : t.StartsWith("• heute Nacht") ? "Dieser Auftrag wird heute um 20 Uhr ausgeführt."
-        : t.StartsWith("   Diebstahl") || t.StartsWith("   Einbruch") || t.StartsWith("   Chance") ? "Erfolgschance und erwartete Beute des Auftrags; Wächter und Einrichtung des Ziels senken sie."
-        : t.StartsWith("   Wegelagerer") ? "Wegelagerer lauern der nächsten beladenen Fahrt im Umland auf."
-        : t.StartsWith("·") ? "Für diese Nacht bestellt."
-        : t.Contains(" · ") && t.Contains("Gulden") ? "Haus mit Stand und Reinvermögen: ein mögliches Ziel eurer Gauner."
-        : t.StartsWith("Wohnhaus:") ? "Das Wohnhaus als Ziel: Einbruch und Brandstiftung sind möglich, ein Hauswächter halbiert die Chance."
-        : t.StartsWith("Karren im Umland") ? "Karren im Umland können Wegelagerer überfallen."
-        : t.StartsWith("Giftanschlag:") ? "Ein Giftdolch gegen ein Oberhaupt: schwerste Tat, hohe Strafe, wenn sie auffliegt."
-        : t.StartsWith("Entführung") ? "Eine Angehörige des Zielhauses entführen und Lösegeld fordern."
-        : "";
-
-    private void Knopf(Container eltern, string text, Action aktion, bool gesperrt = false, string? hinweis = null, Befehl? ap = null)
-    {
-        var knopf = new Button { Text = text, FocusMode = FocusModeEnum.None, Disabled = gesperrt, TooltipText = hinweis ?? "" };
-        knopf.Pressed += aktion;
-        if (ap is not null && _simulation?.Wirtschaft is { } w && _spieler is not null) UiHilfe.ApKosten(knopf, w, _spieler, ap);
-        eltern.AddChild(knopf);
-    }
-
     private static string Prozent(double anteil) => $"{Zahlenformat.Ganz(anteil * 100)} %";
 
+    private string Gulden(double betrag) => $"{Zahlenformat.Ganz(betrag)} {_waehrung}";
+
+    /// <summary>Preis in der Kosten-Spalte: die Zahl, oder „Lager“, wenn die Ware aus dem eigenen Lager kommt.</summary>
+    private static string Preis(double preis) => preis > 0 ? Zahlenformat.Ganz(preis) : "Lager";
+
     /// <summary>
-    /// Ein Erpresserbrief mit einem Geheimnis statt Beweisen (Teil 3c): links das Siegel seiner Art, rechts wer droht und womit. Zahlen heißt,
-    /// er vergisst es; wer nicht zahlt, dem kann er es anzeigen oder bloßstellen. Ohne Art (älterer Spielstand, Geheimnis inzwischen vorbei) ohne Siegel.
+    /// Warum dieser Befehl gerade gar nicht geht – Kerker oder fehlender Raum (<c>Wohnungswesen.BefehlOhneRaum</c>, dieselbe Prüfung wie bei
+    /// der Annahme des Befehls im Kern). Der Grund steht einmal oben in der Sperrleiste; die Zeile zeigt nur „gesperrt“.
     /// </summary>
-    private void GeheimnisBrief(Stadtwirtschaft w, Forderung f, Geheimnisart? art, string waehrung)
+    private string? Hauptsperre(Befehl muster) => _kerker ?? _w.Wohnen.BefehlOhneRaum(_spieler!, muster);
+
+    /// <summary>Die Arten von Befehlen des Hinterzimmers, mit dem Namen für die Sperrleiste („Gesperrt (Banden, Erpresserbriefe): …“).</summary>
+    private static readonly (string Was, Befehl Muster)[] Befehlsarten =
     {
-        var gw = w.Geheimnisse;
-        var daten = gw.IstAktiv && art is { } a ? gw.Daten.Art(a) : null;
-        var tipp = daten is null ? "Ein Geheimnis" : $"Ein Geheimnis – {daten.Name}: {daten.Beschreibung}";
-        var reihe = new HBoxContainer();
-        reihe.AddThemeConstantOverride("separation", 12);
-        _inhalt.AddChild(reihe);
-        var siegel = CharakterAnzeige.GeheimnisSiegelBild(art, 56, tipp); // ohne Datei bleibt nur der Text
-        if (siegel is not null) reihe.AddChild(siegel);
-        var spalte = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        spalte.AddThemeConstantOverride("separation", 4);
-        reihe.AddChild(spalte);
-        var breite = Breite - 50 - (siegel is null ? 0 : 68);
-        var kopf = Hauptmenue.Text(spalte, $"Erpresserbrief von {f.Erpresser.Inhaber}: {Zahlenformat.Ganz(f.Betrag)} {waehrung} Schweigegeld, " +
-                                           "sonst kommt ein Geheimnis ans Licht.", 15, Rot, umbruchBreite: breite);
-        kopf.TooltipText = "Jemand weiß ein Geheimnis eures Hauses und verlangt Schweigegeld. Zahlt ihr, vergisst er es; zahlt ihr nicht, " +
-                           "kann er es anzeigen (wo es ein Vergehen ist) oder bloßstellen.";
-        var worum = gw.WorumDerBrief(f) ?? daten?.Name ?? "ein Geheimnis eures Hauses";
-        var text = Hauptmenue.Text(spalte, $"Er weiß: {worum}. Zahlt ihr, schweigt er und vergisst es. Zahlt ihr nicht, kann er es anzeigen " +
-                                           "oder in der ganzen Stadt bloßstellen.", 13, null, umbruchBreite: breite);
-        text.TooltipText = tipp;
-    }
+        ("Banden", new Beauftragen("", Gaunerstueck.Diebstahl)),
+        ("Erpresserbriefe", new Erpressen("", 0)),
+        ("Giftanschlag", new Giftanschlag("", "")),
+        ("Hetzschrift", new HetzschriftVerbreiten("")),
+        ("Zwietracht", new ZwietrachtSaeen("", "")),
+        ("eigene Leute", new Auskundschaften("")),
+    };
 
-    private static string StufenName(Stadtwirtschaft w, int stufe) =>
-        w.Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == w.Diebe.Daten.Beruf && a.Stufe == stufe)?.Name ?? $"Stufe {stufe}";
-
-    /// <summary>Was die eigenen Diebe gegen dieses Haus tun können: ausspähen, Schutzgeld verlangen, jemanden entführen.</summary>
-    private void EigeneLeute(Stadtwirtschaft w, Konto haus, bool imKerker)
-    {
-        var diebe = w.Diebe;
-        var waehrung = w.Daten.Allgemein.Waehrung;
-        var schluessel = haus.Inhaber;
-
-        var zeile = new HBoxContainer();
-        zeile.AddThemeConstantOverride("separation", 10);
-        _inhalt.AddChild(zeile);
-        Text(zeile, "Eure Leute", 14).TooltipText = "Die Gauner, die für euer Haus arbeiten: Sie spähen aus, stehlen und erpressen, immer nachts ab 20 Uhr.";
-        if (diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Ziel == haus && a.Art == Diebesstueck.Auskundschaften))
-            Text(zeile, "· spähen heute Nacht aus", 13, Gold);
-        else
-        {
-            var grund = diebe.Verboten(_spieler!, Diebesstueck.Auskundschaften);
-            Knopf(zeile, "Auskundschaften", () => Befehlen(new Auskundschaften(haus.Inhaber)), gesperrt: imKerker || grund is not null,
-                hinweis: grund ?? $"Je unbekannte Tat {Prozent(diebe.Daten.Auskundschaften.Chance)} Chance auf einen Beweis – Grundlage für Erpressung und Anklage. Keine Spur.",
-                ap: new Auskundschaften(""));
-        }
-
-        // Schutzgeld
-        var versteck = diebe.Versteck(_spieler!)!;
-        if (versteck.Stufe >= diebe.Daten.Schutzgeld.AbStufe)
-        {
-            var schutz = new HBoxContainer();
-            schutz.AddThemeConstantOverride("separation", 10);
-            _inhalt.AddChild(schutz);
-            Text(schutz, "Schutzgeld", 14);
-            if (diebe.BriefAn(haus, _spieler!, Diebesbriefart.Schutzgeld) is { } offen)
-                Text(schutz, $"· {Zahlenformat.Ganz(offen.Betrag)} verlangt – wartet auf Antwort", 13, Gold);
-            else
-            {
-                var vorschlag = Math.Max(100, Math.Round(diebe.DrohenderBrand(haus, _spieler!) * 0.8 / 50) * 50);
-                var feld = new Zahlfeld { MinValue = 50, MaxValue = 20_000, Step = 50, Value = _schutzgeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-                feld.ValueChanged += wert => _schutzgeld[schluessel] = wert;
-                schutz.AddChild(feld);
-                Knopf(schutz, "Fordern", () => Befehlen(new SchutzgeldFordern(haus.Inhaber, _schutzgeld.GetValueOrDefault(schluessel, vorschlag))), gesperrt: imKerker,
-                    hinweis: $"Zahlt das Haus nicht, brennt nachts sein wertvollster Betrieb (erwarteter Schaden ≈ {Zahlenformat.Ganz(diebe.DrohenderBrand(haus, _spieler!))}). " +
-                             "Die Forderung ist ein Beweis gegen euch.", ap: new SchutzgeldFordern("", 0));
-            }
-        }
-
-        // Entführung
-        if (versteck.Stufe >= diebe.Daten.Entfuehrung.AbStufe && diebe.Entfuehrbar(haus).ToList() is { Count: > 0 } personen)
-        {
-            var entf = new HBoxContainer();
-            entf.AddThemeConstantOverride("separation", 10);
-            _inhalt.AddChild(entf);
-            Text(entf, "Entführung", 14);
-            var wahl = new OptionButton { FocusMode = FocusModeEnum.None };
-            foreach (var p in personen) wahl.AddItem($"{p.Vorname} ({p.Alter(w.Familien.Jahr)})");
-            var gewaehlt = Math.Max(0, personen.FindIndex(p => p.Nummer == _geisel.GetValueOrDefault(schluessel)));
-            wahl.Select(gewaehlt);
-            wahl.ItemSelected += i => _geisel[schluessel] = personen[(int)i].Nummer;
-            entf.AddChild(wahl);
-            var vorschlag = Math.Clamp(Math.Round(haus.Vermoegen * 0.1 / 100) * 100, 500, 5_000);
-            var feld = new Zahlfeld { MinValue = 100, MaxValue = 50_000, Step = 100, Value = _loesegeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-            feld.ValueChanged += wert => _loesegeld[schluessel] = wert;
-            entf.AddChild(feld);
-            var grund = diebe.Verboten(_spieler!, Diebesstueck.Entfuehrung);
-            Knopf(entf, "Verschleppen", () => Befehlen(new Entfuehren(haus.Inhaber, personen[Math.Max(0, personen.FindIndex(p => p.Nummer == _geisel.GetValueOrDefault(schluessel)))].Nummer,
-                    _loesegeld.GetValueOrDefault(schluessel, vorschlag))), gesperrt: imKerker || grund is not null,
-                hinweis: grund ?? $"Chance {Prozent(diebe.Entfuehrungschance(_spieler!))}. Zahlt das Haus nicht bis Ende nächsten Jahres, wird die Geisel in die Fremde verkauft. " +
-                                  "Schweres Vergehen – vor Gericht droht der Kerker.", ap: new Entfuehren("", 0, 0));
-        }
-    }
-
-    /// <summary>Baut den Inhalt neu auf – beim Öffnen, nach jedem Befehl und zum Jahreswechsel.</summary>
+    /// <summary>Baut den Inhalt neu auf – beim Öffnen, nach jedem Befehl, zur Nacht und zum Jahreswechsel.</summary>
     public void Aufbauen()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         UiHilfe.KinderEntfernen(_inhalt);
+        _w = w;
+        _waehrung = w.Daten.Allgemein.Waehrung;
         var unterwelt = w.Gauner;
         if (!unterwelt.IstAktiv)
         {
-            Text(_inhalt, "In dieser Stadt gibt es keine Unterwelt (Spielstand von vor den Gaunern).", 15, Grau);
+            var leer = HinterzimmerStil.Container<VBoxContainer>(HinterzimmerStil.Container<MarginContainer>(_inhalt, "HzBandkopf"), "HzSpalte");
+            HinterzimmerStil.Text(leer, "Hinterzimmer", "HzEinbandTitel");
+            HinterzimmerStil.Text(leer, "In dieser Stadt gibt es keine Unterwelt (Spielstand von vor den Gaunern).", "HzEinbandText");
             return;
         }
-        var g = unterwelt.Daten;
         var gericht = w.Justiz;
-        var waehrung = w.Daten.Allgemein.Waehrung;
-        var imKerker = gericht.IstAktiv && gericht.ImKerker(_spieler);
+        _kerker = gericht.IstAktiv && gericht.ImKerker(_spieler)
+            ? $"Euer Oberhaupt sitzt bis Ende {gericht.KerkerBis(_spieler)} im Kerker – aus der Zelle heraus heuert niemand eine Bande an."
+            : null;
+        var haeuser = w.Konten.Where(k => k != _spieler && k.IstAktiv).ToList();
+        var ziel = haeuser.FirstOrDefault(h => h.Inhaber == _ziel) ?? haeuser.FirstOrDefault();
+        _ziel = ziel?.Inhaber;
+        var versteck = w.Diebe.IstAktiv ? w.Diebe.Versteck(_spieler) : null;
+        if (_kapitel == Kapitel.Leute && versteck is null) _kapitel = Kapitel.Haeuser;
+        var bestellt = Bestelltes().ToList();
+        var post = BriefeAnEuch();
+        var g = unterwelt.Daten;
 
-        Hauptmenue.Text(_inhalt, "Hinterzimmer", 26, Gold, zentriert: true);
-        Text(_inhalt, "Bei Nacht und Nebel: Bestellt wird jetzt, ausgeführt heute um 20 Uhr. Bezahlt wird im Voraus. " +
-                      $"Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, und mit {Prozent(g.ZeugenChance)} Chance " +
-                      $"(bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}) erkennt euch ein Zeuge. Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.",
-            12, Grau, umbrechen: true);
-        if (imKerker)
-            Text(_inhalt, $"Euer Oberhaupt sitzt bis Ende {gericht.KerkerBis(_spieler)} im Kerker – aus der Zelle heraus heuert niemand eine Bande an.", 14, Rot, umbrechen: true);
-
-        // ── Erpresserbriefe an euch ──
-        foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == _spieler))
+        // ── Links: über dem Buch die Zettel (Sperre, Post, Rückmeldung), dann Register und Doppelseite ──
+        var buchSpalte = HinterzimmerStil.Container<VBoxContainer>(_inhalt, "HzSpalte");
+        Sperrleiste(buchSpalte);
+        if (post > 0 && _kapitel != Kapitel.Schutz)
         {
-            _inhalt.AddChild(new HSeparator());
-            if (f.Geheimnis is not null)
-                GeheimnisBrief(w, f, w.Geheimnisse.ArtDesBriefes(f), waehrung); // Teil 3c: mit dem Siegel der Art (wenn sie bekannt ist)
-            else
-            {
-                var busse = gericht.DrohendeBusse(f.Erpresser, _spieler);
-                var beweise = gericht.Beweise(f.Erpresser, _spieler).Count();
-                Text(_inhalt, $"Erpresserbrief von {f.Erpresser.Inhaber}: {Zahlenformat.Ganz(f.Betrag)} {waehrung} Schweigegeld, sonst Anklage.", 15, Rot, umbrechen: true);
-                Text(_inhalt, $"Er hat {beweise} Beweise gegen euch. Ein Schuldspruch kostete {Zahlenformat.Ganz(busse)} {waehrung} Buße, " +
-                              $"{gericht.Daten.PrangerJahre} Jahre Pranger{(gericht.DrohtKerker(f.Erpresser, _spieler) ? " und Kerker" : "")}" +
-                              $"{(w.Rat.AmtVon(_spieler) is { } amt ? $" und euer Amt als {amt.Name}" : "")}. " +
-                              "Sein Brief liegt als Beweis gegen ihn in eurem Beweisbuch.", 13, null, umbrechen: true);
-            }
-            var zeile = new HBoxContainer();
-            zeile.AddThemeConstantOverride("separation", 10);
-            _inhalt.AddChild(zeile);
-            var erpresser = f.Erpresser.Inhaber;
-            Knopf(zeile, $"Zahlen ({Zahlenformat.Ganz(f.Betrag)} {waehrung})", () => Befehlen(new ErpressungBeantworten(erpresser, true)),
-                gesperrt: _spieler.Vermoegen < f.Betrag);
-            Knopf(zeile, "Ablehnen", () => Befehlen(new ErpressungBeantworten(erpresser, false)));
+            var leiste = HinterzimmerStil.Container<PanelContainer>(buchSpalte, "HzPost");
+            var zeile = HinterzimmerStil.Container<HBoxContainer>(leiste, "HzZeile");
+            HinterzimmerStil.Text(zeile, post == 1 ? "Ein Brief an euch wartet auf Antwort." : $"{post} Briefe an euch warten auf Antwort.", "HzText")
+                .SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            HinterzimmerStil.Knopf(zeile, "Zu den Briefen", () => Aufschlagen(Kapitel.Schutz));
         }
+        if (_meldung != "")
+            HinterzimmerStil.Text(HinterzimmerStil.Container<PanelContainer>(buchSpalte, "HzZettel"), _meldung, _meldungGut ? "HzGut" : "HzSchlecht", "kopf_breite");
 
-        // ── Forderungen von Dieben an euch ──
-        var diebe = w.Diebe;
-        if (diebe.IstAktiv)
-            foreach (var brief in diebe.Briefe.Where(b => b.Opfer == _spieler))
-            {
-                _inhalt.AddChild(new HSeparator());
-                var dieb = brief.Dieb.Inhaber;
-                if (brief.Art == Diebesbriefart.Loesegeld)
-                {
-                    var geisel = w.Familien.Von(_spieler)?.Lebende.FirstOrDefault(p => p.Nummer == brief.Geisel);
-                    Text(_inhalt, $"Lösegeldbrief von {dieb}: {geisel?.Vorname ?? "Eine Angehörige"} ist in ihrer Gewalt – {Zahlenformat.Ganz(brief.Betrag)} {waehrung}.", 15, Rot, umbrechen: true);
-                    Text(_inhalt, $"Zahlt ihr nicht bis Ende {brief.Jahr + 1}, wird {geisel?.Vorname ?? "die Geisel"} in die Fremde verkauft. " +
-                                  "Solange erbt die Geisel nicht. Der Brief liegt als Beweis gegen den Entführer in eurem Beweisbuch – Entführung bringt Kerker.", 13, null, umbrechen: true);
-                }
-                else
-                {
-                    Text(_inhalt, $"Schutzgeld für {dieb}: {Zahlenformat.Ganz(brief.Betrag)} {waehrung}, sonst brennt es.", 15, Rot, umbrechen: true);
-                    var ziel = diebe.Brandziel(_spieler);
-                    Text(_inhalt, $"Zahlt ihr nicht, legen seine Leute Feuer in {ziel?.Name ?? "einem eurer Betriebe"} " +
-                                  $"(Chance {Prozent(ziel is null ? 0 : diebe.Brandchance(ziel, brief.Dieb))}, Schaden ≈ {Zahlenformat.Ganz(ziel is null ? 0 : w.Gauner.Sabotageschaden(ziel))}). " +
-                                  "Ein Wächter halbiert die Chance. Die Forderung liegt als Beweis in eurem Beweisbuch.", 13, null, umbrechen: true);
-                }
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var art = brief.Art;
-                Knopf(zeile, $"Zahlen ({Zahlenformat.Ganz(brief.Betrag)} {waehrung})", () => Befehlen(new DiebesforderungBeantworten(dieb, art, true)),
-                    gesperrt: _spieler.Vermoegen < brief.Betrag);
-                Knopf(zeile, "Ablehnen", () => Befehlen(new DiebesforderungBeantworten(dieb, art, false)));
-            }
+        var block = HinterzimmerStil.Container<VBoxContainer>(buchSpalte, "HzDicht");
+        var register = HinterzimmerStil.Container<HBoxContainer>(block, "HzRegisterzeile");
+        register.CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("register_hoehe")); // auch ohne Register: das Buch springt nicht
+        register.Alignment = BoxContainer.AlignmentMode.End;
+        var buch = HinterzimmerStil.Container<PanelContainer>(block, "HzBuch");
+        var blaetter = HinterzimmerStil.Container<HBoxContainer>(buch, "HzBlaetter");
+        var links = Blatt(blaetter, "HzBlatt");
+        HinterzimmerStil.Container<PanelContainer>(blaetter, "HzFalz").ZIndex = 1; // der Schatten des Falzes liegt über beiden Seiten
+        var rechts = Blatt(blaetter, "HzBlattRechts");
 
-        // ── Eure Leute (Dieb) ──
-        var versteck = diebe.IstAktiv ? diebe.Versteck(_spieler) : null;
-        if (versteck is not null)
+        // ── Rechts auf dem Einband: Titel, Aktionspunkte, Bestelltes (neben ✕ und Nadel), darunter die Lesebänder am Buchrand ──
+        var bandSpalte = HinterzimmerStil.Container<VBoxContainer>(_inhalt, "HzBandspalte");
+        bandSpalte.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("kopf_frei")) });
+        var kopf = HinterzimmerStil.Container<VBoxContainer>(HinterzimmerStil.Container<MarginContainer>(bandSpalte, "HzBandkopf"), "HzDicht");
+        HinterzimmerStil.Text(kopf, "Hinterzimmer", "HzEinbandTitel",
+            tipp: $"Bei Nacht und Nebel: Bestellt wird jetzt, ausgeführt heute um 20 Uhr, bezahlt im Voraus. Jedes Gaunerstück hinterlässt eine Spur fürs Gericht, " +
+                  $"und mit {Prozent(g.ZeugenChance)} Chance (bei einem Wächter {Prozent(g.ZeugenChanceWaechter)}) erkennt euch ein Zeuge. Der Hehler zahlt {Prozent(g.HehlerAnteil)} des Marktwerts.");
+        HinterzimmerStil.Text(kopf, $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat}", "HzEinbandText",
+            tipp: $"Viele Taten kosten Aktionspunkte. Zum Jahreswechsel kommen {w.AktionspunkteJeRunde} dazu.");
+        HinterzimmerStil.Text(kopf, $"Bestellt: {bestellt.Count}", bestellt.Count > 0 ? "HzEinbandGold" : "HzEinbandText",
+            tipp: "Was ihr für diese Nacht bestellt habt – die Liste steht im Kapitel „Heute Nacht“.");
+        bandSpalte.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("band_oben")) });
+        Band(bandSpalte, 1, "mond_hell", Kapitel.Nacht, "Heute Nacht", bestellt.Count, "Was für diese Nacht bestellt ist und was zuletzt geschah.");
+        Band(bandSpalte, 2, "sack_hell", Kapitel.Haeuser, "Die Häuser", 0, "Eine Doppelseite je Haus: alles, was ihr ihm antun könnt.");
+        Band(bandSpalte, 3, "leute_hell", Kapitel.Leute, "Eigene Leute", 0, versteck is null
+            ? $"Eigene Leute hat nur, wer einen Betrieb als {w.Diebe.Daten.Beruf} führt."
+            : "Eure Diebe: ausspähen, Schutzgeld verlangen, entführen.", gesperrt: versteck is null);
+        Band(bandSpalte, 4, "schild_hell", Kapitel.Schutz, "Wachen, Briefe", post, "Wächter für eure Betriebe, Briefe an euch und eure eigenen Forderungen.");
+
+        switch (_kapitel)
         {
-            _inhalt.AddChild(new HSeparator());
-            var dd = diebe.Daten;
-            Text(_inhalt, $"Eure Leute · {versteck.Name} ({versteck.Artdaten.Name}, {versteck.Belegt} Diebe)", 16, Gold);
-            var buch = diebe.DiesesJahr(_spieler);
-            Text(_inhalt, $"Noch {diebe.FreieAuftraege(_spieler)} von {dd.AuftraegeJeStufe[versteck.Stufe - 1]} Aufträgen heute Nacht frei – sie kosten kein Geld, nur Aktionspunkte. " +
-                          $"Einbruch: bis zu {diebe.EinbruchStueck(_spieler)} Stück ins eigene Lager · Auskundschaften: {Prozent(dd.Auskundschaften.Chance)} je Tat · " +
-                          $"Schutzgeld ab {StufenName(w, dd.Schutzgeld.AbStufe)} · Entführung ab {StufenName(w, dd.Entfuehrung.AbStufe)}. " +
-                          $"Taschendiebe dieses Jahr: {Zahlenformat.Ganz(buch.Beute)} {waehrung}, {buch.Faenge} erwischt.", 12, Grau, umbrechen: true);
-            foreach (var a in diebe.Auftraege.Where(a => a.Dieb == _spieler))
-                Text(_inhalt, $"• heute Nacht: {a.Art.Name()} bei {a.Ziel.Inhaber}{(a.Betrieb is { } bn ? $" ({bn})" : "")}", 13, Gold);
-            foreach (var b in diebe.Briefe.Where(b => b.Dieb == _spieler))
-                Text(_inhalt, $"• {b.Art.Name()}forderung an {b.Opfer.Inhaber}: {Zahlenformat.Ganz(b.Betrag)} {waehrung} – wartet auf Antwort (bis Ende {b.Jahr + 1})", 13, Gold);
-        }
-
-        // ── Gegen andere Häuser ──
-        foreach (var haus in w.Konten.Where(k => k != _spieler && k.IstAktiv))
-        {
-            _inhalt.AddChild(new HSeparator());
-            Text(_inhalt, $"{haus.Inhaber} · {w.StandVon(haus).Name} · {Zahlenformat.Ganz(haus.Reinvermoegen)} {waehrung}", 16);
-            var bestellt = unterwelt.Auftraege.Where(a => a.Auftraggeber == _spieler && a.Ziel == haus).ToList();
-            foreach (var b in w.Betriebe.Where(b => b.Konto == haus))
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                Text(zeile, $"{b.Name}{(b.Waechter ? " (Wächter)" : "")}", 14);
-                var beute = unterwelt.MoeglicheBeute(b);
-                var diebstahl = bestellt.Any(a => a.Art == Gaunerstueck.Diebstahl && a.Betrieb == b.Name);
-                var sabotage = bestellt.Any(a => a.Art == Gaunerstueck.Sabotage && a.Betrieb == b.Name);
-                var name = b.Name;
-                if (diebstahl) Text(zeile, "· Diebstahl bestellt", 13, Gold);
-                else Knopf(zeile, $"Diebstahl ({Zahlenformat.Ganz(g.Diebstahl.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Diebstahl, name)),
-                    gesperrt: imKerker, hinweis: "Die Bande holt die wertvollste Ware aus dem Lager.", ap: new Beauftragen("", Gaunerstueck.Diebstahl));
-                if (sabotage) Text(zeile, "· Sabotage bestellt", 13, Gold);
-                else Knopf(zeile, $"Sabotage ({Zahlenformat.Ganz(g.Sabotage.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Sabotage, name)),
-                    gesperrt: imKerker, hinweis: "Feuer in der Werkstatt: Stillstand und Reparaturkosten.", ap: new Beauftragen("", Gaunerstueck.Sabotage));
-                if (versteck is not null)
-                {
-                    if (diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Art == Diebesstueck.Einbruch && a.Betrieb == name))
-                        Text(zeile, "· eure Leute steigen ein", 13, Gold);
-                    else
-                    {
-                        var grund = diebe.Verboten(_spieler, Diebesstueck.Einbruch);
-                        Knopf(zeile, "Einbruch (eigene Leute)", () => Befehlen(new Einbrechen(haus.Inhaber, name)), gesperrt: imKerker || grund is not null,
-                            hinweis: grund ?? $"Chance {Prozent(diebe.Einbruchchance(b, _spieler))}, Beute ≈ {Zahlenformat.Ganz(diebe.MoeglicheBeute(b, _spieler).Sum(x => x.Wert))} ins eigene Lager – kein Hehler, keine Bande.",
-                            ap: new Einbrechen("", ""));
-                    }
-                }
-                Text(_inhalt, $"   Diebstahl: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Diebstahl, b, _spieler))}, im Lager liegt " +
-                              (beute.Count == 0 ? "nichts zu holen" : $"{string.Join(", ", beute.Select(x => $"{x.Stueck} {x.Ware}"))} (Hehler ≈ {Zahlenformat.Ganz(beute.Sum(x => x.Wert) * g.HehlerAnteil)})") +
-                              $" · Sabotage: Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Sabotage, b, _spieler))}, Schaden beim Gegner ≈ {Zahlenformat.Ganz(unterwelt.Sabotageschaden(b))}",
-                    12, Grau, umbrechen: true);
-            }
-
-            // Wohnhaus – Einbruch (Bargeld) und Brand (Reparatur, Ansehen fehlt bis zur Instandsetzung)
-            if (unterwelt.GegenWohnhaus && w.Wohnen.Stufe(haus) is { } hausStufe)
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var beschaedigt = w.Wohnen.IstBeschaedigt(haus);
-                Text(zeile, $"Wohnhaus: {hausStufe.Name}{(haus.Hauswaechter ? " (Hauswächter)" : "")}{(beschaedigt ? " – abgebrannt, in Instandsetzung" : "")}", 14);
-                var wh = g.Wohnhaus!;
-                if (bestellt.Any(a => a.Art == Gaunerstueck.Hauseinbruch)) Text(zeile, "· Einbruch bestellt", 13, Gold);
-                else Knopf(zeile, $"Einbruch ({Zahlenformat.Ganz(wh.Einbruch.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Hauseinbruch)),
-                    gesperrt: imKerker, hinweis: "Die Bande holt Bargeld aus der Truhe – kein Hehler nötig.", ap: new Beauftragen("", Gaunerstueck.Hauseinbruch));
-                if (bestellt.Any(a => a.Art == Gaunerstueck.Brandstiftung)) Text(zeile, "· Brand bestellt", 13, Gold);
-                else Knopf(zeile, $"Brand ({Zahlenformat.Ganz(wh.Brand.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Brandstiftung)),
-                    gesperrt: imKerker || beschaedigt, hinweis: beschaedigt ? "Das Haus ist vom letzten Brand noch nicht instand gesetzt."
-                        : "Feuer am Wohnhaus: Reparatur, und bis zur Instandsetzung fehlt dem Haus das Ansehen. Die Stufe bleibt.",
-                    ap: new Beauftragen("", Gaunerstueck.Brandstiftung));
-                Text(_inhalt, $"   Einbruch: Chance {Prozent(unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Hauseinbruch, haus, _spieler))}, Beute ≈ {Zahlenformat.Ganz(unterwelt.Hausbeute(haus))}" +
-                              $" · Brand: Chance {Prozent(unterwelt.ErfolgschanceWohnhaus(Gaunerstueck.Brandstiftung, haus, _spieler))}, Reparatur ≈ {Zahlenformat.Ganz(unterwelt.Brandschaden(haus))}" +
-                              (hausStufe.Ansehen > 0 ? $", −{Zahlenformat.Ganz(hausStufe.Ansehen)} Ansehen für einen Tag" : ""),
-                    12, Grau, umbrechen: true);
-            }
-
-            if (unterwelt.HatUmlandfahrten(haus))
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                Text(zeile, "Karren im Umland", 14);
-                if (unterwelt.Hinterhalte.Any(h => h.Auftraggeber == _spieler && h.Ziel == haus))
-                    Text(zeile, "· Eure Wegelagerer liegen auf der Lauer", 13, Gold);
-                else if (bestellt.Any(a => a.Art == Gaunerstueck.Ueberfall))
-                    Text(zeile, "· Überfall bestellt (heute Nacht)", 13, Gold);
-                else
-                    Knopf(zeile, $"Überfall ({Zahlenformat.Ganz(g.Ueberfall.Kosten)})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Ueberfall)), gesperrt: imKerker,
-                        ap: new Beauftragen("", Gaunerstueck.Ueberfall));
-                Text(_inhalt, $"   Wegelagerer (Stärke {Zahlenformat.Kommazahl(unterwelt.Staerke(_spieler))}) lauern bis zur nächsten Nacht der nächsten beladenen Fahrt auf. " +
-                              "Erfolg = Stärke × (1 − Schutz der Eskorte). Ein Überfall ist ein schweres Vergehen: Vor Gericht droht Kerker.", 12, Grau, umbrechen: true);
-            }
-
-            // Krötenschleim – gegen das Oberhaupt
-            if (w.Gesundheit.IstAktiv && w.Familien.Von(haus) is { } fremd)
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var o = fremd.Oberhaupt;
-                Text(zeile, $"{o.OberhauptTitel} {o.Vorname}{(o.Krankheit is { } k ? $" (krank: {k.Name})" : "")}", 14);
-                if (bestellt.Any(a => a.Art == Gaunerstueck.Kroetenschleim))
-                    Text(zeile, "· Krötenschleim bestellt (heute Nacht)", 13, Gold);
-                else
-                    Knopf(zeile, $"Krötenschleim ({Zahlenformat.Ganz(unterwelt.Kosten(Gaunerstueck.Kroetenschleim, _spieler))}{(unterwelt.MischtSelbst(_spieler) ? ", selbst gemischt" : "")})", () => Befehlen(new Beauftragen(haus.Inhaber, Gaunerstueck.Kroetenschleim)),
-                        gesperrt: imKerker, hinweis: "Ins Essen gemischt: Das Oberhaupt erkrankt (Ruhr, Lungenentzündung, Haarausfall …). Vergehen: Giftmischerei.",
-                        ap: new Beauftragen("", Gaunerstueck.Kroetenschleim));
-                Text(_inhalt, $"   Chance {Prozent(unterwelt.Erfolgschance(Gaunerstueck.Kroetenschleim, null, _spieler))} – Wächter helfen nicht. " +
-                              "Wer schon krank ist, merkt nichts davon.", 12, Grau, umbrechen: true);
-
-                // Giftdolch des Parfumeurs – nur Gegengift heilt
-                if (w.Duft.IstAktiv && w.Duft.Daten.Gift.Dolche.Count > 0)
-                {
-                    var duft = w.Duft;
-                    var giftZeile = new HBoxContainer();
-                    giftZeile.AddThemeConstantOverride("separation", 10);
-                    _inhalt.AddChild(giftZeile);
-                    Text(giftZeile, "Giftanschlag:", 14);
-                    if (duft.Auftraege.Any(a => a.Auftraggeber == _spieler && a.Ziel == haus))
-                        Text(giftZeile, "· Giftanschlag geplant (heute Nacht)", 13, Gold);
-                    else
-                        foreach (var (dolch, daten) in duft.Daten.Gift.Dolche.OrderBy(x => x.Value.Chance))
-                        {
-                            var preis = duft.Preis(_spieler, dolch);
-                            var grund = duft.GiftVerboten(_spieler, haus, dolch);
-                            var krankheit = w.Gesundheit.Daten.Krankheiten.GetValueOrDefault(daten.Krankheit);
-                            Knopf(giftZeile, $"{dolch} ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")}, {Prozent(duft.Giftchance(_spieler, dolch))})",
-                                () => Befehlen(new Giftanschlag(haus.Inhaber, dolch)), gesperrt: imKerker || grund is not null,
-                                hinweis: grund ?? $"Heute Nacht: {daten.Krankheit} ({Prozent(krankheit?.Sterben ?? 0)} tödlich am Jahresende), nur Gegengift heilt. " +
-                                                  "Vergehen: Giftanschlag – vor Gericht droht Kerker.",
-                                ap: new Giftanschlag("", ""));
-                        }
-                }
-            }
-
-            // Hetzschrift – gegen das Ansehen des Hauses
-            if (w.Kirchenwesen is { IstAktiv: true } kw)
-            {
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var hetze = kw.Daten.Hetzschrift;
-                Text(zeile, $"Ansehen {Zahlenformat.Ganz(w.Rat.Ansehen(haus))}", 14);
-                if (kw.GehetztBis(haus) is int bis)
-                    Text(zeile, $"· eine Hetzschrift geht um (bis Ende {bis})", 13, Gold);
-                else
-                {
-                    var preis = kw.Schriftpreis(_spieler, hetze.Ware);
-                    Knopf(zeile, $"Hetzschrift ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")})", () => Befehlen(new HetzschriftVerbreiten(haus.Inhaber)),
-                        gesperrt: imKerker || _spieler.Vermoegen < preis,
-                        hinweis: $"{Zahlenformat.Ganz(hetze.Ansehen)} Ansehen weniger bis Ende nächsten Jahres (Wahl, Brautschau, Kirche). Vergehen: Verleumdung.",
-                        ap: new HetzschriftVerbreiten(""));
-                }
-            }
-
-            // Blume der Zwietracht – ein Ratsherr denkt schlechter über dieses Haus (Meinung, PR #231)
-            if (w.Duft.IstAktiv && w.Rat.IstAktiv && w.Rat.Ratsherren.Count > 0)
-            {
-                var duft = w.Duft;
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                var ware = duft.Daten.Zwietracht.Ware;
-                var preis = duft.Preis(_spieler, ware);
-                Text(zeile, $"{ware} ({(preis > 0 ? Zahlenformat.Ganz(preis) : "aus dem Lager")}) bei", 14);
-                var wahl = new OptionButton { FocusMode = FocusModeEnum.None };
-                foreach (var r in w.Rat.Ratsherren) wahl.AddItem($"{r.Name} (Meinung {Zahlenformat.MitVorzeichen(w.Rat.Meinung(r, haus))})");
-                zeile.AddChild(wahl);
-                Knopf(zeile, "säen", () => Befehlen(new ZwietrachtSaeen(w.Rat.Ratsherren[Math.Max(0, wahl.Selected)].Name, haus.Inhaber)),
-                    gesperrt: imKerker || duft.ZwietrachtVerboten(_spieler, w.Rat.Ratsherren[0].Name, haus) is not null,
-                    hinweis: $"Die Meinung des Ratsherrn über {haus.Inhaber} sinkt um {Zahlenformat.Ganz(duft.Daten.Zwietracht.Gunst)} (Wahl, Anträge, Gericht; verblasst wie alle Taten). Vergehen: Intrige.",
-                    ap: new ZwietrachtSaeen("", ""));
-            }
-
-            // Eigene Diebe: Auskundschaften, Schutzgeld, Entführung
-            if (versteck is not null)
-                EigeneLeute(w, haus, imKerker);
-
-            // Erpressung
-            if (gericht.IstAktiv)
-            {
-                var beweise = gericht.Beweise(_spieler, haus).Count();
-                var zeile = new HBoxContainer();
-                zeile.AddThemeConstantOverride("separation", 10);
-                _inhalt.AddChild(zeile);
-                Text(zeile, $"Erpressung ({beweise}/{g.ErpressungMindestBeweise} Beweise)", 14, beweise >= g.ErpressungMindestBeweise ? null : Grau);
-                if (unterwelt.ForderungAn(haus, _spieler) is { } offen)
-                    Text(zeile, $"· Brief über {Zahlenformat.Ganz(offen.Betrag)} zugestellt – wartet auf Antwort", 13, Gold);
-                else if (beweise >= g.ErpressungMindestBeweise)
-                {
-                    var vorschlag = Math.Round(gericht.DrohendeBusse(_spieler, haus) * 0.6 / 50) * 50;
-                    var schluessel = haus.Inhaber;
-                    var feld = new Zahlfeld { MinValue = 50, MaxValue = 50_000, Step = 50, Value = _schweigegeld.GetValueOrDefault(schluessel, vorschlag), Suffix = waehrung, CustomMinimumSize = new Vector2(150, 0) };
-                    feld.ValueChanged += wert => _schweigegeld[schluessel] = wert;
-                    zeile.AddChild(feld);
-                    Knopf(zeile, "Brief schicken", () => Befehlen(new Erpressen(haus.Inhaber, _schweigegeld.GetValueOrDefault(schluessel, vorschlag))),
-                        gesperrt: imKerker, hinweis: "Der Brief selbst ist ein Beweis gegen euch.", ap: new Erpressen("", 0));
-                    Text(_inhalt, $"   Ein Schuldspruch kostete {haus.Inhaber} heute {Zahlenformat.Ganz(gericht.DrohendeBusse(_spieler, haus))} {waehrung} Buße – " +
-                                  "wer weniger verlangt, wird eher bezahlt. Zahlt das Haus, verbrennen eure Beweise; zahlt es nicht, könnt ihr klagen.",
-                        12, Grau, umbrechen: true);
-                }
-            }
-        }
-
-        // ── Eure Betriebe ──
-        _inhalt.AddChild(new HSeparator());
-        Text(_inhalt, "Eure Betriebe", 16);
-        foreach (var b in w.Betriebe.Where(b => b.Konto == _spieler))
-        {
-            var zeile = new HBoxContainer();
-            zeile.AddThemeConstantOverride("separation", 10);
-            _inhalt.AddChild(zeile);
-            var angriff = unterwelt.LetzterAngriff(b.Name);
-            Text(zeile, $"{b.Name}{(angriff is int j ? $" – zuletzt angegriffen {j}" : "")}", 14, angriff is not null ? Rot : null);
-            var name = b.Name;
-            Knopf(zeile, b.Waechter ? "Wächter entlassen" : $"Wächter anstellen ({Zahlenformat.Ganz(g.WaechterKosten)} {waehrung}/Jahr)",
-                () => Befehlen(new WaechterSetzen(name, !b.Waechter)));
-        }
-
-        // ── Nachtgeschehen ──
-        var nachrichten = unterwelt.NachrichtenFuer(_spieler, false).Reverse().Concat(unterwelt.NachrichtenFuer(_spieler, true).Reverse()).Take(6).ToList();
-        if (nachrichten.Count > 0)
-        {
-            _inhalt.AddChild(new HSeparator());
-            Text(_inhalt, "Nachtgeschehen", 16);
-            foreach (var n in nachrichten)
-                Text(_inhalt, "• " + n, 13, null, umbrechen: true);
+            case Kapitel.Nacht: NachtSeiten(links, rechts, bestellt, post); break;
+            case Kapitel.Leute: Register(register, haeuser, ziel); LeuteSeiten(links, rechts, versteck!, ziel); break;
+            case Kapitel.Schutz: SchutzSeiten(links, rechts); break;
+            default: Register(register, haeuser, ziel); HausSeiten(links, rechts, haeuser, ziel, versteck); break;
         }
     }
+
+    /// <summary>
+    /// Die Sperrleiste ganz oben, ein Zettel über dem Buch: Kerker oder fehlender Raum – in zwei Zeilen, was betroffen ist mit dem Grund
+    /// des Kerns, darunter der nächste Schritt und der Knopf „Zum Wohnhaus“. Ohne Sperre entsteht nichts.
+    /// Den nächsten Schritt nennt der Kern (<c>Wohnungswesen.RaumAnbauenVerboten</c>); angebaut wird in der Tafel des Wohnhauses.
+    /// </summary>
+    private void Sperrleiste(Container eltern)
+    {
+        var gesperrt = Befehlsarten.Select(b => (b.Was, Grund: Hauptsperre(b.Muster), b.Muster)).Where(b => b.Grund is not null).ToList();
+        if (gesperrt.Count == 0) return;
+        var leiste = HinterzimmerStil.Container<PanelContainer>(eltern, "HzSperre");
+        var spalte = HinterzimmerStil.Container<VBoxContainer>(leiste, "HzDicht");
+        var was = gesperrt.Count == Befehlsarten.Length ? "Gesperrt: " : $"Gesperrt ({string.Join(", ", gesperrt.Select(b => b.Was))}): ";
+        HinterzimmerStil.Text(spalte, was + gesperrt[0].Grund, "HzSperrtitel", "kopf_breite");
+        var zeile = HinterzimmerStil.Container<HBoxContainer>(spalte, "HzZeile");
+        if (_kerker is not null)
+        {
+            HinterzimmerStil.Text(zeile, "Nächster Schritt: abwarten. Briefe an euch könnt ihr weiter beantworten, die Betriebe laufen weiter.", "HzText", "schritt_breite");
+            return;
+        }
+        var wohnen = _w.Wohnen;
+        var raum = wohnen.RaumFuerBefehl(gesperrt[0].Muster)!;
+        var hindernis = wohnen.RaumAnbauenVerboten(_spieler!, raum.Kennung);
+        var schritt = hindernis is null
+            ? $"Am Wohnhaus den Raum „{raum.Name}“ anbauen ({Gulden(_w.Baupreis(_spieler!, raum.Preis))}, endgültig)."
+            : wohnen.FreiePlaetze(_spieler!) == 0 ? $"das Wohnhaus ausbauen. {hindernis}" : hindernis;
+        var oder = raum.BerufStattRaum is { } beruf ? $"Oder einen Betrieb als {beruf} führen – von dort geht es auch ohne den Raum." : "";
+        HinterzimmerStil.Text(zeile, "Nächster Schritt: " + schritt, "HzText", "schritt_breite", oder).SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        HinterzimmerStil.Knopf(zeile, "Zum Wohnhaus", () => WohnhausGewuenscht?.Invoke(), tipp: "Öffnet die Tafel eures Wohnhauses: Ausbau und Räume.")
+            .SizeFlagsVertical = SizeFlags.ShrinkCenter;
+    }
+
+    /// <summary>Eine Buchseite aus Pergament („HzBlatt“ links, „HzBlattRechts“ rechts) mit fester Mindestgröße, darin die Spalte für den Inhalt.</summary>
+    private static VBoxContainer Blatt(Container blaetter, string variante)
+    {
+        var blatt = HinterzimmerStil.Container<PanelContainer>(blaetter, variante);
+        blatt.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("seite_breite"), HinterzimmerStil.Mass("seite_hoehe"));
+        return HinterzimmerStil.Container<VBoxContainer>(blatt, "HzSeite");
+    }
+
+    /// <summary>Ein Leseband am Buchrand (Farbe <paramref name="nummer"/> 1–4): schlägt sein Kapitel auf; das aufgeschlagene steht weiter heraus. <paramref name="zahl"/> &gt; 0 steht dahinter.</summary>
+    private void Band(Container eltern, int nummer, string zeichen, Kapitel kapitel, string name, int zahl, string tipp, bool gesperrt = false)
+    {
+        var band = HinterzimmerStil.Knopf(eltern, zahl > 0 ? $"{name} ({zahl})" : name, () => Aufschlagen(kapitel), $"HzBand{nummer}", tipp, gesperrt);
+        band.ToggleMode = true;
+        band.ButtonPressed = kapitel == _kapitel;
+        band.Alignment = HorizontalAlignment.Left;
+        band.Icon = HinterzimmerStil.Zeichen(zeichen);
+        band.ExpandIcon = true;
+        band.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("band_breite"), 0);
+        band.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+    }
+
+    /// <summary>Das Register über der rechten Seite: ein Reiter je Haus, dahinter die Zahl dessen, was heute Nacht gegen es bestellt ist.</summary>
+    private void Register(Container register, List<Konto> haeuser, Konto? ziel)
+    {
+        foreach (var haus in haeuser)
+        {
+            var zahl = Bestelltes().Count(b => b.Ziel == haus);
+            var inhaber = haus.Inhaber;
+            var reiter = HinterzimmerStil.Knopf(register, zahl > 0 ? $"{inhaber} ({zahl})" : inhaber, () => Blaettern(inhaber), "HzRegister",
+                $"{inhaber} · {_w.StandVon(haus).Name} · {Gulden(haus.Reinvermoegen)}");
+            reiter.ToggleMode = true;
+            reiter.ButtonPressed = haus == ziel;
+            reiter.SizeFlagsVertical = SizeFlags.ShrinkEnd;
+        }
+        register.AddChild(new Control { CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("register_rechts"), 0) });
+    }
+
+    /// <summary>Blättert zur Doppelseite eines Hauses.</summary>
+    private void Blaettern(string inhaber)
+    {
+        _ziel = inhaber;
+        Aufbauen();
+    }
+
+    /// <summary>Überschrift einer Gruppe von Taten (mit Tintenlinie) und die Spalte ihrer Zeilen.</summary>
+    private static VBoxContainer Gruppe(Container seite, string titel, string tipp = "")
+    {
+        if (seite.GetChildCount() > 0) HinterzimmerStil.Container<HSeparator>(seite, "HzAbstand");
+        HinterzimmerStil.Text(seite, titel, "HzGruppe", tipp: tipp);
+        HinterzimmerStil.Container<HSeparator>(seite, "HzGruppenlinie");
+        return HinterzimmerStil.Container<VBoxContainer>(seite, "HzDicht");
+    }
+
+    /// <summary>
+    /// Eine Tat als Zeile mit festen Spalten: Zeichen (<paramref name="zeichen"/>, Name im Thema), Name (mit Marke „Kerker“ bei schweren
+    /// Vergehen) und darunter die Folge, Chance als Balken, Kosten (Preis und Aktionspunkte), Knopf. Zwischen zwei Zeilen einer Gruppe steht
+    /// eine gepunktete Linie. Zustände:
+    ///   • <paramref name="bestellt"/> gesetzt: der Text steht golden statt der Folge, statt des Knopfs <paramref name="bestelltKurz"/>;
+    ///   • Hauptsperre (Kerker, Raum fehlt – Grund oben in der Sperrleiste): Zeile grau, statt des Knopfs „gesperrt“;
+    ///   • <paramref name="grund"/> gesetzt oder zu wenig Aktionspunkte: der Grund steht rot statt der Folge, der Knopf ist gesperrt.
+    /// <paramref name="muster"/> ist ein Befehl derselben Art (für Raum und Aktionspunkte zählt nur die Art), <paramref name="feld"/> ein
+    /// Eingabefeld unter dem Namen (Betrag, Auswahl), das nur bei bestellbarer Tat erscheint.
+    /// </summary>
+    private void Tat(VBoxContainer raster, string zeichen, string name, string folge, Befehl muster, Action bestellen, double? chance = null, string preis = "",
+        string? bestellt = null, string bestelltKurz = "bestellt", string? grund = null, string tipp = "", bool schwer = false, Control? feld = null,
+        string knopf = "Bestellen")
+    {
+        var haupt = Hauptsperre(muster);
+        var ap = _w.ApKosten(_spieler!, muster);
+        if (bestellt is null && haupt is null && grund is null && ap > 0 && !_spieler!.Aktionspunkte.Reicht(ap))
+            grund = $"Nicht genug Aktionspunkte: {ap} nötig, {_spieler.Aktionspunkte.Vorrat} übrig.";
+        if (bestellt is not null || haupt is not null) grund = null;
+        var zu = bestellt is null && (haupt is not null || grund is not null);
+
+        if (raster.GetChildCount() > 0) raster.AddChild(new HinterzimmerPunktlinie());
+        var zeile = HinterzimmerStil.Container<HBoxContainer>(raster, "HzTatzeile");
+        HinterzimmerStil.ZeichenBild(zeile, zeichen, zu);
+        var tatSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
+        tatSpalte.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        var kopf = HinterzimmerStil.Container<HBoxContainer>(tatSpalte, "HzEng");
+        HinterzimmerStil.Text(kopf, name, zu ? "HzGesperrt" : "HzText", tipp: tipp);
+        if (schwer) HinterzimmerStil.Text(kopf, "Kerker", "HzMarke", tipp: "Schweres Vergehen: Fliegt es auf, droht vor Gericht der Kerker.").SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        if (bestellt is not null) HinterzimmerStil.Text(tatSpalte, bestellt, "HzGold", "tat_breite");
+        else if (grund is not null) HinterzimmerStil.Text(tatSpalte, grund, "HzGrund", "tat_breite");
+        else if (folge != "") HinterzimmerStil.Text(tatSpalte, folge, "HzKlein", "tat_breite", tipp);
+        if (feld is not null)
+        {
+            if (zu || bestellt is not null) feld.QueueFree();
+            else tatSpalte.AddChild(feld);
+        }
+
+        var chanceSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
+        chanceSpalte.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("chance_breite"), 0);
+        if (chance is { } c)
+        {
+            HinterzimmerStil.Text(chanceSpalte, Prozent(c), zu ? "HzGesperrt" : "HzText", tipp: "Erfolgschance. Wächter und Einrichtung des Ziels senken sie.");
+            HinterzimmerStil.Chance(chanceSpalte, c, zu);
+        }
+
+        var kostenSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
+        kostenSpalte.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("kosten_breite"), 0);
+        if (preis != "") HinterzimmerStil.Text(kostenSpalte, preis, zu ? "HzGesperrt" : "HzText", tipp: $"Preis in {_waehrung}, bezahlt im Voraus.");
+        if (ap > 0) HinterzimmerStil.Text(kostenSpalte, $"{ap} AP", "HzKlein", tipp: "Aktionspunkte, die diese Tat kostet.");
+
+        var aktion = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
+        aktion.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("aktion_breite"), 0);
+        if (bestellt is not null) HinterzimmerStil.Text(aktion, bestelltKurz, "HzGold", tipp: bestellt);
+        else if (haupt is not null) HinterzimmerStil.Text(aktion, "gesperrt", "HzGesperrt", tipp: haupt);
+        else HinterzimmerStil.Knopf(aktion, knopf, bestellen, tipp: grund ?? tipp, gesperrt: grund is not null);
+    }
+
+    /// <summary>Ein Betragsfeld, dessen Wert die Tafel über den Neuaufbau hinweg merkt.</summary>
+    private Zahlfeld Betragsfeld(Dictionary<string, double> merker, string schluessel, double vorschlag, double min, double max, double schritt)
+    {
+        var feld = new Zahlfeld
+        {
+            MinValue = min, MaxValue = max, Step = schritt, Value = merker.GetValueOrDefault(schluessel, vorschlag), Suffix = _waehrung,
+            CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("zahlfeld_breite"), 0), SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+        };
+        feld.ValueChanged += wert => merker[schluessel] = wert;
+        return feld;
+    }
+
+    /// <summary>Alles, was der Spieler für diese Nacht bestellt hat (Banden, Wegelagerer, Giftdolch, eigene Leute) – Ziel und Text für die Liste.</summary>
+    private IEnumerable<(Konto Ziel, string Text)> Bestelltes()
+    {
+        var unterwelt = _w.Gauner;
+        foreach (var a in unterwelt.Auftraege.Where(a => a.Auftraggeber == _spieler))
+            yield return (a.Ziel, $"{a.Art.Name()} bei {a.Ziel.Inhaber}{(a.Betrieb is { } b ? $" ({b})" : "")}");
+        foreach (var h in unterwelt.Hinterhalte.Where(h => h.Auftraggeber == _spieler))
+            yield return (h.Ziel, $"Wegelagerer lauern den Karren von {h.Ziel.Inhaber} auf");
+        if (_w.Duft.IstAktiv)
+            foreach (var a in _w.Duft.Auftraege.Where(a => a.Auftraggeber == _spieler))
+                yield return (a.Ziel, $"{a.Dolch} gegen das Oberhaupt von {a.Ziel.Inhaber}");
+        if (_w.Diebe.IstAktiv)
+            foreach (var a in _w.Diebe.Auftraege.Where(a => a.Dieb == _spieler))
+                yield return (a.Ziel, $"Eure Leute: {a.Art.Name()} bei {a.Ziel.Inhaber}{(a.Betrieb is { } b ? $" ({b})" : "")}");
+    }
+
+    /// <summary>Zahl der Briefe an den Spieler, die auf Antwort warten (Erpressung, Lösegeld, Schutzgeld).</summary>
+    private int BriefeAnEuch() =>
+        _w.Gauner.Forderungen.Count(f => f.Opfer == _spieler) + (_w.Diebe.IstAktiv ? _w.Diebe.Briefe.Count(b => b.Opfer == _spieler) : 0);
+
+    private static string StufenName(Stadtwirtschaft w, int stufe) =>
+        w.Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == w.Diebe.Daten.Beruf && a.Stufe == stufe)?.Name ?? $"Stufe {stufe}";
 }

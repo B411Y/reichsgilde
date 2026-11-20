@@ -232,6 +232,17 @@
             "game/assets/texturen/bruecke/bruecke_ebenen_",
             "game/assets/texturen/neubau/rathaus_ebenen_"
           ]
+        },
+        {
+          "werk": "Papier und Leder des Schwarzen Buchs (Hinterzimmer)",
+          "autor": "ambientCG (Lennart Demes) und Poly Haven (Rob Tuytel)",
+          "quelle": "https://ambientcg.com/a/Paper002 ; https://polyhaven.com/a/brown_leather",
+          "lizenz": "CC0 1.0",
+          "hinweis": "Aufnahmen, unverändert übernommen.",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/oberflaeche/hinterzimmer/"
+          ]
         }
       ],
       "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, Pixal3D (Tencent, MIT) über AssetFurnace (Apache-2.0) mit dem Bildencoder DINOv3 (Meta, DINOv3 License; Built with DINOv3) und MPFB 2 (CC0) für den 3D-Handschuh des Mauszeigers, Blender und ComfyUI. Schmiedmodell und Handschuh sind KI-Arbeiten.",
