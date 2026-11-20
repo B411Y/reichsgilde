@@ -79,12 +79,18 @@ public partial class Fensterrahmen : Node
     {
         // Wie im Entwurf: Die Unterkante steht „fenster_unten“ über dem Bildrand (über der Lade bleibt Luft für Meldungen und Schild). Ein Fenster, das
         // dafür zu hoch ist, beginnt unter der Zeitleiste und reicht tiefer – höchstens bis an die Lade (dafür sorgt der Rollbereich).
-        var unten = Math.Max(Rollbereich.LeistenHoehe, Math.Min(FensterStil.Mass("fenster_unten"), sichtbar.Y - Rollbereich.KopfHoehe - groesse.Y));
-        var frei = new Rect2(0, sichtbar.Y - unten - groesse.Y, sichtbar.X, groesse.Y);
         var davor = Alle.Count(a => a != this && a.Festgehalten && a.Mittig && a._platz is not null && a._geoeffnet < _geoeffnet && a._tafel.IsVisibleInTree());
-        return new Vector2(
-            frei.Position.X + (frei.Size.X - groesse.X) / 2 + davor * Staffel,
-            frei.Position.Y + (frei.Size.Y - groesse.Y) / 2 + davor * Staffel);
+        return LageUeberLade(groesse, sichtbar) + new Vector2(davor * Staffel, davor * Staffel);
+    }
+
+    /// <summary>
+    /// Linke obere Ecke einer Tafel der Größe <paramref name="groesse"/>, die waagrecht in der Bildmitte und mit der Unterkante „fenster_unten“ über dem
+    /// Bildrand steht – der Platz aller Fenster über der Lade. Auch für Tafeln ohne Fensterrahmen (Spielmenü, Einstellungen, Hilfe: <see cref="UeberLade"/>).
+    /// </summary>
+    public static Vector2 LageUeberLade(Vector2 groesse, Vector2 sichtbar)
+    {
+        var unten = Math.Max(Rollbereich.LeistenHoehe, Math.Min(FensterStil.Mass("fenster_unten"), sichtbar.Y - Rollbereich.KopfHoehe - groesse.Y));
+        return new Vector2((sichtbar.X - groesse.X) / 2, sichtbar.Y - unten - groesse.Y);
     }
 
     /// <summary>
