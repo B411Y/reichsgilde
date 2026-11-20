@@ -276,6 +276,27 @@ def strebe(netz, st, basis, richt):
 #  Langhaus und Querhausarme
 # ─────────────────────────────────────────────────────────────────────────────
 
+def arkade(netz, st, s_, laenge, ym):
+    """Hochwand des Langhauses mit offener Arkade zu den Seitenschiffen (Innenraum des Spiels: Mittel- und Seitenschiffe als ein Raum):
+    unten Pfeiler und Spitzbogenöffnungen (Scheitel 9,6 m), darüber die geschlossene Wand mit den Obergadenfenstern. Von innen gerechnet
+    liegt die Westwand bei y −10,55, die Chorwand bei y 3."""
+    vt, h_bogen = 10.5, 9.6
+    elbenstein = st["Elbenstein"]
+    x = s_ * (R_H - 0.4)
+    netz.quader((x, (Y_L0 + Y_L0 + 0.45) / 2, vt / 2), (0.8, 0.45, vt), elbenstein, ohne=("-z",))      # Wandstück vor der Westwand
+    netz.quader((x, ym, (vt + Z_H) / 2), (0.8, laenge, Z_H - vt), elbenstein)                           # geschlossene Wand darüber
+    rand = [Y_L0 + 0.45]
+    pfeiler = [-8.08, -5.21, -2.34, 0.53]
+    for y in pfeiler:
+        netz.quader((x, y, vt / 2), (0.8, 0.8, vt), elbenstein, ohne=("-z",))
+    grenzen = [(rand[0], pfeiler[0] - 0.4)] + [(a + 0.4, b - 0.4) for a, b in zip(pfeiler, pfeiler[1:])] + [(pfeiler[-1] + 0.4, Y_W)]
+    for a, b in grenzen:                                          # Zwickel über jeder Öffnung (Spitzbogen ausgespart)
+        w = b - a
+        Mw = wm((s_ * R_H, (a + b) / 2, 0), 0 if s_ > 0 else 180)
+        bogen = dom.spitzbogen(0.0, 0.0, w, h_bogen)
+        bs.platte(netz, Mw, [(-w / 2, vt), (w / 2, vt)] + bogen[2:], 0.0, 0.8, elbenstein)
+
+
 def langhaus_bauen(wand_l, wand_r, wand_v, dach, st):
     """Langhaus von der Ostkante der Türme bis zum Chor, aufgeteilt in die Teile, die das Spiel beim Hineinsehen einzeln ausblendet:
     Wand_links/Wand_rechts (Seitenschiffwand, Hochwand mit Fenstern, Strebewerk, Querhausarm), Wand_vorne (Westwand zwischen den
@@ -285,7 +306,7 @@ def langhaus_bauen(wand_l, wand_r, wand_v, dach, st):
     yq = (Y_Q0 + Y_Q1) / 2
     elbenstein = st["Elbenstein"]
     for s_, netz in ((-1, wand_l), (1, wand_r)):
-        netz.quader((s_ * (R_H - 0.4), ym, Z_H / 2), (0.8, laenge, Z_H), elbenstein, ohne=("-z",))
+        arkade(netz, st, s_, laenge, ym)                                                                    # Hochwand mit offener Arkade
         netz.quader((s_ * (R_U - 0.3), ym, Z_U / 2), (0.6, laenge, Z_U), elbenstein, ohne=("-z",))
         netz.quader((s_ * (R_U + 0.04), ym, 0.45), (0.2, laenge, 0.9), elbenstein, ohne=("-z",))                  # Sockel
         netz.quader((s_ * (R_H + 0.08), ym, Z_H - 0.3), (0.3, laenge + 0.1, 0.5), elbenstein, ohne=("-z",))        # Gesims

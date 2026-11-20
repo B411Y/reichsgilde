@@ -347,21 +347,21 @@ public partial class Stadtansicht
         // Außen das Modell dom.glb, Ursprung in der Mitte des Langhauses (10 × 22 m, Wände 12 m hoch; innen x −4,5 … 4,5, z −10,5 … 10,5;
         // Chor hinten, ungedreht im Norden), 2,85 m hinter der Mitte der Fläche (versatz im Katalog). Der Westturm steht vor dem Portal (vorne).
         // Hineinsehen: Dach und Turm aus, dazu die Wände zur Kamera. Der Innenraum ist um die Mitte gebaut und dreht sich als Ganzes mit.
-        // Kölner Dom (koelner_dom.glb, Baustelle um 1400): Ursprung in der Mitte der Fläche 14 × 34 m, die Türme im Westen (vorne), der Chor im Osten;
-        // der Innenraum liegt im Langhausstumpf (Wände 6,5 m, innen x ±5,2, y −11,1 … 2 vom Ursprung, Mitte 4,55 m vor dem Ursprung), kürzer als der des Doms
-        // der übrigen Karten: der Chor mit Altar rückt um 3,9 m vor, es gibt fünf statt acht Bankreihen. Beim Hineinsehen gehen Chor und Notdach („Dach“),
-        // Türme und Kran („Turm“) und die Wände zur Kamera weg.
+        // Kölner Dom (koelner_dom.glb, fertig gebaut – Alternativgeschichte: durch Zwerge und Elben schneller vollendet): Ursprung in der Mitte der
+        // Fläche 14 × 34 m, die Türme (58 m) im Westen (vorne), der Chor im Osten. Der Innenraum ist EIN Raum aus Mittel- und Seitenschiffen mit offener
+        // Arkade (x ±5,4, y −10,55 … 3 vom Ursprung, Mitte 3,775 m vor dem Ursprung), kürzer als der des Doms der übrigen Karten: der Chor mit Altar
+        // rückt um 3,7 m vor. Beim Hineinsehen gehen Chor und Langhausdach („Dach“), Türme und Portalwand („Turm“) und die Wände zur Kamera weg.
         var koeln = g.Katalog == "koelner_dom";
         var lage = ModellLage(g);
         var p = lage.Origin;
         var drehung = DrehungVon(g);
         var basis = new Basis(Vector3.Up, drehung);
-        var pm = koeln ? p + basis * new Vector3(0, 0, 4.55f) : p; // Mitte des Innenraums
-        var klick = koeln ? new Vector3(12, 9.5f, 14.2f) : new Vector3(11.5f, 13, 24.6f);
-        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, pm, klick, basis * (koeln ? new Vector3(0, 40, -8) : new Vector3(0, 46, 13)),
-            zoom: koeln ? 22 : 27, reichweite: koeln ? 12 : 15, drehung: drehung);
+        var pm = koeln ? p + basis * new Vector3(0, 0, 3.775f) : p; // Mitte des Innenraums
+        var klick = koeln ? new Vector3(12.4f, 32, 13.6f) : new Vector3(11.5f, 13, 24.6f);
+        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, pm, klick, basis * (koeln ? new Vector3(0, 46, -8.2f) : new Vector3(0, 46, 13)),
+            zoom: koeln ? 24 : 27, reichweite: koeln ? 13 : 15, drehung: drehung);
         a.Innen!.Transform = new Transform3D(basis, pm - basis * pm); // Innenraum um die Mitte gedreht (seine Teile stehen bei pm + Lage im Dom)
-        var v = koeln ? 3.9f : 0f; // Köln: Chor, Kanzel und Taufstein rücken zur Mitte, damit sie in den kürzeren Raum passen
+        var v = koeln ? 3.7f : 0f; // Köln: Chor, Kanzel und Taufstein rücken zur Mitte, damit sie in den kürzeren Raum passen
         var huelle = ModellEinsetzen(g.Baustein?.Modell ?? "gebaeude/dom", this, p, new ModellZustand(), "Dom");
         if (huelle is not null)
         {
@@ -383,12 +383,12 @@ public partial class Stadtansicht
         }
         if (koeln)
         {
-            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 15, -9.5f), new Vector3(14, 30, 13.5f), drehung: drehung));    // der Chor
-            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 10.5f, 14.2f), new Vector3(13.6f, 21, 5.4f), drehung: drehung)); // die Türme
+            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 17, -9.5f), new Vector3(14, 34, 13.5f), drehung: drehung));    // der Chor
+            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 29, 13.7f), new Vector3(13.8f, 58, 5.6f), drehung: drehung)); // die Türme
         }
         else a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(0, 21, 14.5f), new Vector3(7.5f, 42, 7), drehung: drehung));   // der Westturm
         // Boden und Licht im Innern: das Modell hat keinen Boden
-        Quader(pm + new Vector3(0, 0.05f, 0), new Vector3(9, 0.1f, koeln ? 13.1f : 21), Material(Steinboden), a.Innen);
+        Quader(pm + new Vector3(0, 0.05f, 0), new Vector3(koeln ? 10.8f : 9, 0.1f, koeln ? 13.55f : 21), Material(Steinboden), a.Innen);
         foreach (var versatz in new[] { -0.25f, 0.25f })
             a.Innen!.AddChild(new OmniLight3D
             {
