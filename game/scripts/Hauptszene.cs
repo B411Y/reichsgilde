@@ -1537,7 +1537,10 @@ public partial class Hauptszene : Node
                 case "Bauplan": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Haus); break;
                 case "Werkzeug": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Handwerk); break;
                 case "Geld": WohnhausVomGegenstand(WohnhausAnzeige.Reiter.Geld); break;
-                case "Kartentisch": TafelnSchliessen(); _hinterzimmer.Oeffnen(); break; // Hinterzimmer: Banden, Erpresserbriefe, Wächter (die Tafel von Reiter und Taste H; den Tisch gibt es nur im gebauten Raum)
+                case "Kartentisch": // Hinterzimmer: Banden, Erpresserbriefe, Wächter (die Tafel von Reiter und Taste H; den Tisch gibt es nur im gebauten Raum)
+                    if (_stadt.BuchImRaum(BuchArt.Schwarz)) BuchAngeklickt(BuchArt.Schwarz); // das Schwarze Buch liegt auf dem Tisch: Schwenk, Aufschlagen, dann die Tafel (Hauptszene.Buecher.cs)
+                    else { TafelnSchliessen(); _hinterzimmer.Oeffnen(); }
+                    break;
                 case "Lesepult": TafelnSchliessen(); _familientafel.Oeffnen(FamilienAnzeige.Reiter.Familie); break; // Bibliothek: Familienbuch mit den Lehrschriften
             }
             // Neues Rathaus: Gegenstand → Tafel nach RathausGegenstaende (im Test geprüft)

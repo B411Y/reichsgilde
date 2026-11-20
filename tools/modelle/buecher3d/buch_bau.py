@@ -1,5 +1,5 @@
 """Gemeinsame Bauteile der drei 3D-Buecher fuer die Innenansichten (Personalbuch, Familienbuch, Kontorbuch).
-  blender -b --python buch_bau.py -- <ausordner> <personal|familie|kontor|alle>
+  blender -b --python buch_bau.py -- <ausordner> <personal|familie|kontor|schwarz|alle>
 (unter Windows ueber tools/modelle/handschuh/lauf.ps1: Idle-Prioritaet; Pfade absolut.)
 Schreibt <ausordner>/buch_<art>.glb (mit Clips), buch_<art>.blend und messwerte_buch_<art>.json.
 

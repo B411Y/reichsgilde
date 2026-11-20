@@ -126,6 +126,7 @@ public partial class Stadtansicht
             haus.AddChild(wurzel);
             NeubauEinkleiden(WohnraumDatei(kern), wurzel);
             WohnraumBeleben(a, wurzel);
+            if (kennung == RaumHinterzimmer) SchwarzesBuchAnlegen(a, wurzel); // das Schwarze Buch auf dem Kartentisch (Stadtansicht.Innenbuecher.cs)
         }
         if (_neubauInnen is not null && _neubauInnen != wurzel) NeubauInnenAus();
         _neubauInnen = wurzel;
