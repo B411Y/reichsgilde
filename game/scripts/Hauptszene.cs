@@ -1708,7 +1708,7 @@ public partial class Hauptszene : Node
                 Rollbereich.RechtsAnheften(_auswahl);
                 // Ohne Klick in die Welt (Taste, Leiste, Kopfzeile) steht sie wie früher rechts am Rand
                 if (_auswahlKlickBild != Engine.GetProcessFrames())
-                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16 - Fenster.Randabstand, Rollbereich.KopfHoehe));
             }
         }
     }

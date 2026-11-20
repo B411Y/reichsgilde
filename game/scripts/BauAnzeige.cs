@@ -101,7 +101,7 @@ public partial class BauAnzeige : PanelContainer
         Show();
         Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
         // Auch nach dem Ziehen öffnet sie wieder rechts (wie die Auswahl): Der Rahmen setzt jedes Bild die Lage, bis der Spieler sie zieht
-        Fensterrahmen.Von(this)?.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+        Fensterrahmen.Von(this)?.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16 - Fenster.Randabstand, Rollbereich.KopfHoehe));
         StartwahlWaehlen(); // Platzwahl am Start: gleich der Umriss statt der Liste
     }
 

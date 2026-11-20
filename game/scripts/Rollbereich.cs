@@ -34,6 +34,8 @@ public partial class Rollbereich : ScrollContainer
     /// <summary>Höhe der Siegel-Ecke unten rechts (0: keine Siegel). Die Tafeln rechts lassen den Platz frei, statt die Siegel zu verdecken (Benachrichtigungen).</summary>
     public static float EckeHoehe { get; set; }
 
+    private const string RechtsMerker = "rg_rechts";
+
     /// <summary>
     /// Heftet eine Tafel rechts an den Rand, unter Kopfzeile und Zeitstrahl und über der Betriebsleiste (PR #197): Dort stehen die Tafeln, die
     /// ein Klick öffnet (Auswahl, Wohnhaus, Bericht, Bauen, Weg). Die Tafel muss schon eingehüllt sein (<see cref="Einhuellen"/>).
@@ -41,6 +43,7 @@ public partial class Rollbereich : ScrollContainer
     public static void RechtsAnheften(PanelContainer tafel)
     {
         tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16 + Fenster.Randabstand); // Randabstand: Einstellung für breite Bilder
+        tafel.SetMeta(RechtsMerker, true); // der Rollbereich hält den Abstand nach, wenn die Einstellung sich ändert
         tafel.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
         tafel.GrowVertical = Control.GrowDirection.End;
         tafel.Position = new Vector2(tafel.Position.X, KopfHoehe);
@@ -105,6 +108,13 @@ public partial class Rollbereich : ScrollContainer
             CustomMinimumSize = groesse;
 
         TafelAnpassen();
+        // Tafel am rechten Rand: Der Abstand zur Kante folgt der Einstellung „Randabstand rechts“ (nicht mehr, sobald der Spieler sie verschoben hat)
+        if (_tafel.TopLevel || !_tafel.HasMeta(RechtsMerker)) return;
+        var rechts = -(16f + Fenster.Randabstand);
+        if (Mathf.IsEqualApprox(_tafel.OffsetRight, rechts)) return;
+        var breite = _tafel.Size.X;
+        _tafel.OffsetRight = rechts;
+        _tafel.OffsetLeft = rechts - breite;
     }
 
     /// <summary>
