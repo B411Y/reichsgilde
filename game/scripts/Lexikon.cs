@@ -215,8 +215,8 @@ public static class Lexikon
             var anzeige = m.Groups[2].Success ? m.Groups[2].Value : (FindeBegriff(kennung)?.Titel ?? kennung);
             if (!mitVerweisen) return anzeige;
             return FindeBegriff(kennung) is null
-                ? $"[color=#d9695f]{anzeige}[/color]"
-                : $"[url={kennung}][color=#e8c872]{anzeige}[/color][/url]";
+                ? $"[color=#{FensterStil.Farbe("warnung").ToHtml(false)}]{anzeige}[/color]"
+                : $"[url={kennung}][color=#{FensterStil.Farbe("akzent").ToHtml(false)}]{anzeige}[/color][/url]"; // Tinte: das Lexikon liegt auf Pergament
         });
     }
 

@@ -39,6 +39,7 @@ public partial class StimmrundeAnzeige : Control
         AddChild(mitte);
         mitte.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         var tafel = RatStil.Container<PanelContainer>(mitte, "RatKurzTafel");
+        FensterStil.Bekleiden(tafel); // Steinrand, Pergament und Kopf wie die Fenster
         var rand = RatStil.Container<MarginContainer>(tafel, "RatRand");
         var spalte = RatStil.Container<VBoxContainer>(rand, "RatSpalte");
         RatStil.Text(spalte, "Stimmrunde vor der Ratssitzung", "RatTitel", zentriert: true);

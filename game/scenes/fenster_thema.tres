@@ -1,0 +1,542 @@
+[gd_resource type="Theme" format=3]
+
+; Das Thema der Fenster und Tafeln (UI-Umbau „Zunftlade“, Teil 2): Rand aus Stein, Kopf aus Holz, Leib aus Pergament, Schrift in dunkler Tinte.
+; Aussehen steht NUR hier (und im Thema der Lade, zunftlade_thema.tres): Stoffe, Farben, Schriften, Abstände, Maße. Die Brücke ist FensterStil.cs,
+; angezogen wird es von Fensterkleid.cs (jede Tafel, die Fensterrahmen.Anmelden oder FensterStil.Bekleiden ruft).
+; Eigene Datei, weil hier die GRUNDTYPEN (Label, Button, LineEdit …) für alles gesetzt sind, was auf dem Pergament liegt – im Thema der Lade
+; stünden sie auch der Lade im Weg. Nur freie Texturen, keine Verläufe, keine Schatten.
+; Pseudo-Typen: FensterTafel / FensterTafelKopf (Innenabstand ohne bzw. mit Kopf), FensterStoff (was Fensterkleid zeichnet), FensterKopf (Titel),
+; FensterKreuz (runder Schließknopf), FensterMasse, FensterFarben (auch für die Umrechnung heller Farben in Tinte, FensterStil.Tinte).
+
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/holz.webp" id="1_holz"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/rahmen.webp" id="3_rahmen"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/pergament.webp" id="5_pergament"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/fenster/knopf.webp" id="8_knopf"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/fenster/knopf_an.webp" id="9_knopf_an"]
+[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="6_titel"]
+
+; ── Innenabstand der Tafel: Steinrand (16) plus 2 Luft (die Tafeln bringen ihren eigenen Rand mit); mit Kopf oben zusätzlich 46 ──
+[sub_resource type="StyleBoxEmpty" id="TafelRand"]
+content_margin_left = 18.0
+content_margin_top = 18.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+
+[sub_resource type="StyleBoxEmpty" id="TafelRandKopf"]
+content_margin_left = 18.0
+content_margin_top = 64.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+
+[sub_resource type="StyleBoxEmpty" id="Leer"]
+
+; ── Knöpfe: Holz der Fächer mit dunkler Kante (Textur, die Mitte kachelt) ──
+[sub_resource type="StyleBoxTexture" id="Knopf"]
+texture = ExtResource("8_knopf")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxTexture" id="KnopfUeber"]
+texture = ExtResource("8_knopf")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+modulate_color = Color(1.22, 1.2, 1.16, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxTexture" id="KnopfAn"]
+texture = ExtResource("9_knopf_an")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxTexture" id="KnopfGedrueckt"]
+texture = ExtResource("8_knopf")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+modulate_color = Color(0.78, 0.76, 0.74, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="KnopfGesperrt"]
+bg_color = Color(0.29, 0.275, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.663, 0.647, 0.612, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+
+; ── Felder auf dem Pergament: durchscheinendes Braun mit feinem Rand ──
+[sub_resource type="StyleBoxFlat" id="Feld"]
+bg_color = Color(0.275, 0.176, 0.059, 0.14)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.235, 0.157, 0.04, 0.5)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="FeldFokus"]
+bg_color = Color(0.275, 0.176, 0.059, 0.2)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.353, 0.114, 0.078, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="FeldFlach"]
+bg_color = Color(0.275, 0.176, 0.059, 0.14)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.235, 0.157, 0.04, 0.5)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="Auswahl"]
+bg_color = Color(0.47, 0.3, 0.1, 0.3)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="AuswahlUeber"]
+bg_color = Color(0.47, 0.3, 0.1, 0.15)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
+; ── Reiter: gewählt aus Holz, die anderen heller als das Pergament; darunter eine Linie ──
+[sub_resource type="StyleBoxFlat" id="ReiterAn"]
+bg_color = Color(0.353, 0.224, 0.11, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_color = Color(0.29, 0.18, 0.09, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 14.0
+content_margin_top = 5.0
+content_margin_right = 14.0
+content_margin_bottom = 5.0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="ReiterAus"]
+bg_color = Color(0.804, 0.725, 0.541, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_color = Color(0.29, 0.18, 0.09, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 14.0
+content_margin_top = 5.0
+content_margin_right = 14.0
+content_margin_bottom = 5.0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="ReiterUeber"]
+bg_color = Color(0.87, 0.8, 0.62, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_color = Color(0.29, 0.18, 0.09, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 14.0
+content_margin_top = 5.0
+content_margin_right = 14.0
+content_margin_bottom = 5.0
+corner_radius_bottom_right = 0
+corner_radius_bottom_left = 0
+
+[sub_resource type="StyleBoxFlat" id="ReiterLeib"]
+bg_color = Color(0, 0, 0, 0)
+border_width_top = 3
+border_color = Color(0.29, 0.18, 0.09, 1)
+content_margin_left = 4.0
+content_margin_top = 8.0
+content_margin_right = 4.0
+content_margin_bottom = 8.0
+
+; ── Rollbalken, Balken, Linien, Aufklappmenü ──
+[sub_resource type="StyleBoxFlat" id="Rollbahn"]
+bg_color = Color(0.235, 0.157, 0.04, 0.12)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="Rollgriff"]
+bg_color = Color(0.29, 0.18, 0.09, 0.7)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="RollgriffUeber"]
+bg_color = Color(0.29, 0.18, 0.09, 0.95)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="BalkenGrund"]
+bg_color = Color(0.235, 0.157, 0.04, 0.2)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.114, 0.071, 0.031, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="BalkenFuellung"]
+bg_color = Color(0.66, 0.44, 0.03, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxLine" id="Linie"]
+color = Color(0.235, 0.157, 0.04, 0.28)
+
+[sub_resource type="StyleBoxLine" id="LinieHoch"]
+color = Color(0.235, 0.157, 0.04, 0.28)
+vertical = true
+
+[sub_resource type="StyleBoxFlat" id="Menue"]
+bg_color = Color(0.118, 0.075, 0.035, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.541, 0.416, 0.235, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="MenueUeber"]
+bg_color = Color(1, 0.86, 0.63, 0.16)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 4.0
+content_margin_top = 2.0
+content_margin_right = 4.0
+content_margin_bottom = 2.0
+
+[resource]
+; ── Was Fensterkleid zeichnet: Grund, Kopf, Rand ──
+FensterTafel/base_type = &"PanelContainer"
+FensterTafel/styles/panel = SubResource("TafelRand")
+FensterTafelKopf/base_type = &"PanelContainer"
+FensterTafelKopf/styles/panel = SubResource("TafelRandKopf")
+FensterStoff/icons/grund = ExtResource("5_pergament")
+FensterStoff/constants/grund_kachel = 0
+FensterStoff/icons/rahmen = ExtResource("3_rahmen")
+FensterStoff/constants/rahmen_quelle = 32
+FensterStoff/constants/rahmen_breite = 16
+FensterKopf/icons/grund = ExtResource("1_holz")
+FensterKopf/constants/grund_kachel = 720
+FensterKopf/constants/hoehe = 46
+FensterKopf/constants/linie = 2
+FensterKopf/colors/linie = Color(0.071, 0.043, 0.02, 1)
+FensterKopf/fonts/font = ExtResource("6_titel")
+FensterKopf/font_sizes/font_size = 27
+FensterKopf/font_sizes/font_size_klein = 18
+FensterKopf/colors/font_color = Color(1, 0.878, 0.541, 1)
+FensterKopf/constants/titel_links = 16
+FensterKreuz/constants/groesse = 36
+FensterKreuz/constants/rechts = 6
+FensterKreuz/constants/abstand = 4
+FensterKreuz/colors/grund = Color(0.39, 0.13, 0.1, 1)
+FensterKreuz/colors/grund_ueber = Color(0.52, 0.18, 0.13, 1)
+FensterKreuz/colors/grund_an = Color(0.66, 0.47, 0.17, 1)
+FensterKreuz/colors/rand = Color(0.541, 0.416, 0.235, 1)
+FensterKreuz/colors/strich = Color(0.953, 0.902, 0.769, 1)
+FensterKreuz/constants/klein = 24
+; ── Maße: fenster_unten = Unterkante der Fenster über dem unteren Bildrand (Entwurf: 310) ──
+FensterMasse/constants/fenster_unten = 310
+FensterMasse/constants/griff = 62
+FensterMasse/constants/griff_ohne_kopf = 34
+; ── Farben auf dem Pergament; „grund“ ist die mittlere Farbe der Textur (für die Kontrastrechnung) ──
+FensterFarben/colors/grund = Color(0.886, 0.781, 0.59, 1)
+FensterFarben/colors/tinte = Color(0.141, 0.094, 0.051, 1)
+FensterFarben/colors/tinte_leise = Color(0.333, 0.251, 0.122, 1)
+FensterFarben/colors/akzent = Color(0.353, 0.114, 0.078, 1)
+FensterFarben/colors/warnung = Color(0.49, 0.122, 0.102, 1)
+FensterFarben/colors/gut = Color(0.153, 0.345, 0.11, 1)
+FensterFarben/colors/flaeche = Color(0.275, 0.176, 0.059, 0.14)
+FensterFarben/colors/flaeche_rand = Color(0.235, 0.157, 0.04, 0.5)
+FensterFarben/colors/linie = Color(0.235, 0.157, 0.04, 0.28)
+FensterFarben/colors/streifen = Color(0.275, 0.176, 0.059, 0.09)
+FensterFarben/colors/hell = Color(0.953, 0.902, 0.769, 1)
+; ── Grundtypen auf dem Pergament ──
+Label/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+RichTextLabel/colors/default_color = Color(0.141, 0.094, 0.051, 1)
+LinkButton/colors/font_color = Color(0.353, 0.114, 0.078, 1)
+LinkButton/colors/font_hover_color = Color(0.49, 0.122, 0.102, 1)
+LinkButton/colors/font_pressed_color = Color(0.141, 0.094, 0.051, 1)
+Button/styles/normal = SubResource("Knopf")
+Button/styles/hover = SubResource("KnopfUeber")
+Button/styles/pressed = SubResource("KnopfAn")
+Button/styles/hover_pressed = SubResource("KnopfAn")
+Button/styles/disabled = SubResource("KnopfGesperrt")
+Button/styles/focus = SubResource("Leer")
+Button/colors/font_color = Color(0.953, 0.902, 0.769, 1)
+Button/colors/font_hover_color = Color(1, 0.95, 0.78, 1)
+Button/colors/font_pressed_color = Color(1, 1, 1, 1)
+Button/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+Button/colors/font_focus_color = Color(0.953, 0.902, 0.769, 1)
+Button/colors/font_disabled_color = Color(0.86, 0.84, 0.8, 1)
+Button/colors/icon_normal_color = Color(0.953, 0.902, 0.769, 1)
+OptionButton/styles/normal = SubResource("Knopf")
+OptionButton/styles/hover = SubResource("KnopfUeber")
+OptionButton/styles/pressed = SubResource("KnopfAn")
+OptionButton/styles/hover_pressed = SubResource("KnopfAn")
+OptionButton/styles/disabled = SubResource("KnopfGesperrt")
+OptionButton/styles/focus = SubResource("Leer")
+OptionButton/colors/font_color = Color(0.953, 0.902, 0.769, 1)
+OptionButton/colors/font_hover_color = Color(1, 0.95, 0.78, 1)
+OptionButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_focus_color = Color(0.953, 0.902, 0.769, 1)
+OptionButton/colors/font_disabled_color = Color(0.86, 0.84, 0.8, 1)
+OptionButton/colors/icon_normal_color = Color(0.953, 0.902, 0.769, 1)
+MenuButton/styles/normal = SubResource("Knopf")
+MenuButton/styles/hover = SubResource("KnopfUeber")
+MenuButton/styles/pressed = SubResource("KnopfAn")
+MenuButton/styles/hover_pressed = SubResource("KnopfAn")
+MenuButton/styles/disabled = SubResource("KnopfGesperrt")
+MenuButton/styles/focus = SubResource("Leer")
+MenuButton/colors/font_color = Color(0.953, 0.902, 0.769, 1)
+MenuButton/colors/font_hover_color = Color(1, 0.95, 0.78, 1)
+MenuButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+MenuButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+MenuButton/colors/font_focus_color = Color(0.953, 0.902, 0.769, 1)
+MenuButton/colors/font_disabled_color = Color(0.86, 0.84, 0.8, 1)
+MenuButton/colors/icon_normal_color = Color(0.953, 0.902, 0.769, 1)
+; Knopf ohne Fläche (Flat) liegt direkt auf dem Pergament: Tinte
+FensterFlach/base_type = &"Button"
+FensterFlach/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+FensterFlach/colors/font_hover_color = Color(0.353, 0.114, 0.078, 1)
+FensterFlach/colors/font_pressed_color = Color(0.353, 0.114, 0.078, 1)
+FensterFlach/colors/font_hover_pressed_color = Color(0.353, 0.114, 0.078, 1)
+FensterFlach/colors/font_focus_color = Color(0.141, 0.094, 0.051, 1)
+FensterFlach/colors/font_disabled_color = Color(0.333, 0.251, 0.122, 1)
+; Häkchen und Schalter erben sonst die Holzfläche der Knöpfe (CheckBox ist in Godot ein Button): ohne Fläche, Schrift in Tinte
+CheckBox/styles/normal = SubResource("Leer")
+CheckBox/styles/hover = SubResource("Leer")
+CheckBox/styles/pressed = SubResource("Leer")
+CheckBox/styles/hover_pressed = SubResource("Leer")
+CheckBox/styles/disabled = SubResource("Leer")
+CheckBox/styles/focus = SubResource("Leer")
+CheckBox/styles/normal_mirrored = SubResource("Leer")
+CheckBox/styles/hover_mirrored = SubResource("Leer")
+CheckBox/styles/pressed_mirrored = SubResource("Leer")
+CheckBox/styles/hover_pressed_mirrored = SubResource("Leer")
+CheckBox/styles/disabled_mirrored = SubResource("Leer")
+CheckBox/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+CheckBox/colors/font_hover_color = Color(0.353, 0.114, 0.078, 1)
+CheckBox/colors/font_pressed_color = Color(0.141, 0.094, 0.051, 1)
+CheckBox/colors/font_hover_pressed_color = Color(0.353, 0.114, 0.078, 1)
+CheckBox/colors/font_focus_color = Color(0.141, 0.094, 0.051, 1)
+CheckBox/colors/font_disabled_color = Color(0.333, 0.251, 0.122, 1)
+CheckButton/styles/normal = SubResource("Leer")
+CheckButton/styles/hover = SubResource("Leer")
+CheckButton/styles/pressed = SubResource("Leer")
+CheckButton/styles/hover_pressed = SubResource("Leer")
+CheckButton/styles/disabled = SubResource("Leer")
+CheckButton/styles/focus = SubResource("Leer")
+CheckButton/styles/normal_mirrored = SubResource("Leer")
+CheckButton/styles/hover_mirrored = SubResource("Leer")
+CheckButton/styles/pressed_mirrored = SubResource("Leer")
+CheckButton/styles/hover_pressed_mirrored = SubResource("Leer")
+CheckButton/styles/disabled_mirrored = SubResource("Leer")
+CheckButton/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+CheckButton/colors/font_hover_color = Color(0.353, 0.114, 0.078, 1)
+CheckButton/colors/font_pressed_color = Color(0.141, 0.094, 0.051, 1)
+CheckButton/colors/font_hover_pressed_color = Color(0.353, 0.114, 0.078, 1)
+CheckButton/colors/font_focus_color = Color(0.141, 0.094, 0.051, 1)
+CheckButton/colors/font_disabled_color = Color(0.333, 0.251, 0.122, 1)
+LineEdit/styles/normal = SubResource("Feld")
+LineEdit/styles/focus = SubResource("FeldFokus")
+LineEdit/styles/read_only = SubResource("Feld")
+LineEdit/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+LineEdit/colors/font_placeholder_color = Color(0.333, 0.251, 0.122, 1)
+LineEdit/colors/caret_color = Color(0.141, 0.094, 0.051, 1)
+LineEdit/colors/selection_color = Color(0.47, 0.3, 0.1, 0.35)
+LineEdit/colors/font_uneditable_color = Color(0.333, 0.251, 0.122, 1)
+TextEdit/styles/normal = SubResource("Feld")
+TextEdit/styles/focus = SubResource("FeldFokus")
+TextEdit/styles/read_only = SubResource("Feld")
+TextEdit/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+TextEdit/colors/font_placeholder_color = Color(0.333, 0.251, 0.122, 1)
+TextEdit/colors/caret_color = Color(0.141, 0.094, 0.051, 1)
+TextEdit/colors/selection_color = Color(0.47, 0.3, 0.1, 0.35)
+TextEdit/colors/font_uneditable_color = Color(0.333, 0.251, 0.122, 1)
+TabContainer/styles/tab_selected = SubResource("ReiterAn")
+TabContainer/styles/tab_unselected = SubResource("ReiterAus")
+TabContainer/styles/tab_hovered = SubResource("ReiterUeber")
+TabContainer/styles/tab_disabled = SubResource("ReiterAus")
+TabContainer/styles/tab_focus = SubResource("Leer")
+TabContainer/styles/panel = SubResource("ReiterLeib")
+TabContainer/colors/font_selected_color = Color(0.953, 0.902, 0.769, 1)
+TabContainer/colors/font_unselected_color = Color(0.141, 0.094, 0.051, 1)
+TabContainer/colors/font_hovered_color = Color(0.353, 0.114, 0.078, 1)
+TabContainer/colors/font_disabled_color = Color(0.333, 0.251, 0.122, 1)
+TabBar/styles/tab_selected = SubResource("ReiterAn")
+TabBar/styles/tab_unselected = SubResource("ReiterAus")
+TabBar/styles/tab_hovered = SubResource("ReiterUeber")
+TabBar/styles/tab_disabled = SubResource("ReiterAus")
+TabBar/styles/tab_focus = SubResource("Leer")
+TabBar/colors/font_selected_color = Color(0.953, 0.902, 0.769, 1)
+TabBar/colors/font_unselected_color = Color(0.141, 0.094, 0.051, 1)
+TabBar/colors/font_hovered_color = Color(0.353, 0.114, 0.078, 1)
+TabBar/colors/font_disabled_color = Color(0.333, 0.251, 0.122, 1)
+HSeparator/styles/separator = SubResource("Linie")
+VSeparator/styles/separator = SubResource("LinieHoch")
+ProgressBar/styles/background = SubResource("BalkenGrund")
+ProgressBar/styles/fill = SubResource("BalkenFuellung")
+ProgressBar/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+VScrollBar/styles/scroll = SubResource("Rollbahn")
+VScrollBar/styles/grabber = SubResource("Rollgriff")
+VScrollBar/styles/grabber_highlight = SubResource("RollgriffUeber")
+VScrollBar/styles/grabber_pressed = SubResource("RollgriffUeber")
+VScrollBar/styles/scroll_focus = SubResource("Leer")
+HScrollBar/styles/scroll = SubResource("Rollbahn")
+HScrollBar/styles/grabber = SubResource("Rollgriff")
+HScrollBar/styles/grabber_highlight = SubResource("RollgriffUeber")
+HScrollBar/styles/grabber_pressed = SubResource("RollgriffUeber")
+HScrollBar/styles/scroll_focus = SubResource("Leer")
+ItemList/styles/panel = SubResource("FeldFlach")
+ItemList/styles/selected = SubResource("Auswahl")
+ItemList/styles/selected_focus = SubResource("Auswahl")
+ItemList/styles/hovered = SubResource("AuswahlUeber")
+ItemList/styles/focus = SubResource("Leer")
+ItemList/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+ItemList/colors/font_selected_color = Color(0.141, 0.094, 0.051, 1)
+ItemList/colors/font_hovered_color = Color(0.353, 0.114, 0.078, 1)
+ItemList/colors/guide_color = Color(0.235, 0.157, 0.04, 0.28)
+Tree/styles/panel = SubResource("FeldFlach")
+Tree/styles/selected = SubResource("Auswahl")
+Tree/styles/selected_focus = SubResource("Auswahl")
+Tree/styles/hovered = SubResource("AuswahlUeber")
+Tree/styles/focus = SubResource("Leer")
+Tree/colors/font_color = Color(0.141, 0.094, 0.051, 1)
+Tree/colors/font_selected_color = Color(0.141, 0.094, 0.051, 1)
+Tree/colors/font_hovered_color = Color(0.353, 0.114, 0.078, 1)
+Tree/colors/title_button_color = Color(0.141, 0.094, 0.051, 1)
+Tree/colors/guide_color = Color(0.235, 0.157, 0.04, 0.28)
+Tree/colors/relationship_line_color = Color(0.235, 0.157, 0.04, 0.28)
+PopupMenu/styles/panel = SubResource("Menue")
+PopupMenu/styles/hover = SubResource("MenueUeber")
+PopupMenu/colors/font_color = Color(0.953, 0.902, 0.769, 1)
+PopupMenu/colors/font_hover_color = Color(1, 0.878, 0.541, 1)
+PopupMenu/colors/font_disabled_color = Color(0.62, 0.58, 0.52, 1)
+PopupMenu/colors/font_separator_color = Color(0.886, 0.831, 0.69, 1)
+PanelContainer/styles/panel = SubResource("FeldFlach")
+Panel/styles/panel = SubResource("FeldFlach")

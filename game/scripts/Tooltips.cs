@@ -339,6 +339,19 @@ public partial class Tooltips : Node
         return Testbegriffe.TryGetValue(kennung, out var test) && OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--tiptest")) ? test : null;
     }
 
+    /// <summary>Die Holztafel des Hinweises: Holz der Lade, dunkler Schleier, schlichte Kante (festgeheftet in Gold) – alles aus dem Thema.</summary>
+    private static void TafelZeichnen(Tipp t)
+    {
+        var flaeche = new Rect2(Vector2.Zero, t.Tafel.Size);
+        if (Thema.HasIcon("grund", "TooltipTafel"))
+            LadeZeichner.Grund(t.Tafel, Thema.GetIcon("grund", "TooltipTafel"), flaeche, Thema.GetConstant("grund_kachel", "TooltipTafel"), Vector2.Zero);
+        t.Tafel.DrawRect(flaeche, Thema.GetColor("schleier", "TooltipTafel"));
+        var breite = Thema.GetConstant("kante_breite", "TooltipTafel");
+        if (breite <= 0) return;
+        Color Kante(string seite) => Thema.GetColor(t.Fest ? "kante_fest" : seite, "TooltipTafel");
+        LadeZeichner.Kante(t.Tafel, flaeche, breite, Kante("kante_oben"), Kante("kante_rechts"), Kante("kante_unten"), Kante("kante_links"), LadeFlaeche.Seiten.Alle);
+    }
+
     private Tipp Neu(string? titel, string roh, Tipp? eltern, string? kennung, Control? quelle, Vector2 maus)
     {
         var t = new Tipp { Eltern = eltern, Kennung = kennung, Quelle = quelle, Anker = maus };
@@ -346,6 +359,9 @@ public partial class Tooltips : Node
 
         t.Tafel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, Modulate = new Color(1, 1, 1, 0) };
         t.Tafel.AddThemeStyleboxOverride("panel", Thema.GetStylebox("lose", "TooltipTafel"));
+        t.Tafel.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
+        t.Tafel.Draw += () => TafelZeichnen(t);
+        t.Tafel.Resized += t.Tafel.QueueRedraw;
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 8);
         t.Tafel.AddChild(zeile);
@@ -420,6 +436,7 @@ public partial class Tooltips : Node
         if (t.Fest) return;
         t.Fest = true;
         t.Tafel.AddThemeStyleboxOverride("panel", Thema.GetStylebox("fest", "TooltipTafel"));
+        t.Tafel.QueueRedraw();
         t.Kreis.QueueFree();
         t.Rechts.CustomMinimumSize = Vector2.Zero;
         var zu = Kreuz.Knopf(Kreuz.Art.Kreuz, "Schließen (Esc)");

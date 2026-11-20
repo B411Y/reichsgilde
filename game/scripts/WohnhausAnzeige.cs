@@ -178,7 +178,7 @@ public partial class WohnhausAnzeige : PanelContainer
         _hinterKnopf = hinterKnopf;
 
         Rollbereich.Einhuellen(this);
-        Fensterrahmen.Anmelden(this, "Wohnhaus", () => { Hide(); Geschlossen?.Invoke(); }, festhaltbar: true);
+        Fensterrahmen.Anmelden(this, "Wohnhaus", () => { Hide(); Geschlossen?.Invoke(); }, festhaltbar: true, titel: "Wohnhaus");
         Hide();
     }
 
