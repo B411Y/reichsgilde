@@ -1,7 +1,8 @@
-using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using Reichsgilde.Core.Kartenwerkstatt;
+using SkiaSharp;
+using Svg.Skia;
 using Reichsgilde.Kartenbau;
 
 namespace Reichsgilde.KartenbauMcp;
@@ -134,7 +135,7 @@ public sealed class Werkzeuge
         return sb.ToString();
     }
 
-    /// <summary>Das SVG der Karte (im Arbeitsordner gezeichnet) und, wenn ein Umwandler gefunden wird, ein PNG.</summary>
+    /// <summary>Das SVG der Karte (im Arbeitsordner gezeichnet) und das PNG dazu.</summary>
     public (string Text, string? Svg, byte[]? Png) KarteBild(string karte, bool belegung = false)
     {
         var e = Oeffnen(karte);
@@ -143,34 +144,30 @@ public sealed class Werkzeuge
         var svg = File.ReadAllText(svgPfad);
         var png = Umwandeln(svgPfad);
         var text = $"Bild von {e.Kennung}{(belegung ? " (Belegung)" : "")}: {svgPfad}, {svg.Length / 1024} KB"
-                   + (png is null ? "; kein PNG-Umwandler (rsvg-convert, inkscape oder magick) gefunden – nur das SVG" : "; PNG anbei");
+                   + (png is null ? "; PNG ließ sich nicht zeichnen – nur das SVG" : "; PNG anbei");
         return (text, svg, png);
     }
 
-    /// <summary>SVG zu PNG über ein vorhandenes Programm; null, wenn keines da ist oder es scheitert.</summary>
+    /// <summary>SVG zu PNG mit Svg.Skia (Breite höchstens 1600 Pixel); null, wenn das Zeichnen scheitert.</summary>
     private static byte[]? Umwandeln(string svgPfad)
     {
-        var png = Path.ChangeExtension(svgPfad, ".png");
-        foreach (var (programm, argumente) in new[]
-                 {
-                     ("rsvg-convert", new[] { "-w", "1600", "-o", png, svgPfad }),
-                     ("inkscape", new[] { svgPfad, "--export-type=png", "--export-width=1600", "--export-filename=" + png }),
-                     ("magick", new[] { "-density", "96", svgPfad, "-resize", "1600x", png }),
-                 })
+        try
         {
-            try
-            {
-                var start = new ProcessStartInfo(programm) { RedirectStandardOutput = true, RedirectStandardError = true };
-                foreach (var a in argumente) start.ArgumentList.Add(a);
-                using var p = Process.Start(start)!;
-                p.StandardOutput.ReadToEnd();
-                p.StandardError.ReadToEnd();
-                if (!p.WaitForExit(60_000)) { p.Kill(); continue; }
-                if (p.ExitCode == 0 && File.Exists(png)) return File.ReadAllBytes(png);
-            }
-            catch (System.ComponentModel.Win32Exception) { /* Programm nicht da */ }
+            using var svg = new SKSvg();
+            if (svg.Load(svgPfad) is null || svg.Picture is null) return null;
+            var r = svg.Picture.CullRect;
+            var f = Math.Min(1f, 1600f / Math.Max(1f, r.Width));
+            using var bild = new SKBitmap((int)Math.Ceiling(r.Width * f), (int)Math.Ceiling(r.Height * f));
+            using var leinwand = new SKCanvas(bild);
+            leinwand.Clear(SKColors.White);
+            leinwand.Scale(f);
+            leinwand.DrawPicture(svg.Picture);
+            using var daten = SKImage.FromBitmap(bild).Encode(SKEncodedImageFormat.Png, 90);
+            var png = daten.ToArray();
+            File.WriteAllBytes(Path.ChangeExtension(svgPfad, ".png"), png);
+            return png;
         }
-        return null;
+        catch (Exception ex) when (ex is DllNotFoundException or InvalidOperationException or IOException) { return null; }
     }
 
     /// <summary>Ein TextWriter, der in einen vorhandenen StringBuilder schreibt.</summary>

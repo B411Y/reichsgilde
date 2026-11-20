@@ -114,9 +114,9 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Umfang | `tools/kartenbau-mcp/`: kleiner MCP-Server mit 5 Werkzeugen (auflisten, lesen, bauen, prüfen, Bild) über die Befehle von `tools/Kartenbau`; kein Eingriff ins Spiel oder den Editor (Nutzer, 19.11.2026 „MCP klein ja“) | 20.11.2026 |
-| Sprache und Bibliothek | C#/.NET 8 wie der Bestand; `ModelContextProtocol` 1.4.2 (offizielles SDK, Apache-2.0); nur stdio, kein Netz-Port | 20.11.2026 |
+| Sprache und Bibliothek | C#/.NET 8 wie der Bestand; `ModelContextProtocol` 1.4.2 (offizielles SDK, Apache-2.0), Svg.Skia (MIT); nur stdio, kein Netz-Port | 20.11.2026 |
 | Schreibrechte | Nur `game/karten/` (nur `karte_bauen` mit `schreiben`) und der Arbeitsordner; Vorschaubilder nie nach `docs/karten`; nur Kennungen, keine Pfade | 20.11.2026 |
 | Kleine Änderung am Kartenbau | `Befehle.Laden` in `tools/Kartenbau/Program.cs` ist jetzt `public` (sonst nichts) | 20.11.2026 |
-| Bild | PNG nur, wenn `rsvg-convert`, `inkscape` oder `magick` installiert ist (auf dem NAS keiner); sonst SVG als Text und Pfad | 20.11.2026 |
+| Bild | `karte_bild` liefert immer ein PNG (Svg.Skia 5.2.3 und SkiaSharp, MIT; Claude Code zeigt nur PNG als Bild); nur bei Fehlschlag SVG als Text und Pfad. Teamleiter, 20.11.2026 | 20.11.2026 |
 | Einrichtung | `.mcp.json` nicht im Repository; Vorschlag in `docs/werkzeuge/kartenbau-mcp.md`. Tests nicht in der CI und nicht in `Reichsgilde.sln` (eigenes Projekt mit NuGet-Paket) | 20.11.2026 |
 

@@ -2,7 +2,7 @@
 
 Ein kleiner [MCP](https://modelcontextprotocol.io)-Server, mit dem eine KI (z. B. Claude Code) Karten über Werkzeuge auflisten, lesen, bauen, prüfen und als Bild ansehen kann. Er ruft dieselben Befehle auf wie `tools/Kartenbau` (Kartenskript) und greift **nicht** ins laufende Spiel oder den Godot-Editor ein.
 
-- Code: `tools/kartenbau-mcp/` (C#/.NET 8, MIT). Bibliotheken: `ModelContextProtocol` 1.4.2 (offizielles C#-SDK, Apache-2.0) und `Microsoft.Extensions.Hosting` (MIT).
+- Code: `tools/kartenbau-mcp/` (C#/.NET 8, MIT). Bibliotheken: `ModelContextProtocol` 1.4.2 (offizielles C#-SDK, Apache-2.0), `Microsoft.Extensions.Hosting` (MIT) und `Svg.Skia` 5.2.3 mit SkiaSharp (beide MIT; SVG zu PNG, native Linux-Bibliothek als NuGet-Paket).
 - Nur **stdio**, kein Netz-Port. Der Server liest die Anfragen von stdin und antwortet auf stdout; Meldungen gehen nach stderr.
 
 ## Starten
@@ -39,7 +39,7 @@ Oder auf der Kommandozeile: `claude mcp add kartenbau -- dotnet tools/kartenbau-
 | `karte_lesen(karte)` | Größe, Zonen, Wege, Gebäude und die Übersicht der Prüfung | `Befehle.Bericht` (wie `pruefen`) |
 | `karte_bauen(skript, schreiben=false, ueberschreiben=false)` | Stadtskript ausführen; ohne `schreiben` nur ein Entwurf im Arbeitsordner (auch mit Fehlern), mit `schreiben` nach `game/karten/<kennung>.json` (nur ohne Fehler, über eine vorhandene Karte nur mit `ueberschreiben`) | `bauen` |
 | `karte_pruefen(karte)` | Befunde als Liste (Fehler und Hinweise, mit Regel), dazu Katalog gegen die Modelle | `pruefen` |
-| `karte_bild(karte, belegung=false)` | Vorschaubild; PNG, wenn `rsvg-convert`, `inkscape` oder `magick` installiert ist, sonst das SVG als Text (bis 100 KB) und der Dateipfad | `vorschau` |
+| `karte_bild(karte, belegung=false)` | Vorschaubild; immer ein PNG (höchstens 1600 Pixel breit, Beschriftungen fehlen ohne Systemschriften); nur wenn das Zeichnen scheitert, das SVG als Text (bis 100 KB) und der Dateipfad | `vorschau` |
 
 `karte` ist die Kennung (`greybox`, `koeln` …) oder der Name eines Entwurfs im Arbeitsordner.
 

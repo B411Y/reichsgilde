@@ -26,6 +26,11 @@ Pruefe("karte_bild: SVG im Arbeitsordner, nicht in docs/karten", () =>
     return svg is not null && svg.StartsWith("<svg") && File.Exists(Path.Combine(arbeit, "greybox.svg"))
            && File.GetLastWriteTimeUtc(Path.Combine(ordner.Vorschauen, "greybox.svg")) == vorherSvg && text.Contains("Bild von greybox");
 });
+Pruefe("karte_bild: Bild ist PNG", () =>
+{
+    var (_, _, png) = w.KarteBild("greybox");
+    return png is { Length: > 1000 } && png[0] == 0x89 && png[1] == 'P' && png[2] == 'N' && png[3] == 'G';
+});
 Pruefe("karte_bauen ohne schreiben: nur Entwurf im Arbeitsordner", () =>
 {
     var vorher = File.GetLastWriteTimeUtc(ordner.Karte("probestadt"));

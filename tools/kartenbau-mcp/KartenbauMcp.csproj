@@ -2,7 +2,7 @@
   <!--
     Kleiner MCP-Server für den Kartenbau (Bereich Infra): lässt eine KI Karten auflisten, lesen, bauen, prüfen und als Bild ansehen.
     Läuft nur lokal über stdio (kein Netz-Port) und ruft dieselben Befehle wie tools/Kartenbau auf. Einrichtung: docs/werkzeuge/kartenbau-mcp.md.
-    Lizenz des Codes: MIT. Bibliotheken: ModelContextProtocol (offizielles C#-SDK, Apache-2.0), Microsoft.Extensions.Hosting (MIT).
+    Lizenz des Codes: MIT. Bibliotheken: ModelContextProtocol (offizielles C#-SDK, Apache-2.0), Microsoft.Extensions.Hosting (MIT), Svg.Skia (MIT, SVG zu PNG) mit SkiaSharp (MIT).
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -15,6 +15,8 @@
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" Version="1.4.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.148.0" />
     <ProjectReference Include="..\Kartenbau\Kartenbau.csproj" />
   </ItemGroup>
   <ItemGroup>

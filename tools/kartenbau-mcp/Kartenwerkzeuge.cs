@@ -38,7 +38,7 @@ public static class Kartenwerkzeuge
     [McpServerTool(Name = "karte_pruefen"), Description("Prüft eine Karte (Regeln, Startorte, Kapazität, Katalog gegen die Modelle) und gibt die Befunde als Liste zurück.")]
     public static string KartePruefen([Description("Kennung der Karte")] string karte) => Mit(w => w.KartePruefen(karte), m => m);
 
-    [McpServerTool(Name = "karte_bild"), Description("Zeichnet das Vorschaubild einer Karte (Arbeitsordner, nicht docs/karten). Gibt ein PNG zurück, wenn ein Umwandler (rsvg-convert, inkscape, magick) installiert ist, sonst das SVG als Text (bei kleinen Karten) und den Dateipfad.")]
+    [McpServerTool(Name = "karte_bild"), Description("Zeichnet das Vorschaubild einer Karte (Arbeitsordner, nicht docs/karten). Gibt ein PNG zurück (Svg.Skia); nur wenn das Zeichnen scheitert, das SVG als Text und den Dateipfad.")]
     public static IList<ContentBlock> KarteBild([Description("Kennung der Karte")] string karte,
         [Description("true: die Belegung (Probeplan der Prüfung) statt der Karte")] bool belegung = false) =>
         Mit<IList<ContentBlock>>(w =>
