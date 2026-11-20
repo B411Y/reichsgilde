@@ -193,9 +193,10 @@ public partial class Hauptszene : Node
         _stadt = GetNode<Stadtansicht>("%Stadt");
         AddChild(new Mauszeiger { Stadt = _stadt, StandAbfrage = () => _spieler?.Stand }); // Lederhandschuh nach Stand (Mauszeiger.cs)
         // Oben, unten links und die Leiste zuerst: Schon beim Aufbau der Partie kommen Meldungen.
-        KopfBauen();
+        ZeitleisteBauen();
         MeldungenBauen();
-        LeisteBauen();
+        LadeBauen();
+        LadeFensterBauen();
         _auswahl = GetNode<PanelContainer>("%Auswahl");
         _auswahlText = GetNode<Label>("%AuswahlText");
         AuswahlWappenEinbauen();
@@ -361,6 +362,11 @@ public partial class Hauptszene : Node
         _ratskammer.GerichtGewuenscht += () => { TafelnSchliessen(); _gerichtssaal.Oeffnen(); }; // „Euer Amt“ am eigenen Knoten des Ratsbaums
         _ratskammer.MarktGewuenscht += MarktOeffnen;
         _charakter.Gemeldet += Protokollieren;
+        _charakter.FamilienbuchGewuenscht += stammbaum => // Reiter „Stammbaum“ und „Chronik“ der Charakterseite
+        {
+            TafelnSchliessen();
+            _familientafel.Oeffnen(stammbaum ? FamilienAnzeige.Reiter.Stammbaum : FamilienAnzeige.Reiter.Chronik);
+        };
         _rathausTafel.RatGewuenscht += reiter => RatOeffnen(reiter);
         _wohnhaus.FamilieGewuenscht += FamilieOeffnen;
         _familientafel.Gemeldet += Protokollieren;
@@ -408,28 +414,6 @@ public partial class Hauptszene : Node
             if (baustelle is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(baustelle);
         };
 
-        _pauseKnopf.SetMeta("klang", "still");
-        _pauseKnopf.Pressed += PauseUmschalten;
-        foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
-        {
-            var knopf = new Button
-            {
-                Text = $"{tempo}×",
-                ToggleMode = true,
-                FocusMode = Control.FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(46, 0),
-            };
-            knopf.SetMeta("klang", "still");
-            knopf.Pressed += () => TempoSetzen(tempo);
-            if (!Taktgeber.Tempostufen.Contains(tempo)) // TESTTEMPO: Teststufen orange und mit Hinweis
-            {
-                knopf.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.25f));
-                knopf.TooltipText = "Nur zum Testen – wird vor der Veröffentlichung entfernt";
-            }
-            else knopf.TooltipText = $"Spielgeschwindigkeit {tempo}-fach (Zifferntasten wählen die Stufen, Leertaste pausiert)";
-            _tempoleiste.AddChild(knopf);
-            _tempoKnoepfe.Add(knopf);
-        }
         if (optionen.TryGetValue("tempo", out var t) && double.TryParse(t, System.Globalization.CultureInfo.InvariantCulture, out var tempoWert))
             TempoSetzen(tempoWert);
 
@@ -520,6 +504,7 @@ public partial class Hauptszene : Node
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
         BuecherVerbinden(); // 3D-Bücher: Kamera-Schwenk, Aufklappen, Tafel darüber (Hauptszene.Buecher.cs)
+        GegenstaendeVerbinden(); // Kartentisch und Geldtruhe im Kontor (Hauptszene.Gegenstaende.cs)
         _uebersicht.Gemeldet += Protokollieren;
         _uebersicht.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _uebersicht.HineinGewuenscht += BetriebBetreten;
@@ -626,6 +611,7 @@ public partial class Hauptszene : Node
         }
         if (optionen.TryGetValue("familie", out var familie) && familie == "1")
             _familientafel.Oeffnen();
+        if (optionen.TryGetValue("fach", out var fach) && !optionen.ContainsKey("innen")) FachStartoption(fach); // Lade-Fenster eines Fachs (Hauptszene.Faecher.cs)
         if (optionen.TryGetValue("stammbaum", out var stammbaum)) _stammbaumWartet = stammbaum; // erst nach dem Vorspulen (--spulen), Hauptszene.Charakter.cs
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
@@ -748,7 +734,10 @@ public partial class Hauptszene : Node
             if (optionen.TryGetValue("arbeiter", out var arbeiter))
                 _stadt.ArbeiterWaehlen(arbeiter.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse));
             if (optionen.TryGetValue("tafel", out var tafelName)) InnenTafelOeffnen(tafelName);
+            if (optionen.TryGetValue("fach", out var fachInnen)) FachStartoption(fachInnen);
             if (optionen.TryGetValue("buchblick", out var buchBlick) && Enum.TryParse<BuchArt>(buchBlick, true, out var blickArt)) _stadt.BuchBlickPruefen(blickArt); // Prüfhilfe: Raumkamera vor das Pult
+            if (optionen.TryGetValue("gegenstandblick", out var gBlick) && Enum.TryParse<GegenstandArt>(gBlick, true, out var gBlickArt)) _stadt.GegenstandBlickPruefen(gBlickArt); // Prüfhilfe: Raumkamera vor Kartentisch oder Geldtruhe
+            if (optionen.TryGetValue("gegenstand", out var gName) && Enum.TryParse<GegenstandArt>(gName, true, out var gArt)) GegenstandAngeklickt(gArt); // Kartentisch oder Geldtruhe im gezeigten Raum öffnen
             if (optionen.TryGetValue("buch", out var buchName) && Enum.TryParse<BuchArt>(buchName, true, out var buchArt)) BuchAngeklickt(buchArt); // 3D-Buch im gezeigten Raum öffnen
         }
 
@@ -763,6 +752,7 @@ public partial class Hauptszene : Node
         // Festgehaltene Fenster (Fensterrahmen) bleiben offen – so lassen sich mehrere Tafeln nebeneinander benutzen
         foreach (var tafel in new Control[] { _ratskammer, _familientafel, _charakter, _gerichtssaal, _hinterzimmer, _markt, _verkauf })
             Fensterrahmen.SchliessenFallsLose(tafel, auchFeste);
+        if (_ladeFenster.Visible) _ladeFenster.Schliessen();
         _wegTafel.Schliessen();
         foreach (var tafel in _innenTafeln) tafel.Hide();
         _wohnhausBaum.Hide();
@@ -1099,6 +1089,7 @@ public partial class Hauptszene : Node
     {
         var (tafel, spalte) = Hauptmenue.Tafel(420);
         _spielmenue = tafel;
+        FensterStil.Bekleiden(tafel);
         var mitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
         mitte.AddChild(tafel);
@@ -1142,6 +1133,7 @@ public partial class Hauptszene : Node
             }
         };
         _einstellungen = new EinstellungenAnzeige(EinstellungenSchliessen);
+        FensterStil.Bekleiden(_einstellungen.Tafel); // im Spiel auf Pergament; im Hauptmenü bleibt dieselbe Tafel dunkel wie das Menü
         mitte.AddChild(_einstellungen.Tafel);
         _einstellungen.Tafel.Hide();
 
@@ -1334,7 +1326,7 @@ public partial class Hauptszene : Node
         ZeitHalteAbgleichen(); // Einzelspiel: Sitzung und Jahresbericht halten die Zeit an (Hauptszene.Ratssitzung.cs)
 
         Anzeigen();
-        LeisteAnzeigen(delta);
+        LadeAnzeigen(delta);
         MeldungenAltern(delta);
         EntscheidungenAbgleichen();
         _berichtTafel.Aktualisieren(delta);
@@ -1348,9 +1340,6 @@ public partial class Hauptszene : Node
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
-        _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
-        _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
-        _einblendung.AbstandUnten = _brief.AbstandUnten;
         // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
         _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
                             || _stimmrunde.Visible || _brief.Ruht?.Invoke() == true || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
@@ -1360,6 +1349,7 @@ public partial class Hauptszene : Node
         BauAutoKlickPruefen();
         if (_auswahlKennung is not null) AuswahlAnzeigen();
         BuecherAktualisieren(delta); // 3D-Bücher: Sperre, Tafel über dem Buch, Umblättern (Hauptszene.Buecher.cs)
+        GegenstaendeAktualisieren(); // Kartentisch und Geldtruhe: Sperre, Tafel über der Truhe (Hauptszene.Gegenstaende.cs)
     }
 
     /// <summary>Tastatur: Leertaste = Pause, 1–4 = Tempostufen, 5–6 = Testtempo 16×/32×. (Kamera: siehe Stadtansicht)</summary>
@@ -1369,7 +1359,7 @@ public partial class Hauptszene : Node
         if (eingabe is InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape })
         {
             // Esc geht einen Schritt zurück: feste Tooltips → Fenster (das oberste) → Innenansicht verlassen → Auswahl schließen → Spielmenü auf/zu.
-            if (_stadt.BuchGesperrt) { /* während des Kamera-Schwenks zum Buch und zurück geschieht nichts (Hauptszene.Buecher.cs) */ }
+            if (_stadt.BuchGesperrt || _stadt.GegenstandGesperrt) { /* während des Kamera-Schwenks zum Buch und zurück geschieht nichts (Hauptszene.Buecher.cs) */ }
             else if (Tooltips.ObersteFesteSchliessen()) { /* ein festgeheftetes Tooltip-Fenster ist zu */ }
             else if (_jahresbericht.Visible) { /* der Bericht wird mit „Weiter" geschlossen */ }
             else if (_hilfe.Visible)
@@ -1388,6 +1378,8 @@ public partial class Hauptszene : Node
                 EinstellungenSchliessen();
             else if (_spielmenue.Visible)
                 SpielmenueSchliessen();
+            else if (_stadt.GegenstandSchauAktiv)
+                GegenstandSchliessen(); // offener Kartentisch, offene Truhe: schließen, Kamera zurück (Hauptszene.Gegenstaende.cs)
             else if (_stadt.BuchSchauAktiv)
                 BuchSchliessen(); // offenes Buch: zuklappen, Kamera zurück – das Haus verlässt man erst danach
             else if (_stadt.InnenKennung is not null)
@@ -1491,7 +1483,8 @@ public partial class Hauptszene : Node
     /// <summary>Überträgt den Zustand der Simulation auf Kopfzeile, Zeitstrahl und die offenen Tafeln rechts.</summary>
     private void Anzeigen()
     {
-        KopfAnzeigen();
+        ZeitleisteAnzeigen();
+        LadeWerteAnzeigen();
         _wohnhaus.Aktualisieren();
         _uebersicht.Aktualisieren();
     }
@@ -1593,22 +1586,14 @@ public partial class Hauptszene : Node
     /// <summary>Im neuen Rathaus wurde das Anschlagbrett angeklickt: die Übersicht steht rechts, bis der Raum wechselt.</summary>
     private bool _rathausAushang;
 
-    /// <summary>Leiste unten rechts (dort ist in jedem Raum Platz): ein Knopf je Raum, der gezeigte ist gedrückt, dazu „Zur Stadt".</summary>
+    /// <summary>Das Schild der Räume links über der Lade: ein Knopf je Raum, der gezeigte ist gedrückt („Zur Stadt" ist ein Fach der Lade).</summary>
     private void RaumleisteBauen()
     {
-        _raumleiste = new PanelContainer { Visible = false };
-        _raumleiste.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.16f, 0.15f, 0.13f, 0.97f),
-            CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4,
-            ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 8, ContentMarginBottom = 8,
-        });
-        _raumknoepfe = new HBoxContainer();
-        _raumknoepfe.AddThemeConstantOverride("separation", 8);
-        _raumleiste.AddChild(_raumknoepfe);
+        _raumleiste = LadeStil.Flaeche(null, "LadeSchild");
+        _raumleiste.Visible = false;
+        LadeStil.Anwenden(_raumleiste);
+        _raumknoepfe = LadeStil.Behaelter<HBoxContainer>(_raumleiste, "LadeReihe");
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_raumleiste);
-        _raumleiste.GrowHorizontal = Control.GrowDirection.Begin;
-        _raumleiste.GrowVertical = Control.GrowDirection.Begin;
     }
 
     private void RaumleisteAufbauen()
@@ -1622,16 +1607,13 @@ public partial class Hauptszene : Node
         if (!_raumleiste.Visible) return;
         foreach (var (kennung, name) in _stadt.InnenRaeume)
         {
-            var knopf = new Button { Text = name, ToggleMode = true, ButtonPressed = kennung == _stadt.RaumKennung, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(90, 0) };
-            knopf.Pressed += () => _stadt.RaumWaehlen(kennung);
-            _raumknoepfe.AddChild(knopf);
+            var knopf = LadeStil.Knopf(_raumknoepfe, name, "", () => _stadt.RaumWaehlen(kennung));
+            knopf.ToggleMode = true;
+            knopf.ButtonPressed = kennung == _stadt.RaumKennung;
         }
-        var zurueck = new Button { Text = "Zur Stadt (Esc)", FocusMode = Control.FocusModeEnum.None };
-        zurueck.Pressed += _stadt.InnenansichtVerlassenMitBlende;
-        _raumknoepfe.AddChild(zurueck);
-        // Breite neu messen, dann wieder in die Ecke setzen
+        // Breite neu messen, dann wieder links über die Lade setzen
         _raumleiste.ResetSize();
-        _raumleiste.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight, Control.LayoutPresetMode.Minsize, 16);
+        RaumleisteEinpassen();
     }
 
     private Betrieb? AusgewaehlterBetrieb() =>
@@ -1739,7 +1721,7 @@ public partial class Hauptszene : Node
                 Rollbereich.RechtsAnheften(_auswahl);
                 // Ohne Klick in die Welt (Taste, Leiste, Kopfzeile) steht sie wie früher rechts am Rand
                 if (_auswahlKlickBild != Engine.GetProcessFrames())
-                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
+                    _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16 - Fenster.Randabstand, Rollbereich.KopfHoehe));
             }
         }
     }

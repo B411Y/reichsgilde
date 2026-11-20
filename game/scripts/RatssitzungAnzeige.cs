@@ -118,6 +118,7 @@ public partial class RatssitzungAnzeige : Control
         gesamt.AddChild(oben);
         oben.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
         _buch = new PanelContainer { ThemeTypeVariation = "RatsbuchTafel", Visible = false, SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Stop };
+        _buch.SetMeta(FensterStil.Stoff, FensterStil.Pergament); // Fläche in Pergamentfarbe (rat_thema.tres): Schrift in Tinte
         oben.AddChild(_buch);
         var buchSpalte = RatStil.Container<VBoxContainer>(_buch, "RatSpalte");
         var buchTitel = RatStil.Text(buchSpalte, "Ratsbuch", "RatSpruchbandTitel");
@@ -131,6 +132,7 @@ public partial class RatssitzungAnzeige : Control
         var unten = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center, MouseFilter = MouseFilterEnum.Ignore };
         gesamt.AddChild(unten);
         var band = new PanelContainer { ThemeTypeVariation = "RatSpruchband", MouseFilter = MouseFilterEnum.Stop };
+        band.SetMeta(FensterStil.Stoff, FensterStil.Pergament);
         unten.AddChild(band);
         var spalte = RatStil.Container<VBoxContainer>(band, "RatSpalte");
 

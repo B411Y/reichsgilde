@@ -93,7 +93,7 @@ static class SteinebenenTests
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Halbling, 2)].Stein.Enthaelt(0.6f), "Halbling S2: im Putzband Lehmputz (Fachwerk)");
             Pruefe.Wahr(Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Halbling, 3)].Stein.Enthaelt(0.6f), "Halbling S3: Werkstein im Putzband");
         }),
-        ("Steinebenen: Tabelle BAND_REIN im Shader (reine Dach- und Steinbänder im Pixel-Look) genau für Halbling Stufe 2 und 3", () =>
+        ("Steinebenen: Tabelle BAND_REIN im Shader (reine Dach- und Steinbänder im Pixel-Look) für alle Ebenen, nur im Pixel-Look aussen", () =>
         {
             var text = File.ReadAllText(Path.Combine(Spielordner(), "assets", "shader", "building_trim.gdshaderinc"));
             var block = Regex.Match(text, @"const float BAND_REIN\[(\d+)\] = float\[\d+\]\(([^)]*)\);");
@@ -102,7 +102,9 @@ static class SteinebenenTests
             Pruefe.Gleich(Steinebenen.Haeuser.Length, werte.Length);
             var soll = new[] { Steinebenen.Ebene(Volk.Halbling, 2), Steinebenen.Ebene(Volk.Halbling, 3) };
             for (var i = 0; i < werte.Length; i++)
-                Pruefe.Gleich(soll.Contains(i) ? 1f : 0f, werte[i], $"BAND_REIN Ebene {i} ({Steinebenen.Haeuser[i].Name})");
+                Pruefe.Gleich(1f, werte[i], $"BAND_REIN Ebene {i} ({Steinebenen.Haeuser[i].Name})");   // seit 19.11.2026 alle Völker (Halblinge zuerst: soll)
+            // Ohne Pixel-Look bleibt alles bildpunktgleich: der Zweig mit band_lesen steht hinter pixel_look > 0,5 (und nur aussen, nur im Häuser-Array)
+            Pruefe.Wahr(Regex.IsMatch(text, @"if \(!scharf && pixel_look > 0\.5 && haus_baender > 0\.5 && stein_je_ebene && BAND_REIN\["), "band_lesen nur im Pixel-Look");
             Pruefe.Wahr(!soll.Contains(Steinebenen.Ebene(Volk.Elb, 3)), "Gegenprobe: Elb S3 liegt nicht auf einer Halbling-Ebene");
         }),
         ("Steinebenen: Arrays gleich groß, eine Ebene je Eintrag, 2048 breit, Import als Texture2DArray mit Mipmaps", () =>

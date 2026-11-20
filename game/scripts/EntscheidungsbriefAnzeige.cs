@@ -17,12 +17,6 @@ namespace Reichsgilde;
 /// </summary>
 public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
 {
-    private static readonly Color Papier = new(0.90f, 0.84f, 0.68f);
-    private static readonly Color Tinte = new(0.14f, 0.10f, 0.07f);
-    private static readonly Color Blass = new(0.38f, 0.30f, 0.20f);
-    private static readonly Color Rot = new(0.62f, 0.15f, 0.10f);
-    private const int Breite = 440;
-
     /// <summary>Farbe des Themas „Entscheidung“ (Farbband, Fristbalken, Siegel).</summary>
     public static readonly Color Farbe = new(0.48f, 0.23f, 0.37f);
 
@@ -31,6 +25,7 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
     private readonly List<Entscheidung> _stapel = new();
     private int _nr;
     private VBoxContainer _inhalt = null!;
+    private Fensterkleid? _kleid;
     private Label? _fristText;
     private Fristbalken? _balken;
     private Label? _fehlerText;
@@ -51,9 +46,6 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
     /// <summary>Die Mahnung führt weiter: „bank“ (Kredit) oder „betriebe“ (Betrieb verkaufen).</summary>
     public event Action<string>? Wegweiser;
 
-    /// <summary>Zusätzlicher Abstand nach unten (z. B. über der Raumleiste im Innenraum).</summary>
-    public float AbstandUnten { get; set; }
-
     /// <summary>Die Frage, die gerade vorn liegt (null, wenn der Brief zu ist).</summary>
     public Entscheidung? Aktuell => Visible && _nr < _stapel.Count ? _stapel[_nr] : null;
 
@@ -68,36 +60,27 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
 
     public override void _Ready()
     {
-        AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = Papier, BorderColor = new Color(0.09f, 0.07f, 0.05f),
-            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 2, CornerRadiusTopRight = 2, CornerRadiusBottomLeft = 2, CornerRadiusBottomRight = 2,
-            ShadowColor = new Color(0, 0, 0, 0.45f), ShadowSize = 2, ShadowOffset = new Vector2(5, 6),
-        });
-        var rand = new MarginContainer();
-        rand.AddThemeConstantOverride("margin_left", 22);
-        rand.AddThemeConstantOverride("margin_right", 22);
-        rand.AddThemeConstantOverride("margin_top", 16);
-        rand.AddThemeConstantOverride("margin_bottom", 18);
+        // Im neuen Stoff (Teil 4): ein Fenster in der Größe der Lade-Fenster, Rand aus Stein, der Titel der Frage im Kopf aus Holz, der Brief auf Pergament
+        var rand = new MarginContainer { ThemeTypeVariation = "LadeFensterLeib" };
         AddChild(rand);
-        _inhalt = new VBoxContainer { CustomMinimumSize = new Vector2(Breite, 0) };
-        _inhalt.AddThemeConstantOverride("separation", 8);
+        _inhalt = new VBoxContainer { ThemeTypeVariation = "LadeFensterSpalte" };
         rand.AddChild(_inhalt);
         Rollbereich.Einhuellen(this);
-        // Mittig über der Betriebsleiste (der gewöhnliche Brief sitzt rechts darüber)
-        var rahmen = Fensterrahmen.Anmelden(this, "Entscheidung", () => Spaeter?.Invoke());
-        rahmen.PlatzSetzen((groesse, sichtbar) => new Vector2((sichtbar.X - groesse.X) / 2,
-            Mathf.Max(Rollbereich.KopfHoehe, sichtbar.Y - Rollbereich.LeistenHoehe - groesse.Y - 14 - AbstandUnten)));
+        var rahmen = Fensterrahmen.Anmelden(this, "Entscheidung", () => Spaeter?.Invoke(), titel: "");
+        _kleid = rahmen.Kleid;
+        GroesseSetzen();
+        GetViewport().SizeChanged += GroesseSetzen;
         Hide();
     }
 
-    /// <summary>Hinter dem ✕ des Fensterrahmens (hell, für dunkle Tafeln) eine dunkle Platte, damit es auf dem Pergament zu sehen ist.</summary>
-    public override void _Draw()
+    /// <summary>Feste Größe wie die Lade-Fenster (1280 × 530, schmaler bei schmalem Bild).</summary>
+    private void GroesseSetzen()
     {
-        var platte = new Rect2(Size.X - 40, 5, 34, 26);
-        DrawRect(platte, new Color(0.22f, 0.17f, 0.12f));
-        DrawRect(platte, new Color(0.09f, 0.07f, 0.05f), false, 2f);
+        if (!IsInsideTree()) return;
+        var bild = GetViewportRect().Size;
+        var stil = FensterStil.Thema.GetStylebox("panel", "FensterTafelKopf").GetMinimumSize();
+        GetNode<Rollbereich>("Rollbereich").GetChild<Control>(0).CustomMinimumSize = new Vector2(
+            Mathf.Min(FensterStil.Mass("breite", "LadeFensterMasse"), bild.X) - stil.X, FensterStil.Mass("hoehe", "LadeFensterMasse") - stil.Y);
     }
 
     /// <summary>
@@ -160,6 +143,14 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         if (_fristText.Text != text) _fristText.Text = text;
     }
 
+    private static Label Schrift(Node eltern, string text, string variante, bool umbrechen = false)
+    {
+        var label = new Label { Text = text, ThemeTypeVariation = variante, MouseFilter = MouseFilterEnum.Ignore };
+        if (umbrechen) label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        eltern.AddChild(label);
+        return label;
+    }
+
     private void Aufbauen()
     {
         UiHilfe.KinderEntfernen(_inhalt);
@@ -169,107 +160,86 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
         if (_stapel.Count == 0 || Wirtschaft is not { } w || w.Entscheidungen is not { } wesen) return;
         _nr = Math.Clamp(_nr, 0, _stapel.Count - 1);
         var e = _stapel[_nr];
+        if (_kleid is not null) _kleid.Titel = wesen.Titel(e);
 
-        // Kopf: Absender klein, rechts Platz für das ✕ des Fensterrahmens
-        var kopf = new HBoxContainer();
-        _inhalt.AddChild(kopf);
-        Hauptmenue.Text(kopf, "Absender: " + (e.Absender is { } a ? a.Inhaber : "Euer Schreiber") + "  ·  Eine Entscheidung", 13, Blass).SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        kopf.AddChild(new Control { CustomMinimumSize = new Vector2(34, 0) });
+        // Zwei Spalten wie im Entwurf: links der Brief (Absender, Text, Frist), rechts die Wahlen
+        var spalten = new HBoxContainer { ThemeTypeVariation = "BriefSpalten", SizeFlagsVertical = SizeFlags.ExpandFill };
+        _inhalt.AddChild(spalten);
+        var links = new VBoxContainer { ThemeTypeVariation = "LadeFensterSpalte", SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsStretchRatio = 1f };
+        spalten.AddChild(links);
+        var rechts = new VBoxContainer { ThemeTypeVariation = "FensterBefehle", SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsStretchRatio = 1.15f };
+        spalten.AddChild(rechts);
 
-        // Titel auf dem Farbband
-        var band = new BriefAnzeige.Farbband { Farbe = Farbe, CustomMinimumSize = new Vector2(0, 40) };
-        _inhalt.AddChild(band);
-        var titel = new Label { Text = wesen.Titel(e), VerticalAlignment = VerticalAlignment.Center, MouseFilter = MouseFilterEnum.Ignore, ClipText = true };
-        titel.AddThemeFontOverride("font", Schriften.Ueberschrift);
-        titel.AddThemeFontSizeOverride("font_size", 22);
-        titel.AddThemeColorOverride("font_color", Tinte);
-        titel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        titel.OffsetLeft = 12;
-        band.AddChild(titel);
+        Absenderzeile(links, w.Familien, e);
+        var text = Schrift(links, wesen.Beschreibung(e), "BriefText", umbrechen: true);
+        text.CustomMinimumSize = new Vector2(FensterStil.Mass("text_breite", "BriefMasse"), 0);
 
-        PortraetZeile(w.Familien, e);
-
-        Hauptmenue.Text(_inhalt, wesen.Beschreibung(e), 16, Tinte, umbruchBreite: Breite - 6);
-
-        // Frist: Balken mit Zahl
-        _fristText = Hauptmenue.Text(_inhalt, "", 13, Blass, umbruchBreite: Breite - 6);
-        _balken = new Fristbalken { CustomMinimumSize = new Vector2(0, 14), MouseFilter = MouseFilterEnum.Ignore };
-        _inhalt.AddChild(_balken);
+        // Frist: Balken, darunter die Zahl
+        _balken = new Fristbalken { CustomMinimumSize = new Vector2(0, FensterStil.Mass("frist_hoehe", "BriefMasse")), MouseFilter = MouseFilterEnum.Ignore };
+        links.AddChild(_balken);
+        _fristText = Schrift(links, "", "CharakterZusatz", umbrechen: true);
         FristAuffrischen();
+        _fehlerText = _fehler != "" ? Schrift(links, _fehler, "FensterZeileWarnung", umbrechen: true) : null;
 
-        // Die Wahlen: ein Knopf je Wahl, Folgen im Tooltip, Unumkehrbares rot
+        // Die Wahlen: ein Befehl je Wahl mit seinen Folgen; Unumkehrbares ist als solches benannt
         var wahlen = wesen.Wahlen(e);
-        var vorgabe = wesen.Voreinstellung(e);
         for (var i = 0; i < wahlen.Count; i++)
         {
             var wahl = i;
             var folgen = wesen.Folgen(e, i);
-            var knopf = new Button
-            {
-                Text = wahlen[i], FocusMode = FocusModeEnum.None, TooltipText = folgen, Disabled = _wartet, Alignment = HorizontalAlignment.Left,
-                ClipText = true, CustomMinimumSize = new Vector2(0, 32),
-            };
-            knopf.AddThemeFontSizeOverride("font_size", 15);
-            if (folgen.Contains("nicht zurücknehmen", StringComparison.Ordinal))
-            {
-                knopf.AddThemeColorOverride("font_color", new Color(0.95f, 0.45f, 0.38f));
-                knopf.AddThemeColorOverride("font_hover_color", new Color(1f, 0.6f, 0.5f));
-                knopf.TooltipText = "Nicht rückgängig zu machen!\n" + folgen;
-            }
-            knopf.Pressed += () => Waehlen(e, wahl);
-            _inhalt.AddChild(knopf);
+            var endgueltig = folgen.Contains("nicht zurücknehmen", StringComparison.Ordinal);
+            var knopf = new LadeBefehlKnopf(new LadeBefehl(wahlen[i], endgueltig ? "endgültig" : "", folgen, null, _wartet ? null : () => Waehlen(e, wahl)));
+            if (endgueltig) knopf.TooltipText = "Nicht rückgängig zu machen!";
+            rechts.AddChild(knopf);
         }
-        _fehlerText = _fehler != "" ? Hauptmenue.Text(_inhalt, _fehler, 14, Rot, umbruchBreite: Breite - 6) : null;
 
-        // Fuß: Stapel und „Später“ links, Siegel mit Feder rechts
-        var fuss = new HBoxContainer();
-        fuss.AddThemeConstantOverride("separation", 8);
-        _inhalt.AddChild(fuss);
-        var leiste = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter };
-        leiste.AddThemeConstantOverride("separation", 8);
-        fuss.AddChild(leiste);
-        var spaeter = new Button { Text = "Später", FocusMode = FocusModeEnum.None, TooltipText = "Legt den Brief beiseite. Die Frist läuft weiter; das Feder-Siegel unten rechts holt ihn zurück." };
-        spaeter.AddThemeFontSizeOverride("font_size", 14);
+        // Fuß: „Später“ und der Stapel
+        var fuss = new HBoxContainer { ThemeTypeVariation = "FensterZeileReihe" };
+        rechts.AddChild(fuss);
+        var spaeter = new Button { Text = "Später", FocusMode = FocusModeEnum.None, ThemeTypeVariation = "CharakterUeben",
+            TooltipText = "Legt den Brief beiseite. Die Frist läuft weiter; der Brief mit der Feder rechts über der Lade oder das Fach „Familie“ holt ihn zurück." };
         spaeter.Pressed += () => Spaeter?.Invoke();
-        leiste.AddChild(spaeter);
+        fuss.AddChild(spaeter);
         if (_stapel.Count > 1)
         {
-            var zurueck = new Button { Text = "‹", FocusMode = FocusModeEnum.None, TooltipText = "Voriger Brief" };
+            var zurueck = new Button { Text = "‹", FocusMode = FocusModeEnum.None, TooltipText = "Voriger Brief", ThemeTypeVariation = "CharakterUeben" };
             zurueck.Pressed += () => { _nr = (_nr + _stapel.Count - 1) % _stapel.Count; _fehler = ""; Aufbauen(); KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief); };
-            var weiter = new Button { Text = "›", FocusMode = FocusModeEnum.None, TooltipText = "Nächster Brief" };
+            var weiter = new Button { Text = "›", FocusMode = FocusModeEnum.None, TooltipText = "Nächster Brief", ThemeTypeVariation = "CharakterUeben" };
             weiter.Pressed += () => { _nr = (_nr + 1) % _stapel.Count; _fehler = ""; Aufbauen(); KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief); };
-            leiste.AddChild(zurueck);
-            Hauptmenue.Text(leiste, $"Brief {_nr + 1} von {_stapel.Count}", 14, Blass).SizeFlagsVertical = SizeFlags.ShrinkCenter;
-            leiste.AddChild(weiter);
+            fuss.AddChild(zurueck);
+            Schrift(fuss, $"Brief {_nr + 1} von {_stapel.Count}", "CharakterZusatz");
+            fuss.AddChild(weiter);
         }
-        fuss.AddChild(new BriefAnzeige.SiegelBild { Farbe = Farbe, Thema = "entscheidung", CustomMinimumSize = new Vector2(52, 52) });
-        if (vorgabe < 0) { /* keine Voreinstellung bekannt: nichts weiter */ }
+        Schrift(fuss, "Später: der Brief bleibt als Siegel mit Feder liegen.", "CharakterZusatz").SizeFlagsHorizontal = SizeFlags.ExpandFill;
     }
 
-    /// <summary>Porträt der Person der Frage – oder des Absenders (Oberhaupt seines Hauses); ein Klick fehlt hier absichtlich, der Brief soll nicht ablenken.</summary>
-    private void PortraetZeile(Familienbuch buch, Entscheidung e)
+    /// <summary>
+    /// Kopf des Briefs: Porträt der Person der Frage – oder des Absenders (Oberhaupt seines Hauses) –, Name und Herkunft, rechts die Marke des Themas.
+    /// Ein Klick aufs Porträt fehlt absichtlich, der Brief soll nicht ablenken.
+    /// </summary>
+    private void Absenderzeile(Container eltern, Familienbuch buch, Entscheidung e)
     {
         Person? person = e.Person is int n ? buch.PersonNummer(n) : null;
         var vonAbsender = false;
         if (person is null && e.Absender is { } absender && buch.IstAktiv && buch.Von(absender) is { } fam) { person = fam.Oberhaupt; vonAbsender = true; }
-        if (person is null) return;
-        var reihe = new HBoxContainer();
-        reihe.AddThemeConstantOverride("separation", 10);
-        _inhalt.AddChild(reihe);
-        var rahmen = new PanelContainer();
-        rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        var reihe = new HBoxContainer { ThemeTypeVariation = "CharakterWertReihe" };
+        eltern.AddChild(reihe);
+        if (person is not null)
         {
-            BgColor = Tinte, BorderColor = Tinte, BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
-        });
-        var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein);
-        bild.Zeigen(buch, person);
-        rahmen.AddChild(bild);
-        reihe.AddChild(rahmen);
-        var namen = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkCenter };
-        namen.AddThemeConstantOverride("separation", 0);
+            var bild = PortraetAnzeige.Neu(FensterStil.Mass("bild", "BriefMasse"));
+            bild.Zeigen(buch, person);
+            reihe.AddChild(bild);
+        }
+        var namen = new VBoxContainer { ThemeTypeVariation = "FensterBefehlSpalte", SizeFlagsVertical = SizeFlags.ShrinkCenter, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         reihe.AddChild(namen);
-        Hauptmenue.Text(namen, person.Name, 17, Tinte);
-        Hauptmenue.Text(namen, (vonAbsender ? "Absender, " : person.Lebt ? "" : "† ") + "Haus " + person.Familienname, 13, Blass);
+        Schrift(namen, person?.Name ?? (e.Absender is { } a ? a.Inhaber : "Euer Schreiber"), "FensterZeileWert");
+        var herkunft = person is null ? "Absender" : (vonAbsender ? "Absender · " : person.Lebt ? "" : "† ") + "Haus " + person.Familienname;
+        if (person is not null && !vonAbsender) herkunft += " · Absender: " + (e.Absender is { } b ? b.Inhaber : "Euer Schreiber");
+        Schrift(namen, herkunft, "CharakterZusatz");
+        var marke = new PanelContainer { ThemeTypeVariation = "BriefMarke", SizeFlagsVertical = SizeFlags.ShrinkCenter };
+        marke.SetMeta(FensterStil.Stoff, FensterStil.Dunkel);
+        reihe.AddChild(marke);
+        Schrift(marke, "Entscheidung", "BriefMarkeText");
     }
 
     private void Waehlen(Entscheidung e, int wahl)
@@ -302,13 +272,11 @@ public sealed partial class EntscheidungsbriefAnzeige : PanelContainer
 
         public override void _Draw()
         {
-            var tinte = new Color(0.09f, 0.07f, 0.05f);
-            DrawRect(new Rect2(0, 0, Size.X, Size.Y), new Color(0.78f, 0.70f, 0.52f));
-            var farbe = Anteil < 0.25f ? new Color(0.70f, 0.20f, 0.14f) : Farbe.Lightened(0.1f);
-            var voll = Mathf.Max(0, (Size.X - 4) * Anteil);
-            DrawRect(new Rect2(3.5f, 3f, voll, Size.Y - 5), farbe);
-            for (var x = 4f; x < voll; x += 5) DrawLine(new Vector2(x, Size.Y - 2), new Vector2(Mathf.Min(x + 6, 3.5f + voll), 4), new Color(0, 0, 0, 0.2f), 1f, true);
-            DrawRect(new Rect2(1, 1, Size.X - 2, Size.Y - 2), tinte, false, 2f);
+            // schlicht wie im Entwurf: Grund, Füllung in der Farbe des Themas (rot, wenn weniger als ein Viertel bleibt), feiner Rand – Farben aus dem Thema der Fenster
+            DrawRect(new Rect2(0, 0, Size.X, Size.Y), FensterStil.Farbe("grund", "BriefFrist"));
+            var farbe = FensterStil.Farbe(Anteil < 0.25f ? "knapp" : "fuellung", "BriefFrist");
+            DrawRect(new Rect2(1, 1, Mathf.Max(0, (Size.X - 2) * Anteil), Size.Y - 2), farbe);
+            DrawRect(new Rect2(0.5f, 0.5f, Size.X - 1, Size.Y - 1), FensterStil.Farbe("rand", "BriefFrist"), false, 1f);
         }
     }
 }

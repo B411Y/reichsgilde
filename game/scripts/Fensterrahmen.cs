@@ -19,8 +19,19 @@ public partial class Fensterrahmen : Node
     private static readonly List<Fensterrahmen> Alle = new();
     private static int _zaehler;
 
-    /// <summary>Höhe des Streifens am oberen Rand, an dem man das Fenster zieht (die Innenabstände der Tafeln sind 20–26 Pixel).</summary>
-    private const float Griffhoehe = 30;
+    /// <summary>Höhe des Streifens am oberen Rand, an dem man das Fenster zieht: Steinrand und Kopf aus Holz (aus dem Thema der Fenster).</summary>
+    private float Griffhoehe => _kleid?.Griffhoehe ?? FensterStil.Mass("griff_ohne_kopf");
+
+    /// <summary>
+    /// Fenster, die ihr Aussehen selbst mitbringen und darum kein <see cref="Fensterkleid"/> bekommen: der 3D-Faltbrief (eigenes Blatt) und das
+    /// Hinterzimmer (eigenes Thema, wird getrennt gebaut).
+    /// </summary>
+    private static readonly string[] OhneKleid = { "Brief", "Hinterzimmer" };
+
+    private Fensterkleid? _kleid;
+
+    /// <summary>Das Kleid des Fensters (Steinrand, Pergament, Kopf), null bei Fenstern mit eigenem Aussehen.</summary>
+    public Fensterkleid? Kleid => _kleid;
 
     private readonly PanelContainer _tafel;
     private readonly string _schluessel;
@@ -66,7 +77,10 @@ public partial class Fensterrahmen : Node
     /// <summary>Linke obere Ecke eines Fensters in der Mitte: waagrecht im Bild, senkrecht im Streifen zwischen Zeitstrahl und Betriebsleiste; weitere festgehaltene Fenster leicht versetzt.</summary>
     private Vector2 MitteLage(Vector2 groesse, Vector2 sichtbar)
     {
-        var frei = new Rect2(0, Rollbereich.KopfHoehe, sichtbar.X, Math.Max(groesse.Y, sichtbar.Y - Rollbereich.KopfHoehe - Rollbereich.LeistenHoehe));
+        // Wie im Entwurf: Die Unterkante steht „fenster_unten“ über dem Bildrand (über der Lade bleibt Luft für Meldungen und Schild). Ein Fenster, das
+        // dafür zu hoch ist, beginnt unter der Zeitleiste und reicht tiefer – höchstens bis an die Lade (dafür sorgt der Rollbereich).
+        var unten = Math.Max(Rollbereich.LeistenHoehe, Math.Min(FensterStil.Mass("fenster_unten"), sichtbar.Y - Rollbereich.KopfHoehe - groesse.Y));
+        var frei = new Rect2(0, sichtbar.Y - unten - groesse.Y, sichtbar.X, groesse.Y);
         var davor = Alle.Count(a => a != this && a.Festgehalten && a.Mittig && a._platz is not null && a._geoeffnet < _geoeffnet && a._tafel.IsVisibleInTree());
         return new Vector2(
             frei.Position.X + (frei.Size.X - groesse.X) / 2 + davor * Staffel,
@@ -105,11 +119,14 @@ public partial class Fensterrahmen : Node
     /// <summary>
     /// Macht die Tafel zum Fenster. <paramref name="schluessel"/> benennt es (nur zur Unterscheidung). <paramref name="schliessen"/> ist, was das ✕ tut
     /// (Grundwert: die Tafel verstecken). <paramref name="schliessbar"/> = false: nur ziehbar, ohne ✕ und ohne Esc (Bautafeln, Rückfragen).
-    /// <paramref name="festhaltbar"/>: ein Knopf „Festhalten“ neben dem ✕.
+    /// <paramref name="festhaltbar"/>: ein Knopf „Festhalten“ neben dem ✕. <paramref name="titel"/>: fester Titel im Kopf aus Holz, wenn die Tafel ihre
+    /// Überschrift nicht als erstes Label trägt (sonst findet das <see cref="Fensterkleid"/> sie selbst).
     /// </summary>
-    public static Fensterrahmen Anmelden(PanelContainer tafel, string schluessel, Action? schliessen = null, bool schliessbar = true, bool festhaltbar = false)
+    public static Fensterrahmen Anmelden(PanelContainer tafel, string schluessel, Action? schliessen = null, bool schliessbar = true, bool festhaltbar = false,
+        string? titel = null)
     {
         var rahmen = new Fensterrahmen(tafel, schluessel, schliessen, schliessbar, festhaltbar);
+        if (!OhneKleid.Contains(schluessel)) rahmen._kleid = FensterStil.Bekleiden(tafel, titel);
         tafel.AddChild(rahmen);
         return rahmen;
     }
@@ -202,7 +219,7 @@ public partial class Fensterrahmen : Node
         _tafel.AddChild(_leiste);
         if (_festhaltbar)
         {
-            _fest = Kreuz.Knopf(Kreuz.Art.Nadel, "Festhalten: Das Fenster bleibt offen, wenn eine andere Tafel geöffnet wird.");
+            _fest = Kreuz.Knopf(Kreuz.Art.Nadel, "Festhalten: Das Fenster bleibt offen, wenn eine andere Tafel geöffnet wird.", rund: _kleid is not null);
             _fest.ToggleMode = true;
             _fest.Toggled += an =>
             {
@@ -214,7 +231,7 @@ public partial class Fensterrahmen : Node
         }
         if (_schliessbar)
         {
-            var zu = Kreuz.Knopf(Kreuz.Art.Kreuz, "Schließen");
+            var zu = Kreuz.Knopf(Kreuz.Art.Kreuz, "Schließen", rund: _kleid is not null);
             zu.Pressed += () => _schliessen();
             _leiste.AddChild(zu);
         }
@@ -367,6 +384,18 @@ public partial class Fensterrahmen : Node
         {
             if (_leiste.Visible != LeisteSichtbar) _leiste.Visible = LeisteSichtbar;
             var ort = _tafel.GlobalPosition + new Vector2(_tafel.Size.X - _leiste.Size.X - 10, 6);
+            if (_kleid is not null)
+            {
+                // Im Kopf aus Holz: große runde Knöpfe, senkrecht in der Mitte; ohne Kopf kleine in der Ecke des Pergaments
+                var mitKopf = _kleid.MitKopf;
+                float seite = FensterStil.Mass(mitKopf ? "groesse" : "klein", "FensterKreuz"), rand = Fensterkleid.Rand;
+                foreach (var kind in _leiste.GetChildren())
+                    if (kind is Control knopf && knopf.CustomMinimumSize.X != seite) knopf.CustomMinimumSize = new Vector2(seite, seite);
+                if (_leiste.Size.Y > seite) _leiste.Size = _leiste.GetCombinedMinimumSize();
+                var oben = mitKopf ? rand + (FensterStil.Mass("hoehe", "FensterKopf") - seite) / 2 : rand + 4;
+                ort = _tafel.GlobalPosition + new Vector2(_tafel.Size.X - _leiste.Size.X - rand - FensterStil.Mass("rechts", "FensterKreuz"), oben);
+                _kleid.KnopfPlatz = _leiste.Visible ? _leiste.Size.X + FensterStil.Mass("rechts", "FensterKreuz") : 0;
+            }
             if (!_leiste.GlobalPosition.IsEqualApprox(ort)) _leiste.GlobalPosition = ort;
         }
     }
@@ -389,7 +418,11 @@ public static class Kreuz
     private static readonly Color Linie = new(0.92f, 0.88f, 0.80f);
     private static readonly Color Gold = new(0.95f, 0.82f, 0.45f);
 
-    public static Button Knopf(Art art, string tooltip, float groesse = 22)
+    /// <summary>
+    /// <paramref name="rund"/>: der runde Knopf der Fenster (Farben aus dem Thema der Fenster, „FensterKreuz“); er zeichnet sich in seiner
+    /// tatsächlichen Größe, die der Fensterrahmen je nach Kopf setzt.
+    /// </summary>
+    public static Button Knopf(Art art, string tooltip, float groesse = 22, bool rund = false)
     {
         var knopf = new Button
         {
@@ -401,7 +434,15 @@ public static class Kreuz
             var m = knopf.Size / 2;
             var an = knopf.IsHovered() || (art == Art.Nadel && knopf.ButtonPressed);
             var farbe = an ? Gold : Linie;
-            if (an) knopf.DrawRect(new Rect2(Vector2.Zero, knopf.Size), new Color(1, 1, 1, 0.10f));
+            if (rund)
+            {
+                groesse = knopf.Size.X * 0.8f;
+                var grund = art == Art.Nadel && knopf.ButtonPressed ? "grund_an" : knopf.IsHovered() ? "grund_ueber" : "grund";
+                knopf.DrawCircle(m, knopf.Size.X / 2 - 1, FensterStil.Farbe(grund, "FensterKreuz"), true, -1, true);
+                knopf.DrawArc(m, knopf.Size.X / 2 - 1, 0, Mathf.Tau, 32, FensterStil.Farbe("rand", "FensterKreuz"), 2, true);
+                farbe = FensterStil.Farbe("strich", "FensterKreuz");
+            }
+            else if (an) knopf.DrawRect(new Rect2(Vector2.Zero, knopf.Size), new Color(1, 1, 1, 0.10f));
             if (art == Art.Kreuz)
             {
                 var d = groesse * 0.22f;
@@ -412,7 +453,7 @@ public static class Kreuz
             {
                 // Reißzwecke: Kopf, Scheibe und Nadel
                 var kopf = new Vector2(0, -groesse * 0.14f) + m;
-                knopf.DrawCircle(kopf, groesse * 0.20f, knopf.ButtonPressed ? Gold : new Color(farbe, 0.35f));
+                knopf.DrawCircle(kopf, groesse * 0.20f, knopf.ButtonPressed && !rund ? Gold : new Color(farbe, 0.35f));
                 knopf.DrawArc(kopf, groesse * 0.20f, 0, Mathf.Tau, 20, farbe, 1.5f, true);
                 knopf.DrawLine(m + new Vector2(-groesse * 0.20f, groesse * 0.06f), m + new Vector2(groesse * 0.20f, groesse * 0.06f), farbe, 2, true);
                 knopf.DrawLine(m + new Vector2(0, groesse * 0.06f), m + new Vector2(0, groesse * 0.32f), farbe, 1.5f, true);

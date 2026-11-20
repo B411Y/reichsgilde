@@ -39,25 +39,25 @@
   "kennung": "tempo",
   "titel": "Tempo und Pause",
   "gruppe": "Spiel",
-  "text": "Die Leertaste hält die Zeit an, die Tasten 1 bis 4 wählen das Tempo; 5 und 6 sind Testtempi. Unter dem [[zeitstrahl]] stehen dieselben Knöpfe. Befehle sind auch in der Pause möglich."
+  "text": "Die Leertaste hält die Zeit an, die Tasten 1 bis 4 wählen das Tempo; 5 und 6 sind Testtempi. In der [[zeitstrahl|Zeitleiste]] stehen dieselben Knöpfe. Befehle sind auch in der Pause möglich."
  },
  {
   "kennung": "zeitstrahl",
-  "titel": "Zeitstrahl",
+  "titel": "Zeitleiste",
   "gruppe": "Spiel",
-  "text": "Das Band oben in der Mitte: Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht. Darunter läuft der Tag in seinen Phasen mit der Sonne (nachts dem Mond) als Zeiger; eine goldene Linie markiert die Arbeitszeit. Darunter stehen Pause und [[tempo|Tempo]]."
+  "text": "Die Leiste oben in der Mitte: Ganz oben läuft der Tag in seinen Phasen mit der Sonne (nachts dem Mond) als Zeiger; eine goldene Linie markiert die Arbeitszeit. Darunter stehen links Pause und [[tempo|Tempo]], rechts Jahreszeit, Jahr, Uhrzeit und Wetter mit Aussicht."
  },
  {
   "kennung": "kopfzeile",
-  "titel": "Kopfzeile",
+  "titel": "Lade: Werte und Porträt",
   "gruppe": "Spiel",
-  "text": "Oben links steht euer [[haus]]: Wappen, Geld (der Tooltip nennt Bargeld und [[reinvermoegen]]), [[stand]] (mit dem Weg zum nächsten) und [[aktionspunkte]]. Ein Klick öffnet das [[wohnhaus]]."
+  "text": "Unten in der Mitte steht die Lade, darin euer [[haus]]. Oben links die Werte: Gulden (der Tooltip nennt Bargeld und [[reinvermoegen]]), Ansehen und [[stress|Stress]] des Oberhaupts, oben rechts die [[aktionspunkte]]. In der Mitte das Porträt des Oberhaupts, darunter Name und [[stand]] (der Tooltip nennt den Weg zum nächsten). Ein Klick auf das Porträt öffnet die Familie."
  },
  {
   "kennung": "betriebsleiste",
-  "titel": "Betriebsleiste",
+  "titel": "Lade: Fächer",
   "gruppe": "Spiel",
-  "text": "Die Leiste unten: je eigener Betrieb ein Knopf mit dem Symbol seiner Ware und seinem Zustand (läuft, steht, Lager voll, Karren unterwegs). Ein Warnzeichen zeigt einen stehenden Betrieb. Ein Klick fährt die Kamera hin und öffnet die [[kurzuebersicht]], ein Doppelklick geht hinein. Daneben: Hafen, Bauen, Rat, Bericht, Lexikon und Menü."
+  "text": "Die Lade hat links und rechts je drei Fächer. In der Stadt: Familie, Betriebe, Bauen und Rat, Bericht, Lexikon. Jedes Fach zeigt eine Zeile Zustand und öffnet sein Lade-Fenster über der Lade: Kurzwerte und Befehle mit Kosten in Gulden und Aktionspunkten, Wirkung und – wenn gesperrt – dem Grund. Das Fach Betriebe nennt je Betrieb den Zustand (läuft, steht, Lager voll, Karren unterwegs) und bietet an, hineinzugehen oder hinzufahren und die [[kurzuebersicht]] zu öffnen. In der Innenansicht stehen dort Personal, Produktion, Lager und Karren, Talentbaum, Zur Stadt. Über den Fächern rechts: Markt, Hinterzimmer und Menü. Meldungen liegen als Faltbriefe rechts über der Lade."
  },
  {
   "kennung": "kurzuebersicht",
@@ -177,7 +177,7 @@
   "kennung": "betrieb",
   "titel": "Betrieb",
   "gruppe": "Wirtschaft",
-  "text": "Ein Betrieb stellt Waren her oder fördert sie: eine Werkstatt in der Stadt (z. B. Gießerei) oder ein [[umlandbetrieb]] (z. B. Grube). Jeder Betrieb hat [[personal]], ein [[lager]] und [[karren]]. Werkstätten haben eine [[gebaeudestufe]]; mit dem [[meistergrad]] des Hauses lassen sie sich ausbauen. Betriebe kosten [[unterhalt]]. Ihr Zustand steht in der [[betriebsleiste]]."
+  "text": "Ein Betrieb stellt Waren her oder fördert sie: eine Werkstatt in der Stadt (z. B. Gießerei) oder ein [[umlandbetrieb]] (z. B. Grube). Jeder Betrieb hat [[personal]], ein [[lager]] und [[karren]]. Werkstätten haben eine [[gebaeudestufe]]; mit dem [[meistergrad]] des Hauses lassen sie sich ausbauen. Betriebe kosten [[unterhalt]]. Ihr Zustand steht in der [[betriebsleiste|Lade]]."
  },
  {
   "kennung": "werkstatt",
@@ -297,7 +297,7 @@
   "kennung": "hafen",
   "titel": "Hafen",
   "gruppe": "Hafen und Wege",
-  "text": "Liegt die Stadt an einem Fluss mit Hafen, handelt ihr mit fernen Städten am Kartenrand. Ein Klick auf den Hafen (oder der Knopf „Hafen“ in der [[betriebsleiste]]) öffnet die Hafentafel: dort kauft ihr ein [[flussschiff]] und gebt ihm einen Auftrag. Der Hafen bringt der Stadt [[zoll]] ein."
+  "text": "Liegt die Stadt an einem Fluss mit Hafen, handelt ihr mit fernen Städten am Kartenrand. Ein Klick auf den Hafen öffnet die Hafentafel: dort kauft ihr ein [[flussschiff]] und gebt ihm einen Auftrag. Der Hafen bringt der Stadt [[zoll]] ein."
  },
  {
   "kennung": "flussschiff",
@@ -669,7 +669,7 @@
   "kennung": "lebensweise",
   "titel": "Lebensweise",
   "gruppe": "Haus und Familie",
-  "text": "Oberhaupt, Erbe und Ehepartner lernen im Lauf ihres Lebens eine Lebensweise: fünf Pfade, einer je [[talente|Talent]] (Kaufmann, Meister, Schatten, Schwert, Redner), jeder ein Baum aus drei mal drei Knoten. Erfahrung fließt in den Pfad, dem die Person gerade folgt: am Jahresende {wert:lebensweise_grund} und {wert:lebensweise_jestern} je Stern im Talent des Pfads, dazu sofort {wert:lebensweise_jeap} je [[aktionspunkte|AP]] für eine Tat des Pfads (nur beim [[oberhaupt|Oberhaupt]]). Erbe und Ehepartner sammeln die Hälfte. Je 100 Erfahrung (später 150, dann 200) gibt einen Punkt; mit einem Punkt lernt man einen Knoten, für immer. Ein Knoten der zweiten und dritten Reihe braucht den darüber. Den Pfad wechselt man jederzeit ohne Kosten; Gesammeltes und Knoten bleiben. Die Knoten wirken für das ganze Haus, solange ihr Besitzer Oberhaupt ist. Stirbt das Oberhaupt, behält der Erbe seine Knoten und erbt als Vermächtnis ein Fünftel der Erfahrung im Pfad des Toten. Im Charakterfenster gibt es dafür den Reiter „Lebensweg“ (ein Klick auf ein Porträt öffnet es); freie Punkte zeigt die Kopfzeile."
+  "text": "Oberhaupt, Erbe und Ehepartner lernen im Lauf ihres Lebens eine Lebensweise: fünf Pfade, einer je [[talente|Talent]] (Kaufmann, Meister, Schatten, Schwert, Redner), jeder ein Baum aus drei mal drei Knoten. Erfahrung fließt in den Pfad, dem die Person gerade folgt: am Jahresende {wert:lebensweise_grund} und {wert:lebensweise_jestern} je Stern im Talent des Pfads, dazu sofort {wert:lebensweise_jeap} je [[aktionspunkte|AP]] für eine Tat des Pfads (nur beim [[oberhaupt|Oberhaupt]]). Erbe und Ehepartner sammeln die Hälfte. Je 100 Erfahrung (später 150, dann 200) gibt einen Punkt; mit einem Punkt lernt man einen Knoten, für immer. Ein Knoten der zweiten und dritten Reihe braucht den darüber. Den Pfad wechselt man jederzeit ohne Kosten; Gesammeltes und Knoten bleiben. Die Knoten wirken für das ganze Haus, solange ihr Besitzer Oberhaupt ist. Stirbt das Oberhaupt, behält der Erbe seine Knoten und erbt als Vermächtnis ein Fünftel der Erfahrung im Pfad des Toten. Im Charakterfenster gibt es dafür den Reiter „Lebensweg“ (ein Klick auf ein Porträt öffnet es); freie Punkte zeigt die [[kopfzeile|Lade]]."
  },
  {
   "kennung": "stress",

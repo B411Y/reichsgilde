@@ -80,13 +80,19 @@ public partial class CharakterAnzeige : PanelContainer
         if (_simulation?.Wirtschaft is not { } w || _verlauf.Count == 0) return;
         UiHilfe.KinderEntfernen(_inhalt);
         if (_aktivMit is not null && !(_verlauf[^1] is ICharakter aktuell && aktuell.Kennung == _aktivMit.Kennung)) _aktivMit = null;
+        // Das eigene Oberhaupt bekommt die Charakterseite (CharakterAnzeige.Seite.cs): feste Größe, der Name steht im Kopf des Fensters
+        var seite = _aktivMit is null && _verlauf[^1] is Person eigen && IstEigenesOberhaupt(w, eigen);
+        SeitenmassSetzen(seite);
+        if (_rahmen?.Kleid is { } kleid) kleid.Titel = seite ? ((Person)_verlauf[^1]).Name : null;
         if (_aktivMit is not null) AktivitaetenBauen(w, _aktivMit);
         else
             switch (_verlauf[^1])
             {
+                case Person p when seite: SeiteBauen(w, p); break;
                 case Person p: PersonBauen(w, p); break;
                 case Ratsherr r: RatsherrBauen(w, r); break;
             }
+        if (seite && _verlauf.Count <= 1) return; // die Charakterseite schließt über das ✕ im Kopf, wie die Lade-Fenster
         var knoepfe = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         knoepfe.AddThemeConstantOverride("separation", 12);
         _inhalt.AddChild(knoepfe);
@@ -415,11 +421,13 @@ public partial class CharakterAnzeige : PanelContainer
                 (_anlage, _jetzt, new Color(0.45f, 0.85f, 0.40f)),
                 (_jetzt, _anlage, new Color(0.90f, 0.35f, 0.30f)),
             };
+            // Der leere Stern: auf dunklem Grund dunkel, auf dem Pergament ein zartes Braun aus dem Thema der Fenster
+            var leer = FensterStil.AufPergament(this) ? FensterStil.Farbe("flaeche") : new Color(0.22f, 0.20f, 0.18f);
             for (var i = 0; i < Anzahl; i++)
             {
                 var mitte = new Vector2(i * Stern + Stern / 2f, Stern / 2f);
                 var form = Umriss(mitte, Stern / 2f - 1);
-                DrawColoredPolygon(form, new Color(0.22f, 0.20f, 0.18f));
+                DrawColoredPolygon(form, leer);
                 foreach (var (von, bis, farbe) in streifen)
                 {
                     var lo = (float)Math.Clamp(von - i, 0, 1);

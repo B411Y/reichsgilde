@@ -25,11 +25,16 @@ public partial class Rollbereich : ScrollContainer
     public float ObenFrei { get; set; }
     public float UntenFrei { get; set; }
 
-    /// <summary>Höhe, die oben für Kopfzeile und Zeitstrahl frei bleibt, und unten für die Betriebsleiste (Einheiten der Oberfläche).</summary>
-    public const float KopfHoehe = 140, LeistenHoehe = 84;
+    /// <summary>Höhe, die oben für die Zeitleiste frei bleibt (Einheiten der Oberfläche; aus dem Thema der Lade).</summary>
+    public static float KopfHoehe => LadeStil.Mass("kopf_hoehe");
+
+    /// <summary>Höhe, die unten für die Lade frei bleibt (Einheiten der Oberfläche; aus dem Thema der Lade).</summary>
+    public static float LeistenHoehe => LadeStil.Mass("leisten_hoehe");
 
     /// <summary>Höhe der Siegel-Ecke unten rechts (0: keine Siegel). Die Tafeln rechts lassen den Platz frei, statt die Siegel zu verdecken (Benachrichtigungen).</summary>
     public static float EckeHoehe { get; set; }
+
+    private const string RechtsMerker = "rg_rechts";
 
     /// <summary>
     /// Heftet eine Tafel rechts an den Rand, unter Kopfzeile und Zeitstrahl und über der Betriebsleiste (PR #197): Dort stehen die Tafeln, die
@@ -37,7 +42,8 @@ public partial class Rollbereich : ScrollContainer
     /// </summary>
     public static void RechtsAnheften(PanelContainer tafel)
     {
-        tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16);
+        tafel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight, Control.LayoutPresetMode.Minsize, 16 + Fenster.Randabstand); // Randabstand: Einstellung für breite Bilder
+        tafel.SetMeta(RechtsMerker, true); // der Rollbereich hält den Abstand nach, wenn die Einstellung sich ändert
         tafel.GrowHorizontal = Control.GrowDirection.Begin; // wächst nach links ins Bild
         tafel.GrowVertical = Control.GrowDirection.End;
         tafel.Position = new Vector2(tafel.Position.X, KopfHoehe);
@@ -102,6 +108,13 @@ public partial class Rollbereich : ScrollContainer
             CustomMinimumSize = groesse;
 
         TafelAnpassen();
+        // Tafel am rechten Rand: Der Abstand zur Kante folgt der Einstellung „Randabstand rechts“ (nicht mehr, sobald der Spieler sie verschoben hat)
+        if (_tafel.TopLevel || !_tafel.HasMeta(RechtsMerker)) return;
+        var rechts = -(16f + Fenster.Randabstand);
+        if (Mathf.IsEqualApprox(_tafel.OffsetRight, rechts)) return;
+        var breite = _tafel.Size.X;
+        _tafel.OffsetRight = rechts;
+        _tafel.OffsetLeft = rechts - breite;
     }
 
     /// <summary>

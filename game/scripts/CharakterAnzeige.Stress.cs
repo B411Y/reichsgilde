@@ -52,7 +52,7 @@ public partial class CharakterAnzeige
     }
 
     /// <summary>Tooltip: Wert und Stufe, Folgen, Quellen und Ventile dieses und des letzten Jahres, Abklingen und Ventile.</summary>
-    private static string StressTipp(Familienbuch buch, StressDaten d, Person p)
+    internal static string StressTipp(Familienbuch buch, StressDaten d, Person p)
     {
         var stufe = buch.StressStufe(p);
         var text = $"Stress {Zahlenformat.Ganz(buch.Stress(p))} von {Zahlenformat.Ganz(d.Hoechstwert)} – {buch.StressStufenname(stufe)}";

@@ -41,6 +41,8 @@ KRAG = 0.22                 # Auskragung des Obergeschosses nach vorn und zu den
 Z_BODEN = 0.15              # Fussboden innen
 Z_SOCKEL = 0.45             # Oberkante des Bruchsteinsockels
 Z_OG = 2.55                 # Unterkante Obergeschoss (Schwelle)
+LICHT_UNTER_OG = 0.55       # Grundlicht Licht_Raum so weit unter Z_OG, 0,35 m unter den Deckenbalken (2,35 m): in 3,4-3,6 m stand es
+                            # ueber der Galerie, deren Unterseite und die Balken bekamen kein direktes Licht (12c, 18.11.2026)
 Z_TRAUFE = 4.85             # Oberkante der Seitenwaende
 NEIGUNG = math.tan(math.radians(52))
 UEBER = 0.38                # Dachueberstand an der Traufe (waagerecht)
@@ -1522,7 +1524,7 @@ def main():
         anker("Blick_Auge", (0.3, IH - 0.3, Z_BODEN + 1.60)),                                           # Augenhoehe einer Figur von 1,75 m, hinten unter der Galerie ...
         anker("Blick_Ziel", (0.3, IV, Z_BODEN + 1.50)),                                                # ... Blick zur Gassenwand: links der Herd, geradeaus die Haustuer, rechts Tisch und Leiter
         anker("Licht_Herd", ((x0 + x1) / 2 - 0.25, (y0 + y1) / 2, 0.95)),
-        anker("Licht_Raum", (-0.3, -1.2, 3.6)),
+        anker("Licht_Raum", (-0.3, IH - 0.3, Z_OG - LICHT_UNTER_OG)),                                  # unter der Galerie, auf Hoehe (y) des Blickpunkts
         anker("Feuer_Herd", ((x0 + x1) / 2 - 0.18, (y0 + y1) / 2, 0.53)),                               # Fuss der Flamme auf der Herdplatte
         anker("Tuer_Innen", ((tuer[1][0] + tuer[1][1]) / 2, IV, Z_BODEN + TUER_HOCH / 2)),              # Mitte der Haustuer auf der Innenwand (Klick: hinaus)
         # Plaetze der Familie (Stadtansicht.Neubau.cs; Vorbereitung fuer den Figuren-Baukasten): Lage = Fusspunkt am Boden,

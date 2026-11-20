@@ -38,6 +38,7 @@ public partial class Fenster : Node
         Grafikschnittstelle.Beenden();
         Oberflaechenstil.Freigeben();
         Schriften.Freigeben();
+        FensterStil.Freigeben();
         GC.Collect();
         GC.WaitForPendingFinalizers();
     }
@@ -65,6 +66,8 @@ public partial class Fenster : Node
         Vorladen.Starten(GetTree()); // die großen Texturen im Hintergrund entpacken (Vorladen.cs), vor allem anderen
         SigtermAbfangen();
         Schriften.Einrichten(GetTree());
+        FensterStil.Einrichten(GetTree());
+        GetTree().Root.SizeChanged += OberflaecheAnwenden; // automatische Größe der Oberfläche folgt der Fensterhöhe (Fenster.Grafik.cs)
         Oberflaechenstil.Einrichten();
         Grafikschnittstelle.Starten(this);
         KlangOberflaeche.Einrichten(GetTree());

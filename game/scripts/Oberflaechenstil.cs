@@ -327,6 +327,7 @@ public partial class Streifenraster : GridContainer
         foreach (var kind in GetChildren())
             if (kind is Control { Visible: true, TopLevel: false } c) sichtbar.Add(c);
         var abstand = GetThemeConstant("v_separation");
+        var streifen = FensterStil.AufPergament(this) ? FensterStil.Farbe("streifen") : Oberflaechenstil.Streifen; // auf Pergament dunkler statt heller
         for (var zeile = 1; zeile * Columns < sichtbar.Count; zeile += 2)
         {
             float oben = float.MaxValue, unten = float.MinValue;
@@ -335,7 +336,7 @@ public partial class Streifenraster : GridContainer
                 oben = Math.Min(oben, sichtbar[i].Position.Y);
                 unten = Math.Max(unten, sichtbar[i].Position.Y + sichtbar[i].Size.Y);
             }
-            DrawRect(new Rect2(-6, oben - abstand / 2f, Size.X + 12, unten - oben + abstand), Oberflaechenstil.Streifen);
+            DrawRect(new Rect2(-6, oben - abstand / 2f, Size.X + 12, unten - oben + abstand), streifen);
         }
     }
 }
