@@ -62,12 +62,11 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 
 **Zunftherrschaft.** 1396 setzte der **Verbundbrief** die Herrschaft der Zünfte (Gaffeln) im Rat durch und beendete die Macht der alten Geschlechter. Um 1400 ist das frisch. Der **Ratsturm** wird 1406 beschlossen, 1407–14 gebaut, von den Zünften bezahlt; im Spiel steht er als Baustelle am Rathaus.
 
-**Der Dom.** Der gotische Dom wird seit 1248 gebaut. Um 1400 ist der **Chor** fertig (1322 geweiht), das Langhaus ein niedriger Stumpf unter Notdächern, der **Südturm** wächst mit einem hölzernen **Tretrad-Baukran**, der **Nordturm** ist nur ein Mauerstumpf von rund fünf Metern. Im Spiel kommt Fantasy dazu:
+**Der Dom.** Der gotische Dom wird seit 1248 gebaut; in Wirklichkeit steht er erst 1880 fertig. **Im Spiel ist er um 1400 vollendet** (Alternativgeschichte, Fiktion): Elben und Zwerge haben ihn schneller gebaut – Chor, Langhaus mit Querhaus und beide **Türme** stehen, ohne Kran und Gerüst. Die Fantasy-Zutaten:
 
 - Der **Chor ist das Werk elbischer Steinmetze** nach den Plänen des Meisters Gerhard: heller, leicht silbriger Stein, rankenartiges Maßwerk, schlanke Fialen, grünlich-gläserne Fenster. „Zweiundsiebzig Jahre Bauzeit – für sie ein Sommer.“ Die Menschen baten sie wegen der Dreikönigsreliquien (Fiktion).
-- Der **Südturm** mit dem Kran ist grobes Menschenwerk.
-- Der **Nordturm** ist im Spiel **halb hoch** – eine bewusste Abweichung, die Elben bauten schneller, als es die Quellen belegen (Fiktion).
-- Die **Dombauhütte** bekommt einen zwergischen Meister: ein Steinmetz-Betrieb am Dom trägt ein Zwergenwappen („Hütte Gerhard“, Name als Beispiel).
+- Die **Türme** und das **Langhaus** sind Gemeinschaftswerk von Zwergen und Elben (Fiktion): zwei gleiche, gestufte Türme von 58 m mit Achteck und steinernem Helm, feines Maßwerk und schlanke Fialen auch dort. Menschenwerk und Elbenwerk unterscheiden sich im Spiel nur noch in der Feinheit des Maßwerks (ein Dom-Stein).
+- Eine eigene Dombauhütte gibt es im Spiel nicht mehr (der Dom ist fertig).
 
 **Das Stapelhaus.** Das echte Fischkaufhaus stammt erst von 1558; hier steht um 1400 ein **Gemeinschaftswerk von Menschen und Zwergen** am Rhein (Fiktion): Die Zwerge müssen ihr **Erz und Eisen** unter dem Stapelrecht in Köln verkaufen und wiegen lassen. Eine lange Halle mit Treppengiebeln zum Rhein, zwergischer Basaltsockel, eiserne Beschläge, eine große **Stadtwaage**. **Halblinge** sind Weinhändler und Wirte darin – der Rheinwein ist belegt, die Halblinge sind unsere Zutat.
 
@@ -75,7 +74,7 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 
 | Wahrzeichen | Kennung | Um 1400 | Spur der Völker |
 |---|---|---|---|
-| Dom | `Dom` | Chor fertig, Südturm mit Kran, Nordturm Stumpf | Elben-Chor, zwergische Dombauhütte |
+| Dom | `Dom` | fertig gebaut: Chor, Langhaus, zwei Türme (58 m), kein Kran | Elben-Chor, Türme und Langhaus von Zwergen und Elben (Alternativgeschichte) |
 | Rathaus | `Rathaus` | Hansasaal (um 1330), Ratsturm im Bau (1407–14) | – |
 | Groß St. Martin | `Martin` | Kleeblattchor, Vierungsturm mit vier Giebeln und Notdach nach dem Brand 1378 (im Modell ein Rautendach; der Knickhelm kam erst 1450–60), vier Ecktürmchen, am Rhein | – |
 | St. Gereon | `Gereon` | Dekagon (1219–27) mit Zeltdach aus Blei, langer Chor mit zwei Chortürmen | – |

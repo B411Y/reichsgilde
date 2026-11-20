@@ -158,12 +158,12 @@ public partial class Stadtansicht
     /// Das Trim-Material: außen EINES für alle Häuser aller Völker (Steinebenen: Trim-Sheets und AO-Atlanten als Texture2DArray, die
     /// Ebene wählt jedes Haus über Instanz-Uniformen, siehe <see cref="Steinebenen"/>), innen eines je Gruppe (Array mit den Innenblättern, Ebene und AO-Ebene je Modell).
     /// </summary>
-    private ShaderMaterial NeubauStoff(string datei, bool kante = false)
+    private ShaderMaterial NeubauStoff(string datei, bool kante = false, bool efeu = false)
     {
         var gruppe = NeubauGruppe(datei);
         var innen = gruppe.EndsWith("_innen");
         if (gruppe.StartsWith("rathaus")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets (Arrays mit einer Ebene), derselbe Shader
-        var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "");
+        var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "") + (efeu ? "|efeu" : "");
         if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var array = innen ? "innen" : "haeuser";
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
@@ -171,6 +171,7 @@ public partial class Stadtansicht
         // Strohkanten: derselbe Shader (Rumpf building_trim.gdshaderinc) beidseitig und mit Alpha Scissor, dieselben Arrays
         stoff = new ShaderMaterial { Shader = kante ? _neubauKantenShader : _neubauShader, ResourceName = "Trim " + schluessel };
         if (kante) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(Fenster.PixelLookAn));
+        if (efeu) stoff.SetShaderParameter("efeu_blatt", true);   // Schwelle fest 0,5 im Shader, auch im Pixel-Look
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<TextureLayered>(array + "_ebenen_albedo.png"));
         stoff.SetShaderParameter("normal_tex", NeubauTextur<TextureLayered>(array + "_ebenen_normal.png"));
         stoff.SetShaderParameter("orm_tex", NeubauTextur<TextureLayered>(array + "_ebenen_orm.png"));
@@ -282,6 +283,11 @@ public partial class Stadtansicht
                         break;
                     case "Innenglas":
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
+                        break;
+                    case "Efeublatt":
+                        // Efeu der Halblinge (Stufe 3): Blattkarten mit Alpha-Schnitt, auch im Pixel-Look sichtbar (efeu_blatt im Kantenshader)
+                        if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name));
+                        teil.SetSurfaceOverrideMaterial(i, NeubauStoff(datei, kante: true, efeu: true));
                         break;
                     case "Strohkante" or "Schieferkante":
                         // Alpha-Cards an Traufe, First und Giebel (Style-Guide 5.1): Trim-Shader als Kantenvariante (beidseitig, Alpha Scissor)

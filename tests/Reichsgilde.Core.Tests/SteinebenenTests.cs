@@ -106,6 +106,13 @@ static class SteinebenenTests
             // Ohne Pixel-Look bleibt alles bildpunktgleich: der Zweig mit band_lesen steht hinter pixel_look > 0,5 (und nur aussen, nur im Häuser-Array)
             Pruefe.Wahr(Regex.IsMatch(text, @"if \(!scharf && pixel_look > 0\.5 && haus_baender > 0\.5 && stein_je_ebene && BAND_REIN\["), "band_lesen nur im Pixel-Look");
             Pruefe.Wahr(!soll.Contains(Steinebenen.Ebene(Volk.Elb, 3)), "Gegenprobe: Elb S3 liegt nicht auf einer Halbling-Ebene");
+            // Geteiltes Band „stroh“ (Efeu oben, Kupfer darunter): nur Halbling Stufe 3
+            var teil = Regex.Match(text, @"const float STROH_TEIL\[(\d+)\] = float\[\d+\]\(([^)]*)\);");
+            Pruefe.Wahr(teil.Success, "STROH_TEIL im Shader");
+            var teile = teil.Groups[2].Value.Split(',').Select(z => float.Parse(z.Trim(), CultureInfo.InvariantCulture)).ToArray();
+            Pruefe.Gleich(Steinebenen.Haeuser.Length, teile.Length);
+            for (var i = 0; i < teile.Length; i++)
+                Pruefe.Gleich(i == Steinebenen.Ebene(Volk.Halbling, 3) ? 0.125f : 0f, teile[i], $"STROH_TEIL Ebene {i} ({Steinebenen.Haeuser[i].Name})");
         }),
         ("Steinebenen: Arrays gleich groß, eine Ebene je Eintrag, 2048 breit, Import als Texture2DArray mit Mipmaps", () =>
         {

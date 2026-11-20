@@ -16,10 +16,10 @@ Steinsichtiger Tuff mit Gliederung aus Trachyt und Sockeln aus Basalt (nicht ver
     St. Aposteln      Kleeblattchor mit achteckigem Vierungsturm und Laterne, zwei Osttürmchen, Westquerhaus mit Westturm (Rautendach)
                                                                                                                       14 × 29 m, bis 35,1 m
     St. Severin       romanisches Langhaus mit Querhaus, spätromanischer zweigeschossiger Chor mit Apsis und zwei Osttürmen, Westturm als
-                      Baustelle (Neubau seit 1393/94: Stumpf, Gerüst, Tretradkran wie am Dom; das Rad dreht sich im Spiel)  12 × 32 m, bis 21,3 m
+                      Baustelle (Neubau seit 1393/94: Stumpf, Gerüst, Tretradkran (Bauteile aus koelner_dom.kran_bauen; der Dom selbst hat keinen Kran mehr); das Rad dreht sich im Spiel)  12 × 32 m, bis 21,3 m
     St. Kunibert      Apsis mit Zwerggalerie und zwei schlanken Osttürmen, Langhaus ohne Vierungsturm, Westquerhaus mit Westturm und gotischem
                       Knickhelm (nach dem Brand 1376 erneuert)                                                        14 × 29 m, bis 37,6 m
-Der Kölner Dom (koelner_dom.py, etwa 41 m) bleibt der höchste Bau.
+Der Kölner Dom (koelner_dom.py, etwa 58 m, die Türme) bleibt der höchste Bau.
 
 Objekte im GLB:
     Kirche              das ganze Bauwerk (ein Netz)
@@ -207,7 +207,7 @@ def aposteln(st):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def severin(st):
-    import koelner_dom as kd           # Tretradkran wie am Dom
+    import koelner_dom as kd           # Tretradkran (Bauteile aus koelner_dom.kran_bauen; der Dom selbst hat keinen Kran mehr)
     n = bs.Netz("Kirche")
     g = bs.Netz("Baustelle")
     # Langhaus (romanisch, der gotische Umbau beginnt erst)
@@ -247,7 +247,7 @@ def severin(st):
     for s in (-1, 1):
         bk.turm4(n, st, s * 3.95, yc0 + 1.25, 1.15, 0.0, 16.5, geschosse=(5.2, 9.0, 12.8), schall=((13.2, 1.4, 2.0, 1),),
                  fenster=((9.6, 0.5, 1.4, 1),), dach="pyramide", dach_h=4.2, fries_oben=False)
-    # Westturm im Bau (Neubau seit 1393/94): Stumpf mit Portal und Mauerkrone, Gerüst und Tretradkran wie am Dom
+    # Westturm im Bau (Neubau seit 1393/94): Stumpf mit Portal und Mauerkrone, Gerüst und Tretradkran (Bauteile aus koelner_dom.kran_bauen; der Dom selbst hat keinen Kran mehr)
     yt, a, ht = -11.7, 3.1, 13.0
     n.quader((0, yt, ht / 2), (2 * a, 2 * a, ht), st["Tuff"], ohne=("-z",))
     bk.band4(n, st, 0, yt, a, 0.6, h=1.2, vor=0.1, stoff="Basalt")
@@ -273,7 +273,7 @@ def severin(st):
     bk.geruest(g, st, -a - 0.7, a + 0.7, yt - a - 0.7, yt + a + 0.7, 0.0, ht + 2.2, ebene=2.2)
     for k in range(3):                                  # Werksteine am Fuß
         g.quader((4.9, yt - 1.5 + 1.0 * k, 0.35), (0.8, 0.7, 0.7), st["Tuff"], ohne=("-z",))
-    # Tretradkran auf dem Stumpf (Bauteile vom Kölner Dom, Ausleger nach Osten über das Langhaus, der Haken über dem Dachfirst)
+    # Tretradkran auf dem Stumpf (Bauteile aus koelner_dom.kran_bauen, Ausleger nach Osten über das Langhaus, der Haken über dem Dachfirst)
     g.quader((0, yt, ht + 0.02), (2 * a - 1.2, 2 * a - 1.2, 0.14), st["Bretter"], ohne=("-z",))
     rad = bs.Netz("Tretrad", alle=True)
     kran = Vector((0.0, yt, 0.0))
