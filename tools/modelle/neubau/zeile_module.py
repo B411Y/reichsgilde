@@ -74,7 +74,8 @@ SAETZE = {
     "halbling_s2": dict(blatt="trim_s2_halbling", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=50, neig_t=45,
                         mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.7, putz_lage=1.6),
     "halbling_s3": dict(blatt="trim_s3_halbling", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.2, 2.8), neig_g=50, neig_t=45,
-                        mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.7, putz_lage=1.6),
+                        mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.7, putz_lage=1.6,
+                        first_v=(0.14, 0.17), grat_band="stroh_franse"),
 }
 BANDLAGE = {"bruchstein": 0.4, "putz": 1.6}      # natuerliche Hoehe eines Bandes in Metern (Bandhoehe x Breite des Bands / 2048)
 MODULE = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "seite_blind", "seite_offen", "kappe_brand", "kappe_offen", "gasse", "eck",
@@ -432,12 +433,13 @@ def first(d, a, b, seite_a, seite_b, unten_punkt):
     a, b = Vector(a), Vector(b)
     band = "stroh"
     v0, v1, m = BA[band]
+    fa, fb = S.get("first_v", (v0 + 0.06, v0 + 0.11))   # Halbling S3: oben im Band liegt Efeu (STROH_TEIL), der First nimmt das Kupfer
     for seite in (seite_a, seite_b):
         seite = Vector(seite)
         kamm_a, kamm_b = a + EZ * (0.14 if S["dach"] == "stroh" else 0.07), b + EZ * (0.14 if S["dach"] == "stroh" else 0.07)
         rand_a, rand_b = a + seite, b + seite
         laenge = (b - a).length
-        d.vieleck("Stroh", [rand_a, rand_b, kamm_b, kamm_a], [(0.5, v0 + 0.06), (0.5 + laenge / m, v0 + 0.06), (0.5 + laenge / m, v0 + 0.11), (0.5, v0 + 0.11)], weg_von=unten_punkt)
+        d.vieleck("Stroh", [rand_a, rand_b, kamm_b, kamm_a], [(0.5, fa), (0.5 + laenge / m, fa), (0.5 + laenge / m, fb), (0.5, fb)], weg_von=unten_punkt)
 
 
 def schornstein(h, x, y, z_unten, z_oben, b=0.55):
@@ -770,7 +772,7 @@ def eckhaus(modul):
     # Grate: schmale Kappen von den Ecken zur Spitze
     for ex, ey in ((0, oy), (Q + u, oy - u), (Q, B), (0, B)):
         a = Vector((ex, ey, dz(ex, ey))) + EZ * 0.02
-        h.brett("Stroh", a, spitze + EZ * 0.05, 0.22, (0, 0, 1), "stroh", tiefe=0.06, seiten=False)
+        h.brett("Stroh", a, spitze + EZ * 0.05, 0.22, (0, 0, 1), S.get("grat_band", "stroh"), tiefe=0.06, seiten=False)
     schornstein(h, B * 0.30, B * 0.70, z_t, spitze.z - 0.6)
     if S["erker"]:
         erker(h, Q, oy)
