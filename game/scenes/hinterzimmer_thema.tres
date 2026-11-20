@@ -3,13 +3,34 @@
 ; Das Thema des Hinterzimmers, „Das Schwarze Buch“ (19.11.2026): die Tafel als aufgeschlagenes Buch.
 ; Aussehen steht NUR hier, Logik in GaunerAnzeige*.cs, die Brücke ist HinterzimmerStil.cs.
 ; Typ-Varianten (Hz…) erben von einem Godot-Typ; Farben und Maße der Familie stehen unter den Pseudo-Typen HzFarben und HzMasse.
-; Einband: Leder (gekachelt), Seiten: Pergament. Beide Texturen sind fremde CC0-Aufnahmen und unverändert (Herkunft:
+; Einband: Leder (gekachelt), Seiten: Papier mit feinen Einschlüssen, pergamentfarben getönt. Beide Texturen sind fremde CC0-Aufnahmen und unverändert (Herkunft:
 ; game/assets/oberflaeche/hinterzimmer/HERKUNFT.md); dunkler bzw. wärmer wird nur hier über modulate_color, die Ausschnitte der
 ; linken und rechten Seite stehen in region_rect. Schrift auf den Seiten ist dunkle Tinte, auf dem Einband Gold.
 
 [ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
-[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/pergament.jpg" id="2_pergament"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/papier.jpg" id="2_papier"]
 [ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/leder.jpg" id="3_leder"]
+; Zeichen vor den Taten (dunkler Strich) und an den Lesebändern („_hell“), aus dem Entwurf übernommen (docs/assets/prompts/hinterzimmer_zeichen.md)
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/auge.svg" id="z_auge"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/blatt.svg" id="z_blatt"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/blume.svg" id="z_blume"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/brand.svg" id="z_brand"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/brief.svg" id="z_brief"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/dolch.svg" id="z_dolch"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/flamme.svg" id="z_flamme"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/flasche.svg" id="z_flasche"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/karren.svg" id="z_karren"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/kette.svg" id="z_kette"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/leute.svg" id="z_leute"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/leute_hell.svg" id="z_leute_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/mond.svg" id="z_mond"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/mond_hell.svg" id="z_mond_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/muenze.svg" id="z_muenze"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/sack.svg" id="z_sack"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/sack_hell.svg" id="z_sack_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schild.svg" id="z_schild"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schild_hell.svg" id="z_schild_hell"]
+[ext_resource type="Texture2D" path="res://assets/oberflaeche/hinterzimmer/zeichen/schluessel.svg" id="z_schluessel"]
 
 ; ── Einband und Seiten ──
 [sub_resource type="StyleBoxTexture" id="Einband"]
@@ -19,18 +40,18 @@ axis_stretch_vertical = 1
 modulate_color = Color(0.62, 0.5, 0.45, 1)
 
 [sub_resource type="StyleBoxTexture" id="SeiteLinks"]
-texture = ExtResource("2_pergament")
-region_rect = Rect2(0, 0, 900, 760)
-modulate_color = Color(0.9, 0.83, 0.68, 1)
+texture = ExtResource("2_papier")
+region_rect = Rect2(0, 0, 794, 600)
+modulate_color = Color(1, 0.93, 0.74, 1)
 content_margin_left = 16.0
 content_margin_top = 9.0
 content_margin_right = 14.0
 content_margin_bottom = 7.0
 
 [sub_resource type="StyleBoxTexture" id="SeiteRechts"]
-texture = ExtResource("2_pergament")
-region_rect = Rect2(124, 264, 900, 760)
-modulate_color = Color(0.9, 0.83, 0.68, 1)
+texture = ExtResource("2_papier")
+region_rect = Rect2(0, 424, 794, 600)
+modulate_color = Color(1, 0.93, 0.74, 1)
 content_margin_left = 14.0
 content_margin_top = 9.0
 content_margin_right = 16.0
@@ -79,7 +100,7 @@ shadow_size = 18
 
 ; Zettel über dem Buch: Sperre (rot), Post (ocker), Rückmeldung
 [sub_resource type="StyleBoxFlat" id="Sperre"]
-bg_color = Color(0.87, 0.77, 0.6, 1)
+bg_color = Color(0.82, 0.74, 0.57, 1)
 border_width_left = 7
 border_width_top = 1
 border_width_right = 1
@@ -95,7 +116,7 @@ content_margin_right = 10.0
 content_margin_bottom = 5.0
 
 [sub_resource type="StyleBoxFlat" id="Post"]
-bg_color = Color(0.87, 0.79, 0.6, 1)
+bg_color = Color(0.82, 0.75, 0.58, 1)
 border_width_left = 7
 border_width_top = 1
 border_width_right = 1
@@ -111,7 +132,7 @@ content_margin_right = 10.0
 content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="Zettel"]
-bg_color = Color(0.87, 0.79, 0.6, 1)
+bg_color = Color(0.82, 0.75, 0.58, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -286,7 +307,7 @@ content_margin_bottom = 5.0
 
 ; ── Register (Häuser): Reiter aus Pergament über der Seite ──
 [sub_resource type="StyleBoxFlat" id="Register"]
-bg_color = Color(0.66, 0.58, 0.42, 1)
+bg_color = Color(0.58, 0.51, 0.37, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -299,7 +320,7 @@ content_margin_right = 11.0
 content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="RegisterUeber"]
-bg_color = Color(0.78, 0.7, 0.52, 1)
+bg_color = Color(0.69, 0.62, 0.46, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -312,7 +333,7 @@ content_margin_right = 11.0
 content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="RegisterAn"]
-bg_color = Color(0.88, 0.8, 0.63, 1)
+bg_color = Color(0.79, 0.72, 0.55, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -382,7 +403,7 @@ content_margin_bottom = 0.0
 
 ; ── Chance als Balken ──
 [sub_resource type="StyleBoxFlat" id="BalkenGrund"]
-bg_color = Color(0.74, 0.66, 0.49, 1)
+bg_color = Color(0.68, 0.61, 0.45, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -425,20 +446,22 @@ HzFarben/colors/tinte_blass = Color(0.36, 0.27, 0.17, 1)
 HzFarben/colors/rot = Color(0.58, 0.08, 0.06, 1)
 HzFarben/colors/gruen = Color(0.12, 0.34, 0.11, 1)
 HzFarben/colors/gold = Color(0.86, 0.72, 0.4, 1)
+HzFarben/colors/initiale = Color(0.64, 0.15, 0.11, 1)
+HzFarben/colors/punktlinie = Color(0.235, 0.157, 0.04, 0.5)
 ; Breite und Mindesthöhe einer Buchseite, Umbruchbreiten, Spalten der Tat-Zeile, Breite der Lesebänder, freier Platz für ✕ und Nadel
-HzMasse/constants/seite_breite = 560
+HzMasse/constants/seite_breite = 594
 HzMasse/constants/seite_hoehe = 440
-HzMasse/constants/kopf_breite = 1060
-HzMasse/constants/schritt_breite = 900
-HzMasse/constants/text_breite = 520
-HzMasse/constants/text_breite_siegel = 450
+HzMasse/constants/kopf_breite = 1120
+HzMasse/constants/schritt_breite = 960
+HzMasse/constants/text_breite = 552
+HzMasse/constants/text_breite_siegel = 482
 HzMasse/constants/steckbrief_breite = 440
 HzMasse/constants/tat_breite = 270
 HzMasse/constants/chance_breite = 60
 HzMasse/constants/chance_hoehe = 8
 HzMasse/constants/kosten_breite = 58
 HzMasse/constants/aktion_breite = 100
-HzMasse/constants/band_breite = 150
+HzMasse/constants/band_breite = 168
 HzMasse/constants/band_oben = 14
 HzMasse/constants/kopf_frei = 22
 HzMasse/constants/register_hoehe = 29
@@ -446,6 +469,32 @@ HzMasse/constants/register_rechts = 40
 HzMasse/constants/zahlfeld_breite = 150
 HzMasse/constants/wappen = 52
 HzMasse/constants/siegel = 56
+; Zeichen vor einer Tat (Größe, Deckkraft der gesperrten Tat in Prozent), rote Initiale der Seitentitel, gepunktete Linie zwischen den Taten
+HzMasse/constants/zeichen = 27
+HzMasse/constants/zeichen_blass = 55
+HzMasse/constants/initiale_groesse = 34
+HzMasse/constants/punkt = 2
+HzMasse/constants/punktlinie_hoehe = 5
+HzZeichen/icons/auge = ExtResource("z_auge")
+HzZeichen/icons/blatt = ExtResource("z_blatt")
+HzZeichen/icons/blume = ExtResource("z_blume")
+HzZeichen/icons/brand = ExtResource("z_brand")
+HzZeichen/icons/brief = ExtResource("z_brief")
+HzZeichen/icons/dolch = ExtResource("z_dolch")
+HzZeichen/icons/flamme = ExtResource("z_flamme")
+HzZeichen/icons/flasche = ExtResource("z_flasche")
+HzZeichen/icons/karren = ExtResource("z_karren")
+HzZeichen/icons/kette = ExtResource("z_kette")
+HzZeichen/icons/leute = ExtResource("z_leute")
+HzZeichen/icons/leute_hell = ExtResource("z_leute_hell")
+HzZeichen/icons/mond = ExtResource("z_mond")
+HzZeichen/icons/mond_hell = ExtResource("z_mond_hell")
+HzZeichen/icons/muenze = ExtResource("z_muenze")
+HzZeichen/icons/sack = ExtResource("z_sack")
+HzZeichen/icons/sack_hell = ExtResource("z_sack_hell")
+HzZeichen/icons/schild = ExtResource("z_schild")
+HzZeichen/icons/schild_hell = ExtResource("z_schild_hell")
+HzZeichen/icons/schluessel = ExtResource("z_schluessel")
 
 ; ── Einband ──
 HzTafel/base_type = &"PanelContainer"
@@ -490,9 +539,8 @@ HzBlaetter/base_type = &"HBoxContainer"
 HzBlaetter/constants/separation = 0
 HzRegisterzeile/base_type = &"HBoxContainer"
 HzRegisterzeile/constants/separation = 3
-HzRaster/base_type = &"GridContainer"
-HzRaster/constants/h_separation = 8
-HzRaster/constants/v_separation = 2
+HzTatzeile/base_type = &"HBoxContainer"
+HzTatzeile/constants/separation = 8
 HzBuch/base_type = &"PanelContainer"
 HzBuch/styles/panel = SubResource("Buchblock")
 HzBlatt/base_type = &"PanelContainer"
@@ -518,10 +566,11 @@ HzAbstand/styles/separator = SubResource("Abstand")
 HzAbstand/constants/separation = 5
 
 ; ── Schrift auf Pergament: dunkle Tinte ──
-HzSeitentitel/base_type = &"Label"
-HzSeitentitel/fonts/font = ExtResource("1_titel")
-HzSeitentitel/font_sizes/font_size = 23
-HzSeitentitel/colors/font_color = Color(0.14, 0.09, 0.05, 1)
+; Seitentitel: RichTextLabel, weil die Initiale rot und größer ist (Farbe „initiale“, Größe „initiale_groesse“)
+HzSeitentitel/base_type = &"RichTextLabel"
+HzSeitentitel/fonts/normal_font = ExtResource("1_titel")
+HzSeitentitel/font_sizes/normal_font_size = 25
+HzSeitentitel/colors/default_color = Color(0.14, 0.09, 0.05, 1)
 HzGruppe/base_type = &"Label"
 HzGruppe/fonts/font = ExtResource("1_titel")
 HzGruppe/font_sizes/font_size = 19
@@ -576,6 +625,8 @@ HzBand1/styles/pressed = SubResource("Band1An")
 HzBand1/styles/hover_pressed = SubResource("Band1An")
 HzBand1/styles/disabled = SubResource("BandGesperrt")
 HzBand1/font_sizes/font_size = 15
+HzBand1/constants/icon_max_width = 20
+HzBand1/constants/h_separation = 6
 HzBand1/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 HzBand1/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
 HzBand1/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
@@ -588,6 +639,8 @@ HzBand2/styles/pressed = SubResource("Band2An")
 HzBand2/styles/hover_pressed = SubResource("Band2An")
 HzBand2/styles/disabled = SubResource("BandGesperrt")
 HzBand2/font_sizes/font_size = 15
+HzBand2/constants/icon_max_width = 20
+HzBand2/constants/h_separation = 6
 HzBand2/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 HzBand2/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
 HzBand2/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
@@ -600,6 +653,8 @@ HzBand3/styles/pressed = SubResource("Band3An")
 HzBand3/styles/hover_pressed = SubResource("Band3An")
 HzBand3/styles/disabled = SubResource("BandGesperrt")
 HzBand3/font_sizes/font_size = 15
+HzBand3/constants/icon_max_width = 20
+HzBand3/constants/h_separation = 6
 HzBand3/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 HzBand3/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
 HzBand3/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)
@@ -612,6 +667,8 @@ HzBand4/styles/pressed = SubResource("Band4An")
 HzBand4/styles/hover_pressed = SubResource("Band4An")
 HzBand4/styles/disabled = SubResource("BandGesperrt")
 HzBand4/font_sizes/font_size = 15
+HzBand4/constants/icon_max_width = 20
+HzBand4/constants/h_separation = 6
 HzBand4/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 HzBand4/colors/font_hover_color = Color(1, 0.97, 0.88, 1)
 HzBand4/colors/font_pressed_color = Color(1, 0.93, 0.7, 1)

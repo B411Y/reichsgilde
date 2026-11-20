@@ -188,12 +188,12 @@ public partial class GaunerAnzeige : PanelContainer
         HinterzimmerStil.Text(kopf, $"Bestellt: {bestellt.Count}", bestellt.Count > 0 ? "HzEinbandGold" : "HzEinbandText",
             tipp: "Was ihr für diese Nacht bestellt habt – die Liste steht im Kapitel „Heute Nacht“.");
         bandSpalte.AddChild(new Control { CustomMinimumSize = new Vector2(0, HinterzimmerStil.Mass("band_oben")) });
-        Band(bandSpalte, 1, Kapitel.Nacht, "Heute Nacht", bestellt.Count, "Was für diese Nacht bestellt ist und was zuletzt geschah.");
-        Band(bandSpalte, 2, Kapitel.Haeuser, "Die Häuser", 0, "Eine Doppelseite je Haus: alles, was ihr ihm antun könnt.");
-        Band(bandSpalte, 3, Kapitel.Leute, "Eigene Leute", 0, versteck is null
+        Band(bandSpalte, 1, "mond_hell", Kapitel.Nacht, "Heute Nacht", bestellt.Count, "Was für diese Nacht bestellt ist und was zuletzt geschah.");
+        Band(bandSpalte, 2, "sack_hell", Kapitel.Haeuser, "Die Häuser", 0, "Eine Doppelseite je Haus: alles, was ihr ihm antun könnt.");
+        Band(bandSpalte, 3, "leute_hell", Kapitel.Leute, "Eigene Leute", 0, versteck is null
             ? $"Eigene Leute hat nur, wer einen Betrieb als {w.Diebe.Daten.Beruf} führt."
             : "Eure Diebe: ausspähen, Schutzgeld verlangen, entführen.", gesperrt: versteck is null);
-        Band(bandSpalte, 4, Kapitel.Schutz, "Wachen, Briefe", post, "Wächter für eure Betriebe, Briefe an euch und eure eigenen Forderungen.");
+        Band(bandSpalte, 4, "schild_hell", Kapitel.Schutz, "Wachen, Briefe", post, "Wächter für eure Betriebe, Briefe an euch und eure eigenen Forderungen.");
 
         switch (_kapitel)
         {
@@ -244,12 +244,14 @@ public partial class GaunerAnzeige : PanelContainer
     }
 
     /// <summary>Ein Leseband am Buchrand (Farbe <paramref name="nummer"/> 1–4): schlägt sein Kapitel auf; das aufgeschlagene steht weiter heraus. <paramref name="zahl"/> &gt; 0 steht dahinter.</summary>
-    private void Band(Container eltern, int nummer, Kapitel kapitel, string name, int zahl, string tipp, bool gesperrt = false)
+    private void Band(Container eltern, int nummer, string zeichen, Kapitel kapitel, string name, int zahl, string tipp, bool gesperrt = false)
     {
         var band = HinterzimmerStil.Knopf(eltern, zahl > 0 ? $"{name} ({zahl})" : name, () => Aufschlagen(kapitel), $"HzBand{nummer}", tipp, gesperrt);
         band.ToggleMode = true;
         band.ButtonPressed = kapitel == _kapitel;
         band.Alignment = HorizontalAlignment.Left;
+        band.Icon = HinterzimmerStil.Zeichen(zeichen);
+        band.ExpandIcon = true;
         band.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("band_breite"), 0);
         band.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
     }
@@ -277,27 +279,26 @@ public partial class GaunerAnzeige : PanelContainer
         Aufbauen();
     }
 
-    /// <summary>Überschrift einer Gruppe von Taten und das Raster ihrer Zeilen (vier Spalten: Tat, Chance, Kosten, Knopf).</summary>
-    private static GridContainer Gruppe(Container seite, string titel, string tipp = "")
+    /// <summary>Überschrift einer Gruppe von Taten (mit Tintenlinie) und die Spalte ihrer Zeilen.</summary>
+    private static VBoxContainer Gruppe(Container seite, string titel, string tipp = "")
     {
         if (seite.GetChildCount() > 0) HinterzimmerStil.Container<HSeparator>(seite, "HzAbstand");
         HinterzimmerStil.Text(seite, titel, "HzGruppe", tipp: tipp);
         HinterzimmerStil.Container<HSeparator>(seite, "HzGruppenlinie");
-        var raster = HinterzimmerStil.Container<GridContainer>(seite, "HzRaster");
-        raster.Columns = 4;
-        return raster;
+        return HinterzimmerStil.Container<VBoxContainer>(seite, "HzDicht");
     }
 
     /// <summary>
-    /// Eine Tat als Zeile mit festen Spalten: Name (mit Marke „Kerker“ bei schweren Vergehen) und darunter die Folge, Chance als Balken,
-    /// Kosten (Preis und Aktionspunkte), Knopf. Zustände:
+    /// Eine Tat als Zeile mit festen Spalten: Zeichen (<paramref name="zeichen"/>, Name im Thema), Name (mit Marke „Kerker“ bei schweren
+    /// Vergehen) und darunter die Folge, Chance als Balken, Kosten (Preis und Aktionspunkte), Knopf. Zwischen zwei Zeilen einer Gruppe steht
+    /// eine gepunktete Linie. Zustände:
     ///   • <paramref name="bestellt"/> gesetzt: der Text steht golden statt der Folge, statt des Knopfs <paramref name="bestelltKurz"/>;
     ///   • Hauptsperre (Kerker, Raum fehlt – Grund oben in der Sperrleiste): Zeile grau, statt des Knopfs „gesperrt“;
     ///   • <paramref name="grund"/> gesetzt oder zu wenig Aktionspunkte: der Grund steht rot statt der Folge, der Knopf ist gesperrt.
     /// <paramref name="muster"/> ist ein Befehl derselben Art (für Raum und Aktionspunkte zählt nur die Art), <paramref name="feld"/> ein
     /// Eingabefeld unter dem Namen (Betrag, Auswahl), das nur bei bestellbarer Tat erscheint.
     /// </summary>
-    private void Tat(GridContainer raster, string name, string folge, Befehl muster, Action bestellen, double? chance = null, string preis = "",
+    private void Tat(VBoxContainer raster, string zeichen, string name, string folge, Befehl muster, Action bestellen, double? chance = null, string preis = "",
         string? bestellt = null, string bestelltKurz = "bestellt", string? grund = null, string tipp = "", bool schwer = false, Control? feld = null,
         string knopf = "Bestellen")
     {
@@ -308,7 +309,10 @@ public partial class GaunerAnzeige : PanelContainer
         if (bestellt is not null || haupt is not null) grund = null;
         var zu = bestellt is null && (haupt is not null || grund is not null);
 
-        var tatSpalte = HinterzimmerStil.Container<VBoxContainer>(raster, "HzDicht");
+        if (raster.GetChildCount() > 0) raster.AddChild(new HinterzimmerPunktlinie());
+        var zeile = HinterzimmerStil.Container<HBoxContainer>(raster, "HzTatzeile");
+        HinterzimmerStil.ZeichenBild(zeile, zeichen, zu);
+        var tatSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
         tatSpalte.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         var kopf = HinterzimmerStil.Container<HBoxContainer>(tatSpalte, "HzEng");
         HinterzimmerStil.Text(kopf, name, zu ? "HzGesperrt" : "HzText", tipp: tipp);
@@ -322,7 +326,7 @@ public partial class GaunerAnzeige : PanelContainer
             else tatSpalte.AddChild(feld);
         }
 
-        var chanceSpalte = HinterzimmerStil.Container<VBoxContainer>(raster, "HzDicht");
+        var chanceSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
         chanceSpalte.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("chance_breite"), 0);
         if (chance is { } c)
         {
@@ -330,12 +334,12 @@ public partial class GaunerAnzeige : PanelContainer
             HinterzimmerStil.Chance(chanceSpalte, c, zu);
         }
 
-        var kostenSpalte = HinterzimmerStil.Container<VBoxContainer>(raster, "HzDicht");
+        var kostenSpalte = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
         kostenSpalte.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("kosten_breite"), 0);
         if (preis != "") HinterzimmerStil.Text(kostenSpalte, preis, zu ? "HzGesperrt" : "HzText", tipp: $"Preis in {_waehrung}, bezahlt im Voraus.");
         if (ap > 0) HinterzimmerStil.Text(kostenSpalte, $"{ap} AP", "HzKlein", tipp: "Aktionspunkte, die diese Tat kostet.");
 
-        var aktion = HinterzimmerStil.Container<VBoxContainer>(raster, "HzDicht");
+        var aktion = HinterzimmerStil.Container<VBoxContainer>(zeile, "HzDicht");
         aktion.CustomMinimumSize = new Vector2(HinterzimmerStil.Mass("aktion_breite"), 0);
         if (bestellt is not null) HinterzimmerStil.Text(aktion, bestelltKurz, "HzGold", tipp: bestellt);
         else if (haupt is not null) HinterzimmerStil.Text(aktion, "gesperrt", "HzGesperrt", tipp: haupt);

@@ -17,7 +17,7 @@ public partial class GaunerAnzeige
 
     private void NachtSeiten(VBoxContainer links, VBoxContainer rechts, List<(Konto Ziel, string Text)> bestellt, int post)
     {
-        HinterzimmerStil.Text(links, "Heute Nacht", "HzSeitentitel");
+        HinterzimmerStil.Seitentitel(links, "Heute Nacht");
         HinterzimmerStil.Text(links, "Bestellt", "HzGruppe", tipp: "Diese Aufträge werden heute um 20 Uhr ausgeführt.");
         if (bestellt.Count == 0) HinterzimmerStil.Text(links, "Nichts bestellt. Taten bestellt ihr im Kapitel „Die Häuser“.", "HzKlein", "text_breite");
         foreach (var (_, text) in bestellt) HinterzimmerStil.Text(links, "• " + text, "HzText", "text_breite");
@@ -31,7 +31,7 @@ public partial class GaunerAnzeige
             HinterzimmerStil.Knopf(zeile, "Zu den Briefen", () => Aufschlagen(Kapitel.Schutz));
         }
 
-        HinterzimmerStil.Text(rechts, "Nachtgeschehen", "HzSeitentitel");
+        HinterzimmerStil.Seitentitel(rechts, "Nachtgeschehen");
         var unterwelt = _w.Gauner;
         var nachrichten = unterwelt.NachrichtenFuer(_spieler!, false).Reverse().Concat(unterwelt.NachrichtenFuer(_spieler!, true).Reverse()).Take(6).ToList();
         if (nachrichten.Count == 0) HinterzimmerStil.Text(rechts, "Noch ist nichts geschehen.", "HzKlein");
@@ -51,8 +51,8 @@ public partial class GaunerAnzeige
         var w = _w;
         var diebe = w.Diebe;
         var dd = diebe.Daten;
-        HinterzimmerStil.Text(links, "Eigene Leute", "HzSeitentitel",
-            tipp: "Die Gauner, die für euer Haus arbeiten: Sie spähen aus, stehlen und erpressen, immer nachts ab 20 Uhr.");
+        HinterzimmerStil.Seitentitel(links, "Eigene Leute",
+            "Die Gauner, die für euer Haus arbeiten: Sie spähen aus, stehlen und erpressen, immer nachts ab 20 Uhr.");
         HinterzimmerStil.Text(links, $"{versteck.Name} ({versteck.Artdaten.Name}, {versteck.Belegt} Diebe)", "HzText", "text_breite",
             "Das Versteck eurer Gauner: Stufe und Besetzung bestimmen, wie viele Aufträge je Nacht möglich sind.");
         HinterzimmerStil.Text(links, $"Noch {diebe.FreieAuftraege(_spieler!)} von {dd.AuftraegeJeStufe[versteck.Stufe - 1]} Aufträgen heute Nacht frei – sie kosten kein Geld, nur Aktionspunkte.",
@@ -82,9 +82,9 @@ public partial class GaunerAnzeige
             return;
         }
         var inhaber = haus.Inhaber;
-        HinterzimmerStil.Text(rechts, $"Gegen {inhaber}", "HzSeitentitel", tipp: "Das Haus wählt ihr im Register über dem Buch.");
+        HinterzimmerStil.Seitentitel(rechts, $"Gegen {inhaber}", "Das Haus wählt ihr im Register über dem Buch.");
         var raster = Gruppe(rechts, "Aufträge an eure Leute");
-        Tat(raster, "Auskundschaften", "Je unbekannte Tat ein Beweis möglich. Keine Spur.",
+        Tat(raster, "auge", "Auskundschaften", "Je unbekannte Tat ein Beweis möglich. Keine Spur.",
             new Auskundschaften(""), () => Befehlen(new Auskundschaften(inhaber)), chance: dd.Auskundschaften.Chance, preis: "frei",
             bestellt: diebe.Auftraege.Any(a => a.Dieb == _spieler && a.Ziel == haus && a.Art == Diebesstueck.Auskundschaften) ? "Eure Leute spähen heute Nacht aus." : null,
             grund: diebe.Verboten(_spieler!, Diebesstueck.Auskundschaften),
@@ -93,7 +93,7 @@ public partial class GaunerAnzeige
         var brand = diebe.DrohenderBrand(haus, _spieler!);
         var schutzVorschlag = Math.Max(100, Math.Round(brand * 0.8 / 50) * 50);
         var schutzOffen = diebe.BriefAn(haus, _spieler!, Diebesbriefart.Schutzgeld);
-        Tat(raster, "Schutzgeld", $"Sonst brennt sein Betrieb (Schaden ≈ {Zahlenformat.Ganz(brand)}).",
+        Tat(raster, "muenze", "Schutzgeld", $"Sonst brennt sein Betrieb (Schaden ≈ {Zahlenformat.Ganz(brand)}).",
             new SchutzgeldFordern("", 0), () => Befehlen(new SchutzgeldFordern(inhaber, _schutzgeld.GetValueOrDefault(inhaber, schutzVorschlag))),
             preis: "frei", feld: Betragsfeld(_schutzgeld, inhaber, schutzVorschlag, 50, 20_000, 50), knopf: "Fordern",
             bestellt: schutzOffen is not null ? $"{Gulden(schutzOffen.Betrag)} verlangt – wartet auf Antwort." : null, bestelltKurz: "verlangt",
@@ -115,7 +115,7 @@ public partial class GaunerAnzeige
             eingabe.AddChild(wahl);
             eingabe.AddChild(Betragsfeld(_loesegeld, inhaber, loeseVorschlag, 100, 50_000, 100));
         }
-        Tat(raster, "Entführung", "Lösegeld bis Ende nächsten Jahres.",
+        Tat(raster, "kette", "Entführung", "Lösegeld bis Ende nächsten Jahres.",
             new Entfuehren("", 0, 0), () => Befehlen(new Entfuehren(inhaber, personen[Math.Max(0, personen.FindIndex(p => p.Nummer == _geisel.GetValueOrDefault(inhaber)))].Nummer,
                 _loesegeld.GetValueOrDefault(inhaber, loeseVorschlag))),
             chance: diebe.Entfuehrungschance(_spieler!), preis: "frei", schwer: true, feld: eingabe, knopf: "Verschleppen",
@@ -136,7 +136,7 @@ public partial class GaunerAnzeige
         var diebe = w.Diebe;
 
         // ── Links: Wächter der eigenen Betriebe ──
-        HinterzimmerStil.Text(links, "Wachen", "HzSeitentitel");
+        HinterzimmerStil.Seitentitel(links, "Wachen");
         var eigene = w.Betriebe.Where(b => b.Konto == _spieler).ToList();
         if (eigene.Count == 0) HinterzimmerStil.Text(links, "Ihr habt keinen Betrieb, den ein Wächter schützen könnte.", "HzKlein", "text_breite");
         foreach (var b in eigene)
@@ -157,7 +157,7 @@ public partial class GaunerAnzeige
         HinterzimmerStil.Text(links, $"Ein Wächter senkt die Chance jeder Bande und erkennt sie zu {Prozent(g.ZeugenChanceWaechter)} statt {Prozent(g.ZeugenChance)}.", "HzKlein", "text_breite");
 
         // ── Rechts: Briefe an euch – Erpresserbriefe, dann Forderungen von Dieben ──
-        HinterzimmerStil.Text(rechts, "Briefe", "HzSeitentitel");
+        HinterzimmerStil.Seitentitel(rechts, "Briefe");
         HinterzimmerStil.Text(rechts, "An euch", "HzGruppe");
         var keine = true;
         foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == _spieler))

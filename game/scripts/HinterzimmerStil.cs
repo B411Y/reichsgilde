@@ -70,4 +70,41 @@ public static class HinterzimmerStil
         eltern.AddChild(balken);
         return balken;
     }
+
+    /// <summary>Ein Zeichen des Buchs (Familie „HzZeichen“ des Themas: „sack“, „flamme“, „dolch“ …, für die Lesebänder mit „_hell“); null, wenn es das Zeichen nicht gibt.</summary>
+    public static Texture2D? Zeichen(string name) => Thema.HasIcon(name, "HzZeichen") ? Thema.GetIcon(name, "HzZeichen") : null;
+
+    /// <summary>Das Zeichen vor einer Tat in der Größe „zeichen“; <paramref name="blass"/> (Deckkraft „zeichen_blass“ in Prozent) für eine gesperrte Tat. Ohne Zeichen bleibt der Platz frei, damit die Spalten bündig stehen.</summary>
+    public static TextureRect ZeichenBild(Node eltern, string name, bool blass)
+    {
+        var groesse = Mass("zeichen");
+        var bild = new TextureRect
+        {
+            Texture = Zeichen(name), CustomMinimumSize = new Vector2(groesse, groesse), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
+            MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            Modulate = blass ? new Color(1, 1, 1, Mass("zeichen_blass") / 100f) : Colors.White,
+        };
+        eltern.AddChild(bild);
+        return bild;
+    }
+
+    /// <summary>
+    /// Der Titel einer Seite in gebrochener Schrift mit roter, größerer Initiale wie im Entwurf (Typ „HzSeitentitel“; Farbe „initiale“ und
+    /// Größe „initiale_groesse“ aus dem Thema). Ein Label kann nur eine Farbe – darum ein RichTextLabel, das sich seinem Inhalt anpasst.
+    /// </summary>
+    public static RichTextLabel Seitentitel(Node eltern, string text, string tipp = "")
+    {
+        var sicher = text.Replace("[", "[lb]");
+        var erster = text.Length > 0 && text[0] != '[' ? text[..1] : "";
+        var rest = erster == "" ? sicher : sicher[1..];
+        var titel = new RichTextLabel
+        {
+            ThemeTypeVariation = "HzSeitentitel", BbcodeEnabled = true, FitContent = true, ScrollActive = false, AutowrapMode = TextServer.AutowrapMode.Off,
+            TooltipText = tipp, MouseFilter = Control.MouseFilterEnum.Pass, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
+            Text = erster == "" ? rest : $"[font_size={Mass("initiale_groesse")}][color=#{Farbe("initiale").ToHtml(false)}]{erster}[/color][/font_size]{rest}",
+        };
+        eltern.AddChild(titel);
+        return titel;
+    }
 }
