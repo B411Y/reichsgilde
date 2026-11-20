@@ -21,13 +21,25 @@ public static class Zeilenplan
     /// <summary>Breite eines Mauerstücks im Keil (m); Tor 3 m.</summary>
     public const float MauerStueck = 1f, TorBreite = 3f;
 
-    /// <summary>Ein Satz Module (Volk × Stufe): Traufhöhe, Dachneigungen (Tangens), Auskragung, Steinbau.</summary>
+    /// <summary>Ein Satz Module (Volk × Stufe): Traufhöhe (Summe der Geschosse), Dachneigungen (Tangens; Giebel- und Eckhaus bzw.
+    /// Traufhaus), Auskragung (0,4 m nur bei Fachwerk im Obergeschoss), Steinbau (Obergeschoss gemauert: am freien Ende die Brandwand).</summary>
     public sealed record Satz(string Name, string Volk, int Stufe, float Traufhoehe, float NeigungGiebel, float NeigungTrauf, float Krag, bool Stein);
 
     /// <summary>Die gebauten Sätze (Reihenfolge = Ebene im Array der Zeilen-AO-Atlanten <c>zeilen_ao_ebenen.png</c>).</summary>
     public static readonly Satz[] Saetze =
     {
         new("mensch_s1", "mensch", 1, 5.6f, Tan(50), Tan(45), 0.4f, false),
+        new("mensch_s2", "mensch", 2, 6.4f, Tan(52), Tan(45), 0.4f, false),
+        new("mensch_s3", "mensch", 3, 8.4f, Tan(52), Tan(45), 0f, true),
+        new("zwerg_s1", "zwerg", 1, 5.2f, Tan(45), Tan(40), 0f, true),
+        new("zwerg_s2", "zwerg", 2, 5.6f, Tan(48), Tan(42), 0.4f, false),
+        new("zwerg_s3", "zwerg", 3, 8f, Tan(48), Tan(42), 0f, true),
+        new("elb_s1", "elb", 1, 6f, Tan(58), Tan(52), 0f, false),
+        new("elb_s2", "elb", 2, 6.4f, Tan(58), Tan(52), 0.4f, false),
+        new("elb_s3", "elb", 3, 8.4f, Tan(58), Tan(52), 0f, true),
+        new("halbling_s1", "halbling", 1, 4f, Tan(48), Tan(45), 0.4f, false),
+        new("halbling_s2", "halbling", 2, 5.6f, Tan(50), Tan(45), 0.4f, false),
+        new("halbling_s3", "halbling", 3, 6f, Tan(50), Tan(45), 0f, true),
     };
 
     static float Tan(float grad) => MathF.Tan(grad * MathF.PI / 180f);

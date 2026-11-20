@@ -20,3 +20,11 @@ Gasse; Schmalhaus mindestens 4 m; Völker in einer Zeile mischen; schräge Knick
 k_g4, k_g6, k_g8 (giebelständig), k_t6, k_t8 (traufständig), seite_blind, seite_offen (Traufseiten der Giebelhäuser), kappe_brand,
 kappe_offen (Giebelseiten der Traufhäuser), gasse (halbe Traufgasse), eck (Eckhaus 8 × 8), mauer, pfeiler, tor (Keilstück),
 hinterhaus (Schuppen); AO-Atlas `zeile_<volk>_s<stufe>_ao_atlas.png` mit 4 × 4 Zellen zu 512 Bildpunkten.
+
+## Bau, Array und Prüfung
+
+`tools/modelle/neubau/zeile_module.py --satz=<satz>` baut die 15 Module, backt die Verdeckung je Modul mit den echten Nachbarmodulen
+als Schattenwerfer und exportiert die GLB; `tools/modelle/neubau/zeile_ao_ebenen.py` (Python 3 mit numpy und Pillow) packt die Atlanten
+aller Sätze in der Reihenfolge von `SAETZE` zum Array `zeilen_ao_ebenen.png`; `tools/modelle/neubau/zeile_pruefung.py --satz=<satz>`
+prüft die exportierte GLB (Dreiecke, Rahmen, Verdeckung, Bandüberlauf, Nähte aller Nachbarschaften). Stufe A1 (Satz `mensch_s1`,
+Planung `Zeilenplan.cs`, Darstellung `Stadtansicht.Zeilen.cs`, Probe `--zeilenprobe`) entstand am selben Tag auf der NAS.

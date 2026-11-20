@@ -229,7 +229,9 @@ static class ZeilenplanTests
                 // Traufhöhe und Dachneigungen wie im Bauskript (die Nachbarregel rechnet damit)
                 var werte = namen[i].Groups[2].Value;
                 float Wert(string name) => float.Parse(Regex.Match(werte, name + @"=([0-9.]+)").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
-                Pruefe.Ungefaehr(Wert("z_traufe"), s.Traufhoehe, 1e-4);
+                var geschosse = Regex.Match(werte, @"geschosse=\(([0-9., ]+)\)").Groups[1].Value.Split(',').Sum(g => float.Parse(g.Trim(), System.Globalization.CultureInfo.InvariantCulture));
+                Pruefe.Ungefaehr(geschosse, s.Traufhoehe, 1e-4);   // Traufhöhe = Summe der Geschosse
+                Pruefe.Gleich(Regex.IsMatch(werte, @"og=""mauer"""), s.Stein, $"Steinbau = gemauertes Obergeschoss ({s.Name})");
                 Pruefe.Ungefaehr(Math.Tan(Wert("neig_g") * Math.PI / 180), s.NeigungGiebel, 1e-4);
                 Pruefe.Ungefaehr(Math.Tan(Wert("neig_t") * Math.PI / 180), s.NeigungTrauf, 1e-4);
                 Pruefe.Gleich(Regex.IsMatch(werte, @"og=""fachwerk""") ? 0.4f : 0f, s.Krag, $"Auskragung nur bei Fachwerk ({s.Name})");

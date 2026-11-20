@@ -12,7 +12,7 @@ namespace Reichsgilde;
 /// verschmolzen (Flächen: Trim, Strohkanten, Fenster): Ebene, AO-Ebene, Putz- und Akzentfarbe trägt jede Ecke (CUSTOM0/1,
 /// <c>building_trim_zeile.gdshader</c>), so stehen Häuser verschiedener Völker und Stufen in einer Zeile mit einem Material.
 /// Die Türen liegen als Knoten „Tuer_&lt;Parzelle&gt;“ an der Zeile, die Sperrfläche ist der Grundriss des Erdgeschosses je Haus.
-/// Startoption <c>--zeilenprobe=&lt;1|2|3&gt;[@x,z]</c>: feste Probezeilen (ohne Kern, ohne Kartenänderung).
+/// Startoption <c>--zeilenprobe=&lt;1|2|3|4|5&gt;[@x,z]</c>: feste Probezeilen (ohne Kern, ohne Kartenänderung).
 /// </summary>
 public partial class Stadtansicht
 {
@@ -242,7 +242,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Startoption <c>--zeilenprobe=&lt;1|2|3&gt;[@x,z]</c> (aus <see cref="NeubauProbeStarten"/>): Probezeilen um die Stelle x,z
+    /// Startoption <c>--zeilenprobe=&lt;1|2|3|4|5&gt;[@x,z]</c> (aus <see cref="NeubauProbeStarten"/>; 4 und 5: <see cref="ZeilenProbeVoelker"/>): Probezeilen um die Stelle x,z
     /// (Standard −38, 22), ohne Kern und ohne Kartenänderung. <c>1</c>: Zeile mit rechtem Knick, die Häuser links der Laufrichtung –
     /// Schenkel A Bürgerhäuser mit dem Giebel zur Gasse (6, 4, 8 m; Traufgassen dazwischen) und das Eckhaus, Schenkel B um die Ecke
     /// eine Kulissenzeile mit der Traufe zur Gasse (6, 8, 6 m). <c>2</c>: dieselbe Zeile mit schrägem Knick (45°) – statt des
@@ -257,6 +257,7 @@ public partial class Stadtansicht
         if (teile.Length == 2 && teile[1].Split(',') is { Length: 2 } xz
             && float.TryParse(xz[0], System.Globalization.CultureInfo.InvariantCulture, out var x)
             && float.TryParse(xz[1], System.Globalization.CultureInfo.InvariantCulture, out var z)) ort = new Vector2(x, z);
+        if (teile[0] is "4" or "5") { ZeilenProbeVoelker(teile[0] == "5", ort); return; }
         var s = ZeilenProbeSatz;
         string B(int breite) => Zeilenplan.Koerper(Zeilenplan.Zeilenart.Buerger, breite);
         string K(int breite) => Zeilenplan.Koerper(Zeilenplan.Zeilenart.Kulisse, breite);
@@ -276,6 +277,40 @@ public partial class Stadtansicht
         // Gegenüber (6 m Gasse): von Westen nach Osten, dann nach Süden; die Häuser stehen rechts (südlich bzw. westlich)
         var gegen = new List<(float, float)> { (anfang.Item1, anfang.Item2 + 6), (knick.Item1, knick.Item2 + 6), (knick.Item1, knick.Item2 + 32) };
         ZeileBauen("Probe_gegen", gegen, false, new List<Zeilenplan.Haus> { new(s, K(6)), new(s, B(6)), new(s, K(6)), new(s, "eck"), new(s, B(4)), new(s, K(8)), new(s, B(6)) });
+    }
+
+    /// <summary>
+    /// Probezeilen aller Völker. <c>4</c> (gemischt): eine Zeile mit rechtem Knick, in der Menschen, Zwerge und Elben aller Stufen
+    /// nebeneinander wohnen, die Halblinge am Zeilenende (Nutzer 20.11.2026). <c>5</c> (Muster): je Volk eine eigene Zeile, 30 m
+    /// hintereinander (Mensch bei x,z, dann Zwerg, Elb, Halbling nach Norden) – Stufe 1 bis 3 als Giebel- und Traufhaus, das
+    /// Eckhaus der Stufe 3 und um die Ecke je ein Haus der Stufen 3 und 2.
+    /// </summary>
+    private void ZeilenProbeVoelker(bool muster, Vector2 ort)
+    {
+        static Zeilenplan.Haus H(string satz, string modul) => new(satz, modul);
+        if (!muster)
+        {
+            var linie = new List<(float, float)> { (ort.X - 26, ort.Y + 8), (ort.X + 8, ort.Y + 8), (ort.X + 8, ort.Y - 40) };
+            ZeileBauen("Probe_gemischt", linie, true, new List<Zeilenplan.Haus>
+            {
+                H("mensch_s1", "k_g6"), H("mensch_s2", "k_g6"), H("mensch_s3", "k_g8"), H("zwerg_s2", "k_g6"), H("zwerg_s3", "eck"),
+                H("elb_s1", "k_t6"), H("elb_s2", "k_t8"), H("elb_s3", "k_g6"), H("zwerg_s1", "k_t6"),
+                H("halbling_s2", "k_g6"), H("halbling_s3", "k_g4"), H("halbling_s1", "k_g4"),
+            });
+            return;
+        }
+        var voelker = new[] { "mensch", "zwerg", "elb", "halbling" };
+        for (var i = 0; i < voelker.Length; i++)
+        {
+            var v = voelker[i];
+            var z = ort.Y + 8 - i * 30;
+            var linie = new List<(float, float)> { (ort.X - 30, z), (ort.X + 8, z), (ort.X + 8, z - 20) };
+            ZeileBauen("Probe_" + v, linie, true, new List<Zeilenplan.Haus>
+            {
+                H(v + "_s1", "k_g6"), H(v + "_s1", "k_t6"), H(v + "_s2", "k_g6"), H(v + "_s2", "k_t6"), H(v + "_s3", "k_g6"), H(v + "_s3", "eck"),
+                H(v + "_s3", "k_t6"), H(v + "_s2", "k_g6"),
+            });
+        }
     }
 
     /// <summary>Satz der Probezeilen: <c>--zeilensatz=&lt;name&gt;</c> (Standard mensch_s1; unbekannte Namen fallen darauf zurück).</summary>
