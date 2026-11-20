@@ -77,6 +77,7 @@ public static partial class TalentbaumAnsicht
                 foreach (var seite in new[] { "left", "right", "top", "bottom" }) zelle.AddThemeConstantOverride($"margin_{seite}", 4);
                 var grund = frei ? new Color(0.17f, 0.15f, 0.12f) : new Color(0.10f, 0.10f, 0.10f);
                 feld.Zelle(zelle, grund, new Color(0.35f, 0.30f, 0.22f, frei ? 0.7f : 0.3f));
+                zelle.SetMeta(FensterStil.Stoff, FensterStil.Dunkel); // die Zelle bleibt eine dunkle Fläche: ihre Schrift bleibt hell, auch im Fenster auf Pergament
                 raster.AddChild(zelle);
                 var inhalt = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
                 inhalt.AddThemeConstantOverride("separation", 6);

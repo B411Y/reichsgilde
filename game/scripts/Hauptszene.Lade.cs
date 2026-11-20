@@ -172,6 +172,32 @@ public partial class Hauptszene
     }
 
     /// <summary>
+    /// Der Hinweis am Feld Gulden (Entwurf: „Gulden: 4.000 · dieses Jahr +312“ mit den Posten darunter): Bargeld, der Gewinn des laufenden Jahres aus
+    /// der Jahresrechnung des Kerns (<see cref="Jahresbilanz.Gewinn"/>) mit jedem Posten, der schon etwas enthält, darunter das Reinvermögen.
+    /// Die zweite Ebene liefert das Lexikon: Begriffe wie die Umsatzsteuer sind unterstrichen und erklären sich im eigenen Hinweis.
+    /// </summary>
+    private static string GuldenTipp(Konto konto, string waehrung)
+    {
+        var l = konto.Laufend;
+        var zeilen = new List<string> { $"{waehrung}: {Zahlenformat.Ganz(konto.Vermoegen)} · dieses Jahr bisher {{{{{Zahlenformat.MitVorzeichen(l.Gewinn)}}}}}" };
+        void Posten(string name, double wert)
+        {
+            if (Math.Abs(wert) >= 0.5) zeilen.Add($"  {name} {{{{{Zahlenformat.MitVorzeichen(wert)}}}}}");
+        }
+        Posten("Umsatz", l.Umsatz);
+        Posten("Zutaten", -l.Zutaten);
+        Posten("Löhne", -l.Personal);
+        Posten("Handgeld", -l.Handgeld);
+        Posten("Unterhalt", -l.Fixkosten);
+        Posten("[[umsatzsteuer|Umsatzsteuer]]", -l.Steuer);
+        Posten("Fahrten", -l.Transport);
+        Posten("Schaden", -l.Schaden);
+        zeilen.Add("Löhne und Unterhalt werden am Jahresende fällig.");
+        zeilen.Add(WohnhausAnzeige.VermoegenTeile(konto, waehrung));
+        return string.Join("\n", zeilen);
+    }
+
+    /// <summary>
     /// Ein Werte-Feld der Schiene: Symbol (wenn es eines gibt), Wert und Beschriftung – <paramref name="wertZuerst"/>: „4.000 Gulden“, sonst
     /// „AP 4/12“; dahinter ein Zusatz (z. B. „ruhig“). Es fängt die Maus nur für seinen Hinweis.
     /// </summary>
@@ -330,7 +356,8 @@ public partial class Hauptszene
         Setzen(_wertGeld.Name, waehrung);
         Setzen(_wertGeld.Wert, Zahlenformat.Ganz(_spieler.Vermoegen));
         LadeStil.Variante(_wertGeld.Wert, _spieler.Reinvermoegen < 0 ? "LadeWertSchlecht" : "LadeWert");
-        _wertGeld.Feld.TooltipText = WohnhausAnzeige.VermoegenTeile(_spieler, waehrung);
+        var geldTipp = GuldenTipp(_spieler, waehrung);
+        if (_wertGeld.Feld.TooltipText != geldTipp) _wertGeld.Feld.TooltipText = geldTipp;
         Setzen(_wertAnsehen.Wert, Zahlenformat.Ganz(w.Rat.Ansehen(_spieler)));
         _wertAnsehen.Feld.TooltipText = $"Ansehen eures Hauses, aus Stand und Vermögen.\n{WohnhausAnzeige.StandText(w, _spieler)}";
         var stress = oberhaupt is not null && w.Familien.StressDaten is not null && w.Familien.HatStress(oberhaupt);

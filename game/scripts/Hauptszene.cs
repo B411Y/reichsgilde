@@ -1064,6 +1064,7 @@ public partial class Hauptszene : Node
     {
         var (tafel, spalte) = Hauptmenue.Tafel(420);
         _spielmenue = tafel;
+        FensterStil.Bekleiden(tafel);
         var mitte = Hauptmenue.Mitte();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(mitte);
         mitte.AddChild(tafel);
@@ -1107,6 +1108,7 @@ public partial class Hauptszene : Node
             }
         };
         _einstellungen = new EinstellungenAnzeige(EinstellungenSchliessen);
+        FensterStil.Bekleiden(_einstellungen.Tafel); // im Spiel auf Pergament; im Hauptmenü bleibt dieselbe Tafel dunkel wie das Menü
         mitte.AddChild(_einstellungen.Tafel);
         _einstellungen.Tafel.Hide();
 

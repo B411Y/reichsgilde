@@ -107,7 +107,7 @@ public partial class FamilienAnzeige : PanelContainer
         var schliessen = Hauptmenue.Knopf(spalte, "Schließen", Hide);
         schliessen.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         Rollbereich.Einhuellen(this);
-        Fensterrahmen.Anmelden(this, "Familie", festhaltbar: true);
+        Fensterrahmen.Anmelden(this, "Familie", festhaltbar: true, titel: "Familie");
         Hide();
     }
 

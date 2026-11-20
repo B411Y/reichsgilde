@@ -54,6 +54,7 @@ public partial class JahresberichtAnzeige : PanelContainer
         _weiter.Pressed += () => { Hide(); Geschlossen?.Invoke(); };
         spalte.AddChild(_weiter);
         Rollbereich.Einhuellen(this);
+        FensterStil.Bekleiden(this);
         Hide();
     }
 
