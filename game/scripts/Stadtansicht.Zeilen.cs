@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Reichsgilde.Core;
+
+namespace Reichsgilde;
 
 /// <summary>
 /// Modulares Wohnhaussystem (Variante A, Nutzer 20.11.2026): Häuserzeilen aus Modulen – ein Teil der <c>partial class Stadtansicht</c>.
@@ -9,7 +12,7 @@ using Godot;
 /// verschmolzen (Flächen: Trim, Strohkanten, Fenster): Ebene, AO-Ebene, Putz- und Akzentfarbe trägt jede Ecke (CUSTOM0/1,
 /// <c>building_trim_zeile.gdshader</c>), so stehen Häuser verschiedener Völker und Stufen in einer Zeile mit einem Material.
 /// Die Türen liegen als Knoten „Tuer_&lt;Parzelle&gt;“ an der Zeile, die Sperrfläche ist der Grundriss des Erdgeschosses je Haus.
-/// Startoption <c>--zeilenprobe=1[@x,z]</c>: eine feste Probezeile mit Ecke (ohne Kern, ohne Kartenänderung).
+/// Startoption <c>--zeilenprobe=&lt;1|2|3&gt;[@x,z]</c>: feste Probezeilen (ohne Kern, ohne Kartenänderung).
 /// </summary>
 public partial class Stadtansicht
 {
@@ -101,7 +104,8 @@ public partial class Stadtansicht
     /// </summary>
     private Node3D? ZeileBauen(string kennung, IReadOnlyList<(float X, float Z)> linie, bool links, IReadOnlyList<Zeilenplan.Haus> haeuser)
     {
-        var lagen = Zeilenplan.Planen(linie, links, haeuser);
+        var lagen = Zeilenplan.Planen(linie, links, haeuser, out var gestellt);
+        if (gestellt < haeuser.Count) GD.PushWarning($"[zeilen] {kennung}: nur {gestellt} von {haeuser.Count} Häusern haben Platz auf der Vorderlinie");
         var knoten = new Node3D { Name = "Zeile_" + kennung };
         AddChild(knoten);
         var sammler = new Dictionary<string, ZeilenSammler> { ["trim"] = new(), ["kante"] = new(), ["fenster"] = new() };
@@ -120,17 +124,20 @@ public partial class Stadtansicht
             var lage = ZeilenLage(l, y);
             foreach (var (felder, art) in modul.Flaechen)
                 sammler[art].Hinzu(felder, lage, new Color(putz.R, putz.G, putz.B, ebene), new Color(akzent.R, akzent.G, akzent.B, aoEbene));
-            if (modul.Tuer is { } tuer && !l.Gespiegelt)
+            // Körper (Haus) oder Seitenstück? Ein gespiegelter Körper ist das Eckhaus rechts der Laufrichtung.
+            var koerper = Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0;
+            var gerade = ZeilenLage(l with { Gespiegelt = false }, y);   // ohne Spiegelung: für Türknoten und Sperrfläche
+            if (modul.Tuer is { } tuer && koerper)
             {
-                knoten.AddChild(new Node3D { Name = $"Tuer_{l.Parzelle}", Transform = lage * new Transform3D(Basis.Identity, tuer) });
+                knoten.AddChild(new Node3D { Name = $"Tuer_{l.Parzelle}", Transform = new Transform3D(gerade.Basis, lage * tuer) });
                 tueren++;
             }
-            if (Zeilenplan.Breite(l.Modul) > 0 && !l.Gespiegelt)
+            if (koerper)
             {
                 // Sperrfläche: Erdgeschoss (ohne Auskragung, ohne Dach); Giebelhäuser ohne die halbe Traufgasse
                 var ein = Zeilenplan.StellungVon(l.Modul) == Zeilenplan.Stellung.Giebel ? Zeilenplan.Ein : 0f;
                 var halb = new Vector3(l.Breite / 2f - ein, 2f, Zeilenplan.Tiefe / 2f);
-                EgoMauerTeil(new Aabb(-halb, halb * 2f), lage * new Transform3D(Basis.Identity, new Vector3(l.Breite / 2f, 2f, -Zeilenplan.Tiefe / 2f)), $"Zeile {kennung} Haus {l.Parzelle}");
+                EgoMauerTeil(new Aabb(-halb, halb * 2f), gerade * new Transform3D(Basis.Identity, new Vector3(l.Breite / 2f, 2f, -Zeilenplan.Tiefe / 2f)), $"Zeile {kennung} Haus {l.Parzelle}");
             }
         }
         var netz = new ArrayMesh { ResourceName = "Zeile_" + kennung };
@@ -142,7 +149,7 @@ public partial class Stadtansicht
             netz.SurfaceSetMaterial(flaeche, art switch { "kante" => ZeilenStoff(true), "fenster" => FensterStoff(Fenstergruppe.Wohnen), _ => ZeilenStoff(false) });
         }
         knoten.AddChild(new MeshInstance3D { Name = "Netz", Mesh = netz });
-        GD.Print($"[zeilen] {kennung}: {lagen.Count} Module, {lagen.Count(l => Zeilenplan.Breite(l.Modul) > 0 && !l.Gespiegelt && l.Parzelle >= 0)} Häuser, "
+        GD.Print($"[zeilen] {kennung}: {lagen.Count} Module, {lagen.Count(l => Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0)} Häuser, "
                  + $"{netz.GetSurfaceCount()} Flächen, {sammler.Values.Sum(s => s.Dreiecke)} Dreiecke, {tueren} Türen");
         return knoten;
     }
@@ -235,24 +242,42 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Startoption <c>--zeilenprobe=1[@x,z]</c> (aus <see cref="NeubauProbeStarten"/>): die Probezeile des Konzepts (Kapitel 6) um die Stelle
-    /// x,z (Standard −38, 22): Schenkel A von links nach rechts Giebel 6, Giebel 4 (Traufgasse dazwischen), Trauf 6, Trauf 6 und das
-    /// Eckhaus am rechten Knick, Schenkel B um die Ecke Giebel 6, Trauf 8, Giebel 4 bis zum freien Ende. Ohne Kern, ohne Kartenänderung.
+    /// Startoption <c>--zeilenprobe=&lt;1|2|3&gt;[@x,z]</c> (aus <see cref="NeubauProbeStarten"/>): Probezeilen um die Stelle x,z
+    /// (Standard −38, 22), ohne Kern und ohne Kartenänderung. <c>1</c>: Zeile mit rechtem Knick, die Häuser links der Laufrichtung –
+    /// Schenkel A Bürgerhäuser mit dem Giebel zur Gasse (6, 4, 8 m; Traufgassen dazwischen) und das Eckhaus, Schenkel B um die Ecke
+    /// eine Kulissenzeile mit der Traufe zur Gasse (6, 8, 6 m). <c>2</c>: dieselbe Zeile mit schrägem Knick (45°) – statt des
+    /// Eckhauses das Keilstück (Hofmauer mit Tor). <c>3</c>: Zeile 1 und ihr gegenüber eine zweite, deren Häuser rechts der
+    /// Laufrichtung stehen (Gasse von 6 m dazwischen), alle Körper und Seitenstücke gemischt.
     /// </summary>
     private void ZeilenProbeStarten()
     {
         if (ZeilenProbe is not { Length: > 0 } probe || probe == "0") return;
         var ort = new Vector2(-38, 22);
-        if (probe.Split('@') is { Length: 2 } teile && teile[1].Split(',') is { Length: 2 } xz
+        var teile = probe.Split('@');
+        if (teile.Length == 2 && teile[1].Split(',') is { Length: 2 } xz
             && float.TryParse(xz[0], System.Globalization.CultureInfo.InvariantCulture, out var x)
             && float.TryParse(xz[1], System.Globalization.CultureInfo.InvariantCulture, out var z)) ort = new Vector2(x, z);
-        // Vorderlinie: 30 m nach Osten (22 m Häuser und das Eckhaus), dann 26 m nach Norden; die Häuser stehen links (nördlich bzw. westlich)
-        var linie = new List<(float, float)> { (ort.X - 22, ort.Y + 8), (ort.X + 8, ort.Y + 8), (ort.X + 8, ort.Y - 18) };
-        var s = "mensch_s1";
-        var haeuser = new List<Zeilenplan.Haus>
+        var s = ZeilenProbeSatz;
+        string B(int breite) => Zeilenplan.Koerper(Zeilenplan.Zeilenart.Buerger, breite);
+        string K(int breite) => Zeilenplan.Koerper(Zeilenplan.Zeilenart.Kulisse, breite);
+        var anfang = (ort.X - 18, ort.Y + 8);
+        var knick = (ort.X + 8, ort.Y + 8);
+        if (teile[0] == "2")
         {
-            new(s, "k_g6"), new(s, "k_g4"), new(s, "k_t6"), new(s, "k_t6"), new(s, "eck"), new(s, "k_g6"), new(s, "k_t8"), new(s, "k_g4"),
-        };
-        ZeileBauen("Probe", linie, true, haeuser);
+            // schräger Knick: 45° nach links, Innenwinkel 135° – je Schenkel bleiben 3,3 m frei, dort steht das Keilstück
+            var schraeg = new List<(float, float)> { anfang, knick, (knick.Item1 + 17, knick.Item2 - 17) };
+            ZeileBauen("Probe", schraeg, true, new List<Zeilenplan.Haus> { new(s, B(6)), new(s, B(4)), new(s, B(8)), new(s, K(6)), new(s, K(8)), new(s, K(6)) });
+            return;
+        }
+        // Vorderlinie: 26 m nach Osten (18 m Häuser und das Eckhaus), dann 28 m nach Norden; die Häuser stehen links (nördlich bzw. westlich)
+        var linie = new List<(float, float)> { anfang, knick, (knick.Item1, knick.Item2 - 28) };
+        ZeileBauen("Probe", linie, true, new List<Zeilenplan.Haus> { new(s, B(6)), new(s, B(4)), new(s, B(8)), new(s, "eck"), new(s, K(6)), new(s, K(8)), new(s, K(6)) });
+        if (teile[0] != "3") return;
+        // Gegenüber (6 m Gasse): von Westen nach Osten, dann nach Süden; die Häuser stehen rechts (südlich bzw. westlich)
+        var gegen = new List<(float, float)> { (anfang.Item1, anfang.Item2 + 6), (knick.Item1, knick.Item2 + 6), (knick.Item1, knick.Item2 + 32) };
+        ZeileBauen("Probe_gegen", gegen, false, new List<Zeilenplan.Haus> { new(s, K(6)), new(s, B(6)), new(s, K(6)), new(s, "eck"), new(s, B(4)), new(s, K(8)), new(s, B(6)) });
     }
+
+    /// <summary>Satz der Probezeilen: <c>--zeilensatz=&lt;name&gt;</c> (Standard mensch_s1; unbekannte Namen fallen darauf zurück).</summary>
+    private static string ZeilenProbeSatz => NeubauOption("--zeilensatz") is { Length: > 0 } name && Zeilenplan.SatzVon(name) is not null ? name : Zeilenplan.Saetze[0].Name;
 }

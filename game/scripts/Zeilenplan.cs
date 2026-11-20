@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+namespace Reichsgilde;
+
 /// <summary>
 /// Modulares Wohnhaussystem (Variante A, Nutzer 20.11.2026): Planung einer Häuserzeile ohne Godot – welche Module wo stehen.
 /// Eine Zeile hat eine Vorderlinie (Flucht, Knickpunkte), eine Seite, auf der die Häuser stehen, und eine Folge von Parzellen
@@ -43,6 +45,20 @@ public static class Zeilenplan
 
     public static Stellung StellungVon(string modul) => modul == "eck" ? Stellung.Eck : modul.StartsWith("k_g") ? Stellung.Giebel : Stellung.Trauf;
 
+    /// <summary>Art einer Zeile (Nutzer 20.11.2026): Spieler- und Bürgerhäuser stehen mit dem Giebel zur Gasse, Zeilen der Passanten
+    /// (Kulisse) mit der Traufe.</summary>
+    public enum Zeilenart { Buerger, Kulisse }
+
+    /// <summary>Das Körpermodul für eine Parzelle der Breite <paramref name="breite"/> (m) in einer Zeile dieser Art; leer, wenn es
+    /// keins gibt (Giebelhäuser 4, 6 und 8 m – schmaler als 4 m nur in Kulissenzeilen, dafür gibt es noch kein Modul –, Traufhäuser
+    /// 6 und 8 m).</summary>
+    public static string Koerper(Zeilenart art, int breite) => (art, breite) switch
+    {
+        (Zeilenart.Buerger, 4 or 6 or 8) => "k_g" + breite,
+        (Zeilenart.Kulisse, 6 or 8) => "k_t" + breite,
+        _ => "",
+    };
+
     /// <summary>Ein Haus einer Zeile: Satz und Körpermodul. <c>Modul</c> leer = freie Parzelle (Lücke) der Breite <c>Frei</c>.</summary>
     public sealed record Haus(string Satz, string Modul, float Frei = 0f)
     {
@@ -74,19 +90,20 @@ public static class Zeilenplan
     public readonly record struct Platz(Haus Haus, float X, int Index);
 
     /// <summary>
-    /// Die Module einer geraden Strecke: je Haus der Körper und nach der Nachbarregel die Seitenstücke. Nachbar ist ein Haus, das
-    /// Kante an Kante steht (freie Parzellen und Lücken: kein Nachbar). <paramref name="links"/>: Nachbar jenseits des Anfangs
-    /// (Eckhaus am Knick davor), sonst null.
+    /// Die Module einer geraden Strecke: je Haus der Körper und nach der Nachbarregel die Seitenstücke. Die Plätze sind von der Gasse
+    /// aus gesehen von links nach rechts geordnet. Nachbar ist ein Haus, das Kante an Kante steht (freie Parzellen und Lücken: kein
+    /// Nachbar). <paramref name="links"/> bzw. <paramref name="rechts"/>: Nachbar jenseits des Anfangs bzw. Endes (das Eckhaus am
+    /// Knick davor), sonst null.
     /// </summary>
-    public static List<Stueck> Stuecke(IReadOnlyList<Platz> plaetze, Haus? links = null)
+    public static List<Stueck> Stuecke(IReadOnlyList<Platz> plaetze, Haus? links = null, Haus? rechts = null)
     {
         var aus = new List<Stueck>();
         for (var i = 0; i < plaetze.Count; i++)
         {
             var (h, x, index) = plaetze[i];
             var w = h.Breite;
-            Haus? vor = i > 0 && MathF.Abs(plaetze[i - 1].X + plaetze[i - 1].Haus.Breite - x) < 0.05f ? plaetze[i - 1].Haus : i == 0 ? links : null;
-            Haus? nach = i + 1 < plaetze.Count && MathF.Abs(x + w - plaetze[i + 1].X) < 0.05f ? plaetze[i + 1].Haus : null;
+            Haus? vor = i > 0 ? (MathF.Abs(plaetze[i - 1].X + plaetze[i - 1].Haus.Breite - x) < 0.05f ? plaetze[i - 1].Haus : null) : links;
+            Haus? nach = i + 1 < plaetze.Count ? (MathF.Abs(x + w - plaetze[i + 1].X) < 0.05f ? plaetze[i + 1].Haus : null) : rechts;
             aus.Add(new Stueck(h.Satz, h.Modul, x, w, false, index));
             var satz = SatzVon(h.Satz)!;
             foreach (var (spiegel, n) in new[] { (false, vor), (true, nach) })
@@ -110,76 +127,87 @@ public static class Zeilenplan
     /// Gasse, von der Gasse aus nach rechts) und der Tiefe (in die Häuser hinein). Gespiegelt wie <see cref="Stueck"/>.</summary>
     public readonly record struct Lage(string Satz, string Modul, float Ox, float Oz, float Ex, float Ez, float Tx, float Tz, float Breite, bool Gespiegelt, int Parzelle);
 
+    /// <summary>Wie <see cref="Planen(IReadOnlyList{ValueTuple{float, float}}, bool, IReadOnlyList{Haus}, out int)"/>, ohne die Zahl der gestellten Häuser.</summary>
+    public static List<Lage> Planen(IReadOnlyList<(float X, float Z)> linie, bool links, IReadOnlyList<Haus> haeuser) => Planen(linie, links, haeuser, out _);
+
     /// <summary>
     /// Plant eine ganze Zeile entlang der Vorderlinie <paramref name="linie"/> (Punkte x/z). <paramref name="links"/>: die Häuser stehen
     /// links der Laufrichtung. Die Häuser werden der Reihe nach auf die Strecken verteilt; ein Eckhaus steht am Ende seiner Strecke
     /// (rechter Knick zur Häuserseite hin), die nächste Strecke beginnt dann um die Haustiefe versetzt. An schrägen Knicks zur
     /// Häuserseite bleibt je Strecke der Keil frei (Tiefe / tan(Winkel / 2)), dort steht die Hofmauer mit Tor; unter 60° nichts.
-    /// Passt ein Haus nicht mehr auf seine Strecke, beginnt es auf der nächsten (der Rest bleibt frei, die Kartenprüfung meldet das).
+    /// Passt ein Haus nicht mehr auf seine Strecke, beginnt es auf der nächsten. <paramref name="gestellt"/>: so viele Einträge der
+    /// Liste haben Platz gefunden (kleiner als die Liste: die Linie ist zu kurz, die Kartenprüfung soll das melden).
     /// </summary>
-    public static List<Lage> Planen(IReadOnlyList<(float X, float Z)> linie, bool links, IReadOnlyList<Haus> haeuser)
+    public static List<Lage> Planen(IReadOnlyList<(float X, float Z)> linie, bool links, IReadOnlyList<Haus> haeuser, out int gestellt)
     {
         var aus = new List<Lage>();
+        gestellt = 0;
         if (linie.Count < 2) return aus;
         var n = linie.Count - 1;
         // Freihalten je Streckenende/-anfang am Knick zur Häuserseite: (Ende von Strecke k, Anfang von Strecke k+1)
-        var vorEnde = new float[n]; var nachAnfang = new float[n];
-        var keile = new List<(int Knick, float Frei, float Winkel, string Satz)>();
+        var vorEnde = new float[n]; var nachAnfang = new float[n]; var recht = new bool[n]; var winkel = new float[n];
         for (var k = 0; k + 1 < n; k++)
         {
             var (ax, az) = Richtung(linie[k], linie[k + 1]);
             var (bx, bz) = Richtung(linie[k + 1], linie[k + 2]);
             var kreuz = ax * bz - az * bx;          // < 0: Linksdrehung (Godot von oben: x nach Osten, z nach Süden)
-            var zurHausseite = links ? kreuz < 0 : kreuz > 0;
+            var zurHausseite = links ? kreuz < -1e-4f : kreuz > 1e-4f;
             if (!zurHausseite) continue;
             var drehung = MathF.Acos(Math.Clamp(ax * bx + az * bz, -1f, 1f));   // Abweichung von gerade (0 = gerade)
             var innen = MathF.PI - drehung;                                        // Innenwinkel auf der Häuserseite
-            var frei = Tiefe / MathF.Tan(innen / 2f);
+            winkel[k] = innen * 180f / MathF.PI;
+            recht[k] = MathF.Abs(winkel[k] - 90f) <= 0.6f;
+            var frei = recht[k] ? Tiefe : Tiefe / MathF.Tan(innen / 2f);
             vorEnde[k] = frei; nachAnfang[k + 1] = frei;
-            if (MathF.Abs(innen * 180f / MathF.PI - 90f) > 0.6f) keile.Add((k, frei, innen * 180f / MathF.PI, haeuser.Count > 0 ? haeuser[0].Satz : Saetze[0].Name));
         }
         var hausIndex = 0;
         Haus? eckVorher = null;
-        for (var k = 0; k < n && hausIndex < haeuser.Count; k++)
+        var letzterSatz = haeuser.Count > 0 ? haeuser[0].Satz : Saetze[0].Name;
+        var mitEckAn = new bool[n];
+        for (var k = 0; k < n; k++)
         {
-            var (ax, az) = Richtung(linie[k], linie[k + 1]);
+            (float X, float Z) d = Richtung(linie[k], linie[k + 1]);
             var laenge = Abstand(linie[k], linie[k + 1]);
-            var rechterKnick = k + 1 < n && Math.Abs(vorEnde[k] - Tiefe) < 0.05f;
-            var start = nachAnfang[k];
             var ende = laenge - vorEnde[k];
             var plaetze = new List<Platz>();
-            var x = start;
-            var mitEck = false;
+            var x = nachAnfang[k];
             while (hausIndex < haeuser.Count)
             {
                 var h = haeuser[hausIndex];
                 if (h.Modul == "eck")
                 {
-                    if (!rechterKnick || x + h.Breite > laenge + 0.05f) break;
-                    plaetze.Add(new Platz(h, laenge - h.Breite, hausIndex)); hausIndex++; mitEck = true; break;
+                    if (!recht[k] || x + h.Breite > laenge + 0.05f) break;
+                    plaetze.Add(new Platz(h, laenge - h.Breite, hausIndex)); hausIndex++; mitEckAn[k] = true; break;
                 }
                 if (x + h.Breite > ende + 0.05f) break;
                 if (!h.Leer) plaetze.Add(new Platz(h, x, hausIndex));
                 x += h.Breite; hausIndex++;
             }
-            if (rechterKnick && !mitEck) keile.Add((k, Tiefe, 90f, plaetze.Count > 0 ? plaetze[^1].Haus.Satz : haeuser[0].Satz));
-            foreach (var s in Stuecke(plaetze, eckVorher)) aus.Add(ZuLage(s, linie[k], (ax, az), links));
-            eckVorher = mitEck ? plaetze[^1].Haus : null;
+            if (plaetze.Count > 0) letzterSatz = plaetze[^1].Haus.Satz;
+            // Nachbarregel in der Sicht von der Gasse: links der Laufrichtung läuft sie mit der Strecke, rechts gegen sie
+            List<Stueck> stuecke;
+            if (links) stuecke = Stuecke(plaetze, links: eckVorher);
+            else
+            {
+                var sicht = new List<Platz>();
+                for (var i = plaetze.Count - 1; i >= 0; i--) sicht.Add(plaetze[i] with { X = laenge - plaetze[i].X - plaetze[i].Haus.Breite });
+                stuecke = Stuecke(sicht, rechts: eckVorher);
+            }
+            foreach (var s in stuecke)
+            {
+                // Das Eckhaus zeigt seine zweite Schauseite zum Knick: rechts der Laufrichtung liegt er von der Gasse aus links, also gespiegelt
+                var st = !links && s.Modul == "eck" ? s with { Gespiegelt = true } : s;
+                aus.Add(links
+                    ? new Lage(st.Satz, st.Modul, linie[k].X + d.X * st.X0, linie[k].Z + d.Z * st.X0, d.X, d.Z, d.Z, -d.X, st.Breite, st.Gespiegelt, st.Parzelle)
+                    : new Lage(st.Satz, st.Modul, linie[k].X + d.X * (laenge - st.X0), linie[k].Z + d.Z * (laenge - st.X0), -d.X, -d.Z, -d.Z, d.X, st.Breite, st.Gespiegelt, st.Parzelle));
+            }
+            eckVorher = mitEckAn[k] ? plaetze[^1].Haus : null;
+            // Knick zur Häuserseite ohne Eckhaus: Keilstück (Hofmauer mit Tor), unter 60° bleibt der Keil leer
+            if (k + 1 < n && vorEnde[k] > 0 && !mitEckAn[k] && winkel[k] >= 60f - 0.01f)
+                aus.AddRange(Keil(letzterSatz, linie[k], linie[k + 1], linie[k + 2], vorEnde[k], links));
         }
-        foreach (var (knick, frei, winkel, satz) in keile)
-            if (winkel >= 60f - 0.01f) aus.AddRange(Keil(satz, linie[knick], linie[knick + 1], linie[knick + 2], frei, links));
+        gestellt = hausIndex;
         return aus;
-    }
-
-    /// <summary>Stück einer Strecke in die Ebene: Modul-x entlang der Gasse von der Gasse aus nach rechts, Tiefe in die Häuser.</summary>
-    static Lage ZuLage(Stueck s, (float X, float Z) a, (float X, float Z) d, bool links)
-    {
-        // Häuser links der Laufrichtung: Tiefe = links von d, Modul-x = d (von der Gasse aus nach rechts).
-        // Rechts: Tiefe = rechts von d, Modul-x = -d, die Parzelle beginnt (von der Gasse aus links) bei ihrem Ende.
-        var (tx, tz) = links ? (d.Z, -d.X) : (-d.Z, d.X);
-        if (links) return new Lage(s.Satz, s.Modul, a.X + d.X * s.X0, a.Z + d.Z * s.X0, d.X, d.Z, tx, tz, s.Breite, s.Gespiegelt, s.Parzelle);
-        var ende = s.X0 + s.Breite;
-        return new Lage(s.Satz, s.Modul, a.X + d.X * ende, a.Z + d.Z * ende, -d.X, -d.Z, tx, tz, s.Breite, s.Gespiegelt, s.Parzelle);
     }
 
     /// <summary>Keilstück: Pfeiler an beiden Enden und am Knick, dazwischen Mauerstücke, auf der längeren Seite ein Tor (falls sie reicht).</summary>
