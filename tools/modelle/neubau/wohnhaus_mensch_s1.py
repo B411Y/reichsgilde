@@ -40,6 +40,8 @@ import wohnhaus_mensch_s1_g1 as g1                                 # noqa: E402 
 ZIEL_MODELL = g1.ZIEL_MODELL
 GALERIE_LICHT = False      # Grundlicht unter der Galerie (main): nur Menschen und Zwerge setzen es (eigene Einstiege);
                            # die Schichten der Elben und Halblinge setzen ihr Grundlicht selbst und bleiben unveraendert
+GALERIE_BALKEN = None      # Achsen (y) der Balken unter der Schlafgalerie als Funktion (GALERIE_AB, IH); None: drei (vorn, Mitte, hinten).
+                           # Die Halblinge setzen sie fuer ihre flache Galerie der Grundformen 1 und 3 (wohnhaus_halbling_s1.galerie_balken)
 feld = g1.feld
 EZ = Vector((0, 0, 1))
 
@@ -718,7 +720,7 @@ def baue_raum():
     # Schlafgalerie: Bohlen auf drei Deckenbalken, Brustholz mit Luecke fuer den Austritt der Leiter
     GA, LX = F.GALERIE_AB, F.LEITER_X
     r.kasten(S, (-IX, GA, Z_OG), (IX, IH, Z_GALERIE), "bohlen", ohne=("+y", "-x", "+x"), laengs="x")
-    for y in (GA + 0.09, (GA + IH) / 2, IH - 0.2):
+    for y in (GALERIE_BALKEN(GA, IH) if GALERIE_BALKEN else (GA + 0.09, (GA + IH) / 2, IH - 0.2)):
         r.kasten(S, (-IX, y - 0.09, Z_OG - 0.2), (IX, y + 0.09, Z_OG), "balken", ohne=("+z", "-x", "+x"), laengs="x")
     pfosten = [-IX + 0.05, LX - 0.35, LX + 0.35, IX - 0.05]
     for xa, xb in ((-IX, LX - 0.35), (LX + 0.35, IX)):
@@ -735,6 +737,15 @@ def baue_raum():
     for i in range(1, 10):
         p = fuss + (kante - fuss) * (0.265 * i / (Z_GALERIE - Z_BODEN))
         r.stab(S, p + Vector((-0.24, 0, 0)), p + Vector((0.24, 0, 0)), 0.045, "bohlen")
+    # Fusspfette (Nutzer 21.11.2026: die Sparren hingen ohne Auflager an der Wand): ein Balken 14 x 16 cm entlang beider Traufwaende
+    # unter den Sparrenfuessen, die Sparren liegen in ihm (Oberkante 3 cm ueber ihrer Unterkante an der Wand). Am Schlot unterbrochen
+    pk0, pk1, pky0, pky1 = F.KAMIN
+    for sx in (-1, 1):
+        am_schlot = pk1 > IX - 0.01 if sx > 0 else pk0 < -IX + 0.01
+        for ya, yb in ([(IV, pky0), (pky1, IH)] if am_schlot else [(IV, IH)]):
+            if yb - ya < 0.05: continue
+            r.kasten(S, (min(sx * IX, sx * (IX - g1.PFETTE)), ya, zw - 0.20), (max(sx * IX, sx * (IX - g1.PFETTE)), yb, zw - 0.04), "balken",
+                     ohne=("+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
     # Dachstuhl: Sparrenpaare, Firstpfette, zwei Kehlbalken
     n_sp = max(4, round((IH - IV) / 1.15) + 1)
     sparren = [IV + 0.3 + (IH - IV - 0.6) * i / (n_sp - 1) for i in range(n_sp)]

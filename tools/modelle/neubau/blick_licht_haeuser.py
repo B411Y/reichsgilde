@@ -1,5 +1,5 @@
-"""Pruefung 12b und 12c (blick_licht_pruefung.py) an den Wohnhaeusern der Menschen und Zwerge, Stufe 1 bis 3, Grundform 1-4:
-12b an der Huelle, 12c in Wohnstube, Hinterzimmer und Bibliothek (soweit das Haus sie hat). Dieselben Fehlermuster wie beim
+"""Pruefung 12b, 12c und 38 (blick_licht_pruefung.py) an den Wohnhaeusern der Menschen und Zwerge, Stufe 1 bis 3, Grundform 1-4:
+12b an der Huelle, 12c in Wohnstube, Hinterzimmer und Bibliothek (soweit das Haus sie hat), 38 in der Wohnstube. Dieselben Fehlermuster wie beim
 Klicktest der Elben (18.11.2026): Vordach ohne Dicke, Dachlagen nach unten, Grundlicht Licht_Raum hinter den Flaechen zur Kamera,
 Deckenbalken vor der Wand im Standardblick.
 
@@ -47,6 +47,9 @@ def blick_licht(haus, ordner=None, texturen=None):
         z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"), os.path.join(texturen, atlas))
         zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht ({endung[1:] or 'wohnstube'}): {'ok' if not f else str(f) + ' FEHLER'}")
         zeilen += z; fehler += f
+        if endung: continue                                    # 38 nur in der Wohnstube (wie bei den Halblingen)
+        z, f = B.blick_wand(glb)
+        zeilen.append(f"38. Standardblick nicht dicht vor einer Wand (wohnstube): {'ok' if not f else 'FEHLER'}"); zeilen += z; fehler += f
     return zeilen, fehler
 
 
