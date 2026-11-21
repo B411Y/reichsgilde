@@ -42,7 +42,7 @@ public partial class Stadtansicht
         OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith(name + "="))?[(name.Length + 1)..].Trim();
 
     /// <summary>Startoption <c>--neubauprobe=1</c>: das Wohnhaus der Stufe 0 kommt aus dem Neubau, die Wohnstube liegt im Haus.</summary>
-    private static readonly bool NeubauProbeAn = NeubauOption("--neubauprobe") is "1" or "an";
+    private static readonly bool NeubauProbeAn = NeubauSchalter.Wohnhaeuser; // der Schalter steht bei Vorladen.cs, dort hängt das Vorladen der Arrays an ihm
 
     // Putz- und Akzentfarben aus dem Style-Guide (5.3); fest je Standort
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
@@ -117,7 +117,8 @@ public partial class Stadtansicht
         return stufe == 1 || ResourceLoader.Exists($"res://assets/modelle/{neu}.glb") ? neu : datei;
     }
 
-    private static T NeubauTextur<T>(string name) where T : Resource => GD.Load<T>(NeubauTexturen + name);
+    private static T NeubauTextur<T>(string name) where T : Resource => Vorladen.Laden<T>(NeubauTexturen + name)!; // aus dem Hintergrundladen (Vorladen.cs), sonst wie GD.Load
+
 
     /// <summary>
     /// Die Gruppe eines Modells: der Dateiname ohne Stufe und Grundform („wohnhaus_mensch_s1_g1“ → „wohnhaus_mensch“), innen mit
