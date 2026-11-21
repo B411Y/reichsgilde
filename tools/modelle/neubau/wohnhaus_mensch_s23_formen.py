@@ -12,6 +12,15 @@ import wohnhaus_mensch_s23_masse as M
 from netzbau import ROT
 
 EZ = Vector((0, 0, 1))
+FACHWERK_ECHT = False      # echtes Fachwerk (Nutzer 21.11.2026): Fluegel und Erker als Holzlage; setzt wohnhaus_mensch_s23 (bzw. die Schicht)
+TIEFE_HOLZ = 0.045       # 5 mm hinter der Holzlage des Hauptbaus (nicht deckungsgleich, wo Fluegel und Haus buendig stehen)
+
+
+def lage_bauen(h, lage, P, n, wand, name, tiefe=None):
+    """Baut eine Holzlage (Pruefung: Ueberlappung, Spalt 0) in h; P(s, z, raus), n Normale nach aussen."""
+    befunde = lage.pruefen()
+    if befunde: print("HOLZLAGE", name, befunde[:3])
+    lage.bauen(h, P, Vector(n), tiefe=tiefe or TIEFE_HOLZ, wand=wand)
 NEIG_FLUEGEL = 1.0          # 45 Grad
 
 
@@ -24,6 +33,7 @@ def _bretter_tuer(h, x0, x1, y, z0, z1, n):
     for z in (z0 + 0.35, z1 - 0.35):
         h.brett("Fachwerk", (x0 + 0.04, y + n[1] * 0.04, z), (x1 - 0.04, y + n[1] * 0.04, z), 0.13, n, "balken_c", tiefe=0.03)
         h.rechteck("Bruchstein", (x0 + 0.02, y + n[1] * 0.075, z - 0.03), (1, 0, 0), EZ, 0.45, 0.06, "eisen", zu=Vector((x0, y, z)) + nv * 3)
+    if FACHWERK_ECHT: return                                    # der Rahmen liegt in der Holzlage der Wand
     for x in (x0 - 0.07, x1 + 0.07):
         h.brett("Fachwerk", (x, y, z0), (x, y, z1 + 0.1), 0.13, n, "balken_c", laengs="v", tiefe=0.05)
     h.brett("Fachwerk", (x0 - 0.12, y, z1 + 0.06), (x1 + 0.12, y, z1 + 0.06), 0.14, n, "balken_c", tiefe=0.06)
@@ -46,6 +56,16 @@ def fluegel(h, box):
                laibung=("Fachwerk", "balken_c"), laibung_tiefe=0.18, weg_von=mitte)
         n = (0, -1, 0) if name == "vorn" else (0, 1, 0) if name == "hinten" else (1, 0, 0)
         P = lambda s, z, o=o, eu=eu: Vector((o[0] + eu[0] * s, o[1] + eu[1] * s, z))
+        if FACHWERK_ECHT:   # ganze Wand als eine Holzlage (wie die Zeilenmodule)
+            import holzlage, fachwerk_echt, random
+            lage = holzlage.Holzlage()
+            oeff = [(a, b_, c, d_, "tuer" if c <= M.Z_SOCKEL + 0.01 else "laden") for a, b_, c, d_ in loch]
+            e = TIEFE_HOLZ if name != "rechts" else 0.0          # genau die Holztiefe: die Traufseite schliesst buendig an
+            fachwerk_echt.wand(lage, laenge, M.Z_SOCKEL, zw, oeff, 1, random.Random(len(name) * 7 + int(laenge * 10)), bw=0.15, riegel=0.12,
+                               ul=0.0, ur=e, schwelle=0.16, raehm=0.16, name="fluegel_" + name)
+            Pn = lambda s_, z_, r_, P=P, n=n: P(s_, z_) + Vector(n) * r_
+            lage_bauen(h, lage, Pn, n, None, "fluegel_" + name)
+            continue
         # Schwelle und Rahm an den Ecken wie im Hauptbau: Giebelseiten (vorn, hinten) laufen um die Tiefe ueber die Ecke und bekommen
         # eine Stirn, die Traufseite endet buendig (sonst blieb an der Ecke ein offenes Balkenende – Durchblick, luecken_pruefung)
         e = 0.06 if name != "rechts" else 0.0
@@ -73,6 +93,14 @@ def fluegel(h, box):
     # Giebel vorn und hinten
     for y, s in ((y0, -1), (y1, 1)):
         h.welt("Lehmputz", [(x0, y, zw), (x1, y, zw), (xm, y, zf)], "putz", (x0, y, 0), (1, 0, 0), zw, zf - zw, weg_von=mitte)
+        if FACHWERK_ECHT:   # Giebel als Holzlage: Mittelstaender und Strebe, aufs Giebeldreieck zugeschnitten
+            import holzlage
+            dreieck = [(x0, zw), (x1, zw), (xm, zf - 0.06)]
+            lage = holzlage.Holzlage(umriss=dreieck)
+            lage.holz((xm, zw), (xm, zf), 0.13, "balken_a", 0, zuschnitt=dreieck)
+            lage.holz((x0 + 0.1, zw), (xm - 0.065, zf - 0.2), 0.12, "balken_a", 1, zuschnitt=dreieck)
+            lage_bauen(h, lage, lambda s_, z_, r_, y=y, s=s: Vector((s_, y + s * r_, z_)), (0, s, 0), None, "fluegel_giebel")
+            continue
         h.brett("Fachwerk", (xm, y, zw), (xm, y, zf - 0.1), 0.13, (0, s, 0), "balken_a", laengs="v")
         h.brett("Fachwerk", (x0 + 0.1, y, zw + 0.05), (xm - 0.05, y, zf - 0.15), 0.12, (0, s, 0), "balken_a", tiefe=0.04)
     return dict(x0=x0, x1=x1, y0=y0, y1=y1, zw=zw, zf=zf, xm=xm, hw=hw)
@@ -156,14 +184,27 @@ def erker(h, d, box, s, ziegelflaeche):
     # Holz: Eckstiele und Wandstiele, Schwelle, Rahm, Brust- und Sturzriegel rundum (buendig an den Fenstern)
     # Stiele und Riegel liegen ganz vor der Putzflaeche (Eckstiel als Winkel aus zwei Bohlen, Wandstiel und Riegel als Bohle): so liegt
     # kein Holz in der Ebene der Laibungen (deckungsgleich, backt schwarz) und die Hoelzer bleiben buendig an den Fenstern
-    for y, sy in ((y0, 1), (y1, -1)):
+    if FACHWERK_ECHT:   # Erkerwaende als Holzlagen: vorn (ueber die Ecken) und beide Seiten, Fenster fuellen ihr Gefach
+        import holzlage
+        for name, laenge, P, n, ue in (("erker_vorn", y1 - y0, lambda s_, z_, r_: Vector((xa - r_, y0 + s_, z_)), (-1, 0, 0), 0.05),
+                                       ("erker_links", t, lambda s_, z_, r_: Vector((xa + s_, y0 - r_, z_)), (0, -1, 0), 0.0),
+                                       ("erker_rechts", t, lambda s_, z_, r_: Vector((xa + s_, y1 + r_, z_)), (0, 1, 0), 0.0)):
+            lage = holzlage.Holzlage()
+            lage.holz((-ue, z0 + 0.06), (laenge + ue, z0 + 0.06), 0.12, "balken_b", 0, gerade=True)
+            lage.holz((-ue, z1 - 0.06), (laenge + ue, z1 - 0.06), 0.12, "balken_b", 0, gerade=True)
+            for sm, br in ((b / 2 - ue / 2, b + ue), (laenge - b / 2 + ue / 2, b + ue)):
+                lage.holz((sm, z0 + 0.12), (sm, z1 - 0.12), br, "balken_a", 0, gerade=True)
+            lage.holz((b, zbr - r / 2), (laenge - b, zbr - r / 2), r, "balken_b", 2, gerade=True)
+            lage.holz((b, zst + r / 2), (laenge - b, zst + r / 2), r, "balken_b", 2, gerade=True)
+            lage_bauen(h, lage, P, n, None, name, tiefe=0.05)      # wie die Wand des Hauses (stoesst an ihre Schwelle)
+    for y, sy in (((y0, 1), (y1, -1)) if not FACHWERK_ECHT else ()):
         ya, yb = y - sy * 0.02, y + sy * b
         h.kasten("Fachwerk", (xa - 0.02, min(ya, yb), z0), (xa, max(ya, yb), z1), "balken_a", laengs="z")                # Eckstiel vorn
         h.kasten("Fachwerk", (xa, min(ya, y), z0), (xa + b, max(ya, y), z1), "balken_a", laengs="z")                    # Eckstiel Seite
         h.kasten("Fachwerk", (xw - b, min(ya, y), z0), (xw, max(ya, y), z1), "balken_a", laengs="z")                    # Wandstiel
-    for z in (z0 + 0.06, z1 - 0.06):
+    for z in ((z0 + 0.06, z1 - 0.06) if not FACHWERK_ECHT else ()):
         h.kasten("Fachwerk", (xa - 0.03, y0 - 0.03, z - 0.07), (xw, y1 + 0.03, z + 0.07), "balken_b", laengs="y")
-    for z in (zbr - r / 2, zst + r / 2):
+    for z in ((zbr - r / 2, zst + r / 2) if not FACHWERK_ECHT else ()):
         h.kasten("Fachwerk", (xa - 0.02, y0 + b, z - r / 2), (xa, y1 - b, z + r / 2), "balken_b", laengs="y")
         for y, sy in ((y0, -1), (y1, 1)):
             h.kasten("Fachwerk", (xa + b, min(y, y + sy * 0.04), z - r / 2), (xw - b, max(y, y + sy * 0.04), z + r / 2), "balken_b", laengs="x")

@@ -113,3 +113,73 @@ def knaggen(teil, punkte, n_aussen, hoehe=0.45, krag=0.22, holz="Fachwerk"):
     for p in punkte:
         p = Vector(p)
         teil.stab(holz, p, p + n * (krag * 0.85) + Vector((0, 0, hoehe)), 0.13, "balken_c", breite=0.13, kappen=True)
+
+
+def wand(lage, b, z0, z1, oeffnungen, stufe, wuerfel, bw=0.17, riegel=0.14, ul=0.0, ur=0.0, schwelle=0.18, raehm=0.16,
+         riegel_mitte=True, min_feld=0.30, max_feld=1.30, name=""):
+    """Eine ganze Fachwerkwand (s von 0 bis b, z von z0 bis z1) in die Holzlage, wie die Zeilenmodule (zeile_module.fachwerk_lage):
+    Schwelle (an Tueren ausgeschnitten) und Raehm (ul, ur: Ueberstand ueber die Ecke), Eckstaender, Stiele neben jeder Oeffnung,
+    Zwischenstaender bis max_feld lichte; bliebe weniger als min_feld Putz, entfaellt der Fensterstiel (Feld hoechstens max_feld) oder
+    beide werden ein breiter Pfosten; Riegel je Feld (Fenster: Brust- und Sturzriegel ueber die Feldbreite, Tuer: keine, sonst die
+    Riegelkette); Figuren (figuren). oeffnungen: (s0, s1, t0, t1, art) mit art fenster|laden|tuer. Meldet Gefache ausserhalb der
+    Grenzen als „HOLZLAGE Gefach“. Rueckgabe: Staendermitten."""
+    tueren = sorted((o[0], o[1]) for o in oeffnungen if o[4] == "tuer" and o[2] < z0 + schwelle)
+    x = -ul
+    for t0_, t1_ in tueren + [(b + ur, b + ur)]:
+        if t0_ - x > 0.02: lage.holz((x, z0 + schwelle / 2), (t0_, z0 + schwelle / 2), schwelle, "balken_c", 0, gerade=True)
+        x = max(x, t1_)
+    lage.holz((-ul, z1 - raehm / 2), (b + ur, z1 - raehm / 2), raehm, "balken_a", 0, gerade=True)
+    art_von = {bw / 2: ("ecke", None), b - bw / 2: ("ecke", None)}
+    for s0, s1, t0, t1, art in oeffnungen:
+        rahmen = 0.05 if art == "tuer" else 0.035
+        art_von.setdefault(s0 - bw / 2, ("links_von", s0 - rahmen))
+        art_von.setdefault(s1 + bw / 2, ("rechts_von", s1 + rahmen))
+    staender = sorted(s for s in art_von if bw / 2 - 1e-6 <= s <= b - bw / 2 + 1e-6)
+    neu = []
+    for a, e in zip(staender[:-1], staender[1:]):
+        if any(o[0] >= a - 1e-3 and o[1] <= e + 1e-3 for o in oeffnungen): continue
+        k = int((e - a - bw) / max_feld)
+        neu += [a + (e - a) * (i + 1) / (k + 1) for i in range(k)]
+    for s in neu: art_von[s] = ("zwischen", None)
+    pfosten = [[s - bw / 2, s + bw / 2, [s], art_von[s]] for s in sorted(staender + neu)]
+    fenster_stiel = lambda pf: pf[3][0] in ("links_von", "rechts_von") and any(
+        o[4] in ("fenster", "laden") and (abs(o[0] - bw / 2 - pf[2][0]) < 1e-6 or abs(o[1] + bw / 2 - pf[2][0]) < 1e-6) for o in oeffnungen)
+    i = 0
+    while i < len(pfosten) - 1:
+        p_, q_ = pfosten[i], pfosten[i + 1]
+        if q_[0] - p_[1] >= min_feld - 1e-6: i += 1; continue
+        if (fenster_stiel(q_) and q_[3][0] == "links_von" and len(q_[2]) == 1 and q_[3][1] - p_[1] >= min_feld
+                and i + 2 < len(pfosten) and pfosten[i + 2][0] - p_[1] <= max_feld):
+            del pfosten[i + 1]; continue
+        if (fenster_stiel(p_) and p_[3][0] == "rechts_von" and len(p_[2]) == 1 and q_[0] - p_[3][1] >= min_feld
+                and i >= 1 and q_[0] - pfosten[i - 1][1] <= max_feld):
+            del pfosten[i]; i = max(i - 1, 0); continue
+        pfosten[i] = [p_[0], q_[1], p_[2] + q_[2], ("breit", None)]
+        del pfosten[i + 1]
+    for i, (a_, c_, _, _) in enumerate(pfosten):
+        a_ -= ul if i == 0 else 0.0
+        c_ += ur if i == len(pfosten) - 1 else 0.0
+        lage.holz(((a_ + c_) / 2, z0 + schwelle), ((a_ + c_) / 2, z1 - raehm), c_ - a_, "balken_a", 0, gerade=True)
+    mitten = sorted(m for pf in pfosten for m in pf[2])
+    for s0, s1, t0, t1, art in oeffnungen:                     # Tuerrahmen in der Lage (geschlossenes Rechteck, ohne Endpruefung)
+        if art != "tuer": continue
+        for a, e in (((s0 - 0.05, t1 + 0.05), (s1 + 0.05, t1 + 0.05)), ((s0, t0), (s0, t1 + 0.05)), ((s1, t0), (s1, t1 + 0.05))):
+            lage.holz(a, e, 0.10, "balken_c", 2, gerade=True, ende=False)
+    fenster_t = [(t0, t1) for a0, a1, t0, t1, art in oeffnungen if art in ("fenster", "laden") and a1 - a0 > 0.45]
+    for (_, g0, _, _), (g1, _, _, _) in zip(pfosten[:-1], pfosten[1:]):
+        drin = [o for o in oeffnungen if o[0] >= g0 - 1e-3 and o[1] <= g1 + 1e-3]
+        if any(o[4] == "tuer" for o in drin): continue
+        if drin:
+            bucht = len(drin) == 1 and abs(drin[0][0] - g0) < 1e-3 and abs(drin[0][1] - g1) < 1e-3
+            if not bucht and g1 - g0 > max_feld + 1e-6: print("HOLZLAGE Gefach", name, f"mit Oeffnung {g1 - g0:.2f} m")
+            for s0, s1, t0, t1, art in drin:
+                lage.holz((g0, t0 - riegel / 2), (g1, t0 - riegel / 2), riegel, "balken_b", 2, gerade=True)
+                lage.holz((g0, t1 + riegel / 2), (g1, t1 + riegel / 2), riegel, "balken_b", 2, gerade=True)
+            continue
+        if not (min_feld - 1e-6 <= g1 - g0 <= max_feld + 1e-6): print("HOLZLAGE Gefach", name, f"{g1 - g0:.2f} m")
+        hoehen = sorted({t for ft in fenster_t for t in ft}) if fenster_t else ([z0 + (z1 - z0) * 0.48] if riegel_mitte else [])
+        for t in hoehen:
+            lage.holz((g0, t), (g1, t), riegel, "balken_b", 2, gerade=True)
+    brust = min((t0 - riegel for _, _, t0, _, art in oeffnungen if art in ("fenster", "laden")), default=z0 + 0.35 * (z1 - z0))
+    figuren(lage, mitten, z0, z1, oeffnungen, stufe, wuerfel, bw=bw, schwelle=schwelle, raehm=raehm, z_brust=brust)
+    return mitten
