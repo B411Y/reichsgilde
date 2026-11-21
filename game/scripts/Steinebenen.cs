@@ -42,6 +42,10 @@ public static class Steinebenen
     /// <summary>Index einer Ebene im Häuser-Array über ihren Namen (−1: fehlt). So hängt <see cref="Ebene"/> nicht an der Reihenfolge.</summary>
     static int Index(string name) => System.Array.FindIndex(Haeuser, e => e.Name == name);
 
+    /// <summary>Ebene mit den Efeu-Blattbildern (Stoff „Efeublatt“, Band „stroh“ oben): Blatt der Halblinge Stufe 3. Blattkarten aller
+    /// Häuser lesen diese Ebene (Shader <c>efeu_ebene</c>), auch die der Elben (21.11.2026).</summary>
+    public static int EfeuEbene => Index("halbling_s3");
+
     /// <summary>Die Gruppen des AO-Arrays (Index = <c>ao_ebene</c>); Bürgerhaus und Steinhaus haben je Volk einen eigenen Atlas (größere Zellen),
     /// die Elben und die Halblinge auch in Stufe 1 (Zellen von 1024 Bildpunkten).</summary>
     public static readonly string[] AoGruppen =
