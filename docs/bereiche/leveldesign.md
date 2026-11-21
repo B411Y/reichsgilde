@@ -52,7 +52,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Ursache | In der Mauer (Stadtgrund) übermalte der Lehm der Stadt jede gemalte Textur außer Pflaster: `boden.gdshaderinc` übersprang dort alle Texturgewichte (`nur_stadt`). Die Erde der Gärten war also nie zu sehen. | 2.11.2026 |
 | Lösung | Shader: Wo Erde, Moos oder Mist gemalt sind, gilt der Stadtgrund nicht (`info.b *= 1 - (Erde + Moos + Mist)`; Wiese und Lehm zählen nicht). Karte: `Koeln.Deutz.cs` malt auf die drei Beete Moos (Stärke 0,85, kleiner als die Erde, damit ein Rand aus Erde bleibt). `koeln.json` und die beiden Vorschau-Bilder neu gebaut (`bauen koeln --ueberschreiben`; geändert nur die Kachel 3/0 und die Beete im SVG). Andere Karten ändern sich nur, wo sie in der Mauer Erde, Moos oder Mist malen (keine). | 2.11.2026 |
 
-### Köln: nur Dom und drei Kirchen (Branch phase5/kirchen-koeln, Prediger und Dom PR 1b)
+### Köln: nur Dom und drei Kirchen (Branch phase5/kirchen-koeln, Prediger und Dom PR 1b; abgelöst am 21.11.2026 durch „Köln: nur der Dom, in der Mitte“)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -98,3 +98,18 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Kennung | Das Feld „Kennung“ der Gebäude (Kern `KennungSetzen`, Doppelte und ungültige Zeichen werden unter dem Raster gemeldet, Tooltip warnt vor Startbelegung und Spielständen) war schon gebaut und ist jetzt im Bild gesehen | 19.11.2026 |
 | Speicherort im Export | Mit einem Linux-Export (Klicktest, Greybox) geprüft: „Karte öffnen“ zeigt „Eigene Karten“ (user://karten, hier `…/app_userdata/Reichsgilde/karten/`) und „Karten des Spiels (nur lesen)“; Speichern der Spielkarte legt die Datei im Ordner der eigenen Karten an (die Karten des Spiels bleiben unberührt) und sie erscheint sofort in der Liste | 19.11.2026 |
 | Nicht angefasst | Unschärfe, Wolkenschatten und Dunst der Kartenwerkstatt (nur auf Nutzerwunsch); Felspinsel-Reste (Randabstand, Hang-Geist, Messung Zoom 100) brauchen Plan, Bild bzw. Messung und sind nicht klein | 19.11.2026 |
+
+### Köln: nur der Dom, in der Mitte (Branch phase5/koeln-dom-mitte)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Kirchen | Köln hat nur noch den Dom (Nutzer). Groß St. Martin, St. Gereon, St. Aposteln sind aus `Koeln.cs` und damit aus `koeln.json` entfernt; die Modelle bleiben im Katalog. Löst „Dom und drei Kirchen“ (11.11.2026) ab | 21.11.2026 |
+| Lage | Dom bei 2 \| 28, Drehung 270, 14 × 34 m, im Block zwischen Hohe Straße, Rheingasse, Brückenstraße und Bayenstraße (südlich der Brückenachse; Nutzer: Lage und alter Domplatz bestätigt). Domplatz = ganzer Block (x −31,5 … 34,5, z 10,5 … 44,5), gepflastert, kein Bauland (`LageVon`), vier Domgassen | 21.11.2026 |
+| Straßen | Severinstraße endet an der Bayenstraße, ihr Nordstück heißt Marzellenstraße; Krähenpforte entfällt; Engelspforte Hauptstraße bis zum Alten Markt (erschließt den Hof am alten Domstandort 6 \| −112) | 21.11.2026 |
+| Bauzonen | Kern 10 Zonen 6668 m² → 11 Zonen 5768 m²; Mauerring 16 Zonen 10556 m² → 17 Zonen 12000 m²; die freien Kirchenflächen und der Hof am alten Dom sind Bauzone. Einwohnerplätze 69 und Kulissenhäuser 15 bleiben (Hammergasse Südseite Höchstzahl 0). Prüfung 0 Fehler, 8 von 8 Häusern, Wegenetz ein zusammenhängender Teil (40 Wege) | 21.11.2026 |
+| Fahrzeiten | Heumarkt unverändert; Alter Markt nach Süden und Westen 10–18 m länger (3–6 %) | 21.11.2026 |
+| Folgen | `BauenTests` prüft Dom bei 2 \| 28 und keine Pfarrkirche mehr; Glockentest (`KlangGlockenModell`) mit Dom und drei Beispiel-Pfarrkirchen; Kern: keine Regel erwartet mehr als eine Kirche der Karte (im Code nichts gefunden) | 21.11.2026 |
+
+(von Darstellung) Klicktest nötig: Startbild (Punkt 32 \| 91, Zoom 130): Dom 70 m nordnordwestlich, liegen die Türme (58,1 m) im Bild; Domplatz-Pflaster, Schatten der Türme.
+
+(von Sound) Der Glockenklang kennt in Köln nur noch den Dom (`Stadtansicht.Klang.cs` liest die Kirchen aus der Karte, Selbsttest angepasst); Eigenes Geläut je Pfarrkirche ist für Köln gegenstandslos.

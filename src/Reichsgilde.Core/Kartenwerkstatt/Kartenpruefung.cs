@@ -481,7 +481,7 @@ public static class Kartenpruefung
         /// <summary>
         /// Kein Gebäude steht auf einer Mauer: das Haus (ohne Vorplatz) mindestens 1 m von der Mauerlinie (greybox.py, Regel 5, für Werkstätten;
         /// seit Schritt 3 für alle Gebäude außer Felsbergen, deren Rand ohnehin über Nachbarn läuft). Mit den Stadtregeln ein Fehler, sonst ein
-        /// Hinweis (in Köln stehen St. Gereon und ein Leerstand auf der Mauer).
+        /// Hinweis (in Köln steht ein Leerstand auf der Mauer).
         /// </summary>
         private void AufMauer(EntwurfGebaeude g)
         {

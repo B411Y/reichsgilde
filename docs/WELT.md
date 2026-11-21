@@ -74,11 +74,11 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 
 | Wahrzeichen | Kennung | Um 1400 | Spur der Völker |
 |---|---|---|---|
-| Dom | `Dom` | fertig gebaut: Chor, Langhaus, zwei Türme (58 m), kein Kran | Elben-Chor, Türme und Langhaus von Zwergen und Elben (Alternativgeschichte) |
+| Dom | `Dom` (seit 21.11.2026 die einzige Kirche, mitten in der Altstadt an einem gepflasterten Domplatz) | fertig gebaut: Chor, Langhaus, zwei Türme (58 m), kein Kran | Elben-Chor, Türme und Langhaus von Zwergen und Elben (Alternativgeschichte) |
 | Rathaus | `Rathaus` | Hansasaal (um 1330), Ratsturm im Bau (1407–14) | – |
-| Groß St. Martin | `Martin` | Kleeblattchor, Vierungsturm mit vier Giebeln und Notdach nach dem Brand 1378 (im Modell ein Rautendach; der Knickhelm kam erst 1450–60), vier Ecktürmchen, am Rhein | – |
-| St. Gereon | `Gereon` | Dekagon (1219–27) mit Zeltdach aus Blei, langer Chor mit zwei Chortürmen | – |
-| St. Aposteln | `Aposteln` | Kleeblattchor mit Vierungsturm (Laterne unsicher), Westquerhaus mit wuchtigem Westturm (Dachform unsicher) | – |
+| Groß St. Martin | `Martin` (seit 21.11.2026 nicht mehr in Köln, Modell im Katalog) | Kleeblattchor, Vierungsturm mit vier Giebeln und Notdach nach dem Brand 1378 (im Modell ein Rautendach; der Knickhelm kam erst 1450–60), vier Ecktürmchen, am Rhein | – |
+| St. Gereon | `Gereon` (seit 21.11.2026 nicht mehr in Köln, Modell im Katalog) | Dekagon (1219–27) mit Zeltdach aus Blei, langer Chor mit zwei Chortürmen | – |
+| St. Aposteln | `Aposteln` (seit 21.11.2026 nicht mehr in Köln, Modell im Katalog) | Kleeblattchor mit Vierungsturm (Laterne unsicher), Westquerhaus mit wuchtigem Westturm (Dachform unsicher) | – |
 | Rheinkran | `Rheinkran` | Schwimmkran (Tretradkran auf einem Ponton) südlich des Stapelhauses, um 1500 belegt (mindestens vier Schwimmkrane); dazu entlädt ein Tretradkran auf dem Hafensteg die Schiffe | – |
 | Stapelhaus | `Stapelhaus` | Lagerhalle mit sechs Treppengiebeln, Basaltsockel und Stadtwaage am Rhein (Fiktion) | Zwerge (Sockel, Eisen, Erzkisten), Halblinge (Weinfässer) |
 | Torburgen, Bayenturm | Tore der Mauer | Eigelstein und Hahnentor als Doppelturmtore, Severinstor als Torturm mit Eckwarten (13. Jahrhundert, flache Dächer hinter den Zinnen); Bayenturm (Achteck von 1325) am Südende der Rheinmauer | – |

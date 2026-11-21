@@ -36,7 +36,7 @@ static class RestflaechenfuellungTests
                 Pruefe.Gleich(r.Felder, Restflaechenfuellung.Felder(r).Count);
                 n++;
             }
-            Pruefe.Wahr(n >= 41, "Köln 30 und Greybox 11 Restflächen");
+            Pruefe.Wahr(n >= 36, "Köln 26 und Greybox 10 Restflächen");
         }),
 
         ("Restflächenfüllung: jedes Rechteck bis 3×5 (auch gedreht) zerfällt lückenlos", () =>
@@ -186,7 +186,7 @@ static class RestflaechenfuellungTests
                     geprueft++;
                 }
             }
-            Pruefe.Wahr(geprueft >= 41, $"mindestens die 41 Flächen von Köln und Greybox geprüft ({geprueft})");
+            Pruefe.Wahr(geprueft >= 36, $"mindestens die 36 Flächen von Köln und Greybox geprüft ({geprueft})");
         }),
 
         ("Restflächenfüllung: ThemaWaehlen – Grenzfälle (alle Gewichte 0, alles über hoechstens, ersetzt null oder leer)", () =>
@@ -227,15 +227,15 @@ static class RestflaechenfuellungTests
                 var neu = r.Thema ?? Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen, ersetzt, erw.Select(e => e.Key).ToList(), erw.Select(e => e.Value!.GetValue<int>()).ToList());
                 if (alt is not null) ohne[alt] = ohne.GetValueOrDefault(alt) + 1;
                 if (neu is not null) mit[neu] = mit.GetValueOrDefault(neu) + 1;
-                Pruefe.Wahr(neu == alt || alt == ersetzt, $"{kennung}: nur Randgestrüpp wird ersetzt ({alt} → {neu})");
+                Pruefe.Wahr(r.Thema is not null || neu == alt || alt == ersetzt, $"{kennung}: nur Randgestrüpp wird ersetzt ({alt} → {neu})");
             }
             var uebersicht = string.Join(", ", mit.Select(e => $"{e.Key} {e.Value}"));
             // Seit den Hofstellen (9.11.2026; neue Restflächen am Hafen und in Deutz) fällt das Los der Themen in Köln auf einen Steinmetzplatz und keinen
             // Taubenschlag (vorher 2–6 bzw. 1–3 verlangt; seit 11.11.2026 wieder kein Steinmetzplatz, deshalb fest 0) – offener Punkt bei der Darstellung (Gewichte in restflaechen.json)
-            Pruefe.Gleich("R27, R30", string.Join(", ", (karte.Restflaechen ?? new()).Where(r => r.Thema == "pferch").Select(r => r.Kennung)));
-            Pruefe.Gleich(0, mit.GetValueOrDefault("steinmetzplatz"));
+            Pruefe.Gleich("R21, R24", string.Join(", ", (karte.Restflaechen ?? new()).Where(r => r.Thema == "pferch").Select(r => r.Kennung)));
+            Pruefe.Gleich(1, mit.GetValueOrDefault("steinmetzplatz")); // seit 21.11.2026 (neue Restflächen nach „nur der Dom“) fällt das Los auf einen Steinmetzplatz, vorher 0
             Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 0 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
-            foreach (var (thema, zahl) in new[] { ("hof", 1), ("pferch", 2), ("wasserstelle", 3), ("heuschober", 3) })   // seit dem Aufräumen (16.11.2026; 32 Restflächen, zwei Pferche fest in der Karte: R27 und R30) 1, 2, 3, 3; mit den alten Plätzen (31 Restflächen) 1, 0, 3, 2
+            foreach (var (thema, zahl) in new[] { ("hof", 1), ("pferch", 2), ("wasserstelle", 3), ("heuschober", 3) })   // seit dem Aufräumen (16.11.2026; 32 Restflächen, zwei Pferche fest in der Karte: R27 und R30, seit 21.11.2026 R21 und R24 bei 26 Restflächen; die Karte legt sie fest, der Würfel zählt dort nicht) 1, 2, 3, 3; mit den alten Plätzen (31 Restflächen) 1, 0, 3, 2
                 Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema), thema + " – " + uebersicht);
         }),
 
