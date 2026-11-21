@@ -345,7 +345,7 @@
   "zeile_zwerg_s1": {
     "datei": "zeile_zwerg_s1_ao_atlas.png",
     "kante": 2048,
-    "zellen": 4,
+    "zellen": 8,
     "plaetze": {
       "k_g4": 0,
       "k_g6": 1,
@@ -361,7 +361,20 @@
       "mauer": 11,
       "pfeiler": 12,
       "tor": 13,
-      "hinterhaus": 14
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
     }
   },
   "zeile_zwerg_s2": {
