@@ -19,6 +19,8 @@ public sealed partial class Koeln
 
     private Lage? LageVon(Kartenort p)
     {
+        // Domplatz: der Block zwischen den vier Hauptstraßen (bis zu den Kulissenhäusern an der Bayenstraße), kein Bauland
+        if (p.X > -34 && p.X < 37 && p.Z > 8 && p.Z < 44) return null;
         // Deutz: innerhalb der kleinen Mauer
         if (p.X is > 124 and < 213 && p.Z is > -47 and < 41) return Lage.Vorstadt;
         // Altstadt: innerhalb der Mauer bis zum Rheinufer
