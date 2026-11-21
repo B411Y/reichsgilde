@@ -3,6 +3,10 @@
 // seinem Ort, auch die kahlen Winterbäume), die Blätter und Nadeln flattern fein. Die Stärke folgt wetter_wind (dieselbe Größe wie Gras, Laub und
 // Fahnen): bei Windstille kaum etwas, im Sturm deutlich. Alles rechnet in der Welt und wird dann in den Modellraum zurückgerechnet, darum gilt es für
 // jede Größe und Drehung der Kopie im MultiMesh. Kostet nur ein paar Rechenschritte je Ecke und kein zusätzliches Zeichnen.
+//
+// Jahreszeiten für die Originalbäume (natur_original_baeume.glb, Baumtest): Die Blattkarten behalten ihre Originalfarbe; im Frühling,
+// Herbst und Winter mischt der Shader eine Farbe über die Helligkeit der Karte (laub_toenung, laub_farbe), auf Wunsch weiße Blüten (bluete)
+// und Schnee auf allem, was nach oben zeigt (schnee). Alle Werte stehen auf 0: dann sieht das Material aus wie vorher.
 shader_type spatial;
 render_mode cull_disabled;   // doppelseitig wie die Materialien der GLB
 
@@ -23,10 +27,20 @@ uniform bool eckenfarbe_srgb = true;
 uniform float hoehe = 8.0;
 uniform float flattern = 0.0;
 
+// Jahreszeit (0 = aus): Tönung der Blattkarten über deren Helligkeit, Blütenflecken, Schnee auf nach oben zeigenden Flächen
+uniform float laub_toenung = 0.0;
+uniform vec4 laub_farbe : source_color = vec4(0.5, 0.6, 0.2, 1.0);
+uniform float bluete = 0.0;
+uniform vec4 bluete_farbe : source_color = vec4(0.97, 0.90, 0.92, 1.0);
+uniform float schnee = 0.0;
+uniform vec4 schnee_farbe : source_color = vec4(0.90, 0.93, 0.97, 1.0);
+
 varying vec3 v_eck;
+varying vec3 v_nw;
 
 void vertex() {
 	v_eck = COLOR.rgb;
+	v_nw = normalize(mat3(MODEL_MATRIX) * NORMAL);
 	vec3 m0 = MODEL_MATRIX[0].xyz;
 	float maszstab = max(length(m0), 0.0001);
 	vec3 mittelpunkt = MODEL_MATRIX[3].xyz;
@@ -59,6 +73,16 @@ void fragment() {
 			e = mix(pow((e + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), e * (1.0 / 12.92), lessThan(e, vec3(0.04045)));
 		}
 		c *= e;
+	}
+	float zufall = fract(sin(dot(floor(UV * 48.0), vec2(12.9898, 78.233))) * 43758.5453);
+	if (flattern > 0.5) {
+		// Blätter und Nadeln: Farbe aus der Helligkeit der Originalkarte (Mittel um 0,3, darum mal 3,5)
+		float hell = dot(t.rgb, vec3(0.2126, 0.7152, 0.0722));
+		c = mix(c, laub_farbe.rgb * clamp(hell * 3.5, 0.0, 1.7), laub_toenung);
+		c = mix(c, bluete_farbe.rgb * (0.9 + 0.2 * zufall), bluete * step(1.0 - 0.45 * bluete, zufall * 0.5 + 0.5 * fract(zufall * 7.7)));
+		c = mix(c, schnee_farbe.rgb, schnee * smoothstep(0.35, 0.8, abs(v_nw.y) + (zufall - 0.5) * 0.35));
+	} else {
+		c = mix(c, schnee_farbe.rgb, schnee * smoothstep(0.45, 0.85, v_nw.y + (zufall - 0.5) * 0.3));
 	}
 	ALBEDO = c;
 	ROUGHNESS = rauheit;

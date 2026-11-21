@@ -372,6 +372,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Originalbäume mit Jahreszeiten: Testszene (Branch phase5/baeume-jahreszeiten, Schritt 1)
+
+| Frage | Entscheidung | Stand |
+|---|---|---|
+| Quelle | `natur_original_baeume.glb` (`tools/modelle/baeume_original.py`): Originalmodelle des Quaternius-Kits ohne Vereinfachung (Eiche 1–4 = CommonTree_5/3/2/1, Obstbaum = CommonTree_4, Tanne 1–5 = Pine, Busch mit und ohne Blütenkarte), Originalrinde mit Normalenkarte, Blattkarten in Originalfarben. Je Baum `_Fern` (Rinde auf 30 %, 40 % der Blattkarten, 1,3-fach größer) und `_Winter`/`_FernWinter` (nur Rinde, Laubbäume) | 21.11.2026 |
+| Jahreszeit | im Shader `baum_wind.gdshader` (neue Werte `laub_toenung`, `laub_farbe`, `bluete`, `schnee`, alle 0 = wie vorher): Tönung über die Helligkeit der Originalkarte; Frühling helles Grün, Herbst gelb-orange mit Rest Grün, Winter Tannen grün mit Schnee auf nach oben zeigenden Flächen, Laubbäume kahl; Obstbaum und Busch blühen im Frühling (Blütenflecken) | 21.11.2026 |
+| Obstbaum | Das Kit hat keinen: CommonTree_4 in 6 m Höhe mit Blüte | 21.11.2026 |
+| Testszene | `--baumtest=1` (`Baumtest.cs`, Einhängung in `Hauptmenue.cs` eine Zeile), Wald zum Messen, Fernfassung als zweites Netz mit Sichtbereich und Überblenden (`VisibilityRangeFadeMode.Self`) | 21.11.2026 |
+
 ### Steinebenen auch für Rathaus und Klappbrücke (Branch phase5/steinebenen-rathaus-bruecke, PR folgt)
 
 | Thema | Entscheidung | Datum |

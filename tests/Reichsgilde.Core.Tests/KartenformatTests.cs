@@ -75,6 +75,8 @@ static class KartenformatTests
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
             // Ohne Katalog: die Probe zum Neubau der Gebäude (gebaeude/neubau/); sie steht nur mit Startoption (--neubauprobe, Stadtansicht.Neubau.cs), bis der Nutzer den Tausch freigibt.
             fehlen.RemoveAll(d => d.StartsWith("gebaeude/neubau/"));
+            // Ohne Katalog: die Originalbäume (natur/natur_original_baeume); noch nur in der Testszene (--baumtest=1, Baumtest.cs), bis der Nutzer den Tausch freigibt.
+            fehlen.RemoveAll(d => d == "natur/natur_original_baeume");
             // Ebenso die Module der Häuserzeilen (gebaeude/zeilen/, modulares Wohnhaussystem): keine Bausteine der Karte, das Spiel setzt sie
             // selbst zu Zeilen zusammen (Stadtansicht.Zeilen.cs), bisher nur mit Startoption --zeilenprobe.
             fehlen.RemoveAll(d => d.StartsWith("gebaeude/zeilen/"));
