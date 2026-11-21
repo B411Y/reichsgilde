@@ -93,12 +93,20 @@ vec4 texel_scharf(sampler2DArray t, vec3 uvw, float lod) {
 	return texelFetch(t, ivec3(clamp(ivec2(floor(fract(uvw.xy) * vec2(g))), ivec2(0), g - ivec2(1)), int(uvw.z)), stufe);
 }
 
+#ifdef ZEILE
+// Häuserzeilen (building_trim_zeile*.gdshader, Stadtansicht.Zeilen.cs): eine Zeile ist EIN verschmolzenes Netz aus Häusern
+// verschiedener Völker, Stufen und Farben. Was sonst Instanz-Uniform ist, trägt jede Ecke: CUSTOM0 = (Putzfarbe, Ebene),
+// CUSTOM1 = (Akzentfarbe, AO-Ebene im Array der Zeilen-Atlanten zeilen_ao_ebenen.png).
+varying flat vec4 zeile_a;
+varying flat vec4 zeile_b;
+#else
 // Pro Gebäude-Instanz in Godot variierbar (ohne neues Material!):
 instance uniform vec3 plaster_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 wood_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 accent_tint : source_color = vec3(1.0, 1.0, 1.0); // z.B. Fensterläden
 instance uniform int ebene = 0;      // Ebene im Array der Trim-Sheets (Volk x Stufe, Steinebenen.Ebene)
 instance uniform int ao_ebene = 0;   // Ebene im Array der AO-Atlanten (Gruppe, Steinebenen.AoEbene)
+#endif
 
 // Brandschaden als Variante (Kopie des Materials, Stadtansicht.Brandschaden.cs): Ruß tönt die Farbe wie früher die Albedofarbe des
 // Grundmaterials (Weiß nach Ruß, Anteil aus NeubauBrand.RussAnteil); 1 = ohne Brand.
@@ -119,9 +127,20 @@ void vertex() {
 	welt_ort = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	welt_normale = normalize(mat3(MODEL_MATRIX) * NORMAL);
 	fuss_hoehe = VERTEX.y;
+#ifdef ZEILE
+	zeile_a = CUSTOM0;
+	zeile_b = CUSTOM1;
+#endif
 }
 
 void fragment() {
+#ifdef ZEILE
+	int ebene = int(zeile_a.w + 0.5);
+	int ao_ebene = int(zeile_b.w + 0.5);
+	vec3 plaster_tint = zeile_a.rgb;
+	vec3 accent_tint = zeile_b.rgb;
+	vec3 wood_tint = vec3(1.0);
+#endif
 	vec3 uvw = vec3(UV, float(ebene));
 	vec4 sb = stein_je_ebene ? STEIN_EBENE[clamp(ebene, 0, 11)] : stein_baender;
 	bool stein = (UV.y >= sb.x && UV.y < sb.y) || (UV.y >= sb.z && UV.y < sb.w);
