@@ -46,7 +46,7 @@ public partial class Stadtansicht
     /// </summary>
     private void WohnhaeuserPruefen()
     {
-        if (_wohnhaeuserGebaut || !_karteGebaut) return;
+        if (_wohnhaeuserGebaut || !_karteGebaut || WohnhaeuserSperre) return;
         var einwohner = _simulation?.Wirtschaft?.Einwohnerschaft;
         if (einwohner is { IstAktiv: true })
         {
@@ -59,6 +59,16 @@ public partial class Stadtansicht
             if (_simulation is null) SpielhaeuserMuster();
         }
     }
+
+    /// <summary>
+    /// Solange wahr, baut die Stadt die Einwohnerhäuser der Karte nicht (Baustellen und Häuser der Spieler und Rivalen zeigt sie weiter): Die Hauptszene
+    /// sperrt, bis der Kern die Einwohner vergeben hat (erster Takt, bei der Platzwahl erst nach ihr), und gibt erst frei, wenn der
+    /// Ladebildschirm steht – so poppen die Häuser nicht im ersten Bild der Partie auf (Hauptszene.Einzug.cs).
+    /// </summary>
+    public bool WohnhaeuserSperre { get; set; }
+
+    /// <summary>Stehen die Wohnhäuser der Karte (oder ist die Karte ohne sie fertig)?</summary>
+    public bool WohnhaeuserStehen => _wohnhaeuserGebaut;
 
     /// <summary>Für das Hauptmenü: so viele Häuser, wie die Stadt Plätze hat – 13 Ratsherren, 3 Bürger, der Rest einfache Häuser.</summary>
     private List<Stadthaus> Mustermischung()

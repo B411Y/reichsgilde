@@ -951,6 +951,20 @@ def baue_raum():
     return r
 
 
+LICHT_UNTER_DECKE = 0.85   # Grundlicht der Wohnstube so weit unter der Decke (1,70 m ueber dem Boden; vorher 0,35 = 2,20 m). Nutzer 21.11.2026:
+#                            Unterzug und Balkenunterseiten waren dunkel – das Licht stand nur 11 cm unter dem Unterzug (2,31 m) und streifte
+#                            die Unterseiten. In 1,70 m trifft es sie mit 0,6 bis 0,7 m Abstand; Waende und Boden bleiben hell (nachgerechnet)
+
+
+LICHT_DECKE = True         # Deckenlicht der Wohnstube (Anker Licht_Decke und Licht_Decke_Ziel; im Spiel ein Strahler ohne Schatten, der vom
+#                            ersten zum zweiten zeigt, Stadtansicht.Neubau.cs; Nutzer 21.11.2026): Unterzug und Deckenbalken blieben auch mit
+#                            tieferem Grundlicht dunkel. Das Holzband ist sehr dunkel (Helligkeit 0,10), und das Grundlicht ueber dem Auge
+#                            streift die langen Balkenseiten nur. Der Strahler steht an der linken Wand (der Seite des Blickpunkts) 0,6 m
+#                            ueber dem Boden und leuchtet schraeg hinauf zur Deckenmitte: Er trifft die Unterseiten und die Balkenseiten, die
+#                            zum Auge zeigen, nicht aber Boden und Waende darunter. Menschen und Zwerge; die Schichten der Elben und Halblinge
+#                            schalten ihn ab (helles Holz, nicht beauftragt)
+
+
 def baue_decke():
     """Decke der Wohnstube: Dielen auf sechs Balken und ein Unterzug (eigenes Teil, damit das Kontrollbild von oben hineinsieht)."""
     r = Teil("Decke", BI, saat=33)
@@ -1303,9 +1317,11 @@ def anker_innen(tuer_mitten):
     tm = (tuer[1][0] + tuer[1][1]) / 2
     liste = [
         A("Blick_Auge", M.STUBE_AUGE), A("Blick_Ziel", M.STUBE_ZIEL),
-        # Grundlicht (OmniLight ohne Schatten) in x in der Raummitte, in y auf der Hoehe des Blickpunkts (Pruefung 12c, 18.11.2026):
-        # bei y = -0,3 stand es hinter den Flaechen zur Kamera (Seite des Schlots ueber dem Herd), die nur Umgebungslicht bekamen
-        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (0.0, M.STUBE_AUGE[1], M.Z_EG_DECKE - 0.35)),
+        # Grundlicht (OmniLight ohne Schatten) ueber dem Blickpunkt wie bei den Elben (Feinschliff 20.11.2026): Jede senkrechte Flaeche,
+        # die das Auge sieht, zeigt dann auch zum Licht. In der Raummitte (x 0; davor auch y -0,3) lag es hinter den Seiten der zwei
+        # Deckenbalken vor der Fensterwand und hinter der Schlotseite ueber dem Herd – nur Umgebungslicht, im dunklen Holz fast schwarz
+        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (M.STUBE_AUGE[0], M.STUBE_AUGE[1], M.Z_EG_DECKE - LICHT_UNTER_DECKE)),
+    ] + ([A("Licht_Decke", (-IX + 0.30, -0.3, ZB + 0.6)), A("Licht_Decke_Ziel", (0.6, -0.3, M.Z_EG_DECKE))] if LICHT_DECKE else []) + [
         A("Feuer_Herd", ((kx0 + kx1) / 2 - 0.18 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.53)),
         A("Tuer_Innen", (tm, IV, ZB + M.TUER_LICHT[1] / 2)),
         A("Platz_Oberhaupt", (*an_rueckwand(g1.BANK_X, g1.TISCH[2] + 0.52), ZB), "nord", haltung="sitzt", rolle="oberhaupt", sitzhoehe=g1.SITZ_HOEHE),

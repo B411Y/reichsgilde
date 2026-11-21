@@ -171,7 +171,12 @@ public partial class Stadtansicht : Node3D
         /// <summary>Das ganze Gebäude von außen, wo es ein Modell ist (Rathaus, Dom): Es steht beim Blick in ein anderes Haus nur als Ganzes davor und wird dann ausgeblendet.</summary>
         public Node3D? Huelle { get; set; }
         public Node3D? Innen { get; set; }
-        public bool HatInnenraum => Innen is not null;
+        /// <summary>
+        /// Baut den Innenraum, wenn er noch fehlt: Betriebe bauen ihren Raum erst beim ersten Betreten, im Schwarzen der Übergangsblende
+        /// (<see cref="Stadtansicht.InnenSicherstellen"/>, Ladezeit 21.11.2026). Null: der Raum steht schon (oder gibt es nicht).
+        /// </summary>
+        public Action? InnenBauer { get; set; }
+        public bool HatInnenraum => Innen is not null || InnenBauer is not null;
         /// <summary>Zoom beim Betreten und wie weit man die Kamera im Innern verschieben darf.</summary>
         public float Zoom { get; init; } = InnenZoom;
         public float Reichweite { get; init; } = 8;
@@ -764,7 +769,9 @@ public partial class Stadtansicht : Node3D
             GezeigteStufe = betrieb.Stufe,
             GezeigterUmbau = betrieb.UmbauMinuten > 0,
         };
-        Innenraum(ansicht, stil, breite, tiefe, dicke);
+        // Der eigene Betrieb baut seinen Raum gleich (Kurzbefehle der Oberfläche gehen ohne Blende hinein, z. B. „Personal“ und „Bank“); die anderen erst beim Betreten
+        if (InnenVorab || betrieb.Konto == _spielerKonto) Innenraum(ansicht, stil, breite, tiefe, dicke);
+        else ansicht.InnenBauer = () => InnenraumSpaeter(ansicht, stil, breite, tiefe, dicke); // erst beim Betreten, im Schwarzen (Stadtansicht.Uebergang.cs)
         if (betrieb.UmbauMinuten > 0) StufeZeigen(ansicht); // die Beschriftung „(Umbau)“
         return ansicht;
     }
@@ -890,6 +897,7 @@ public partial class Stadtansicht : Node3D
     private bool Betreten(InnenAnsicht ansicht)
     {
         if (!ansicht.HatInnenraum) return false;
+        InnenSicherstellen(ansicht); // fehlt der Raum noch (Betriebe bauen ihn erst jetzt), steht er hier
         if (_innen == ansicht) return true;
         if (_innen is null)
         {

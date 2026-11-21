@@ -301,6 +301,7 @@ public partial class Hauptszene : Node
         _stadt.Welt3DSperren(true); // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
         _simulation = SimulationAufbauen(optionen);
+        EinzugVorbereiten(); // die Einwohnerhäuser baut die Stadt erst, wenn der Kern sie vergeben hat – unter dem Ladebildschirm (Hauptszene.Einzug.cs)
         await lade.Durchlaufen(_stadt.Aufbauen(), 0.106f, 0.725f);
         lade.Fortschritt(0.73f, "Die Zunftglocke wird geläutet …");
         await Ladebildschirm.Bild(GetTree());
@@ -310,6 +311,12 @@ public partial class Hauptszene : Node
         await ErsteBilderAbwarten(lade, 0.784f);
         Ladezeit.Marke("ErsteBilderAbwarten (Shader, Gras, Wetterprobe)");
         SetProcess(true);
+        if (EinzugOffen && !StartwahlOffen) // ohne Platzwahl: der erste Takt vergibt die Häuser, der Ladebildschirm wartet auf sie (Hauptszene.Einzug.cs)
+        {
+            await EinzugAbwarten(lade, 0.99f);
+            Ladezeit.Marke("Einzug der Bürger (Häuser vergeben und gebaut)");
+            _einzugHaelt = false;
+        }
         SetProcessUnhandledInput(true);
         _stadt.Ruhen(false);
         Ladezeit.Marke("Ladebild weg");
@@ -473,7 +480,8 @@ public partial class Hauptszene : Node
             _auswahlKennung = kennung;
             // Wie ein Tooltip: unten rechts neben dem Zeiger (am Rand nach links bzw. oben), bis der Spieler sie zieht
             var klickort = GetViewport().GetMousePosition();
-            _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
+            var klickZeiger = Mauszeiger.ZeigerBereich(); // eingefroren: das Bild der Hand ändert sich mit der Maus, die Tafel soll stehen bleiben
+            _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar, klickZeiger));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
             if (Stadtansicht.IstMarktplatz(kennung)) { MarktOeffnen(); AuswahlSchliessen(); } // wie im Original: ein Klick auf den Markt öffnet die Preistafel; die Kurzinfo daneben entfällt

@@ -13,10 +13,22 @@ public sealed class ProduktionAnzeige : InnenTafel
 {
     public ProduktionAnzeige() : base(900) { }
 
+    // Der Fortschritt läuft ständig: Die Balken werden an Ort und Stelle nachgezogen, die Tafel (und eine offene Auswahlliste darin) bleibt unberührt.
+    private readonly Dictionary<string, ProgressBar> _balken = new();
+
+    public override void Aktualisieren(double delta)
+    {
+        base.Aktualisieren(delta);
+        if (!Tafel.Visible || Betrieb is not { } b || Sim?.Wirtschaft is not { } w) return;
+        foreach (var arbeit in w.Werkstaetten.WarenInArbeit(b))
+            if (_balken.TryGetValue(arbeit.Ware, out var balken) && GodotObject.IsInstanceValid(balken) && !Mathf.IsEqualApprox((float)balken.Value, (float)arbeit.Fortschritt))
+                balken.Value = arbeit.Fortschritt;
+    }
+
     protected override string Stand(Stadtwirtschaft w, Betrieb b)
     {
         var s = w.Werkstaetten;
-        return $"{b.Produkt}|{string.Join(",", Auswahl())}|" + string.Join(";", s.WarenInArbeit(b).Select(x => $"{x.Ware}:{x.Arbeiter}:{(int)(x.Fortschritt * 20)}:{x.Stillstand}"))
+        return $"{b.Produkt}|{string.Join(",", Auswahl())}|" + string.Join(";", s.WarenInArbeit(b).Select(x => $"{x.Ware}:{x.Arbeiter}:{x.Stillstand}"))
              + "|" + string.Join(";", s.Arbeiterliste(b).Select(z => $"{z.Nummer}:{z.Arbeitskraft}:{z.Ware}:{z.Zugeteilt}"));
     }
 
@@ -26,6 +38,7 @@ public sealed class ProduktionAnzeige : InnenTafel
         var gewaehlt = Auswahl().OrderBy(n => n).ToList();
         var arbeiter = s.Arbeiterliste(b);
         var inArbeit = s.WarenInArbeit(b).ToDictionary(x => x.Ware);
+        _balken.Clear();
         Kopf("Produktion", b, "Die Hauptware stellt die Werkstatt her, solange kein Arbeiter etwas anderes zugeteilt bekommt.");
 
         Text(Inhalt, gewaehlt.Count == 0
@@ -54,7 +67,7 @@ public sealed class ProduktionAnzeige : InnenTafel
             raster.AddChild(spalte);
             if (inArbeit.TryGetValue(ware, out var arbeit))
             {
-                Balken(spalte, arbeit.Fortschritt, 140, arbeit.Stillstand is null ? Gold : Rot);
+                _balken[ware] = Balken(spalte, arbeit.Fortschritt, 140, arbeit.Stillstand is null ? Gold : Rot);
                 if (arbeit.Stillstand is { } still) Text(spalte, still, 11, Rot, 160);
             }
             else Text(spalte, "ruht", 12, Grau);

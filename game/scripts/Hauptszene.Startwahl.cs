@@ -43,6 +43,7 @@ public partial class Hauptszene
             // Die Werkstatt steht: Sie ist jetzt der eigene Betrieb (Kopfzeile, Startoptionen, Start-Hinweis)
             if (_simulation.Wirtschaft is { } w && _spieler is not null)
                 _eigeneGiesserei ??= w.Betriebe.FirstOrDefault(b => b.Konto == _spieler && b.InDerStadt);
+            EinzugNachPlatzwahl(); // die Einwohnerhäuser baut die Stadt jetzt, unter dem Ladebildschirm (Hauptszene.Einzug.cs)
             if (_startOptionen is not null) StartHinweisZeigen(_startOptionen);
             return;
         }
@@ -52,6 +53,9 @@ public partial class Hauptszene
         BauenOeffnen(); // die Tafel wählt das Gebäude selbst (BauAnzeige.StartwahlWaehlen)
         // Klicktest: --bauort2=x,z,drehung setzt den Umriss des zweiten Schritts (Werkstatt) – wie --bauort den des ersten
         if (_startOptionen?.GetValueOrDefault("bauort2") is { } ort && _simulation.Wirtschaft!.Bauen.StartwahlVon(_spieler!) is { WohnhausOffen: false })
+        {
             BauOrtSetzen(ort);
+            if (_startOptionen.GetValueOrDefault("bauklick") == "2") _bauAutoKlick = 2; // auch der zweite Schritt setzt von selbst (Klicktest)
+        }
     }
 }

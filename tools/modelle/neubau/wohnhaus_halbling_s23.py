@@ -551,7 +551,7 @@ def licht_vor_den_herd(licht, auge):
     Raummitte (y -0,3 wie bei den Menschen) stand es hinter den Flaechen, die zur Kamera zeigen. Wie in den Raeumen der Elben: in x
     in der Raummitte (zwischen den Deckenbalken), in y auf der Hoehe des Blickpunkts (die Kamera der Halblinge steht hinten, BLICK); an
     der linken Wand wie in der Wohnstube der Elben blieb die Seite eines Deckenbalkens zur Kamera ohne Licht."""
-    return Vector((licht.x, auge.y, licht.z))
+    return Vector((0.0, auge.y, S23.M.Z_EG_DECKE - 0.35))   # fest (wie gebaut): x und Hoehe folgen nicht mehr dem Menschen-Skript (dort seit 21.11.2026 ueber dem Auge in 1,70 m)
 
 
 def schlot_grundriss():
@@ -667,6 +667,7 @@ def masse_anlegen(stufe):
 
 def schicht_anlegen(stufe):
     """Stoff, Dateinamen, Atlasgruppen, Halblingsmasse und die Bauteile der Halblinge; die Skripte der Menschen bleiben unveraendert."""
+    S23.LICHT_DECKE = False                                # kein Deckenlicht (nur Menschen und Zwerge, 21.11.2026)
     STUFE[0] = stufe
     alt_stoff, alt_uv, alt_exp = g1.stoff, g1.uv2_und_ao, g1.exportiere
     g1.stoff = lambda name, blatt=None, **kw: alt_stoff(name, blatt_halbling(blatt) if blatt else None, **kw)

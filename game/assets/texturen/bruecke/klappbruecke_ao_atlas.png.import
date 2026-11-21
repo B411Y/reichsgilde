@@ -3,20 +3,21 @@
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
 uid="uid://bp8csl2152t2d"
-path="res://.godot/imported/klappbruecke_ao_atlas.png-ece6e0a525b9cd814b1030eb4a9e0856.ctexarray"
+path.bptc="res://.godot/imported/klappbruecke_ao_atlas.png-ece6e0a525b9cd814b1030eb4a9e0856.bptc.ctexarray"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/texturen/bruecke/klappbruecke_ao_atlas.png"
-dest_files=["res://.godot/imported/klappbruecke_ao_atlas.png-ece6e0a525b9cd814b1030eb4a9e0856.ctexarray"]
+dest_files=["res://.godot/imported/klappbruecke_ao_atlas.png-ece6e0a525b9cd814b1030eb4a9e0856.bptc.ctexarray"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
