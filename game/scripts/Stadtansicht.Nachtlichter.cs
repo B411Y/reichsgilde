@@ -343,7 +343,17 @@ public partial class Stadtansicht
     {
         public required BoneAttachment3D Anhang { get; init; }
         public bool An { get; set; }
+        /// <summary>
+        /// Das Licht für die gebackene Stufe (VAT, Zoom 50 und 100): Dort ist das Skelett samt Anhang ausgeblendet, die Figur zeichnet das MultiMesh
+        /// ohne Laterne. Darum steht neben dem Modell ein zweites Licht an der ungefähren Handlage (Nutzer 21.11.2026: nachts leuchteten die Lichter
+        /// der Passanten nur beim nächsten Zoom). Null, bis es zum ersten Mal gebraucht wird.
+        /// </summary>
+        public MeshInstance3D? Fern { get; set; }
+        public Lichtart Art { get; init; }
     }
+
+    /// <summary>Ungefähre Lage der rechten Hand einer stehenden oder gehenden Figur im Raum des Modells (Meter, Mensch): rechts, auf Hüfthöhe.</summary>
+    private static readonly Vector3 FernHand = new(-0.26f, 0.92f, 0.08f);
 
     /// <summary>
     /// Wo die Mitte der Hand im Knochenraum von <c>Unterarm_R</c> liegt (Meter vom Ellbogen, 0,72 · Unterarm + 0,06; siehe
@@ -371,7 +381,7 @@ public partial class Stadtansicht
         anhang.AddChild(halter);
         halter.AddChild(lampe);
         _lichtquellen.Add(new Lichtquelle { Knoten = lampe, Versatz = FlammenOrt(art), Art = art, Phase = nummer * 0.37f, Flamme = FlammeVon(lampe) });
-        return new Traglicht { Anhang = anhang };
+        return new Traglicht { Anhang = anhang, Art = art };
     }
 
     /// <summary>Schaltet das Licht in der Hand ein oder aus – nur beim Wechsel.</summary>
@@ -398,6 +408,7 @@ public partial class Stadtansicht
         {
             // Der Vorarbeiter bekommt statt seiner Fackel eine Laterne (er behält sie danach)
             fackel.Anhang.QueueFree();
+            fackel.Fern?.QueueFree();
             p.Licht = null;
         }
         if (!soll && p.Licht is null) return;
@@ -409,6 +420,28 @@ public partial class Stadtansicht
             if (p.Licht is null) return;
         }
         TraglichtSchalten(p.Licht!, soll);
+        FernlichtSchalten(p, e, soll);
+    }
+
+    /// <summary>
+    /// Zeigt in der gebackenen Stufe (die Figur zeichnet das MultiMesh, das Skelett ist aus) das Ersatzlicht neben dem Modell, sonst nicht. Es ist
+    /// eine eigene Lichtquelle: Flamme, Lichtfleck und echtes Licht aus dem Pool gelten wie bei jedem Licht (Stadtansicht.Lichtflecken.cs).
+    /// </summary>
+    private void FernlichtSchalten(Passant p, Einwohner e, bool soll)
+    {
+        if (p.Licht is not { } licht || p.Figur is not { } figur) return;
+        var fern = soll && figur.Probe && _probeVat && !figur.ProbeNah && ProbeArtGebacken(figur.ProbeArt);
+        if (licht.Fern is null)
+        {
+            if (!fern || figur.Modell.GetParent() is not { } eltern || LichtKnoten(licht.Art, e.Nummer, wandert: true) is not { } lampe) return;
+            lampe.Name = "Fernlicht";
+            lampe.Visible = false;
+            eltern.AddChild(lampe);
+            licht.Fern = lampe;
+            _lichtquellen.Add(new Lichtquelle { Knoten = lampe, Versatz = FlammenOrt(licht.Art), Art = licht.Art, Phase = e.Nummer * 0.37f + 0.1f, Flamme = FlammeVon(lampe) });
+        }
+        if (fern) licht.Fern.Position = figur.Modell.Position + figur.Modell.Basis * FernHand;
+        if (licht.Fern.Visible != fern) licht.Fern.Visible = fern;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

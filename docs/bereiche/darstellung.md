@@ -885,3 +885,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ablauf | Wie die anderen Bücher (`BuchAblauf`): Klick auf das Buch oder den Kartentisch → Schwenk 0,8 s → aufklappen → Hinterzimmer-Tafel; Kapitelwechsel blättert um; Esc oder Klick daneben klappt zu. Taste H und der Knopf „Hinterzimmer“ öffnen die Tafel weiter direkt, ohne Buch. Ohne gebautes Hinterzimmer gibt es den Raum nicht, also liegt kein Buch dort. | 20.11.2026 |
 | Vorschau | `tools/modelle/buecher3d/vorschau_blender.py`: zwei Bilder aus der `.blend` (Cycles, OptiX), nur zur Sichtprüfung vor dem Einbau. Cycles kennt kein Rückseiten-Culling, darum ist die zugewandte Seite der Hülle dort durchsichtig; im Bild des offenen Buchs wirft das Buch keinen Schatten (die Hülle verschattet sonst die Seiten). | 20.11.2026 |
 
+
+### Passanten-Licht in der gebackenen Stufe (Fehler des Nutzers 21.11.2026; Branch fix/passanten-licht)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Ab Zoom 50 und 100 zeichnet das MultiMesh die Passanten gebacken (VAT), das Skelett samt `BoneAttachment3D` ist ausgeblendet (`Figur.Modell.Visible = false`). Die Handlaterne oder Fackel hing am Knochen `Unterarm_R`, verschwand also mit, und weil ihr Knoten nicht sichtbar war, bekamen weder der Lichtfleck (`Stadtansicht.Lichtflecken.cs`) noch das echte Licht aus dem Pool (`Stadtansicht.Nachtlichter.cs`) eine Quelle. Nur bei Zoom 25 (Skelett) war das Licht zu sehen. Kein Fehler der Fernausblendung oder des Pixel-Looks. | 21.11.2026 |
+| Lösung | Neben dem Modell steht ein zweites Licht (`Traglicht.Fern`, Knoten `Fernlicht`): dieselbe Laterne oder Fackel mit Flamme, an der ungefähren Handlage (`FernHand`, rechts, Hüfthöhe), nur sichtbar in der gebackenen Stufe (`FernlichtSchalten`). Es ist eine eigene Lichtquelle (`_lichtquellen`): Flamme, Lichtfleck als Ersatzlicht und echtes Licht aus dem Pool (Hoch 12, Mittel 6) gelten wie bei allen Lichtern, die Grafikstufen bleiben abgestuft wie bisher. Es folgt der Figur über die Lage des Modells, nicht dem Schritt der Arme. | 21.11.2026 |
