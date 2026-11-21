@@ -49,7 +49,7 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | Karren | je Karren, wo er ist | Karrenhof, Handel am Markt |
 | Talentbaum | Stufe, eingerichtete Stücke | die nächsten Stücke kaufen, ganzen Talentbaum ansehen |
 
-„Hinterzimmer“ öffnet seine Tafel direkt, „Menü“ das Spielmenü.
+„Hinterzimmer“ öffnet seine Tafel direkt, „Menü“ das Spielmenü. Spielmenü, Einstellungen und Hilfe stehen wie die Fenster über der Lade; die Lade bleibt dabei sichtbar.
 
 > [!NOTE]
 > Die Tempostufen **16×** und **32×** (Tasten **5** und **6**) sind nur zum Testen gedacht und fallen vor der Veröffentlichung weg. Ihre Knöpfe (orange) stehen nur mit dem Haken **Entwickler-Optionen** in der Zeitleiste; die Tasten wirken immer.

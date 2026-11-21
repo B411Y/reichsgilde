@@ -28,6 +28,9 @@ public partial class GaunerAnzeige : PanelContainer
 
     /// <summary>Aufgeschlagenes Kapitel und Haus (Inhaber) – bleiben über jeden Neuaufbau und jedes Öffnen erhalten.</summary>
     private Kapitel _kapitel = Kapitel.Haeuser;
+
+    /// <summary>Das aufgeschlagene Kapitel (das 3D-Buch auf dem Kartentisch blättert um, wenn es wechselt; <c>Hauptszene.Buecher.cs</c>).</summary>
+    public Kapitel KapitelJetzt => _kapitel;
     private string? _ziel;
 
     /// <summary>Rückmeldung des letzten Befehls (steht oben, bis die Tafel neu geöffnet wird).</summary>

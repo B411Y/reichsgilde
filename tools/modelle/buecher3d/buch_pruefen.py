@@ -1,4 +1,4 @@
-"""Prueft die drei 3D-Buecher (game/assets/modelle/oberflaeche/buch_<art>.glb): Dreiecke, Knoten- und Clip-Namen, Cliplaengen, Materialien,
+"""Prueft die 3D-Buecher (Personal, Familie, Kontor, Schwarzes Buch) (game/assets/modelle/oberflaeche/buch_<art>.glb): Dreiecke, Knoten- und Clip-Namen, Cliplaengen, Materialien,
 Neigung konstant (+-0,5 Grad), Inhaltsflaechen deckungsgleich, kein Huepfen beim Zuklappen.
   python -I tools/modelle/buecher3d/buch_pruefen.py [<ordner mit den .glb>] [<ordner mit messwerte_buch_<art>.json>]
 Ohne zweiten Ordner werden nur die .glb geprueft; die Messwerte schreibt buch_bau.py aus der ausgewerteten Pose (Blender)."""
@@ -10,7 +10,7 @@ import sys
 HIER = os.path.dirname(os.path.abspath(__file__))
 glbdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HIER, "..", "..", "..", "game", "assets", "modelle", "oberflaeche")
 messdir = sys.argv[2] if len(sys.argv) > 2 else None
-ANHANG = {"personal": "Riemen", "familie": "Schliesse", "kontor": None}
+ANHANG = {"personal": "Riemen", "familie": "Schliesse", "kontor": None, "schwarz": None}
 SEG = 6
 fehler = []
 
@@ -21,7 +21,7 @@ def pruefe(bed, text):
         fehler.append(text)
 
 
-for art in ("personal", "familie", "kontor"):
+for art in ("personal", "familie", "kontor", "schwarz"):
     print(f"--- Buch {art}")
     with open(os.path.join(glbdir, f"buch_{art}.glb"), "rb") as fh:
         daten = fh.read()
@@ -58,6 +58,7 @@ for art in ("personal", "familie", "kontor"):
     for m in ("Buch_Einband", "Buch_Leder", "Buch_Seiten", "Buch_Schnitt", "Buch_Inhalt", "Umriss"):
         pruefe(m in mats, f"Material {m}")
     pruefe(art != "familie" or "Buch_Wappenfeld" in mats, "Material Buch_Wappenfeld beim Familienbuch")
+    pruefe(art != "schwarz" or all(f"Buch_Band_{k}" in mats for k in (1, 2, 3, 4)), "vier Lesebaender (Buch_Band_1 bis 4) beim Schwarzen Buch")
     pruefe(mats.get("Buch_Inhalt", {}).get("pbrMetallicRoughness", {}).get("baseColorFactor", [1, 1, 1, 1])[3] == 0, "Buch_Inhalt ist voellig durchsichtig (Alpha 0, die Oberflaeche setzt ein eigenes Material)")
     pruefe(len(j.get("images", [])) >= 4, f"eingebettete Texturen: {len(j.get('images', []))}")
     if messdir:
