@@ -17,6 +17,7 @@ public partial class Rollbereich : ScrollContainer
 {
     private PanelContainer _tafel = null!;
     private Control _inhalt = null!;
+    private Vector2 _gemessen; // die Größe, die das vorige Bild gemessen hat
 
     /// <summary>Luft zwischen Tafel und Fensterrand (je Seite) – wie der Abstand der Ecktafeln.</summary>
     public float Abstand { get; set; } = 16;
@@ -104,8 +105,12 @@ public partial class Rollbereich : ScrollContainer
         var groesse = new Vector2(
             Mathf.Max(60, Mathf.Min(inhalt.X + (senkrecht ? balkenBreite : 0), platz.X)),
             Mathf.Max(60, Mathf.Min(inhalt.Y + (waagrecht ? balkenHoehe : 0), platz.Y)));
-        if (!groesse.IsEqualApprox(CustomMinimumSize))
+        // Eine neue Größe gilt erst, wenn sie zwei Bilder hintereinander gemessen wurde (oder beim ersten Messen): Baut eine Tafel ihren Inhalt neu, misst ein
+        // Text mit Zeilenumbruch im neuen Knoten ein Bild lang mit Breite 0 – der Inhalt schien dann bis zu dreimal so hoch, die Tafel sprang groß und
+        // wieder klein und das Fenster mit ihr (Flackern). Ein Ausreißer von einem Bild verändert die Tafel jetzt nicht mehr.
+        if (!groesse.IsEqualApprox(CustomMinimumSize) && (CustomMinimumSize == Vector2.Zero || groesse.IsEqualApprox(_gemessen)))
             CustomMinimumSize = groesse;
+        _gemessen = groesse;
 
         TafelAnpassen();
         // Tafel am rechten Rand: Der Abstand zur Kante folgt der Einstellung „Randabstand rechts“ (nicht mehr, sobald der Spieler sie verschoben hat)
