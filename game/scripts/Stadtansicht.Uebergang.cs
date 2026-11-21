@@ -62,9 +62,38 @@ public partial class Stadtansicht
         blende.Ablauf.Schweben(kennung);
         if (blende.Ablauf.VorladenNoetig && kennung is not null && AnsichtZu(kennung) is { HatInnenraum: true } ansicht)
         {
-            InnenVorbereitenJetzt(ansicht);
+            if (ansicht.InnenBauer is null) InnenVorbereitenJetzt(ansicht); // ein fehlender Raum wird nicht beim Schweben gebaut (Ruckeln), sondern im Schwarzen
             blende.Ablauf.VorladenFertig(kennung);
         }
+    }
+
+    /// <summary>Startoption <c>--innenvorab=1</c>: die Innenräume der Betriebe beim Laden bauen statt beim ersten Betreten (alter Ablauf, für Vergleichsmessungen).</summary>
+    private static readonly bool InnenVorab = OS.GetCmdlineUserArgs().Contains("--innenvorab=1");
+
+    /// <summary>
+    /// Baut den Innenraum eines Betriebs, falls er noch fehlt – im Schwarzen der Blende (Schritt „Vorbereiten“) oder, ohne Blende, beim Betreten.
+    /// Was dabei an der Stadt hängen bleibt (Knoten „Innen“, Schilder), kommt in die Gruppe des Betriebs, wie beim Bau gleich nach dem Laden
+    /// (<see cref="BetriebHinzufuegen"/>); der Innenraum liegt unter der Stadt und wird nie mitgedreht.
+    /// </summary>
+    private void InnenSicherstellen(InnenAnsicht ansicht)
+    {
+        if (ansicht.InnenBauer is not { } bauer) return;
+        ansicht.InnenBauer = null;
+        bauer();
+    }
+
+    private void InnenraumSpaeter(BetriebsAnsicht ansicht, Werkstil stil, float breite, float tiefe, float dicke)
+    {
+        var uhr = Stopwatch.StartNew();
+        var vorher = GetChildCount();
+        Ladezeit.Teil("Innenraum bauen (erst beim Betreten)", () => Innenraum(ansicht, stil, breite, tiefe, dicke));
+        if (ansicht.Gruppe is { } gruppe)
+            foreach (var kind in GetChildren().Skip(vorher).ToList())
+            {
+                RemoveChild(kind);
+                gruppe.AddChild(kind);
+            }
+        if (Uebergangsblende.Messen) GD.Print($"[innenmessung] gebaut {ansicht.Kennung}: {uhr.Elapsed.TotalMilliseconds:0.0} ms");
     }
 
     /// <summary>Die Arbeit, die beim Betreten ohnehin anfällt (Stufenteile, Figuren, Lager, Auslage, Feuer), schon vorher im verborgenen Raum; beim Betreten ist alles bereit.</summary>
@@ -72,6 +101,7 @@ public partial class Stadtansicht
     {
         if (_innen == ansicht) return;
         var uhr = Stopwatch.StartNew();
+        InnenSicherstellen(ansicht); // im Schwarzen: der Raum eines Betriebs wird erst jetzt gebaut
         InnenAuffuellen(ansicht);
         _innenWarm = true;
         if (Uebergangsblende.Messen) GD.Print($"[innenmessung] vorbereiten {ansicht.Kennung}: {uhr.Elapsed.TotalMilliseconds:0.0} ms");
