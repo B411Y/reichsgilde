@@ -1348,9 +1348,6 @@ public partial class Hauptszene : Node
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
         if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
-        // Große Fenster und Briefe: die neuen Meldungen ruhen unsichtbar (eine laufende hält an) und gehen danach weiter
-        _einblendung.Ruht = innenTafelOffen || _jahresbericht.Visible || _entscheidungsbrief.Visible || _brief.Visible || _berichtTafel.Visible
-                            || _stimmrunde.Visible || _brief.Ruht?.Invoke() == true || _spielmenue.Visible || _einstellungen.Tafel.Visible || _hilfe.Visible || Fensterrahmen.MittigOffen;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));

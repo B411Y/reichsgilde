@@ -89,8 +89,6 @@ public partial class Hauptszene
     {
         _sitzungsTafel.Verbinden(simulation, spieler);
         _stimmrunde.Verbinden(simulation, spieler);
-        _brief.Ruht = () => Briefphase.Ruht(_stimmrunde.Visible, _simulation.Wirtschaft is { } ww && _stimmrundeJahr == ww.Jahr, _simulation.Ratssitzung is not null || _sitzungZuZeigen is not null,
-            _sitzungsTafel.Laeuft, _jahresbericht.Visible, _jahresberichtWartet); // Briefe warten die ganze Folge ab (Briefaufschub.cs)
         w.RatssitzungAnhalten = null; // Szene als Wiedergabe: Die Sitzung läuft im Kern in einem Zug
         _stimmrundeJahr = 0;
         _sitzungZuZeigen = null;

@@ -7,7 +7,7 @@ public enum BriefZustand { Weg, Auffalten, Offen, Zufalten }
 /// Die Zeiten des großen Briefs: Längen der Clips <c>auffalten</c> und <c>zufalten</c> aus der .glb, die Sichtbarkeit der Inhaltsfläche (Zeiten des
 /// Modells, <c>docs/bereiche/darstellung.md</c>) und das kurze Ein- und Ausblenden aus dem Thema (<c>meldung_thema.tres</c>). Alles in Sekunden.
 /// </summary>
-public readonly record struct BriefMasse(double AufSekunden, double ZuSekunden, double InhaltAb, double InhaltBis, double EinblendSekunden, double AusblendSekunden);
+public readonly record struct BriefMasse(double AufSekunden, double ZuSekunden, double InhaltAb, double InhaltBis, double EinblendSekunden, double AusblendSekunden, double Tempo = 1);
 
 /// <summary>
 /// Die reine Ablauflogik des großen 3D-Briefs (<see cref="BriefBuehne"/>, <see cref="BriefAnzeige"/>) ohne Godot, damit sie sich testen lässt
@@ -81,7 +81,7 @@ public sealed class BriefAblauf
     /// <summary>Rechnet die Zeit weiter. Ohne Bewegung springt der Brief an das Ende des laufenden Schritts.</summary>
     public void Weiter(double dt, bool bewegt)
     {
-        dt = bewegt ? Math.Max(0, dt) : double.MaxValue;
+        dt = bewegt ? Math.Max(0, dt) * Math.Max(_m.Tempo, 0.01) : double.MaxValue;
         switch (Zustand)
         {
             case BriefZustand.Auffalten:
