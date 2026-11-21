@@ -8,7 +8,7 @@ import math
 
 from mathutils import Vector
 
-from netzbau import SCHWARZ
+from netzbau import ROT, SCHWARZ
 
 STREBE_BREITEN = (0.12, 0.13)          # Streben der Menschen: Giebel 0,12 m, Eckgefache 0,13 m (wohnhaus_mensch_s1_g1.fachwerk_wand / giebel_fachwerk)
 BOGEN_STICH = 0.08                     # Stich der gebogenen Strebe je Meter Sehne (hoechstens BOGEN_STICH_MAX)
@@ -120,7 +120,9 @@ def ortgang_schwung(d, g, xe, dick_unten, dick_oben, walm):
                 r = Vector((auf.x * math.cos(winkel) - auf.z * math.sin(winkel), 0, auf.x * math.sin(winkel) + auf.z * math.cos(winkel)))
                 punkte.append(punkte[-1] + r * ZIER_ABSCHNITT)
                 breiten.append(ZIER_BREIT[k])
-            streifen(d, "Fachwerk", punkte, breiten, n, "balken_c", ZIER_TIEF, kappe=True, anfang=auf)
+            # farbig gefasst (Nutzer 21.11.2026: im Pixel-Look sichtbar machen): Band „farbholz“ mit der Akzentfarbe des Hauses wie die
+            # Fensterlaeden (Eckenfarbe ROT, Style-Guide 3.3) – dunkel gegen Putz, Schindeln und das helle Holz der Elben
+            streifen(d, "Fachwerk", punkte, breiten, n, "farbholz", ZIER_TIEF, kappe=True, anfang=auf, farbe=ROT)
 
 
 def massfigur_elb(fusspunkte, hoehe=1.85):

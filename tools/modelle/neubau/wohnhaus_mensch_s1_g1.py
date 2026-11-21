@@ -51,6 +51,7 @@ STROH = 0.28                # Dicke der Strohdeckung (senkrecht)
 OX = BX + KRAG              # halbe Breite des Obergeschosses
 OVORN = VORN - KRAG
 Z_FIRST = Z_TRAUFE + OX * NEIGUNG          # Unterseite des Dachs am First
+PFETTE = 0.14               # Fusspfette unter den Sparrenfuessen: so weit steht sie vor der Traufwand
 GALERIE_AB = 0.6            # die Schlafgalerie liegt ueber dem hinteren Teil (y ab hier)
 KAMIN = (1.38, 1.98, -0.30, 0.40)         # Schlot (x0, x1, y0, y1): innen an der rechten Wand hinter der Raummitte (die Tuer bleibt frei), oben durchs Dach
 Z_HAUBE = 1.95                            # Unterkante der Herdhaube: 1,80 m ueber dem Fussboden
@@ -609,6 +610,12 @@ def baue_raum():
     for i in range(1, 10):
         p = fuss + (kante - fuss) * (0.265 * i / (Z_GALERIE - Z_BODEN))
         r.stab(S, p + Vector((-0.24, 0, 0)), p + Vector((0.24, 0, 0)), 0.045, "bohlen")
+    # Fusspfette (Nutzer 21.11.2026: die Sparren hingen ohne Auflager an der Wand): ein Balken 14 x 16 cm entlang beider Traufwaende
+    # unter den Sparrenfuessen, die Sparren liegen in ihm (Oberkante 3 cm ueber ihrer Unterkante an der Wand). Am Schlot (rechte Wand) unterbrochen
+    for sx in (-1, 1):
+        for ya, yb in ([(JV, KAMIN[2]), (KAMIN[3], IH)] if sx > 0 else [(JV, IH)]):
+            r.kasten(S, (min(sx * JX, sx * (JX - PFETTE)), ya, zw - 0.20), (max(sx * JX, sx * (JX - PFETTE)), yb, zw - 0.04), "balken",
+                     ohne=("+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
     # Dachstuhl: fuenf Sparrenpaare, Firstpfette, zwei Kehlbalken
     for y in (JV + 0.3, -1.45, -0.62, 0.9, IH - 0.3):
         for sx in (-1, 1):

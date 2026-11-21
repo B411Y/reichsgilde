@@ -737,6 +737,15 @@ def baue_raum():
     for i in range(1, 10):
         p = fuss + (kante - fuss) * (0.265 * i / (Z_GALERIE - Z_BODEN))
         r.stab(S, p + Vector((-0.24, 0, 0)), p + Vector((0.24, 0, 0)), 0.045, "bohlen")
+    # Fusspfette (Nutzer 21.11.2026: die Sparren hingen ohne Auflager an der Wand): ein Balken 14 x 16 cm entlang beider Traufwaende
+    # unter den Sparrenfuessen, die Sparren liegen in ihm (Oberkante 3 cm ueber ihrer Unterkante an der Wand). Am Schlot unterbrochen
+    pk0, pk1, pky0, pky1 = F.KAMIN
+    for sx in (-1, 1):
+        am_schlot = pk1 > IX - 0.01 if sx > 0 else pk0 < -IX + 0.01
+        for ya, yb in ([(IV, pky0), (pky1, IH)] if am_schlot else [(IV, IH)]):
+            if yb - ya < 0.05: continue
+            r.kasten(S, (min(sx * IX, sx * (IX - g1.PFETTE)), ya, zw - 0.20), (max(sx * IX, sx * (IX - g1.PFETTE)), yb, zw - 0.04), "balken",
+                     ohne=("+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
     # Dachstuhl: Sparrenpaare, Firstpfette, zwei Kehlbalken
     n_sp = max(4, round((IH - IV) / 1.15) + 1)
     sparren = [IV + 0.3 + (IH - IV - 0.6) * i / (n_sp - 1) for i in range(n_sp)]
