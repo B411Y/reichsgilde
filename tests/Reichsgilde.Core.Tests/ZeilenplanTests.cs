@@ -126,6 +126,18 @@ static class ZeilenplanTests
             // keine Varianten (0) oder nur eine: immer Index 0
             Pruefe.Wahr(Zeilenplan.VariantenWahl("x", Enumerable.Range(0, 10).Select(i => (S, "k_g6", i)).ToList(), (_, _) => 0).All(v => v == 0), "ohne Varianten Index 0");
             Pruefe.Wahr(Zeilenplan.VariantenWahl("x", Enumerable.Range(0, 10).Select(i => (S, "k_g6", i)).ToList(), (_, _) => 1).All(v => v == 0), "eine Variante: Index 0");
+            // gleiche Häuser mit anderen dazwischen: nie die Variante des vorigen gleichen Hauses (drei gleiche sehen nicht alle gleich aus)
+            foreach (var kennung in new[] { "Probe", "Probe_gegen", "z3" })
+            {
+                var zeile = new List<(string, string, int)>();
+                for (var i = 0; i < 40; i++) zeile.Add((S, i % 3 == 0 ? "k_g6" : i % 3 == 1 ? "k_g4" : "k_g8", i));
+                var wz = Zeilenplan.VariantenWahl(kennung, zeile, (_, _) => 3);
+                foreach (var modul in new[] { "k_g6", "k_g4", "k_g8" })
+                {
+                    var folge6 = Enumerable.Range(0, 40).Where(i => zeile[i].Item2 == modul).Select(i => wz[i]).ToList();
+                    for (var i = 1; i < folge6.Count; i++) Pruefe.Wahr(folge6[i] != folge6[i - 1], $"{modul}: zweimal Variante {folge6[i]} in Folge ({kennung})");
+                }
+            }
             // verschiedene Module oder Sätze nebeneinander dürfen denselben Index haben; gleiche nie – auch gemischt
             var gemischt = new List<(string, string, int)>();
             for (var i = 0; i < 80; i++) gemischt.Add((i % 7 == 3 ? "zwerg_s1" : S, i % 5 < 3 ? "k_g6" : "k_g4", i));

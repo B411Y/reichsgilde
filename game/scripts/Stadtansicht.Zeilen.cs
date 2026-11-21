@@ -123,6 +123,7 @@ public partial class Stadtansicht
         var koerperVariante = new Dictionary<int, int>();
         for (var i = 0; i < koerperLagen.Count; i++) koerperVariante[koerperLagen[i].Parzelle] = wahl[i];
         var variantenGenutzt = 0;
+        var gewaehlt = new SortedDictionary<int, string>();   // Körpervariante je Parzelle, fürs Log
         foreach (var l in lagen)
         {
             if (ZeilenModule(l.Satz) is not { } module) continue;
@@ -134,6 +135,7 @@ public partial class Stadtansicht
                 var index = istKoerper && koerperVariante.TryGetValue(l.Parzelle, out var k) ? k : Zeilenplan.Variante(kennung, l.Parzelle, l.Modul + (l.Gespiegelt ? "|r" : "|l"), anzahl);
                 name = Zeilenplan.VariantenName(l.Modul, index);
                 variantenGenutzt++;
+                if (istKoerper) gewaehlt[l.Parzelle] = name;
             }
             if (!module.TryGetValue(name, out var modul)) continue;
             var (volk, stufe) = ZeilenVolk(l.Satz);
@@ -173,7 +175,8 @@ public partial class Stadtansicht
         }
         knoten.AddChild(new MeshInstance3D { Name = "Netz", Mesh = netz });
         GD.Print($"[zeilen] {kennung}: {lagen.Count} Module, {lagen.Count(l => Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0)} Häuser, "
-                 + $"{netz.GetSurfaceCount()} Flächen, {sammler.Values.Sum(s => s.Dreiecke)} Dreiecke, {tueren} Türen, {variantenGenutzt} Module mit Variante");
+                 + $"{netz.GetSurfaceCount()} Flächen, {sammler.Values.Sum(s => s.Dreiecke)} Dreiecke, {tueren} Türen, {variantenGenutzt} Module mit Variante"
+                 + (gewaehlt.Count > 0 ? ": " + string.Join(" ", gewaehlt.Values) : ""));
         return knoten;
     }
 

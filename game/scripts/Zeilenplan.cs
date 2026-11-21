@@ -75,14 +75,17 @@ public static class Zeilenplan
 
     /// <summary>
     /// Wählt je Haus die Variante seines Körpermoduls (Fenster-Lochbild): fest aus Zeilenkennung, Parzelle und Modul, ohne
-    /// Zufallsquelle – dieselbe Zeile sieht auf jedem Rechner und in jeder Partie gleich aus. Zwei Häuser, die in der Liste
-    /// aufeinander folgen und denselben Satz und dasselbe Modul haben, bekommen nie dieselbe Variante (ab zwei Varianten).
+    /// Zufallsquelle – dieselbe Zeile sieht auf jedem Rechner und in jeder Partie gleich aus. Ein Haus bekommt nie die Variante
+    /// des vorigen Hauses mit demselben Satz und Modul in der Liste, auch wenn andere Häuser dazwischen stehen (ab zwei
+    /// Varianten) – so stehen gleiche Häuser nie mit demselben Lochbild nebeneinander, und drei gleiche in einer Zeile sehen
+    /// nicht alle gleich aus.
     /// <paramref name="anzahl"/> nennt, wie viele Varianten es für (Satz, Modul) gibt; 0 oder 1: Index 0 (das Modul ohne Zusatz).
     /// Rückgabe: Index je Eintrag der Liste.
     /// </summary>
     public static int[] VariantenWahl(string kennung, IReadOnlyList<(string Satz, string Modul, int Parzelle)> haeuser, Func<string, string, int> anzahl)
     {
         var aus = new int[haeuser.Count];
+        var zuletzt = new Dictionary<(string, string), int>();   // letzte Variante je (Satz, Modul); nur nachgeschlagen, nie durchlaufen
         for (var i = 0; i < haeuser.Count; i++)
         {
             var (satz, modul, parzelle) = haeuser[i];
@@ -90,9 +93,10 @@ public static class Zeilenplan
             if (n <= 1) continue;
             var h = Streuwert($"{kennung}|{parzelle}|{modul}");
             var index = (int)(h % (uint)n);
-            if (i > 0 && haeuser[i - 1].Satz == satz && haeuser[i - 1].Modul == modul && aus[i - 1] == index)
+            if (zuletzt.TryGetValue((satz, modul), out var vorige) && vorige == index)
                 index = (index + 1 + (int)((h / 7919u) % (uint)(n - 1))) % n;   // um 1 bis n − 1 weiter: sicher eine andere
             aus[i] = index;
+            zuletzt[(satz, modul)] = index;
         }
         return aus;
     }
