@@ -18,6 +18,10 @@ Geprueft wird, was das Spiel laedt (game/assets/modelle/gebaeude/zeilen/zeile_<s
    bzw. trifft im Grundriss den Boden. „Rueckseite“: ein Strahl trifft zuerst die Rueckseite einer Flaeche (im Spiel unsichtbar).
    Gemeldet ab NAHT_MIN Strahlen je Fall und Blick. Strohkanten (Alpha-Karten) zaehlen nicht.
 
+Fenster-Varianten (Lochbilder): Heissen Objekte in der GLB <modul>_a, <modul>_b ... (lueckenlos ab _a), gelten die Grenzen des Moduls
+fuer jede Variante; Rahmen und Naehte laufen je Variantenrunde (Runde i: von jedem Modul die Variante i), Verdeckung je Objekt nach
+den Plaetzen in ao_atlas.json. Ohne Varianten aendert sich nichts.
+
 --selbsttest=1 eicht die Nahtabtastung an Quadern mit bekannter Antwort (geschlossen, mit Spalt, mit gedrehter Wand); --fall=<a>|<b>
 und --proben=1 geben fuer eine Nachbarschaft Stichproben der Fundstellen aus.
 
@@ -54,6 +58,30 @@ FALL = ""             # --fall=k_t6|eck: nur diese Nachbarschaft
 PROBEN = False        # --proben=1: je Fall Stichproben der Fundstellen ausgeben (u quer zur Naht, v Tiefe bzw. Hoehe)
 
 
+def basis(name):
+    """Modulname ohne Variantenzusatz: k_g6_b -> k_g6 (Fenster-Lochbilder heissen <modul>_a, _b, _c ...)."""
+    teile = name.rsplit("_", 1)
+    return teile[0] if len(teile) == 2 and len(teile[1]) == 1 and teile[1].isalpha() and teile[0] in DREIECKE else name
+
+
+def varianten(netze, modul):
+    """Die Objekte eines Moduls in der GLB: seine Varianten <modul>_a ... (lueckenlos ab _a) oder das Modul ohne Zusatz."""
+    aus, i = [], 0
+    while f"{modul}_{chr(ord('a') + i)}" in netze:
+        aus.append(f"{modul}_{chr(ord('a') + i)}"); i += 1
+    return aus or ([modul] if modul in netze else [])
+
+
+def runden(netze):
+    """Sichten auf die Module fuer Rahmen- und Nahtpruefung: Runde i nimmt von jedem Modul die Variante i (gibt es weniger, die
+    letzte; ohne Varianten das Modul selbst), unter dem Namen ohne Zusatz. Ohne Varianten genau eine Runde."""
+    alle = {m: varianten(netze, m) for m in DREIECKE}
+    zahl = max([len(v) for v in alle.values()] + [1])
+    for i in range(zahl):
+        sicht = {m: netze[v[min(i, len(v) - 1)]] for m, v in alle.items() if v}
+        yield ("" if zahl == 1 else f"Variante {chr(ord('a') + i)}: "), sicht
+
+
 def laden(satz):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=os.path.join(Z.ZIEL_MODELL, f"zeile_{satz}.glb"))
@@ -73,22 +101,23 @@ def grenzen(o):
 
 def pruefe_module(netze, anker, melde):
     for m in Z.MODULE:
-        if m not in netze:
+        if not varianten(netze, basis(m)):
             melde(f"FEHLER Modul {m} fehlt in der GLB")
     for m in KOERPER + ["eck"]:
-        if "Tuer_" + m not in anker:
-            melde(f"FEHLER Anker Tuer_{m} fehlt")
-    zahl = {m: dreiecke(o) for m, o in netze.items() if m in DREIECKE}
-    for m in Z.MODULE:
-        if m in zahl:
-            zu_viel = zahl[m] > DREIECKE[m]
-            melde(f"{'FEHLER ' if zu_viel else ''}Dreiecke {m}: {zahl[m]} (hoechstens {DREIECKE[m]})", fehler=zu_viel)
+        for v in varianten(netze, m):
+            if "Tuer_" + v not in anker:
+                melde(f"FEHLER Anker Tuer_{v} fehlt")
+    zahl = {m: dreiecke(o) for m, o in netze.items() if basis(m) in DREIECKE}
+    for m in sorted(zahl, key=lambda n: (list(DREIECKE).index(basis(n)), n)):
+        zu_viel = zahl[m] > DREIECKE[basis(m)]
+        melde(f"{'FEHLER ' if zu_viel else ''}Dreiecke {m}: {zahl[m]} (hoechstens {DREIECKE[basis(m)]})", fehler=zu_viel)
+    groesste = lambda modul: max((zahl[v] for v in varianten(netze, modul)), default=0)
     for m in KOERPER:
-        if m not in zahl: continue
-        seiten = ("seite_offen", "seite_offen") if m.startswith("k_g") else ("kappe_offen", "kappe_brand")
-        summe = zahl[m] + sum(zahl.get(s, 0) for s in seiten)
-        melde(f"{'FEHLER ' if summe > HAUS_HOECHSTENS else ''}Haus {m} mit {seiten[0]} und {seiten[1]}: {summe} Dreiecke (hoechstens {HAUS_HOECHSTENS})",
-              fehler=summe > HAUS_HOECHSTENS)
+        for v in varianten(netze, m):
+            seiten = ("seite_offen", "seite_offen") if m.startswith("k_g") else ("kappe_offen", "kappe_brand")
+            summe = zahl[v] + sum(groesste(s) for s in seiten)
+            melde(f"{'FEHLER ' if summe > HAUS_HOECHSTENS else ''}Haus {v} mit {seiten[0]} und {seiten[1]}: {summe} Dreiecke (hoechstens {HAUS_HOECHSTENS})",
+                  fehler=summe > HAUS_HOECHSTENS)
 
 
 DACH_STOFFE = ("Stroh", "Strohkante")
@@ -320,13 +349,16 @@ def main():
 
     netze, anker = laden(satz)
     if nur == "rahmen":
-        pruefe_rahmen(netze, lambda t, fehler=None: melde(t, fehler))
+        for vor, sicht in runden(netze):
+            pruefe_rahmen(sicht, lambda t, fehler=None, vor=vor: melde(("FEHLER " + vor + t[7:]) if t.startswith("FEHLER ") else vor + t, fehler))
         print("ZEILE", satz, f"ERGEBNIS: {fehler[0]} Fehler"); sys.exit(0)
     if nur != "naht":
         pruefe_module(netze, anker, lambda t, fehler=None: melde(t, fehler))
-        pruefe_rahmen(netze, lambda t, fehler=None: melde(t, fehler))
         pruefe_verdeckung(netze, satz, lambda t, fehler=None: melde(t, fehler))
-    pruefe_naehte(netze, float(opt.get("raster", "0.03")), lambda t, fehler=None: melde(t, fehler))
+    for vor, sicht in runden(netze):
+        mit = lambda t, fehler=None, vor=vor: melde(("FEHLER " + vor + t[7:]) if t.startswith("FEHLER ") else vor + t, fehler)
+        if nur != "naht": pruefe_rahmen(sicht, mit)
+        pruefe_naehte(sicht, float(opt.get("raster", "0.03")), mit)
     if nur != "naht":
         zeilen, zahl, _ = L.band_ueberlauf(os.path.join(Z.ZIEL_MODELL, f"zeile_{satz}.glb"))      # laedt die GLB neu, daher zuletzt
         for z in zeilen: print("ZEILE", satz, z.strip())

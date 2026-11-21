@@ -73,20 +73,74 @@ static class ZeilenplanTests
             st = Zeilenplan.Stuecke(Reihe("k_g6"), links: H("eck"), rechts: H("eck"));
             Pruefe.Gleich("seite_blind+gasse|seite_blind+gasse", Seiten(st, 0));
         }),
-        ("Zeilenplan: Zeilenart wählt die Stellung – Bürgerhäuser Giebel (4, 6, 8 m), Kulisse Traufe (6, 8 m), sonst kein Modul", () =>
+        ("Zeilenplan: Giebel überall – jede Zeilenart bekommt Giebelhäuser (4, 6, 8 m), Traufhäuser wählt keine Art mehr", () =>
         {
-            Pruefe.Gleich("k_g4", Zeilenplan.Koerper(Zeilenplan.Zeilenart.Buerger, 4));
-            Pruefe.Gleich("k_g8", Zeilenplan.Koerper(Zeilenplan.Zeilenart.Buerger, 8));
-            Pruefe.Gleich("k_t6", Zeilenplan.Koerper(Zeilenplan.Zeilenart.Kulisse, 6));
-            Pruefe.Gleich("", Zeilenplan.Koerper(Zeilenplan.Zeilenart.Buerger, 3));   // Schmalhaus mindestens 4 m
-            Pruefe.Gleich("", Zeilenplan.Koerper(Zeilenplan.Zeilenart.Kulisse, 4));
             foreach (var art in new[] { Zeilenplan.Zeilenart.Buerger, Zeilenplan.Zeilenart.Kulisse })
+            {
                 foreach (var b in new[] { 4, 6, 8 })
-                    if (Zeilenplan.Koerper(art, b) is { Length: > 0 } m)
+                {
+                    var m = Zeilenplan.Koerper(art, b);
+                    Pruefe.Gleich("k_g" + b, m);
+                    Pruefe.Gleich((float)b, Zeilenplan.Breite(m));
+                    Pruefe.Gleich(Zeilenplan.Stellung.Giebel, Zeilenplan.StellungVon(m));
+                }
+                Pruefe.Gleich("", Zeilenplan.Koerper(art, 3));   // Schmalhaus mindestens 4 m, ein 3-m-Modul gibt es nicht
+                Pruefe.Gleich("", Zeilenplan.Koerper(art, 5));
+                Pruefe.Gleich("", Zeilenplan.Koerper(art, 10));
+            }
+            // eine Kulissenzeile aus den gewählten Modulen hat nur Giebelhäuser, keine Kappen
+            var haeuser = new[] { 6, 8, 6 }.Select(b => H(Zeilenplan.Koerper(Zeilenplan.Zeilenart.Kulisse, b))).ToArray();
+            var lagen = Zeilenplan.Planen(new[] { (0f, 0f), (20f, 0f) }, true, haeuser, out var gestellt);
+            Pruefe.Gleich(3, gestellt);
+            Pruefe.Gleich(0, lagen.Count(l => l.Modul.StartsWith("kappe_") || l.Modul.StartsWith("k_t")));
+            Pruefe.Gleich(2, lagen.Count(l => l.Modul == "seite_offen"));
+            Pruefe.Gleich(4, lagen.Count(l => l.Modul == "gasse"));
+            // ausdrücklich genannte Traufhäuser gehen weiter (die Module liegen in den GLB)
+            Pruefe.Gleich(Zeilenplan.Stellung.Trauf, Zeilenplan.StellungVon("k_t6"));
+            Pruefe.Gleich(6f, Zeilenplan.Breite("k_t6"));
+        }),
+        ("Zeilenplan: Fenster-Varianten – feste Wahl aus Kennung und Parzelle, nie zweimal dieselbe nebeneinander, ohne Varianten das Modul ohne Zusatz", () =>
+        {
+            Pruefe.Gleich("k_g6_a", Zeilenplan.VariantenName("k_g6", 0));
+            Pruefe.Gleich("k_g6_c", Zeilenplan.VariantenName("k_g6", 2));
+            Pruefe.Gleich(2166136261u, Zeilenplan.Streuwert(""));            // FNV-1a: Startwert
+            Pruefe.Gleich(0xE40C292Cu, Zeilenplan.Streuwert("a"));           // bekannter Prüfwert
+            foreach (var n in new[] { 2, 3, 5 })
+                foreach (var kennung in new[] { "Probe", "koeln_severinstrasse_west", "z17", "" })
+                {
+                    var haeuser = Enumerable.Range(0, 60).Select(i => (S, "k_g6", i)).ToList();
+                    var wahl = Zeilenplan.VariantenWahl(kennung, haeuser, (_, _) => n);
+                    Pruefe.Gleich(60, wahl.Length);
+                    for (var i = 0; i < wahl.Length; i++)
                     {
-                        Pruefe.Gleich((float)b, Zeilenplan.Breite(m));
-                        Pruefe.Gleich(art == Zeilenplan.Zeilenart.Buerger ? Zeilenplan.Stellung.Giebel : Zeilenplan.Stellung.Trauf, Zeilenplan.StellungVon(m));
+                        Pruefe.Wahr(wahl[i] >= 0 && wahl[i] < n, $"Index {wahl[i]} außerhalb 0..{n - 1}");
+                        if (i > 0) Pruefe.Wahr(wahl[i] != wahl[i - 1], $"zweimal Variante {wahl[i]} nebeneinander (n={n}, {kennung}, Haus {i})");
                     }
+                    Pruefe.Gleich(n, wahl.Distinct().Count(), $"alle {n} Varianten kommen vor ({kennung})");
+                    // fest: zweiter Aufruf gleich
+                    Pruefe.Gleich(string.Join(",", wahl), string.Join(",", Zeilenplan.VariantenWahl(kennung, haeuser, (_, _) => n)));
+                }
+            // verschiedene Kennungen geben verschiedene Folgen
+            var folge = (string k) => string.Join(",", Zeilenplan.VariantenWahl(k, Enumerable.Range(0, 20).Select(i => (S, "k_g6", i)).ToList(), (_, _) => 3));
+            Pruefe.Wahr(folge("Zeile A") != folge("Zeile B"), "Zeilen unterscheiden sich");
+            // keine Varianten (0) oder nur eine: immer Index 0
+            Pruefe.Wahr(Zeilenplan.VariantenWahl("x", Enumerable.Range(0, 10).Select(i => (S, "k_g6", i)).ToList(), (_, _) => 0).All(v => v == 0), "ohne Varianten Index 0");
+            Pruefe.Wahr(Zeilenplan.VariantenWahl("x", Enumerable.Range(0, 10).Select(i => (S, "k_g6", i)).ToList(), (_, _) => 1).All(v => v == 0), "eine Variante: Index 0");
+            // verschiedene Module oder Sätze nebeneinander dürfen denselben Index haben; gleiche nie – auch gemischt
+            var gemischt = new List<(string, string, int)>();
+            for (var i = 0; i < 80; i++) gemischt.Add((i % 7 == 3 ? "zwerg_s1" : S, i % 5 < 3 ? "k_g6" : "k_g4", i));
+            var w = Zeilenplan.VariantenWahl("gemischt", gemischt, (_, m) => m == "k_g6" ? 3 : 2);
+            for (var i = 1; i < gemischt.Count; i++)
+                if (gemischt[i].Item1 == gemischt[i - 1].Item1 && gemischt[i].Item2 == gemischt[i - 1].Item2)
+                    Pruefe.Wahr(w[i] != w[i - 1], $"gleiche Nachbarn mit derselben Variante bei {i}");
+            // Seitenstücke: fest und im Bereich
+            for (var p = 0; p < 30; p++)
+            {
+                var v = Zeilenplan.Variante("Probe", p, "seite_offen|l", 3);
+                Pruefe.Wahr(v >= 0 && v < 3, "Variante im Bereich");
+                Pruefe.Gleich(v, Zeilenplan.Variante("Probe", p, "seite_offen|l", 3));
+                Pruefe.Gleich(0, Zeilenplan.Variante("Probe", p, "seite_offen|l", 0));
+            }
         }),
         ("Zeilenplan: gerade Zeile links der Laufrichtung – Häuser lückenlos im 2-m-Raster, Tiefe nach Norden", () =>
         {

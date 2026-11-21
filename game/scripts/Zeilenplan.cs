@@ -57,19 +57,49 @@ public static class Zeilenplan
 
     public static Stellung StellungVon(string modul) => modul == "eck" ? Stellung.Eck : modul.StartsWith("k_g") ? Stellung.Giebel : Stellung.Trauf;
 
-    /// <summary>Art einer Zeile (Nutzer 20.11.2026): Spieler- und Bürgerhäuser stehen mit dem Giebel zur Gasse, Zeilen der Passanten
-    /// (Kulisse) mit der Traufe.</summary>
+    /// <summary>Art einer Zeile. Seit dem 21.11.2026 stehen alle Häuser mit dem Giebel zur Gasse (Nutzer; vorher: Zeilen der
+    /// Passanten mit der Traufe); die Art unterscheidet nur noch, wem die Häuser gehören.</summary>
     public enum Zeilenart { Buerger, Kulisse }
 
-    /// <summary>Das Körpermodul für eine Parzelle der Breite <paramref name="breite"/> (m) in einer Zeile dieser Art; leer, wenn es
-    /// keins gibt (Giebelhäuser 4, 6 und 8 m – schmaler als 4 m nur in Kulissenzeilen, dafür gibt es noch kein Modul –, Traufhäuser
-    /// 6 und 8 m).</summary>
-    public static string Koerper(Zeilenart art, int breite) => (art, breite) switch
+    /// <summary>Das Körpermodul für eine Parzelle der Breite <paramref name="breite"/> (m): für jede Zeilenart ein Giebelhaus
+    /// (4, 6 oder 8 m), sonst leer. Die Traufhäuser (<c>k_t6</c>, <c>k_t8</c>) und ihre Kappen liegen weiter in den GLB und
+    /// lassen sich ausdrücklich nennen, werden aber von keiner Zeilenart mehr gewählt.</summary>
+    public static string Koerper(Zeilenart art, int breite) => breite is 4 or 6 or 8 ? "k_g" + breite : "";
+
+    /// <summary>Fester Streuwert einer Zeichenkette (FNV-1a, 32 Bit): gleich auf jedem Rechner, ohne Zufallsquelle.</summary>
+    public static uint Streuwert(string s) { uint h = 2166136261; foreach (var c in s) h = (h ^ c) * 16777619; return h; }
+
+    /// <summary>Name der Variante <paramref name="index"/> eines Moduls: <c>k_g6</c> → <c>k_g6_a</c>, <c>k_g6_b</c> … (Lochbilder der
+    /// Fassade, vom Bauskript geliefert). So heißen die Objekte in der GLB.</summary>
+    public static string VariantenName(string modul, int index) => modul + "_" + (char)('a' + index);
+
+    /// <summary>
+    /// Wählt je Haus die Variante seines Körpermoduls (Fenster-Lochbild): fest aus Zeilenkennung, Parzelle und Modul, ohne
+    /// Zufallsquelle – dieselbe Zeile sieht auf jedem Rechner und in jeder Partie gleich aus. Zwei Häuser, die in der Liste
+    /// aufeinander folgen und denselben Satz und dasselbe Modul haben, bekommen nie dieselbe Variante (ab zwei Varianten).
+    /// <paramref name="anzahl"/> nennt, wie viele Varianten es für (Satz, Modul) gibt; 0 oder 1: Index 0 (das Modul ohne Zusatz).
+    /// Rückgabe: Index je Eintrag der Liste.
+    /// </summary>
+    public static int[] VariantenWahl(string kennung, IReadOnlyList<(string Satz, string Modul, int Parzelle)> haeuser, Func<string, string, int> anzahl)
     {
-        (Zeilenart.Buerger, 4 or 6 or 8) => "k_g" + breite,
-        (Zeilenart.Kulisse, 6 or 8) => "k_t" + breite,
-        _ => "",
-    };
+        var aus = new int[haeuser.Count];
+        for (var i = 0; i < haeuser.Count; i++)
+        {
+            var (satz, modul, parzelle) = haeuser[i];
+            var n = anzahl(satz, modul);
+            if (n <= 1) continue;
+            var h = Streuwert($"{kennung}|{parzelle}|{modul}");
+            var index = (int)(h % (uint)n);
+            if (i > 0 && haeuser[i - 1].Satz == satz && haeuser[i - 1].Modul == modul && aus[i - 1] == index)
+                index = (index + 1 + (int)((h / 7919u) % (uint)(n - 1))) % n;   // um 1 bis n − 1 weiter: sicher eine andere
+            aus[i] = index;
+        }
+        return aus;
+    }
+
+    /// <summary>Variante eines Seitenstücks (offene Seite, Eckhaus …) für eine Parzelle: fest wie <see cref="VariantenWahl"/>, ohne Nachbarregel.</summary>
+    public static int Variante(string kennung, int parzelle, string modul, int anzahl) =>
+        anzahl <= 1 ? 0 : (int)(Streuwert($"{kennung}|{parzelle}|{modul}") % (uint)anzahl);
 
     /// <summary>Ein Haus einer Zeile: Satz und Körpermodul. <c>Modul</c> leer = freie Parzelle (Lücke) der Breite <c>Frei</c>.</summary>
     public sealed record Haus(string Satz, string Modul, float Frei = 0f)

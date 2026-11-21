@@ -85,10 +85,9 @@ public partial class Stadtansicht
     /// <summary>Farben und Ebenen eines Hauses der Zeile (fest aus Zeile und Parzelle, wie bei den Neubauten aus dem Standort).</summary>
     private static (Color Putz, Color Akzent) ZeilenFarben(string zeile, int parzelle, string satz)
     {
-        var saat = (uint)(Zahl(zeile) * 31 + (uint)parzelle * 7919);
+        var saat = (uint)(Zeilenplan.Streuwert(zeile) * 31 + (uint)parzelle * 7919);
         var hell = satz.StartsWith("zwerg") || satz.StartsWith("elb") || satz.StartsWith("halbling");
         return ((hell ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length], NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]);
-        static uint Zahl(string s) { uint h = 2166136261; foreach (var c in s) h = (h ^ c) * 16777619; return h; }
     }
 
     private static (Volk Volk, int Stufe) ZeilenVolk(string satz)
@@ -110,9 +109,33 @@ public partial class Stadtansicht
         AddChild(knoten);
         var sammler = new Dictionary<string, ZeilenSammler> { ["trim"] = new(), ["kante"] = new(), ["fenster"] = new() };
         var tueren = 0;
+        // Fenster-Varianten (Lochbilder): je Körper fest aus Kennung und Parzelle, nie zweimal dieselbe nebeneinander; Seitenstücke
+        // und Eckhaus für sich. Gibt es in der GLB keine Varianten (Objekte „<modul>_a“ …), bleibt es beim Modul ohne Zusatz.
+        int Varianten(string satz, string name)
+        {
+            if (ZeilenModule(satz) is not { } m) return 0;
+            var n = 0;
+            while (m.ContainsKey(Zeilenplan.VariantenName(name, n))) n++;
+            return n;
+        }
+        var koerperLagen = lagen.Where(l => Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0).OrderBy(l => l.Parzelle).ToList();
+        var wahl = Zeilenplan.VariantenWahl(kennung, koerperLagen.Select(l => (l.Satz, l.Modul, l.Parzelle)).ToList(), Varianten);
+        var koerperVariante = new Dictionary<int, int>();
+        for (var i = 0; i < koerperLagen.Count; i++) koerperVariante[koerperLagen[i].Parzelle] = wahl[i];
+        var variantenGenutzt = 0;
         foreach (var l in lagen)
         {
-            if (ZeilenModule(l.Satz) is not { } module || !module.TryGetValue(l.Modul, out var modul)) continue;
+            if (ZeilenModule(l.Satz) is not { } module) continue;
+            var anzahl = Varianten(l.Satz, l.Modul);
+            var name = l.Modul;
+            if (anzahl > 0)
+            {
+                var istKoerper = Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0;
+                var index = istKoerper && koerperVariante.TryGetValue(l.Parzelle, out var k) ? k : Zeilenplan.Variante(kennung, l.Parzelle, l.Modul + (l.Gespiegelt ? "|r" : "|l"), anzahl);
+                name = Zeilenplan.VariantenName(l.Modul, index);
+                variantenGenutzt++;
+            }
+            if (!module.TryGetValue(name, out var modul)) continue;
             var (volk, stufe) = ZeilenVolk(l.Satz);
             var (putz, akzent) = ZeilenFarben(kennung, l.Parzelle, l.Satz);
             var ebene = Steinebenen.Ebene(volk, stufe);
@@ -150,7 +173,7 @@ public partial class Stadtansicht
         }
         knoten.AddChild(new MeshInstance3D { Name = "Netz", Mesh = netz });
         GD.Print($"[zeilen] {kennung}: {lagen.Count} Module, {lagen.Count(l => Zeilenplan.Breite(l.Modul) > 0 && l.Parzelle >= 0)} Häuser, "
-                 + $"{netz.GetSurfaceCount()} Flächen, {sammler.Values.Sum(s => s.Dreiecke)} Dreiecke, {tueren} Türen");
+                 + $"{netz.GetSurfaceCount()} Flächen, {sammler.Values.Sum(s => s.Dreiecke)} Dreiecke, {tueren} Türen, {variantenGenutzt} Module mit Variante");
         return knoten;
     }
 
@@ -245,7 +268,7 @@ public partial class Stadtansicht
     /// Startoption <c>--zeilenprobe=&lt;1|2|3|4|5&gt;[@x,z]</c> (aus <see cref="NeubauProbeStarten"/>; 4 und 5: <see cref="ZeilenProbeVoelker"/>): Probezeilen um die Stelle x,z
     /// (Standard −38, 22), ohne Kern und ohne Kartenänderung. <c>1</c>: Zeile mit rechtem Knick, die Häuser links der Laufrichtung –
     /// Schenkel A Bürgerhäuser mit dem Giebel zur Gasse (6, 4, 8 m; Traufgassen dazwischen) und das Eckhaus, Schenkel B um die Ecke
-    /// eine Kulissenzeile mit der Traufe zur Gasse (6, 8, 6 m). <c>2</c>: dieselbe Zeile mit schrägem Knick (45°) – statt des
+    /// eine Kulissenzeile, seit dem 21.11.2026 ebenfalls mit dem Giebel zur Gasse (6, 8, 6 m). <c>2</c>: dieselbe Zeile mit schrägem Knick (45°) – statt des
     /// Eckhauses das Keilstück (Hofmauer mit Tor). <c>3</c>: Zeile 1 und ihr gegenüber eine zweite, deren Häuser rechts der
     /// Laufrichtung stehen (Gasse von 6 m dazwischen), alle Körper und Seitenstücke gemischt.
     /// </summary>
@@ -282,7 +305,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Probezeilen aller Völker. <c>4</c> (gemischt): eine Zeile mit rechtem Knick, in der Menschen, Zwerge und Elben aller Stufen
     /// nebeneinander wohnen, die Halblinge am Zeilenende (Nutzer 20.11.2026). <c>5</c> (Muster): je Volk eine eigene Zeile, 30 m
-    /// hintereinander (Mensch bei x,z, dann Zwerg, Elb, Halbling nach Norden) – Stufe 1 bis 3 als Giebel- und Traufhaus, das
+    /// hintereinander (Mensch bei x,z, dann Zwerg, Elb, Halbling nach Norden) – Stufe 1 bis 3 als Giebelhäuser verschiedener Breite, das
     /// Eckhaus der Stufe 3 und um die Ecke je ein Haus der Stufen 3 und 2.
     /// </summary>
     private void ZeilenProbeVoelker(bool muster, Vector2 ort)
@@ -294,7 +317,7 @@ public partial class Stadtansicht
             ZeileBauen("Probe_gemischt", linie, true, new List<Zeilenplan.Haus>
             {
                 H("mensch_s1", "k_g6"), H("mensch_s2", "k_g6"), H("mensch_s3", "k_g8"), H("zwerg_s2", "k_g6"), H("zwerg_s3", "eck"),
-                H("elb_s1", "k_t6"), H("elb_s2", "k_t8"), H("elb_s3", "k_g6"), H("zwerg_s1", "k_t6"),
+                H("elb_s1", "k_g6"), H("elb_s2", "k_g8"), H("elb_s3", "k_g6"), H("zwerg_s1", "k_g6"),
                 H("halbling_s2", "k_g6"), H("halbling_s3", "k_g4"), H("halbling_s1", "k_g4"),
             });
             return;
@@ -304,11 +327,11 @@ public partial class Stadtansicht
         {
             var v = voelker[i];
             var z = ort.Y + 8 - i * 30;
-            var linie = new List<(float, float)> { (ort.X - 30, z), (ort.X + 8, z), (ort.X + 8, z - 20) };
+            var linie = new List<(float, float)> { (ort.X - 30, z), (ort.X + 8, z), (ort.X + 8, z - 24) };
             ZeileBauen("Probe_" + v, linie, true, new List<Zeilenplan.Haus>
             {
-                H(v + "_s1", "k_g6"), H(v + "_s1", "k_t6"), H(v + "_s2", "k_g6"), H(v + "_s2", "k_t6"), H(v + "_s3", "k_g6"), H(v + "_s3", "eck"),
-                H(v + "_s3", "k_t6"), H(v + "_s2", "k_g6"),
+                H(v + "_s1", "k_g6"), H(v + "_s1", "k_g4"), H(v + "_s2", "k_g6"), H(v + "_s2", "k_g8"), H(v + "_s3", "k_g6"), H(v + "_s3", "eck"),
+                H(v + "_s3", "k_g8"), H(v + "_s2", "k_g6"),
             });
         }
     }
