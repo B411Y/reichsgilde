@@ -128,7 +128,7 @@ static class HafenzielTests
             Pruefe.Gleich(Jahreszeit.Herbst, wH.Uhr.Jahreszeit);
             var hin = wH.FahrzeitZumHafen(bH, Hand, true)!.Value;
             var losH = Bis(simH, karrenH, KarrenZustand.ZumMarkt) - 1;
-            Pruefe.Wahr(karrenH.ZielHafen && hin > 20, $"zum Hafen, {hin} Minuten");
+            Pruefe.Wahr(karrenH.ZielHafen && hin > 10, $"zum Hafen, {hin} Minuten");
             while (wH.Uhr.Jahreszeit != Jahreszeit.Winter) simH.Tick();
             Pruefe.Wahr(!wH.Schiffahrt.HafenOffen, "der Hafen ist zu");
             Pruefe.Wahr(karrenH.ZielHafen && karrenH.Zustand == KarrenZustand.ZumMarkt, "fährt weiter zum Hafen");

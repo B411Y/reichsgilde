@@ -213,7 +213,8 @@ public sealed partial class Koeln
             // statt 68 und 14: an der Engelspforte passt jetzt das Kulissenhaus). Seit St. Kunibert und St. Severin aus Köln entfernt sind
             // (11.11.2026), gibt es 69 Einwohnerplätze und 15 Kulissenhäuser (84 Hausplätze): die freie Fläche an der Trankgasse nimmt zwei
             // Plätze mehr auf (Höchstzahlen unverändert), der Rest wird Bauzone
-            ("Hammergasse", true, 0, 200, 4), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
+            // Seit „nur der Dom“ (21.11.2026) steht auch St. Aposteln nicht mehr: Die Südseite der Hammergasse bleibt trotzdem frei (Höchstzahl 0), damit es bei 69 Einwohnerplätzen und 15 Kulissenhäusern bleibt; die Fläche wird Bauzone
+            ("Hammergasse", true, 0, 200, 4), ("Hammergasse", false, 0, 200, 0), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
             ("Kunibertswall", true, 0, 1000, 6), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })
             n += Reihe("einwohnerplatz_ring", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;

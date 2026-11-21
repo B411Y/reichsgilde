@@ -85,8 +85,9 @@ public static class KlangGlockenModell
     {
         var fehler = new List<string>();
         void Pruefe(bool gut, string was) { if (!gut) fehler.Add(was); }
-        // Kirchen Kölns (game/karten/koeln.json): Dom, Groß St. Martin, St. Gereon, St. Aposteln (seit 11.11.2026 ohne St. Severin und St. Kunibert)
-        var kirchen = new (float X, float Z, bool Dom)[] { (6, -112, true), (22, -44, false), (-55, -86, false), (-54, -34, false) };
+        // Modellprüfung mit dem Dom Kölns (game/karten/koeln.json, seit 21.11.2026 mitten in der Altstadt bei 2 | 28; Köln hat nur noch den Dom) und drei
+        // Pfarrkirchen als Beispiel für Karten mit mehreren Kirchen (die frühere Lage von Groß St. Martin, St. Gereon, St. Aposteln)
+        var kirchen = new (float X, float Z, bool Dom)[] { (2, 28, true), (22, -44, false), (-55, -86, false), (-54, -34, false) };
         var orte = new (string Name, float X, float Z)[] { ("Stadtmitte (0|0)", 0, 0), ("Stadtrand (0|200)", 0, 200), ("Umland (0|400)", 0, 400), ("fernes Umland (0|800)", 0, 800) };
         List<Quelle> Von(float x, float z, Func<(float X, float Z, bool Dom), bool> wahl) => kirchen.Where(wahl)
             .Select(k => new Quelle(MathF.Sqrt((k.X - x) * (k.X - x) + (k.Z - z) * (k.Z - z)), (k.X - x) / 200f, k.Dom)).ToList();
@@ -96,7 +97,7 @@ public static class KlangGlockenModell
             var alle = Mischen(Von(x, z, _ => true));
             var eine = Mischen(Von(x, z, k => k.X == 22f));
             var dom = Mischen(Von(x, z, k => k.Dom));
-            log($"GLOCKENTEST {name,-22} sechs Kirchen {alle.Db,6:0.0} dB {alle.Tiefpass,6:0} Hz | nur Martin {eine.Db,6:0.0} dB {eine.Tiefpass,6:0} Hz | nur Dom {dom.Db,6:0.0} dB {dom.Tiefpass,6:0} Hz");
+            log($"GLOCKENTEST {name,-22} vier Kirchen {alle.Db,6:0.0} dB {alle.Tiefpass,6:0} Hz | nur eine Pfarrkirche {eine.Db,6:0.0} dB {eine.Tiefpass,6:0} Hz | nur Dom {dom.Db,6:0.0} dB {dom.Tiefpass,6:0} Hz");
             if (vorher is { } v) Pruefe(alle.Db < v.Db && alle.Tiefpass <= v.Tiefpass + 1f, $"{name}: nicht leiser und dumpfer als näher");
             vorher = alle;
             Pruefe(alle.Db is >= Mindestpegel and <= Obergrenze, $"{name}: Pegel {alle.Db} außerhalb");

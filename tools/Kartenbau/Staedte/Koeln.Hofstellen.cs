@@ -11,7 +11,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //
 //    • Start-Hofstellen S1–S8 (Koeln.Platzierung.cs): die acht Startgrundstücke. Im Spiel wählt der Spieler eine, jedes KI-Haus bekommt eine
 //      geloste; die Vorgabe (Spieler S1, KI-Häuser S2–S8) gilt ohne Los.
-//    • Freie Hofstellen (hier, `start` fehlt): N1–N5 am Neumarkt in Deutz und A1 hinter dem Dom am Alten Markt auf den Stellen der sechs
+//    • Freie Hofstellen (hier, `start` fehlt): N1–N5 am Neumarkt in Deutz und A1 am Ende der Unter Fettenhennen am Alten Markt auf den Stellen der sechs
 //      Werkstatt-Bauplätze (WB_Neumarkt1–5, WB_AlterMarkt2), dazu R1 und R2 am Rheinhafen. Sie bleiben Bauland, bis ein Haus sie baut: der
 //      Werkstattteil nimmt nur eine Werkstatt auf, der Wohnhausteil nur ein Wohnhaus, jeweils genau eingepasst.
 //
@@ -36,7 +36,7 @@ public sealed partial class Koeln
         new("N3", "an der Deutzer Kirchstraße (Ost)", 183, 29.7, 270, 199, 33.5, 90, Abstand: 0.5, Mauer: 1.5),
         new("N4", "an der Deutzer Freiheit (Osttor)", 194, 12.6, 180, 199, 24.6, 90, Abstand: 0.5, Mauer: 1.5),
         new("N5", "an der Deutzer Freiheit (Nordseite)", 200, -13, 0, 196, -26.2, 0, Mauer: 1.5),
-        // Alter Markt (37 | −110): ein Hof am Ende der Straße Unter Fettenhennen hinter dem Dom, der Wohnhausteil an der Hohen Straße
+        // Alter Markt (37 | −110): ein Hof am Ende der Straße Unter Fettenhennen (bis 21.11.2026 hinter dem Dom), der Wohnhausteil an der Hohen Straße
         new("A1", "Unter Fettenhennen", -13, -94, 90, -26.2, -94, 270),
         // Rheinhafen (51 | −54): im Streifen zwischen Rheingasse und Ufer, die Tür zur Rheingasse; R1 zwischen Hafen und Zollstelle (der Wohnhausteil
         // gegenüber an der Rheingasse), R2 zwischen Zollstelle und Rheinbrücke (der Wohnhausteil davor, an der Zollstelle)
