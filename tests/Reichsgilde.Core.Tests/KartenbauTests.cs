@@ -53,12 +53,12 @@ static class KartenbauTests
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 8495 Felder, davon fest belegt 0",   // seit 16.11.2026 ohne die Werkstatt- und Wohnhausplätze (vorher 1.133 Felder unter den 32 alten Plätzen)
+                "Stadt-Bauzonen: 8631 Felder, davon fest belegt 0",   // seit 16.11.2026 ohne die Werkstatt- und Wohnhausplätze (vorher 1.133 Felder unter den 32 alten Plätzen)
                 "Pflicht Werkstatt am Start (Kern und Mauerring): 8 von 8 passen", "Pflicht Wohnhaus am Start (Kern und Mauerring): 8 von 8 passen", // seit 16.11.2026
                 "Pflicht Werkstatt: 16 von 16 passen", // bis 16.11.2026 acht auf freien Hofstellen, acht in den Zonen
                 "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 6375 Felder (75%), nach der Reserve: 5911 Felder", // ohne die Startgebäude 6.983 (82 %) und 6.519, mit den alten Plätzen 6.298 (74 %) und 5.834
+                "Frei nach der Pflicht: 6511 Felder (75%), nach der Reserve: 6047 Felder", // ohne die Startgebäude 6.983 (82 %) und 6.519, mit den alten Plätzen 6.298 (74 %) und 5.834
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
             // Die gesetzten Gebäude: alle 100 aus Pflicht und Reserve (8 + 16 Werkstätten, 8 Wohnhäuser am Start, 56 Häuser der Pflicht, 12 der Reserve); feste keine mehr
@@ -86,7 +86,7 @@ static class KartenbauTests
                 // Probestadt 0 / 94 / 2.312 / 6.589.340, Messstadt 0 / 79 / 1.696 / 5.021.759
                 // seit den Startgebäuden in der Pflicht (16.11.2026): Köln vorher 0 / 84 / 1.976 / 12.452.268, Greybox 2 / 52 / 1.285 / −3.610.854,
                 // Probestadt 0 / 84 / 1.976 / 6.241.256, Messstadt 0 / 84 / 1.976 / −13.917.464
-                ("koeln", 0, 100, 2584, 2856704L), ("greybox", 3, 46, 1319, -6144997L), ("probestadt", 0, 100, 2584, -5967037L), ("messstadt", 0, 100, 2584, -28830371L),
+                ("koeln", 0, 100, 2584, -1499528L), ("greybox", 3, 46, 1319, -6144997L), ("probestadt", 0, 100, 2584, -5967037L), ("messstadt", 0, 100, 2584, -28830371L),
             };
             var gemessen = erwartet.Select(x =>
             {

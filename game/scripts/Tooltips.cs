@@ -62,6 +62,7 @@ public partial class Tooltips : Node
         public string? VerweisUnterMaus;
         public double VerweisSeit;
         public Vector2 Anker, Griff;
+        public Rect2? Zeiger; // wo der Zeiger beim Öffnen lag: eingefroren, damit der Tooltip nicht mit der Hand wandert
         public int Bilder;
     }
 
@@ -210,8 +211,8 @@ public partial class Tooltips : Node
             }
             else if (!t.Fest)
                 t.Tafel.GlobalPosition = t.Eltern is { } vater && IsInstanceValid(vater.Tafel)
-                    ? LageNebenEltern(t.Anker, t.Tafel.Size, sichtbar, vater.Tafel.GetGlobalRect())
-                    : Lage(t.Anker, t.Tafel.Size, sichtbar);
+                    ? LageNebenEltern(t.Anker, t.Tafel.Size, sichtbar, vater.Tafel.GetGlobalRect(), t.Zeiger)
+                    : Lage(t.Anker, t.Tafel.Size, sichtbar, t.Zeiger);
 
             // Verweilt die Maus auf einem Verweis, öffnet sich dessen Begriff – auch in einem festen Tooltip
             if (t.VerweisUnterMaus is { } kennung)
@@ -354,7 +355,7 @@ public partial class Tooltips : Node
 
     private Tipp Neu(string? titel, string roh, Tipp? eltern, string? kennung, Control? quelle, Vector2 maus)
     {
-        var t = new Tipp { Eltern = eltern, Kennung = kennung, Quelle = quelle, Anker = maus };
+        var t = new Tipp { Eltern = eltern, Kennung = kennung, Quelle = quelle, Anker = maus, Zeiger = Mauszeiger.ZeigerBereich() };
         eltern?.Kinder.Add(t);
 
         t.Tafel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Stop, Modulate = new Color(1, 1, 1, 0) };
@@ -477,10 +478,16 @@ public partial class Tooltips : Node
     // ── Hilfen ──────────────────────────────────────────────────────────────
 
     /// <summary>Neben der Maus, nie auf dem Mauszeiger (<see cref="TooltipLage"/>); passt es nicht ins Bild, wechselt die Seite.</summary>
-    internal static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar)
+    internal static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar) => Lage(anker, groesse, sichtbar, Mauszeiger.ZeigerBereich());
+
+    /// <summary>
+    /// Wie oben, aber mit dem Bild des Zeigers, das beim Öffnen galt (<see cref="Mauszeiger.ZeigerBereich"/> damals aufgehoben). Wer die Lage jedes Bild neu rechnet,
+    /// muss diese Fassung nehmen: Das Bild der Hand ändert sich mit Neigung und Haltung, und der Tooltip wanderte sonst leicht mit der Maus mit.
+    /// </summary>
+    internal static Vector2 Lage(Vector2 anker, Vector2 groesse, Vector2 sichtbar, Rect2? zeiger)
     {
         Rechteck? hand = null;
-        if (Mauszeiger.ZeigerBereich() is { } z) hand = new Rechteck(anker.X + z.Position.X, anker.Y + z.Position.Y, z.Size.X, z.Size.Y); // der Zeiger stand beim Öffnen am Anker
+        if (zeiger is { } z) hand = new Rechteck(anker.X + z.Position.X, anker.Y + z.Position.Y, z.Size.X, z.Size.Y); // der Zeiger stand beim Öffnen am Anker
         var (x, y) = TooltipLage.Berechnen(anker.X, anker.Y, groesse.X, groesse.Y, sichtbar.X, sichtbar.Y, hand);
         return new Vector2((float)x, (float)y);
     }
@@ -489,9 +496,9 @@ public partial class Tooltips : Node
     /// Wie <see cref="Lage"/>, aber ohne den Eltern-Tooltip zu verdecken: Kommt die Stelle neben der Maus mit ihm in Konflikt, steht der neue rechts oder links
     /// daneben (in Höhe der Maus), sonst unter ihm.
     /// </summary>
-    private static Vector2 LageNebenEltern(Vector2 anker, Vector2 groesse, Vector2 sichtbar, Rect2 eltern)
+    private static Vector2 LageNebenEltern(Vector2 anker, Vector2 groesse, Vector2 sichtbar, Rect2 eltern, Rect2? zeiger)
     {
-        var p = Lage(anker, groesse, sichtbar);
+        var p = Lage(anker, groesse, sichtbar, zeiger);
         if (!new Rect2(p, groesse).Intersects(eltern.Grow(-1))) return p;
         var hoehe = Math.Clamp(anker.Y - 14, 4, Math.Max(4, sichtbar.Y - groesse.Y - 4));
         if (eltern.End.X + 6 + groesse.X <= sichtbar.X - 4) return new Vector2(eltern.End.X + 6, hoehe);

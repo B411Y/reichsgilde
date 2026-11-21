@@ -41,7 +41,10 @@ EINFASSUNG_RAND = 0.08            # Rand um den Herdstein: was ganz darin liegt 
 FAHNE_VOR_WALM = 0.45             # Grundform 4: Fahnenmast 0,45 m vor der Spitze des Walms (statt 0,45 m dahinter)
 LATERNE_G2_Y = -1.00              # Grundform 2: Laterne an der Strassenwand zwischen Haustuer (-0,40..0,40) und Fenster (-2,35..-1,55)
 WAPPEN_G4_TIEFER = 0.28           # Grundform 4: Hauswappen innen 0,28 m tiefer (Unterkante 2,75 m), unter dem Galerierand frei (Pruefung 34)
-BLICK_G3 = ((-0.60, 1.45), (2.20, -0.40, 1.30))   # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (Pruefung 35; weiter links verdeckt die Leiter das Wappen)
+BLICK_G3 = ((-0.45, 0.50), (2.20, -0.30, 1.30))   # Grundform 3: Innenblick von vor der Galerie auf Herd und Haustuer (Pruefung 35). Vorher unter der Galerie
+#                                                   (y 1,45): 0,33 m vor der Rueckwand, 4 cm neben einer Balkenseite, 0,17 m neben dem Eckstaender (Pruefung 38,
+#                                                   Klicktest NAS 19.11.2026). Jetzt wie bei den Halblingen 1,28 m vor der Rueckwand; weiter vorn verdeckt die
+#                                                   hintere Herdwange die Haustuer
 _MASSE = []
 FORM = 1                          # gebaute Grundform (main)
 LETZT = {}                        # zuletzt gebaute Teile (Haus, Dach, Scheiben, Wappen) fuer die Wappenregel
@@ -160,6 +163,8 @@ def masse_anlegen():
         auge = welt(next(a.ort for a in t["anker_innen"] if a.name == "Blick_Auge"))
         for a in t["anker_innen"]:
             if a.name == "Licht_Raum": a.ort = zurueck(licht_unter_empore(welt(a.ort), auge))
+        if s1.F.nr == 3: rueckwand_einrichten(t)       # Regal, Kraeuter und Truhe an der Rueckwand unter der Galerie (Nutzer 21.11.2026)
+        efeu_setzen(t)
         innen_fertig(t)
         return t
     s1.baue_form24 = s1.baue_form3 = form24            # auch die Grundform 3 entsteht mit dem Zusammenbau von 2 und 4
@@ -171,6 +176,68 @@ def masse_anlegen():
 
 LETZT_AUGE = {}
 LICHT_UNTER_OG = 0.55             # Grundlicht so weit unter der Unterkante des Obergeschosses: 0,35 m unter den Deckenbalken (2,35 m)
+
+
+def rueckwand_einrichten(t):
+    """Grundform 3: Einrichtung an der Rueckwand unter der Galerie (Nutzer 21.11.2026, wie „Halbling A“: die Wand soll beim Blick nach
+    rechts nicht kahl wirken; die Haustuer bleibt im Standardbild). Alles im Teil Hausrat_Set, im Baurahmen (in der Lage im Spiel
+    gespiegelt: x im Spiel = 1,05 - x): links vom Platz auf der Matte ein Standregal (0,85 m breit, 1,70 m hoch) mit Kruegen, Flaschen
+    und einem Korb, rechts eine Truhe; darueber an einer Stange Kraeuterbuendel (Unterkante 1,96 m – frei ueber dem Kopf eines Elben,
+    bis 1,90 m). Der Platz vor der Matte bleibt fuer eine Figur frei."""
+    c = next((x for x in t["raum"] if x.name == "Hausrat_Set"), None)
+    if c is None: return
+    S, feld = "Innen", g1.feld
+    yw, zb = s1.F.HINTEN - s1.T, s1.Z_BODEN
+    # Standregal: zwei Wangen, vier Boeden
+    x0, x1, tief = 0.65, 1.50, 0.28
+    for xa in (x0, x1 - 0.03):
+        c.kasten(S, (xa, yw - tief, zb), (xa + 0.03, yw, zb + 1.70), "bohlen", ohne=("+y", "-z"), laengs="z")
+    for z in (0.22, 0.68, 1.14, 1.60):
+        c.kasten(S, (x0 + 0.03, yw - tief + 0.01, zb + z), (x1 - 0.03, yw, zb + z + 0.035), "bohlen", ohne=("+y", "-x", "+x"), laengs="x")
+    krug = lambda x, z, g_: c.dreh(S, (x, yw - 0.14, zb + z + 0.035), [(0.06 * g_, 0.0), (0.095 * g_, 0.05 * g_), (0.105 * g_, 0.13 * g_), (0.07 * g_, 0.21 * g_), (0.062 * g_, 0.24 * g_), (0.072 * g_, 0.26 * g_)],
+                                   "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    flasche = lambda x, z, farbe: c.dreh(S, (x, yw - 0.13, zb + z + 0.035), [(0.045, 0.0), (0.05, 0.10), (0.02, 0.17), (0.018, 0.25), (0.024, 0.27)], "kleinteile", seiten=6, deckel=True, u_bereich=feld(farbe))
+    krug(0.86, 0.68, 1.15); krug(1.22, 0.68, 0.9)
+    flasche(0.80, 1.14, "kraut"); flasche(0.97, 1.14, "zwiebel_gelb"); flasche(1.14, 1.14, "kraut"); flasche(1.32, 1.14, "zwiebel_rot")
+    krug(1.08, 1.60, 1.0)
+    c.dreh(S, (1.08, yw - 0.14, zb + 0.255), [(0.13, 0.0), (0.17, 0.10), (0.18, 0.22), (0.165, 0.24)], "stroh", seiten=8, deckel=False, u_bereich=(0.0, 0.3))   # Korb
+    # Kraeuterbuendel an einer Stange
+    c.stab(S, (0.55, yw - 0.06, zb + 2.27), (-0.85, yw - 0.06, zb + 2.27), 0.03, "balken", kappen=True)
+    for i, x in enumerate((0.42, 0.18, -0.07, -0.33, -0.58, -0.78)):
+        c.dreh(S, (x, yw - 0.07, zb + 1.96 + 0.02 * (i % 2)), [(0.0, 0.0), (0.06, 0.05), (0.036, 0.21), (0.009, 0.30)], "kleinteile", seiten=5, deckel=False, u_bereich=feld("kraut"))
+    # Truhe rechts neben der Matte
+    c.kasten(S, (-0.87, yw - 0.47, zb), (-0.25, yw - 0.04, zb + 0.40), "bohlen", ohne=("-z",), laengs="x")
+    c.kasten(S, (-0.89, yw - 0.49, zb + 0.40), (-0.23, yw - 0.02, zb + 0.47), "balken", laengs="x")
+    for x in (-0.76, -0.36):
+        c.kasten(S, (x - 0.02, yw - 0.495, zb + 0.02), (x + 0.02, yw - 0.47, zb + 0.475), "balken", ohne=("+y", "-z"), laengs="z")
+    print("INNEN Rueckwand eingerichtet: Standregal, Kruege, Flaschen, Korb, Kraeuter, Truhe")
+
+
+EFEU_HOECHSTENS = 120            # Blattkarten je Haus (je 2 Dreiecke), wenn die Dreiecksgrenze der Huelle (4.000) mehr zuliesse
+
+
+def efeu_setzen(t):
+    """Efeu als Blattkarten an allen vier Aussenwaenden, auch ueber dem Fachwerkholz (Nutzer 21.11.2026: der Efeu im Putzband ist im
+    Pixel-Look nicht zu sehen). efeu_karten.bewachsen liest aus der Huelle, wo eine Karte sitzen darf; Oberkante unter der Traufe bzw.
+    unter dem Ortgang. So viele Karten, wie die Dreiecksgrenze laesst (30 Dreiecke Abstand), hoechstens EFEU_HOECHSTENS."""
+    import efeu_karten
+    efeu_karten.stoff_anlegen(g1, "trim")
+    F = s1.F
+    haus = t["huelle"][0]
+    summe = sum(x.dreiecke() for x in t["huelle"]) + t["scheiben"].dreiecke()
+    budget = max(0, min(EFEU_HOECHSTENS, (4000 - 30 - summe) // 2))
+    ebenen, gesehen = [], set()
+    for (ox, oy), (ex, ey), laenge, (nx, ny) in F.WAENDE.values():
+        kenn = (round(ox * nx + oy * ny, 2), round(nx), round(ny))
+        if kenn in gesehen: continue
+        gesehen.add(kenn); ebenen.append(((ox, oy), (ex, ey), laenge, (nx, ny)))
+
+    def z_grenze(nr, s_):
+        (ox, oy), (ex, ey), _l, _n = ebenen[nr]
+        if abs(ey) > 0.5: return s1.Z_TRAUFE - 0.25                 # Traufwand
+        return s1.dach_z(ox + ex * s_) - 0.35                       # Giebelwand: unter dem Ortgang
+    n = efeu_karten.bewachsen(haus, t["huelle"] + [t["scheiben"], t["zusatz"][0]], ebenen, budget, 41 + F.nr, z_grenze)
+    print(f"EFEU Karten: {n} (Budget {budget}, Huelle vorher {summe} Dreiecke)")
 
 
 def licht_unter_empore(licht, auge):

@@ -28,8 +28,11 @@ public partial class LadeFensterAnzeige : PanelContainer
     private readonly VBoxContainer _spalte;
     private Fensterkleid _kleid = null!;
     private Func<LadeInhalt?>? _quelle;
-    private string _stand = "";
+    private string _bau = "";   // Gerüst des Inhalts (Titel, Zeilennamen, Befehle): ändert es sich nicht, wird nichts neu gebaut
     private double _seit;
+    private Label? _vor;
+    private readonly List<Label> _werte = new();
+    private readonly List<LadeBefehlKnopf> _knoepfe = new();
 
     /// <summary>Welches Fach gerade offen ist (null: keines) – die Lade drückt danach ihr Fach ein.</summary>
     public string? Fach { get; private set; }
@@ -79,7 +82,7 @@ public partial class LadeFensterAnzeige : PanelContainer
             return;
         }
         _quelle = quelle;
-        _stand = "";
+        _bau = "";
         _seit = 1;
         Fach = fach;
         if (Visible) Aufbauen();
@@ -109,25 +112,50 @@ public partial class LadeFensterAnzeige : PanelContainer
             Schliessen();
             return;
         }
-        var stand = inhalt.Titel + "\n" + inhalt.Vor + "\n" + string.Join("\n", inhalt.Zeilen.Select(z => $"{z.Name}|{z.Wert}|{z.Warnung}"))
-                    + "\n" + string.Join("\n", inhalt.Befehle.Select(b => $"{b.Titel}|{b.Kosten}|{b.Folge}|{b.Sperre}|{b.Aktion is null}"));
-        if (stand == _stand) return;
-        _stand = stand;
+        // Neu gebaut wird nur, wenn sich das Gerüst ändert. Sonst nur die Texte tauschen: Ein Neubau je Zahlenwechsel (der Rat zählt die Zeit bis zur
+        // Sitzung mit) ließ das Fenster flackern – Texte mit Zeilenumbruch messen im neuen Knoten kurz mit Breite 0 und das Fenster sprang auf die
+        // dreifache Höhe –, und ein offener Knopf oder eine Auswahl darin wäre jedes Mal weg gewesen.
+        var bau = inhalt.Titel + "\n" + (inhalt.Vor.Length > 0) + "\n" + string.Join("\n", inhalt.Zeilen.Select(z => $"{z.Name}|{z.Warnung}"))
+                  + "\n" + string.Join("\n", inhalt.Befehle.Select(b => $"{b.Titel}|{b.Kosten.Length > 0}|{b.Sperre is not null}|{b.Folge.Length > 0}|{b.Aktion is null}"));
+        if (bau == _bau)
+        {
+            if (_vor is not null) _vor.Text = inhalt.Vor;
+            for (var i = 0; i < _werte.Count; i++) if (_werte[i].Text != inhalt.Zeilen[i].Wert) _werte[i].Text = inhalt.Zeilen[i].Wert;
+            for (var i = 0; i < _knoepfe.Count; i++) _knoepfe[i].Auffrischen(inhalt.Befehle[i]);
+            return;
+        }
+        _bau = bau;
         _kleid.Titel = inhalt.Titel;
         UiHilfe.KinderEntfernen(_spalte);
+        _vor = null;
+        _werte.Clear();
+        _knoepfe.Clear();
         if (inhalt.Vor.Length > 0)
-            _spalte.AddChild(new Label { Text = inhalt.Vor, ThemeTypeVariation = "FensterVor", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        {
+            _vor = new Label { Text = inhalt.Vor, ThemeTypeVariation = "FensterVor", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _spalte.AddChild(_vor);
+        }
         if (inhalt.Zeilen.Count > 0)
         {
             var zeilen = new VBoxContainer { ThemeTypeVariation = "FensterZeilen" };
             _spalte.AddChild(zeilen);
-            foreach (var z in inhalt.Zeilen) zeilen.AddChild(Zeile(z));
+            foreach (var z in inhalt.Zeilen)
+            {
+                var kasten = Zeile(z);
+                zeilen.AddChild(kasten);
+                _werte.Add((Label)kasten.GetChild(0).GetChild(kasten.GetChild(0).GetChildCount() - 1));
+            }
         }
         if (inhalt.Befehle.Count > 0)
         {
             var befehle = new VBoxContainer { ThemeTypeVariation = "FensterBefehle" };
             _spalte.AddChild(befehle);
-            foreach (var b in inhalt.Befehle) befehle.AddChild(new LadeBefehlKnopf(b));
+            foreach (var b in inhalt.Befehle)
+            {
+                var knopf = new LadeBefehlKnopf(b);
+                befehle.AddChild(knopf);
+                _knoepfe.Add(knopf);
+            }
         }
     }
 
@@ -151,6 +179,9 @@ public partial class LadeFensterAnzeige : PanelContainer
 public partial class LadeBefehlKnopf : Button
 {
     private readonly MarginContainer _rand;
+    private readonly Label _titel;
+    private Label? _kosten, _text; // Kosten rechts; Grund (gesperrt) oder Wirkung
+    private Action? _aktion;       // die jeweils neueste Aktion: der Knopf bleibt, die Aktion wird nur getauscht
 
     public LadeBefehlKnopf(LadeBefehl b)
     {
@@ -158,9 +189,10 @@ public partial class LadeBefehlKnopf : Button
         ThemeTypeVariation = gesperrt ? "FensterBefehlGesperrt" : "FensterBefehl";
         FocusMode = FocusModeEnum.None;
         Disabled = gesperrt || b.Aktion is null; // ohne Aktion: Auskunft – bleibt Holz (das Thema setzt „disabled“ wie „normal“)
-        if (b.Aktion is { } aktion && !gesperrt)
+        _aktion = b.Aktion;
+        if (b.Aktion is not null && !gesperrt)
         {
-            Pressed += aktion;
+            Pressed += () => _aktion?.Invoke();
             MouseDefaultCursorShape = CursorShape.PointingHand;
         }
         _rand = new MarginContainer { ThemeTypeVariation = "FensterBefehlInhalt", MouseFilter = MouseFilterEnum.Ignore };
@@ -170,9 +202,13 @@ public partial class LadeBefehlKnopf : Button
         _rand.AddChild(spalte);
         var kopf = new HBoxContainer { ThemeTypeVariation = "FensterZeileReihe", MouseFilter = MouseFilterEnum.Ignore };
         spalte.AddChild(kopf);
-        kopf.AddChild(new Label { Text = b.Titel, ThemeTypeVariation = "FensterBefehlTitel", SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
+        _titel = new Label { Text = b.Titel, ThemeTypeVariation = "FensterBefehlTitel", SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
+        kopf.AddChild(_titel);
         if (b.Kosten.Length > 0)
-            kopf.AddChild(new Label { Text = b.Kosten, ThemeTypeVariation = "FensterBefehlKosten", MouseFilter = MouseFilterEnum.Ignore });
+        {
+            _kosten = new Label { Text = b.Kosten, ThemeTypeVariation = "FensterBefehlKosten", MouseFilter = MouseFilterEnum.Ignore };
+            kopf.AddChild(_kosten);
+        }
         if (gesperrt)
         {
             var sperre = new HBoxContainer { ThemeTypeVariation = "FensterZeileReihe", MouseFilter = MouseFilterEnum.Ignore };
@@ -180,22 +216,36 @@ public partial class LadeBefehlKnopf : Button
             var schloss = Zeichen("schloss", "FensterZeichenSperre");
             schloss.SizeFlagsVertical = SizeFlags.ShrinkBegin;
             sperre.AddChild(schloss);
-            sperre.AddChild(new Label
+            _text = new Label
             {
                 Text = b.Sperre, ThemeTypeVariation = "FensterBefehlSperre", AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore,
-            });
+            };
+            sperre.AddChild(_text);
         }
         else if (b.Folge.Length > 0)
-            spalte.AddChild(new Label
+        {
+            _text = new Label
             {
                 Text = b.Folge, ThemeTypeVariation = "FensterBefehlFolge", AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = MouseFilterEnum.Ignore,
-            });
+            };
+            spalte.AddChild(_text);
+        }
         _rand.MinimumSizeChanged += HoeheAnpassen;
         Resized += HoeheAnpassen; // umbrochener Text braucht je nach Breite mehr oder weniger Zeilen
     }
 
     public override void _Ready() => HoeheAnpassen();
+
+    /// <summary>Gleiches Gerüst, neue Werte: Kosten, Wirkung oder Grund und die Aktion tauschen, ohne den Knopf neu zu bauen.</summary>
+    public void Auffrischen(LadeBefehl b)
+    {
+        _aktion = b.Aktion;
+        if (_titel.Text != b.Titel) _titel.Text = b.Titel;
+        if (_kosten is not null && _kosten.Text != b.Kosten) _kosten.Text = b.Kosten;
+        var text = b.Sperre ?? b.Folge;
+        if (_text is not null && _text.Text != text) _text.Text = text;
+    }
 
     /// <summary>Die Höhe folgt dem Inhalt (ein Knopf von Godot misst nur seinen eigenen Text, eine eigene Mindestgröße per Skript beachtet er nicht).</summary>
     private void HoeheAnpassen()
