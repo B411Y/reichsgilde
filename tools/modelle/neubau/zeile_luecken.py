@@ -27,7 +27,8 @@ import zeile_module as Z      # noqa: E402
 import zeile_bilder as ZB     # noqa: E402
 
 DEBUG = "--debug" in sys.argv
-PAARE = [p for p in (os.environ.get("ZEILE_PAARE") or "").split(",") if p] or ["k_t6|k_t6", "k_g6|k_g6", "k_g4|k_g4", "k_t6|eck", "k_t6|k_g6", "k_g4|k_t8", "k_g8|k_g4", "k_t8|k_t6", "k_g6|eck"]
+PAARE = [p for p in (os.environ.get("ZEILE_PAARE") or "").split(",") if p] or ["k_t6|k_t6", "k_g6|k_g6", "k_g4|k_g4", "k_t6|eck", "k_t6|k_g6", "k_g4|k_t8", "k_g8|k_g4", "k_t8|k_t6", "k_g6|eck",
+                 "k_g6_a|k_g4_b", "k_g4_c|k_g8_a", "k_g8_b|k_g6_c", "k_g6_b|eck_a", "k_g8_c|eck_b", "k_g4_a|k_g6_b"]
 KANTE = {"Strohkante"}     # Alpha-Karten: im Pixel-Look aus, beidseitig – sie verdecken nichts und zaehlen nicht als Rueckseite
 DACH = {"Stroh", "Strohkante"}
 
@@ -65,7 +66,7 @@ def unterseite(modul, x, y):
         w = Z.BREITE[modul]
         if not (0 < x < w and 0 < y < Z.TIEFE): return None
         return z_t + min(y + krag, Z.TIEFE - y) * S["tt"]
-    if modul == "eck":
+    if modul.startswith("eck"):
         Q, oy = Z.TIEFE + krag, -krag
         if not (0 < x < Z.TIEFE and 0 < y < Z.TIEFE): return None
         return z_t + S["tg"] * min(x, Q - x, y - oy, Q - (y - oy))
@@ -168,7 +169,7 @@ def durchblick(netze, satz, paar):
 
 def rahmen(netze, satz):
     schlecht = 0
-    for modul in ("k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "eck"):
+    for modul in [m for m in Z.MODULE if m in Z.BREITE]:
         w = Z.BREITE[modul]
         p, f, stoffe = dreiecke(netze[modul], Matrix.Identity(4))
         werte = {"Dach": 0.0, "Wand": 0.0}
@@ -177,7 +178,7 @@ def rahmen(netze, satz):
             for i in q:
                 x, y = p[i].x, p[i].y
                 # Eckhaus: vorn und rechts Schauseiten (Auskragung, Ueberstand erlaubt), links und hinten Nachbarn
-                ueber = max(-x, y - Z.TIEFE, 0.0) if modul == "eck" else max(-x, x - w, 0.0)
+                ueber = max(-x, y - Z.TIEFE, 0.0) if modul.startswith("eck") else max(-x, x - w, 0.0)
                 werte[art] = max(werte[art], ueber)
         if werte["Dach"] > 0.001 or werte["Wand"] > 0.001: schlecht += 1
         print(f"RAHMEN {satz} {modul}: Dach {werte['Dach'] * 100:.1f} cm, Wand {werte['Wand'] * 100:.1f} cm")

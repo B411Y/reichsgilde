@@ -23,7 +23,7 @@ import wohnhaus_mensch_s1_g1 as g1       # noqa: E402
 
 
 def stellung(p):
-    return "eck" if p["modul"] == "eck" else ("giebel" if p["modul"].startswith("k_g") else "trauf")
+    return "eck" if p["modul"].startswith("eck") else ("giebel" if p["modul"].startswith("k_g") else "trauf")
 
 
 def profil_hoeher(p, n):
@@ -46,7 +46,8 @@ def stuecke(parzellen):
             spiegel = seite == "r"
             st = stellung(p)
             if st == "giebel":
-                aus.append(("seite_blind" if n is not None else "seite_offen", x, spiegel))
+                offen = "seite_offen" if not p["modul"].endswith(("_a", "_b", "_c")) else ("seite_offen_a" if spiegel else "seite_offen_b")
+                aus.append(("seite_blind" if n is not None else offen, x, spiegel))
                 if n is not None: aus.append(("gasse", x, spiegel))
             elif st == "trauf" and profil_hoeher(p, n):
                 stein = Z.S["og"] == "mauer"
@@ -128,8 +129,12 @@ def main():
     bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, 0))
     boden = bpy.context.active_object; boden.data.materials.append(g1.stoff("Kontrollboden", farbe=(0.36, 0.33, 0.27)))
     # Probezeile (Konzept Kapitel 6): Schenkel A von links nach rechts bis zur Ecke, Schenkel B von der Ecke weg
-    a = [{"modul": "k_g6"}, {"modul": "k_g4"}, {"modul": "k_t6"}, {"modul": "k_t6"}, {"modul": "eck"}]
-    b = [{"modul": "k_g6"}, {"modul": "k_t8"}, {"modul": "k_g4"}]
+    if opt.get("zeile") == "varianten":   # Fensterprobe (Nutzer 21.11.2026): nur Giebelhaeuser und Eckhaus, Lochbilder a-c
+        a = [{"modul": "k_g6_a"}, {"modul": "k_g4_b"}, {"modul": "k_g8_c"}, {"modul": "k_g6_b"}, {"modul": "eck_a"}]
+        b = [{"modul": "k_g6_c"}, {"modul": "k_g8_a"}, {"modul": "k_g4_c"}, {"modul": "k_g8_b"}]
+    else:
+        a = [{"modul": "k_g6"}, {"modul": "k_g4"}, {"modul": "k_t6"}, {"modul": "k_t6"}, {"modul": "eck"}]
+        b = [{"modul": "k_g6"}, {"modul": "k_t8"}, {"modul": "k_g4"}]
     b[0]["links"] = a[-1]
     liste_a, laenge_a = stuecke(a)
     liste_b, _ = stuecke(b)

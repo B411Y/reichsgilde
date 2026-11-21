@@ -28,6 +28,7 @@ Masse und Lage (alle Module eines Satzes passen auf das 2-m-Raster):
 import json
 import math
 import os
+import random
 import sys
 
 import bpy
@@ -119,6 +120,12 @@ SAETZE = {
 BANDLAGE = {"bruchstein": 0.4, "putz": 1.6}      # natuerliche Hoehe eines Bandes in Metern (Bandhoehe x Breite des Bands / 2048)
 MODULE = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "seite_blind", "seite_offen", "kappe_brand", "kappe_offen", "gasse", "eck",
           "mauer", "pfeiler", "tor", "hinterhaus"]
+# Lochbilder (Nutzer 21.11.2026: weniger Fenster – Glas war teuer –, weniger Symmetrie, mehr Abwechslung): je Giebelkoerper drei
+# Varianten, Traufseite und Eckhaus je zwei; angehaengt, die bisherigen Module bleiben unveraendert
+VARIANTEN = ["k_g4_a", "k_g4_b", "k_g4_c", "k_g6_a", "k_g6_b", "k_g6_c", "k_g8_a", "k_g8_b", "k_g8_c",
+             "seite_offen_a", "seite_offen_b", "eck_a", "eck_b"]
+MODULE = MODULE + VARIANTEN
+FENSTER_EG, FENSTER_OG, LUKE_OG = 0.50, 0.65, 0.25   # Wahrscheinlichkeit je Achse: Fenster im EG, im OG; sonst im OG eine kleine Luke
 
 TIEFE = 8.0
 KRAG = 0.40            # Auskragung der Fachwerk-Obergeschosse (Nutzer: 0,4 m, nur Fachwerk)
@@ -176,14 +183,64 @@ def wandseite(teil, eb_eg, eb_og, b_eg, b_og, anker, modul, n_eg, n_og, tuer=Non
             schmal = z1 - z0 < 1.6
             plaetze = achsen(b, n + (1 if (eg and tuer) else 0), 0.5 if schmal else fb) if n + (1 if (eg and tuer) else 0) > 0 else []
             oeff = []
-            for i, (a0, a1) in enumerate(plaetze):
-                if eg and tuer and i == (0 if tuer == "links" else len(plaetze) - 1):
-                    m = (a0 + a1) / 2
-                    oeff.append((m - 0.48, m + 0.48, 0.0, min(2.15, z1 - 0.45), "tuer"))
-                else:
-                    oeff.append((a0, a1, fa, fz, "fenster"))
+            wuerfel = S.get("variante")
+            if wuerfel is not None and not schmal:
+                oeff = lochbild(wuerfel, b, plaetze, fa, fz, z1, eg, tuer)
+            else:
+                for i, (a0, a1) in enumerate(plaetze):
+                    if eg and tuer and i == (0 if tuer == "links" else len(plaetze) - 1):
+                        m = (a0 + a1) / 2
+                        oeff.append((m - 0.48, m + 0.48, 0.0, min(2.15, z1 - 0.45), "tuer"))
+                    else:
+                        oeff.append((a0, a1, fa, fz, "fenster"))
         geschoss(teil, eb, b, z0, z1, oeff, art, anker, modul, sockel=eg and sockel, hoch=traufe if nr == len(alle) - 1 else 0.0)
         if blind: S["ohne_quader"] = alt_ohne
+
+
+def lochbild(wuerfel, b, plaetze, fa, fz, z1, eg, tuer):
+    """Lochbild einer Variante: je Achse ein Fenster mit FENSTER_EG bzw. FENSTER_OG, sonst im OG mit LUKE_OG eine kleine Luke,
+    mindestens ein Fenster je Geschoss; die Tuer bleibt. Kleinere Oeffnungen (80 % breit, 85 % hoch), Achsen bis 0,15 m versetzt."""
+    tuer_i = (0 if tuer == "links" else len(plaetze) - 1) if (eg and tuer) else -1
+    mitten = []
+    for i, (a0, a1) in enumerate(plaetze):
+        m = (a0 + a1) / 2 + (wuerfel.uniform(-0.15, 0.15) if i != tuer_i else 0.0)
+        mitten.append(m)
+    halb = (plaetze[0][1] - plaetze[0][0]) / 2 * 0.8 if plaetze else 0.3
+    h = (fz - fa) * 0.85
+    fa2 = fa + (fz - fa - h) * 0.4
+    oeff, fenster_da = [], []
+    for i, m in enumerate(mitten):
+        if i == tuer_i:
+            oeff.append((m - 0.48, m + 0.48, 0.0, min(2.15, z1 - 0.45), "tuer")); continue
+        if wuerfel.random() < (FENSTER_EG if eg else FENSTER_OG):
+            fenster_da.append(len(oeff))
+            oeff.append((m - halb, m + halb, fa2, fa2 + h, "fenster"))
+        elif not eg and wuerfel.random() < LUKE_OG:
+            oeff.append((m - 0.2, m + 0.2, fz - 0.55, fz - 0.1, "fenster"))       # kleine Luke unter dem Sturz
+    if not fenster_da:            # mindestens ein Fenster je Geschoss
+        frei = [i for i in range(len(mitten)) if i != tuer_i]
+        if frei:
+            i = frei[wuerfel.randrange(len(frei))]
+            m = mitten[i]
+            oeff = [o for o in oeff if not (o[4] == "fenster" and abs((o[0] + o[1]) / 2 - m) < 1e-6)]
+            oeff.append((m - halb, m + halb, fa2, fa2 + h, "fenster"))
+    # in der Wand bleiben (Abstand zum Rand mindestens ein Staender und 0,1 m)
+    rand = BW + 0.1
+    aus = []
+    for a0, a1, t0, t1, art in sorted(oeff):
+        if a0 < rand: a1 += rand - a0; a0 = rand
+        if a1 > b - rand: a0 -= a1 - (b - rand); a1 = b - rand
+        aus.append((a0, a1, t0, t1, art))
+    return aus
+
+
+def mit_variante(modul, bau):
+    """Baut ein Modul mit dem Wuerfel seiner Variante (fester Startwert aus dem Namen)."""
+    S["variante"] = random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(modul)))
+    try:
+        return bau()
+    finally:
+        S["variante"] = None
 
 
 # ── Vieleck-Werkzeuge (konvexe Vielecke in einer Ebene: (s, t)-Koordinaten) ───────────────────────────────────────────
@@ -330,7 +387,7 @@ def fachwerk_geschoss(teil, ebene, b, z0, z1, oeffnungen, riegel_mitte=True):
     staender = sorted(s for s in staender if BW / 2 - 1e-6 <= s <= b - BW / 2 + 1e-6)
     for s in staender:
         teil.brett("Fachwerk", hz(s, z0 + 0.18), hz(s, z1 - 0.16), BW, n, "balken_a", tiefe=0.045, laengs="u")
-    fenster_t = [(t0, t1) for _, _, t0, t1, art in oeffnungen if art == "fenster"]
+    fenster_t = [(t0, t1) for a0, a1, t0, t1, art in oeffnungen if art == "fenster" and a1 - a0 > 0.45]   # Luken setzen keine Riegelhoehe
     for sa, sb in zip(staender[:-1], staender[1:]):
         feld_a, feld_b = sa + BW / 2, sb - BW / 2
         if feld_b - feld_a < 0.25: continue
@@ -763,7 +820,8 @@ def seite_giebelhaus(offen, modul):
     innen = (EIN + 2.0, TIEFE / 2, 2.0)
     eg = Ebene((EIN, TIEFE, 0), (0, -1, 0), (0, 0, 1), innen)           # s von hinten (y = TIEFE) nach vorn
     # offen: wenige Fensterachsen (Dreiecksgrenze der Kappen, Konzept 4.9: 300)
-    wandseite(h, eg, eg, TIEFE, TIEFE + krag, anker, modul, 1, 1, blind=not offen, traufe=0.1)
+    n = 3 if S.get("variante") is not None else 1
+    wandseite(h, eg, eg, TIEFE, TIEFE + krag, anker, modul, n, n, blind=not offen, traufe=0.1)
     return h, anker
 
 
@@ -1051,9 +1109,13 @@ BAUER = {
     "kappe_brand": lambda m: kappe(True, m), "kappe_offen": lambda m: kappe(False, m), "gasse": gasse, "eck": eckhaus,
     "mauer": mauer, "pfeiler": pfeiler, "tor": tor, "hinterhaus": hinterhaus,
 }
+for _v in VARIANTEN:
+    _grund = _v.rsplit("_", 1)[0]
+    BAUER[_v] = (lambda grund: lambda m: mit_variante(m, lambda: BAUER[grund](m)))(_grund)
 
 # Breite je Modul (fuer Blindnachbarn beim Backen, Kontrollbilder)
 BREITE = {"k_g4": 4, "k_g6": 6, "k_g8": 8, "k_t6": 6, "k_t8": 8, "eck": 8}
+BREITE.update({v: BREITE[v.rsplit("_", 1)[0]] for v in VARIANTEN if v.rsplit("_", 1)[0] in BREITE})
 
 
 def stoffe_anlegen(blatt):
@@ -1069,8 +1131,18 @@ def ao_gruppe_eintragen(gruppe):
     """Traegt die Gruppe zeile_<satz> mit einem Platz je Modul in ao_atlas.json ein (4 x 4 Zellen zu 512 Bildpunkten)."""
     pfad = os.path.join(HIER, "ao_atlas.json")
     daten = json.load(open(pfad, encoding="utf-8"))
-    eintrag = {"datei": f"{gruppe}_ao_atlas.png", "kante": 2048, "zellen": 4, "plaetze": {m: i for i, m in enumerate(MODULE)}}
+    zellen = 4 if len(MODULE) <= 16 else 8
+    eintrag = {"datei": f"{gruppe}_ao_atlas.png", "kante": 2048, "zellen": zellen, "plaetze": {m: i for i, m in enumerate(MODULE)}}
     if daten.get(gruppe) != eintrag:
+        if (daten.get(gruppe) or {}).get("zellen") != zellen:
+            # neue Aufteilung: der Atlas beginnt weiss (sonst blieben Reste der alten Zellen stehen)
+            pfad_bild = os.path.join(g1.ZIEL_TEXTUR, eintrag["datei"])
+            if os.path.exists(pfad_bild):
+                weiss = bpy.data.images.new("AO-Neu", 2048, 2048, alpha=False)
+                weiss.colorspace_settings.name = "Non-Color"
+                weiss.pixels.foreach_set([1.0] * (2048 * 2048 * 4))
+                weiss.filepath_raw = pfad_bild; weiss.file_format = "PNG"; weiss.save()
+                bpy.data.images.remove(weiss)
         daten[gruppe] = eintrag
         text = json.dumps(daten, ensure_ascii=False, indent=2)
         open(pfad, "w", encoding="utf-8", newline="\n").write(text + "\n")
@@ -1111,14 +1183,14 @@ def main():
             nachbarn = [kopie("k_g6", -6.0), kopie("k_g6", w)] if "k_g6" in objekte else []
         elif m.startswith("k_t"):
             nachbarn = [kopie("k_t6", -6.0), kopie("k_t6", w)] if "k_t6" in objekte else []
-        elif m in ("seite_blind", "seite_offen"):
+        elif m.startswith("seite_"):
             nachbarn = [kopie("k_g6", 0.0)] if "k_g6" in objekte else []
         elif m in ("kappe_brand", "kappe_offen"):
             nachbarn = [kopie("k_t6", 0.0)] if "k_t6" in objekte else []
         elif m == "gasse":
             nachbarn = [kopie("k_g6", 0.0), kopie("k_g6", -6.0)] if "k_g6" in objekte else []
-        elif m == "eck":
-            nachbarn = [kopie("k_t6", -6.0)] if "k_t6" in objekte else []
+        elif m.startswith("eck"):
+            nachbarn = [kopie("k_g6", -6.0)] if "k_g6" in objekte else []
         else:
             nachbarn = []
         g1.uv2_und_ao([([o], [boden] + nachbarn)], gruppe, m, mit_ao=mit_ao)
