@@ -1,7 +1,7 @@
 """Messung an den fertigen GLB der Elbenhaeuser Stufe 1 (Grundform 1-4): die Pruefungen der Menschenhaeuser (1-8, 12-15 aussen und
 Wohnstube) und dazu 16-18 Luecken, 19 Wappen, 20 Dreiecke, 21 Tueren, 22 Fahnenmast, 23 (entfaellt: kein Legschindeldach), 24 Glas,
 Rahmen und Oeffnung je Wand, 25 Spitzbogen nur aussen, 26 Dachschwung, 27 Fussabdruck, 28-32 Wohnstube (Dach innen, Haustuer innen, Schlot ueber dem Herd, kein Holz im Kamin und in der Einfassung, Hauswappen im Dachgeschoss), 33 Laterne frei vor Tuer, Fenster, Herd und Wappen, 34 Hauswappen im
-Standard-Innenblick frei, 35 Haustuer im Standard-Innenblick, 36 Fahne frei vom Schlot im Stadtblick – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
+Standard-Innenblick frei, 35 Haustuer im Standard-Innenblick, 36 Fahne frei vom Schlot im Stadtblick, 38 Standardblick nicht dicht vor einer Wand (blick_licht_pruefung.blick_wand, seit 20.11.2026 auch hier) – mit den Funktionen der Zwergen-Messung (wohnhaus_zwerg_neu_messen.py), aber mit den Blaettern der Elben.
 
     blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_elb_messen.py -- --haus=wohnhaus_elb_s1_g<1-4>
             [--ordner=<glb-ordner>] [--gegenprobe] [--mensch-tuer]
@@ -476,6 +476,9 @@ def blick_licht_s23(haus, ordner, texturen):
         z, f = B.licht_im_blick(glb, os.path.join(texturen, f"{blatt}_albedo.png"), os.path.join(texturen, atlas))
         zeilen.append(f"12c. Helle Flaechen im Standardblick mit direktem Licht ({raum[1:] or 'wohnstube'}): {'ok' if not f else str(f) + ' FEHLER'}")
         zeilen += z; fehler += f
+        if raum: continue                                      # 38 nur in der Wohnstube (wie bei den Halblingen)
+        z, f = B.blick_wand(glb)
+        zeilen.append(f"38. Standardblick nicht dicht vor einer Wand (wohnstube): {'ok' if not f else 'FEHLER'}"); zeilen += z; fehler += f
     return zeilen, fehler
 
 
@@ -748,6 +751,9 @@ def main():
     z28, f28 = innen_pruefen(haus, ordner, form, MS1); zeilen += z28; fehler += f28
     z24, f24 = Z.fenster_innen(haus, ordner, MS1)
     zeilen.append(f"24. Jedes Glas innen liegt in einer Oeffnung der Huelle, mit Rahmen: {'ok' if not f24 else str(f24) + ' FEHLER'}"); zeilen += z24; fehler += f24
+    import blick_licht_pruefung as B                         # 38 auch in Stufe 1 (Klicktest NAS 19.11.2026: Grundform 3 stand 0,10 m vor der Wand)
+    z38, f38 = B.blick_wand(os.path.join(ordner, f"{haus}_innen.glb"))
+    zeilen.append(f"38. Standardblick nicht dicht vor einer Wand (wohnstube): {'ok' if not f38 else 'FEHLER'}"); zeilen += z38; fehler += f38
     kopf = ("GEGENPROBE (anderer Stand, muss Fehler finden): " if "gegenprobe" in opt else "") + f"Messung {haus} ({ordner})"
     print("MESSUNG " + kopf)
     for z in zeilen: print("MESSUNG " + z)

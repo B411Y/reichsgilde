@@ -41,7 +41,10 @@ EINFASSUNG_RAND = 0.08            # Rand um den Herdstein: was ganz darin liegt 
 FAHNE_VOR_WALM = 0.45             # Grundform 4: Fahnenmast 0,45 m vor der Spitze des Walms (statt 0,45 m dahinter)
 LATERNE_G2_Y = -1.00              # Grundform 2: Laterne an der Strassenwand zwischen Haustuer (-0,40..0,40) und Fenster (-2,35..-1,55)
 WAPPEN_G4_TIEFER = 0.28           # Grundform 4: Hauswappen innen 0,28 m tiefer (Unterkante 2,75 m), unter dem Galerierand frei (Pruefung 34)
-BLICK_G3 = ((-0.60, 1.45), (2.20, -0.40, 1.30))   # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (Pruefung 35; weiter links verdeckt die Leiter das Wappen)
+BLICK_G3 = ((-0.45, 0.50), (2.20, -0.30, 1.30))   # Grundform 3: Innenblick von vor der Galerie auf Herd und Haustuer (Pruefung 35). Vorher unter der Galerie
+#                                                   (y 1,45): 0,33 m vor der Rueckwand, 4 cm neben einer Balkenseite, 0,17 m neben dem Eckstaender (Pruefung 38,
+#                                                   Klicktest NAS 19.11.2026). Jetzt wie bei den Halblingen 1,28 m vor der Rueckwand; weiter vorn verdeckt die
+#                                                   hintere Herdwange die Haustuer
 _MASSE = []
 FORM = 1                          # gebaute Grundform (main)
 LETZT = {}                        # zuletzt gebaute Teile (Haus, Dach, Scheiben, Wappen) fuer die Wappenregel

@@ -79,6 +79,13 @@ class BogenTeil:
         return self._teil.brett(stoff, a, b, breite, n, band, tiefe=tiefe, seiten=seiten, farbe=farbe, laengs=laengs)
 
 
+# Giebelzier am First (ortgang_schwung): drei Abschnitte je ZIER_ABSCHNITT m, Breite am Ansatz (wie das Ortgangbrett) und an den
+# drei Querschnitten (erst breiter – der Kopf –, dann zur Spitze schmaler), Staerke vor der Giebelebene
+ZIER_ABSCHNITT = 0.18     # 0,54 m lang (vorher 0,39). Mit 0,21 ragte die Zier am Steinhaus 5 cm ueber die Firsthoehe der Vorlagen (Pruefung 9: 9,45 m)
+ZIER_BREIT = (0.17, 0.24, 0.21, 0.13)
+ZIER_TIEF = 0.05          # wie das Ortgangbrett: staerker stuende die Zier ueber den Fussabdruck der Grundform hinaus (Pruefung 27)
+
+
 def ortgang_schwung(d, g, xe, dick_unten, dick_oben, walm):
     """Aufgeschwungene Ortgangbretter (Kunstwerk): an jeder Traufecke biegt das Brett nach aussen oben aus, am First laufen die Bretter
     beider Seiten ueber Kreuz weiter und schwingen nach oben. Gleiche Ebene, Breite und Tiefe wie die Ortgangbretter von
@@ -103,15 +110,17 @@ def ortgang_schwung(d, g, xe, dick_unten, dick_oben, walm):
                 breiten.append(0.17 - 0.025 * k)
             streifen(d, "Fachwerk", punkte, breiten, n, "balken_c", 0.05, kappe=True, anfang=ab)
             if walm and aussen < 0: continue
-            # First: ueber Kreuz weiter (Richtung des Bretts), dann nach oben, 0,40 m lang
+            # First (Giebelzier): ueber Kreuz weiter (Richtung des Bretts), dann nach oben. Groeber seit dem Feinschliff 20.11.2026
+            # (ZIER_*): 0,54 statt 0,39 m lang und zum Kopf hin breiter (bis 24 cm; vorher von 17 auf 9,5 cm verjuengt) – die feine
+            # Zier ging im Pixel-Look unter. Gleich viele Flaechen wie vorher (Dreiecksgrenze unberuehrt)
             auf = (first - traufe).normalized()
-            punkte, breiten = [first], [0.17]
+            punkte, breiten = [first], [ZIER_BREIT[0]]
             for k in range(1, 4):
                 winkel = math.radians(25 * k / 3) * (-seite)
                 r = Vector((auf.x * math.cos(winkel) - auf.z * math.sin(winkel), 0, auf.x * math.sin(winkel) + auf.z * math.cos(winkel)))
-                punkte.append(punkte[-1] + r * 0.13)
-                breiten.append(0.17 - 0.025 * k)
-            streifen(d, "Fachwerk", punkte, breiten, n, "balken_c", 0.05, kappe=True, anfang=auf)
+                punkte.append(punkte[-1] + r * ZIER_ABSCHNITT)
+                breiten.append(ZIER_BREIT[k])
+            streifen(d, "Fachwerk", punkte, breiten, n, "balken_c", ZIER_TIEF, kappe=True, anfang=auf)
 
 
 def massfigur_elb(fusspunkte, hoehe=1.85):

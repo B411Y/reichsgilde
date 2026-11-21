@@ -40,6 +40,8 @@ import wohnhaus_mensch_s1_g1 as g1                                 # noqa: E402 
 ZIEL_MODELL = g1.ZIEL_MODELL
 GALERIE_LICHT = False      # Grundlicht unter der Galerie (main): nur Menschen und Zwerge setzen es (eigene Einstiege);
                            # die Schichten der Elben und Halblinge setzen ihr Grundlicht selbst und bleiben unveraendert
+GALERIE_BALKEN = None      # Achsen (y) der Balken unter der Schlafgalerie als Funktion (GALERIE_AB, IH); None: drei (vorn, Mitte, hinten).
+                           # Die Halblinge setzen sie fuer ihre flache Galerie der Grundformen 1 und 3 (wohnhaus_halbling_s1.galerie_balken)
 feld = g1.feld
 EZ = Vector((0, 0, 1))
 
@@ -718,7 +720,7 @@ def baue_raum():
     # Schlafgalerie: Bohlen auf drei Deckenbalken, Brustholz mit Luecke fuer den Austritt der Leiter
     GA, LX = F.GALERIE_AB, F.LEITER_X
     r.kasten(S, (-IX, GA, Z_OG), (IX, IH, Z_GALERIE), "bohlen", ohne=("+y", "-x", "+x"), laengs="x")
-    for y in (GA + 0.09, (GA + IH) / 2, IH - 0.2):
+    for y in (GALERIE_BALKEN(GA, IH) if GALERIE_BALKEN else (GA + 0.09, (GA + IH) / 2, IH - 0.2)):
         r.kasten(S, (-IX, y - 0.09, Z_OG - 0.2), (IX, y + 0.09, Z_OG), "balken", ohne=("+z", "-x", "+x"), laengs="x")
     pfosten = [-IX + 0.05, LX - 0.35, LX + 0.35, IX - 0.05]
     for xa, xb in ((-IX, LX - 0.35), (LX + 0.35, IX)):

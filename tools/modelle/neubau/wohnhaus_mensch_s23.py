@@ -1303,9 +1303,10 @@ def anker_innen(tuer_mitten):
     tm = (tuer[1][0] + tuer[1][1]) / 2
     liste = [
         A("Blick_Auge", M.STUBE_AUGE), A("Blick_Ziel", M.STUBE_ZIEL),
-        # Grundlicht (OmniLight ohne Schatten) in x in der Raummitte, in y auf der Hoehe des Blickpunkts (Pruefung 12c, 18.11.2026):
-        # bei y = -0,3 stand es hinter den Flaechen zur Kamera (Seite des Schlots ueber dem Herd), die nur Umgebungslicht bekamen
-        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (0.0, M.STUBE_AUGE[1], M.Z_EG_DECKE - 0.35)),
+        # Grundlicht (OmniLight ohne Schatten) ueber dem Blickpunkt wie bei den Elben (Feinschliff 20.11.2026): Jede senkrechte Flaeche,
+        # die das Auge sieht, zeigt dann auch zum Licht. In der Raummitte (x 0; davor auch y -0,3) lag es hinter den Seiten der zwei
+        # Deckenbalken vor der Fensterwand und hinter der Schlotseite ueber dem Herd – nur Umgebungslicht, im dunklen Holz fast schwarz
+        A("Licht_Herd", ((kx0 + kx1) / 2 - 0.35 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.95)), A("Licht_Raum", (M.STUBE_AUGE[0], M.STUBE_AUGE[1], M.Z_EG_DECKE - 0.35)),
         A("Feuer_Herd", ((kx0 + kx1) / 2 - 0.18 + DX_RECHTS, (ky0 + ky1) / 2 + DY_RECHTS, 0.53)),
         A("Tuer_Innen", (tm, IV, ZB + M.TUER_LICHT[1] / 2)),
         A("Platz_Oberhaupt", (*an_rueckwand(g1.BANK_X, g1.TISCH[2] + 0.52), ZB), "nord", haltung="sitzt", rolle="oberhaupt", sitzhoehe=g1.SITZ_HOEHE),
