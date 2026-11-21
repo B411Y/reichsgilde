@@ -77,6 +77,22 @@ def modul_von_x(liste, x0):
     return None
 
 
+def akzent_zeigen(stoff, farbe=(0.55, 0.22, 0.20, 1.0)):
+    """Kontrollbild: Akzentfarbe (Eckenfarbe Rot, Laeden) wie im Spiel (accent_tint) auf die Trim-Farbe multiplizieren."""
+    knoten = stoff.node_tree.nodes
+    bsdf = next(k for k in knoten if k.type == "BSDF_PRINCIPLED")
+    trim = knoten.get("Trim")
+    if trim is None: return
+    attr = knoten.new("ShaderNodeVertexColor"); attr.layer_name = "Col"
+    trennen = knoten.new("ShaderNodeSeparateColor")
+    mix = knoten.new("ShaderNodeMix"); mix.data_type = "RGBA"; mix.blend_type = "MULTIPLY"
+    stoff.node_tree.links.new(attr.outputs["Color"], trennen.inputs[0])
+    stoff.node_tree.links.new(trennen.outputs[0], mix.inputs["Factor"])
+    stoff.node_tree.links.new(trim.outputs["Color"], mix.inputs[6])
+    mix.inputs[7].default_value = farbe
+    stoff.node_tree.links.new(mix.outputs[2], bsdf.inputs["Base Color"])
+
+
 def rendern(datei, auge, ziel, brennweite, pixel=1, breite=1664, hoehe=936):
     szene = bpy.context.scene
     kam = bpy.data.objects.get("Kontrollkamera")
@@ -120,6 +136,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     if bpy.context.scene.world is None: bpy.context.scene.world = bpy.data.worlds.new("Welt")
     stoffe = Z.stoffe_anlegen(Z.S["blatt"])
+    akzent_zeigen(stoffe["Fachwerk"])
     objekte = {}
     for m in Z.MODULE:
         t, _ = Z.BAUER[m](m)
