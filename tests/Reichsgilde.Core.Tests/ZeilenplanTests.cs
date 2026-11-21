@@ -314,6 +314,8 @@ static class ZeilenplanTests
             var import = File.ReadAllText(pfad + ".import");
             Pruefe.Wahr(import.Contains($"slices/vertical={Zeilenplan.Saetze.Length}\n") || import.Contains($"slices/vertical={Zeilenplan.Saetze.Length}\r"), "Ebenenzahl im Import des AO-Arrays");
             Pruefe.Wahr(import.Contains("slices/horizontal=1"), "Ebenen senkrecht");
+            // Ein abgebrochener Import (Datei während des Imports neu geschrieben) hinterlässt „valid=false“: das Spiel lädt das Array dann nicht
+            Pruefe.Wahr(!import.Contains("valid=false"), "Import des AO-Arrays gültig (sonst neu importieren und die .import-Datei committen)");
             // Körperbreiten wie im Bauskript (BREITE)
             foreach (Match m in Regex.Matches(Regex.Match(skript, @"^BREITE = \{(.*?)\}", RegexOptions.Multiline).Groups[1].Value, @"""(\w+)"":\s*(\d+)"))
                 Pruefe.Gleich(float.Parse(m.Groups[2].Value), Zeilenplan.Breite(m.Groups[1].Value), m.Groups[1].Value);
