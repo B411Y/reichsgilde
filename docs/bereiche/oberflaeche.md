@@ -249,3 +249,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Knopf | Reiter „Haus“ der Wohnhaus-Tafel: Liste „Räume zum Anbauen (endgültig)“, je wählbarem Raum Name, Wirkung, Preis (`Baupreis`) und „Anbauen“. Gesperrt: ausgegraut, Grund aus `RaumAnbauenVerboten` plus nächster Schritt („das Wohnhaus ausbauen“ bzw. „Geld zurücklegen“). | 20.11.2026 |
 | Rückfrage | Selbst entschieden: im Tafelzeilen-Platz statt eigenem Dialog – ein Klick auf „Anbauen“ ersetzt den Knopf durch „Endgültig, 700 Gulden. Anbauen?“ mit Ja/Nein; Ja sendet `RaumAnbauen`. Wirkungstexte der Räume stehen in der Oberfläche (`RaumWirkung`), nicht in den Daten. | 20.11.2026 |
+
+### Flackernde Tafeln, offene Auswahllisten, wandernde Auswahltafel (Branch fix/ui-flackern)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Lade-Fenster | Ursache des Flackerns (Ratsfenster, Betriebe usw.): Der Inhalt wurde bei jedem Zahlenwechsel neu gebaut (der Rat zählt die Zeit bis zur Sitzung mit), und ein neuer Text mit Zeilenumbruch misst ein Bild lang mit Breite 0 – das Fenster sprang auf die dreifache Höhe. Jetzt baut `LadeFensterAnzeige` nur bei geändertem Gerüst (Titel, Zeilennamen, Befehle) neu; sonst tauscht sie Texte und Aktion an Ort und Stelle (`LadeBefehlKnopf.Auffrischen`). | 21.11.2026 |
+| Rollbereich | Allgemein für alle Tafeln: Eine neue Größe gilt erst, wenn sie zwei Bilder hintereinander gemessen wurde (außer beim ersten Messen). Ein Ausreißer von einem Bild nach einem Neuaufbau verändert Tafel und Lage nicht mehr. | 21.11.2026 |
+| Auswahlliste | Ursache: `InnenTafel.PopupOffen` sah die Liste eines `OptionButton` nie (innerer Knoten, `GetChildren()` ohne `true`), die Tafel baute sich unter der offenen Liste neu auf (Preise und Fortschritt ändern sich ständig). Jetzt `GetChildren(true)`; dazu kein Neuaufbau, solange die linke Maustaste gedrückt ist. Der Fortschrittsbalken der Produktionstafel wird an Ort und Stelle nachgezogen und steht nicht mehr im Gerüst. | 21.11.2026 |
+| Auswahltafel | Ursache des Mitwanderns: Ihre Lage wurde jedes Bild mit dem aktuellen Bild des Handschuhs neu gerechnet (`Mauszeiger.ZeigerBereich`, ändert sich mit Neigung und Haltung). Das Zeigerbild wird jetzt beim Öffnen eingefroren (`Tooltips.Lage` mit Zeigerbild, `Tipp.Zeiger`, Klickort in `Hauptszene`). Gilt auch für lose Tooltips. | 21.11.2026 |
