@@ -97,8 +97,9 @@ SAETZE = {
                       mauer_band="bruchstein", werk_band=None, erker=False, treppe=False, fb=0.75, putz_lage=None),
     "mensch_s2": dict(blatt="trim_s2", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.4, 3.0), neig_g=52, neig_t=45,
                       mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.8, putz_lage=1.6),
-    "mensch_s3": dict(blatt="trim_s3", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=52, neig_t=45,
-                      mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.8, putz_lage=1.6),
+    "mensch_s3": dict(blatt="trim_s3", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=52, neig_t=45,
+                      mauer_band="bruchstein", werk_band="putz", erker=True, treppe=False, fb=0.8, putz_lage=1.6,
+                      gefach="stein"),   # Nutzer 21.11.2026 „S3 B“: Obergeschosse Fachwerk mit Steingefachen (Vorbild Alsfeld)
     "zwerg_s1": dict(blatt="trim_zwerg", eg="mauer", og="mauer", dach="schindel", geschosse=(2.8, 2.4), neig_g=45, neig_t=40,
                      mauer_band="putz", werk_band="bruchstein", erker=False, treppe=False, fb=0.8, putz_lage=1.6),
     "zwerg_s2": dict(blatt="trim_s2_zwerg", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=48, neig_t=42,
@@ -131,7 +132,16 @@ FENSTER_EG, FENSTER_OG = 0.50, 0.65   # Wahrscheinlichkeit je Achse fuer ein Fen
 # Echtes Fachwerk (Nutzer 21.11.2026; Recherche C:\Reichsgilde_Austausch\fachwerk\recherche.md): Probe nur am Modul k_g6 der Menschen
 # Stufe 2; nach der Abnahme alle Fachwerk-Module von Menschen und Halblingen
 # Echtes Fachwerk (Nutzer 21.11.2026): je Satz die Module („alle“ = jedes Modul mit Fachwerkwand); Probe abgenommen 21.11.2026
-FACHWERK_ECHT = {"mensch_s1": "alle", "mensch_s2": "alle", "halbling_s1": "alle", "halbling_s2": "alle"}
+FACHWERK_ECHT = {"mensch_s1": "alle", "mensch_s2": "alle", "mensch_s3": "alle", "halbling_s1": "alle", "halbling_s2": "alle"}
+
+
+def gefachflaeche(teil, ebene, poly, putz_lage, loecher, u_saat):
+    """Wandflaeche hinter dem Fachwerk: Lehmputz, bei Steingefachen (gefach="stein", Mensch S3) Bruchstein im Mauerband."""
+    if S.get("gefach") == "stein":
+        band = S["mauer_band"]
+        lagenflaeche(teil, "Bruchstein", ebene, poly, band, BANDLAGE[band], loecher, u_saat=u_saat)
+    else:
+        lagenflaeche(teil, "Lehmputz", ebene, poly, "putz", putz_lage, loecher, u_saat=u_saat)
 
 
 def echt_fuer(modul):
@@ -624,7 +634,7 @@ def geschoss(teil, ebene, b, z0, z1, oeffnungen, art, anker, modul, sockel=False
         band = S["mauer_band"]
         lagenflaeche(teil, "Bruchstein", ebene, poly, band, BANDLAGE[band], loecher, u_saat=teil.zufall.random())
     else:
-        lagenflaeche(teil, "Lehmputz", ebene, poly, "putz", putz_lage, loecher, u_saat=teil.zufall.random())
+        gefachflaeche(teil, ebene, poly, putz_lage, loecher, teil.zufall.random())
         if art == "fachwerk" and S.get("fachwerk_echt"):
             S["holzlage"] = Holzlage(); S["holzlage_b"] = b
         if art == "fachwerk": fachwerk_geschoss(teil, ebene, b, z_wand, z1, oeffnungen)   # die Schwelle sitzt auf dem Sockel
@@ -921,7 +931,7 @@ def _koerper_giebel(w, modul):
             band = S["mauer_band"] if art == "mauer" else "putz"
             lagenflaeche(h, "Bruchstein" if art == "mauer" else "Lehmputz", eb, poly, band, BANDLAGE[band], [loch] if loch else [], u_saat=h.zufall.random())
         else:
-            lagenflaeche(h, "Lehmputz", eb, poly, "putz", first_z - z_t, [loch] if loch else [], u_saat=h.zufall.random())
+            gefachflaeche(h, eb, poly, first_z - z_t, [loch] if loch else [], h.zufall.random())
             n = eb.n()
             kz = z_t + (first_z - z_t) * 0.55
             ks = (first_z - kz) / tg
@@ -1138,7 +1148,7 @@ def kappe(brand, modul):
             band = S["mauer_band"] if S["og"] == "mauer" else "putz"
             lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, poly, band, BANDLAGE[band], [loch], u_saat=0.5)
         else:
-            lagenflaeche(h, "Lehmputz", eb, poly, "putz", z_first - z_t, [loch], u_saat=0.5)
+            gefachflaeche(h, eb, poly, z_first - z_t, [loch], 0.5)
             n = eb.n()
             if S.get("fachwerk_echt"):   # Giebelhoelzer und Lukenrahmen als eine Holzlage
                 giebel_holzlage(h, eb, b, z_t, z_first, s_first, loch)
@@ -1277,8 +1287,9 @@ def erker(h, Q, oy):
     for o, eu, breite in (((x0, y0, 0), (1, 0, 0), x1 - x0), ((x1, y0, 0), (0, 1, 0), y1 - y0)):
         eb = Ebene(o, eu, (0, 0, 1), mitte)
         loecher = [(0.35, breite - 0.35, fa, fz) for g0, g1, _, eg in stockwerke() if not eg for fa, fz in [fenster_hoehen(g0, g1, False)]]
-        band = S["mauer_band"] if S["og"] == "mauer" else "putz"
-        lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)],
+        stein = S["og"] == "mauer" or S.get("gefach") == "stein"
+        band = S["mauer_band"] if stein else "putz"
+        lagenflaeche(h, "Bruchstein" if stein else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)],
                      band, BANDLAGE[band], loecher)
         if S["og"] == "fachwerk" and S.get("fachwerk_echt"):   # Eckpfosten und Fensterrahmen als eine Holzlage
             lage = Holzlage(); S["holzlage"] = lage; S["holzlage_b"] = breite
@@ -1298,8 +1309,9 @@ def erker(h, Q, oy):
     # die zwei kurzen Seiten zwischen Erker und Hauswand (0,6 m, ohne Fenster)
     for o, eu, breite in (((x0, oy, 0), (0, -1, 0), oy - y0), ((Q, y1, 0), (1, 0, 0), x1 - Q)):
         eb = Ebene(o, eu, (0, 0, 1), mitte)
-        band = S["mauer_band"] if S["og"] == "mauer" else "putz"
-        lagenflaeche(h, "Bruchstein" if S["og"] == "mauer" else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)], band, BANDLAGE[band])
+        stein = S["og"] == "mauer" or S.get("gefach") == "stein"
+        band = S["mauer_band"] if stein else "putz"
+        lagenflaeche(h, "Bruchstein" if stein else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)], band, BANDLAGE[band])
     h.kasten("Bruchstein", (x0, y0, z0 - 0.25), (x1, y1, z0), "bruchstein", ohne=("-x", "-y"))
     spitze = Vector(((x0 + x1) / 2, (y0 + y1) / 2, z1 + 1.1))
     ecken = [Vector((x0 - 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y1 + 0.08, z1)), Vector((x0 - 0.08, y1 + 0.08, z1))]
