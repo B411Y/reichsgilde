@@ -125,7 +125,10 @@ MODULE = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "seite_blind", "seite_offen", 
 VARIANTEN = ["k_g4_a", "k_g4_b", "k_g4_c", "k_g6_a", "k_g6_b", "k_g6_c", "k_g8_a", "k_g8_b", "k_g8_c",
              "seite_offen_a", "seite_offen_b", "eck_a", "eck_b"]
 MODULE = MODULE + VARIANTEN
-FENSTER_EG, FENSTER_OG, LUKE_OG = 0.50, 0.65, 0.25   # Wahrscheinlichkeit je Achse: Fenster im EG, im OG; sonst im OG eine kleine Luke
+FENSTER_EG, FENSTER_OG = 0.50, 0.65   # Wahrscheinlichkeit je Achse fuer ein Fenster
+# fensterlose Achse (Nutzer 21.11.2026 „immer im Zufall, mal dies, mal das“): OG 40 % leer, 30 % Luke, 30 % geschlossene Laeden;
+# EG 70 % leer, 30 % geschlossene Laeden
+LUKE_OG, LADEN_OG, LADEN_EG = 0.30, 0.30, 0.30
 
 TIEFE = 8.0
 KRAG = 0.40            # Auskragung der Fachwerk-Obergeschosse (Nutzer: 0,4 m, nur Fachwerk)
@@ -215,14 +218,18 @@ def lochbild(wuerfel, b, plaetze, fa, fz, z1, eg, tuer):
         if wuerfel.random() < (FENSTER_EG if eg else FENSTER_OG):
             fenster_da.append(len(oeff))
             oeff.append((m - halb, m + halb, fa2, fa2 + h, "fenster"))
-        elif not eg and wuerfel.random() < LUKE_OG:
-            oeff.append((m - 0.2, m + 0.2, fz - 0.55, fz - 0.1, "fenster"))       # kleine Luke unter dem Sturz
+        else:
+            r = wuerfel.random()
+            if not eg and r < LUKE_OG:
+                oeff.append((m - 0.2, m + 0.2, fz - 0.55, fz - 0.1, "fenster"))       # kleine Luke unter dem Sturz
+            elif r >= 1.0 - (LADEN_EG if eg else LADEN_OG):
+                oeff.append((m - halb, m + halb, fa2, fa2 + h, "laden"))              # geschlossene Laeden in Fenstergroesse
     if not fenster_da:            # mindestens ein Fenster je Geschoss
         frei = [i for i in range(len(mitten)) if i != tuer_i]
         if frei:
             i = frei[wuerfel.randrange(len(frei))]
             m = mitten[i]
-            oeff = [o for o in oeff if not (o[4] == "fenster" and abs((o[0] + o[1]) / 2 - m) < 1e-6)]
+            oeff = [o for o in oeff if not (o[4] != "tuer" and abs((o[0] + o[1]) / 2 - m) < 1e-6)]
             oeff.append((m - halb, m + halb, fa2, fa2 + h, "fenster"))
     # in der Wand bleiben (Abstand zum Rand mindestens ein Staender und 0,1 m)
     rand = BW + 0.1
@@ -363,6 +370,21 @@ def fenster(teil, ebene, loch, laeden=True):
             teil.rechteck("Fachwerk", ebene.p(sa, t0, 0.025), ebene.eu, ebene.ev, breite, t1 - t0, "farbholz", laengs="v", weg_von=ebene.innen, farbe=ROT)
 
 
+def laden_zu(teil, ebene, loch):
+    """Geschlossene Laeden in Fenstergroesse, buendig in der Wand (keine Oeffnung dahinter), mit Rahmen und Mittelleiste. Menschen
+    und Halblinge: in der Hausfarbe wie die offenen Laeden (Band „farbholz“, Eckenfarbe Rot); Zwerge und Elben: Holz (Band „planken“)."""
+    s0, s1, t0, t1 = loch
+    n = ebene.n()
+    hausfarbe = S["satz"].startswith(("mensch", "halbling"))
+    band, farbe = ("farbholz", ROT) if hausfarbe else ("planken", SCHWARZ)
+    mitte = (s0 + s1) / 2
+    for a, e in ((s0, mitte), (mitte, s1)):
+        teil.rechteck("Fachwerk", ebene.p(a, t0), ebene.eu, ebene.ev, e - a, t1 - t0, band, laengs="v", weg_von=ebene.innen, farbe=farbe)
+    for a, b in (((s0, t0), (s1, t0)), ((s0, t1), (s1, t1)), ((s0, t0), (s0, t1)), ((s1, t0), (s1, t1))):
+        teil.brett("Fachwerk", ebene.p(*a, 0.0), ebene.p(*b, 0.0), 0.07, n, "balken_c", tiefe=0.03)
+    teil.brett("Fachwerk", ebene.p(mitte, t0), ebene.p(mitte, t1), 0.04, n, "balken_c", tiefe=0.02)
+
+
 def tuer(teil, ebene, loch, anker_liste, modul):
     s0, s1, t0, t1 = loch
     n = ebene.n()
@@ -387,7 +409,7 @@ def fachwerk_geschoss(teil, ebene, b, z0, z1, oeffnungen, riegel_mitte=True):
     staender = sorted(s for s in staender if BW / 2 - 1e-6 <= s <= b - BW / 2 + 1e-6)
     for s in staender:
         teil.brett("Fachwerk", hz(s, z0 + 0.18), hz(s, z1 - 0.16), BW, n, "balken_a", tiefe=0.045, laengs="u")
-    fenster_t = [(t0, t1) for a0, a1, t0, t1, art in oeffnungen if art == "fenster" and a1 - a0 > 0.45]   # Luken setzen keine Riegelhoehe
+    fenster_t = [(t0, t1) for a0, a1, t0, t1, art in oeffnungen if art in ("fenster", "laden") and a1 - a0 > 0.45]   # Luken setzen keine Riegelhoehe
     for sa, sb in zip(staender[:-1], staender[1:]):
         feld_a, feld_b = sa + BW / 2, sb - BW / 2
         if feld_b - feld_a < 0.25: continue
@@ -401,7 +423,7 @@ def fachwerk_geschoss(teil, ebene, b, z0, z1, oeffnungen, riegel_mitte=True):
             teil.brett("Fachwerk", hz(*unten), hz(*oben), 0.15, n, "balken_b", tiefe=0.035)
     # Bruestungsriegel unter den Fenstern und Sturzriegel darueber (in den Fensterfeldern selbst)
     for s0, s1, t0, t1, art in oeffnungen:
-        if art != "fenster": continue
+        if art not in ("fenster", "laden"): continue
         teil.brett("Fachwerk", hz(s0, t0 - 0.07), hz(s1, t0 - 0.07), RIEGEL, n, "balken_b", tiefe=0.04)
         teil.brett("Fachwerk", hz(s0, t1 + 0.07), hz(s1, t1 + 0.07), RIEGEL, n, "balken_b", tiefe=0.04)
 
@@ -438,6 +460,7 @@ def geschoss(teil, ebene, b, z0, z1, oeffnungen, art, anker, modul, sockel=False
         eckquader(teil, ebene, felder)
     for o in oeffnungen:
         if o[4] == "fenster": fenster(teil, ebene, o[:4])
+        elif o[4] == "laden": laden_zu(teil, ebene, o[:4])
         else: tuer(teil, ebene, o[:4], anker, modul)
 
 
