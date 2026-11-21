@@ -97,9 +97,10 @@ SAETZE = {
                       mauer_band="bruchstein", werk_band=None, erker=False, treppe=False, fb=0.75, putz_lage=None),
     "mensch_s2": dict(blatt="trim_s2", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.4, 3.0), neig_g=52, neig_t=45,
                       mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.8, putz_lage=1.6),
+    # mensch_s3: Nutzer 21.11.2026 „S3 B“, Obergeschosse Fachwerk mit Steingefachen (Vorbild Alsfeld); Eintrag endet auf „),“ (ZeilenplanTests)
     "mensch_s3": dict(blatt="trim_s3", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=52, neig_t=45,
                       mauer_band="bruchstein", werk_band="putz", erker=True, treppe=False, fb=0.8, putz_lage=1.6,
-                      gefach="stein"),   # Nutzer 21.11.2026 „S3 B“: Obergeschosse Fachwerk mit Steingefachen (Vorbild Alsfeld)
+                      gefach="stein"),
     "zwerg_s1": dict(blatt="trim_zwerg", eg="mauer", og="mauer", dach="schindel", geschosse=(2.8, 2.4), neig_g=45, neig_t=40,
                      mauer_band="putz", werk_band="bruchstein", erker=False, treppe=False, fb=0.8, putz_lage=1.6),
     "zwerg_s2": dict(blatt="trim_s2_zwerg", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=48, neig_t=42,
