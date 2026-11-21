@@ -22,8 +22,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Märkte (Entscheidung des Nutzers 31.10.2026, ein Stadtmarkt mit drei Plätzen): zwei innerhalb der Mauer an ihren Enden am Rhein – im
 //      Norden hinter dem Kunibertstor, im Süden hinter dem Bayentor, seit 1.11.2026 mit einer Hausreihe zwischen Mauer und Platz (40 m vom Tor
 //      an der Rheingasse, am Südplatz kommt der Malzbüchel von Westen an) –, der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
-//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon,
-//      St. Aposteln, der fertige Dom im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
+//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus am Alten Markt, der fertige Dom
+//      mitten in der Altstadt am gepflasterten Domplatz (seit 21.11.2026 die einzige Kirche). Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
 //    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Straßen, die auf die Marktplätze führen, je 36 m vom nächsten (der
 //      Werkstattweg vom Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit): der Spieler und zwei
 //      KI-Häuser am Südplatz, zwei am Nordplatz, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
@@ -45,6 +45,9 @@ public sealed partial class Koeln : Stadtskript
     private const double WallR = 138;   // Radius der Wallstraße innerhalb der Mauer
     private const double Ufer = 60;     // das linke Rheinufer (Wasserlinie) bei x = 60
     private const double RheinX = 37;   // Rheingasse
+    // Dom-Mitte und Domplatz (der Block zwischen den vier Hauptstraßen, Straßenrand 2,5 m): kein Bauland, Pflaster
+    private const double DomX = 2, DomZ = 28;
+    private const double DomplatzX0 = -31.5, DomplatzX1 = 34.5, DomplatzZ0 = 10.5, DomplatzZ1 = 44.5;
     private const double HoheX = -34;   // Hohe Straße
     private const double ZielAbstand = 36;   // so weit vom nächsten Marktplatz liegen die Startgrundstücke (±10 %; bis 31.10.2026 96 m vom Heumarkt, dann 28 – seit Kern und Bild dieselbe Strecke rechnen, 36)
     private const double MarktVonMauer = 40; // so weit liegt die Mitte der beiden Plätze an der Rheingasse innerhalb der Mauer (bis 1.11.2026 25 m: der Platz am Tor)
@@ -86,7 +89,7 @@ public sealed partial class Koeln : Stadtskript
         E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
         E.FiktionHinzufuegen("Das Stapelhaus steht hier schon um 1400 (das echte entstand 1558–61 und hatte Zinnen): eine lange Halle mit Treppengiebeln, Gemeinschaftswerk von Menschen und Zwergen, davor die Stadtwaage. Am Rathaus wird schon der Ratsturm gebaut (1407–1414).");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.");
-        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon und St. Aposteln sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Severin und St. Kunibert fehlen: Köln hat im Spiel nur den Dom und drei Kirchen (eine Kirche je Glaube).");
+        E.FiktionHinzufuegen("Der Dom steht hier mitten in der Altstadt an einem großen Domplatz (in Wirklichkeit am Rhein im Norden); die anderen Kirchen Kölns (Groß St. Martin, St. Gereon, St. Aposteln, St. Severin, St. Kunibert) fehlen: Köln hat im Spiel nur den Dom.");
 
         Wasser();
         Gelaende();
@@ -231,7 +234,8 @@ public sealed partial class Koeln : Stadtskript
         Weg(Wegklasse.Haupt, "Weyerstraße", Bogen(120, R), Bogen(120, WallR), P(-70, 64), P(HoheX, 57));
         Weg(Wegklasse.Haupt, "Bayenstraße", P(HoheX, 57), P(RheinX, 57));
         // Severinstraße bis zur Breiten Straße; Schildergasse und Brückenstraße münden in sie (bis 31.10.2026 endeten alle drei am Heumarkt im Ursprung)
-        Weg(Wegklasse.Haupt, "Severinstraße", Bogen(162, R), Bogen(162, WallR), P(-15.5, R - MarktVonMauer), P(-14, 100), P(-7.7, 57), P(-2, 30), P(0, 12), P(0, -22));
+        Weg(Wegklasse.Haupt, "Severinstraße", Bogen(162, R), Bogen(162, WallR), P(-15.5, R - MarktVonMauer), P(-14, 100), P(-7.7, 57));
+        Weg(Wegklasse.Haupt, "Marzellenstraße", P(0, -22), P(0, -8), P(0, 8));
         // Malzbüchel: von der Severinstraße zum Heumarkt, bis zur Rheingasse in seiner Mitte (seit 1.11.2026; vorher berührte der Kartäuserwall
         // den Platz – dort fuhr das dritte Startgrundstück des Heumarkts zum Platz)
         Weg(Wegklasse.Haupt, "Malzbüchel", P(-15.5, R - MarktVonMauer), MarktSued.Ort);
@@ -247,8 +251,11 @@ public sealed partial class Koeln : Stadtskript
         Weg(Wegklasse.Haupt, "Unter Fettenhennen", P(RheinX, -101), P(24, -95), P(-3, -95));
 
         // Nebengassen mit erfundenen Namen (nur Fußgänger)
-        Weg(Wegklasse.Gasse, "Engelspforte", P(HoheX, -112), P(-11, -112));
-        Weg(Wegklasse.Gasse, "Krähenpforte", P(0, -61), P(0, -47));
+        Weg(Wegklasse.Haupt, "Engelspforte", P(HoheX, -112), P(24, -112), P(RheinX, -110));   // endet in der Mitte des Alten Markts (keine zweite Marktlinie)
+        Weg(Wegklasse.Gasse, "Domgasse West", P(HoheX, DomZ), P(DomX - 17 - 0.5, DomZ));
+        Weg(Wegklasse.Gasse, "Domgasse Nord", P(DomX, 8), P(DomX, DomZ - 7 - 0.5));
+        Weg(Wegklasse.Gasse, "Domgasse Süd", P(11, 57), P(11, DomZ + 7 + 0.5));
+        Weg(Wegklasse.Gasse, "Domgasse Ost", P(RheinX, DomZ), P(DomX + 17 + 0.5, DomZ));
         Weg(Wegklasse.Gasse, "Wollgasse", P(-62, 4), P(-56, 40), P(-50, 60.1));
 
         // Wallstraßen innerhalb der Mauer
@@ -295,16 +302,12 @@ public sealed partial class Koeln : Stadtskript
         // die Vorhalle zur Rheingasse (Drehung 90), der Ratsturm im Bau am Südende. Dort stand das Startgrundstück S4; es rückt nach Westen an
         // Unter Fettenhennen auf den Werkstatt-Bauplatz WB_AlterMarkt1 (Koeln.Platzierung.cs, Koeln.Bauplaetze.cs).
         Haus("koelner_rathaus", "Rathaus", RathausAmMarkt.X, RathausAmMarkt.Z, 90, "Rathaus");
-        Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
-        // Die drei romanischen Kirchen neben dem Dom als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle
-        // mit dem Chor nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken
-        // (Entscheidung des Nutzers): Groß St. Martin 4 m nach Westen (sonst auf der Rheingasse), St. Gereon 3 m nach Westen (Hohe Straße),
-        // St. Aposteln zwischen Ehrenstraße und Hohe Straße (die Ehrenstraße lief durch den Block). St. Severin und St. Kunibert stehen seit
-        // dem 11.11.2026 nicht mehr in Köln (Entscheidung des Nutzers: eine Kirche je Glaube, Köln hat nur den Dom und drei Kirchen); ihre
-        // Flächen an der Severinstraße und an der Trankgasse füllt das Bauzonen-Raster, ihre Modelle bleiben im Katalog für andere Städte.
-        Kirche("kirche_gross_st_martin", "Groß St. Martin", 22, -44, "Martin");
-        Kirche("kirche_st_gereon", "St. Gereon", -55, -86, "Gereon");
-        Kirche("kirche_st_aposteln", "St. Aposteln", -54, -34, "Aposteln");
+        Haus("koelner_dom", "Dom", DomX, DomZ, 270, "Dom");
+        // Nur der Dom (Entscheidung des Nutzers, 21.11.2026; löst „Dom und drei Kirchen“ vom 11.11.2026 ab): in der Mitte der Altstadt im Block zwischen
+        // Hohe Straße, Rheingasse, Brückenstraße und Bayenstraße, Chor nach Osten, Türme und Westportal zur Domgasse West. Groß St. Martin, St. Gereon,
+        // St. Aposteln, St. Severin und St. Kunibert stehen nicht mehr in Köln (ihre Modelle bleiben im Katalog für andere Städte); ihre Flächen und
+        // der Hof am alten Domstandort (6 | −112) füllt das Bauzonen-Raster. Der Domplatz ist der ganze Block (kein Bauland, Pflaster).
+        DomplatzPflastern();
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
         // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz
@@ -321,15 +324,17 @@ public sealed partial class Koeln : Stadtskript
         RuineVorDemSuedtor();   // bis 1.11.2026 bei 196 | 27 in Deutz, dort liegen jetzt Werkstatt-Bauplätze (Koeln.Bauplaetze.cs)
     }
 
-    /// <summary>
-    /// Eine romanische Kirche (eigenes Modell im Katalog) mit Drehung 270: Chor nach Osten, Westfront zur Gasse. Bricht ab, wenn ihre Fläche nicht
-    /// frei ist (<see cref="Frei"/>: Gebäude, Wege, Mauer, Wasser, Werkstatt-Bauplätze) – die Kartenprüfung meldet einen Weg durch einen Sonderbau nicht.
-    /// </summary>
-    private void Kirche(string katalog, string name, double x, double z, string kennung)
+    /// <summary>Pflaster auf den Domplatz (Block x −31,5 … 34,5, z 10,5 … 44,5): derselbe Pinsel wie beim Marktpflaster (Umbauten/Marktpflaster.cs).</summary>
+    private void DomplatzPflastern()
     {
-        var b = E.Katalog.Finde(katalog)?.Groesse ?? throw new ArgumentException($"Der Baustein „{katalog}“ hat keine Größe.", nameof(katalog));
-        if (!Frei(Rechteck(P(x, z), b[0], b[1], 270)))
-            throw new InvalidOperationException($"{name}: Die Fläche {b[0]} × {b[1]} m bei ({x} | {z}) ist nicht frei.");
-        Haus(katalog, name, x, z, 270, kennung);
+        var strich = new List<Kartenort>();
+        var hin = true;
+        for (var z = DomplatzZ0; z <= DomplatzZ1 + 1e-9; z += 1.0)
+        {
+            strich.Add(P(hin ? DomplatzX0 : DomplatzX1, z));
+            strich.Add(P(hin ? DomplatzX1 : DomplatzX0, z));
+            hin = !hin;
+        }
+        E.BodenMalen(new Bodenpinsel(Bodentextur.Pflaster, 1.0, 1, 0.25, Deko: false), strich);
     }
 }
