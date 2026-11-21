@@ -302,9 +302,9 @@ public partial class Stadtansicht
         foreach (var g in karte.GebaeudeDerArt(Bausteinart.Sonderbau))
         {
             if (g.Katalog == "markt") continue;
-            if (g.Katalog is "rathaus" or "koelner_rathaus" && !_sonderbauten.ContainsKey("Rathaus")) RathausBauen(g);
-            else if (g.Katalog is "dom" or "koelner_dom" && !_sonderbauten.ContainsKey("Dom")) DomBauen(g);
-            else if (g.Katalog.StartsWith("kirche_") && g.Baustein?.Modell is not null) KircheBauen(g); // die romanischen Kirchen Kölns (Stadtansicht.Sonderbauten.cs)
+            if (g.Katalog is "rathaus" or "koelner_rathaus" && !_sonderbauten.ContainsKey("Rathaus")) Ladezeit.Teil("Sonderbau: Rathaus", () => RathausBauen(g));
+            else if (g.Katalog is "dom" or "koelner_dom" && !_sonderbauten.ContainsKey("Dom")) Ladezeit.Teil("Sonderbau: Dom", () => DomBauen(g));
+            else if (g.Katalog.StartsWith("kirche_") && g.Baustein?.Modell is not null) Ladezeit.Teil("Sonderbau: Kirche", () => KircheBauen(g)); // die romanischen Kirchen Kölns (Stadtansicht.Sonderbauten.cs)
             else if (g.Baustein?.Modell is { } datei)
             {
                 if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } modell)
