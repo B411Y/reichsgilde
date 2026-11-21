@@ -333,16 +333,25 @@ def baue_haus():
             h.rechteck(stein, P(s0 + 0.12, 1.05, -0.072), e3, EZ, 0.1, 0.14, "eisen", weg_von=M)                    # Tuerring
             continue
         # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
-        h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)          # Fensterbank
+        lage = g1.lage_von(punkt(wand, 0.0, 0.0), n3, (z0 + z1) / 2) if g1.FACHWERK_ECHT else None
+        if lage is None:   # echtes Fachwerk: der Brustriegel ist die Bank
+            h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)          # Fensterbank
         fensterstock(h, holz, wand, s0, s1, z0, z1, "balken_c")
         # Laeden: zur Gasse zwei Fluegel, sonst einer; offen an der Wand, Eckenfarbe Rot = Akzentfarbe je Haus
         lb = (s1 - s0) / 2
         fluegel = [(s0 - lb - 0.03, s0 - 0.03), (s1 + 0.03, s1 + lb + 0.03)] if wand.startswith(strasse) else [(s1 + 0.03, s1 + 2 * lb * 0.55 + 0.03)]
+        vor = 0.085
+        if lage is not None:   # nur auf freiem Gefach (Nutzer 21.11.2026)
+            frei = g1.laeden_frei(lage, s0, s1, z0, z1, breite, haelfte=wand.startswith(strasse))
+            fluegel = frei if wand.startswith(strasse) else frei[-1:]
+            vor = g1.TIEFE_HOLZ * 0.3
         for f0, f1 in fluegel:
             if f0 < 0.02 or f1 > breite - 0.02: continue
-            h.rechteck(holz, P(f0, z0 - 0.02, 0.085), e3, EZ, f1 - f0, z1 - z0 + 0.04, "farbholz", laengs="v", weg_von=M, farbe=ROT)
+            za_ = z0 - 0.02 if not g1.FACHWERK_ECHT else z0 + 0.005   # echtes Fachwerk: zwischen Brust- und Sturzriegel (Bildpruefung)
+            ze_ = z1 + 0.02 if not g1.FACHWERK_ECHT else z1 - 0.005
+            h.rechteck(holz, P(f0, za_, vor), e3, EZ, f1 - f0, ze_ - za_, "farbholz", laengs="v", weg_von=M, farbe=ROT)
             for z in (z0 + 0.12, z1 - 0.12):
-                h.rechteck(stein, P(f0, z - 0.03, 0.091), e3, EZ, f1 - f0, 0.06, "eisen", weg_von=M)
+                h.rechteck(stein, P(f0, z - 0.03, vor + 0.006), e3, EZ, f1 - f0, 0.06, "eisen", weg_von=M)
 
     # ── Bank unter einem Fenster zur Gasse, Regenfass, Scheitholz ────────────────────────────────────────────────────
     wand, a0, a1 = F.BANK
@@ -1083,5 +1092,6 @@ def main():
 
 
 if __name__ == "__main__":
+    g1.FACHWERK_ECHT = True                           # echtes Fachwerk (Nutzer 21.11.2026)
     GALERIE_LICHT = True
     main()

@@ -936,3 +936,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Dreiecke | `zeile_pruefung.py`: Fachwerk-Sätze Module x1,5, Haus 6.000; allgemeine Höchstgrenze für Wohnhäuser 8.000 (Nutzer 21.11.2026), auch in `wohnhaus_mensch_messen.py` und `wohnhaus_halbling_messen.py` (Fachwerkhäuser Mensch und Halbling S1, S2: 6.000). | 21.11.2026 |
 | Mensch S3 | Nutzer 21.11.2026 „S3 B“: Erdgeschoss Stein, beide Obergeschosse und der Giebel Fachwerk mit Gefachen aus Bruchstein (`gefach="stein"` in `SAETZE`), reiche Figuren (Wilder Mann, Fünferkreuz, Brüstungsfiguren in allen freien Feldern), kein Treppengiebel. Grenzen „S3 A“: Module x2,0, Haus 8.000. Seitenstücke (`seite_*`, `kappe_*`) schlicht wie Stufe 1 (selbst entschieden, sonst über 8.000 je Haus). | 21.11.2026 |
 | Modulprüfung | Gegen origin/main 0243d48f keine neue Befundart; „Verdeckung“ auf den Seitenstücken (`seite_offen*`, `kappe_offen`) nur als Hinweis (Teamleiter 21.11.2026): die 5 cm tiefen Seitenflächen der Hölzer liegen im 256er-Atlasfeld etwa einen Texel breit. | 21.11.2026 |
+
+### Echtes Fachwerk an den Neubau-Wohnhäusern (Nutzer 21.11.2026; Branch phase5/fachwerk-wohnhaeuser, Patch an den Teamleiter)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Mensch S1, S2 und Halbling S1, S2, je Grundform 1–4: Wände, Giebel, Gaubenstirn, Flügel, Erker als Holzlage (`holzlage.py`) wie die Zeilenmodule. Mensch S3 bleibt das Steinhaus (Patrizierhaus gesondert), Halbling S3 die Backsteinvorlage. Innenräume unverändert. | 21.11.2026 |
+| Schalter | `FACHWERK_ECHT` in `wohnhaus_mensch_s1_g1.py` und `wohnhaus_mensch_s23.py` (dazu `wohnhaus_mensch_s23_formen.py`), gesetzt von den Einstiegen der Menschen und den Schichten der Halblinge (S1: `wohnhaus_halbling_s1.py`, S2: `wohnhaus_halbling_s23.py`); Zwerge und Elben bauen unverändert. | 21.11.2026 |
+| Fensterbank | Im echten Fachwerk ist der Brustriegel die Bank (bündig in der Holzlage); keine vorstehende Bank mehr vor Ständern und Riegeln (Bildprüfung 21.11.2026). | 21.11.2026 |
+| Giebel | Ständer bis unter die Sparren bzw. den Kehlbalken, keine Streben in den schmalen Randfeldern; Ochsenauge der Halblinge als Aussparung der Mitte (`GIEBEL_AUSSPARUNG`, `OHNE_SPITZE`). | 21.11.2026 |
+| Flügel und Erker | Eigene Holzlagen (`fachwerk_echt.wand`); Flügel 4,5 cm tief (5 mm hinter der Hauswand, wo beide bündig stehen), Erker 5 cm wie die Hauswand. | 21.11.2026 |
+| Prüfung | Messung je Haus 0 Fehler; Holzlage-Befunde („HOLZLAGE“) brechen den Bau ab. Dreiecke 2.500–5.600 (Grenze Fachwerkhäuser 6.000). Die Halbling-Messung braucht PIL in Blenders Python (Prüfung 37). | 21.11.2026 |
