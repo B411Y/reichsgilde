@@ -1297,6 +1297,26 @@ def abdeckung(objekte, zelle):
     return maske
 
 
+def cycles_geraet():
+    """Rechner fuer das Backen: CPU, oder die Grafikkarte, wenn die Umgebungsvariable REICHSGILDE_CYCLES sie nennt (CUDA oder OPTIX;
+    NAS mit RTX 2000 Ada, 20.11.2026). Laesst sich die Karte nicht einschalten, bleibt es bei der CPU (mit Meldung)."""
+    art = os.environ.get("REICHSGILDE_CYCLES", "").upper()
+    if art not in ("CUDA", "OPTIX"): return "CPU"
+    try:
+        ein = bpy.context.preferences.addons["cycles"].preferences
+        ein.compute_device_type = art
+        ein.get_devices()
+        karten = [g for g in ein.devices if g.type == art]
+        for g in ein.devices: g.use = g.type == art
+        if karten:
+            print(f"BACKEN mit {art}: {', '.join(g.name for g in karten)}")
+            return "GPU"
+    except Exception as fehler:                                            # noqa: BLE001
+        print(f"BACKEN {art} nicht verfuegbar ({fehler})")
+    print("BACKEN mit der CPU")
+    return "CPU"
+
+
 def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
     """UV2 (Smart UV Project, Inselrand 0,003; alle Objekte des Modells in einer Zelle des Atlas) und die Verdeckung dorthin backen (Cycles).
     `gruppen`: Liste aus (Objekte, Verdecker) – jede wird fuer sich gebacken (das Geruest soll das Haus nicht verschatten).
@@ -1342,7 +1362,7 @@ def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
         bild.generated_color = (1, 1, 1, 1)
         szene = bpy.context.scene
         szene.render.engine = "CYCLES"
-        szene.cycles.device = "CPU"
+        szene.cycles.device = cycles_geraet()
         szene.cycles.samples = 96
         szene.render.bake.margin = 0                       # Randfuellung selbst (unten), sonst ueberschreibt sie Nachbarinseln
         szene.render.bake.use_clear = False
