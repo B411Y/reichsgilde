@@ -51,6 +51,7 @@ STROH = 0.28                # Dicke der Strohdeckung (senkrecht)
 OX = BX + KRAG              # halbe Breite des Obergeschosses
 OVORN = VORN - KRAG
 Z_FIRST = Z_TRAUFE + OX * NEIGUNG          # Unterseite des Dachs am First
+PFETTE = 0.14               # Fusspfette unter den Sparrenfuessen: so weit steht sie vor der Traufwand
 GALERIE_AB = 0.6            # die Schlafgalerie liegt ueber dem hinteren Teil (y ab hier)
 KAMIN = (1.38, 1.98, -0.30, 0.40)         # Schlot (x0, x1, y0, y1): innen an der rechten Wand hinter der Raummitte (die Tuer bleibt frei), oben durchs Dach
 Z_HAUBE = 1.95                            # Unterkante der Herdhaube: 1,80 m ueber dem Fussboden
@@ -609,6 +610,12 @@ def baue_raum():
     for i in range(1, 10):
         p = fuss + (kante - fuss) * (0.265 * i / (Z_GALERIE - Z_BODEN))
         r.stab(S, p + Vector((-0.24, 0, 0)), p + Vector((0.24, 0, 0)), 0.045, "bohlen")
+    # Fusspfette (Nutzer 21.11.2026: die Sparren hingen ohne Auflager an der Wand): ein Balken 14 x 16 cm entlang beider Traufwaende
+    # unter den Sparrenfuessen, die Sparren liegen in ihm (Oberkante 3 cm ueber ihrer Unterkante an der Wand). Am Schlot (rechte Wand) unterbrochen
+    for sx in (-1, 1):
+        for ya, yb in ([(JV, KAMIN[2]), (KAMIN[3], IH)] if sx > 0 else [(JV, IH)]):
+            r.kasten(S, (min(sx * JX, sx * (JX - PFETTE)), ya, zw - 0.20), (max(sx * JX, sx * (JX - PFETTE)), yb, zw - 0.04), "balken",
+                     ohne=("+x" if sx > 0 else "-x", "-y", "+y"), laengs="y")
     # Dachstuhl: fuenf Sparrenpaare, Firstpfette, zwei Kehlbalken
     for y in (JV + 0.3, -1.45, -0.62, 0.9, IH - 0.3):
         for sx in (-1, 1):
@@ -1297,6 +1304,26 @@ def abdeckung(objekte, zelle):
     return maske
 
 
+def cycles_geraet():
+    """Rechner fuer das Backen: CPU, oder die Grafikkarte, wenn die Umgebungsvariable REICHSGILDE_CYCLES sie nennt (CUDA oder OPTIX;
+    NAS mit RTX 2000 Ada, 20.11.2026). Laesst sich die Karte nicht einschalten, bleibt es bei der CPU (mit Meldung)."""
+    art = os.environ.get("REICHSGILDE_CYCLES", "").upper()
+    if art not in ("CUDA", "OPTIX"): return "CPU"
+    try:
+        ein = bpy.context.preferences.addons["cycles"].preferences
+        ein.compute_device_type = art
+        ein.get_devices()
+        karten = [g for g in ein.devices if g.type == art]
+        for g in ein.devices: g.use = g.type == art
+        if karten:
+            print(f"BACKEN mit {art}: {', '.join(g.name for g in karten)}")
+            return "GPU"
+    except Exception as fehler:                                            # noqa: BLE001
+        print(f"BACKEN {art} nicht verfuegbar ({fehler})")
+    print("BACKEN mit der CPU")
+    return "CPU"
+
+
 def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
     """UV2 (Smart UV Project, Inselrand 0,003; alle Objekte des Modells in einer Zelle des Atlas) und die Verdeckung dorthin backen (Cycles).
     `gruppen`: Liste aus (Objekte, Verdecker) – jede wird fuer sich gebacken (das Geruest soll das Haus nicht verschatten).
@@ -1342,7 +1369,7 @@ def uv2_und_ao(gruppen, gruppe, modell, mit_ao=True):
         bild.generated_color = (1, 1, 1, 1)
         szene = bpy.context.scene
         szene.render.engine = "CYCLES"
-        szene.cycles.device = "CPU"
+        szene.cycles.device = cycles_geraet()
         szene.cycles.samples = 96
         szene.render.bake.margin = 0                       # Randfuellung selbst (unten), sonst ueberschreibt sie Nachbarinseln
         szene.render.bake.use_clear = False

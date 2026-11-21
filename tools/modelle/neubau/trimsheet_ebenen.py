@@ -5,6 +5,8 @@ in die Steinbaender jeder Ebene den Stein des Volkes (CC0-Texturen K1 bis K5, He
     python -I tools/modelle/neubau/trimsheet_ebenen.py --array=innen --steine=<ordner>
     python -I tools/modelle/neubau/trimsheet_ebenen.py --array=rathaus --steine=<ordner>       (im Branch des Rathauses)
     python -I tools/modelle/neubau/trimsheet_ebenen.py --array=bruecke --steine=<ordner>       (im Branch der Bruecke)
+    python -I tools/modelle/neubau/trimsheet_ebenen.py --array=<haeuser|innen> --nur-ao        (nur <array>_ao_ebenen.png neu packen, ohne
+                                                                                               Steine: nach dem Backen einzelner Zellen)
 
 Braucht Python 3 mit numpy und Pillow (kein Blender). <ordner> der Steine enthaelt je Textur einen Unterordner wie beim Abruf
 (Poly Haven: <name>_diff_1k.jpg, <name>_nor_gl_1k.jpg, <name>_arm_1k.jpg; ambientCG: <name>_1K-JPG_Color.jpg, _NormalGL.jpg,
@@ -263,14 +265,14 @@ def import_anlegen(pfad, ebenen, verlustfrei=False):
         f.write(text)
 
 
-def baue(array, steine_ordner, blaetter, ziel, layout=None):
+def baue(array, steine_ordner, blaetter, ziel, layout=None, nur_ao=False):
     cfg = ARRAYS[array]
     baender = layout_lesen(layout or cfg["layout"][0], cfg["layout"][1])
     ordner = blaetter or [cfg["ordner"]]
     ziel = ziel or cfg["ordner"]
     alb, nor, orm = [], [], []
     cache = {}
-    for name, blatt, ersatz, *nach in cfg["ebenen"]:
+    for name, blatt, ersatz, *nach in ([] if nur_ao else cfg["ebenen"]):
         pa, pn, po = blatt_finden(ordner, blatt)
         a, n, o = bild(pa, 4), bild(pn, 3), bild(po, 3)
         if a.shape[:2] != (N, N) or n.shape[:2] != (N, N) or o.shape[:2] != (N, N):
@@ -307,7 +309,7 @@ def baue(array, steine_ordner, blaetter, ziel, layout=None):
         alb.append(a); nor.append(n); orm.append(o)
     os.makedirs(ziel, exist_ok=True)
     zahl = len(alb)
-    for art, felder, modus in (("albedo", alb, "RGBA"), ("normal", nor, "RGB"), ("orm", orm, "RGB")):
+    for art, felder, modus in (() if nur_ao else (("albedo", alb, "RGBA"), ("normal", nor, "RGB"), ("orm", orm, "RGB"))):
         pfad = os.path.join(ziel, f"{array}_ebenen_{art}.png")
         speichere(np.concatenate(felder, axis=0), pfad, modus)
         import_anlegen(pfad, zahl)
@@ -333,7 +335,8 @@ def baue(array, steine_ordner, blaetter, ziel, layout=None):
 
 if __name__ == "__main__":
     opt = dict((a[2:].split("=", 1) + [""])[:2] for a in sys.argv[1:] if a.startswith("--"))
-    if opt.get("array") not in ARRAYS or not opt.get("steine"):
+    nur_ao = "nur-ao" in opt
+    if opt.get("array") not in ARRAYS or not (opt.get("steine") or nur_ao):
         raise SystemExit(__doc__)
     blaetter = [x for x in opt.get("blaetter", "").split(";") if x]
-    baue(opt["array"], opt["steine"], blaetter, opt.get("ziel"), opt.get("layout"))
+    baue(opt["array"], opt.get("steine"), blaetter, opt.get("ziel"), opt.get("layout"), nur_ao)

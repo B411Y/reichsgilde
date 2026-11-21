@@ -93,12 +93,20 @@ vec4 texel_scharf(sampler2DArray t, vec3 uvw, float lod) {
 	return texelFetch(t, ivec3(clamp(ivec2(floor(fract(uvw.xy) * vec2(g))), ivec2(0), g - ivec2(1)), int(uvw.z)), stufe);
 }
 
+#ifdef ZEILE
+// Häuserzeilen (building_trim_zeile*.gdshader, Stadtansicht.Zeilen.cs): eine Zeile ist EIN verschmolzenes Netz aus Häusern
+// verschiedener Völker, Stufen und Farben. Was sonst Instanz-Uniform ist, trägt jede Ecke: CUSTOM0 = (Putzfarbe, Ebene),
+// CUSTOM1 = (Akzentfarbe, AO-Ebene im Array der Zeilen-Atlanten zeilen_ao_ebenen.png).
+varying flat vec4 zeile_a;
+varying flat vec4 zeile_b;
+#else
 // Pro Gebäude-Instanz in Godot variierbar (ohne neues Material!):
 instance uniform vec3 plaster_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 wood_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 accent_tint : source_color = vec3(1.0, 1.0, 1.0); // z.B. Fensterläden
 instance uniform int ebene = 0;      // Ebene im Array der Trim-Sheets (Volk x Stufe, Steinebenen.Ebene)
 instance uniform int ao_ebene = 0;   // Ebene im Array der AO-Atlanten (Gruppe, Steinebenen.AoEbene)
+#endif
 
 // Brandschaden als Variante (Kopie des Materials, Stadtansicht.Brandschaden.cs): Ruß tönt die Farbe wie früher die Albedofarbe des
 // Grundmaterials (Weiß nach Ruß, Anteil aus NeubauBrand.RussAnteil); 1 = ohne Brand.
@@ -109,6 +117,9 @@ uniform float kante_schwelle = 0.5;   // Alpha Scissor der Strohkanten; im Pixel
 // Strohfransen bleiben sie im Pixel-Look sichtbar: Schwelle immer 0,5, das Alpha aus der feinen Mip-Stufe ohne Pixel-Zuschlag (und nur aus
 // dem Efeu-Band, nicht aus dem Kupfer darunter); die Farbe kommt wie sonst aus dem reinen Band (band_lesen).
 uniform bool efeu_blatt = false;
+// Die Blattbilder liegen nur in einer Ebene (Halbling Stufe 3). Blattkarten anderer Häuser (Elben, 21.11.2026) lesen deshalb diese
+// Ebene statt der ihres Hauses: efeu_ebene ab 0 (Stadtansicht.Neubau.cs, Steinebenen.EfeuEbene), -1 = Ebene des Hauses.
+uniform int efeu_ebene = -1;
 #endif
 
 varying vec3 welt_ort;
@@ -119,11 +130,26 @@ void vertex() {
 	welt_ort = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	welt_normale = normalize(mat3(MODEL_MATRIX) * NORMAL);
 	fuss_hoehe = VERTEX.y;
+#ifdef ZEILE
+	zeile_a = CUSTOM0;
+	zeile_b = CUSTOM1;
+#endif
 }
 
 void fragment() {
-	vec3 uvw = vec3(UV, float(ebene));
-	vec4 sb = stein_je_ebene ? STEIN_EBENE[clamp(ebene, 0, 11)] : stein_baender;
+#ifdef ZEILE
+	int ebene = int(zeile_a.w + 0.5);
+	int ao_ebene = int(zeile_b.w + 0.5);
+	vec3 plaster_tint = zeile_a.rgb;
+	vec3 accent_tint = zeile_b.rgb;
+	vec3 wood_tint = vec3(1.0);
+#endif
+	int eb = ebene;   // Ebene des Hauses (bei ZEILE aus den Instanzdaten); Blattkarten lesen die Ebene der Blattbilder
+#ifdef STROHKANTE
+	if (efeu_blatt && efeu_ebene >= 0) eb = efeu_ebene;
+#endif
+	vec3 uvw = vec3(UV, float(eb));
+	vec4 sb = stein_je_ebene ? STEIN_EBENE[clamp(eb, 0, 11)] : stein_baender;
 	bool stein = (UV.y >= sb.x && UV.y < sb.y) || (UV.y >= sb.z && UV.y < sb.w);
 	bool scharf = pixel_look > 0.5 && wetter_an < 0.5;   // Pixel-Look im Haus
 	float grob = scharf ? 0.0 : pixel_look * (stein ? stein_mip : pixel_mip);
@@ -136,9 +162,9 @@ void fragment() {
 	vec3 normal_tx = texture(normal_tex, uvw, grob_licht).rgb;
 	// Reine Bänder (BAND_REIN, siehe oben): Dachbänder „stroh“ und „stroh_franse“, die Steinbänder der Ebene
 	float yb = fract(UV.y);
-	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(ebene, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
+	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(eb, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
 		vec2 bd = yb < 0.1875 ? vec2(0.0, 0.1875) : (yb < 0.25 ? vec2(0.1875, 0.25) : ((UV.y >= sb.x && UV.y < sb.y) ? sb.xy : sb.zw));
-		float teil = STROH_TEIL[clamp(ebene, 0, 11)];
+		float teil = STROH_TEIL[clamp(eb, 0, 11)];
 		if (teil > 0.0 && yb < 0.1875) bd = yb < teil ? vec2(0.0, teil) : vec2(teil, 0.1875);
 		tex = band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob);
 		if (stein) tex = mix(tex, band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob_licht), stein_ruhe);
@@ -213,7 +239,7 @@ void fragment() {
 	ALPHA = tex.a;
 	ALPHA_SCISSOR_THRESHOLD = kante_schwelle;
 	if (efeu_blatt) {
-		float teil_e = STROH_TEIL[clamp(ebene, 0, 11)];
+		float teil_e = STROH_TEIL[clamp(eb, 0, 11)];
 		ALPHA = teil_e > 0.0 ? band_lesen(albedo_tex, uvw, 0.0, teil_e, lod).a : texture(albedo_tex, uvw).a;
 		ALPHA_SCISSOR_THRESHOLD = 0.5;
 	}

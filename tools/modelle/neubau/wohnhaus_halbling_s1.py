@@ -38,10 +38,17 @@ HALBLING_TISCH, HALBLING_SITZ = 0.56, 0.30      # Menschen 0,74 / 0,44; Soll Hal
 BLICK_TIEFER = 0.58                             # Augenhoehe 1,02 m statt 1,60 m (1,10 * 0,93)
 APOTHEKE_TIEFER, BAUPLAN_TIEFER = 0.42, 0.28    # Greifhoehe 1,10 * 1,25 = 1,38 m: Oberkante 1,77 -> 1,35 m und 1,65 -> 1,37 m
 LATERNE_G2_Y = -1.00                            # Grundform 2: Laterne an der Strassenwand zwischen Haustuer (-0,40..0,40) und Fenster (wie bei den Elben)
-BLICK_G3 = ((-0.60, 0.80), (2.00, -0.40, 1.30))  # Grundform 3: Innenblick von hinten links auf Herd und Haustuer (wie bei den Elben, Pruefung 35);
-#                                                  Auge 0,82 m vor der Wand mit der Haustuer (vorher y 1,45: 0,17 m, Klicktest NAS 19.11.2026, Pruefung 38),
-#                                                  hinter den Balken und Holmen der Leiter, deren Seiten es sonst von vorn saehe (12c)
-LICHT_RAUM = {1: (0.06, None), 2: (0.06, None), 3: (-0.06, 2.6), 4: (0.06, None)}   # Grundlicht: Versatz vom Blickpunkt zum Ziel (m), Hoehe (None: wie bei den Menschen)
+BLICK_G3 = ((-0.45, 0.55), (2.02, -0.30, 1.30))  # Grundform 3: Innenblick von vor der Galerie auf Herd und Haustuer (Pruefung 35). Vorher stand das Auge
+#                                                  unter dem vorderen Galeriebalken 1,0 m vor der Rueckwand (y 0,80; davor y 1,45): beim Blick nach rechts
+#                                                  fuellte sie das halbe Bild (Klicktest NAS 19.11.2026). Jetzt 1,23 m vor ihr. Weiter vorn geht es nicht:
+#                                                  ab etwa y 0,4 verdeckt die hintere Herdwange die Haustuer (35 verlangt die Mitte und sechs von neun
+#                                                  Strahlen frei); die Tuer liegt 36 Grad rechts der Bildmitte (Grenze 45); y 0,55 liegt zwischen zwei Sparren
+#                                                  (bei 0,50 streifte das Licht ueber dem Auge die Seite des Sparrens bei y 0,41 nur: 12c)
+LICHT_RAUM = {1: (0.17, 2.0), 2: (0.06, None), 3: (0.0, 1.5), 4: (0.06, None)}   # Grundlicht: Versatz vom Blickpunkt zum Ziel (m), Hoehe (None: wie bei den Menschen).
+#                                                  Grundformen 1 und 3 (Feinschliff 20.11.2026): unter der Galerie (in 3,4 bzw. 2,6 m stand es ueber ihr:
+#                                                  Unterseite ohne Licht, Balkenseiten nur gestreift). Grundform 1: 0,35 m unter den Balken wie bei Menschen
+#                                                  und Elben, mitten zwischen vorderem Balken und Wandbalken (galerie_balken). Grundform 3: ueber dem Auge
+#                                                  in 1,5 m – so bekommen auch die Rueckseiten der Leiterholme Licht, die schraeg nach unten zeigen (12c)
 FAHNE_VOR_WALM = 0.45                           # Grundform 4: Fahnenmast 0,45 m vor der Spitze des Walms (Pruefung 36)
 WULST_RUECK = 0.10                              # Grundformen 2 und 4: Ortgang um so viel zurueck, damit der Wulst im Fussabdruck bleibt (Pruefung 27)
 EINFASSUNG_RAND = 0.08                         # Rand um den Herdstein: was ganz darin liegt (bis unter die Haube), ist Einfassung aus Stein (Pruefung 31)
@@ -140,6 +147,7 @@ def masse_anlegen():
     s1.Z_TRAUFE = s1.Z_OG + KNIE
     s1.NEIGUNG = math.tan(math.radians(NEIGUNG_GRAD))
     s1.GB_FENSTER = (3.40, s1.Z_TRAUFE + KEHL - 0.08)
+    s1.GALERIE_BALKEN = galerie_balken
     g1.TISCH_HOEHE, g1.SITZ_HOEHE = HALBLING_TISCH, HALBLING_SITZ
     alt_form = s1.form_setzen
     s1.form_setzen = lambda n: halbling_form(n, alt_form)
@@ -157,6 +165,7 @@ def masse_anlegen():
             for a in t["anker_innen"]:
                 if a.name == "Blick_Auge": a.ort = Vector((*BLICK_G3[0], s1.Z_BODEN + 1.60 - BLICK_TIEFER))
                 if a.name == "Blick_Ziel": a.ort = Vector((BLICK_G3[1][0], BLICK_G3[1][1], s1.Z_BODEN + BLICK_G3[1][2] - BLICK_TIEFER))
+        if F.nr == 3: rueckwand_einrichten(t)          # Vorraete an der Rueckwand unter der Galerie (Nutzer 20.11.2026)
         licht_zum_auge(t)
         innen_fertig(t)
         return t
@@ -304,14 +313,57 @@ def innen_fertig(t):
     print(f"INNEN Dachschraegen geschlossen, Holz am Schlot: {weg} Flaechen weg, {stein_neu} Flaechen des Herds zu Stein")
 
 
+def galerie_balken(ga, ih):
+    """Balken unter der Schlafgalerie (s1.GALERIE_BALKEN). Grundformen 1 und 3: Die Galerie ist nur 1,03 m tief (0,75 bis 1,78 m); mit den
+    drei Balken der Menschen blieb zwischen dem mittleren und dem hinteren ein Spalt von 13 cm, 2 cm vor dem Wandbalken. In Grundform 1 steht
+    das Auge genau unter diesem Spalt: Das Grundlicht streift die Balkenseiten nur, ihre gebackene Verdeckung lag bei 0,03 bis 0,08 –
+    schwarze Seiten beim Blick nach links und rechts oben (Klicktest NAS 19.11.2026). Jetzt tragen der vordere Balken und der Wandbalken
+    die Bohlen (12 cm stark, 0,76 m frei). Grundformen 2 und 4 (Galerie 2,1 bis 2,4 m tief): die drei Balken der Menschen."""
+    if s1.F.nr in (1, 3): return (ga + 0.09,)
+    return (ga + 0.09, (ga + ih) / 2, ih - 0.2)
+
+
+def rueckwand_einrichten(t):
+    """Grundform 3: Vorraete an der Rueckwand unter der Galerie (Nutzer 20.11.2026, „Halbling A“: die Wand soll beim Blick nach rechts
+    nicht kahl wirken; die Haustuer bleibt im Standardbild). Alles im Teil Hausrat_Set, im Baurahmen (in der Lage im Spiel gespiegelt:
+    x im Spiel = 1,05 - x): ein Wandbord mit drei Kruegen und einem Faesschen ueber der Schlafmatte (Unterkante 1,30 m – der Platz davor
+    bleibt fuer eine Figur frei, Halbling bis 1,15 m), unter dem Bord zwei Zwiebelzoepfe, links vom Platz auf der Matte ein stehendes
+    Fass und ein Kornsack (im Blick nach rechts unter dem Bord; rechts neben der Matte laegen sie ausserhalb des Bilds), rechts ein
+    zweiter Sack vor dem Besen der Menschen."""
+    c = next((x for x in t["raum"] if x.name == "Hausrat_Set"), None)
+    if c is None: return
+    S, feld = "Innen", g1.feld
+    yw, zb = s1.F.HINTEN - s1.T, s1.Z_BODEN                       # Rueckwand innen, Fussboden
+    # Wandbord auf zwei Knaggen
+    c.kasten(S, (-0.40, yw - 0.22, zb + 1.30), (1.00, yw, zb + 1.335), "bohlen", ohne=("+y",), laengs="x")
+    for x in (-0.22, 0.82):
+        c.stab(S, (x, yw - 0.03, zb + 1.08), (x, yw - 0.19, zb + 1.30), 0.045, "balken", kappen=True)
+    c.dreh(S, (-0.24, yw - 0.11, zb + 1.335), [(0.06, 0.0), (0.095, 0.05), (0.105, 0.13), (0.07, 0.21), (0.062, 0.24), (0.072, 0.26)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (0.02, yw - 0.12, zb + 1.335), [(0.05, 0.0), (0.08, 0.04), (0.085, 0.10), (0.055, 0.16), (0.06, 0.18)], "kleinteile", seiten=7, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (0.72, yw - 0.11, zb + 1.335), [(0.07, 0.0), (0.11, 0.06), (0.12, 0.16), (0.08, 0.27), (0.07, 0.30), (0.082, 0.33)], "kleinteile", seiten=8, deckel=False, u_bereich=feld("ton"))
+    c.dreh(S, (0.36, yw - 0.12, zb + 1.335), [(0.085, 0.0), (0.105, 0.10), (0.085, 0.20)], "balken", seiten=8, deckel=True, gedreht=True)     # Faesschen
+    # Zwiebelzoepfe unter dem Bord
+    for x, farbe in ((-0.33, "zwiebel_gelb"), (0.93, "zwiebel_rot")):
+        for i in range(4):
+            m = Vector((x + 0.028 * ((i % 2) * 2 - 1), yw - 0.055 - 0.02 * (i % 2), zb + 1.20 - 0.082 * i))
+            c.dreh(S, m, [(0.0, -0.045), (0.03, -0.035), (0.046, -0.005), (0.034, 0.028), (0.0, 0.052)], "kleinteile", seiten=5, deckel=False, u_bereich=feld(farbe))
+        c.stab(S, (x, yw - 0.06, zb + 1.22), (x, yw - 0.06, zb + 1.30), 0.015, "stroh")
+    # Fass und ein Kornsack links vom Platz auf der Matte (im Blick nach rechts unter dem Bord), ein Sack rechts davon
+    c.dreh(S, (1.23, yw - 0.30, zb), [(0.21, 0.0), (0.26, 0.22), (0.26, 0.44), (0.21, 0.66)], "balken", seiten=10, deckel=True, gedreht=True)
+    for (x, y), dreh in (((0.77, yw - 0.27), 1.0), ((-0.55, yw - 0.28), 0.9)):
+        c.dreh(S, (x, y, zb), [(0.10 * dreh, 0.0), (0.22 * dreh, 0.05), (0.24 * dreh, 0.25), (0.18 * dreh, 0.43), (0.07 * dreh, 0.50), (0.10 * dreh, 0.57)], "stroh", seiten=8, deckel=True, u_bereich=(0.0, 0.3))
+    print("INNEN Rueckwand eingerichtet: Wandbord, Kruege, Faesschen, Zwiebelzoepfe, Fass, zwei Saecke")
+
+
 def licht_zum_auge(t):
     """Grundlicht der Wohnstube (Licht_Raum, OmniLight ohne Schatten) ueber den Blickpunkt, LICHT_RAUM[form] zum Ziel hin versetzt (wie
     wohnhaus_halbling_s23.licht_vor_den_herd; Klicktest NAS 19.11.2026, G1: schwarze Seiten der Balken unter der Galerie). Bei den
     Menschen steht es 1,0 m hinter der Gassenwand, die Kamera hinten unter der Galerie: alle Flaechen, die zur Kamera zeigen (Balken unter
     der Galerie, Herdseiten, Pfosten), lagen hinter dem Licht und bekamen nur Umgebungslicht (Pruefung 12c, alle vier Grundformen: 21
-    bis 24 Flaechen). 6 cm zum Ziel hin liegt es zwischen den Seiten des Galeriebalkens ueber der Kamera (beide bekommen Licht); in
-    Grundform 3 (Auge vor dem Balken) 6 cm dahinter und tiefer (2,6 m), damit auch die schraeg nach unten zeigenden Holme der Leiter
-    Licht bekommen. Gesucht mit Pruefung 12c ueber die Lage des Lichts (Raster je Grundform)."""
+    bis 24 Flaechen). Grundformen 2 und 4: 6 cm zum Ziel hin, in der Hoehe der Menschen. Grundformen 1 und 3 (Feinschliff 20.11.2026): unter
+    der Galerie (darueber bekam ihre Unterseite kein Licht, die Balkenseiten wurden nur gestreift); in Grundform 1 in 2,0 m mitten zwischen
+    dem vorderen Balken und dem Wandbalken (0,17 m zum Ziel), in Grundform 3 in 1,5 m ueber dem Auge vor der Galerie: jede senkrechte
+    Flaeche, die das Auge sieht, zeigt dann auch zum Licht, und die Rueckseiten der Leiterholme neben dem Auge bekommen es von unten."""
     an = {a.name: a for a in t["anker_innen"] if a.name in ("Blick_Auge", "Blick_Ziel", "Licht_Raum")}
     if len(an) < 3: return
     l, auge, ziel = an["Licht_Raum"], Vector(an["Blick_Auge"].ort), Vector(an["Blick_Ziel"].ort)

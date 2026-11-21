@@ -3,20 +3,21 @@
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
 uid="uid://b6it2lj6xo8rw"
-path="res://.godot/imported/innen_ao_ebenen.png-d9057470ac453ee0de8f4737eb59a795.ctexarray"
+path.bptc="res://.godot/imported/innen_ao_ebenen.png-d9057470ac453ee0de8f4737eb59a795.bptc.ctexarray"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/texturen/neubau/innen_ao_ebenen.png"
-dest_files=["res://.godot/imported/innen_ao_ebenen.png-d9057470ac453ee0de8f4737eb59a795.ctexarray"]
+dest_files=["res://.godot/imported/innen_ao_ebenen.png-d9057470ac453ee0de8f4737eb59a795.bptc.ctexarray"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

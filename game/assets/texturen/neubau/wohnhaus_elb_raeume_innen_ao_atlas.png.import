@@ -3,20 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cx6olr5ng6nr5"
-path="res://.godot/imported/wohnhaus_elb_raeume_innen_ao_atlas.png-a7326fa5192b14740def0d016faa047b.ctex"
+path.bptc="res://.godot/imported/wohnhaus_elb_raeume_innen_ao_atlas.png-a7326fa5192b14740def0d016faa047b.bptc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/texturen/neubau/wohnhaus_elb_raeume_innen_ao_atlas.png"
-dest_files=["res://.godot/imported/wohnhaus_elb_raeume_innen_ao_atlas.png-a7326fa5192b14740def0d016faa047b.ctex"]
+dest_files=["res://.godot/imported/wohnhaus_elb_raeume_innen_ao_atlas.png-a7326fa5192b14740def0d016faa047b.bptc.ctex"]
 
 [params]
 
-compress/mode=0
-compress/high_quality=false
+compress/mode=2
+compress/high_quality=true
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
