@@ -88,6 +88,7 @@ public abstract class InnenTafel
         _seitAufbau += delta;
         var stand = Stand(w, b) + "|" + PreiseStand(w, b); // Marktpreise gehören dazu: die Waren-Tooltips zeigen sie
         if (stand == _stand || _seitAufbau < 0.2) return;
+        if (Input.IsMouseButtonPressed(MouseButton.Left)) return; // ein Klick läuft: Knopf und Auswahlliste dürfen nicht unter der Maus ersetzt werden (Drücken und Loslassen gehören zum selben Knopf)
         if (PopupOffen(Inhalt)) return; // eine offene Auswahlliste (z. B. die Produktauswahl) bleibt stehen; der Neuaufbau folgt, sobald sie zu ist
         _stand = stand;
         _seitAufbau = 0;
@@ -103,7 +104,8 @@ public abstract class InnenTafel
 
     private static bool PopupOffen(Node knoten)
     {
-        foreach (var kind in knoten.GetChildren())
+        // GetChildren(true): Die Liste eines OptionButton hängt als innerer Knoten daran – ohne das „true“ sah die Prüfung sie nie, und die Tafel baute sich unter der offenen Liste neu auf
+        foreach (var kind in knoten.GetChildren(true))
             if (kind is PopupMenu { Visible: true } || PopupOffen(kind)) return true;
         return false;
     }

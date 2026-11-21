@@ -480,7 +480,8 @@ public partial class Hauptszene : Node
             _auswahlKennung = kennung;
             // Wie ein Tooltip: unten rechts neben dem Zeiger (am Rand nach links bzw. oben), bis der Spieler sie zieht
             var klickort = GetViewport().GetMousePosition();
-            _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
+            var klickZeiger = Mauszeiger.ZeigerBereich(); // eingefroren: das Bild der Hand ändert sich mit der Maus, die Tafel soll stehen bleiben
+            _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar, klickZeiger));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
             if (Stadtansicht.IstMarktplatz(kennung)) { MarktOeffnen(); AuswahlSchliessen(); } // wie im Original: ein Klick auf den Markt öffnet die Preistafel; die Kurzinfo daneben entfällt
