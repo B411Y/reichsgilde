@@ -7,7 +7,8 @@ namespace Reichsgilde;
 /// (<c>Stadtansicht.Innenbuecher.cs</c>: Kamera-Schwenk, Aufklappen, Umblättern, Zuklappen) mit den echten 2D-Tafeln.
 ///
 ///   • Personalbuch (Lesepult) → Personaltafel, Familienbuch (Stubentisch) → Familienbuch, Kontorbuch (Schreibpult) → Bericht
-///     (Jahresrechnung, Rivalen, Umsätze, Verlauf; er öffnet wie alle Fenster in der Bildmitte, also über dem Buch).
+///     (Jahresrechnung, Rivalen, Umsätze, Verlauf; er öffnet wie alle Fenster in der Bildmitte, also über dem Buch),
+///     Schwarzes Buch (Kartentisch im Hinterzimmer des Wohnhauses) → Hinterzimmer-Tafel; ihre Kapitel blättern um wie Reiter.
 ///   • Die Tafel öffnet sich erst, wenn die Seiten flach liegen. Wechselt ihr Reiter, blättert das Buch um; die Tafel ist so lange ausgeblendet.
 ///   • Schließt der Spieler die Tafel (Esc, ✕, eine andere Tafel) oder klickt er neben das Buch, klappt es zu und die Kamera fährt zurück.
 ///   • Während des Schwenks liegt eine unsichtbare Sperre über der ganzen Oberfläche: nichts ist anklickbar, Esc tut nichts.
@@ -35,7 +36,7 @@ public partial class Hauptszene
     private void BuchAngeklickt(BuchArt art)
     {
         if (_spieler is null || _buchPhase != BuchPhase.Keine) return;
-        if (art != BuchArt.Familie && _stadt.InnenBetrieb is { } betrieb && betrieb.Konto != _spieler)
+        if (art is BuchArt.Personal or BuchArt.Kontor && _stadt.InnenBetrieb is { } betrieb && betrieb.Konto != _spieler)
         {
             Protokollieren($"{betrieb.Name} gehört {betrieb.Konto.Inhaber} – die Bücher und Werkzeuge dort sind nicht für Euch.");
             return;
@@ -50,6 +51,7 @@ public partial class Hauptszene
     {
         BuchArt.Personal => _personalTafel.Tafel,
         BuchArt.Familie => _familientafel,
+        BuchArt.Schwarz => _hinterzimmer,
         _ => _berichtTafel,
     };
 
@@ -57,6 +59,7 @@ public partial class Hauptszene
     {
         BuchArt.Familie => (int)_familientafel.ReiterJetzt,
         BuchArt.Kontor => _berichtTafel.ReiterNummer,
+        BuchArt.Schwarz => (int)_hinterzimmer.KapitelJetzt,
         _ => 0,
     };
 
@@ -67,7 +70,7 @@ public partial class Hauptszene
         var tafel = BuchTafel(_buchArt);
         _buchPhase = BuchPhase.Schliesst;
         if (_buchArt == BuchArt.Personal) _personalTafel.Hide();
-        else if (_buchArt == BuchArt.Familie) Fensterrahmen.SchliessenFallsLose(tafel, true);
+        else if (_buchArt is BuchArt.Familie or BuchArt.Schwarz) Fensterrahmen.SchliessenFallsLose(tafel, true);
         else tafel.Hide();
         tafel.Modulate = Colors.White;
         _stadt.BuchSchauSchliessen();
@@ -92,6 +95,7 @@ public partial class Hauptszene
                 {
                     case BuchArt.Personal: InnenTafelOeffnen("personal"); break;
                     case BuchArt.Familie: FamilieOeffnen(); break;
+                    case BuchArt.Schwarz: TafelnSchliessen(); _hinterzimmer.Oeffnen(); break; // wie der Klick auf den Kartentisch (das Buch liegt nur im gebauten Raum)
                     default: BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung); break;
                 }
                 _buchReiter = BuchReiter(_buchArt);

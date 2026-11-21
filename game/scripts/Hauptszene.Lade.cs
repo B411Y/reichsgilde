@@ -72,11 +72,11 @@ public partial class Hauptszene
         // ── Links: Fächer – in der Stadt Familie, Betriebe, Bauen; drinnen Personal, Produktion, Lager ──
         var stadtLinks = Faecher(links);
         _fachFamilie = Fach(stadtLinks, "familie", "Familie", "Eure Familie: Oberhaupt, Ehepartner, Kinder, Stammbaum", () => FachOeffnen("familie", FamilieInhalt));
-        _fachBetriebe = Fach(stadtLinks, "hammer", "Betriebe", "Eure Betriebe: Zustand, hineingehen, hinfahren", () => FachOeffnen("betriebe", BetriebeInhalt));
+        _fachBetriebe = Fach(stadtLinks, "betriebe", "Betriebe", "Eure Betriebe: Zustand, hineingehen, hinfahren", () => FachOeffnen("betriebe", BetriebeInhalt));
         _fachBauen = Fach(stadtLinks, "bauen", "Bauen", "Wohnhaus ausbauen, Wohnhaus oder Werkstatt bauen, Wege ausbauen", () => FachOeffnen("bauen", BauenInhalt));
         var innenLinks = Faecher(links);
         _fachPersonal = Fach(innenLinks, "personal", "Personal", "Das Personal dieser Werkstatt", () => FachOeffnen("personal", PersonalInhalt));
-        _fachProduktion = Fach(innenLinks, "hammer", "Produktion", "Was diese Werkstatt herstellt", () => FachOeffnen("produktion", ProduktionInhalt));
+        _fachProduktion = Fach(innenLinks, "produktion", "Produktion", "Was diese Werkstatt herstellt", () => FachOeffnen("produktion", ProduktionInhalt));
         _fachLager = Fach(innenLinks, "lager", "Lager", "Das Lager dieser Werkstatt", () => FachOeffnen("lager", LagerInhalt));
 
         // ── Rechts: Schiene mit den Aktionspunkten und den kleinen Knöpfen Markt, Hinterzimmer, Menü ──

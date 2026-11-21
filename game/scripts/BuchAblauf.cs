@@ -1,7 +1,7 @@
 namespace Reichsgilde;
 
-/// <summary>Die drei Bücher der Innenansichten: Personalbuch (Lesepult), Familienbuch (Stubentisch), Kontorbuch (Schreibpult).</summary>
-public enum BuchArt { Personal, Familie, Kontor }
+/// <summary>Die Bücher der Innenansichten: Personalbuch (Lesepult), Familienbuch (Stubentisch), Kontorbuch (Schreibpult), Schwarzes Buch (Kartentisch im Hinterzimmer).</summary>
+public enum BuchArt { Personal, Familie, Kontor, Schwarz }
 
 /// <summary>Wo die Buchschau gerade steht: Ruhe → Hin (Schwenk, das Buch klappt auf) → Offen ⇄ Blaettern → Zurueck (zuklappen, Schwenk zurück) → Ruhe.</summary>
 public enum BuchZustand { Ruhe, Hin, Offen, Blaettern, Zurueck }
@@ -13,11 +13,12 @@ public enum BuchZustand { Ruhe, Hin, Offen, Blaettern, Zurueck }
 public readonly record struct BuchMasse(
     double Aufklappen, double Zuklappen, double Umblaettern, double InhaltAb, double InhaltBis, double BlattInhaltAb, double BreiteOffen, double HoeheOffen)
 {
-    /// <summary>Die Werte der drei Modelle (<c>buch_personal.glb</c>, <c>buch_familie.glb</c>, <c>buch_kontor.glb</c>).</summary>
+    /// <summary>Die Werte der Modelle (<c>buch_personal.glb</c>, <c>buch_familie.glb</c>, <c>buch_kontor.glb</c>, <c>buch_schwarz.glb</c>).</summary>
     public static BuchMasse Von(BuchArt art) => art switch
     {
         BuchArt.Personal => new BuchMasse(1.033, 0.867, 0.733, 0.533, 0.100, 0.700, 0.526, 0.310),
         BuchArt.Familie => new BuchMasse(0.933, 0.800, 0.733, 0.433, 0.100, 0.700, 0.471, 0.284),
+        BuchArt.Schwarz => new BuchMasse(0.967, 0.800, 0.667, 0.467, 0.100, 0.633, 0.428, 0.290),
         _ => new BuchMasse(0.733, 0.667, 0.600, 0.367, 0.067, 0.567, 0.506, 0.372),
     };
 }

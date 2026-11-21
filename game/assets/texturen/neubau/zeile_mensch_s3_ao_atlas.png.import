@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcvfg23sac0ub"
-path="res://.godot/imported/hammer.svg-97192a2640a98896fb7dc586506ea811.ctex"
+uid="uid://2dlwqlh4mf6n"
+path="res://.godot/imported/zeile_mensch_s3_ao_atlas.png-512a231709ec9b1a63f2b09d668197b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/oberflaeche/zunftlade/symbole/hammer.svg"
-dest_files=["res://.godot/imported/hammer.svg-97192a2640a98896fb7dc586506ea811.ctex"]
+source_file="res://assets/texturen/neubau/zeile_mensch_s3_ao_atlas.png"
+dest_files=["res://.godot/imported/zeile_mensch_s3_ao_atlas.png-512a231709ec9b1a63f2b09d668197b6.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

@@ -201,6 +201,7 @@ public partial class Stadtansicht
             // Die ausgefransten Strohkanten (Alpha-Cards) zerfallen in groben Bildpunkten zu schwarzen Punkten: im Pixel-Look ganz aus
             if (stoff.Shader == _neubauKantenShader) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(an));
         }
+        ZeilenPixelSetzen(an); // Häuserzeilen (Stadtansicht.Zeilen.cs)
     }
 
     /// <summary>Ist das ein Trim-Material der Neubauten (oder eine Kopie davon, etwa mit Brandschaden)?</summary>
@@ -622,6 +623,7 @@ public partial class Stadtansicht
     /// </summary>
     private void NeubauProbeStarten()
     {
+        ZeilenProbeStarten(); // nur mit --zeilenprobe: Probezeile des modularen Wohnhaussystems (Stadtansicht.Zeilen.cs)
         if (NeubauOption("--neubaureihe") is { Length: > 0 } reihe)
         {
             var teile = reihe.Split('@');

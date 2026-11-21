@@ -3,122 +3,658 @@
     "datei": "wohnhaus_mensch_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_mensch_s1_g1": 0, "wohnhaus_mensch_s1_g2": 1, "wohnhaus_mensch_s1_g3": 2, "wohnhaus_mensch_s1_g4": 3}
+    "plaetze": {
+      "wohnhaus_mensch_s1_g1": 0,
+      "wohnhaus_mensch_s1_g2": 1,
+      "wohnhaus_mensch_s1_g3": 2,
+      "wohnhaus_mensch_s1_g4": 3
+    }
   },
   "wohnhaus_mensch_s2": {
     "datei": "wohnhaus_mensch_s2_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_mensch_s2_g1": 0, "wohnhaus_mensch_s2_g2": 1, "wohnhaus_mensch_s2_g3": 2, "wohnhaus_mensch_s2_g4": 3}
+    "plaetze": {
+      "wohnhaus_mensch_s2_g1": 0,
+      "wohnhaus_mensch_s2_g2": 1,
+      "wohnhaus_mensch_s2_g3": 2,
+      "wohnhaus_mensch_s2_g4": 3
+    }
   },
   "wohnhaus_mensch_s3": {
     "datei": "wohnhaus_mensch_s3_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_mensch_s3_g1": 0, "wohnhaus_mensch_s3_g2": 1, "wohnhaus_mensch_s3_g3": 2, "wohnhaus_mensch_s3_g4": 3}
+    "plaetze": {
+      "wohnhaus_mensch_s3_g1": 0,
+      "wohnhaus_mensch_s3_g2": 1,
+      "wohnhaus_mensch_s3_g3": 2,
+      "wohnhaus_mensch_s3_g4": 3
+    }
   },
   "wohnhaus_mensch_innen": {
     "datei": "wohnhaus_mensch_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_mensch_s1_g1": 0, "wohnhaus_mensch_s1_g2": 1, "wohnhaus_mensch_s1_g3": 2, "wohnhaus_mensch_s1_g4": 3,
-               "wohnhaus_mensch_s2_g1": 4, "wohnhaus_mensch_s2_g2": 5, "wohnhaus_mensch_s2_g3": 6, "wohnhaus_mensch_s2_g4": 7,
-               "wohnhaus_mensch_s3_g1": 8, "wohnhaus_mensch_s3_g2": 9, "wohnhaus_mensch_s3_g3": 10, "wohnhaus_mensch_s3_g4": 11}
+    "plaetze": {
+      "wohnhaus_mensch_s1_g1": 0,
+      "wohnhaus_mensch_s1_g2": 1,
+      "wohnhaus_mensch_s1_g3": 2,
+      "wohnhaus_mensch_s1_g4": 3,
+      "wohnhaus_mensch_s2_g1": 4,
+      "wohnhaus_mensch_s2_g2": 5,
+      "wohnhaus_mensch_s2_g3": 6,
+      "wohnhaus_mensch_s2_g4": 7,
+      "wohnhaus_mensch_s3_g1": 8,
+      "wohnhaus_mensch_s3_g2": 9,
+      "wohnhaus_mensch_s3_g3": 10,
+      "wohnhaus_mensch_s3_g4": 11
+    }
   },
   "wohnhaus_zwerg": {
     "datei": "wohnhaus_zwerg_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_zwerg_s1_g1": 0, "wohnhaus_zwerg_s1_g2": 1, "wohnhaus_zwerg_s1_g3": 2, "wohnhaus_zwerg_s1_g4": 3}
+    "plaetze": {
+      "wohnhaus_zwerg_s1_g1": 0,
+      "wohnhaus_zwerg_s1_g2": 1,
+      "wohnhaus_zwerg_s1_g3": 2,
+      "wohnhaus_zwerg_s1_g4": 3
+    }
   },
   "wohnhaus_zwerg_s2": {
     "datei": "wohnhaus_zwerg_s2_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_zwerg_s2_g1": 0, "wohnhaus_zwerg_s2_g2": 1, "wohnhaus_zwerg_s2_g3": 2, "wohnhaus_zwerg_s2_g4": 3}
+    "plaetze": {
+      "wohnhaus_zwerg_s2_g1": 0,
+      "wohnhaus_zwerg_s2_g2": 1,
+      "wohnhaus_zwerg_s2_g3": 2,
+      "wohnhaus_zwerg_s2_g4": 3
+    }
   },
   "wohnhaus_zwerg_s3": {
     "datei": "wohnhaus_zwerg_s3_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_zwerg_s3_g1": 0, "wohnhaus_zwerg_s3_g2": 1, "wohnhaus_zwerg_s3_g3": 2, "wohnhaus_zwerg_s3_g4": 3}
+    "plaetze": {
+      "wohnhaus_zwerg_s3_g1": 0,
+      "wohnhaus_zwerg_s3_g2": 1,
+      "wohnhaus_zwerg_s3_g3": 2,
+      "wohnhaus_zwerg_s3_g4": 3
+    }
   },
   "wohnhaus_zwerg_innen": {
     "datei": "wohnhaus_zwerg_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_zwerg_s1_g1": 0, "wohnhaus_zwerg_s1_g2": 1, "wohnhaus_zwerg_s1_g3": 2, "wohnhaus_zwerg_s1_g4": 3,
-               "wohnhaus_zwerg_s2_g1": 4, "wohnhaus_zwerg_s2_g2": 5, "wohnhaus_zwerg_s2_g3": 6, "wohnhaus_zwerg_s2_g4": 7,
-               "wohnhaus_zwerg_s3_g1": 8, "wohnhaus_zwerg_s3_g2": 9, "wohnhaus_zwerg_s3_g3": 10, "wohnhaus_zwerg_s3_g4": 11}
+    "plaetze": {
+      "wohnhaus_zwerg_s1_g1": 0,
+      "wohnhaus_zwerg_s1_g2": 1,
+      "wohnhaus_zwerg_s1_g3": 2,
+      "wohnhaus_zwerg_s1_g4": 3,
+      "wohnhaus_zwerg_s2_g1": 4,
+      "wohnhaus_zwerg_s2_g2": 5,
+      "wohnhaus_zwerg_s2_g3": 6,
+      "wohnhaus_zwerg_s2_g4": 7,
+      "wohnhaus_zwerg_s3_g1": 8,
+      "wohnhaus_zwerg_s3_g2": 9,
+      "wohnhaus_zwerg_s3_g3": 10,
+      "wohnhaus_zwerg_s3_g4": 11
+    }
   },
   "wohnhaus_elb": {
     "datei": "wohnhaus_elb_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_elb_s1_g1": 0, "wohnhaus_elb_s1_g2": 1, "wohnhaus_elb_s1_g3": 2, "wohnhaus_elb_s1_g4": 3}
+    "plaetze": {
+      "wohnhaus_elb_s1_g1": 0,
+      "wohnhaus_elb_s1_g2": 1,
+      "wohnhaus_elb_s1_g3": 2,
+      "wohnhaus_elb_s1_g4": 3
+    }
   },
   "wohnhaus_elb_innen": {
     "datei": "wohnhaus_elb_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_elb_s1_g1": 0, "wohnhaus_elb_s1_g2": 1, "wohnhaus_elb_s1_g3": 2, "wohnhaus_elb_s1_g4": 3,
-               "wohnhaus_elb_s2_g1": 4, "wohnhaus_elb_s2_g2": 5, "wohnhaus_elb_s2_g3": 6, "wohnhaus_elb_s2_g4": 7,
-               "wohnhaus_elb_s3_g1": 8, "wohnhaus_elb_s3_g2": 9, "wohnhaus_elb_s3_g3": 10, "wohnhaus_elb_s3_g4": 11}
+    "plaetze": {
+      "wohnhaus_elb_s1_g1": 0,
+      "wohnhaus_elb_s1_g2": 1,
+      "wohnhaus_elb_s1_g3": 2,
+      "wohnhaus_elb_s1_g4": 3,
+      "wohnhaus_elb_s2_g1": 4,
+      "wohnhaus_elb_s2_g2": 5,
+      "wohnhaus_elb_s2_g3": 6,
+      "wohnhaus_elb_s2_g4": 7,
+      "wohnhaus_elb_s3_g1": 8,
+      "wohnhaus_elb_s3_g2": 9,
+      "wohnhaus_elb_s3_g3": 10,
+      "wohnhaus_elb_s3_g4": 11
+    }
   },
   "wohnhaus_elb_s2": {
     "datei": "wohnhaus_elb_s2_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_elb_s2_g1": 0, "wohnhaus_elb_s2_g2": 1, "wohnhaus_elb_s2_g3": 2, "wohnhaus_elb_s2_g4": 3}
+    "plaetze": {
+      "wohnhaus_elb_s2_g1": 0,
+      "wohnhaus_elb_s2_g2": 1,
+      "wohnhaus_elb_s2_g3": 2,
+      "wohnhaus_elb_s2_g4": 3
+    }
   },
   "wohnhaus_elb_s3": {
     "datei": "wohnhaus_elb_s3_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_elb_s3_g1": 0, "wohnhaus_elb_s3_g2": 1, "wohnhaus_elb_s3_g3": 2, "wohnhaus_elb_s3_g4": 3}
+    "plaetze": {
+      "wohnhaus_elb_s3_g1": 0,
+      "wohnhaus_elb_s3_g2": 1,
+      "wohnhaus_elb_s3_g3": 2,
+      "wohnhaus_elb_s3_g4": 3
+    }
   },
   "klappbruecke": {
     "datei": "klappbruecke_ao_atlas.png",
     "kante": 2048,
     "zellen": 1,
-    "plaetze": {"klappbruecke": 0}
+    "plaetze": {
+      "klappbruecke": 0
+    }
   },
   "rathaus": {
     "datei": "rathaus_ao_atlas.png",
     "kante": 1024,
     "zellen": 1,
-    "plaetze": {"rathaus": 0}
+    "plaetze": {
+      "rathaus": 0
+    }
   },
   "rathaus_innen": {
     "datei": "rathaus_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"eingangshalle": 0, "amtsstube": 1, "gerichtssaal": 2, "kerker": 3, "ratshalle": 4, "turm_treppe": 5, "turm_spitze": 6}
+    "plaetze": {
+      "eingangshalle": 0,
+      "amtsstube": 1,
+      "gerichtssaal": 2,
+      "kerker": 3,
+      "ratshalle": 4,
+      "turm_treppe": 5,
+      "turm_spitze": 6
+    }
   },
   "wohnhaus_halbling": {
     "datei": "wohnhaus_halbling_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_halbling_s1_g1": 0, "wohnhaus_halbling_s1_g2": 1, "wohnhaus_halbling_s1_g3": 2, "wohnhaus_halbling_s1_g4": 3}
+    "plaetze": {
+      "wohnhaus_halbling_s1_g1": 0,
+      "wohnhaus_halbling_s1_g2": 1,
+      "wohnhaus_halbling_s1_g3": 2,
+      "wohnhaus_halbling_s1_g4": 3
+    }
   },
   "wohnhaus_halbling_innen": {
     "datei": "wohnhaus_halbling_innen_ao_atlas.png",
     "kante": 2048,
     "zellen": 4,
-    "plaetze": {"wohnhaus_halbling_s1_g1": 0, "wohnhaus_halbling_s1_g2": 1, "wohnhaus_halbling_s1_g3": 2, "wohnhaus_halbling_s1_g4": 3,
-               "wohnhaus_halbling_s2_g1": 4, "wohnhaus_halbling_s2_g2": 5, "wohnhaus_halbling_s2_g3": 6, "wohnhaus_halbling_s2_g4": 7,
-               "wohnhaus_halbling_s3_g1": 8, "wohnhaus_halbling_s3_g2": 9, "wohnhaus_halbling_s3_g3": 10, "wohnhaus_halbling_s3_g4": 11}
+    "plaetze": {
+      "wohnhaus_halbling_s1_g1": 0,
+      "wohnhaus_halbling_s1_g2": 1,
+      "wohnhaus_halbling_s1_g3": 2,
+      "wohnhaus_halbling_s1_g4": 3,
+      "wohnhaus_halbling_s2_g1": 4,
+      "wohnhaus_halbling_s2_g2": 5,
+      "wohnhaus_halbling_s2_g3": 6,
+      "wohnhaus_halbling_s2_g4": 7,
+      "wohnhaus_halbling_s3_g1": 8,
+      "wohnhaus_halbling_s3_g2": 9,
+      "wohnhaus_halbling_s3_g3": 10,
+      "wohnhaus_halbling_s3_g4": 11
+    }
   },
   "wohnhaus_halbling_s2": {
     "datei": "wohnhaus_halbling_s2_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_halbling_s2_g1": 0, "wohnhaus_halbling_s2_g2": 1, "wohnhaus_halbling_s2_g3": 2, "wohnhaus_halbling_s2_g4": 3}
+    "plaetze": {
+      "wohnhaus_halbling_s2_g1": 0,
+      "wohnhaus_halbling_s2_g2": 1,
+      "wohnhaus_halbling_s2_g3": 2,
+      "wohnhaus_halbling_s2_g4": 3
+    }
   },
   "wohnhaus_halbling_s3": {
     "datei": "wohnhaus_halbling_s3_ao_atlas.png",
     "kante": 2048,
     "zellen": 2,
-    "plaetze": {"wohnhaus_halbling_s3_g1": 0, "wohnhaus_halbling_s3_g2": 1, "wohnhaus_halbling_s3_g3": 2, "wohnhaus_halbling_s3_g4": 3}
+    "plaetze": {
+      "wohnhaus_halbling_s3_g1": 0,
+      "wohnhaus_halbling_s3_g2": 1,
+      "wohnhaus_halbling_s3_g3": 2,
+      "wohnhaus_halbling_s3_g4": 3
+    }
+  },
+  "zeile_mensch_s1": {
+    "datei": "zeile_mensch_s1_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_mensch_s2": {
+    "datei": "zeile_mensch_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_mensch_s3": {
+    "datei": "zeile_mensch_s3_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_zwerg_s1": {
+    "datei": "zeile_zwerg_s1_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_zwerg_s2": {
+    "datei": "zeile_zwerg_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_zwerg_s3": {
+    "datei": "zeile_zwerg_s3_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_elb_s1": {
+    "datei": "zeile_elb_s1_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_elb_s2": {
+    "datei": "zeile_elb_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_elb_s3": {
+    "datei": "zeile_elb_s3_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_halbling_s1": {
+    "datei": "zeile_halbling_s1_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_halbling_s2": {
+    "datei": "zeile_halbling_s2_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
+  },
+  "zeile_halbling_s3": {
+    "datei": "zeile_halbling_s3_ao_atlas.png",
+    "kante": 2048,
+    "zellen": 8,
+    "plaetze": {
+      "k_g4": 0,
+      "k_g6": 1,
+      "k_g8": 2,
+      "k_t6": 3,
+      "k_t8": 4,
+      "seite_blind": 5,
+      "seite_offen": 6,
+      "kappe_brand": 7,
+      "kappe_offen": 8,
+      "gasse": 9,
+      "eck": 10,
+      "mauer": 11,
+      "pfeiler": 12,
+      "tor": 13,
+      "hinterhaus": 14,
+      "k_g4_a": 15,
+      "k_g4_b": 16,
+      "k_g4_c": 17,
+      "k_g6_a": 18,
+      "k_g6_b": 19,
+      "k_g6_c": 20,
+      "k_g8_a": 21,
+      "k_g8_b": 22,
+      "k_g8_c": 23,
+      "seite_offen_a": 24,
+      "seite_offen_b": 25,
+      "eck_a": 26,
+      "eck_b": 27
+    }
   }
 }

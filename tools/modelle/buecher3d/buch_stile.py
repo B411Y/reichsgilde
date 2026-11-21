@@ -1,4 +1,4 @@
-"""Formen, Maße, Materialien und Zeiten der drei Buecher. buch_bau.py setzt daraus Netze, Gerueest und Clips zusammen.
+"""Formen, Maße, Materialien und Zeiten der Buecher (Personal, Familie, Kontor, Schwarzes Buch). buch_bau.py setzt daraus Netze, Gerueest und Clips zusammen.
 Alle Maße in Metern; "Offenkoordinaten": Ruecken-Achse bei x = 0 (aufgeschlagen im Ursprung), Block rechts (+x), der Vorderdeckel dreht um (x = 0, z = z_h)."""
 import math
 
@@ -29,7 +29,17 @@ STILE = {
         rand_mat="Buch_Pergament", anhang=(),
         auf_ang=[(0, 0.0), (12, 180.0), (15, 176.0), (18, 180.0), (20, 179.2), (22, 180.0)], zu_ang=[(0, 180.0), (20, 0.0)],
         blatt_bilder=18, blatt_biegung=0.18, schwelle_grad=172.0),
+    # Schwarzes Buch (Kartentisch im Hinterzimmer): fast schwarzes, an Kanten und Ecken braun abgegriffenes Leder, blind gepraegte Doppellinie mit Raute,
+    # fuenf dunkle Eisenbuckel, vier Lesebaender in den Kapitelfarben der Tafel (hinterzimmer_thema.tres), die am Fuss aus dem Block haengen
+    "schwarz": dict(
+        lagen=11, W=0.19, D=0.27, c=0.006, a=0.022, s=0.011, g=0.003, o=0.006, inhalt_rand=0.012,
+        rand_mat="Buch_Leder", anhang=(),
+        auf_ang=[(0, 0.0), (16, 180.0), (20, 175.0), (24, 180.0), (26, 179.0), (29, 180.0)], zu_ang=[(0, 180.0), (24, 0.0)],
+        blatt_bilder=20, blatt_biegung=0.16, schwelle_grad=172.0),
 }
+
+# Lesebaender des Schwarzen Buchs: die vier Kapitelfarben der 2D-Tafel (game/scenes/hinterzimmer_thema.tres, "Lesebaender (Kapitel)", helle Stufe)
+BAND_FARBEN = [(0.537, 0.163, 0.125), (0.213, 0.362, 0.537), (0.300, 0.438, 0.200), (0.600, 0.438, 0.112)]
 
 
 def lade_texturen(B, bild_laden, mat_bild, mat_flaeche, mat_durchsichtig):
@@ -60,6 +70,15 @@ def lade_texturen(B, bild_laden, mat_bild, mat_flaeche, mat_durchsichtig):
         M["Buch_Schnitt"] = mat_bild("Buch_Schnitt", bild("schnitt", tx.schnitt_familie()), 0.6)
         M["Buch_Gold"] = mat_flaeche("Buch_Gold", (0.88, 0.70, 0.30), 0.4)
         M["Buch_Wappenfeld"] = mat_flaeche("Buch_Wappenfeld", (0.20, 0.30, 0.60), 0.8)
+    elif art == "schwarz":
+        lk = tx.leder(4004, (0.070, 0.056, 0.054), falten=0.9, narbung=0.30)
+        M["Buch_Leder"] = mat_bild("Buch_Leder", bild("leder", tx.leder_abgegriffen(lk)), 0.8)
+        M["Buch_Einband"] = mat_bild("Buch_Einband", bild("einband", tx.einband_schwarz(lk)), 0.8)
+        M["Buch_Seiten"] = mat_bild("Buch_Seiten", bild("seiten", tx.seiten_schwarz()), 0.95)
+        M["Buch_Schnitt"] = mat_bild("Buch_Schnitt", bild("schnitt", tx.schnitt_schwarz()), 0.95)
+        M["Buch_Eisen"] = mat_flaeche("Buch_Eisen", (0.09, 0.09, 0.10), 0.6)
+        for k, farbe in enumerate(BAND_FARBEN):
+            M[f"Buch_Band_{k + 1}"] = mat_flaeche(f"Buch_Band_{k + 1}", farbe, 0.85)
     else:
         lk = tx.leder(4003, (0.33, 0.22, 0.13), falten=0.8)
         M["Buch_Leder"] = mat_bild("Buch_Leder", bild("leder", lk), 0.85)
@@ -247,6 +266,37 @@ def teile_besonders(B, T):
             T.box(xe, xe + 0.0025, y - 0.0115, y + 0.0115, hz - 0.046, H, "Schliesse", {"-z": None, "-x": None, "*": "Buch_Gold"})
             T.box(xe + 0.0025, xe + 0.0048, y - 0.0085, y + 0.0085, hz - 0.046, hz - 0.034, "Schliesse", {"-x": None, "*": "Buch_Gold"})
             T.box(xe, xe + 0.005, y - 0.006, y + 0.006, 0.0015, 0.0055, "Deckel_hinten", {"-z": None, "*": "Buch_Gold"})
+    elif art == "schwarz":
+        # vier erhabene Buende am Ruecken, darueber ein schmaler Wulst
+        ys = (-0.09, -0.03, 0.03, 0.09)
+        _baender(B, T, ys, 0.012, 0.0035, "Buch_Leder")
+        _baender(B, T, ys, 0.005, 0.0050, "Buch_Leder")
+        # Eisenbuckel: vier an den Ecken, einer in der Mitte der Raute (schuetzen den Deckel, dunkel und stumpf)
+        xm = s + Wc / 2
+        for x, y in ((s + 0.024, -Dc / 2 + 0.024), (xe - 0.024, -Dc / 2 + 0.024), (s + 0.024, Dc / 2 - 0.024), (xe - 0.024, Dc / 2 - 0.024)):
+            T.zylinder(x, y, 0.0085, H, H + 0.0018, "Deckel_vorn", "Buch_Eisen", n=8)
+            T.zylinder(x, y, 0.0048, H + 0.0018, H + 0.0042, "Deckel_vorn", "Buch_Eisen", n=8)
+        T.zylinder(xm, 0.0, 0.0110, H, H + 0.0020, "Deckel_vorn", "Buch_Eisen", n=8)
+        T.zylinder(xm, 0.0, 0.0062, H + 0.0020, H + 0.0050, "Deckel_vorn", "Buch_Eisen", n=8)
+        # aufgelegte Lederecken an der Vorderkante (doppelt, abgegriffen)
+        for sy in (-1, 1):
+            y0 = (Dc / 2 - 0.046) if sy > 0 else -Dc / 2
+            T.box(xe - 0.046, xe, y0, y0 + 0.046, H, H + 0.0011, "Deckel_vorn", {"-z": None, "*": "Buch_Leder"})
+        # Lesebaender in den vier Kapitelfarben: kommen am Fuss (-y) aus dem unteren Block, fallen ueber die Deckelkante und liegen auf der Auflage.
+        # Alle am Rueckdeckel (rechter Block im offenen Buch): in jeder Pose liegen sie still.
+        for k in range(4):
+            mat = f"Buch_Band_{k + 1}"
+            x0 = B.xb + B.W * (0.20 + 0.17 * k)
+            x1 = x0 + 0.012
+            zr = c + B.a * (0.22 + 0.19 * k)
+            ye = -Dc / 2 - 0.004 - 0.0035 * ((k * 3) % 4)
+            lang = (0.052, 0.034, 0.061, 0.043)[k]
+            T.box(x0, x1, ye, -B.D / 2 + 0.003, zr, zr + 0.0013, "Deckel_hinten", {"+y": None, "*": mat})
+            T.box(x0, x1, ye - 0.0013, ye, 0.0013, zr + 0.0013, "Deckel_hinten", {"-z": None, "*": mat})
+            T.box(x0, x1, ye - lang, ye, 0.0003, 0.0016, "Deckel_hinten", {"-z": None, "*": mat})
+            # eingeschnittenes Ende (Schwalbenschwanz): zwei Zipfel
+            T.box(x0, x0 + 0.0045, ye - lang - 0.007, ye - lang, 0.0003, 0.0016, "Deckel_hinten", {"-z": None, "+y": None, "*": mat})
+            T.box(x1 - 0.0045, x1, ye - lang - 0.007, ye - lang, 0.0003, 0.0016, "Deckel_hinten", {"-z": None, "+y": None, "*": mat})
     else:
         ys = [-0.11 + 0.055 * k for k in range(5)]
         _baender(B, T, ys, 0.009, 0.003, "Buch_Leder")
