@@ -48,6 +48,7 @@ public partial class Stadtansicht
     private static readonly Color[] NeubauPutz = { new(1.0f, 0.98f, 0.94f), new(0.95f, 0.88f, 0.72f), new(0.88f, 0.86f, 0.82f), new(0.92f, 0.80f, 0.75f) };
     // Zwerge: im Putzband liegt dunkler Quader statt Putz – nur vier graue Töne, keine Putzfarben
     private static readonly Color[] NeubauStein = { new(1.0f, 1.0f, 1.0f), new(0.90f, 0.92f, 0.95f), new(0.95f, 0.91f, 0.86f), new(0.86f, 0.86f, 0.84f) };
+    private const float NeubauDeckenlicht = 6.0f; // Stärke des Deckenlichts (Licht_Decke)
     private static readonly Color[] NeubauAkzent = { new(0.22f, 0.35f, 0.55f), new(0.25f, 0.42f, 0.28f), new(0.55f, 0.22f, 0.20f), new(0.45f, 0.36f, 0.28f) };
     private readonly Dictionary<string, ShaderMaterial> _neubauStoffe = new();   // außen eines für alle Häuser („haeuser“), innen eines je Gruppe
     private readonly Dictionary<string, StandardMaterial3D> _neubauGrund = new(); // benannte Grundmaterialien fürs Netz
@@ -171,7 +172,11 @@ public partial class Stadtansicht
         // Strohkanten: derselbe Shader (Rumpf building_trim.gdshaderinc) beidseitig und mit Alpha Scissor, dieselben Arrays
         stoff = new ShaderMaterial { Shader = kante ? _neubauKantenShader : _neubauShader, ResourceName = "Trim " + schluessel };
         if (kante) stoff.SetShaderParameter("kante_schwelle", NeubauBrand.KantenSchwelle(Fenster.PixelLookAn));
-        if (efeu) stoff.SetShaderParameter("efeu_blatt", true);   // Schwelle fest 0,5 im Shader, auch im Pixel-Look
+        if (efeu)
+        {
+            stoff.SetShaderParameter("efeu_blatt", true);   // Schwelle fest 0,5 im Shader, auch im Pixel-Look
+            stoff.SetShaderParameter("efeu_ebene", Steinebenen.EfeuEbene); // die Blattbilder liegen nur im Blatt der Halblinge Stufe 3
+        }
         stoff.SetShaderParameter("albedo_tex", NeubauTextur<TextureLayered>(array + "_ebenen_albedo.png"));
         stoff.SetShaderParameter("normal_tex", NeubauTextur<TextureLayered>(array + "_ebenen_normal.png"));
         stoff.SetShaderParameter("orm_tex", NeubauTextur<TextureLayered>(array + "_ebenen_orm.png"));
@@ -286,7 +291,7 @@ public partial class Stadtansicht
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGlas());
                         break;
                     case "Efeublatt":
-                        // Efeu der Halblinge (Stufe 3): Blattkarten mit Alpha-Schnitt, auch im Pixel-Look sichtbar (efeu_blatt im Kantenshader)
+                        // Efeu der Halblinge (Stufe 3) und der Elben: Blattkarten mit Alpha-Schnitt, auch im Pixel-Look sichtbar (efeu_blatt im Kantenshader)
                         if (neu) netz.SurfaceSetMaterial(i, NeubauGrundstoff(name));
                         teil.SetSurfaceOverrideMaterial(i, NeubauStoff(datei, kante: true, efeu: true));
                         break;
@@ -381,6 +386,18 @@ public partial class Stadtansicht
                 herd.AddChild(new OmniLight3D { LightColor = new Color(1.0f, 0.62f, 0.30f), LightEnergy = 3.4f, OmniRange = 6.5f, ShadowEnabled = true, OmniAttenuation = 1.1f });
             if (wurzel.FindChild("Licht_Raum", true, false) is Node3D raum)
                 raum.AddChild(new OmniLight3D { LightColor = new Color(0.95f, 0.88f, 0.76f), LightEnergy = 1.3f, OmniRange = 8f, ShadowEnabled = false });
+            // Deckenlicht (Anker „Licht_Decke“ und „Licht_Decke_Ziel“, Wohnstuben der Menschen und Zwerge Stufe 2/3, Nutzer 21.11.2026): ein
+            // Strahler ohne Schatten von der Wand auf der Seite des Blickpunkts schräg hinauf zur Deckenmitte – Unterzug und Deckenbalken aus
+            // dunklem Holz blieben mit dem Grundlicht allein fast schwarz. Ohne Zielanker leuchtet er senkrecht nach oben.
+            if (wurzel.FindChild("Licht_Decke", true, false) is Node3D decke)
+            {
+                var strahler = new SpotLight3D { LightColor = new Color(0.95f, 0.88f, 0.76f), LightEnergy = NeubauDeckenlicht, SpotRange = 7f, SpotAngle = 75f, ShadowEnabled = false };
+                decke.AddChild(strahler);
+                if (wurzel.FindChild("Licht_Decke_Ziel", true, false) is Node3D ziel && ziel.GlobalPosition.DistanceTo(decke.GlobalPosition) > 0.1f)
+                    strahler.LookAtFromPosition(decke.GlobalPosition, ziel.GlobalPosition, Vector3.Up);
+                else
+                    strahler.RotationDegrees = new Vector3(90, 0, 0);
+            }
         }
         if (_neubauInnen is not null && _neubauInnen != wurzel) NeubauInnenAus();
         _neubauInnen = wurzel;

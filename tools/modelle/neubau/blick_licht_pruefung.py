@@ -55,13 +55,17 @@ def _stiche(o, p):
 
 
 WAND_ABSTAND_MIN = 0.80               # Pruefung 38: so weit steht das Auge mindestens vor jeder Wand, die das Standardbild zeigt
+WAND_HOEHE_MIN = 1.0                  # Pruefung 38: als Wand zaehlt eine Flaeche ab dieser Hoehe (Waende, Staender, Pfosten), nicht Balken und Rahmen
 
 
 def blick_wand(glb):
     """38 Standardblick nicht dicht vor einer Wand (Klicktest NAS 19.11.2026, Halbling S1 G3: das Auge stand 0,17 m vor der Wand mit
     der Haustuer und sah an ihr entlang; die rechte Bildseite war Wand): Strahlen vom Blick_Auge ueber das Standardbild (66 Grad hoch,
-    16:9, 41 x 21); trifft einer zuerst eine Wand des Raums (Objekt Raum, Normale fast waagerecht), zaehlt der Abstand des Auges zur
-    Ebene dieser Flaeche. Fehler, wenn der kleinste Abstand unter WAND_ABSTAND_MIN liegt. Rueckgabe (Zeilen, Fehlerzahl)."""
+    16:9, 41 x 21); trifft einer zuerst eine Wand des Raums (Objekt Raum, Normale fast waagerecht, Flaeche ab WAND_HOEHE_MIN hoch),
+    zaehlt der Abstand des Auges zur Ebene dieser Flaeche. Fehler, wenn der kleinste Abstand unter WAND_ABSTAND_MIN liegt.
+    Seit dem Feinschliff 20.11.2026 zaehlen niedrige Flaechen nicht mehr (Stirn des Galeriebalkens 0,2 m hoch ueber dem Auge der
+    Elben: keine Wand); alle Haeuser behalten ihr Ergebnis, der alte Blick Elb S1 G3 bleibt ein Fehler (0,17 m neben dem Eckstaender).
+    Rueckgabe (Zeilen, Fehlerzahl)."""
     dg, sz = _laden(glb)
     an = {o.name.split(".")[0]: o.matrix_world.translation.copy() for o in bpy.data.objects if o.type == "EMPTY"}
     if "Blick_Auge" not in an or "Blick_Ziel" not in an:
@@ -69,12 +73,16 @@ def blick_wand(glb):
     auge, ziel = an["Blick_Auge"], an["Blick_Ziel"]
     vor = (ziel - auge).normalized(); rechts = vor.cross(Vector((0, 0, 1))).normalized(); oben = rechts.cross(vor)
     th = math.tan(math.radians(FOV_HOCH / 2)); tb = th * SEITEN
-    best, wo = float("inf"), None
+    best, wo, hoch = float("inf"), None, {}
     for j in range(21):
         for i in range(41):
             d = (vor + rechts * (i / 20 - 1) * tb + oben * (j / 10 - 1) * th).normalized()
-            hit, ort, n, _f, o, _m = sz.ray_cast(dg, auge, d, distance=50.0)
+            hit, ort, n, fi, o, _m = sz.ray_cast(dg, auge, d, distance=50.0)
             if not hit or o.name.split(".")[0] != "Raum" or abs(n.z) > 0.3: continue
+            if (o.name, fi) not in hoch:
+                zs = [(o.matrix_world @ o.data.vertices[v].co).z for v in o.data.polygons[fi].vertices]
+                hoch[(o.name, fi)] = max(zs) - min(zs)
+            if hoch[(o.name, fi)] < WAND_HOEHE_MIN: continue          # Balken, Sturz, Rahmen: keine Wand
             a = abs((auge - ort).dot(n))
             if a < best: best, wo = a, ort
     ok = best >= WAND_ABSTAND_MIN

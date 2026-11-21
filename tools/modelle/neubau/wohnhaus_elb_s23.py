@@ -65,7 +65,37 @@ def licht_vor_den_herd(licht, auge):
     Umgebungslicht und waren im hellen Stein und Holz der Elben fast schwarz (bei den Menschen dunkles Holz, dort fiel es nicht auf).
     Ueber dem Blickpunkt beleuchtet es jede Flaeche, die die Kamera sieht, auch beim Umschauen (Fix 4: an der linken Wand lag es hinter
     der Seite des ersten Balkens; Pruefung 12c)."""
-    return Vector((auge.x, auge.y, licht.z))
+    return Vector((auge.x, auge.y, S23.M.Z_EG_DECKE - 0.35))   # Hoehe fest (wie gebaut); die Menschen haben das Licht seit 21.11.2026 in 1,70 m
+
+
+# Efeu als Blattkarten (Nutzer 21.11.2026): so viele, wie die Dreiecksgrenze der Huelle (4.000) laesst. Dreiecke der Huelle ohne Efeu
+# je Stufe und Grundform (Messung 20.11.2026); 24 Dreiecke Abstand, hoechstens 110 Karten. Bei wenig Platz groessere Karten.
+EFEU_HUELLE = {(2, 1): 3630, (2, 2): 3908, (2, 3): 3942, (2, 4): 3630, (3, 1): 3586, (3, 2): 3738, (3, 3): 3898, (3, 4): 3586}
+EFEU_HOECHSTENS = 110
+
+
+def efeu_setzen(h):
+    """Efeu an den Aussenwaenden beider Geschosse (efeu_karten.bewachsen liest aus dem Haus, wo eine Karte sitzen darf)."""
+    import efeu_karten
+    efeu_karten.stoff_anlegen(g1, f"trim_s{STUFE[0]}")
+    M = S23.M
+    budget = max(0, min(EFEU_HOECHSTENS, (4000 - 24 - EFEU_HUELLE[(STUFE[0], FORM[0])]) // 2))
+    L = M.HINTEN - M.VORN
+    ebenen = [((-M.BX, M.VORN), (1, 0), 2 * M.BX, (0, -1)), ((-M.OX, M.HINTEN), (1, 0), 2 * M.OX, (0, 1)),
+              ((-M.BX, M.VORN), (0, 1), L, (-1, 0)), ((M.BX, M.VORN), (0, 1), L, (1, 0))]
+    if abs(M.OVORN - M.VORN) > 0.02: ebenen.append(((-M.OX, M.OVORN), (1, 0), 2 * M.OX, (0, -1)))
+    if abs(M.OX - M.BX) > 0.02:
+        ebenen += [((-M.OX, M.OVORN), (0, 1), M.HINTEN - M.OVORN, (-1, 0)), ((M.OX, M.OVORN), (0, 1), M.HINTEN - M.OVORN, (1, 0))]
+    teile = [h]
+    try: teile.append(S23.baue_wappen())                             # das Wappen bleibt frei
+    except Exception as fehler: print("EFEU ohne Wappen:", fehler)   # noqa: BLE001
+
+    def z_grenze(nr, s_):
+        (ox, oy), (ex, ey), _l, _n = ebenen[nr]
+        if abs(ey) > 0.5: return M.Z_TRAUFE - 0.25
+        return M.z_dach(ox + ex * s_) - 0.35
+    n = efeu_karten.bewachsen(h, teile, ebenen, budget, 53 + 10 * STUFE[0] + FORM[0], z_grenze, gross=1.35 if budget < 45 else 1.0)
+    print(f"EFEU Karten: {n} (Budget {budget})")
 
 
 def umbenennen(text):
@@ -582,6 +612,7 @@ def masse_anlegen(stufe, tuer_hoch=TUER_HOCH):
 
 def schicht_anlegen(stufe):
     """Stoff, Dateinamen, Atlasgruppen, Elbenmasse und die Bauteile der Elben; die Skripte der Menschen bleiben unveraendert."""
+    S23.LICHT_DECKE = False                                # kein Deckenlicht (nur Menschen und Zwerge, 21.11.2026)
     STUFE[0] = stufe
     M = S23.M
     alt_stoff, alt_uv, alt_exp = g1.stoff, g1.uv2_und_ao, g1.exportiere
@@ -634,6 +665,7 @@ def schicht_anlegen(stufe):
             vorher = h.dreiecke()
             unterstand_links(h)
             print("DREIECKE Unterstand:", h.dreiecke() - vorher)
+        efeu_setzen(h)
         LETZT["haus"] = h
         return h
     S23.baue_haus = haus
