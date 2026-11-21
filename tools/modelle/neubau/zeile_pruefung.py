@@ -18,6 +18,9 @@ Geprueft wird, was das Spiel laedt (game/assets/modelle/gebaeude/zeilen/zeile_<s
    bzw. trifft im Grundriss den Boden. „Rueckseite“: ein Strahl trifft zuerst die Rueckseite einer Flaeche (im Spiel unsichtbar).
    Gemeldet ab NAHT_MIN Strahlen je Fall und Blick. Strohkanten (Alpha-Karten) zaehlen nicht.
 
+--selbsttest=1 eicht die Nahtabtastung an Quadern mit bekannter Antwort (geschlossen, mit Spalt, mit gedrehter Wand); --fall=<a>|<b>
+und --proben=1 geben fuer eine Nachbarschaft Stichproben der Fundstellen aus.
+
 Ausgabe mit Praefix ZEILE, Rueckgabewert 1 bei Fehlern.
 """
 import json
@@ -47,6 +50,8 @@ HAUS_HOECHSTENS = 4000
 KOERPER = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8"]
 AO_MITTEL, AO_DUNKEL, DUNKEL_ANTEIL = 0.45, 0.12, 0.10
 NAHT_MIN = 4
+FALL = ""             # --fall=k_t6|eck: nur diese Nachbarschaft
+PROBEN = False        # --proben=1: je Fall Stichproben der Fundstellen ausgeben (u quer zur Naht, v Tiefe bzw. Hoehe)
 
 
 def laden(satz):
@@ -86,8 +91,32 @@ def pruefe_module(netze, anker, melde):
               fehler=summe > HAUS_HOECHSTENS)
 
 
+DACH_STOFFE = ("Stroh", "Strohkante")
+
+
+def grenzen_x_nach_stoff(o):
+    """x-Grenzen der Ecken getrennt nach Dach (Deckung, Fransen) und allem anderen (Waende, Holz, Stein, Fenster)."""
+    me, mw = o.data, o.matrix_world
+    aus = {"dach": [1e9, -1e9], "wand": [1e9, -1e9], "unten": [1e9, -1e9]}
+    z_unten = Z.S["z_traufe"] - Z.EIN * Z.S["tg"] - 0.4       # sicher unter Traufe, Ortgang und Windbrettern
+    for p in me.polygons:
+        stoff = me.materials[p.material_index].name.split(".")[0] if me.materials else ""
+        ziel = aus["dach" if stoff in DACH_STOFFE else "wand"]
+        for vi in p.vertices:
+            w = mw @ me.vertices[vi].co
+            ziel[0], ziel[1] = min(ziel[0], w.x), max(ziel[1], w.x)
+            if w.z < z_unten:       # alles unterhalb der Traufzone, gleich welcher Stoff: was dort uebersteht, steckt im Nachbarn
+                aus["unten"][0], aus["unten"][1] = min(aus["unten"][0], w.x), max(aus["unten"][1], w.x)
+    return aus
+
+
 def pruefe_rahmen(netze, melde):
     t = 0.001
+    for m in KOERPER + ["eck"]:
+        if m not in netze: continue
+        g = grenzen_x_nach_stoff(netze[m])
+        melde(f"Rahmen {m} getrennt: Dach x {g['dach'][0]:+.4f} bis {g['dach'][1]:.4f}, Wand und Holz x {g['wand'][0]:+.4f} bis {g['wand'][1]:.4f}, "
+              f"unter der Traufzone (alle Stoffe) x {g['unten'][0]:+.4f} bis {g['unten'][1]:.4f}", fehler=False)
     for m in KOERPER:
         if m not in netze: continue
         (x0, x1), _, _ = grenzen(netze[m])
@@ -159,36 +188,48 @@ def baum(objekte):
     return BVHTree.FromPolygons(ecken, flaechen), normalen
 
 
-def naht_abtasten(objekte, s0, quer, tief, raster, z_wand):
+def naht_abtasten(objekte, s0, quer, tief, raster, z_wand, proben=None):
     """Strahlen im Streifen um die Naht: s0 = Punkt der Naht an der Flucht, quer = entlang der Zeile, tief = in die Haeuser.
     Rueckgabe {(Blick, Art): Zahl der Strahlen}."""
     bvh, normalen = baum(objekte)
     funde = {}
 
-    def strahl(blick, start, richtung, boden_ist_loch):
+    def strahl(blick, start, richtung, boden_ist_loch, ort=None):
         treffer = bvh.ray_cast(start, richtung, 200.0)
         if treffer[0] is None or treffer[0].z < 0.03:
             # nichts oder erst den Boden getroffen
-            if boden_ist_loch: funde[(blick, "Durchblick")] = funde.get((blick, "Durchblick"), 0) + 1
+            if boden_ist_loch:
+                funde[(blick, "Durchblick")] = funde.get((blick, "Durchblick"), 0) + 1
+                if proben is not None:
+                    # Durchgang durch die Flucht, durch die der Strahl kommt: vorn (Tiefe 0) bzw. hinten (Tiefe TIEFE)
+                    rt = richtung.dot(tief)
+                    if abs(rt) > 1e-6:
+                        k = ((0.0 if rt > 0 else Z.TIEFE) - (start - s0).dot(tief)) / rt
+                        d = start + richtung * k - s0
+                        proben.setdefault((blick, "Durchblick"), []).append((ort, ("Flucht", round(d.dot(quer), 2), round(d.z, 2))))
+                    else:
+                        proben.setdefault((blick, "Durchblick"), []).append((ort, None))
             return
         if normalen[treffer[2]].dot(richtung) > 1e-4:
             funde[(blick, "Rueckseite")] = funde.get((blick, "Rueckseite"), 0) + 1
+            if proben is not None: proben.setdefault((blick, "Rueckseite"), []).append((ort, tuple(round(c, 2) for c in treffer[0])))
 
     us = np.arange(-0.6, 0.6 + 1e-6, raster)
     hoch = Vector((0, 0, 1))
     for u in us:
         for z in np.arange(0.1, z_wand, raster):                         # waagerecht von vorn und hinten
             p = s0 + quer * float(u) + hoch * float(z)
-            strahl("vorn", p - tief * 6.0, tief, True)
-            strahl("hinten", p + tief * (Z.TIEFE + 6.0), -tief, True)
+            strahl("vorn", p - tief * 6.0, tief, True, (round(float(u), 2), round(float(z), 2)))
+            strahl("hinten", p + tief * (Z.TIEFE + 6.0), -tief, True, (round(float(u), 2), round(float(z), 2)))
         for v in np.arange(0.4, Z.TIEFE - 0.4 + 1e-6, raster):            # von oben und schraeg auf den Grundriss
             ziel = s0 + quer * float(u) + tief * float(v)
-            strahl("oben", ziel + hoch * 40.0, -hoch, True)
+            ort = (round(float(u), 2), round(float(v), 2))
+            strahl("oben", ziel + hoch * 40.0, -hoch, True, ort)
             for name, vorn in (("schraeg vorn", -1.0), ("schraeg hinten", 1.0)):
                 for seite in (-1.0, 1.0):
                     waag = (tief * -vorn * math.cos(math.radians(20)) + quer * seite * math.sin(math.radians(20))).normalized()
                     richtung = (waag * math.cos(math.radians(40)) - hoch * math.sin(math.radians(40))).normalized()
-                    strahl(name, ziel - richtung * 60.0, richtung, True)
+                    strahl(name, ziel - richtung * 60.0, richtung, True, ort)
     return funde
 
 
@@ -199,6 +240,7 @@ def pruefe_naehte(netze, raster, melde):
     faelle = [(a, b, False) for a in KOERPER for b in KOERPER] + [(a, "eck", False) for a in KOERPER] + [("eck", b, True) for b in KOERPER]
     for a, b, um_die_ecke in faelle:
         if a not in netze or b not in netze: continue
+        if FALL and FALL != f"{a}|{b}": continue
         if um_die_ecke:
             # das Eckhaus am Ende seiner Strecke, das naechste Haus beginnt um die Haustiefe versetzt auf der Strecke um die Ecke
             pa, pb = [{"modul": "eck"}], [{"modul": b}]
@@ -213,7 +255,11 @@ def pruefe_naehte(netze, raster, melde):
             stehen = ZB.setzen(netze, liste, Vector((0, 0, 0)), Vector((1, 0, 0)), Vector((0, 1, 0)), breiten)
             s0, quer, tief = Vector((Z.BREITE[a], 0, 0)), Vector((1, 0, 0)), Vector((0, 1, 0))
         bpy.context.view_layer.update()
-        funde = naht_abtasten(stehen, s0, quer, tief, raster, z_wand)
+        proben = {} if PROBEN else None
+        funde = naht_abtasten(stehen, s0, quer, tief, raster, z_wand, proben)
+        if proben:
+            for schluessel, liste in sorted(proben.items()):
+                print("ZEILE PROBE", a, b, schluessel, len(liste), liste[::max(1, len(liste) // 12)][:12])
         for o in stehen: bpy.data.objects.remove(o, do_unlink=True)
         name = f"{a} | {b}" + (" (um die Ecke)" if um_die_ecke else "")
         schlimm = {k: v for k, v in funde.items() if v >= NAHT_MIN}
@@ -223,12 +269,48 @@ def pruefe_naehte(netze, raster, melde):
             melde(f"Naht {name}: dicht" + (f" (einzelne Strahlen: {sum(funde.values())})" if funde else ""), fehler=False)
 
 
+def selbsttest(raster):
+    """Eichung der Nahtabtastung an Koerpern mit bekannter Antwort (--selbsttest=1): zwei geschlossene Quader 6 x 8 x 5 m Wand an
+    Wand muessen „dicht“ sein (kein Befund in keinem Blick); mit 10 cm Spalt an der Naht muss Durchblick gemeldet werden; mit einer
+    nach innen gedrehten Vorderwand Rueckseite. Meldet je Fall die Befunde; Rueckgabe: Zahl der Faelle mit falscher Antwort."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    Z.stil("mensch_s1")
+
+    def quader(name, x0, x1, vorn_gedreht=False):
+        e = [(x0, 0, 0), (x1, 0, 0), (x1, Z.TIEFE, 0), (x0, Z.TIEFE, 0), (x0, 0, 5), (x1, 0, 5), (x1, Z.TIEFE, 5), (x0, Z.TIEFE, 5)]
+        f = [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7)]      # Waende und Deckel, Umlauf nach aussen
+        if vorn_gedreht: f[0] = (4, 5, 1, 0)
+        me = bpy.data.meshes.new(name); me.from_pydata(e, [], f); me.update()
+        o = bpy.data.objects.new(name, me); bpy.context.scene.collection.objects.link(o)
+        return o
+
+    falsch = 0
+    faelle = (("geschlossen (soll: dicht)", 6.0, False, False), ("Spalt 10 cm (soll: Durchblick)", 6.1, False, True),
+              ("Vorderwand gedreht (soll: Rueckseite)", 6.0, True, True))
+    for name, x_b, gedreht, soll_befund in faelle:
+        a_, b_ = quader("A", 0.0, 6.0), quader("B", x_b, x_b + 6.0, gedreht)
+        bpy.context.view_layer.update()
+        funde = naht_abtasten([a_, b_], Vector((6.0, 0, 0)), Vector((1, 0, 0)), Vector((0, 1, 0)), raster, 4.5)
+        for o in (a_, b_): bpy.data.objects.remove(o, do_unlink=True)
+        hat = any(v >= NAHT_MIN for v in funde.values())
+        richtig = hat == soll_befund
+        falsch += 0 if richtig else 1
+        print("ZEILE SELBSTTEST", "richtig" if richtig else "FALSCH", name, "->", dict(sorted(funde.items())) or "kein Befund")
+    return falsch
+
+
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     satz = opt.get("satz", "mensch_s1")
     Z.stil(satz)
+    if "selbsttest" in opt:
+        falsch = selbsttest(float(opt.get("raster", "0.03")))
+        print("ZEILE SELBSTTEST ERGEBNIS:", falsch, "falsche Antworten")
+        sys.exit(1 if falsch else 0)
     nur = opt.get("nur", "")
+    global PROBEN, FALL
+    PROBEN, FALL = "proben" in opt, opt.get("fall", "")
     fehler = [0]
 
     def melde(text, fehler_=None):
@@ -237,6 +319,9 @@ def main():
         print("ZEILE", satz, text)
 
     netze, anker = laden(satz)
+    if nur == "rahmen":
+        pruefe_rahmen(netze, lambda t, fehler=None: melde(t, fehler))
+        print("ZEILE", satz, f"ERGEBNIS: {fehler[0]} Fehler"); sys.exit(0)
     if nur != "naht":
         pruefe_module(netze, anker, lambda t, fehler=None: melde(t, fehler))
         pruefe_rahmen(netze, lambda t, fehler=None: melde(t, fehler))
