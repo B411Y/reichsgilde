@@ -8,9 +8,9 @@ namespace Reichsgilde;
 /// Das <b>Brief-Fenster</b> (Benachrichtigungen, Stufe 1): ein gefalteter Brief aus Hadernpapier mit Wachssiegel, wie man ihn um 1400 schrieb – als
 /// 3D-Modell (<see cref="BriefBuehne"/>, Ablauf in <see cref="BriefAblauf"/>). Beim Öffnen bricht das Siegel und der Brief faltet sich groß in der Bildmitte
 /// auf; kurz vor dem Ende liegt der Inhalt als Bild auf dem Blatt, und sobald der Brief offen ist, liegt genau darüber diese Tafel mit Absender, Titel,
-/// den Zeilen und den Knöpfen (scharfer Text, klickbar) – ohne eigenen Grund, das Papier ist das Blatt des Modells. Weggelegt faltet er sich ohne Hüpfen
-/// zusammen und verschwindet. Lange Briefe strecken das Blatt in der Höhe (Streckregel des Modells), noch längere rollen. Ohne Bewegung
-/// (<see cref="Meldungseinstellungen.Bewegung"/>) liegt der Brief sofort offen da und ist sofort weg. Er hält nie die Zeit an. Kommen mehrere Briefe, bilden sie einen Stapel
+/// den Zeilen und den Knöpfen (scharfer Text, klickbar) – ohne eigenen Grund, das Papier ist das Blatt des Modells. Weggelegt (✕, „Weglegen“ oder jede Aktion im Brief) ist er
+/// sofort weg, ohne Zufalten. Lange Briefe strecken das Blatt in der Höhe (Streckregel des Modells), noch längere rollen. Ohne Bewegung
+/// (<see cref="Meldungseinstellungen.Bewegung"/>) liegt der Brief sofort offen da; sonst faltet er sich schnell auf (Tempo im Thema). Er hält nie die Zeit an. Kommen mehrere Briefe, bilden sie einen Stapel
 /// („Brief 2 von 3“, Pfeile zum Blättern); Schließen legt den ganzen Stapel weg – alles steht weiter im Verlauf. Ein Knopf unten führt, soweit der Text es hergibt,
 /// zum Betrieb, ins Familienbuch, in die Ratskammer oder zur Jahresrechnung.
 /// Gestaltet wie die übrigen Bilder: schwarzer Umriss, Farbband leicht neben der Linie, Schraffur am Rand im Schatten. Handelt der Brief von einem Geheimnis
@@ -127,20 +127,6 @@ public sealed partial class BriefAnzeige : PanelContainer
     /// <summary>Zusätzlicher Abstand nach unten (z. B. über der Raumleiste im Innenraum).</summary>
     public float AbstandUnten { get; set; }
 
-    /// <summary>Ein Brief kommt an: öffnet das Fenster, wenn es zu ist; sonst kommt er hinten an den Stapel, ohne die Seite zu wechseln.</summary>
-    public void Einreihen(Brief brief)
-    {
-        if (!_freigabe && _aufschub.Zurueckstellen(brief, SitzungOffen())) return;   // wartet bis nach Sitzung/Stimmrunde (Briefaufschub.cs)
-        var vorher = _stapel.FindIndex(b => b.Schluessel == brief.Schluessel && brief.Schluessel != "");
-        if (vorher >= 0) _stapel[vorher] = brief; else _stapel.Add(brief);
-        if (!Offen)
-        {
-            _nr = vorher >= 0 ? vorher : _stapel.Count - 1;
-            Oeffnen();
-        }
-        else Aufbauen();
-    }
-
     /// <summary>Der Spieler will diesen Brief lesen (Klick auf ein Siegel): er kommt nach vorn.</summary>
     public void Zeigen(Brief brief)
     {
@@ -175,24 +161,8 @@ public sealed partial class BriefAnzeige : PanelContainer
         _rahmen.LeisteSichtbar = an;
     }
 
-    // Ratssitzung und Stimmrunde (Nutzer, Rathaus Stufe 10): Briefe liegen sonst über deren Tafel. Sie warten, solange eine der beiden Tafeln
-    // offen ist (beide hängen wie der Brief in der Ebene „Oberflaeche“), und kommen direkt danach in ihrer Reihenfolge (Briefaufschub.cs).
-    private readonly Briefaufschub<Brief> _aufschub = new();
-    private bool _freigabe;
-    private bool SitzungOffen() => Ruht?.Invoke() == true
-        || GetParent() is { } ebene && ebene.GetChildren().Any(k => k is RatssitzungAnzeige { Visible: true } or StimmrundeAnzeige { Visible: true });
-
-    /// <summary>Setzt die Hauptszene: die ganze Folge Stimmrunde → Sitzung → Jahresbericht (<see cref="Briefphase"/>), auch zwischen den Tafeln.</summary>
-    public Func<bool>? Ruht { get; set; }
-
     public override void _Process(double delta)
     {
-        if (_aufschub.Wartend > 0 && _aufschub.Freigeben(SitzungOffen()) is { Count: > 0 } frei)
-        {
-            _freigabe = true;
-            foreach (var b in frei) Einreihen(b);
-            _freigabe = false;
-        }
         if (!_buehne.Bereit) return;
         if (!Visible)
         {
@@ -220,22 +190,18 @@ public sealed partial class BriefAnzeige : PanelContainer
         QueueRedraw();
     }
 
-    /// <summary>Legt den Stapel weg: Der Brief faltet sich zu (ohne Hüpfen) und verschwindet; ohne Bewegung oder ohne Modell sofort.</summary>
+    /// <summary>Legt den Stapel weg: Der Brief ist sofort weg, ohne Zufalten (Nutzer 21.11.2026; ✕, „Weglegen“ und jede Aktion im Brief).</summary>
     public void Weglegen()
     {
         _stapel.Clear();
         _nr = 0;
-        if (_buehne.Bereit && Visible && _ablauf.Sichtbar)
+        if (_buehne.Bereit)
         {
-            _ablauf.Schliessen(Meldungseinstellungen.Bewegung);
+            _ablauf.Schliessen(false);
             TafelZeigen(false);
-            if (!_ablauf.Sichtbar)
-            {
-                _buehne.Ruhen();
-                Hide();
-            }
+            _buehne.Ruhen();
         }
-        else Hide();
+        Hide();
         Weggelegt?.Invoke();
     }
 
@@ -318,7 +284,7 @@ public sealed partial class BriefAnzeige : PanelContainer
                     var hin = new Button { Text = "Hinsehen", FocusMode = FocusModeEnum.None, TooltipText = ziel, Flat = true };
                     hin.AddThemeFontSizeOverride("font_size", 12);
                     hin.AddThemeColorOverride("font_color", Blass);
-                    hin.Pressed += () => Hinsehen?.Invoke(kern!);
+                    hin.Pressed += () => { Hinsehen?.Invoke(kern!); Weglegen(); };
                     kopfzeile.AddChild(hin);
                 }
             }
@@ -352,7 +318,7 @@ public sealed partial class BriefAnzeige : PanelContainer
         {
             var hin = new Button { Text = "Hinsehen", FocusMode = FocusModeEnum.None, TooltipText = hinsehen };
             hin.AddThemeFontSizeOverride("font_size", 14);
-            hin.Pressed += () => Hinsehen?.Invoke(b.Kern!);
+            hin.Pressed += () => { Hinsehen?.Invoke(b.Kern!); Weglegen(); };
             knoepfe.AddChild(hin);
         }
         var zielText = hinsehen is not null && b.Ziel == "betrieb" ? "" : ZielText(b);
@@ -360,7 +326,7 @@ public sealed partial class BriefAnzeige : PanelContainer
         {
             var ziel = new Button { Text = zielText, FocusMode = FocusModeEnum.None };
             ziel.AddThemeFontSizeOverride("font_size", 14);
-            ziel.Pressed += () => ZielGewaehlt?.Invoke(b);
+            ziel.Pressed += () => { ZielGewaehlt?.Invoke(b); Weglegen(); };
             knoepfe.AddChild(ziel);
         }
         if (_stapel.Count > 1)

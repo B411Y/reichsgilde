@@ -258,3 +258,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Rollbereich | Allgemein für alle Tafeln: Eine neue Größe gilt erst, wenn sie zwei Bilder hintereinander gemessen wurde (außer beim ersten Messen). Ein Ausreißer von einem Bild nach einem Neuaufbau verändert Tafel und Lage nicht mehr. | 21.11.2026 |
 | Auswahlliste | Ursache: `InnenTafel.PopupOffen` sah die Liste eines `OptionButton` nie (innerer Knoten, `GetChildren()` ohne `true`), die Tafel baute sich unter der offenen Liste neu auf (Preise und Fortschritt ändern sich ständig). Jetzt `GetChildren(true)`; dazu kein Neuaufbau, solange die linke Maustaste gedrückt ist. Der Fortschrittsbalken der Produktionstafel wird an Ort und Stelle nachgezogen und steht nicht mehr im Gerüst. | 21.11.2026 |
 | Auswahltafel | Ursache des Mitwanderns: Ihre Lage wurde jedes Bild mit dem aktuellen Bild des Handschuhs neu gerechnet (`Mauszeiger.ZeigerBereich`, ändert sich mit Neigung und Haltung). Das Zeigerbild wird jetzt beim Öffnen eingefroren (`Tooltips.Lage` mit Zeigerbild, `Tipp.Zeiger`, Klickort in `Hauptszene`). Gilt auch für lose Tooltips. | 21.11.2026 |
+
+### Meldungen nur als Brief (Branch phase5/meldungen-nur-brief)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einblendung | Das Pergament-Fenster mit Siegel, Titel und Text entfällt ganz (`EinblendungAnzeige`, `Einblendungsreihe`, ihre Tests, Varianten und Maße im Thema). Jede Meldung der Stufe Siegel oder Brief erscheint nur als geschlossener Faltbrief in der Ecke; Ton bleibt (Siegel-Klopfer, Glocke bei Gefahr). | Nutzer 21.11.2026 |
+| Öffnen | Nur per Klick auf den Faltbrief; `BriefAnzeige.Einreihen` (öffnete von selbst), der Aufschub hinter Sitzung und Stimmrunde (`Briefaufschub`, `Briefphase`, `BriefAnzeige.Ruht`) und ihre Tests sind samt dem ungenutzten `EinzelBrief` entfernt (die Ecke ist dort ohnehin verdeckt). | Nutzer 21.11.2026 |
+| Tempo | Aufklappen mit `brief_gross_tempo_prozent` = 400 (statt Clip-Länge, etwa 0,23 s); bei „Siegel und Briefe bewegen“ aus weiter sofort offen. Der Schalter bleibt, sein Hilfetext stimmt weiter. | selbst entschieden |
+| Schließen | ✕, „Weglegen“, „Hinsehen“ und der Zielknopf legen den ganzen Stapel weg, ohne Zufalten (`BriefAnzeige.Weglegen`). | Nutzer 21.11.2026 |
+| Stufe Brief | Gleicher Weg wie Siegel (stapelt nach Thema); Jahresbericht, Nacht, Starthinweis, Fristbrief sind eigene Faltbriefe mit Schlüssel `brief:…`, ohne Stapel. | selbst entschieden |
+
