@@ -253,12 +253,27 @@ def zwerchhaus_waende(h, s1, zm):
         h.vieleck("Fachwerk", [P(ya, z0), P(yb, z0), P(yb, zb), P(ya, za)], [(u0, v1), (u0, v0), (u0 + (zb - z0) / bm, v0), (u0 + (za - z0) / bm, v1)], weg_von=mitte)
         if i == bahnen // 2:                               # Spitze ueber der mittleren Bahn
             h.vieleck("Fachwerk", [P(ya, za), P(yb, zb), P(yc, zr)], [(u0 + (za - z0) / bm, v1), (u0 + (zb - z0) / bm, v0), (u0 + (zr - z0) / bm, (v0 + v1) / 2)], weg_von=mitte)
+    import wohnhaus_mensch_s1_g1 as g1
+    if g1.FACHWERK_ECHT:   # echtes Fachwerk (Nutzer 21.11.2026): Pfosten, Raehm, Bruestungsriegel und Giebelstreben als eine Holzlage
+        import holzlage
+        dreieck = [(yc - w, ze), (yc + w, ze), (yc, zr)]
+        lage = holzlage.Holzlage(umriss=dreieck)          # Holzenden am Dachrand gelten als angeschlossen (darueber liegt das Zwerchdach)
+        lage.holz((yc - w, ze - 0.06), (yc + w, ze - 0.06), 0.12, "balken_b", 0, gerade=True)                    # Raehm
+        for yy in (yc - w + 0.06, yc + w - 0.06):
+            lage.holz((yy, z0), (yy, ze - 0.12), 0.12, "balken_a", 0, gerade=True)                             # Eckpfosten
+        lage.holz((yc - w + 0.12, z0 + 0.45), (yc + w - 0.12, z0 + 0.45), 0.10, "balken_b", 2, gerade=True)   # Bruestungsriegel
+        for yy in (yc - w + 0.20, yc + w - 0.20):                                                               # Streben im Giebel
+            lage.holz((yy, ze), (yc, zr), 0.10, "balken_c", 1, zuschnitt=dreieck)
+        befunde = lage.pruefen()
+        if befunde: print("HOLZLAGE zwerchhaus", befunde[:3])
+        lage.bauen(h, lambda s_, z_, r_: Vector((xf + s * r_, s_, z_)), n, tiefe=0.05)
     # je Holz eine eigene Tiefe (gleiche Tiefe hiesse deckungsgleiche Flaechen an den Kreuzungen: flackern, backen schwarz)
-    for yy in (yc - w + 0.06, yc + w - 0.06):
+    for yy in ((yc - w + 0.06, yc + w - 0.06) if not g1.FACHWERK_ECHT else ()):
         h.brett("Fachwerk", P(yy, z0), P(yy, ze - 0.12), 0.12, n, "balken_a", tiefe=0.050)          # Eckpfosten bis unter das Raehm
-    h.brett("Fachwerk", P(yc - w, ze - 0.06), P(yc + w, ze - 0.06), 0.12, n, "balken_b", tiefe=0.056)   # Raehm
-    h.brett("Fachwerk", P(yc - w + 0.12, z0 + 0.45), P(yc + w - 0.12, z0 + 0.45), 0.10, n, "balken_b", tiefe=0.062)   # Bruestungsriegel
-    for yy in (yc - w + 0.20, yc + w - 0.20):                                       # Streben im Giebel, ueber dem Raehm
+    if not g1.FACHWERK_ECHT:
+        h.brett("Fachwerk", P(yc - w, ze - 0.06), P(yc + w, ze - 0.06), 0.12, n, "balken_b", tiefe=0.056)   # Raehm
+        h.brett("Fachwerk", P(yc - w + 0.12, z0 + 0.45), P(yc + w - 0.12, z0 + 0.45), 0.10, n, "balken_b", tiefe=0.062)   # Bruestungsriegel
+    for yy in ((yc - w + 0.20, yc + w - 0.20) if not g1.FACHWERK_ECHT else ()):        # Streben im Giebel, ueber dem Raehm
         h.brett("Fachwerk", P(yy, ze + 0.02), P(yc + (0.06 if yy > yc else -0.06), zr - 0.16), 0.10, n, "balken_c", tiefe=0.044 if yy < yc else 0.040)
     # Seitenwaende (Putz): Dreieck zwischen Front, Traufe des Zwerchdachs und Hauptdach
     for yy in (yc - w, yc + w):

@@ -29,6 +29,7 @@ from netzbau import ROT, Teil                                      # noqa: E402
 from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN  # noqa: E402
 import holzlage                                                    # noqa: E402  (echtes Fachwerk: eine Holzlage je Wand, Nutzer 21.11.2026)
 
+GIEBEL_LAGEN = []          # gebaute Holzlagen der Giebel: (Punkt x=0 der Giebelebene, Normale, Traufe, First, Lage)
 LAGEN = []                 # gebaute Holzlagen der Waende: (Punkt s=0 der Wand, Normale, z0, z1, Lage) – fuer die Laeden (nur auf freiem Gefach)
 OHNE_SPITZE = [None]       # Giebel mit dem Ochsenauge der Halblinge: ueber dieser Hoehe keine Hoelzer (Spitzsaeule, Hahnenbalken, Streben)
 FACHWERK_ECHT = False      # echtes Fachwerk (buendig, geschlossen, Spalt 0); setzen die Einstiege der Menschen und Halblinge der Stufe 1
@@ -194,10 +195,30 @@ def fachwerk_wand_lage(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True,
     LAGEN.append((Vector(P(0.0, 0.0)), Vector(n3), z0, z1, lage))
 
 
+class _Verschoben:
+    """Eine Giebel-Holzlage (Koordinate x) in den Wandkoordinaten s = x - dx eines Fensters (fuer laeden_frei)."""
+
+    def __init__(self, lage, dx):
+        object.__setattr__(self, "_lage", lage)
+        object.__setattr__(self, "_dx", dx)
+        object.__setattr__(self, "hoelzer", [([(x - dx, z) for x, z in poly],) + tuple(rest) for poly, *rest in lage.hoelzer])
+        object.__setattr__(self, "laeden", getattr(lage, "laeden_v", {}).get(round(dx, 4), []))
+
+    def __setattr__(self, name, wert):
+        if name == "laeden":
+            if not hasattr(self._lage, "laeden_v"): self._lage.laeden_v = {}
+            self._lage.laeden_v[round(self._dx, 4)] = wert
+        object.__setattr__(self, name, wert)
+
+
 def lage_von(p0, n3, z):
-    """Die Holzlage der Wand mit dem Ursprung p0 und der Normale n3, die die Hoehe z umfasst (oder None)."""
+    """Die Holzlage der Wand mit dem Ursprung p0 und der Normale n3, die die Hoehe z umfasst (oder None). Giebel (Normale +-y) sind in
+    x gebaut: sie werden auf den Ursprung der Fensterwand verschoben."""
+    p0, n3 = Vector(p0), Vector(n3)
     for q, n, z0, z1, lage in LAGEN:
-        if (q - Vector(p0)).length < 1e-4 and (n - Vector(n3)).length < 1e-4 and z0 - 1e-4 <= z <= z1 + 1e-4: return lage
+        if (q - p0).length < 1e-4 and (n - n3).length < 1e-4 and z0 - 1e-4 <= z <= z1 + 1e-4: return lage
+    for q, n, z0, z1, lage in GIEBEL_LAGEN:
+        if abs(q.y - p0.y) < 0.06 and (n - n3).length < 1e-4 and z0 - 1e-4 <= z <= z1 + 1e-4: return _Verschoben(lage, p0.x)
     return None
 
 
@@ -333,6 +354,7 @@ def giebel_fachwerk_lage(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung
         g0, g1 = achsen[k] + b / 2, achsen[k + 1] - b / 2
         if g1 - g0 > 1.30 + 1e-6: print("HOLZLAGE Gefach Giebel", f"{g1 - g0:.2f} m")
     _bauen(h, lage, lambda s_, z_: (s_, y, z_), (0, aussen, 0), "giebel", wand=(-ox, ox))
+    GIEBEL_LAGEN.append((Vector((0.0, y, 0.0)), Vector((0, aussen, 0)), zt, zf, lage))
     return zk
 
 
@@ -469,7 +491,7 @@ def baue_haus():
         # Rahmen (unten Fensterbank), Fensterkreuz in der Wandmitte
         # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
         lage = lage_von(punkt(wand, 0.0, 0.0), n3, (z0 + z1) / 2) if FACHWERK_ECHT else None
-        if lage is None:   # echtes Fachwerk: der Brustriegel ist die Bank
+        if lage is None or isinstance(lage, _Verschoben):   # echtes Fachwerk: der Brustriegel ist die Bank (im Giebel bleibt die Bank)
             h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
         if eg and lage is None:
             h.brett(holz, P(s0 - 0.12, z1 + 0.06), P(s1 + 0.12, z1 + 0.06), 0.12, n3, "balken_c", tiefe=0.06)

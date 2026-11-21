@@ -334,7 +334,7 @@ def baue_haus():
             continue
         # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
         lage = g1.lage_von(punkt(wand, 0.0, 0.0), n3, (z0 + z1) / 2) if g1.FACHWERK_ECHT else None
-        if lage is None:   # echtes Fachwerk: der Brustriegel ist die Bank
+        if lage is None or isinstance(lage, g1._Verschoben):   # echtes Fachwerk: der Brustriegel ist die Bank (im Giebel bleibt die Bank)
             h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)          # Fensterbank
         fensterstock(h, holz, wand, s0, s1, z0, z1, "balken_c")
         # Laeden: zur Gasse zwei Fluegel, sonst einer; offen an der Wand, Eckenfarbe Rot = Akzentfarbe je Haus
