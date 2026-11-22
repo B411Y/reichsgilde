@@ -269,3 +269,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schließen | ✕, „Weglegen“, „Hinsehen“ und der Zielknopf legen den ganzen Stapel weg, ohne Zufalten (`BriefAnzeige.Weglegen`). | Nutzer 21.11.2026 |
 | Stufe Brief | Gleicher Weg wie Siegel (stapelt nach Thema); Jahresbericht, Nacht, Starthinweis, Fristbrief sind eigene Faltbriefe mit Schlüssel `brief:…`, ohne Stapel. | selbst entschieden |
 
+
+### Briefablage im Kontorbuch (Branch phase5/briefablage)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Der Reiter „Verlauf“ des Berichts (Kontorbuch, Lade-Fach „Bericht“) heißt **Briefablage**; kein neuer Knopf. Startoption `--bericht=protokoll` bleibt | 22.11.2026 |
+| Speicherung | Die Ablage liest `Stadtwirtschaft.Meldungsverlauf` (500 Meldungen, schon im Spielstand); nach dem Laden bleibt sie. Kern und `Speicherstand.cs` unverändert; mehr als 500 würde eine Kern-Änderung brauchen | 22.11.2026 |
+| Eintrag | Datum, Absender (`Art.Absender`), Betreff (`Art.Titel`), Text (höchstens 3 Zeilen); Ablage in Typ-Varianten der Zunftlade (`LadeText`, `LadeTextLeise`, `LadeTextWarnung`, `LadeKnopfKlein`), Maße `ablage_*` in `zunftlade_thema.tres` | 22.11.2026 |
+| Filter | Herkunft (Alles, Mein Haus, Rivalen) und Art (die sechs Themen aus `meldungen.json`) zugleich; 60 Einträge, „Ältere Briefe“ mehr | 22.11.2026 |
+| Klick | Legt den Brief wie damals auf (`Hauptszene.AblageBriefOeffnen`: Absender, Betreff, Text, Porträt, Zielknopf), statt gleich zum Ziel zu springen | 22.11.2026 |
