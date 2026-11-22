@@ -199,6 +199,10 @@ public sealed record WirtschaftStand
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public BlitzStand? Blitz { get; init; }
 
+    /// <summary>Die städtische Brandkasse (Nutzer 22.11.2026). Null: alter Spielstand oder keine Brandkasse in den Daten – leerer Topf, keine Mitglieder.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public BrandkasseStand? Brandkasse { get; init; }
+
     /// <summary>
     /// Geheimnisse, wer was weiß, erpresste Ratsstimmen, Spitzel auf Ratsherren, Anzeigen gegen Ratsherren, Schande (Charaktersystem Teil 3c).
     /// Nur mit dem Abschnitt "geheimnisse" geschrieben – alte Spielstände bleiben Byte für Byte, wie sie waren.
@@ -340,6 +344,21 @@ public sealed record SchandeStand
     public int Bis { get; init; }
 }
 
+/// <summary>Die städtische Brandkasse (siehe <see cref="Reichsgilde.Core.Gefahren.Brandkasse"/>).</summary>
+public sealed record BrandkasseStand
+{
+    public double Topf { get; init; }
+
+    /// <summary>Die Mitglieder (Kontonummer) mit dem Jahr ihres Beitritts, in der Reihenfolge des Beitritts.</summary>
+    public List<BrandkassenmitgliedStand> Mitglieder { get; init; } = new();
+}
+
+public sealed record BrandkassenmitgliedStand
+{
+    public int Konto { get; init; }
+    public int SeitJahr { get; init; }
+}
+
 /// <summary>Die Einschläge des Blitzwesens (siehe <see cref="Reichsgilde.Core.Gefahren.Blitzwesen"/>).</summary>
 public sealed record BlitzStand
 {
@@ -348,6 +367,10 @@ public sealed record BlitzStand
 
     /// <summary>Gewürfelte Sprünge, die erst noch kommen (ihr Schaden ist noch nicht gebucht).</summary>
     public List<BlitzeinschlagStand> Spruenge { get; init; } = new();
+
+    /// <summary>Bis wann Dom („dom“), Rathaus („rathaus“) bzw. eine Kirche („kirche:&lt;Betrieb&gt;“) instand gesetzt wird (Nutzer 22.11.2026). Null: keine.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, long>? Instand { get; init; }
 }
 
 /// <summary>Ein Einschlag: Zeit, Ziel (Betrieb per Name, Bewohner per Kontonummer), Schwere und Ursache.</summary>
@@ -366,6 +389,10 @@ public sealed record BlitzeinschlagStand
     public double Schwere { get; init; }
     public Reichsgilde.Core.Gefahren.Brandursache Ursache { get; init; }
     public string? Von { get; init; }
+
+    /// <summary>Dom bzw. Rathaus (Nutzer 22.11.2026); null: kein Bau der Stadt.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Reichsgilde.Core.Gefahren.Stadtbauart? Stadtbau { get; init; }
 }
 
 /// <summary>Die Stadtkasse (siehe <see cref="Reichsgilde.Core.Politik.Stadtkasse"/>).</summary>

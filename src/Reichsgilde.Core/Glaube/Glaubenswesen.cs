@@ -451,6 +451,9 @@ public sealed class Glaubenswesen
         _stimmen.Remove(konto);
     }
 
+    /// <summary>Der Antrag entfällt ohne Abstimmung (die Ratssitzung tagt nach einem Rathausbrand ohne Anträge).</summary>
+    internal void AntragVerwerfen() => Antrag = null;
+
     /// <summary>In der Ratssitzung, nach dem Statut: Abstimmung über den vorliegenden Antrag auf einen Stadtglauben.</summary>
     internal (int Ja, int Nein, int Enthaltung, bool? Buergermeister, bool Angenommen) Abstimmen(int jahr, Action<string> protokoll)
     {
