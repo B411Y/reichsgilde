@@ -33,7 +33,7 @@ static class BalancingberichtNeuTests
             Pruefe.Wahr(r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer) > 0, "Steuer in der Kasse");
             // Die Steuer der Häuser geht in die Kasse (im zweiten Jahr: Vorjahr der Häuser = Kassenbuch des Vorjahres)
             Pruefe.Ungefaehr(r.Haeuser.Sum(h => h.Jahre[^1].Steuer), r.Kassenposten[Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer]
-                - SteuerImErstenJahr(), 1e-6);
+                + r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Feuersteuer) - SteuerImErstenJahr(), 1e-6); // die Feuersteuer steckt in der Steuer der Häuser
         }),
 
         ("Bericht: Ohne Schiffshandel kauft niemand ein Schiff, die Daten sind sonst gleich", () =>
@@ -109,6 +109,7 @@ static class BalancingberichtNeuTests
     static double SteuerImErstenJahr()
     {
         var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Bezug: Bezugsart.Passiv), Quellen.Value); // wie oben ohne Los
-        return r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer);
+        return r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer)
+               + r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Feuersteuer);
     }
 }

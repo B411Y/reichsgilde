@@ -32,6 +32,9 @@ import luecken_pruefung as L                                              # noqa
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 RAEUME_JSON = os.path.join(os.path.dirname(HIER), "raeume", "ao_atlas.json")
 DREIECKE_HUELLE = 4000
+DREIECKE_FACHWERK = 6000              # Fachwerkhaeuser Mensch/Halbling (Nutzer 21.11.2026: echtes Fachwerk); alle anderen 4.000
+DREIECKE_HOECHSTENS = 8000            # allgemeine Hoechstgrenze fuer Wohnhaeuser (Nutzer 21.11.2026); keine Grenze liegt darueber
+FACHWERK_STUFEN = (1, 2)              # Mensch: Stufe 1 Fachwerkhaus, Stufe 2 Fachwerk-Obergeschoss (Stufe 3 Stein)
 ATLAS_JSON = None                     # --atlas-json (Gegenprobe: Atlasplan des alten Stands)
 # Figuren (Hoehe, Schulterbreite) wie zwerg_masse.py der Zwerg-Schicht; Tuer = Hoehe + 0,20 und Schulter + 0,30
 FIGUREN = {"Mensch": (1.75, 0.46), "Elb": (1.85, 0.44)}
@@ -261,8 +264,9 @@ def main():
     import blick_licht_haeuser as BL
     z, f = BL.blick_licht(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= DREIECKE_HUELLE else 1
+    grenze = min(DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else DREIECKE_HUELLE, DREIECKE_HOECHSTENS)
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {grenze}) -> {'ok' if summe <= grenze else 'FEHLER'}")
+    fehler += 0 if summe <= grenze else 1
     z, f = tueren(stufe, form); zeilen += z; fehler += f
     z22, f22 = fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22

@@ -1986,6 +1986,19 @@ Der Blitzschaden ist damit eine spürbare, aber seltene Störung: einmal in rund
 
 **Probe mit „Hafen ruht“** (NAS, `messen blitz 20 4`, gemessen auf main 3f2bdf8c + dieser Branch e776abd7, Datenversion 71): dieselben Einschläge und Sprünge wie in der Kurzmessung (1,00 Einschläge, Sprünge Greybox 0,75, Köln 0,25 je Partie), Treffer Greybox Spieler und KI je 0,25, Köln 0, Reparatur Greybox 121 Gulden je Partie, höchstens 0,5 Stück Ware verbrannt. Der ruhende Schiffshandel ändert am Blitz nichts; das Vermögen streut wie zuvor in beide Richtungen.
 
+### Feuersteuer statt Brandkasse (Nutzer 22.11.2026, Datenversion 96)
+
+Die Brandkasse (Beitritt, Topf, 60 % Erstattung) ist entfallen. Die Reparatur von Werkstatt und Wohnhaus eines Hauses zahlt die Stadtkasse (Posten „Brandschaden“, wie Dom und Rathaus nie unter 0; den Rest und das verbrannte Lager trägt das Haus). Dafür `blitz.feuersteuer` = 0,0005: ein fester Aufschlag auf die Umsatzsteuer (bei 3 % also 3,05 %), Posten „Feuersteuer“ der Stadtkasse, `Jahresbilanz.Feuersteuer` als Davon-Zeile der Steuer. Der Rat ändert nur den Steuersatz.
+
+**Messung** (`messen blitz 20 6 --berufe=Schmied`, NAS, gemessen auf main b9c9bc14 + dieser Branch 4f430a31, zunächst mit dem Probewert 0,0025; je Karte 6 Startwerte, 20 Jahre; „ohne“ = Blitzschaden wie Daten 68):
+
+| Karte | Einschläge/Partie | Sprünge/Partie | Reparatur Häuser/Partie | Kasse Brandschaden/Jahr | Umsatzsteuer/Jahr | Feuersteuer/Jahr bei 0,0025 |
+|---|---|---|---|---|---|---|
+| Greybox | 1,00 | 0,50 | 13 | 5,3 | 1.568 | 90 |
+| Köln | 1,00 | 0,17 | 34 | 0,0 | 3.061 | 178 |
+
+Erwartungswert der Brandschäden je Stadt und Jahr: Häuser 13–34 Gulden je 20 Jahre (unter 2 je Jahr); dazu Dom und Rathaus, die in diesen Partien nicht getroffen wurden – grob ein Viertel der Einschläge trifft sie (Messung PR #294), also etwa 0,05 Einschläge × ¼ × 300–1.000 Gulden ≈ 4–13 je Jahr. Zusammen also etwa 5–15 Gulden je Jahr, aber selten und dann in einem Stück (ein Dombrand bis 1.000). In Köln zahlte die Kasse 0, obwohl Häuser brannten: Sie stand zu der Zeit im Minus (siehe Stadtkasse, die Kasse ist oft im Minus) – der Puffer ist deshalb großzügig. Der Probewert 0,0025 brachte 90–178 je Jahr, gut das Zehnfache des Bedarfs; **gewählt 0,0005** (ein Fünftel): etwa 18 (Greybox) bis 36 (Köln) Gulden je Jahr, das Zwei- bis Dreifache des Erwartungswerts, und etwa 1,7 % der heutigen Steuer (0,05 von 3 Prozentpunkten). Auf das Vermögen der Häuser wirkt das nicht messbar (Spieler und KI mit/ohne innerhalb des Rauschens).
+
 ## Ein Lehrling zum Start (PR #318, Datenversion 72, 4.11.2026)
 
 **Regel** (Entscheidung des Nutzers, 4.11.2026): Zum Beginn der Partie hat jeder Startbetrieb **einen Anfänger** – beim Spieler und bei den KI-Häusern gleich (Mehrspieler-Fairness), bei „Schwer“ auch der Umlandbetrieb der KI (ein Knecht bzw. Ork statt drei). Vorher waren es zwei Anfänger in der Stadt und drei im Umland, fest in `Partieaufbau`. Jetzt steht die Zahl in den Daten: `personal.startJeBetrieb` = 1 (`Personalwesen.StartAnzahl`, höchstens die Plätze des Betriebs; ohne Angabe wie bis Datenversion 71). Weitere Lehrlinge stellt jeder selbst ein – das kostet nichts und wirkt sofort, der Lohn (120 Gulden im Jahr) kommt am Jahresende. Startgeld, Löhne, Erfahrung und Briefe bleiben.

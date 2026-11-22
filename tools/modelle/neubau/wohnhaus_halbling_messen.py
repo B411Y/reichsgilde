@@ -739,6 +739,15 @@ def innen_s23(haus, ordner, M, dx, lade, S23):
     return zeilen, fehler
 
 
+FACHWERK_STUFEN = (1, 2)              # Fachwerkhaeuser der Halblinge (Stufe 1 ganz, Stufe 2 Obergeschoss und Giebel)
+
+
+def grenze_dreiecke(stufe):
+    """Dreiecksgrenze der Huelle: 6.000 fuer Fachwerkhaeuser Mensch/Halbling (echtes Fachwerk, Nutzer 21.11.2026), sonst 4.000."""
+    import wohnhaus_mensch_messen as WM
+    return min(WM.DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else Z.DREIECKE_HUELLE, WM.DREIECKE_HOECHSTENS)
+
+
 def main_s23(haus, ordner, form, stufe, opt):
     """Messung der Stufen 2 und 3: die Pruefungen der Menschen (wohnhaus_mensch_s23_messen: 1-11, 12-15 Huelle und Wohnstube, 16-19),
     Raeume (12-15), 12b/12c, 20 Dreiecke (Huelle; Raeume getrennt), 21 Tueren, 22 Fahnenmast, 24 Glas innen, 25 Rundbogen, 26 Dach und Stein nach den Vorlagen (dach_s23),
@@ -766,8 +775,9 @@ def main_s23(haus, ordner, form, stufe, opt):
     z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f
     z, f = pixel_baender(glb, stufe, texturen, opt); zeilen += z; fehler += f
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    grenze = grenze_dreiecke(stufe)
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {grenze}) -> {'ok' if summe <= grenze else 'FEHLER'}")
+    fehler += 0 if summe <= grenze else 1
     z, f = tueren_s23(M, form, stufe); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
@@ -827,8 +837,9 @@ def main():
     z19, f19 = Z.wappen_frei(glb)
     zeilen.append(f"19. Wappen frei (5 cm zu Laden, Fenster, Gewaende, Holz, Vordach): {'ok' if not f19 else str(f19) + ' FEHLER'}"); zeilen += z19; fehler += f19
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    grenze = grenze_dreiecke(stufe)
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {grenze}) -> {'ok' if summe <= grenze else 'FEHLER'}")
+    fehler += 0 if summe <= grenze else 1
     z, f = tueren(form); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22

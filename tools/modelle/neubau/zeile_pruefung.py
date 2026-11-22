@@ -51,6 +51,18 @@ TEXTUREN = os.path.join(WURZEL, "game", "assets", "texturen", "neubau")
 DREIECKE = {"k_g4": 2000, "k_g6": 2500, "k_g8": 3000, "k_t6": 2500, "k_t8": 3000, "eck": 4000, "seite_blind": 300, "kappe_brand": 300,
             "gasse": 300, "seite_offen": 800, "kappe_offen": 800, "mauer": 100, "pfeiler": 100, "tor": 100, "hinterhaus": 300}
 HAUS_HOECHSTENS = 4000
+FACHWERK_FAKTOR, FACHWERK_HAUS = 1.5, 6000   # Saetze mit echtem Fachwerk (Mensch/Halbling, Nutzer 21.11.2026): Module x1,5, Haus 6.000
+FACHWERK_REICH = {"mensch_s3": (2.0, 8000)}  # zwei Fachwerkgeschosse mit reichen Figuren (Nutzer 21.11.2026 „S3 A“): x2,0, Haus 8.000
+WOHNHAUS_HOECHSTENS = 8000                    # allgemeine Hoechstgrenze fuer Wohnhaeuser (Nutzer 21.11.2026)
+
+
+def grenzen_dreiecke():
+    """Grenzen je Modul und je Haus fuer den aktuellen Satz (Z.S): mit echtem Fachwerk hoeher, sonst wie oben; nie ueber 8.000."""
+    satz = Z.S["satz"]
+    if satz in getattr(Z, "FACHWERK_ECHT", {}):
+        faktor, haus = FACHWERK_REICH.get(satz, (FACHWERK_FAKTOR, FACHWERK_HAUS))
+        return {m: min(int(g * faktor), WOHNHAUS_HOECHSTENS) for m, g in DREIECKE.items()}, min(haus, WOHNHAUS_HOECHSTENS)
+    return DREIECKE, HAUS_HOECHSTENS
 KOERPER = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8"]
 AO_MITTEL, AO_DUNKEL, DUNKEL_ANTEIL = 0.45, 0.12, 0.10
 NAHT_MIN = 4
@@ -107,17 +119,18 @@ def pruefe_module(netze, anker, melde):
         for v in varianten(netze, m):
             if "Tuer_" + v not in anker:
                 melde(f"FEHLER Anker Tuer_{v} fehlt")
+    grenze, haus_hoechstens = grenzen_dreiecke()
     zahl = {m: dreiecke(o) for m, o in netze.items() if basis(m) in DREIECKE}
     for m in sorted(zahl, key=lambda n: (list(DREIECKE).index(basis(n)), n)):
-        zu_viel = zahl[m] > DREIECKE[basis(m)]
-        melde(f"{'FEHLER ' if zu_viel else ''}Dreiecke {m}: {zahl[m]} (hoechstens {DREIECKE[basis(m)]})", fehler=zu_viel)
+        zu_viel = zahl[m] > grenze[basis(m)]
+        melde(f"{'FEHLER ' if zu_viel else ''}Dreiecke {m}: {zahl[m]} (hoechstens {grenze[basis(m)]})", fehler=zu_viel)
     groesste = lambda modul: max((zahl[v] for v in varianten(netze, modul)), default=0)
     for m in KOERPER:
         for v in varianten(netze, m):
             seiten = ("seite_offen", "seite_offen") if m.startswith("k_g") else ("kappe_offen", "kappe_brand")
             summe = zahl[v] + sum(groesste(s) for s in seiten)
-            melde(f"{'FEHLER ' if summe > HAUS_HOECHSTENS else ''}Haus {v} mit {seiten[0]} und {seiten[1]}: {summe} Dreiecke (hoechstens {HAUS_HOECHSTENS})",
-                  fehler=summe > HAUS_HOECHSTENS)
+            melde(f"{'FEHLER ' if summe > haus_hoechstens else ''}Haus {v} mit {seiten[0]} und {seiten[1]}: {summe} Dreiecke (hoechstens {haus_hoechstens})",
+                  fehler=summe > haus_hoechstens)
 
 
 DACH_STOFFE = ("Stroh", "Strohkante")

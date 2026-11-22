@@ -14,6 +14,7 @@ using Reichsgilde.Core.Wirtschaft;
 //  und „ohne“ (Blitzschaden wie bis Datenversion 68: nur Stillstand und fehlendes Ansehen, kein Sprung). Das Wetter und die Einschläge sind
 //  in beiden gleich (eigener Zufall des Gewitters); der Unterschied im Reinvermögen ist die Wirkung des Schadens.
 //  Gemessen je Partie: Einschläge, Sprünge, davon in Häuser des Spielers bzw. der KI, Reparatur und verbrannte Stück; Reinvermögen am Ende.
+//  Dazu die Stadtkasse je Jahr: Posten Brandschaden (Dom, Rathaus, Werkstätten und Wohnhäuser), Umsatzsteuer und Feuersteuer.
 // ═════════════════════════════════════════════════════════════════════════════
 
 static class Blitzmessung
@@ -24,6 +25,10 @@ static class Blitzmessung
         public double Reparatur;
         public int Verbrannt;
         public bool Angemeldet;
+
+        // Stadtkasse je abgeschlossenem Jahr (Feuersteuer, Nutzer 22.11.2026): Brandschaden, Umsatzsteuer, Feuersteuer
+        public int Kassenjahre, LetztesJahr = int.MinValue;
+        public double Brandschaden, Umsatzsteuer, Feuersteuer;
     }
 
     public static int Erstellen(string[] args)
@@ -59,17 +64,20 @@ static class Blitzmessung
         foreach (var (a, (r, _)) in ergebnisse.Where(x => x.Value.P.Fehler is not null).Take(5)) Console.Error.WriteLine($"FEHLER in {a}: {r.Fehler}");
 
         Console.WriteLine($"Datenversion {Wirtschaftsdaten.AusJson(quellen["mit"].Wirtschaft).Version}, {jahre} Jahre, {startwerte} Startwerte, main {Balancingbericht.Git("rev-parse --short origin/main")}, Stand {Balancingbericht.Git("rev-parse --short HEAD")}");
-        Console.WriteLine("Karte | Beruf | Variante | Einschläge/Partie | Sprünge/Partie | Treffer Spieler/Partie | Treffer KI/Partie | Reparatur/Partie | verbrannt Stück/Partie | Spieler Rein J" + jahre + " | KI Rein J" + jahre);
+        Console.WriteLine("Karte | Beruf | Variante | Einschläge/Partie | Sprünge/Partie | Treffer Spieler/Partie | Treffer KI/Partie | Reparatur/Partie | verbrannt Stück/Partie | Spieler Rein J" + jahre + " | KI Rein J" + jahre +
+                          " | Kasse Brandschaden/Jahr | Umsatzsteuer/Jahr | Feuersteuer/Jahr");
         foreach (var g in ergebnisse.Where(x => x.Value.P.Fehler is null)
                      .GroupBy(x => (x.Key.Item2.Karte, x.Key.Item2.Beruf, Variante: x.Key.Item1))
                      .OrderBy(x => x.Key.Karte, StringComparer.Ordinal).ThenBy(x => x.Key.Beruf, StringComparer.Ordinal).ThenBy(x => x.Key.Variante, StringComparer.Ordinal))
         {
             var liste = g.Select(x => x.Value).ToList();
             double Je(Func<Zaehler, double> f) => liste.Average(x => f(x.Z));
+            double JeJahr(Func<Zaehler, double> f) => liste.Sum(x => f(x.Z)) / Math.Max(1, liste.Sum(x => x.Z.Kassenjahre));
             var spieler = liste.Average(x => x.P.Spieler.Im(jahre).Rein);
             var ki = liste.SelectMany(x => x.P.Ki.Select(h => h.Im(jahre).Rein)).DefaultIfEmpty(0).Average();
             Console.WriteLine($"{g.Key.Karte} | {g.Key.Beruf} | {g.Key.Variante} | {Je(z => z.Einschlaege):0.00} | {Je(z => z.Spruenge):0.00} | {Je(z => z.Spieler):0.00} | " +
-                              $"{Je(z => z.Ki):0.00} | {Je(z => z.Reparatur):0} | {Je(z => z.Verbrannt):0.0} | {spieler:0} | {ki:0}");
+                              $"{Je(z => z.Ki):0.00} | {Je(z => z.Reparatur):0} | {Je(z => z.Verbrannt):0.0} | {spieler:0} | {ki:0} | " +
+                              $"{JeJahr(z => z.Brandschaden):0.0} | {JeJahr(z => z.Umsatzsteuer):0} | {JeJahr(z => z.Feuersteuer):0.0}");
         }
         return ergebnisse.Values.Any(x => x.P.Fehler is not null) ? 1 : 0;
     }
@@ -91,6 +99,14 @@ static class Blitzmessung
     /// <summary>Zur ersten vollen Stunde: die Meldungen „Blitzschlag!“ und „Funkenflug!“ zählen (Ziel aus dem jüngsten Einschlag).</summary>
     static void Anmelden(Stadtwirtschaft w, Zaehler z)
     {
+        if (w.Kasse.Vorjahr is { } v && v.Jahr != z.LetztesJahr)
+        {
+            z.LetztesJahr = v.Jahr;
+            z.Kassenjahre++;
+            z.Brandschaden += v[Reichsgilde.Core.Politik.Kassenposten.Brandschaden];
+            z.Umsatzsteuer += v[Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer];
+            z.Feuersteuer += v[Reichsgilde.Core.Politik.Kassenposten.Feuersteuer];
+        }
         if (z.Angemeldet) return;
         z.Angemeldet = true;
         w.Meldung += m =>

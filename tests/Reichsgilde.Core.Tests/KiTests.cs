@@ -46,7 +46,7 @@ static class KiTests
             var w = NeueSimulation().Wirtschaft!;
             var ki = w.KiAnmelden(w.KontoEroeffnen("Rivale"));
             var m = w.Markt;
-            var steuer = w.Daten.Allgemein.Umsatzsteuer;
+            var steuer = w.Umsatzsteuer; // samt Feuersteuer
             var d = w.Daten.Waren;
             Pruefe.Ungefaehr((m["Silberring"].Preis * (1 - steuer) - m["Eisen"].Preis - m["Silber"].Preis) / d["Silberring"].Zeit,
                              ki.GewinnJeArbeitsminute("Silberring"), 1e-9);

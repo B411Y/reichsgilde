@@ -15,9 +15,10 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class StadtkasseTests
 {
-    static readonly Lazy<string> Json = new(() => Datenpfad.OhneAktionspunkte(Datenpfad.OhneJahreszeiten(Datenpfad.MitSchiffshandel()))); // Hafenzoll und Hafenausbau brauchen Schiffe
+    // Hafenzoll und Hafenausbau brauchen Schiffe; ohne Feuersteuer, damit der Steuersatz der des Rates ist (die Feuersteuer prüfen die FeuersteuerTests)
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneAktionspunkte(Datenpfad.OhneJahreszeiten(Datenpfad.MitSchiffshandel(Datenpfad.OhneFeuersteuer()))));
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
-    static readonly Lazy<Wirtschaftsdaten> MitAp = new(() => Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel()));
+    static readonly Lazy<Wirtschaftsdaten> MitAp = new(() => Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Datenpfad.OhneFeuersteuer())));
 
     internal static Simulation NeueSimulation(Wirtschaftsdaten? daten = null, Spielzeit? zeit = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, zeit, daten ?? Daten.Value);

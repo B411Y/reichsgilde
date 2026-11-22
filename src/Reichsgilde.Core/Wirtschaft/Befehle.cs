@@ -70,12 +70,6 @@ public sealed record WegPflasterBeantragen(int Weg, double Von, double Bis) : Be
 /// <summary>Einen Hauswächter fürs Wohnhaus einstellen oder entlassen (kostet wie ein Betriebswächter).</summary>
 public sealed record HauswaechterSetzen(bool Angestellt) : Befehl;
 
-/// <summary>Der städtischen Brandkasse beitreten: Beitrag am Jahresende, gedeckt ab dem nächsten Jahr (siehe <see cref="Gefahren.Brandkasse"/>).</summary>
-public sealed record BrandkasseBeitreten : Befehl;
-
-/// <summary>Aus der Brandkasse austreten (die Beiträge bleiben im Topf).</summary>
-public sealed record BrandkasseAustreten : Befehl;
-
 /// <summary>
 /// Eine freie Werkstatt kaufen oder eine Grube pachten (Name aus "liegenschaften").
 /// Voraussetzungen: Mindeststand erreicht, Kaufpreis und die Kosten des ersten Jahres bezahlbar.

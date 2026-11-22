@@ -239,6 +239,12 @@ def schicht_anlegen():
         F = s1.F
         wand_y = F.WAENDE[F.OCHSENAUGE][0][1]
         if abs(y - wand_y) < 1e-6:
+            if g1.FACHWERK_ECHT:                            # echtes Fachwerk: die Holzlage laesst die Hoelzer ueber dem Kehlbalken weg
+                g1.OHNE_SPITZE[0] = z_oeffnung[1] + 0.12
+                try:
+                    return alt_giebel(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n)
+                finally:
+                    g1.OHNE_SPITZE[0] = None
             h = OhneSpitze(h, z_oeffnung[1] + 0.12)
         return alt_giebel(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n)
     g1.giebel_fachwerk = giebel
@@ -441,4 +447,5 @@ def main():
 
 
 if __name__ == "__main__":
+    g1.FACHWERK_ECHT = True                           # echtes Fachwerk (Nutzer 21.11.2026)
     main()
