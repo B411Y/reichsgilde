@@ -29,6 +29,8 @@ import wohnhaus_elb_s1 as ELB                                             # noqa
 WURZEL = Z.WURZEL
 
 
+DREIECKE_HUELLE = 8000        # Grenze je Huelle (Auftrag 22./23.11.2026: echtes Fachwerk; vorher 4.000 aus wohnhaus_zwerg_neu_messen)
+
 def _blatt(glb, blatt):
     """Blatt der Elben: das der Menschen mit "_elb"."""
     if blatt is None:
@@ -672,8 +674,8 @@ def main_s23(haus, ordner, form, stufe, opt):
     z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
     z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
+    fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren_s23(M, form, stufe); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
@@ -727,8 +729,8 @@ def main():
     z19, f19 = Z.wappen_frei(glb)
     zeilen.append(f"19. Wappen frei (5 cm zu Laden, Fenster, Gewaende, Holz, Vordach): {'ok' if not f19 else str(f19) + ' FEHLER'}"); zeilen += z19; fehler += f19
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
+    fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren(form); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22

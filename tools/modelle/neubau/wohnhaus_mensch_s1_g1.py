@@ -1641,6 +1641,8 @@ def exportiere(objekte, datei):
 
 
 def kontrollbild(datei, auge, ziel, brennweite=35, verbergen=()):
+    nur = [t for t in os.environ.get("REICHSGILDE_BILDER", "").split(",") if t]   # z. B. "aussen_vorn,aussen_rechts": nur diese Bilder
+    if nur and not any(t in os.path.basename(datei) for t in nur): return
     szene = bpy.context.scene
     kam = bpy.data.objects.get("Kontrollkamera")
     if kam is None:
@@ -1656,7 +1658,7 @@ def kontrollbild(datei, auge, ziel, brennweite=35, verbergen=()):
     kam.rotation_euler = (Vector(ziel) - Vector(auge)).to_track_quat("-Z", "Y").to_euler()
     kam.data.lens = brennweite
     szene.camera = kam
-    szene.render.engine = "CYCLES"; szene.cycles.device = "CPU"; szene.cycles.samples = 24
+    szene.render.engine = "CYCLES"; szene.cycles.device = cycles_geraet(); szene.cycles.samples = 24   # Grafikkarte nur mit REICHSGILDE_CYCLES
     szene.render.resolution_x, szene.render.resolution_y = 1280, 960
     szene.render.filepath = datei
     szene.render.image_settings.file_format = "JPEG"
