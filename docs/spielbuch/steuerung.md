@@ -40,7 +40,7 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | Betriebe | je Betrieb der Zustand | hineingehen (bei Stillstand gleich zur passenden Tafel), hinfahren und Kurzübersicht |
 | Bauen | Wohnhaus, laufender Ausbau, Bauzonen | Wohnhaus ausbauen, Gebäude bauen, Wege ausbauen |
 | Rat | nächste Sitzung, euer Amt, Punkte der Tagesordnung | Ämterbaum, Anträge, Stadtglaube, Stadtkasse |
-| Bericht | die Posten des laufenden Jahres und der Gewinn bisher | Jahresrechnung, Rivalen, Umsätze, Verlauf |
+| Bericht | die Posten des laufenden Jahres und der Gewinn bisher | Jahresrechnung, Rivalen, Umsätze, Briefablage |
 | Lexikon | – | Stichwort suchen, Hilfe zur Steuerung |
 | Markt | Preise der Waren eurer Betriebe | Markt öffnen |
 | Personal | die Arbeiter mit Arbeit und Laune | Lehrling einstellen, Personalbuch |
