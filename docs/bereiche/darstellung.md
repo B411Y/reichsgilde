@@ -937,6 +937,30 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Innenräume | Betriebe bauen ihren Raum erst beim ersten Betreten, im Schwarzen der Übergangsblende (`InnenAnsicht.InnenBauer`, `InnenSicherstellen` im Schritt „Vorbereiten“); beim Schweben der Maus wird nicht gebaut. Der eigene Betrieb baut gleich (Kurzbefehle der Oberfläche gehen ohne Blende hinein), ebenso `--innenvorab=1`. Gemessen (Greybox): Raum der Wechselstube 316 ms, Tinkturei 695 ms, Maurerei 97 ms beim Betreten statt beim Laden; „Betrieb hinzufügen“ in Köln 2,8 bis 12,9 s auf 2,0 bis 2,1 s | 21.11.2026 |
 | Rathaus, Dom, Kirchen | Nicht lazy gebaut: Rathaus (3,4 s unter Last, davon das meiste Laden der Modelle und Arrays, jetzt vorgeladen), Dom und Kirchen hängen an Ratssitzung, Raumleiste und Messe; Aufbau erst bei Bedarf wäre ein eigener Umbau | 21.11.2026 |
 | Klicktest-Hilfe | `--bauklick=2` setzt auch den zweiten Schritt der Platzwahl (Werkstatt) von selbst, mit `--bauort2` | 21.11.2026 |
+### Echtes Fachwerk in den Häuserzeilen (Nutzer 21.11.2026; Branch phase5/fachwerk-zeilen, Patch an den Teamleiter)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Alle Module der Fachwerk-Sätze Mensch S1, S2 und Halbling S1, S2 mit echtem Fachwerk (`FACHWERK_ECHT` in `zeile_module.py`, Wert „alle“); Probe vorher nur `k_g6`, `k_g6_a` von Mensch S2. Halbling S3 bleibt nach der Vorlage ganz aus Backstein (Teamleiter 21.11.2026). | 21.11.2026 |
+| Holzlage | Alle Hölzer einer Wand bzw. eines Giebels liegen bündig in einer Ebene und sind zu einem Netz vereinigt (`tools/modelle/neubau/holzlage.py`): Rang 0 Schwelle, Rähm, Ständer; 1 Streben, Bänder; 2 Riegel, Rahmen; 3 Brüstungsfiguren. Seitenflächen nur am Außenrand, Streben auf ihr Gefach zugeschnitten, Figuren der Brüstung auf das Feld zwischen den tatsächlichen Hölzern darüber und darunter (Nutzer: „Strebenenden exakt am Holz darüber und darunter“). | 21.11.2026 |
+| Prüfung im Skript | `Holzlage.pruefen`: keine Überlappung; **Strebenende berührt Nachbarholz, Spalt 0** (3 mm vor jeder Endkante liegt ein anderes Holz oder der Wandrand; Rahmen von Fenster, Laden, Tür ausgenommen); Gefache lichte 0,30–1,30 m. Jeder Befund bricht den Bau ab („HOLZLAGE“). | 21.11.2026 |
+| Ständer (selbst entschieden) | Eckständer, je Öffnung ein Stiel links und rechts, Zwischenständer bis 1,3 m lichte. Bliebe neben einem Fenster weniger als 0,3 m Putz, entfällt der Fensterstiel, solange das Feld höchstens 1,3 m breit bleibt (Fenster zwischen Brust- und Sturzriegel über die ganze Feldbreite); sonst werden die beiden Ständer ein breiter Pfosten. Giebel: Ständer höchstens 1,3 m lichte, nur wo das Dreieck mindestens 0,6 m hoch ist. Streben erst ab 0,45 m Feldbreite. | 21.11.2026 |
+| Türen und Läden | Schwelle an Türen ausgeschnitten; Laibung von Tür und Fenster im Fachwerk aus Holz; offene Läden nur auf freiem Putz neben dem Fenster (mindestens 0,22 m), nie auf Holz, Tür oder anderer Öffnung; Rahmen geschlossener Läden in der Holzlage. | 21.11.2026 |
+| Ecken | Schwelle, Rähm und Eckständer laufen um die Holztiefe über die Ecke, nur wo sie nicht über die Parzellengrenze ragen (Traufhäuser, Eckhaus hinten). | 21.11.2026 |
+| Dreiecke | `zeile_pruefung.py`: Fachwerk-Sätze Module x1,5, Haus 6.000; allgemeine Höchstgrenze für Wohnhäuser 8.000 (Nutzer 21.11.2026), auch in `wohnhaus_mensch_messen.py` und `wohnhaus_halbling_messen.py` (Fachwerkhäuser Mensch und Halbling S1, S2: 6.000). | 21.11.2026 |
+| Mensch S3 | Nutzer 21.11.2026 „S3 B“: Erdgeschoss Stein, beide Obergeschosse und der Giebel Fachwerk mit Gefachen aus Bruchstein (`gefach="stein"` in `SAETZE`), reiche Figuren (Wilder Mann, Fünferkreuz, Brüstungsfiguren in allen freien Feldern), kein Treppengiebel. Grenzen „S3 A“: Module x2,0, Haus 8.000. Seitenstücke (`seite_*`, `kappe_*`) schlicht wie Stufe 1 (selbst entschieden, sonst über 8.000 je Haus). | 21.11.2026 |
+| Modulprüfung | Gegen origin/main 0243d48f keine neue Befundart; „Verdeckung“ auf den Seitenstücken (`seite_offen*`, `kappe_offen`) nur als Hinweis (Teamleiter 21.11.2026): die 5 cm tiefen Seitenflächen der Hölzer liegen im 256er-Atlasfeld etwa einen Texel breit. | 21.11.2026 |
+
+### Echtes Fachwerk an den Neubau-Wohnhäusern (Nutzer 21.11.2026; Branch phase5/fachwerk-wohnhaeuser, Patch an den Teamleiter)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Mensch S1, S2 und Halbling S1, S2, je Grundform 1–4: Wände, Giebel, Gaubenstirn, Flügel, Erker als Holzlage (`holzlage.py`) wie die Zeilenmodule. Mensch S3 bleibt das Steinhaus (Patrizierhaus gesondert), Halbling S3 die Backsteinvorlage. Innenräume unverändert. | 21.11.2026 |
+| Schalter | `FACHWERK_ECHT` in `wohnhaus_mensch_s1_g1.py` und `wohnhaus_mensch_s23.py` (dazu `wohnhaus_mensch_s23_formen.py`), gesetzt von den Einstiegen der Menschen und den Schichten der Halblinge (S1: `wohnhaus_halbling_s1.py`, S2: `wohnhaus_halbling_s23.py`); Zwerge und Elben bauen unverändert. | 21.11.2026 |
+| Fensterbank | Im echten Fachwerk ist der Brustriegel die Bank (bündig in der Holzlage); keine vorstehende Bank mehr vor Ständern und Riegeln (Bildprüfung 21.11.2026). | 21.11.2026 |
+| Giebel | Ständer bis unter die Sparren bzw. den Kehlbalken, keine Streben in den schmalen Randfeldern; Ochsenauge der Halblinge als Aussparung der Mitte (`GIEBEL_AUSSPARUNG`, `OHNE_SPITZE`). | 21.11.2026 |
+| Flügel und Erker | Eigene Holzlagen (`fachwerk_echt.wand`); Flügel 4,5 cm tief (5 mm hinter der Hauswand, wo beide bündig stehen), Erker 5 cm wie die Hauswand. | 21.11.2026 |
+| Prüfung | Messung je Haus 0 Fehler; Holzlage-Befunde („HOLZLAGE“) brechen den Bau ab. Dreiecke 2.500–5.600 (Grenze Fachwerkhäuser 6.000). Die Halbling-Messung braucht PIL in Blenders Python (Prüfung 37). | 21.11.2026 |
 
 ### Passanten halten Abstand zu Ständen, Bänken und Brunnen (Branch phase5/kollision-markt, Nutzer „Kollision Markt ja“ 22.11.2026)
 

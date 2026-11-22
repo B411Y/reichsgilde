@@ -133,8 +133,11 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Die Befugnisse der Ämter (PR #200).</summary>
     public Politik.Amtsbefugnisse Befugnisse { get; }
 
-    /// <summary>Der geltende Steuersatz auf alle Umsätze (0,05 = 5 %) – ohne Stadtkasse <c>allgemein.umsatzsteuer</c>.</summary>
-    public double Umsatzsteuer => Kasse.Umsatzsteuer;
+    /// <summary>
+    /// Der geltende Steuersatz auf alle Umsätze (0,05 = 5 %) samt Feuersteuer (<see cref="Politik.Stadtkasse.Feuersteuer"/>) – ohne Stadtkasse
+    /// <c>allgemein.umsatzsteuer</c>.
+    /// </summary>
+    public double Umsatzsteuer => Kasse.Umsatzsteuer + Kasse.Feuersteuer;
 
     /// <summary>Steuersatz auf Verkäufe dieses Hauses am Markt (der Marktmeister zahlt weniger).</summary>
     public double SteuersatzMarkt(Konto konto) => Befugnisse.SteuersatzMarkt(konto);
@@ -251,9 +254,6 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>Blitzschlag im Gewitter: Einschlag, Brand, Übersprung und Schaden (braucht die <see cref="Karte"/> und „blitz“).</summary>
     public Gefahren.Blitzwesen Blitz { get; }
-
-    /// <summary>Die städtische Brandkasse (Abschnitt „blitz.brandkasse“, ab Datenversion 95): Beitrag im Jahr, zahlt einen Teil der Reparatur.</summary>
-    public Gefahren.Brandkasse Brandkasse { get; }
 
     /// <summary>Entscheidungen (Benachrichtigungen Stufe 3): offene Fragen an die Häuser der Menschen mit Frist und Voreinstellung.</summary>
     public Entscheidungen.Entscheidungswesen Entscheidungen { get; }
@@ -467,7 +467,6 @@ public sealed partial class Stadtwirtschaft
         Domamt = new Kirche.Domamt(this, daten.Kirche?.Dom);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
         Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
-        Brandkasse = new Gefahren.Brandkasse(this, daten.Blitz?.Brandkasse);
         Entscheidungen = new Entscheidungen.Entscheidungswesen(this, daten.Entscheidungen);
     }
 
@@ -495,7 +494,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
     public Konto KontoEroeffnen(string inhaber, int startjahr = Spielzeit.StartJahr, double? startvermoegen = null)
     {
-        var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr) { Stadtkasse = Kasse.Buchen };
+        var konto = new Konto(inhaber, startvermoegen ?? Daten.Allgemein.Startvermoegen, startjahr) { Stadtkasse = Kasse.Buchen, FeuersteuerAnteil = () => Kasse.FeuersteuerAnteil };
         if (HatAktionspunkte)
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, hoechstens: Daten.Aktionspunkte!.Hoechstens);
         _konten.Add(konto);
@@ -768,7 +767,6 @@ public sealed partial class Stadtwirtschaft
         Glaube.AbgabenZahlen(); // Glaubenszins der Andersgläubigen – noch ins alte Jahr
         Bank.Jahresende(); // Ausfälle, Zins und Rate der Kredite – noch in die alte Jahresrechnung
         Schiffahrt.Jahresende(); // Unterhalt der Schiffe – noch ins alte Jahr
-        Brandkasse.Jahresende(); // Beiträge zur Brandkasse – noch ins alte Jahr
         foreach (var konto in _konten)
             konto.JahrAbschliessen(neuesJahr);
         foreach (var betrieb in _betriebe)
@@ -920,10 +918,6 @@ public sealed partial class Stadtwirtschaft
             return Wohnen.Ausbauen(absender, Uhr);
         if (befehl is HauswaechterSetzen hauswaechter)
             return Wohnen.HauswaechterSetzen(absender, hauswaechter.Angestellt);
-        if (befehl is BrandkasseBeitreten)
-            return Brandkasse.Beitreten(absender);
-        if (befehl is BrandkasseAustreten)
-            return Brandkasse.Austreten(absender);
         if (befehl is WohnhausEinrichtungKaufen wohnEinrichtung)
             return Wohnen.EinrichtungKaufen(absender, wohnEinrichtung.Kennung);
         if (befehl is RaumAnbauen raum)
@@ -1392,7 +1386,6 @@ public sealed partial class Stadtwirtschaft
         Befugnisse = Kasse.IstAktiv ? Befugnisse.Sichern(k => _konten.IndexOf(k)) : null,
         Meinungen = Meinungen.Sichern(k => _konten.IndexOf(k)),
         Blitz = Blitz.IstAktiv ? Blitz.Sichern(k => _konten.IndexOf(k)) : null,
-        Brandkasse = Brandkasse.Sichern(k => _konten.IndexOf(k)),
         Geheimnisse = Geheimnisse.IstAktiv ? Geheimnisse.Sichern(k => _konten.IndexOf(k)) : null,
         Entscheidungen = Entscheidungen.Sichern(k => _konten.IndexOf(k)),
     };
@@ -1412,7 +1405,7 @@ public sealed partial class Stadtwirtschaft
         _reihenfolge = new Zufallsquelle(_reihenfolge.Startwert, s.ReihenfolgeWuerfe);
 
         _konten.AddRange(s.Konten.Select(Konto.Wiederherstellen));
-        foreach (var k in _konten) k.Stadtkasse = Kasse.Buchen;
+        foreach (var k in _konten) { k.Stadtkasse = Kasse.Buchen; k.FeuersteuerAnteil = () => Kasse.FeuersteuerAnteil; }
         Wohnen.AlteStaendeErgaenzen(_konten.Where((_, i) => s.Konten[i].WohnhausStufe is null));
         Bauen.Wiederherstellen(s.Bauen, _konten); // vor den Hauswerten: Ein laufender Umzug zählt schon
         Wohnen.HauswerteNachDemLaden(_konten);
@@ -1473,7 +1466,6 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege.Wiederherstellen(s.Ratsantraege, _konten);
         Befugnisse.Wiederherstellen(s.Befugnisse, _konten);
         Blitz.Wiederherstellen(s.Blitz, _konten); // nach Konten und Betrieben: Ziele per Name und Kontonummer
-        Brandkasse.Wiederherstellen(s.Brandkasse, _konten);
         Entscheidungen.Wiederherstellen(s.Entscheidungen, _konten); // alte Spielstände: leer, der Abgleich der ersten Minute legt sie neu an
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();

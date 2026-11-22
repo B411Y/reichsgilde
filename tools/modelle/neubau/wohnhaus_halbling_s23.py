@@ -490,7 +490,10 @@ def giebel_halbling(h, wand, y, aussen):
     if wand == "vorn_gb":
         zc = ochsenauge_hoehe(wand)
         r = OCHSENAUGE_R + OCHSENAUGE_RAND
-        h = OhneMitte(h, zc - r, zc + r)
+        if S23.FACHWERK_ECHT:                               # echtes Fachwerk: die Holzlage des Giebels spart die Mitte aus
+            S23.GIEBEL_AUSSPARUNG[wand] = (zc - r, zc + r)
+        else:
+            h = OhneMitte(h, zc - r, zc + r)
     return _ALT["giebel"](h, wand, y, aussen)
 
 
@@ -767,6 +770,7 @@ def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     stufe = int(opt.get("stufe", "2"))
     FORM[0] = int(opt.get("form", "1"))
+    S23.FACHWERK_ECHT = S23.FM.FACHWERK_ECHT = stufe == 2   # echtes Fachwerk im Obergeschoss und Giebel der Stufe 2 (Nutzer 21.11.2026)
     schicht_anlegen(stufe)
     S23.main()
     messen(stufe, FORM[0], opt.get("bilder"))

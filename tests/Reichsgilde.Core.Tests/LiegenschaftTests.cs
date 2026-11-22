@@ -154,6 +154,9 @@ static class LiegenschaftTests
             var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
             var liegenschaften = knoten["liegenschaften"]!.AsArray();
             liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Wachturm"));
+            // Ohne den Steinbruch: Seit der Feuersteuer (Datenversion 96) liegt er für die KI knapp vor dem Bauernhof – zum Steinmetz gibt es keine
+            // zweite freie Liegenschaft, und der Test prüfte die Höchstzahl nicht mehr. Mit dem Bauernhof folgt die Schänke (derselbe Beruf).
+            liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Steinbruch"));
             var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
                 wirtschaftsdaten: Wirtschaftsdaten.AusJson(knoten.ToJsonString()));
             var w = sim.Wirtschaft!;

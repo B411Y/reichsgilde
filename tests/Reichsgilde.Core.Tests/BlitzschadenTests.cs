@@ -5,6 +5,7 @@ using Reichsgilde.Core.Entwickler;
 using Reichsgilde.Core.Gefahren;
 using Reichsgilde.Core.Mehrspieler;
 using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -53,6 +54,10 @@ static class BlitzschadenTests
             while (sim.Ratssitzung is not null) sim.RatssitzungWeiter();
         }
     }
+
+    /// <summary>Was die Reparatur gekostet hat: aus der Stadtkasse (Posten Brandschaden, seit der Feuersteuer) und vom Haus zusammen.</summary>
+    static double Gezahlt(Stadtwirtschaft w, Konto spieler, double geldVorher, double kasseVorher) =>
+        geldVorher - spieler.Vermoegen + w.Kasse.DiesesJahr[Kassenposten.Brandschaden] - kasseVorher;
 
     static Blitzeinschlag Blitz(Simulation sim, Konto spieler, string gebaeude)
     {
@@ -115,12 +120,13 @@ static class BlitzschadenTests
             var meldungen = new List<string>();
             w.Meldung += m => meldungen.Add(m);
             var geld = spieler.Vermoegen;
+            var kasse = w.Kasse.DiesesJahr[Kassenposten.Brandschaden];
             var e = Blitz(sim, spieler, "werkstatt");
             var d = w.Daten.Blitz!;
             Pruefe.Ungefaehr(w.Blitz.Schwere((int)(e.BrandEnde - e.Minute)), e.Schwere, 1e-12);
             var reparatur = Math.Round(Math.Max(d.Reparatur, Erwartet(d.ReparaturAnteil, e.Schwere) * w.Bauwert(b)) * b.BrandFaktor);
             Pruefe.Wahr(w.Bauwert(b) >= 3000, $"Bauwert {w.Bauwert(b)}");
-            Pruefe.Ungefaehr(geld - reparatur, spieler.Vermoegen, 1e-6);
+            Pruefe.Ungefaehr(reparatur, Gezahlt(w, spieler, geld, kasse), 1e-6); // die Stadtkasse zahlt, den Rest das Haus (Feuersteuer)
             var anteil = Erwartet(d.LagerAnteil, e.Schwere);
             Pruefe.Gleich(20 - (int)Math.Floor(20 * anteil), b.ImLager("Eisen"), $"Eisen (Anteil {anteil})");
             Pruefe.Gleich(7 - (int)Math.Floor(7 * anteil), b.ImLager(b.Produkt), $"{b.Produkt}");
@@ -135,11 +141,12 @@ static class BlitzschadenTests
             BisMinute(sim, 300);
             var w = sim.Wirtschaft!;
             var geld = spieler.Vermoegen;
+            var kasse = w.Kasse.DiesesJahr[Kassenposten.Brandschaden];
             var e = Blitz(sim, spieler, "haus");
             var d = w.Daten.Blitz!;
             var erwartet = Math.Round(Math.Max(d.WohnhausReparatur, Erwartet(d.WohnhausAnteil, e.Schwere) * w.Gauner.Brandschaden(spieler)) * w.Wohnen.BrandFaktor(spieler));
             Pruefe.Wahr(erwartet >= 50, $"Reparatur {erwartet}");
-            Pruefe.Ungefaehr(geld - erwartet, spieler.Vermoegen, 1e-6);
+            Pruefe.Ungefaehr(erwartet, Gezahlt(w, spieler, geld, kasse), 1e-6);
             Pruefe.Gleich(e.BrandEnde + d.InstandMinuten, spieler.WohnhausInstandBis);
             Pruefe.Wahr(w.Blitz.WohnhausBrand(spieler) == e, "WohnhausBrand findet den Einschlag (fürs Bild)");
         }),
@@ -153,8 +160,9 @@ static class BlitzschadenTests
                 var b = sim.Wirtschaft!.Betriebe.First(x => x.Konto == spieler && x.IstWerkstatt);
                 b.Waechter = waechter;
                 var geld = spieler.Vermoegen;
+                var kasse = sim.Wirtschaft.Kasse.DiesesJahr[Kassenposten.Brandschaden];
                 var e = Blitz(sim, spieler, "werkstatt");
-                reparatur = geld - spieler.Vermoegen;
+                reparatur = Gezahlt(sim.Wirtschaft, spieler, geld, kasse);
                 return e;
             }
             var ohne = Lauf(false, out var r1);

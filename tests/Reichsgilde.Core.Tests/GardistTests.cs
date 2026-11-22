@@ -63,9 +63,9 @@ static class GardistTests
             // PR #177: Sold 0,75 → 0,68 je Minute, nach dem KI-Einrichtungskauf 0,73 (der Gardist hat kaum Einrichtung mit Gulden-Wirkung); PR #208: 0,84; PR #224: 0,875 (Start mit Rekruten); Balancing 3: 0,9;
             // Erfahrung × 0,5 (erfahrungFaktor – doppelt so viele Plätze wie eine Werkstatt)
             Pruefe.Ungefaehr(4 * 720 * 0.9, w.Wache.DiesesJahr(k).Sold, 1e-6);
-            Pruefe.Ungefaehr(4 * 720 * 0.9 * 0.05, k.Laufend.Steuer, 1e-6);
+            Pruefe.Ungefaehr(4 * 720 * 0.9 * 0.0505, k.Laufend.Steuer, 1e-6);
             Pruefe.Ungefaehr(24, k.Erfahrung("Gardist"), 1e-6);
-            Pruefe.Ungefaehr(0.9 * 0.95 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
+            Pruefe.Ungefaehr(0.9 * 0.9495 * 720 - 220, Kalkulation.Jahresertrag(w, b, "Geselle"), 1e-6);
         }),
 
         ("Patrouille: 4 Wachleute senken nächtliche Taten in der Stadt um 10 % und sehen öfter zu – im Umland nicht", () =>

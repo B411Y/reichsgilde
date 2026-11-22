@@ -81,8 +81,11 @@ public sealed class BlitzDaten
     /// </summary>
     public Dictionary<string, StadtbauDaten> Stadtbau { get; init; } = new();
 
-    /// <summary>Die städtische Brandkasse (Nutzer 22.11.2026, E1). Null = es gibt keine (Daten bis 94).</summary>
-    public BrandkasseDaten? Brandkasse { get; init; }
+    /// <summary>
+    /// Feuersteuer (Nutzer 22.11.2026, Datenversion 96): Aufschlag auf die Umsatzsteuer als Anteil vom Umsatz (0,0005 = 0,05 Prozentpunkte), geht in die
+    /// Stadtkasse; aus ihr zahlt die Stadt die Reparatur nach einem Brand. Der Rat kann sie nicht ändern. 0 = keine (Daten bis 95).
+    /// </summary>
+    public double Feuersteuer { get; init; }
 
     public void Pruefen(List<string> f)
     {
@@ -103,7 +106,7 @@ public sealed class BlitzDaten
         foreach (var (kennung, bau) in Stadtbau.OrderBy(x => x.Key, StringComparer.Ordinal))
             if (bau.Reparatur is not { Length: 2 } r || r[0] < 0 || r[1] < r[0])
                 f.Add($"blitz.stadtbau.{kennung}.reparatur braucht [leicht, schwer] mit 0 ≤ leicht ≤ schwer.");
-        Brandkasse?.Pruefen(f);
+        if (Feuersteuer is < 0 or >= 0.1) f.Add("blitz.feuersteuer liegt zwischen 0 und 0,1 (ein Aufschlag auf die Umsatzsteuer).");
     }
 }
 
@@ -117,25 +120,6 @@ public sealed class StadtbauDaten
 
     /// <summary>Reparatur in Gulden [leichtes, schweres Feuer], dazwischen nach der <see cref="Gefahren.Blitzwesen.Schwere"/>.</summary>
     public double[] Reparatur { get; init; } = { 0, 0 };
-}
-
-/// <summary>
-/// Die städtische Brandkasse (Abschnitt <c>blitz.brandkasse</c>, Nutzer 22.11.2026, E1): ein eigener Topf aus den Beiträgen der Mitglieder.
-/// Am Jahresende zahlt jedes Mitglied <see cref="BeitragAnteil"/> vom Bauwert seiner Werkstätten und seines Wohnhauses (mindestens
-/// <see cref="Mindestbeitrag"/>); brennt es bei einem gedeckten Mitglied, zahlt sie <see cref="Deckung"/> der Reparatur (nicht das Lager),
-/// höchstens so viel, wie im Topf ist. Gedeckt ist man ab dem Jahr nach dem Beitritt.
-/// </summary>
-public sealed class BrandkasseDaten
-{
-    public double BeitragAnteil { get; init; } = 0.02;
-    public double Mindestbeitrag { get; init; } = 20;
-    public double Deckung { get; init; } = 0.6;
-
-    public void Pruefen(List<string> f)
-    {
-        if (BeitragAnteil < 0 || Mindestbeitrag < 0) f.Add("blitz.brandkasse.beitragAnteil und mindestbeitrag dürfen nicht negativ sein.");
-        if (Deckung is < 0 or > 1) f.Add("blitz.brandkasse.deckung liegt zwischen 0 und 1.");
-    }
 }
 
 /// <summary>

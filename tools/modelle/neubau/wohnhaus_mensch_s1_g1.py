@@ -27,6 +27,13 @@ sys.path.insert(0, HIER)
 import netzbau                                                   # noqa: E402
 from netzbau import ROT, Teil                                      # noqa: E402
 from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN  # noqa: E402
+import holzlage                                                    # noqa: E402  (echtes Fachwerk: eine Holzlage je Wand, Nutzer 21.11.2026)
+
+GIEBEL_LAGEN = []          # gebaute Holzlagen der Giebel: (Punkt x=0 der Giebelebene, Normale, Traufe, First, Lage)
+LAGEN = []                 # gebaute Holzlagen der Waende: (Punkt s=0 der Wand, Normale, z0, z1, Lage) – fuer die Laeden (nur auf freiem Gefach)
+OHNE_SPITZE = [None]       # Giebel mit dem Ochsenauge der Halblinge: ueber dieser Hoehe keine Hoelzer (Spitzsaeule, Hahnenbalken, Streben)
+FACHWERK_ECHT = False      # echtes Fachwerk (buendig, geschlossen, Spalt 0); setzen die Einstiege der Menschen und Halblinge der Stufe 1
+TIEFE_HOLZ = 0.05
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 NAME = "wohnhaus_mensch_s1_g1"
@@ -136,12 +143,122 @@ def dach_z(x, oben=False):
     return Z_FIRST - abs(x) * NEIGUNG + (STROH if oben else 0.0)
 
 
+def _bauen(h, lage, P, n3, name, wand=None):
+    """Prueft (Ueberlappung, Spalt 0) und baut die Holzlage; P(s, z) liegt auf der Wand, n3 zeigt nach aussen."""
+    befunde = lage.pruefen()
+    if befunde: print("HOLZLAGE", name, befunde[:3])
+    nv = Vector(n3)
+    lage.bauen(h, lambda s_, z_, r_: Vector(P(s_, z_)) + nv * r_, nv, tiefe=TIEFE_HOLZ, wand=wand)
+
+
+def fachwerk_wand_lage(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, riegel=True, z_fenster=OG_FENSTER, stoss=None):
+    """Wie fachwerk_wand, aber als eine Holzlage (Nutzer 21.11.2026 „sauberer bauen“): alle Hoelzer buendig in einer Ebene, zu einem
+    Netz vereinigt, Streben auf ihr Gefach zugeschnitten. stoss 'kappe': Schwelle, Raehm und Eckstaender laufen um die Holztiefe ueber
+    die Ecke (decken die Nachbarwand), 'buendig': enden an der Ecke."""
+    b, r = BW, RIEGEL
+    achsen, _ = raster(breite, n)
+    gefache = [(achsen[k] + b / 2, achsen[k + 1] - b / 2) for k in range(len(achsen) - 1)]
+    belegt = {}
+    for s0, s1, za, zb, art in oeffnungen:
+        k = next((k for k, (g0, g1) in enumerate(gefache) if abs(s0 - g0) < 0.01 and abs(s1 - g1) < 0.01), None)
+        if k is None: raise SystemExit(f"Oeffnung {s0:.3f}..{s1:.3f} liegt in keinem Gefach (Raster {[round(a, 3) for a in achsen]})")
+        belegt[k] = (za, zb, art)
+    for g0, g1 in gefache:
+        if not (0.30 - 1e-6 <= g1 - g0 <= 1.30 + 1e-6): print("HOLZLAGE Gefach", f"{g1 - g0:.2f} m")
+    e = TIEFE_HOLZ if stoss == "kappe" else 0.0
+    lage = holzlage.Holzlage()
+    tueren = sorted(gefache[k] for k, (_, _, art) in belegt.items() if art == "tuer")
+    kanten = [-e] + [x for g0, g1 in tueren for x in (g0, g1)] + [breite + e]
+    for a, c in zip(kanten[0::2], kanten[1::2]):
+        if c - a > 0.02: lage.holz((a, z0 + 0.10), (c, z0 + 0.10), 0.20, "balken_c", 0, gerade=True)          # Schwelle
+    if raehm:
+        lage.holz((-e, z1 - 0.09), (breite + e, z1 - 0.09), 0.18, "balken_b", 0, gerade=True)                 # Raehm
+    oben = z1 - (0.18 if raehm else 0.0)
+    for i, s_ in enumerate(achsen):
+        a, c = s_ - b / 2 - (e if i == 0 else 0.0), s_ + b / 2 + (e if i == len(achsen) - 1 else 0.0)
+        unten = z0 if any(abs(g1 - (s_ - b / 2)) < 1e-6 or abs(g0 - (s_ + b / 2)) < 1e-6 for g0, g1 in tueren) else z0 + 0.20
+        lage.holz(((a + c) / 2, unten), ((a + c) / 2, oben), c - a, "balken_a", 0, gerade=True)
+    if riegel:
+        for k, (g0, g1) in enumerate(gefache):
+            if k in belegt:
+                za, zb, art = belegt[k]
+                if art != "tuer": lage.holz((g0, za - r / 2), (g1, za - r / 2), r, "balken_b", 2, gerade=True)   # Brustriegel
+                if zb + r < oben: lage.holz((g0, zb + r / 2), (g1, zb + r / 2), r, "balken_b", 2, gerade=True)  # Sturzriegel
+                continue
+            if k in (0, len(gefache) - 1) and len(gefache) > 2 and g1 - g0 >= 0.45:               # Eckgefach: Strebe
+                aussen, innen = (g0, g1) if k == 0 else (g1, g0)
+                lage.holz((aussen, z0 + 0.20), (innen, oben), 0.13, "balken_a", 1, zuschnitt=holzlage.kasten(g0, g1, z0 + 0.20, oben))
+                continue
+            lage.holz((g0, z_fenster[0] - r / 2), (g1, z_fenster[0] - r / 2), r, "balken_b", 2, gerade=True)
+            lage.holz((g0, z_fenster[1] + r / 2), (g1, z_fenster[1] + r / 2), r, "balken_b", 2, gerade=True)
+    _bauen(h, lage, P, n3, "wand", wand=(0.0, breite))
+    LAGEN.append((Vector(P(0.0, 0.0)), Vector(n3), z0, z1, lage))
+
+
+class _Verschoben:
+    """Eine Giebel-Holzlage (Koordinate x) in den Wandkoordinaten s = x - dx eines Fensters (fuer laeden_frei)."""
+
+    def __init__(self, lage, dx):
+        object.__setattr__(self, "_lage", lage)
+        object.__setattr__(self, "_dx", dx)
+        object.__setattr__(self, "hoelzer", [([(x - dx, z) for x, z in poly],) + tuple(rest) for poly, *rest in lage.hoelzer])
+        object.__setattr__(self, "laeden", getattr(lage, "laeden_v", {}).get(round(dx, 4), []))
+
+    def __setattr__(self, name, wert):
+        if name == "laeden":
+            if not hasattr(self._lage, "laeden_v"): self._lage.laeden_v = {}
+            self._lage.laeden_v[round(self._dx, 4)] = wert
+        object.__setattr__(self, name, wert)
+
+
+def lage_von(p0, n3, z):
+    """Die Holzlage der Wand mit dem Ursprung p0 und der Normale n3, die die Hoehe z umfasst (oder None). Giebel (Normale +-y) sind in
+    x gebaut: sie werden auf den Ursprung der Fensterwand verschoben."""
+    p0, n3 = Vector(p0), Vector(n3)
+    for q, n, z0, z1, lage in LAGEN:
+        if (q - p0).length < 1e-4 and (n - n3).length < 1e-4 and z0 - 1e-4 <= z <= z1 + 1e-4: return lage
+    for q, n, z0, z1, lage in GIEBEL_LAGEN:
+        if abs(q.y - p0.y) < 0.06 and (n - n3).length < 1e-4 and z0 - 1e-4 <= z <= z1 + 1e-4: return _Verschoben(lage, p0.x)
+    return None
+
+
+def laeden_frei(lage, s0, s1, t0, t1, breite, haelfte=True):
+    """Offene Laeden nur auf freiem Gefach (Nutzer 21.11.2026): das freie Stueck Wand neben dem Fenster in Fensterhoehe (zwischen den
+    Hoelzern); der Laden ist so breit wie das halbe Fenster, hoechstens so breit wie das freie Stueck (mindestens 0,22 m)."""
+    sperren = [(min(q[0] for q in poly), max(q[0] for q in poly)) for poly, *_ in lage.hoelzer
+               if max(q[1] for q in poly) > t0 - 0.02 and min(q[1] for q in poly) < t1 + 0.02]
+    sperren.append((s0 - 0.04, s1 + 0.04))
+    sperren.sort()
+    frei, x = [], 0.0
+    for a, e in sperren:
+        if a > x: frei.append((x, a))
+        x = max(x, e)
+    if x < breite: frei.append((x, breite))
+    halb = (s1 - s0) / 2 if haelfte else (s1 - s0) * 0.55
+    aus = []
+    links = [f for f in frei if f[1] <= s0 + 1e-6]
+    rechts = [f for f in frei if f[0] >= s1 - 1e-6]
+    if links:
+        a, e = links[-1]; w = min(halb, e - a - 0.04)
+        if w >= 0.22: aus.append((e - 0.02 - w, e - 0.02))
+    if rechts:
+        a, e = rechts[0]; w = min(halb, e - a - 0.04)
+        if w >= 0.22: aus.append((a + 0.02, a + 0.02 + w))
+    # ein freies Feld traegt hoechstens einen Laden (zwischen zwei Fenstern sonst zwei uebereinander)
+    belegt = getattr(lage, "laeden", [])
+    aus = [(a, e) for a, e in aus if not any(min(e, e2) - max(a, a2) > -0.02 and max(t0, u0) < min(t1, u1) for a2, e2, u0, u1 in belegt)]
+    lage.laeden = belegt + [(a, e, t0, t1) for a, e in aus]
+    return aus
+
+
 def fachwerk_wand(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, riegel=True, z_fenster=OG_FENSTER, stoss=None):
     """Fachwerk einer Geschosswand nach der Konstruktionsregel (auch fuer wohnhaus_mensch_s1.py): Schwelle (an Tueren
     unterbrochen), Raehm, Staender im regelmaessigen Raster; jede Oeffnung (s0, s1, za, zb, art; Wandkoordinaten) fuellt genau ein
     Gefach – Fenster zwischen Brust- und Sturzriegel, Tueren unter dem Sturzriegel. Gefache ohne Oeffnung: Brust- und Sturzriegel
     auf der Hoehe der Fenster (`z_fenster`), in den beiden Eckgefachen statt dessen spiegelgleiche Streben (vom Eckstaender unten
     nach innen oben). Ohne `riegel` (Kniestock) nur Schwelle, Raehm und Staender. P(s, z): Punkt auf der Wand."""
+    if FACHWERK_ECHT:
+        return fachwerk_wand_lage(h, P, breite, n3, z0, z1, oeffnungen, n, raehm, riegel, z_fenster, stoss)
     holz, b, r = "Fachwerk", BW, RIEGEL
     achsen, _ = raster(breite, n)
     gefache = [(achsen[k] + b / 2, achsen[k + 1] - b / 2) for k in range(len(achsen) - 1)]
@@ -189,12 +306,66 @@ def fachwerk_wand(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, rieg
         h.brett(holz, P(g0, z_fenster[1] + r / 2), P(g1, z_fenster[1] + r / 2), r, n3, "balken_b", tiefe=0.045)
 
 
+def giebel_fachwerk_lage(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n=None):
+    """Wie giebel_fachwerk, aber als eine Holzlage (buendig, geschlossen, zugeschnitten, Spalt 0), spiegelgleich zur Giebelachse."""
+    b, r = BW, RIEGEL
+    xk = lambda z: ox - (z - zt) / neigung
+    achsen = [s_ - ox for s_ in raster(2 * ox, n)[0]]
+    z_br, z_kb = z_oeffnung
+    oben_schwelle = min(zt + 0.17, z_br)
+    zk = z_kb + 0.08
+    zh = zk + 0.55 * (zf - zk)
+    x0 = ox + 0.02
+    innen = holzlage.kasten(-x0, x0, zt, zf + 1.0)              # unter den Giebelsparren (Mittellinie bis zum First, 0,16 breit)
+    for sg in (-1, 1):
+        ax, az, bx, bz = sg * x0, zt - 0.02, 0.0, zf - 0.02
+        dx, dz = bx - ax, bz - az
+        l = math.hypot(dx, dz); dx, dz = dx / l, dz / l
+        nx, nz = (dz, -dx)
+        if nz > 0: nx, nz = -nx, -nz
+        innen = holzlage.schneide(innen, (ax + nx * 0.08, az + nz * 0.08), (nx, nz))
+    lage = holzlage.Holzlage(achse=0.0, umriss=[(-x0 - 0.3, zt - 0.01), (x0 + 0.3, zt - 0.01), (0.0, zf + 0.3)])
+    # ab der Traufhoehe (darunter liegt das Raehm der Wand in derselben Ebene: nicht deckungsgleich)
+    lage.holz((-x0, (zt + oben_schwelle) / 2), (x0, (zt + oben_schwelle) / 2), oben_schwelle - zt, "balken_c", 0, gerade=True)
+    for sg in (-1, 1):
+        lage.holz((sg * x0, zt - 0.02), (0.0, zf - 0.02), 0.16, "balken_c", 0, zuschnitt=holzlage.kasten(-x0 - 1.0, x0 + 1.0, zt, zf))   # Giebelsparren
+    lage.holz((-x0, zk), (x0, zk), 0.16, "balken_b", 1, zuschnitt=innen)                                     # Kehlbalken
+    spitze = OHNE_SPITZE[0] is None
+    if spitze:
+        lage.holz((-x0, zh), (x0, zh), 0.15, "balken_b", 1, zuschnitt=innen)                                 # Hahnenbalken
+        lage.holz((0.0, zk), (0.0, zf), b, "balken_a", 0, zuschnitt=holzlage.schnitt(innen, holzlage.kasten(-x0, x0, zk + 0.08, zf + 1.0)))  # Spitzsaeule
+    unter_kehl = holzlage.schnitt(innen, holzlage.kasten(-x0, x0, zt, zk - 0.08))     # Staender enden unter dem Kehlbalken
+    innen_x = []
+    for x in achsen:
+        if abs(x) < 1e-6: continue
+        feld = unter_kehl if abs(x) < xk(zk) else innen
+        if not holzlage.schnitt(holzlage.kasten(x - b / 2, x + b / 2, oben_schwelle, oben_schwelle + 0.35), feld): continue
+        lage.holz((x, oben_schwelle), (x, zf), b, "balken_a", 0, zuschnitt=feld)                               # Staender
+        if 0 < x < xk(zk): innen_x.append(x)
+    x_bis = max(innen_x) if innen_x else 0.0
+    if z_br - oben_schwelle >= 0.25 and x_bis > b:
+        lage.holz((-(x_bis - b / 2), z_br - r / 2), (x_bis - b / 2, z_br - r / 2), r, "balken_b", 2, gerade=True)   # Brustriegel
+    for sg in (-1, 1):
+        # keine Strebe zum Sparren in den schmalen Randfeldern (lag fast am Staender, wirkte krumm; Bildpruefung 21.11.2026)
+        if spitze:
+            lage.holz((sg * (xk(zk) - 0.15), zk + 0.08), (sg * (b / 2), zh - 0.075), 0.12, "balken_a", 1,
+                      zuschnitt=holzlage.schnitt(innen, holzlage.kasten(-x0, x0, zk + 0.08, zh - 0.075)))            # Strebe ueber dem Kehlbalken
+    for k in range(len(achsen) - 1):                                                                         # Gefachbreite (lichte)
+        g0, g1 = achsen[k] + b / 2, achsen[k + 1] - b / 2
+        if g1 - g0 > 1.30 + 1e-6: print("HOLZLAGE Gefach Giebel", f"{g1 - g0:.2f} m")
+    _bauen(h, lage, lambda s_, z_: (s_, y, z_), (0, aussen, 0), "giebel", wand=(-ox, ox))
+    GIEBEL_LAGEN.append((Vector((0.0, y, 0.0)), Vector((0, aussen, 0)), zt, zf, lage))
+    return zk
+
+
 def giebel_fachwerk(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n=None):
     """Giebelfachwerk nach der Konstruktionsregel (auch fuer wohnhaus_mensch_s1.py): dasselbe Staenderraster wie die Wand darunter
     (Breite 2 * ox, Mitte x = 0), Giebelschwelle, die Oeffnung (x0, x1) im mittleren Gefach zwischen Schwelle bzw. Brustriegel und
     Kehlbalken (der Kehlbalken ist ihr Sturz), Staender bis unter den Kehlbalken bzw. die Giebelsparren, darueber Hahnenbalken
     und Spitzsaeule bis zum First, Streben ueber dem Kehlbalken; Giebelsparren am Ortgang; alles spiegelgleich zur Giebelachse.
     `oeffnung` None: der Giebel ohne Oeffnung hat dieselben Hoehen (`z_oeffnung`) wie der gegenueberliegende."""
+    if FACHWERK_ECHT:
+        return giebel_fachwerk_lage(h, y, aussen, ox, zt, zf, neigung, oeffnung, z_oeffnung, n)
     holz, b, r = "Fachwerk", BW, RIEGEL
     n3 = (0, aussen, 0)
     xk = lambda z: ox - (z - zt) / neigung
@@ -319,8 +490,10 @@ def baue_haus():
             continue
         # Rahmen (unten Fensterbank), Fensterkreuz in der Wandmitte
         # Fensterbank 5 mm unter der Oeffnung: sonst liegt ihre Oberseite in einer Ebene mit der des Brustriegels (deckungsgleich)
-        h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
-        if eg:
+        lage = lage_von(punkt(wand, 0.0, 0.0), n3, (z0 + z1) / 2) if FACHWERK_ECHT else None
+        if lage is None or isinstance(lage, _Verschoben):   # echtes Fachwerk: der Brustriegel ist die Bank (im Giebel bleibt die Bank)
+            h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(s1 + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
+        if eg and lage is None:
             h.brett(holz, P(s0 - 0.12, z1 + 0.06), P(s1 + 0.12, z1 + 0.06), 0.12, n3, "balken_c", tiefe=0.06)
             for s in (s0 - 0.06, s1 + 0.06):
                 h.brett(holz, P(s, z0), P(s, z1), 0.12, n3, "balken_c", laengs="v")
@@ -328,10 +501,15 @@ def baue_haus():
         # Laeden: vorn zwei Fluegel, sonst einer; offen an der Wand, Eckenfarbe Rot = Akzentfarbe je Haus
         lb = (s1 - s0) / 2
         fluegel = [(s0 - lb - 0.03, s0 - 0.03), (s1 + 0.03, s1 + lb + 0.03)] if wand.startswith("vorn") else [(s1 + 0.03, s1 + 2 * lb * 0.55 + 0.03)]
+        if lage is not None:   # nur auf freiem Gefach (Nutzer 21.11.2026)
+            frei = laeden_frei(lage, s0, s1, z0, z1, breite, haelfte=wand.startswith("vorn"))
+            fluegel = frei if wand.startswith("vorn") else frei[-1:]
         for f0, f1 in fluegel:
             if f0 < 0.02 or f1 > breite - 0.02: continue
-            vor = 0.085 if not eg else 0.04
-            h.rechteck(holz, P(f0, z0 - 0.02, vor), (ex, ey, 0), (0, 0, 1), f1 - f0, z1 - z0 + 0.04, "farbholz", laengs="v", weg_von=MITTE, farbe=ROT)
+            vor = (0.085 if not eg else 0.04) if lage is None else TIEFE_HOLZ * 0.3
+            za_ = z0 - 0.02 if not FACHWERK_ECHT else z0 + 0.005   # echtes Fachwerk: zwischen Brust- und Sturzriegel (Bildpruefung)
+            ze_ = z1 + 0.02 if not FACHWERK_ECHT else z1 - 0.005
+            h.rechteck(holz, P(f0, za_, vor), (ex, ey, 0), (0, 0, 1), f1 - f0, ze_ - za_, "farbholz", laengs="v", weg_von=MITTE, farbe=ROT)
             for z in (z0 + 0.12, z1 - 0.12):
                 h.rechteck(stein, P(f0, z - 0.03, vor + 0.006), (ex, ey, 0), (0, 0, 1), f1 - f0, 0.06, "eisen", weg_von=MITTE)
 
@@ -1587,4 +1765,5 @@ def main():
 
 
 if __name__ == "__main__":
+    FACHWERK_ECHT = True                              # eigener Einstieg der Menschen (Nutzer 21.11.2026)
     main()

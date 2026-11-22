@@ -217,7 +217,7 @@ static class BalancingTests
             w.Einstellen(b, "Geselle", b.Plaetze);
             var bank = w.Bank;
             var d = bank.Daten;
-            var nachSteuer = 1 - w.Daten.Allgemein.Umsatzsteuer;
+            var nachSteuer = 1 - w.Umsatzsteuer; // samt Feuersteuer
             var jahresanteil = b.Arbeitsminuten / (double)w.Daten.Allgemein.Arbeitsminuten;
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), "leere Kasse: mehr Rahmen bringt nichts");
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Pfandkammer"), "leere Kasse: kein Ausfall");

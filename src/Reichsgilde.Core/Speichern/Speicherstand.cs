@@ -199,10 +199,6 @@ public sealed record WirtschaftStand
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public BlitzStand? Blitz { get; init; }
 
-    /// <summary>Die städtische Brandkasse (Nutzer 22.11.2026). Null: alter Spielstand oder keine Brandkasse in den Daten – leerer Topf, keine Mitglieder.</summary>
-    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    public BrandkasseStand? Brandkasse { get; init; }
-
     /// <summary>
     /// Geheimnisse, wer was weiß, erpresste Ratsstimmen, Spitzel auf Ratsherren, Anzeigen gegen Ratsherren, Schande (Charaktersystem Teil 3c).
     /// Nur mit dem Abschnitt "geheimnisse" geschrieben – alte Spielstände bleiben Byte für Byte, wie sie waren.
@@ -342,21 +338,6 @@ public sealed record SchandeStand
     public Reichsgilde.Core.Geheimnisse.Geheimnisart Art { get; init; }
     public double Ansehen { get; init; }
     public int Bis { get; init; }
-}
-
-/// <summary>Die städtische Brandkasse (siehe <see cref="Reichsgilde.Core.Gefahren.Brandkasse"/>).</summary>
-public sealed record BrandkasseStand
-{
-    public double Topf { get; init; }
-
-    /// <summary>Die Mitglieder (Kontonummer) mit dem Jahr ihres Beitritts, in der Reihenfolge des Beitritts.</summary>
-    public List<BrandkassenmitgliedStand> Mitglieder { get; init; } = new();
-}
-
-public sealed record BrandkassenmitgliedStand
-{
-    public int Konto { get; init; }
-    public int SeitJahr { get; init; }
 }
 
 /// <summary>Die Einschläge des Blitzwesens (siehe <see cref="Reichsgilde.Core.Gefahren.Blitzwesen"/>).</summary>
@@ -1243,6 +1224,10 @@ public sealed record BilanzStand
     /// <summary>Kollekte als Domprediger (Datenversion 86; 0 in alten Spielständen, 0 wird nicht geschrieben).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public double Domkollekte { get; init; }
+
+    /// <summary>Davon Feuersteuer (Datenversion 96; 0 in alten Spielständen, 0 wird nicht geschrieben).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public double Feuersteuer { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 

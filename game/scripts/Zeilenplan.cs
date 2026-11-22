@@ -30,7 +30,7 @@ public static class Zeilenplan
     {
         new("mensch_s1", "mensch", 1, 5.6f, Tan(50), Tan(45), 0.4f, false),
         new("mensch_s2", "mensch", 2, 6.4f, Tan(52), Tan(45), 0.4f, false),
-        new("mensch_s3", "mensch", 3, 8.4f, Tan(52), Tan(45), 0f, true),
+        new("mensch_s3", "mensch", 3, 8.4f, Tan(52), Tan(45), 0.4f, false),   // Fachwerk mit Steingefachen (Nutzer 21.11.2026)
         new("zwerg_s1", "zwerg", 1, 5.2f, Tan(45), Tan(40), 0f, true),
         new("zwerg_s2", "zwerg", 2, 5.6f, Tan(48), Tan(42), 0.4f, false),
         new("zwerg_s3", "zwerg", 3, 8f, Tan(48), Tan(42), 0f, true),
