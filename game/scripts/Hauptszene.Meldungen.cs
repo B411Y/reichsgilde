@@ -12,7 +12,7 @@ namespace Reichsgilde;
 ///
 /// Der Kern meldet jede Meldung mit Art, Haus, Person und Ort (<see cref="Meldung"/>, <c>Stadtwirtschaft.Gemeldet</c>, Stufe 2). <see cref="Protokollieren"/> ordnet
 /// sie ein (<see cref="Meldungsordnung"/>, Zuordnung in <c>game/daten/meldungen.json</c>: die Art des Kerns, sonst wie in Stufe 1 der Text) und verteilt sie nach
-/// <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
+/// <see cref="Meldestufe"/>: <b>Verlauf</b> (Briefablage im Kontorbuch, über alle Jahre der Sitzung),
 /// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (kommt ebenfalls als Faltbrief in die Ecke; der große Brief <see cref="BriefAnzeige"/> öffnet nur per Klick, hält nie die Zeit an).
 /// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“);
 /// jedes neue Siegel und jeder Brief liegt als geschlossener Faltbrief in der Ecke und öffnet sich erst per Klick (keine Einblendung, Nutzer 21.11.2026).
@@ -40,7 +40,7 @@ public partial class Hauptszene
     private Siegelecke _ecke = null!;
     private BriefAnzeige _brief = null!;
     /// <summary>Neue Siegel und Briefe erscheinen erst groß mittig unten und wandern dann in die Ecke.</summary>
-    /// <summary>Alle Meldungen der Sitzung, die neueste zuerst (Reiter „Verlauf“ im Bericht).</summary>
+    /// <summary>Alle Meldungen der Sitzung, die neueste zuerst (Briefablage im Kontorbuch).</summary>
     private readonly List<Meldungsposten> _verlauf = new();
     private readonly List<Meldungsposten> _jahresSammler = new(), _nachtSammler = new();
     private long _nachtTag;
@@ -348,24 +348,20 @@ public partial class Hauptszene
         else GebaeudeZeigen(Stadtansicht.WohnhausKennung(haus));
     }
 
-    /// <summary>
-    /// Wohin ein Klick auf eine Zeile im Verlauf führt: dorthin, wohin die Meldung selbst führt – „Hinsehen“ (Ort, Haus, Person der Meldung des Kerns),
-    /// sonst der Knopf ihres Briefs (eigener Betrieb, Personalbuch, Familienbuch, Ratskammer, Jahresrechnung nach der Art). Null: nirgends hin.
-    /// </summary>
-    private string? VerlaufZiel(Meldungsposten p)
+    /// <summary>Ein Klick in der Briefablage: der Brief zur Meldung, wie er damals kam (Absender, Betreff, Text, Porträt, Knopf zum Ziel).</summary>
+    private void AblageBriefOeffnen(Meldungsposten p)
     {
-        if (p.Kern is { } k && HinsehenZiel(k) is { } hinsehen) return hinsehen;
-        return VerlaufBrief(p) is { } b && BriefAnzeige.ZielText(b) is { Length: > 0 } knopf ? knopf : null;
+        var thema = Ordnung.Thema(p.Art.Thema);
+        var brief = new Brief
+        {
+            Schluessel = "ablage", Titel = p.Art.Titel != "" ? p.Art.Titel : p.Art.Name, Absender = p.Art.Absender != "" ? p.Art.Absender : p.Art.Name,
+            Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id, Ziel = p.Art.Ziel, Betrieb = p.Betrieb,
+        };
+        brief.Zeilen.Add(new Briefzeile($"{p.Jahr} · {p.Zeit}", p.Art.Id == "Fehler" ? p.Text.TrimStart('✗', ' ') : p.Text, p.Warnung, p.Kern));
+        PortraetUndZiel(brief, p.Kern);
+        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
+        _brief.Zeigen(brief);
     }
-
-    private void VerlaufAnsteuern(Meldungsposten p)
-    {
-        if (p.Kern is { } k && HinsehenZiel(k) is not null) MeldungAnsteuern(k);
-        else if (VerlaufBrief(p) is { } b) BriefZiel(b);
-    }
-
-    /// <summary>Das Ziel des Briefs, den die Meldung als Siegel oder Brief bekäme (Art und eigener Betrieb), ohne ihn zu zeigen.</summary>
-    private static Brief? VerlaufBrief(Meldungsposten p) => p.Art.Ziel == "" ? null : new Brief { Ziel = p.Art.Ziel, Betrieb = p.Betrieb };
 
     /// <summary>Wie ein Klick auf das Gebäude: Auswahl rechts, die Kamera fährt hin.</summary>
     private void GebaeudeZeigen(string kennung)
@@ -610,7 +606,7 @@ public partial class Hauptszene
             "Oben in der Mitte steht die Zeit, unten die Lade: oben die Werte eures Hauses, in der Mitte euer Porträt (ein Klick öffnet die Familie), links und rechts die Fächer. Das Fach „Betriebe“ zeigt eure Betriebe: ein Klick fährt hin und " +
             "zeigt seine Kurzübersicht, ein Doppelklick geht hinein – drinnen stellt ihr Produktion, Personal, Lager, Karren und Einrichtung ein. " +
             "Ein Klick auf das Rathaus zeigt Rat, Ämter, Statut und Gericht, ein Klick auf den Markt die Preise. Meldungen kommen als Faltbrief rechts über der Lade (ein Klick liest den Brief) " +
-            "oder als Brief; alles steht im Bericht unter „Verlauf“. Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);
+            "oder als Brief; alles steht in der Briefablage im Kontorbuch (Bericht). Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);
         var zu = Hauptmenue.Knopf(spalte, "Schließen", HilfeSchliessen);
         zu.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         tafel.Hide();

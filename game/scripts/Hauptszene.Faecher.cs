@@ -197,7 +197,7 @@ public partial class Hauptszene
             new("Jahresrechnung", "", "dieses Jahr und das Vorjahr", null, Weiter(() => BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung))),
             new("Rivalen", "", "die anderen Häuser und ihr letzter Zug", null, Weiter(() => BerichtOeffnen(BerichtAnzeige.Reiter.Rivalen))),
             new("Umsätze", "", "Verkäufe je Ware", null, Weiter(() => BerichtOeffnen(BerichtAnzeige.Reiter.Umsaetze))),
-            new("Verlauf", "", "alle Meldungen zum Nachlesen", null, Weiter(() => BerichtOeffnen(BerichtAnzeige.Reiter.Protokoll))),
+            new("Briefablage", "", "alle Meldungen und Briefe zum Nachlesen", null, Weiter(() => BerichtOeffnen(BerichtAnzeige.Reiter.Protokoll))),
         };
         return new LadeInhalt("Bericht", $"Jahr {w.Jahr} bisher · Löhne und Unterhalt werden am Jahresende fällig", zeilen, befehle);
     }
