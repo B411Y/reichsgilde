@@ -229,6 +229,8 @@ void fragment() {
 		// Grün je Haus leicht verschoben (gelblicher bzw. bläulicher), dazu fleckenweise etwas heller oder dunkler
 		float fleck = efeu_rauschen(modell_ort * 0.9 + vec3(efeu_zufall.x * 23.0));
 		final_color *= vec3(1.0 + 0.16 * efeu_zufall.z, 1.0, 1.0 - 0.20 * efeu_zufall.z) * (0.88 + 0.24 * fleck);
+		// Pixel-Look: kräftigeres, dunkleres Grün (mehr Kontrast zum hellen Stein), sonst geht es im Pixelraster unter
+		if (pixel_look > 0.5) final_color = mix(final_color, final_color * vec3(0.62, 0.95, 0.52), 0.6);
 	}
 #endif
 
@@ -270,7 +272,8 @@ void fragment() {
 	if (efeu_blatt) {
 		float teil_e = STROH_TEIL[clamp(eb, 0, 11)];
 		ALPHA = teil_e > 0.0 ? band_lesen(albedo_tex, uvw, 0.0, teil_e, lod).a : texture(albedo_tex, uvw).a;
-		ALPHA_SCISSOR_THRESHOLD = 0.5;
+		// Pixel-Look: niedrige Schwelle, damit die Blätter zu zusammenhängenden Flächen wachsen statt zu Einzelpixeln zu zerfallen
+		ALPHA_SCISSOR_THRESHOLD = pixel_look > 0.5 ? 0.3 : 0.5;
 		if (efeu_zufall.y <= 1.0) {
 			// Je Haus andere Bereiche bewachsen: Rauschfeld im Modell (Fleck etwa 2 m, feiner dazu), verschoben nach efeu_zufall.x; wo es
 			// über der Dichte liegt, schrumpfen die Blätter (Rand) bzw. fehlen ganz

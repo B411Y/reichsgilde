@@ -7,8 +7,8 @@ namespace Reichsgilde;
 /// </summary>
 public static class EfeuZufall
 {
-    /// <summary>Dichte untere Grenze: Anteil des Raums, der bewachsen bleibt (0,15 = nur einzelne Flecken, 0,95 = fast alles wie im Modell).</summary>
-    public const float DichteMin = 0.15f, DichteMax = 0.95f;
+    /// <summary>Dichte untere Grenze: Anteil des Raums, der bewachsen bleibt (mindestens etwa die Hälfte bewachsen, 0,95 = fast alles wie im Modell; Nutzer 22.11.2026, Efeu B).</summary>
+    public const float DichteMin = 0.50f, DichteMax = 0.95f;
 
     /// <summary>Wert, der nichts ausblendet (Dichte über 1): Häuser ohne Zufall, Halblinge, Zeilen.</summary>
     public const float KeineAuswahl = 2.0f;
