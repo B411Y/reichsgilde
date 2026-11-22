@@ -1,5 +1,5 @@
 {
-  "version": 95,
+  "version": 96,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1521,7 +1521,7 @@
       "dom": { "art": "Dom", "reparatur": [400, 1000] }, "koelner_dom": { "art": "Dom", "reparatur": [400, 1000] },
       "rathaus": { "art": "Rathaus", "reparatur": [300, 800] }, "koelner_rathaus": { "art": "Rathaus", "reparatur": [300, 800] }
     },
-    "brandkasse": { "beitragAnteil": 0.02, "mindestbeitrag": 20, "deckung": 0.6 }
+    "feuersteuer": 0.0025
   },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
