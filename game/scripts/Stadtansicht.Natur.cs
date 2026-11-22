@@ -30,7 +30,7 @@ public partial class Stadtansicht
     private readonly List<(MultiMesh Vielfach, Mesh Sommer, Mesh Winter)> _naturWinter = new();
 
     /// <summary>Baukästen mit Bäumen (Halbierung der Natur-Dichte, kahle Winterfassung „<Name>_Winter“): die eigenen und die aus dem Kit (Asset-Kits).</summary>
-    internal static bool IstBaumDatei(string datei) => datei is "natur/natur_baeume" or "natur/natur_kit_baeume";
+    internal static bool IstBaumDatei(string datei) => datei is "natur/natur_baeume" or "natur/natur_kit_baeume" || IstOriginalBaum(datei);
 
     /// <summary>Baukästen mit Bodenpflanzen: werfen keinen Schatten.</summary>
     internal static bool IstBodenDatei(string datei) => datei is "natur/natur_boden" or "natur/natur_kit_boden";
@@ -46,7 +46,8 @@ public partial class Stadtansicht
             else
             {
                 LaubMelden(netz);
-                if (IstBaumDatei(datei) && datei.Contains("kit")) BaumWindStoffe(netz); // die Kit-Bäume wiegen sich im Wind (baum_wind.gdshader)
+                if (IstOriginalBaum(datei)) BaumNetzFassen(netz, knoten); // Originalbäume: Wind und Jahreszeit im Shader (Stadtansicht.Baeume.cs)
+                else if (IstBaumDatei(datei) && datei.Contains("kit")) BaumWindStoffe(netz); // die Kit-Bäume wiegen sich im Wind (baum_wind.gdshader)
             }
         }
         return _naturNetze[(datei, knoten)] = netz;
@@ -93,6 +94,12 @@ public partial class Stadtansicht
             }
             foreach (var ((zx, zz), liste) in zellen.OrderBy(z => z.Key.Item1).ThenBy(z => z.Key.Item2))
             {
+                if (IstOriginalBaum(datei)) // nah und fern, nach Zoom umgeschaltet (Stadtansicht.Baeume.cs)
+                {
+                    var nahTeil = BaumStufenBauen(natur, datei, knoten, $"{knoten}_{zx}_{zz}", liste, false);
+                    if (nahTeil is not null && EgoNaturArt(datei) != EgoFormArt.Keine) _egoNaturTeile.Add((nahTeil, datei));
+                    continue;
+                }
                 var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = liste.Count };
                 for (var i = 0; i < liste.Count; i++) vielfach.SetInstanceTransform(i, liste[i]);
                 // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
@@ -140,6 +147,11 @@ public partial class Stadtansicht
         }
         foreach (var (art, lagen) in arten)
         {
+            if (OriginalKnoten(art) is { } neu) // Kiefer und Laubbaum des Kits sind jetzt die Originalbäume (Stadtansicht.Baeume.cs)
+            {
+                BaumStufenBauen(ziel, Baumjahr.Modell, neu, "Baeume_" + art, lagen, true);
+                continue;
+            }
             if (NaturNetz("natur/natur_kit_baeume", art) is not { } netz) continue;
             var winterNetz = NaturNetz("natur/natur_kit_baeume", art + "_Winter", pflicht: false);
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
@@ -173,7 +185,10 @@ public partial class Stadtansicht
     private void NaturSetzen(Pflanzenlage lage)
     {
         if (lage.Art is not { Modell: { } datei, Knoten: { } knoten }) return;
-        NaturSetzen(datei, knoten + lage.Variante, new Vector3((float)lage.X, BodenHoehe((float)lage.X, (float)lage.Z), (float)lage.Z), Mathf.DegToRad((float)lage.Drehung), (float)lage.Massstab);
+        var name = knoten + lage.Variante;
+        var ort = new Vector3((float)lage.X, BodenHoehe((float)lage.X, (float)lage.Z), (float)lage.Z);
+        if (BaumAlt && IstOriginalBaum(datei)) (datei, name) = AltBaum(name); // nur Vergleiche (Stadtansicht.Baeume.cs)
+        NaturSetzen(datei, name, ort, Mathf.DegToRad((float)lage.Drehung), (float)lage.Massstab);
     }
 
     /// <summary>
@@ -327,6 +342,7 @@ public partial class Stadtansicht
         if (jahreszeit == _jahreszeit) return;
         _jahreszeit = jahreszeit;
         foreach (var (stoff, sommer) in _laubStoffe) LaubFaerben(stoff, sommer);
+        BaumJahrSetzen(jahreszeit); // Originalbäume (Stadtansicht.Baeume.cs)
 
         var winter = jahreszeit == Jahreszeit.Winter;
         foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur (Oberflächendetails)

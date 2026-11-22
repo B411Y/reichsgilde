@@ -96,6 +96,8 @@ public partial class Hauptmenue : Node
                 Callable.From(() => GetTree().ChangeSceneToFile(Wassertest.Szene)).CallDeferred();
             else if (Felstest.Angefordert)
                 Callable.From(() => GetTree().ChangeSceneToFile(Felstest.Szene)).CallDeferred();
+            else if (Baumtest.Angefordert)
+                Callable.From(() => GetTree().ChangeSceneToFile(Baumtest.Szene)).CallDeferred();
             else if (Rauchtest.Angefordert)
                 Callable.From(() => GetTree().ChangeSceneToFile(Rauchtest.Szene)).CallDeferred();
             else

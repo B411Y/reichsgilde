@@ -38,7 +38,7 @@ public partial class Stadtansicht
 
     private static EgoFormArt EgoNaturArt(string datei) => datei switch
     {
-        "natur/natur_baeume" or "natur/natur_kit_baeume" => EgoFormArt.Baum,
+        "natur/natur_baeume" or "natur/natur_kit_baeume" or "natur/natur_original_baeume" => EgoFormArt.Baum,
         "natur/natur_steine" or "natur/natur_kit_steine" or "natur/natur_holz" => EgoFormArt.Stein,
         _ => EgoFormArt.Keine,
     };
@@ -47,6 +47,7 @@ public partial class Stadtansicht
     {
         if (knoten.StartsWith("Huhn", StringComparison.Ordinal) || knoten.StartsWith("Waescheleine", StringComparison.Ordinal)) return EgoFormArt.Keine; // Hühner huschen, die Leine hängt hoch
         if (datei == "props/fuellung_tiere") return EgoFormArt.Stein;
+        if (datei == "natur/natur_original_baeume") return Baumjahr.Art(knoten) is "Hasel" or "Weissdorn" or "Holunder" ? EgoFormArt.Busch : EgoFormArt.Baum;
         return datei switch
         {
             "natur/natur_baeume" or "natur/natur_kit_baeume" => EgoFormArt.Baum,

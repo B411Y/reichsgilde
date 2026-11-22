@@ -118,7 +118,7 @@ public partial class Stadtansicht
                 foreach (var t in KastenFuellen(anordnung, karte.Kennung, r.Kennung, kasten))
                 {
                     var groesse = t.Lage.Basis.Scale.X;
-                    if (t.Datei == "natur/natur_baeume" && teile.Contains("baum")) baeume.Add(Kreis(t.Lage.Origin, rasen.BaumRadius * groesse));
+                    if (t.Datei is "natur/natur_baeume" or "natur/natur_original_baeume" && teile.Contains("baum")) baeume.Add(Kreis(t.Lage.Origin, rasen.BaumRadius * groesse));
                     else if (t.Datei == "natur/natur_buesche" && t.Schatten && teile.Contains("busch")) buesche.Add(Kreis(t.Lage.Origin, rasen.BuschRadius * groesse));
                 }
             }

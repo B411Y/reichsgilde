@@ -826,6 +826,7 @@ public partial class Stadtansicht : Node3D
         Ladezeit.Phase("im Bild: Passanten");
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
         Ladezeit.Phase("im Bild: Jahreszeit setzen");
+        BaeumeAktualisieren(delta); // Stufe der Originalbäume nach Zoom, fallendes Laub (Stadtansicht.Baeume.cs)
         VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
         Ladezeit.Phase("im Bild: Vögel");
         TiereAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Hühner, Hunde, Katzen: Stadtansicht.Tiere.cs
