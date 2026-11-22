@@ -618,6 +618,9 @@ public sealed class Wegebau
         if (IstAktiv) StadtBaut(protokoll);
     }
 
+    /// <summary>Der Antrag entfällt ohne Abstimmung (die Ratssitzung tagt nach einem Rathausbrand ohne Anträge).</summary>
+    internal void AntragVerwerfen() => Antrag = null;
+
     /// <summary>
     /// Die Stadt baut aus der Wegekasse an Hauptstraßen und Markt: zuerst das schlechteste eigene Kies oder Pflaster unter
     /// <c>rat.ausbessernAb</c> ausbessern, dann pflastern, wo der meiste Verkehr ist – je höchstens <c>rat.hoechstensMeterJeJahr</c>.

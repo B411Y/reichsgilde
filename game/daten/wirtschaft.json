@@ -1,5 +1,5 @@
 {
-  "version": 94,
+  "version": 95,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1515,7 +1515,13 @@
     "instandMinuten": 1140,
     "wohnhausReparatur": 0,
     "wohnhausAnteil": [0.5, 1.0],
-    "sprung": { "abstand": 6, "chanceJeStunde": 0.15, "waechterFaktor": 0.5, "dauerFaktor": 0.5, "schwereFaktor": 0.5 }
+    "sprung": { "abstand": 6, "chanceJeStunde": 0.15, "waechterFaktor": 0.5, "dauerFaktor": 0.5, "schwereFaktor": 0.5 },
+    "ohneMesse": true,
+    "stadtbau": {
+      "dom": { "art": "Dom", "reparatur": [400, 1000] }, "koelner_dom": { "art": "Dom", "reparatur": [400, 1000] },
+      "rathaus": { "art": "Rathaus", "reparatur": [300, 800] }, "koelner_rathaus": { "art": "Rathaus", "reparatur": [300, 800] }
+    },
+    "brandkasse": { "beitragAnteil": 0.02, "mindestbeitrag": 20, "deckung": 0.6 }
   },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [
