@@ -108,7 +108,7 @@ public partial class Baumtest : Node
         {
             "wald" => (new Vector3(0, 40, 60), new Vector3(0, 0, -10)),
             "nah" => (new Vector3(0, 6, 22), new Vector3(0, 5, 0)),
-            _ => (new Vector3(0, 26, 30), new Vector3(0, 2, -16)),
+            _ => (new Vector3(0, 38, 36), new Vector3(0, 0, -16)),
         };
         var frei = Option("baumkamera", "").Split(':');
         if (frei.Length == 2 && Vektor(frei[0]) is { } v1 && Vektor(frei[1]) is { } v2) (von, nach) = (v1, v2);
@@ -159,7 +159,7 @@ public partial class Baumtest : Node
     private void FernErzwingen(bool an)
     {
         _fernErzwungen = an;
-        foreach (var f in _fern) { f.VisibilityRangeBegin = an ? 0f : LodEntfernung; f.VisibilityRangeFadeMode = an ? GeometryInstance3D.VisibilityRangeFadeModeEnum.Disabled : GeometryInstance3D.VisibilityRangeFadeModeEnum.Self; }
+        foreach (var f in _fern) { f.VisibilityRangeBegin = an ? 0f : LodEntfernung - 8f; f.VisibilityRangeFadeMode = an ? GeometryInstance3D.VisibilityRangeFadeModeEnum.Disabled : GeometryInstance3D.VisibilityRangeFadeModeEnum.Self; }
         foreach (var n in _nah) { n.VisibilityRangeEnd = an ? 0.001f : LodEntfernung; n.Visible = !an; }
     }
 
@@ -180,11 +180,64 @@ public partial class Baumtest : Node
 
     private MeshInstance3D? Netz(Node wurzel, string name) => wurzel.FindChild(name, true, false) as MeshInstance3D;
 
-    /// <summary>Windfassung (<c>baum_wind.gdshader</c>) eines Quellmaterials für Jahreszeit und Art.</summary>
-    private ShaderMaterial Stoff(BaseMaterial3D quelle, Zeit z, string art, float hoehe, bool blueht)
+    /// <summary>
+    /// Jahreszeitliches Aussehen einer Art (Recherche: <c>docs/bereiche/darstellung.md</c>, Tabelle „Bäume im Jahr“): Tönung und Stärke der Blattkarten,
+    /// Blüten bzw. Früchte als Flecken, Schnee. Quelle der Werte: Fachquellen zu Mitteleuropa (Wikipedia-Artikel der Arten, Forstportale).
+    /// </summary>
+    private readonly record struct Aussehen(Color Farbe, float Toenung, float Flecken = 0f, Color FleckFarbe = default, float Schnee = 0f);
+
+    private static Aussehen Laub(string art, Zeit z) => (art, z) switch
     {
+        // Stieleiche: später, gelbgrüner Austrieb; Herbst gelbbraun; kahl (junge Bäume behalten braunes Laub)
+        ("Eiche", Zeit.Fruehling) => new(new Color(0.70f, 0.78f, 0.28f), 0.62f),
+        ("Eiche", Zeit.Herbst) => new(new Color(0.66f, 0.46f, 0.13f), 0.85f),
+        ("Jungeiche", Zeit.Fruehling) => new(new Color(0.70f, 0.78f, 0.28f), 0.62f),
+        ("Jungeiche", Zeit.Herbst) => new(new Color(0.66f, 0.46f, 0.13f), 0.85f),
+        ("Jungeiche", Zeit.Winter) => new(new Color(0.46f, 0.31f, 0.15f), 0.92f, 0f, default, 0.25f),
+        // Rotbuche: früher, hellgrüner Austrieb; Herbst orange bis rotbraun
+        ("Buche", Zeit.Fruehling) => new(new Color(0.52f, 0.86f, 0.30f), 0.72f),
+        ("Buche", Zeit.Herbst) => new(new Color(0.80f, 0.40f, 0.10f), 0.86f),
+        // Apfel: weiß-rosa Blüte mit dem Laub (Mai); im Herbst gelbgrünes Laub mit roten Früchten
+        ("Apfel", Zeit.Fruehling) => new(new Color(0.60f, 0.80f, 0.30f), 0.5f, 1f, new Color(0.98f, 0.84f, 0.88f)),
+        ("Apfel", Zeit.Sommer) => new(new Color(0.34f, 0.54f, 0.20f), 0.92f, 0.12f, new Color(0.45f, 0.62f, 0.18f)),
+        ("Apfel", Zeit.Herbst) => new(new Color(0.78f, 0.72f, 0.22f), 0.55f, 0.30f, new Color(0.78f, 0.13f, 0.10f)),
+        // Kirsche: weiße Blüte zusammen mit dem (bronzenen) Laub; Herbst intensiv rot und gelb
+        ("Kirsche", Zeit.Fruehling) => new(new Color(0.50f, 0.64f, 0.28f), 0.5f, 1f, new Color(1f, 1f, 1f)),
+        ("Kirsche", Zeit.Sommer) => new(new Color(0.34f, 0.54f, 0.20f), 0.92f),
+        ("Kirsche", Zeit.Herbst) => new(new Color(0.92f, 0.45f, 0.08f), 0.82f),
+        // Fichte: immergrün, frische Triebe hellgrün, Schnee auf den Ästen
+        ("Fichte", Zeit.Fruehling) => new(new Color(0.62f, 0.95f, 0.32f), 0.5f),
+        ("Fichte", Zeit.Sommer) => new(new Color(0.16f, 0.32f, 0.15f), 0.4f),
+        ("Fichte", Zeit.Herbst) => new(new Color(0.16f, 0.32f, 0.15f), 0.4f),
+        ("Fichte", Zeit.Winter) => new(new Color(0.16f, 0.32f, 0.15f), 0.4f, 0f, default, 1f),
+        // Waldkiefer: blaugrüne Nadeln das ganze Jahr, weniger Schnee
+        ("Kiefer", Zeit.Winter) => new(new Color(0.40f, 0.58f, 0.46f), 0.75f, 0f, default, 0.45f),
+        ("Kiefer", _) => new(new Color(0.40f, 0.58f, 0.46f), 0.75f),
+        // Hasel: hellgrün, Herbst vergilbend, im Winter dürres Gespinst
+        ("Hasel", Zeit.Fruehling) => new(new Color(0.58f, 0.82f, 0.28f), 0.7f),
+        ("Hasel", Zeit.Sommer) => new(new Color(0.40f, 0.58f, 0.20f), 0.7f),
+        ("Hasel", Zeit.Herbst) => new(new Color(0.88f, 0.76f, 0.22f), 0.85f),
+        ("Hasel", Zeit.Winter) => new(new Color(0.42f, 0.34f, 0.22f), 0.98f, 0f, default, 0.2f),
+        // Weißdorn: weiße Blüte Mai bis Juni, rote Früchte im Herbst, Laub gelb bis rot
+        ("Weissdorn", Zeit.Fruehling) => new(new Color(0.58f, 0.80f, 0.28f), 0.7f, 1f, new Color(0.98f, 0.97f, 0.95f)),
+        ("Weissdorn", Zeit.Sommer) => new(new Color(0.34f, 0.52f, 0.20f), 0.7f),
+        ("Weissdorn", Zeit.Herbst) => new(new Color(0.76f, 0.34f, 0.12f), 0.8f, 0.4f, new Color(0.62f, 0.07f, 0.09f)),
+        ("Weissdorn", Zeit.Winter) => new(new Color(0.42f, 0.34f, 0.22f), 0.98f, 0.25f, new Color(0.55f, 0.07f, 0.08f), 0.2f),
+        // Schwarzer Holunder: früher Austrieb, Blütendolden im Sommer, Früchte dunkel im Herbst
+        ("Holunder", Zeit.Fruehling) => new(new Color(0.58f, 0.80f, 0.28f), 0.7f),
+        ("Holunder", Zeit.Sommer) => new(new Color(0.36f, 0.54f, 0.22f), 0.65f),
+        ("Holunder", Zeit.Herbst) => new(new Color(0.62f, 0.64f, 0.22f), 0.65f),
+        ("Holunder", Zeit.Winter) => new(new Color(0.42f, 0.34f, 0.22f), 0.98f, 0f, default, 0.2f),
+        // Rinde und alles andere im Winter: Schnee nur auf Nadelbäumen
+        _ => new(Colors.White, 0f),
+    };
+
+    /// <summary>Windfassung (<c>baum_wind.gdshader</c>) eines Quellmaterials für Jahreszeit und Art.</summary>
+    private ShaderMaterial Stoff(BaseMaterial3D quelle, Zeit z, string art, float hoehe)
+    {
+        art = art switch { "Tanne" => "Fichte", "Busch" => "Hasel", _ => art };
         var name = quelle.ResourceName;
-        var schluessel = $"{name}|{z}|{art}|{hoehe:0.0}|{blueht}";
+        var schluessel = $"{name}|{z}|{art}|{hoehe:0.0}";
         if (_stoffe.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
         var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/baum_wind.gdshader"), ResourceName = name };
         m.SetShaderParameter("farbe", Colors.White);
@@ -199,69 +252,72 @@ public partial class Baumtest : Node
         m.SetShaderParameter("hoehe", Mathf.Max(hoehe, 1f));
         m.SetShaderParameter("flattern", blatt ? 1f : 0f);
         var nadel = name == "Leaves_Pine";
-        if (name == "Flowers") m.SetShaderParameter("farbe", new Color(1, 1, 1, z is Zeit.Fruehling or Zeit.Sommer ? 1f : 0f));
-        else if (blatt && !nadel)
+        var a = Laub(art, z);
+        if (name == "Flowers")
         {
-            switch (z)
-            {
-                case Zeit.Fruehling:                       // junges, helles Grün; Obstbäume und Büsche blühen
-                    m.SetShaderParameter("laub_farbe", new Color(0.60f, 0.82f, 0.30f));
-                    m.SetShaderParameter("laub_toenung", art == "Busch" ? 0.9f : 0.6f);   // Büsche: die Originalkarte ist rot
-                    if (blueht) { m.SetShaderParameter("bluete", 1f); m.SetShaderParameter("bluete_farbe", art == "Obstbaum" ? new Color(0.98f, 0.86f, 0.90f) : new Color(0.97f, 0.97f, 0.94f)); }
-                    break;
-                case Zeit.Sommer when art == "Busch":      // die Blattkarte des Strauchs (TwistedTree) ist im Original rot
-                    m.SetShaderParameter("laub_farbe", new Color(0.36f, 0.52f, 0.20f));
-                    m.SetShaderParameter("laub_toenung", 0.92f);
-                    break;
-                case Zeit.Herbst:                          // gelb-orange, ein Rest Grün bleibt
-                    m.SetShaderParameter("laub_farbe", art == "Busch" ? new Color(0.78f, 0.45f, 0.14f) : new Color(0.95f, 0.58f, 0.13f));
-                    m.SetShaderParameter("laub_toenung", 0.78f);
-                    break;
-                case Zeit.Winter:                          // nur Büsche (Laubbäume sind kahl): welkes Braun
-                    m.SetShaderParameter("laub_farbe", new Color(0.46f, 0.37f, 0.24f));
-                    m.SetShaderParameter("laub_toenung", 0.88f);
-                    break;
-            }
+            // Holunder: Dolden cremeweiß im Sommer, dunkle Früchte im Herbst; sonst unsichtbar (Strauch ohne Blütenkarte hat keine)
+            var sichtbar = art == "Holunder" && z is Zeit.Sommer or Zeit.Herbst;
+            m.SetShaderParameter("farbe", new Color(1, 1, 1, sichtbar ? 1f : 0f));
+            m.SetShaderParameter("laub_farbe", z == Zeit.Herbst ? new Color(0.18f, 0.08f, 0.20f) : new Color(0.97f, 0.94f, 0.78f));
+            m.SetShaderParameter("laub_toenung", 1f);
         }
-        if (z == Zeit.Winter)
+        else if (blatt)
         {
-            if (nadel) m.SetShaderParameter("schnee", 1f);                              // Tannen bleiben grün, Schnee auf den Ästen
-            else if (!blatt) m.SetShaderParameter("schnee", art == "Tanne" ? 0.9f : 0.55f); // Rinde: Schnee auf den Oberseiten
-            else if (art == "Busch") m.SetShaderParameter("schnee", 0.8f);
+            m.SetShaderParameter("laub_farbe", a.Farbe);
+            // Die Blattkarte der Obstbäume und Sträucher (TwistedTree) ist im Original rot und dunkel: immer kräftig umfärben, heller
+            var rot = name == "Leaves_TwistedTree";
+            m.SetShaderParameter("laub_toenung", rot ? Mathf.Max(a.Toenung, 0.92f) : a.Toenung);
+            m.SetShaderParameter("hell_faktor", rot ? 7.0f : 3.5f);
+            m.SetShaderParameter("bluete", a.Flecken);
+            m.SetShaderParameter("bluete_farbe", a.FleckFarbe);
+            m.SetShaderParameter("schnee", a.Schnee);
         }
+        else if (z == Zeit.Winter)
+        {
+            m.SetShaderParameter("schnee", art == "Fichte" ? 0.9f : art == "Kiefer" ? 0.5f : 0.45f); // Rinde: Schnee auf den Oberseiten der Äste
+        }
+        if (!blatt && art == "Kiefer") m.SetShaderParameter("rinde_oben", 1f);
+        if (!blatt && art is "Eiche" or "Jungeiche") { m.SetShaderParameter("rinde_farbe", new Color(0.52f, 0.47f, 0.40f)); m.SetShaderParameter("rinde_toenung", 0.65f); } // graubraun, jung graugrün
+        if (!blatt && art == "Buche") { m.SetShaderParameter("rinde_farbe", new Color(0.62f, 0.60f, 0.58f)); m.SetShaderParameter("rinde_toenung", 0.75f); } // glatt, silbergrau
+        if (!blatt && art == "Kirsche") { m.SetShaderParameter("rinde_farbe", new Color(0.50f, 0.36f, 0.34f)); m.SetShaderParameter("rinde_toenung", 0.6f); } // rötlichgrau
+        if (blatt && Trocken(art, z)) m.SetShaderParameter("luecke", 0.8f);
         _stoffe[schluessel] = m;
         return m;
     }
 
-    private MeshInstance3D? Teil(Node wurzel, string knoten, Zeit z, string art, bool blueht, Node3D eltern, bool lodSteuern, bool fern)
+    /// <summary>Winter: Laubbäume kahl; bei <paramref name="trocken"/> (Büsche, Jungeiche) die ausgedünnte Fassung mit dürrem braunem Laub.</summary>
+    private MeshInstance3D? Teil(Node wurzel, string knoten, Zeit z, string art, Node3D eltern, bool lodSteuern, bool fern)
     {
         var quelle = Netz(wurzel, knoten);
         if (quelle?.Mesh is null) return null;
         var netz = (Mesh)quelle.Mesh.Duplicate();   // eigene Flächen: das Netz der Quelle bleibt unberührt
         var hoehe = netz.GetAabb().End.Y;
         for (var i = 0; i < netz.GetSurfaceCount(); i++)
-            if (quelle.Mesh.SurfaceGetMaterial(i) is BaseMaterial3D q) netz.SurfaceSetMaterial(i, Stoff(q, z, art, hoehe, blueht));
+            if (quelle.Mesh.SurfaceGetMaterial(i) is BaseMaterial3D q) netz.SurfaceSetMaterial(i, Stoff(q, z, art, hoehe));
         var mi = new MeshInstance3D { Mesh = netz, Name = knoten };
         eltern.AddChild(mi);
         if (lodSteuern)
         {
-            if (fern) { mi.VisibilityRangeBegin = LodEntfernung; mi.VisibilityRangeBeginMargin = 8f; mi.VisibilityRangeFadeMode = GeometryInstance3D.VisibilityRangeFadeModeEnum.Self; _fern.Add(mi); }
+            if (fern) { mi.VisibilityRangeBegin = LodEntfernung - 8f; mi.VisibilityRangeBeginMargin = 8f; mi.VisibilityRangeFadeMode = GeometryInstance3D.VisibilityRangeFadeModeEnum.Self; _fern.Add(mi); }
             else { mi.VisibilityRangeEnd = LodEntfernung; mi.VisibilityRangeEndMargin = 8f; mi.VisibilityRangeFadeMode = GeometryInstance3D.VisibilityRangeFadeModeEnum.Self; _nah.Add(mi); }
         }
         return mi;
     }
 
+    private static bool Trocken(string art, Zeit z) => z == Zeit.Winter && art is "Jungeiche" or "Hasel" or "Weissdorn" or "Holunder";
+
     /// <summary>Ein Baum der Quelle (Knoten „Eiche1“ …) an <paramref name="ort"/>: nah, dazu fern mit Überblenden.</summary>
-    private Node3D BaumSetzen(string knoten, string art, Vector3 ort, Zeit z, bool blueht, float drehung = 0f)
+    private Node3D BaumSetzen(string knoten, string art, Vector3 ort, Zeit z, float drehung = 0f, float groesse = 1f)
     {
-        var wurzel = new Node3D { Name = knoten + "_" + z, Position = ort, RotationDegrees = new Vector3(0, drehung, 0) };
+        var wurzel = new Node3D { Name = knoten + "_" + art + "_" + z, Position = ort, RotationDegrees = new Vector3(0, drehung, 0), Scale = Vector3.One * groesse };
         AddChild(wurzel);
-        var kahl = z == Zeit.Winter && Netz(_quelle, knoten + "_Winter") is not null;
-        var nah = knoten + (kahl ? "_Winter" : "");
-        var fern = knoten + (kahl ? "_FernWinter" : "_Fern");
-        var lodAn = _lod == "auto";
-        if (_lod != "fern") Teil(_quelle, nah, z, art, blueht, wurzel, lodAn, false);
-        if (_lod is "fern" or "auto") Teil(_quelle, fern, z, art, blueht, wurzel, lodAn, true);
+        var trocken = Trocken(art, z);
+        var kahl = z == Zeit.Winter && !trocken && Netz(_quelle, knoten + "_Winter") is not null;
+        var nah = trocken ? knoten + "_Fern" : knoten + (kahl ? "_Winter" : "");
+        var fern = trocken ? knoten + "_Fern" : knoten + (kahl ? "_FernWinter" : "_Fern");
+        var lodAn = _lod == "auto" && !trocken;
+        if (_lod != "fern" || trocken) Teil(_quelle, nah, z, art, wurzel, lodAn, false);
+        if (!trocken && _lod is "fern" or "auto") Teil(_quelle, fern, z, art, wurzel, lodAn, true);
         return wurzel;
     }
 
@@ -269,10 +325,13 @@ public partial class Baumtest : Node
     //  Reihe der Jahreszeiten
     // ═════════════════════════════════════════════════════════════════════════
 
-    private static readonly (string Name, string Art, float X, bool Blueht)[] Arten =
+    /// <summary>Knoten des Modells, Art (bestimmt Farben, Blüte, Winterbild), Name in der Anzeige, Ort, Größe.</summary>
+    private static readonly (string Knoten, string Art, string Anzeige, float X, float Groesse)[] Arten =
     {
-        ("Eiche1", "Eiche", -20f, false), ("Obstbaum1", "Obstbaum", -10f, true), ("Tanne2", "Tanne", 0f, false),
-        ("Busch1", "Busch", 8f, true), ("Busch2", "Busch", 14f, false),
+        ("Eiche1", "Eiche", "Eiche", -30f, 1f), ("Eiche5", "Jungeiche", "Jungeiche", -23f, 0.8f), ("Eiche2", "Buche", "Buche", -16f, 1f),
+        ("Obstbaum1", "Apfel", "Apfel", -8.5f, 1f), ("Obstbaum2", "Kirsche", "Kirsche", -1f, 1f),
+        ("Tanne2", "Fichte", "Fichte", 6f, 1f), ("Tanne3", "Kiefer", "Kiefer", 13f, 1f),
+        ("Busch1", "Hasel", "Hasel", 20f, 2.4f), ("Busch1", "Weissdorn", "Weissdorn", 26f, 1.9f), ("Busch2", "Holunder", "Holunder", 32f, 2.2f),
     };
 
     private static readonly Color[] Boden =
@@ -294,34 +353,42 @@ public partial class Baumtest : Node
             var tiefe = -r * 14f;
             AddChild(new MeshInstance3D
             {
-                Name = "Boden_" + z, Mesh = new BoxMesh { Size = new Vector3(60, 0.1f, 13.5f) },
+                Name = "Boden_" + z, Mesh = new BoxMesh { Size = new Vector3(80, 0.1f, 13.5f) },
                 Position = new Vector3(0, -0.05f, tiefe),
                 MaterialOverride = new StandardMaterial3D { AlbedoColor = Boden[(int)z], Roughness = 1f },
             });
             AddChild(new Label3D
             {
                 Text = z switch { Zeit.Fruehling => "Fruehling", Zeit.Sommer => "Sommer", Zeit.Herbst => "Herbst", _ => "Winter" },
-                Position = new Vector3(-27, 1.2f, tiefe + 5), FontSize = 120, PixelSize = 0.012f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                Position = new Vector3(-37, 1.2f, tiefe + 5), FontSize = 120, PixelSize = 0.012f, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 Modulate = Colors.White, OutlineSize = 24, NoDepthTest = true,
             });
-            foreach (var (name, art, x, blueht) in Arten)
-                BaumSetzen(name, art, new Vector3(x, 0, tiefe), z, blueht, 15f * (x < 0 ? 1 : -1));
+            foreach (var (knoten, art, anzeige, x, groesse) in Arten)
+            {
+                BaumSetzen(knoten, art, new Vector3(x, 0, tiefe), z, 15f * (x < 0 ? 1 : -1), groesse);
+                if (r == 0)
+                    AddChild(new Label3D
+                    {
+                        Text = anzeige, Position = new Vector3(x, 0.15f, tiefe + 5.2f), FontSize = 64, PixelSize = 0.01f, RotationDegrees = new Vector3(-70, 0, 0),
+                        Modulate = Colors.White, OutlineSize = 12, NoDepthTest = true,
+                    });
+            }
             if (z == Zeit.Herbst && _stufe >= 2)
-                foreach (var (name, art, x, _) in Arten)
-                    if (art is "Eiche" or "Obstbaum") LaubFallen(new Vector3(x, name == "Eiche1" ? 7.5f : 5.5f, tiefe));
+                foreach (var (knoten, art, _, x, _) in Arten)
+                    if (art is "Eiche" or "Buche" or "Kirsche") LaubFallen(new Vector3(x, art == "Kirsche" ? 4.5f : 7.5f, tiefe), art switch { "Eiche" => new Color(0.66f, 0.46f, 0.15f), "Buche" => new Color(0.80f, 0.42f, 0.12f), _ => new Color(0.86f, 0.28f, 0.12f) });
         }
         GD.Print($"[baum] reihe zeiten={zeiten.Length}");
     }
 
     /// <summary>Fallendes Laub unter der Krone (Grafikstufe hoch und ultra): kleine orange Blattkarten, die im Wind abdriften und kippen.</summary>
-    private void LaubFallen(Vector3 ort)
+    private void LaubFallen(Vector3 ort, Color farbe)
     {
         var stoff = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.9f, 0.5f, 0.12f), CullMode = BaseMaterial3D.CullModeEnum.Disabled, Roughness = 1f,
+            AlbedoColor = farbe, CullMode = BaseMaterial3D.CullModeEnum.Disabled, Roughness = 1f,
             VertexColorUseAsAlbedo = true, ShadingMode = BaseMaterial3D.ShadingModeEnum.PerPixel,
         };
-        var verlauf = new Gradient { Colors = new[] { new Color(0.95f, 0.62f, 0.14f), new Color(0.80f, 0.36f, 0.10f), new Color(0.88f, 0.74f, 0.20f) }, Offsets = new[] { 0f, 0.5f, 1f } };
+        var verlauf = new Gradient { Colors = new[] { Colors.White, new Color(0.85f, 0.8f, 0.75f), new Color(1f, 0.95f, 0.85f) }, Offsets = new[] { 0f, 0.5f, 1f } };
         var teilchen = new GpuParticles3D
         {
             Name = "FallendesLaub", Amount = _stufe >= 3 ? 90 : 45, Lifetime = 7.0, Preprocess = 7.0,
@@ -399,13 +466,13 @@ public partial class Baumtest : Node
         var hoehe = netz.GetAabb().End.Y;
         if (quelle == _quelle)
             for (var i = 0; i < netz.GetSurfaceCount(); i++)
-                if (q.Mesh.SurfaceGetMaterial(i) is BaseMaterial3D m) netz.SurfaceSetMaterial(i, Stoff(m, Zeit.Sommer, art, hoehe, false));
+                if (q.Mesh.SurfaceGetMaterial(i) is BaseMaterial3D m) netz.SurfaceSetMaterial(i, Stoff(m, Zeit.Sommer, art, hoehe));
         var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
         for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
         var mmi = new MultiMeshInstance3D { Multimesh = vielfach, Name = knoten };
         if (lod)
         {
-            if (fern) { mmi.VisibilityRangeBegin = LodEntfernung; mmi.VisibilityRangeBeginMargin = 8f; }
+            if (fern) { mmi.VisibilityRangeBegin = LodEntfernung - 8f; mmi.VisibilityRangeBeginMargin = 8f; }
             else { mmi.VisibilityRangeEnd = LodEntfernung; mmi.VisibilityRangeEndMargin = 8f; }
             mmi.VisibilityRangeFadeMode = GeometryInstance3D.VisibilityRangeFadeModeEnum.Self;
         }

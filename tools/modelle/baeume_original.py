@@ -34,7 +34,10 @@ BAEUME = [
     ("Eiche2", "CommonTree_3", 9.5, "laub"),
     ("Eiche3", "CommonTree_2", 8.5, "laub"),
     ("Eiche4", "CommonTree_1", 9.0, "laub"),
-    ("Obstbaum1", "CommonTree_4", 6.0, "laub"),
+    ("Eiche5", "CommonTree_4", 6.0, "laub"),
+    # Obstbäume: die knorrigen, breiten TwistedTree des Kits (Apfel und Kirsche unterscheidet das Spiel nur durch Tönung und Blüte)
+    ("Obstbaum1", "TwistedTree_2", 5.0, "laub"),
+    ("Obstbaum2", "TwistedTree_4", 5.6, "laub"),
     ("Tanne1", "Pine_5", 7.5, "nadel"),
     ("Tanne2", "Pine_2", 8.0, "nadel"),
     ("Tanne3", "Pine_4", 10.5, "nadel"),
@@ -44,7 +47,7 @@ BAEUME = [
     ("Busch2", "Bush_Common_Flowers", 1.6, "busch"),
 ]
 LAUBSTOFFE = ("Leaves_NormalTree", "Leaves_TwistedTree", "Leaves_Pine", "Flowers")
-GROESSE = {"Bark_NormalTree": 1024, "Leaves_NormalTree": 512, "Leaves_TwistedTree": 512, "Leaves_Pine": 512, "Flowers": 512}
+GROESSE = {"Bark_NormalTree": 1024, "Bark_TwistedTree": 1024, "Leaves_NormalTree": 512, "Leaves_TwistedTree": 512, "Leaves_Pine": 512, "Flowers": 512}
 FERN_RINDE = 0.30        # Anteil der Rindendreiecke in der Fernfassung
 FERN_LAUB = 0.40         # Anteil der Blattkarten in der Fernfassung
 FERN_VERGROESSERN = 1.30  # verbleibende Karten wachsen um ihren Schwerpunkt
