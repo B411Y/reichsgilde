@@ -96,7 +96,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Woher die Zahlen | Keine Zahl ist abgeschrieben: `Talentwirkungen.Zeilen` (Kern, nur lesend) liefert sie aus denselben Daten, mit denen `Familienbuch`, Geheimnis-, Glaubens- und Kirchenwesen rechnen; `TalentTipp` (Oberfläche) setzt den Text. Ein Test (`TalentwirkungenTests`) hält Tooltip und Simulation gleich. Wirken tut nur das Talent des Oberhaupts; bei anderen Personen steht „Als Oberhaupt: …“. | 14.11.2026 |
 | Was nicht „Qualität“ ist | Handwerkskunst erhöht die **Leistung** (Arbeitstempo) aller Arbeitskräfte, nicht die Warenqualität; der Tooltip sagt es so. | 14.11.2026 |
 | Charakterzüge | Der Tooltip hatte schon Beschreibung und Wirkungstext aus den Daten; neu steht die Meinungswirkung (`Charakterzug.Meinungstext`: Punkte über Träger desselben Zugs, des Gegenteils und bei allen anderen) dabei. | 14.11.2026 |
-| Aussehen | Die Tooltips laufen über den Autoload `Tooltips` (Tafel, Schrift, Festheften). Es gibt kein Tooltip-Theme; Zahlen werden nicht farbig hervorgehoben, weil `Tooltips` BBCode entschärft. Eine Hervorhebung wäre eine Änderung am Autoload, nicht an der Anzeige. | 14.11.2026 |
+| Aussehen | Die Tooltips laufen über den Autoload `Tooltips` (Tafel, Schrift, Festheften). Aussehen steht seit 22.11.2026 in `tooltip_thema.tres`; Zahlen werden nicht farbig hervorgehoben, weil `Tooltips` BBCode entschärft. Eine Hervorhebung wäre eine Änderung am Autoload, nicht an der Anzeige. | 14.11.2026 |
 
 ### Platzwahl am Start (Branch phase5/nur-bauzonen-oberflaeche)
 
@@ -279,3 +279,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Eintrag | Datum, Absender (`Art.Absender`), Betreff (`Art.Titel`), Text (höchstens 3 Zeilen); Ablage in Typ-Varianten der Zunftlade (`LadeText`, `LadeTextLeise`, `LadeTextWarnung`, `LadeKnopfKlein`), Maße `ablage_*` in `zunftlade_thema.tres` | 22.11.2026 |
 | Filter | Herkunft (Alles, Mein Haus, Rivalen) und Art (die sechs Themen aus `meldungen.json`) zugleich; 60 Einträge, „Ältere Briefe“ mehr | 22.11.2026 |
 | Klick | Legt den Brief wie damals auf (`Hauptszene.AblageBriefOeffnen`: Absender, Betreff, Text, Porträt, Zielknopf), statt gleich zum Ziel zu springen | 22.11.2026 |
+
+### Tooltips schlicht (Branch phase5/tooltips-schlicht)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen | Die Tooltips sind schlicht (Wunsch des Nutzers): dunkler einfarbiger Grund mit dünnem goldenem Rand wie das Hauptmenü, helle Schrift, Überschrift in Gold; kein Holz, kein Pergament. Es ist nur `game/scenes/tooltip_thema.tres` geändert (Grund-Kachel entfällt, `schleier` deckt fast voll, `kante_breite` 1, alle Seiten in Gold, `kante_fest` helleres Gold); `Tooltips.cs` unverändert. Das Holz der Lade bleibt im Zunftlade-Thema. | 22.11.2026 |
+| Zweite Ebene | Unterstrichene Begriffe öffnen weiter einen zweiten Tooltip derselben schlichten Art. | 22.11.2026 |
+| Nicht angefasst | Hauptmenü, Kartenwerkstatt, Fenster und Tafeln (Pergament). Der kleine Bauplatz-Hinweis der Baumodus-Tafel (`BauAnzeige`, eigener Stilkasten im Code) war schon dunkel mit goldenem Rand. | 22.11.2026 |
+| Kürzungen | Lange Tooltip-Texte wurden nur gesichtet, nicht gekürzt; Vorschläge siehe Liste des Teamleiters (Einstellungen-Beleuchtung, Familien-Glaube, Zeitstrahl, Wohnhaus, AP-Liste). | 22.11.2026 |

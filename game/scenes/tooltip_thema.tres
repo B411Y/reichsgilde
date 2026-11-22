@@ -1,11 +1,7 @@
 [gd_resource type="Theme" format=3]
 
-; Das Thema der Tooltips (Fehlerpaket 1, 14.11.2026; UI-Umbau „Zunftlade“, Teil 2: Holztafel). Aussehen steht NUR hier, Logik in scripts/Tooltips.cs.
-; Pseudo-Typen: TooltipTafel (Fläche), TooltipFarben, TooltipMasse. „wert“ färbt die mit {{…}} markierten Zahlen (WoW-Stil).
-; Die Tafel ist das Holz der Lade (gekachelt, grund_kachel Einheiten je Kachel) unter einem dunklen Schleier (eine Farbe, kein Verlauf) mit einer
-; schlichten Kante je Seite; der festgeheftete Hinweis hat die Kante in Gold (kante_fest). Kein Schatten.
-
-[ext_resource type="Texture2D" path="res://assets/oberflaeche/zunftlade/holz.webp" id="1_holz"]
+; Das Thema der Tooltips (schlicht, 22.11.2026): dunkler einfarbiger Grund mit dünnem goldenem Rand wie das Hauptmenü, kein Holz, kein Pergament. Aussehen steht NUR hier, Logik in scripts/Tooltips.cs.
+; Pseudo-Typen: TooltipTafel (Fläche), TooltipFarben, TooltipMasse. „wert“ färbt die mit {{…}} markierten Zahlen. Der festgeheftete Hinweis hat die Kante in hellerem Gold (kante_fest). Kein Schatten.
 
 [sub_resource type="StyleBoxEmpty" id="Tafel"]
 content_margin_left = 14.0
@@ -16,15 +12,13 @@ content_margin_bottom = 11.0
 [resource]
 TooltipTafel/styles/lose = SubResource("Tafel")
 TooltipTafel/styles/fest = SubResource("Tafel")
-TooltipTafel/icons/grund = ExtResource("1_holz")
-TooltipTafel/constants/grund_kachel = 600
-TooltipTafel/colors/schleier = Color(0.078, 0.047, 0.024, 0.7)
-TooltipTafel/constants/kante_breite = 2
-TooltipTafel/colors/kante_oben = Color(0.541, 0.416, 0.235, 1)
-TooltipTafel/colors/kante_rechts = Color(0.165, 0.102, 0.047, 1)
-TooltipTafel/colors/kante_unten = Color(0.071, 0.043, 0.02, 1)
-TooltipTafel/colors/kante_links = Color(0.353, 0.247, 0.133, 1)
-TooltipTafel/colors/kante_fest = Color(1, 0.878, 0.541, 1)
+TooltipTafel/colors/schleier = Color(0.102, 0.086, 0.07, 0.97)
+TooltipTafel/constants/kante_breite = 1
+TooltipTafel/colors/kante_oben = Color(0.69, 0.56, 0.3, 1)
+TooltipTafel/colors/kante_rechts = Color(0.69, 0.56, 0.3, 1)
+TooltipTafel/colors/kante_unten = Color(0.69, 0.56, 0.3, 1)
+TooltipTafel/colors/kante_links = Color(0.69, 0.56, 0.3, 1)
+TooltipTafel/colors/kante_fest = Color(0.95, 0.82, 0.45, 1)
 TooltipFarben/colors/gold = Color(0.95, 0.82, 0.45, 1)
 TooltipFarben/colors/hell = Color(0.92, 0.88, 0.8, 1)
 TooltipFarben/colors/verweis = Color(0.941, 0.816, 0.439, 1)
