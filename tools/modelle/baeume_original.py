@@ -7,7 +7,7 @@ volle Dreiecke, Original-Rinde mit Normalenkarte, Original-Blattkarten in Origin
 (`baum_wind.gdshader`), nicht das Modell. Zu jedem Baum entstehen drei Fassungen:
   <Name>          nah: das Originalmodell (Maßstab wie bisher, Fuß im Nullpunkt, Mittelpunkt auf x/z = 0)
   <Name>_Fern     fern: Rinde vereinfacht, vom Laub nur ein Teil der Blattkarten, dafür größer (Umriss und Dichte bleiben)
-  <Name>_Winter   kahl: nur die Rinde des Originals (nur Laubbäume; Tannen und Büsche haben keine)
+  <Name>_Winter   kahl: nur die Rinde des Originals (Laubbäume); bei Büschen das ausgedünnte dürre Laub; Nadelbäume haben keine
   <Name>_FernWinter  kahl und fern
 Schreibt `game/assets/modelle/natur/natur_original_baeume.glb` (Texturen WebP, Rinde 1024, Blätter 512).
 """
@@ -30,21 +30,24 @@ ORDNER = os.path.join(KITS, "Stylized_Nature_MegaKitStandard", "glTF")
 
 # (Knoten, Datei, Höhe in m, Art) – Art: laub (hat Winterfassung), nadel, busch (Winterfassung aus der Rinde, falls vorhanden)
 BAEUME = [
+    # Namen wie im Katalog (game/daten/katalog.json): Knoten + Nummer der Variante
     ("Eiche1", "CommonTree_5", 8.0, "laub"),
     ("Eiche2", "CommonTree_3", 9.5, "laub"),
     ("Eiche3", "CommonTree_2", 8.5, "laub"),
-    ("Eiche4", "CommonTree_1", 9.0, "laub"),
-    ("Eiche5", "CommonTree_4", 6.0, "laub"),
-    # Obstbäume: die knorrigen, breiten TwistedTree des Kits (Apfel und Kirsche unterscheidet das Spiel nur durch Tönung und Blüte)
-    ("Obstbaum1", "TwistedTree_2", 5.0, "laub"),
-    ("Obstbaum2", "TwistedTree_4", 5.6, "laub"),
-    ("Tanne1", "Pine_5", 7.5, "nadel"),
-    ("Tanne2", "Pine_2", 8.0, "nadel"),
-    ("Tanne3", "Pine_4", 10.5, "nadel"),
-    ("Tanne4", "Pine_1", 7.5, "nadel"),
-    ("Tanne5", "Pine_3", 7.5, "nadel"),
-    ("Busch1", "Bush_Common", 1.6, "busch"),
-    ("Busch2", "Bush_Common_Flowers", 1.6, "busch"),
+    ("Buche1", "CommonTree_1", 9.0, "laub"),
+    ("Buche2", "CommonTree_4", 8.0, "laub"),
+    # Obstbäume: die knorrigen, breiten TwistedTree des Kits (Apfel und Kirsche unterscheidet das Spiel durch Tönung und Blüte)
+    ("Apfel1", "TwistedTree_2", 5.0, "laub"),
+    ("Kirsche1", "TwistedTree_4", 6.0, "laub"),
+    ("Fichte1", "Pine_5", 7.5, "nadel"),
+    ("Fichte2", "Pine_2", 8.0, "nadel"),
+    ("Fichte3", "Pine_1", 7.5, "nadel"),
+    ("Fichte4", "Pine_3", 7.5, "nadel"),
+    ("Kiefer1", "Pine_4", 10.5, "nadel"),
+    # Sträucher: Winterfassung = ausgedünntes dürres Laub (die Modelle haben kein Zweigwerk)
+    ("Hasel1", "Bush_Common", 3.0, "busch"),
+    ("Weissdorn1", "Bush_Common", 2.6, "busch"),
+    ("Holunder1", "Bush_Common_Flowers", 3.2, "busch"),
 ]
 LAUBSTOFFE = ("Leaves_NormalTree", "Leaves_TwistedTree", "Leaves_Pine", "Flowers")
 GROESSE = {"Bark_NormalTree": 1024, "Bark_TwistedTree": 1024, "Leaves_NormalTree": 512, "Leaves_TwistedTree": 512, "Leaves_Pine": 512, "Flowers": 512}
@@ -218,6 +221,7 @@ def nachbessern(pfad):
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     ergebnis = []
+    ergebnis_extra = []
     for i, (name, datei, hoehe, art) in enumerate(BAEUME):
         o = laden(datei, hoehe, name)
         n_voll = len(o.data.polygons)
@@ -247,8 +251,16 @@ def main():
             fw.name = fw.data.name = name + "_FernWinter"
             fern_winter = fw
         bpy.data.objects.remove(o)
+        if art == "busch":
+            for ende in ("_Winter", "_FernWinter"):
+                k = fern.copy()
+                k.data = fern.data.copy()
+                bpy.context.scene.collection.objects.link(k)
+                k.name = k.data.name = name + ende
+                ergebnis_extra.append(k)
         nah = verbinden([rinde, laub], name)
-        ergebnis += [nah, fern] + [x for x in (winter, fern_winter) if x]
+        ergebnis += [nah, fern] + [x for x in (winter, fern_winter) if x] + ergebnis_extra
+        ergebnis_extra.clear()
         print(f"{name}: voll {n_voll} Dreiecke; nah {len(nah.data.polygons)}, fern {len(fern.data.polygons)}"
               + (f", winter {len(winter.data.polygons)}" if winter else ""))
     # übriggebliebene Hilfsobjekte entfernen
