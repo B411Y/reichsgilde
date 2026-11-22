@@ -28,7 +28,7 @@ public partial class Hauptszene
             Schluessel = "starthinweis", Titel = "Ein Lehrling genügt nicht", Absender = "Euer Haushofmeister", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id,
             Ziel = "personal", Betrieb = betrieb.Name,
             Zeilen = { ("", $"{haus} hat einen Lehrling – im Personalbuch stellt Ihr weitere ein.", false) },
-        });
+        }, "Personal");
     }
 
     /// <summary>
