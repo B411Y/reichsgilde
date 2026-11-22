@@ -298,10 +298,10 @@ public partial class KlangDienst : Node
     // ── Abspielen ───────────────────────────────────────────────────────────
 
     /// <summary>Oberflächenklang (Klick, Papier, Siegel …): ohne Ort, einmal abspielen. Ohne Ton (null) passiert nichts.</summary>
-    public static void OberflaecheSpielen(AudioStream? ton, float db = 0f, float tonhoehe = 1f)
+    public static void OberflaecheSpielen(AudioStream? ton, float db = 0f, float tonhoehe = 1f, float hoechstDb = 0f)
     {
         if (ton is null || _instanz is null) return;
-        var spieler = new AudioStreamPlayer { Stream = ton, Bus = BusOberflaeche, VolumeDb = Math.Min(db, 0f), PitchScale = tonhoehe };
+        var spieler = new AudioStreamPlayer { Stream = ton, Bus = BusOberflaeche, VolumeDb = Math.Min(db, hoechstDb), PitchScale = tonhoehe };
         _instanz.AddChild(spieler);
         spieler.Finished += spieler.QueueFree;
         spieler.Play();

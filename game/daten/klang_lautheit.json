@@ -1,0 +1,30 @@
+{
+  "angleichung_db": {
+    "belt_handle_1": -2.5,
+    "book_close": -4.4,
+    "book_flip_1": -3.1,
+    "book_flip_2": 6.8,
+    "book_flip_3": 4.4,
+    "book_open": 11.1,
+    "book_place_1": -0.5,
+    "book_place_2": -1.5,
+    "chop": -1.0,
+    "cloth_1": -2.0,
+    "cloth_2": 2.6,
+    "cloth_3": 4.8,
+    "cloth_4": 9.4,
+    "drop_leather": 1.2,
+    "handle_coins": 1.4,
+    "handle_coins_2": 10.5,
+    "handle_small_leather": 7.9,
+    "handle_small_leather_2": 10.4,
+    "impact_bell_heavy_002": -1.0,
+    "impact_bell_heavy_003": -0.1,
+    "impact_bell_heavy_004": 1.4,
+    "impact_plank_medium_000": 2.3,
+    "impact_plank_medium_001": -0.7,
+    "impact_plank_medium_002": -0.3,
+    "metal_click": 5.0,
+    "metal_latch": -6.8
+  }
+}
