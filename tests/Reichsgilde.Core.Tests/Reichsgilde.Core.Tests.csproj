@@ -85,6 +85,7 @@
     <Compile Include="..\..\game\scripts\ZeigerSymbole.cs" Link="Handschuh\ZeigerSymbole.cs" />
     <!-- Steinebenen je Volk: Zuordnung Volk/Stufe → Ebene des Häuser-Arrays – SteinebenenTests.cs -->
     <Compile Include="..\..\game\scripts\Steinebenen.cs" Link="Neubau\Steinebenen.cs" />
+    <Compile Include="..\..\game\scripts\EfeuZufall.cs" Link="Neubau\EfeuZufall.cs" />
     <Compile Include="..\..\game\scripts\NeubauBrand.cs" Link="Neubau\NeubauBrand.cs" />
     <!-- Modulares Wohnhaussystem: Planung der Häuserzeilen (Nachbarregel, Eckhaus, Keilstück) kennt kein Godot – ZeilenplanTests.cs -->
     <Compile Include="..\..\game\scripts\Zeilenplan.cs" Link="Neubau\Zeilenplan.cs" />
