@@ -520,7 +520,7 @@ public sealed class Blitzwesen
         InstandSetzen(art == Stadtbauart.Dom ? DomSchluessel : RathausSchluessel, e.BrandEnde + d.InstandMinuten);
         var reparatur = Math.Round(Anteil(bau.Reparatur, e.Schwere));
         var kasse = _w.Kasse;
-        var gezahlt = kasse.IstAktiv ? Math.Min(reparatur, Math.Max(0, Math.Round(kasse.Stand))) : 0;
+        var gezahlt = kasse.IstAktiv ? Math.Min(reparatur, Math.Max(0, Math.Floor(kasse.Stand))) : 0;
         if (gezahlt > 0) kasse.Buchen(Politik.Kassenposten.Brandschaden, gezahlt);
         var folge = art == Stadtbauart.Dom
             ? (d.OhneMesse ? " Bis er instand gesetzt ist, fällt die Messe im Dom aus." : "")

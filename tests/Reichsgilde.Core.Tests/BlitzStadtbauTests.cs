@@ -154,12 +154,13 @@ static class BlitzStadtbauTests
             var (sim, spieler) = Partie();
             BisMinute(sim, 300);
             var w = sim.Wirtschaft!;
-            w.Kasse.Buchen(Kassenposten.Feste, w.Kasse.Stand - 150); // auf 150 Gulden
-            Pruefe.Ungefaehr(150, w.Kasse.Stand, 1e-6);
+            w.Kasse.Buchen(Kassenposten.Feste, w.Kasse.Stand - 150.6); // auf 150,6 Gulden (krumm: abgerundet wird gezahlt)
+            Pruefe.Ungefaehr(150.6, w.Kasse.Stand, 1e-6);
             var meldungen = new List<string>();
             w.Meldung += m => meldungen.Add(m);
             Blitz(sim, spieler, "Rathaus");
-            Pruefe.Ungefaehr(0, w.Kasse.Stand, 1e-6);
+            Pruefe.Wahr(w.Kasse.Stand >= 0, $"Kasse nicht unter 0: {w.Kasse.Stand}");
+            Pruefe.Ungefaehr(0.6, w.Kasse.Stand, 1e-6);
             Pruefe.Ungefaehr(150, w.Kasse.DiesesJahr[Kassenposten.Brandschaden], 1e-6);
             var m = meldungen.Single(x => x.StartsWith("Blitzschlag! "));
             Pruefe.Wahr(m.Contains("die Stadtkasse hat nur 150"), m);
@@ -257,7 +258,56 @@ static class BlitzStadtbauTests
             Pruefe.Wahr(meldungen.Single(x => x.StartsWith("Blitzschlag! ")).Contains($"die Brandkasse zahlt {Zahlenformat.Ganz(erstattet)}"), "Meldung");
         }),
 
-        ("Brandkasse: zahlt höchstens den Topf; Austritt; kein Beitritt, solange es brennt; Wohnhaus ist gedeckt", () =>
+        ("Brandkasse: Wohnhaus gedeckt (60 %); mehrere Brände leeren den Topf, dann zahlt sie nichts mehr; kein Beitritt, solange es brennt", () =>
+        {
+            var (sim, spieler) = Partie();
+            BisMinute(sim, 300);
+            var w = sim.Wirtschaft!;
+            var bk = w.Brandkasse;
+            var d = w.Daten.Blitz!;
+            Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseBeitreten()).Erfolg, "beitreten");
+            BisMinute(sim, NaechstesJahr(sim) + 300);
+            Pruefe.Wahr(bk.IstGedeckt(spieler), "gedeckt");
+            // Wohnhaus: 60 % der Reparatur aus dem Topf
+            typeof(Brandkasse).GetProperty("Topf")!.SetValue(bk, 100_000.0);
+            var grund = w.Gauner.Brandschaden(spieler);
+            var faktor = w.Wohnen.BrandFaktor(spieler);
+            var geld = spieler.Vermoegen;
+            var haus = Blitz(sim, spieler, "haus");
+            var reparatur = Math.Round(Math.Max(d.WohnhausReparatur, (d.WohnhausAnteil[0] + (d.WohnhausAnteil[1] - d.WohnhausAnteil[0]) * haus.Schwere) * grund) * faktor);
+            Pruefe.Wahr(reparatur > 0, "Wohnhaus kostet eine Reparatur");
+            var erstattet = Math.Round(reparatur * 0.6);
+            Pruefe.Ungefaehr(geld - (reparatur - erstattet), spieler.Vermoegen, 1e-6);
+            Pruefe.Ungefaehr(100_000 - erstattet, bk.Topf, 1e-6);
+            // kein Beitritt, solange das Wohnhaus instand gesetzt wird (nach einem Austritt)
+            Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseAustreten()).Erfolg, "austreten");
+            Pruefe.Wahr(!w.Ausfuehren(spieler, new BrandkasseAustreten()).Erfolg, "nicht zweimal austreten");
+            var nein = w.Ausfuehren(spieler, new BrandkasseBeitreten());
+            Pruefe.Wahr(!nein.Erfolg && nein.Meldung.Contains("brennt"), nein.Meldung);
+            // ein anderes gedecktes Mitglied: zwei Werkstattbrände hintereinander, der Topf reicht nur für einen Teil des ersten
+            var ki = w.Konten.First(k => k != spieler && k.IstAktiv && w.Betriebe.Any(b => b.Konto == k && b.IstWerkstatt)
+                                         && w.Blitz.Ziele().Any(z => z.Betrieb is { IstWerkstatt: true } b && b.Konto == k));
+            var werkstatt = w.Blitz.Ziele().First(z => z.Betrieb is { IstWerkstatt: true } b && b.Konto == ki).Betrieb!;
+            typeof(Brandkasse).GetMethod("Beitreten", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(bk, new object[] { ki });
+            var mitglieder = (System.Collections.IList)typeof(Brandkasse).GetField("_mitglieder", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(bk)!;
+            var eintrag = mitglieder[mitglieder.Count - 1]!;
+            mitglieder[mitglieder.Count - 1] = eintrag.GetType().GetConstructors()[0].Invoke(new object[] { ki, w.Jahr - 1 }); // wie seit dem Vorjahr dabei
+            Pruefe.Wahr(bk.IstGedeckt(ki), "KI-Haus gedeckt");
+            typeof(Brandkasse).GetProperty("Topf")!.SetValue(bk, 10.0);
+            var kiGeld = ki.Vermoegen;
+            var erstes = Blitz(sim, spieler, werkstatt.Name);
+            Pruefe.Ungefaehr(0, bk.Topf, 1e-9);
+            var erste = kiGeld - ki.Vermoegen;
+            BisMinute(sim, erstes.BrandEnde + 1);
+            kiGeld = ki.Vermoegen;
+            var zweites = Blitz(sim, spieler, werkstatt.Name);
+            var rep2 = Math.Round(Math.Max(d.Reparatur, (d.ReparaturAnteil[0] + (d.ReparaturAnteil[1] - d.ReparaturAnteil[0]) * zweites.Schwere) * w.Bauwert(werkstatt)) * werkstatt.BrandFaktor);
+            Pruefe.Ungefaehr(0, bk.Topf, 1e-9);
+            Pruefe.Ungefaehr(rep2, kiGeld - ki.Vermoegen, 1e-6); // zweiter Brand: Topf leer, volle Reparatur
+            Pruefe.Wahr(erste > 0, "erster Brand: Rest selbst");
+        }),
+
+        ("Brandkasse: Austritt und Wiedereintritt im selben Jahr – gedeckt erst wieder im Folgejahr", () =>
         {
             var (sim, spieler) = Partie();
             BisMinute(sim, 300);
@@ -265,18 +315,37 @@ static class BlitzStadtbauTests
             var bk = w.Brandkasse;
             Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseBeitreten()).Erfolg, "beitreten");
             BisMinute(sim, NaechstesJahr(sim) + 300);
-            typeof(Brandkasse).GetProperty("Topf")!.SetValue(bk, 10.0);
-            var geld = spieler.Vermoegen;
-            Blitz(sim, spieler, "haus");
-            var gezahlt = geld - spieler.Vermoegen;
-            Pruefe.Ungefaehr(0, bk.Topf, 1e-9);
-            Pruefe.Wahr(gezahlt >= 0, "Wohnhaus: Rest selbst");
-            // Austritt, dann kein Beitritt, solange das Wohnhaus instand gesetzt wird
+            Pruefe.Wahr(bk.IstGedeckt(spieler), "gedeckt");
             Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseAustreten()).Erfolg, "austreten");
-            Pruefe.Wahr(!bk.IstMitglied(spieler), "kein Mitglied mehr");
-            Pruefe.Wahr(!w.Ausfuehren(spieler, new BrandkasseAustreten()).Erfolg, "nicht zweimal austreten");
-            var nein = w.Ausfuehren(spieler, new BrandkasseBeitreten());
-            Pruefe.Wahr(!nein.Erfolg && nein.Meldung.Contains("brennt"), nein.Meldung);
+            Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseBeitreten()).Erfolg, "wieder beitreten");
+            Pruefe.Wahr(bk.IstMitglied(spieler) && !bk.IstGedeckt(spieler), "nicht gedeckt bis zum Folgejahr");
+            typeof(Brandkasse).GetProperty("Topf")!.SetValue(bk, 100_000.0);
+            var b = w.Betriebe.First(x => x.Konto == spieler && x.IstWerkstatt);
+            var geld = spieler.Vermoegen;
+            var e = Blitz(sim, spieler, "werkstatt");
+            var d = w.Daten.Blitz!;
+            var reparatur = Math.Round(Math.Max(d.Reparatur, (d.ReparaturAnteil[0] + (d.ReparaturAnteil[1] - d.ReparaturAnteil[0]) * e.Schwere) * w.Bauwert(b)) * b.BrandFaktor);
+            Pruefe.Ungefaehr(geld - reparatur, spieler.Vermoegen, 1e-6);
+            Pruefe.Ungefaehr(100_000, bk.Topf, 1e-9);
+            BisMinute(sim, NaechstesJahr(sim) + 300);
+            Pruefe.Wahr(bk.IstGedeckt(spieler), "im Folgejahr wieder gedeckt");
+        }),
+
+        ("Brandkasse: Ein erloschenes Mitglied scheidet zum Jahresende aus, ohne Beitrag", () =>
+        {
+            var (sim, spieler) = Partie();
+            BisMinute(sim, 300);
+            var w = sim.Wirtschaft!;
+            var bk = w.Brandkasse;
+            Pruefe.Wahr(w.Ausfuehren(spieler, new BrandkasseBeitreten()).Erfolg, "beitreten");
+            var ki = w.Konten.First(k => k != spieler && k.IstAktiv);
+            typeof(Brandkasse).GetMethod("Beitreten", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(bk, new object[] { ki });
+            ki.IstErloschen = true;
+            var beitrag = bk.Beitrag(spieler);
+            bk.Jahresende();
+            Pruefe.Wahr(!bk.IstMitglied(ki), "erloschen: ausgeschieden");
+            Pruefe.Wahr(bk.IstMitglied(spieler), "der Spieler bleibt");
+            Pruefe.Ungefaehr(beitrag, bk.Topf, 1e-9);
         }),
 
         ("Brandkasse: Wer den Beitrag nicht zahlen kann, scheidet aus; ohne Abschnitt gibt es keine", () =>
