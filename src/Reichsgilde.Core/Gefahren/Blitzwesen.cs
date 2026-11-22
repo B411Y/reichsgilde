@@ -76,8 +76,9 @@ public sealed record Blitzeinschlag(long Minute, long BrandEnde, Blitzziel Ziel)
 /// folgt aus der schon gewürfelten Brenndauer (<see cref="Schwere"/>, kein neuer Wurf). Wächter und Hauswächter löschen mit (Feuer kürzer und
 /// leichter), das Löschfass bzw. die Brandschutz-Einrichtung (<see cref="Betrieb.BrandFaktor"/>) senkt den Schaden. Kein Ausbrennen. Eine Kirche
 /// (Betrieb) hält keine Messe, solange sie brennt und still steht; Dom und Rathaus (<see cref="BlitzDaten.Stadtbau"/>) repariert die Stadtkasse,
-/// bis zur Instandsetzung fällt die Dommesse bzw. fallen die Anträge der Ratssitzung aus (Nutzer 22.11.2026). Eine gedeckte Brandkasse
-/// (<see cref="Brandkasse"/>) zahlt einen Teil der Reparatur. Einwohner- und Kulissenhäuser brennen nur im Bild.
+/// bis zur Instandsetzung fällt die Dommesse bzw. fallen die Anträge der Ratssitzung aus (Nutzer 22.11.2026). Auch die Reparatur von Werkstatt und
+/// Wohnhaus eines Hauses zahlt die Stadtkasse, soweit ihr Stand reicht – den Rest das Haus; das verbrannte Lager trägt das Haus (Nutzer 22.11.2026,
+/// dafür die <see cref="BlitzDaten.Feuersteuer"/>). Einwohner- und Kulissenhäuser brennen nur im Bild.
 ///
 /// <b>Überspringen</b> (<see cref="BlitzDaten.Sprung"/>): Je volle Spielstunde des Feuers kann es auf jedes Nachbarhaus überspringen (Grundflächen
 /// höchstens <see cref="BlitzSprungDaten.Abstand"/> auseinander); ein übergesprungenes Feuer brennt kürzer, ist leichter und springt nicht weiter.
@@ -467,18 +468,18 @@ public sealed class Blitzwesen
             var schutz = b.BrandFaktor;
             var reparatur = Math.Round(Math.Max(d.Reparatur, Anteil(d.ReparaturAnteil, e.Schwere) * _w.Bauwert(b)) * schutz);
             var verbrannt = LagerVerbrennen(b, Anteil(d.LagerAnteil, e.Schwere) * schutz, out var warenwert);
-            var erstattet = 0.0;
+            var stadt = 0.0;
             if (reparatur > 0 && b.Konto.IstAktiv)
             {
-                erstattet = _w.Brandkasse.Erstatten(b.Konto, reparatur);
-                b.SchadenBuchen(reparatur - erstattet);
+                stadt = StadtkasseZahlt(reparatur);
+                if (reparatur > stadt) b.SchadenBuchen(reparatur - stadt);
             }
             else reparatur = 0;
             if (reparatur + warenwert > 0) b.BrandBuchen(reparatur + warenwert);
             if (d.OhneMesse && _w.Kirchenwesen.IstKirche(b)) // die Kirche hält keine Messe, solange sie brennt und still steht
                 InstandSetzen(KircheSchluessel(b), e.BrandEnde + d.InstandMinuten);
             return $" {d.StillstandMinuten / 60} Arbeitsstunden steht die Arbeit still" +
-                   (reparatur > 0 ? $", Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Erstattet(erstattet, waehrung)}" : "") +
+                   (reparatur > 0 ? $", Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Bezahlt(reparatur, stadt, waehrung)}" : "") +
                    (verbrannt.Count > 0 ? $"; verbrannt: {string.Join(", ", verbrannt.Select(v => $"{Zahlenformat.Ganz(v.Stueck)} {v.Ware}"))}" : "") + ".";
         }
         if (e.Ziel.Bewohner is { } k && _w.Wohnen.Daten is not null)
@@ -487,19 +488,35 @@ public sealed class Blitzwesen
             _w.Wohnen.Brand(k, Math.Max(k.WohnhausInstandBis ?? 0, bis));
             var grund = _w.Gauner.IstAktiv && _w.Gauner.Daten.Wohnhaus is not null ? _w.Gauner.Brandschaden(k) : 0;
             var reparatur = Math.Round(Math.Max(d.WohnhausReparatur, Anteil(d.WohnhausAnteil, e.Schwere) * grund) * _w.Wohnen.BrandFaktor(k));
-            var erstattet = reparatur > 0 ? _w.Brandkasse.Erstatten(k, reparatur) : 0;
-            if (reparatur > 0) k.Schaden(reparatur - erstattet);
+            var stadt = reparatur > 0 ? StadtkasseZahlt(reparatur) : 0;
+            if (reparatur > stadt) k.Schaden(reparatur - stadt);
             _w.Familien.ZugAnlass(k, "blitz"); // Brand durch Blitz: Narbe, vielleicht entstellt (Versehrungen; eigener Anlass, damit ältere Daten ohne ihn bleiben, wie sie waren)
             return " Bis es instand gesetzt ist, fehlt das Ansehen des Hauses." +
-                   (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Erstattet(erstattet, waehrung)}." : "");
+                   (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Bezahlt(reparatur, stadt, waehrung)}." : "");
         }
         if (e.Ziel.Stadtbau is { } art && e.Ziel.Kennung is var kennung && FindeStadtbau(kennung, art) is { } bau)
             return StadtbauWirken(e, art, bau);
         return "";
     }
 
-    private static string Erstattet(double betrag, string waehrung) =>
-        betrag > 0 ? $" (die Brandkasse zahlt {Zahlenformat.Ganz(betrag)} {waehrung})" : "";
+    /// <summary>
+    /// Die Stadtkasse zahlt eine Reparatur (Posten „Brandschaden“), soweit ihr Stand reicht – nie unter 0 (Nutzer 22.11.2026, D1). Gibt den
+    /// gezahlten Betrag zurück; ohne Stadtkasse 0.
+    /// </summary>
+    private double StadtkasseZahlt(double reparatur)
+    {
+        var kasse = _w.Kasse;
+        var gezahlt = kasse.IstAktiv ? Math.Min(reparatur, Math.Max(0, Math.Floor(kasse.Stand))) : 0;
+        if (gezahlt > 0) kasse.Buchen(Politik.Kassenposten.Brandschaden, gezahlt);
+        return gezahlt;
+    }
+
+    /// <summary>Wer die Reparatur eines Hauses zahlt (Satzende der Meldung); ohne Stadtkasse leer – das Haus zahlt alles wie früher.</summary>
+    private string Bezahlt(double reparatur, double stadt, string waehrung) =>
+        !_w.Kasse.IstAktiv ? ""
+        : stadt >= reparatur ? " (zahlt die Stadtkasse)"
+        : stadt > 0 ? $" (die Stadtkasse zahlt {Zahlenformat.Ganz(stadt)} {waehrung}, mehr hat sie nicht)"
+        : " (die Stadtkasse ist leer – das Haus zahlt)";
 
     /// <summary>Die Daten des Stadtbaus: über das Ziel der Karte (Katalogkennung des Bausteins).</summary>
     private StadtbauDaten? FindeStadtbau(string kennung, Stadtbauart art)
@@ -520,8 +537,7 @@ public sealed class Blitzwesen
         InstandSetzen(art == Stadtbauart.Dom ? DomSchluessel : RathausSchluessel, e.BrandEnde + d.InstandMinuten);
         var reparatur = Math.Round(Anteil(bau.Reparatur, e.Schwere));
         var kasse = _w.Kasse;
-        var gezahlt = kasse.IstAktiv ? Math.Min(reparatur, Math.Max(0, Math.Floor(kasse.Stand))) : 0;
-        if (gezahlt > 0) kasse.Buchen(Politik.Kassenposten.Brandschaden, gezahlt);
+        var gezahlt = StadtkasseZahlt(reparatur);
         var folge = art == Stadtbauart.Dom
             ? (d.OhneMesse ? " Bis er instand gesetzt ist, fällt die Messe im Dom aus." : "")
             : " Steht es zur Ratssitzung nicht wieder, tagt der Rat im Ausweichquartier, und die Anträge entfallen.";

@@ -94,6 +94,7 @@ public partial class JahresberichtAnzeige : PanelContainer
             if (bilanz.Handgeld > 0) Zeile(raster, "− Handgeld", Zahlenformat.Ganz(bilanz.Handgeld)); // für neu eingestellte Anfänger (Datenversion 73)
             Zeile(raster, "− Unterhalt und Pacht", Zahlenformat.Ganz(bilanz.Fixkosten));
             Zeile(raster, "− Steuern", Zahlenformat.Ganz(bilanz.Steuer));
+            if (bilanz.Feuersteuer > 0) Zeile(raster, "   davon Feuersteuer", Zahlenformat.Ganz(bilanz.Feuersteuer), Grau, 13); // schon in den Steuern (Datenversion 96)
             if (bilanz.Transport > 0) Zeile(raster, "− Eskorten", Zahlenformat.Ganz(bilanz.Transport));
             if (bilanz.Schaden > 0) Zeile(raster, "− Schäden", Zahlenformat.Ganz(bilanz.Schaden));
             Zeile(raster, "= Gewinn", $"{Zahlenformat.MitVorzeichen(bilanz.Gewinn)} {waehrung}", bilanz.Gewinn >= 0 ? Gruen : Rot, 17);

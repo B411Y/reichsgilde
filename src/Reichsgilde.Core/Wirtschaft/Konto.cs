@@ -15,6 +15,9 @@ public sealed class Jahresbilanz
     public double Handgeld { get; internal set; }
     public double Fixkosten { get; internal set; }
     public double Steuer { get; internal set; }
+
+    /// <summary>Davon Feuersteuer (Nutzer 22.11.2026, <see cref="Politik.Stadtkasse.Feuersteuer"/>) – schon in <see cref="Steuer"/> enthalten.</summary>
+    public double Feuersteuer { get; internal set; }
     public double Schaden { get; internal set; }
 
     /// <summary>Eskorten für beladene Fahrten.</summary>
@@ -175,6 +178,9 @@ public sealed class Konto
     /// <summary>Wohin Steuern und Abgaben fließen (gesetzt von der Stadtwirtschaft; null: nirgendwohin, z. B. in Tests ohne Stadt).</summary>
     internal Action<Politik.Kassenposten, double>? Stadtkasse { get; set; }
 
+    /// <summary>Welcher Teil der Umsatzsteuer Feuersteuer ist (gesetzt von der Stadtwirtschaft; null: keiner).</summary>
+    internal Func<double>? FeuersteuerAnteil { get; set; }
+
     /// <summary>Aktionspunkte des Hauses für persönliche Handlungen (Werben, Rat, Gericht, Hinterzimmer, Training).</summary>
     public Partie.Aktionspunkte Aktionspunkte { get; } = new();
 
@@ -191,12 +197,21 @@ public sealed class Konto
     internal void Personal(double betrag) { Vermoegen -= betrag; Laufend.Personal += betrag; }
     internal void Handgeld(double betrag) { Vermoegen -= betrag; Laufend.Handgeld += betrag; }
     internal void Fixkosten(double betrag) { Vermoegen -= betrag; Laufend.Fixkosten += betrag; }
-    /// <summary>Steuern und Abgaben gehen an die Stadt: in die Stadtkasse unter diesem Posten (PR #200).</summary>
+    /// <summary>
+    /// Steuern und Abgaben gehen an die Stadt: in die Stadtkasse unter diesem Posten (PR #200). Von der Umsatzsteuer geht der Anteil der
+    /// Feuersteuer unter eigenem Posten in die Kasse (<see cref="Jahresbilanz.Feuersteuer"/>).
+    /// </summary>
     internal void Steuer(double betrag, Politik.Kassenposten posten = Politik.Kassenposten.Umsatzsteuer)
     {
         Vermoegen -= betrag;
         Laufend.Steuer += betrag;
-        Stadtkasse?.Invoke(posten, betrag);
+        var feuer = posten == Politik.Kassenposten.Umsatzsteuer && FeuersteuerAnteil?.Invoke() is > 0 and var anteil ? betrag * anteil : 0;
+        if (feuer > 0)
+        {
+            Laufend.Feuersteuer += feuer;
+            Stadtkasse?.Invoke(Politik.Kassenposten.Feuersteuer, feuer);
+        }
+        Stadtkasse?.Invoke(posten, betrag - feuer);
     }
     internal void Schaden(double betrag) { Vermoegen -= betrag; Laufend.Schaden += betrag; }
     internal void Transport(double betrag) { Vermoegen -= betrag; Laufend.Transport += betrag; }
@@ -276,7 +291,7 @@ public sealed class Konto
     private static BilanzStand BilanzSichern(Jahresbilanz b) => new()
     {
         Jahr = b.Jahr, Umsatz = b.Umsatz, Zutaten = b.Zutaten, Personal = b.Personal, Fixkosten = b.Fixkosten,
-        Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
+        Steuer = b.Steuer, Feuersteuer = b.Feuersteuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
         Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie, Gericht = b.Gericht, Gaunerei = b.Gaunerei,
         Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe, Handgeld = b.Handgeld, Domkollekte = b.Domkollekte,
@@ -287,7 +302,7 @@ public sealed class Konto
         var b = new Jahresbilanz
         {
             Jahr = s.Jahr, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
-            Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
+            Steuer = s.Steuer, Feuersteuer = s.Feuersteuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
             Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie, Gericht = s.Gericht, Gaunerei = s.Gaunerei,
             Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe, Handgeld = s.Handgeld, Domkollekte = s.Domkollekte,

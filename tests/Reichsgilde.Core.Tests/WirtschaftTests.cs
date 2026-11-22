@@ -53,6 +53,20 @@ static class Datenpfad
     /// </summary>
     public static string OhneErnte(string? json = null) => OhneTextabschnitt(OhneLagen(json), "ernte");
 
+    /// <summary>
+    /// Die echten Daten ohne „blitz.feuersteuer“ (Datenversion 96), als Text mit derselben Formatierung – für Tests, die bitgleich mit dem Kern
+    /// davor rechnen (der Aufschlag ändert jeden Erlös ein wenig). Die Feuersteuer prüfen die FeuersteuerTests.
+    /// </summary>
+    public static string OhneFeuersteuer(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        const string zeile = ",\n    \"feuersteuer\": ";
+        var a = json.IndexOf(zeile, StringComparison.Ordinal);
+        if (a < 0) throw new InvalidDataException("„blitz.feuersteuer“ steht nicht wie erwartet in den Daten – Datenpfad.OhneFeuersteuer anpassen.");
+        var e = json.IndexOf('\n', a + 2);
+        return json[..a] + json[e..];
+    }
+
     /// <summary>Die echten Daten ohne Abschnitt „lagen“ (Datenversion 92): nur die Ernte, wie in Datenversion 91 (mit deren Werten aus „ernte“).</summary>
     public static string OhneLagen(string? json = null) => OhneTextabschnitt(json ?? File.ReadAllText(Wirtschaft()), "lagen");
 

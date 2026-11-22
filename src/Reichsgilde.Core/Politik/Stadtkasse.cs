@@ -8,6 +8,8 @@ public enum Kassenposten
 {
     // Einnahmen
     Umsatzsteuer,
+    /// <summary>Aufschlag auf die Umsatzsteuer für die Brandschäden (Nutzer 22.11.2026, <see cref="Gefahren.BlitzDaten.Feuersteuer"/>).</summary>
+    Feuersteuer,
     Glaubenszins,
     Strafen,
     Zoelle,
@@ -17,7 +19,7 @@ public enum Kassenposten
     Amtsgehaelter,
     Bauvorhaben,
     Feste,
-    /// <summary>Reparatur von Dom und Rathaus nach einem Blitzschlag (Nutzer 22.11.2026).</summary>
+    /// <summary>Reparatur nach einem Brand: Dom, Rathaus und Werkstätten und Wohnhäuser der Häuser (Nutzer 22.11.2026).</summary>
     Brandschaden,
 }
 
@@ -28,6 +30,7 @@ public static class KassenpostenTexte
     public static string Name(this Kassenposten p) => p switch
     {
         Kassenposten.Umsatzsteuer => "Umsatzsteuer",
+        Kassenposten.Feuersteuer => "Feuersteuer",
         Kassenposten.Glaubenszins => "Glaubenszins",
         Kassenposten.Strafen => "Bußen",
         Kassenposten.Zoelle => "Hafenzoll",
@@ -77,8 +80,10 @@ public sealed class Kassenbuch
 ///   • Einnahmen: die Umsatzsteuer aller Häuser (jede Buchung „Steuer“ eines Kontos), der Glaubenszins, Bußen und Gebühren des
 ///     Gerichts und der Zoll an der ersten Zollstelle jeder Schiffsfahrt (sie gehört der Stadt). Die Standesgebühr geht an den
 ///     Landesherrn – sie füllte die Kasse sonst in jedem Aufstieg um Tausende.
-///   • Ausgaben: Amtsgehälter aller besetzten Ämter (auch der Ratsherren), Bauvorhaben und Feste.
-///   • Der Steuersatz gilt für alle Umsätze (<see cref="Stadtwirtschaft.Umsatzsteuer"/>) und ändert sich nur durch einen Ratsbeschluss.
+///     Dazu die Feuersteuer (<see cref="Feuersteuer"/>), ein fester Aufschlag auf die Umsatzsteuer.
+///   • Ausgaben: Amtsgehälter aller besetzten Ämter (auch der Ratsherren), Bauvorhaben, Feste und die Reparatur nach einem Brand.
+///   • Der Steuersatz gilt für alle Umsätze (<see cref="Stadtwirtschaft.Umsatzsteuer"/>, samt Feuersteuer) und ändert sich nur durch einen
+///     Ratsbeschluss; die Feuersteuer ändert der Rat nicht.
 ///   • Eine leere Kasse hat keine Folgen: Die Gehälter werden trotzdem gezahlt (die Kasse darf ins Minus); nur Bau und Fest brauchen Deckung.
 /// Ohne den Abschnitt gibt es keine Kasse: Der Steuersatz bleibt <c>allgemein.umsatzsteuer</c>, gebucht wird nichts.
 /// </summary>
@@ -110,6 +115,15 @@ public sealed class Stadtkasse
 
     /// <summary>Der geltende Steuersatz als Anteil (0,05 = 5 %). Ohne Kasse: <c>allgemein.umsatzsteuer</c>.</summary>
     public double Umsatzsteuer => IstAktiv ? SteuersatzProzent / 100.0 : _w.Daten.Allgemein.Umsatzsteuer;
+
+    /// <summary>
+    /// Die Feuersteuer als Anteil vom Umsatz (0,0005 = 0,05 Prozentpunkte; Nutzer 22.11.2026): ein fester Aufschlag auf <see cref="Umsatzsteuer"/>,
+    /// gebucht unter <see cref="Kassenposten.Feuersteuer"/>. Ohne Stadtkasse oder ohne <c>blitz.feuersteuer</c> 0.
+    /// </summary>
+    public double Feuersteuer => IstAktiv ? _w.Daten.Blitz?.Feuersteuer ?? 0 : 0;
+
+    /// <summary>Welcher Teil einer Steuerbuchung die Feuersteuer ist (Feuersteuer durch Umsatzsteuer samt Feuersteuer; 0 ohne Feuersteuer).</summary>
+    internal double FeuersteuerAnteil => Feuersteuer > 0 ? Feuersteuer / (Umsatzsteuer + Feuersteuer) : 0;
 
     /// <summary>Einnahmen und Ausgaben des laufenden Jahres.</summary>
     public Kassenbuch DiesesJahr { get; private set; }

@@ -27,7 +27,7 @@ static class WohnhausOhneFestsaalTests
         var json = Json.Value;
         foreach (var (neu, alt) in new[]
                  {
-                     ("\"version\": 95,", "\"version\": 87,"),
+                     ("\"version\": 96,", "\"version\": 87,"),
                      (", \"erstMit\": \"Stadtvilla\"", ""),
                      ("\"waehlbar\": [\"Hinterzimmer\", \"Bibliothek\"]", "\"waehlbar\": [\"Hinterzimmer\", \"Bibliothek\", \"Festsaal\"]"),
                  })
