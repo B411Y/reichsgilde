@@ -386,6 +386,7 @@ public partial class Stadtansicht
         ProbeVatZeichnen(); // nur mit --passantenprobe (Stadtansicht.Passantenprobe.cs)
         ProbeMelden(delta);
         PassantNahFolgen(delta); // nur mit --passantnah (Stadtansicht.Passantnah.cs)
+        KarrenKurveFolgen(delta); // nur mit --karrenkurve (Stadtansicht.Karrenkurve.cs)
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
         BegehbarkeitPflegen(delta);

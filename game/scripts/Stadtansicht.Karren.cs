@@ -29,6 +29,14 @@ public partial class Stadtansicht
         public Zugtier[] Tiere { get; set; } = Array.Empty<Zugtier>();
         /// <summary>Der Halter des Ziehers am Anker (null ohne Figur) und ob er gerade gezeigt wird (Nachtregel: nur ein fahrender Karren hat seinen Fuhrmann bei sich).</summary>
         public Node3D? FahrerHalter { get; set; }
+        /// <summary>Lage und Ausrichtung des Ziehers bzw. Läufers zum Zugpunkt (Bild des Tiers; Stadtansicht.Zugtiere.cs). Der Kutscher auf dem Bock fährt mit dem Wagen (FahrerVersatz null).</summary>
+        public Vector3? FahrerVersatz { get; set; }
+        public Basis FahrerBasis { get; set; } = Basis.Identity;
+        /// <summary>Z des Zugpunkts im Modell des Karrens (Anker am Deichselende bzw. beim Handkarren der Standpunkt des Ziehers) und Z des Drehpunkts (vorderste Radachse; Einachser 0).</summary>
+        public float ZugZ { get; init; }
+        public float DrehpunktZ { get; init; }
+        /// <summary>Die Schleppkurve (Gespannlauf.cs): Zugtier am Weg, Wagen hängt nach. Null ohne Modell.</summary>
+        public Gespannlauf? Lauf { get; init; }
         public bool FahrerSichtbar { get; set; } = true;
         /// <summary>„Ladung1“ bis „LadungN“ des Modells (Kisten, Säcke, Fässer): so viele sichtbar, wie Sorten geladen sind.</summary>
         public required MeshInstance3D[] Ladung { get; init; }
@@ -72,6 +80,9 @@ public partial class Stadtansicht
         public required Transform3D Ruhe { get; init; }
         public required float Radius { get; init; }
         public float Winkel { get; set; }
+        /// <summary>Letzter Ort des Rades in der Welt (für den eigenen Weg des Rades, <see cref="KarrenRaederDrehen"/>).</summary>
+        public Vector3 Letzte { get; set; }
+        public bool LetzteGueltig { get; set; }
     }
 
     /// <summary>
@@ -194,8 +205,15 @@ public partial class Stadtansicht
         // Die Eskorte bleibt vorerst ein Begleiter neben dem Karren
         var eskorte = new MeshInstance3D { Name = "Eskorte", Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.8f }, MaterialOverride = Material(new Color(0.35f, 0.35f, 0.38f)), Position = new Vector3(1.8f, 0.9f, 0.6f), Visible = false };
         wurzel.AddChild(eskorte);
+        // Zugpunkt und Drehpunkt des Gespanns aus den vorhandenen Ankern und Rädern (Anker_Deichsel bzw. Anker_Ziehen; vorderste Radachse)
+        var zugZ = modell is null ? 0f : (art.TierAnker.Length > 0 ? art.TierAnker[0] : art.ZieherAnker) is { } zugName && modell.FindChild(zugName, true, false) is Node3D zugAnker ? zugAnker.Position.Z : 0f;
+        var drehZ = raeder.Count == 0 ? 0f : Math.Max(0f, raeder.Max(r => r.Ruhe.Origin.Z));
+        var lauf = modell is null || zugZ - drehZ < 0.3f ? null
+            : art.Tier is null ? new Gespannlauf(zugZ - drehZ, 0, 80, 1.0)
+            : art.Pferd ? new Gespannlauf(zugZ - drehZ, 0, 45, 3.0) : new Gespannlauf(zugZ - drehZ, 0, 50, 2.5);
         var ansicht = new KarrenAnsicht
         {
+            ZugZ = zugZ, DrehpunktZ = drehZ, Lauf = lauf,
             Wurzel = wurzel, Art = art, Raeder = raeder.ToArray(), Stuetze = stuetze, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
             KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
         };
@@ -218,11 +236,17 @@ public partial class Stadtansicht
     /// </summary>
     private void KarrenRaederDrehen(KarrenAnsicht karren, float geschwindigkeit, double delta)
     {
-        if (karren.Raeder.Length == 0 || geschwindigkeit <= 0.05f || _simulation?.Takt.IstPausiert == true) return;
-        var meter = Mathf.Min(geschwindigkeit, KarrenMaxTempo) * (float)delta; // bei sehr hohem Tempo rutschen die Räder lieber, als zu flimmern
+        if (karren.Raeder.Length == 0) return;
         var sichtbar = KarrenImBild(karren.Wurzel);
+        var vorwaerts = karren.Wurzel.GlobalBasis * Vector3.Back; // Fahrtrichtung des Modells (+Z)
+        var pause = _simulation?.Takt.IstPausiert == true;
         foreach (var rad in karren.Raeder)
         {
+            // Jedes Rad dreht nach seinem eigenen Weg (Ortsänderung längs der Fahrtrichtung): innen langsamer als außen, bei der Wende gegenläufig
+            var ort = rad.Knoten.GlobalPosition;
+            var meter = rad.LetzteGueltig ? (ort - rad.Letzte).Dot(vorwaerts) : 0f;
+            (rad.Letzte, rad.LetzteGueltig) = (ort, true);
+            if (pause || Math.Abs(meter) > KarrenMaxTempo * Math.Max((float)delta, 1f / 60f)) continue; // Sprünge (Abgleich, Wende der Zeit) drehen nicht mit
             rad.Winkel = Mathf.PosMod(rad.Winkel + meter / rad.Radius, Mathf.Tau);
             if (sichtbar) rad.Knoten.Transform = rad.Ruhe.RotatedLocal(Vector3.Right, rad.Winkel);
         }
@@ -431,14 +455,20 @@ public partial class Stadtansicht
             // Umland: am Halteplatz stehen die Karren nebeneinander (4 m, Reihe aus Stadtansicht.Umland.cs), mittig um den Anker verteilt; bei der Abfahrt rücken sie auf den Weg
             ziel = ansicht.Hof + reihe * (nummer - (ansicht.Betrieb.Karren.Count - 1) / 2f);
             blick = ziel + (weg[1] - ansicht.Hof); // alle mit derselben Blickrichtung, nicht zum selben Punkt
+            var richtungHof = blick - ziel;
+            richtungHof.Y = 0;
+            if (gezeigt.Lauf is { } lauf1 && richtungHof.LengthSquared() > 1e-6f) { var vor = richtungHof.Normalized() * (float)lauf1.Deichsel; ziel += vor; blick += vor; } // Zugpunkt vor dem Wagen
         }
         else
         {
             // Hofgewicht: 1 auf dem Platz am Hof (bis zur Ausfahrt- bzw. Einfahrtzone), dann in KarrenEinschwenken Metern bis 0 auf der Mitte des Weges
             hofGewicht = Math.Clamp(1f - (gezeigt.Meter - zone) / KarrenEinschwenken, 0f, 1f);
-            ziel = PunktAufWeg(weg, meterAnteil);
+            // Der Zugpunkt (Tier bzw. Zieher) läuft den Weg: er liegt um die Deichsellänge voraus (Fahrtrichtung), über den Wegrand hinaus gerade verlängert; der Wagen hängt nach (Gespannlauf)
+            var vorAnteil = zug.Etappe == Etappe.Hof || zug.ZumMarkt ? 1f : -1f;
+            var deichsel = gezeigt.Lauf is { } lauf0 ? (float)lauf0.Deichsel : 0f;
+            ziel = PunktAufWegVerlaengert(weg, meterAnteil + vorAnteil * deichsel / Math.Max(laenge, 1f), laenge);
             var dAnteil = zug.Etappe == Etappe.Hof ? 1f / Math.Max(laenge, 1f) : zug.ZumMarkt ? 0.02f : -0.02f;
-            blick = PunktAufWeg(weg, Math.Clamp(meterAnteil + dAnteil, 0f, 1f));
+            blick = PunktAufWegVerlaengert(weg, meterAnteil + vorAnteil * deichsel / Math.Max(laenge, 1f) + dAnteil, laenge);
             if (ansicht.KarrenReihe is null && weg.Length > 1 && ansicht.Betrieb.Karren.Count > 1 && nummer < hofLage.Quer.Length)
             {
                 // Hof: nebeneinander quer zum Weg (Querlage nach Gespannbreite plus Luft, KarrenHofQuer), beim Losfahren in den ersten Metern auf die Mitte des Weges einschwenken
@@ -466,16 +496,31 @@ public partial class Stadtansicht
         ziel = AufFuss(ziel);
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
         // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
-        knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
-        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
-        var richtung = blick - knoten.Position;
-        richtung.Y = 0;
-        if (richtung.LengthSquared() > 0.01f)
+        // Schleppkurve (Gespannlauf.cs): ziel ist jetzt der Zugpunkt. Das Tier läuft den Weg, der Wagen hängt an der Deichsel und folgt nach der Traktrix, ohne
+        // Glättung nach Bildzeit: gleiches Bild bei 30 und 144 Bildern. Am Hof, unbeobachtet oder neu steht das Gespann gestreckt hinter dem Zugpunkt.
+        var fahrtRichtung = blick - ziel;
+        fahrtRichtung.Y = 0;
+        if (gezeigt.Lauf is { } lauf && fahrtRichtung.LengthSquared() > 1e-6f)
         {
-            // Am Markt wendet der Karren, statt sich herumzuwerfen; ein neuer Karren steht gleich richtig
-            var soll = Mathf.Atan2(richtung.X, richtung.Z);
-            knoten.Rotation = new Vector3(0, neu ? soll : Mathf.LerpAngle(knoten.Rotation.Y, soll, (float)Math.Min(1, delta * 6)), 0); // das Nicken kommt gleich
+            var sekunden = sim.Takt.IstPausiert ? 0.0 : delta;
+            if (neu || !imBild || zug.Etappe == Etappe.Hof || KarrenStarr) lauf.Setzen(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z);
+            else
+            {
+                var t0 = KarrenKurveStart();
+                lauf.Weiter(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z, sekunden * Math.Max(gezeigt.Tempo, 1f) * 2.5); // Wenden und Aufholen: das Tier trabt
+                KarrenKurveMessen(t0);
+            }
+            var dx = (float)lauf.DeichselX; var dz = (float)lauf.DeichselZ;
+            var achse = new Vector3((float)lauf.VorneX - dx * gezeigt.DrehpunktZ, 0, (float)lauf.VorneZ - dz * gezeigt.DrehpunktZ); // Ursprung des Modells (hintere Achse)
+            knoten.Position = AufFuss(achse);
+            knoten.Rotation = new Vector3(0, Mathf.Atan2(dx, dz), 0); // das Nicken kommt gleich
         }
+        else
+        {
+            knoten.Position = AufFuss(ziel);
+            if (fahrtRichtung.LengthSquared() > 1e-6f) knoten.Rotation = new Vector3(0, Mathf.Atan2(fahrtRichtung.X, fahrtRichtung.Z), 0);
+        }
+        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
         if (BodenBewegt) // am Hang nickt der Karren mit dem Gefälle (3 m vor und hinter der Achse)
         {
             var vorne = new Vector3(Mathf.Sin(knoten.Rotation.Y), 0, Mathf.Cos(knoten.Rotation.Y));
@@ -483,6 +528,7 @@ public partial class Stadtansicht
             var nick = -Mathf.Atan2(vorn - hinten, 3f);
             knoten.Rotation = new Vector3(nick, knoten.Rotation.Y, 0);
         }
+        KarrenGespannSetzen(gezeigt);
 
         // Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten)
         var sorten = Math.Min(karren.Ladung.Count(l => l.Value > 0), gezeigt.Ladung.Length);
@@ -621,6 +667,40 @@ public partial class Stadtansicht
         var laenge = 0f;
         for (var i = 0; i + 1 < weg.Length; i++) laenge += weg[i].DistanceTo(weg[i + 1]);
         return laenge;
+    }
+
+    /// <summary>Wie <see cref="PunktAufWeg"/>, aber über die Enden hinaus gerade weiter (in Richtung des ersten bzw. letzten Wegstücks): das Tier läuft vor dem Wagen her, auch am Rand des Weges.</summary>
+    private static Vector3 PunktAufWegVerlaengert(Vector3[] weg, float anteil, float laenge)
+    {
+        if (anteil >= 0f && anteil <= 1f) return PunktAufWeg(weg, anteil);
+        var (ende, davor) = anteil > 1f ? (weg[^1], weg[^2]) : (weg[0], weg[1]);
+        var r = ende - davor;
+        r.Y = 0;
+        var mehr = (anteil > 1f ? anteil - 1f : -anteil) * laenge;
+        return r.LengthSquared() < 1e-8f ? ende : ende + r.Normalized() * mehr;
+    }
+
+    /// <summary>
+    /// Setzt Zugtiere und Zieher bzw. Läufer an den Zugpunkt der Schleppkurve: Sie laufen den Weg (Kurs des Zugtiers), der Karren hängt an ihnen
+    /// (der Anker am Deichselende liegt auf dem Zugpunkt). Der Kutscher auf dem Bock bleibt am Wagen.
+    /// </summary>
+    private void KarrenGespannSetzen(KarrenAnsicht k)
+    {
+        if (k.Lauf is not { } lauf) return;
+        var kurs = new Vector3((float)lauf.KursX, 0, (float)lauf.KursZ);
+        var zug = new Vector3((float)lauf.ZugX, 0, (float)lauf.ZugZ);
+        zug = AufFuss(zug);
+        var basis = new Basis(Vector3.Up, Mathf.Atan2(kurs.X, kurs.Z));
+        if (BodenBewegt) // am Hang nickt auch das Tier (1,2 m vor und hinter dem Zugpunkt)
+        {
+            var (vorn, hinten) = (FahrHoehe(zug.X + kurs.X * 1.2f, zug.Z + kurs.Z * 1.2f), FahrHoehe(zug.X - kurs.X * 1.2f, zug.Z - kurs.Z * 1.2f));
+            basis = basis * new Basis(Vector3.Right, -Mathf.Atan2(vorn - hinten, 2.4f));
+        }
+        var welt = GlobalTransform;
+        foreach (var tier in k.Tiere)
+            tier.Halter.GlobalTransform = welt * new Transform3D(basis, zug + basis * tier.ZugVersatz);
+        if (k.FahrerHalter is { } fahrer && k.FahrerVersatz is { } versatz)
+            fahrer.GlobalTransform = welt * new Transform3D(basis * k.FahrerBasis, zug + basis * versatz);
     }
 
     private static Vector3 PunktAufWeg(Vector3[] weg, float anteil)

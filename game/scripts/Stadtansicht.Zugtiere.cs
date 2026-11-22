@@ -58,6 +58,8 @@ public partial class Stadtansicht
         public double LaufPhase { get; set; }
         /// <summary>Wurde die Pose zuletzt am Skelett gezeigt (sonst beim nächsten Zeigen auf die Stelle setzen)?</summary>
         public bool Gezeigt { get; set; }
+        /// <summary>Lage der Tierwurzel zum Zugpunkt im Bild des Tiers (Meter; Zugpunkt = Anker am Deichselende, Kummet bzw. Ortscheit): Das Tier läuft den Weg, der Karren hängt am Zugpunkt (<see cref="KarrenGespannSetzen"/>).</summary>
+        public Vector3 ZugVersatz { get; set; }
     }
 
     private static readonly string[] TierStehenVarianten = { "Stehen", "Stehen", "Stehen_Ruhen", "Stehen_Umschauen", "Fressen" };
@@ -99,6 +101,7 @@ public partial class Stadtansicht
             // beide blicken nach +Z, der Karren ist im Modell nicht gedreht. Die Hufe stehen so auf dem Boden des Karrenmodells.
             halter.Position = anker.Position - daten.AnkerZiehen + new Vector3(art.TierAnker.Length > 1 ? -Math.Sign(anker.Position.X) * ZugtierSeite : 0, 0, ZugtierLuft);
             halter.AddChild(tierModell);
+            var zugVersatz = halter.Position - new Vector3(0, 0, anker.Position.Z); // gegen den Zugpunkt (Mitte der Anker, Z des Deichselendes)
             foreach (var fern in tierModell.FindChildren("Fern_*", nameof(MeshInstance3D), true, false)) fern.QueueFree(); // das Fernnetz zeichnet nur der VAT
             foreach (var teil in tierModell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
                 for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
@@ -110,6 +113,7 @@ public partial class Stadtansicht
             var t = new Zugtier
             {
                 Halter = halter, Modell = tierModell, Spieler = spieler, Art = nummer, Daten = daten, Seed = seed,
+                ZugVersatz = zugVersatz,
                 Versatz = art.TierAnker.Length > 1 ? i * 0.5 : 0, // Zweispänner: das zweite Pferd um eine halbe Schleife versetzt
             };
             TierKlipSpielen(t, "Stehen", 0, seed % 1000 / 1000.0 * daten.Klips["Stehen"].Dauer); // zufällige Anfangsstelle: nicht alle im Gleichtakt
@@ -397,6 +401,9 @@ public partial class Stadtansicht
         if (art.ZieherClip == "Nebenhergehen") StabKraeftigen(figur);
         if (art.ZieherClip == "SitzenBock") halter.Position -= new Vector3(0, figur.Kniehoehe - 0.02f, 0); // die Hüfte sitzt auf der Sitzfläche
         ansicht.FahrerHalter = halter;
+        ansicht.FahrerBasis = halter.Basis;
+        if (art.ZieherClip != "SitzenBock") // Läufer und Zieher gehen mit dem Zugpunkt, nicht mit dem Wagen; der Kutscher sitzt auf dem Bock
+            ansicht.FahrerVersatz = halter.Position - new Vector3(0, 0, ansicht.ZugZ);
         halter.Visible = false; // gezeigt wird er erst, wenn der Karren fährt (KarrenFuhrmannBewegen)
         ansicht.FahrerSichtbar = false;
         return figur;
