@@ -17,6 +17,8 @@ public enum Kassenposten
     Amtsgehaelter,
     Bauvorhaben,
     Feste,
+    /// <summary>Reparatur von Dom und Rathaus nach einem Blitzschlag (Nutzer 22.11.2026).</summary>
+    Brandschaden,
 }
 
 public static class KassenpostenTexte
@@ -32,6 +34,7 @@ public static class KassenpostenTexte
         Kassenposten.Gebuehren => "Gerichtsgebühren",
         Kassenposten.Amtsgehaelter => "Amtsgehälter",
         Kassenposten.Bauvorhaben => "Bauvorhaben",
+        Kassenposten.Brandschaden => "Brandschaden",
         _ => "Feste",
     };
 }

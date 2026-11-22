@@ -147,15 +147,25 @@ public sealed class Ratssitzung
         var protokoll = (Action<string>)rat.Protokollieren;
 
         // Dieselbe Reihenfolge wie bisher: Statut, Stadtglaube, Pflaster, Steuersatz, Bauvorhaben, Fest, Wahlen, Abschluss.
-        if (rat.Antrag is not null) _schritte.Add(new(Sitzungsthema.Statut, null, null));
+        // Ist das Rathaus abgebrannt und noch nicht instand (Nutzer 22.11.2026, C1), tagt der Rat im Ausweichquartier: Die Anträge entfallen
+        // (Statut, Stadtglaube, Pflaster, Steuer, Bau, Fest), gewählt wird trotzdem.
+        var ohneAntraege = w.Blitz.RathausAbgebrannt;
+        if (ohneAntraege)
+            _schritte.Add(new(null, null, () =>
+            {
+                protokoll($"Ratssitzung {jahr}: Das Rathaus ist abgebrannt – der Rat tagt im Ausweichquartier, die Anträge entfallen.");
+                w.Glaube.AntragVerwerfen();
+                w.Wegebau.AntragVerwerfen();
+            }));
+        if (rat.Antrag is not null && !ohneAntraege) _schritte.Add(new(Sitzungsthema.Statut, null, null));
         _schritte.Add(new(null, null, rat.StatutAntragSchliessen));
-        if (w.Glaube.Antrag is not null) _schritte.Add(new(Sitzungsthema.Stadtglaube, null, null));
+        if (w.Glaube.Antrag is not null && !ohneAntraege) _schritte.Add(new(Sitzungsthema.Stadtglaube, null, null));
         if (w.Wegebau.IstAktiv)
         {
-            if (w.Wegebau.Antrag is not null) _schritte.Add(new(Sitzungsthema.Pflaster, null, null));
+            if (w.Wegebau.Antrag is not null && !ohneAntraege) _schritte.Add(new(Sitzungsthema.Pflaster, null, null));
             _schritte.Add(new(null, null, () => w.Wegebau.NachDemAntrag(protokoll)));
         }
-        if (w.Ratsantraege.IstAktiv)
+        if (w.Ratsantraege.IstAktiv && !ohneAntraege)
             foreach (var a in w.Ratsantraege.Antraege)
                 _schritte.Add(new(Thema(a.Art), null, null));
         _schritte.Add(new(null, null, w.Ratsantraege.SitzungAbschliessen));
