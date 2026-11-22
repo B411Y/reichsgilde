@@ -70,6 +70,8 @@
     <Compile Include="..\..\game\scripts\RathausGegenstaende.cs" Link="Rathaus\RathausGegenstaende.cs" />
     <Compile Include="..\..\game\scripts\Staendeleiter.cs" Link="Rathaus\Staendeleiter.cs" />
     <Compile Include="..\..\game\scripts\SteinMip.cs" Link="Rathaus\SteinMip.cs" />
+    <!-- Lautheits-Angleichung der Oberflächenklänge (Ton Schritt 7) – KlangLautheitTests.cs -->
+    <Compile Include="..\..\game\scripts\KlangLautheitModell.cs" Link="Handschuh\KlangLautheitModell.cs" />
     <!-- Zuordnung Übergang zu Türklang – KlangTuerTests.cs -->
     <Compile Include="..\..\game\scripts\KlangTuerModell.cs" Link="Handschuh\KlangTuerModell.cs" />
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
