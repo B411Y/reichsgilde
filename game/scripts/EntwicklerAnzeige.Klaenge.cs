@@ -69,12 +69,12 @@ public sealed partial class EntwicklerAnzeige
             var fluss = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
             fluss.AddThemeConstantOverride("h_separation", 4);
             reihe.AddChild(fluss);
-            StillerKnopf(fluss, "▶ wie im Spiel", () => Vorhoeren(KlangOberflaeche.Klang(ereignis), KlangDienst.BusOberflaeche, db, hoehe, $"{ereignis} (Zufallsvariante)"));
+            StillerKnopf(fluss, "▶ wie im Spiel", () => { var w = KlangOberflaeche.Waehle(ereignis); Vorhoeren(w.Ton, KlangDienst.BusOberflaeche, w.Db, w.Hoehe, $"{ereignis} (Zufallsvariante)"); });
             foreach (var datei in dateien)
             {
                 var pfad = KlangOberflaeche.Ordner + datei + ".ogg";
                 bekannt.Add(pfad);
-                StillerKnopf(fluss, datei, () => Vorhoeren(Laden(pfad), KlangDienst.BusOberflaeche, db, hoehe, datei + ".ogg"), pfad);
+                StillerKnopf(fluss, datei, () => Vorhoeren(Laden(pfad), KlangDienst.BusOberflaeche, db + KlangOberflaeche.Angleichung(datei), hoehe, datei + ".ogg"), pfad);
             }
         }
 
@@ -257,7 +257,7 @@ public sealed partial class EntwicklerAnzeige
         _vorhoerer.Stop();
         _vorhoerer.Stream = ton;
         _vorhoerer.Bus = bus;
-        _vorhoerer.VolumeDb = Math.Min(db, 0f);
+        _vorhoerer.VolumeDb = Math.Min(db, KlangOberflaeche.HoechstDb);
         _vorhoerer.PitchScale = hoehe;
         _vorhoerer.Play();
         var laenge = ton is AudioStreamRandomizer ? "" : $", {ton.GetLength():0.00} s";

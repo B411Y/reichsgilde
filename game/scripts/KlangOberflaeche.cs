@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Die Klänge der Oberfläche (Bus „Oberflaeche“): Holz, Leder, Papier, Münzen und Glocke statt Elektronik. Jedes <see cref="Ereignis"/>
-/// hat zwei bis vier Varianten in einem <see cref="AudioStreamRandomizer"/> (zufällige Wahl, leicht schwankende Tonhöhe und Lautstärke),
+/// hat zwei bis vier Varianten (<see cref="Waehle"/>: zufällige Wahl, leicht schwankende Tonhöhe und Lautstärke, Lautheit je Variante angeglichen),
 /// damit sich nichts abgenutzt anhört. Die Dateien liegen in <c>assets/audio/geraeusche/oberflaeche/</c> (Herkunft: dortige HERKUNFT.md).
 ///
 /// Zentral eingebaut, nicht in jeder Tafel:
@@ -58,7 +58,6 @@ public static class KlangOberflaeche
         return (dateien, db, hoehe);
     }
 
-    private static readonly Dictionary<Ereignis, AudioStreamRandomizer?> _klaenge = new();
     private static readonly Dictionary<Ereignis, double> _zuletzt = new();
     private static double _start = -1;
 
@@ -91,34 +90,62 @@ public static class KlangOberflaeche
         if (_start < 0 || jetzt - _start < Anlauf) return;
         if (_zuletzt.TryGetValue(ereignis, out var davor) && jetzt - davor < Sperre) return;
         _zuletzt[ereignis] = jetzt;
-        KlangDienst.OberflaecheSpielen(Klang(ereignis), Tabelle[ereignis].Db, Tabelle[ereignis].Hoehe);
+        var wahl = Waehle(ereignis);
+        KlangDienst.OberflaecheSpielen(wahl.Ton, wahl.Db, wahl.Hoehe, HoechstDb);
     }
 
-    /// <summary>Der Randomizer des Ereignisses (beim ersten Gebrauch geladen); <c>null</c>, wenn keine Datei zu laden war.</summary>
-    public static AudioStreamRandomizer? Klang(Ereignis ereignis)
+    private static Dictionary<string, float>? _angleichung;
+
+    /// <summary>Die Angleichung je Datei in dB aus <c>daten/klang_lautheit.json</c> (einmal geladen; fehlt die Datei, bleibt alles bei 0 dB).</summary>
+    public static float Angleichung(string datei) => KlangLautheitModell.Angleichung(AngleichungTabelle(), datei);
+
+    private static Dictionary<string, float> AngleichungTabelle()
     {
-        if (_klaenge.TryGetValue(ereignis, out var vorhanden)) return vorhanden;
-        var (dateien, _, _, streuung) = Tabelle[ereignis];
-        var zufall = new AudioStreamRandomizer
-        {
-            PlaybackMode = AudioStreamRandomizer.PlaybackModeEnum.RandomNoRepeats,
-            RandomPitch = 1f + streuung,
-            RandomVolumeOffsetDb = 1.5f,
-        };
-        var geladen = 0;
-        foreach (var datei in dateien)
+        if (_angleichung != null) return _angleichung;
+        const string pfad = "res://daten/klang_lautheit.json";
+        try { _angleichung = Godot.FileAccess.FileExists(pfad) ? KlangLautheitModell.Laden(Godot.FileAccess.GetFileAsString(pfad)) : new(); }
+        catch (Exception e) { GD.PushWarning($"KlangOberflaeche: {pfad} unlesbar ({e.Message})."); _angleichung = new(); }
+        return _angleichung;
+    }
+
+    /// <summary>Obergrenze der Lautstärke eines Klangs in dB: die Angleichung hebt leise Varianten an, die Pegel-Spalte der Tabelle liegt darunter (Spitzen nach beidem unter −3 dBTP, <c>docs/assets/lautheit-angleichung.csv</c>).</summary>
+    public const float HoechstDb = 6f;
+
+    /// <summary>Eine Variante eines Ereignisses: der Ton und seine Angleichung in dB (Ton Schritt 7).</summary>
+    public readonly record struct Variante(string Datei, AudioStream Ton, float AngleichungDb);
+
+    private static readonly Dictionary<Ereignis, Variante[]> _varianten = new();
+    private static readonly Dictionary<Ereignis, int> _letzteVariante = new();
+
+    /// <summary>Die geladenen Varianten des Ereignisses (beim ersten Gebrauch geladen); leer, wenn keine Datei zu laden war.</summary>
+    public static IReadOnlyList<Variante> Varianten(Ereignis ereignis)
+    {
+        if (_varianten.TryGetValue(ereignis, out var vorhanden)) return vorhanden;
+        var liste = new List<Variante>();
+        foreach (var datei in Tabelle[ereignis].Dateien)
         {
             var pfad = Ordner + datei + (ResourceLoader.Exists(Ordner + datei + ".wav") ? ".wav" : ".ogg");
-            if (ResourceLoader.Load(pfad) is AudioStream ton)
-            {
-                zufall.AddStream(-1, ton, 1f);
-                geladen++;
-            }
+            if (ResourceLoader.Load(pfad) is AudioStream ton) liste.Add(new Variante(datei, ton, Angleichung(datei)));
             else GD.PushWarning($"KlangOberflaeche: {pfad} fehlt oder lässt sich nicht laden.");
         }
-        var ergebnis = geladen > 0 ? zufall : null;
-        _klaenge[ereignis] = ergebnis;
-        return ergebnis;
+        return _varianten[ereignis] = liste.ToArray();
+    }
+
+    /// <summary>
+    /// Wählt eine Variante des Ereignisses zufällig, nie dieselbe zweimal hintereinander. Liefert den Ton, die Lautstärke (Pegel der Tabelle plus Angleichung
+    /// der Variante plus kleine zufällige Schwankung von ±1,5 dB) und die Tonhöhe (Tabelle mal zufällige Schwankung nach oben oder unten);
+    /// <c>Ton</c> ist <c>null</c>, wenn keine Datei zu laden war.
+    /// </summary>
+    public static (AudioStream? Ton, float Db, float Hoehe) Waehle(Ereignis ereignis)
+    {
+        var (_, db, hoehe, streuung) = Tabelle[ereignis];
+        var liste = Varianten(ereignis);
+        if (liste.Count == 0) return (null, db, hoehe);
+        var nr = (int)(GD.Randi() % (uint)liste.Count);
+        if (liste.Count > 1 && _letzteVariante.TryGetValue(ereignis, out var davor) && nr == davor) nr = (nr + 1 + (int)(GD.Randi() % (uint)(liste.Count - 1))) % liste.Count;
+        _letzteVariante[ereignis] = nr;
+        var faktor = Mathf.Exp((float)GD.RandRange(-1.0, 1.0) * Mathf.Log(1f + streuung));
+        return (liste[nr].Ton, db + liste[nr].AngleichungDb + (float)GD.RandRange(-1.5, 1.5), hoehe * faktor);
     }
 
     // ── Meldungen ───────────────────────────────────────────────────────────
@@ -152,11 +179,10 @@ public static class KlangOberflaeche
         var fehler = 0;
         foreach (var ereignis in Enum.GetValues<Ereignis>())
         {
-            var zufall = Klang(ereignis);
+            var liste = Varianten(ereignis);
             var soll = Tabelle[ereignis].Dateien.Length;
-            var ist = zufall?.StreamsCount ?? 0;
-            var laengen = new List<string>();
-            for (var i = 0; i < ist; i++) laengen.Add($"{zufall!.GetStream(i).GetLength():0.00}s");
+            var ist = liste.Count;
+            var laengen = liste.Select(v => $"{v.Ton.GetLength():0.00}s {v.AngleichungDb:+0.0;-0.0}dB").ToList();
             if (ist != soll) fehler++;
             GD.Print($"KLANGTEST {ereignis}: {ist}/{soll} Varianten ({string.Join(", ", laengen)}){(ist == soll ? "" : " FEHLT")}");
             _zuletzt.Remove(ereignis);

@@ -8,7 +8,7 @@ Geräusche, Musik, Stimmen, Audio-Busse. Neue Einträge unten anhängen, keine N
 
 Plan (Schritte in dieser Reihenfolge):
 - Schritt 6: Geräusche an Orten (Werkstätten, Markt, Hafen) und Innenräume (die Schankstube ist fertig, Glocken und Wetter auch)
-- Schritt 7: Lautheit angleichen; Ducking der Musik bei Ansagen ist da (Umgebung und Stimmen noch nicht: Umgebung bei Ansagen leiser?)
+- Schritt 7: Lautheit gemessen und angeglichen (siehe „Lautheit angleichen“ unten); Ducking der Musik bei Ansagen ist da, Ducking der Umgebung bei Ansagen bewusst nicht (Empfehlung, Hörprobe entscheidet)
 - Schritt 8: Musik: gebaut (siehe „Dynamische Musik“ unten); Hörurteil des Nutzers steht aus
 - Quellen: freesound.org nur CC0, Kenney (CC0); Lücken mit Stable Audio Open (Grafik-PC, der Teamleiter erzeugt). Nicht: Sonniss (das Repository ist öffentlich, Rohdateien dürfen nicht weitergegeben werden), BBC-Sammlung, Modelle mit NC-Lizenz.
 - Ein Test der Umrechnung `KlangDienst.ProzentZuDb` fehlt, weil sie im Spielordner liegt und die Tests nur den Kern kennen; ginge mit einer Kopie im Kern oder einer Testszene.
@@ -180,3 +180,15 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Menü | `menue_reichsgilde` (`menue` in `musik.json`); „Adels Schmeich“ spielt wieder im Tageswechsel, ebenso „Arbeitruf“ | 11.11.2026 |
 | Aufbau | `MusikModell`: `Berufsgruppe`, `Ort`, `LageVon`, `TagWaehlen`, `GrundWaehlen` (reine Funktionen), `Eingabe` um Beruf, Glaube, Ort, Kirchenglaube, Messe erweitert, `Steuerung.LaufendeLage` statt `LaufendeNacht`; Anschluss `Hauptszene.Musik.cs` (`MusikEingabe`, Aufstieg, gewonnene Wahl über `Hauptszene.Ansagen.cs`) und `Stadtansicht.Musik.cs` (`KlangMusikOrt`). Der Zufall der Auswahl bleibt in der Darstellung, der Kern ist unberührt | 11.11.2026 |
 | Prüfung | `MusikRegelnTests` (Anteile über 6000 Würfe je Volk, Beruf, Glaube mit Gegenproben, Kirchenraum, Messe, Ahtnisch stumm, neue Ereignisse und Ränge, Menü, Dateinamen); `--musiktest=` um gefahr, einbruch, geburt, aufstieg, messe, kirche[:glaube], werkstatt[:gruppe] erweitert | 11.11.2026 |
+
+### Lautheit angleichen (Ton Schritt 7, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Messung | Alle 302 Audiodateien nach ITU-R BS.1770 / EBU R128 (ffmpeg `ebur128`, True Peak): `tools/ton/lautheit_messen.py` → `docs/assets/lautheit-messwerte.csv` (integriert, höchste 400-ms- und 3-s-Lautheit, LRA, True Peak; Dateien unter 1 s mit Stille auf 1 s aufgefüllt, dort gilt die 400-ms-Spitze). Messprotokoll vorher/nachher je Gruppe, Ereignis, Datei und Bus: `docs/ton/lautheit-messprotokoll.md` | 22.11.2026 |
+| Ziele (Empfehlung, der Plan nannte keine) | Stimmen −18 LUFS, Musik −17 LUFS (Datei; in der Partie −26, Menü −21, Ereignis −23), Umgebung −26 LUFS je Schicht und Summe gedeckelt bei −30, Oberfläche je Ereignis auf eine 400-ms-Spitze (Bedienung −32, Fenster −30, Münzen −24, Siegel und Bauen −22). Begründung und Tabelle im Messprotokoll | 22.11.2026 |
+| Befund | Musik (48) −17,0 ±0,1 LUFS, Ansagen (120) −18,0 ±0,1, Umgebung je Gruppe wie ihre Pegeltabelle: schon einheitlich, **keine Datei verändert**. Uneinheitlich waren nur die Kenney-Klänge der Oberfläche: Varianten eines Ereignisses bis 14 dB auseinander (Klick, Fenster, Tempo, Reiter) | 22.11.2026 |
+| Angleichung | Als Daten, nicht als neue Dateien: `game/daten/klang_lautheit.json` (je Datei dB, erzeugt von `tools/ton/lautheit_angleichen.py` aus den Messwerten und den Zielen in `tools/ton/lautheit_gruppen.json`; bis +11 dB bei den leisesten Varianten, True Peak danach unter −3,6 dBTP). `KlangOberflaeche.Waehle` wählt die Variante selbst (nicht mehr `AudioStreamRandomizer`, der keine Lautstärke je Variante kennt) und gibt Pegel der Tabelle + Angleichung ± 1,5 dB; Obergrenze `HoechstDb` = +6 dB statt 0 am Spieler. Pegel-Spalte der Tabelle unverändert. Einbau: `KlangLautheitModell` (ohne Godot) | 22.11.2026 |
+| Bus-Pegel | Alle Busse bleiben bei 0 dB: Die Verhältnisse stecken in Dateien und Spielerpegeln, die Umgebungsbusse tragen laufende Dämpfung; ein fester Bus-Pegel würde dieselbe Zahl an zwei Stellen führen | 22.11.2026 |
+| Tests | `KlangLautheitTests`: Messprotokoll nennt jede OGG-Datei, Musik/Ansagen im Lautheitsband, Angleichung bringt jede Variante auf das Ziel (±0,2 dB), Rohwert-Parser | 22.11.2026 |
+| Offen | Nicht gehört: die angeglichenen Klicks, Fenster- und Tempoklänge (Hörprobe des Nutzers; die Ziele sind Rechenwerte). Die Spitzen der Einschlag-Dateien (+1,2 dBTP) laufen über den Begrenzer des Busses UmgebungDonner. Ducking der Umgebung bei Ansagen: Empfehlung nein |  |

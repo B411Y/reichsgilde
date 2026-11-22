@@ -7,9 +7,8 @@ namespace Reichsgilde;
 /// <summary>
 /// Der Bericht (Knopf „Bericht“ in der Betriebsleiste, PR #197): rechts eine Tafel mit vier Reitern – <b>Jahresrechnung</b> (dieses Jahr bisher und das
 /// Vorjahr, dazu der Knopf zum ganzen Jahresbericht), <b>Rivalen</b> (alle anderen Häuser mit Vermögen, Stand und letztem Zug), <b>Umsätze</b> (jeder
-/// eigene Betrieb mit Umsatz und Gewinn) und <b>Verlauf</b> (alle Meldungen der Sitzung über die Jahre, die neueste oben, mit Filter „Alles“, „Mein Haus“,
-/// „Rivalen“; Aufzählungspunkt in der Farbe des Themas, je Zeile Datum, Art und Text, Klick führt dorthin, wohin die Meldung führt; auch über den
-/// Knopf „Verlauf“ an der Siegel-Ecke). Reine Anzeige; zweimal je Sekunde neu beschriftet.
+/// eigene Betrieb mit Umsatz und Gewinn) und <b>Briefablage</b> (alle Meldungen und Briefe über die Jahre, die neueste oben, mit Filter „Alles“, „Mein Haus“,
+/// „Rivalen“ und nach Art (Thema); je Eintrag Datum, Absender, Betreff und Text, ein Klick legt den Brief auf). Reine Anzeige; zweimal je Sekunde neu beschriftet.
 /// </summary>
 public partial class BerichtAnzeige : PanelContainer
 {
@@ -34,17 +33,21 @@ public partial class BerichtAnzeige : PanelContainer
     private VBoxContainer _protokoll = null!;
     private VBoxContainer _verlaufListe = null!;
     private int _verlaufFilter;
+    /// <summary>Gewähltes Thema der Briefablage („“ = alle Arten).</summary>
+    private string _themaFilter = "";
+    /// <summary>So viele Briefe zeigt die Ablage; „Ältere Briefe“ erhöht um <see cref="Schritt"/>.</summary>
+    private int _anzahl = Schritt;
+    private const int Schritt = 60;
     private readonly List<Button> _filterKnoepfe = new();
+    private readonly List<Button> _artKnoepfe = new();
     private string _stand = "";
     private double _seitAufbau;
 
     /// <summary>Liefert den Verlauf (alle Meldungen der Sitzung), die neueste zuerst – die Hauptszene sammelt sie.</summary>
     public Func<IReadOnlyList<Meldungsposten>> Meldungen { get; set; } = () => Array.Empty<Meldungsposten>();
 
-    /// <summary>Wohin ein Klick auf eine Zeile des Verlaufs führt (Tooltip; null: nirgends hin) und was er tut – setzt die Hauptszene: dorthin, wohin
-    /// die Meldung selbst führt („Hinsehen“ bzw. der Knopf ihres Briefs).</summary>
-    public Func<Meldungsposten, string?> Ziel { get; set; } = _ => null;
-    public Action<Meldungsposten>? Ansteuern { get; set; }
+    /// <summary>Ein Klick auf einen Eintrag der Briefablage: die Hauptszene legt den Brief auf, wie er damals kam.</summary>
+    public Action<Meldungsposten>? BriefOeffnen { get; set; }
 
     /// <summary>Der Spieler will den ganzen Jahresbericht des Vorjahres sehen (Fenster in der Bildmitte).</summary>
     public event Action? JahresberichtGewuenscht;
@@ -83,7 +86,7 @@ public partial class BerichtAnzeige : PanelContainer
         jahr.AddChild(_berichtKnopf);
         _rivalen = Seite("Rivalen");
         _umsaetze = Seite("Umsätze");
-        _protokoll = Seite("Verlauf");
+        _protokoll = Seite("Briefablage");
         var filter = new HBoxContainer();
         filter.AddThemeConstantOverride("separation", 6);
         _protokoll.AddChild(filter);
@@ -99,9 +102,26 @@ public partial class BerichtAnzeige : PanelContainer
             var nummer = i;
             var knopf = new Button { Text = filterNamen[i].Name, ToggleMode = true, ButtonGroup = filterGruppe, FocusMode = FocusModeEnum.None, ButtonPressed = i == 0, TooltipText = filterNamen[i].Tipp };
             knopf.AddThemeFontSizeOverride("font_size", 13);
-            knopf.Pressed += () => { _verlaufFilter = nummer; _stand = ""; };
+            knopf.Pressed += () => { _verlaufFilter = nummer; _anzahl = Schritt; _stand = ""; };
             filter.AddChild(knopf);
             _filterKnoepfe.Add(knopf);
+        }
+        // Zweite Reihe: nach Art (Thema aus meldungen.json), die Zeilen brechen bei Platzmangel um
+        var arten = new HFlowContainer();
+        arten.AddThemeConstantOverride("h_separation", 6);
+        arten.AddThemeConstantOverride("v_separation", 4);
+        _protokoll.AddChild(arten);
+        var artGruppe = new ButtonGroup();
+        var themen = new List<(string Id, string Name)> { ("", "Alle Arten") };
+        themen.AddRange(Meldungseinstellungen.Ordnung.Themen.Select(t => (t.Id, t.Name)));
+        foreach (var (id, name) in themen)
+        {
+            var themaId = id;
+            var knopf = new Button { Text = name, ToggleMode = true, ButtonGroup = artGruppe, FocusMode = FocusModeEnum.None, ButtonPressed = id == "", TooltipText = id == "" ? "Briefe jeder Art." : $"Nur Briefe zum Thema „{name}“." };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            arten.AddChild(knopf);
+            knopf.Pressed += () => { _themaFilter = themaId; _anzahl = Schritt; _stand = ""; };
+            _artKnoepfe.Add(knopf);
         }
         _verlaufListe = new VBoxContainer();
         _verlaufListe.AddThemeConstantOverride("separation", 6);
@@ -160,7 +180,7 @@ public partial class BerichtAnzeige : PanelContainer
                 break;
             case Reiter.Protokoll:
                 var meldungen = Meldungen();
-                Neu(_verlaufListe, $"{_verlaufFilter}:{meldungen.Count}:{(meldungen.Count > 0 ? meldungen[0].Text : "")}", () => ProtokollZeigen(meldungen));
+                Neu(_verlaufListe, $"{_verlaufFilter}:{_themaFilter}:{_anzahl}:{meldungen.Count}:{(meldungen.Count > 0 ? meldungen[0].Text : "")}", () => ProtokollZeigen(meldungen));
                 break;
         }
     }
@@ -246,47 +266,68 @@ public partial class BerichtAnzeige : PanelContainer
 
     private void ProtokollZeigen(IReadOnlyList<Meldungsposten> meldungen)
     {
-        var gefiltert = meldungen.Where(m => _verlaufFilter switch
+        // Neueste oben: Die Hauptszene liefert die Meldungen schon so; hier nur Herkunft und Art filtern
+        var passend = meldungen.Where(m => (_verlaufFilter switch
         {
             1 => m.Bezug != Betroffenheit.Fremd,
             2 => m.Bezug == Betroffenheit.Fremd,
             _ => true,
-        }).Take(200).ToList();
-        if (gefiltert.Count == 0) Hauptmenue.Text(_verlaufListe, "Noch keine Meldungen.", 13, Grau);
-        foreach (var m in gefiltert)
+        }) && (_themaFilter == "" || m.Art.Thema == _themaFilter)).ToList();
+        if (passend.Count == 0)
         {
-            var zeile = new HBoxContainer();
+            Hauptmenue.Text(_verlaufListe, _themaFilter == "" && _verlaufFilter == 0 ? "Noch keine Briefe in der Ablage." : "Keine Briefe dieser Art.", 13, Grau);
+            return;
+        }
+        foreach (var m in passend.Take(_anzahl))
+        {
+            var farbe = Color.FromHtml(Meldungseinstellungen.Ordnung.Thema(m.Art.Thema).Farbe);
+            var zeile = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
             zeile.AddThemeConstantOverride("separation", 8);
             _verlaufListe.AddChild(zeile);
-            var punkt = new Punkt { Farbe = Color.FromHtml(Meldungseinstellungen.Ordnung.Thema(m.Art.Thema).Farbe), CustomMinimumSize = new Vector2(10, 18), Hohl = m.Stufe == Meldestufe.Verlauf };
+            var punkt = new Punkt { Farbe = farbe, Hohl = m.Stufe == Meldestufe.Verlauf };
+            punkt.CustomMinimumSize = new Vector2(LadeStil.Mass("ablage_punkt_breite"), LadeStil.Mass("ablage_punkt_hoehe"));
             zeile.AddChild(punkt);
-            // Was aus einer Entscheidung wurde: die Feder vor der Zeile
+            var spalte = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore };
+            spalte.AddThemeConstantOverride("separation", 0);
+            zeile.AddChild(spalte);
+            // Kopf: Datum und Absender; darunter Betreff; darunter der Text
+            var absender = m.Art.Absender != "" ? m.Art.Absender : m.Art.Name;
+            var kopf = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+            kopf.AddThemeConstantOverride("separation", 6);
+            spalte.AddChild(kopf);
             if (m.Art.Id == "Entscheidung")
-                zeile.AddChild(new Federmarke { CustomMinimumSize = new Vector2(18, 18), TooltipText = "Entscheidung – gewählt, nach Fristablauf mit der Voreinstellung oder hinfällig." });
-            // Meldung über ein Geheimnis: das kleine Siegel seiner Art vor der Zeile (ohne Datei bleibt nur der Text)
-            if (CharakterAnzeige.GeheimnisSiegelBild(m.Kern?.GeheimnisArt, 22, m.Kern?.GeheimnisArt is { } ga ? $"Ein Geheimnis – {ga}" : "") is { } siegel)
+                kopf.AddChild(new Federmarke { CustomMinimumSize = new Vector2(LadeStil.Mass("ablage_marke"), LadeStil.Mass("ablage_marke")), TooltipText = "Entscheidung – gewählt, nach Fristablauf mit der Voreinstellung oder hinfällig." });
+            if (CharakterAnzeige.GeheimnisSiegelBild(m.Kern?.GeheimnisArt, LadeStil.Mass("ablage_siegel"), m.Kern?.GeheimnisArt is { } ga ? $"Ein Geheimnis – {ga}" : "") is { } siegel)
             {
                 siegel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-                zeile.AddChild(siegel);
+                kopf.AddChild(siegel);
             }
-            var text = Hauptmenue.Text(zeile, $"{m.Jahr} · {m.Zeit} · {m.Art.Name}:  {m.Text}", 13, m.Warnung ? Rot : m.Bezug == Betroffenheit.Fremd ? Grau : null, umbruchBreite: Breite - 24);
-            text.TooltipText = $"{m.Art.Name} · " + m.Stufe switch
+            var fremd = m.Bezug == Betroffenheit.Fremd;
+            Hauptmenue.Text(kopf, $"{m.Jahr} · {m.Zeit} · {absender}", 12, m.Warnung ? Rot : Grau);
+            Hauptmenue.Text(spalte, m.Art.Titel != "" ? m.Art.Titel : m.Art.Name, 14, fremd ? Grau : Gold, umbruchBreite: Breite - LadeStil.Mass("ablage_rand"));
+            var text = Hauptmenue.Text(spalte, m.Text, 13, m.Warnung ? Rot : fremd ? Grau : null, umbruchBreite: Breite - LadeStil.Mass("ablage_rand"));
+            text.MaxLinesVisible = 3;
+            text.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+            var posten = m;
+            zeile.MouseFilter = MouseFilterEnum.Stop;
+            zeile.MouseDefaultCursorShape = CursorShape.PointingHand;
+            zeile.TooltipText = $"{m.Art.Name} · " + m.Stufe switch
             {
                 Meldestufe.Brief => "kam als Brief",
                 Meldestufe.Siegel => "kam als Siegel in die Ecke",
                 _ => "nur im Verlauf",
-            } + (m.Bezug == Betroffenheit.Fremd ? " · betrifft ein anderes Haus" : "");
-            if (Ziel(m) is { } ziel)
+            } + (fremd ? " · betrifft ein anderes Haus" : "") + "\nKlick: den Brief lesen";
+            zeile.GuiInput += e =>
             {
-                var posten = m;
-                text.TooltipText += "\nKlick: " + ziel;
-                text.MouseFilter = MouseFilterEnum.Stop;
-                text.MouseDefaultCursorShape = CursorShape.PointingHand;
-                text.GuiInput += e =>
-                {
-                    if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) Ansteuern?.Invoke(posten);
-                };
-            }
+                if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) BriefOeffnen?.Invoke(posten);
+            };
+        }
+        if (passend.Count > _anzahl)
+        {
+            var mehr = new Button { Text = $"Ältere Briefe ({passend.Count - _anzahl} weitere)", TooltipText = "Die nächsten Briefe der Ablage zeigen.", FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+            mehr.AddThemeFontSizeOverride("font_size", 13);
+            mehr.Pressed += () => { _anzahl += Schritt; _stand = ""; };
+            _verlaufListe.AddChild(mehr);
         }
     }
 

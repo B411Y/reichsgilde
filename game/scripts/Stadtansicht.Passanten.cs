@@ -330,7 +330,7 @@ public partial class Stadtansicht
             {
                 // Weit herausgezoomt (Zoomstufe 50 und 100): Die volle Rechnung (Spur, Ecken, Platz) nur jedes dritte oder vierte Bild, gestaffelt nach der Nummer;
                 // dazwischen schiebt die Figur sich mit ihrer letzten Geschwindigkeit weiter (Höhe und Blick bleiben) – im nächsten vollen Bild gilt wieder der Plan, es driftet nichts
-                if (p.Geschwindigkeit != Vector3.Zero) p.Knoten.Position += p.Geschwindigkeit * (float)sekunden;
+                if (p.Geschwindigkeit != Vector3.Zero) p.Knoten.Position = MarktAbstandHalten(p, p.Knoten.Position + p.Geschwindigkeit * (float)sekunden);
                 Profil(3);
             }
             else
@@ -510,7 +510,7 @@ public partial class Stadtansicht
         if (p.Figur is not { } figur) return;
         if (stelle < 0)
         {
-            p.Knoten.Position = Verweilpunkt(markt, e);
+            p.Knoten.Position = MarktAbstandHalten(p, Verweilpunkt(markt, e));
             BewegungSetzen(figur, "Stehen");
             return;
         }
@@ -519,7 +519,7 @@ public partial class Stadtansicht
         // Auf der Bank: die Hüfte auf Sitzhöhe – kleine Völker sitzen höher und lassen die Beine baumeln
         if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(s.Platz?.Hoehe ?? _marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
         else if (!MarktV2) ort = AufFuss(ort); // v3: stehend auf dem Boden wie beim Gehen (kein Höhensprung bei Ankunft und Abgang)
-        p.Knoten.Position = ort;
+        p.Knoten.Position = s.Bewegung == "Sitzen" ? ort : MarktAbstandHalten(p, ort, stelle);
         if (!MarktV2 && s.Art is Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen or Marktbummel.Art.Rand)
         {
             MarktStehen(p, figur, s, blick, minuteGenau); // reden nur zu zweit, sonst umschauen; am Brunnen schöpfen (Stadtansicht.Marktbummel.cs)
@@ -664,6 +664,7 @@ public partial class Stadtansicht
             hier += p.VersatzJetzt;
         }
         else (p.VersatzJetzt, p.Geschwindigkeit) = (Vector3.Zero, Vector3.Zero);
+        hier = MarktAbstandHalten(p, hier); // nie in Stände, Bänke, Brunnen (Stadtansicht.Marktabstand.cs)
         p.KlappbrueckeHalt = KlappbrueckePassantHalt(p, ref hier);   // Schranke zu: Figur wartet nur zum Anschauen (Stadtansicht.Klappbruecke.cs)
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;
