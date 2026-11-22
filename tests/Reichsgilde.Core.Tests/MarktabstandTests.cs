@@ -58,15 +58,15 @@ static class MarktabstandTests
             Gleich(f.Abstand(x, z), Koerper, 1e-3f, "Abstand zur Bank");
             if (MathF.Abs(x - 10.6f) > 1e-3f) throw new Exception("seitlich verschoben");
         });
-        yield return ("Marktabstand: Engstelle zwischen zwei Ständen – der Punkt landet dort, wo der Abstand am größten ist", () =>
+        yield return ("Marktabstand: Engstelle zwischen zwei Ständen – der Punkt bleibt in der Lücke und wird nie schlechter", () =>
         {
             var f = new Marktflaeche(0, 0, 1, 0, 12);
-            f.Stand(new Marktflaeche.Rechteck(-2, 0, 1, 0, 1.0f, 1f));
-            f.Stand(new Marktflaeche.Rechteck(2.4f, 0, 1, 0, 1.0f, 1f)); // Lücke von nur 0,8 m (x von -1 bis 1,4)
-            var vorher = f.Abstand(1.3f, 0);
-            var (x, z) = f.HerausSchieben(1.3f, 0, Koerper);
-            if (f.Abstand(x, z) < vorher) throw new Exception("schlechter als vorher");
-            if (f.Abstand(x, z) < 0.35f) throw new Exception($"Abstand nur {f.Abstand(x, z)}");
+            f.Stand(new Marktflaeche.Rechteck(-1, 0, 1, 0, 1.0f, 1f)); // Kante bei x = 0
+            f.Stand(new Marktflaeche.Rechteck(1.3f, 0, 1, 0, 1.0f, 1f)); // Kante bei x = 0,3: Lücke 0,3 m, enger als ein Körper
+            var vorher = f.Abstand(0.2f, 0);
+            var (x, z) = f.HerausSchieben(0.2f, 0, Koerper);
+            if (f.Abstand(x, z) < vorher - 1e-4f) throw new Exception("schlechter als vorher");
+            if (f.Abstand(x, z) > 0.15f + 1e-4f || f.Abstand(x, z) < 0.09f) throw new Exception($"Abstand {f.Abstand(x, z)} liegt nicht in der Lücke (höchstens 0,15 m möglich)");
         });
     }
 }
