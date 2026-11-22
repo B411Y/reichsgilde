@@ -129,6 +129,8 @@ public partial class Stadtansicht
         public bool PfadBeginntAufPlatz { get; set; }
         /// <summary>Lage im letzten Bild (nur für die Messung).</summary>
         public Vector3? Messlage { get; set; }
+        /// <summary>Wurde die Figur im letzten Bild gezeigt und lag im Bild? Zählt für den Deckel und die Skelettgrenze (<see cref="Passantendeckel"/>).</summary>
+        public bool ImBildMerk { get; set; }
     }
 
     /// <summary>
@@ -199,22 +201,33 @@ public partial class Stadtansicht
         var viele = einwohner.Count > VieleFiguren;
         var ausserhalbJedes = viele ? 2 * AusserhalbJedes : AusserhalbJedes;
         var neuGebaut = 0;
+        DeckelVorbereiten(); // Schwelle aus Zoom, Regler und Deckel (Passantendeckel); zählt auch die Figuren im Bild
         foreach (var e in einwohner)
         {
+            var darf = Passantendeckel.Gezeigt(e.Nummer, _deckelSchwelle); // stabile Teilmenge über die Nummer (Zoom, Regler „Menge der Passanten“, Deckel)
             if (!_passanten.TryGetValue(e.Nummer, out var p))
             {
+                // Nur Sichtbare werden gebaut: wer nicht zur Teilmenge gehört oder weit außerhalb von Bild und Rand ist, bekommt noch keine Figur
+                if (!darf || !UngebautNahBild(e)) continue;
                 // Eine Figur baut sich in ein paar Millisekunden; alle 430 auf einmal waren das erste Bild nach dem Laden von Köln mit 1,3 bis 3 s Stillstand.
                 // Darum nur so viele je Bild – wer noch fehlt, kommt im nächsten (die Figuren sind beim Start meist zu Hause).
                 if (neuGebaut >= PassantenNeuJeBild) continue;
                 neuGebaut++;
                 _passanten[e.Nummer] = p = Ladezeit.Zaehlen("Passant bauen", () => PassantBauen(e));
             }
-            if (!PassantGezeigt(e.Nummer)) // Einstellung „Menge der Passanten“ (Stadtansicht.Grafik.cs)
+            if (!darf)
             {
+                p.ImBildMerk = false;
                 PassantVerbergen(p, e.Nummer);
                 continue;
             }
             if (p.Eingezogen) continue; // Helfer der Löschkette: Lage, Gang und Pose bestimmt sie (Stadtansicht.Loeschkette.cs)
+            // Weit außerhalb von Bild und Rand (Passantendeckel.Rand) wird nur jedes achte Bild gerechnet (Plan, Weg, Lage); die Lage folgt dem Plan, nichts geht verloren
+            if (!ImBild(p.Knoten.Position, Passantendeckel.Rand) && (p.Nummer + _figurenBild) % Passantendeckel.FernJedes != 0)
+            {
+                p.ImBildMerk = false;
+                continue;
+            }
 
             // Wo die Figur ist, sagt ihr eigener Laufplan (siehe LaufPlanen): vor dem Losgehen am alten Ort,
             // nach der Ankunft am neuen, dazwischen unterwegs.
@@ -348,6 +361,7 @@ public partial class Stadtansicht
             Profil(4); // Licht
             if (p.Knoten.Visible && p.Figur is { } figur)
                 FigurImBildBewegen(figur, p.Knoten.Position, sekunden);
+            p.ImBildMerk = p.Knoten.Visible && ImBild(p.Knoten.Position);
             Profil(5); // Figur bewegen (Pose)
         }
 
@@ -416,6 +430,40 @@ public partial class Stadtansicht
     private long _passantenBewegtSumme;
     private double _passantenSchlimmstes;
 
+    // ── Passantendeckel (Nutzer 22.11.2026): nur Sichtbare, höchstens 400 zugleich, Dichte nach Zoom; Rechnung in Passantendeckel.cs ──
+    private int _deckelSchwelle = 1000;   // Promille der Figuren (nach Rang), die jetzt gezeigt werden dürfen
+    private int _deckelImBild;            // wie viele Figuren im letzten Bild gezeigt waren und im Bild lagen
+    private readonly int[] _deckelRang = new int[1000];
+
+    /// <summary>Einmal je Bild vor der Schleife: zählt die Figuren im Bild je Rang und setzt die Schwelle neu (Zoom, Regler, Deckel).</summary>
+    private void DeckelVorbereiten()
+    {
+        Array.Clear(_deckelRang);
+        var zahl = 0;
+        foreach (var q in _passanten.Values)
+            if (q.ImBildMerk) { _deckelRang[Passantendeckel.Rang(q.Nummer)]++; zahl++; }
+        _deckelImBild = zahl;
+        _deckelSchwelle = Passantendeckel.Schwelle(_deckelSchwelle, Passantendeckel.Promille(_kamera.Size, Fenster.PassantenMenge), _deckelRang);
+    }
+
+    /// <summary>
+    /// Liegt eine noch nicht gebaute Figur (Heimat, Ziel oder Mitte ihres Weges) im Bild mit Rand? Nur sie wird gebaut. Teuer ist das Nachsehen nur
+    /// wenig, aber nicht umsonst: es geschieht nur in jedem achten Bild je Figur.
+    /// </summary>
+    private bool UngebautNahBild(Einwohner e)
+    {
+        if ((e.Nummer + _figurenBild) % Passantendeckel.FernJedes != 0) return false;
+        Vector3? Punkt(Aufenthalt a) => a.Ort == Stadtort.Markt ? MarktFuer(e)?.Mitte : TuerVon(a) ?? (Draussen(a) ? Verweilpunkt(a, e) : null);
+        bool Nah(Vector3? p) => p is { } q && ImBild(q, Passantendeckel.Rand);
+        if (e.Weg is { } weg)
+        {
+            var von = Punkt(weg.Von);
+            var nach = Punkt(weg.Nach);
+            return Nah(von) || Nah(nach) || von is { } v && nach is { } n && Nah((v + n) * 0.5f);
+        }
+        return Nah(Punkt(e.Aufenthalt));
+    }
+
     /// <summary>Laufende außerhalb des Bildes werden nur jedes so vielte Bild weitergestellt (über die Nummer verteilt).</summary>
     private const int AusserhalbJedes = 3;
 
@@ -444,6 +492,7 @@ public partial class Stadtansicht
         GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00} (höchstens {_profilMax[i]:0.0})")) +
                  $", Wege über die Fläche höchstens {_flaecheBildMax:0.0} ms in einem Bild (einzeln {_flaecheEinzelMax:0.0}), ein Weg im Gassennetz höchstens {_netzMax:0.0} ms, eine Mittellinie mit Bodenmetern höchstens {_bodenMax:0.0} ms" +
                  $", Marktflächen-Rechnung ms (Netz gesamt {_maerkte.Sum(m => m.Flaeche?.NetzMs ?? 0):0}, Sicht {_maerkte.Sum(m => m.Flaeche?.SichtMs ?? 0):0}, Sperren {_maerkte.Sum(m => m.Flaeche?.SperrMs ?? 0):0}, Raster {_maerkte.Sum(m => m.Flaeche?.RasterMs ?? 0):0}), Marktwege über das Netz {_maerkte.Sum(m => m.Flaeche?.Netzwege ?? 0)}, Rückfall aufs Raster {_maerkte.Sum(m => m.Flaeche?.NetzRueckfaelle ?? 0)} ({string.Join(", ", _maerkte.Where(m => m.Flaeche is not null).SelectMany(m => m.Flaeche!.NetzGruende).GroupBy(g => g.Key).Select(g => $"{g.Key} {g.Sum(x => x.Value)}"))})" +
+                 $", Deckel: im Bild gezeigt {_deckelImBild} (Deckel {Passantendeckel.Deckel}, Skelett höchstens {Passantendeckel.SkelettMax}), Schwelle {_deckelSchwelle} von 1000, Zoomanteil {Passantendeckel.ZoomProzent(_kamera.Size)} %, Regler {Fenster.PassantenMenge} %" +
                  $", Figuren {_passanten.Count}, laufend {_passanten.Values.Count(q => q.Stand is null && q.Knoten.Visible)}, sichtbar {_passanten.Values.Count(q => q.Knoten.Visible)}");
         Array.Clear(_profilMs);
         Array.Clear(_profilMax);

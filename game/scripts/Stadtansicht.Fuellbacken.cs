@@ -280,7 +280,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Baukästen, deren Teile eine kahle bzw. verschneite Fassung <c>&lt;Name&gt;_Winter</c> haben (das Netz wird mit der Jahreszeit getauscht).</summary>
-    private static bool HatWinterfassung(string datei) => datei is "natur/natur_buesche" or "natur/natur_baeume" || datei.StartsWith("props/fuellung_", StringComparison.Ordinal);
+    private static bool HatWinterfassung(string datei) => datei is "natur/natur_buesche" or "natur/natur_baeume" or "natur/natur_original_baeume" || datei.StartsWith("props/fuellung_", StringComparison.Ordinal);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Jedes Bild
