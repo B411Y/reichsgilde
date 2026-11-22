@@ -568,7 +568,7 @@ public partial class Stadtansicht
         {
             "skelett" => false,
             "vat" or "vatfern" => true,
-            _ => _kamera.Size >= FigurenHalbeRateAb,
+            _ => Passantendeckel.Gebacken(_kamera.Size >= FigurenHalbeRateAb, _probeVat, _deckelImBild), // Skelett höchstens 60 im Bild, sonst alle gebacken (Passantendeckel)
         };
         _probeFern = ProbeStufe == "vatfern" || ProbeStufe == "auto" && _kamera.Size >= FigurenDrittelRateAb;
         if (vat && _probeVatNetze is null) vat = false; // Modell fehlt: beim Skelett bleiben
