@@ -265,7 +265,7 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton? _schnittstelle;
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
-    private readonly CheckButton _fahnen, _zeiger, _handschuh3d, _groesseAuto;
+    private readonly CheckButton _farbabstimmung, _fahnen, _zeiger, _handschuh3d, _groesseAuto;
     private readonly HSlider _randabstand;
     private readonly Label _randabstandWert;
     private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Haende + 1];
@@ -551,6 +551,12 @@ public sealed class EinstellungenAnzeige
         (_saettigung, _saettigungWert, _) = Regler(e, "Sättigung", 0, 150, 5, " %", wert =>
             Fenster.FarbstimmungSetzen(Fenster.AktuellesTonemapping, Fenster.Helligkeit, Fenster.Kontrast, wert),
             () => "Wirkt auf Stadt und Räume, nicht auf die Tafeln. 100 % lässt das Bild, wie es ist; 0 % macht es schwarzweiß.");
+        _farbabstimmung = Schalter(e, "Farbabstimmung nach Tageszeit", () => "Ein ganz leichter Farbton über der Stadt: morgens und abends warm, nachts kühl, im Winter etwas kälter, im Sommer wärmer. " +
+                                                                              "Mittags im Frühling bleibt das Bild, wie es ist. Wirkt nur auf die Stadt, nicht auf Räume und Tafeln; kostet praktisch nichts.", an =>
+        {
+            Fenster.FarbabstimmungSetzen(an);
+            Auffrischen();
+        });
         var zuruecksetzen = Hauptmenue.Knopf(e, "Farbstimmung zurücksetzen", () =>
         {
             Fenster.FarbstimmungSetzen(Tonemapping.Bisher, 100, 100, 100);
@@ -891,6 +897,7 @@ public sealed class EinstellungenAnzeige
         }
 
         _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
+        _farbabstimmung.SetPressedNoSignal(Fenster.FarbabstimmungAn);
         _zeiger.SetPressedNoSignal(Fenster.EigenerZeigerAn);
         _handschuh3d.SetPressedNoSignal(Fenster.Handschuh3dAn);
         _handschuh3d.Disabled = !Fenster.EigenerZeigerAn;

@@ -46,7 +46,7 @@ public partial class Stadtansicht
     /// <summary>Bei jeder Änderung der Einstellungen: was nicht jedes Bild nachgezogen wird.</summary>
     private void GrafikNachfuehren()
     {
-        FarbstimmungAnwenden(_umgebung.Environment);
+        FarbstimmungAnwenden(_umgebung.Environment, true);
         FarbstimmungAnwenden(_raumUmgebung);
         DunstAnwenden();
         _tiltShiftFuer = null;
@@ -383,10 +383,12 @@ public partial class Stadtansicht
     /// AgX rollt helle Stellen weich ab und entsättigt sie leicht, wie ein Film. Helligkeit, Kontrast und Sättigung wirken danach
     /// auf das fertige Bild (Godots <c>Adjustment</c>), 100 % lässt es, wie es ist.
     /// </summary>
-    private static void FarbstimmungAnwenden(Godot.Environment umgebung)
+    private void FarbstimmungAnwenden(Godot.Environment umgebung, bool stadt = false)
     {
         umgebung.TonemapMode = Fenster.AktuellesTonemapping == Tonemapping.Agx ? Godot.Environment.ToneMapper.Agx : Godot.Environment.ToneMapper.Linear;
-        umgebung.AdjustmentEnabled = Fenster.Helligkeit != 100 || Fenster.Kontrast != 100 || Fenster.Saettigung != 100;
+        var lut = stadt && Fenster.FarbabstimmungAn && _lutTextur is not null; // Farbabstimmung nur für die Stadt (Stadtansicht.Farbabstimmung.cs)
+        umgebung.AdjustmentColorCorrection = lut ? _lutTextur : null;
+        umgebung.AdjustmentEnabled = lut || Fenster.Helligkeit != 100 || Fenster.Kontrast != 100 || Fenster.Saettigung != 100;
         umgebung.AdjustmentBrightness = Fenster.Helligkeit / 100f;
         umgebung.AdjustmentContrast = Fenster.Kontrast / 100f;
         umgebung.AdjustmentSaturation = Fenster.Saettigung / 100f;
