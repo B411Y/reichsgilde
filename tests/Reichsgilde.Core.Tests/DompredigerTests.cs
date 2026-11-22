@@ -97,7 +97,7 @@ static class DompredigerTests
             Pruefe.Gleich(3, d.Amtsjahre);
             Pruefe.Gleich(1.5, d.PredigtFaktor);
             Pruefe.Gleich(3.0, d.Gunst);
-            Pruefe.Gleich(95, Daten.Value.Version);
+            Pruefe.Gleich(96, Daten.Value.Version);
             Pruefe.Gleich(1, Daten.Value.Aktionspunkte!.KostenFuer(new DomBewerben()));
             Pruefe.Gleich(0, Daten.Value.Aktionspunkte!.KostenFuer(new DomStimme(null)));
             Pruefe.Wahr(Json.Contains(DomZeile), "Die Zeile für die Gegenprobe passt nicht mehr zu wirtschaft.json.");

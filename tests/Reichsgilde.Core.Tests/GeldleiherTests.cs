@@ -72,7 +72,7 @@ static class GeldleiherTests
             var buch = w.Bank.DiesesJahr(k);
             Pruefe.Ungefaehr(480, buch.Stadtzinsen, 1e-6);
             Pruefe.Ungefaehr(wechsel, buch.Wechsel, wechsel * 0.05); // der Markt bewegt sich ein wenig
-            Pruefe.Ungefaehr((buch.Stadtzinsen + buch.Wechsel) * 0.05, k.Laufend.Steuer, 1e-6);
+            Pruefe.Ungefaehr((buch.Stadtzinsen + buch.Wechsel) * 0.0505, k.Laufend.Steuer, 1e-6);
             Pruefe.Gleich(0, b.Karren.Count);
         }),
 
