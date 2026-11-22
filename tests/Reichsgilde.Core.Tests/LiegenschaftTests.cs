@@ -151,10 +151,12 @@ static class LiegenschaftTests
         ("KI expandiert als Bürger – aber nur bis zu ihrer Höchstzahl an Betrieben", () =>
         {
             // Ohne den Wachturm: Seit Datenversion 57 (Sold 0,84) pachtete die KI ihn zuerst – zum Gardisten gibt es keine zweite freie Liegenschaft.
-            // Ohne Feuersteuer (22.11.2026): Der zweite Kauf amortisiert sich hier knapp – 0,05 Prozentpunkte Steuer mehr kippen ihn (Prüfung der Höchstzahl, nicht der Steuer).
-            var knoten = System.Text.Json.Nodes.JsonNode.Parse(Datenpfad.OhneFeuersteuer())!;
+            var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
             var liegenschaften = knoten["liegenschaften"]!.AsArray();
             liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Wachturm"));
+            // Ohne den Steinbruch: Seit der Feuersteuer (Datenversion 96) liegt er für die KI knapp vor dem Bauernhof – zum Steinmetz gibt es keine
+            // zweite freie Liegenschaft, und der Test prüfte die Höchstzahl nicht mehr. Mit dem Bauernhof folgt die Schänke (derselbe Beruf).
+            liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Steinbruch"));
             var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
                 wirtschaftsdaten: Wirtschaftsdaten.AusJson(knoten.ToJsonString()));
             var w = sim.Wirtschaft!;
