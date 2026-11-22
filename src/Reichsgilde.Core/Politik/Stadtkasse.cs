@@ -117,7 +117,7 @@ public sealed class Stadtkasse
     public double Umsatzsteuer => IstAktiv ? SteuersatzProzent / 100.0 : _w.Daten.Allgemein.Umsatzsteuer;
 
     /// <summary>
-    /// Die Feuersteuer als Anteil vom Umsatz (0,0025 = 0,25 Prozentpunkte; Nutzer 22.11.2026): ein fester Aufschlag auf <see cref="Umsatzsteuer"/>,
+    /// Die Feuersteuer als Anteil vom Umsatz (0,0005 = 0,05 Prozentpunkte; Nutzer 22.11.2026): ein fester Aufschlag auf <see cref="Umsatzsteuer"/>,
     /// gebucht unter <see cref="Kassenposten.Feuersteuer"/>. Ohne Stadtkasse oder ohne <c>blitz.feuersteuer</c> 0.
     /// </summary>
     public double Feuersteuer => IstAktiv ? _w.Daten.Blitz?.Feuersteuer ?? 0 : 0;

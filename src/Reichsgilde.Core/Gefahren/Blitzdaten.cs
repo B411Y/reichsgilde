@@ -82,7 +82,7 @@ public sealed class BlitzDaten
     public Dictionary<string, StadtbauDaten> Stadtbau { get; init; } = new();
 
     /// <summary>
-    /// Feuersteuer (Nutzer 22.11.2026, Datenversion 96): Aufschlag auf die Umsatzsteuer als Anteil vom Umsatz (0,0025 = 0,25 Prozentpunkte), geht in die
+    /// Feuersteuer (Nutzer 22.11.2026, Datenversion 96): Aufschlag auf die Umsatzsteuer als Anteil vom Umsatz (0,0005 = 0,05 Prozentpunkte), geht in die
     /// Stadtkasse; aus ihr zahlt die Stadt die Reparatur nach einem Brand. Der Rat kann sie nicht ändern. 0 = keine (Daten bis 95).
     /// </summary>
     public double Feuersteuer { get; init; }

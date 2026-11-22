@@ -1521,7 +1521,7 @@
       "dom": { "art": "Dom", "reparatur": [400, 1000] }, "koelner_dom": { "art": "Dom", "reparatur": [400, 1000] },
       "rathaus": { "art": "Rathaus", "reparatur": [300, 800] }, "koelner_rathaus": { "art": "Rathaus", "reparatur": [300, 800] }
     },
-    "feuersteuer": 0.0025
+    "feuersteuer": 0.0005
   },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [

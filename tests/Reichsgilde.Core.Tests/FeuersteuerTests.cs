@@ -83,15 +83,15 @@ static class FeuersteuerTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Feuersteuer: Daten – 0,25 Prozentpunkte auf die Umsatzsteuer, ohne Wert keine; negativ oder zu hoch ist ein Datenfehler", () =>
+        ("Feuersteuer: Daten – 0,05 Prozentpunkte auf die Umsatzsteuer, ohne Wert keine; negativ oder zu hoch ist ein Datenfehler", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
             Pruefe.Wahr(d.Version >= 96, "Datenversion");
-            Pruefe.Ungefaehr(0.0025, d.Blitz!.Feuersteuer, 1e-12);
+            Pruefe.Ungefaehr(0.0005, d.Blitz!.Feuersteuer, 1e-12);
             Pruefe.Ungefaehr(0, OhneFeuersteuer().Blitz!.Feuersteuer, 1e-12);
             foreach (var falsch in new[] { "-0.01", "0.1" })
             {
-                Pruefe.WirftMitMeldung(() => Mit(("\"feuersteuer\": 0.0025", $"\"feuersteuer\": {falsch}")), "blitz.feuersteuer");
+                Pruefe.WirftMitMeldung(() => Mit(("\"feuersteuer\": 0.0005", $"\"feuersteuer\": {falsch}")), "blitz.feuersteuer");
             }
         }),
 
@@ -101,7 +101,7 @@ static class FeuersteuerTests
             {
                 var (sim, spieler) = Partie(mit ? null : OhneFeuersteuer());
                 var w = sim.Wirtschaft!;
-                var f = mit ? 0.0025 : 0;
+                var f = mit ? 0.0005 : 0;
                 Pruefe.Ungefaehr(f, w.Kasse.Feuersteuer, 1e-12);
                 Pruefe.Ungefaehr(w.Kasse.SteuersatzProzent / 100.0 + f, w.Umsatzsteuer, 1e-12);
                 var feuerVorher = w.Kasse.DiesesJahr[Kassenposten.Feuersteuer];
@@ -127,8 +127,8 @@ static class FeuersteuerTests
             var (sim, _) = Partie();
             var w = sim.Wirtschaft!;
             w.Kasse.SteuersatzSetzen(w.Kasse.SteuersatzProzent + 2);
-            Pruefe.Ungefaehr(0.0025, w.Kasse.Feuersteuer, 1e-12);
-            Pruefe.Ungefaehr(w.Kasse.SteuersatzProzent / 100.0 + 0.0025, w.Umsatzsteuer, 1e-12);
+            Pruefe.Ungefaehr(0.0005, w.Kasse.Feuersteuer, 1e-12);
+            Pruefe.Ungefaehr(w.Kasse.SteuersatzProzent / 100.0 + 0.0005, w.Umsatzsteuer, 1e-12);
             var (ohne, _) = Partie(OhneKasse());
             Pruefe.Ungefaehr(0, ohne.Wirtschaft!.Kasse.Feuersteuer, 1e-12);
             Pruefe.Ungefaehr(ohne.Wirtschaft.Daten.Allgemein.Umsatzsteuer, ohne.Wirtschaft.Umsatzsteuer, 1e-12);
