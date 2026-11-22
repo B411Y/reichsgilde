@@ -39,7 +39,7 @@ static class KartenformatTests
             Pruefe.Gleich("gebaeude/tischler", k.Werkstatt("Tischler")!.Modell);
             Pruefe.Gleich("gebaeude/stadthof", k.Wohnhaus(4)!.Modell);
             Pruefe.Gleich("gebaeude/einwohner_ratsherrenhaus", k.Einwohnerhaus("Ratsherrenhaus")!.Modell);
-            Pruefe.Gleich(5, k.Finde("tanne")!.Varianten);
+            Pruefe.Gleich(4, k.Finde("tanne")!.Varianten); // vier Fichten (Originalbäume, 22.11.2026); die Waldkiefer ist `kiefer`
             Pruefe.Gleich(-2.85, k.Finde("dom")!.Versatz![1]);
             Pruefe.Wahr(k.Finde("schloss") is null, "unbekannte Kennung");
             // Jeder Beruf der Daten hat ein Werkstattmodell, jede Umland-Betriebsart einen Baustein.
@@ -75,6 +75,8 @@ static class KartenformatTests
             fehlen.RemoveAll(d => d.StartsWith("props/fuellung_") || d == "props/props_fuellung_kit");
             // Ohne Katalog: die Probe zum Neubau der Gebäude (gebaeude/neubau/); sie steht nur mit Startoption (--neubauprobe, Stadtansicht.Neubau.cs), bis der Nutzer den Tausch freigibt.
             fehlen.RemoveAll(d => d.StartsWith("gebaeude/neubau/"));
+            // Ohne Katalog: die Originalbäume (natur/natur_original_baeume); noch nur in der Testszene (--baumtest=1, Baumtest.cs), bis der Nutzer den Tausch freigibt.
+            fehlen.RemoveAll(d => d == "natur/natur_original_baeume");
             // Ebenso die Module der Häuserzeilen (gebaeude/zeilen/, modulares Wohnhaussystem): keine Bausteine der Karte, das Spiel setzt sie
             // selbst zu Zeilen zusammen (Stadtansicht.Zeilen.cs), bisher nur mit Startoption --zeilenprobe.
             fehlen.RemoveAll(d => d.StartsWith("gebaeude/zeilen/"));

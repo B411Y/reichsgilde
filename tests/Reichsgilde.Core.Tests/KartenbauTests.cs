@@ -191,7 +191,7 @@ static class KartenbauTests
             var fehler = befunde.Where(b => b.Schwere == Schwere.Fehler).Select(b => b.Text).ToList();
             Pruefe.Wahr(fehler.Any(f => f.StartsWith("rathaus: Die Modelldatei gebaeude/gibt_es_nicht.glb fehlt")), string.Join("\n", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("„Kuhstall“ fehlt")), string.Join("\n", fehler));
-            Pruefe.Wahr(fehler.Any(f => f.Contains("„Kiefer19“ fehlt")), string.Join("\n", fehler));
+            Pruefe.Wahr(fehler.Any(f => f.Contains("„Fichte19“ fehlt")), string.Join("\n", fehler));
         }),
 
         ("Modelldatei: Anker wie die Stadtansicht (Halteplatz der Grube, Gatter der Weide) und Ausdehnung eines Knotens", () =>

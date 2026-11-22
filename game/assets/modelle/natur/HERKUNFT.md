@@ -17,3 +17,8 @@ Rückseiten (Felsen R7, 09.11.2026) und die in Blender gebackene Körnung `game/
 Die übrigen Dateien in diesem Ordner entstehen aus eigenen Skripten (CC BY 4.0, siehe `LICENSE-INHALTE.md`).
 
 Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.
+
+`natur_original_baeume.glb` enthält die **Originalmodelle** desselben Pakets (CommonTree_1–5, Pine_1–5, Bush_Common, Bush_Common_Flowers; Lizenz **CC0 1.0**,
+„Models by @Quaternius“) ohne Vereinfachung, Rinde mit Normalenkarte, Blattkarten in Originalfarben (Texturen WebP, Rinde 1024, Blätter 512).
+Bearbeitung durch `tools/modelle/baeume_original.py`: Maßstab, Fuß im Nullpunkt, je Baum eine Fernfassung (Rinde vereinfacht, vom Laub ein Teil der
+Blattkarten, dafür größer) und eine kahle Winterfassung der Laubbäume (nur die Rinde). Die Jahreszeiten färbt der Shader (`baum_wind.gdshader`).

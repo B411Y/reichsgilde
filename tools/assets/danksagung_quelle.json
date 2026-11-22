@@ -109,6 +109,7 @@
           "pflicht": false,
           "deckt": [
             "game/assets/modelle/natur/natur_kit_",
+            "game/assets/modelle/natur/natur_original_baeume",
             "game/assets/modelle/props/props_"
           ]
         },

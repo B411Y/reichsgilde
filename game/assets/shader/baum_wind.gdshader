@@ -3,6 +3,10 @@
 // seinem Ort, auch die kahlen Winterbäume), die Blätter und Nadeln flattern fein. Die Stärke folgt wetter_wind (dieselbe Größe wie Gras, Laub und
 // Fahnen): bei Windstille kaum etwas, im Sturm deutlich. Alles rechnet in der Welt und wird dann in den Modellraum zurückgerechnet, darum gilt es für
 // jede Größe und Drehung der Kopie im MultiMesh. Kostet nur ein paar Rechenschritte je Ecke und kein zusätzliches Zeichnen.
+//
+// Jahreszeiten für die Originalbäume (natur_original_baeume.glb, Baumtest): Die Blattkarten behalten ihre Originalfarbe; im Frühling,
+// Herbst und Winter mischt der Shader eine Farbe über die Helligkeit der Karte (laub_toenung, laub_farbe), auf Wunsch weiße Blüten (bluete)
+// und Schnee auf allem, was nach oben zeigt (schnee). Alle Werte stehen auf 0: dann sieht das Material aus wie vorher.
 shader_type spatial;
 render_mode cull_disabled;   // doppelseitig wie die Materialien der GLB
 
@@ -23,15 +27,35 @@ uniform bool eckenfarbe_srgb = true;
 uniform float hoehe = 8.0;
 uniform float flattern = 0.0;
 
+// Jahreszeit (0 = aus): Tönung der Blattkarten über deren Helligkeit, Blütenflecken, Schnee auf nach oben zeigenden Flächen
+uniform float laub_toenung = 0.0;
+uniform vec4 laub_farbe : source_color = vec4(0.5, 0.6, 0.2, 1.0);
+uniform float bluete = 0.0;
+uniform vec4 bluete_farbe : source_color = vec4(0.97, 0.90, 0.92, 1.0);
+uniform float schnee = 0.0;
+uniform vec4 schnee_farbe : source_color = vec4(0.90, 0.93, 0.97, 1.0);
+
+// Rinde oben anders gefärbt (Waldkiefer: oberer Stamm orange-rot, Spiegelrinde); Anteil an der Höhe des Baums
+uniform float rinde_oben = 0.0;
+uniform float luecke = 0.0;        // Anteil der Blattfläche, der ausgespart wird (dürres, lichtes Gespinst im Winter)
+uniform float rinde_toenung = 0.0; // Rinde in eine andere Farbe ziehen (Buche silbergrau, Kirsche rötlichgrau)
+uniform vec4 rinde_farbe : source_color = vec4(0.6, 0.58, 0.56, 1.0);
+uniform float hell_faktor = 3.5;   // Verstärkung der Helligkeit der Blattkarte beim Umfärben
+uniform vec4 rinde_oben_farbe : source_color = vec4(0.72, 0.36, 0.16, 1.0);
+
 varying vec3 v_eck;
+varying vec3 v_nw;
+varying float v_hf;
 
 void vertex() {
 	v_eck = COLOR.rgb;
+	v_nw = normalize(mat3(MODEL_MATRIX) * NORMAL);
 	vec3 m0 = MODEL_MATRIX[0].xyz;
 	float maszstab = max(length(m0), 0.0001);
 	vec3 mittelpunkt = MODEL_MATRIX[3].xyz;
 	// Biegung: Fuß steif, Krone frei (quadratisch mit der Höhe über dem Boden)
 	float hf = clamp(VERTEX.y / max(hoehe, 0.1), 0.0, 1.0);
+	v_hf = hf;
 	float bieg = hf * hf;
 	float w = clamp(wetter_wind, 0.0, 1.0);
 	float ph = dot(mittelpunkt.xz, vec2(0.23, 0.17));    // je Baum eigene Phase (auch kahle Winterbäume)
@@ -60,6 +84,19 @@ void fragment() {
 		}
 		c *= e;
 	}
+	float zufall = fract(sin(dot(floor(UV * 48.0), vec2(12.9898, 78.233))) * 43758.5453);
+	if (flattern > 0.5) {
+		// Blätter und Nadeln: Farbe aus der Helligkeit der Originalkarte (Mittel um 0,3, darum mal 3,5)
+		float hell = dot(t.rgb, vec3(0.2126, 0.7152, 0.0722));
+		c = mix(c, laub_farbe.rgb * clamp(hell * hell_faktor, 0.0, 1.7), laub_toenung);
+		c = mix(c, bluete_farbe.rgb * (0.9 + 0.2 * zufall), bluete * step(1.0 - 0.45 * bluete, zufall * 0.5 + 0.5 * fract(zufall * 7.7)));
+		c = mix(c, schnee_farbe.rgb, schnee * smoothstep(0.35, 0.8, abs(v_nw.y) + (zufall - 0.5) * 0.35));
+	} else {
+		c = mix(c, rinde_farbe.rgb * (0.5 + dot(c, vec3(0.6))), rinde_toenung);
+		c = mix(c, rinde_oben_farbe.rgb * (0.55 + 0.9 * dot(c, vec3(0.33))), rinde_oben * smoothstep(0.2, 0.4, v_hf));
+		c = mix(c, vec3(0.30, 0.25, 0.21) * (0.6 + dot(c, vec3(0.5))), rinde_oben * (1.0 - smoothstep(0.08, 0.2, v_hf)));
+		c = mix(c, schnee_farbe.rgb, schnee * smoothstep(0.45, 0.85, v_nw.y + (zufall - 0.5) * 0.3));
+	}
 	ALBEDO = c;
 	ROUGHNESS = rauheit;
 	if (normale) {
@@ -67,7 +104,7 @@ void fragment() {
 		NORMAL_MAP_DEPTH = normal_staerke;
 	}
 	if (maske) {
-		ALPHA = t.a * farbe.a;
+		ALPHA = t.a * farbe.a * step(luecke, zufall);
 		ALPHA_SCISSOR_THRESHOLD = schwelle;
 	}
 }

@@ -13,6 +13,22 @@ Ein Spieltag ist ein Spieljahr, und jedes Jahr hat seine Jahreszeit: Frühling 1
 
 Die Preise folgen der Nachfrage über die Elastizität des Marktes: 40 % mehr Nachfrage nach Holz heben den Preis um gut 18 %, 25 % mehr Gerste senken ihn um gut 10 %.
 
+## Bäume und Büsche im Jahr
+
+Die Wälder, Gärten und Hecken zeigen die Jahreszeit mit den Farben ihrer Art (Stand 22.11.2026):
+
+| Art | Frühling | Sommer | Herbst | Winter |
+|---|---|---|---|---|
+| Eiche | gelbgrünes junges Laub | grün | gelbbraun | kahl |
+| Buche | hellgrün | grün, glatte silbergraue Rinde | orange bis rotbraun | kahl |
+| Apfel | weiß-rosa Blüte | grün, kleine Früchte | gelbes Laub, rote Früchte | kahl |
+| Kirsche | weiße Blüte mit dem ersten Laub | grün | rot und orange | kahl |
+| Fichte | frische hellgrüne Triebe | dunkelgrün | dunkelgrün | dunkelgrün mit viel Schnee |
+| Waldkiefer | blaugrün | blaugrün | blaugrün | blaugrün, weniger Schnee |
+| Hasel, Weißdorn, Holunder | hellgrün; Weißdorn blüht weiß | grün; Holunder mit Blütendolden | gelb bzw. rot; Weißdorn mit roten Früchten, Holunder mit dunklen Beeren | dürres, lichtes Gestrüpp |
+
+Alles wiegt sich im Wind, im Sturm stärker. Im Herbst fällt bei hoher Grafikstufe (Hoch und Ultra) Laub von den Laubbäumen. Die Bäume sind Darstellung; auf Karten und Wirtschaft haben sie keine Wirkung.
+
 ## Der strenge Winter
 
 Etwa jeder fünfte Winter ist **streng** (Stufe „Wie überliefert“; wie oft und wie stark, stellt die [Härte der Zeit](#härte-der-zeit)). Geschichtliche Anmerkung: Für den Winter 1363/64 ist überliefert, dass der Rhein wochenlang vereist war und die Kölner einen Markt auf dem Eis hielten; einen Eismarkt gibt es im Spiel nicht. Die Meldung zum Jahresbeginn kündigt ihn an: „Ein strenger Winter: Eis treibt auf dem Rhein, gegen 8 Uhr friert er zu.“
