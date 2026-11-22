@@ -47,6 +47,8 @@
     <Compile Include="..\..\game\scripts\Marktrunde.cs" Link="Gehtempo\Marktrunde.cs" />
     <!-- Die Spuren der Passanten (Rechtsverkehr, Schwanken, weiche Übergänge) – PassantenspurTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenspur.cs" Link="Gehtempo\Passantenspur.cs" />
+    <!-- Schleppkurve der Karren (Traktrix, Drehschemel) – GespannlaufTests.cs -->
+    <Compile Include="..\..\game\scripts\Gespannlauf.cs" Link="Gehtempo\Gespannlauf.cs" />
     <!-- Ausweichen der Passanten (Schicht 4) und ihr Einstieg auf das nächste Wegstück – PassantenausweichenTests.cs, PassantenwegeTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenausweichen.cs" Link="Gehtempo\Passantenausweichen.cs" />
     <Compile Include="..\..\game\scripts\Wegeinstieg.cs" Link="Gehtempo\Wegeinstieg.cs" />
