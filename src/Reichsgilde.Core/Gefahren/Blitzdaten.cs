@@ -68,6 +68,22 @@ public sealed class BlitzDaten
     /// <summary>Überspringen auf Nachbarhäuser (Nutzer 3.11.2026). Null = es springt nicht (Daten bis 70).</summary>
     public BlitzSprungDaten? Sprung { get; init; }
 
+    /// <summary>
+    /// Brennt eine Kirche (Betrieb) bzw. der Dom, fällt dort die Messe aus (Nutzer 22.11.2026, A1/B1): die Kirche, solange sie brennt und danach
+    /// still steht; der Dom bis zur Instandsetzung (<see cref="InstandMinuten"/> nach dem Feuer). Die Gemeinde geht in die übrigen Kirchen.
+    /// Vorgabe false = die Messe läuft weiter (Daten bis 94).
+    /// </summary>
+    public bool OhneMesse { get; init; }
+
+    /// <summary>
+    /// Bauten der Stadt (Dom, Rathaus) nach Kennung im Gebäudekatalog: Die Stadtkasse zahlt die Reparatur (Nutzer 22.11.2026, B1/C1/D1).
+    /// Fehlt ein Bau hier, brennt er nur im Bild (Daten bis 94).
+    /// </summary>
+    public Dictionary<string, StadtbauDaten> Stadtbau { get; init; } = new();
+
+    /// <summary>Die städtische Brandkasse (Nutzer 22.11.2026, E1). Null = es gibt keine (Daten bis 94).</summary>
+    public BrandkasseDaten? Brandkasse { get; init; }
+
     public void Pruefen(List<string> f)
     {
         if (Chance is < 0 or > 1) f.Add("blitz.chance muss zwischen 0 und 1 liegen.");
@@ -84,6 +100,41 @@ public sealed class BlitzDaten
                 f.Add($"blitz.{name} braucht [leicht, schwer] mit 0 ≤ leicht ≤ schwer{(name == "lagerAnteil" ? " ≤ 1" : "")}.");
         if (WaechterFaktor is <= 0 or > 1) f.Add("blitz.waechterFaktor muss größer als 0 und höchstens 1 sein.");
         Sprung?.Pruefen(f);
+        foreach (var (kennung, bau) in Stadtbau.OrderBy(x => x.Key, StringComparer.Ordinal))
+            if (bau.Reparatur is not { Length: 2 } r || r[0] < 0 || r[1] < r[0])
+                f.Add($"blitz.stadtbau.{kennung}.reparatur braucht [leicht, schwer] mit 0 ≤ leicht ≤ schwer.");
+        Brandkasse?.Pruefen(f);
+    }
+}
+
+/// <summary>Welcher Bau der Stadt brennt: Am Dom fällt die Messe aus, am Rathaus die Anträge der Ratssitzung.</summary>
+public enum Stadtbauart { Dom, Rathaus }
+
+/// <summary>Ein Bau der Stadt im Abschnitt <c>blitz.stadtbau</c>: was er ist und was seine Reparatur die Stadtkasse kostet.</summary>
+public sealed class StadtbauDaten
+{
+    public Stadtbauart Art { get; init; }
+
+    /// <summary>Reparatur in Gulden [leichtes, schweres Feuer], dazwischen nach der <see cref="Gefahren.Blitzwesen.Schwere"/>.</summary>
+    public double[] Reparatur { get; init; } = { 0, 0 };
+}
+
+/// <summary>
+/// Die städtische Brandkasse (Abschnitt <c>blitz.brandkasse</c>, Nutzer 22.11.2026, E1): ein eigener Topf aus den Beiträgen der Mitglieder.
+/// Am Jahresende zahlt jedes Mitglied <see cref="BeitragAnteil"/> vom Bauwert seiner Werkstätten und seines Wohnhauses (mindestens
+/// <see cref="Mindestbeitrag"/>); brennt es bei einem gedeckten Mitglied, zahlt sie <see cref="Deckung"/> der Reparatur (nicht das Lager),
+/// höchstens so viel, wie im Topf ist. Gedeckt ist man ab dem Jahr nach dem Beitritt.
+/// </summary>
+public sealed class BrandkasseDaten
+{
+    public double BeitragAnteil { get; init; } = 0.02;
+    public double Mindestbeitrag { get; init; } = 20;
+    public double Deckung { get; init; } = 0.6;
+
+    public void Pruefen(List<string> f)
+    {
+        if (BeitragAnteil < 0 || Mindestbeitrag < 0) f.Add("blitz.brandkasse.beitragAnteil und mindestbeitrag dürfen nicht negativ sein.");
+        if (Deckung is < 0 or > 1) f.Add("blitz.brandkasse.deckung liegt zwischen 0 und 1.");
     }
 }
 
