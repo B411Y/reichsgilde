@@ -151,7 +151,8 @@ static class LiegenschaftTests
         ("KI expandiert als Bürger – aber nur bis zu ihrer Höchstzahl an Betrieben", () =>
         {
             // Ohne den Wachturm: Seit Datenversion 57 (Sold 0,84) pachtete die KI ihn zuerst – zum Gardisten gibt es keine zweite freie Liegenschaft.
-            var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
+            // Ohne Feuersteuer (22.11.2026): Der zweite Kauf amortisiert sich hier knapp – 0,05 Prozentpunkte Steuer mehr kippen ihn (Prüfung der Höchstzahl, nicht der Steuer).
+            var knoten = System.Text.Json.Nodes.JsonNode.Parse(Datenpfad.OhneFeuersteuer())!;
             var liegenschaften = knoten["liegenschaften"]!.AsArray();
             liegenschaften.Remove(liegenschaften.Single(l => (string?)l!["art"] == "Wachturm"));
             var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },
