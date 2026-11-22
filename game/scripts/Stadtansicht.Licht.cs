@@ -111,6 +111,7 @@ public partial class Stadtansicht
         FensterlichtSetzen(ziel.Fenster, uhrzeitInMinuten / 60f); // Stadtansicht.Modelle.cs – fasst die Materialien nur bei merklicher Änderung an
         RaumlichtSetzen(ziel.Himmel, ziel.Hell); // Stadtansicht.Raeume.cs
         GlobaleBeleuchtungHelligkeit(); // SDFGI so hell wie das Umgebungslicht, das es ersetzt (Stadtansicht.GlobaleBeleuchtung.cs)
+        FarbabstimmungBild(uhrzeitInMinuten / 60f, jahreszeit, echtzeit); // dezente Farb-LUT nach Tages- und Jahreszeit (Stadtansicht.Farbabstimmung.cs)
     }
 
     /// <summary>
