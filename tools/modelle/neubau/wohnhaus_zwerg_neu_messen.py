@@ -11,7 +11,7 @@ Prueft (Nummern wie bei den Menschen):
   Stufe 2/3: wohnhaus_mensch_s23_messen.pruefe (1-11, 12-15 aussen und Wohnstube, 16-18 Lueckenpruefung, 19 Wappen frei an der Gassenwand).
   Alle: 12-15 auch fuer Hinterzimmer und Bibliothek (Blatt raeume_innen_trim_zwerg, AO-Atlanten der Raeume), 12b Rueckseite offen
         an der Huelle und 12c Licht im Standardblick in Wohnstube und Raeumen (blick_licht_haeuser.py), 20 Dreiecke der Huelle
-        (Haus, Dach, Scheiben) hoechstens 4.000 (Nutzer 15.11.2026), 21 Haustuer und Zimmertueren mindestens fuer einen Menschen
+        (Haus, Dach, Scheiben) hoechstens 8.000 (Auftrag 22.11.2026; vorher 4.000), 21 Haustuer und Zimmertueren mindestens fuer einen Menschen
         (1,75 m + 0,20 hoch, Schulter 0,46 + 0,30 breit; Elb zur Kenntnis; Ork und Oger werden nicht betrachtet, Nutzer 16.11.2026),
         22 Fahnenmast steht auf dem Dach (Luft hoechstens 1 cm); Stufe 1: 23 Schwerstangen liegen auf den Schindeln, Findlinge auf den Stangen.
 Die Blaetter heissen wie bei den Menschen mit "_zwerg" (trim_zwerg, trim_s2_zwerg, innen_trim_s23_zwerg ...).
@@ -32,7 +32,7 @@ import zwerg_masse as ZMA                                                 # noqa
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(HIER)))
 RAEUME_JSON = os.path.join(os.path.dirname(HIER), "raeume", "ao_atlas.json")
-DREIECKE_HUELLE = 4000
+DREIECKE_HUELLE = 8000                                      # Grenze je Haus (Auftrag 22.11.2026: echtes Fachwerk, Quader in Lagen; vorher 4.000)
 ATLAS_JSON = None                     # --atlas-json (Gegenprobe: Atlasplan des alten Stands)
 
 _alt_atlas, _alt_schwarz, _alt_normal = U.atlas_von, U.schwarze_flaechen, U.normal_orm

@@ -157,8 +157,10 @@ def baue_regale(Q):
     hoch, bretter, ix = M.BI_REGAL_H, M.BI_BRETTER, M.IX
     M.BI_REGAL_H, M.BI_BRETTER, M.IX = 0.85, (0.10, 0.45, 0.80), 1.95
     gy0, gy1 = GAUBE["y"]
-    for i, (wand, u0, u1) in enumerate((("links", -1.95, -0.35), ("links", -0.15, 1.70), ("rechts", -2.30, gy0 - 0.20), ("rechts", gy1 + 0.20, 1.70))):
-        Q.regal(c, wand, u0, u1, 11 + i)
+    # rechts: nur vor der Gaube (y < gy0 - 0,20), der Schreibtisch steht bei y -0,55..0,18; hinter der Gaube bleibt kein Platz
+    regale = [("links", -1.95, -0.35), ("links", -0.15, 1.70), ("rechts", -2.30, min(gy0 - 0.20, -0.95)), ("rechts", gy1 + 0.20, 1.70)]
+    for i, (wand, u0, u1) in enumerate(regale):
+        if u1 - u0 >= 0.30: Q.regal(c, wand, u0, u1, 11 + i)
     M.BI_REGAL_H, M.BI_BRETTER, M.IX = hoch, bretter, ix
     return c
 

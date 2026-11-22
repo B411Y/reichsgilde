@@ -60,8 +60,55 @@ def gewaende_zwerg(h, wand, spannen, z0, z1):
     S23.wkasten(h, st, wand, links - 0.17, rechts + 0.17, 0.0, 0.06, z1 + 0.005, z1 + 0.17, band, laengs="x")
 
 
+GAUBE_ZWERG = dict(y=(0.45, 1.65))
+FORM = 1                # Grundform des laufenden Baus (main); Teil der festen Saat der Zufallslaeden
+
+
+def laeden_zu_anlegen(stufe):
+    """Geschlossene Laeden im festen Zufall (zwerg_teile.laeden_zu, Verfahren der Zeilenmodule): im Fachwerk des Buergerhauses auf freien
+    Gefachen zwischen Brust- und Sturzriegel, in den Steinwaenden (Erdgeschoss, Steinhaus) auf fensterlosen Achsfeldern."""
+    import zeile_module as Z
+    M = S23.M
+    haus = lambda: f"wohnhaus_zwerg_s{stufe}_g{FORM}"
+
+    def fensterhoehe(wand, z0):
+        fen = [o for o in S23.loecher(wand) if o[4] == "fenster"]
+        if fen: return min(f[2] for f in fen), max(f[3] for f in fen)
+        if wand.endswith("_eg"): return next(f[2] for f in M.FENSTER if f[0].endswith("_eg") and f[3] == "fenster")
+        return z0 + M.OG_FENSTER_Z[0] - M.Z_EG_DECKE, z0 + M.OG_FENSTER_Z[1] - M.Z_EG_DECKE
+
+    alt_lage = S23.fachwerk_lage
+
+    def fachwerk_lage(h, wand, z0, z1, raehm=True):
+        alt_lage(h, wand, z0, z1, raehm)
+        (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+        t0, t1 = fensterhoehe(wand, z0)
+        felder = zt.felder_der_lage(S23.LAGEN[wand], breite, S23.loecher(wand), t0, t1)
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG)
+    S23.fachwerk_lage = fachwerk_lage
+    alt_mauer = S23.steinwand
+
+    def steinwand(h, stoff, wand, z0, z1, *a, **kw):
+        alt_mauer(h, stoff, wand, z0, z1, *a, **kw)
+        if not wand.endswith(("_eg", "_og", "_o2")): return
+        (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+        t0, t1 = fensterhoehe(wand, z0)
+        achsen, _ = M.raster(breite)
+        felder = zt.felder_der_mauer(achsen, M.BW, breite, S23.loecher(wand))
+        # Steinhaus: versteinern() macht den Rahmen (Band balken_c) zu Werkstein, die Fluegel (Band planken) bleiben Holz
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0, t1, f"{haus()}|{wand}",
+                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG)
+    S23.steinwand = steinwand
+
+
 def schicht_anlegen(stufe):
     """Stoff, Dateinamen und Atlasgruppen auf den Zwerg umstellen; Zwergenhoehen; Stein der Zwerge; Dinge der Zwerge."""
+    # Echtes Fachwerk im Buergerhaus (Holzlage wie bei Menschen und Halblingen, Nutzer 22.11.2026); das Steinhaus bleibt ganz aus Stein
+    S23.FACHWERK_ECHT = S23.FM.FACHWERK_ECHT = stufe == 2
+    # Gaube hinter dem Schornstein (er steht aussen an der rechten Wand bei y -0,70..0,20 und verstellte der Gaube den Blick)
+    S23.GAUBE.update(GAUBE_ZWERG)
+    # Gefache, Giebel, Gaube und Erker aus dunklem Quader: in Lagen der Bandhoehe statt ueber die Geschosshoehe gezogen
+    zt.quader_in_lagen(ziel=("Bruchstein", "bruchstein") if stufe == 3 else None)   # Steinhaus: Gaube aus den Lagen des Werksteins
     alt_stoff, alt_uv, alt_exp = g1.stoff, g1.uv2_und_ao, g1.exportiere
     g1.stoff = lambda name, blatt=None, **kw: alt_stoff(name, (blatt + "_" + VOLK) if blatt else None, **kw)   # trim_s2 -> trim_s2_zwerg, innen_trim_s23 -> ..._zwerg
     g1.uv2_und_ao = lambda gruppen, gruppe, modell, mit_ao=True: alt_uv(gruppen, umbenennen(gruppe), umbenennen(modell), mit_ao)
@@ -96,6 +143,7 @@ def schicht_anlegen(stufe):
 
     def haus():
         h = alt_haus()
+        S23._zwerg_haus = h
         vorher = h.dreiecke()
         tuer = next(f for f in S23.M.FENSTER if f[3] == "tuer")
         wand, (a0, a1) = tuer[0], tuer[1]
@@ -122,7 +170,12 @@ def schicht_anlegen(stufe):
         S23._zwerg_dach = d
         return d
     S23.baue_dach = dach
-    S23.baue_fahne = lambda: zt.fahne_verankern(alt_fahne(), S23._zwerg_dach)
+
+    def fahne():
+        zt.laeden_zu_pruefen([S23._zwerg_haus, S23._zwerg_dach])   # die Huelle steht (Anbau, Schlot, Vordach): verstellte Laeden weg
+        return zt.fahne_verankern(alt_fahne(), S23._zwerg_dach)
+    S23.baue_fahne = fahne
+    laeden_zu_anlegen(stufe)
 
 
 def flaechen_entfernen(h, weg):
@@ -218,7 +271,8 @@ def messen(stufe, form, ausgabe_ordner=None):
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
-    stufe = int(opt.get("stufe", "2"))
+    global FORM
+    stufe, FORM = int(opt.get("stufe", "2")), int(opt.get("form", "1"))
     schicht_anlegen(stufe)
     S23.main()
     messen(stufe, int(opt.get("form", "1")), opt.get("bilder"))

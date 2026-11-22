@@ -9,7 +9,7 @@ import math
 from mathutils import Vector
 
 import netzbau
-from netzbau import Teil
+from netzbau import SCHWARZ, Teil
 from trimsheet import BAENDER_AUSSEN, BAENDER_INNEN, FELDER_INNEN
 
 UEBER = 0.38                  # Dachueberstand an der Traufe (wie bei den Menschen)
@@ -336,3 +336,183 @@ def massfigur_zwerg(fusspunkte, hoehe=1.35):
         f.kasten("MassfigurZwerg", (x - 0.22 * s, y - 0.16 * s, z + 0.66 * s), (x + 0.22 * s, y + 0.16 * s, z + 1.12 * s), "balken")
         f.dreh("MassfigurZwerg", (x, y, z + 1.14 * s), [(0.0, 0.0), (0.11 * s, 0.04 * s), (0.125 * s, 0.13 * s), (0.09 * s, 0.21 * s), (0.0, 0.21 * s)], "balken", seiten=8, deckel=False)
     return f
+
+
+# ── Dunkler Quader in Lagen (Nutzer 22.11.2026: Texturen ohne Streckung) ────────────────────────────────────────────────────────────────
+# Bei den Menschen ist das Band „putz“ Lehmputz: die Flaechen der Gefache, Giebel, Gauben und Erker ziehen es ueber ihre ganze Hoehe
+# (netzbau.Teil.welt, `hoehe`). Bei den Zwergen ist dasselbe Band Mauerwerk aus dunklem Quader – ueber ein Geschoss von 2,8 m gezogen
+# standen die Steine 1,75-fach gestreckt und verwaschen. Darum teilt die Zwergenschicht jede solche Flaeche in Lagen von der Hoehe des
+# Bandes (wie `steinwand` der Menschen im Erdgeschoss): jede Lage zeigt das Band in voller Hoehe, die Fugen behalten ihr Mass.
+# Die Lagen haengen an festen Hoehen (Vielfache der Bandhoehe ab z = 0), damit Wand, Giebel und Nachbarwand auf einer Fuge liegen.
+
+def _schnitt_z(pts, za, zb):
+    """Schneidet das Vieleck `pts` auf den Streifen za <= z <= zb (Sutherland-Hodgman, zwei Halbebenen)."""
+    for grenze, oben in ((za, False), (zb, True)):
+        innen = (lambda p: p.z <= grenze + 1e-9) if oben else (lambda p: p.z >= grenze - 1e-9)
+        neu = []
+        for i, p in enumerate(pts):
+            q = pts[(i + 1) % len(pts)]
+            if innen(p): neu.append(p)
+            if innen(p) != innen(q) and abs(q.z - p.z) > 1e-12:
+                neu.append(p + (q - p) * ((grenze - p.z) / (q.z - p.z)))
+        pts = neu
+        if len(pts) < 3: return []
+    aus = []                                    # doppelte Ecken weg (Ecke genau auf der Grenze)
+    for p in pts:
+        if not aus or (p - aus[-1]).length > 1e-6: aus.append(p)
+    if len(aus) > 1 and (aus[0] - aus[-1]).length <= 1e-6: aus.pop()
+    return aus if len(aus) >= 3 else []
+
+
+def quader_in_lagen(stoff="Lehmputz", band="putz", ziel=None):
+    """Stellt netzbau.Teil.welt fuer die Zwergenhaeuser um: Flaechen aus `stoff` auf dem Band `band` entstehen in Lagen der Bandhoehe.
+    `ziel` (Stoff, Band): die Lagen entstehen gleich aus diesem Stein (Steinhaus: die Gaube aus Werkstein – versteinern() legte den
+    Putz sonst gestreckt auf das Steinband). Gibt eine Funktion zurueck, die die Zahl der geteilten Flaechen nennt."""
+    if getattr(Teil, "_quader_lagen", None): return Teil._quader_lagen
+    alt = Teil.welt
+    zahl = [0, 0]
+
+    def welt(self, st, punkte, bd, o, eu, zbasis, hoehe, m=None, **kw):
+        if st != stoff or bd != band:
+            return alt(self, st, punkte, bd, o, eu, zbasis, hoehe, m, **kw)
+        if ziel: st, bd = ziel
+        v0, v1, bm = self.baender[bd]
+        kurs = (v1 - v0) * bm
+        pts = [Vector(p) for p in punkte]
+        za, zb = min(p.z for p in pts), max(p.z for p in pts)
+        # Sichtseite einmal fuer die ganze Flaeche bestimmen (die Teilstuecke koennten sonst einzeln kippen)
+        n = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+        mitte = sum(pts, Vector()) / len(pts)
+        drehen = False
+        if kw.get("weg_von") is not None: drehen = n.dot(mitte - Vector(kw["weg_von"])) < 0
+        if kw.get("zu") is not None: drehen = n.dot(Vector(kw["zu"]) - mitte) < 0
+        if drehen: pts = pts[::-1]
+        rest = {k: v for k, v in kw.items() if k not in ("weg_von", "zu")}
+        o, eu = Vector(o), Vector(eu).normalized()
+        zahl[0] += 1
+        k = math.floor((za + 1e-6) / kurs)
+        while k * kurs < zb - 1e-6:
+            teil = _schnitt_z(pts, k * kurs, (k + 1) * kurs)
+            ok = o - eu * ((k * 0.37) % 1.0) * bm            # jede Lage um ein festes Stueck versetzt (kein Fugenkreuz ueber die Lagen)
+            for i in range(1, len(teil) - 1, 2):             # Vieleck als Faecher aus Vier- und Dreiecken
+                stueck = [teil[0]] + teil[i:i + 3]
+                if len(stueck) == 3 and (stueck[1] - stueck[0]).cross(stueck[2] - stueck[0]).length < 1e-8: continue
+                alt(self, st, stueck, bd, ok, eu, k * kurs, kurs, m, **rest)
+                zahl[1] += 1
+            k += 1
+
+    Teil.welt = welt
+    Teil._quader_lagen = lambda: tuple(zahl)
+    return Teil._quader_lagen
+
+
+# ── Geschlossene Laeden im festen Zufall (Nutzer 21./22.11.2026 „immer im Zufall, mal dies, mal das“) ───────────────────────────────────
+# Wie in den Zeilenmodulen (zeile_module.py): ein fensterloses Feld bekommt mit dem Anteil LADEN_OG bzw. LADEN_EG geschlossene Laeden in
+# Fenstergroesse – buendig vor der Wand, ohne Oeffnung dahinter (die Innenraeume bleiben unveraendert). Gebaut wird mit derselben Funktion
+# (zeile_module.laden_zu: zwei Fluegel aus Planken, Rahmen und Mittelleiste), gewuerfelt mit derselben festen Saat je Haus und Wand.
+# Erst wenn die ganze Huelle steht (Anbau, Schlot, Vordach, offene Laeden), faellt weg, was verstellt waere (laeden_zu_pruefen).
+
+LAEDEN_ZU = []                # (Teil, Marke) der gebauten geschlossenen Laeden
+
+
+class _Marke(tuple):
+    """Eckenfarbe Schwarz, als eigenes Objekt: daran sind die Flaechen eines Ladens auch nach dem Versetzen der Teile zu erkennen."""
+
+
+def _saat(schluessel):
+    import random
+    return random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(schluessel)))
+
+
+def felder_der_lage(lage, breite, oeffnungen, t0, t1, abstand=0.25):
+    """Freie Gefache einer Holzlage in Fensterhoehe (t0..t1): zwischen zwei Staendern, ohne Strebe, mit Brust- und Sturzriegel, nicht
+    neben einem Fenster oder einer Tuer (dort haengen die offenen Laeden)."""
+    sperren = sorted((min(q[0] for q in poly), max(q[0] for q in poly)) for poly, *_ in lage.hoelzer
+                     if max(q[1] for q in poly) > t0 + 0.03 and min(q[1] for q in poly) < t1 - 0.03)
+    frei, x = [], 0.0
+    for a, e in sperren:
+        if a > x + 1e-6: frei.append((x, a))
+        x = max(x, e)
+    if x < breite: frei.append((x, breite))
+
+    def riegel(a, e, z):
+        return any(min(q[0] for q in poly) <= a + 0.02 and max(q[0] for q in poly) >= e - 0.02
+                   and min(q[1] for q in poly) <= z <= max(q[1] for q in poly)
+                   and max(q[1] for q in poly) - min(q[1] for q in poly) < 0.30 for poly, *_ in lage.hoelzer)
+    aus = []
+    for a, e in frei:
+        if not (0.45 <= e - a <= 1.30) or a < 0.05 or e > breite - 0.05: continue
+        if any(a < o[1] + abstand and e > o[0] - abstand for o in oeffnungen): continue
+        if riegel(a, e, t0 - 0.05) and riegel(a, e, t1 + 0.05): aus.append((a + 0.04, e - 0.04))
+    return aus
+
+
+def felder_der_mauer(achsen, bw, breite, oeffnungen, abstand=0.60, ecke=0.55):
+    """Fensterlose Achsfelder einer Steinwand: nicht neben Fenster oder Tuer (Gewaende, offene Laeden), nicht an den Eckquadern."""
+    aus = []
+    for k in range(len(achsen) - 1):
+        a, e = achsen[k] + bw / 2, achsen[k + 1] - bw / 2
+        if not (0.45 <= e - a <= 1.30) or a < ecke or e > breite - ecke: continue
+        if any(a < o[1] + abstand and e > o[0] - abstand for o in oeffnungen): continue
+        aus.append((a, e))
+    return aus
+
+
+def laeden_zu(h, p0, eu, n, felder, t0, t1, schluessel, anteil, einbau=None):
+    """Wuerfelt je Feld (s0, s1) der Wand (Punkt p0 bei s = 0, Richtung eu, Normale n nach aussen) und baut geschlossene Laeden von t0
+    bis t1. `einbau(bau)`: fuehrt den Bau aus (Steinhaus: als Holzakzent). Gibt die Zahl der gebauten Laeden zurueck."""
+    import zeile_module as Z
+    wuerfel = _saat(schluessel)
+    p0, eu, n = Vector(p0), Vector(eu).normalized(), Vector(n).normalized()
+    o = Vector((p0.x, p0.y, 0.0)) + n * 0.02                         # die Fluegel 2 cm vor der Wand (nicht deckungsgleich mit ihr)
+    zahl = 0
+    for s0, s1 in felder:
+        if not wuerfel.random() >= 1.0 - anteil: continue            # derselbe Wurf wie in zeile_module (fensterlose Achse)
+        ebene = Z.Ebene(o, eu, (0, 0, 1), o + eu * (s0 + s1) / 2 - n + Vector((0, 0, (t0 + t1) / 2)))
+        a = len(h.flaechen)
+        alt = dict(Z.S)
+        Z.S.clear(); Z.S.update(satz="zwerg_wohnhaus")              # Zwerge: Holz (Band „planken“), kein Anstrich in der Hausfarbe
+        try:
+            bau = lambda: Z.laden_zu(h, ebene, (s0, s1, t0, t1))
+            einbau(bau) if einbau else bau()
+        finally:
+            Z.S.clear(); Z.S.update(alt)
+        marke = _Marke(SCHWARZ)
+        h.flaechen[a:] = [(pts, uvs, st, marke, gl) for pts, uvs, st, _f, gl in h.flaechen[a:]]
+        LAEDEN_ZU.append((h, marke))
+        zahl += 1
+    return zahl
+
+
+def laeden_zu_pruefen(teile):
+    """Nimmt geschlossene Laeden wieder weg, vor denen etwas steht oder haengt (Schlot, Anbau, Schuppendach, Vordach, offener Laden,
+    Scheitholz): irgendeine Flaeche der Huelle `teile` liegt mehr als 6 cm vor der Wand und ueberdeckt den Laden. Gibt (gebaut, entfernt)."""
+    weg = 0
+    for h, marke in LAEDEN_ZU:
+        eigene = [f for f in h.flaechen if f[3] is marke]
+        if not eigene: continue
+        pts = eigene[0][0]                                           # erster Fluegel: liegt 2 cm vor der Wand, Normale nach aussen
+        n = (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+        eu = Vector((0, 0, 1)).cross(n).normalized()
+        alle = [p for f in eigene for p in f[0]]
+        sa, se = min((p - pts[0]).dot(eu) for p in alle) + 0.01, max((p - pts[0]).dot(eu) for p in alle) - 0.01
+        za, ze = min(p.z for p in alle) + 0.01, max(p.z for p in alle) - 0.01
+        verstellt = False
+        for t in teile:
+            for f in t.flaechen:
+                if f[3] is marke: continue
+                d = [(p - pts[0]).dot(n) for p in f[0]]
+                if max(d) < 0.045 or min(d) > 3.0: continue                       # Wand und Holzlage (bis 3 cm davor) zaehlen nicht
+                s = [(p - pts[0]).dot(eu) for p in f[0]]
+                if max(s) > sa and min(s) < se and max(p.z for p in f[0]) > za and min(p.z for p in f[0]) < ze:
+                    verstellt = True; break
+            if verstellt: break
+        if verstellt:
+            weg += 1
+            if hasattr(h, "holz_akzente"):                           # Bereiche der Holzakzente ruecken mit (wie flaechen_entfernen)
+                idx = [i for i, f in enumerate(h.flaechen) if f[3] is marke]
+                h.holz_akzente = [(a - sum(1 for i in idx if i < a), e - sum(1 for i in idx if i < e)) for a, e in h.holz_akzente]
+            h.flaechen = [f for f in h.flaechen if f[3] is not marke]
+    zahl = len(LAEDEN_ZU)
+    print(f"LAEDEN ZU: {zahl} gewuerfelt, {weg} verstellt und entfernt, {zahl - weg} gebaut")
+    return zahl, weg
