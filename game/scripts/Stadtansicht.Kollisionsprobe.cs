@@ -110,6 +110,7 @@ public partial class Stadtansicht
                 GD.Print($"[kp] Figur {nr} in {art} #{idx} bei ({pos.X:0.0},{pos.Y:0.0}), Körper {tiefe - EgoKamera.Radius + Koerper:0.00} m tief, Abstand zur Mittellinie {nah:0.00} m, Stand {(p.Stand is null ? "geht" : "steht")}, Seitlich {p.Seitlich:0.0}, Pfadlänge {p.Laenge:0}, Weg {(p.FuerWeg is { } fw ? fw.Von.Ort + ">" + fw.Nach.Ort : "-")}, Pfadpunkte {p.Pfad.Length} ({(p.Pfad.Length > 0 ? $"{p.Pfad[0].X:0},{p.Pfad[0].Z:0} bis {p.Pfad[^1].X:0},{p.Pfad[^1].Z:0}" : "-")}), Bummel {p.ImBummel}, Kreist {p.KreistAuf}, Marktstelle {p.Marktstelle}, PfadMitte {(p.Mitte is null ? "nein" : "ja")}, Abstand eigener Pfad {KpAbstandPfad(p):0.0} m");
             }
         }
+        KollisionsprobeMarkt();
         if (_kpBildWarte >= 0 && _kpBildFigur is { } bf)
         {
             _kameraDrehung.Position = new Vector3(bf.Knoten.Position.X, bf.Knoten.Position.Y, bf.Knoten.Position.Z);
@@ -126,5 +127,47 @@ public partial class Stadtansicht
             GD.Print($"[kp] Begehbarkeit: Pfade geprüft {_pfadGeprueft}, mit Verstoß {_pfadVerstoesse}; {_begehbarAufrufe} Prüfungen, davon {_begehbarGekuerzt} zusammengerückt, {(_begehbarAufrufe > 0 ? _begehbarTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / _kpBilder : 0):0.000} ms je Bild");
         if (_kpBilder % 120 == 0)
             GD.Print($"[kp] Bild {_kpBilder}: sichtbar Ø {_kpSumFigur / (double)_kpBilder:0.0}, davon im Hindernis Ø {_kpSumDrin / (double)_kpBilder:0.00} (höchstens {_kpDrin}); verschiedene Figuren betroffen {_kpJeFigur.Count}");
+    }
+
+    // Marktpflaster: exakte Umrisse der Marktfläche (Stände, Bänke, Brunnen, Trog, Kreuz); Eindringtiefe = Körperradius minus Abstand
+    private readonly HashSet<int> _kmFiguren = new(); private readonly Dictionary<int, float> _kmJeFigurMax = new(); private int _kmGemeldet;
+    private readonly Dictionary<string, (int Ereignisse, float Max)> _kmArt = new();
+    private double _kmSumme; private int _kmBilder, _kmSumFigur, _kmSumDrin; private float _kmMax; private readonly HashSet<int> _kmImBild = new();
+    private void KollisionsprobeMarkt()
+    {
+        _kmBilder++;
+        var drin = 0; var figuren = 0;
+        foreach (var (nr, p) in _passanten)
+        {
+            if (!p.Knoten.Visible || !ImBild(p.Knoten.Position, 3f)) continue;
+            var (x, z) = (p.Knoten.Position.X, p.Knoten.Position.Z);
+            foreach (var platz in _maerkte)
+            {
+                if (platz.Flaeche is not { } f || !f.Auf(x, z, -0.3f)) continue;
+                figuren++;
+                var tiefe = p.Radius - f.Abstand(x, z);
+                if (tiefe <= 0.005f) continue;
+                var stelleNr = p.Marktstelle >= 0 ? p.Marktstelle : p.AlteMarktstelle;
+                var stelle = stelleNr >= 0 && stelleNr < _marktstellen.Count ? _marktstellen[stelleNr].Art.ToString() : "-";
+                var gewollt = p.Figur?.Bewegung == "Sitzen" || MarktAufstehen(p, f) || stelle is "Rand" or "Bank" && (p.Stand is not null || p.AmRand < 1.5f); // sitzen auf der Bank, anlehnen am Brunnenrand: Berührung gewollt // angelehnt am Brunnenrand bzw. sitzend auf der Bank: Berührung gewollt
+                var art = (f.Staende.Any(r => r.Abstand(x, z) < p.Radius) ? "Stand" : "Bank/Brunnen/Trog/Kreuz") + (p.Stand is not null ? ",steht@" + stelle : p.ImBummel ? ",bummelt@" + stelle : ",geht") + (gewollt ? " (gewollt)" : "");
+                if (gewollt) continue;
+                drin++;
+                var alt = _kmArt.GetValueOrDefault(art);
+                _kmArt[art] = (alt.Ereignisse + 1, Mathf.Max(alt.Max, tiefe));
+                _kmMax = Mathf.Max(_kmMax, tiefe);
+                if (tiefe > _kmJeFigurMax.GetValueOrDefault(nr) + 0.1f && tiefe > 0.1f && _kmGemeldet++ < 40)
+                {
+                    _kmJeFigurMax[nr] = tiefe;
+                    GD.Print($"[km] Figur {nr} {art} bei ({x:0.0},{z:0.0}) {tiefe * 100:0} cm tief, Pfad {p.Pfad.Length} Punkte, am Rand {p.AmRand:0.0}, seitlich {p.Seitlich:0.00}, Grenzen {p.GrenzeLinks:0.00}/{p.GrenzeRechts:0.00}, Tempo {p.Geschwindigkeit.Length():0.0}, Stelle {stelle}, Visible {p.Knoten.Visible}, Versatz {p.VersatzJetzt.Length():0.00}, Hindernis {f.Naechstes(x, z)}");
+                }
+                _kmFiguren.Add(nr);
+                if (false)
+                    GD.Print($"[km] Figur {nr} {art} bei ({x:0.0},{z:0.0}) {tiefe * 100:0} cm tief, Pfad {p.Pfad.Length} Punkte, am Rand {p.AmRand:0.0}, seitlich {p.Seitlich:0.00}, Grenzen {p.GrenzeLinks:0.00}/{p.GrenzeRechts:0.00}");
+            }
+        }
+        _kmSumDrin += drin; _kmSumFigur += figuren;
+        if (_kmBilder % 120 == 0)
+            GD.Print($"[km] Bild {_kmBilder}: auf dem Pflaster Ø {_kmSumFigur / (double)_kmBilder:0.0}, im Hindernis Ø {_kmSumDrin / (double)_kmBilder:0.00}, größte Tiefe {_kmMax * 100:0} cm, {_kmFiguren.Count} Figuren betroffen; Rechenzeit Marktabstand {(_kmBilder > 0 ? _marktAbstandTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / _kmBilder : 0):0.0000} ms je Bild ({_marktAbstandAufrufe} Aufrufe, {_marktAbstandGeschoben} geschoben); " + string.Join("; ", _kmArt.OrderBy(k => k.Key).Select(k => $"{k.Key}: {k.Value.Ereignisse} Ereignisse bis {k.Value.Max * 100:0} cm")));
     }
 }
