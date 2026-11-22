@@ -49,7 +49,7 @@ public sealed partial class BriefBuehne : Node
             double Laenge(string clip) => _spieler?.HasAnimation(clip) == true ? _spieler.GetAnimation(clip).Length : 0.9;
             var m = MeldungStil.Mass;
             return new BriefMasse(Laenge("auffalten"), Laenge("zufalten"), m("brief_gross_inhalt_ab_ms") / 1000.0, m("brief_gross_inhalt_bis_ms") / 1000.0,
-                                  m("brief_gross_einblenden_ms") / 1000.0, m("brief_gross_ausblenden_ms") / 1000.0);
+                                  m("brief_gross_einblenden_ms") / 1000.0, m("brief_gross_ausblenden_ms") / 1000.0, m("brief_gross_tempo_prozent") / 100.0);
         }
     }
 

@@ -1,0 +1,14 @@
+{
+  "_hinweis": "Eingabe fuer tools/ton/lautheit_angleichen.py (Ton Schritt 7). Je Ereignis der Oberflaeche (KlangOberflaeche.cs): die Dateien seiner Varianten und das Ziel in dBFS fuer die hoechste 400-ms-Lautheit der Datei (momentan_max, K-gewichtet, BS.1770). Die Pegel-Spalte der Tabelle in KlangOberflaeche.cs kommt danach noch dazu: wirksam = ziel + Db. Einzeldateien (Meldungstoene, Tueren) stehen nicht hier, sie sind schon abgeglichen.",
+  "gruppen": {
+    "Klick":      { "ziel": -26.0, "dateien": ["handle_small_leather", "handle_small_leather_2", "belt_handle_1"] },
+    "Reiter":     { "ziel": -24.0, "dateien": ["book_flip_1", "book_flip_2", "book_flip_3"] },
+    "FensterAuf": { "ziel": -24.0, "dateien": ["book_open", "cloth_1", "cloth_2"] },
+    "FensterZu":  { "ziel": -23.0, "dateien": ["book_close", "cloth_3", "cloth_4"] },
+    "Muenzen":    { "ziel": -18.0, "dateien": ["handle_coins", "handle_coins_2"] },
+    "Meldung":    { "ziel": -20.5, "dateien": ["impact_bell_heavy_002", "impact_bell_heavy_003", "impact_bell_heavy_004"] },
+    "Siegel":     { "ziel": -17.0, "dateien": ["drop_leather", "book_place_1", "book_place_2"] },
+    "Bauen":      { "ziel": -17.0, "dateien": ["impact_plank_medium_000", "impact_plank_medium_001", "impact_plank_medium_002", "chop"] },
+    "Tempo":      { "ziel": -23.0, "dateien": ["metal_click", "metal_latch"] }
+  }
+}

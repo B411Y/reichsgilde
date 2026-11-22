@@ -310,6 +310,12 @@ public partial class Stadtansicht
             teil.SetInstanceShaderParameter("ebene", ebenen.Ebene);       // Stein des Volkes (Steinebenen) bzw. Innenblatt
             teil.SetInstanceShaderParameter("ao_ebene", ebenen.AoEbene);
             if (innen) continue;
+            if (datei.Contains("wohnhaus_elb_"))
+            {
+                // Efeu je Elbenhaus anders: Bereiche und Grünton fest aus dem Platz (EfeuZufall)
+                var (versatz, dichte, farbton) = EfeuZufall.Ableiten(saat);
+                teil.SetInstanceShaderParameter("efeu_zufall", new Vector3(versatz, dichte, farbton));
+            }
             teil.SetInstanceShaderParameter("plaster_tint", putz);
             teil.SetInstanceShaderParameter("accent_tint", akzent);
         }

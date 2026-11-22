@@ -45,7 +45,7 @@ public static class KlangStadtlebenModell
         public readonly List<Quelle> Wachen = new();
         /// <summary>Ort des Doms (oder der Hauptkirche), von dem die Glocken läuten; null, wenn die Karte keinen hat.</summary>
         public Quelle? Dom;
-        /// <summary>Alle Kirchen mit ihrem Ort (Dom und Pfarrkirchen; Köln hat sechs). Leer: gilt <see cref="Dom"/> allein.</summary>
+        /// <summary>Alle Kirchen mit ihrem Ort (Dom und Pfarrkirchen; Köln hat seit 21.11.2026 nur den Dom). Leer: gilt <see cref="Dom"/> allein.</summary>
         public readonly List<(Quelle Q, bool IstDom)> Kirchen = new();
         /// <summary>Gäste in der Schankstube, in der man gerade ist (Innenansicht des Wirtshauses); −1 = nicht in einer Schankstube.</summary>
         public int InnenGaeste = -1;

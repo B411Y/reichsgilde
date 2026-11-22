@@ -13,10 +13,7 @@
   {"kennung": "MarktNord", "katalog": "markt", "name": "Alter Markt", "punkt": [37, -110], "drehung": 0},
   {"kennung": "MarktDeutz", "katalog": "markt", "name": "Neumarkt", "punkt": [170, 6], "drehung": 0},
   {"kennung": "Rathaus", "katalog": "koelner_rathaus", "name": "Rathaus", "punkt": [27.5, -80.8], "drehung": 90},
-  {"kennung": "Dom", "katalog": "koelner_dom", "name": "Dom", "punkt": [6, -112], "drehung": 270},
-  {"kennung": "Martin", "katalog": "kirche_gross_st_martin", "name": "Groß St. Martin", "punkt": [22, -44], "drehung": 270},
-  {"kennung": "Gereon", "katalog": "kirche_st_gereon", "name": "St. Gereon", "punkt": [-55, -86], "drehung": 270},
-  {"kennung": "Aposteln", "katalog": "kirche_st_aposteln", "name": "St. Aposteln", "punkt": [-54, -34], "drehung": 270},
+  {"kennung": "Dom", "katalog": "koelner_dom", "name": "Dom", "punkt": [2, 28], "drehung": 270},
   {"kennung": "Rheinhafen", "katalog": "hafenplatz", "name": "Rheinhafen", "punkt": [51, -54], "drehung": 270},
   {"kennung": "Zollstelle", "katalog": "zollstelle", "name": "Zollstelle", "punkt": [54, -24], "drehung": 270},
   {"kennung": "Stapelhaus", "katalog": "stapelhaus", "name": "Stapelhaus", "punkt": [50, 30], "drehung": 270},
@@ -63,8 +60,8 @@
   {"kennung": "Einwohnerplatz_am_Ring34", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 34", "punkt": [-25.65, 121.25], "drehung": 338.9},
   {"kennung": "Buergerhaus_Kulisse4", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 4", "punkt": [-27, 49.45], "drehung": 0},
   {"kennung": "Buergerhaus_Kulisse5", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 5", "punkt": [-17.5, 49.45], "drehung": 0},
-  {"kennung": "Buergerhaus_Kulisse6", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 6", "punkt": [2, 49.45], "drehung": 0},
-  {"kennung": "Buergerhaus_Kulisse7", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 7", "punkt": [-16.5, -118.55], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse6", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 6", "punkt": [-8, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse7", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 7", "punkt": [-16, -119.55], "drehung": 0},
   {"kennung": "Buergerhaus_Kulisse8", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 8", "punkt": [29.45, -15], "drehung": 90},
   {"kennung": "Buergerhaus_Kulisse9", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 9", "punkt": [29.45, -5.5], "drehung": 90},
   {"kennung": "Buergerhaus_Kulisse10", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 10", "punkt": [-27, -29.55], "drehung": 0},
@@ -158,11 +155,17 @@
   }
  ],
  "wege": [
-  {"name": "Rheingasse", "klasse": "haupt", "linie": [[37, -150], [37, -138], [37, -101], [37, -61], [37, -22], [37, 8], [37, 57], [37, 110], [37, 138], [37, 150]], "gefahr": 1, "breite": 5},
+  {
+   "name": "Rheingasse",
+   "klasse": "haupt",
+   "linie": [[37, -150], [37, -138], [37, -110], [37, -101], [37, -61], [37, -22], [37, 8], [37, 28], [37, 57], [37, 110], [37, 138], [37, 150]],
+   "gefahr": 1,
+   "breite": 5
+  },
   {
    "name": "Hohe Straße",
    "klasse": "haupt",
-   "linie": [[-34, -125.2], [-34, -112], [-34, -110], [-34, -61], [-34, -45], [-34, -22], [-34, -8], [-34, 57], [-34, 125.2]],
+   "linie": [[-34, -125.2], [-34, -112], [-34, -110], [-34, -61], [-34, -45], [-34, -22], [-34, -8], [-34, 28], [-34, 57], [-34, 125.2]],
    "gefahr": 1,
    "breite": 5
   },
@@ -172,22 +175,20 @@
   {"name": "Schildergasse", "klasse": "haupt", "linie": [[-60, -8], [-34, -8], [0, -8]], "gefahr": 1, "breite": 5},
   {"name": "Breite Straße", "klasse": "haupt", "linie": [[-34, -22], [0, -22], [37, -22]], "gefahr": 1, "breite": 5},
   {"name": "Weyerstraße", "klasse": "haupt", "linie": [[-105.9, 75], [-95.5, 69], [-70, 64], [-34, 57]], "gefahr": 1, "breite": 5},
-  {"name": "Bayenstraße", "klasse": "haupt", "linie": [[-34, 57], [-7.7, 57], [37, 57]], "gefahr": 1, "breite": 5},
-  {
-   "name": "Severinstraße",
-   "klasse": "haupt",
-   "linie": [[-22.35, 142.65], [-18.65, 131.25], [-15.5, 110], [-14, 100], [-7.7, 57], [-2, 30], [0, 12], [0, 8], [0, -8], [0, -22]],
-   "gefahr": 1,
-   "breite": 5
-  },
+  {"name": "Bayenstraße", "klasse": "haupt", "linie": [[-34, 57], [-7.7, 57], [11, 57], [37, 57]], "gefahr": 1, "breite": 5},
+  {"name": "Severinstraße", "klasse": "haupt", "linie": [[-22.35, 142.65], [-18.65, 131.25], [-15.5, 110], [-14, 100], [-7.7, 57]], "gefahr": 1, "breite": 5},
+  {"name": "Marzellenstraße", "klasse": "haupt", "linie": [[0, -22], [0, -8], [0, 8]], "gefahr": 1, "breite": 5},
   {"name": "Malzbüchel", "klasse": "haupt", "linie": [[-15.5, 110], [37, 110]], "gefahr": 1, "breite": 5},
-  {"name": "Brückenstraße", "klasse": "haupt", "linie": [[0, 8], [37, 8], [56, 8]], "gefahr": 1, "breite": 5},
+  {"name": "Brückenstraße", "klasse": "haupt", "linie": [[0, 8], [2, 8], [37, 8], [56, 8]], "gefahr": 1, "breite": 5},
   {"name": "Rheinbrücke", "klasse": "haupt", "linie": [[56, 8], [124, 8]], "gefahr": 1, "breite": 6.4},
-  {"name": "Trankgasse", "klasse": "gasse", "linie": [[-34, -61], [0, -61], [37, -61]], "gefahr": 1, "breite": 3},
+  {"name": "Trankgasse", "klasse": "gasse", "linie": [[-34, -61], [37, -61]], "gefahr": 1, "breite": 3},
   {"name": "Hammergasse", "klasse": "gasse", "linie": [[-80, -45], [-34, -45]], "gefahr": 1, "breite": 3},
   {"name": "Unter Fettenhennen", "klasse": "haupt", "linie": [[37, -101], [24, -95], [-3, -95]], "gefahr": 1, "breite": 5},
-  {"name": "Engelspforte", "klasse": "gasse", "linie": [[-34, -112], [-32.25, -112], [-11, -112]], "gefahr": 1, "breite": 3},
-  {"name": "Krähenpforte", "klasse": "gasse", "linie": [[0, -61], [0, -47]], "gefahr": 1, "breite": 3},
+  {"name": "Engelspforte", "klasse": "haupt", "linie": [[-34, -112], [-32.25, -112], [24, -112], [37, -110]], "gefahr": 1, "breite": 5},
+  {"name": "Domgasse West", "klasse": "gasse", "linie": [[-34, 28], [-15.5, 28]], "gefahr": 1, "breite": 3},
+  {"name": "Domgasse Nord", "klasse": "gasse", "linie": [[2, 8], [2, 20.5]], "gefahr": 1, "breite": 3},
+  {"name": "Domgasse Süd", "klasse": "gasse", "linie": [[11, 57], [11, 35.5]], "gefahr": 1, "breite": 3},
+  {"name": "Domgasse Ost", "klasse": "gasse", "linie": [[37, 28], [19.5, 28]], "gefahr": 1, "breite": 3},
   {"name": "Wollgasse", "klasse": "gasse", "linie": [[-62, 4], [-56, 40], [-50, 60.1]], "gefahr": 1, "breite": 3},
   {
    "name": "Kunibertswall",
@@ -255,11 +256,19 @@
    ],
    "berechnet": true
   },
-  {"kennung": "K2", "art": "kern", "flaeche": [[-62, -20], [-60, -20], [-60, -24], [-38, -24], [-38, -12], [-62, -12]], "berechnet": true},
+  {
+   "kennung": "K2",
+   "art": "kern",
+   "flaeche": [[-62, -20], [-60, -20], [-60, -24], [-58, -24], [-58, -30], [-56, -30], [-56, -32], [-54, -32], [-54, -42], [-38, -42], [-38, -12], [-62, -12]],
+   "berechnet": true
+  },
   {
    "kennung": "K3",
    "art": "kern",
-   "flaeche": [[-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74], [-44, -74], [-44, -76], [-38, -76], [-38, -58], [-52, -58]],
+   "flaeche": [
+    [-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74], [-44, -74], [-44, -76], [-42, -76], [-42, -80], [-40, -80], [-40, -82], [-38, -82], [-38, -58],
+    [-52, -58]
+   ],
    "berechnet": true
   },
   {
@@ -274,18 +283,16 @@
   {
    "kennung": "K5",
    "art": "kern",
-   "flaeche": [
-    [-30, -48], [-10, -48], [-10, -58], [-4, -58], [-4, -52], [-2, -52], [-2, -44], [2, -44], [2, -52], [6, -52], [6, -58], [34, -58], [34, -54], [8, -54], [8, -34], [34, -34],
-    [34, -26], [-2, -26], [-2, -36], [-30, -36]
-   ],
+   "flaeche": [[-30, -48], [-10, -48], [-10, -58], [-4, -58], [-4, -52], [6, -52], [6, -58], [34, -58], [34, -26], [-2, -26], [-2, -36], [-30, -36]],
    "berechnet": true
   },
   {"kennung": "K6", "art": "kern", "flaeche": [[-30, -18], [-4, -18], [-4, -12], [-30, -12]], "berechnet": true},
-  {"kennung": "K7", "art": "kern", "flaeche": [[-30, -4], [-4, -4], [-4, 20], [-6, 20], [-6, 34], [-8, 34], [-8, 42], [-30, 42]], "berechnet": true},
-  {"kennung": "K8", "art": "kern", "flaeche": [[0, 36], [2, 36], [2, 22], [4, 22], [4, 12], [34, 12], [34, 54], [8, 54], [8, 42], [0, 42]], "berechnet": true},
+  {"kennung": "K7", "art": "kern", "flaeche": [[-30, -4], [-4, -4], [-4, 8], [-30, 8]], "berechnet": true},
+  {"kennung": "K8", "art": "kern", "flaeche": [[-2, 44], [8, 44], [8, 54], [-2, 54]], "berechnet": true},
   {"kennung": "K9", "art": "kern", "flaeche": [[4, -18], [22, -18], [22, 2], [34, 2], [34, 4], [4, 4]], "berechnet": true},
+  {"kennung": "K10", "art": "kern", "flaeche": [[14, 44], [34, 44], [34, 54], [14, 54]], "berechnet": true},
   {
-   "kennung": "K10",
+   "kennung": "K11",
    "art": "kern",
    "flaeche": [
     [40, -80], [42, -80], [42, -76], [44, -76], [44, -74], [46, -74], [46, -70], [48, -70], [48, -66], [50, -66], [50, -64], [42, -64], [42, -44], [50, -44], [50, -30], [48, -30],
@@ -319,10 +326,11 @@
    "flaeche": [
     [-102, 44], [-96, 44], [-96, 42], [-94, 42], [-94, 34], [-96, 34], [-96, 28], [-98, 28], [-98, 16], [-100, 16], [-100, 0], [-94, 0], [-94, -2], [-86, -2], [-86, -4], [-80, -4],
     [-80, -12], [-90, -12], [-90, -10], [-96, -10], [-96, -8], [-100, -8], [-100, -16], [-98, -16], [-98, -30], [-90, -30], [-90, -50], [-88, -50], [-88, -48], [-86, -48], [-86, -44],
-    [-84, -44], [-84, -40], [-82, -40], [-82, -34], [-80, -34], [-80, -28], [-78, -28], [-78, -22], [-76, -22], [-76, -16], [-68, -16], [-68, -24], [-60, -24], [-60, -20], [-62, -20],
-    [-62, -12], [-64, -12], [-64, 2], [-74, 2], [-74, 4], [-76, 4], [-76, 8], [-74, 8], [-74, 20], [-76, 20], [-76, 22], [-82, 22], [-82, 24], [-80, 24], [-80, 32], [-78, 32],
-    [-78, 34], [-70, 34], [-70, 38], [-64, 38], [-64, 36], [-60, 36], [-60, 42], [-58, 42], [-58, 48], [-56, 48], [-56, 54], [-54, 54], [-54, 56], [-56, 56], [-56, 58], [-66, 58],
-    [-66, 60], [-76, 60], [-76, 62], [-86, 62], [-86, 64], [-94, 64], [-94, 62], [-96, 62], [-96, 58], [-98, 58], [-98, 54], [-100, 54], [-100, 48], [-102, 48]
+    [-84, -44], [-84, -40], [-82, -40], [-82, -34], [-80, -34], [-80, -28], [-78, -28], [-78, -22], [-76, -22], [-76, -16], [-68, -16], [-68, -24], [-70, -24], [-70, -30], [-72, -30],
+    [-72, -38], [-74, -38], [-74, -42], [-54, -42], [-54, -32], [-56, -32], [-56, -30], [-58, -30], [-58, -24], [-60, -24], [-60, -20], [-62, -20], [-62, -12], [-64, -12], [-64, 2],
+    [-74, 2], [-74, 4], [-76, 4], [-76, 8], [-74, 8], [-74, 20], [-76, 20], [-76, 22], [-82, 22], [-82, 24], [-80, 24], [-80, 32], [-78, 32], [-78, 34], [-70, 34], [-70, 38],
+    [-64, 38], [-64, 36], [-60, 36], [-60, 42], [-58, 42], [-58, 48], [-56, 48], [-56, 54], [-54, 54], [-54, 56], [-56, 56], [-56, 58], [-66, 58], [-66, 60], [-76, 60], [-76, 62],
+    [-86, 62], [-86, 64], [-94, 64], [-94, 62], [-96, 62], [-96, 58], [-98, 58], [-98, 54], [-100, 54], [-100, 48], [-102, 48]
    ],
    "berechnet": true
   },
@@ -361,8 +369,10 @@
    "art": "mauerring",
    "flaeche": [
     [-90, -72], [-88, -72], [-88, -74], [-86, -74], [-86, -78], [-84, -78], [-84, -80], [-82, -80], [-82, -84], [-80, -84], [-80, -86], [-78, -86], [-78, -88], [-76, -88], [-76, -90],
-    [-74, -90], [-74, -92], [-72, -92], [-72, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62], [-52, -58], [-80, -58],
-    [-80, -54], [-82, -54], [-82, -58], [-84, -58], [-84, -60], [-86, -60], [-86, -64], [-88, -64], [-88, -68], [-90, -68]
+    [-74, -90], [-74, -92], [-72, -92], [-72, -94], [-70, -94], [-70, -96], [-68, -96], [-68, -98], [-66, -98], [-66, -96], [-64, -96], [-64, -92], [-58, -92], [-58, -94], [-56, -94],
+    [-56, -96], [-52, -96], [-52, -98], [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -82], [-40, -82],
+    [-40, -80], [-42, -80], [-42, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62], [-52, -58], [-80, -58], [-80, -54],
+    [-82, -54], [-82, -58], [-84, -58], [-84, -60], [-86, -60], [-86, -64], [-88, -64], [-88, -68], [-90, -68]
    ],
    "berechnet": true
   },
@@ -388,7 +398,7 @@
   {
    "kennung": "M9",
    "art": "mauerring",
-   "flaeche": [[-30, -110], [-14, -110], [-14, -102], [22, -102], [22, -98], [-10, -98], [-10, -96], [-18, -96], [-18, -94], [-22, -94], [-22, -92], [-26, -92], [-26, -90], [-30, -90]],
+   "flaeche": [[-30, -108], [22, -108], [22, -98], [-10, -98], [-10, -96], [-18, -96], [-18, -94], [-22, -94], [-22, -92], [-26, -92], [-26, -90], [-30, -90]],
    "berechnet": true
   },
   {
@@ -412,29 +422,38 @@
   {
    "kennung": "M12",
    "art": "mauerring",
-   "flaeche": [[-16, 136], [-12, 136], [-12, 138], [-2, 138], [-2, 140], [14, 140], [14, 142], [34, 142], [34, 146], [8, 146], [8, 144], [-4, 144], [-4, 142], [-12, 142], [-12, 140], [-16, 140]],
+   "flaeche": [
+    [-16, -128], [-12, -128], [-12, -130], [-10, -130], [-10, -128], [-8, -128], [-8, -122], [-6, -122], [-6, -120], [-4, -120], [-4, -122], [8, -122], [8, -124], [22, -124],
+    [22, -116], [-10, -116], [-10, -126], [-16, -126]
+   ],
    "berechnet": true
   },
   {
    "kennung": "M13",
    "art": "mauerring",
-   "flaeche": [[-14, 122], [-12, 122], [-12, 114], [22, 114], [22, 134], [6, 134], [6, 132], [-6, 132], [-6, 130], [-12, 130], [-12, 128], [-14, 128]],
+   "flaeche": [[-16, 136], [-12, 136], [-12, 138], [-2, 138], [-2, 140], [14, 140], [14, 142], [34, 142], [34, 146], [8, 146], [8, 144], [-4, 144], [-4, 142], [-12, 142], [-12, 140], [-16, 140]],
    "berechnet": true
   },
   {
    "kennung": "M14",
    "art": "mauerring",
-   "flaeche": [[-10, 94], [-8, 94], [-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 60], [34, 60], [34, 96], [22, 96], [22, 106], [-10, 106]],
+   "flaeche": [[-14, 122], [-12, 122], [-12, 114], [22, 114], [22, 134], [6, 134], [6, 132], [-6, 132], [-6, 130], [-12, 130], [-12, 128], [-14, 128]],
    "berechnet": true
   },
   {
    "kennung": "M15",
    "art": "mauerring",
-   "flaeche": [[40, -96], [50, -96], [50, -66], [48, -66], [48, -70], [46, -70], [46, -74], [44, -74], [44, -76], [42, -76], [42, -80], [40, -80]],
+   "flaeche": [[-10, 94], [-8, 94], [-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 60], [34, 60], [34, 96], [22, 96], [22, 106], [-10, 106]],
    "berechnet": true
   },
   {
    "kennung": "M16",
+   "art": "mauerring",
+   "flaeche": [[40, -96], [50, -96], [50, -66], [48, -66], [48, -70], [46, -70], [46, -74], [44, -74], [44, -76], [42, -76], [42, -80], [40, -80]],
+   "berechnet": true
+  },
+  {
+   "kennung": "M17",
    "art": "mauerring",
    "flaeche": [[40, 50], [42, 50], [42, 48], [44, 48], [44, 46], [50, 46], [50, 50], [48, 50], [48, 62], [50, 62], [50, 96], [40, 96]],
    "berechnet": true
@@ -645,47 +664,29 @@
  ],
  "restflaechen": [
   {"kennung": "R1", "art": "kern", "grund": "klein", "felder": 4, "flaeche": [[-20, 60], [-12, 60], [-12, 62], [-20, 62]]},
-  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 3, "flaeche": [[-4, -58], [-2, -58], [-2, -52], [-4, -52]]},
+  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 15, "flaeche": [[-4, -58], [6, -58], [6, -52], [-4, -52]]},
   {"kennung": "R3", "art": "kern", "grund": "klein", "felder": 20, "flaeche": [[-4, 60], [20, 60], [20, 62], [12, 62], [12, 64], [-4, 64]]},
-  {"kennung": "R4", "art": "kern", "grund": "klein", "felder": 6, "flaeche": [[2, -58], [6, -58], [6, -52], [2, -52]]},
-  {"kennung": "R5", "art": "kern", "grund": "klein", "felder": 5, "flaeche": [[40, 12], [50, 12], [50, 14], [40, 14]]},
-  {"kennung": "R6", "art": "kern", "grund": "klein", "felder": 3, "flaeche": [[40, 46], [44, 46], [44, 48], [42, 48], [42, 50], [40, 50]]},
-  {"kennung": "R7", "art": "mauerring", "grund": "klein", "felder": 3, "flaeche": [[-110, -8], [-104, -8], [-104, -6], [-110, -6]]},
+  {"kennung": "R4", "art": "kern", "grund": "klein", "felder": 5, "flaeche": [[40, 12], [50, 12], [50, 14], [40, 14]]},
+  {"kennung": "R5", "art": "kern", "grund": "klein", "felder": 3, "flaeche": [[40, 46], [44, 46], [44, 48], [42, 48], [42, 50], [40, 50]]},
+  {"kennung": "R6", "art": "mauerring", "grund": "klein", "felder": 3, "flaeche": [[-110, -8], [-104, -8], [-104, -6], [-110, -6]]},
   {
-   "kennung": "R8",
+   "kennung": "R7",
    "art": "mauerring",
    "grund": "klein",
    "felder": 17,
    "flaeche": [[-100, -54], [-98, -54], [-98, -58], [-96, -58], [-96, -60], [-94, -60], [-94, -58], [-92, -58], [-92, -54], [-90, -54], [-90, -50], [-100, -50]]
   },
   {
-   "kennung": "R9",
+   "kennung": "R8",
    "art": "mauerring",
    "grund": "abseits",
    "felder": 27,
    "flaeche": [[-82, 22], [-76, 22], [-76, 20], [-72, 20], [-72, 32], [-70, 32], [-70, 34], [-78, 34], [-78, 32], [-80, 32], [-80, 24], [-82, 24]]
   },
-  {"kennung": "R10", "art": "mauerring", "grund": "klein", "felder": 2, "flaeche": [[-74, -42], [-72, -42], [-72, -38], [-74, -38]]},
-  {"kennung": "R11", "art": "mauerring", "grund": "klein", "felder": 1, "flaeche": [[-68, -98], [-66, -98], [-66, -96], [-68, -96]]},
-  {"kennung": "R12", "art": "mauerring", "grund": "klein", "felder": 1, "flaeche": [[-54, 36], [-52, 36], [-52, 38], [-54, 38]]},
+  {"kennung": "R9", "art": "mauerring", "grund": "klein", "felder": 1, "flaeche": [[-54, 36], [-52, 36], [-52, 38], [-54, 38]]},
+  {"kennung": "R10", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[40, -126], [50, -126], [50, -124], [40, -124]]},
   {
-   "kennung": "R13",
-   "art": "mauerring",
-   "grund": "klein",
-   "felder": 23,
-   "flaeche": [[-52, -98], [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -96], [-52, -96]]
-  },
-  {
-   "kennung": "R14",
-   "art": "mauerring",
-   "grund": "klein",
-   "felder": 7,
-   "flaeche": [[-16, -128], [-12, -128], [-12, -130], [-10, -130], [-10, -128], [-8, -128], [-8, -122], [-10, -122], [-10, -126], [-16, -126]]
-  },
-  {"kennung": "R15", "art": "mauerring", "grund": "klein", "felder": 7, "flaeche": [[8, -124], [22, -124], [22, -122], [8, -122]]},
-  {"kennung": "R16", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[40, -126], [50, -126], [50, -124], [40, -124]]},
-  {
-   "kennung": "R17",
+   "kennung": "R11",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 62,
@@ -695,7 +696,7 @@
    ]
   },
   {
-   "kennung": "R18",
+   "kennung": "R12",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 62,
@@ -705,7 +706,7 @@
    ]
   },
   {
-   "kennung": "R19",
+   "kennung": "R13",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 61,
@@ -715,7 +716,7 @@
    ]
   },
   {
-   "kennung": "R20",
+   "kennung": "R14",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 62,
@@ -728,7 +729,7 @@
    ]
   },
   {
-   "kennung": "R21",
+   "kennung": "R15",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 69,
@@ -739,7 +740,7 @@
    ]
   },
   {
-   "kennung": "R22",
+   "kennung": "R16",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 51,
@@ -749,9 +750,9 @@
     [-148, 146], [-150, 146], [-150, 148], [-152, 148], [-152, 146], [-154, 146], [-154, 144], [-156, 144], [-156, 142], [-158, 142], [-158, 140], [-160, 140]
    ]
   },
-  {"kennung": "R23", "art": "vorstadt", "grund": "klein", "felder": 1, "flaeche": [[-116, -72], [-114, -72], [-114, -70], [-116, -70]]},
+  {"kennung": "R17", "art": "vorstadt", "grund": "klein", "felder": 1, "flaeche": [[-116, -72], [-114, -72], [-114, -70], [-116, -70]]},
   {
-   "kennung": "R24",
+   "kennung": "R18",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 122,
@@ -760,10 +761,10 @@
     [-52, 176]
    ]
   },
-  {"kennung": "R25", "art": "vorstadt", "grund": "klein", "felder": 1, "flaeche": [[-18, 150], [-16, 150], [-16, 152], [-18, 152]]},
-  {"kennung": "R26", "art": "vorstadt", "grund": "klein", "felder": 2, "flaeche": [[-8, 204], [-6, 204], [-6, 208], [-8, 208]]},
+  {"kennung": "R19", "art": "vorstadt", "grund": "klein", "felder": 1, "flaeche": [[-18, 150], [-16, 150], [-16, 152], [-18, 152]]},
+  {"kennung": "R20", "art": "vorstadt", "grund": "klein", "felder": 2, "flaeche": [[-8, 204], [-6, 204], [-6, 208], [-8, 208]]},
   {
-   "kennung": "R27",
+   "kennung": "R21",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 28,
@@ -771,7 +772,7 @@
    "flaeche": [[2, -196], [6, -196], [6, -186], [8, -186], [8, -168], [4, -168], [4, -186], [2, -186]]
   },
   {
-   "kennung": "R28",
+   "kennung": "R22",
    "art": "vorstadt",
    "grund": "abseits",
    "felder": 60,
@@ -780,10 +781,10 @@
     [24, 228], [22, 228], [22, 216], [20, 216], [20, 204], [18, 204], [18, 194], [16, 194], [16, 182], [14, 182]
    ]
   },
-  {"kennung": "R29", "art": "vorstadt", "grund": "abseits", "felder": 88, "flaeche": [[126, -44], [142, -44], [142, -22], [126, -22]]},
-  {"kennung": "R30", "art": "vorstadt", "grund": "klein", "felder": 15, "thema": "pferch", "flaeche": [[202, -42], [208, -42], [208, -32], [202, -32]]},
-  {"kennung": "R31", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[202, 30], [204, 30], [204, 36], [202, 36]]},
-  {"kennung": "R32", "art": "vorstadt", "grund": "klein", "felder": 17, "flaeche": [[208, 2], [210, 2], [210, 36], [208, 36]]}
+  {"kennung": "R23", "art": "vorstadt", "grund": "abseits", "felder": 88, "flaeche": [[126, -44], [142, -44], [142, -22], [126, -22]]},
+  {"kennung": "R24", "art": "vorstadt", "grund": "klein", "felder": 15, "thema": "pferch", "flaeche": [[202, -42], [208, -42], [208, -32], [202, -32]]},
+  {"kennung": "R25", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[202, 30], [204, 30], [204, 36], [202, 36]]},
+  {"kennung": "R26", "art": "vorstadt", "grund": "klein", "felder": 17, "flaeche": [[208, 2], [210, 2], [210, 36], [208, 36]]}
  ],
  "natur": {
   "flaechen": [
@@ -1151,7 +1152,7 @@
   "Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.",
   "Das Stapelhaus steht hier schon um 1400 (das echte entstand 1558–61 und hatte Zinnen): eine lange Halle mit Treppengiebeln, Gemeinschaftswerk von Menschen und Zwergen, davor die Stadtwaage. Am Rathaus wird schon der Ratsturm gebaut (1407–1414).",
   "Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.",
-  "Groß St. Martin, St. Gereon und St. Aposteln sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Severin und St. Kunibert fehlen: Köln hat im Spiel nur den Dom und drei Kirchen (eine Kirche je Glaube)."
+  "Der Dom steht hier mitten in der Altstadt an einem großen Domplatz (in Wirklichkeit am Rhein im Norden); die anderen Kirchen Kölns (Groß St. Martin, St. Gereon, St. Aposteln, St. Severin, St. Kunibert) fehlen: Köln hat im Spiel nur den Dom."
  ],
  "hoehen": {
   "abstand": 2,
@@ -1614,11 +1615,13 @@
     "fels": "7/7/7/7/7/7/7/7/7/7/7/7/7/7/6BIAAeOKhEAzdT41/ChEAVWbseM/5GYAEXed1eMvhkQgAzeZ3xXjH8YiAAEzd73T4wA=",
     "deko": "7/7/7/7/7/7/7/7/7/7/7/7/7/7/6CIB45ZEIANTHjX4FiABE1dR4z+iRAADFVlz4y+DQiARM1WXPjH8MAIAATNXeR4w"
    },
+   {"i": -1, "j": 0, "pflaster": "7/7/6f+Ofv/v/v/v/v/v/v/v/v7/1+/+/+/+/+Xg"},
    {
     "i": 0,
     "j": 0,
     "sand": "40+n/tT6cP3k/T35X346VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0ASAA",
-    "schlamm": "44+LX8QPtP+l46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBlAA=="
+    "schlamm": "44+LX8QPtP+l46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBlAA==",
+    "pflaster": "7/7/5/+OfiL/1+/+/+/+/+/+/+/+/+2v/X4i+Ofv/v/v/v/loA=="
    },
    {
     "i": 2,

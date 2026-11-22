@@ -99,6 +99,7 @@ vec4 texel_scharf(sampler2DArray t, vec3 uvw, float lod) {
 // CUSTOM1 = (Akzentfarbe, AO-Ebene im Array der Zeilen-Atlanten zeilen_ao_ebenen.png).
 varying flat vec4 zeile_a;
 varying flat vec4 zeile_b;
+const vec3 efeu_zufall = vec3(0.0, 2.0, 0.0);   // Zeilen: kein Efeu-Zufall
 #else
 // Pro Gebäude-Instanz in Godot variierbar (ohne neues Material!):
 instance uniform vec3 plaster_tint : source_color = vec3(1.0, 1.0, 1.0);
@@ -106,6 +107,9 @@ instance uniform vec3 wood_tint : source_color = vec3(1.0, 1.0, 1.0);
 instance uniform vec3 accent_tint : source_color = vec3(1.0, 1.0, 1.0); // z.B. Fensterläden
 instance uniform int ebene = 0;      // Ebene im Array der Trim-Sheets (Volk x Stufe, Steinebenen.Ebene)
 instance uniform int ao_ebene = 0;   // Ebene im Array der AO-Atlanten (Gruppe, Steinebenen.AoEbene)
+// Zufall des Efeus je Haus (EfeuZufall.cs, 21.11.2026): x = Versatz des Rauschfelds 0..1, y = Dichte (Anteil bewachsen, über 1 = nichts ausblenden),
+// z = Farbton -1..1 (Grün gelblicher bzw. bläulicher). Wirkt nur auf Blattkarten (efeu_blatt).
+instance uniform vec3 efeu_zufall = vec3(0.0, 2.0, 0.0);
 #endif
 
 // Brandschaden als Variante (Kopie des Materials, Stadtansicht.Brandschaden.cs): Ruß tönt die Farbe wie früher die Albedofarbe des
@@ -123,13 +127,31 @@ uniform int efeu_ebene = -1;
 #endif
 
 varying vec3 welt_ort;
+varying vec3 modell_ort;   // Ort im Modell (Meter): bei Blattkarten Grundlage der Auswahl, welche Bereiche bewachsen sind
 varying vec3 welt_normale;
 varying float fuss_hoehe;
+
+#ifdef STROHKANTE
+// Wertrauschen im Raum für den Efeu-Zufall (kein Zeichenaufruf, nur Rechnung im Fragment der Blattkarten)
+float efeu_hash(vec3 p) {
+	p = fract(p * 0.3183099 + 0.1);
+	p *= 17.0;
+	return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+float efeu_rauschen(vec3 p) {
+	vec3 i = floor(p);
+	vec3 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(efeu_hash(i), efeu_hash(i + vec3(1, 0, 0)), f.x), mix(efeu_hash(i + vec3(0, 1, 0)), efeu_hash(i + vec3(1, 1, 0)), f.x), f.y),
+	           mix(mix(efeu_hash(i + vec3(0, 0, 1)), efeu_hash(i + vec3(1, 0, 1)), f.x), mix(efeu_hash(i + vec3(0, 1, 1)), efeu_hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+#endif
 
 void vertex() {
 	welt_ort = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	welt_normale = normalize(mat3(MODEL_MATRIX) * NORMAL);
 	fuss_hoehe = VERTEX.y;
+	modell_ort = VERTEX;
 #ifdef ZEILE
 	zeile_a = CUSTOM0;
 	zeile_b = CUSTOM1;
@@ -202,6 +224,15 @@ void fragment() {
 	// 2. Variation über Vertex-Color-Maske (z.B. Fensterläden auf Rot-Kanal)
 	final_color = mix(final_color, final_color * accent_tint, COLOR.r);
 	final_color *= russ_tint;
+#ifdef STROHKANTE
+	if (efeu_blatt) {
+		// Grün je Haus leicht verschoben (gelblicher bzw. bläulicher), dazu fleckenweise etwas heller oder dunkler
+		float fleck = efeu_rauschen(modell_ort * 0.9 + vec3(efeu_zufall.x * 23.0));
+		final_color *= vec3(1.0 + 0.16 * efeu_zufall.z, 1.0, 1.0 - 0.20 * efeu_zufall.z) * (0.88 + 0.24 * fleck);
+		// Pixel-Look: kräftigeres, dunkleres Grün (mehr Kontrast zum hellen Stein), sonst geht es im Pixelraster unter
+		if (pixel_look > 0.5) final_color = mix(final_color, final_color * vec3(0.62, 0.95, 0.52), 0.6);
+	}
+#endif
 
 	float rauheit = orm.g;
 	vec3 schimmer = vec3(0.0);
@@ -241,7 +272,15 @@ void fragment() {
 	if (efeu_blatt) {
 		float teil_e = STROH_TEIL[clamp(eb, 0, 11)];
 		ALPHA = teil_e > 0.0 ? band_lesen(albedo_tex, uvw, 0.0, teil_e, lod).a : texture(albedo_tex, uvw).a;
-		ALPHA_SCISSOR_THRESHOLD = 0.5;
+		// Pixel-Look: niedrige Schwelle, damit die Blätter zu zusammenhängenden Flächen wachsen statt zu Einzelpixeln zu zerfallen
+		ALPHA_SCISSOR_THRESHOLD = pixel_look > 0.5 ? 0.3 : 0.5;
+		if (efeu_zufall.y <= 1.0) {
+			// Je Haus andere Bereiche bewachsen: Rauschfeld im Modell (Fleck etwa 2 m, feiner dazu), verschoben nach efeu_zufall.x; wo es
+			// über der Dichte liegt, schrumpfen die Blätter (Rand) bzw. fehlen ganz
+			vec3 q = modell_ort * 0.55 + vec3(efeu_zufall.x * 37.0, efeu_zufall.x * 11.0, efeu_zufall.x * 53.0);
+			float m = smoothstep(0.30, 0.70, 0.7 * efeu_rauschen(q) + 0.3 * efeu_rauschen(q * 2.7 + 5.0));
+			ALPHA *= clamp((efeu_zufall.y - m) * 7.0 + 0.5, 0.0, 1.0);
+		}
 	}
 #endif
 }

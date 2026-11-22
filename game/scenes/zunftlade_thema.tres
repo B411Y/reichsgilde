@@ -185,6 +185,12 @@ content_margin_bottom = 4.0
 ; Lade: Breite höchstens (schmaler, wenn das Fenster schmaler ist) und Höhe; Porträt-Fach mit Abstand zum unteren Rand, Rand des Bogens,
 ; Luft zwischen Porträt-Fach und den Seiten; Namensschild
 LadeMasse/constants/lade_breite = 1280
+; Briefablage im Kontorbuch (BerichtAnzeige): Aufzählungspunkt, Feder, Geheimnis-Siegel, Rand abgezogen von der Spaltenbreite
+LadeMasse/constants/ablage_punkt_breite = 10
+LadeMasse/constants/ablage_punkt_hoehe = 18
+LadeMasse/constants/ablage_marke = 18
+LadeMasse/constants/ablage_siegel = 22
+LadeMasse/constants/ablage_rand = 40
 LadeMasse/constants/lade_hoehe = 210
 LadeMasse/constants/portraet_breite = 232
 LadeMasse/constants/portraet_hoehe = 214

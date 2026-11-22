@@ -258,3 +258,24 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Rollbereich | Allgemein für alle Tafeln: Eine neue Größe gilt erst, wenn sie zwei Bilder hintereinander gemessen wurde (außer beim ersten Messen). Ein Ausreißer von einem Bild nach einem Neuaufbau verändert Tafel und Lage nicht mehr. | 21.11.2026 |
 | Auswahlliste | Ursache: `InnenTafel.PopupOffen` sah die Liste eines `OptionButton` nie (innerer Knoten, `GetChildren()` ohne `true`), die Tafel baute sich unter der offenen Liste neu auf (Preise und Fortschritt ändern sich ständig). Jetzt `GetChildren(true)`; dazu kein Neuaufbau, solange die linke Maustaste gedrückt ist. Der Fortschrittsbalken der Produktionstafel wird an Ort und Stelle nachgezogen und steht nicht mehr im Gerüst. | 21.11.2026 |
 | Auswahltafel | Ursache des Mitwanderns: Ihre Lage wurde jedes Bild mit dem aktuellen Bild des Handschuhs neu gerechnet (`Mauszeiger.ZeigerBereich`, ändert sich mit Neigung und Haltung). Das Zeigerbild wird jetzt beim Öffnen eingefroren (`Tooltips.Lage` mit Zeigerbild, `Tipp.Zeiger`, Klickort in `Hauptszene`). Gilt auch für lose Tooltips. | 21.11.2026 |
+
+### Meldungen nur als Brief (Branch phase5/meldungen-nur-brief)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einblendung | Das Pergament-Fenster mit Siegel, Titel und Text entfällt ganz (`EinblendungAnzeige`, `Einblendungsreihe`, ihre Tests, Varianten und Maße im Thema). Jede Meldung der Stufe Siegel oder Brief erscheint nur als geschlossener Faltbrief in der Ecke; Ton bleibt (Siegel-Klopfer, Glocke bei Gefahr). | Nutzer 21.11.2026 |
+| Öffnen | Nur per Klick auf den Faltbrief; `BriefAnzeige.Einreihen` (öffnete von selbst), der Aufschub hinter Sitzung und Stimmrunde (`Briefaufschub`, `Briefphase`, `BriefAnzeige.Ruht`) und ihre Tests sind samt dem ungenutzten `EinzelBrief` entfernt (die Ecke ist dort ohnehin verdeckt). | Nutzer 21.11.2026 |
+| Tempo | Aufklappen mit `brief_gross_tempo_prozent` = 400 (statt Clip-Länge, etwa 0,23 s); bei „Siegel und Briefe bewegen“ aus weiter sofort offen. Der Schalter bleibt, sein Hilfetext stimmt weiter. | selbst entschieden |
+| Schließen | ✕, „Weglegen“, „Hinsehen“ und der Zielknopf legen den ganzen Stapel weg, ohne Zufalten (`BriefAnzeige.Weglegen`). | Nutzer 21.11.2026 |
+| Stufe Brief | Gleicher Weg wie Siegel (stapelt nach Thema); Jahresbericht, Nacht, Starthinweis, Fristbrief sind eigene Faltbriefe mit Schlüssel `brief:…`, ohne Stapel. | selbst entschieden |
+
+
+### Briefablage im Kontorbuch (Branch phase5/briefablage)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Der Reiter „Verlauf“ des Berichts (Kontorbuch, Lade-Fach „Bericht“) heißt **Briefablage**; kein neuer Knopf. Startoption `--bericht=protokoll` bleibt | 22.11.2026 |
+| Speicherung | Die Ablage liest `Stadtwirtschaft.Meldungsverlauf` (500 Meldungen, schon im Spielstand); nach dem Laden bleibt sie. Kern und `Speicherstand.cs` unverändert; mehr als 500 würde eine Kern-Änderung brauchen | 22.11.2026 |
+| Eintrag | Datum, Absender (`Art.Absender`), Betreff (`Art.Titel`), Text (höchstens 3 Zeilen); Ablage in Typ-Varianten der Zunftlade (`LadeText`, `LadeTextLeise`, `LadeTextWarnung`, `LadeKnopfKlein`), Maße `ablage_*` in `zunftlade_thema.tres` | 22.11.2026 |
+| Filter | Herkunft (Alles, Mein Haus, Rivalen) und Art (die sechs Themen aus `meldungen.json`) zugleich; 60 Einträge, „Ältere Briefe“ mehr | 22.11.2026 |
+| Klick | Legt den Brief wie damals auf (`Hauptszene.AblageBriefOeffnen`: Absender, Betreff, Text, Porträt, Zielknopf), statt gleich zum Ziel zu springen | 22.11.2026 |

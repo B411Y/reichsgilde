@@ -12,10 +12,10 @@ namespace Reichsgilde;
 ///
 /// Der Kern meldet jede Meldung mit Art, Haus, Person und Ort (<see cref="Meldung"/>, <c>Stadtwirtschaft.Gemeldet</c>, Stufe 2). <see cref="Protokollieren"/> ordnet
 /// sie ein (<see cref="Meldungsordnung"/>, Zuordnung in <c>game/daten/meldungen.json</c>: die Art des Kerns, sonst wie in Stufe 1 der Text) und verteilt sie nach
-/// <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
-/// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (<see cref="BriefAnzeige"/>, hält nie die Zeit an).
+/// <see cref="Meldestufe"/>: <b>Verlauf</b> (Briefablage im Kontorbuch, über alle Jahre der Sitzung),
+/// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (kommt ebenfalls als Faltbrief in die Ecke; der große Brief <see cref="BriefAnzeige"/> öffnet nur per Klick, hält nie die Zeit an).
 /// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“);
-/// jedes neue Siegel und jeder Brief erscheint vorher groß mittig unten und wandert in die Ecke (<see cref="EinblendungAnzeige"/>).
+/// jedes neue Siegel und jeder Brief liegt als geschlossener Faltbrief in der Ecke und öffnet sich erst per Klick (keine Einblendung, Nutzer 21.11.2026).
 /// Siegel und Brief zeigen das Porträt des Betroffenen (<see cref="PortraetFuer"/>), bei einer Meldung über ein Geheimnis dazu das Siegel seiner Art
 /// (<see cref="Meldung.GeheimnisArt"/>, <see cref="CharakterAnzeige.GeheimnisSiegelBild"/>); „Hinsehen“ fährt zu Betrieb, Wohnhaus oder Ort und öffnet die Auswahl bzw.
 /// das Charakterfenster (<see cref="MeldungAnsteuern"/>). Nach dem Laden kommt der Verlauf aus dem Spielstand (<see cref="VerlaufAusSpielstand"/>).
@@ -40,8 +40,7 @@ public partial class Hauptszene
     private Siegelecke _ecke = null!;
     private BriefAnzeige _brief = null!;
     /// <summary>Neue Siegel und Briefe erscheinen erst groß mittig unten und wandern dann in die Ecke.</summary>
-    private EinblendungAnzeige _einblendung = null!;
-    /// <summary>Alle Meldungen der Sitzung, die neueste zuerst (Reiter „Verlauf“ im Bericht).</summary>
+    /// <summary>Alle Meldungen der Sitzung, die neueste zuerst (Briefablage im Kontorbuch).</summary>
     private readonly List<Meldungsposten> _verlauf = new();
     private readonly List<Meldungsposten> _jahresSammler = new(), _nachtSammler = new();
     private long _nachtTag;
@@ -57,8 +56,6 @@ public partial class Hauptszene
         _ecke = new Siegelecke();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_ecke);
         _ecke.Angeklickt += SiegelGelesen;
-        _einblendung = new EinblendungAnzeige();
-        GetNode<CanvasLayer>("Oberflaeche").AddChild(_einblendung);
         _brief = new BriefAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_brief);
         _brief.ZielGewaehlt += BriefZiel;
@@ -179,8 +176,8 @@ public partial class Hauptszene
             _jahresSammler.Add(posten);
             return;
         }
-        if (stufe == Meldestufe.Brief) BriefEinreihen(EinzelBrief(posten), gefahr: art.Thema == "gefahr");
-        else SiegelAnlegen(posten);
+        SiegelAnlegen(posten); // Siegel und Brief kommen gleich an: als Faltbrief in der Ecke, geöffnet erst per Klick (Nutzer 21.11.2026)
+        if (stufe == Meldestufe.Brief && art.Thema == "gefahr") KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Meldung); // leise Glocke bei Gefahr
     }
 
     // ── Siegel ───────────────────────────────────────────────────────────────
@@ -193,32 +190,7 @@ public partial class Hauptszene
         _ecke.Finden("thema:" + thema.Id)?.BildSetzen(SiegelBild(posten)); // das Porträt des Neuesten (oder keins)
         if (neu || !fehler) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
         _ecke.TippsAuffrischen();
-        SiegelEinblenden("thema:" + thema.Id, thema, posten, neu);
-    }
-
-    /// <summary>
-    /// Die zentrale Einblendung zum Siegel: Das Siegel steht schon in der Ecke (Stapel, Zähler, Klick), ein neues bleibt aber unsichtbar, bis die
-    /// Einblendung dort ankommt; dann springt es auf.
-    /// </summary>
-    private void SiegelEinblenden(string schluessel, Meldethema thema, Meldungsposten posten, bool neu)
-    {
-        var siegel = _ecke.Finden(schluessel);
-        if (siegel is null) return;
-        if (neu)
-        {
-            siegel.Modulate = Colors.Transparent;
-            siegel.MouseFilter = Control.MouseFilterEnum.Ignore; // unsichtbar auch nicht anklickbar
-        }
-        _einblendung.Einblenden(posten.Art.Name, posten.Art.Id == "Fehler" ? posten.Text.TrimStart('✗', ' ') : posten.Text, thema, Meldestufe.Siegel,
-            () => IsInstanceValid(siegel) && siegel.IsInsideTree() ? siegel.GetGlobalRect().GetCenter() : null,
-            () =>
-            {
-                if (!IsInstanceValid(siegel)) return;
-                siegel.Modulate = Colors.White;
-                siegel.MouseFilter = Control.MouseFilterEnum.Stop;
-                if (neu) siegel.Erscheinen(); // der kleine Faltbrief erscheint mit einem Sprung
-                else siegel.Aufleben();
-            });
+        if (neu) _ecke.Finden("thema:" + thema.Id)?.Erscheinen(); // der kleine Faltbrief erscheint mit einem Sprung
     }
 
     /// <summary>Der Brief zu einem Siegel: bei einem Stapel alle Meldungen (neueste oben), bei einem Stillstand der Stand von jetzt.</summary>
@@ -267,18 +239,6 @@ public partial class Hauptszene
     }
 
     // ── Briefe ───────────────────────────────────────────────────────────────
-
-    private Brief EinzelBrief(Meldungsposten p)
-    {
-        var thema = Ordnung.Thema(p.Art.Thema);
-        var brief = new Brief
-        {
-            Titel = p.Art.Titel, Absender = p.Art.Absender, Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id, Ziel = p.Art.Ziel, Betrieb = p.Betrieb,
-            Zeilen = { new Briefzeile($"{p.Jahr} · {p.Zeit}", p.Text, p.Warnung, p.Kern) },
-        };
-        PortraetUndZiel(brief, p.Kern);
-        return brief;
-    }
 
     // ── Porträt und Hinsehen (Stufe 2) ───────────────────────────────────────
 
@@ -388,24 +348,20 @@ public partial class Hauptszene
         else GebaeudeZeigen(Stadtansicht.WohnhausKennung(haus));
     }
 
-    /// <summary>
-    /// Wohin ein Klick auf eine Zeile im Verlauf führt: dorthin, wohin die Meldung selbst führt – „Hinsehen“ (Ort, Haus, Person der Meldung des Kerns),
-    /// sonst der Knopf ihres Briefs (eigener Betrieb, Personalbuch, Familienbuch, Ratskammer, Jahresrechnung nach der Art). Null: nirgends hin.
-    /// </summary>
-    private string? VerlaufZiel(Meldungsposten p)
+    /// <summary>Ein Klick in der Briefablage: der Brief zur Meldung, wie er damals kam (Absender, Betreff, Text, Porträt, Knopf zum Ziel).</summary>
+    private void AblageBriefOeffnen(Meldungsposten p)
     {
-        if (p.Kern is { } k && HinsehenZiel(k) is { } hinsehen) return hinsehen;
-        return VerlaufBrief(p) is { } b && BriefAnzeige.ZielText(b) is { Length: > 0 } knopf ? knopf : null;
+        var thema = Ordnung.Thema(p.Art.Thema);
+        var brief = new Brief
+        {
+            Schluessel = "ablage", Titel = p.Art.Titel != "" ? p.Art.Titel : p.Art.Name, Absender = p.Art.Absender != "" ? p.Art.Absender : p.Art.Name,
+            Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id, Ziel = p.Art.Ziel, Betrieb = p.Betrieb,
+        };
+        brief.Zeilen.Add(new Briefzeile($"{p.Jahr} · {p.Zeit}", p.Art.Id == "Fehler" ? p.Text.TrimStart('✗', ' ') : p.Text, p.Warnung, p.Kern));
+        PortraetUndZiel(brief, p.Kern);
+        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
+        _brief.Zeigen(brief);
     }
-
-    private void VerlaufAnsteuern(Meldungsposten p)
-    {
-        if (p.Kern is { } k && HinsehenZiel(k) is not null) MeldungAnsteuern(k);
-        else if (VerlaufBrief(p) is { } b) BriefZiel(b);
-    }
-
-    /// <summary>Das Ziel des Briefs, den die Meldung als Siegel oder Brief bekäme (Art und eigener Betrieb), ohne ihn zu zeigen.</summary>
-    private static Brief? VerlaufBrief(Meldungsposten p) => p.Art.Ziel == "" ? null : new Brief { Ziel = p.Art.Ziel, Betrieb = p.Betrieb };
 
     /// <summary>Wie ein Klick auf das Gebäude: Auswahl rechts, die Kamera fährt hin.</summary>
     private void GebaeudeZeigen(string kennung)
@@ -416,15 +372,32 @@ public partial class Hauptszene
         _stadt.Hinfahren(kennung);
     }
 
-    private void BriefEinreihen(Brief brief, bool gefahr = false)
+    /// <summary>
+    /// Ein fertiger Brief (Jahresbericht, Die Nacht) kommt wie jede Meldung als geschlossener Faltbrief in die Ecke; geöffnet wird er erst per Klick.
+    /// <paramref name="vorlage"/> gibt die Art für Tipp und Verlauf, der Schlüssel hält ihn von den Themen-Stapeln getrennt.
+    /// </summary>
+    private void BriefAlsSiegel(Brief brief, string schluessel, Meldungsposten vorlage, bool gefahr = false) => BriefAlsSiegel(brief, schluessel, vorlage.Art, gefahr);
+
+    private int _briefZaehler;
+
+    /// <summary>Ein fertiger Brief ohne Meldungsposten (Starthinweis, Fristbrief): Schlüssel eindeutig, Art nach Wahl.</summary>
+    private void BriefEinreihen(Brief brief, string artId = "Entscheidung") =>
+        BriefAlsSiegel(brief, "brief:" + (brief.Schluessel != "" ? brief.Schluessel : "nr" + _briefZaehler++), Ordnung.Art(artId), false);
+
+    private void BriefAlsSiegel(Brief brief, string schluessel, Meldeart art, bool gefahr)
     {
+        var thema = Ordnung.Thema(brief.Thema);
+        brief.Schluessel = schluessel;
+        var posten = new Meldungsposten
+        {
+            Zeit = _simulation.Zeit.UhrzeitText, Jahr = _simulation.Zeit.Jahr, Text = brief.Titel, Original = brief.Titel, Art = art,
+            Bezug = Betroffenheit.Eigen, Stufe = Meldestufe.Brief, Warnung = gefahr,
+        };
         if (gefahr) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Meldung); // leise Glocke bei Gefahr
-        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungBrief);
-        // Erst groß mittig unten, dann wandert er nach rechts unten, wo das Brief-Fenster aufgeht
-        var text = brief.Zeilen.Count == 0 ? brief.Fuss : brief.Zeilen[0].Text + (brief.Zeilen.Count > 1 ? $" (und {brief.Zeilen.Count - 1} mehr)" : "");
-        _einblendung.Einblenden(brief.Titel, text, Ordnung.Thema(brief.Thema), Meldestufe.Brief,
-            () => _ecke.IsInsideTree() ? _ecke.GetGlobalRect().End - new Vector2(_ecke.Size.Y, _ecke.Size.Y) / 2 : null,
-            () => _brief.Einreihen(brief));
+        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
+        var neu = _ecke.Hinzufuegen(schluessel, thema, posten, _ => brief, 0, stapeln: false);
+        _ecke.TippsAuffrischen();
+        if (neu) _ecke.Finden(schluessel)?.Erscheinen();
     }
 
     /// <summary>Die Jahresabrechnung ist durch: Was sich dabei angesammelt hat, kommt als ein Brief „Jahresbericht“.</summary>
@@ -438,8 +411,9 @@ public partial class Hauptszene
         foreach (var gruppe in _jahresSammler.GroupBy(p => p.Art).OrderBy(g => Ordnung.Arten.ToList().IndexOf(g.Key)))
             foreach (var p in gruppe)
                 brief.Zeilen.Add(new Briefzeile(gruppe.Key.Name, p.Text, p.Warnung, p.Kern)); // mit Kern: Geheimnis-Siegel vor der Zeile
+        var vorlage = _jahresSammler[0];
         _jahresSammler.Clear();
-        BriefEinreihen(brief);
+        BriefAlsSiegel(brief, "brief:jahresbericht:" + jahr, vorlage);
     }
 
     private void NachtBriefAusgeben()
@@ -448,8 +422,9 @@ public partial class Hauptszene
         var brief = new Brief { Titel = "Die Nacht", Absender = "Der Büttel", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id };
         foreach (var p in _nachtSammler) brief.Zeilen.Add(new Briefzeile($"{p.Zeit}", p.Text, p.Warnung, p.Kern));
         brief.Fuss = _nachtSammler.Count == 1 ? "Das war alles in dieser Nacht." : $"{_nachtSammler.Count} Vorfälle in dieser Nacht.";
+        var vorlage = _nachtSammler[0];
         _nachtSammler.Clear();
-        BriefEinreihen(brief, gefahr: true);
+        BriefAlsSiegel(brief, "brief:nacht:" + _simulation.Zeit.Jahr + ":" + _nachtTag, vorlage, gefahr: true);
     }
 
     /// <summary>Der Knopf unten im Brief: soweit der Text das Ziel hergibt.</summary>
@@ -511,8 +486,8 @@ public partial class Hauptszene
             {
                 _ecke.Hinzufuegen(schluessel, Ordnung.Thema("handel"), posten, SiegelBrief);
                 KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
-                SiegelEinblenden(schluessel, Ordnung.Thema("handel"), posten, neu: true);
                 siegel = _ecke.Finden(schluessel)!;
+                siegel.Erscheinen();
             }
             siegel.Posten[0] = posten;
             siegel.Anzahl = zahl;
@@ -631,7 +606,7 @@ public partial class Hauptszene
             "Oben in der Mitte steht die Zeit, unten die Lade: oben die Werte eures Hauses, in der Mitte euer Porträt (ein Klick öffnet die Familie), links und rechts die Fächer. Das Fach „Betriebe“ zeigt eure Betriebe: ein Klick fährt hin und " +
             "zeigt seine Kurzübersicht, ein Doppelklick geht hinein – drinnen stellt ihr Produktion, Personal, Lager, Karren und Einrichtung ein. " +
             "Ein Klick auf das Rathaus zeigt Rat, Ämter, Statut und Gericht, ein Klick auf den Markt die Preise. Meldungen kommen als Faltbrief rechts über der Lade (ein Klick liest den Brief) " +
-            "oder als Brief; alles steht im Bericht unter „Verlauf“. Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);
+            "oder als Brief; alles steht in der Briefablage im Kontorbuch (Bericht). Was gemeldet wird, stellt ihr in den Einstellungen unter „Meldungen“ ein.", 13, new Color(0.85f, 0.85f, 0.85f), umbruchBreite: 560);
         var zu = Hauptmenue.Knopf(spalte, "Schließen", HilfeSchliessen);
         zu.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         tafel.Hide();

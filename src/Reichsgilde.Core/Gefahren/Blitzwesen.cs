@@ -21,6 +21,9 @@ public sealed record Blitzziel(string Kennung, string Name, double X, double Z, 
     /// <summary>Wem das Gebäude gehört (Werkstatt: dem Haus des Betriebs; Wohnhaus: dem Bewohner) – sonst null.</summary>
     public Konto? Besitzer => Betrieb?.Konto ?? Bewohner;
 
+    /// <summary>Ein Bau der Stadt aus <c>blitz.stadtbau</c> (Dom, Rathaus): Die Stadtkasse zahlt die Reparatur – sonst null.</summary>
+    public Stadtbauart? Stadtbau { get; init; }
+
     /// <summary>Halbe Ausdehnung der Grundfläche in x bzw. z (Meter, achsparallel; 0 = unbekannt) – für die Nachbarn beim Überspringen.</summary>
     public double HalbX { get; init; }
 
@@ -71,8 +74,10 @@ public sealed record Blitzeinschlag(long Minute, long BrandEnde, Blitzziel Ziel)
 /// wie nach einer Sabotage), zahlt eine Reparatur nach ihrem Bauwert und verliert einen Teil ihres Lagers; ein Wohnhaus verliert bis zur
 /// Instandsetzung sein Ansehen (<see cref="Konto.WohnhausInstandBis"/>) und zahlt eine Reparatur nach der Formel der Brandstiftung. Wie schwer,
 /// folgt aus der schon gewürfelten Brenndauer (<see cref="Schwere"/>, kein neuer Wurf). Wächter und Hauswächter löschen mit (Feuer kürzer und
-/// leichter), das Löschfass bzw. die Brandschutz-Einrichtung (<see cref="Betrieb.BrandFaktor"/>) senkt den Schaden. Kein Ausbrennen. Kirchen,
-/// Rathaus, Einwohner- und Kulissenhäuser brennen nur im Bild (ihre Wirkung kommt in einem eigenen PR).
+/// leichter), das Löschfass bzw. die Brandschutz-Einrichtung (<see cref="Betrieb.BrandFaktor"/>) senkt den Schaden. Kein Ausbrennen. Eine Kirche
+/// (Betrieb) hält keine Messe, solange sie brennt und still steht; Dom und Rathaus (<see cref="BlitzDaten.Stadtbau"/>) repariert die Stadtkasse,
+/// bis zur Instandsetzung fällt die Dommesse bzw. fallen die Anträge der Ratssitzung aus (Nutzer 22.11.2026). Eine gedeckte Brandkasse
+/// (<see cref="Brandkasse"/>) zahlt einen Teil der Reparatur. Einwohner- und Kulissenhäuser brennen nur im Bild.
 ///
 /// <b>Überspringen</b> (<see cref="BlitzDaten.Sprung"/>): Je volle Spielstunde des Feuers kann es auf jedes Nachbarhaus überspringen (Grundflächen
 /// höchstens <see cref="BlitzSprungDaten.Abstand"/> auseinander); ein übergesprungenes Feuer brennt kürzer, ist leichter und springt nicht weiter.
@@ -331,7 +336,8 @@ public sealed class Blitzwesen
                         Bausteinart.Sonderbau => g.Name != "" ? g.Name : g.Baustein?.Anzeigename ?? g.Kennung,
                         _ => "ein Bürgerhaus",
                     };
-                    liste.Add(Flaeche(new Blitzziel(g.Kennung, name, x, z, h, Boden(x, z), null, null), g.Grundriss));
+                    var stadtbau = g.Art == Bausteinart.Sonderbau && g.Katalog is { } kat && d.Stadtbau.TryGetValue(kat, out var sb) ? sb.Art : (Stadtbauart?)null;
+                    liste.Add(Flaeche(new Blitzziel(g.Kennung, name, x, z, h, Boden(x, z), null, null) { Stadtbau = stadtbau }, g.Grundriss));
                     break;
                 }
             }
@@ -461,11 +467,18 @@ public sealed class Blitzwesen
             var schutz = b.BrandFaktor;
             var reparatur = Math.Round(Math.Max(d.Reparatur, Anteil(d.ReparaturAnteil, e.Schwere) * _w.Bauwert(b)) * schutz);
             var verbrannt = LagerVerbrennen(b, Anteil(d.LagerAnteil, e.Schwere) * schutz, out var warenwert);
-            if (reparatur > 0 && b.Konto.IstAktiv) b.SchadenBuchen(reparatur);
+            var erstattet = 0.0;
+            if (reparatur > 0 && b.Konto.IstAktiv)
+            {
+                erstattet = _w.Brandkasse.Erstatten(b.Konto, reparatur);
+                b.SchadenBuchen(reparatur - erstattet);
+            }
             else reparatur = 0;
             if (reparatur + warenwert > 0) b.BrandBuchen(reparatur + warenwert);
+            if (d.OhneMesse && _w.Kirchenwesen.IstKirche(b)) // die Kirche hält keine Messe, solange sie brennt und still steht
+                InstandSetzen(KircheSchluessel(b), e.BrandEnde + d.InstandMinuten);
             return $" {d.StillstandMinuten / 60} Arbeitsstunden steht die Arbeit still" +
-                   (reparatur > 0 ? $", Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}" : "") +
+                   (reparatur > 0 ? $", Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Erstattet(erstattet, waehrung)}" : "") +
                    (verbrannt.Count > 0 ? $"; verbrannt: {string.Join(", ", verbrannt.Select(v => $"{Zahlenformat.Ganz(v.Stueck)} {v.Ware}"))}" : "") + ".";
         }
         if (e.Ziel.Bewohner is { } k && _w.Wohnen.Daten is not null)
@@ -474,13 +487,80 @@ public sealed class Blitzwesen
             _w.Wohnen.Brand(k, Math.Max(k.WohnhausInstandBis ?? 0, bis));
             var grund = _w.Gauner.IstAktiv && _w.Gauner.Daten.Wohnhaus is not null ? _w.Gauner.Brandschaden(k) : 0;
             var reparatur = Math.Round(Math.Max(d.WohnhausReparatur, Anteil(d.WohnhausAnteil, e.Schwere) * grund) * _w.Wohnen.BrandFaktor(k));
-            if (reparatur > 0) k.Schaden(reparatur);
+            var erstattet = reparatur > 0 ? _w.Brandkasse.Erstatten(k, reparatur) : 0;
+            if (reparatur > 0) k.Schaden(reparatur - erstattet);
             _w.Familien.ZugAnlass(k, "blitz"); // Brand durch Blitz: Narbe, vielleicht entstellt (Versehrungen; eigener Anlass, damit ältere Daten ohne ihn bleiben, wie sie waren)
             return " Bis es instand gesetzt ist, fehlt das Ansehen des Hauses." +
-                   (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}." : "");
+                   (reparatur > 0 ? $" Reparatur {Zahlenformat.Ganz(reparatur)} {waehrung}{Erstattet(erstattet, waehrung)}." : "");
         }
+        if (e.Ziel.Stadtbau is { } art && e.Ziel.Kennung is var kennung && FindeStadtbau(kennung, art) is { } bau)
+            return StadtbauWirken(e, art, bau);
         return "";
     }
+
+    private static string Erstattet(double betrag, string waehrung) =>
+        betrag > 0 ? $" (die Brandkasse zahlt {Zahlenformat.Ganz(betrag)} {waehrung})" : "";
+
+    /// <summary>Die Daten des Stadtbaus: über das Ziel der Karte (Katalogkennung des Bausteins).</summary>
+    private StadtbauDaten? FindeStadtbau(string kennung, Stadtbauart art)
+    {
+        var g = _w.Karte?.Gebaeude.FirstOrDefault(x => x.Kennung == kennung);
+        return g?.Katalog is { } kat && Daten!.Stadtbau.TryGetValue(kat, out var bau) && bau.Art == art ? bau : null;
+    }
+
+    /// <summary>
+    /// Dom bzw. Rathaus brennt (Nutzer 22.11.2026, B1/C1/D1): Die Stadtkasse zahlt die Reparatur, soweit ihr Stand reicht (nicht unter 0, der Rest
+    /// entfällt). Bis zur Instandsetzung (<see cref="BlitzDaten.InstandMinuten"/> nach dem Feuer) fällt die Dommesse aus bzw. – steht das Rathaus
+    /// am Jahresende noch nicht wieder – fallen die Anträge der Ratssitzung aus.
+    /// </summary>
+    private string StadtbauWirken(Blitzeinschlag e, Stadtbauart art, StadtbauDaten bau)
+    {
+        var d = Daten!;
+        var waehrung = _w.Daten.Allgemein.Waehrung;
+        InstandSetzen(art == Stadtbauart.Dom ? DomSchluessel : RathausSchluessel, e.BrandEnde + d.InstandMinuten);
+        var reparatur = Math.Round(Anteil(bau.Reparatur, e.Schwere));
+        var kasse = _w.Kasse;
+        var gezahlt = kasse.IstAktiv ? Math.Min(reparatur, Math.Max(0, Math.Floor(kasse.Stand))) : 0;
+        if (gezahlt > 0) kasse.Buchen(Politik.Kassenposten.Brandschaden, gezahlt);
+        var folge = art == Stadtbauart.Dom
+            ? (d.OhneMesse ? " Bis er instand gesetzt ist, fällt die Messe im Dom aus." : "")
+            : " Steht es zur Ratssitzung nicht wieder, tagt der Rat im Ausweichquartier, und die Anträge entfallen.";
+        var zahlung = !kasse.IstAktiv || reparatur <= 0 ? ""
+            : gezahlt >= reparatur ? $" Die Stadtkasse zahlt die Reparatur ({Zahlenformat.Ganz(gezahlt)} {waehrung})."
+            : $" Die Reparatur kostet {Zahlenformat.Ganz(reparatur)} {waehrung}; die Stadtkasse hat nur {Zahlenformat.Ganz(gezahlt)} {waehrung}.";
+        return folge + zahlung;
+    }
+
+    // ── Instandsetzung (Messe, Ratssitzung) ─────────────────────────────────
+
+    private const string DomSchluessel = "dom";
+    private const string RathausSchluessel = "rathaus";
+    private static string KircheSchluessel(Betrieb b) => "kirche:" + b.Name;
+
+    /// <summary>Bis zu welcher Minute (Spielminuten seit Beginn) Dom, Rathaus bzw. eine Kirche instand gesetzt wird – Schlüssel siehe oben.</summary>
+    private readonly Dictionary<string, long> _instandBis = new();
+
+    private void InstandSetzen(string schluessel, long bis) =>
+        _instandBis[schluessel] = Math.Max(_instandBis.GetValueOrDefault(schluessel), bis);
+
+    private bool InInstandsetzung(string schluessel) =>
+        _instandBis.TryGetValue(schluessel, out var bis) && _w.Uhr.VergangeneMinuten < bis;
+
+    /// <summary>Hält diese Kirche (Betrieb) gerade keine Messe? Solange sie nach einem Feuer brennt und still steht (nur mit <see cref="BlitzDaten.OhneMesse"/>).</summary>
+    public bool KircheOhneMesse(Betrieb b) =>
+        IstAktiv && Daten!.OhneMesse && InInstandsetzung(KircheSchluessel(b)) && (b.SabotageMinuten > 0 || Brandherd(b));
+
+    private bool Brandherd(Betrieb b)
+    {
+        var jetzt = _w.Uhr.VergangeneMinuten;
+        return Einschlaege.Any(e => e.Ziel.Betrieb == b && e.BrenntUm(jetzt));
+    }
+
+    /// <summary>Fällt die Messe im Dom aus? Bis zur Instandsetzung nach einem Feuer (nur mit <see cref="BlitzDaten.OhneMesse"/>).</summary>
+    public bool DomOhneMesse => IstAktiv && Daten!.OhneMesse && InInstandsetzung(DomSchluessel);
+
+    /// <summary>Wird das Rathaus nach einem Feuer noch instand gesetzt? Dann entfallen die Anträge der Ratssitzung.</summary>
+    public bool RathausAbgebrannt => IstAktiv && InInstandsetzung(RathausSchluessel);
 
     /// <summary>
     /// Von jeder Ware im Lager verbrennt dieser Anteil (ganze Stück, abgerundet), in fester Reihenfolge (Warenname, ordinal). Gibt die
@@ -534,9 +614,15 @@ public sealed class Blitzwesen
         {
             Minute = e.Minute, BrandEnde = e.BrandEnde, Kennung = e.Ziel.Kennung, Name = e.Ziel.Name, X = e.Ziel.X, Z = e.Ziel.Z,
             Hoehe = e.Ziel.Hoehe, Boden = e.Ziel.Boden, Betrieb = e.Ziel.Betrieb?.Name,
-            Bewohner = e.Ziel.Bewohner is { } k ? nummer(k) : null, Schwere = e.Schwere, Ursache = e.Ursache, Von = e.Von,
+            Bewohner = e.Ziel.Bewohner is { } k ? nummer(k) : null, Schwere = e.Schwere, Ursache = e.Ursache, Von = e.Von, Stadtbau = e.Ziel.Stadtbau,
         };
-        return new BlitzStand { Einschlaege = Einschlaege.Select(Stand).ToList(), Spruenge = _anstehend.Select(Stand).ToList() };
+        var jetzt = _w.Uhr.VergangeneMinuten;
+        var instand = _instandBis.Where(x => x.Value > jetzt).OrderBy(x => x.Key, StringComparer.Ordinal).ToDictionary(x => x.Key, x => x.Value);
+        return new BlitzStand
+        {
+            Einschlaege = Einschlaege.Select(Stand).ToList(), Spruenge = _anstehend.Select(Stand).ToList(),
+            Instand = instand.Count > 0 ? instand : null,
+        };
     }
 
     /// <summary>
@@ -547,6 +633,7 @@ public sealed class Blitzwesen
     {
         _einschlaege.Clear();
         _anstehend.Clear();
+        _instandBis.Clear();
         if (s is null)
         {
             if (_w.Daten.Version < 68) _bekanntBis = _w.Uhr.VergangeneMinuten;
@@ -556,13 +643,15 @@ public sealed class Blitzwesen
         {
             var betrieb = x.Betrieb is { } name ? _w.Betriebe.FirstOrDefault(b => b.Name == name) : null;
             var bewohner = x.Bewohner is int i && i >= 0 && i < konten.Count ? konten[i] : null;
-            return new Blitzeinschlag(x.Minute, x.BrandEnde, new Blitzziel(x.Kennung, x.Name, x.X, x.Z, x.Hoehe, x.Boden, betrieb, bewohner))
+            return new Blitzeinschlag(x.Minute, x.BrandEnde, new Blitzziel(x.Kennung, x.Name, x.X, x.Z, x.Hoehe, x.Boden, betrieb, bewohner) { Stadtbau = x.Stadtbau })
             {
                 Schwere = x.Schwere, Ursache = x.Ursache, Von = x.Von,
             };
         }
         _einschlaege.AddRange(s.Einschlaege.Select(Einschlag));
         _anstehend.AddRange(s.Spruenge.Select(Einschlag));
+        if (s.Instand is { } instand)
+            foreach (var (schluessel, bis) in instand) _instandBis[schluessel] = bis;
         _bekanntBis = _w.Uhr.VergangeneMinuten;
     }
 }

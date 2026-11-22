@@ -222,7 +222,7 @@ public sealed class Kirchenwesen
     {
         dom = (0, 0);
         var domamt = _w.Domamt;
-        var domGlaube = domamt.IstAktiv ? domamt.Konfession : null; // null = kein Domprediger, der Dom zählt nicht
+        var domGlaube = domamt.IstAktiv && !_w.Blitz.DomOhneMesse ? domamt.Konfession : null; // null = kein Domprediger oder der Dom brannte: er zählt nicht
         var liste = kirchen.ToList();
         var ergebnis = liste.ToDictionary(b => b, _ => (Glaeubige: 0.0, Kollekte: 0.0));
         var gw = _w.Glaube;
@@ -273,7 +273,7 @@ public sealed class Kirchenwesen
         // Bürger-KI: Wie viele Einwohner zur Messe in den Kirchen waren, verschiebt Gläubige und Kollekte (Faktor um 1).
         // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.kirche" fehlt) ist der Faktor genau 1.
         var faktor = _w.Einwohnerschaft.Messefaktor();
-        var verteilung = Verteilen(Kirchen, out var dom);
+        var verteilung = Verteilen(Kirchen.Where(k => !_w.Blitz.KircheOhneMesse(k)), out var dom); // eine brennende Kirche hält keine Messe
         if (dom.Glaeubige > 0) // der Anteil des Doms an den Domprediger (Domkollekte, steuerfrei)
             _w.Domamt.KollekteBuchen(faktor == 1 ? dom.Glaeubige : dom.Glaeubige * faktor, faktor == 1 ? dom.Kollekte : dom.Kollekte * faktor);
         foreach (var (b, (g0, k0)) in verteilung)
@@ -322,7 +322,7 @@ public sealed class Kirchenwesen
 
     /// <summary>Der Prediger steht auf der Kanzel: zur Stunde <see cref="KirchenDaten.MesseUm"/> (10–11 Uhr), mit mindestens einem Arbeiter, Haus im Spiel.</summary>
     public bool MesseLaeuft(Betrieb b) =>
-        Kirchen.Contains(b) && MinuteJetzt / 60 == Daten.MesseUm;
+        Kirchen.Contains(b) && MinuteJetzt / 60 == Daten.MesseUm && !_w.Blitz.KircheOhneMesse(b);
 
     /// <summary>
     /// Gerade sitzt jemand im Beichtstuhl: in der Arbeitszeit außerhalb der Messezeit, in jeder Viertelstunde q (seit Mitternacht),

@@ -1,87 +1,13 @@
-[gd_resource type="Theme" load_steps=6 format=3]
+[gd_resource type="Theme" load_steps=2 format=3]
 
-; Das Thema der Meldungen (Faltbriefe über der Lade, zentrale Einblendung neuer Meldungen). Aussehen und Zeiten stehen NUR hier, Logik in Siegelecke.cs / EinblendungAnzeige.cs / Hauptszene.Meldungen.cs / MeldungStil.cs.
+; Das Thema der Meldungen (Faltbriefe über der Lade, großer Brief). Aussehen und Zeiten stehen NUR hier, Logik in Siegelecke.cs / Hauptszene.Meldungen.cs / MeldungStil.cs.
 ; Stil: Pergament mit schwarzem Umriss und leicht versetztem Schatten wie Brief und Siegel (kolorierter Holzschnitt).
 ; Typ-Varianten (Meldung…) erben von einem Godot-Typ; Maße der Familie stehen unter dem Pseudo-Typ MeldungMasse.
 
-[ext_resource type="FontFile" path="res://assets/oberflaeche/schriften/GermaniaOne-Regular.ttf" id="1_titel"]
 
 [sub_resource type="StyleBoxEmpty" id="Leer"]
 
-; ── Zentrale Einblendung neuer Meldungen (Pergament, schwarzer Umriss, versetzter Schatten) ──
-[sub_resource type="StyleBoxFlat" id="EinblendungSiegel"]
-bg_color = Color(0.9, 0.84, 0.68, 0.97)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.09, 0.07, 0.05, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 2
-shadow_offset = Vector2(6, 7)
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 22.0
-content_margin_bottom = 12.0
-
-[sub_resource type="StyleBoxFlat" id="EinblendungBrief"]
-bg_color = Color(0.9, 0.84, 0.68, 0.97)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.09, 0.07, 0.05, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 2
-shadow_offset = Vector2(7, 8)
-content_margin_left = 24.0
-content_margin_top = 16.0
-content_margin_right = 28.0
-content_margin_bottom = 16.0
-
 [resource]
-; ── Zentrale Einblendung: Tafel je Stufe (Siegel kleiner und kürzer, Brief größer und länger) ──
-MeldungEinblendungSiegel/base_type = &"PanelContainer"
-MeldungEinblendungSiegel/styles/panel = SubResource("EinblendungSiegel")
-MeldungEinblendungBrief/base_type = &"PanelContainer"
-MeldungEinblendungBrief/styles/panel = SubResource("EinblendungBrief")
-MeldungEinblendungReihe/base_type = &"HBoxContainer"
-MeldungEinblendungReihe/constants/separation = 16
-MeldungEinblendungArtSiegel/base_type = &"Label"
-MeldungEinblendungArtSiegel/fonts/font = ExtResource("1_titel")
-MeldungEinblendungArtSiegel/font_sizes/font_size = 19
-MeldungEinblendungArtSiegel/colors/font_color = Color(0.42, 0.12, 0.08, 1)
-MeldungEinblendungArtBrief/base_type = &"Label"
-MeldungEinblendungArtBrief/fonts/font = ExtResource("1_titel")
-MeldungEinblendungArtBrief/font_sizes/font_size = 25
-MeldungEinblendungArtBrief/colors/font_color = Color(0.42, 0.12, 0.08, 1)
-MeldungEinblendungTextSiegel/base_type = &"Label"
-MeldungEinblendungTextSiegel/font_sizes/font_size = 18
-MeldungEinblendungTextSiegel/colors/font_color = Color(0.09, 0.07, 0.05, 1)
-MeldungEinblendungTextBrief/base_type = &"Label"
-MeldungEinblendungTextBrief/font_sizes/font_size = 21
-MeldungEinblendungTextBrief/colors/font_color = Color(0.09, 0.07, 0.05, 1)
-; Maße (Pixel) und Zeiten (Millisekunden) der Einblendung
-MeldungMasse/constants/einblendung_breite_siegel = 460
-MeldungMasse/constants/einblendung_breite_brief = 580
-MeldungMasse/constants/einblendung_siegel_siegel = 64
-MeldungMasse/constants/einblendung_siegel_brief = 84
-MeldungMasse/constants/einblendung_zeilen = 3
-MeldungMasse/constants/einblendung_abstand_unten = 56
-MeldungMasse/constants/einblendung_einblenden_ms = 350
-MeldungMasse/constants/einblendung_stehen_siegel_ms = 2500
-MeldungMasse/constants/einblendung_stehen_brief_ms = 4000
-MeldungMasse/constants/einblendung_wandern_ms = 700
-MeldungMasse/constants/einblendung_endgroesse_prozent = 20
-MeldungMasse/constants/einblendung_hoechstens_wartend = 4
 ; ── 3D-Schriftrollen der Meldungsleiste (SchriftrollenBuehne.cs, Szene schriftrolle_buehne.tscn) ──
 ; Platz je Rolle im Bild (Pixel bei 1600 × 900; größer als das Feld in der Leiste, damit der Sprung nicht abgeschnitten wird),
 ; Sichtfeld je Platz (Millimeter der Bühne; kleiner = Rolle größer), Zahl der Plätze der gemeinsamen Bühne, Überabtastung des Bildes
@@ -130,6 +56,8 @@ MeldungMasse/constants/brief_gross_abtastung_prozent = 100
 ; beim Auffalten ab, beim Zufalten bis (Zeiten des Modells, docs/bereiche/darstellung.md)
 MeldungMasse/constants/brief_gross_einblenden_ms = 100
 MeldungMasse/constants/brief_gross_ausblenden_ms = 150
+; Tempo des Auf- und Zufaltens in Prozent (100 = Länge des Clips in der .glb; 400 = viermal so schnell, etwa eine Viertelsekunde)
+MeldungMasse/constants/brief_gross_tempo_prozent = 400
 MeldungMasse/constants/brief_gross_inhalt_ab_ms = 733
 MeldungMasse/constants/brief_gross_inhalt_bis_ms = 67
 ; Farben: Grund des Symbols (der Rand hat die Farbe der Meldungsart aus meldungen.json, die Tinte ist die der Siegel), Schleier einer gelesenen Rolle

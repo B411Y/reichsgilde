@@ -20,8 +20,6 @@
     <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
     <!-- Die Zuordnung der Textmeldungen zu Arten und Stufen (Benachrichtigungen Stufe 1) kennt ebenfalls kein Godot – MeldungsordnungTests.cs -->
     <Compile Include="..\..\game\scripts\Meldungsordnung.cs" Link="Ansagen\Meldungsordnung.cs" />
-    <!-- Die Reihe der zentralen Einblendung (ruht hinter Fenstern und Briefen) kennt kein Godot – EinblendungsreiheTests.cs -->
-    <Compile Include="..\..\game\scripts\Einblendungsreihe.cs" Link="Ansagen\Einblendungsreihe.cs" />
     <!-- Was man Arbeitern im Innenraum ansieht (Stufe, Volk, Geschlecht, Haar; Personal PR #224) – ArbeitertrachtTests.cs -->
     <Compile Include="..\..\game\scripts\Arbeitertracht.cs" Link="Arbeitertracht\Arbeitertracht.cs" />
     <!-- Der Figuren-Baukasten: Rezept und Trachtkatalog aller Figuren aus den Personendaten (ohne Godot) – FigurenBaukastenTests.cs -->
@@ -71,8 +69,9 @@
     <Compile Include="..\..\game\scripts\KlinkeFolge.cs" Link="Handschuh\KlinkeFolge.cs" />
     <Compile Include="..\..\game\scripts\RathausGegenstaende.cs" Link="Rathaus\RathausGegenstaende.cs" />
     <Compile Include="..\..\game\scripts\Staendeleiter.cs" Link="Rathaus\Staendeleiter.cs" />
-    <Compile Include="..\..\game\scripts\Briefaufschub.cs" Link="Rathaus\Briefaufschub.cs" />
     <Compile Include="..\..\game\scripts\SteinMip.cs" Link="Rathaus\SteinMip.cs" />
+    <!-- Lautheits-Angleichung der Oberflächenklänge (Ton Schritt 7) – KlangLautheitTests.cs -->
+    <Compile Include="..\..\game\scripts\KlangLautheitModell.cs" Link="Handschuh\KlangLautheitModell.cs" />
     <!-- Zuordnung Übergang zu Türklang – KlangTuerTests.cs -->
     <Compile Include="..\..\game\scripts\KlangTuerModell.cs" Link="Handschuh\KlangTuerModell.cs" />
     <Compile Include="..\..\game\scripts\HandschuhLeben.cs" Link="Handschuh\HandschuhLeben.cs" />
@@ -88,6 +87,7 @@
     <Compile Include="..\..\game\scripts\ZeigerSymbole.cs" Link="Handschuh\ZeigerSymbole.cs" />
     <!-- Steinebenen je Volk: Zuordnung Volk/Stufe → Ebene des Häuser-Arrays – SteinebenenTests.cs -->
     <Compile Include="..\..\game\scripts\Steinebenen.cs" Link="Neubau\Steinebenen.cs" />
+    <Compile Include="..\..\game\scripts\EfeuZufall.cs" Link="Neubau\EfeuZufall.cs" />
     <Compile Include="..\..\game\scripts\NeubauBrand.cs" Link="Neubau\NeubauBrand.cs" />
     <!-- Modulares Wohnhaussystem: Planung der Häuserzeilen (Nachbarregel, Eckhaus, Keilstück) kennt kein Godot – ZeilenplanTests.cs -->
     <Compile Include="..\..\game\scripts\Zeilenplan.cs" Link="Neubau\Zeilenplan.cs" />

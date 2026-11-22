@@ -105,13 +105,13 @@ static class BauenTests
             Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
-            Pruefe.Gleich(36, k.Wege.Count); // Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 7 Gassen (seit 1.11.2026 Urbanusgasse und Abteigasse in Deutz), 2 Leinpfade
+            Pruefe.Gleich(40, k.Wege.Count); // seit „nur der Dom, in der Mitte“ (21.11.2026) 40 (36 minus Krähenpforte, plus Marzellenstraße und vier Domgassen); Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 7 Gassen (seit 1.11.2026 Urbanusgasse und Abteigasse in Deutz), 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(50, k.Bauzonen.Count); // seit „nur noch Bauzonen“ (16.11.2026, die Flächen der alten Plätze gehören zur Zone) 50; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48, vorher 46; seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55, seit dem Rathaus am Alter Markt (S4 auf dem Bauplatz WB_AlterMarkt1) 54; seit den Hofstellen (9.11.2026: die sechs Werkstatt-Bauplätze und zwei Zonen am Hafen werden Hofstellen) 46
+            Pruefe.Gleich(52, k.Bauzonen.Count); // seit „nur der Dom, in der Mitte“ (21.11.2026) 52 (Kern 11, Mauerring 17); seit „nur noch Bauzonen“ (16.11.2026, die Flächen der alten Plätze gehören zur Zone) 50; seit Köln nur noch Dom und drei Kirchen (11.11.2026, ohne St. Severin und St. Kunibert) 48, vorher 46; seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55, seit dem Rathaus am Alter Markt (S4 auf dem Bauplatz WB_AlterMarkt1) 54; seit den Hofstellen (9.11.2026: die sechs Werkstatt-Bauplätze und zwei Zonen am Hafen werden Hofstellen) 46
             Pruefe.Gleich(0, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_") || z.Nur is not null)); // die Werkstatt-Bauplätze sind seit 9.11.2026 freie Hofstellen (vorher 6, bis zum Rathaus am Alter Markt 7)
             Pruefe.Wahr(k.Gebaeude.All(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz)), "keine Werkstatt- und Wohnhausplätze mehr (16.11.2026; bis dahin 16 Hofstellen S1–S8, N1–N5, A1, R1, R2)");
-            Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 10, vorher 8; um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12; seit dem Rathaus am Alter Markt (ohne WB_AlterMarkt1) 11; seit den Hofstellen (9.11.2026, A1 und die Hafen-Hofstellen statt Zonen) 8
+            Pruefe.Gleich(11, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // seit „nur der Dom, in der Mitte“ (21.11.2026) 11 (K7 und K8 am alten Domplatz-Block fallen großteils weg, K5 und andere wachsen); seit Köln ohne St. Severin und St. Kunibert (11.11.2026) 10, vorher 8; um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12; seit dem Rathaus am Alter Markt (ohne WB_AlterMarkt1) 11; seit den Hofstellen (9.11.2026, A1 und die Hafen-Hofstellen statt Zonen) 8
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(0, k.Wohnhausplaetze.Count + k.GebaeudeDerArt(Bausteinart.Werkstattplatz).Count()); // seit 16.11.2026 (bis dahin je 16)
@@ -126,7 +126,9 @@ static class BauenTests
             Pruefe.Gleich("Overstolz", k.Startbelegung.Hausnamen![0]);
             Pruefe.Wahr(k.Startbelegung.Spieler.Wohnhaus is null && k.Startbelegung.Haeuser.All(h => h.Wohnhaus is null && h.Betriebe[0].Platz == ""), "niemand sitzt auf einem Platz der Karte");
 
-            Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 14, Tiefe: 30 }, "St. Gereon 14 × 30 wie im Kapazitätswerkzeug (seit dem Modell, 9.11.2026; vorher der Block 16 × 14)");
+            // Köln hat nur noch den Dom (Entscheidung des Nutzers, 21.11.2026), mitten in der Altstadt (2 | 28), 14 × 34 m; keine Pfarrkirche mehr
+            Pruefe.Wahr(k.GebaeudeMit("Dom") is { Katalog: "koelner_dom", Grundriss: { Breite: 14, Tiefe: 34 } } dom && dom.Punkt[0] == 2 && dom.Punkt[1] == 28, "Der Dom steht mitten in der Altstadt bei 2 | 28, 14 × 34 m");
+            Pruefe.Wahr(k.GebaeudeMit("Gereon") is null && k.GebaeudeMit("Martin") is null && k.GebaeudeMit("Aposteln") is null && !k.Gebaeude.Any(g => g.Katalog.StartsWith("kirche_")), "keine Pfarrkirche mehr in Köln");
 
             var k1 = k.Bauzonen.First(z => z.Art == Lage.Kern && z.Enthaelt(z.Flaeche.Average(p => p[0]), z.Flaeche.Average(p => p[1]))); // eine Kernzone, deren Mitte in ihr liegt
             var (mx, mz) = (k1.Flaeche.Average(p => p[0]), k1.Flaeche.Average(p => p[1]));
@@ -497,7 +499,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(94, Daten.Value.Version);
+            Pruefe.Gleich(95, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof
