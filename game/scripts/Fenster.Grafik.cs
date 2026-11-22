@@ -132,6 +132,7 @@ public partial class Fenster
                            Wert("kontrast", 100).AsInt32(), Wert("saettigung", 100).AsInt32(), false);
         SchaerfeSetzen(Wert("schaerfe", StandardSchaerfe).AsInt32(), false);
         FahnenSetzen(Wert("fahnen", true).AsBool(), false);
+        FarbabstimmungSetzen(Wert("farbabstimmung", true).AsBool(), false);
         OberflaecheAutomatisch = Wert("uiauto", true).AsBool();
         Randabstand = Math.Clamp(Wert("uirand", 0).AsInt32(), 0, 600);
         OberflaechengroesseSetzen(Wert("uigroesse", 100).AsInt32(), false);
@@ -350,6 +351,16 @@ public partial class Fenster
     public const int StandardSchaerfe = 40;
 
     public static bool FahnenBewegen { get; private set; } = true;
+
+    /// <summary>Farbabstimmung der Stadt nach Tages- und Jahreszeit (dezente Farb-LUT, <c>Stadtansicht.Farbabstimmung.cs</c>); Standard an, in Erweitert abschaltbar.</summary>
+    public static bool FarbabstimmungAn { get; private set; } = true;
+
+    public static void FarbabstimmungSetzen(bool an, bool speichern = true)
+    {
+        FarbabstimmungAn = an;
+        if (speichern) Speichern("farbabstimmung", an);
+        Melden();
+    }
 
     /// <summary>Stärke des Windes für die Fahnen (globale Shader-Uniform <c>wind_staerke</c>, Grundwert in <c>project.godot</c>).</summary>
     private const float Windstaerke = 0.5f;
@@ -766,6 +777,7 @@ public partial class Fenster
                                Zahl("saettigung", out var saettigung) ? saettigung : Saettigung, speichern: false);
         if (Zahl("schaerfe", out var schaerfe)) SchaerfeSetzen(schaerfe, speichern: false);
         if (optionen.TryGetValue("fahnen", out var fahnen)) FahnenSetzen(An(fahnen), speichern: false);
+        if (optionen.TryGetValue("farbabstimmung", out var farbabstimmung)) FarbabstimmungSetzen(An(farbabstimmung), speichern: false);
         if (optionen.TryGetValue("uiauto", out var uiauto)) OberflaecheAutomatischSetzen(An(uiauto), speichern: false);
         if (Zahl("uigroesse", out var uigroesse)) OberflaechengroesseSetzen(uigroesse, speichern: false);
         if (Zahl("uirand", out var uirand)) RandabstandSetzen(uirand, speichern: false);

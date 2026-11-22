@@ -203,6 +203,7 @@ Startoptionen (nach `--`). Jede Option steht einmal in einer Tabelle (Option, We
 | `--helligkeit` |  | /`--kontrast=`/`--saettigung=<Prozent>` | Grafik |
 | `--schaerfe` | `<0–100>` |  | Grafik |
 | `--fahnen` | `<An\|Aus>` |  | Grafik |
+| `--farbabstimmung` | `<0\|1>` | Farbabstimmung der Stadt nach Tages- und Jahreszeit (dezente Farb-LUT, `Stadtansicht.Farbabstimmung.cs`) nur für diesen Start: `0` aus, `1` an (Standard) | Grafik |
 | `--uigroesse` | `<75–200>` | Größe der Oberfläche in Prozent nur für diesen Start; mit `--uiauto=1` (Standard) bezogen auf 1080 Punkte Bildhöhe | Grafik |
 | `--uiauto` | `<0\|1>` | „Größe nach Fensterhöhe“ nur für diesen Start: `1` (Standard) rechnet die Oberfläche auf die Höhe des Fensters um (1280 × 800: 80 %, 4K: 200 %), `0` nimmt `--uigroesse` unverändert | Grafik |
 | `--uirand` | `<0–600>` | „Randabstand rechts“ nur für diesen Start: so viele Einheiten rücken die Tafeln am rechten Rand ins Bild (für 21:9) | Grafik |
