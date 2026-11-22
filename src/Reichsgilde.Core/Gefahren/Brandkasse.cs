@@ -129,7 +129,8 @@ public sealed class Brandkasse
 
     // ── Spielstand ──────────────────────────────────────────────────────────
 
-    internal BrandkasseStand? Sichern(Func<Konto, int> nummer) => !IstAktiv ? null : new BrandkasseStand
+    /// <summary>Ohne Brandkasse oder leer (kein Topf, keine Mitglieder) nicht geschrieben – so bleibt ein Spielstand ohne sie Byte für Byte gleich.</summary>
+    internal BrandkasseStand? Sichern(Func<Konto, int> nummer) => !IstAktiv || (Topf == 0 && _mitglieder.Count == 0) ? null : new BrandkasseStand
     {
         Topf = Topf,
         Mitglieder = _mitglieder.Select(m => new BrandkassenmitgliedStand { Konto = nummer(m.Konto), SeitJahr = m.SeitJahr }).ToList(),
