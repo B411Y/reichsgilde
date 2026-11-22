@@ -36,6 +36,16 @@ import wohnhaus_mensch_s1 as s1                                    # noqa: E402 
 import wohnhaus_mensch_s23_masse as M                              # noqa: E402
 from zimmertuer import zimmertuer                                  # noqa: E402
 import wohnhaus_mensch_s23_formen as FM                            # noqa: E402  (Grundformen 2 bis 4: Fluegel, Schuppen, Erker)
+import fachwerk_echt                                               # noqa: E402  (echtes Fachwerk, Nutzer 21.11.2026)
+import holzlage                                                    # noqa: E402  (eine Holzlage je Fachwerkwand)
+import random                                                      # noqa: E402
+
+# Echtes Fachwerk (Nutzer 21.11.2026, Probe Stufe 2 Grundform 1): Mann-Figuren, Kopfbaender, Knaggen unter den Balkenkoepfen. Nur fuer
+# Menschen (und spaeter Halblinge): gesetzt im eigenen Einstieg (main dieses Skripts), die Schichten der Zwerge und Elben behalten ihr Fachwerk.
+FACHWERK_ECHT = False
+LAGEN = {}          # Holzlage je Wand (echtes Fachwerk): fuer die Laeden (nur auf freiem Gefach)
+GIEBEL_AUSSPARUNG = {}   # Giebelwand -> (z0, z1): dort setzt das senkrechte Holz der Mitte aus (Ochsenauge der Halblinge)
+TIEFE_HOLZ = 0.05   # alle Hoelzer einer Wand buendig in dieser Tiefe vor der Putzflaeche
 
 EZ = Vector((0, 0, 1))
 feld = g1.feld
@@ -188,7 +198,46 @@ def steinwand(h, stoff, wand, z0, z1, band="bruchstein", laibung=True):
                 h.rechteck(stoff, p, richtung, -n, laenge, M.T, band, zu=mitte, anteil=(0.0, 0.6))
 
 
+def fachwerk_lage(h, wand, z0, z1, raehm=True):
+    """Echtes Fachwerk (Nutzer 21.11.2026 „sauberer bauen“): alle Hoelzer der Wand als eine Holzlage (holzlage.py) – buendig in einer
+    Ebene, zugeschnitten, geschlossen. Giebelseiten: Schwelle und Raehm laufen ueber die Ecke, die Eckstaender um die Holztiefe nach
+    aussen (die Traufseite stoesst dagegen, keine Luecke an der Ecke)."""
+    _, _, breite, _ = WAENDE[wand]
+    n3 = nvec(wand)
+    b, r = M.BW, M.RIEGEL
+    achsen, _ = M.raster(breite)
+    oeff = [(o[0], o[1], o[2], o[3], o[4]) for o in loecher(wand)]
+    fen = [(s0, s1_, za, zb) for s0, s1_, za, zb, art in oeff if art == "fenster"]
+    zbr, zst = (min(f[2] for f in fen), max(f[3] for f in fen)) if fen else (z0 + M.OG_FENSTER_Z[0] - M.Z_EG_DECKE, z0 + M.OG_FENSTER_Z[1] - M.Z_EG_DECKE)
+    giebelseite = wand.startswith(("vorn", "hinten"))
+    e = TIEFE_HOLZ + 0.02 if giebelseite else 0.0
+    lage = holzlage.Holzlage(achse=breite / 2 if giebelseite else None)
+    lage.holz((-e, z0 + 0.10), (breite + e, z0 + 0.10), 0.20, "balken_c", 0, gerade=True)                   # Schwelle
+    if raehm:
+        lage.holz((-e, z1 - 0.09), (breite + e, z1 - 0.09), 0.18, "balken_b", 0, gerade=True)               # Raehm
+    for i, s_ in enumerate(achsen):
+        a, c = s_ - b / 2, s_ + b / 2
+        if giebelseite and i == 0: a -= e
+        if giebelseite and i == len(achsen) - 1: c += e
+        lage.holz(((a + c) / 2, z0 + 0.20), ((a + c) / 2, z1 - (0.18 if raehm else 0.0)), c - a, "balken_a", 0, gerade=True)
+    for k in range(len(achsen) - 1):
+        g0, g1 = achsen[k] + b / 2, achsen[k + 1] - b / 2
+        if not (0.30 - 1e-6 <= g1 - g0 <= 1.30 + 1e-6):                                          # lichte Gefachbreite (Nutzer 21.11.2026)
+            print("HOLZLAGE Gefach", wand, f"{g1 - g0:.2f} m")
+        lage.holz((g0, zbr - r / 2), (g1, zbr - r / 2), r, "balken_b", 2, gerade=True)                     # Brustriegel
+        lage.holz((g0, zst + r / 2), (g1, zst + r / 2), r, "balken_b", 2, gerade=True)                     # Sturzriegel
+    wuerfel = random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(f"{wand}|{M.STUFE}|{getattr(M, 'FORM', 0)}")))
+    fachwerk_echt.figuren(lage, list(achsen), z0, z1, oeff, M.STUFE, wuerfel, bw=b, schwelle=0.20, raehm=0.18 if raehm else 0.0,
+                          z_brust=zbr - r, spiegel=giebelseite)
+    befunde = lage.pruefen()
+    if befunde: print("HOLZLAGE", wand, befunde[:3])
+    lage.bauen(h, lambda s_, z_, r_: punkt(wand, s_, z_, r_), Vector(n3), tiefe=TIEFE_HOLZ, wand=(0.0, breite))
+    LAGEN[wand] = lage
+
+
 def fachwerk(h, wand, z0, z1, raehm=True):
+    if FACHWERK_ECHT:
+        return fachwerk_lage(h, wand, z0, z1, raehm)
     """Fachwerk einer Geschosswand nach der Konstruktionsregel (wohnhaus_mensch_s23_masse.py): Schwelle, Rahm, Staender im
     regelmaessigen Raster, Fenster genau in Gefachen zwischen Brust- und Sturzriegel, Riegel in allen anderen Gefachen auf derselben
     Hoehe, in den beiden Eckgefachen spiegelgleiche Streben (vom Eckstaender unten nach innen oben)."""
@@ -219,13 +268,42 @@ def fachwerk(h, wand, z0, z1, raehm=True):
     for k in range(len(achsen) - 1):
         g0, g1 = achsen[k] + b / 2, achsen[k + 1] - b / 2
         hat_fenster = any(abs(f[0] - g0) < 0.01 and abs(f[1] - g1) < 0.01 for f in fen)
-        ecke = k in (0, len(achsen) - 2) and not hat_fenster and len(achsen) > 3
+        ecke = k in (0, len(achsen) - 2) and not hat_fenster and len(achsen) > 3 and not FACHWERK_ECHT   # echtes Fachwerk: Mann-Figuren
         if ecke:
             aussen, innen = (g0, g1) if k == 0 else (g1, g0)
             h.brett(holz, P(aussen, z0 + 0.22), P(innen, z1 - 0.20), 0.13, n3, "balken_a", tiefe=0.045)
             continue
         h.brett(holz, P(g0, zbr - r / 2), P(g1, zbr - r / 2), r, n3, "balken_b", tiefe=0.045)                  # Brustriegel
         h.brett(holz, P(g0, zst + r / 2), P(g1, zst + r / 2), r, n3, "balken_b", tiefe=0.045)                  # Sturzriegel
+
+
+def laeden_frei(lage, s0, s1, t0, t1, breite):
+    """Offene Laeden nur auf freiem Gefach (Nutzer 21.11.2026): je Seite das freie Stueck Wand neben dem Fenster in Fensterhoehe; der Laden
+    ist so breit wie das halbe Fenster, hoechstens so breit wie das freie Stueck (mindestens 0,22 m), sonst entfaellt er."""
+    sperren = []
+    for poly, *_ in lage.hoelzer:
+        zs = [q[1] for q in poly]
+        if max(zs) > t0 - 0.02 and min(zs) < t1 + 0.02:
+            xs = [q[0] for q in poly]
+            sperren.append((min(xs), max(xs)))
+    sperren.append((s0 - 0.04, s1 + 0.04))
+    sperren.sort()
+    frei, x = [], 0.0
+    for a, e in sperren:
+        if a > x: frei.append((x, a))
+        x = max(x, e)
+    if x < breite: frei.append((x, breite))
+    halb = (s1 - s0) / 2
+    aus = []
+    links = [f for f in frei if f[1] <= s0 + 1e-6]
+    rechts = [f for f in frei if f[0] >= s1 - 1e-6]
+    if links:
+        a, e = links[-1]; w = min(halb, e - a - 0.04)
+        if w >= 0.22: aus.append((e - 0.02 - w, e - 0.02))
+    if rechts:
+        a, e = rechts[0]; w = min(halb, e - a - 0.04)
+        if w >= 0.22: aus.append((a + 0.02, a + 0.02 + w))
+    return aus
 
 
 def oeffnungen(h):
@@ -257,7 +335,15 @@ def oeffnungen(h):
             continue
         if wand.endswith(("_gb", "_tg")):
             fensterstock(h, wand, s0, s1_, z0, z1)
-            h.brett(holz, P(s0 - 0.08, z0 - 0.055), P(s1_ + 0.08, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.07)   # 5 mm unter der Oeffnung
+            ul_ = ur_ = 0.08
+            if FACHWERK_ECHT and wand in LAGEN:   # echtes Fachwerk: der Brustriegel ist die Bank (buendig in der Holzlage)
+                fensterstock(h, wand, s0, s1_, z0, z1)
+                continue
+            if FACHWERK_ECHT:   # die Bank endet buendig mit der Aussenkante des Staenders (am Nachbarfenster in der Mitte des Staenders)
+                nb = [(b0 - start, b1 - start) for w2, (b0, b1), _z, art2 in M.FENSTER if w2 == wand and (b0, b1) != (a0, a1)]
+                ul_ = min([M.BW] + [(s0 - n1) / 2 for n0, n1 in nb if n1 <= s0 + 1e-6])
+                ur_ = min([M.BW] + [(n0 - s1_) / 2 for n0, n1 in nb if n0 >= s1_ - 1e-6])
+            h.brett(holz, P(s0 - ul_, z0 - 0.055), P(s1_ + ur_, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.07)   # 5 mm unter der Oeffnung
             continue
         if eg:   # Stein: Sohlbank und Sturz aus Stein, Rahmen aus Holz
             h.kasten(stein, tuple(min(a, b) for a, b in zip(P(s0 - 0.08, z0 - 0.09, 0.07), P(s1_ + 0.08, z0 - 0.005, 0.0))),
@@ -268,16 +354,19 @@ def oeffnungen(h):
             # Fensterbank 5 mm unter dem Brustriegel; bei einem Fensterpaar (Pfeiler 17 cm) eine durchgehende Bank fuer beide Fenster –
             # zwei Baenke ueberlappten sich am Pfeiler (deckungsgleich)
             gruppe = next(g for g in fenster_gruppen(wand) if any(abs(a_ - s0) < 1e-6 for a_, _b in g[0]))
-            if abs(gruppe[0][0][0] - s0) < 1e-6:
-                h.brett(holz, P(s0 - 0.12, z0 - 0.055), P(gruppe[0][-1][1] + 0.12, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
+            if abs(gruppe[0][0][0] - s0) < 1e-6 and not (FACHWERK_ECHT and wand in LAGEN):   # echtes Fachwerk: Brustriegel statt Bank
+                ue = M.BW if FACHWERK_ECHT else 0.12      # echtes Fachwerk: buendig mit den Aussenkanten der Staender (Bildpruefung)
+                h.brett(holz, P(s0 - ue, z0 - 0.055), P(gruppe[0][-1][1] + ue, z0 - 0.055), 0.10, n3, "balken_c", tiefe=0.08)
         fensterstock(h, wand, s0, s1_, z0, z1)
         lb = (s1_ - s0) / 2
         fluegel = [(s0 - lb - 0.03, s0 - 0.03), (s1_ + 0.03, s1_ + lb + 0.03)]
         nachbarn = [(b0 - start, b1 - start) for w2, (b0, b1), _z, art2 in M.FENSTER if w2 == wand and art2 == "fenster" and (b0, b1) != (a0, a1)]
         fluegel = [(f0, f1) for f0, f1 in fluegel if not any(min(f1, n1) - max(f0, n0) > -0.25 for n0, n1 in nachbarn)]   # kein Laden vor dem Nachbarfenster
+        if FACHWERK_ECHT and wand in LAGEN:   # nur auf freiem Gefach, so breit wie Platz ist (Nutzer 21.11.2026)
+            fluegel = laeden_frei(LAGEN[wand], s0, s1_, z0, z1, breite)
         for f0, f1 in fluegel:
             if f0 < 0.05 or f1 > breite - 0.05: continue
-            vor = 0.04 if eg else 0.085
+            vor = 0.04 if eg else (TIEFE_HOLZ * 0.3 if FACHWERK_ECHT and wand in LAGEN else 0.085)
             h.rechteck(holz, P(f0, z0 - 0.02, vor), (ex, ey, 0), EZ, f1 - f0, z1 - z0 + 0.04, "farbholz", laengs="v", weg_von=MITTE, farbe=ROT)
             for z in (z0 + 0.12, z1 - 0.12):
                 h.rechteck(stein, P(f0, z - 0.03, vor + 0.006), (ex, ey, 0), EZ, f1 - f0, 0.06, "eisen", weg_von=MITTE)
@@ -421,10 +510,20 @@ def gaube(d, stoff):
            laibung=("Fachwerk", "balken_c"), laibung_tiefe=0.12, weg_von=MITTE)
     d.welt("Lehmputz", [(xf, y0, zt), (xf, y1, zt), (xf, ym, zfirst)], "putz", (xf, y0, 0), (0, 1, 0), zt, zfirst - zt, weg_von=MITTE)
     n3 = (1, 0, 0)
-    for y in (y0 + 0.06, y1 - 0.06):
-        d.brett("Fachwerk", (xf, y, zb), (xf, y, zt), 0.12, n3, "balken_a", laengs="v", tiefe=0.04)
-    d.brett("Fachwerk", (xf, y0, zt - 0.05), (xf, y1, zt - 0.05), 0.12, n3, "balken_b", tiefe=0.05)
-    d.brett("Fachwerk", (xf, y0, zb + 0.06), (xf, y1, zb + 0.06), 0.12, n3, "balken_c", tiefe=0.05)
+    if FACHWERK_ECHT:   # Stirn der Gaube als eine Holzlage (buendig, geschlossen; Nutzer 21.11.2026)
+        lage = holzlage.Holzlage()
+        lage.holz((y0, zb + 0.06), (y1, zb + 0.06), 0.12, "balken_c", 0, gerade=True)
+        lage.holz((y0, zt - 0.05), (y1, zt - 0.05), 0.12, "balken_b", 0, gerade=True)
+        for y in (y0 + 0.06, y1 - 0.06):
+            lage.holz((y, zb + 0.12), (y, zt - 0.11), 0.12, "balken_a", 0, gerade=True)
+        befunde = lage.pruefen()
+        if befunde: print("HOLZLAGE gaube", befunde[:3])
+        lage.bauen(d, lambda s_, z_, r_: Vector((xf + r_, s_, z_)), Vector(n3), tiefe=TIEFE_HOLZ, wand=(y0, y1))
+    else:
+        for y in (y0 + 0.06, y1 - 0.06):
+            d.brett("Fachwerk", (xf, y, zb), (xf, y, zt), 0.12, n3, "balken_a", laengs="v", tiefe=0.04)
+        d.brett("Fachwerk", (xf, y0, zt - 0.05), (xf, y1, zt - 0.05), 0.12, n3, "balken_b", tiefe=0.05)
+        d.brett("Fachwerk", (xf, y0, zb + 0.06), (xf, y1, zb + 0.06), 0.12, n3, "balken_c", tiefe=0.05)
     for s0, s1_ in (((ym - fb / 2), (ym + fb / 2)),):
         P = lambda y, z: Vector((xf - 0.06, y, z))
         for a, b in ((P(s0, fz0 + 0.025), P(s1_, fz0 + 0.025)), (P(s0, fz0 + fh - 0.025), P(s1_, fz0 + fh - 0.025)),
@@ -505,6 +604,8 @@ def giebel(h, wand, y, aussen):
             for p, richtung, laenge in (((a0, y, za), Vector((1, 0, 0)), a1 - a0), ((a0, y, zb), Vector((1, 0, 0)), a1 - a0), ((a0, y, za), EZ, zb - za), ((a1, y, za), EZ, zb - za)):
                 h.rechteck(holz, p, richtung, -n, laenge, 0.14, "balken_c", zu=Vector(((a0 + a1) / 2, y - aussen * 0.07, (za + zb) / 2)), anteil=(0.0, 0.6))
     n3 = (0, aussen, 0)
+    if FACHWERK_ECHT:
+        return giebel_lage(h, wand, y, aussen, fen, xk)
     # Giebelfachwerk nach der Konstruktionsregel: dasselbe Staenderraster wie das Geschoss darunter, Giebelschwelle, Fenster in den
     # beiden Gefachen an der Mittelachse zwischen Brustriegel und Kehlbalken (der Kehlbalken ist ihr Sturz), Staender bis unter die
     # Giebelsparren, darueber Hahnenbalken und Spitzsaeule bis zum First; Streben in den aeusseren Gefachen; spiegelgleich.
@@ -538,6 +639,59 @@ def giebel(h, wand, y, aussen):
             h.brett(holz, (s * (x - b / 2), y, zt + 0.22), (s * x2, y, dach(x2) - 0.08), 0.12, n3, "balken_a", tiefe=0.04)
         # ueber dem Kehlbalken: Strebe von dessen Ende zur Spitzsaeule unter dem Hahnenbalken
         h.brett(holz, (s * (xk(zk) - 0.15), y, zk + 0.10), (s * (b / 2), y, zh - 0.10), 0.12, n3, "balken_a", tiefe=0.04)
+
+
+def giebel_lage(h, wand, y, aussen, fen, xk):
+    """Giebelfachwerk als Holzlage (echtes Fachwerk): Giebelschwelle, Giebelsparren, Mittelstaender, Kehl- und Hahnenbalken, Staender,
+    Brustriegel, Streben – alle buendig, Staender und Streben genau unter den Sparren zugeschnitten; spiegelgleich (Pruefung 2)."""
+    from holzlage import kasten, schnitt, schneide
+    zt, zf = M.Z_TRAUFE, M.Z_FIRST
+    b, r = M.BW, M.RIEGEL
+    achsen = [s_ - M.OX for s_ in M.raster(2 * M.OX)[0]]
+    z_br = min([f[2] for f in fen] or [zt + 0.75])
+    z_kb = max([f[3] for f in fen] or [zt + 1.50])
+    zk = z_kb + 0.08
+    zh = zk + 0.55 * (zf - zk)
+    x0 = M.OX + 0.02
+    # Giebelsparren: Mittellinie von (+-x0, zt + 0,02) zum First, 0,16 breit; innen darunter liegt das Feld der uebrigen Hoelzer
+    innen = kasten(-x0, x0, zt, zf + 1.0)
+    for sg in (-1, 1):
+        ax, az, bx, bz = sg * x0, zt + 0.02, 0.0, zf - 0.02
+        dx, dz = bx - ax, bz - az
+        l = math.hypot(dx, dz); dx, dz = dx / l, dz / l
+        nx, nz = (dz, -dx) if sg > 0 else (-dz, dx)         # nach innen unten
+        if nz > 0: nx, nz = -nx, -nz
+        p0 = (ax + nx * 0.08, az + nz * 0.08)
+        innen = schneide(innen, p0, (nx, nz))
+    # Umriss: das Giebeldreieck ab der Unterkante der Giebelschwelle (darunter liegt das Raehm des Obergeschosses, eine eigene Lage)
+    lage = holzlage.Holzlage(achse=0.0, umriss=[(-x0 - 0.3, zt), (x0 + 0.3, zt), (0.0, zf + 0.3)])
+    lage.holz((-x0, zt + 0.09), (x0, zt + 0.09), 0.18, "balken_c", 0, gerade=True)                            # Giebelschwelle (auf dem Raehm)
+    for sg in (-1, 1):
+        lage.holz((sg * x0, zt + 0.02), (0.0, zf - 0.02), 0.16, "balken_c", 0, gerade=True)                  # Giebelsparren
+    aus = GIEBEL_AUSSPARUNG.get(wand)
+    for za_, zb_ in (((zt, aus[0]), (aus[1], zf + 1.0)) if aus else ((zt, zf + 1.0),)):
+        if zb_ - za_ > 0.05:
+            lage.holz((0.0, zt + 0.16), (0.0, zf), b, "balken_a", 0, zuschnitt=schnitt(innen, kasten(-x0, x0, za_, zb_)))   # Mittelstaender, Spitzsaeule
+    lage.holz((-x0, zk), (x0, zk), 0.16, "balken_b", 1, zuschnitt=innen)                                     # Kehlbalken
+    lage.holz((-x0, zh), (x0, zh), 0.15, "balken_b", 1, zuschnitt=innen)                                     # Hahnenbalken
+    unter_kehl = schnitt(innen, kasten(-x0, x0, zt, zk))
+    for x in achsen:
+        if abs(x) < 1e-6: continue
+        feld = unter_kehl if abs(x) < xk(zk) else innen
+        if not schnitt(kasten(x - b / 2, x + b / 2, zt + 0.16, zt + 0.5), feld): continue
+        lage.holz((x, zt + 0.16), (x, zf), b, "balken_a", 0, zuschnitt=feld)                                  # Staender bis unter den Sparren
+    innen_x = [x for x in achsen if 0 < x < xk(zk)]
+    x_bis = max(innen_x) if innen_x else 0.0
+    aussen_x = [x for x in achsen if x > x_bis + 1e-6]
+    for sg in (-1, 1):
+        lage.holz((sg * b / 2, z_br - r / 2), (sg * (x_bis - b / 2), z_br - r / 2), r, "balken_b", 2, gerade=True)   # Brustriegel
+        # (keine Strebe zum Sparren mehr in den aeusseren Feldern: im schmalen Restfeld lag sie fast am Staender, Bildpruefung 21.11.2026)
+        lage.holz((sg * (xk(zk) - 0.15), zk + 0.08), (sg * (b / 2), zh - 0.075), 0.12, "balken_a", 1,
+                  zuschnitt=schnitt(innen, kasten(-x0, x0, zk + 0.08, zh - 0.075)))                          # Strebe ueber dem Kehlbalken
+    befunde = lage.pruefen()
+    if befunde: print("HOLZLAGE", wand, befunde[:3])
+    lage.bauen(h, lambda s_, z_, r_: Vector((s_, y + aussen * r_, z_)), Vector((0, aussen, 0)), tiefe=TIEFE_HOLZ, wand=(-M.OX, M.OX))
+    LAGEN[wand] = lage
 
 
 def steingiebel(h, wand, y, aussen):
@@ -701,11 +855,15 @@ def baue_haus():
             x = -M.OX + 0.2 + i * (2 * M.OX - 0.4) / 6
             # endet an der Mauerflucht mit Stirn (nicht in der Mauer: das verdeckte Mauerstueck hinter dem Balken backte schwarz)
             h.kasten(holz, (x - 0.08, M.OVORN - 0.02, M.Z_EG_DECKE - 0.17), (x + 0.08, M.VORN, M.Z_EG_DECKE), "balken_c", ohne=("+z",), laengs="y")
+            if FACHWERK_ECHT:   # Knagge unter dem Balkenkopf (Vorbild Rathaus Alsfeld)
+                fachwerk_echt.knaggen(h, [(x, M.VORN, M.Z_EG_DECKE - 0.17 - 0.25)], (0, -1, 0), hoehe=0.25, krag=M.VORN - M.OVORN)
         for seite in (-1, 1):
             for i in range(5):
                 y = M.VORN + 0.4 + i * (M.HINTEN - M.VORN - 0.8) / 4
                 h.kasten(holz, (min(seite * M.BX, seite * (M.OX + 0.02)), y - 0.08, M.Z_EG_DECKE - 0.17), (max(seite * M.BX, seite * (M.OX + 0.02)), y + 0.08, M.Z_EG_DECKE), "balken_c",
                          ohne=("+z",), laengs="x")
+                if FACHWERK_ECHT:
+                    fachwerk_echt.knaggen(h, [(seite * M.BX, y, M.Z_EG_DECKE - 0.17 - 0.25)], (seite, 0, 0), hoehe=0.25, krag=M.OX - M.BX)
     holz_akzent(h, balkenkoepfe)
     oeffnungen(h)
     # Steinschornstein aussen an der rechten Wand (Herd der Wohnstube, Kamin bzw. Ofen des Raums)
@@ -1469,4 +1627,6 @@ def main():
 
 
 if __name__ == "__main__":
+    FACHWERK_ECHT = True                              # eigener Einstieg der Menschen (Nutzer 21.11.2026)
+    FM.FACHWERK_ECHT = True
     main()
