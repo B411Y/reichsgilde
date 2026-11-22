@@ -80,6 +80,64 @@ public sealed class Marktflaeche
         return d;
     }
 
+    /// <summary>
+    /// Schiebt einen Punkt aus den Hindernissen heraus, bis sein Abstand zu jedem mindestens <paramref name="frei"/> beträgt (Körperradius der Figur): bei einem Kreis
+    /// radial weg von der Mitte, bei einem Rechteck vom nächsten Randpunkt weg (innen zur nächsten Kante). Mehrere Durchgänge, falls das Wegschieben vor ein
+    /// anderes Hindernis führt; ist kein Hindernis zu nah, kommt der Punkt unverändert zurück.
+    /// </summary>
+    public (float X, float Z) HerausSchieben(float x, float z, float frei)
+    {
+        // Zwischen zwei Hindernissen, die enger stehen als ein Körper, schiebt eines den Punkt ins andere: dann gilt die Lage mit dem größten Abstand
+        var (bestX, bestZ, bestAbstand) = (x, z, Abstand(x, z));
+        for (var runde = 0; runde < 8; runde++)
+        {
+            var bewegt = false;
+            foreach (var (kx, kz, r) in _kreise)
+            {
+                var (dx, dz) = (x - kx, z - kz);
+                var d = MathF.Sqrt(dx * dx + dz * dz);
+                if (d >= r + frei) continue;
+                var (nx, nz) = d > 1e-4f ? (dx / d, dz / d) : (1f, 0f);
+                (x, z) = (kx + nx * (r + frei), kz + nz * (r + frei));
+                bewegt = true;
+            }
+            foreach (var re in _rechtecke)
+            {
+                if (re.Abstand(x, z) >= frei) continue;
+                var (dx, dz) = (x - re.X, z - re.Z);
+                var (u, v) = (dx * re.Ux + dz * re.Uz, -dx * re.Uz + dz * re.Ux);
+                var (au, av) = (MathF.Abs(u) - re.HalbU, MathF.Abs(v) - re.HalbV);
+                float nu, nv;
+                if (au > 0 || av > 0)
+                {
+                    // außerhalb: vom nächsten Randpunkt weg
+                    var (cu, cv) = (Math.Clamp(u, -re.HalbU, re.HalbU), Math.Clamp(v, -re.HalbV, re.HalbV));
+                    var (eu, ev) = (u - cu, v - cv);
+                    var l = MathF.Sqrt(eu * eu + ev * ev);
+                    (nu, nv) = (cu + eu / l * frei, cv + ev / l * frei);
+                }
+                else if (au > av) (nu, nv) = ((u < 0 ? -1 : 1) * (re.HalbU + frei), v); // innen: über die nächste Kante hinaus
+                else (nu, nv) = (u, (v < 0 ? -1 : 1) * (re.HalbV + frei));
+                (x, z) = (re.X + nu * re.Ux - nv * re.Uz, re.Z + nu * re.Uz + nv * re.Ux);
+                bewegt = true;
+            }
+            if (!bewegt) break;
+            var abstand = Abstand(x, z);
+            if (abstand > bestAbstand) (bestX, bestZ, bestAbstand) = (x, z, abstand);
+            if (abstand >= frei) break;
+        }
+        return (bestX, bestZ);
+    }
+
+    /// <summary>Beschreibung des nächsten Hindernisses (für Messzeilen).</summary>
+    public string Naechstes(float x, float z)
+    {
+        var (d, text) = (1e6f, "-");
+        foreach (var (kx, kz, r) in _kreise) { var a = MathF.Sqrt((x - kx) * (x - kx) + (z - kz) * (z - kz)) - r; if (a < d) (d, text) = (a, $"Kreis ({kx:0.0},{kz:0.0}) r{r:0.0}"); }
+        foreach (var r in _rechtecke) { var a = r.Abstand(x, z); if (a < d) (d, text) = (a, $"Rechteck ({r.X:0.0},{r.Z:0.0}) {r.HalbU:0.0}x{r.HalbV:0.0}{(Staende.Contains(r) ? " Stand" : "")}"); }
+        return text;
+    }
+
     /// <summary>Lokale Koordinaten (Meter ab der Mitte, längs der Achsen des Platzes).</summary>
     public (float U, float V) Lokal(float x, float z)
     {
