@@ -69,10 +69,15 @@ python -I tools/modelle/pferd2_geschirr.py <p5c.npz> <Stehen_J.npz> <Ziehen_gehe
 blender -b --python tools/modelle/pferd2_reduce.py -- --ein=<p5c_g.npz> --aus=<p5c_fern.npz> --schutz --weld --Horse=950 --Hair=420 --Horseshoe=60 --Cornea=16 --Geschirr=140 --schutzw=0.9
 python -I tools/modelle/pferd2_fell.py <p5c_g.npz> <Stehen_J.npz> <tex> <fell> --staerke=0.35 --strich=16 --strich_fein=6 --strich_farbe=0.09
 python -I tools/modelle/pferd2_spiel.py <p5c_g.npz> <p5c_fern.npz> <braun|fuchs|rappe> <tex> <ausgabe.glb> --clipdateien="Gehen=<J.npz>;…" --ruhepose=<Stehen_J.npz> --info=<geschirr_info.json> --fell=<fell>
-python -I tools/modelle/pferd2_zugtiere_json.py <geschirr_info.json>
+python -I tools/modelle/pferd2_zugtiere_json.py <geschirr_info.json> <zugtiere.json> --kurve_faktor=0.6
+python -I tools/modelle/pferd2_abzeichen.py <p5c_g5.npz> <Stehen_J.npz> <Ordner>   # Abzeichen-Masken: pferd_abzeichen_kopf.png, pferd_abzeichen_beine.png
 blender -b --python tools/modelle/karren.py -- --nur=pferd
 blender -b --python tools/modelle/pferd2_gespann.py -- --karren=<karren_pferd.glb> --paket=<p5c_g.npz> --framen=<Ziehen gehen_J.npz> --info=<geschirr_info.json> --aus=<Ordner> --norm=<henry_norm.json>
 ```
+
+Abzeichen (23.11.2026, Nutzer): zwei Masken im UV des Fells, eigenes Skript ohne fremdes Bildmaterial (`pferd2_abzeichen.py`, aus Lage und Normale der Stehpose):
+`pferd_abzeichen_kopf.png` (R Stern, G Blesse, B Schnippe, A Maulpartie, weich) und `pferd_abzeichen_beine.png` (Beinnummer und Höhe bis 0,5 m, ohne Filter gelesen).
+Welche Abzeichen ein Pferd trägt, wählt das Spiel (Kopf 6, je Bein 3, Maul 3 Möglichkeiten, gleich häufig; beim Rappen Maul nur wie das Fell oder heller).
 
 Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbraun.glb`, Fuchs = `tier_pferd_fuchs.glb`.
 
@@ -81,8 +86,8 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
 `c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge): `tier_pferd_fuchs.glb`
-`29429e9a9f8420b0d1b96195a474e610396a27223becd84e8c392157b5a2a758`, `tier_pferd_rotbraun.glb` `00caf7562cfc7d5c522ed5a0d29b376aebb325030b271f36f81bbef9c8dfef22`,
-`tier_pferd_schwarzbraun.glb` `35ca20caf12811ce7534cf3e0de0a410149028eda411c0c15042420b968d052a` (Gang p8 mit diagonalen Paaren, Fell mit Normal- und ORM-Karte, Schweifspalt im Export geschlossen, Fuchs-Haar etwas dunkler, Kurvenclips Gehen_Links/Gehen_Rechts). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`4af2c8b73912492dea4ebf3e4d0b72f624305f5efa6bfed1bcbc1e2e535312e5`, `tier_pferd_rotbraun.glb` `005f86fc777701f4f2ae50e1d6b1f5ec34959490ae1327e12eb3fd365b0c7608`,
+`tier_pferd_schwarzbraun.glb` `87e625752aa9bc6cb8f2427a152d966131a52a3d50ca979992c92f2641c91d20` (Gang p8 mit diagonalen Paaren, Fell mit Normal- und ORM-Karte, Schweifspalt im Export geschlossen, Fuchs-Haar etwas dunkler, Kurvenclips Gehen_Links/Gehen_Rechts mit `--kurve=±0.6`). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

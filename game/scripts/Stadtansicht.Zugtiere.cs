@@ -71,6 +71,8 @@ public partial class Stadtansicht
         public Dictionary<string, HashSet<int>> OhneSpur { get; } = new();
         /// <summary>Fern: gerade gezeigter Kurvenclip (0 gerade, +1 links, −1 rechts), mit getrennten Schwellen zum Ein- und Ausschalten.</summary>
         public int KurveVat { get; set; }
+        /// <summary>Abzeichen-Code (<see cref="AbzeichenCode"/>; 0 = keine), nah als Instanz-Parameter, fern in INSTANCE_CUSTOM.z.</summary>
+        public int Abzeichen { get; set; }
     }
 
     /// <summary>Knickwinkel (Grad), bei dem die Kurvenhaltung voll erreicht ist; die gebackene Stufe (fern) wechselt ab <see cref="KurveVatSchwelle"/> in den Kurvenclip.</summary>
@@ -130,6 +132,75 @@ public partial class Stadtansicht
         };
     }
 
+    // Abzeichen (Nutzer 23.11.2026): jede Gruppe gleich häufig, alle Gruppen unabhängig; nur Darstellung, fester Hash aus dem Startwert des Fuhrmanns
+    // (wie das Fell) und der Nummer des Tiers, nicht gespeichert und nicht aus der Zufallsquelle des Kerns. Masken: tools/modelle/pferd2_abzeichen.py.
+    private const string AbzeichenKopfPfad = "res://assets/texturen/tiere/pferd_abzeichen_kopf.png";
+    private const string AbzeichenBeinePfad = "res://assets/texturen/tiere/pferd_abzeichen_beine.png";
+
+    /// <summary>
+    /// Abzeichen-Code eines Pferds (Aufbau in <c>tier_abzeichen.gdshaderinc</c>): Kopf 6 Möglichkeiten (keins, Stern, Blesse, Schnippe, Stern+Schnippe,
+    /// Blesse+Schnippe), je Bein 3 (nichts, Krone/Fessel, Socke), Maul 3 (wie das Fell, dunkler, heller); beim Rappen ist „dunkler“ nicht zu sehen, dort
+    /// nur „wie das Fell“ oder „heller“ (je die Hälfte). Gleich häufig über den Rest eines 32-Bit-Hashs (Abweichung unter 1e-8).
+    /// </summary>
+    internal static int AbzeichenCode(int startwert, int i, bool rappe)
+    {
+        var h = StabilerHash($"{startwert}/{i}/abzeichen");
+        var kopf = (int)(h % 6); h /= 6;
+        var beine = 0;
+        for (int b = 0, stelle = 1; b < 4; b++, stelle *= 3) { beine += (int)(h % 3) * stelle; h /= 3; }
+        var maul = rappe ? (int)(h % 2) * 2 : (int)(h % 3);
+        return kopf + 6 * beine + 486 * maul;
+    }
+
+    private Texture2D? _abzeichenKopf, _abzeichenBeine;
+    private readonly Dictionary<Material, ShaderMaterial> _abzeichenStoffe = new();
+
+    /// <summary>Lädt die Abzeichen-Masken einmal; null, wenn sie fehlen (dann ohne Abzeichen).</summary>
+    private (Texture2D Kopf, Texture2D Beine)? AbzeichenMasken()
+    {
+        if (_abzeichenKopf is null && ResourceLoader.Exists(AbzeichenKopfPfad) && ResourceLoader.Exists(AbzeichenBeinePfad))
+        {
+            _abzeichenKopf = GD.Load<Texture2D>(AbzeichenKopfPfad);
+            _abzeichenBeine = GD.Load<Texture2D>(AbzeichenBeinePfad);
+        }
+        return _abzeichenKopf is not null && _abzeichenBeine is not null ? (_abzeichenKopf, _abzeichenBeine) : null;
+    }
+
+    /// <summary>Setzt das Abzeichen-Material (tier_skelett.gdshader, eins je Fell) auf die Fläche mit dem Fell und den Code als Instanz-Parameter.</summary>
+    private void AbzeichenSetzen(Node3D tierModell, int code)
+    {
+        if (AbzeichenMasken() is not { } masken) return;
+        foreach (var teil in tierModell.FindChildren("Nah_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
+            {
+                if (teil.Mesh!.SurfaceGetMaterial(s) is not BaseMaterial3D { AlbedoTexture: not null } quelle) continue;
+                if (!_abzeichenStoffe.TryGetValue(quelle, out var stoff))
+                {
+                    stoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/tier_skelett.gdshader") };
+                    stoff.SetShaderParameter("albedo_textur", quelle.AlbedoTexture);
+                    if (quelle is { NormalEnabled: true, NormalTexture: { } normal })
+                    {
+                        stoff.SetShaderParameter("hat_normal", true);
+                        stoff.SetShaderParameter("normal_textur", normal);
+                        stoff.SetShaderParameter("normal_staerke", quelle.NormalScale);
+                    }
+                    if ((quelle.Get("orm_texture").As<Texture2D>() ?? quelle.RoughnessTexture) is { } orm)
+                    {
+                        stoff.SetShaderParameter("hat_orm", true);
+                        stoff.SetShaderParameter("orm_textur", orm);
+                    }
+                    stoff.SetShaderParameter("hat_abzeichen", true);
+                    stoff.SetShaderParameter("abzeichen_kopf", masken.Kopf);
+                    stoff.SetShaderParameter("abzeichen_beine", masken.Beine);
+                    _abzeichenStoffe[quelle] = stoff;
+                }
+                teil.SetSurfaceOverrideMaterial(s, stoff);
+            }
+            teil.SetInstanceShaderParameter("abzeichen_code", (float)code);
+        }
+    }
+
     /// <summary>Name des Tiers einer Art („pferd“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
     private static string TierNameVon(int art) => ProbeArten[art].Varianten[0];
 
@@ -171,6 +242,8 @@ public partial class Stadtansicht
             foreach (var teil in tierModell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
                 for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
                     if (teil.Mesh!.SurfaceGetMaterial(s) is BaseMaterial3D { AlbedoTexture: null } stoff) FarbenEinrichten(stoff); // Eckenfarben (sRGB), wie bei allen Modellen; das Pferd trägt eine Textur
+            var abzeichen = tier == "pferd" ? AbzeichenCode(fuhrmann.Startwert, i, rappe: nummer == ProbeErsteTierart + 1) : 0;
+            if (abzeichen > 0) AbzeichenSetzen(tierModell, abzeichen);
             var spieler = tierModell.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
             spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual; // das Spiel setzt die Pose selbst
             Zugtierdaten.KlipsEinrichten(spieler, tier); // Länge = Dauer der Datei, Schleifen linear (Godot nennt sie sonst um 1/24 s zu lang)
@@ -178,7 +251,7 @@ public partial class Stadtansicht
             var t = new Zugtier
             {
                 Halter = halter, Modell = tierModell, Spieler = spieler, Art = nummer, Daten = daten, Seed = seed,
-                ZugVersatz = zugVersatz,
+                ZugVersatz = zugVersatz, Abzeichen = abzeichen,
                 Versatz = art.TierAnker.Length > 1 ? i * 0.5 : 0, // Zweispänner: das zweite Pferd um eine halbe Schleife versetzt
             };
             if (daten.Kurve.Length > 0 && tierModell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault() is { } skelett)
@@ -523,7 +596,7 @@ public partial class Stadtansicht
                 var phase = stehen ? tier.Phase : tier.LaufPhase;
                 var (_, bilder) = _probeKlipZeilen[tier.Art][nr];
                 var bild = (float)(phase % dauer / dauer * bilder);
-                Eintragen($"{tier.Art}:{(_probeFern ? "Fern" : "Nah")}_{TierNameVon(tier.Art)}", tier.Modell.GlobalTransform, bild, nr, 0f);
+                Eintragen($"{tier.Art}:{(_probeFern ? "Fern" : "Nah")}_{TierNameVon(tier.Art)}", tier.Modell.GlobalTransform, bild, nr, tier.Abzeichen);
                 _probeGezeichnet++;
             }
         }

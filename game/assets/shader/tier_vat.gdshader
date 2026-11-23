@@ -4,7 +4,7 @@
 // „Farben“ der Modelle, sRGB). Das Pferd (Modell „Horse“ von henrysteve973, CC BY 4.0) trägt stattdessen eine Albedo-Textur (hat_textur, UV im Netz,
 // ein Atlas: Fell, Mähne als Alpha-Maske, Hufeisen, Augen, Geschirr); die Mähne wird bei Alpha < 0,5 weggeschnitten (wie MASK im Skelett-Material).
 // Dazu Normal- und ORM-Karte des Pferds (hat_normal, hat_orm; Atlas in halber Auflösung, gleiche UV): Haarstrich im Fell, Narbung, Maserung, Eisen.
-// INSTANCE_CUSTOM.x = Stand in der Schleife (Bilder), y = Clip.
+// INSTANCE_CUSTOM.x = Stand in der Schleife (Bilder), y = Clip, z = Abzeichen-Code (tier_abzeichen.gdshaderinc; 0 = keine).
 shader_type spatial;
 render_mode cull_disabled;
 
@@ -20,8 +20,10 @@ uniform float normal_staerke = 1.0;
 // ORM: R Verdeckung, G Rauheit, B Metall (wie glTF occlusion/metallicRoughness).
 uniform bool hat_orm = false;
 uniform sampler2D orm_textur : hint_default_white, filter_linear_mipmap, repeat_disable;
+#include "res://assets/shader/tier_abzeichen.gdshaderinc"
 
 varying vec3 grundfarbe;
+varying flat float abzeichen_code;
 
 void vertex() {
 	int ecke = int(UV2.x);
@@ -40,6 +42,7 @@ void vertex() {
 	VERTEX = mix(p0, p1, t);
 	NORMAL = normalize(mix(n0, n1, t));
 	grundfarbe = COLOR.rgb;
+	abzeichen_code = INSTANCE_CUSTOM.z;
 	if (!OUTPUT_IS_SRGB) {
 		grundfarbe = mix(pow((COLOR.rgb + vec3(0.055)) * (1.0 / 1.055), vec3(2.4)), COLOR.rgb * (1.0 / 12.92), lessThan(COLOR.rgb, vec3(0.04045)));
 	}
@@ -48,7 +51,7 @@ void vertex() {
 void fragment() {
 	if (hat_textur) {
 		vec4 t = texture(albedo_textur, UV);
-		ALBEDO = t.rgb;
+		ALBEDO = abzeichen(t.rgb, UV, abzeichen_code);
 		ALPHA = t.a;
 		ALPHA_SCISSOR_THRESHOLD = 0.5;
 	} else {

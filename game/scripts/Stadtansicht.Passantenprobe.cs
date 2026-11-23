@@ -918,6 +918,12 @@ public partial class Stadtansicht
                         stoff.SetShaderParameter("hat_orm", true);
                         stoff.SetShaderParameter("orm_textur", tierOrm);
                     }
+                    if (ProbeArten[art].Varianten[0] == "pferd" && AbzeichenMasken() is { } masken) // Code je Pferd in INSTANCE_CUSTOM.z (KarrenVatEintragen)
+                    {
+                        stoff.SetShaderParameter("hat_abzeichen", true);
+                        stoff.SetShaderParameter("abzeichen_kopf", masken.Kopf);
+                        stoff.SetShaderParameter("abzeichen_beine", masken.Beine);
+                    }
                 }
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
                 if (!tier)
