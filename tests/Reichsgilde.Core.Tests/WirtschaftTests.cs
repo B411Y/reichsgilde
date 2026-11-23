@@ -67,6 +67,42 @@ static class Datenpfad
         return json[..a] + json[e..];
     }
 
+    /// <summary>
+    /// Die echten Daten ohne das Ahtnentum (Datenversion 97): Gewichte und Stadtanteile wie in Datenversion 96, keine „glaube.bekenntnisse“, die drei
+    /// ahtnischen Ratsherren wieder katholisch bzw. evangelisch. (Die gelosten Startglauben kennen das Ahtnentum weiter – nur wer mit Vorgabe spielt,
+    /// rechnet damit wie vorher.)
+    /// </summary>
+    public static string OhneAhtnentum(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        var ersetzen = new (string Neu, string Alt)[]
+        {
+            ("\"Elb\": { \"Katholisch\": 0.35, \"Evangelisch\": 0.15, \"Altahtnisch\": 0.25, \"Neuahtnisch\": 0.25 }", "\"Elb\": { \"Katholisch\": 0.7, \"Evangelisch\": 0.3 }"),
+            ("\"Zwerg\": { \"Katholisch\": 0.15, \"Evangelisch\": 0.35, \"Altahtnisch\": 0.3, \"Neuahtnisch\": 0.2 }", "\"Zwerg\": { \"Katholisch\": 0.3, \"Evangelisch\": 0.7 }"),
+            ("\"Halbling\": { \"Katholisch\": 0.22, \"Evangelisch\": 0.28, \"Altahtnisch\": 0.23, \"Neuahtnisch\": 0.27 }", "\"Halbling\": { \"Katholisch\": 0.45, \"Evangelisch\": 0.55 }"),
+            ("\"stadt\": { \"Katholisch\": 0.41, \"Evangelisch\": 0.34, \"Altahtnisch\": 0.13, \"Neuahtnisch\": 0.12 }", "\"stadt\": { \"Katholisch\": 0.55, \"Evangelisch\": 0.45 }"),
+        };
+        foreach (var (neu, alt) in ersetzen)
+        {
+            if (!json.Contains(neu, StringComparison.Ordinal)) throw new InvalidDataException($"„{neu}“ steht nicht wie erwartet in den Daten – Datenpfad.OhneAhtnentum anpassen.");
+            json = json.Replace(neu, alt, StringComparison.Ordinal);
+        }
+        // Nur Text ersetzen (wie die anderen Datenpfade), damit sich die Ausschnitte danach weiter finden lassen.
+        const string bekenntnisse = ",\n    \"bekenntnisse\": {";
+        var anfang = json.IndexOf(bekenntnisse, StringComparison.Ordinal);
+        if (anfang < 0) throw new InvalidDataException("„glaube.bekenntnisse“ steht nicht wie erwartet in den Daten – Datenpfad.OhneAhtnentum anpassen.");
+        var ende = json.IndexOf("\n    }", anfang + bekenntnisse.Length, StringComparison.Ordinal) + "\n    }".Length;
+        json = json[..anfang] + json[ende..];
+        foreach (var (name, neu, alt) in new[] { ("Thorgrim Erzhammer", "Altahtnisch", "Evangelisch"), ("Bertram Kesselflick", "Neuahtnisch", "Katholisch"), ("Ilvaris Mondtau", "Neuahtnisch", "Katholisch") })
+        {
+            var n = json.IndexOf($"\"name\": \"{name}\"", StringComparison.Ordinal);
+            var g = n < 0 ? -1 : json.IndexOf($"\"glaube\": \"{neu}\"", n, StringComparison.Ordinal);
+            if (g < 0 || g - n > 200) throw new InvalidDataException($"Ratsherr {name} steht nicht wie erwartet in den Daten – Datenpfad.OhneAhtnentum anpassen.");
+            json = json[..g] + $"\"glaube\": \"{alt}\"" + json[(g + $"\"glaube\": \"{neu}\"".Length)..];
+        }
+        return json;
+    }
+
     /// <summary>Die echten Daten ohne Abschnitt „lagen“ (Datenversion 92): nur die Ernte, wie in Datenversion 91 (mit deren Werten aus „ernte“).</summary>
     public static string OhneLagen(string? json = null) => OhneTextabschnitt(json ?? File.ReadAllText(Wirtschaft()), "lagen");
 

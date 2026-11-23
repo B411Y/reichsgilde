@@ -1,5 +1,5 @@
 {
-  "version": 96,
+  "version": 97,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1662,7 +1662,7 @@
       {
         "name": "Thorgrim Erzhammer",
         "volk": "Zwerg",
-        "glaube": "Evangelisch",
+        "glaube": "Altahtnisch",
         "haltung": "Bestienfron",
         "amt": "Kämmerer",
         "geschlecht": "Mann",
@@ -1680,7 +1680,7 @@
       {
         "name": "Bertram Kesselflick",
         "volk": "Halbling",
-        "glaube": "Katholisch",
+        "glaube": "Neuahtnisch",
         "haltung": "FreieStadt",
         "amt": "Marktmeister",
         "geschlecht": "Mann",
@@ -1734,7 +1734,7 @@
       {
         "name": "Ilvaris Mondtau",
         "volk": "Elb",
-        "glaube": "Katholisch",
+        "glaube": "Neuahtnisch",
         "haltung": "FreieStadt",
         "amt": null,
         "geschlecht": "Mann",
@@ -2432,19 +2432,23 @@
   "glaube": {
     "voelker": {
       "Mensch": { "Katholisch": 0.6, "Evangelisch": 0.4 },
-      "Elb": { "Katholisch": 0.7, "Evangelisch": 0.3 },
-      "Zwerg": { "Katholisch": 0.3, "Evangelisch": 0.7 },
-      "Halbling": { "Katholisch": 0.45, "Evangelisch": 0.55 },
+      "Elb": { "Katholisch": 0.35, "Evangelisch": 0.15, "Altahtnisch": 0.25, "Neuahtnisch": 0.25 },
+      "Zwerg": { "Katholisch": 0.15, "Evangelisch": 0.35, "Altahtnisch": 0.3, "Neuahtnisch": 0.2 },
+      "Halbling": { "Katholisch": 0.22, "Evangelisch": 0.28, "Altahtnisch": 0.23, "Neuahtnisch": 0.27 },
       "Ork": { "Naturglaube": 1 },
       "Oger": { "Naturglaube": 1 }
     },
-    "stadt": { "Katholisch": 0.55, "Evangelisch": 0.45 },
+    "stadt": { "Katholisch": 0.41, "Evangelisch": 0.34, "Altahtnisch": 0.13, "Neuahtnisch": 0.12 },
     "rueckkehr": 0.1,
     "mindestAnteil": 0.1,
     "fremdeKirche": 0.5,
     "gunst": { "gleich": 5, "anders": -3, "heide": -8, "mischehe": -2 },
     "konvertieren": { "gebuehr": 300, "ansehen": 3 },
     "bekehrung": { "anteil": 0.04, "jeRhetorik": 0.1, "gunst": 3 },
-    "stadtglaube": { "abgabe": 150, "schwelleFrei": 25, "schwelleFremd": 60, "ketzerpredigt": 200 }
+    "stadtglaube": { "abgabe": 150, "schwelleFrei": 25, "schwelleFremd": 60, "ketzerpredigt": 200 },
+    "bekenntnisse": {
+      "Altahtnisch": { "offenFuer": ["Elb", "Zwerg", "Halbling"] },
+      "Neuahtnisch": { "offenFuer": ["Mensch", "Elb", "Zwerg", "Halbling"], "gleicheReligion": -1 }
+    }
   }
 }

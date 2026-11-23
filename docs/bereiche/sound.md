@@ -192,3 +192,10 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Bus-Pegel | Alle Busse bleiben bei 0 dB: Die Verhältnisse stecken in Dateien und Spielerpegeln, die Umgebungsbusse tragen laufende Dämpfung; ein fester Bus-Pegel würde dieselbe Zahl an zwei Stellen führen | 22.11.2026 |
 | Tests | `KlangLautheitTests`: Messprotokoll nennt jede OGG-Datei, Musik/Ansagen im Lautheitsband, Angleichung bringt jede Variante auf das Ziel (±0,2 dB), Rohwert-Parser | 22.11.2026 |
 | Offen | Nicht gehört: die angeglichenen Klicks, Fenster- und Tempoklänge (Hörprobe des Nutzers; die Ziele sind Rechenwerte). Die Spitzen der Einschlag-Dateien (+1,2 dBTP) laufen über den Begrenzer des Busses UmgebungDonner. Ducking der Umgebung bei Ansagen: Empfehlung nein |  |
+
+### Ahtnisch spielt (Branch phase5/ahtnentum)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Glaubensname | `MusikModell.GlaubeName` liefert für `Altahtnisch` und `Neuahtnisch` „Ahtnisch“ (eine Religion, ein Stück); der Naturglaube bleibt stumm. Von oberflaeche im Anschluss ans Ahtnentum geändert, keine neuen Stücke. `MusikRegelnTests` entsprechend umgestellt (Ahtnisch spielt, Naturglaube stumm). | 23.11.2026 |
+

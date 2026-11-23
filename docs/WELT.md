@@ -47,6 +47,7 @@ Die ersten vier Völker sind spielbar und leben als Bürger in der Stadt. Orks u
 ## Glaube
 
 - **Katholisch und evangelisch.** Das Spiel kennt zwei Konfessionen im Reich (die Verteilung je Volk steht in `wirtschaft.json`). Im Hintergrund steht die Kirche des Spätmittelalters: Reliquien, Wallfahrten, Ablass, Bruderschaften, dazu Stimmen, die eine andere Frömmigkeit fordern.
+- **Ahtnentum.** Der alte Glaube der Anderlinge (Elben, Zwerge, Halblinge), kein Christentum, mit zwei Bekenntnissen: **altahtnisch**, alt und streng, nimmt nur Anderlinge auf; **neuahtnisch**, die Weiterentwicklung, offen für Zusammenarbeit mit Katholiken und Evangelischen und auch für Menschen. Etwa die Hälfte der Anderlinge ist ahtnisch. Mehr Lore folgt.
 - **Naturglaube.** Orks und Oger glauben an Wald und Berg. Für die Kirchen sind sie Heiden; Taufe ist der Weg ins Bürgerrecht.
 - **Wunder ohne Magie.** Es gibt Reliquien, Wunderheilungen und fromme Legenden – aber **keine Zauberei, die Waren aus dem Nichts macht**. Der Alchimist mischt Kräuter, der Parfumeur Düfte; beide sind Handwerker. Magie, die die Wirtschaft kippen würde, gibt es nicht. Die Fantasy zeigt sich in den Völkern, nicht in der Produktion.
 
