@@ -82,7 +82,7 @@ public partial class Stadtansicht
         _karrenZielGold ??= RingStoff(new Color(1f, 0.78f, 0.22f, 0.85f));
         _karrenZielWeiss ??= RingStoff(new Color(1f, 1f, 0.92f, 0.95f));
         foreach (var platz in _maerkte)
-            RingSetzen(platz.Kennung, platz.Mitte, platz.Halb * 1.12f);
+            RingSetzen(platz.Kennung, platz.Mitte, platz.Halb * 0.98f);
         foreach (var (betrieb, ansicht) in _betriebe)
             if (betrieb.Konto == _karrenZielSpieler && betrieb.InDerStadt)
                 RingSetzen(BetriebsKennung(betrieb), ansicht.Mitte, 8.5f);
