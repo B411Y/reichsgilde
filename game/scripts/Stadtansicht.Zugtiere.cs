@@ -7,9 +7,9 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Zugtiere und Fuhrmann der Karren (Teil der <c>partial class Stadtansicht</c>, Karren-Umbau Teil d): Der Karren ist ein Modell ohne Tier und ohne Figur
-/// (<c>Stadtansicht.Karren.cs</c>); Ochse, Pferde und der Mensch am Karren hängen als eigene Figuren an seinen Ankern.
+/// (<c>Stadtansicht.Karren.cs</c>); Pferde und der Mensch am Karren hängen als eigene Figuren an seinen Ankern.
 ///
-/// <para><b>Zugtiere</b> (<c>tiere/tier_&lt;pferd|ochse&gt;_&lt;fell&gt;.glb</c>, Skelett, Regeln in <c>daten/zugtiere.json</c>, gelesen von <see cref="Zugtierdaten"/>):
+/// <para><b>Zugtiere</b> (<c>tiere/tier_&lt;pferd&gt;_&lt;fell&gt;.glb</c>, Skelett, Regeln in <c>daten/zugtiere.json</c>, gelesen von <see cref="Zugtierdaten"/>):
 /// Platzierung: Tier-Wurzel = Position(Anker_Deichsel bzw. Anker_Pferd_L/R) − <c>anker_ziehen_godot</c> der Tierart (der Anker_Geschirr hängt am nie bewegten
 /// Knochen „Geschirr“ und liegt in allen Clips fest). Das Fell (zwei je Tier) und die Anfangsstelle der Stehen-Varianten folgen aus dem Fuhrmann des Karrens
 /// (<see cref="Karren.FuhrmannIn"/>, nichts davon wird gespeichert, kein Einfluss auf den Kern). Stufen wie die Passanten: nah (Zoom unter 50) ein echtes
@@ -19,10 +19,10 @@ namespace Reichsgilde;
 /// <para><b>Ablauf je Tier</b> (<see cref="ZugtierSchritt"/>): Stehen (Varianten Stehen, Ruhen, Umschauen, Fressen, nacheinander ohne Blendzeit, Wahl aus dem Seed des
 /// Karrens) → Anfahren_&lt;Gehen|Ziehen&gt; (läuft nach der gefahrenen Strecke, die Hufe rutschen nicht) → Gehen (leer) oder Ziehen (beladen), dazwischen Überblenden
 /// mit der Blendzeit der Tierart bei gleicher Abspielstelle → beim Halt den Durchlauf zu Ende (Bild 0), Anhalten_… → Stehen. Das zweite Pferd geht eine halbe
-/// Schleife später los (Phasenversatz 0,5), der Ochse ist ein Tier. Die Schritte laufen im Takt der gezeigten Geschwindigkeit.</para>
+/// Schleife später los (Phasenversatz 0,5). Die Schritte laufen im Takt der gezeigten Geschwindigkeit.</para>
 ///
 /// <para><b>Fuhrmann</b>: eine Passantenfigur (<see cref="ProbefigurEinsetzen"/>, Rolle „Fuhrmann“) aus <see cref="Karren.FuhrmannIn"/> (Volk, Geschlecht): Handkarren
-/// „Ziehen“ (Hände an der Zugstange vorn), Ochsenkarren „Nebenhergehen“ mit dem Stecken, Pferdekarren „SitzenBock“ auf dem Bock. Das Gewand ist gedeckt wie bei allen
+/// „Ziehen“ (Hände an der Zugstange vorn), Pferdekarren „SitzenBock“ auf dem Bock. Das Gewand ist gedeckt wie bei allen
 /// Passanten; die Hausfarbe tragen nur Plane, Wimpel und Decke am Karren. Nachtregel nach dem Zustand des Karrens (<see cref="Karren.Faehrt"/>), nicht nach der Uhr.</para>
 /// </summary>
 public partial class Stadtansicht
@@ -66,11 +66,10 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Art (Nummer in <see cref="ProbeArten"/>) des Zugtiers Nummer <paramref name="i"/> eines Karrens: Pferde in drei Fellen (Braun, Rappe, Fuchs; je ein Drittel der
-    /// Startwerte), Ochsen in zwei (rotbraun, falb). Das Fell folgt nur aus dem Startwert des Fuhrmanns und der Nummer des Tiers (nicht gespeichert).
+    /// Startwerte). Das Fell folgt nur aus dem Startwert des Fuhrmanns und der Nummer des Tiers (nicht gespeichert).
     /// </summary>
     internal static int ZugtierArt(string tier, int startwert, int i)
     {
-        if (tier != "pferd") return ProbeErsteTierart + 2 + ((startwert >> i) & 1);
         return (int)(((uint)startwert >> (2 * i)) % 3) switch
         {
             0 => ProbeErsteTierart,          // Braun (tier_pferd_rotbraun)
@@ -79,7 +78,7 @@ public partial class Stadtansicht
         };
     }
 
-    /// <summary>Name des Tiers einer Art („pferd“, „ochse“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
+    /// <summary>Name des Tiers einer Art („pferd“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
     private static string TierNameVon(int art) => ProbeArten[art].Varianten[0];
 
     /// <summary>
@@ -385,12 +384,8 @@ public partial class Stadtansicht
         return p.DistanceTo(a + ab * (vb * denom) + ac * (vc * denom));
     }
 
-    /// <summary>Seitlicher Abstand (Meter) des Läufers von der Mitte des Ochsen und sein Vorsprung (Meter) vor dem Joch: neben Schulter und Kopf.</summary>
-    private const float KarrenLaeuferAbstand = 1.1f;
-    private const float KarrenLaeuferVorn = 0.9f;
-
     /// <summary>
-    /// Stellt den Fuhrmann an den Anker des Karrens (Handkarren: <c>Anker_Ziehen</c> vor der Zugstange, Ochsenkarren: <c>Anker_Fahrer_Seite</c>, Pferdekarren:
+    /// Stellt den Fuhrmann an den Anker des Karrens (Handkarren: <c>Anker_Ziehen</c> vor der Zugstange, Pferdekarren:
     /// <c>Anker_Bock</c>, die Hüfte auf der Sitzfläche). Der Anker blickt mit −Z, die Figur mit +Z: Ein Halter am Anker dreht sie um 180° um die Hochachse.
     /// Ohne Passantenfiguren (<c>--passantenprobe=0</c>) gibt es keinen Fuhrmann am Karren.
     /// </summary>
@@ -400,59 +395,22 @@ public partial class Stadtansicht
         var halter = new Node3D { Name = "Fuhrmann" };
         eltern.AddChild(halter);
         halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
-        if (art.ZieherClip == "Nebenhergehen" && art.TierAnker.Length > 0 && modell.FindChild(art.TierAnker[0], true, false) is Node3D joch)
-        {
-            // Der Läufer geht neben dem Ochsen auf Höhe von Schulter und Kopf (nicht am Wagen): seitlich 1,1 m von der Mitte des Tiers, 0,9 m vor dem Joch; die Höhe bleibt die des Ankers (Boden)
-            var seite = anker.Position.X >= 0 ? 1f : -1f;
-            halter.Position = new Vector3(seite * KarrenLaeuferAbstand, anker.Position.Y, joch.Position.Z + KarrenLaeuferVorn);
-        }
         // Aussehen aus dem Baukasten (Volk, Geschlecht und Haar des Fuhrmanns im Kern, Tracht „Fuhrmann“); die Hausfarbe trägt nur der Karren.
-        // Den Stecken führt nur der Läufer am Ochsen – er gehört zur Arbeit am Karren, nicht zur Person.
         var rezept = FigurenBaukasten.Von(fuhrmann);
-        if (art.ZieherClip == "Nebenhergehen") rezept = rezept with { Tracht = rezept.Tracht with { Last = Last.Stab } };
         var figur = BaukastenProbeEinsetzen(halter, rezept, innen: false);
         if (figur is null) { halter.QueueFree(); return null; }
-        if (art.ZieherClip == "Nebenhergehen") StabKraeftigen(figur);
         if (art.ZieherClip == "SitzenBock") halter.Position -= new Vector3(0, figur.Kniehoehe - 0.02f, 0); // die Hüfte sitzt auf der Sitzfläche
         ansicht.FahrerHalter = halter;
         ansicht.FahrerBasis = halter.Basis;
-        if (art.ZieherClip != "SitzenBock") // Läufer und Zieher gehen mit dem Zugpunkt, nicht mit dem Wagen; der Kutscher sitzt auf dem Bock
+        if (art.ZieherClip != "SitzenBock") // Der Zieher geht mit dem Zugpunkt, nicht mit dem Wagen; der Kutscher sitzt auf dem Bock
             ansicht.FahrerVersatz = halter.Position - new Vector3(0, 0, ansicht.ZugZ);
         halter.Visible = false; // gezeigt wird er erst, wenn der Karren fährt (KarrenFuhrmannBewegen)
         ansicht.FahrerSichtbar = false;
         return figur;
     }
 
-    /// <summary>Wie viel dicker (Meter, je Seite) und in welcher Farbe der Stecken des Läufers erscheint: aus 3,4 cm werden gut 6 cm, hell wie frisch geschält (NAS-Klicktest: sonst nicht zu erkennen).</summary>
-    private const float StabDickePlus = 0.013f;
-    private static readonly Color StabFarbe = new(0.80f, 0.64f, 0.38f);
-
     /// <summary>
-    /// Der Stecken des Läufers (Zubehör „Zub_stab“ des Figurenmodells, nur im Nahnetz mit Skelett): Die Ecken rücken 1,3 cm entlang ihrer Normale hinaus (aus dem dünnen Stab wird ein
-    /// kräftiger Stecken, sein Modell im Blender-Skript bleibt unberührt) und er bekommt ein helles Holz, damit er sich von Gewand und Hand abhebt.
-    /// </summary>
-    private static void StabKraeftigen(Figur figur)
-    {
-        foreach (var teil in figur.Modell.FindChildren("Zub_stab", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
-        {
-            if (teil.Mesh is not ArrayMesh netz || netz.GetSurfaceCount() == 0) continue;
-            var arrays = netz.SurfaceGetArrays(0);
-            if (arrays[(int)Mesh.ArrayType.Vertex].VariantType == Variant.Type.Nil || arrays[(int)Mesh.ArrayType.Normal].VariantType == Variant.Type.Nil) continue;
-            var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
-            var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
-            var neu = new Vector3[ecken.Length];
-            for (var i = 0; i < ecken.Length; i++) neu[i] = ecken[i] + normalen[i] * StabDickePlus;
-            arrays[(int)Mesh.ArrayType.Vertex] = neu;
-            var dick = new ArrayMesh();
-            dick.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            dick.CustomAabb = netz.GetAabb().Grow(0.05f);
-            teil.Mesh = dick;
-            teil.MaterialOverride = new StandardMaterial3D { AlbedoColor = StabFarbe, Roughness = 0.85f };
-        }
-    }
-
-    /// <summary>
-    /// Der Fuhrmann bewegt sich mit: fahrend „Ziehen“, „Nebenhergehen“ bzw. auf dem Bock „SitzenBock“ im Takt des Karrens (die Schritte passen zum Tempo), am Halt
+    /// Der Fuhrmann bewegt sich mit: fahrend „Ziehen“ bzw. auf dem Bock „SitzenBock“ im Takt des Karrens (die Schritte passen zum Tempo), am Halt
     /// „Stehen“ (auf dem Bock bleibt er sitzen). Am Betrieb und am geschlossenen Tor ist er nicht da.
     /// </summary>
     private void KarrenFuhrmannBewegen(KarrenAnsicht karren, bool faehrt, bool rollt, float geschwindigkeit, double delta)

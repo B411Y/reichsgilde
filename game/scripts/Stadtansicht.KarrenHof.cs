@@ -30,7 +30,6 @@ public partial class Stadtansicht
     {
         "Großer Pferdekarren" => 2.4f,
         "Pferdekarren" => 2.2f,
-        "Ochsenkarren" => 2.2f,
         _ => 1.6f,
     };
 

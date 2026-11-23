@@ -1,9 +1,9 @@
-﻿"""Karren ohne Zugtier und ohne Figur: Handkarren, Ochsenkarren, Pferdekarren (gemalt-realistisch, Material-Bibliothek).
+﻿"""Karren ohne Zugtier und ohne Figur: Handkarren, Pferdekarren, Großer Pferdekarren (gemalt-realistisch, Material-Bibliothek).
 
     blender -b --python tools/modelle/karren.py [-- --ohne-bericht]
     python tools/modelle/karren.py
 
-Schreibt game/assets/modelle/karren/karren_hand.glb, karren_ochse.glb und karren_pferd.glb (die alten Dateien in fahrzeuge/ bleiben,
+Schreibt game/assets/modelle/karren/karren_hand.glb, karren_pferd.glb und karren_pferd_gross.glb (die alten Dateien in fahrzeuge/ bleiben,
 bis der Spiel-Code umgestellt ist; der alte Bau steht in karren_alt.py). Zugtiere und die Menschen am Karren sind eigene Modelle,
 das Spiel hängt sie an die Anker.
 
@@ -12,13 +12,13 @@ unter der (hinteren) Radachse, Mitte des Wagens. „Links“ und „rechts“ in
 
 Knoten je Datei (alle auf oberster Ebene):
     Karren      Wagenkasten aus Bohlen, Pfosten, Eisenbändern, Achsbalken, Langhölzern, Deichsel bzw. Holme (Holz, Holz alt, Eisen)
-    Rad_L, Rad_R (Handkarren, Ochsenkarren) bzw. Rad_VL, Rad_VR, Rad_HL, Rad_HR (Pferdekarren, vorn und hinten)
+    Rad_L, Rad_R (Handkarren) bzw. Rad_VL, Rad_VR, Rad_HL, Rad_HR (Pferdekarren, vorn und hinten)
                 Räder als eigene Teile: der Ursprung des Knotens ist die Achse, gedreht wird um die lokale X-Achse (Querachse). Felgen,
                 Speichen, Nabe und Eisenreifen sind rundum geschlossen (auch die Unterseite), weil sie sich drehen. Extras: „radius“ (m),
                 „drehachse“ = "X". Rollweg je Umdrehung 2π · radius.
-    Ladung1–3   Kisten, Säcke, Fässer (Handkarren 1, Ochsenkarren 2, Pferdekarren 3), Zustand: standardmäßig aus
+    Ladung1–3   Kisten, Säcke, Fässer (Handkarren 1, Pferdekarren 2, Großer Pferdekarren 3), Zustand: standardmäßig aus
     Plane       Plane über der Ladung in der Hausfarbe (Material „Hausfarbe“, eigener Knoten), Zustand: standardmäßig aus
-    Wimpel      Wimpel an einem Pfosten in der Hausfarbe (Ochsen-, Pferdekarren), sichtbar
+    Wimpel      Wimpel an einem Pfosten in der Hausfarbe (Pferdekarren), sichtbar
     Decke       Sitzdecke in der Hausfarbe auf dem Bock (nur Pferdekarren), sichtbar
     Waage       Waagscheit am Ende der Deichsel (nur Pferdekarren), sichtbar
     Stuetze     Stützbock bzw. Stützbeine zum Abstellen (alle), Zustand: standardmäßig aus – zeigen, wenn der Karren steht
@@ -27,10 +27,9 @@ Hausfarbe nur an Plane, Wimpel und Decke. Kein Fahrer, kein Tier im Modell.
 Anker (leere Knoten „Anker_…“, Ursprung am Boden bzw. auf der Sitzfläche; alle Blickrichtung Fahrtrichtung; Einbau in Stadtansicht.Karren.cs):
     Anker_Ziehen             Handkarren: Boden 0,285 m vor der Zugstange, dort steht der Zieher (Blick in Fahrtrichtung, Hände hinter dem Körper)
     Anker_Zug_L, _R          Handkarren: Zugstange links und rechts (0,22 m aus der Mitte, 0,86 m hoch), dort greifen die Hände
-    Anker_Deichsel           Ochsen- und Pferdekarren: Mitte des Zuggeschirrs (Jochmitte bzw. Mitte zwischen den beiden Pferden) in
+    Anker_Deichsel           Pferdekarren: Mitte des Zuggeschirrs (Jochmitte bzw. Mitte zwischen den beiden Pferden) in
                              Halshöhe; das Spiel setzt den Anker „Geschirr“ des Zugtiers dorthin
     Anker_Pferd_L, _R        Pferdekarren: Geschirr des linken und rechten Pferds (Abstand ±0,62 m)
-    Anker_Fahrer_Seite       Ochsenkarren: Boden links neben dem Ochsen, auf Höhe der Schulter des Tiers, dort geht der Läufer
     Anker_Bock               Pferdekarren: Oberkante der Sitzfläche (die Hüfte der sitzenden Figur kommt dorthin; Sitzhöhe 0,446 m über
                              dem Fußbrett, wie der Clip „Sitzen“ der Passanten)
 """
@@ -48,7 +47,7 @@ bs.FARBEN.update({
     "Leder dunkel": (0.17, 0.10, 0.06),    # Zugstränge und Riemen der neuen Karren: sollen neben dem Holz als Leder lesbar sein
 })
 
-ARTEN = ("hand", "ochse", "pferd", "pferd_gross")
+ARTEN = ("hand", "pferd", "pferd_gross")
 ORDNER = "karren"
 
 
@@ -243,7 +242,7 @@ def stange(n, st, fuss, hoehe, stoff="Holz", r=0.022):
 #  Die drei Karren
 # ─────────────────────────────────────────────────────────────────────────────
 
-ARTEN_SORTEN = {"hand": 1, "ochse": 2, "pferd": 2, "pferd_gross": 3}
+ARTEN_SORTEN = {"hand": 1, "zweirad": 2, "pferd": 2, "pferd_gross": 3}   # "zweirad": Ladungsform des Pferdekarrens (1 Pferd), vorher "ochse"
 
 
 def hand(st):
@@ -295,55 +294,6 @@ def tiefe_deichsel(n, st, x, ya, yb, za, zb, breite=0.09, dicke=0.08):
     balken(n, st, (x, ya, za), (x, yb, zb), breite, dicke, "Holz", quer=(1, 0, 0))
 
 
-def ochse(st):
-    zf, halb, y0, y1, hw = 0.95, 0.72, -1.2, 1.2, 0.5
-    maße = (halb, y0, y1, zf, hw)
-    r, spur = 0.72, 0.90
-    tip_y, tip_z = -4.7, 1.56          # Höhe des Jochs des Ochsen im Ziehen (tier_ochse_*, anker_ziehen_godot: 1,56 m); 1 m mehr Abstand zum Wagen
-    holm_y, holm_z = tip_y + 0.3, 0.85  # die Holme laufen tief und seitlich (x = ±0,62) am Tier vorbei und enden an Zugsträngen zum Joch
-    n = bs.Netz("Karren")
-    kasten(n, st, halb, y0, y1, zf, hw, 3)
-    balken(n, st, (-spur - 0.1, 0, r), (spur + 0.1, 0, r), 0.1, 0.1, "Holz", quer=(0, 1, 0))
-    for s in (-1, 1):
-        n.quader((s * (spur + 0.125), 0, r), (0.03, 0.06, 0.06), st["Eisen"])
-        n.quader((s * (spur - 0.12), 0, r), (0.06, 0.12, 0.12), st["Eisen"])                 # Achskappen innen
-    # Gabeldeichsel: Langhölzer unter dem Boden, vorn auf Halshöhe des Ochsen hochgezogen, am Ende das Joch
-    for s in (-1, 1):
-        tiefe_deichsel(n, st, s * 0.50, y1 - 0.05, y0, 0.845, 0.845, 0.1, 0.09)
-        balken(n, st, (s * 0.50, y0, 0.845), (s * 0.62, holm_y, holm_z), 0.1, 0.085, "Holz", quer=(1, 0, 0), ohne=("+x",))
-        rohr(n, st, (s * 0.62, holm_y, holm_z), (s * 0.50, tip_y, tip_z), 0.034, 0.034, "Holz alt", seiten=6)      # Zugstrang zum Joch (graubraunes Holz bzw. Hanf, mit Maserung der Bibliothek)
-        n.quader((s * 0.50, y0 - 0.2, 0.9), (0.115, 0.05, 0.12), st["Eisen"])                 # Eisenband am Knick
-        n.quader((s * 0.50, 0.0, 0.845), (0.115, 0.06, 0.115), st["Eisen"])
-    # Querholz zwischen den Gabelarmen
-    balken(n, st, (-0.5, y0 - 0.15, 0.9), (0.5, y0 - 0.15, 0.9), 0.07, 0.07, "Holz", quer=(0, 1, 0))      # dicht am Wagen: Platz für den Schwanz des Ochsen
-    # Wimpelstange am linken vorderen Eckpfosten
-    stange(n, st, (halb + 0.045 + 0.012, y0 - 0.045, zf + hw + 0.06), 0.9)
-    objekte = [n.objekt()]
-    objekte += [rad_objekt(st, "Rad_L", r, 0.1, (spur, 0, r), 0), rad_objekt(st, "Rad_R", r, 0.1, (-spur, 0, r), 1)]
-    for i in range(ARTEN_SORTEN["ochse"]):
-        objekte.append(ladung("ochse", i, st, maße))
-    objekte.append(plane("ochse", st, maße, 0.98))
-    objekte.append(wimpel(st, (halb + 0.045 + 0.012, y0 - 0.045, zf + hw + 0.06 + 0.9 + 0.012), 0.0))
-    # Kein Joch am Karren: Das Nackenjoch gehört zum Zugtier (tier_ochse_*), die Gabel endet an seiner Mitte (Anker_Deichsel).
-    # Stützbock unter der Gabel
-    sn = bs.Netz("Stuetze")
-    for s in (-1, 1):
-        zg = 0.845 + (holm_z - 0.845) * (-2.4 - y0) / (holm_y - y0)
-        balken(sn, st, (s * 0.52, -2.4, zg - 0.03), (s * 0.5, -2.4, 0.0), 0.08, 0.08, "Holz", ohne=("+x", "-x"))
-        sn.quader((s * 0.5, -2.4, 0.015), (0.1, 0.12, 0.03), st["Eisen"])
-    balken(sn, st, (-0.5, -2.4, 0.4), (0.5, -2.4, 0.4), 0.06, 0.06, "Holz", quer=(0, 1, 0), ohne=("+x", "-x"))
-    objekte.append(bs.zustand(sn.objekt()))
-    objekte += [bs.anker("Anker_Deichsel", (0, tip_y, tip_z), 180.0),
-                bs.anker("Anker_Fahrer_Seite", (1.2, tip_y + 0.2, 0.0), 180.0)]
-    return objekte
-
-
-KRUPPE_ZU_RING = 1.64      # Pferd B: Kruppe 1,64 m hinter der Ringmitte des Kummets
-WAAG_ABSTAND = 0.45        # nächstes Wagenteil (Waagscheit bzw. Stirnwand) 0,45 m hinter der Kruppe (IVC: 8 bis 20 Zoll = 0,20 bis 0,51 m)
-SPRITZ_ABSTAND = 0.35      # Spritzbrett 0,35 m hinter dem Waagscheit
-RING_Z = 1.279             # Zugpunkt der Pferde im Ziehen (Ringmitte des Kummets)
-HAKEN = 0.347              # Zughaken am Kummet seitlich der Ringmitte
-
 
 def ursprung_setzen(obj, punkt):
     """Setzt den Ursprung des Objekts auf `punkt` (Welt), die Gestalt bleibt, wo sie ist."""
@@ -371,8 +321,8 @@ def zugstrang(n, st, pfad, stoff="Leder dunkel", r=0.03):
 
 
 def pferd_ein(st):
-    """Pferdekarren (1 Pferd): Zweirad, Kasten mit Bock für den Fuhrmann, Gabeldeichsel (Schere). Der Ochsenkarren bleibt als karren_ochse."""
-    zf, halb, y0, y1, hw = 0.95, 0.72, -1.85, 1.65, 0.5      # Kasten 3,50 m: vorn 1,3 m Bock mit Fußraum, dahinter 2,2 m Ladung (Ladefläche wie Ochsenkarren); Achse 0,25 m weiter vorn, das Pferd trägt etwas Last
+    """Pferdekarren (1 Pferd): Zweirad, Kasten mit Bock für den Fuhrmann, Gabeldeichsel (Schere)."""
+    zf, halb, y0, y1, hw = 0.95, 0.72, -1.85, 1.65, 0.5      # Kasten 3,50 m: vorn 1,3 m Bock mit Fußraum, dahinter 2,2 m Ladung (Ladefläche wie der frühere Ochsenkarren); Achse 0,25 m weiter vorn, das Pferd trägt etwas Last
     r, spur = 0.72, 0.90
     sx = 0.60                                                   # Schaftbäume 0,21 m außerhalb der Flanke (Flanke 0,385 m aus der Mitte)
     tip_y, tip_z = y0 - WAAG_ABSTAND - KRUPPE_ZU_RING, RING_Z   # Kruppe 0,45 m vor der Stirnwand
@@ -402,8 +352,8 @@ def pferd_ein(st):
     objekte = [n.objekt()]
     objekte += [rad_objekt(st, "Rad_L", r, 0.1, (spur, 0, r), 0), rad_objekt(st, "Rad_R", r, 0.1, (-spur, 0, r), 1)]
     for i in range(ARTEN_SORTEN["pferd"]):
-        objekte.append(ladung("ochse", i, st, maße))
-    objekte.append(plane("ochse", st, maße, 0.98))
+        objekte.append(ladung("zweirad", i, st, maße))
+    objekte.append(plane("zweirad", st, maße, 0.98))
     objekte.append(wimpel(st, (halb + 0.045 + 0.012, y0 - 0.045, zf + hw + 0.06 + 0.9 + 0.012), 0.0))
     dn = bs.Netz("Decke")
     dn.quader((0, y0 + 1.05, sitz + 0.0), (0.97, 0.4, 0.024), st["Hausfarbe"])
@@ -507,7 +457,7 @@ def pferd_gross(st):
     return objekte
 
 
-BAUER = {"hand": hand, "ochse": ochse, "pferd": pferd_ein, "pferd_gross": pferd_gross}
+BAUER = {"hand": hand, "pferd": pferd_ein, "pferd_gross": pferd_gross}
 
 
 def bauen(art):

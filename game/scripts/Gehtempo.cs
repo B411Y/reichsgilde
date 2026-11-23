@@ -89,7 +89,7 @@ public static class Gehtempo
 }
 
 /// <summary>
-/// Wie ihr Weg die Geschwindigkeit der Karren ändert. Das Tempo der Karrenart (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s) und die Grenze für den
+/// Wie ihr Weg die Geschwindigkeit der Karren ändert. Das Tempo der Karrenart (Handkarren 1,0, Pferdekarren 0,8, Großer Pferdekarren 1,3 m/s) und die Grenze für den
 /// Ausbau (höchstens 15 % schneller) stehen seit Datenversion 65 im Kern (<see cref="KarrenDaten.Tempo"/>, <c>wegebau.ausbauHoechstens</c>,
 /// <c>Stadtwirtschaft.Zeitfaktor</c>): Der Kern rechnet die Fahrzeit mit denselben Zahlen, nach denen der Karren hier fährt.
 /// </summary>
@@ -129,7 +129,7 @@ public static class Karrentempo
 
 /// <summary>
 /// Die Fahrt eines Karrens mit fester Geschwindigkeit, Stück für Stück: wann (Spielminuten seit der Abfahrt) er wie weit ist. Der Weg
-/// wird als Anteil (0 bis 1) der Länge geführt. Die Stadtansicht fährt ohne <c>dauer</c>: Das Tempo bleibt fest (Ochse 0,8, Hand 1,0, Pferd 1,3 m/s).
+/// wird als Anteil (0 bis 1) der Länge geführt. Die Stadtansicht fährt ohne <c>dauer</c>: Das Tempo bleibt fest (Hand 1,0, Pferdekarren 0,8, Großer Pferdekarren 1,3 m/s).
 /// Bei der Standard-Rundendauer kommt der Karren mit dem Kern an (bis auf dessen Rundung auf ganze Minuten) – außer an der Höchstdauer
 /// (<c>logistik.weglaenge.hoechstMinuten</c>): Kappt der Kern eine lange Fahrt, fährt der Karren im Bild trotzdem in seinem Tempo weiter und kommt
 /// später an; die Ware ist dann schon verkauft, er kehrt am Markt sofort um (<see cref="Karrenzug"/>). Mit <c>dauer</c> ließe sich das Profil auf

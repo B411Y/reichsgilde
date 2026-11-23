@@ -28,9 +28,9 @@ public partial class Stadtansicht
     /// Hüfthöhe (Kopf des Oberschenkelknochens), Meter je Sekunde, die „Gehen“ und „Tragen“ bei Takt 1 schaffen (Standfuß: so rutschen die Füße
     /// nicht), Höhe des Gesäßes über den Sohlen beim Sitzen.
     ///
-    /// Seit dem Karrenumbau (Teil d) stehen die vier Zugtiere (<c>tiere/tier_&lt;pferd|ochse&gt;_&lt;fell&gt;.glb</c>) hinter den Menschen in derselben Liste:
+    /// Seit dem Karrenumbau (Teil d) stehen die vier Zugtiere (<c>tiere/tier_&lt;pferd&gt;_&lt;fell&gt;.glb</c>) hinter den Menschen in derselben Liste:
     /// gebacken, zwischengespeichert und gezeichnet wird mit derselben Pipeline; <paramref name="Klips"/> ist ihre eigene Clipliste (null: <see cref="ProbeKlips"/>),
-    /// <c>GehTempo</c> das Tempo (m/s) ihres Clips „Gehen“ bei Takt 1 (Pferd 1,3, Ochse 0,8).
+    /// <c>GehTempo</c> das Tempo (m/s) ihres Clips „Gehen“ bei Takt 1 (Pferd 1,3).
     /// </summary>
     /// <param name="Hoehe">Höhe des Modells (Scheitel) in Metern; bei den Völkern ab Art 4 setzt das Spiel den Maßstab = Körpergröße ÷ Hoehe (0 = Menschenmaß, Maßstab aus <see cref="FigurMasse"/>).</param>
     /// <param name="Schritt">Zusatzfaktor auf Tempo und Takt (kleine Völker gehen kürzere, schnellere Schritte als ihre Beinlänge allein ergäbe).</param>
@@ -59,8 +59,6 @@ public partial class Stadtansicht
         // Zugtiere (Karren-Umbau Teil d, Art 4 bis 7): zwei Felle je Tier; Netze „Nah_<tier>“ und „Fern_<tier>“, Tempo des Clips „Gehen“ in m/s
         new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
         new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_ochse_rotbraun", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_ochse_falb", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
         // dritte Fellfarbe des Pferds (Fuchs; 23.11.2026): ans Ende gestellt, damit die Nummern der übrigen Tiere gleich bleiben (<see cref="ZugtierArt"/>)
         new("tiere/tier_pferd_fuchs", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
     };
@@ -504,13 +502,13 @@ public partial class Stadtansicht
         string klip;
         float probeTakt;
         var daten = ProbeArten[f.ProbeArt];
-        if (bewegung is "Ziehen" or "Nebenhergehen" && takt >= ProbeStehenUnterTakt)
+        if (bewegung is "Ziehen" && takt >= ProbeStehenUnterTakt)
         {
-            // Zieher am Handkarren und Läufer am Ochsen (Karren-Umbau Teil d): Clips aus „Gehen“, dieselbe Schrittweite
+            // Zieher am Handkarren (Karren-Umbau Teil d): Clips aus „Gehen“, dieselbe Schrittweite
             klip = bewegung;
             probeTakt = takt * GehenTempo * f.Beinfaktor / (daten.GehTempo * f.Modell.Scale.Y);
         }
-        else if (bewegung is "Ziehen" or "Nebenhergehen") { klip = "Stehen"; probeTakt = 1; }
+        else if (bewegung is "Ziehen") { klip = "Stehen"; probeTakt = 1; }
         else if (bewegung == "SitzenBock") { klip = bewegung; probeTakt = 1; } // der Kutscher auf dem Bock (auch beim Halt)
         else if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
         {

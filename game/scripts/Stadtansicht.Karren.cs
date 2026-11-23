@@ -4,10 +4,10 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Ochsenkarren und Pferdekarren als Modelle aus Blender
-/// (<c>karren/karren_hand.glb</c>, <c>karren_ochse.glb</c>, <c>karren_pferd.glb</c>, Fahrtrichtung +Z) – ohne Tier und ohne Figur, mit Rädern als
+/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Pferdekarren und Großer Pferdekarren als Modelle aus Blender
+/// (<c>karren/karren_hand.glb</c>, <c>karren_pferd.glb</c>, <c>karren_pferd_gross.glb</c>, Fahrtrichtung +Z) – ohne Tier und ohne Figur, mit Rädern als
 /// eigenen Knoten (<c>Rad_*</c>), die sich nach der gefahrenen Strecke drehen. Zieher und Zugtiere sind eigene Figuren an den Ankern
-/// (<c>Stadtansicht.Zugtiere.cs</c>): ein Passant aus dem Fuhrmann des Karrens, Ochse oder Pferde mit Skelett (nah), gebacken (ab Zoom 50) und als Fernnetz (ab 100).
+/// (<c>Stadtansicht.Zugtiere.cs</c>): ein Passant aus dem Fuhrmann des Karrens, Pferde mit Skelett (nah), gebacken (ab Zoom 50) und als Fernnetz (ab 100).
 ///
 /// Die Darstellung rechnet nichts aus, sie liest nur den <see cref="Karren"/> des Kerns: Zustand (fährt, steht am Betrieb oder am Tor), Ladung (wie viele Sorten),
 /// Besitzer (Farbe von Plane, Wimpel und Decke) und den Fuhrmann (<see cref="Karren.FuhrmannIn"/>). <see cref="KarrenBewegen"/> schiebt den Karren und stellt das
@@ -25,11 +25,11 @@ public partial class Stadtansicht
         /// <summary>Die Stützbeine des Handkarrens (nur im Stand gezeigt) und ob sie gerade sichtbar sind.</summary>
         public Node3D? Stuetze { get; init; }
         public bool StuetzeSichtbar { get; set; }
-        /// <summary>Die Zugtiere (Ochse, ein oder zwei Pferde) an den Ankern des Karrens.</summary>
+        /// <summary>Die Zugtiere (ein oder zwei Pferde) an den Ankern des Karrens.</summary>
         public Zugtier[] Tiere { get; set; } = Array.Empty<Zugtier>();
         /// <summary>Der Halter des Ziehers am Anker (null ohne Figur) und ob er gerade gezeigt wird (Nachtregel: nur ein fahrender Karren hat seinen Fuhrmann bei sich).</summary>
         public Node3D? FahrerHalter { get; set; }
-        /// <summary>Lage und Ausrichtung des Ziehers bzw. Läufers zum Zugpunkt (Bild des Tiers; Stadtansicht.Zugtiere.cs). Der Kutscher auf dem Bock fährt mit dem Wagen (FahrerVersatz null).</summary>
+        /// <summary>Lage und Ausrichtung des Ziehers zum Zugpunkt (Bild des Tiers; Stadtansicht.Zugtiere.cs). Der Kutscher auf dem Bock fährt mit dem Wagen (FahrerVersatz null).</summary>
         public Vector3? FahrerVersatz { get; set; }
         public Basis FahrerBasis { get; set; } = Basis.Identity;
         /// <summary>Z des Zugpunkts im Modell des Karrens (Anker am Deichselende bzw. beim Handkarren der Standpunkt des Ziehers) und Z des Drehpunkts (vorderste Radachse; Einachser 0).</summary>
@@ -49,7 +49,7 @@ public partial class Stadtansicht
         public bool Eskortiert { get; set; }
         /// <summary>Versetzt die Bilder, in denen Karren animiert werden, damit nicht alle im selben Bild dran sind.</summary>
         public int Versatz { get; init; }
-        /// <summary>Der Fuhrmann am Karren (Zieher, Läufer am Ochsen, Kutscher), eine Passantenfigur mit Skelett; null, wenn das Figurenmodell oder der Kern fehlt.</summary>
+        /// <summary>Der Fuhrmann am Karren (Zieher, Kutscher), eine Passantenfigur mit Skelett; null, wenn das Figurenmodell oder der Kern fehlt.</summary>
         public Figur? Fahrer { get; set; }
         /// <summary>Die sichtbare Fahrt mit fester Geschwindigkeit (Stadtansicht.Karren.cs, <see cref="Karrenzug"/>) und die Profile, mit denen sie zuletzt gerechnet wurde.</summary>
         public Karrenzug Zug { get; } = new();
@@ -91,22 +91,20 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Was an einer Karrenart verschieden ist: das Modell, die Räder (Knotennamen, Halbmesser nach <c>tools/modelle/karren.py</c>, falls das Modell ihn nicht als
-    /// Extra <c>radius</c> mitbringt), der Anker und der Clip des Ziehers, die Zugtierart (<c>pferd</c>, <c>ochse</c>; null: keines) mit ihren Ankern.
+    /// Extra <c>radius</c> mitbringt), der Anker und der Clip des Ziehers, die Zugtierart (<c>pferd</c>; null: keines) mit ihren Ankern.
     /// </summary>
     private sealed record KarrenArt(string Datei, (string Name, float Radius)[] Raeder, string ZieherAnker, string ZieherClip, string? Tier, string[] TierAnker, bool Pferd = false,
         string? Drehschemel = null, bool TierFolgtDeichsel = false);
 
     /// <summary>
-    /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. Der Handkarren wird gezogen (Nutzer, 10.11.2026): der Zieher steht an der Zugstange vorn
-    /// (<c>Anker_Ziehen</c>, Hände hinter dem Körper, Clip „Ziehen“); am Ochsenkarren geht der Fuhrmann mit dem Stecken neben dem Ochsen
-    /// („Nebenhergehen“), am Pferdekarren sitzt er auf dem Bock („SitzenBock“, auch beim Halt).
+    /// Die drei Karrenarten (Hand, Pferd, Großer Pferdekarren), nach <see cref="Karren.Typ"/>. Der Handkarren wird gezogen (Nutzer, 10.11.2026): der Zieher steht an der Zugstange vorn
+    /// (<c>Anker_Ziehen</c>, Hände hinter dem Körper, Clip „Ziehen“); an den Pferdekarren sitzt er auf dem Bock („SitzenBock“, auch beim Halt).
     /// </summary>
     private static readonly Dictionary<string, KarrenArt> KarrenArten = new()
     {
         ["Handkarren"] = new("karren/karren_hand", new[] { ("Rad_L", 0.45f), ("Rad_R", 0.45f) }, "Anker_Ziehen", "Ziehen", null, Array.Empty<string>()),
-        ["Ochsenkarren"] = new("karren/karren_ochse", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Fahrer_Seite", "Nebenhergehen", "ochse", new[] { "Anker_Deichsel" }),
         // Pferdekarren (1 Pferd, Zweirad, Gabeldeichsel) und Großer Pferdekarren (2 Pferde, Vierrad mit Drehschemel, Mittelbaum zwischen den Pferden): der Fuhrmann sitzt auf dem Bock;
-        // die Tiere gehen in Richtung der Deichsel (die Schere bzw. der Mittelbaum führt sie, kein Knick Tier/Deichsel). Der Ochsenkarren bleibt, wie er ist.
+        // die Tiere gehen in Richtung der Deichsel (die Schere bzw. der Mittelbaum führt sie, kein Knick Tier/Deichsel).
         ["Pferdekarren"] = new("karren/karren_pferd", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Bock", "SitzenBock", "pferd",
             new[] { "Anker_Deichsel" }, Pferd: true, TierFolgtDeichsel: true),
         ["Großer Pferdekarren"] = new("karren/karren_pferd_gross", new[] { ("Rad_HL", 0.66f), ("Rad_HR", 0.66f), ("Rad_VL", 0.42f), ("Rad_VR", 0.42f) }, "Anker_Bock", "SitzenBock", "pferd",
@@ -127,13 +125,12 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Länge des Gespanns vor und hinter dem Ursprung des Karrens (Meter, Fahrtrichtung vorn), gemessen aus den Modellen (Karren und Zugtier an den Ankern,
-    /// <c>tools/modelle/karren.py</c>, Messung <c>karren_neu_pruefen.py</c>): Großer Pferdekarren 7,25 + 1,22 (Zugpunkt 6,47 m vor der Hinterachse, Kopf des Pferds 0,78 m vor dem Ring), Pferdekarren 4,75 + 1,75 (Zugpunkt 3,94 m), Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
+    /// <c>tools/modelle/karren.py</c>, Messung <c>karren_neu_pruefen.py</c>): Großer Pferdekarren 7,25 + 1,22 (Zugpunkt 6,47 m vor der Hinterachse, Kopf des Pferds 0,78 m vor dem Ring), Pferdekarren 4,75 + 1,75 (Zugpunkt 3,94 m), Handkarren 2,93 (mit Zieher) + 0,88.
     /// </summary>
     internal static (float Vorn, float Hinten) KarrenGespann(string typ) => typ switch
     {
         "Großer Pferdekarren" => (7.25f, 1.22f),
         "Pferdekarren" => (4.75f, 1.75f),
-        "Ochsenkarren" => (5.33f, 1.28f),
         _ => (2.93f, 0.88f),
     };
 
@@ -402,7 +399,7 @@ public partial class Stadtansicht
         var rueckstand = KarrenHaltRueckstand(typen, nummer);
         var spaet = laenge > 0 ? rueckstand / laenge : 0f;
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil, 1f - spaet), 0f, 1f);
-        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
+        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Hand 1,0, Pferdekarren 0,8, Großer Pferdekarren 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
         // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo und auf demselben Weg (Halteplatz, Hof, Zubringer, Wege,
         // Halt vor dem Pflaster), bei der Standard-Rundendauer kommen beide bis auf die Rundung auf ganze Minuten zugleich an. Wer früher da ist
         // (längere Runden), wartet am Markt, bis der Kern verkauft; wer später kommt (kürzere Runden, eine vom Kern gekappte Fahrt über der
@@ -704,7 +701,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Setzt Zugtiere und Zieher bzw. Läufer an den Zugpunkt der Schleppkurve: Sie laufen den Weg (Kurs des Zugtiers), der Karren hängt an ihnen
+    /// Setzt Zugtiere und Zieher an den Zugpunkt der Schleppkurve: Sie laufen den Weg (Kurs des Zugtiers), der Karren hängt an ihnen
     /// (der Anker am Deichselende liegt auf dem Zugpunkt). Der Kutscher auf dem Bock bleibt am Wagen.
     /// </summary>
     private void KarrenGespannSetzen(KarrenAnsicht k)

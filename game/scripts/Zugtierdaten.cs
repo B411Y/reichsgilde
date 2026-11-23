@@ -4,7 +4,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Regeln der Zugtiere aus <c>res://daten/zugtiere.json</c> (erzeugt von <c>tools/modelle/zugtiere.py</c>): je Tierart (<c>pferd</c>, <c>ochse</c>) und Clip
+/// Die Regeln der Zugtiere aus <c>res://daten/zugtiere.json</c> (erzeugt von <c>tools/modelle/zugtiere.py</c>): je Tierart (<c>pferd</c>) und Clip
 /// Dauer, Schleife, Rumpfweg je Bild und Anlauf, dazu Tempo, Anker im Ziehen und Blendzeit zwischen Gehen und Ziehen. Nur lesen, nichts rechnen.
 /// </summary>
 public static class Zugtierdaten
@@ -17,7 +17,7 @@ public static class Zugtierdaten
 
     private static Dictionary<string, Tierart>? _arten;
 
-    /// <summary>Die Tierart („pferd“, „ochse“); null, wenn die Datei fehlt.</summary>
+    /// <summary>Die Tierart („pferd“); null, wenn die Datei fehlt.</summary>
     public static Tierart? Von(string tier)
     {
         _arten ??= Laden();
