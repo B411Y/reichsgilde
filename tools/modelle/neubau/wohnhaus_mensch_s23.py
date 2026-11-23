@@ -1927,7 +1927,7 @@ def main():
     M.stufe_setzen(stufe)                          # Stufe 3: tieferer Gang, drittes Geschoss, Treppengiebel
     globals()["MASSWERK_SCHNITT"] = stufe == 3 and "schnitt-alt" not in opt   # kein deckungsgleiches Dreieck im Masswerk (sonst schwarze Spitze)
     globals()["DACH_HINTER"] = stufe == 3 and "dach-alt" not in opt   # Dachvorderkante hinter den Nischengrund (fuer jeden Aufrufer von main; --dach-alt: alter Stand)
-    if stufe == 3 and "gaube-alt" not in opt: GAUBE.update(GAUBE_PATRIZIER)   # Gaube hinter dem Schornstein, aus Quaderlagen (nur Menschen); --gaube-alt: alter Stand fuer Vergleichsbilder
+    if stufe == 3 and "gaube-alt" not in opt: GAUBE.update(GAUBE_PATRIZIER)   # Gaube hinter dem Schornstein, aus Quaderlagen (fuer jeden Aufrufer von main); --gaube-alt: alter Stand fuer Vergleichsbilder
     waende_setzen()
     M.FENSTER = M.fenster(form, stufe)             # Oeffnungen der Grundform (alle Bauteile lesen M.FENSTER)
     F = M.FORMEN[form]
@@ -2011,7 +2011,7 @@ def main():
     # groesseren Haeuser unter 150 Bildpunkten je m2 (uv2_pruefung.uv2_dichte). Die Zellenzahl teilt die Kante ohne Rest (bei 3 x 3 in
     # 2048 lagen Bild und UV2 bis zu 2 Bildpunkte gegeneinander verschoben: kante // n gegen 1 / n).
     g1.uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], f"wohnhaus_mensch_s{stufe}", name, mit_ao=mit_ao)
-    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen. ACHTUNG: schreibt trotzdem Innen-Atlas und _innen.glb neu (UV2 ohne Backen): danach beide aus git wiederherstellen
+    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen. der Innen-Atlas und die _innen.glb bleiben unveraendert (Folge-Patch 0004: die _innen.glb wird dann nicht mehr geschrieben)
 
     tuer = next(f for f in M.FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = M.SCHORNSTEIN_RECHTS
@@ -2022,7 +2022,7 @@ def main():
         a.versetze(t=(dx, 0.0))
     g1.exportiere(aussen + [a.objekt() for a in a_aussen], os.path.join(g1.ZIEL_MODELL, f"{name}.glb"))
     skelett = behang_skelett(o_raum, dx)          # Knochen des Wandbehangs (Stufe 3), nach dem Backen: AO und UV2 ohne Armatur
-    g1.exportiere(innen + skelett + [a.objekt() for a in a_innen], os.path.join(g1.ZIEL_MODELL, f"{name}_innen.glb"))
+    if "innen-ao-aus" not in opt: g1.exportiere(innen + skelett + [a.objekt() for a in a_innen], os.path.join(g1.ZIEL_MODELL, f"{name}_innen.glb"))   # --innen-ao-aus: Innen-GLB bleibt, wie es ist
 
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)

@@ -104,6 +104,7 @@ def laeden_zu_anlegen(stufe):
 
 # ── Stufe 3, Patrizierhaus der Zwerge (Nutzer 23.11.2026, Entwurf „Steinernes Haus“): Zinnen, stumpfe Boegen, Hammer und Schlaegel,
 #    Kragsteinfries, Eisengitter. Vorbild Steinernes Haus Frankfurt (Zinnen, Ecktuermchen) und Kamenny dum Kutna Hora (Public domain / CC BY 4.0).
+GIEBEL_LAGE = 0.6            # Massstab des Bandes „bruchstein“ im Treppengiebel (Lagenhoehe 0,24 m statt 0,40 m)
 SEGMENT_H = 0.25            # Pfeilhoehe der stumpfen Boegen je Spannweite (Mensch 0,866 Spitzbogen, Halbling 0,5 Halbkreis)
 
 
@@ -135,11 +136,11 @@ def zinnen_fiale(h, x, y_vorn, z, gross=False, tief=None):
         return
     kk((x - 0.26, y0 - 0.04, z), (x + 0.26, y1 + 0.04, z + 1.00), laengs="z")                    # Schaft des Tuermchens
     kk((x - 0.34, y0 - 0.10, z + 1.00), (x + 0.34, y1 + 0.10, z + 1.12), laengs="x")             # Kragkranz
-    for sx in (-1, 1):
+    for sx in (-1, 1):                                                                            # vier Eckzinnen 0,12 breit, dazu je eine Zinne in der Mitte vorn und hinten
         for sy in (y0 - 0.10, y1 + 0.10 - 0.16):
-            kk((x + sx * 0.18 - 0.08, sy, z + 1.12), (x + sx * 0.18 + 0.08, sy + 0.16, z + 1.44), laengs="z")
-    kk((x - 0.08, y0 - 0.10, z + 1.12), (x + 0.08, y0 + 0.06, z + 1.44), laengs="z")             # mittlere Zinne vorn
-    kk((x - 0.08, y1 - 0.06, z + 1.12), (x + 0.08, y1 + 0.10, z + 1.44), laengs="z")             # und hinten
+            kk((x + sx * 0.20 - 0.06, sy, z + 1.12), (x + sx * 0.20 + 0.06, sy + 0.16, z + 1.44), laengs="z")
+    kk((x - 0.05, y0 - 0.10, z + 1.12), (x + 0.05, y0 + 0.06, z + 1.44), laengs="z")             # mittlere Zinne vorn (Luecken je 9 cm)
+    kk((x - 0.05, y1 - 0.06, z + 1.12), (x + 0.05, y1 + 0.10, z + 1.44), laengs="z")             # und hinten
 
 
 def hammer_schlaegel(h, P, xm, zm, r, breite, tiefe, n=8, band=None):
@@ -149,10 +150,10 @@ def hammer_schlaegel(h, P, xm, zm, r, breite, tiefe, n=8, band=None):
     d = max((r - breite) * 0.78, 0.17)
     t = 0.08
     st = lambda a, b, dick: h.stab("Bruchstein", P(a[0], a[1], t / 2), P(b[0], b[1], t / 2), dick, S23.WERKSTEIN, breite=dick, kappen=True)
-    st((xm - d, zm - d), (xm + d, zm + d), 0.045)                                  # Stiel des Schlaegels
-    st((xm - d, zm + d), (xm + d, zm - d), 0.045)                                  # Stiel des Eisens
-    st((xm + d * 0.45, zm + d * 1.20), (xm + d * 1.20, zm + d * 0.45), 0.09)       # Kopf des Schlaegels (quer zum Stiel)
-    st((xm - d * 0.55, zm + d * 1.15), (xm - d * 1.15, zm + d * 0.55), 0.05)       # Schneide des Eisens
+    st((xm - d, zm - d), (xm + d, zm + d), 0.06)                                   # Stiel des Schlaegels
+    st((xm - d, zm + d), (xm + d, zm - d), 0.06)                                   # Stiel des Eisens
+    st((xm + d * 0.45, zm + d * 1.20), (xm + d * 1.20, zm + d * 0.45), 0.14)       # Kopf des Schlaegels (quer zum Stiel)
+    st((xm - d * 0.55, zm + d * 1.15), (xm - d * 1.15, zm + d * 0.55), 0.08)       # Schneide des Eisens
 
 
 def kragsteinfries(h):
@@ -246,18 +247,15 @@ def schicht_anlegen(stufe):
         S23.rundbogenfries = kragsteinfries
         alt_treppengiebel = S23.treppengiebel
 
-        def treppengiebel_fugen(h, *args, **kw):
-            """Nur der Treppengiebel bekommt sichtbare Fugen (Nutzer 23.11.2026): seine Flaechen im Band „bruchstein“ werden auf das Fugenband in der
-            Spalte „balken_a“ des Blatts trim_s3_zwerg gelegt; Ecken, Gewaende und Gesimse behalten den hellen Haustein (K2)."""
-            n0 = len(h.flaechen)
-            r = alt_treppengiebel(h, *args, **kw)
-            b0, b1, _ = h.baender["bruchstein"]; a0, a1, _ = h.baender["balken_a"]
-            for i in range(n0, len(h.flaechen)):
-                pts, uv, st, fa, gl = h.flaechen[i]
-                if S23._band_von(h, uv) == "bruchstein":
-                    h.flaechen[i] = (pts, [(u, a0 + (v - b0) / max(b1 - b0, 1e-6) * (a1 - a0)) for u, v in uv], st, fa, gl)
-            return r
-        S23.treppengiebel = treppengiebel_fugen
+        def treppengiebel_dichter(h, *args, **kw):
+            """Treppengiebel mit demselben Band wie die Ecken („bruchstein“, K2; Nutzer 23.11.2026), aber in niedrigeren Lagen: Das Band zeigt je Lage seine Lagerfugen
+            an Ober- und Unterkante, mit dem Massstab GIEBEL_LAGE (0,6) statt 1 sind die Lagen 0,24 m hoch und die Fugen dichter und besser zu sehen (die Flaeche war vorher
+            fast fugenlos). Nur waehrend dieses Aufrufs; Ecken, Gewaende und Gesimse behalten den Massstab 1."""
+            v0, v1, m = h.baender["bruchstein"]
+            h.baender["bruchstein"] = (v0, v1, m * GIEBEL_LAGE)
+            try: return alt_treppengiebel(h, *args, **kw)
+            finally: h.baender["bruchstein"] = (v0, v1, m)
+        S23.treppengiebel = treppengiebel_dichter
     # Aussen: Amboss neben der Haustuer an der Gassenwand (Kunstwerke Stufe 2 und 3)
     alt_haus = S23.baue_haus
 
@@ -284,6 +282,7 @@ def schicht_anlegen(stufe):
             eisengitter(h)
             tuerbeschlaege(h)
             print("DREIECKE Eisengitter:", h.dreiecke() - vorher)
+        if stufe == 3: zt.entflimmern(h)                  # Geometriepruefung: deckungsgleiche gleichlaufende Flaechen
         return h
     S23.baue_haus = haus
     # Fahnenmast: auf dem First verankert (stand bisher 25 cm ueber der Unterseite des Firsts frei ueber der Deckung)
