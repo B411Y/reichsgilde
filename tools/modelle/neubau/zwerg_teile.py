@@ -4,6 +4,7 @@ vor der Tuer, Kohle, Zwergenmoebel. Sie ersetzen oder ergaenzen die Teile der Me
 Alles baut auf `netzbau.Teil` auf (Flaechen mit Trim-Sheet-UV); die Baender sind dieselben wie bei den Menschen (trimsheet_zwerg.py
 fuellt sie anders: "stroh" = Schindeln, "putz" = Quader). Vorbild: das Kunstwerk „Wohnhaus Zwerg“ (Stufe 1).
 """
+import os
 import math
 
 from mathutils import Vector
@@ -364,6 +365,9 @@ def _schnitt_z(pts, za, zb):
     return aus if len(aus) >= 3 else []
 
 
+PUTZ_BLEIBT = [False]     # Elben Stufe 3: der Kalkputz des Obergeschosses bleibt Putz (quader_in_lagen laesst die Flaechen dann unveraendert)
+
+
 def quader_in_lagen(stoff="Lehmputz", band="putz", ziel=None):
     """Stellt netzbau.Teil.welt fuer die Zwergenhaeuser um: Flaechen aus `stoff` auf dem Band `band` entstehen in Lagen der Bandhoehe.
     `ziel` (Stoff, Band): die Lagen entstehen gleich aus diesem Stein (Steinhaus: die Gaube aus Werkstein – versteinern() legte den
@@ -373,7 +377,7 @@ def quader_in_lagen(stoff="Lehmputz", band="putz", ziel=None):
     zahl = [0, 0]
 
     def welt(self, st, punkte, bd, o, eu, zbasis, hoehe, m=None, **kw):
-        if st != stoff or bd != band:
+        if st != stoff or bd != band or PUTZ_BLEIBT[0]:
             return alt(self, st, punkte, bd, o, eu, zbasis, hoehe, m, **kw)
         if ziel: st, bd = ziel
         v0, v1, bm = self.baender[bd]
@@ -458,6 +462,9 @@ def felder_der_mauer(achsen, bw, breite, oeffnungen, abstand=0.60, ecke=0.55):
     return aus
 
 
+_BELEGT = []     # (Normale, Ebene, s von, s bis, z von, z bis) aller gebauten Laeden dieses Hauses
+
+
 def laeden_zu(h, p0, eu, n, felder, t0, t1, schluessel, anteil, einbau=None, nebeneinander=True):
     """Wuerfelt je Feld (s0, s1) der Wand (Punkt p0 bei s = 0, Richtung eu, Normale n nach aussen) und baut geschlossene Laeden von t0
     bis t1. `einbau(bau)`: fuehrt den Bau aus (Steinhaus: als Holzakzent). `nebeneinander` False: nach einem gebauten Laden bleibt das
@@ -472,6 +479,12 @@ def laeden_zu(h, p0, eu, n, felder, t0, t1, schluessel, anteil, einbau=None, neb
     for s0, s1 in felder:
         if not wuerfel.random() >= 1.0 - anteil: continue            # derselbe Wurf wie in zeile_module (fensterlose Achse)
         if not nebeneinander and letzter is not None and s0 - letzter < 0.50: continue
+        # auch ueber mehrere Aufrufe je Wand (Befund Pruefer 23.11.2026: eine Wand wird je Geschoss und Aufruf gebaut): kein Laden neben oder auf einem anderen
+        sw0, sw1, dw = p0.dot(eu) + s0, p0.dot(eu) + s1, p0.dot(n)
+        if not nebeneinander and any(abs(dw - d_) < 0.05 and n.dot(n_) > 0.99 and max(sw0 - e_, a_ - sw1) < 0.50 and t1 > za_ and t0 < ze_
+                                     for n_, d_, a_, e_, za_, ze_ in _BELEGT):
+            continue
+        _BELEGT.append((n, dw, sw0, sw1, t0, t1))
         letzter = s1
         ebene = Z.Ebene(o, eu, (0, 0, 1), o + eu * (s0 + s1) / 2 - n + Vector((0, 0, (t0 + t1) / 2)))
         a = len(h.flaechen)
@@ -520,4 +533,31 @@ def laeden_zu_pruefen(teile):
             h.flaechen = [f for f in h.flaechen if f[3] is not marke]
     zahl = len(LAEDEN_ZU)
     print(f"LAEDEN ZU: {zahl} gewuerfelt, {weg} verstellt und entfernt, {zahl - weg} gebaut")
+    nachbarn = laeden_nachbarn()
+    print(f"MESSUNG Laeden nie nebeneinander (Befund Pruefer 23.11.2026, auch ueber mehrere Aufrufe je Wand): {nachbarn} benachbarte Paare -> "
+          + ("ok" if nachbarn == 0 else "FEHLER"))
     return zahl, weg
+
+
+def laeden_nachbarn(abstand=0.50):
+    """Zahl der Paare geschlossener Laeden, die an derselben Wandebene nebeneinander haengen (waagerechter Abstand unter `abstand`, Hoehen ueberlappen).
+    Prueft alle gebauten Laeden des Hauses, nicht nur die eines Aufrufs von laeden_zu (eine Wand wird je Geschoss und Aufruf gebaut)."""
+    boxen = []
+    for h, marke in LAEDEN_ZU:
+        eigene = [f for f in h.flaechen if f[3] is marke]
+        if not eigene: continue
+        pts0 = eigene[0][0]
+        n = (pts0[1] - pts0[0]).cross(pts0[2] - pts0[0]).normalized()
+        eu = Vector((0, 0, 1)).cross(n).normalized()
+        alle = [p for f in eigene for p in f[0]]
+        s_ = [p.dot(eu) for p in alle]; z_ = [p.z for p in alle]; d = sum(p.dot(n) for p in alle) / len(alle)
+        boxen.append((n, d, min(s_), max(s_), min(z_), max(z_)))
+    zahl = 0
+    for i in range(len(boxen)):
+        for j in range(i + 1, len(boxen)):
+            n1, d1, a1, e1, za1, ze1 = boxen[i]; n2, d2, a2, e2, za2, ze2 = boxen[j]
+            if n1.dot(n2) < 0.99 or abs(d1 - d2) > 0.05 or ze1 < za2 or ze2 < za1: continue
+            if max(a2 - e1, a1 - e2) < abstand:
+                zahl += 1
+                print(f"LAEDEN NACHBARN: Wand n=({n1.x:.0f},{n1.y:.0f}) s {a1:.2f}..{e1:.2f} z {za1:.2f}..{ze1:.2f}  und  s {a2:.2f}..{e2:.2f} z {za2:.2f}..{ze2:.2f}")
+    return zahl

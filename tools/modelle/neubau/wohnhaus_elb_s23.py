@@ -96,7 +96,7 @@ def efeu_setzen(h):
         (ox, oy), (ex, ey), _l, _n = ebenen[nr]
         if abs(ey) > 0.5: return M.Z_TRAUFE - 0.25
         return M.z_dach(ox + ex * s_) - 0.35
-    n = efeu_karten.bewachsen(h, teile, ebenen, budget, 53 + 10 * STUFE[0] + FORM[0], z_grenze, gross=1.35 if budget < 45 else 1.0)
+    n = efeu_karten.bewachsen(h, teile, ebenen, budget, 53 + 10 * STUFE[0] + FORM[0], z_grenze, gross=1.35 if budget < 45 else 1.0, nur_ecken=STUFE[0] == 3)
     print(f"EFEU Karten: {n} (Budget {budget})")
 
 
@@ -462,6 +462,37 @@ def kielbogenfries(h):
         _stange(h, kielbogen(xa + 0.03, xa + 0.33, z0 - 0.16, 0.13, n=3), M.VORN - 0.02, 0.03)
 
 
+def holz_zier(h):
+    """Holz der Elben am Patrizierhaus (Entwurf 3.5): Stuetzen der Holzlaube (Vordach) mit Schnitzwerk (Basis, drei Ringe, Kapitell mit
+    Kopfband) und Balkenkoepfe unter der Auskragung der Gassenseite. Als Holzakzent: versteinern() laesst sie Holz."""
+    M = S23.M
+    tuer = next(f for f in M.FENSTER if f[3] == "tuer" and f[0] == "vorn_eg")
+    xt = (tuer[1][0] + tuer[1][1]) / 2
+    z_tuer_oben = tuer[2][1]
+
+    def bau():
+        zb = 0.0                                                   # Boden vor dem Haus
+        for dx in (-0.64, 0.64):
+            x, y = xt + dx, M.VORN - 0.48                          # innerhalb der Tiefe des Vordachs (0,70 m): Fussabdruck der Grundform (Pruefung 27)
+            zo = LETZT['vordach_z'] - 0.02 + 0.03                  # Unterseite der Dachplatten des Vordachs (z - 0,02) und 3 cm hinein: kein Spalt, Pruefung 16
+            ringe = [zb + 0.50, zb + 1.00, zb + 1.50]              # Schnitzringe 5 cm; die Stuetze besteht aus Stuecken unter 0,8 m (Pruefung 10: kein langer, schmaler Staender)
+            grenzen = [zb + 0.10] + [z_ for r_ in ringe for z_ in (r_, r_ + 0.05)] + [zo - 0.14]
+            for k in range(0, len(grenzen), 2):
+                h.kasten("Fachwerk", (x - 0.055, y - 0.055, grenzen[k]), (x + 0.055, y + 0.055, grenzen[k + 1]), "balken_c", laengs="z")
+            h.kasten("Fachwerk", (x - 0.085, y - 0.085, zb), (x + 0.085, y + 0.085, zb + 0.10), "balken_c", laengs="z")           # Basis
+            for r_ in ringe:
+                h.kasten("Fachwerk", (x - 0.075, y - 0.075, r_), (x + 0.075, y + 0.075, r_ + 0.05), "balken_c", laengs="z")
+            h.kasten("Fachwerk", (x - 0.10, y - 0.10, zo - 0.14), (x + 0.10, y + 0.10, zo), "balken_c", laengs="z")                # Kapitell
+            h.stab("Fachwerk", Vector((x, y + 0.02, zo - 0.12)), Vector((x, y + 0.28, zo)), 0.06, "balken_c", kappen=True)                               # Kopfband zur Wand (kuerzer als 0,4 m)
+        bx = M.BX - 0.45
+        n = int(2 * bx / 0.6)
+        for k in range(n + 1):
+            x = -bx + k * (2 * bx / n)
+            if abs(x - xt) < 0.95: continue                         # nicht ueber der Laube
+            h.kasten("Fachwerk", (x - 0.06, M.VORN - 0.34, M.Z_EG_DECKE - 0.10), (x + 0.06, M.VORN - 0.06, M.Z_EG_DECKE - 0.0), "balken_c", ohne=("+z",), laengs="y")
+    S23.holz_akzent(h, bau)
+
+
 def vorder_zier(h):
     """Gassenseite: Kielbogen mit Knospe ueber jedem Fenster, Laterne auf einer Konsole rechts der Haustuer (nur Modell, ohne Lichtanbindung)."""
     M = S23.M
@@ -470,6 +501,7 @@ def vorder_zier(h):
         y = (M.VORN if wand == "vorn_eg" else M.OVORN) - 0.03
         _stange(h, kielbogen(a0 - 0.17, a1 + 0.17, b1 + 0.17, 0.20, n=5), y, 0.04)
         knospe(h, (a0 + a1) / 2, y, b1 + 0.17 + 0.21, s=0.035)
+    holz_zier(h)
     tuer = next(f for f in M.FENSTER if f[3] == "tuer" and f[0] == "vorn_eg")
     (a0, a1), (b0, b1) = tuer[1], tuer[2]
     x = a1 + 0.35 if a1 + 0.5 < M.BX - 0.55 else a0 - 0.35
@@ -799,6 +831,7 @@ def schicht_anlegen(stufe):
 
     def vordach(h, x, z):
         ab = len(h.flaechen)
+        LETZT['vordach_z'] = z - (TUER_HOCH - 2.00)               # Hoehe des Vordachs (fuer die Stuetzen der Holzlaube)
         alt_vordach(h, x, z - (TUER_HOCH - 2.00))
         # die Untersicht der Menschen reicht mit v 0,78 eine Spur ueber das Band „planken“ (bis 0,775) ins Band „farbholz“: Pruefung 17
         v0, v1, _ = h.baender["planken"]
@@ -819,11 +852,38 @@ def schicht_anlegen(stufe):
         S23.WERKSTEIN = "bruchstein"
         S23.OBEN.update(band="putz", lage=None)
         S23.rundbogenfries = kielbogenfries
+        # Erdgeschoss und Giebel Haustein (Band „bruchstein“), Obergeschoss Kalkputz (Band „putz“, `OBEN`): der Putz bekommt den Stoff Lehmputz
         alt_wand3 = S23.steinwand
-        S23.steinwand = lambda h, stoff, wand, z0, z1, band="putz", laibung=True, lage=None: alt_wand3(h, "Lehmputz" if band == "putz" else stoff, wand, z0, z1, band, laibung, lage)
+        import zwerg_teile as zt
+
+        def steinwand_og_putz(h, stoff, wand, z0, z1, band="bruchstein", laibung=True, lage=None):
+            if band != "putz": return alt_wand3(h, stoff, wand, z0, z1, band, laibung, lage)
+            zt.PUTZ_BLEIBT[0] = True                       # quader_in_lagen (unten) legte den Putz sonst auf das Steinband (Befund Pruefer 23.11.2026)
+            try: r = alt_wand3(h, "Lehmputz", wand, z0, z1, band, False, lage)
+            finally: zt.PUTZ_BLEIBT[0] = False
+            if laibung:                                    # Laibungen bleiben Stein (Pruefung 11): vier Seiten aus Haustein wie im Erdgeschoss
+                (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+                for s0, s1_, za, zb, *_rest in [x[:4] for x in S23.loecher(wand)]:
+                    n = S23.nvec(wand)
+                    mitte = S23.punkt(wand, (s0 + s1_) / 2, (max(za, z0) + min(zb, z1)) / 2, -S23.M.T / 2)
+                    za, zb = max(za, z0), min(zb, z1)
+                    for p, richtung, laenge in ((S23.punkt(wand, s0, za), Vector((ex, ey, 0)), s1_ - s0), (S23.punkt(wand, s0, zb), Vector((ex, ey, 0)), s1_ - s0),
+                                                (S23.punkt(wand, s0, za), S23.EZ, zb - za), (S23.punkt(wand, s1_, za), S23.EZ, zb - za)):
+                        h.rechteck("Bruchstein", p, richtung, -n, laenge, S23.M.T, "bruchstein", zu=mitte, anteil=(0.0, 0.6))
+            return r
+        S23.steinwand = steinwand_og_putz
         alt_versteinern = S23.versteinern
-        # Schuppen (Grundform 3) bleibt Holz: der Holzunterstand der Elben (bei den Menschen Pfeiler aus Haustein)
-        S23.versteinern = lambda teil, ab=0, bis=None, z_min=0.7, ganz=False: None if ganz else alt_versteinern(teil, ab, bis, z_min, ganz)
+
+        def versteinern_elb(teil, ab=0, bis=None, z_min=0.7, ganz=False):
+            """Schuppen (Grundform 3) bleibt Holz (Holzunterstand der Elben, bei den Menschen Pfeiler aus Haustein). Der Kalkputz des Obergeschosses
+            bleibt Putz: versteinern() legt sonst jede Lehmputz-Flaeche auf das Band „bruchstein“ (Befund Pruefer 23.11.2026: das Obergeschoss
+            war Haustein-Quader, nicht Putz)."""
+            if ganz: return None
+            for i, (pts, uv, st, fa, gl) in enumerate(teil.flaechen):
+                if st == "Lehmputz": teil.flaechen[i] = (pts, uv, "Lehmputz_", fa, gl)
+            alt_versteinern(teil, ab, bis, z_min, ganz)
+            teil.flaechen = [(pts, uv, "Lehmputz" if st == "Lehmputz_" else st, fa, gl) for pts, uv, st, fa, gl in teil.flaechen]
+        S23.versteinern = versteinern_elb
     # Huelle
     alt_haus = S23.baue_haus
 
@@ -943,11 +1003,14 @@ def main():
     stufe = int(opt.get("stufe", "2"))
     FORM[0] = int(opt.get("form", "1"))
     if stufe == 3: sys.argv.append("--dach-alt")               # Schildgiebel statt Blendnischen: die Dachvorderkante bleibt, wo sie war (sonst Durchblick am First)
-    schicht_anlegen(stufe)
-    if os.environ.get("REICHSGILDE_ZAEHLEN"):                  # Messung der Dreiecke je Bauteil (dreiecke_zaehler.py)
+    if os.environ.get("REICHSGILDE_ZAEHLEN"):                  # Messung der Dreiecke je Bauteil (dreiecke_zaehler.py; vor schicht_anlegen, damit die ersetzten Teile gezaehlt werden)
         import dreiecke_zaehler
         dreiecke_zaehler.anlegen(S23, sys.modules[__name__])
+    schicht_anlegen(stufe)
     S23.main()
+    if opt.get("bilder"):
+        import bild_zusatz
+        bild_zusatz.zeichne(g1, S23.M, opt["bilder"], stufe, FORM if isinstance(FORM, int) else FORM[0], S23.M.FORMEN[FORM if isinstance(FORM, int) else FORM[0]]["dx"], bpy)
     messen(stufe, int(opt.get("form", "1")), opt.get("bilder"))
 
 

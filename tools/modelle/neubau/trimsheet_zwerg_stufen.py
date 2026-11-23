@@ -30,8 +30,9 @@ SCHIEFER_HELL = 0.33      # mittlerer Wert der Schieferbaender in der gespeicher
                           # in Blender nur dunkelgrau; Kunstwerke Stufe 2 und 3: mittelgrauer Schiefer
 
 
-ZIEGEL_TON = (0.52, 0.30, 0.24)       # Tonziegel der Zwerge Stufe 3 (Menschen Stufe 2: 0,52 / 0,33 / 0,26), etwas roetlicher
-ZIEGEL_HELL_ZWERG = 0.20              # mittlere Helligkeit der Dachbaender (Menschen 0,20)
+ZIEGEL_TON = (0.42, 0.27, 0.21)       # gealterter Tonziegel der Zwerge Stufe 3, rotbraun (Nutzer 23.11.2026: gedaempfter; erster Stand 0,52 / 0,30 / 0,24 leuchtete)
+K2_MITTEL = (134.4, 122.6, 94.6)       # Mittel des Bandes „bruchstein“ der Ebene zwerg_s3 mit K2 (Spiel-Array, 8 Bit)
+ZIEGEL_HELL_ZWERG = 0.16              # mittlere Helligkeit der Dachbaender (Menschen 0,20)
 
 
 def schiefer_aufhellen(blatt):
@@ -55,13 +56,24 @@ def baue(quellen, nur=None):
         s2.speichere("trim_s2_zwerg")
     s3 = st.lade_blatt("trim_zwerg")
     # Dach Stufe 3 (Nutzer 23.11.2026): gebrannte Tonziegel statt Schiefer (Stufe 1 braeunlich, Stufe 2 blau bleiben)
-    st.dach_band(s3, st.Quelle1k(quellen, "clay_roof_tiles_02", kante=1024, aufloesung="2k"), ZIEGEL_TON, eigenfarbe=0.2)
+    st.dach_band(s3, st.Quelle1k(quellen, "clay_roof_tiles_02", kante=1024, aufloesung="2k"), ZIEGEL_TON, eigenfarbe=0.12)
     st.dach_aufhellen(s3, ZIEGEL_HELL_ZWERG)
-    # Werkstein (Eckquader, Gewaende, Gesimse, Giebel): Quaderlagen mit tiefen Fugen und Fase wie bei den Menschen, in der braunen Farbe der
-    # Zwerge (Nutzer 23.11.2026: braune Steine ohne sichtbare Fugen, im Pixel-Look nicht lesbar): breite Fugen, starke Fase
+    # Band „bruchstein“ (Eckquader, Gewaende, Gesimse, Gaube): wie vor dem Patrizierhaus (Nutzer 23.11.2026: die Ecken waren perfekt, die Fugen des ersten
+    # Quaderbands zu wild): hellbrauner Haustein K2 ohne eigene Fugen. Im Spiel setzt trimsheet_ebenen.py dasselbe K2 ein; hier dient es der Blender-Vorschau.
+    B = BAENDER_AUSSEN["bruchstein"]
+    a, e = s3.zeilen(B)
+    k2 = st.Quelle1k(quellen, "large_sandstone_blocks_01", kante=int(round(3.0 * N / B[2])))   # Kachel 3 x 3 m
+    f, n, arm = k2.streifen(e - a, ab=300)
+    s3.setze(B, faerbe(f, (0.60, 0.52, 0.42), kontrast=1.0, eigenfarbe=0.5), n, arm)
+    # Treppengiebel: eigenes Fugenband in der Spalte „balken_a“ (im Steinhaus der Zwerge unbenutzt; Holz heisst dort balken_c und planken). Nur der Treppengiebel
+    # nimmt es (wohnhaus_zwerg_s23.treppengiebel_fugen legt seine Flaechen auf dieses Band): Quader mit Fugen von 14 Bildpunkten, mittlere Fase.
     stein = Quelle(quellen, "sandstone_blocks_08", kante=1024)
-    st.quaderband(s3, BAENDER_AUSSEN["bruchstein"], stein, (0.60, 0.52, 0.42), saat=47, ab=210, fuge_px=22, fuge_x_px=22, fase_px=12,
-                  streuung=0.10, kontrast=0.8, eigenfarbe=0.2)
+    # Farbe wie der Haustein K2 der Ecken (Mittel 134/123/95 in der Albedo-Ebene zwerg_s3; speichere() legt den gerechneten Wert ohne sRGB-Kodierung ab,
+    # darum die Rueckrechnung; 0,88 = Abdunklung durch Fugen und Fase), damit der Giebel dieselbe Farbe hat wie die Ecken, nur mit Fugen
+    from trimsheet import linear_zu_srgb
+    ton = tuple(float(x) for x in linear_zu_srgb(np.array(K2_MITTEL, dtype=np.float32) / 255.0 / 0.88))
+    st.quaderband(s3, BAENDER_AUSSEN["balken_a"], stein, ton, saat=47, ab=210, fuge_px=14, fuge_x_px=14, fase_px=8,
+                  streuung=0.08, kontrast=0.8, eigenfarbe=0.5)
     s3.speichere("trim_s3_zwerg")
     if nur == "s3": return
     # Innen: Schachbrettfeld rechts im Band "lehmboden" (links bleibt das Pflaster der Zwerge)

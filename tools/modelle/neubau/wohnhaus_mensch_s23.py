@@ -790,7 +790,7 @@ def baue_dach(stoff="Dachziegel", first="Firstziegel"):
     return d
 
 
-DACH_HINTER = False       # nur der Einstieg der Menschen (main) schaltet es fuer Stufe 3 ein (Zwerg und Halbling rufen baue_dach auch auf); --dach-alt: wie vorher
+DACH_HINTER = False       # S23.main schaltet es fuer Stufe 3 ein, fuer jeden Aufrufer (Mensch, Zwerg, Halbling, Elb); --dach-alt: wie vorher (die Elben setzen es, ihr Schildgiebel hat keine Nischen)
 
 
 def dach_hinter_nischen(d):
@@ -807,7 +807,7 @@ def dach_hinter_nischen(d):
     return n
 
 
-MASSWERK_SCHNITT = False  # Menschen Stufe 3 (main): die Rahmen des Blendmasswerks ueberdecken sich nicht mehr; --schnitt-alt: wie vorher
+MASSWERK_SCHNITT = False  # Stufe 3 (S23.main, fuer jeden Aufrufer): die Rahmen des Blendmasswerks ueberdecken sich nicht mehr; --schnitt-alt: wie vorher
 
 
 GAUBE = dict(y=(-0.75, 0.45), x_front=1.75, z_fuss=None, fenster=(0.55, 0.62))
@@ -1926,7 +1926,7 @@ def main():
         raise SystemExit("--stufe=<2|3> --form=<1..4>")
     M.stufe_setzen(stufe)                          # Stufe 3: tieferer Gang, drittes Geschoss, Treppengiebel
     globals()["MASSWERK_SCHNITT"] = stufe == 3 and "schnitt-alt" not in opt   # kein deckungsgleiches Dreieck im Masswerk (sonst schwarze Spitze)
-    globals()["DACH_HINTER"] = stufe == 3 and "dach-alt" not in opt   # Dachvorderkante hinter den Nischengrund (nur Menschen; --dach-alt: alter Stand)
+    globals()["DACH_HINTER"] = stufe == 3 and "dach-alt" not in opt   # Dachvorderkante hinter den Nischengrund (fuer jeden Aufrufer von main; --dach-alt: alter Stand)
     if stufe == 3 and "gaube-alt" not in opt: GAUBE.update(GAUBE_PATRIZIER)   # Gaube hinter dem Schornstein, aus Quaderlagen (nur Menschen); --gaube-alt: alter Stand fuer Vergleichsbilder
     waende_setzen()
     M.FENSTER = M.fenster(form, stufe)             # Oeffnungen der Grundform (alle Bauteile lesen M.FENSTER)
@@ -2011,7 +2011,7 @@ def main():
     # groesseren Haeuser unter 150 Bildpunkten je m2 (uv2_pruefung.uv2_dichte). Die Zellenzahl teilt die Kante ohne Rest (bei 3 x 3 in
     # 2048 lagen Bild und UV2 bis zu 2 Bildpunkte gegeneinander verschoben: kante // n gegen 1 / n).
     g1.uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], f"wohnhaus_mensch_s{stufe}", name, mit_ao=mit_ao)
-    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen
+    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen. ACHTUNG: schreibt trotzdem Innen-Atlas und _innen.glb neu (UV2 ohne Backen): danach beide aus git wiederherstellen
 
     tuer = next(f for f in M.FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = M.SCHORNSTEIN_RECHTS

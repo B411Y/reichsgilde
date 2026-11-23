@@ -122,32 +122,37 @@ def segmentbogen(x0, x1, zs, n=4):
 
 
 def zinnen_fiale(h, x, y_vorn, z, gross=False, tief=None):
-    """Statt der Fiale: Zinnenkopf (zwei Zinnen) auf jeder Stufenecke, auf der Spitze das Ecktuermchen mit Kragkranz und vier Zinnen."""
+    """Statt der Fiale: Zinnenkopf auf jeder Stufenecke (Sockel und drei Zinnen 0,12 x 0,28 m mit 4 cm Luecke), auf der Spitze das Ecktuermchen mit
+    Kragkranz und Zinnen 0,16 x 0,32 m (Entwurf 0,25 x 0,35 m; die Stufen sind nur etwa 0,45 m breit, darum drei schmale Zinnen je Stufe).
+    Pruefer 23.11.2026: die ersten Zinnen (0,10 x 0,16 m) waren im Bild nicht lesbar."""
     tief = tief or 0.2
     y0, y1 = y_vorn, y_vorn + tief
     kk = lambda mn, mx, **kw: h.kasten("Bruchstein", mn, mx, S23.WERKSTEIN, ohne_streckung=True, **kw)
     if not gross:
-        kk((x - 0.16, y0, z), (x + 0.16, y1, z + 0.16), laengs="x")
-        for sx in (-1, 1):
-            kk((x + sx * 0.06 - 0.05, y0, z + 0.16), (x + sx * 0.06 + 0.05, y1, z + 0.32), laengs="z")
+        kk((x - 0.22, y0 - 0.03, z), (x + 0.22, y1 + 0.03, z + 0.12), laengs="x")                     # Sockel
+        for k in (-1, 0, 1):
+            kk((x + k * 0.16 - 0.06, y0 - 0.03, z + 0.12), (x + k * 0.16 + 0.06, y1 + 0.03, z + 0.40), laengs="z")   # Zinne
         return
-    kk((x - 0.22, y0, z), (x + 0.22, y1, z + 0.95), laengs="z")                  # Schaft des Tuermchens
-    kk((x - 0.28, y0 - 0.06, z + 0.95), (x + 0.28, y1 + 0.06, z + 1.05), laengs="x")   # Kragkranz
+    kk((x - 0.26, y0 - 0.04, z), (x + 0.26, y1 + 0.04, z + 1.00), laengs="z")                    # Schaft des Tuermchens
+    kk((x - 0.34, y0 - 0.10, z + 1.00), (x + 0.34, y1 + 0.10, z + 1.12), laengs="x")             # Kragkranz
     for sx in (-1, 1):
-        for sy in (y0 - 0.06, y1 - 0.04):
-            kk((x + sx * 0.17 - 0.07, sy, z + 1.05), (x + sx * 0.17 + 0.07, sy + 0.10, z + 1.30), laengs="z")
+        for sy in (y0 - 0.10, y1 + 0.10 - 0.16):
+            kk((x + sx * 0.18 - 0.08, sy, z + 1.12), (x + sx * 0.18 + 0.08, sy + 0.16, z + 1.44), laengs="z")
+    kk((x - 0.08, y0 - 0.10, z + 1.12), (x + 0.08, y0 + 0.06, z + 1.44), laengs="z")             # mittlere Zinne vorn
+    kk((x - 0.08, y1 - 0.06, z + 1.12), (x + 0.08, y1 + 0.10, z + 1.44), laengs="z")             # und hinten
 
 
 def hammer_schlaegel(h, P, xm, zm, r, breite, tiefe, n=8, band=None):
-    """Statt des Okulus: Ring (wie bisher) mit gekreuztem Schlaegel und Eisen, die Zeichen der Bergleute (Relief aus Werkstein)."""
+    """Statt des Okulus: Ring (wie bisher) mit gekreuztem Schlaegel und Eisen, die Zeichen der Bergleute, als Relief aus Werkstein: Stiele 4,5 cm,
+    Koepfe 9 cm, 8 cm tief, Ausdehnung etwa 0,4 x 0,4 m (Entwurf 0,5 x 0,5 m; mehr Platz haben die Bogenfelder nicht)."""
     S23._kreis_ring_alt(h, P, xm, zm, r, breite, tiefe, n=n, band=band)
-    d = (r - breite) * 0.78
-    t = max(0.03, tiefe * 0.8)
-    st = lambda a, b, dick: h.stab("Bruchstein", P(a[0], a[1], t / 2), P(b[0], b[1], t / 2), dick, S23.WERKSTEIN, breite=dick)
-    st((xm - d, zm - d), (xm + d, zm + d), 0.022)                                  # Stiel des Schlaegels
-    st((xm - d, zm + d), (xm + d, zm - d), 0.022)                                  # Stiel des Eisens
-    st((xm + d * 0.55, zm + d * 1.15), (xm + d * 1.15, zm + d * 0.55), 0.05)       # Kopf des Schlaegels (quer zum Stiel)
-    st((xm - d * 0.55, zm + d * 1.15), (xm - d * 1.15, zm + d * 0.55), 0.03)       # Schneide des Eisens
+    d = max((r - breite) * 0.78, 0.17)
+    t = 0.08
+    st = lambda a, b, dick: h.stab("Bruchstein", P(a[0], a[1], t / 2), P(b[0], b[1], t / 2), dick, S23.WERKSTEIN, breite=dick, kappen=True)
+    st((xm - d, zm - d), (xm + d, zm + d), 0.045)                                  # Stiel des Schlaegels
+    st((xm - d, zm + d), (xm + d, zm - d), 0.045)                                  # Stiel des Eisens
+    st((xm + d * 0.45, zm + d * 1.20), (xm + d * 1.20, zm + d * 0.45), 0.09)       # Kopf des Schlaegels (quer zum Stiel)
+    st((xm - d * 0.55, zm + d * 1.15), (xm - d * 1.15, zm + d * 0.55), 0.05)       # Schneide des Eisens
 
 
 def kragsteinfries(h):
@@ -162,6 +167,20 @@ def kragsteinfries(h):
         x = x0 + rand + k * 0.6
         h.kasten("Bruchstein", (x - 0.10, M.VORN - 0.18, z0 - 0.12), (x + 0.10, M.VORN, z0), S23.WERKSTEIN, ohne=("+y", "+z"), ohne_streckung=True)
         h.kasten("Bruchstein", (x - 0.07, M.VORN - 0.14, z0 - 0.22), (x + 0.07, M.VORN, z0 - 0.12), S23.WERKSTEIN, ohne=("+y", "+z"), ohne_streckung=True)
+
+
+def tuerbeschlaege(h):
+    """Haustuer: drei Eisenbaender quer ueber das Blatt mit Nagelkoepfen (Entwurf Zwerg 4: Tuerbeschlaege aus Eisen), 2 cm vor dem Tuerblatt."""
+    M = S23.M
+    tuer = next(f for f in M.FENSTER if f[3] == "tuer" and f[0] == "vorn_eg")
+    (a0, a1), (b0, b1) = tuer[1], tuer[2]
+    y = M.VORN - 0.075
+    for fz in (0.22, 0.52, 0.82):
+        zc = b0 + (b1 - b0) * fz
+        h.kasten("Eisen", (a0 + 0.04, y - 0.014, zc - 0.06), (a1 - 0.04, y + 0.004, zc + 0.06), "eisen", laengs="x")
+        for k in range(5):
+            xn = a0 + 0.12 + k * ((a1 - a0 - 0.24) / 4)
+            h.kasten("Eisen", (xn - 0.02, y - 0.024, zc - 0.02), (xn + 0.02, y - 0.014, zc + 0.02), "eisen")
 
 
 def eisengitter(h):
@@ -218,12 +237,27 @@ def schicht_anlegen(stufe):
         S23.gewaende = gewaende_zwerg
         # Patrizierhaus der Zwerge (Entwurf 23.11.2026)
         S23.GURT_WERK = True                                # Gurtgesims, Giebelfuss-Gesims, Tuerstufe aus Werkstein
+        S23.GIEBEL_LAGEN = True                             # Grund der Blendnischen in Lagen (keine gestreckte Textur, Befund Pruefer 23.11.2026)
         S23.spitzbogen = segmentbogen                       # stumpfe Boegen (Kreissegment) in Blendnischen und Giebelfenster
         S23.BOGEN_H = SEGMENT_H                             # Lage von Mittelnische, Okulus und Fenstergewaende folgt der Pfeilhoehe
         S23.fiale = zinnen_fiale                            # Zinnen und Ecktuermchen statt Fialen
         S23._kreis_ring_alt = S23.kreis_ring
         S23.kreis_ring = hammer_schlaegel                   # Schlaegel und Eisen im Bogenfeld
         S23.rundbogenfries = kragsteinfries
+        alt_treppengiebel = S23.treppengiebel
+
+        def treppengiebel_fugen(h, *args, **kw):
+            """Nur der Treppengiebel bekommt sichtbare Fugen (Nutzer 23.11.2026): seine Flaechen im Band „bruchstein“ werden auf das Fugenband in der
+            Spalte „balken_a“ des Blatts trim_s3_zwerg gelegt; Ecken, Gewaende und Gesimse behalten den hellen Haustein (K2)."""
+            n0 = len(h.flaechen)
+            r = alt_treppengiebel(h, *args, **kw)
+            b0, b1, _ = h.baender["bruchstein"]; a0, a1, _ = h.baender["balken_a"]
+            for i in range(n0, len(h.flaechen)):
+                pts, uv, st, fa, gl = h.flaechen[i]
+                if S23._band_von(h, uv) == "bruchstein":
+                    h.flaechen[i] = (pts, [(u, a0 + (v - b0) / max(b1 - b0, 1e-6) * (a1 - a0)) for u, v in uv], st, fa, gl)
+            return r
+        S23.treppengiebel = treppengiebel_fugen
     # Aussen: Amboss neben der Haustuer an der Gassenwand (Kunstwerke Stufe 2 und 3)
     alt_haus = S23.baue_haus
 
@@ -248,6 +282,7 @@ def schicht_anlegen(stufe):
             print("DREIECKE Eckquader (EG ersetzt, OG neu):", h.dreiecke() - vorher, "- entfernte Flaechen", weg)
             vorher = h.dreiecke()
             eisengitter(h)
+            tuerbeschlaege(h)
             print("DREIECKE Eisengitter:", h.dreiecke() - vorher)
         return h
     S23.baue_haus = haus
@@ -362,11 +397,14 @@ def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     global FORM
     stufe, FORM = int(opt.get("stufe", "2")), int(opt.get("form", "1"))
-    schicht_anlegen(stufe)
-    if os.environ.get("REICHSGILDE_ZAEHLEN"):                  # Messung der Dreiecke je Bauteil (dreiecke_zaehler.py)
+    if os.environ.get("REICHSGILDE_ZAEHLEN"):                  # Messung der Dreiecke je Bauteil (dreiecke_zaehler.py; vor schicht_anlegen, damit die ersetzten Teile gezaehlt werden)
         import dreiecke_zaehler
         dreiecke_zaehler.anlegen(S23, sys.modules[__name__])
+    schicht_anlegen(stufe)
     S23.main()
+    if opt.get("bilder"):
+        import bild_zusatz
+        bild_zusatz.zeichne(g1, S23.M, opt["bilder"], stufe, FORM if isinstance(FORM, int) else FORM[0], S23.M.FORMEN[FORM if isinstance(FORM, int) else FORM[0]]["dx"], bpy)
     messen(stufe, int(opt.get("form", "1")), opt.get("bilder"))
 
 

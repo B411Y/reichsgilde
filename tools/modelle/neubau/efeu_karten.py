@@ -57,7 +57,7 @@ def _in_vieleck(q, poly):
     return True
 
 
-def bewachsen(haus, teile, ebenen, budget, saat, z_grenze, gross=1.0, z_fuss=0.04):
+def bewachsen(haus, teile, ebenen, budget, saat, z_grenze, gross=1.0, z_fuss=0.04, nur_ecken=False):
     """Setzt hoechstens `budget` Karten ins Teil `haus`. Rueckgabe: Zahl der Karten."""
     rng = random.Random(saat)
     # (Punkte, farbig): Flaechen in der Akzentfarbe (Fensterlaeden, Luken; Eckenfarbe Rot) sind nie Wand, auch wenn sie flach aufliegen
@@ -92,6 +92,7 @@ def bewachsen(haus, teile, ebenen, budget, saat, z_grenze, gross=1.0, z_fuss=0.0
         if not wand: continue
         zmax = max(z for w in wand for _s, z in w)
         orte = [0.15, laenge - 0.15] + [rng.uniform(0.8, laenge - 0.8) for _ in range(max(0, int(laenge / 2.5) - 1))] if laenge > 1.8 else [laenge / 2]
+        if nur_ecken and laenge > 1.8: orte = [0.15, laenge - 0.15]        # Patrizierhaus der Elben: Efeu nur an den Hausecken
         rng.shuffle(orte)
         for k, s in enumerate(orte):
             wurzeln.append((k, rng.random(), nr, s, rng.uniform(0.9, 1.9), rng.uniform(0.65, 1.0) * zmax))

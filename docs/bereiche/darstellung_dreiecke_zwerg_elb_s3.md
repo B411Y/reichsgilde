@@ -7,23 +7,29 @@ Erzeugt von `tools/modelle/neubau/dreiecke_tabelle.py` aus den Logs der Bauskrip
 | Bauteil | G1 | G2 | G3 | G4 |
 |---|---:|---:|---:|---:|
 | spitz_rahmen | 1247 | 1247 | 1247 | 1247 |
-| treppengiebel | 902 | 902 | 902 | 902 |
 | eckquader_l | 816 | 816 | 816 | 816 |
-| _kreis_ring_alt | 576 | 576 | 576 | 576 |
+| kreis_ring | 576 | 576 | 576 | 576 |
 | fensterstock | 576 | 576 | 576 | 528 |
-| blendnische | 497 | 497 | 497 | 497 |
-| steinhaus_fenster | 398 | 398 | 398 | 346 |
+| treppengiebel | 510 | 510 | 510 | 510 |
+| zinnen_fiale | 480 | 480 | 480 | 480 |
+| hammer_schlaegel | 384 | 384 | 384 | 384 |
+| gewaende_zwerg | 356 | 356 | 356 | 316 |
+| blendnische | 281 | 281 | 281 | 281 |
+| steinwand | 276 | 276 | 276 | 252 |
+| tuerbeschlaege | 216 | 216 | 216 | 216 |
 | schornstein | 190 | 190 | 190 | 190 |
 | eisengitter | 132 | 132 | 132 | 132 |
+| kragsteinfries | 106 | 106 | 106 | 106 |
 | steingiebel | 61 | 61 | 61 | 61 |
 | oeffnungen | 52 | 52 | 52 | 52 |
 | treppengiebel_rueckseite | 48 | 48 | 48 | 48 |
+| steinhaus_fenster | 42 | 42 | 42 | 30 |
 | vordach | 41 | 41 | 41 | 41 |
-| Haus ohne die einzeln gezaehlten Teile | 898 | 1128 | 1250 | 1147 |
-| **Haus** | 6434 | 6664 | 6786 | 6583 |
+| Haus ohne die einzeln gezaehlten Teile | 516 | 746 | 868 | 789 |
+| **Haus** | 6906 | 7136 | 7258 | 7055 |
 | **Dach** | 383 | 457 | 429 | 435 |
 | **Scheiben** | 52 | 52 | 52 | 60 |
-| **Summe** | 6869 | 7173 | 7267 | 7078 |
+| **Summe** | 7341 | 7645 | 7739 | 7550 |
 
 ## Elb Stufe 3 (Patrizier)
 
@@ -32,22 +38,27 @@ Erzeugt von `tools/modelle/neubau/dreiecke_tabelle.py` aus den Logs der Bauskrip
 | _stange | 1376 | 1376 | 1376 | 1376 |
 | fensterstock | 576 | 576 | 576 | 576 |
 | gewaende | 476 | 476 | 476 | 476 |
+| holz_zier | 290 | 290 | 290 | 290 |
+| steinwand | 278 | 278 | 278 | 278 |
 | schornstein | 190 | 190 | 190 | 190 |
 | spitzboegen | 128 | 128 | 128 | 128 |
+| schildgiebel | 126 | 126 | 126 | 126 |
 | knospe | 120 | 120 | 120 | 120 |
 | vorder_zier | 106 | 106 | 106 | 106 |
-| oeffnungen | 93 | 93 | 93 | 93 |
 | efeu_setzen | 80 | 80 | 80 | 80 |
 | steingiebel | 61 | 61 | 61 | 61 |
+| oeffnungen | 52 | 52 | 52 | 52 |
 | unterstand_links | 52 |  |  | 52 |
 | steinhaus_fenster | 42 | 42 | 42 | 42 |
+| vordach | 41 | 41 | 41 | 41 |
 | fiale | 36 | 36 | 36 | 36 |
+| kielbogenfries | 10 | 10 | 10 | 10 |
 | vordach_platte | 8 | 8 | 8 | 8 |
-| Haus ohne die einzeln gezaehlten Teile | 1950 | 2078 | 2166 | 1950 |
-| **Haus** | 5294 | 5370 | 5458 | 5294 |
+| Haus ohne die einzeln gezaehlten Teile | 1248 | 1376 | 1464 | 1248 |
+| **Haus** | 5296 | 5372 | 5460 | 5296 |
 | **Dach** | 502 | 576 | 548 | 502 |
 | **Scheiben** | 48 | 48 | 48 | 48 |
-| **Summe** | 5844 | 5994 | 6054 | 5844 |
+| **Summe** | 5846 | 5996 | 6056 | 5846 |
 
 ## Zwerg Stufe 2
 
