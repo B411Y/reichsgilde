@@ -17,7 +17,7 @@ using Reichsgilde.Core.Wirtschaft;
 
 static class Karrenmessung
 {
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
+    static readonly string[] Arten = { "Handkarren", "Pferdekarren", "Großer Pferdekarren" };
 
     public static int Erstellen(string[] args)
     {

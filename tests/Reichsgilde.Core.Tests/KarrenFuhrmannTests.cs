@@ -83,8 +83,8 @@ static class KarrenFuhrmannTests
             var ork = 0;
             for (var i = 0; i < 60; i++)
             {
-                if (Fuhrmann.Ableiten($"Haus {i}", "Ochsenkarren 1", Volk.Ork, 1.0, 0.15).Volk == Volk.Ork) ork++;
-                Pruefe.Wahr(Fuhrmann.Ableiten($"Haus {i}", "Ochsenkarren 1", Volk.Mensch, 1.0, 0.15).Volk == Volk.Mensch, "Menschenhaus mit Eigenanteil 1");
+                if (Fuhrmann.Ableiten($"Haus {i}", "Pferdekarren 1", Volk.Ork, 1.0, 0.15).Volk == Volk.Ork) ork++;
+                Pruefe.Wahr(Fuhrmann.Ableiten($"Haus {i}", "Pferdekarren 1", Volk.Mensch, 1.0, 0.15).Volk == Volk.Mensch, "Menschenhaus mit Eigenanteil 1");
             }
             Pruefe.Gleich(60, ork);
         }),

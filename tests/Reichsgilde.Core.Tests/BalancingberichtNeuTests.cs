@@ -71,7 +71,7 @@ static class BalancingberichtNeuTests
             w.Meldung += m => Messpartie.KarrenZaehlen(e, m);
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 50_000);
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k); // ohne Personal fährt kein Karren
-            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Ochsenkarren"));
+            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Pferdekarren"));
             w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
             for (var j = 0; j < 2; j++)
             {

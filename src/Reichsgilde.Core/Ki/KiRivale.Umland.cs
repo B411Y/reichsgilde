@@ -5,7 +5,7 @@ namespace Reichsgilde.Core.Ki;
 
 /// <summary>
 /// Umland nach dem Karrenweg (phase5/deutz-ki). Seit der Kern die Fahrzeit nach Weglänge rechnet (Datenversion 65), liegt das Kölner Umland
-/// weit draußen: Die Umlandbetriebe der KI-Häuser fahren mit dem Ochsenkarren im Median 263 Minuten zum Markt (vorher fest 116), die KI-Häuser
+/// weit draußen: Die Umlandbetriebe der KI-Häuser fahren mit dem Ochsenkarren (seit Datenversion 98 Pferdekarren, gleiche Werte) im Median 263 Minuten zum Markt (vorher fest 116), die KI-Häuser
 /// lagen 11–13 % unter dem alten main. Fast der ganze Verlust kam aus dem Umland (Teil 5, Normal, je KI-Haus in 20 Jahren 32.971 → 26.510 Gulden),
 /// am meisten aus Liegenschaften, die die KI ohne Blick auf den Weg pachtete: Der Holzschlag im Eichenforst fährt an der Höchstdauer
 /// (360 Minuten), steht trotz drei Karren 53 % still und brachte 62 Gulden im Jahr; der Kräutergarten am Bach (325 Minuten) 26 % Stillstand.
@@ -129,7 +129,7 @@ public sealed partial class KiRivale
     /// beim Karrenkauf:
     ///   • mehr Lager je Ware: jeder Karren lädt mehr (Durchfluss mit dem größeren Lager), der Stillstand fällt auf
     ///     <c>vorher ^ (Durchfluss nachher ÷ vorher)</c>, Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres – am Kölner Holzschlag
-    ///     (nur Holz, Lager 40) fasst jeder Pferdekarren dann 60 statt 40;
+    ///     (nur Holz, Lager 40) fasst jeder Große Pferdekarren dann 60 statt 40;
     ///   • alles andere bringt nur für den Teil der Förderung etwas, der auch weggefahren wird: × (1 − Stillstand).
     /// Seit Datenversion 79 (<c>werkstatt.jedeWirkungRechnen</c>) rechnet der Kern mehr Lager überall selbst (<see cref="Werkstattwesen.LagerMehrgewinn"/>,
     /// dieselbe Formel); hier zählt dann nur die Rechnung oben, der Teil des Kerns wird abgezogen – sonst zählte das Lager doppelt.

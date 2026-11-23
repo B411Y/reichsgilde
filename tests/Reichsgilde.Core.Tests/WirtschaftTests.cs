@@ -458,7 +458,7 @@ static class WirtschaftTests
         }),
 
         // Seit den Lagen aller Rohstoffquellen (Datenversion 92: Lage der Grube auf Eisen- und Silberpreis und halb auf die Förderung): 947 → 996.
-        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 996 Gulden/Jahr", () =>
+        ("Mine, 3 Bergleute (Statut A), Pferdekarren ohne Eskorte: Gewinn ≈ 996 Gulden/Jahr", () =>
         {
             var sim = NeueSimulation(Fronstatut.FreieStadt);
             var w = sim.Wirtschaft!;
@@ -467,7 +467,7 @@ static class WirtschaftTests
             Pruefe.Ungefaehr(996, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
-        ("Mine, 3 Orks (Statut B), Ochsenkarren: Gewinn ≈ 1.365 Gulden/Jahr – deutlich mehr als mit Bergleuten", () =>
+        ("Mine, 3 Orks (Statut B), Pferdekarren: Gewinn ≈ 1.365 Gulden/Jahr – deutlich mehr als mit Bergleuten", () =>
         {
             var sim = NeueSimulation(Fronstatut.Bestienfron);
             var w = sim.Wirtschaft!;

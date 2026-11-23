@@ -73,7 +73,7 @@ static class PersonalNacharbeitTests
     {
         ("Jede Wirkung: Datenversion 79, werkstatt.jedeWirkungRechnen steht an; ohne die Angabe aus (ältere Daten)", () =>
         {
-            Pruefe.Gleich(97, Daten.Value.Version);
+            Pruefe.Gleich(98, Daten.Value.Version);
             Pruefe.Wahr(Daten.Value.Werkstatt!.JedeWirkungRechnen, "an");
             Pruefe.Wahr(!OhneSchalter.Value.Werkstatt!.JedeWirkungRechnen, "ohne Angabe aus");
         }),
@@ -237,17 +237,17 @@ static class PersonalNacharbeitTests
             Pruefe.Gleich(0.0, w.Werkstaetten.ErwarteterMehrgewinnJeJahr(b, "Kettenhemd"), "nur Lager bestohlen");
         }),
 
-        ("Jede Wirkung: Mehr Lager hilft nur, wenn ein Karren dann mehr lädt – Gießerei mit Pferdekarren und einer Ware ja, mit Handkarren nein; ohne Stillstand nie", () =>
+        ("Jede Wirkung: Mehr Lager hilft nur, wenn ein Karren dann mehr lädt – Gießerei mit Großem Pferdekarren und einer Ware ja, mit Handkarren nein; ohne Stillstand nie", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (_, b) = Haus(w, "Haus Probe", Betriebsart.Giesserei, 2, "Geselle");
-            b.Produkt = "Beschlag"; // eine Zutat (Eisen): Der Pferdekarren (75) lädt höchstens das Lager (40)
-            b.KarrenHinzufuegen("Pferdekarren");
+            b.Produkt = "Beschlag"; // eine Zutat (Eisen): Der Große Pferdekarren (75) lädt höchstens das Lager (40)
+            b.KarrenHinzufuegen("Großer Pferdekarren");
             var regale = Stueck(w, "Schmied", "Regale");
             Pruefe.Gleich(0.0, w.Werkstaetten.MehrgewinnDurch(b, regale), "ohne Stillstand");
             typeof(Betrieb).GetProperty(nameof(Betrieb.StillstandMinutenVorjahr))!.SetValue(b, b.Arbeitsminuten / 4); // ein Viertel des Jahres
-            var jetzt = w.Werkstaetten.Durchfluss(b, "Pferdekarren", b.LagerKapazitaetJeWare);
-            var nachher = w.Werkstaetten.Durchfluss(b, "Pferdekarren", b.LagerKapazitaetJeWare + 20);
+            var jetzt = w.Werkstaetten.Durchfluss(b, "Großer Pferdekarren", b.LagerKapazitaetJeWare);
+            var nachher = w.Werkstaetten.Durchfluss(b, "Großer Pferdekarren", b.LagerKapazitaetJeWare + 20);
             var waren = Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count);
             Pruefe.Wahr(waren == 1 && nachher > jetzt, $"Ladung {b.LagerKapazitaetJeWare} × {waren} Waren gegen 75: {jetzt} → {nachher}");
             var lager = w.Werkstaetten.MehrgewinnDurch(b, regale);
@@ -265,7 +265,7 @@ static class PersonalNacharbeitTests
             var w = NeueSimulation(OhneSchalter.Value).Wirtschaft!;
             var (kd, d) = Haus(w, "Haus Elster", Betriebsart.Schmugglerloch, 4, "Taschendieb");
             var (kw, wb) = Haus(w, "Haus Wacker", Betriebsart.Wachhaus, 4, "Rekrut");
-            var giesserei = w.BetriebEroeffnen("Gießerei Wacker", Betriebsart.Giesserei, kw, startkarren: "Pferdekarren");
+            var giesserei = w.BetriebEroeffnen("Gießerei Wacker", Betriebsart.Giesserei, kw, startkarren: "Großer Pferdekarren");
             giesserei.Karren[0].Eskorte = w.Wache.Daten.Geleit.Eskorte;
             d.UmsatzBuchen(1_000);
             giesserei.RaubBuchen(500);

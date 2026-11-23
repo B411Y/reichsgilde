@@ -332,7 +332,7 @@ public sealed class Wirtschaftsdaten
             Betriebsart.Mine => new BetriebsartDaten
             {
                 Name = "Grube", Beruf = "Schmied", Ort = Arbeitsort.Umland, Plaetze = Allgemein.PlaetzeMine,
-                Fixkosten = Allgemein.PachtMine, Startkarren = "Ochsenkarren", Rohstoffe = new() { "Eisen", "Silber" },
+                Fixkosten = Allgemein.PachtMine, Startkarren = "Pferdekarren", Rohstoffe = new() { "Eisen", "Silber" },
             },
             _ => throw new InvalidOperationException($"Die Betriebsart {art} fehlt in den Daten („betriebsarten“)."),
         };

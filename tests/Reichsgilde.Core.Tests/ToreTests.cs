@@ -13,7 +13,7 @@ static class ToreTests
     /// <summary>Spielminute dieser Uhrzeit am ersten Tag (05:00 = 0).</summary>
     static long Um(int stunde, int minute = 0) => (stunde * 60 + minute) - Spielzeit.TagesbeginnMinute;
 
-    /// <summary>Eine Stadt, in der um <paramref name="stunde"/> Uhr eine Grube mit vollem Lager ihren Ochsenkarren losschickt.</summary>
+    /// <summary>Eine Stadt, in der um <paramref name="stunde"/> Uhr eine Grube mit vollem Lager ihren Pferdekarren losschickt.</summary>
     static (Simulation Sim, Konto K, Betrieb Mine) Aufbau(int stunde, int minute = 0, Wirtschaftsdaten? daten = null)
     {
         var sim = new Simulation(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Siegbedingung = Siegbedingung.Endlos },

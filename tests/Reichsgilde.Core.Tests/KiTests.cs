@@ -136,7 +136,7 @@ static class KiTests
             Pruefe.Gleich("Schwer", mine.Karren[0].Eskorte);
         }),
 
-        ("KI kauft einen Ochsenkarren, wenn die Mine mit dem Handkarren nicht nachkommt", () =>
+        ("KI kauft einen Pferdekarren, wenn die Mine mit dem Handkarren nicht nachkommt", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -147,7 +147,7 @@ static class KiTests
             Pruefe.Wahr(mine.StillstandMinutenVorjahr > 0.2 * w.Daten.Allgemein.Arbeitsminuten,
                 $"nur {mine.StillstandMinutenVorjahr} Minuten Stillstand");
             Pruefe.Gleich(2, mine.Karren.Count);
-            Pruefe.Gleich("Ochsenkarren", mine.Karren[1].Typ);
+            Pruefe.Gleich("Pferdekarren", mine.Karren[1].Typ);
             Pruefe.Ungefaehr(400, konto.Laufend.Investitionen, 1e-9); // Kauf nach der Abrechnung → zählt ins neue Jahr
         }),
 

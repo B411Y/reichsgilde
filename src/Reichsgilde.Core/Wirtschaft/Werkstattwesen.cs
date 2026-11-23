@@ -529,7 +529,7 @@ public sealed class Werkstattwesen
     /// Was mehr Lager je Ware dem Betrieb im Jahr einbringt – dieselbe Rechnung wie die KI beim Karrenkauf: Hat er im Vorjahr den Anteil s der
     /// Arbeitszeit stillgestanden, sinkt der Stillstand auf <c>s ^ (Durchfluss nachher ÷ vorher)</c> (<see cref="Durchfluss"/>: Ein Karren lädt höchstens
     /// das Lager); Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres. Lädt kein Karren mehr, weil er schon weniger fasst als das Lager
-    /// (Handkarren 15, Ochsenkarren 2 × 20 bei Lager 40), bringt mehr Lager nichts. 0 ohne Schalter, ohne Karren, ohne Ware oder ohne Stillstand.
+    /// (Handkarren 15, Pferdekarren 2 × 20 bei Lager 40), bringt mehr Lager nichts. 0 ohne Schalter, ohne Karren, ohne Ware oder ohne Stillstand.
     /// </summary>
     public double LagerMehrgewinn(Betrieb b, int plus)
     {

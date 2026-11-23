@@ -17,7 +17,7 @@ static class KarrenwegTests
     static string Spielordner => Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft()))!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Spielordner, "daten", "katalog.json")));
     static readonly string[] Karten = { "greybox", "koeln", "probestadt" };
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
+    static readonly string[] Arten = { "Handkarren", "Pferdekarren", "Großer Pferdekarren" };
 
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
     static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)
@@ -206,7 +206,7 @@ static class KarrenwegTests
             json.AsObject().Remove("jahreszeiten"); // alte Daten kannten keine Jahreszeiten (Datenversion 69)
             var alt = Wirtschaftsdaten.AusJson(json.ToJsonString());
             // Werte des Codes vor der gemeinsamen Strecke (Stand 1f0e80ad, dieselben Daten ohne weglaenge; an den Karrenstraßen beider Karten hat sich
-            // nichts geändert): Länge hin und zurück bitgenau, Fahrzeit Handkarren hin und Ochsenkarren zurück
+            // nichts geändert): Länge hin und zurück bitgenau, Fahrzeit Handkarren hin und Pferdekarren zurück
             var alterCode = new (string Karte, string Betrieb, double Hin, double Zurueck, int Hand, int Ochse)[]
             {
                 ("greybox", "Grube Eisenbart", 98.08644811766285, 98.08644811766275, 120, 120), ("greybox", "Holzschlag Eichwald", 114.74983589514886, 114.74983589514898, 120, 120),
@@ -224,7 +224,7 @@ static class KarrenwegTests
                 foreach (var (b, x) in mitWeg.Zip(erwartet))
                 {
                     var (hin, zurueck) = w.Fahrten(b)!.Value;
-                    Pruefe.Gleich((x.Hin, x.Zurueck, x.Hand, x.Ochse), (hin.Sum(s => s.Laenge), zurueck.Sum(s => s.Laenge), w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
+                    Pruefe.Gleich((x.Hin, x.Zurueck, x.Hand, x.Ochse), (hin.Sum(s => s.Laenge), zurueck.Sum(s => s.Laenge), w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Pferdekarren", false)), b.Name);
                 }
             }
             foreach (var kennung in Karten)
