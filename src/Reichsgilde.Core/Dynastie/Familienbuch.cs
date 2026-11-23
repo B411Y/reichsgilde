@@ -340,8 +340,8 @@ public sealed partial class Familienbuch
     }
 
     /// <summary>
-    /// Ahtnentum (Nutzer 23.11.2026): Ein Mensch wird nie altahtnisch. Heiratet ein Mensch in ein altahtnisches Haus, werden das Haus (Oberhaupt),
-    /// der Ehepartner und die Kinder des Oberhaupts neuahtnisch. Der Heiratsmarkt bietet die Verbindung trotzdem an (auch der KI).
+    /// Ahtnentum (Nutzer 23.11.2026): Ein Mensch wird nie altahtnisch. Heiratet ein Mensch in ein altahtnisches Haus, werden alle Lebenden des
+    /// Hauses (Oberhaupt, Kinder, Angehörige) und der Ehepartner neuahtnisch. Der Heiratsmarkt bietet die Verbindung trotzdem an (auch der KI).
     /// </summary>
     public bool HeiratMachtNeuahtnisch(Familie f, Person partner) =>
         _w.Glaube.IstAktiv && f.Oberhaupt.Glaube == Konfession.Altahtnisch && partner.Volk == Volk.Mensch;
@@ -580,11 +580,10 @@ public sealed partial class Familienbuch
         var neuahtnisch = HeiratMachtNeuahtnisch(f, p);
         if (neuahtnisch)
         {
-            // Das ganze Haus (Oberhaupt und seine Kinder) wird neuahtnisch; der Partner tritt unten zum neuen Glauben des Hauses über.
-            f.Oberhaupt.Glaube = Konfession.Neuahtnisch;
-            foreach (var kind in f.KinderVon(f.Oberhaupt).Where(x => x.Lebt)) kind.Glaube = Konfession.Neuahtnisch;
+            // Das ganze Haus (alle Lebenden, wie beim Übertritt) wird neuahtnisch; der Partner tritt unten zum neuen Glauben des Hauses über.
+            foreach (var x in f.Lebende) x.Glaube = Konfession.Neuahtnisch;
             _w.Domamt.Ausscheiden(konto, "Übertritt"); // wie beim Übertritt: ein Domprediger verliert das Amt
-            _w.Geheimnisse.Glaubenswechsel(f.Oberhaupt);
+            foreach (var x in Hauptpersonen(f)) _w.Geheimnisse.Glaubenswechsel(x); // heimlich beim alten Glauben? wie beim Übertritt
         }
         var uebertritt = _w.Glaube.IstAktiv && p.Glaube != f.Oberhaupt.Glaube;
         if (uebertritt) p.Glaube = f.Oberhaupt.Glaube; // Mischehe: Der Partner tritt zum Glauben des Hauses über

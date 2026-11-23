@@ -224,14 +224,21 @@ static class AhtnentumTests
             Pruefe.Gleich(Konfession.Neuahtnisch, f.Oberhaupt.Glaube);
             Pruefe.Gleich(Konfession.Neuahtnisch, f.Ehepartner!.Glaube);
             Pruefe.Gleich(Konfession.Neuahtnisch, kind.Glaube);
+            Pruefe.Wahr(f.Lebende.All(x => x.Glaube == Konfession.Neuahtnisch), "alle Lebenden des Hauses");
             Pruefe.Gleich(Konfession.Altahtnisch, f.Oberhaupt.Herkunftsglaube);
             Pruefe.Wahr(w.Familien.DiesesJahr.Any(x => x.Text.Contains("wird neuahtnisch")), "Meldung");
             Pruefe.Gleich(Konfession.Neuahtnisch, w.Familien.KindAufnehmen(k, 1).Glaube);
 
             // Gegenprobe: ein Zwerg als Partner – das Haus bleibt altahtnisch.
             var (_, k2, f2) = Haus(sim, "Haus Erzgrund", Konfession.Altahtnisch, Volk.Zwerg, geld: 50_000);
-            var zwerg = w.Familien.Kandidaten.FirstOrDefault(x => x.Person.Volk != Volk.Mensch && w.Familien.WerbenVerboten(k2, x) is null);
-            if (zwerg is not null) Pruefe.Wahr(!w.Familien.HeiratMachtNeuahtnisch(f2, zwerg.Person), "kein Mensch – keine Folge");
+            var zwerg = w.Familien.Kandidaten.FirstOrDefault(x => x.Person.Volk != Volk.Mensch && w.Familien.WerbenVerboten(k2, x) is null)
+                        ?? throw new Exception("kein Heiratskandidat der Anderlinge");
+            Pruefe.Wahr(!w.Familien.HeiratMachtNeuahtnisch(f2, zwerg.Person), "kein Mensch – keine Folge");
+            w.Familien.ZuneigungSchenken(k2, zwerg.Person.Nummer, 500);
+            var e2 = w.Ausfuehren(k2, new Heiraten(zwerg.Person.Nummer));
+            Pruefe.Wahr(e2.Erfolg, e2.Meldung);
+            Pruefe.Wahr(f2.Lebende.All(x => x.Glaube == Konfession.Altahtnisch), "Haus und Partner bleiben altahtnisch");
+            Pruefe.Wahr(!w.Familien.DiesesJahr.Any(x => x.Konto == k2 && x.Text.Contains("wird neuahtnisch")), "keine Meldung");
 
             // Kirchengrenze: Das altahtnische Haus hat eine Kirche, eine neuahtnische steht schon – die Hochzeit mit einem Menschen ist gesperrt.
             var (_, k3, f3) = Haus(sim, "Haus Hallstein", Konfession.Altahtnisch, Volk.Zwerg, geld: 50_000);
@@ -240,6 +247,73 @@ static class AhtnentumTests
             var mensch = w.Familien.Kandidaten.FirstOrDefault(x => x.Person.Volk == Volk.Mensch && x.Person.Geschlecht != f3.Oberhaupt.Geschlecht && x.Stand <= k3.Stand)
                          ?? throw new Exception("kein menschlicher Heiratskandidat");
             Pruefe.Wahr(w.Familien.WerbenVerboten(k3, mensch) is { } grund && grund.Contains("neuahtnisch"), w.Familien.WerbenVerboten(k3, mensch) ?? "frei");
+        }),
+
+        ("Ahtnentum Übertritt: Lebt ein Mensch im Haus (Ehepartner, Witwe nach dem Erbfall), ist der Übertritt ins Altahtnische gesperrt; neuahtnisch geht", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, k, f) = Haus(sim, "Haus Amboss", Konfession.Evangelisch, Volk.Zwerg, geld: 50_000);
+            var mensch = w.Familien.Kandidaten.FirstOrDefault(x => x.Person.Volk == Volk.Mensch && w.Familien.WerbenVerboten(k, x) is null)
+                         ?? throw new Exception("kein menschlicher Heiratskandidat");
+            w.Familien.ZuneigungSchenken(k, mensch.Person.Nummer, 500);
+            Pruefe.Wahr(w.Ausfuehren(k, new Heiraten(mensch.Person.Nummer)).Erfolg, "Heirat");
+            var nein = w.Glaube.KonvertierenVerboten(k, Konfession.Altahtnisch);
+            Pruefe.Wahr(nein is { } n && n.Contains(mensch.Person.Vorname) && n.Contains("Altahtnen"), nein ?? "frei");
+            Pruefe.Wahr(!w.Ausfuehren(k, new Konvertieren(Konfession.Altahtnisch)).Erfolg, "Befehl abgelehnt");
+            Pruefe.Gleich(Konfession.Evangelisch, f.Ehepartner!.Glaube);
+
+            // Erbfall: Das Oberhaupt stirbt, der zwergische Sohn erbt, die menschliche Witwe lebt im Haus – weiter gesperrt.
+            var sohn = w.Familien.KindAufnehmen(k, 31, Geschlecht.Mann); // Zwerge sind mit 30 volljährig
+            f.Testament = sohn;
+            w.Familien.AnKrankheitSterben(f.Oberhaupt, "am Fieber");
+            Pruefe.Gleich(sohn, f.Oberhaupt);
+            Pruefe.Wahr(f.Lebende.Any(x => x.Volk == Volk.Mensch), "Witwe lebt im Haus");
+            Pruefe.Wahr(w.Glaube.KonvertierenVerboten(k, Konfession.Altahtnisch) is not null, "Erbe mit menschlicher Witwe");
+            Pruefe.Wahr(w.Glaube.KonvertierenVerboten(k, Konfession.Neuahtnisch) is null, "neuahtnisch nimmt Menschen auf");
+
+            // Gegenprobe: ohne Menschen im Haus darf der Zwerg altahtnisch werden.
+            var (_, k2, _) = Haus(sim, "Haus Erzgrund", Konfession.Evangelisch, Volk.Zwerg);
+            Pruefe.Wahr(w.Glaube.KonvertierenVerboten(k2, Konfession.Altahtnisch) is null, "Zwerg allein");
+            // Fest im Code: Menschen nie altahtnisch, auch wenn die Daten es erlaubten.
+            var offen = Wirtschaftsdaten.AusJson(Json.Replace("\"Altahtnisch\": { \"offenFuer\": [\"Elb\", \"Zwerg\", \"Halbling\"] },", ""));
+            Pruefe.Wahr(!offen.Glaube!.NimmtAuf(Konfession.Altahtnisch, Volk.Mensch), "Menschen nie altahtnisch ohne offenFuer");
+        }),
+
+        ("Ahtnentum KI: Unter altahtnischem Stadtglauben tritt ein KI-Haus mit menschlichem Ehepartner nicht über; eine KI-Heirat mit einem Menschen macht das altahtnische Haus neuahtnisch", () =>
+        {
+            var sim = NeueSimulation();
+            var (w, ki, f) = Haus(sim, "Haus Amboss", Konfession.Evangelisch, Volk.Zwerg, geld: 50_000);
+            var mensch = w.Familien.Kandidaten.First(x => x.Person.Volk == Volk.Mensch && w.Familien.WerbenVerboten(ki, x) is null);
+            w.Familien.ZuneigungSchenken(ki, mensch.Person.Nummer, 500);
+            Pruefe.Wahr(w.Ausfuehren(ki, new Heiraten(mensch.Person.Nummer)).Erfolg, "Heirat");
+            w.KiAnmelden(ki, Reichsgilde.Core.Ki.KiProfil.Standard);
+            w.Glaube.Stadtglaube = Konfession.Altahtnisch;
+            var (_, ki2, f2) = Haus(sim, "Haus Tiefstein", Konfession.Altahtnisch, Volk.Zwerg, geld: 50_000);
+            // Der Heiratsmarkt hat für das zweite Haus nur noch Menschen (die KI geht denselben Weg wie der Spieler).
+            var markt = (List<Kandidat>)w.Familien.Kandidaten;
+            markt.RemoveAll(x => x.Person.Volk != Volk.Mensch);
+            Pruefe.Wahr(markt.Any(x => w.Familien.WerbenVerboten(ki2, x) is null), "ein Mensch für die KI");
+            foreach (var x in markt.Where(x => w.Familien.WerbenVerboten(ki2, x) is null)) w.Familien.ZuneigungSchenken(ki2, x.Person.Nummer, 500);
+            w.KiAnmelden(ki2, Reichsgilde.Core.Ki.KiProfil.Standard);
+            for (var i = 0; i < 12 * 60 - Reichsgilde.Core.Zeit.Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // über die Politikstunde
+            Pruefe.Gleich((Konfession?)Konfession.Evangelisch, w.Glaube.GlaubeVon(ki));
+            Pruefe.Wahr(f2.Ehepartner is { Volk: Volk.Mensch }, "KI hat einen Menschen geheiratet: " + string.Join(" | ", w.Rivalen.Single(r => r.Konto == ki2).Entscheidungen));
+            Pruefe.Wahr(f2.Lebende.All(x => x.Glaube == Konfession.Neuahtnisch), "KI-Haus neuahtnisch");
+        }),
+
+        ("Ahtnentum Dom: Ein altahtnischer Domprediger heiratet einen Menschen – das Haus wird neuahtnisch und verliert das Amt wie beim Übertritt", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var dom = Prediger(sim, "Haus Tiefstein", Konfession.Altahtnisch, Volk.Zwerg);
+            w.Domamt.Einsetzen(dom, sim.Zeit.Jahr);
+            Pruefe.Gleich(dom, w.Domamt.Inhaber);
+            var mensch = w.Familien.Kandidaten.First(x => x.Person.Volk == Volk.Mensch && w.Familien.WerbenVerboten(dom, x) is null);
+            w.Familien.ZuneigungSchenken(dom, mensch.Person.Nummer, 500);
+            var e = w.Ausfuehren(dom, new Heiraten(mensch.Person.Nummer));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Pruefe.Gleich((Konfession?)Konfession.Neuahtnisch, w.Glaube.GlaubeVon(dom));
+            Pruefe.Gleich(null, w.Domamt.Inhaber);
         }),
 
         ("Ahtnentum Spielstand: Glaube und Anteile überstehen Speichern und Laden; ein alter Stand ohne ahtnische Anteile bekommt sie dazu (Summe 1)", () =>
@@ -263,7 +337,17 @@ static class AhtnentumTests
             Pruefe.Gleich(4, g.Anteile.Count);
             Pruefe.Ungefaehr(1.0, g.Anteile.Values.Sum(), 1e-9);
             Pruefe.Ungefaehr(Daten.Value.Glaube!.Stadt[Konfession.Altahtnisch], g.Anteil(Konfession.Altahtnisch), 1e-12);
-            Pruefe.Ungefaehr(0.55 * (1 - 0.13 - 0.12), g.Anteil(Konfession.Katholisch), 1e-9);
+            // Die alten geben nur ab, was über dem Mindestanteil liegt: frei = 0,75 − 2 × 0,1, über = 0,45 + 0,35.
+            Pruefe.Ungefaehr(0.1 + 0.45 * 0.55 / 0.8, g.Anteil(Konfession.Katholisch), 1e-9);
+            Pruefe.Ungefaehr(0.1 + 0.35 * 0.55 / 0.8, g.Anteil(Konfession.Evangelisch), 1e-9);
+
+            // Ein alter Stand mit kleiner Gemeinde: kein Anteil fällt unter den Mindestanteil.
+            anteile["Katholisch"] = 0.88;
+            anteile["Evangelisch"] = 0.12;
+            var (klein, _) = Speicherung.Laden(knoten.ToJsonString());
+            var gk = klein.Wirtschaft!.Glaube;
+            Pruefe.Ungefaehr(1.0, gk.Anteile.Values.Sum(), 1e-9);
+            Pruefe.Wahr(gk.Anteile.Values.All(a => a >= 0.1 - 1e-12), string.Join(", ", gk.Anteile.Select(x => $"{x.Key} {x.Value}")));
         }),
     };
 

@@ -198,12 +198,14 @@ public sealed class GlaubeDaten
 
     /// <summary>
     /// Nimmt dieses Bekenntnis ein Haus dieses Volkes auf? (Übertritt und Start.) Den Naturglauben haben nur Orks und Oger; ins Ahtnentum kommen
-    /// sie nie (Nutzer 23.11.2026), auch wenn die Daten es erlaubten. Christlich taufen lassen können sie sich weiter.
+    /// sie nie (Nutzer 23.11.2026), Menschen nie ins Altahtnische – beides auch, wenn die Daten es erlaubten. Christlich taufen lassen können sich
+    /// Orks und Oger weiter.
     /// </summary>
     public bool NimmtAuf(Konfession k, Volk volk)
     {
         if (k == Konfession.Naturglaube) return volk is Volk.Ork or Volk.Oger;
         if (k.Religion() == ReligionArt.Ahtnentum && volk is Volk.Ork or Volk.Oger) return false;
+        if (k == Konfession.Altahtnisch && volk == Volk.Mensch) return false; // Menschen nie altahtnisch (Nutzer 11.11. und 23.11.2026), auch gegen die Daten
         return !Bekenntnisse.TryGetValue(k, out var b) || b.OffenFuer is null || b.OffenFuer.Contains(volk);
     }
 
@@ -403,6 +405,9 @@ public sealed class Glaubenswesen
         if (!ziel.IstKirchlich()) return "Zum Naturglauben bekehrt keine Kirche.";
         if (f.Oberhaupt.Glaube == ziel) return $"Das Haus {f.Nachname} ist schon {ziel.Name()}.";
         if (!Daten.NimmtAuf(ziel, f.Oberhaupt.Volk)) return AufnahmeGrund(ziel); // Ahtnentum: die Alten nehmen keine Menschen, Orks und Oger nie
+        // Das ganze Haus tritt über – lebt darin jemand, den das Bekenntnis nicht aufnimmt (z. B. eine menschliche Witwe), geht es nicht.
+        if (f.Lebende.FirstOrDefault(p => !Daten.NimmtAuf(ziel, p.Volk)) is { } fremd)
+            return $"{fremd.Vorname} ({fremd.Volk.Einzahl()}) lebt im Haus – {AufnahmeGrund(ziel)}";
         if (_w.Kirchenwesen.KirchengrenzeKonvertieren(konto, ziel) is { } kirchen) return kirchen; // höchstens eine Kirche je Glaube
         if (konto.Vermoegen < Daten.Konvertieren.Gebuehr)
             return $"Unterricht und {(f.Oberhaupt.Glaube.IstKirchlich() ? "Übertritt" : "Taufe")} kosten {Zahlenformat.Ganz(Daten.Konvertieren.Gebuehr)} {_w.Daten.Allgemein.Waehrung}.";
@@ -652,15 +657,21 @@ public sealed class Glaubenswesen
 
     /// <summary>
     /// Spielstände von vor dem Ahtnentum kennen nur katholisch und evangelisch: Fehlende Bekenntnisse der Daten kommen mit ihrem Startanteil dazu,
-    /// die vorhandenen werden im selben Verhältnis gekürzt (die Summe bleibt 1).
+    /// die vorhandenen geben den Platz im Verhältnis ihres Teils über dem Mindestanteil ab (keiner fällt unter ihn, die Summe bleibt 1).
     /// </summary>
     private void AnteileErgaenzen()
     {
         if (_d is null || _anteile.Count == 0) return;
         var fehlend = _d.Stadt.Where(x => !_anteile.ContainsKey(x.Key)).OrderBy(x => x.Key).ToList();
         if (fehlend.Count == 0) return;
+        // Die vorhandenen teilen sich, was übrig bleibt, und behalten dabei den Mindestanteil: Gekürzt wird nur, was über ihm liegt.
         var rest = 1 - fehlend.Sum(x => x.Value);
-        foreach (var k in _anteile.Keys.OrderBy(k => k).ToList()) _anteile[k] *= rest;
+        var alte = _anteile.Keys.OrderBy(k => k).ToList();
+        var min = _d.MindestAnteil;
+        var ueber = alte.Sum(k => Math.Max(0, _anteile[k] - min));
+        var frei = rest - alte.Count * min;
+        foreach (var k in alte)
+            _anteile[k] = frei > 0 && ueber > 0 ? min + Math.Max(0, _anteile[k] - min) * frei / ueber : _anteile[k] * rest;
         foreach (var (k, a) in fehlend) _anteile[k] = a;
     }
 }
