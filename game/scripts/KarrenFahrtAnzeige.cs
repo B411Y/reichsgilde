@@ -35,6 +35,9 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
         ZielGewaehlt?.Invoke(betrieb);
     }
 
+    /// <summary>Das Ziel aus der Wahl im Bild setzen, wenn die Tafel gerade zu ist (die Hauptszene öffnet sie danach wieder).</summary>
+    public void ZielVorgeben(string? betrieb) => _ziel = betrieb;
+
     /// <summary>Die Wahl im Bild endete ohne Ziel (Esc, nicht möglich): der Knopf zeigt wieder „Ziel im Bild wählen“.</summary>
     public void ImBildAbgebrochen() => _imBild = false;
 

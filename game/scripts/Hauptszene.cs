@@ -523,14 +523,24 @@ public partial class Hauptszene : Node
                 ziel.Vorwahl = schluessel;
                 ziel.Oeffnen(betrieb);
             };
-        // Karren selbst fahren: das Ziel im Bild wählen (Stadtansicht.Karrenziel.cs); die Tafel nimmt es mit ZielSetzen entgegen
+        // Karren selbst fahren: das Ziel im Bild wählen (Stadtansicht.Karrenziel.cs). Das Transportmenü steht in der Werkstatt; die Stadt sieht man nur draußen,
+        // darum geht der Spieler für die Wahl kurz hinaus und kommt danach mit dem gewählten Ziel (oder ohne, bei Esc) in die Werkstatt zurück.
         _fahrtTafel.ZielWahlImBild += an =>
         {
             if (!an) { if (_stadt.KarrenZielWahlLaeuft) _stadt.GebaeudeWahlAbbrechen(); return; }
-            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, _fahrtTafel.ZielSetzen, Protokollieren, _fahrtTafel.ImBildAbgebrochen))
+            var drinnen = _stadt.InnenBetrieb;
+            if (drinnen is not null) _stadt.InnenansichtVerlassen();
+            void Zurueck(string? ziel, bool gewaehlt)
             {
-                Protokollieren("Ein Ziel im Bild lässt sich hier nicht wählen (in einem Raum oder im Haus) – nimm die Liste.");
+                if (drinnen is null) { if (gewaehlt) _fahrtTafel.ZielSetzen(ziel); else _fahrtTafel.ImBildAbgebrochen(); return; }
+                if (gewaehlt) _fahrtTafel.ZielVorgeben(ziel);
                 _fahrtTafel.ImBildAbgebrochen();
+                BetriebBetreten(drinnen, "fahrt");
+            }
+            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, z => Zurueck(z, true), Protokollieren, () => Zurueck(null, false)))
+            {
+                Protokollieren("Ein Ziel im Bild lässt sich jetzt nicht wählen – nimm die Liste.");
+                Zurueck(null, false);
             }
         };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
