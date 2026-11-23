@@ -239,7 +239,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) läuft bitgleich wie festgehalten (bis 16.11.2026: wie der Kern vor dem Schalter)", () =>
         {
             // ohne die Erntejahre (Datenversion 91), die Feuersteuer (96) und den Vorrat auf Verdacht der KI (ki.vorrat, 16.11.2026), die es damals nicht gab
-            var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Datenpfad.OhneFeuersteuer(Json.Value)))), 3); // und ohne Feuersteuer (22.11.2026)
+            var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Datenpfad.OhneAhtnentum(Datenpfad.OhneFeuersteuer(Json.Value))))), 3); // und ohne Feuersteuer (22.11.2026) und Ahtnentum (23.11.2026)
             Pruefe.Gleich(string.Join("\n", Sollwerte), string.Join("\n", ist));
         }),
     };
