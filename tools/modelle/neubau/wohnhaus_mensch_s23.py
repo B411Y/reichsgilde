@@ -194,7 +194,7 @@ def rundbogenfries(h):
     z_band0, z_band1 = M.Z_EG_DECKE - 0.12, M.Z_EG_DECKE - 0.06
     x0, x1 = -M.BX + 0.52, M.BX - 0.52
     v0, v1, m = h.baender[WERKSTEIN]
-    h.kasten("Bruchstein", (x0, M.VORN - RELIEF, z_band0), (x1, M.VORN, z_band1), WERKSTEIN, ohne=("+y",), laengs="x")
+    h.kasten("Bruchstein", (x0, M.VORN - RELIEF, z_band0), (x1, M.VORN, z_band1), WERKSTEIN, ohne=("+y",), laengs="x", ohne_streckung=GURT_WERK)
     r = 0.13
     n = int((x1 - x0) / (2 * r))
     rand = (x1 - x0 - n * 2 * r) / 2
@@ -599,7 +599,10 @@ def oeffnungen(h):
             for z in (z0 + 0.40, z1 - 0.40):
                 h.rechteck(stein, P(s0 + 0.03, z - 0.035, -0.09), (ex, ey, 0), EZ, 0.66, 0.07, "eisen", weg_von=MITTE)
             h.rechteck(stein, P(s1_ - 0.22, z0 + 0.90, -0.085), (ex, ey, 0), EZ, 0.1, 0.14, "eisen", weg_von=MITTE)   # Tuerring
-            h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), "bruchstein", ohne=("-z", "+y"))   # Stufe
+            if GURT_WERK:                                    # Halbling Stufe 3: die erste Stufe vor der Tuer aus hellem Werkstein, Lage ohne Streckung
+                h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), WERKSTEIN, ohne=("-z", "+y"), ohne_streckung=True)
+            else:
+                h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), "bruchstein", ohne=("-z", "+y"))   # Stufe
             vordach(h, (a0 + a1) / 2, z1 + 0.30)
             continue
         if ist_stein() and art == "fenster":                 # Steinhaus: Kreuzstock aus Sandstein; Gewaende je Gruppe (unten)
@@ -646,6 +649,7 @@ def oeffnungen(h):
         steinhaus_fenster(h)
 
 
+GURT_WERK = False      # Halbling Stufe 3: Gurtgesims ueber dem Erdgeschoss, Gesims am Giebelfuss (vorn und hinten) und erste Stufe vor der Tuer aus hellem Werkstein
 LADEN_ZUFALL = False   # Halbling Stufe 3: Laeden je Fenstergruppe nach festem Zufall (keine, links, rechts, beide), auch im Erdgeschoss
 LADEN_SEED = 1         # Startwert je Variante (Grundform); aendert die Verteilung
 
@@ -1118,8 +1122,8 @@ def steingiebel(h, wand, y, aussen):
         n = Vector((0, aussen, 0))
         for p_, richtung, laenge in (((a0, y, z0), Vector((1, 0, 0)), a1 - a0), ((a0, y, z1), Vector((1, 0, 0)), a1 - a0), ((a0, y, z0), EZ, z1 - z0), ((a1, y, z0), EZ, z1 - z0)):
             h.rechteck("Bruchstein", p_, richtung, -n, laenge, M.T, "bruchstein", zu=Vector(((a0 + a1) / 2, y - aussen * M.T / 2, (z0 + z1) / 2)), anteil=(0.0, 0.6))
-    h.kasten("Bruchstein", (-M.OX - 0.06, min(y, y + aussen * 0.08), zt - 0.12), (M.OX + 0.06, max(y, y + aussen * 0.08), zt), "bruchstein", laengs="x",
-            ohne=("-y" if aussen > 0 else "+y",))   # Gesims (ohne die Rueckseite in der Mauer)
+    h.kasten("Bruchstein", (-M.OX - 0.06, min(y, y + aussen * 0.08), zt - 0.12), (M.OX + 0.06, max(y, y + aussen * 0.08), zt),
+             WERKSTEIN if GURT_WERK else "bruchstein", laengs="x", ohne=("-y" if aussen > 0 else "+y",), ohne_streckung=GURT_WERK)   # Gesims (ohne die Rueckseite in der Mauer)
 
 
 def treppengiebel_rueckseite(h, w, y1, z, zn, kurs):
@@ -1180,7 +1184,8 @@ def treppengiebel(h, stufen=6, dicke=0.36):
                 xa, xb = sorted((sx * (breiten[k + 1] - 0.02), sx * (w + 0.05)))
                 h.kasten("Bruchstein", (xa, y0 - 0.05, zb), (xb, y1 + 0.03, zb + 0.08), WERKSTEIN, laengs="x")
     # Gesims an der Traufe
-    h.kasten("Bruchstein", (-M.OX - 0.08, y0 - 0.08, zt - 0.10), (M.OX + 0.08, y1, zt), "bruchstein", ohne=("+y",), laengs="x")
+    h.kasten("Bruchstein", (-M.OX - 0.08, y0 - 0.08, zt - 0.10), (M.OX + 0.08, y1, zt), WERKSTEIN if GURT_WERK else "bruchstein", ohne=("+y",), laengs="x",
+             ohne_streckung=GURT_WERK)
     # Schaugiebel (Nutzer 22.11.2026, patrizier_giebel_recherche.md): Lisenen ueber jeder Stufe mit Fiale, Blendnischen, Fenstergewaende
     P = lambda x, z, r: Vector((x, y0 - r, z))
     for x0, x1, zb_, zs_ in nischen:
@@ -1255,7 +1260,13 @@ def baue_haus():
             lx, ly = b[0] - a[0], b[1] - a[1]
             h.rechteck(stein, (a[0], a[1], M.Z_EG_DECKE), (1, 0, 0), (0, 1, 0), lx, ly, "bruchstein", laengs="u" if lx > ly else "v", zu=(0, 0, 0))
         for (x0_, y0_, x1_, y1_) in ((-M.OX - 0.03, M.OVORN - 0.03, M.OX + 0.03, M.OVORN + 0.05), (-M.OX - 0.03, M.OVORN + 0.05, -M.OX + 0.05, M.HINTEN + 0.03), (M.OX - 0.05, M.OVORN + 0.05, M.OX + 0.03, M.HINTEN + 0.03)):
-            h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.12), "bruchstein", laengs="x" if x1_ - x0_ > y1_ - y0_ else "y")
+            if GURT_WERK:                                    # Halbling Stufe 3: Gurtgesims aus hellem Werkstein: Lage und Deckleiste (2 cm weiter vor), Lagen ohne Streckung
+                lg = "x" if x1_ - x0_ > y1_ - y0_ else "y"
+                h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.08), WERKSTEIN, laengs=lg, ohne=("+z",), ohne_streckung=True)
+                if lg == "x": h.kasten(stein, (x0_ - 0.02, y0_ - 0.02, M.Z_EG_DECKE + 0.08), (x1_ + 0.02, y1_, M.Z_EG_DECKE + 0.12), WERKSTEIN, laengs="x", ohne_streckung=True)
+                else: h.kasten(stein, (x0_ - (0.02 if x0_ < 0 else 0.0), y0_, M.Z_EG_DECKE + 0.08), (x1_ + (0.02 if x1_ > 0 else 0.0), y1_, M.Z_EG_DECKE + 0.12), WERKSTEIN, laengs="y", ohne_streckung=True)
+            else:
+                h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.12), "bruchstein", laengs="x" if x1_ - x0_ > y1_ - y0_ else "y")
     # Untersicht der Auskragung und Balkenkoepfe
     for (a, b) in ((((-M.OX, M.OVORN), (M.OX, M.VORN)), ((-M.OX, M.VORN), (-M.BX, M.HINTEN)), ((M.BX, M.VORN), (M.OX, M.HINTEN))) if not ist_stein() else ()):
         lx, ly = b[0] - a[0], b[1] - a[1]

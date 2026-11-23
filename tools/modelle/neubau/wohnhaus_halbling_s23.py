@@ -80,7 +80,8 @@ EFEU_FLAECHEN = {
 EFEU_REST = {1: 120, 2: 250, 3: 440, 4: 230}   # Dreiecke, die nach dem Efeu noch ins Haus kommen (Anbauten, Rundbogen, Ochsenauge; gemessen + 10 Reserve)
 DACH_UND_SCHEIBEN = {1: 459, 2: 533, 3: 505, 4: 519}   # Dreiecke ausser dem Haus (Messung 19.11.2026): Budget der Karten bis 3.990
 EFEU_V, KUPFER_V = (0.004, 0.121), (0.125, 0.1875)     # trimsheet_halbling.EFEU_STUFE3 / KUPFER_STUFE3 (Band „stroh“ geteilt)
-LADEN_SEEDS = {1: 5, 2: 3, 3: 6, 4: 55}                 # Startwerte der Laeden-Verteilung je Grundform (vorn OG: beide, links, keine, rechts)
+LADEN_SEEDS = {1: 5, 2: 7, 3: 34, 4: 9}                 # Startwerte der Laeden-Verteilung je Grundform; vorn (Obergeschoss Doppelfenster / Erdgeschoss Einzelfenster):
+                                                        # G1 beide / beide, G2 keine / links, G3 beide / rechts, G4 keine / keine (Folge-Patch 23.11.2026)
 EFEU_AN = False                                         # Efeu aus (Nutzer 22.11.2026: kein Hobbithaus): die Eckquader bleiben an allen Ecken
 FIALE_SKALA = 0.55                                      # Fialen und Helme auf dem Schaugiebel niedriger als bei den Menschen
 OG_QUADER_AB = 0.12                                    # Eckquader des OG ueber dem Gesims (Z_EG_DECKE - 0,04 bis + 0,12) ...
@@ -699,6 +700,7 @@ def schicht_anlegen(stufe):
         S23.BOGEN_RUND, S23.BOGEN_H = True, 0.5            # Rundbogenblenden statt Spitzboegen im Schaugiebel
         S23.FIALE_SKALA = FIALE_SKALA
         S23.OBEN.update(band="bruchstein", lage=None)      # Obergeschoss und Gaube in rotem Backstein statt hellem Haustein
+        S23.GURT_WERK = True                               # Gurtgesims, Gesims am Giebelfuss und erste Tuerstufe aus hellem Werkstein
         S23.LADEN_ZUFALL = True                            # Laeden je Fenstergruppe nach festem Zufall
         S23.LADEN_SEED = LADEN_SEEDS[FORM[0]]              # Startwert je Grundform (so sehen die vier Haeuser vorn verschieden aus)
         S23.GIEBEL_LAGEN = True                            # Blendnischen im Giebel: Backsteinlagen im Massstab der Wand
