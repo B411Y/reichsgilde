@@ -1,6 +1,6 @@
 """Neubau der Gebaeude: Wohnhaus Mensch, Stufe 2 (Buergerhaus) und Stufe 3 (Steinhaus) - aussen und innen.
 
-    blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_mensch_s23.py -- --stufe=2 --form=1 [--bilder=<ordner>] [--ohne-ao]
+    blender -b --factory-startup --python tools/modelle/neubau/wohnhaus_mensch_s23.py -- --stufe=2 --form=1 [--bilder=<ordner>] [--ohne-ao] [--gaube-alt] [--dach-alt] [--schnitt-alt]
 
 Schreibt
     game/assets/modelle/gebaeude/neubau/wohnhaus_mensch_s<stufe>_g<form>.glb        Huelle (Haus, Dach, Scheiben, Wappen, Fahne, Leerstand, Geruest, Anker)
@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(HIER), "raeume"))
 import netzbau                                                   # noqa: E402,F401
 from netzbau import ROT, Teil                                      # noqa: E402
 from trimsheet import BAENDER_AUSSEN as BA, BAENDER_INNEN as BI   # noqa: E402
-from trimsheet_stufen import FLIESEN_U                             # noqa: E402
+from trimsheet_stufen import FLIESEN_U, WERK_LAGE                             # noqa: E402
 import wohnhaus_mensch_s1_g1 as g1                                 # noqa: E402  (Moebel, Gegenstaende, Blender-Helfer der Probe)
 import wohnhaus_mensch_s1 as s1                                    # noqa: E402  (versetze, teile_auf, bretterwand)
 import wohnhaus_mensch_s23_masse as M                              # noqa: E402
@@ -138,9 +138,279 @@ def gewaende(h, wand, spannen, z0, z1):
     # Mittelpfosten eines Fensterpaars: 25 cm breit (deckt beide Laibungskanten mit je 4 cm), 10 cm vor der Mauer, von der Sohlbank
     # bis zum Sturz – der 17-cm-Pfeiler mit den tiefen Laibungen las sich als schwarzer Pfeiler (Rueckmeldung 15.11.2026)
     for i in range(len(spannen) - 1):
-        wkasten(h, st, wand, spannen[i][1] - 0.04, spannen[i + 1][0] + 0.04, 0.0, 0.10, z0 - 0.005, z1 + 0.005, band, laengs="z")
+        a_, b_ = spannen[i][1] - 0.04, spannen[i + 1][0] + 0.04
+        # A (Patrizierhaus): gekuppeltes Fenster mit Steinsaeule – flache Vorlage (deckt die Laibungskanten), davor Basis, achteckiger
+        # Schaft und Kapitell (Nutzer 21.11.2026)
+        wkasten(h, st, wand, a_, b_, 0.0, 0.03, z0 - 0.005, z1 + 0.005, band, laengs="z")
+        sm = (a_ + b_) / 2
+        for za, zb, br in ((z0 - 0.005, z0 + 0.10, 0.11), (z1 - 0.13, z1 + 0.005, 0.12)):          # Basis, Kapitell
+            wkasten(h, st, wand, sm - br, sm + br, 0.03, 0.16, za, zb, band, laengs="z")
+        fuss = punkt(wand, sm, z0 + 0.10, 0.095)
+        h.dreh(st, fuss, [(0.055, 0.0), (0.05, (z1 - 0.13) - (z0 + 0.10))], band, seiten=8, deckel=False)
     wkasten(h, st, wand, links - 0.17, rechts + 0.17, 0.0, 0.08, z0 - 0.11, z0 - 0.005, band, laengs="x")   # 5 mm unter der Laibung
     wkasten(h, st, wand, links - 0.17, rechts + 0.17, 0.0, 0.06, z1 + 0.005, z1 + 0.17, band, laengs="x")
+
+
+# ── Patrizierhaus (Stufe 3; Nutzer 21.11.2026 „Patrizier A–D“, patrizier_recherche.md): Saeulen, Rundbogenfries, Blendboegen ──
+RELIEF = 0.09          # Tiefe der Blendboegen und des Frieses (8–10 cm, sonst verschwinden sie im Pixel-Look)
+
+
+def bogen_relief(h, P, xm, z_fuss, r_aussen, breite_ring, tiefe, band=None, seiten=8, pfeiler=0.0):
+    """Rundbogen als Relief vor der Wand: Ring (Halbkreis um (xm, z_fuss), aussen r_aussen, Ringbreite breite_ring), auf Wunsch
+    darunter zwei Pfeiler (Lisenen) bis z_fuss - pfeiler. P(s, z, raus) -> Punkt, raus nach aussen. Vorderflaeche in `tiefe`,
+    Seitenflaechen aussen und innen, unten geschlossen."""
+    band = band or WERKSTEIN
+    v0, v1, m = h.baender[band]
+    ri = r_aussen - breite_ring
+    winkel = [math.pi * k / seiten for k in range(seiten + 1)]
+    aussen = [(xm + r_aussen * math.cos(w), z_fuss + r_aussen * math.sin(w)) for w in winkel]
+    innen = [(xm + ri * math.cos(w), z_fuss + ri * math.sin(w)) for w in winkel]
+    hinten = P(xm, z_fuss, -1.0)
+    uv = lambda s_, z_: (s_ / m, v0 + (v1 - v0) * (0.2 + 0.6 * ((z_ * 1.7) % 1)))
+    for k in range(seiten):
+        q = [aussen[k], aussen[k + 1], innen[k + 1], innen[k]]
+        h.vieleck("Bruchstein", [P(a, b, tiefe) for a, b in q], [uv(a, b) for a, b in q], weg_von=hinten)
+        for (a0, b0), (a1, b1), nach in ((aussen[k], aussen[k + 1], 1), (innen[k + 1], innen[k], -1)):
+            pts = [P(a0, b0, 0.0), P(a1, b1, 0.0), P(a1, b1, tiefe), P(a0, b0, tiefe)]
+            mitte = P((a0 + a1) / 2 - nach * (a0 + a1 - 2 * xm) * 0.1, (b0 + b1) / 2 - nach * ((b0 + b1) / 2 - z_fuss) * 0.1, tiefe / 2)
+            h.vieleck("Bruchstein", pts, [(0, v0), (0.1, v0), (0.1, v0 + 0.02), (0, v0 + 0.02)], weg_von=mitte)
+    for x0, x1 in ((xm - r_aussen, xm - ri), (xm + ri, xm + r_aussen)):
+        if pfeiler > 0:   # Lisene unter dem Bogenfuss
+            z0 = z_fuss - pfeiler
+            for pts, weg in (([P(x0, z0, tiefe), P(x1, z0, tiefe), P(x1, z_fuss, tiefe), P(x0, z_fuss, tiefe)], hinten),
+                             ([P(x0, z0, 0.0), P(x0, z_fuss, 0.0), P(x0, z_fuss, tiefe), P(x0, z0, tiefe)], P(x0 + 1, z0 + 0.5, tiefe / 2)),
+                             ([P(x1, z0, 0.0), P(x1, z_fuss, 0.0), P(x1, z_fuss, tiefe), P(x1, z0, tiefe)], P(x1 - 1, z0 + 0.5, tiefe / 2)),
+                             ([P(x0, z0, 0.0), P(x1, z0, 0.0), P(x1, z0, tiefe), P(x0, z0, tiefe)], P((x0 + x1) / 2, z0 + 1, tiefe / 2))):
+                h.vieleck("Bruchstein", pts, [uv(a, 0) for a in (0.0, 0.1, 0.1, 0.0)], weg_von=weg)
+        else:             # Bogenfuss unten geschlossen
+            pts = [P(x0, z_fuss, 0.0), P(x1, z_fuss, 0.0), P(x1, z_fuss, tiefe), P(x0, z_fuss, tiefe)]
+            h.vieleck("Bruchstein", pts, [uv(a, 0) for a in (0.0, 0.1, 0.1, 0.0)], weg_von=P((x0 + x1) / 2, z_fuss + 1, tiefe / 2))
+
+
+def rundbogenfries(h):
+    """B: Rundbogenfries aus Haustein am Erdgeschoss der Gassenseite unter dem Gesims der Auskragung (ueber Tuer- und Fenstersturz),
+    Deckband darueber; zwischen den Eckquadern."""
+    P = lambda s_, z_, r_: Vector((s_, M.VORN - r_, z_))
+    z_band0, z_band1 = M.Z_EG_DECKE - 0.12, M.Z_EG_DECKE - 0.06
+    x0, x1 = -M.BX + 0.52, M.BX - 0.52
+    v0, v1, m = h.baender[WERKSTEIN]
+    h.kasten("Bruchstein", (x0, M.VORN - RELIEF, z_band0), (x1, M.VORN, z_band1), WERKSTEIN, ohne=("+y",), laengs="x", ohne_streckung=GURT_WERK)
+    r = 0.13
+    n = int((x1 - x0) / (2 * r))
+    rand = (x1 - x0 - n * 2 * r) / 2
+    for k in range(n):
+        bogen_relief(h, P, x0 + rand + r + 2 * r * k, z_band0 - r, r, 0.045, RELIEF - 0.01, seiten=6)
+
+
+BOGEN_RUND = False   # Halbling Stufe 3 (22.11.2026): Rundbogen statt Spitzbogen im Schaugiebel (wohnhaus_halbling_s23.py setzt es)
+BOGEN_H = 0.866     # Scheitelhoehe eines Bogens je Spannweite: Spitzbogen 0,866, Rundbogen 0,5 (BOGEN_RUND)
+FIALE_SKALA = 1.0    # Groesse der Fialen auf dem Schaugiebel (Halbling: niedriger)
+GIEBEL_LAGEN = False  # Halbling Stufe 3: Zwickel und Nischengrund der Blendnischen in Backsteinlagen (quader_flaeche) statt eine Bandhoehe auf 0,77 m
+
+
+def spitzbogen(x0, x1, zs, n=4):
+    """Spitzbogen (gleichseitig) ueber der Spannweite x0..x1 mit Kaempfer zs: Punkte vom linken Kaempfer ueber den Scheitel zum rechten.
+    Mit BOGEN_RUND ein Halbkreis (gleich viele Punkte, Scheitel in der Mitte)."""
+    w = x1 - x0
+    if BOGEN_RUND:
+        r, xm = w / 2, (x0 + x1) / 2
+        return [(xm + r * math.cos(math.radians(180 - 90 * k / n)), zs + r * math.sin(math.radians(180 - 90 * k / n))) for k in range(2 * n + 1)]
+    links = [(x1 + w * math.cos(math.radians(180 - 60 * k / n)), zs + w * math.sin(math.radians(180 - 60 * k / n))) for k in range(n + 1)]
+    rechts = [(x0 + w * math.cos(math.radians(60 - 60 * k / n)), zs + w * math.sin(math.radians(60 - 60 * k / n))) for k in range(n + 1)]
+    return links + rechts[1:]
+
+
+def _uv(h, band):
+    v0, v1, m = h.baender[band]
+    return lambda x, z: (x / m, v0 + (v1 - v0) * (0.15 + 0.7 * ((z * 1.3) % 1)))
+
+
+def _beschneide(punkte, p, q, behalte=None):
+    """Polygon (Liste von (x, z)) an der Geraden p-q beschneiden; behalten wird die Seite, auf der `behalte` liegt (Sutherland-Hodgman, eine Gerade)."""
+    seite = lambda r: (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+    vz = 1.0 if seite(behalte) >= 0 else -1.0
+    aus = []
+    for r, s in zip(punkte, punkte[1:] + punkte[:1]):
+        dr, ds = vz * seite(r), vz * seite(s)
+        if dr >= -1e-9: aus.append(r)
+        if (dr > 1e-9 and ds < -1e-9) or (dr < -1e-9 and ds > 1e-9):
+            tt = dr / (dr - ds)
+            aus.append((r[0] + (s[0] - r[0]) * tt, r[1] + (s[1] - r[1]) * tt))
+    return aus
+
+
+def spitz_rahmen(h, P, x0, x1, zb, zs, breite, tiefe, band=None, n=4, ohne_kreuzung=False):
+    """Gestuftes Gewaende: Rahmen aus Werkstein um eine Spitzbogenoeffnung (x0..x1, Fuss zb, Kaempfer zs), `breite` breit, `tiefe` vor
+    der Ebene von P (raus); Vorderflaechen und Seitenflaechen aussen und innen."""
+    band = band or WERKSTEIN
+    uv = _uv(h, band)
+    innen = [(x0, zb)] + spitzbogen(x0, x1, zs, n) + [(x1, zb)]
+    aussen = [(x0 - breite, zb)] + spitzbogen(x0 - breite, x1 + breite, zs, n) + [(x1 + breite, zb)]
+    hinten = P((x0 + x1) / 2, zs, -1.0)
+    for k in range(len(innen) - 1):
+        q = [aussen[k], aussen[k + 1], innen[k + 1], innen[k]]
+        if ohne_kreuzung and k in (1, 2):
+            # Steht neben diesem Rahmen ein zweiter (Blendmasswerk), ueberdecken sich die ersten Bogenflaechen beider ueber dem Pfosten in einem Fuenfeck
+            # (Fuss: Kaempfer, Spitze: wo sich die Aussenkanten kreuzen, x = Mitte zwischen den Rahmen). Zwei Flaechen in einer Ebene: schwarz
+            # (Cycles und Verdeckung, Bildpruefung 23.11.2026). Dieser Rahmen wird an der Aussenkante des Nachbarn (Spiegelbild seiner eigenen) beschnitten.
+            xm = x0 - breite / 2
+            sp = lambda p: (2 * xm - p[0], p[1])
+            kante = (sp(aussen[k]), sp(aussen[k + 1]))
+            q = _beschneide(q, kante[0], kante[1], innen[k + 1])
+            if k == 2:      # Knick der Aussenkante des Nachbarn (sp(aussen[2])) liegt hinter der gemeinsamen Kante der beiden Flaechen: Zwickel dazwischen schliessen
+                kn = sp(aussen[2])
+                bc0, bc1 = aussen[2], innen[2]
+                def _auf_bc(g0, g1):
+                    d1, d2 = (bc1[0] - bc0[0], bc1[1] - bc0[1]), (g1[0] - g0[0], g1[1] - g0[1])
+                    nenner = d1[0] * d2[1] - d1[1] * d2[0]
+                    s = ((g0[0] - bc0[0]) * d2[1] - (g0[1] - bc0[1]) * d2[0]) / nenner
+                    return (bc0[0] + d1[0] * s, bc0[1] + d1[1] * s)
+                zw = [_auf_bc(sp(aussen[1]), kn), _auf_bc(kn, sp(aussen[3])), kn]
+                h.vieleck("Bruchstein", [P(a, c, tiefe) for a, c in zw], [uv(a, c) for a, c in zw], weg_von=hinten)
+        for m in range(1, len(q) - 1) if len(q) > 4 else ([0] if len(q) >= 3 else []):    # mehr als 4 Ecken: als Faecher aus Dreiecken
+            teil = q if len(q) <= 4 else [q[0], q[m], q[m + 1]]
+            h.vieleck("Bruchstein", [P(a, c, tiefe) for a, c in teil], [uv(a, c) for a, c in teil], weg_von=hinten)
+        for (a0, c0), (a1, c1), ref in ((aussen[k], aussen[k + 1], (x0 + x1) / 2), (innen[k], innen[k + 1], None)):
+            pts = [P(a0, c0, 0.0), P(a1, c1, 0.0), P(a1, c1, tiefe), P(a0, c0, tiefe)]
+            mx, mz = (a0 + a1) / 2, (c0 + c1) / 2
+            if ref is None:   # innen: Sichtseite zur Oeffnung hin
+                weg = P(2 * mx - (x0 + x1) / 2 if abs(mx - (x0 + x1) / 2) > 1e-3 else mx, mz + (0.3 if mz < zs else 0.0), tiefe / 2)
+            else:
+                weg = P((x0 + x1) / 2, zs, tiefe / 2)
+            h.vieleck("Bruchstein", pts, [uv(a0, c0), uv(a1, c1), uv(a1, c1 + 0.02), uv(a0, c0 + 0.02)], weg_von=weg)
+    for xa, xb in ((x0 - breite, x0), (x1, x1 + breite)):   # Fussflaechen
+        pts = [P(xa, zb, 0.0), P(xb, zb, 0.0), P(xb, zb, tiefe), P(xa, zb, tiefe)]
+        h.vieleck("Bruchstein", pts, [uv(xa, 0), uv(xb, 0), uv(xb, 0.02), uv(xa, 0.02)], weg_von=P((xa + xb) / 2, zb + 1, tiefe / 2))
+
+
+def kreis_ring(h, P, xm, zm, r, breite, tiefe, n=8, band=None):
+    """Okulus: Kreisring aus Werkstein vor der Ebene von P."""
+    band = band or WERKSTEIN
+    uv = _uv(h, band)
+    ri = r - breite
+    pa = [(xm + r * math.cos(2 * math.pi * k / n), zm + r * math.sin(2 * math.pi * k / n)) for k in range(n + 1)]
+    pi_ = [(xm + ri * math.cos(2 * math.pi * k / n), zm + ri * math.sin(2 * math.pi * k / n)) for k in range(n + 1)]
+    hinten = P(xm, zm, -1.0)
+    for k in range(n):
+        q = [pa[k], pa[k + 1], pi_[k + 1], pi_[k]]
+        h.vieleck("Bruchstein", [P(a, c, tiefe) for a, c in q], [uv(a, c) for a, c in q], weg_von=hinten)
+        pts = [P(*pa[k], 0.0), P(*pa[k + 1], 0.0), P(*pa[k + 1], tiefe), P(*pa[k], tiefe)]
+        h.vieleck("Bruchstein", pts, [uv(*pa[k]), uv(*pa[k + 1]), uv(pa[k + 1][0], pa[k + 1][1] + 0.02), uv(pa[k][0], pa[k][1] + 0.02)], weg_von=P(xm, zm, tiefe / 2))
+        pts = [P(*pi_[k], 0.0), P(*pi_[k + 1], 0.0), P(*pi_[k + 1], tiefe), P(*pi_[k], tiefe)]
+        h.vieleck("Bruchstein", pts, [uv(*pi_[k]), uv(*pi_[k + 1]), uv(pi_[k + 1][0], pi_[k + 1][1] + 0.02), uv(pi_[k][0], pi_[k][1] + 0.02)],
+                  weg_von=P(xm + (pi_[k][0] - xm) * 3, zm + (pi_[k][1] - zm) * 3, tiefe / 2))
+
+
+def blendnische(h, P, x0, x1, zb, zs, tiefe):
+    """Spitzbogige Blendnische `tiefe` in die Mauer (Ebene von P bei raus 0): Zwickel in der Mauerflaeche (die Oeffnung der Mauer ist
+    rechteckig bis zum Scheitel), Laibung aus Werkstein, Nischengrund aus Bruchstein (dunkler), davor gestuftes Gewaende, im Grund
+    Blendmasswerk: gekuppelte Spitzboegen mit Okulus (Nutzer 22.11.2026)."""
+    bogen = spitzbogen(x0, x1, zs)
+    zsch = bogen[len(bogen) // 2][1]
+    uvb, uvw = _uv(h, "bruchstein"), _uv(h, WERKSTEIN)
+    vorn = P((x0 + x1) / 2, zs, 1.0)
+    # Zwickel in der Mauerflaeche (Scheitelecke zuerst: Faecher von dort)
+    halb = len(bogen) // 2
+    for ecke, kurve in (((x0, zsch), bogen[:halb + 1]), ((x1, zsch), bogen[halb:])):
+        pts2 = [ecke] + (kurve if ecke[0] == x0 else kurve[::-1])
+        if GIEBEL_LAGEN:                                   # Dreiecke aus der Ecke, je an den Lagenfugen geschnitten (keine Streckung)
+            for (a, c), (a2, c2) in zip(pts2[1:-1], pts2[2:]):
+                quader_flaeche(h, [P(*pts2[0], 0.0), P(a, c, 0.0), P(a2, c2, 0.0)], (0, 0, 0), (1, 0, 0), zb, weg_von=P((x0 + x1) / 2, zs, -1.0))
+            continue
+        h.vieleck("Bruchstein", [P(a, c, 0.0) for a, c in pts2], [uvb(a, c) for a, c in pts2], weg_von=P((x0 + x1) / 2, zs, -1.0))
+    # Laibung: Seiten, Bogen, Sohle
+    umriss = [(x0, zb)] + bogen + [(x1, zb)]
+    mx = (x0 + x1) / 2
+    for (a0, c0), (a1, c1) in zip(umriss[:-1], umriss[1:]):
+        pts = [P(a0, c0, 0.0), P(a1, c1, 0.0), P(a1, c1, -tiefe), P(a0, c0, -tiefe)]
+        h.vieleck("Bruchstein", pts, [uvw(a0, c0), uvw(a1, c1), uvw(a1, c1 + 0.03), uvw(a0, c0 + 0.03)], weg_von=P(2 * (a0 + a1) / 2 - mx, (c0 + c1) / 2 + (0.5 if (c0 + c1) / 2 > zs else 0), -tiefe / 2))
+    pts = [P(x0, zb, 0.0), P(x1, zb, 0.0), P(x1, zb, -tiefe), P(x0, zb, -tiefe)]
+    h.vieleck("Bruchstein", pts, [uvw(x0, 0), uvw(x1, 0), uvw(x1, 0.03), uvw(x0, 0.03)], weg_von=P(mx, zb - 1, -tiefe / 2))
+    # Nischengrund
+    if GIEBEL_LAGEN:
+        quader_flaeche(h, [P(a, c, -tiefe) for a, c in umriss], (0, 0, 0), (1, 0, 0), zb, weg_von=P(mx, zs, -tiefe - 1))
+    else:
+        h.vieleck("Bruchstein", [P(a, c, -tiefe) for a, c in umriss], [uvb(a, c) for a, c in umriss], weg_von=P(mx, zs, -tiefe - 1))
+    # Gewaende davor
+    spitz_rahmen(h, P, x0, x1, zb, zs, 0.05, 0.05)
+    # Blendmasswerk im Grund: Mittelpfosten, zwei Spitzboegen, Okulus
+    G = lambda a, c, r: P(a, c, r - tiefe)
+    w = x1 - x0
+    st = 0.035
+    z_kb = max(zb + 0.55 * (zs - zb), zs - 0.45 * w)       # Masswerk bis unter den Scheitel (Bildpruefung 22.11.: oben sonst leer)
+    for a, b_, rechts in ((x0 + st, mx - st / 2, False), (mx + st / 2, x1 - st, True)):
+        spitz_rahmen(h, G, a, b_, zb, z_kb, st, 0.04, n=3, ohne_kreuzung=rechts and MASSWERK_SCHNITT)
+    if BOGEN_RUND:                                          # Rundboegen: zwischen den Rahmen oberhalb ihrer Beruehrung blieb ein schwarzer Keil
+        R = (mx + st / 2 - x0) / 2                          # Aussenradius jedes Rahmens (Rahmen reichen um st ueber die Oeffnung)
+        xl, xr = x0 + R, x1 - R
+        z_i = z_kb + math.sqrt(max(R * R - (mx - xl) ** 2, 0.0))
+        z2 = z_i
+        while z2 < z_kb + R * 0.95:
+            z2 += 0.01
+            xa, xb = xl + math.sqrt(max(R * R - (z2 - z_kb) ** 2, 0.0)), xr - math.sqrt(max(R * R - (z2 - z_kb) ** 2, 0.0))
+            if xb - xa >= 0.07: break
+        uvw2 = _uv(h, WERKSTEIN)
+        tri = [(mx, z_i - 0.02), (xb + 0.01, z2), (xa - 0.01, z2)]
+        h.vieleck("Bruchstein", [G(a, c, 0.036) for a, c in tri], [uvw2(a, c) for a, c in tri], weg_von=G(mx, z_i, -1.0))
+        # Mittelpfosten bis fast zum Scheitel der Boegen: schliesst den schwarzen Keil im Kaempfer auch in den schmalen Seitenblenden
+        p1, p2 = G(mx - 0.0225, z_kb - 0.01, 0.0), G(mx + 0.0225, z_kb + R * 0.9, 0.045)
+        h.kasten("Bruchstein", (min(p1.x, p2.x), min(p1.y, p2.y), min(p1.z, p2.z)), (max(p1.x, p2.x), max(p1.y, p2.y), max(p1.z, p2.z)), WERKSTEIN,
+                 ohne=("-z", "+y"), laengs="z")
+    kreis_ring(h, G, mx, z_kb + BOGEN_H * (w / 2) + (w / 2) * 0.55, (w / 2) * 0.42, 0.03, 0.04, n=12)
+
+
+def fiale(h, x, y_vorn, z, gross=False, tief=None):
+    """Fiale auf der Deckplatte: Schaft und Pyramidenhelm aus Werkstein (Nutzer 22.11.2026); `tief`: Tiefe des Schafts (so tief wie
+    die Mauer, sonst blieb zwischen Fiale und Dach ein schmaler Spalt, Pruefung 16)."""
+    b = 0.18 if gross else 0.13
+    hs, hh = (0.45, 0.55) if gross else (0.32, 0.36)
+    hs, hh = hs * FIALE_SKALA, hh * FIALE_SKALA
+    y0, y1 = y_vorn, y_vorn + (tief or b)
+    h.kasten("Bruchstein", (x - b / 2, y0, z), (x + b / 2, y1, z + hs), WERKSTEIN, laengs="z")
+    spitze = Vector((x, (y0 + y1) / 2, z + hs + hh))
+    ecken = [Vector((x - b / 2 - 0.02, y0 - 0.02, z + hs)), Vector((x + b / 2 + 0.02, y0 - 0.02, z + hs)),
+             Vector((x + b / 2 + 0.02, y1 + 0.02, z + hs)), Vector((x - b / 2 - 0.02, y1 + 0.02, z + hs))]
+    v0, v1, m = h.baender[WERKSTEIN]
+    mitte = Vector((x, (y0 + y1) / 2, z + hs + 0.05))
+    for i in range(4):
+        h.vieleck("Bruchstein", [ecken[i], ecken[(i + 1) % 4], spitze], [(0, v1), (0.2, v1), (0.1, v0)], weg_von=mitte)
+    h.vieleck("Bruchstein", ecken[::-1], [(0, v0), (0.2, v0), (0.2, v1), (0, v1)], weg_von=mitte + Vector((0, 0, 1)))
+
+
+LISENE = 0.10    # Breite der Lisenen am Schaugiebel
+
+
+def gotik_plan(breiten, hoehe, zt, fenster):
+    """Lisenen (x, Oberkante) ueber jeder Stufenschulter und Blendnischen (x0, x1, zb, zs) zwischen ihnen; das Fenster (a0, a1, z0, z1)
+    bleibt frei, darueber eine Mittelnische."""
+    lisenen = []
+    for k in range(len(breiten) - 1):
+        xm = breiten[k + 1]            # auf der Ecke der hoeheren Stufe (frei auf der Schulter liess die Fiale einen Lichtspalt, Pruefung 16)
+        lisenen.append((xm, zt + (k + 1) * hoehe))
+    nischen = []
+    for k in range(1, len(lisenen) - 1):
+        xa, xb = lisenen[k][0] + LISENE / 2 + 0.07, lisenen[k - 1][0] - LISENE / 2 - 0.07   # zwischen Lisene k (innen) und k-1 (aussen), Platz fuers Gewaende
+        w = xb - xa
+        if w < 0.24: continue
+        oben = zt + (k + 1) * hoehe - 0.22                                          # unter der Deckplatte dieses Feldes
+        zs = oben - BOGEN_H * w
+        zb = zt + 0.22
+        if zs - zb < 0.25: continue
+        zsch = zs + BOGEN_H * w
+        if any(xa < a1 + 0.3 and xb > a0 - 0.3 and zb < z1 + 0.3 and zsch > z0 - 0.2 for a0, a1, z0, z1 in fenster): continue   # Fenster frei
+        for sx in (-1, 1):
+            nischen.append((min(sx * xa, sx * xb), max(sx * xa, sx * xb), zb, zs))
+    # Mittelnische ueber dem Fenster
+    if fenster:
+        a0, a1, z0, z1 = fenster[0]
+        xi = lisenen[-1][0] - LISENE / 2 - 0.07
+        w = min(2 * xi, 0.6)
+        oben = zt + (len(breiten) - 1) * hoehe - 0.18
+        zs = oben - BOGEN_H * w
+        zb = z1 + 0.16 + BOGEN_H * (a1 - a0 + 0.12) + 0.16
+        if zs - zb >= 0.2:
+            nischen.append((-w / 2, w / 2, zb, zs))
+    return lisenen, nischen
 
 
 def fenster_gruppen(wand, luecke=0.30):
@@ -177,11 +447,13 @@ def nvec(wand):
 #  Aussen
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-def steinwand(h, stoff, wand, z0, z1, band="bruchstein", laibung=True):
-    """Mauer in Lagen von der Hoehe des Bandes (keine Streckung), mit den Oeffnungen der Wand; Laibung aus Stein."""
+def steinwand(h, stoff, wand, z0, z1, band="bruchstein", laibung=True, lage=None):
+    """Mauer in Lagen von der Hoehe des Bandes (keine Streckung), mit den Oeffnungen der Wand; Laibung aus Stein.
+    `lage`: Hoehe einer Lage in Metern, falls das Band eine Quaderreihe trennt, die kleiner ist als das Band hoch
+    (Werksteinband: eine Reihe von WERK_LAGE ueber die ganze Bandhoehe)."""
     (ox, oy), (ex, ey), breite, _ = WAENDE[wand]
     v0, v1, m = h.baender[band]
-    kurs = (v1 - v0) * m
+    kurs = lage or (v1 - v0) * m
     l = [x[:4] for x in loecher(wand)]
     z = z0
     while z < z1 - 1e-4:
@@ -327,7 +599,10 @@ def oeffnungen(h):
             for z in (z0 + 0.40, z1 - 0.40):
                 h.rechteck(stein, P(s0 + 0.03, z - 0.035, -0.09), (ex, ey, 0), EZ, 0.66, 0.07, "eisen", weg_von=MITTE)
             h.rechteck(stein, P(s1_ - 0.22, z0 + 0.90, -0.085), (ex, ey, 0), EZ, 0.1, 0.14, "eisen", weg_von=MITTE)   # Tuerring
-            h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), "bruchstein", ohne=("-z", "+y"))   # Stufe
+            if GURT_WERK:                                    # Halbling Stufe 3: die erste Stufe vor der Tuer aus hellem Werkstein, Lage ohne Streckung
+                h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), WERKSTEIN, ohne=("-z", "+y"), ohne_streckung=True)
+            else:
+                h.kasten(stein, (a0 - 0.18, M.VORN - 0.38, -0.12), (a1 + 0.18, M.VORN, M.Z_BODEN), "bruchstein", ohne=("-z", "+y"))   # Stufe
             vordach(h, (a0 + a1) / 2, z1 + 0.30)
             continue
         if ist_stein() and art == "fenster":                 # Steinhaus: Kreuzstock aus Sandstein; Gewaende je Gruppe (unten)
@@ -374,6 +649,23 @@ def oeffnungen(h):
         steinhaus_fenster(h)
 
 
+GURT_WERK = False      # Halbling Stufe 3: Gurtgesims ueber dem Erdgeschoss, Gesims am Giebelfuss (vorn und hinten) und erste Stufe vor der Tuer aus hellem Werkstein
+LADEN_ZUFALL = False   # Halbling Stufe 3: Laeden je Fenstergruppe nach festem Zufall (keine, links, rechts, beide), auch im Erdgeschoss
+LADEN_SEED = 1         # Startwert je Variante (Grundform); aendert die Verteilung
+
+
+def _laden_wahl(wand, i):
+    """Feste Zufallszahl 0..5 je Fenstergruppe aus Startwert, Wandname und Nummer (keine Uhrzeit, kein hash(): bei jedem Bau gleich;
+    ein Mischer wie bei Zufallsquellen, sonst gaben Nachbarwerte fast gleiche Zahlen)."""
+    x = (LADEN_SEED * 2654435761 + i * 40503) & 0xFFFFFFFF
+    for c in wand:
+        x = ((x ^ ord(c)) * 16777619) & 0xFFFFFFFF
+    x ^= x >> 15
+    x = (x * 2246822519) & 0xFFFFFFFF
+    x ^= x >> 13
+    return x % 6
+
+
 def steinhaus_fenster(h):
     """Steinhaus (Rueckmeldung des Nutzers 15.11.2026): Sandsteingewaende je Fenster bzw. Fensterpaar (nicht im Treppengiebel, der
     eigene Sohlbank und Sturz hat) und dunkle Holzlaeden an den Fenstern des Obergeschosses wie in der Vorlage wohnhaus_lvl3_v01
@@ -381,13 +673,20 @@ def steinhaus_fenster(h):
     for wand in WAENDE:
         if wand.endswith("_tg"): continue
         (ox, oy), (ex, ey), breite, n = WAENDE[wand]
-        for spannen, z0, z1 in fenster_gruppen(wand):
+        for gi, (spannen, z0, z1) in enumerate(fenster_gruppen(wand)):
             gewaende(h, wand, spannen, z0, z1)
-            if not wand.endswith("_og"): continue
+            if not wand.endswith("_og") and not LADEN_ZUFALL: continue
             lb = min((b - a) / 2 for a, b in spannen)
             links, rechts = spannen[0][0], spannen[-1][1]
-            for f0, f1 in ((links - 0.15 - lb, links - 0.15), (rechts + 0.15, rechts + 0.15 + lb)):   # neben dem Gewaende
+            seiten = ((links - 0.15 - lb, links - 0.15), (rechts + 0.15, rechts + 0.15 + lb))   # neben dem Gewaende
+            if LADEN_ZUFALL:                                  # 0 keine, 1 nur links, 2 nur rechts, 3 bis 5 beide
+                w_ = _laden_wahl(wand, gi)
+                seiten = {0: (), 5: (), 1: seiten[:1], 2: seiten[1:]}.get(w_, seiten)
+                if len(spannen) > 1 and len(seiten) == 1: seiten = ()      # an einem Doppelfenster nie ein einzelner Laden (Bildpruefung Runde 2)
+            for f0, f1 in seiten:
                 if f0 < 0.05 or f1 > breite - 0.05: continue
+                if LADEN_ZUFALL and any(w2 == wand and art2 == "tuer" and min(f1, b1 - (ox if ex else oy) + 0.3) - max(f0, b0 - (ox if ex else oy) - 0.3) > 0
+                                        for w2, (b0, b1), _z, art2 in M.FENSTER): continue   # nicht vor das Gewaende der Haustuer
                 sx0, sx1, sy0, sy1 = M.SCHORNSTEIN_RECHTS               # kein Laden hinter dem Schornstein
                 a_, b_ = punkt(wand, f0, z0), punkt(wand, f1, z0)
                 if min(a_.x, b_.x) > sx0 - 0.3 and min(max(a_.y, b_.y), sy1) - max(min(a_.y, b_.y), sy0) > -0.05: continue
@@ -486,10 +785,81 @@ def baue_dach(stoff="Dachziegel", first="Firstziegel"):
         d.vieleck(first, [Vector((-0.17, y, zf - 0.17 * M.NEIGUNG + 0.06)), Vector((0.17, y, zf - 0.17 * M.NEIGUNG + 0.06)), Vector((0, y, zf + 0.11))],
                   [(0.1, 0.18), (0.2, 0.18), (0.15, 0.16)], weg_von=(0, y - aussen, zf))
     gaube(d, stoff)
+    if M.STUFE == 3 and DACH_HINTER:
+        print(f"DACH Vorderkante hinter den Nischengrund: {dach_hinter_nischen(d)} Flaechen")
     return d
 
 
+DACH_HINTER = False       # nur der Einstieg der Menschen (main) schaltet es fuer Stufe 3 ein (Zwerg und Halbling rufen baue_dach auch auf); --dach-alt: wie vorher
+
+
+def dach_hinter_nischen(d):
+    """Steinhaus: Die Vorderkante des Dachs (Deckung, Untersicht, Firstblech; yv = OVORN + 0,12) stand 2 cm vor dem Grund der
+    Blendnischen im Schaugiebel (Grund bei OVORN - 0,04 + 0,18 = OVORN + 0,14) und zeichnete als duenne schraege dunkle Linien durch
+    die Seitenblenden (Schiefer blau, Holz braun; wie beim Halbling, dort Bildpruefung Runde 2). Jetzt liegt sie 2 cm dahinter, in
+    der Mauer des Giebels (36 cm dick). Gaube und Fluegel (y weiter hinten) bleiben unberuehrt."""
+    grenze = M.OVORN + 0.16
+    n = 0
+    for i, (pts, uv, st, fa, gl) in enumerate(d.flaechen):
+        if min(p.y for p in pts) < grenze - 1e-6:
+            d.flaechen[i] = ([Vector((p.x, max(p.y, grenze), p.z)) for p in pts], uv, st, fa, gl)
+            n += 1
+    return n
+
+
+MASSWERK_SCHNITT = False  # Menschen Stufe 3 (main): die Rahmen des Blendmasswerks ueberdecken sich nicht mehr; --schnitt-alt: wie vorher
+
+
 GAUBE = dict(y=(-0.75, 0.45), x_front=1.75, z_fuss=None, fenster=(0.55, 0.62))
+# Patrizierhaus (Mensch S3, Nutzer 22.11.2026): Gaube hinter dem Schornstein (er steht aussen an der rechten Wand bei y -0,70..0,20 und
+# verstellte der Gaube den Blick) und mit Stirn, Giebel und Wangen aus der Quaderreihe des Werksteinbands (wie das Obergeschoss).
+# Gilt nur fuer den Einstieg der Menschen (main); Zwerge und Halblinge bauen die Gaube unveraendert.
+GAUBE_PATRIZIER = dict(y=(0.45, 1.65), quader=True)
+# Stein des Obergeschosses und der Gaube: Mensch heller Haustein in Quaderlagen (WERKSTEIN, WERK_LAGE); Halbling Stufe 3 roter Backstein
+# im Band "bruchstein" (lage None: eine Lage so hoch wie das Band, keine Streckung; wohnhaus_halbling_s23.py setzt es).
+OBEN = dict(band=WERKSTEIN, lage=WERK_LAGE)
+
+
+def _oben(h):
+    """Band und Lagenhoehe fuer Obergeschoss und Gaube im Steinhaus."""
+    band, lage = OBEN["band"], OBEN["lage"]
+    if lage is None:
+        v0, v1, m = h.baender[band]
+        lage = (v1 - v0) * m
+    return band, lage
+
+
+def _quader_schnitt(pts, za, zb):
+    """Schneidet das Vieleck `pts` auf den Streifen za <= z <= zb (Sutherland-Hodgman, zwei Halbebenen)."""
+    for grenze, oben in ((za, False), (zb, True)):
+        aus, n = [], len(pts)
+        for i in range(n):
+            a, b = pts[i], pts[(i + 1) % n]
+            ina = (a.z <= grenze + 1e-9) if oben else (a.z >= grenze - 1e-9)
+            inb = (b.z <= grenze + 1e-9) if oben else (b.z >= grenze - 1e-9)
+            if ina: aus.append(a)
+            if ina != inb:
+                t = (grenze - a.z) / (b.z - a.z)
+                aus.append(a + (b - a) * t)
+        pts = aus
+        if len(pts) < 3: return []
+    return pts
+
+
+def quader_flaeche(d, pts, o, eu, z_unten, **kw):
+    """Steinflaeche aus Quaderlagen (WERK_LAGE) im Band WERKSTEIN: das Vieleck wird an den Lagenfugen (ab `z_unten`) geteilt und jede Lage
+    zeigt die ganze Bandhoehe, keine Streckung (wie steinwand). `o`, `eu`: Ursprung und Richtung der Breite (UV.x)."""
+    pts = [Vector(p) for p in pts]
+    o, eu = Vector(o), Vector(eu).normalized()
+    lo, hi = min(p.z for p in pts), max(p.z for p in pts)
+    band, lage = _oben(d)
+    k = int(math.floor((lo - z_unten) / lage + 1e-9))
+    z = z_unten + k * lage
+    while z < hi - 1e-6:
+        teil = _quader_schnitt(pts, z, z + lage)
+        if len(teil) >= 3 and max(p.z for p in teil) - min(p.z for p in teil) > 1e-4:
+            d.welt("Bruchstein", teil, band, o - eu * ((z * 3.7) % 1), eu, z, lage, **kw)
+        z += lage
 
 
 def gaube(d, stoff):
@@ -506,11 +876,35 @@ def gaube(d, stoff):
     fb, fh = GAUBE["fenster"]
     fz0 = zb + 0.22
     o = Vector((xf, y0, 0))
-    d.wand("Lehmputz", o, (0, 1, 0), y1 - y0, zb, zt, "putz", loecher=[(hw - fb / 2, hw + fb / 2, fz0, fz0 + fh)], zbasis=zb, hoehe=1.2,
-           laibung=("Fachwerk", "balken_c"), laibung_tiefe=0.12, weg_von=MITTE)
-    d.welt("Lehmputz", [(xf, y0, zt), (xf, y1, zt), (xf, ym, zfirst)], "putz", (xf, y0, 0), (0, 1, 0), zt, zfirst - zt, weg_von=MITTE)
+    stein = ist_stein() and GAUBE.get("quader")
+    band, lage = _oben(d)
+    if stein:       # Patrizierhaus: Stirn, Giebelfeld und Wangen in Quaderlagen des Werksteinbands (wie steinwand), Laibung aus Stein
+        loch = (hw - fb / 2, hw + fb / 2, fz0, fz0 + fh)
+        z = zb
+        while z < zt - 1e-4:
+            zn = min(z + lage, zt)
+            d.wand("Bruchstein", o, (0, 1, 0), y1 - y0, z, zn, band, loecher=[loch], zbasis=z, hoehe=lage, weg_von=MITTE, u_start=(z * 3.7) % 1)
+            z += lage
+        mitte = Vector((xf - 0.06, ym, (fz0 + fz0 + fh) / 2))
+        n = Vector((1, 0, 0))
+        for p, richtung, laenge in ((Vector((xf, y0 + loch[0], fz0)), Vector((0, 1, 0)), fb), (Vector((xf, y0 + loch[0], fz0 + fh)), Vector((0, 1, 0)), fb),
+                                    (Vector((xf, y0 + loch[0], fz0)), EZ, fh), (Vector((xf, y0 + loch[1], fz0)), EZ, fh)):
+            d.rechteck("Bruchstein", p, richtung, -n, laenge, 0.12, WERKSTEIN, zu=mitte, anteil=(0.0, 0.6))
+        quader_flaeche(d, [(xf, y0, zt), (xf, y1, zt), (xf, ym, zfirst)], o, (0, 1, 0), zb, weg_von=MITTE)
+        if GAUBE.get("rahmen"):                              # Halbling: Werkstein-Gewaende und Sohlbank (ein Holzrahmen in der Laibung gab bei Pruefung 12 deckungsgleiche Flaechen und Schwarz)
+            yl, yr = y0 + loch[0], y0 + loch[1]
+            ob = fz0 + fh
+            for ya, yb, za, zb2 in ((yl - 0.09, yl, fz0 - 0.005, ob), (yr, yr + 0.09, fz0 - 0.005, ob), (yl - 0.09, yr + 0.09, ob, ob + 0.12)):   # Pfosten enden an Bank und Sturz (keine deckungsgleichen Flaechen)
+                d.kasten("Bruchstein", (xf, ya, za), (xf + 0.04, yb, zb2), WERKSTEIN, laengs="z" if zb2 - za > yb - ya else "y")
+            d.kasten("Bruchstein", (xf, yl - 0.11, fz0 - 0.08), (xf + 0.07, yr + 0.11, fz0 - 0.005), WERKSTEIN, laengs="y")
+    else:
+        d.wand("Lehmputz", o, (0, 1, 0), y1 - y0, zb, zt, "putz", loecher=[(hw - fb / 2, hw + fb / 2, fz0, fz0 + fh)], zbasis=zb, hoehe=1.2,
+               laibung=("Fachwerk", "balken_c"), laibung_tiefe=0.12, weg_von=MITTE)
+        d.welt("Lehmputz", [(xf, y0, zt), (xf, y1, zt), (xf, ym, zfirst)], "putz", (xf, y0, 0), (0, 1, 0), zt, zfirst - zt, weg_von=MITTE)
     n3 = (1, 0, 0)
-    if FACHWERK_ECHT:   # Stirn der Gaube als eine Holzlage (buendig, geschlossen; Nutzer 21.11.2026)
+    if stein:
+        pass            # Steinhaus: kein Holz an der Stirn (Staender und Riegel entfielen schon bisher beim Versteinern)
+    elif FACHWERK_ECHT:   # Stirn der Gaube als eine Holzlage (buendig, geschlossen; Nutzer 21.11.2026)
         lage = holzlage.Holzlage()
         lage.holz((y0, zb + 0.06), (y1, zb + 0.06), 0.12, "balken_c", 0, gerade=True)
         lage.holz((y0, zt - 0.05), (y1, zt - 0.05), 0.12, "balken_b", 0, gerade=True)
@@ -531,7 +925,9 @@ def gaube(d, stoff):
             d.stab("Fachwerk", a, b, 0.06 if abs(a.z - b.z) > 0.1 else 0.065, "balken_c", breite=0.05, oben=n3)   # Querhoelzer 5 mm dicker: an den Ecken nicht deckungsgleich
     # Wangen (Dreiecke bis zur Dachflaeche)
     for y in (y0, y1):
-        d.welt("Lehmputz", [(xf, y, zb), (xf, y, zt), (x_hinten, y, zt)], "putz", (xf, y, 0), (-1, 0, 0), zb, zt - zb, weg_von=Vector((xf - 0.5, ym, zt)))
+        wange = [(xf, y, zb), (xf, y, zt), (x_hinten, y, zt)]
+        if stein: quader_flaeche(d, wange, (xf, y, 0), (-1, 0, 0), zb, weg_von=Vector((xf - 0.5, ym, zt)))
+        else: d.welt("Lehmputz", wange, "putz", (xf, y, 0), (-1, 0, 0), zb, zt - zb, weg_von=Vector((xf - 0.5, ym, zt)))
     # Satteldach der Gaube (Ziegel), First nach hinten bis zur Dachflaeche
     x_first_hinten = M.OX - (zfirst - M.Z_TRAUFE) / M.NEIGUNG
     for seite in (-1, 1):
@@ -726,8 +1122,8 @@ def steingiebel(h, wand, y, aussen):
         n = Vector((0, aussen, 0))
         for p_, richtung, laenge in (((a0, y, z0), Vector((1, 0, 0)), a1 - a0), ((a0, y, z1), Vector((1, 0, 0)), a1 - a0), ((a0, y, z0), EZ, z1 - z0), ((a1, y, z0), EZ, z1 - z0)):
             h.rechteck("Bruchstein", p_, richtung, -n, laenge, M.T, "bruchstein", zu=Vector(((a0 + a1) / 2, y - aussen * M.T / 2, (z0 + z1) / 2)), anteil=(0.0, 0.6))
-    h.kasten("Bruchstein", (-M.OX - 0.06, min(y, y + aussen * 0.08), zt - 0.12), (M.OX + 0.06, max(y, y + aussen * 0.08), zt), "bruchstein", laengs="x",
-            ohne=("-y" if aussen > 0 else "+y",))   # Gesims (ohne die Rueckseite in der Mauer)
+    h.kasten("Bruchstein", (-M.OX - 0.06, min(y, y + aussen * 0.08), zt - 0.12), (M.OX + 0.06, max(y, y + aussen * 0.08), zt),
+             WERKSTEIN if GURT_WERK else "bruchstein", laengs="x", ohne=("-y" if aussen > 0 else "+y",), ohne_streckung=GURT_WERK)   # Gesims (ohne die Rueckseite in der Mauer)
 
 
 def treppengiebel_rueckseite(h, w, y1, z, zn, kurs):
@@ -758,6 +1154,9 @@ def treppengiebel(h, stufen=6, dicke=0.36):
     kurs = (v1 - v0) * m
     mitte = Vector((0, y0 + 2, zt + 1))
     breiten = [min(M.OX + 0.06 if k == 0 else max((M.Z_FIRST + 0.15 - (zt + k * hoehe)) / M.NEIGUNG, 0.0) + 0.32, M.OX + 0.06) for k in range(stufen)]
+    fen = [(a0, a1, z0_, z1_) for wd, (a0, a1), (z0_, z1_), art in M.FENSTER if wd == "vorn_tg"]
+    lisenen, nischen = gotik_plan(breiten, hoehe, zt, fen)
+    NISCHE_TIEF = 0.18                                     # Nutzer 22.11.2026: Nischen 15–30 cm tief (Mauer 36 cm)
     for k in range(stufen):
         za, zb = zt + k * hoehe, zt + (k + 1) * hoehe
         w = breiten[k]
@@ -766,7 +1165,8 @@ def treppengiebel(h, stufen=6, dicke=0.36):
         while z < zb - 1e-4:
             zn = min(z + kurs, zb)
             h.kasten("Bruchstein", (-w, y0, z), (w, y1, zn), "bruchstein", ohne=("-z", "+z", "+y", "-y"), laengs="x")
-            h.wand("Bruchstein", (-w, y0, 0), (1, 0, 0), 2 * w, z, zn, "bruchstein", loecher=[(a0 + w, a1 + w, z0_, z1_) for a0, a1, z0_, z1_ in loch],
+            ausschnitt = loch + [(x0, x1, zb_, spitzbogen(x0, x1, zs_)[4][1]) for x0, x1, zb_, zs_ in nischen]
+            h.wand("Bruchstein", (-w, y0, 0), (1, 0, 0), 2 * w, z, zn, "bruchstein", loecher=[(a0 + w, a1 + w, z0_, z1_) for a0, a1, z0_, z1_ in ausschnitt],
                    zbasis=z, hoehe=kurs, weg_von=mitte, u_start=(z * 3.7) % 1)
             treppengiebel_rueckseite(h, w, y1, z, zn, kurs)
             z = zn
@@ -784,7 +1184,21 @@ def treppengiebel(h, stufen=6, dicke=0.36):
                 xa, xb = sorted((sx * (breiten[k + 1] - 0.02), sx * (w + 0.05)))
                 h.kasten("Bruchstein", (xa, y0 - 0.05, zb), (xb, y1 + 0.03, zb + 0.08), WERKSTEIN, laengs="x")
     # Gesims an der Traufe
-    h.kasten("Bruchstein", (-M.OX - 0.08, y0 - 0.08, zt - 0.10), (M.OX + 0.08, y1, zt), "bruchstein", ohne=("+y",), laengs="x")
+    h.kasten("Bruchstein", (-M.OX - 0.08, y0 - 0.08, zt - 0.10), (M.OX + 0.08, y1, zt), WERKSTEIN if GURT_WERK else "bruchstein", ohne=("+y",), laengs="x",
+             ohne_streckung=GURT_WERK)
+    # Schaugiebel (Nutzer 22.11.2026, patrizier_giebel_recherche.md): Lisenen ueber jeder Stufe mit Fiale, Blendnischen, Fenstergewaende
+    P = lambda x, z, r: Vector((x, y0 - r, z))
+    for x0, x1, zb_, zs_ in nischen:
+        blendnische(h, P, x0, x1, zb_, zs_, NISCHE_TIEF)
+    for xm, z_ob in lisenen[1:]:      # nicht an der untersten Schulter: dort laege die Fiale in der Flucht der Traufwand (Pruefung 9)
+        for sx in (-1, 1):
+            h.kasten("Bruchstein", (sx * xm - LISENE / 2, y0 - 0.08, zt), (sx * xm + LISENE / 2, y0, z_ob), WERKSTEIN, ohne=("+y", "-z", "+z"), laengs="z")
+            fiale(h, sx * xm, y0 - 0.04, z_ob + 0.08, tief=dicke + 0.06)   # auf der Deckplatte, so tief wie sie
+    fiale(h, 0.0, y0 - 0.04, zt + stufen * hoehe + 0.08, gross=True, tief=dicke + 0.06)
+    for a0, a1, z0_, z1_ in fen:                              # Fenster der Bibliothek: spitzbogiges Gewaende um Sohlbank und Sturz
+        w_ = a1 - a0 + 0.12
+        spitz_rahmen(h, P, a0 - 0.06, a1 + 0.06, z0_ - 0.08, z1_ + 0.16, 0.07, 0.07)
+        kreis_ring(h, P, (a0 + a1) / 2, z1_ + 0.16 + 0.42 * BOGEN_H * w_, min(0.17, 0.25 * w_), 0.04, 0.05, n=12)   # Okulus im Bogenfeld
     # (keine Ankereisen mehr: flach auf dem Giebel lasen sie sich als schwarze Spalten neben dem Giebelfenster – Rueckmeldung 15.11.2026)
 
 
@@ -826,7 +1240,7 @@ def baue_haus():
             (ox, oy), (ex, ey), breite, _ = WAENDE[wand]
             l = [x[:4] for x in loecher(wand)]
             if ist_stein():                                # Steinhaus: Obergeschoss aus Haustein wie das Erdgeschoss
-                steinwand(h, stein, wand, za, zb)
+                steinwand(h, stein, wand, za, zb, band=OBEN["band"], lage=OBEN["lage"])   # Patrizierhaus D (Nutzer 22.11.2026): heller Haustein
                 continue
             h.wand(lehm, (ox, oy, 0), (ex, ey, 0), breite, za, zb, "putz", loecher=l, zbasis=za, hoehe=zb - za,
                    laibung=(holz, "balken_c"), laibung_tiefe=M.T, weg_von=MITTE, u_start=umfang)
@@ -835,6 +1249,7 @@ def baue_haus():
     if M.STUFE == 3:
         treppengiebel(h)
         steingiebel(h, "hinten_gb", M.HINTEN, 1)
+        rundbogenfries(h)
     else:
         for wand, y, aussen in (("vorn_gb", M.OVORN, -1), ("hinten_gb", M.HINTEN, 1)):
             giebel(h, wand, y, aussen)
@@ -845,7 +1260,13 @@ def baue_haus():
             lx, ly = b[0] - a[0], b[1] - a[1]
             h.rechteck(stein, (a[0], a[1], M.Z_EG_DECKE), (1, 0, 0), (0, 1, 0), lx, ly, "bruchstein", laengs="u" if lx > ly else "v", zu=(0, 0, 0))
         for (x0_, y0_, x1_, y1_) in ((-M.OX - 0.03, M.OVORN - 0.03, M.OX + 0.03, M.OVORN + 0.05), (-M.OX - 0.03, M.OVORN + 0.05, -M.OX + 0.05, M.HINTEN + 0.03), (M.OX - 0.05, M.OVORN + 0.05, M.OX + 0.03, M.HINTEN + 0.03)):
-            h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.12), "bruchstein", laengs="x" if x1_ - x0_ > y1_ - y0_ else "y")
+            if GURT_WERK:                                    # Halbling Stufe 3: Gurtgesims aus hellem Werkstein: Lage und Deckleiste (2 cm weiter vor), Lagen ohne Streckung
+                lg = "x" if x1_ - x0_ > y1_ - y0_ else "y"
+                h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.08), WERKSTEIN, laengs=lg, ohne=("+z",), ohne_streckung=True)
+                if lg == "x": h.kasten(stein, (x0_ - 0.02, y0_ - 0.02, M.Z_EG_DECKE + 0.08), (x1_ + 0.02, y1_, M.Z_EG_DECKE + 0.12), WERKSTEIN, laengs="x", ohne_streckung=True)
+                else: h.kasten(stein, (x0_ - (0.02 if x0_ < 0 else 0.0), y0_, M.Z_EG_DECKE + 0.08), (x1_ + (0.02 if x1_ > 0 else 0.0), y1_, M.Z_EG_DECKE + 0.12), WERKSTEIN, laengs="y", ohne_streckung=True)
+            else:
+                h.kasten(stein, (x0_, y0_, M.Z_EG_DECKE - 0.04), (x1_, y1_, M.Z_EG_DECKE + 0.12), "bruchstein", laengs="x" if x1_ - x0_ > y1_ - y0_ else "y")
     # Untersicht der Auskragung und Balkenkoepfe
     for (a, b) in ((((-M.OX, M.OVORN), (M.OX, M.VORN)), ((-M.OX, M.VORN), (-M.BX, M.HINTEN)), ((M.BX, M.VORN), (M.OX, M.HINTEN))) if not ist_stein() else ()):
         lx, ly = b[0] - a[0], b[1] - a[1]
@@ -854,14 +1275,15 @@ def baue_haus():
         for i in range(7):
             x = -M.OX + 0.2 + i * (2 * M.OX - 0.4) / 6
             # endet an der Mauerflucht mit Stirn (nicht in der Mauer: das verdeckte Mauerstueck hinter dem Balken backte schwarz)
-            h.kasten(holz, (x - 0.08, M.OVORN - 0.02, M.Z_EG_DECKE - 0.17), (x + 0.08, M.VORN, M.Z_EG_DECKE), "balken_c", ohne=("+z",), laengs="y")
+            h.kasten(holz, (x - 0.08, M.OVORN - 0.02, M.Z_EG_DECKE - 0.17), (x + 0.08, M.VORN, M.Z_EG_DECKE), "balken_c",
+                     ohne=("+z", "+y") if ist_stein() else ("+z",), laengs="y")   # Steinhaus: ohne die Flaeche an der Mauer (backte schwarz)
             if FACHWERK_ECHT:   # Knagge unter dem Balkenkopf (Vorbild Rathaus Alsfeld)
                 fachwerk_echt.knaggen(h, [(x, M.VORN, M.Z_EG_DECKE - 0.17 - 0.25)], (0, -1, 0), hoehe=0.25, krag=M.VORN - M.OVORN)
         for seite in (-1, 1):
             for i in range(5):
                 y = M.VORN + 0.4 + i * (M.HINTEN - M.VORN - 0.8) / 4
                 h.kasten(holz, (min(seite * M.BX, seite * (M.OX + 0.02)), y - 0.08, M.Z_EG_DECKE - 0.17), (max(seite * M.BX, seite * (M.OX + 0.02)), y + 0.08, M.Z_EG_DECKE), "balken_c",
-                         ohne=("+z",), laengs="x")
+                         ohne=("+z", "+x" if seite < 0 else "-x") if ist_stein() else ("+z",), laengs="x")
                 if FACHWERK_ECHT:
                     fachwerk_echt.knaggen(h, [(seite * M.BX, y, M.Z_EG_DECKE - 0.17 - 0.25)], (seite, 0, 0), hoehe=0.25, krag=M.OX - M.BX)
     holz_akzent(h, balkenkoepfe)
@@ -1503,6 +1925,9 @@ def main():
     if stufe not in (2, 3) or form not in M.FORMEN:
         raise SystemExit("--stufe=<2|3> --form=<1..4>")
     M.stufe_setzen(stufe)                          # Stufe 3: tieferer Gang, drittes Geschoss, Treppengiebel
+    globals()["MASSWERK_SCHNITT"] = stufe == 3 and "schnitt-alt" not in opt   # kein deckungsgleiches Dreieck im Masswerk (sonst schwarze Spitze)
+    globals()["DACH_HINTER"] = stufe == 3 and "dach-alt" not in opt   # Dachvorderkante hinter den Nischengrund (nur Menschen; --dach-alt: alter Stand)
+    if stufe == 3 and "gaube-alt" not in opt: GAUBE.update(GAUBE_PATRIZIER)   # Gaube hinter dem Schornstein, aus Quaderlagen (nur Menschen); --gaube-alt: alter Stand fuer Vergleichsbilder
     waende_setzen()
     M.FENSTER = M.fenster(form, stufe)             # Oeffnungen der Grundform (alle Bauteile lesen M.FENSTER)
     F = M.FORMEN[form]
@@ -1611,8 +2036,16 @@ def main():
         g1_kb(os.path.join(o, vor + "aussen_hinten.jpg"), (8.0, 14.5, 9.0), (0.0, 0.3, 3.6), verbergen=fest)
         g1_kb(os.path.join(o, vor + "aussen_wie_artwork.jpg"), (13.0, -13.5, 12.0), (0.3, 0.6, 3.4), brennweite=45, verbergen=fest)   # Blick wie die Vorlagen (iso, Giebel links vorn)
         g1_kb(os.path.join(o, vor + "aussen_giebel_nah.jpg"), (-2.2, M.OVORN - 6.5, M.Z_TRAUFE + 0.6), (0.0, M.OVORN, M.Z_TRAUFE + 1.3), brennweite=30, verbergen=fest)
+        g1_kb(os.path.join(o, vor + "aussen_spitze_front.jpg"), (-2.406, M.OVORN - 1.5, 6.18), (-2.406, M.OVORN, 6.18), brennweite=100, verbergen=fest)   # Masswerk der linken Seitenblende von vorn
+        g1_kb(os.path.join(o, vor + "aussen_seitenblende.jpg"), (-4.6, M.OVORN - 3.2, M.Z_TRAUFE + 1.6), (-2.2, M.OVORN, M.Z_TRAUFE + 1.4), brennweite=50, verbergen=fest)   # Seitenblenden schraeg von der Seite (Dachvorderkante)
         g1_kb(os.path.join(o, vor + "aussen_giebel_hinten_nah.jpg"), (2.2, M.HINTEN + 6.5, M.Z_TRAUFE + 0.6), (0.0, M.HINTEN, M.Z_TRAUFE + 1.3), brennweite=30, verbergen=fest)
         g1_kb(os.path.join(o, vor + "aussen_tuer.jpg"), (3.4, -8.5, 2.4), (0.8, -2.6, 1.7), brennweite=40, verbergen=fest)
+        gy = sum(GAUBE["y"]) / 2                           # Gaube und Schornstein: feste Blicke (alter und neuer Stand vergleichbar) und der Blick aus dem Gaubenfenster
+        gz = M.z_dach(GAUBE["x_front"]) + 0.8
+        g1_kb(os.path.join(o, vor + "aussen_gaube_nah.jpg"), (9.0, 8.5, gz + 2.5), (GAUBE["x_front"] + 0.7, 0.45, gz - 0.2), brennweite=35, verbergen=fest)
+        g1_kb(os.path.join(o, vor + "aussen_gaube_front.jpg"), (GAUBE["x_front"] + 7.5, 0.45, gz + 0.9), (GAUBE["x_front"], 0.45, gz), brennweite=40, verbergen=fest)
+        g1_kb(os.path.join(o, vor + "aussen_gaube_blick.jpg"), (GAUBE["x_front"] + 0.45, gy, gz - 0.15), (GAUBE["x_front"] + 4.5, gy + 0.2, gz - 0.45), brennweite=24, verbergen=fest)
+        if "nur-aussen" in opt: return                     # Aussenbilder genuegen (die Innenbilder brauchen den Grossteil der Zeit)
         lampe = bpy.data.objects.new("Kontrolllampe", bpy.data.lights.new("Kontrolllampe", "POINT"))
         lampe.data.energy = 220; lampe.location = (dx, -0.3, 2.2)
         bpy.context.scene.collection.objects.link(lampe)

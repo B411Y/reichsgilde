@@ -268,7 +268,9 @@ public partial class Stadtansicht
         var saat = NeubauPlatzSaat(ort);
         // Elben und Halblinge: der Putz (blass gelbgrün bzw. ockergelb) steht schon im Blatt (Kunstwerk) – wie bei den Zwergen nur helle,
         // fast neutrale Töne
-        var putz = (datei.Contains("wohnhaus_zwerg_") || datei.Contains("wohnhaus_elb_") || datei.Contains("wohnhaus_halbling_") ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length];
+        // Menschen Stufe 3 (Patrizierhaus, Nutzer 22.11.2026): im Putzband liegt heller Haustein (Werkstein, Mauer des Obergeschosses) – kein
+        // Putzton darüber, der Stein wäre sonst ocker bzw. rosa
+        var putz = (datei.Contains("wohnhaus_zwerg_") || datei.Contains("wohnhaus_elb_") || datei.Contains("wohnhaus_halbling_") || datei.Contains("wohnhaus_mensch_s3_") ? NeubauStein : NeubauPutz)[saat % (uint)NeubauPutz.Length];
         var akzent = NeubauAkzent[(saat / 7) % (uint)NeubauAkzent.Length]; // liegt auf dem hellen Teilband „gestrichenes Holz“
         var ebenen = innen ? Steinebenen.InnenAusBlatt(NeubauBlatt(datei), NeubauGruppe(datei)) : Steinebenen.AusDatei(datei) ?? (0, 0);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())

@@ -80,7 +80,11 @@ EFEU_FLAECHEN = {
 EFEU_REST = {1: 120, 2: 250, 3: 440, 4: 230}   # Dreiecke, die nach dem Efeu noch ins Haus kommen (Anbauten, Rundbogen, Ochsenauge; gemessen + 10 Reserve)
 DACH_UND_SCHEIBEN = {1: 459, 2: 533, 3: 505, 4: 519}   # Dreiecke ausser dem Haus (Messung 19.11.2026): Budget der Karten bis 3.990
 EFEU_V, KUPFER_V = (0.004, 0.121), (0.125, 0.1875)     # trimsheet_halbling.EFEU_STUFE3 / KUPFER_STUFE3 (Band „stroh“ geteilt)
-OG_QUADER_AB = 0.12                                     # Eckquader des OG ueber dem Gesims (Z_EG_DECKE - 0,04 bis + 0,12) ...
+LADEN_SEEDS = {1: 5, 2: 7, 3: 34, 4: 9}                 # Startwerte der Laeden-Verteilung je Grundform; vorn (Obergeschoss Doppelfenster / Erdgeschoss Einzelfenster):
+                                                        # G1 beide / beide, G2 keine / links, G3 beide / rechts, G4 keine / keine (Folge-Patch 23.11.2026)
+EFEU_AN = False                                         # Efeu aus (Nutzer 22.11.2026: kein Hobbithaus): die Eckquader bleiben an allen Ecken
+FIALE_SKALA = 0.55                                      # Fialen und Helme auf dem Schaugiebel niedriger als bei den Menschen
+OG_QUADER_AB = 0.12                                    # Eckquader des OG ueber dem Gesims (Z_EG_DECKE - 0,04 bis + 0,12) ...
 OG_QUADER_BIS = 0.10                                    # ... bis unter das Traufgesims (Z_TRAUFE - 0,10)
 
 
@@ -196,6 +200,19 @@ def schlot_frei(d):
     print(f"DACH Schornstein: {geteilt} Flaechen geteilt, {weg} Stuecke im Schornstein weg")
 
 
+def dach_hinter_nischen(d):
+    """Die Vorderkante des Dachs (Deckung, Untersicht, Firstblech) stand 2 bis 4 cm vor dem Grund der Blendnischen im Schaugiebel
+    (Grund bei OVORN + 0,14 m) und zeichnete als duenne schraege Linien (Schiefer blau, Holz braun) durch die Seitenblenden
+    (Bildpruefung Runde 2, Flachprobe mit einfarbigem Stein). Jetzt liegt sie 2 cm dahinter, in der Mauer des Giebels (36 cm dick)."""
+    grenze = S23.M.OVORN + 0.16
+    n = 0
+    for i, (pts, uv, st, fa, gl) in enumerate(d.flaechen):
+        if min(p.y for p in pts) < grenze - 1e-6:
+            d.flaechen[i] = ([Vector((p.x, max(p.y, grenze), p.z)) for p in pts], uv, st, fa, gl)
+            n += 1
+    return n
+
+
 def baue_dach_halbling(stoff="Dachziegel", first="Firstziegel"):
     """Dach der Menschen nach den Vorlagen (Nutzer 18.11.2026: blaues Dach, kein Stroh): Lagen im Band „stroh_franse“ (im Blatt der
     Halblinge blauer Schiefer), Bürgerhaus mit dem Quergiebel in der Flucht der rechten Wand, Steinhaus mit der Gaube (Dach im Band
@@ -204,6 +221,7 @@ def baue_dach_halbling(stoff="Dachziegel", first="Firstziegel"):
     schlot_frei(d)
     if S23.ist_stein():
         print(f"BELEBT Kupfer im Dach umgelegt: {kupfer_umlegen(d)} Flaechen")
+        print(f"DACH Vorderkante hinter den Nischengrund: {dach_hinter_nischen(d)} Flaechen")
     LETZT["dach"] = d
     return d
 
@@ -277,7 +295,7 @@ def eckquader(h, X, Y0, Y1, z0, z1, geschoss):
     n = 0
     for sx in (-1, 1):
         for y, sy in ((Y0, -1), (Y1, 1)):
-            efeu = (sx, sy) == EFEU_ECKE[FORM[0]]
+            efeu = EFEU_AN and (sx, sy) == EFEU_ECKE[FORM[0]]
             stapel, z, i = [], z0, 0
             oben = z1 if (geschoss == "eg" or sy < 0) else z1 + OG_QUADER_BIS   # OG hinten: bis unter das Ortgangbrett (kein Traufgesims)
             while z < oben - (0.3 if geschoss == "eg" else 0.05):             # OG: der oberste Quader reicht bis oben (sonst Schlitz unter dem Dach, 16)
@@ -457,7 +475,7 @@ def haus_halbling():
         n_eg = eckquader(h, M.BX, M.VORN, M.HINTEN, 0.0, M.Z_EG_DECKE, "eg")
         n_og = eckquader(h, M.OX, M.OVORN, M.HINTEN, M.Z_EG_DECKE + OG_QUADER_AB, M.Z_TRAUFE - OG_QUADER_BIS, "og")
         n_k = kupfer_umlegen(h)
-        n_e = efeu_karten(h, max(0, (3990 - DACH_UND_SCHEIBEN[FORM[0]] - h.dreiecke() - EFEU_REST[FORM[0]]) // 2))
+        n_e = efeu_karten(h, max(0, (3990 - DACH_UND_SCHEIBEN[FORM[0]] - h.dreiecke() - EFEU_REST[FORM[0]]) // 2)) if EFEU_AN else 0
         print(f"BELEBT Eckquader der Menschen weg: {len(weg)} Kaesten; neu EG {n_eg}, OG {n_og} Quader; Kupfer umgelegt {n_k}; Efeu {n_e} Karten; "
               f"Dreiecke {vorher} -> {h.dreiecke()}")
     vorher = h.dreiecke()
@@ -472,15 +490,16 @@ def haus_halbling():
             akzent(h, ab)
     print("DREIECKE Rundbogen:", h.dreiecke() - vorher)
     vorher = h.dreiecke()
-    wand = "vorn_tg" if stein else "vorn_gb"
-    (ox, oy), (ex, ey), breite, n = S23.WAENDE[wand]
-    ab = len(h.flaechen)
-    ht.ochsenauge(h, lambda s, zz, w=wand: S23.punkt(w, s, zz), (n[0], n[1], 0), breite / 2, ochsenauge_hoehe(wand), r=OCHSENAUGE_R, stuecke=OCHSENAUGE_STUECKE)
-    if stein:                                                # Steinhaus (Vorlage: Rosette im Treppengiebel): Ring aus Werkstein, Fuellung und Kreuz Holz
-        ring = [i for i in range(ab, len(h.flaechen)) if S23._band_von(h, h.flaechen[i][1]) == "balken_b"]
-        for i in ring: band_umlegen(h, i, S23.WERKSTEIN, "Bruchstein", bis=i + 1)
-        akzent(h, ab)
-    print("DREIECKE Ochsenauge:", h.dreiecke() - vorher)
+    if not stein:                                            # Steinhaus (Patrizier): der Okulus im Bogenfeld des Giebelfensters ist das runde Fenster; ein zweiter Ring dazu (Ochsenauge) ueberlud den Giebel
+        wand = "vorn_tg" if stein else "vorn_gb"
+        (ox, oy), (ex, ey), breite, n = S23.WAENDE[wand]
+        ab = len(h.flaechen)
+        ht.ochsenauge(h, lambda s, zz, w=wand: S23.punkt(w, s, zz), (n[0], n[1], 0), breite / 2, ochsenauge_hoehe(wand), r=OCHSENAUGE_R, stuecke=OCHSENAUGE_STUECKE)
+        if stein:                                                # Steinhaus (Vorlage: Rosette im Treppengiebel): Ring aus Werkstein, Fuellung und Kreuz Holz
+            ring = [i for i in range(ab, len(h.flaechen)) if S23._band_von(h, h.flaechen[i][1]) == "balken_b"]
+            for i in ring: band_umlegen(h, i, S23.WERKSTEIN, "Bruchstein", bis=i + 1)
+            akzent(h, ab)
+        print("DREIECKE Ochsenauge:", h.dreiecke() - vorher)
     LETZT["haus"] = h
     return h
 
@@ -677,6 +696,15 @@ def schicht_anlegen(stufe):
     g1.uv2_und_ao = lambda gruppen, gruppe, modell, mit_ao=True: alt_uv(gruppen, umbenennen(gruppe), umbenennen(modell), mit_ao)
     g1.exportiere = lambda objekte, datei: alt_exp(objekte, umbenennen(datei))
     masse_anlegen(stufe)
+    if stufe == 3:                                          # Halbling-Backsteinhaus (Nutzer 22.11.2026, Patrizier nach Halblingsart)
+        S23.BOGEN_RUND, S23.BOGEN_H = True, 0.5            # Rundbogenblenden statt Spitzboegen im Schaugiebel
+        S23.FIALE_SKALA = FIALE_SKALA
+        S23.OBEN.update(band="bruchstein", lage=None)      # Obergeschoss und Gaube in rotem Backstein statt hellem Haustein
+        S23.GURT_WERK = True                               # Gurtgesims, Gesims am Giebelfuss und erste Tuerstufe aus hellem Werkstein
+        S23.LADEN_ZUFALL = True                            # Laeden je Fenstergruppe nach festem Zufall
+        S23.LADEN_SEED = LADEN_SEEDS[FORM[0]]              # Startwert je Grundform (so sehen die vier Haeuser vorn verschieden aus)
+        S23.GIEBEL_LAGEN = True                            # Blendnischen im Giebel: Backsteinlagen im Massstab der Wand
+        S23.GAUBE["rahmen"] = True                         # Gaubenfenster mit Gewaende, Sohlbank und Holzrahmen
     # Stoffe, die die Menschen nicht haben: beim Bau des Objekts aus dem Blatt der Stufe
     alt_objekt = netzbau.Teil.objekt
 

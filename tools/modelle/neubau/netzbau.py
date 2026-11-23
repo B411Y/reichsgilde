@@ -77,10 +77,12 @@ class Teil:
             uvs.append(((p - o).dot(eu) / m, v1 - t * (v1 - v0)))
         self.vieleck(stoff, punkte, uvs, **kw)
 
-    def kasten(self, stoff, mn, mx, band, ohne=(), laengs=None, farbe=SCHWARZ, baender=None):
+    def kasten(self, stoff, mn, mx, band, ohne=(), laengs=None, farbe=SCHWARZ, baender=None, ohne_streckung=False):
         """Achsparalleler Kasten. `ohne`: Seiten, die fehlen ("-x", "+x", "-y", "+y", "-z", "+z").
         Die Textur laeuft je Seite entlang der laengeren Kante (oder entlang der Achse `laengs`: "x", "y", "z").
-        `baender`: abweichendes Band fuer einzelne Seiten, z. B. {"+z": "bohlen"}."""
+        `baender`: abweichendes Band fuer einzelne Seiten, z. B. {"+z": "bohlen"}.
+        `ohne_streckung`: jede Seite nimmt nur einen Ausschnitt des Bandes in seiner wahren Hoehe (Bandhoehe = (v1 - v0) * m Meter, Rand
+        und Mitte ausgespart, damit die Rauschstruktur nicht gequetscht wird); sonst fuellt die Querrichtung stets das ganze Band."""
         mn, mx = Vector(mn), Vector(mx)
         mitte = (mn + mx) / 2
         achsen = {"x": Vector((1, 0, 0)), "y": Vector((0, 1, 0)), "z": Vector((0, 0, 1))}
@@ -90,7 +92,15 @@ class Teil:
                 o = Vector(mn); setattr(o, achse, getattr(wert, achse))
                 la, lb = getattr(mx, a) - getattr(mn, a), getattr(mx, b) - getattr(mn, b)
                 richtung = "u" if (laengs == a if laengs in (a, b) else la >= lb) else "v"
-                self.rechteck(stoff, o, achsen[a], achsen[b], la, lb, (baender or {}).get(seite + achse, band), laengs=richtung, weg_von=mitte, farbe=farbe)
+                b_ = (baender or {}).get(seite + achse, band)
+                anteil = (0.0, 1.0)
+                if ohne_streckung:
+                    v0_, v1_, m_ = self.baender[b_]
+                    voll = (v1_ - v0_) * m_                         # Bandhoehe in Metern
+                    quer = lb if richtung == "u" else la
+                    teil = min(quer / voll, 0.9)
+                    anteil = (0.5 - teil / 2, 0.5 + teil / 2)       # mittig: ohne die Fugenzeilen am Rand des Bandes
+                self.rechteck(stoff, o, achsen[a], achsen[b], la, lb, b_, laengs=richtung, weg_von=mitte, farbe=farbe, anteil=anteil)
 
     def stab(self, stoff, a, b, dicke, band, breite=None, oben=None, kappen=False, u_bereich=None):
         """Kantholz von a nach b (vier Laengsseiten, Textur entlang der Achse). `oben`: ungefaehre Richtung der Breitseite."""
