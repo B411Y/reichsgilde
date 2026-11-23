@@ -604,7 +604,7 @@ def dach_s23(glb, hull, S23, form, stufe, texturen=None, ebenen_datei=None):
     ok = stroh == 0
     zeilen.append(f"   (a) Stroh an Haus und Dach: {stroh} Flaechen (Soll 0) -> {'ok' if ok else 'FEHLER'}"); fehler += 0 if ok else 1
     stoff = "Schiefer" if stufe == 3 else "Dachziegel"
-    qy = S23.GAUBE["y"]
+    qy = S23.GAUBE_PATRIZIER["y"] if stufe == 3 else S23.GAUBE["y"]       # Stufe 3: Gaube hinter dem Schornstein (die Messung baut nicht ueber main(), das sie setzt)
     dz = M.z_dach
     ab = [p.z - dz(p.x - dx) for name, mat, pts, n, v in hull if name == "Dach" and mat == stoff and all(abs(q.x - dx) < M.OX - 0.02 for q in pts)
           and min(q.z for q in pts) > dz(M.OX) - 0.1 and not any(qy[0] - 0.3 < q.y < qy[1] + 0.3 and abs(q.x - dx) > 0.8 for q in pts) for p in pts]
@@ -745,7 +745,7 @@ FACHWERK_STUFEN = (1, 2)              # Fachwerkhaeuser der Halblinge (Stufe 1 g
 def grenze_dreiecke(stufe):
     """Dreiecksgrenze der Huelle: 6.000 fuer Fachwerkhaeuser Mensch/Halbling (echtes Fachwerk, Nutzer 21.11.2026), sonst 4.000."""
     import wohnhaus_mensch_messen as WM
-    return min(WM.DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else Z.DREIECKE_HUELLE, WM.DREIECKE_HOECHSTENS)
+    return min(WM.DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else WM.DREIECKE_HOECHSTENS if stufe == 3 else Z.DREIECKE_HUELLE, WM.DREIECKE_HOECHSTENS)
 
 
 def main_s23(haus, ordner, form, stufe, opt):
