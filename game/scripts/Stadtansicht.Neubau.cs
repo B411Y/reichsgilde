@@ -152,7 +152,8 @@ public partial class Stadtansicht
         var volk = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : name.StartsWith("wohnhaus_elb_") ? "_elb" : name.StartsWith("wohnhaus_halbling_") ? "_halbling" : "";
         if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + volk;
         if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
-        if (name.StartsWith("dom_")) return name.EndsWith("_innen") ? "dom_innen_trim" : "dom_trim";             // Dome: eigene Blätter (Werkstein, Sandstein, Schachbrett)
+        // Dome: eigene Blätter (Werkstein, Sandstein, Schachbrett); die Hülle des Doms evangelisch: gleiche Bänder, Backstein statt Werkstein (dom_trimsheet.py)
+        if (name.StartsWith("dom_")) return name.EndsWith("_innen") ? "dom_innen_trim" : name == "dom_evangelisch" ? "dom_evangelisch_trim" : "dom_trim";
         var innen = name.EndsWith("_innen");
         var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         return (stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}") + volk;

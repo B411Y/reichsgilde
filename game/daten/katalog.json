@@ -13,6 +13,7 @@
     {"kennung": "koelner_rathaus", "art": "sonderbau", "name": "Kölner Rathaus", "modell": "gebaeude/koelner_rathaus", "groesse": [22, 13]},
     {"kennung": "dom", "art": "sonderbau", "name": "Dom", "modell": "gebaeude/dom", "groesse": [12.5, 30.2], "versatz": [0, -2.85]},
     {"kennung": "dom_katholisch", "art": "sonderbau", "name": "Dom (katholisch)", "modell": "gebaeude/neubau/dom_katholisch", "groesse": [20, 38]},
+    {"kennung": "dom_evangelisch", "art": "sonderbau", "name": "Dom (evangelisch)", "modell": "gebaeude/neubau/dom_evangelisch", "groesse": [20, 38]},
     {"kennung": "koelner_dom", "art": "sonderbau", "name": "Kölner Dom", "modell": "gebaeude/koelner_dom", "groesse": [14, 34]},
     {"kennung": "kirche", "art": "sonderbau", "name": "Kirche", "groesse": [16, 14]},
     {"kennung": "kirche_gross_st_martin", "art": "sonderbau", "name": "Groß St. Martin", "modell": "gebaeude/koeln_gross_st_martin", "groesse": [14, 22], "klickHoehe": 12, "schildHoehe": 32.5},

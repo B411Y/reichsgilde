@@ -9,7 +9,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Dome des Neubaus (Paket 1: Dom katholisch) – Teil der <c>partial class Stadtansicht</c>.
+/// Die Dome des Neubaus (Paket 1: Dom katholisch, Paket 2: Dom evangelisch) – Teil der <c>partial class Stadtansicht</c>.
 ///
 /// Außen steht <c>gebaeude/neubau/dom_&lt;art&gt;.glb</c> (Knoten „Haus“, „Dach“, „Scheiben“ wie beim Rathaus), innen liegt
 /// <c>dom_&lt;art&gt;_innen.glb</c> als „InteriorRoot“ im Haus selbst: Die Raumkamera steht auf dem Anker <c>Blick_Auge</c> im Mittelgang,
@@ -22,26 +22,41 @@ namespace Reichsgilde;
 /// <c>Licht_Raum_&lt;n&gt;</c>, <c>Tuer_Dom_Stadt</c> (Portal: führt hinaus wie die Haustür). Regeln und Texte der Messe sind die des alten
 /// Doms (<see cref="DomZustandSetzen"/>, gemeinsam mit <see cref="DomBauen"/>).
 ///
-/// Die Karte wählt den Neubau über die Katalog-Kennung <c>dom_katholisch</c> (Paket 3 setzt ihn ein); bis dahin setzt ihn die Startoption
-/// <c>--neuerdom=1</c> an die Stelle des alten.
+/// Die Karte wählt den Neubau über die Katalog-Kennung <c>dom_katholisch</c> bzw. <c>dom_evangelisch</c> (Paket 3 setzt ihn ein); bis dahin
+/// setzt ihn die Startoption <c>--neuerdom=1</c> (katholisch) bzw. <c>--neuerdom=evangelisch</c> an die Stelle des alten.
 /// </summary>
 public partial class Stadtansicht
 {
     /// <summary>Der eine Raum des Doms in der Raumansicht.</summary>
     public const string RaumDomschiff = "dom:schiff";
 
-    private static readonly bool DomNeuOption = NeubauOption("--neuerdom") == "1";
+    /// <summary>Startoption <c>--neuerdom</c>: die Kennung des Neubaus, der an die Stelle des alten <c>dom</c> tritt (null: keiner).</summary>
+    private static readonly string? DomNeuOption = NeubauOption("--neuerdom") switch { "1" or "katholisch" => "dom_katholisch", "evangelisch" => "dom_evangelisch", _ => null };
+
+    /// <summary>
+    /// Maße einer Hülle für Klickflächen und Schild (aus <c>tools/modelle/neubau/dom_masse.py</c> bzw. <c>dom_evangelisch_masse.py</c>; im Spiel
+    /// liegt das Portal bei +Z): Größe der Klickfläche, Ort des Schilds, Türme (x, z, Kantenlänge, Höhe).
+    /// </summary>
+    private sealed record DomNeuMasse(Vector3 Klick, Vector3 Schild, (float X, float Z, float Kante, float Hoehe)[] Tuerme);
+
+    private static DomNeuMasse DomNeuMasseVon(string datei) => datei.EndsWith("dom_evangelisch")
+        // Halle 15,4 m breit, mit Vorhalle und Chor 33 m lang; ein runder Turm (5,6 m) vorn links, 32 m mit Spitze
+        ? new DomNeuMasse(new Vector3(17.2f, 20, 33.2f), new Vector3(-5.2f, 36, 13.6f), new[] { (-5.2f, 13.6f, 5.9f, 32f) })
+        // Langhaus 15,8 m breit, Querhaus 18,8 m, 35 m lang, Türme 5,6 × 5,6 m vorn, 42 m mit Kreuz
+        : new DomNeuMasse(new Vector3(18.8f, 20, 35.5f), new Vector3(0, 45, 14.7f), new[] { (-5.1f, 14.7f, 5.6f, 42f), (5.1f, 14.7f, 5.6f, 42f) });
     private Node3D? _domNeuHuelle;   // Wurzel des Modells in der Stadt
     private Node3D? _domNeuInnen;    // „InteriorRoot“
     private ShaderMaterial? _domNeuGlas;   // Butzenglas mit Farbton (Fenster des Doms von innen)
 
     /// <summary>
     /// Das Modell des neuen Doms für dieses Gebäude der Karte, null: der bisherige Dom. Die Karte wählt die Hülle über die Kennung des
-    /// Katalogs (<c>dom_katholisch</c>; fest je Karte); <c>--neuerdom=1</c> setzt den Neubau zur Prüfung auch an die Stelle des alten <c>dom</c>.
+    /// Katalogs (<c>dom_katholisch</c>, <c>dom_evangelisch</c>; fest je Karte); <c>--neuerdom=1</c> bzw. <c>--neuerdom=evangelisch</c> setzt den
+    /// Neubau zur Prüfung auch an die Stelle des alten <c>dom</c>.
     /// </summary>
     private static string? DomNeuDatei(Kartengebaeude g)
     {
-        var datei = g.Katalog == "dom_katholisch" || (DomNeuOption && g.Katalog == "dom") ? NeubauOrdner + "dom_katholisch" : null;
+        var art = g.Katalog is "dom_katholisch" or "dom_evangelisch" ? g.Katalog : g.Katalog == "dom" ? DomNeuOption : null;
+        var datei = art is null ? null : NeubauOrdner + art;
         return datei is not null && ResourceLoader.Exists($"res://assets/modelle/{datei}.glb") ? datei : null;
     }
 
@@ -57,8 +72,8 @@ public partial class Stadtansicht
         var p = lage.Origin;
         var drehung = DrehungVon(g);
         var basis = new Basis(Vector3.Up, drehung);
-        // Maße aus tools/modelle/neubau/dom_masse.py: Langhaus 15,8 m breit, Querhaus 18,8 m, 35 m lang, Türme 5,6 × 5,6 m vorn (im Spiel +Z), 42 m mit Kreuz
-        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, p, new Vector3(18.8f, 20, 35.5f), basis * new Vector3(0, 45, 14.7f),
+        var masse = DomNeuMasseVon(datei);
+        var a = SonderbauAnlegen("Dom", string.IsNullOrEmpty(g.Name) ? "Dom" : g.Name, p, masse.Klick, basis * masse.Schild,
             zoom: 32, reichweite: 17, raumansicht: true, drehung: drehung);
         var huelle = ModellEinsetzen(datei, this, p, new ModellZustand(), "Dom");
         if (huelle is null || Modell(datei + "_innen") is not { } szene)
@@ -77,8 +92,8 @@ public partial class Stadtansicht
             teil.SetInstanceShaderParameter("plaster_tint", new Color(1, 1, 1));
             teil.SetInstanceShaderParameter("accent_tint", new Color(1, 1, 1));
         }
-        foreach (var x in new[] { -5.1f, 5.1f })
-            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(x, 21, 14.7f), new Vector3(5.6f, 42, 5.6f), drehung: drehung)); // die Türme
+        foreach (var t in masse.Tuerme)
+            a.ZusatzKlicks.Add(Klickflaeche("Dom", p + basis * new Vector3(t.X, t.Hoehe / 2, t.Z), new Vector3(t.Kante, t.Hoehe, t.Kante), drehung: drehung)); // die Türme
         a.Raeume.Add(new Raum(RaumDomschiff, "Domschiff", Vector3.Zero, new Vector3(5, 4, 6)));
 
         // „InteriorRoot“ im Haus: Er ist zugleich der Knoten „Innen“ der Ansicht – Figuren, Flammen und die Tafel hängen daran

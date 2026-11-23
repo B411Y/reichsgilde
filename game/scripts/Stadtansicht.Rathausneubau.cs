@@ -993,9 +993,10 @@ public partial class Stadtansicht
     /// </summary>
     private ShaderMaterial RathausStoff(string datei, string gruppe, bool innen, bool kante)
     {
-        var schluessel = gruppe + (kante ? "|kante" : "");
-        if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var blatt = NeubauBlatt(datei);
+        // die Dome teilen sich Gruppe und AO-Atlas, die Hülle des Doms evangelisch hat aber ihr eigenes Blatt
+        var schluessel = gruppe + (blatt == "dom_evangelisch_trim" ? "|evangelisch" : "") + (kante ? "|kante" : "");
+        if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         // Rathaus außen: Array mit dem Stein K1 im Quaderband; innen und bei den Domen (Stadtansicht.Domneubau.cs): das Blatt selbst als Array
         var textur = innen || !gruppe.StartsWith("rathaus") ? blatt : "rathaus_ebenen";
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
@@ -1013,7 +1014,7 @@ public partial class Stadtansicht
         var stein = SteinMip.Von(blatt);                             // Steinbänder: kleinerer Mip-Zuschlag im Pixel-Look
         stoff.SetShaderParameter("stein_baender", new Vector4(stein.A0, stein.A1, stein.B0, stein.B1));
         // Dome außen: Dach- und Steinbänder im Pixel-Look rein lesen wie bei den Häusern (keine Streifen je Mauerlage); --bandrein=0 zum Vergleich
-        if (blatt == "dom_trim" && NeubauOption("--bandrein") != "0") stoff.SetShaderParameter("band_rein_eigen", 1f);
+        if (blatt is "dom_trim" or "dom_evangelisch_trim" && NeubauOption("--bandrein") != "0") stoff.SetShaderParameter("band_rein_eigen", 1f);
         if (float.TryParse(NeubauOption("--steinmip"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var steinMip))
             stoff.SetShaderParameter("stein_mip", steinMip);        // Prüfhilfe: Mip-Zuschlag der Steinbänder vergleichen (Standard im Shader 1)
         return _neubauStoffe[schluessel] = stoff;

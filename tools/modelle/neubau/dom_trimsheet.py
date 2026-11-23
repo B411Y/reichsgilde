@@ -1,10 +1,12 @@
 """Trim-Sheets der Dome (Neubau, Gruppe "dom"): eigenes Blatt aussen und innen, gleiche Technik wie rathaus_trimsheet.py.
 
-    blender -b --python tools/modelle/neubau/dom_trimsheet.py -- --quellen=<ordner> [--nur=aussen|innen]
+    blender -b --python tools/modelle/neubau/dom_trimsheet.py -- --quellen=<ordner> [--nur=aussen|innen|evangelisch]
 
 <ordner> enthaelt je Poly-Haven-Name einen Unterordner mit `<name>_diff_2k.jpg`, `<name>_nor_gl_2k.jpg`, `<name>_arm_2k.jpg`
 (CC0, api.polyhaven.com/files/<name>, nie im Repository; Namen und Urheber in game/assets/texturen/neubau/HERKUNFT.md).
-Schreibt game/assets/texturen/neubau/dom_trim_{albedo,normal,orm}.png und dom_innen_trim_{...}.png (2048 x 2048).
+Schreibt game/assets/texturen/neubau/dom_trim_{albedo,normal,orm}.png und dom_innen_trim_{...}.png (2048 x 2048), dazu
+dom_evangelisch_trim_{...}.png: das Blatt der Huelle des Doms evangelisch mit denselben Baendern (BAENDER_DOM), im Band "mauer"
+aber roter Backstein statt des grauen Werksteins, der Sockel aus Sandstein und das Farbfeld "kupfer" mit Patina-Laeufern.
 Die Baender stehen in BAENDER_DOM / BAENDER_DOM_INNEN; die Bauskripte der Dome (dom_bib.py, dom_<glaube>_*.py) lesen sie von hier.
 Das Dachband liegt wie bei allen Neubau-Blaettern in v 0-0,25 (der Shader building_trim erkennt daran das Dach fuer Schnee und Regen).
 """
@@ -59,7 +61,7 @@ def _felder(blatt, quellen, band, namen, stoffe):
         blatt.setze(band, faerbe(f, ton, kontrast=0.6, eigenfarbe=0.0 if name == "gold" else 0.15), n, arm, rauheit=rau, metall=1.0 if metallisch else 0.0, x0=i * feld, x1=(i + 1) * feld)
 
 
-def baue_aussen(quellen):
+def baue_aussen(quellen, evangelisch=False):
     B = BAENDER_DOM
     blatt = Blatt()
     schiefer = Quelle(quellen, "roof_slates_02")
@@ -85,12 +87,19 @@ def baue_aussen(quellen):
     blatt.fase(B["balken"])
     band("planken", Quelle(quellen, "old_planks_02", kante=512, gedreht=True), (0.36, 0.26, 0.18), ab=8, kontrast=1.1)
     quader = Quelle(quellen, "sandstone_blocks_08")
-    band("mauer", quader, (0.68, 0.67, 0.65), ab=0, kontrast=1.6, eigenfarbe=0.2)
+    if evangelisch:
+        # Backstein im Klosterformat: 14 Lagen auf die Bandhoehe von 1,20 m (die Quelle zeigt 32 Lagen auf ihre Kante), damit die
+        # Lagen der Mauer (rathaus_bib.mauer stapelt Bandhoehen) ohne halbe Steine aufeinander stehen
+        a, e = blatt.zeilen(B["mauer"])
+        f, n, arm = Quelle(quellen, "medieval_red_brick", kante=round((e - a) / 14 * 32)).streifen(e - a, ab=0)
+        blatt.setze(B["mauer"], f, n, arm)                    # Originalfarben der Quelle: rote Steine, sandfarbene Fugen
+    else:
+        band("mauer", quader, (0.68, 0.67, 0.65), ab=0, kontrast=1.6, eigenfarbe=0.2)
     band("sandstein", quader, (0.80, 0.74, 0.62), ab=640, versatz=300, kontrast=1.5, eigenfarbe=0.15)
     blatt.verlauf(B["sandstein"], 0.9, 0.9, 12)
     band("werkstein", Quelle(quellen, "white_plaster_rough_01"), (0.82, 0.77, 0.66), ab=200, kontrast=1.3, eigenfarbe=0.1)
     blatt.verlauf(B["werkstein"], 0.85, 0.85, 14)
-    band("sockel", Quelle(quellen, "castle_wall_slates"), (0.36, 0.36, 0.36), ab=300, kontrast=1.05, eigenfarbe=0.3)
+    band("sockel", Quelle(quellen, "castle_wall_slates"), (0.58, 0.52, 0.42) if evangelisch else (0.36, 0.36, 0.36), ab=300, kontrast=1.05, eigenfarbe=0.3)
     a, e = blatt.zeilen(B["eisen"])
     f, n, arm = Quelle(quellen, "rusty_metal_02").streifen(e - a, ab=0)
     blatt.setze(B["eisen"], faerbe(f, (0.16, 0.15, 0.15), kontrast=0.5, eigenfarbe=0.25), n, arm, rauheit=0.62, metall=1.0)
@@ -99,7 +108,13 @@ def baue_aussen(quellen):
         "blei": (True, (0.34, 0.36, 0.40), 0.5), "holz_dunkel": (False, (0.16, 0.12, 0.09), 0.9), "nacht": (False, (0.03, 0.03, 0.04), 0.9),
         "eisen": (True, (0.13, 0.13, 0.13), 0.55), "kupfer": (True, (0.30, 0.52, 0.44), 0.6),
     })
-    blatt.speichere("dom_trim")
+    if evangelisch:
+        # Kupfer mit Patina: helle und dunkle Laeufer von oben nach unten (das Feld wird um die Haube gelegt, v laeuft die Haube hinab)
+        a, e = blatt.zeilen(B["kleinteile"])
+        feld = N // len(FELDER_DOM); i = FELDER_DOM.index("kupfer")
+        lauf = 0.78 + 0.44 * rauschen(N, 33, 6)[i * feld:(i + 1) * feld]
+        blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] = np.clip(blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] * lauf[None, :, None], 0, 1)
+    blatt.speichere("dom_evangelisch_trim" if evangelisch else "dom_trim")
 
 
 def baue_innen(quellen):
@@ -159,5 +174,7 @@ if __name__ == "__main__":
     opt = dict(a[2:].split("=", 1) for a in args if a.startswith("--") and "=" in a)
     if opt.get("nur", "aussen") == "aussen":
         baue_aussen(opt["quellen"])
+    if opt.get("nur", "evangelisch") == "evangelisch":
+        baue_aussen(opt["quellen"], evangelisch=True)
     if opt.get("nur", "innen") == "innen":
         baue_innen(opt["quellen"])
