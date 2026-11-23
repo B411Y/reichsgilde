@@ -610,8 +610,60 @@ def masse_anlegen(stufe, tuer_hoch=TUER_HOCH):
         S23.GAUBE.update(y=QUERGIEBEL["y"], x_front=M.OX, fenster=QUERGIEBEL["fenster"])
 
 
+def laeden_zu_anlegen(stufe):
+    """Geschlossene Laeden im festen Zufall (zwerg_teile.laeden_zu, Verfahren der Zeilenmodule; wie bei den Zwergen): im Fachwerk des
+    Buergerhauses auf freien Gefachen zwischen Brust- und Sturzriegel, in Putzsockel und Steinwaenden auf fensterlosen Achsfeldern.
+    Steht die Huelle (Unterstand, Schuppen, Schlot, Vordach), faellt weg, was verstellt waere."""
+    import zeile_module as Z
+    import zwerg_teile as zt
+    M = S23.M
+    haus = lambda: f"wohnhaus_elb_s{stufe}_g{FORM[0]}"
+
+    def fensterhoehe(wand, z0):
+        fen = [o for o in S23.loecher(wand) if o[4] == "fenster"]
+        if fen: return min(f[2] for f in fen), max(f[3] for f in fen)
+        if wand.endswith("_eg"): return next(f[2] for f in M.FENSTER if f[0].endswith("_eg") and f[3] == "fenster")
+        return z0 + M.OG_FENSTER_Z[0] - M.Z_EG_DECKE, z0 + M.OG_FENSTER_Z[1] - M.Z_EG_DECKE
+
+    alt_lage = S23.fachwerk_lage
+
+    def fachwerk_lage(h, wand, z0, z1, raehm=True):
+        alt_lage(h, wand, z0, z1, raehm)
+        (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+        t0, t1 = fensterhoehe(wand, z0)
+        felder = zt.felder_der_lage(S23.LAGEN[wand], breite, S23.loecher(wand), t0, t1)
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG, nebeneinander=False)
+    S23.fachwerk_lage = fachwerk_lage
+    alt_mauer = S23.steinwand
+
+    def steinwand(h, stoff, wand, z0, z1, *a, **kw):
+        alt_mauer(h, stoff, wand, z0, z1, *a, **kw)
+        if not wand.endswith(("_eg", "_og", "_o2")): return
+        (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+        t0, t1 = fensterhoehe(wand, z0)
+        achsen, _ = M.raster(breite)
+        felder = zt.felder_der_mauer(achsen, M.BW, breite, S23.loecher(wand))
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0, t1, f"{haus()}|{wand}",
+                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG, nebeneinander=False)
+    S23.steinwand = steinwand
+    alt_fahne = S23.baue_fahne
+
+    def fahne():
+        zt.laeden_zu_pruefen([et.ohne_efeu(LETZT["haus"]), LETZT["dach"]])       # Efeu darf vor einem Laden haengen
+        return alt_fahne()
+    S23.baue_fahne = fahne
+
+
 def schicht_anlegen(stufe):
     """Stoff, Dateinamen, Atlasgruppen, Elbenmasse und die Bauteile der Elben; die Skripte der Menschen bleiben unveraendert."""
+    # Echtes Fachwerk im Buergerhaus (Holzlage wie bei Menschen, Halblingen und Zwergen, Nutzer 23.11.2026), die Streben gebogen
+    S23.FACHWERK_ECHT = S23.FM.FACHWERK_ECHT = stufe == 2
+    et.bogen_in_holzlage()
+    if stufe == 3:
+        # Steinhaus: Putzflaechen (Fluegel der Grundform 2, Zwickel der Spitzboegen) entstehen gleich aus den Lagen des Hausteins –
+        # versteinern() legte den Putz sonst ueber die ganze Wandhoehe gestreckt auf das Steinband (wie bei den Zwergen)
+        import zwerg_teile
+        zwerg_teile.quader_in_lagen(ziel=("Bruchstein", "bruchstein"))
     S23.LICHT_DECKE = False                                # kein Deckenlicht (nur Menschen und Zwerge, 21.11.2026)
     STUFE[0] = stufe
     M = S23.M
@@ -717,6 +769,7 @@ def schicht_anlegen(stufe):
 
     def wappen():
         w = alt_wappen()
+        et.laeden_am_wappen_weg(w)                                # kein geschlossener Laden im Feld des Wappens
         g1.wappen_frei_ruecken(w, [LETZT["haus"], LETZT["dach"], LETZT["scheiben"]])   # Wappenregel (Spitzbogen, Unterstand)
         return w
     S23.baue_wappen = wappen
@@ -737,6 +790,7 @@ def schicht_anlegen(stufe):
         feuerstelle(LETZT["m_raum"] + [LETZT["raum"], LETZT["fs"]])
         return baue_decke()
     S23.baue_decke = decke
+    laeden_zu_anlegen(stufe)
 
 
 def messen(stufe, form, ausgabe_ordner=None):

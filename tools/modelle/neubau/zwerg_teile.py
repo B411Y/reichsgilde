@@ -458,16 +458,21 @@ def felder_der_mauer(achsen, bw, breite, oeffnungen, abstand=0.60, ecke=0.55):
     return aus
 
 
-def laeden_zu(h, p0, eu, n, felder, t0, t1, schluessel, anteil, einbau=None):
+def laeden_zu(h, p0, eu, n, felder, t0, t1, schluessel, anteil, einbau=None, nebeneinander=True):
     """Wuerfelt je Feld (s0, s1) der Wand (Punkt p0 bei s = 0, Richtung eu, Normale n nach aussen) und baut geschlossene Laeden von t0
-    bis t1. `einbau(bau)`: fuehrt den Bau aus (Steinhaus: als Holzakzent). Gibt die Zahl der gebauten Laeden zurueck."""
+    bis t1. `einbau(bau)`: fuehrt den Bau aus (Steinhaus: als Holzakzent). `nebeneinander` False: nach einem gebauten Laden bleibt das
+    Nachbarfeld frei (Elben 23.11.2026: drei Laeden in einer Reihe wirkten gedraengt); gewuerfelt wird trotzdem jedes Feld (feste Saat).
+    Gibt die Zahl der gebauten Laeden zurueck."""
     import zeile_module as Z
     wuerfel = _saat(schluessel)
     p0, eu, n = Vector(p0), Vector(eu).normalized(), Vector(n).normalized()
     o = Vector((p0.x, p0.y, 0.0)) + n * 0.02                         # die Fluegel 2 cm vor der Wand (nicht deckungsgleich mit ihr)
     zahl = 0
+    letzter = None
     for s0, s1 in felder:
         if not wuerfel.random() >= 1.0 - anteil: continue            # derselbe Wurf wie in zeile_module (fensterlose Achse)
+        if not nebeneinander and letzter is not None and s0 - letzter < 0.50: continue
+        letzter = s1
         ebene = Z.Ebene(o, eu, (0, 0, 1), o + eu * (s0 + s1) / 2 - n + Vector((0, 0, (t0 + t1) / 2)))
         a = len(h.flaechen)
         alt = dict(Z.S)
