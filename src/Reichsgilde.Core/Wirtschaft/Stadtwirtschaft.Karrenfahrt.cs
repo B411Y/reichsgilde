@@ -192,10 +192,12 @@ public sealed partial class Stadtwirtschaft
         foreach (var (ware, stueck) in kaufen) danach[ware] = danach.GetValueOrDefault(ware) + stueck;
         if (karren.Flaechen(danach) > karren.Daten.Sorten)
             return $"So viel fasst {karren.Name} nicht: {Zahlenformat.Ganz(karren.Daten.Sorten)} × {Zahlenformat.Ganz(karren.Daten.KapazitaetJeSorte)} Stück (je Ladefläche eine Ware).";
+        // Erst wird verkauft, dann gekauft: Der Erlös nach Steuer (dieselbe Rechnung wie die Abrechnung) zählt zum Geld für die Einkäufe.
         var kosten = kaufen.Sum(x => HandKaufpreis(konto, x.Key, x.Value));
-        var erloes = verkaufen.Sum(x => Markt[x.Key].Preis * x.Value);
+        var erloes = verkaufen.Sum(x => KarrenHandelBarerloes(karren, x.Key, x.Value));
         if (kosten > konto.Vermoegen + erloes)
-            return $"Die Einkäufe kosten etwa {Zahlenformat.Ganz(kosten)} {Daten.Allgemein.Waehrung} – so viel habt ihr nicht.";
+            return $"Die Einkäufe kosten {Zahlenformat.Ganz(kosten)} {Daten.Allgemein.Waehrung}" +
+                   (erloes > 0 ? $", der Verkauf bringt nach Steuer {Zahlenformat.Ganz(erloes)}" : "") + " – so viel habt ihr nicht.";
         return null;
     }
 
@@ -249,11 +251,14 @@ public sealed partial class Stadtwirtschaft
         if (KarrenHandelnVerboten(betrieb.Konto, betrieb, befehl.Karren, befehl.Verkauf, befehl.Kauf) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var karren = betrieb.Karren[befehl.Karren];
         var erloes = karren.Verkaufen(befehl.Verkauf, this);
-        var kosten = karren.Kaufen(befehl.Kauf, this);
+        // Gekauft wird erst nach dem gebuchten Verkauf und nur, was dann bezahlbar ist (gekürzt wie beim Einkaufszettel des Handelsauftrags).
+        var (kosten, gekauft) = karren.Kaufen(befehl.Kauf, this);
         var waehrung = Daten.Allgemein.Waehrung;
         var teile = new List<string>();
         if (befehl.Verkauf.Any(x => x.Value > 0)) teile.Add($"verkauft {WarenText(befehl.Verkauf)} für {Zahlenformat.Ganz(erloes)} {waehrung}");
-        if (befehl.Kauf.Any(x => x.Value > 0)) teile.Add($"gekauft {WarenText(befehl.Kauf)} für {Zahlenformat.Ganz(kosten)} {waehrung}");
+        if (gekauft.Count > 0) teile.Add($"gekauft {WarenText(gekauft)} für {Zahlenformat.Ganz(kosten)} {waehrung}");
+        var fehlt = befehl.Kauf.Where(x => x.Value > gekauft.GetValueOrDefault(x.Key)).ToDictionary(x => x.Key, x => x.Value - gekauft.GetValueOrDefault(x.Key));
+        if (fehlt.Count > 0) teile.Add($"für {WarenText(fehlt)} reichte das Geld nicht");
         return Befehlsergebnis.Ok($"{karren.Name} am {karren.Handelsort}: {string.Join("; ", teile)}.");
     }
 

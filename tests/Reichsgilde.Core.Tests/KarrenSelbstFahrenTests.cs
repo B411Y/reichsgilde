@@ -19,15 +19,16 @@ static class KarrenSelbstFahrenTests
     static long Um(int stunde, int minute = 0) => (stunde * 60 + minute) - Spielzeit.TagesbeginnMinute;
 
     /// <summary>Eine Stadt ohne Karte, Spieler fährt selbst: Grube (Umland, 40 Eisen) und Gießerei „G“ (Stadt), dazu ein fremdes Haus mit Gießerei „F“.</summary>
-    static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb Grube, Betrieb G, Betrieb F) Aufbau(int stunde = 10, bool selbst = true)
+    static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb Grube, Betrieb G, Betrieb F) Aufbau(int stunde = 10, bool selbst = true,
+        double geld = 5_000, string? json = null)
     {
         var sim = new Simulation(Partieeinstellungen.Standard with
             {
                 StartStatut = Fronstatut.FreieStadt, Siegbedingung = Siegbedingung.Endlos, KarrenSelbstFahren = selbst,
             },
-            new Spielzeit(Um(stunde)), Wirtschaftsdaten.AusJson(Json));
+            new Spielzeit(Um(stunde)), Wirtschaftsdaten.AusJson(json ?? Json));
         var w = sim.Wirtschaft!;
-        var k = w.KontoEroeffnen("Spieler", startvermoegen: 5_000);
+        var k = w.KontoEroeffnen("Spieler", startvermoegen: geld);
         var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k);
         grube.Einlagern("Eisen", 40);
         var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
@@ -166,6 +167,7 @@ static class KarrenSelbstFahrenTests
             Ok(w2.Ausfuehren(k2, new KarrenLosschicken("Grube", new[] { 0 }, "G")));
             Ticken(sim2, k2Karren.Ankunft + 1);
             Pruefe.Wahr(k2Karren.WartetAmTor(sim2.Zeit) && k2Karren.Zustand == KarrenZustand.ZumBetrieb, "wartet vor dem Tor");
+            Pruefe.Wahr(k2Karren.ZustandText(sim2.Zeit).Contains("vor dem geschlossenen Stadttor"), k2Karren.ZustandText(sim2.Zeit));
             Ticken(sim2, Spielzeit.MinutenProTag + 1);
             Pruefe.Gleich(KarrenZustand.AmBetrieb, k2Karren.Zustand);
             Pruefe.Gleich("G", k2Karren.StandortBetrieb);
@@ -175,6 +177,7 @@ static class KarrenSelbstFahrenTests
             var k3Karren = g3.Karren[0];
             Ok(w3.Ausfuehren(k3, new KarrenLosschicken("G", new[] { 0 }, "Grube")));
             Pruefe.Wahr(k3Karren.WartetAmTor(sim3.Zeit), "wartet in der Stadt bis zum Morgen");
+            Pruefe.Wahr(k3Karren.ZustandText(sim3.Zeit).Contains("wartet in der Stadt"), k3Karren.ZustandText(sim3.Zeit));
             Pruefe.Gleich((long)Spielzeit.MinutenProTag + 150, k3Karren.Ankunft);
             Ticken(sim3, k3Karren.Ankunft + 1);
             Pruefe.Gleich("Grube", k3Karren.StandortBetrieb);
@@ -287,6 +290,115 @@ static class KarrenSelbstFahrenTests
             Ticken(sim, g.Karren[0].Ankunft + 1);
             Pruefe.Wahr(w.VerkaufVerboten(k, g)?.Contains("steht an Grube") == true, w.VerkaufVerboten(k, g) ?? "null");
             Pruefe.Wahr(w.VerkaufVerboten(k, grube)?.Contains("steht an Grube") == true, w.VerkaufVerboten(k, grube) ?? "null");
+        }),
+
+        ("Karren selbst: Betrieb verkaufen bzw. Pacht kündigen mit beladenem Karren am Betrieb – die Ladung wird abgeladen und mit der Lagerware ausgezahlt", () =>
+        {
+            var (_, w, k, grube, _, _) = Aufbau();
+            var (_, w2, _, grube2, _, _) = Aufbau(); // Gegenprobe: dieselben 40 Eisen alle im Lager
+            var karren = grube.Karren[0];
+            Ok(w.Ausfuehren(k, new KarrenBeladen("Grube", 0, D(("Eisen", 20)))));
+            Pruefe.Gleich(20, karren.Ladung["Eisen"]);
+            var vorschau = w.VerkaufVorschau(grube);
+            Pruefe.Gleich(40, vorschau.Lagerware.Single(x => x.Ware == "Eisen").Stueck);
+            Pruefe.Ungefaehr(w2.VerkaufVorschau(grube2).Warenerloes, vorschau.Warenerloes, 1e-6);
+            Pruefe.Wahr(vorschau.Warenerloes > 0, "Ware hat Wert");
+            var vorher = k.Laufend.Verkaeufe;
+            Ok(w.Ausfuehren(k, new BetriebVerkaufen("Grube")));
+            Pruefe.Ungefaehr(vorschau.Gebaeudeerloes + vorschau.Warenerloes, k.Laufend.Verkaeufe - vorher, 1e-6);
+            Pruefe.Gleich(0, karren.Ladung.Count);
+        }),
+
+        ("Karren selbst: Geld beim Handeln – Erlös wie die Abrechnung (Steuer, Preisdruck je Stück), erst verkauft, dann gekauft; nie ins Minus", () =>
+        {
+            var (sim, w, k, grube, _, _) = Aufbau(geld: 100);
+            var karren = grube.Karren[0];
+            Ok(w.Ausfuehren(k, new KarrenBeladen("Grube", 0, D(("Eisen", 20)))));
+            Ok(w.Ausfuehren(k, new KarrenLosschicken("Grube", new[] { 0 }, null)));
+            Ticken(sim, karren.Ankunft + 1);
+            Pruefe.Wahr(w.SteuersatzMarkt(k) > 0, "Steuer am Markt");
+            var bar = w.KarrenHandelBarerloes(karren, "Eisen", 20);
+            var roh = w.Markt["Eisen"].Preis * 20;
+            Pruefe.Wahr(bar < roh, $"nach Steuer und Preisdruck {bar} < {roh}");
+            var n = 0;
+            while (w.HandKaufpreis(k, "Holz", n + 1) <= k.Vermoegen + bar) n++;
+            Pruefe.Wahr(n > 0 && w.HandKaufpreis(k, "Holz", n + 1) <= k.Vermoegen + roh, $"die alte Schätzung (Preis × Stück) hätte {n + 1} Holz erlaubt");
+            Nein(w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 20)), D(("Holz", n + 1)))), "so viel habt ihr nicht");
+            var vorher = k.Vermoegen;
+            var e = w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 20)), D(("Holz", n))));
+            Ok(e);
+            Pruefe.Wahr(!e.Meldung.Contains("reichte", StringComparison.Ordinal), e.Meldung);
+            Pruefe.Gleich(n, karren.Ladung["Holz"]);
+            Pruefe.Ungefaehr(bar, k.Vermoegen - vorher + grube.Laufend.Zutaten, 1e-6); // Barerlös genau wie gebucht
+            Pruefe.Wahr(k.Vermoegen >= 0, $"Vermögen {k.Vermoegen}");
+
+            // Reicht das Geld nach dem Verkauf nicht mehr, kauft der Karren nur, was bezahlbar ist (wie der Einkaufszettel).
+            var (kosten, gekauft) = karren.Kaufen(D(("Holz", 20)), w);
+            Pruefe.Wahr(gekauft.GetValueOrDefault("Holz") < 20, "gekürzt");
+            Pruefe.Wahr(k.Vermoegen >= 0, $"Vermögen nach dem Kürzen {k.Vermoegen}");
+            Pruefe.Gleich(n + gekauft.GetValueOrDefault("Holz"), karren.Ladung["Holz"]);
+            Pruefe.Wahr(kosten <= vorher + bar, "bezahlt");
+        }),
+
+        ("Karren selbst: Aus dem Kerker keine Fahrbefehle – Beladen, Abladen, Losschicken und Zurück abgelehnt", () =>
+        {
+            var (_, w, k, _, _, _) = Aufbau();
+            Pruefe.Wahr(w.Justiz.IstAktiv, "Gericht aktiv");
+            var konten = w.Konten.ToList();
+            var stand = w.Justiz.Sichern(x => konten.IndexOf(x));
+            stand.KerkerBis[konten.IndexOf(k).ToString()] = w.Jahr + 1;
+            w.Justiz.Wiederherstellen(stand, konten);
+            Pruefe.Wahr(w.Justiz.ImKerker(k), "im Kerker");
+            Nein(w.Ausfuehren(k, new KarrenBeladen("Grube", 0, D(("Eisen", 5)))), "Kerker");
+            Nein(w.Ausfuehren(k, new KarrenAbladen("Grube", 0)), "Kerker");
+            Nein(w.Ausfuehren(k, new KarrenLosschicken("Grube", new[] { 0 }, null)), "Kerker");
+            Nein(w.Ausfuehren(k, new KarrenZurueck("Grube", new[] { 0 })), "Kerker");
+            Pruefe.Gleich(KarrenZustand.AmBetrieb, w.Betriebe.Single(b => b.Name == "Grube").Karren[0].Zustand);
+        }),
+
+        ("Karren selbst: Steht ein Karren an einem Betrieb, der nicht mehr seinem Haus gehört (fremd oder fort), steht er wieder daheim – mit Ladung", () =>
+        {
+            var (sim, w, k, grube, _, _) = Aufbau();
+            Ok(w.Ausfuehren(k, new KarrenBeladen("Grube", 0, D(("Eisen", 10)))));
+            Ok(w.Ausfuehren(k, new KarrenLosschicken("Grube", new[] { 0 }, "G")));
+            Ticken(sim, grube.Karren[0].Ankunft + 1);
+            Pruefe.Gleich("G", grube.Karren[0].StandortBetrieb);
+            var text = Speicherung.Speichern(sim, k, new DateTime(2026, 1, 1));
+            foreach (var ziel in new[] { "F", "Abgerissen" })
+            {
+                var geaendert = text.Replace("\"StandortBetrieb\": \"G\"", $"\"StandortBetrieb\": \"{ziel}\"", StringComparison.Ordinal);
+                Pruefe.Wahr(geaendert != text, "Standort im Spielstand");
+                var (geladen, _) = Speicherung.Laden(geaendert);
+                var gk = geladen.Wirtschaft!.Betriebe.Single(b => b.Name == "Grube").Karren[0];
+                Pruefe.Gleich(ziel, gk.StandortBetrieb);
+                geladen.Tick();
+                Pruefe.Wahr(gk.StandortBetrieb is null, $"{ziel}: wieder daheim");
+                Pruefe.Gleich(KarrenZustand.AmBetrieb, gk.Zustand);
+                Pruefe.Gleich(10, gk.Ladung["Eisen"]);
+            }
+        }),
+
+        ("Karren selbst: Überfall auf der Fahrt von Betrieb zu Betrieb durchs Umland – die Meldung nennt den Weg, geraubt wird die Ladung des Hauses", () =>
+        {
+            var json = Json.Replace("\"chanceTag\": 0.08", "\"chanceTag\": 1", StringComparison.Ordinal);
+            Pruefe.Wahr(json != Json, "chanceTag in den Daten");
+            var (sim, w, k, grube, g, _) = Aufbau(json: json);
+            var meldungen = new List<Meldung>();
+            w.Gemeldet += meldungen.Add;
+            g.Einlagern("Holz", 10);
+            Ok(w.Ausfuehren(k, new KarrenBeladen("Grube", 0, D(("Eisen", 10)))));
+            Ok(w.Ausfuehren(k, new KarrenBeladen("G", 0, D(("Holz", 10)))));
+            Ok(w.Ausfuehren(k, new KarrenLosschicken("Grube", new[] { 0 }, "G")));
+            Ok(w.Ausfuehren(k, new KarrenLosschicken("G", new[] { 0 }, "Grube")));
+            var ueberfaelle = meldungen.Where(x => x.Art == Meldungsart.Ueberfall).Select(x => x.Text).ToList();
+            Pruefe.Gleich(2, ueberfaelle.Count, string.Join(" | ", ueberfaelle));
+            Pruefe.Wahr(ueberfaelle[0].Contains("auf dem Weg von Grube nach G", StringComparison.Ordinal), ueberfaelle[0]);
+            Pruefe.Wahr(ueberfaelle[1].Contains("auf dem Weg von G nach Grube", StringComparison.Ordinal), ueberfaelle[1]);
+            var geraubt = grube.Karren[0].Ladung.Count == 0 || g.Karren[0].Ladung.Count == 0;
+            Pruefe.Gleich(geraubt, k.Laufend.Raubwert > 0, $"Raubwert {k.Laufend.Raubwert}");
+            Ticken(sim, Math.Max(grube.Karren[0].Ankunft, g.Karren[0].Ankunft) + 1);
+            Pruefe.Gleich("G", grube.Karren[0].StandortBetrieb);
+            Pruefe.Gleich("Grube", g.Karren[0].StandortBetrieb);
         }),
     };
 }

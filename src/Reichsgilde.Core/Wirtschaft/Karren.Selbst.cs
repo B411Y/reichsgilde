@@ -47,7 +47,10 @@ public sealed partial class Karren
         return abgeladen;
     }
 
-    /// <summary>Am Markt: Ladung verkaufen (wie der Verwalter: Verhandeln, Aufschlag am Hafen, Steuer). Zurück: der Erlös.</summary>
+    /// <summary>
+    /// Am Markt: Ladung verkaufen (wie der Verwalter: Verhandeln, Aufschlag am Hafen, Steuer; Sätze aus <see cref="Stadtwirtschaft.KarrenHandelSaetze"/>,
+    /// wie die Prüfung). Zurück: der Erlös vor Steuer.
+    /// </summary>
     internal double Verkaufen(IReadOnlyDictionary<string, int> verkauf, Stadtwirtschaft w)
     {
         var vorher = Heimat.Konto.Laufend.Umsatz;
@@ -55,26 +58,36 @@ public sealed partial class Karren
         {
             var stueck = Math.Min(wunsch, _ladung.GetValueOrDefault(ware));
             if (stueck <= 0) continue;
-            Heimat.Verkaufen(ware, stueck, w.Markt, w.KarrenVerkaufsFaktor(Heimat.Konto, ware, ZielHafen), w.SteuersatzMarkt(Heimat.Konto));
+            var (faktor, steuersatz) = w.KarrenHandelSaetze(this, ware);
+            Heimat.Verkaufen(ware, stueck, w.Markt, faktor, steuersatz);
             _ladung[ware] -= stueck;
         }
         LadungAufraeumen();
         return Heimat.Konto.Laufend.Umsatz - vorher;
     }
 
-    /// <summary>Am Markt: Waren auf den Karren kaufen (Marktpreis + Händlerspanne, jedes Stück hebt den Preis), als Zutaten gebucht. Zurück: die Kosten.</summary>
-    internal double Kaufen(IReadOnlyDictionary<string, int> kauf, Stadtwirtschaft w)
+    /// <summary>
+    /// Am Markt: Waren auf den Karren kaufen (Marktpreis + Händlerspanne, jedes Stück hebt den Preis), als Zutaten gebucht – nach dem Verkauf und
+    /// je Ware nur so viel, wie das Geld dann reicht (wie der Einkaufszettel des Handelsauftrags). Zurück: die Kosten und was gekauft wurde.
+    /// </summary>
+    internal (double Kosten, Dictionary<string, int> Gekauft) Kaufen(IReadOnlyDictionary<string, int> kauf, Stadtwirtschaft w)
     {
         var faktor = w.HandKaufFaktor(Heimat.Konto);
         double summe = 0;
-        foreach (var (ware, stueck) in kauf.Where(x => x.Value > 0).OrderBy(x => x.Key, StringComparer.Ordinal))
+        var gekauft = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (ware, wunsch) in kauf.Where(x => x.Value > 0).OrderBy(x => x.Key, StringComparer.Ordinal))
         {
-            var kosten = w.Markt[ware].HandKaufen(stueck, faktor);
+            var stand = w.Markt[ware];
+            var stueck = wunsch;
+            while (stueck > 0 && stand.HandKaufpreis(stueck, faktor) > Heimat.Konto.Vermoegen) stueck--;
+            if (stueck <= 0) continue;
+            var kosten = stand.HandKaufen(stueck, faktor);
             Heimat.ZutatenBuchen(kosten);
             _ladung[ware] = _ladung.GetValueOrDefault(ware) + stueck;
+            gekauft[ware] = stueck;
             summe += kosten;
         }
-        return summe;
+        return (summe, gekauft);
     }
 
     /// <summary>Leere Einträge entfernen (eine Ware mit 0 Stück belegt keine Ladefläche und steht nicht im Spielstand).</summary>

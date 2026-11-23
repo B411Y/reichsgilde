@@ -225,7 +225,7 @@ public sealed partial class Stadtwirtschaft
     {
         var v = Daten.Verkauf;
         var wert = Betriebswert(betrieb);
-        var lager = betrieb.Lager.Where(x => x.Value > 0)
+        var lager = LagerMitKarren(betrieb).Where(x => x.Value > 0)
             .Select(x => new Lagerposten(x.Key, x.Value, x.Value * Marktpreis(x.Key) * (1 - v.WarenAbschlag)))
             .ToList();
         var (loehne, fix) = Abrechnung(betrieb);
@@ -236,6 +236,19 @@ public sealed partial class Stadtwirtschaft
             Bank.IstAktiv ? Bank.Kasse(betrieb) : 0,
             new Dictionary<string, int>(betrieb.Belegung), betrieb.Karren.Select(k => k.Name).ToList(), betrieb.Waechter,
             VerkaufVerboten(betrieb.Konto, betrieb));
+    }
+
+    /// <summary>
+    /// Das Lager samt der Ladung der Karren, die am Betrieb stehen (selbst gefahren steht ein Karren beladen da): Beim Verkauf wird die Ladung
+    /// erst abgeladen und mit ausgezahlt (<see cref="VerkaufenAusfuehren"/>), wie beim Verkauf eines einzelnen Karrens.
+    /// </summary>
+    private static SortedDictionary<string, int> LagerMitKarren(Betrieb betrieb)
+    {
+        var summe = new SortedDictionary<string, int>(betrieb.Lager.ToDictionary(x => x.Key, x => x.Value), StringComparer.Ordinal);
+        foreach (var karren in betrieb.Karren.Where(k => k.Zustand == KarrenZustand.AmBetrieb && k.StandortBetrieb is null))
+            foreach (var (ware, stueck) in karren.Ladung)
+                summe[ware] = summe.GetValueOrDefault(ware) + stueck;
+        return summe;
     }
 
     /// <summary>Marktpreis einer Ware – Waren ohne Marktstand zum Grundpreis.</summary>
@@ -258,6 +271,8 @@ public sealed partial class Stadtwirtschaft
         var konto = betrieb.Konto;
         if (VerkaufVerboten(konto, betrieb) is { } grund)
             return Befehlsergebnis.Abgelehnt(grund);
+        // Beladene Karren am Betrieb (selbst gefahren) laden erst ab – die Ladung wird mit der Lagerware ausgezahlt, statt zu verschwinden.
+        foreach (var karren in betrieb.Karren.Where(k => k.Ladung.Count > 0)) karren.Abladen(betrieb);
         var vorschau = VerkaufVorschau(betrieb);
         var waehrung = Daten.Allgemein.Waehrung;
 

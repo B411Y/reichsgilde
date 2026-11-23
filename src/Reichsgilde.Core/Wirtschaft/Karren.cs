@@ -202,7 +202,7 @@ public sealed partial class Karren
 
     /// <summary>Kurzer Text für die Anzeige.</summary>
     public string ZustandText(Spielzeit zeit) => WartetAmTor(zeit)
-        ? (Zustand == KarrenZustand.ZumMarkt ? "wartet vor dem geschlossenen Stadttor bis zum Morgen" : "wartet in der Stadt, bis das Tor aufgeht")
+        ? (_rueckfahrtWartet ? "wartet in der Stadt, bis das Tor aufgeht" : "wartet vor dem geschlossenen Stadttor bis zum Morgen") // drinnen nur vor der Fahrt ins Umland (Abfahren)
         : WartetAnBruecke(zeit) ? $"wartet an der offenen Klappbrücke (noch {BrueckeWartenBis!.Value - zeit.VergangeneMinuten} Min.)"
         : Verweilt(zeit) ? $"lädt am {Handelsort} (noch {VerweiltBis!.Value - zeit.VergangeneMinuten} Min.)"
         : Zustand switch

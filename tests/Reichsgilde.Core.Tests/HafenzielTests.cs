@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Entwickler;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -112,6 +113,43 @@ static class HafenzielTests
             Pruefe.Wahr(!karrenO.ZielHafen, "ohne Schalter Ziel Marktplatz");
             Pruefe.Gleich(losO + marktHin, karrenO.Ankunft);
             Pruefe.Gleich(wO.MarktplatzVon(bO)!.Kennung, wO.HandelsortVon(karrenO)!.Kennung);
+        }),
+
+        ("Hafenziel: Selbst gefahren – unterwegs zum Hafen umgeschaltet, steht der Karren am Hafen und verkauft dort mit Aufschlag (die Geldprüfung " +
+         "rechnet wie die Abrechnung); selbst losgeschickt fährt er zum Marktplatz, auch nahe dem Hafen", () =>
+        {
+            var (sim, w, k, b, karren) = Werkstatt(Json.Value, Minute(1, 9));
+            b.Einlagern("Silberring", 15);
+            Bis(sim, karren, KarrenZustand.ZumMarkt);
+            Pruefe.Wahr(karren.ZielHafen && karren.Ladung.GetValueOrDefault("Silberring") == 15, "zum Hafen mit 15 Silberringen");
+            w.Entwicklerhilfe.Erlaubt = true;
+            var e = w.Ausfuehren(k, new EntwicklerKarrenAutomatisch(false));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Bis(sim, karren, KarrenZustand.AmMarkt);
+            Pruefe.Gleich("Hafen", karren.Handelsort);
+            Pruefe.Gleich(15, karren.Ladung.GetValueOrDefault("Silberring"));
+
+            var aufschlag = w.HandelsortFaktor("Silberring", true);
+            Pruefe.Ungefaehr(1 + w.Daten.Schiffshandel!.HafenAufschlag, aufschlag, 1e-12);
+            Pruefe.Wahr(aufschlag > 1, "Silberring ist Ausfuhrware");
+            var bar = w.KarrenHandelBarerloes(karren, "Silberring", 15);
+            var amMarktplatz = w.Markt["Silberring"].Verkaufswert(15) * w.KarrenVerkaufsFaktor(k, "Silberring", false) * b.PreisFaktor * (1 - w.SteuersatzMarkt(k));
+            Pruefe.Ungefaehr(amMarktplatz * aufschlag, bar, 1e-6);
+            var vorher = k.Vermoegen;
+            var verkauf = new Dictionary<string, int> { ["Silberring"] = 15 };
+            e = w.Ausfuehren(k, new KarrenHandeln(b.Name, 0, verkauf, new Dictionary<string, int>()));
+            Pruefe.Wahr(e.Erfolg && e.Meldung.Contains("am Hafen", StringComparison.Ordinal), e.Meldung);
+            Pruefe.Ungefaehr(bar, k.Vermoegen - vorher, 1e-6);
+
+            e = w.Ausfuehren(k, new KarrenLosschicken(b.Name, new[] { 0 }, b.Name));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Bis(sim, karren, KarrenZustand.AmBetrieb);
+            Pruefe.Wahr(w.FaehrtZumHafen(b, Hand), "der Hafen wäre näher");
+            var los = sim.Zeit.VergangeneMinuten;
+            e = w.Ausfuehren(k, new KarrenLosschicken(b.Name, new[] { 0 }, null));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Pruefe.Wahr(!karren.ZielHafen && karren.Handelsort == "Markt", "selbst gefahren zum Marktplatz");
+            Pruefe.Gleich(los + w.Fahrzeit(b, Hand, true), karren.Ankunft);
         }),
 
         ("Hafenziel: Im Winter (Eisschollen) fährt derselbe Karren zum Marktplatz; schließt der Hafen, während er zum Hafen unterwegs ist, " +
