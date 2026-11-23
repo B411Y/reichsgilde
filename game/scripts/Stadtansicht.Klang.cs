@@ -162,7 +162,7 @@ public partial class Stadtansicht
         if (m.Dom is { } domQuelle) m.Kirchen.Add((domQuelle, true));
         foreach (var g in _karte?.Gebaeude ?? new List<Reichsgilde.Core.Bauen.Kartengebaeude>())
         {
-            if (g.Katalog is "dom" or "koelner_dom") { if (m.Dom is null) m.Kirchen.Add((new KlangStadtlebenModell.Quelle((float)g.Punkt[0], (float)g.Punkt[1], Seite(new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]))), true)); continue; }
+            if (g.Katalog is "dom" or "dom_katholisch" or "koelner_dom") { if (m.Dom is null) m.Kirchen.Add((new KlangStadtlebenModell.Quelle((float)g.Punkt[0], (float)g.Punkt[1], Seite(new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]))), true)); continue; }
             if (g.Katalog is not "kirche" && !g.Katalog.StartsWith("kirche_")) continue;
             var ort = new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]);
             m.Kirchen.Add((new KlangStadtlebenModell.Quelle(ort.X, ort.Z, Seite(ort)), false));

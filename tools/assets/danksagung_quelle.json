@@ -200,6 +200,7 @@
           "deckt": [
             "game/assets/texturen/neubau/*trim_",
             "game/assets/texturen/neubau/rathaus*trim_",
+            "game/assets/texturen/neubau/dom*trim_",
             "game/assets/texturen/neubau/bodenfleck",
             "game/assets/texturen/neubau/raeume_innen_trim_",
             "game/assets/texturen/neubau/{trim_s2,trim_s3,innen_trim_s23}",

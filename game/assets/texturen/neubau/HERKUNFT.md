@@ -119,3 +119,24 @@ Die AO-Atlanten `wohnhaus_halbling{,_innen}_ao_atlas.png` sind keine Fremdtextur
 Nach den Vorlagen „Wohnhaus Halbling, Stufe 2/3“ (Nutzer 18.11.2026) mit `tools/modelle/neubau/trimsheet_halbling.py --nur=s23`: `trim_s2_halbling` ist `trim_halbling` (Fachwerk, Lehmputz, Holz der Halblinge) mit den Schieferbändern von `trim_s3` (Poly Haven `roof_slates_02`, oben) ins Blaue getönt und K6 (`medieval_red_brick`, Tabelle oben) im Band „bruchstein“; `trim_s3_halbling` ist `trim_s3` (Werkstein im Band „putz“) mit dem Holz der Halblinge, blau getöntem Schiefer im Band „stroh_franse“, K6 im Band „bruchstein“ und im Band „stroh“ Kupferblech mit Grünspan (Gaubendächer, First) – selbst gemalt im Skript (numpy: Wolken, Laufspuren, Stehfalze; keine Fremdtextur, keine Bild-KI). `innen_trim_s23_halbling` ist `innen_trim_s23` (Tonfliesen und Schachbrett im Bodenband) mit hellem, warmem Putz, Dielen und Balken der Halblinge und K2 im Steinband (Herd, Schlot); `raeume_innen_trim_halbling` ist `raeume_innen_trim` mit Putz, Dielen, Balken und Möbelholz der Halblinge und K2 im Band „bruchstein“. Alle übrigen Quellen stehen oben (Poly Haven, **CC0 1.0 Universal**). Farben: Proben aus den Kunstwerken (Zahlen im Kopf des Skripts). Keine Bild-KI.
 
 Die AO-Atlanten `wohnhaus_halbling_s2_ao_atlas.png`, `wohnhaus_halbling_s3_ao_atlas.png` (2 × 2 Zellen zu 1024 Bildpunkten) und `wohnhaus_halbling_raeume_innen_ao_atlas.png` (Räume, 2 × 2 zu 512) sind gebackene Verdeckung der Modelle auf UV2 (Blender Cycles; Plätze in `tools/modelle/neubau/ao_atlas.json` bzw. `tools/modelle/raeume/ao_atlas.json`); die Wohnstuben der Stufen 2/3 liegen in den Zellen 4–11 von `wohnhaus_halbling_innen_ao_atlas.png`.
+
+## Dome (Paket 1: Dom katholisch)
+
+`dom_trim_{albedo,normal,orm}.png` (Hülle) und `dom_innen_trim_{albedo,normal,orm}.png` (Innenraum), je 2048 × 2048, packt `tools/modelle/neubau/dom_trimsheet.py` (mit den Funktionen von `trimsheet.py`) aus zehn CC0-Texturen von Poly Haven, abgerufen am 23.11.2026 wie oben (2K-JPG: Farbe, Normale OpenGL, ARM). Bänder: `BAENDER_DOM` und `BAENDER_DOM_INNEN` im Skript. Lizenz wie oben (CC0 1.0). Alle zehn sind oben schon genannt (Urheber und Seiten dort), keine neue Quelle:
+
+| Asset-ID | Verwendet für |
+|---|---|
+| `roof_slates_02` | außen: Schiefer, Schieferkante (Alpha selbst erzeugt) |
+| `sandstone_blocks_08` | außen und innen: grauer Werkstein der Mauern (grau umgefärbt) und gelblicher Sandstein (Strebepfeiler, Ecken, Bögen, Stufen) |
+| `white_plaster_rough_01` | außen und innen: glatter heller Stein (Maßwerk, Fialen, Gesimse, Pfeiler, Rippen), innen der Putz der Gewölbekappen; Farbfelder |
+| `castle_wall_slates` | außen: dunkler Sockel |
+| `rough_wood` | außen: Balken des Glockenstuhls |
+| `old_planks_02` | außen: Türblätter |
+| `rusty_metal_02` | außen und innen: Eisen; umgefärbt Gold, Bronze, Messing, Blei, Kupfer (Farbfelder), innen das vergoldete Retabel |
+| `large_floor_tiles_02` | innen: Schachbrettboden (helle und dunkle Platten, Fugen selbst erzeugt) |
+| `dark_wooden_planks` | innen: dunkle Eiche (Bänke, Chorgestühl, Kanzel, Türen) |
+| `velour_velvet` | innen: roter Stoff (Fahnen, Läufer, Antependium) und weißes Leinen (umgefärbt) |
+
+Nachbearbeitung wie oben (Umfärben je Band, gemalte Kanten); dazu die ausgezahnte Unterkante der Schieferkante (Alpha aus einem Zufallsprofil), das Schachbrett (acht Platten je Blattbreite, abwechselnd hell und dunkel, dunkle Fugen), die Kehlen im Goldband und Farbfelder für Kleinteile. Keine Bild-KI.
+
+`dom_ao_atlas.png` und `dom_innen_ao_atlas.png` (je 2048 × 2048, 2 × 2 Zellen zu 1024 Bildpunkten, eine Zelle je Dom) sind gebackene Verdeckung der Dom-Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/rathaus_bib.py`; Plätze in `tools/modelle/neubau/ao_atlas.json`, Gruppen „dom“ und „dom_innen“), keine Fremdtexturen.

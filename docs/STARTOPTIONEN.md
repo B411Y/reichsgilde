@@ -29,6 +29,7 @@ Startoptionen (nach `--`). Jede Option steht einmal in einer Tabelle (Option, We
 | `--glaube` | `<Katholisch\|Evangelisch\|Altahtnisch\|Neuahtnisch\|Naturglaube>` | Konfession des eigenen Hauses bei einer neuen Partie (altahtnisch nur Zwerge, Elben, Halblinge; Naturglaube nur Orks und Oger) | Spiel |
 | `--tempo` | `<1–32>` |  | Spiel |
 | `--innen` | `1` | (eigene Werkstatt) oder `--innen=Rathaus\|Dom\|wohnhaus:<Inhaber>` (`--innen=wohnhaus` = das eigene Wohnhaus; Prüfhilfe Wohnstube mit Bewohnern: `--innen=wohnhaus --charakter-ehe=1 --vermoegen=30000 --startstunde=21` – ohne `--vermoegen=30000` kommt die Ehe nicht zustande und die Ehefrau fehlt; das Oberhaupt sitzt nur außerhalb der Arbeitszeit am Tisch, die Ehefrau steht am Herd) | Spiel |
+| `--neuerdom` | `1` | setzt auf Karten mit dem Dom des Katalogs (`dom`, nicht Köln) den Neubau `gebaeude/neubau/dom_katholisch.glb` an seine Stelle, mit dem Innenraum im Haus selbst (`Stadtansicht.Domneubau.cs`); die belegte Fläche des Neubaus ist größer (20 × 38 m statt 12,5 × 30,2 m), bis die Karten ihn tragen (Paket 3), ragt er über die alte Fläche. Mit `--innen=Dom` steht die Raumkamera im Mittelgang | Spiel |
 | `--raum` | `<Nummer>` | mit `--innen`: Raum der Raumleiste, 1 = erster | Spiel |
 | `--innenblick` | `<0\|L1\|L2\|R1\|R2\|O1\|U1>` | mit `--innen`: Blickpunkt des Raums, was das Modell hat | Spiel |
 | `--modellstufe` | `<1\|2\|3>` | alle Gebäudemodelle und ihre Räume zeigen diese Stufe, ohne Ausbau; nur für Bildschirmfotos aller Räume, z. B. `--innen=1 --raum=4 --modellstufe=3` | Spiel |

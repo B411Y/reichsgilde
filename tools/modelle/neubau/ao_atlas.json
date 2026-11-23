@@ -656,5 +656,7 @@
       "eck_a": 26,
       "eck_b": 27
     }
-  }
+  },
+  "dom": {"datei": "dom_ao_atlas.png", "kante": 2048, "zellen": 2, "plaetze": {"dom_katholisch": 0}},
+  "dom_innen": {"datei": "dom_innen_ao_atlas.png", "kante": 2048, "zellen": 2, "plaetze": {"dom_katholisch": 0}}
 }
