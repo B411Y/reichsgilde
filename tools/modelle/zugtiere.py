@@ -982,10 +982,10 @@ def clips_schreiben(art, cfg, clips, daten, zug=None):
                    "laufenden Durchlaufs (Bild 0), dann Anhalten_X mit Blendzeit 0; danach Stehen mit Blendzeit 0,05 s.",
         "gespann": "Anker_Geschirr (Zugpunkt, Blickrichtung des Tiers) hängt am eigenen, nie bewegten Knochen Geschirr (Kind des Wurzelknochens, in Godot ein BoneAttachment3D) "
                    "und liegt in ALLEN Clips fest auf der mittleren Lage des Geschirrs im Ziehen (gemessene Abweichung 0,0 mm in Stehen, Gehen, Ziehen); Kummet bzw. Joch wippen mit dem Rumpf darunter "
-                   "(Pferd +-35 mm, Ochse +-50 mm), die Zugstränge geben nach. Beim Anhalten gibt es deshalb keinen Sprung am Karren. "
+                   "(Pferd +-10 mm seitlich und +-10 mm hoch, Ochse +-50 mm), die Zugstränge geben nach. Beim Anhalten gibt es deshalb keinen Sprung am Karren. "
                    "Platzierung: Tier-Wurzel = Position(Anker_Deichsel des Karrens) - Drehung(Karren) * tiere.<art>.anker_ziehen_godot (x, Höhe, Strecke vor dem Ursprung; "
-                   "Godot-Koordinaten; Pferd 1,56 m hoch, 0,67 m vor dem Ursprung, Ochse 1,56 m und 1,03 m; anker_lokal_godot ist derselbe Wert); "
-                   "Ausrichtung des Tiers = Ausrichtung des Karrens (beide blicken nach +Z). Im Stehen sitzt das Kummet 8 cm (Pferd) bzw. 12 cm (Ochse) höher als im Ziehen "
+                   "Godot-Koordinaten; Pferd 1,28 m hoch, 0,67 m vor dem Ursprung (Ringmitte des Kummets im Ziehen), Ochse 1,56 m und 1,03 m; anker_lokal_godot ist derselbe Wert); "
+                   "Ausrichtung des Tiers = Ausrichtung des Karrens (beide blicken nach +Z). Im Stehen sitzt das Kummet 6,8 cm (Pferd) bzw. 12 cm (Ochse) höher als im Ziehen "
                    "(der Rumpf sinkt beim Gehen und Ziehen, sonst erreichen die Beine ihre Hufziele nicht), der Anker nicht. Beim Zweispänner Anker_Pferd_L (x = +0,62) und Anker_Pferd_R (x = -0,62) statt Anker_Deichsel "
                    "(Abstand der Tiere 1,24 m).",
         "blendzeit_gehen_ziehen": {"pferd": 0.4, "ochse": 0.6},
@@ -995,7 +995,7 @@ def clips_schreiben(art, cfg, clips, daten, zug=None):
                        "Wechsel zwischen Stehen, Stehen-Varianten und Anfahren_/Anhalten_ sind ohne Blendzeit möglich (Abstand höchstens 2,2 mm).",
         "mehrere_tiere": "Zwei Pferde nie im Gleichtakt: das zweite startet Gehen/Ziehen mit seek(0,5 · Dauer) bzw. um diese Zeit später "
                          "(Fußfolge gegen das erste verschoben); Stehen-Varianten je Tier zufällig und zeitlich versetzt.",
-        "lod": "Dreiecksbudget (Runde 11): Nahnetz Pferd rund 11 700, Ochse 6 170 Dreiecke; Fernnetz Pferd rund 1 250, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 11 700 = 23 400 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Fernnetz der Pferde liegt 10 mm höher (Decimate-Ausgleich).",
+        "lod": "Dreiecksbudget (Pferd B, 23.11.2026): Nahnetz Pferd 9 022 Dreiecke (Pferd 7 990 plus Geschirr 1 032), Ochse 6 170; Fernnetz Pferd 1 614, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 9 022 = 18 044 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Pferd trägt eine Albedo-Textur (ein Atlas, UV im Netz, Mähne als Alpha-Maske), der Ochse Eckenfarben.",
         "vat": "Gehen und Ziehen mit 24 Bildern je Sekunde backen (nicht 12): Mitte zwischen zwei Bildern höchstens rund 1 cm Abweichung, "
                "bei 12 rund 7 bis 9 cm (siehe docs/bereiche/darstellung.md).",
     }
@@ -1563,6 +1563,8 @@ def main():
     for datei, art, variante in DATEIEN:
         if nur and datei.replace("tier_", "") not in nur:
             continue
+        if art == "pferd" and "--altes-pferd" not in sys.argv:
+            continue                      # das Pferd kommt seit 23.11.2026 aus tools/modelle/pferd2_*.py (Modell von henrysteve973); --altes-pferd baut das frühere (Quaternius)
         ske, ob, fern, anker, zug = bauen(datei, art, variante)
         if "--ohne-bilder" not in sys.argv:
             vorschau(datei, art, ske, zug, "--schnell" in sys.argv)
