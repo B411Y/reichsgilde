@@ -221,7 +221,7 @@ public partial class Hauptszene
             var zusatz = Math.Abs(abweichung) < 0.05 ? "" : $" · {Zahlenformat.MitVorzeichen(abweichung * 100)} % zum Grundpreis";
             zeilen.Add(new LadeZeile(ware, $"{Zahlenformat.Kommazahl(stand.Preis)} {waehrung}{zusatz}"));
         }
-        var befehle = new List<LadeBefehl> { new("Markt öffnen", "M", "alle Waren und Preise, Handelsauftrag für einen Karren", null, Weiter(MarktOeffnen)) };
+        var befehle = new List<LadeBefehl> { new("Markt öffnen", "M", w.VerwalterhandelVerboten(s) is not null ? "alle Waren und Preise, Handel mit dem Karren am Markt" : "alle Waren und Preise, Handelsauftrag für einen Karren", null, Weiter(MarktOeffnen)) };
         return new LadeInhalt("Markt", waren.Count == 0 ? "Der Markt der Stadt" : "Preise der Waren eurer Betriebe", zeilen, befehle);
     }
 
