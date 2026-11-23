@@ -632,7 +632,7 @@ def laeden_zu_anlegen(stufe):
         (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
         t0, t1 = fensterhoehe(wand, z0)
         felder = zt.felder_der_lage(S23.LAGEN[wand], breite, S23.loecher(wand), t0, t1)
-        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG)
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG, nebeneinander=False)
     S23.fachwerk_lage = fachwerk_lage
     alt_mauer = S23.steinwand
 
@@ -644,7 +644,7 @@ def laeden_zu_anlegen(stufe):
         achsen, _ = M.raster(breite)
         felder = zt.felder_der_mauer(achsen, M.BW, breite, S23.loecher(wand))
         zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0, t1, f"{haus()}|{wand}",
-                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG)
+                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG, nebeneinander=False)
     S23.steinwand = steinwand
     alt_fahne = S23.baue_fahne
 
