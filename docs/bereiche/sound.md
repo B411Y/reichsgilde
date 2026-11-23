@@ -42,6 +42,7 @@ Plan (Schritte in dieser Reihenfolge):
 - (Musik) **Ahtnisch stumm:** Die zwei Stücke („Ahtnisch“, „Ahtnisch (V2)“) liegen da und sind in `musik.json` mit `glaube: Ahtnisch`; `MusikModell.GlaubeName` liefert aber nur Katholisch und Evangelisch, weil der Kern kein Ahtnentum kennt (nur `Konfession` Katholisch, Evangelisch, Naturglaube). Sobald es das gibt, dort den Fall ergänzen – sonst nichts. Naturglaube (Orks, Oger) wird **nicht** auf Ahtnisch abgebildet (Annahme, bitte bestätigen).
 - (Musik) Das Stück „Frühlingsauftakt“: Tippfehler der Suno-Quelle („Frühlungsauftakt“) ist in Titel und Dateiname korrigiert.
 - (Musik) Dateigröße: 48 Stücke zusammen etwa 131 MB (Runde 1: 23 Stücke 70 MB, Runde 2: 25 Stücke 61 MB; OGG Vorbis Stereo etwa 110–160 kbit/s). Falls das Repository zu groß wird: Qualität senken (`OGG_QUALITAET` in `tools/ton/musik_bauen.py`, `OGG_Q` in `tools/ton/musik_runde2_bauen.py`) oder auf Git LFS legen (Entscheidung Teamleiter).
+- (von Kern, Ahtnentum) Der Kern kennt jetzt `Konfession.Altahtnisch` und `Konfession.Neuahtnisch` (`k.Religion() == Religion.Ahtnentum`): `MusikModell.GlaubeName` kann für beide „Ahtnisch“ liefern; `MusikRegelnTests` (Prüfung „Ahtnisch darf erst mit dem Ahtnentum im Kern kommen“) dabei umstellen.
 
 ## Entscheidungen
 
