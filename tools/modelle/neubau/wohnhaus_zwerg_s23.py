@@ -282,7 +282,7 @@ def schicht_anlegen(stufe):
             eisengitter(h)
             tuerbeschlaege(h)
             print("DREIECKE Eisengitter:", h.dreiecke() - vorher)
-        if stufe == 3: zt.entflimmern(h)                  # Geometriepruefung: deckungsgleiche gleichlaufende Flaechen
+        if stufe == 3: zt.entflimmern(h)                  # Geometriepruefung: deckungsgleiche gleichlaufende Flaechen (mit Abstandsprobe 3 mm, 0005)
         return h
     S23.baue_haus = haus
     # Fahnenmast: auf dem First verankert (stand bisher 25 cm ueber der Unterseite des Firsts frei ueber der Deckung)

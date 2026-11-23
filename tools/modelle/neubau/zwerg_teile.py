@@ -578,16 +578,18 @@ def _proben(poly):
     return [(mx, my)] + [(p[0] + (mx - p[0]) * 0.08, p[1] + (my - p[1]) * 0.08) for p in poly]
 
 
-def entflimmern(h, schritt=0.004, mindest_cm2=1.0, nur_stoff=None):
+def entflimmern(h, schritt=0.004, mindest_cm2=1.0, nur_stoff=None, abstand=0.003, versuche=(1.0, 1.75)):
     """Deckungsgleiche gleichlaufende Flaechen (Geometriepruefung Opus 23.11.2026, Flimmern und schwarze Flecken: zwei Flaechen in einer Ebene, gleiche Normale,
-    ueberlappend): die spaeter gebaute wird um `schritt` (4 mm) je ueberlappender Vorgaengerin entlang ihrer Normalen nach aussen gerueckt. Gibt die Zahl der
-    verschobenen Flaechen zurueck. Vergleich ueber die Hüllquader in der Ebene (Ueberlappung ab `mindest_cm2`); Flaechen mit weniger als drei Punkten bleiben."""
+    ueberlappend): die spaeter gebaute wird um `schritt` (4 mm) entlang ihrer Normalen nach aussen gerueckt, aber nur dorthin, wo danach KEINE andere ueberlappende
+    Flaeche mit gleicher Normale naeher als `abstand` (3 mm) liegt (Nachpruefung 0004: 4 mm weiter lag sie 1 mm hinter der Wandflaeche und flimmerte schwarz). Es werden
+    nacheinander die Vielfachen `versuche` (4 mm, 7 mm) probiert; passt keines, bleibt die Flaeche, wo sie ist (Zahl im Protokoll). Gibt die Zahl der verschobenen Flaechen zurueck."""
     from collections import defaultdict
     gruppen = defaultdict(list)
+    eimer = defaultdict(list)                                         # gleiche Normale (auf 0,02 gerundet): alle Flaechen zum Abstandstest
     info = {}
     for i, f in enumerate(h.flaechen):
         pts = [Vector(p) for p in f[0]]
-        if len(pts) < 3 or f[2] == "Efeublatt" or (nur_stoff and f[2] not in nur_stoff): continue                   # Blattkarten liegen absichtlich 4 mm hintereinander
+        if len(pts) < 3 or f[2] == "Efeublatt": continue            # Blattkarten liegen absichtlich 4 mm hintereinander
         n = Vector()
         for k in range(len(pts)):
             a, b = pts[k], pts[(k + 1) % len(pts)]
@@ -599,21 +601,33 @@ def entflimmern(h, schritt=0.004, mindest_cm2=1.0, nur_stoff=None):
         achsen = [c for c in range(3) if c != ax]
         lo = (min(p[achsen[0]] for p in pts), min(p[achsen[1]] for p in pts))
         hi = (max(p[achsen[0]] for p in pts), max(p[achsen[1]] for p in pts))
+        info[i] = (pts, n, lo, hi, [(p[achsen[0]], p[achsen[1]]) for p in pts], d)
+        eimer[(round(n.x, 2), round(n.y, 2), round(n.z, 2))].append(i)
+        if nur_stoff and f[2] not in nur_stoff: continue
         gruppen[(round(n.x, 3), round(n.y, 3), round(n.z, 3), round(d / 0.0005))].append(i)
-        info[i] = (pts, n, lo, hi, [(p[achsen[0]], p[achsen[1]]) for p in pts])
-    verschoben = 0
+
+    def ueberlappt(i, j):
+        _, _, lo, hi, poly, _ = info[i]; _, _, lo2, hi2, poly2, _ = info[j]
+        ux, uy = min(hi[0], hi2[0]) - max(lo[0], lo2[0]), min(hi[1], hi2[1]) - max(lo[1], lo2[1])
+        return ux > 0 and uy > 0 and ux * uy * 1e4 >= mindest_cm2 and (any(_im_vieleck(q, poly2) for q in _proben(poly)) or any(_im_vieleck(q, poly) for q in _proben(poly2)))
+    verschoben = verzichtet = 0
     for idx in gruppen.values():
         if len(idx) < 2: continue
         for k, i in enumerate(idx):
-            pts, n, lo, hi, poly = info[i]
-            zahl = 0
-            for j in idx[:k]:
-                _, _, lo2, hi2, poly2 = info[j]
-                ux, uy = min(hi[0], hi2[0]) - max(lo[0], lo2[0]), min(hi[1], hi2[1]) - max(lo[1], lo2[1])
-                if ux > 0 and uy > 0 and ux * uy * 1e4 >= mindest_cm2 and (any(_im_vieleck(q, poly2) for q in _proben(poly)) or any(_im_vieleck(q, poly) for q in _proben(poly2))): zahl += 1
-            if zahl:
-                f = h.flaechen[i]
-                h.flaechen[i] = ([p + n * (schritt * zahl) for p in pts], f[1], f[2], f[3], f[4])
-                verschoben += 1
-    print(f"ENTFLIMMERN: {verschoben} Flaechen um {schritt * 1000:.0f} mm je ueberlappender Vorgaengerin nach aussen gerueckt")
+            pts, n, lo, hi, poly, d = info[i]
+            zahl = sum(1 for j in idx[:k] if ueberlappt(i, j))
+            if not zahl: continue
+            n_key = (round(n.x, 2), round(n.y, 2), round(n.z, 2))
+            nachbarn = [j for j in eimer[n_key] if j != i and abs(info[j][5] - d) < 0.03 and ueberlappt(i, j)]
+            for v in versuche:
+                o = schritt * zahl * v
+                if all(abs(info[j][5] - (d + o)) >= abstand for j in nachbarn):
+                    f = h.flaechen[i]
+                    h.flaechen[i] = ([p + n * o for p in pts], f[1], f[2], f[3], f[4])
+                    info[i] = (h.flaechen[i][0], n, lo, hi, poly, d + o)
+                    verschoben += 1
+                    break
+            else:
+                verzichtet += 1
+    print(f"ENTFLIMMERN: {verschoben} Flaechen um 4 mm je ueberlappender Vorgaengerin nach aussen gerueckt, {verzichtet} bleiben (kein freier Abstand von 3 mm)")
     return verschoben

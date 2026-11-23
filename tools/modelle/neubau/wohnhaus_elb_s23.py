@@ -520,7 +520,6 @@ def holz_zier(h):
             if abs(x - xt) < 0.95: continue                         # nicht ueber der Laube
             h.kasten("Fachwerk", (x - 0.06, M.VORN - 0.34, M.Z_EG_DECKE - 0.10), (x + 0.06, M.VORN - 0.06, M.Z_EG_DECKE - 0.0), "balken_c", ohne=("+z",), laengs="y")
             h.kasten("Fachwerk", (x - 0.04, M.VORN - 0.40, M.Z_EG_DECKE - 0.085), (x + 0.04, M.VORN - 0.34, M.Z_EG_DECKE - 0.015), "balken_c", laengs="y")      # Schnittprofil: abgesetztes Kopfende
-            h.kasten("Fachwerk", (x - 0.075, M.VORN - 0.31, M.Z_EG_DECKE - 0.115), (x + 0.075, M.VORN - 0.29, M.Z_EG_DECKE + 0.005), "balken_c", ohne=("+z",), laengs="y")   # Ring am Kopf
     S23.holz_akzent(h, bau)
 
 
