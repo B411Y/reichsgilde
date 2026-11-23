@@ -106,20 +106,20 @@ SAETZE = {
     "zwerg_s2": dict(blatt="trim_s2_zwerg", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=48, neig_t=42,
                      mauer_band="putz", werk_band="bruchstein", erker=True, treppe=False, fb=0.8, putz_lage=1.6),
     "zwerg_s3": dict(blatt="trim_s3_zwerg", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.0, 2.6, 2.4), neig_g=48, neig_t=42,
-                     mauer_band="putz", werk_band="bruchstein", erker=True, treppe=True, fb=0.8, putz_lage=1.6),
+                     mauer_band="putz", werk_band="bruchstein", erker=True, treppe=True, fb=0.8, putz_lage=1.6, erker_quader=True),
     "elb_s1": dict(blatt="trim_elb", eg="putz", og="putz", dach="schindel", geschosse=(3.2, 2.8), neig_g=58, neig_t=52,
                    mauer_band="bruchstein", werk_band="bruchstein", erker=False, treppe=False, fb=0.6, putz_lage=1.6),
     "elb_s2": dict(blatt="trim_s2_elb", eg="putz", og="fachwerk", dach="ziegel", geschosse=(3.4, 3.0), neig_g=58, neig_t=52,
                    mauer_band="bruchstein", werk_band="bruchstein", erker=True, treppe=False, fb=0.6, putz_lage=1.6),
     "elb_s3": dict(blatt="trim_s3_elb", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.4, 2.5, 2.5), neig_g=58, neig_t=52,
-                   mauer_band="bruchstein", werk_band="putz", erker=True, treppe=False, fb=0.6, putz_lage=1.6),
+                   mauer_band="bruchstein", werk_band="putz", erker=True, treppe=False, fb=0.6, putz_lage=1.6, erker_band="putz"),
     "halbling_s1": dict(blatt="trim_halbling", eg="fachwerk", og="fachwerk", dach="stroh", geschosse=(3.0, 1.0), neig_g=48, neig_t=45,
                         mauer_band="bruchstein", werk_band=None, erker=False, treppe=False, fb=0.7, putz_lage=1.6),
     "halbling_s2": dict(blatt="trim_s2_halbling", eg="mauer", og="fachwerk", dach="ziegel", geschosse=(3.0, 2.6), neig_g=50, neig_t=45,
                         mauer_band="bruchstein", werk_band=None, erker=True, treppe=False, fb=0.7, putz_lage=1.6),
     "halbling_s3": dict(blatt="trim_s3_halbling", eg="mauer", og="mauer", dach="ziegel", geschosse=(3.2, 2.8), neig_g=50, neig_t=45,
                         mauer_band="bruchstein", werk_band="putz", erker=True, treppe=True, fb=0.7, putz_lage=1.6,
-                        first_v=(0.14, 0.17), grat_band="stroh_franse"),
+                        first_v=(0.14, 0.17), grat_band="stroh_franse", erker_quader=True),
 }
 BANDLAGE = {"bruchstein": 0.4, "putz": 1.6}      # natuerliche Hoehe eines Bandes in Metern (Bandhoehe x Breite des Bands / 2048)
 MODULE = ["k_g4", "k_g6", "k_g8", "k_t6", "k_t8", "seite_blind", "seite_offen", "kappe_brand", "kappe_offen", "gasse", "eck",
@@ -630,6 +630,10 @@ def geschoss(teil, ebene, b, z0, z1, oeffnungen, art, anker, modul, sockel=False
     if mit_quader:   # Quader, die eine Oeffnung beruehren, entfallen
         felder = [q for q in quaderfelder(b, z_wand, z1)
                   if not any(q[0] < o[1] + 0.05 and o[0] - 0.05 < q[1] and q[2] < o[3] and o[2] < q[3] for o in oeffnungen)]
+        # Hausecke unter dem Erker ohne Eckquader (quader_weg: "anfang" = s 0, "ende" = s b), sonst liefe mit den Quadern des
+        # Erkers ein heller Strich vom Dach bis zum Boden (Bildpruefung Runde 3, 22.11.2026)
+        weg = S.get("quader_weg")
+        felder = [q for q in felder if not (weg == "anfang" and q[0] < 1e-6 or weg == "ende" and q[1] > b - 1e-6)]
         loecher = loecher + felder
     if art == "mauer":
         band = S["mauer_band"]
@@ -682,6 +686,21 @@ def quaderfelder(b, z0, z1):
         lang = 0.55 if k % 2 == 0 else 0.32
         for links in (True, False):
             s0, s1 = (0.0, lang) if links else (b - lang, b)
+            felder.append((s0, s1, z0 + k * hoch, z0 + (k + 1) * hoch - 0.015))
+    return felder
+
+
+def erker_quaderfelder(b, z0, z1, enden, versatz):
+    """Eckquader des Erkers: wie quaderfelder, aber schmaler (lang 0,3 m, kurz 0,2 m; die Fenster beginnen 0,35 m vom Rand).
+    `enden`: (am Anfang s = 0, am Ende s = b); `versatz` 1 tauscht lang und kurz (Verzahnung mit der Nachbarwand an derselben Kante)."""
+    n = max(1, int(round((z1 - z0) / 0.4)))
+    hoch = (z1 - z0) / n
+    felder = []
+    for k in range(n):
+        lang = 0.3 if (k + versatz) % 2 == 0 else 0.2
+        for am_anfang, an in zip((True, False), enden):
+            if not an: continue
+            s0, s1 = (0.0, lang) if am_anfang else (b - lang, b)
             felder.append((s0, s1, z0 + k * hoch, z0 + (k + 1) * hoch - 0.015))
     return felder
 
@@ -1214,8 +1233,12 @@ def eckhaus(modul):
     rechts, rechts_og = Ebene((B, 0, 0), (0, 1, 0), (0, 0, 1), innen), Ebene((Q, oy, 0), (0, 1, 0), (0, 0, 1), innen)
     links = Ebene((0, B, 0), (0, -1, 0), (0, 0, 1), innen)
     hinten, hinten_og = Ebene((B, B, 0), (-1, 0, 0), (0, 0, 1), innen), Ebene((Q, B, 0), (-1, 0, 0), (0, 0, 1), innen)
+    erker_quader = S["erker"] and S.get("erker_quader")
+    S["quader_weg"] = "ende" if erker_quader else None        # vorn: die Ecke unter dem Erker liegt bei s = B
     fassade(h, vorn, B, z_t, vorn_og, anker, modul, 3, 4, True, tuer_links=False, b_og=Q, traufe=0.1)
+    S["quader_weg"] = "anfang" if erker_quader else None      # rechts: bei s = 0
     fassade(h, rechts, B, z_t, rechts_og, [], modul, 3, 4, False, b_og=Q, traufe=0.1)
+    S["quader_weg"] = None
     krag_boden(h, 0.0, Q, 0.0, oy, z_og, -1)
     if k > 0:   # Untersicht der Auskragung rechts
         v0, v1, m = BA["planken"]
@@ -1285,13 +1308,23 @@ def erker(h, Q, oy):
     z0, z1 = S["z_og"] - 0.3, S["z_traufe"] - 0.2
     x0, x1, y0, y1 = Q - 1.2, Q + 0.6, oy - 0.6, oy + 1.2
     mitte = ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)
-    for o, eu, breite in (((x0, y0, 0), (1, 0, 0), x1 - x0), ((x1, y0, 0), (0, 1, 0), y1 - y0)):
+    # erker_band (nur elb_s3): Erker in Werkstein K5 statt im Mauerband, damit er sich absetzt. Nicht bei den anderen Steinsaetzen: Das
+    # Putzband von mensch_s3 und halbling_s3 ist im Spiel einfarbig (Streuung 2 von 255, ohne Fugen), der helle Haustein der Zwerge S3
+    # liegt auch in den Eckquadern darunter – der Erker verschmolze mit ihnen zu einem Pfeiler (Bildpruefung 22.11.2026).
+    stein = S["og"] == "mauer" or S.get("gefach") == "stein"
+    wand_band = S.get("erker_band") or (S["mauer_band"] if stein else "putz")
+    # erker_quader (zwerg_s3, halbling_s3; Teamleiter 22.11.2026 nach Bildpruefung Runde 2): Im Mauerband las sich der Erker wie eine
+    # Hausecke. Darum Eckquader aus Werkstein (werk_band, wie im Erdgeschoss) an den Erkerkanten; die Waende bleiben im Mauerband.
+    quader = S.get("erker_quader")
+    for nr, (o, eu, breite) in enumerate((((x0, y0, 0), (1, 0, 0), x1 - x0), ((x1, y0, 0), (0, 1, 0), y1 - y0))):
         eb = Ebene(o, eu, (0, 0, 1), mitte)
-        loecher = [(0.35, breite - 0.35, fa, fz) for g0, g1, _, eg in stockwerke() if not eg for fa, fz in [fenster_hoehen(g0, g1, False)]]
-        stein = S["og"] == "mauer" or S.get("gefach") == "stein"
-        band = S["mauer_band"] if stein else "putz"
+        rand = 0.4 if quader else 0.35     # mit Eckquadern (bis 0,3 m) ein Stueck Wand zwischen Quader und Fenster
+        loecher = [(rand, breite - rand, fa, fz) for g0, g1, _, eg in stockwerke() if not eg for fa, fz in [fenster_hoehen(g0, g1, False)]]
+        felder = erker_quaderfelder(breite, z0, z1, (True, True), nr) if quader else []
+        band = wand_band
         lagenflaeche(h, "Bruchstein" if stein else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)],
-                     band, BANDLAGE[band], loecher)
+                     band, BANDLAGE[band], loecher + felder)
+        if felder: eckquader(h, eb, felder)
         if S["og"] == "fachwerk" and S.get("fachwerk_echt"):   # Eckpfosten und Fensterrahmen als eine Holzlage
             lage = Holzlage(); S["holzlage"] = lage; S["holzlage_b"] = breite
             for sx in (0.06, breite - 0.06):
@@ -1308,17 +1341,41 @@ def erker(h, Q, oy):
                 h.brett("Fachwerk", eb.p(sx, z0), eb.p(sx, z1), 0.12, n, "balken_a", tiefe=0.04)
         for loch in loecher: fenster(h, eb, loch, laeden=False)
     # die zwei kurzen Seiten zwischen Erker und Hauswand (0,6 m, ohne Fenster)
-    for o, eu, breite in (((x0, oy, 0), (0, -1, 0), oy - y0), ((Q, y1, 0), (1, 0, 0), x1 - Q)):
+    for o, eu, breite, versatz in (((x0, oy, 0), (0, -1, 0), oy - y0, 1), ((Q, y1, 0), (1, 0, 0), x1 - Q, 0)):
         eb = Ebene(o, eu, (0, 0, 1), mitte)
-        stein = S["og"] == "mauer" or S.get("gefach") == "stein"
-        band = S["mauer_band"] if stein else "putz"
-        lagenflaeche(h, "Bruchstein" if stein else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)], band, BANDLAGE[band])
-    h.kasten("Bruchstein", (x0, y0, z0 - 0.25), (x1, y1, z0), "bruchstein", ohne=("-x", "-y"))
+        # nur an der Aussenkante, gegen die anstossende Erkerwand versetzt (lang trifft kurz)
+        felder = erker_quaderfelder(breite, z0, z1, (False, True), versatz) if quader else []
+        lagenflaeche(h, "Bruchstein" if stein else "Lehmputz", eb, [(0, z0), (breite, z0), (breite, z1), (0, z1)], wand_band, BANDLAGE[wand_band],
+                     felder)
+        if felder: eckquader(h, eb, felder)
+    # Konsole: drei Lagen Kragstein, jede 0,2 m hoch und zur Hauswand hin um 0,2 m zurueckgesetzt (vorher eine 0,25 m dicke Platte, der
+    # die Stirn zur Gasse fehlte: ohne=("-x", "-y") liess die Seite y = y0 weg, die vorn aussen liegt). Nur die Oberseite entfaellt
+    # (unter dem Erker bzw. der Lage darueber); was in der Hauswand steckt, sieht man nicht.
+    # Band der Konsole: mit Erker-Eckquadern der Werkstein (Zwerge S3: heller Haustein mit Fugen; Halblinge S3: Werkstein der Eckquader,
+    # im Spiel einfarbig), sonst wie die Erkerwand bei den Steinsaetzen (Mauerwerk mit Fugen), sonst Bruchstein wie vorher
+    band_k = S["werk_band"] if quader else wand_band if stein else "bruchstein"
+    for lage_nr in range(3):
+        r = 0.2 * lage_nr
+        kragstein(h, Vector((x0, y0 + r, z0 - 0.2 * (lage_nr + 1))), Vector((x1 - r, y1, z0 - 0.2 * lage_nr)), band_k)
     spitze = Vector(((x0 + x1) / 2, (y0 + y1) / 2, z1 + 1.1))
     ecken = [Vector((x0 - 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y0 - 0.08, z1)), Vector((x1 + 0.08, y1 + 0.08, z1)), Vector((x0 - 0.08, y1 + 0.08, z1))]
     v0, v1, m = BA["stroh_franse"]
     for a, b in zip(ecken, ecken[1:] + ecken[:1]):
         h.vieleck("Stroh", [a, b, spitze], [(0, v1), ((b - a).length / m, v1), ((b - a).length / m / 2, v0)], weg_von=mitte)
+
+
+def kragstein(h, mn, mx, band):
+    """Eine Lage der Erkerkonsole: achsparalleler Kasten ohne Oberseite. Anders als Teil.kasten liest jede Seite nur den Teil des Bands,
+    der ihrer Hoehe entspricht (BANDLAGE), sonst waere das Putzband (1,6 m) auf 0,2 m zusammengedrueckt."""
+    mitte = (mn + mx) / 2
+    lage = BANDLAGE[band]
+    dx, dy, dz = mx.x - mn.x, mx.y - mn.y, mx.z - mn.z
+    ex, ey, ez = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
+    seiten = [(Vector((mn.x, mn.y, mn.z)), ex, ez, dx, dz), (Vector((mn.x, mx.y, mn.z)), ex, ez, dx, dz),
+              (Vector((mn.x, mn.y, mn.z)), ey, ez, dy, dz), (Vector((mx.x, mn.y, mn.z)), ey, ez, dy, dz),
+              (Vector((mn.x, mn.y, mn.z)), ex, ey, dx, dy)]
+    for o, eu, ev, b, hh in seiten:
+        h.rechteck("Bruchstein", o, eu, ev, b, hh, band, anteil=(0.0, min(1.0, hh / lage)), weg_von=mitte)
 
 
 # ── Keilstueck und Hinterhaus ────────────────────────────────────────────────────────────────────────────────────────
