@@ -72,7 +72,7 @@ static class HandelTests
             Minuten(sim, 31);
             Pruefe.Wahr(k.Laufend.Umsatz - umsatz > 9 * preisRing, "Ringe nicht verkauft");
             Pruefe.Wahr(b.Karren[0].LetzterHandel!.Contains("5 Gold"), b.Karren[0].LetzterHandel!);
-            Minuten(sim, 31);
+            Minuten(sim, 31 + w.Daten.Logistik.VerweilenMinuten); // nach dem Handel verweilt er am Markt (Datenversion 98)
             Pruefe.Gleich(5, b.ImLager("Gold"));
             Pruefe.Wahr(b.HaeltZurueck("Gold"), "Gold zurückgehalten");
             Pruefe.Wahr(k.Laufend.Zutaten >= kosten - 1e-6, "Einkauf verbucht");
@@ -166,7 +166,7 @@ static class HandelTests
             Pruefe.Gleich(1, kb.Karren[0].Vormerkung!.Verkauf["Silberring"]);
             Pruefe.Gleich(3, kb.Karren[0].Auftrag!.Kauf["Gold"]);
             Pruefe.Wahr(kb.HaeltZurueck("Gold"), "Zurückhalten gespeichert");
-            Minuten(sim, 70); Minuten(kopie, 70);
+            Minuten(sim, 90); Minuten(kopie, 90); // mit dem Verweilen am Markt (Datenversion 98)
             Pruefe.Gleich(b.ImLager("Gold"), kb.ImLager("Gold"));
             Pruefe.Gleich(3, kb.ImLager("Gold"));
             Pruefe.Ungefaehr(spieler.Vermoegen, kopieSpieler!.Vermoegen, 1e-9);

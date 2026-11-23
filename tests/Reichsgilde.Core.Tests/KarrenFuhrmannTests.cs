@@ -118,6 +118,8 @@ static class KarrenFuhrmannTests
             Pruefe.Gleich(KarrenZustand.ZumMarkt, karren.Zustand);
             Pruefe.Wahr(karren.Faehrt(sim.Zeit), "Hinweg bei offenem Tor");
             Ticken(sim, Um(19, 5));
+            Pruefe.Wahr(karren.Verweilt(sim.Zeit) && !karren.Faehrt(sim.Zeit), "verweilt nach dem Handel am Markt (Datenversion 98): nein");
+            Ticken(sim, Um(19, 25));
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, karren.Zustand);
             Pruefe.Wahr(karren.Faehrt(sim.Zeit), "Rückweg");
 
@@ -129,7 +131,7 @@ static class KarrenFuhrmannTests
             Ticken(sim2, Um(21, 30));
             Pruefe.Wahr(spaet.WartetAmTor(sim2.Zeit), "wartet am Tor");
             Pruefe.Wahr(!spaet.Faehrt(sim2.Zeit), "am geschlossenen Tor");
-            Ticken(sim2, Spielzeit.MinutenProTag + 2);
+            Ticken(sim2, Spielzeit.MinutenProTag + 22); // nach dem Verweilen am Markt
             Pruefe.Wahr(spaet.Faehrt(sim2.Zeit), "am Morgen nach dem Tor wieder unterwegs");
         }),
     };

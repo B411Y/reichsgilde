@@ -53,13 +53,14 @@ static class GewinnschaetzungHafenTests
         Pruefe.Gleich(KarrenZustand.ZumMarkt, karren.Zustand, "aufgebrochen");
         double ohne = 0;
         var offen = false;
-        for (var i = 0; i < Spielzeit.MinutenProTag && karren.Zustand != KarrenZustand.ZumBetrieb; i++)
+        // bis zum Verkauf (danach verweilt der Karren noch am Handelsort, Datenversion 98)
+        for (var i = 0; i < Spielzeit.MinutenProTag && b.Laufend.Umsatz <= 0; i++)
         {
             ohne = w.Markt[ware].Verkaufswert(stueck) * w.Familien.VerkaufsFaktor(k) * b.PreisFaktor;
             offen = w.Schiffahrt.HafenOffen;
             sim.Tick();
         }
-        Pruefe.Gleich(KarrenZustand.ZumBetrieb, karren.Zustand, "verkauft und auf dem Rückweg");
+        Pruefe.Wahr(karren.Verweilt(sim.Zeit) || karren.Zustand == KarrenZustand.ZumBetrieb, "verkauft, am Handelsort oder auf dem Rückweg");
         Pruefe.Wahr(b.Laufend.Umsatz > 0, "verkauft");
         return new Faktoren(schaetzung, vorschau, b.Laufend.Umsatz / ohne, jahrMit, jahrOhne, wertMit, wertOhne, karren.ZielHafen, offen);
     }
