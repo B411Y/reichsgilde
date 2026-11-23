@@ -82,7 +82,7 @@ ARRAYS = {
             # und Fachwerk (das Putzband bleibt Putz), Haustein K2; Steinhaus Mauer K2, Werkstein K5 im Putzband, danach der Efeu der
             # Mauer wieder aufgetragen (elb_bewuchs.py, dieselben Ranken wie im Blatt trim_s3_elb)
             ("elb_s2", "trim_s2_elb", {"bruchstein": "k2"}),
-            ("elb_s3", "trim_s3_elb", {"bruchstein": "k2", "putz": "k5"}, {"efeu": "bruchstein"}),
+            ("elb_s3", "trim_s3_elb", {"bruchstein": "k2"}),   # Patrizier (23.11.2026): Kalkputz mit Efeu im Band „putz“ wie Stufe 2, Werkstein K2 im Band „bruchstein“
             # Halblinge Stufe 2 und 3 nach den Vorlagen (Nutzer 18.11.2026; hinter den Elben angehaengt): roter Backstein K6
             # (medieval_red_brick) im Bruchsteinband (Buergerhaus: Erdgeschoss; Steinhaus: Mauer, Werkstein der Menschen im Putzband),
             # blaues Schieferdach, im Steinhaus Kupfer

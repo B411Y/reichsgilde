@@ -30,8 +30,8 @@ SCHIEFER_HELL = 0.33      # mittlerer Wert der Schieferbaender in der gespeicher
                           # in Blender nur dunkelgrau; Kunstwerke Stufe 2 und 3: mittelgrauer Schiefer
 
 
-ZIEGEL_TON = (0.56, 0.30, 0.22)       # Tonziegel der Zwerge Stufe 3 (Menschen Stufe 2: 0,52 / 0,33 / 0,26), etwas roetlicher
-ZIEGEL_HELL_ZWERG = 0.24              # mittlere Helligkeit der Dachbaender (Menschen 0,20)
+ZIEGEL_TON = (0.52, 0.30, 0.24)       # Tonziegel der Zwerge Stufe 3 (Menschen Stufe 2: 0,52 / 0,33 / 0,26), etwas roetlicher
+ZIEGEL_HELL_ZWERG = 0.20              # mittlere Helligkeit der Dachbaender (Menschen 0,20)
 
 
 def schiefer_aufhellen(blatt):

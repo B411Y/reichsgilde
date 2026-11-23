@@ -1719,7 +1719,7 @@ def main():
 
     mit_ao = "ohne-ao" not in opt
     uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], "wohnhaus_mensch", NAME, mit_ao=mit_ao)
-    uv2_und_ao([(o_raum, []), (o_einrichtung, o_raum)], "wohnhaus_mensch_innen", NAME, mit_ao=mit_ao)
+    uv2_und_ao([(o_raum, []), (o_einrichtung, o_raum)], "wohnhaus_mensch_innen", NAME, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen (unveraendert, spart Zeit)
 
     tuer = next(f for f in FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = KAMIN

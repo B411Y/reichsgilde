@@ -264,18 +264,18 @@ class QuelleAcg(Quelle):
         return hole(self.farbe), hole(self.normale), hole(self.arm)
 
 
-def baue_s23(quellen, steine):
+def baue_s23(quellen, steine, stufen=(2, 3), innen=True):
     import elb_bewuchs
     import trimsheet_stufen as st
     B = BAENDER_AUSSEN
     schiefer = Quelle(quellen, "roof_slates_02", kante=1024)
-    for stufe in (2, 3):
+    for stufe in stufen:
         blatt = st.lade_blatt("trim_elb")
         st.dach_band(blatt, schiefer, (0.38, 0.39, 0.42), kontrast=1.2, eigenfarbe=0.08)
         st.dach_aufhellen(blatt, st.SCHIEFER_HELL)
         for band in ("stroh", "stroh_franse"):
             moos(blatt, B[band], anteil=0.20)             # Moos sparsam auf dem Schiefer (wie die Schindeln der Stufe 1)
-        if stufe == 2:
+        if stufe in (2, 3):     # Stufe 3 (Patrizier, Nutzer 23.11.2026): ganze Waende in Kalkputz, Werkstein im Band „bruchstein“ (K2)
             # Putz neu und mit weniger Efeu: am Buergerhaus liegt das Band in vielen schmalen Gefachen und in zwei Lagen im Putzsockel –
             # die fuenf Ranken der Stufe 1 standen dort wie Streifen in jedem zweiten Gefach
             putz = Quelle(quellen, "white_plaster_rough_01")
@@ -290,13 +290,8 @@ def baue_s23(quellen, steine):
             k2 = Quelle1k(quellen, "large_sandstone_blocks_01", kante=int(round(3.0 * N / B["bruchstein"][2])))   # Kachel 3 x 3 m
             f, n, arm = k2.streifen(e - a, ab=300)
             blatt.setze(B["bruchstein"], f, n, arm)
-            anteil = elb_bewuchs.efeu_auftragen(blatt.albedo, blatt.normal, blatt.orm, a, e, **EFEU_S3)
-            print(f"Efeu auf der Mauer (Bruchsteinband): {anteil:.3f} der Flaeche")
-            k5 = QuelleAcg(steine, "Bricks100", (2.0, 1.0), N / B["putz"][2])
-            a, e = blatt.zeilen(B["putz"])
-            f, n, arm = k5.streifen(e - a)
-            blatt.setze(B["putz"], faerbe(f, gespeichert(WERKSTEIN_K5), kontrast=1.0, eigenfarbe=0.5), n, arm)
         blatt.speichere(f"trim_s{stufe}_elb")
+    if not innen: return
     # Innen
     I = BAENDER_INNEN
     i = st.lade_blatt("innen_trim_elb")
@@ -329,4 +324,5 @@ if __name__ == "__main__":
     nur = opt.get("nur", "")
     if nur in ("", "aussen"): baue_aussen(opt["quellen"])
     if nur in ("", "innen"): baue_innen(opt["quellen"])
-    if nur in ("", "s23"): baue_s23(opt["quellen"], opt["steine"])
+    if nur in ("", "s23"): baue_s23(opt["quellen"], opt.get("steine"))
+    if nur == "s3": baue_s23(opt["quellen"], None, stufen=(3,), innen=False)

@@ -2011,7 +2011,7 @@ def main():
     # groesseren Haeuser unter 150 Bildpunkten je m2 (uv2_pruefung.uv2_dichte). Die Zellenzahl teilt die Kante ohne Rest (bei 3 x 3 in
     # 2048 lagen Bild und UV2 bis zu 2 Bildpunkte gegeneinander verschoben: kante // n gegen 1 / n).
     g1.uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], f"wohnhaus_mensch_s{stufe}", name, mit_ao=mit_ao)
-    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao)
+    g1.uv2_und_ao([(o_raum, []), (o_einr, o_raum)], "wohnhaus_mensch_innen", name, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen
 
     tuer = next(f for f in M.FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = M.SCHORNSTEIN_RECHTS
