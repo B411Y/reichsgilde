@@ -221,21 +221,25 @@ def katholisch():
     for x, y, z in ALTARKERZEN:
         D.farbkasten(k, "Innen", (x - 0.04, y - 0.04, z), (x + 0.04, y + 0.04, z + 0.22), "messing", ohne=("-z",))
         kerze(k, x, y, z + 0.22, hoehe=0.35, dick=0.045)
-    D.farbkasten(k, "Innen", (ax - 0.22, ay + 0.10, za + 1.04), (ax + 0.22, ay + 0.42, za + 1.62), "gold", ohne=("-z",))      # Tabernakel
+    D.farbkasten(k, "Innen", (ax - 0.22, ay + 0.10, za + 1.04), (ax + 0.22, ay + 0.38, za + 1.62), "gold", ohne=("-z",))      # Tabernakel
     # Retabel: Schrein auf der Predella, Mittelbild mit Kreuz, Seitenfelder, zwei bemalte Fluegel, Gesprenge aus Fialen
     ry = M.RETABEL_Y
     vorn = lambda x0, x1, z0, z1, name, y=ry - 0.012: D.farbflaeche(k, "Innen", [V((x0, y, z0)), V((x1, y, z0)), V((x1, y, z1)), V((x0, y, z1))], name, zu=((x0 + x1) / 2, y - 6, z0))
     def tafel(x0, x1, z0, z1, y, dreh=0.0):
         a, b = V((x0, y, 0)), V((x1, y - dreh, 0))
         k.rechteck("Innen", a + EZ * z0, b - a, EZ, (b - a).length, z1 - z0, "gold", laengs="v", zu=((x0 + x1) / 2, y - 6, z0))
-        k.rechteck("Innen", a + EZ * z0 + V((0, 0.08, 0)), b - a, EZ, (b - a).length, z1 - z0, "holz", laengs="v", zu=((x0 + x1) / 2, y + 6, z0))
-    D.block(k, "Innen", "sandstein", (ax - 1.5, ry - 0.2), (1, 0), (0, 1), 3.0, 0.45, za, za + 1.25, ohne=("unten",))       # Sockel hinter der Mensa
+        e_ = (b - a).normalized(); hinten = V((-e_.y, e_.x, 0)) * (1 if e_.x > 0 else -1) * 0.06     # Rueckseite 6 cm hinter der Bildseite, senkrecht zur Tafel
+        k.rechteck("Innen", a + EZ * z0 + hinten, b - a, EZ, (b - a).length, z1 - z0, "holz", laengs="v", zu=(a + b) / 2 + hinten * 100 + EZ * z0)
+        if dreh:                                                                                     # Fluegel stehen frei: Stirn aussen und Oberkante schliessen
+            k.rechteck("Innen", b + EZ * z0, hinten, EZ, hinten.length, z1 - z0, "holz", laengs="v", zu=b + e_ * 6 + EZ * z0)
+            k.rechteck("Innen", a + EZ * z1, b - a, hinten, (b - a).length, hinten.length, "holz", zu=(a + b) / 2 + EZ * (z1 + 6))
+    D.block(k, "Innen", "sandstein", (ax - 1.5, ry - 0.2), (1, 0), (0, 1), 3.0, 0.32, za, za + 1.25, ohne=("unten",))       # Sockel hinter der Mensa (hinten frei vor der Chorwand)
     k.rechteck("Innen", (ax - 1.45, ry - 0.215, za + 1.25), (1, 0, 0), (0, 0, 1), 2.90, 0.42, "gold", zu=(ax, ry - 6, za))     # Predella
     for i in range(5):
         x = ax - 1.30 + i * 0.54
         vorn(x, x + 0.44, za + 1.30, za + 1.62, ("rot", "blau", "gruen", "blau", "rot")[i], y=ry - 0.225)
     zs0, zs1 = za + 1.67, za + 4.00                                                                                           # Schrein
-    tafel(ax - 1.40, ax + 1.40, zs0, zs1, ry)
+    tafel(ax - M.RETABEL_HALB, ax + M.RETABEL_HALB, zs0, zs1, ry)
     vorn(ax - 0.62, ax + 0.62, zs0 + 0.18, zs1 - 0.18, "blau")                                                                # Mittelbild
     for sx in (-1, 1):
         vorn(ax + sx * 0.74 - 0.0 if sx > 0 else ax - 1.28, ax + 1.28 if sx > 0 else ax - 0.74, zs0 + 0.18, zs0 + 1.10, "rot")
@@ -244,9 +248,10 @@ def katholisch():
     D.farbkasten(k, "Innen", (ax - 0.06, ry - 0.06, zs0 + 0.36), (ax + 0.06, ry - 0.014, zs1 - 0.36), "gold", ohne=("+y",))
     for sx in (-1, 1):
         D.farbkasten(k, "Innen", (min(ax + sx * 0.06, ax + sx * 0.42), ry - 0.06, zs0 + 1.38), (max(ax + sx * 0.06, ax + sx * 0.42), ry - 0.014, zs0 + 1.50), "gold", ohne=("+y", "-x" if sx > 0 else "+x"))
-    # Fluegel: schraeg nach vorn geoeffnet, je zwei Bildfelder
+    # Fluegel: um 45 Grad nach vorn aufgeklappt (steiler als die Chorwand mit 36 Grad, sie laufen von ihr weg), je zwei Bildfelder.
+    # Nutzer 23.11.2026: die Fluegel steckten in der Wand (Ende 2,35 / 15,95 lag 4 bis 10 cm hinter der Innenflaeche des Chorschlusses).
     for sx in (-1, 1):
-        xa, xb, dreh = ax + sx * 1.40, ax + sx * 2.35, 0.50
+        xa, xb, dreh = ax + sx * M.RETABEL_HALB, ax + sx * (M.RETABEL_HALB + M.RETABEL_FLUEGEL * math.cos(math.radians(45))), M.RETABEL_FLUEGEL * math.sin(math.radians(45))
         tafel(xa, xb, zs0 + 0.10, zs1 - 0.10, ry, dreh=dreh)
         e = V((xb - xa, -dreh, 0)).normalized(); nrm = V((-e.y * sx, e.x * sx, 0)) * (-1 if (V((-e.y * sx, e.x * sx, 0)).y > 0) else 1)
         for za_, zb_, name in ((zs0 + 0.26, zs0 + 1.08, "blau"), (zs0 + 1.22, zs1 - 0.26, "rot")):

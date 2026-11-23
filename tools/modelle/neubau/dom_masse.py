@@ -169,7 +169,9 @@ TAUFSTEIN = (-5.70, -9.60)
 CHORSTUFEN_Y = (9.30, 10.20)             # drei Stufen quer durch die Vierung (Ostseite), 0,30 tief, 0,15 hoch
 ALTARSTUFEN_Y = (14.10, 14.70)           # zwei Stufen zum Podest
 HOCHALTAR = (0.0, 15.75)                 # Mitte der Mensa (2,60 x 1,00, 1,00 hoch)
-RETABEL_Y = 16.45
+RETABEL_Y = 16.35                        # Bildseite des Schreins; 10 cm weiter vorn als zuerst, damit Schrein, Sockel und Fluegel frei vor dem Chorschluss stehen
+RETABEL_HALB = 1.40                      # halbe Breite des Schreins, dort haengen die Fluegel
+RETABEL_FLUEGEL = 1.07                   # Laenge eines Fluegels; um 45 Grad nach vorn aufgeklappt
 CHORGESTUEHL = (10.90, 13.30)            # y-Bereich, an beiden Chorwaenden
 MARIENALTAR = (-7.30, 7.70)              # im linken Querhausarm an der Giebelwand
 ABENDMAHLSTISCH = (0.0, 8.40)            # evangelisch: vor den Chorstufen
@@ -191,6 +193,27 @@ def sitzplaetze():
             for dx in SITZE_JE_BANK:
                 aus.append((seite * BANK_X + dx, y, seite < 0))
     return [(i + 1, x, y, links) for i, (x, y, links) in enumerate(aus)]
+
+
+def retabel_punkte():
+    """Aeusserste Punkte (x, y) des Retabels auf der rechten Seite: Sockel hinten, Rueckseite des Schreins, Angel und Ende des Fluegels (Rueckseite)."""
+    w = math.radians(45); c, s = math.cos(w), math.sin(w)
+    ry, hx, t = RETABEL_Y, RETABEL_HALB, 0.06               # t: Dicke der Tafeln
+    return [(1.50, ry + 0.12), (hx, ry + t), (1.46, ry + 0.09), (hx + s * t, ry + c * t),
+            (hx + RETABEL_FLUEGEL * c + s * t, ry - RETABEL_FLUEGEL * s + c * t)]
+
+
+def retabel_abstand():
+    """Kleinster Abstand der Punkte des Retabels zur Innenflaeche des Chorschlusses (negativ = in der Wand)."""
+    ecken = [apsis_ecke(k, R_APSIS_INNEN) for k in range(6)]
+    kleinster = 1e9
+    for px, py in retabel_punkte():
+        for a, b in zip(ecken, ecken[1:]):
+            ex, ey = b[0] - a[0], b[1] - a[1]; l = math.hypot(ex, ey)
+            nx, ny = -ey / l, ex / l
+            if (0 - a[0]) * nx + (Y_APSIS - a[1]) * ny < 0: nx, ny = -nx, -ny      # Normale in den Raum
+            kleinster = min(kleinster, (px - a[0]) * nx + (py - a[1]) * ny)
+    return kleinster
 
 
 # ── Soll und Ist ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -225,6 +248,8 @@ def soll_ist():
     z.append(("Baenke vor der Kanzel", f"<= {f(KANZEL[1] - 0.9)}", f(vorn), vorn <= KANZEL[1] - 0.9))
     z.append(("Turmhoehe zu Fassadenbreite", "2,2 - 3,0", f(Z_SPITZE / (2 * X_AUSSEN)), 2.2 <= Z_SPITZE / (2 * X_AUSSEN) <= 3.0))
     z.append(("Blick_Auge", "1,60 ueber dem Boden", f(BLICK_AUGE[2] - Z_SOCKEL), abs(BLICK_AUGE[2] - Z_SOCKEL - 1.6) < 1e-6))
+    frei = retabel_abstand()
+    z.append(("Retabel frei vor der Chorwand (Sockel, Schrein, Fluegel)", ">= 0,04", f(frei), frei >= 0.04))
     return z
 
 
