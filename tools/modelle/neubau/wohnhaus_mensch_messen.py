@@ -264,7 +264,8 @@ def main():
     import blick_licht_haeuser as BL
     z, f = BL.blick_licht(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = dreiecke(glb)
-    grenze = min(DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else DREIECKE_HUELLE, DREIECKE_HOECHSTENS)
+    grenze = min(DREIECKE_FACHWERK if stufe in FACHWERK_STUFEN else DREIECKE_HOECHSTENS if stufe == 3 else DREIECKE_HUELLE,
+                 DREIECKE_HOECHSTENS)       # Stufe 3: Patrizierhaus (Nutzer 21.11.2026), Hoechstgrenze 8.000
     zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {grenze}) -> {'ok' if summe <= grenze else 'FEHLER'}")
     fehler += 0 if summe <= grenze else 1
     z, f = tueren(stufe, form); zeilen += z; fehler += f
