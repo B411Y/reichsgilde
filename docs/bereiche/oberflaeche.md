@@ -298,3 +298,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Familienbuch | Übertritt-Knöpfe für alle anderen Bekenntnisse (Grund aus `KonvertierenVerboten` als Tooltip), Stammbaum/Brautschau mit `Kurzname()`; Heirat: Folge „Paar und Kinder werden neuahtnisch“ im Tooltip der Volk-Spalte und von „Heiraten“, Sperre als „Kirche im Weg“ mit Grund. | 23.11.2026 |
 | Rat, Dom | Ratsantrag Stadtglaube: alle vier Bekenntnisse; Dom-Infotext nennt Altahtnen und Neuahtnen. Konfessionszeichen (Grafik) nicht gemacht, nichts erfunden. | 23.11.2026 |
 
+### Knopf „Entwickler“ im Spielmenü (Branch phase5/entwickler-knopf)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Knopf | Im Spielmenü steht „Entwickler (F12)“ (nach „Hilfe“), nur sichtbar mit dem Haken „Entwickler-Optionen“ (`Entwickler.Aktiv`); Klick schließt das Menü (Pause wie vorher) und öffnet das Fenster. Der Haken auf der Starttafel bleibt. | 23.11.2026 |
+| Betriebsleiste | Der alte Knopf in der Betriebsleiste fehlt zu Recht: Kopfzeile und Betriebsleiste entfielen mit dem Zunftlade-Umbau (18.11.2026); nur Kommentare erwähnten ihn noch, jetzt berichtigt. | 23.11.2026 |
