@@ -1,4 +1,4 @@
-"""Karren ohne Zugtier und ohne Figur: Handkarren, Ochsenkarren, Pferdekarren (gemalt-realistisch, Material-Bibliothek).
+﻿"""Karren ohne Zugtier und ohne Figur: Handkarren, Ochsenkarren, Pferdekarren (gemalt-realistisch, Material-Bibliothek).
 
     blender -b --python tools/modelle/karren.py [-- --ohne-bericht]
     python tools/modelle/karren.py
@@ -342,8 +342,9 @@ def pferd(st):
     maße = (halb, y0, y1, zf, hw)
     r_h, r_v, spur = 0.62, 0.5, 1.0
     y_vorn = -1.9
-    tip_y, tip_z = -7.6, 1.56          # Höhe des Kummets der Pferde im Ziehen (tier_pferd_*, anker_ziehen_godot: 1,56 m)
-    pole_z = 1.05                      # Höhe von Deichselende und Waagscheit (die Zugstränge steigen von dort zu den Kummeten)
+    tip_y, tip_z = -7.6, 1.279         # Höhe des Zugpunkts der Pferde im Ziehen (tier_pferd_*, anker_ziehen_godot: Ringmitte des Kummets; Pferd B mit 1,6 m Widerrist: 1,279 m)
+    haken = 0.347                      # Abstand der Zughaken am Kummet von der Ringmitte (pferd2_geschirr.py: Ring in der Hülle von Hals und Brust, Polster, Hamen, Eisenhaken)
+    pole_z = 0.86                     # Höhe von Deichselende und Waagscheit (die Zugstränge steigen von dort zu den Kummeten)
     pole_y = tip_y + 2.4               # Deichselende und Waagscheit liegen 1,3 m hinter den Kummeten (hinter den Tieren), die Zugstränge laufen an den Flanken entlang
     n = bs.Netz("Karren")
     kasten(n, st, halb, y0, y1, zf, hw, 4)
@@ -386,16 +387,16 @@ def pferd(st):
     dn.quader((0, y0 - 0.55, sitz + 0.0), (0.97, 0.4, 0.024), st["Hausfarbe"])
     dn.quader((0, y0 - 0.55 - 0.205, sitz - 0.1), (0.97, 0.024, 0.2), st["Hausfarbe"])
     objekte.append(dn.objekt())
-    # Waagscheit am Deichselende: Querholz mit Eisenkappen, daran die Zugstränge (schwarzes Leder, 5 cm dick, mit Eisenringen) außen an den
+    # Waagscheit am Deichselende: Querholz mit Eisenkappen, daran die Zugstränge (Leder, 5 cm dick, mit Eisenringen) außen an den
     # Flanken der Pferde entlang zu den Kummeten (Ziehpunkt am Hamen, 0,22 m tiefer als die Kummetmitte)
     wn = bs.Netz("Waage")
-    ws = 1.10                                    # halbe Länge des Waagscheits: Zugstränge verlaufen außerhalb der Flanken (Pferd 0,62 ± 0,44 m; Zugring am Hamen bei 1,12 m)
+    ws = 1.10                                    # halbe Länge des Waagscheits: Zugstränge verlaufen außerhalb der Flanken (Pferd 0,62 ± 0,36 m am Rumpf; Zughaken am Kummet bei 0,97 m)
     rohr(wn, st, (-ws, pole_y, pole_z), (ws, pole_y, pole_z), 0.05, 0.05, "Holz", seiten=8)
     wn.quader((0, pole_y - 0.02, pole_z), (0.16, 0.18, 0.15), st["Eisen"])
     for s in (-1, 1):
         wn.quader((s * ws, pole_y, pole_z), (0.07, 0.11, 0.11), st["Eisen"])
-        grund = [(s * ws, pole_y - 0.04, pole_z), (s * 1.13, pole_y - 1.0, pole_z + 0.14), (s * 1.14, tip_y + 0.95, tip_z - 0.22),
-                 (s * 1.14, tip_y + 0.40, tip_z - 0.08), (s * 1.15, tip_y, tip_z)]
+        grund = [(s * ws, pole_y - 0.04, pole_z), (s * 1.09, pole_y - 1.0, pole_z + 0.14), (s * 1.08, tip_y + 0.95, tip_z - 0.22),
+                 (s * 1.06, tip_y + 0.40, tip_z - 0.08), (s * (0.62 + haken), tip_y, tip_z)]
         pfad = []                                                                              # 17 Punkte entlang des Grundwegs, dazu Durchhang (Kettenlinie, 5 cm in der Mitte)
         for i in range(16):
             u = i / 15.0
@@ -405,7 +406,7 @@ def pferd(st):
             q[2] -= 0.05 * 4 * u * (1 - u)
             pfad.append(tuple(q))
         for a_, b_ in zip(pfad[:-1], pfad[1:]):
-            rohr(wn, st, a_, b_, 0.03, 0.03, "Kohle", seiten=6)
+            rohr(wn, st, a_, b_, 0.03, 0.03, "Leder", seiten=6)
         for q in (pfad[4], pfad[8], pfad[12]):
             wn.quader(q, (0.075, 0.075, 0.075), st["Eisen"])                                  # Eisenring (Kettenglied)
         wn.quader(pfad[-1], (0.08, 0.06, 0.08), st["Eisen"])                                 # Haken am Hamen
@@ -436,7 +437,10 @@ def main():
     bs.unterordner = lambda name: ORDNER                      # eigene Dateien unter assets/modelle/karren/
     bs.BIBLIOTHEK_JE_FLAECHE = True
     behalten = set(bs.BENANNTE_STOFFE)
+    nur = next((a[6:].split(",") for a in sys.argv if a.startswith("--nur=")), None)
     for art in ARTEN:
+        if nur and art not in nur:
+            continue
         name = "karren_" + art
         objekte = bauen(art)
         if "--ohne-bericht" not in sys.argv:
