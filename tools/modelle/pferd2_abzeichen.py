@@ -94,6 +94,14 @@ def main():
 # Regeln wie im Shader (tier_vat.gdshader, tier_skelett.gdshader): Kopf 0 keins, 1 Stern, 2 Blesse, 3 Schnippe, 4 Stern+Schnippe, 5 Blesse+Schnippe;
 # je Bein 0 nichts, 1 Krone/Fessel (bis 18 cm), 2 Socke (bis 35 cm); Maul 0 wie das Fell, 1 dunkler, 2 heller (Mehlmaul)
 BEIN_GRENZE = (0.0, 0.36, 0.70)
+BEIN_WEICH = 0.06                                                        # Uebergang in Einheiten von 0,5 m (3 cm)
+BEIN_WELLE = 0.025                                                       # Unregelmaessigkeit des oberen Rands (+-1,25 cm)
+
+
+def glatt_stufe(a, b, x):
+    """smoothstep wie im Shader."""
+    t = np.clip((x - a) / (b - a), 0, 1)
+    return t * t * (3 - 2 * t)
 WEISS = np.array([236, 232, 224], np.float32)
 MEHL = np.array([200, 172, 128], np.float32)
 VORSCHAU = {"v0_keins": (0, (0, 0, 0, 0), 0), "v1_stern": (1, (1, 0, 0, 0), 1), "v2_blesse": (2, (2, 2, 0, 0), 2),
@@ -106,7 +114,11 @@ def einbrennen(alb, stern, blesse, schnippe, maul_k, bein, kopf, beine, maul):
     leg = np.clip(np.floor(bein * 4 + 1e-6).astype(int), 0, 3)
     h = bein * 4 - leg
     g = np.array([BEIN_GRENZE[b] for b in beine])[leg]
-    mb = ((bein > 0) & (h < g)).astype(np.float32)
+    hoehe, breite = bein.shape
+    v, u = np.mgrid[0:hoehe, 0:breite]
+    g = g + BEIN_WELLE * np.sin((u + 0.5) / breite * 157.0) * np.sin((v + 0.5) / hoehe * 211.0)   # oberer Rand leicht unregelmaessig
+    mb = ((bein > 0) & (g > BEIN_WELLE)) * (1 - glatt_stufe(g - BEIN_WEICH, g, h))                  # und weich (3 cm)
+    mb = mb.astype(np.float32)
     neu = alb.copy()
     if maul == 1:
         neu = neu * (1 - 0.65 * maul_k[..., None])

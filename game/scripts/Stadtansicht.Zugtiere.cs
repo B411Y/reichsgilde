@@ -144,7 +144,7 @@ public partial class Stadtansicht
     /// </summary>
     internal static int AbzeichenCode(int startwert, int i, bool rappe)
     {
-        var h = StabilerHash($"{startwert}/{i}/abzeichen");
+        var h = StabilerHash(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{startwert}/{i}/abzeichen")); // Minuszeichen unabhängig von der Systemkultur
         var kopf = (int)(h % 6); h /= 6;
         var beine = 0;
         for (int b = 0, stelle = 1; b < 4; b++, stelle *= 3) { beine += (int)(h % 3) * stelle; h /= 3; }

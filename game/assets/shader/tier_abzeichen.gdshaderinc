@@ -37,8 +37,11 @@ vec3 abzeichen(vec3 albedo, vec2 uv, float code_f) {
 		int bein = int(floor(x + 1e-4));
 		float h = x - float(bein);
 		int art = (beine / int(pow(3.0, float(bein)) + 0.5)) % 3;
-		float grenze = art == 1 ? 0.36 : (art == 2 ? 0.70 : 0.0);
-		if (h < grenze) weiss = 1.0;
+		if (art > 0) {
+			// oberer Rand weich (0,06 = 3 cm) und leicht unregelmäßig (±1,25 cm), wie in pferd2_abzeichen.py (einbrennen)
+			float grenze = (art == 1 ? 0.36 : 0.70) + 0.025 * sin(uv.x * 157.0) * sin(uv.y * 211.0);
+			weiss = max(weiss, 1.0 - smoothstep(grenze - 0.06, grenze, h));
+		}
 	}
 	return mix(farbe, ABZEICHEN_WEISS, weiss);
 }
