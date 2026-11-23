@@ -2625,3 +2625,9 @@ Gemessen auf main 6bc4b696 + dieser PR (vorher: main 6bc4b696). `glaube.voelker`
 | `messen bericht 20 10 --teile=1`: Prediger (ein Betrieb, 20 J.) | 29.801 (+10,6 %) | 29.185 (+5,6 %) |
 
 Ergebnis: Die Gemeinden ohne eigene Kirche (heute meist die Ahtnen) geben in fremden Kirchen nur die halbe Spende; der Prediger verliert dadurch etwa 2 % Vermögen (im Rauschen von 10 Startwerten) und bleibt über dem Mittel. Ein Stadtglaube geht seltener durch, der Rat ist jetzt gemischter (in 4 von 20 Partien bleibt Glaubensfreiheit), ahtnische Stadtglauben kommen vor (4 von 20). Die übrigen Berufe bewegen sich im Rauschen (statische Rechnung unverändert).
+
+## Karrenarten ohne Ochsen (Datenversion 98, 23.11.2026)
+
+Nutzer 23.11.2026: Den Ochsenkarren gibt es nicht mehr. Der **Pferdekarren** (ein Pferd) übernimmt seine Werte (2 × 20 Stück, 400 Gulden, Tempo 0,8 m/s), der bisherige Pferdekarren (zwei Pferde) heißt **Großer Pferdekarren** (3 × 25, 900, 1,3 – unverändert). Startkarren von Mine und allen Umlandbetrieben und die Kaufregel der KI ohne Fahrzeit nach Weglänge: Pferdekarren. Keine Zahl ändert sich; ältere Messungen in diesem Dokument nennen die alten Namen (Ochsenkarren = heute Pferdekarren, Pferdekarren = heute Großer Pferdekarren).
+
+Gemessen auf main 0e6e6e25 + dieser PR (vorher: main 0e6e6e25 mit dem Stand des Branches `phase5/zugpferd`). `messen karren --jahre=10` (Greybox und Köln, „Schwer“, alle KI-Häuser: Fahrzeiten je Art, je Jahr und Betrieb Karren, Fahrten, Stillstand, Umsatz, Gewinn) und `messen 20 10`: Nach dem Gleichsetzen der Namen sind beide Ausgaben Zeile für Zeile gleich (bis auf die Datenversion in der Kopfzeile). Auch die KI kauft und tauscht dieselben Karren: Die Reihenfolge der Arten (ordinal nach Namen) ändert sich zwar, sie entscheidet aber nur bei gleichem Wert und gleichen Kosten, und das kommt bei verschiedenen Preisen nicht vor.
