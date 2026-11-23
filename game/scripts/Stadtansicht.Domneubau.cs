@@ -22,7 +22,8 @@ namespace Reichsgilde;
 /// <c>Licht_Raum_&lt;n&gt;</c>, <c>Tuer_Dom_Stadt</c> (Portal: führt hinaus wie die Haustür). Regeln und Texte der Messe sind die des alten
 /// Doms (<see cref="DomZustandSetzen"/>, gemeinsam mit <see cref="DomBauen"/>).
 ///
-/// Bis die Karten den neuen Dom tragen (Paket 3), setzt ihn nur die Startoption <c>--neuerdom=1</c> an die Stelle des alten.
+/// Die Karte wählt den Neubau über die Katalog-Kennung <c>dom_katholisch</c> (Paket 3 setzt ihn ein); bis dahin setzt ihn die Startoption
+/// <c>--neuerdom=1</c> an die Stelle des alten.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -32,10 +33,17 @@ public partial class Stadtansicht
     private static readonly bool DomNeuOption = NeubauOption("--neuerdom") == "1";
     private Node3D? _domNeuHuelle;   // Wurzel des Modells in der Stadt
     private Node3D? _domNeuInnen;    // „InteriorRoot“
+    private ShaderMaterial? _domNeuGlas;   // Butzenglas mit Farbton (Fenster des Doms von innen)
 
-    /// <summary>Das Modell des neuen Doms für dieses Gebäude der Karte, null: der bisherige Dom.</summary>
-    private static string? DomNeuDatei(Kartengebaeude g) =>
-        DomNeuOption && g.Katalog == "dom" && ResourceLoader.Exists($"res://assets/modelle/{NeubauOrdner}dom_katholisch.glb") ? NeubauOrdner + "dom_katholisch" : null;
+    /// <summary>
+    /// Das Modell des neuen Doms für dieses Gebäude der Karte, null: der bisherige Dom. Die Karte wählt die Hülle über die Kennung des
+    /// Katalogs (<c>dom_katholisch</c>; fest je Karte); <c>--neuerdom=1</c> setzt den Neubau zur Prüfung auch an die Stelle des alten <c>dom</c>.
+    /// </summary>
+    private static string? DomNeuDatei(Kartengebaeude g)
+    {
+        var datei = g.Katalog == "dom_katholisch" || (DomNeuOption && g.Katalog == "dom") ? NeubauOrdner + "dom_katholisch" : null;
+        return datei is not null && ResourceLoader.Exists($"res://assets/modelle/{datei}.glb") ? datei : null;
+    }
 
     /// <summary>Lage eines Ankers im „InteriorRoot“, wie die Helfer der Innenräume sie erwarten (relativ zu <c>a.Mitte</c>).</summary>
     private static Vector3 DomNeuOrt(SonderbauAnsicht a, Node3D wurzel, Node3D anker) => wurzel.ToLocal(anker.GlobalPosition) - a.Mitte;
@@ -80,6 +88,12 @@ public partial class Stadtansicht
         raum.Name = "Raum_dom";
         wurzel.AddChild(raum);
         NeubauEinkleiden(datei + "_innen", raum);
+        // Farbiges Glas (Nutzer, 23.11.2026): dasselbe Butzenglas mit kräftigem blauviolettem Ton statt des grünlichen Waldglases; der Blick
+        // hinaus bleibt (das Glas tönt das Bild dahinter nur)
+        _domNeuGlas ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/butzenglas.gdshader"), ResourceName = "Domglas" };
+        _domNeuGlas.SetShaderParameter("glasfarbe", new Color(0.50f, 0.52f, 0.92f));
+        foreach (var glas in raum.FindChildren("Glas_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+            for (var i = 0; i < (glas.Mesh?.GetSurfaceCount() ?? 0); i++) glas.SetSurfaceOverrideMaterial(i, _domNeuGlas);
         a.Innen?.QueueFree(); // die leere Bühne unter der Stadt wird nicht gebraucht
         a.Innen = wurzel;
         _domNeuInnen = wurzel;
@@ -89,7 +103,7 @@ public partial class Stadtansicht
         var messe = new bool[1];
         // Licht: Grundlicht unter den Gewölben (ohne Schatten), zur Messe der Schein der Kerzen im Chor
         foreach (var licht in raum.FindChildren("Licht_Raum_*", nameof(Node3D), true, false).OfType<Node3D>())
-            licht.AddChild(new OmniLight3D { LightColor = new Color(0.95f, 0.88f, 0.76f), LightEnergy = 1.5f, OmniRange = 17f, ShadowEnabled = false });
+            licht.AddChild(new OmniLight3D { LightColor = new Color(0.95f, 0.88f, 0.76f), LightEnergy = 2.6f, OmniRange = 18f, ShadowEnabled = false });
         // Portal von innen: führt hinaus wie die Haustür
         if (Anker("Tuer_Dom_Stadt") is { } tuer)
         {
@@ -135,7 +149,17 @@ public partial class Stadtansicht
         var reihenfolge = Enumerable.Range(0, sitzplaetze.Count).ToList();
         var glaeubige = sitzplaetze.Select((x, i) => GlaeubigerBauen(a, x.Platz, i)).ToList();
         var betende = new Dictionary<int, (Arbeiterfigur Figur, int Platz)>();
-        Infotafel(a, new Vector3(0, 5.2f, 4) - a.Mitte);
+        // Tafel über dem Mittelgang: scharf auch im Pixel-Look (wie die Schilder des Rathauses, RathausNeuTexteScharf)
+        var tafel = new Label3D
+        {
+            Position = new Vector3(0, 5.6f, 2), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true, FixedSize = true,
+            PixelSize = SchildPixel, FontSize = 48, OutlineSize = 12, LineSpacing = 2,
+            Modulate = new Color(1f, 0.93f, 0.72f), OutlineModulate = new Color(0.10f, 0.07f, 0.05f),
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic, RenderPriority = 10,
+        };
+        wurzel.AddChild(tafel);
+        _rathausNeuTexte.Add(tafel);
+        a.Infotafel = tafel;
         GD.Print($"[domneu] {datei}: {sitzplaetze.Count} Sitzplätze, Kanzel {(kanzel is null ? "fehlt" : "da")}, Portal {(Anker("Tuer_Dom_Stadt") is null ? "fehlt" : "da")}");
 
         a.Zustand = (zeit, arbeitszeit, aktiv) =>

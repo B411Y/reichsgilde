@@ -119,6 +119,11 @@ def raum():
     D.flaeche(r, (-XM, M.Y_TURM), (XM, M.Y_TURM), (0, 1), ZB, ZS, loecher_=[D.Spitzloch(XM - a, XM + a, ZB, ZS, (ZS - ZK) / a, sohlbank=False, laibung=False)])
     D.innenwand(r, M, "west", ZB, ZS)
     D.spitztonne(r, (0, YV), (0, M.Y_TURM), a, ZK, ZS)
+    # Masswerk von innen (vor der Scheibe), wie aussen
+    for o in M.OEFFNUNGEN:
+        if o[5] != "spitz": continue
+        name = o[0]; d = M.wand(name)[4]; nn = M.wand(name)[3]
+        D.masswerk(r, lambda s_, z, name=name, d=d: V(M.punkt(name, s_, z, -d / 2 - 0.07)), V((-nn[0], -nn[1], 0)), D.loch_von(o), stoff="Innen")
     # ── Gewoelbe des Mittelschiffs, der Vierung und des Chorjochs ──
     for i in range(M.JOCHE):
         D.kreuzgewoelbe(r, -XM, XM, M.Y_TURM + i * M.JOCH, M.Y_TURM + (i + 1) * M.JOCH, ZK, ZS, gurt=("y0", "y1") if i == 0 else ("y1",))
@@ -179,20 +184,25 @@ def moebel():
         D.farbkasten(m, "Innen", (x - 0.14, y - 0.14, z), (x + 0.14, y + 0.14, z + 0.04), "eisen", ohne=("-z",))
         D.farbkasten(m, "Innen", (x - 0.09, y - 0.09, z + 1.45), (x + 0.09, y + 0.09, z + 1.48), "eisen")
         kerze(m, x, y, z + 1.48, hoehe=0.30, dick=0.06)
-    # Chorgestuehl an beiden Chorwaenden
+    # Chorgestuehl: frei vor beiden Chorwaenden (6 cm Abstand), Rueckwand mit Gesims, Sitzbank mit Wangen je Platz, Pultwand davor
     y0, y1 = M.CHORGESTUEHL
     zc = M.Z_CHOR
     for sx in (-1, 1):
-        w = sx * (XM - 0.02)
-        k = lambda xa, xb, za, zb, **kw: m.kasten("Innen", (min(w - sx * xa, w - sx * xb), y0, za), (max(w - sx * xa, w - sx * xb), y1, zb), "holz", laengs="y", **kw)
-        k(0.0, 0.08, zc, zc + 2.7, ohne=("-z",))                    # hohe Rueckwand
-        k(0.08, 0.58, zc + 0.40, zc + M.SITZHOEHE)                  # Sitz
-        k(0.08, 0.14, zc, zc + 0.40, ohne=("-z",))
-        k(1.00, 1.08, zc, zc + 1.00, ohne=("-z",))                  # Pultwand davor
-        k(0.86, 1.14, zc + 1.00, zc + 1.04)
-        k(0.0, 0.50, zc + 2.70, zc + 2.78)                          # Baldachin
-        for y in (y0 - 0.05, y1):
-            m.kasten("Innen", (min(w, w - sx * 0.62), y, zc), (max(w, w - sx * 0.62), y + 0.05, zc + 1.5), "holz", ohne=("-z",))
+        w = sx * (XM - 0.06)
+        def k(xa, xb, ya, yb, za, zb, **kw):
+            m.kasten("Innen", (min(w - sx * xa, w - sx * xb), ya, za), (max(w - sx * xa, w - sx * xb), yb, zb), "holz", **kw)
+        k(0.0, 0.06, y0, y1, zc, zc + 1.90, laengs="y", ohne=("-z",))                 # Rueckwand
+        k(-0.02, 0.12, y0 - 0.03, y1 + 0.03, zc + 1.90, zc + 1.98, laengs="y")        # Gesims
+        k(0.06, 0.52, y0, y1, zc + M.SITZHOEHE - 0.04, zc + M.SITZHOEHE, laengs="y")  # Sitz
+        k(0.46, 0.50, y0, y1, zc, zc + M.SITZHOEHE - 0.04, laengs="y", ohne=("-z", "+z"))
+        plaetze = 4
+        for i in range(plaetze + 1):                                                  # Wangen zwischen den Plaetzen
+            y = y0 + (y1 - y0 - 0.05) * i / plaetze
+            k(0.06, 0.56, y, y + 0.05, zc, zc + (1.25 if i in (0, plaetze) else 0.72), ohne=("-z",))
+        k(0.98, 1.03, y0, y1, zc, zc + 0.95, laengs="y", ohne=("-z",))                # Pultwand
+        k(0.86, 1.08, y0, y1, zc + 0.95, zc + 0.99, laengs="y")
+        for y in (y0, y1 - 0.05):
+            k(0.86, 1.08, y, y + 0.05, zc, zc + 0.95, ohne=("-z", "+z"))
     # Portal von innen: zwei Tuerblaetter in der Wandmitte
     b_, z0, z1 = M.PORTAL
     for seite in (-1, 1):
@@ -212,27 +222,45 @@ def katholisch():
         D.farbkasten(k, "Innen", (x - 0.04, y - 0.04, z), (x + 0.04, y + 0.04, z + 0.22), "messing", ohne=("-z",))
         kerze(k, x, y, z + 0.22, hoehe=0.35, dick=0.045)
     D.farbkasten(k, "Innen", (ax - 0.22, ay + 0.10, za + 1.04), (ax + 0.22, ay + 0.42, za + 1.62), "gold", ohne=("-z",))      # Tabernakel
-    # Retabel: vergoldeter Schrein mit Giebel, zwei Fluegel, Fialen
+    # Retabel: Schrein auf der Predella, Mittelbild mit Kreuz, Seitenfelder, zwei bemalte Fluegel, Gesprenge aus Fialen
     ry = M.RETABEL_Y
-    gv0, gv1, gm = BI["gold"]
+    vorn = lambda x0, x1, z0, z1, name, y=ry - 0.012: D.farbflaeche(k, "Innen", [V((x0, y, z0)), V((x1, y, z0)), V((x1, y, z1)), V((x0, y, z1))], name, zu=((x0 + x1) / 2, y - 6, z0))
     def tafel(x0, x1, z0, z1, y, dreh=0.0):
         a, b = V((x0, y, 0)), V((x1, y - dreh, 0))
         k.rechteck("Innen", a + EZ * z0, b - a, EZ, (b - a).length, z1 - z0, "gold", laengs="v", zu=((x0 + x1) / 2, y - 6, z0))
         k.rechteck("Innen", a + EZ * z0 + V((0, 0.08, 0)), b - a, EZ, (b - a).length, z1 - z0, "holz", laengs="v", zu=((x0 + x1) / 2, y + 6, z0))
-    D.block(k, "Innen", "sandstein", (ax - 1.5, ry - 0.2), (1, 0), (0, 1), 3.0, 0.45, za, za + 1.25, ohne=("unten",))       # Predella-Sockel hinter der Mensa
-    tafel(ax - 1.35, ax + 1.35, za + 1.25, za + 3.7, ry)
-    k.vieleck("Innen", [V((ax - 1.35, ry, za + 3.7)), V((ax + 1.35, ry, za + 3.7)), V((ax, ry, za + 5.3))], [(0, gv1), (2.7 / gm, gv1), (1.35 / gm, gv0)], zu=(ax, ry - 6, za))
-    k.vieleck("Innen", [V((ax - 1.35, ry + 0.08, za + 3.7)), V((ax + 1.35, ry + 0.08, za + 3.7)), V((ax, ry + 0.08, za + 5.3))], [(0, gv1), (2.7 / gm, gv1), (1.35 / gm, gv0)], zu=(ax, ry + 6, za))
+    D.block(k, "Innen", "sandstein", (ax - 1.5, ry - 0.2), (1, 0), (0, 1), 3.0, 0.45, za, za + 1.25, ohne=("unten",))       # Sockel hinter der Mensa
+    k.rechteck("Innen", (ax - 1.45, ry - 0.215, za + 1.25), (1, 0, 0), (0, 0, 1), 2.90, 0.42, "gold", zu=(ax, ry - 6, za))     # Predella
+    for i in range(5):
+        x = ax - 1.30 + i * 0.54
+        vorn(x, x + 0.44, za + 1.30, za + 1.62, ("rot", "blau", "gruen", "blau", "rot")[i], y=ry - 0.225)
+    zs0, zs1 = za + 1.67, za + 4.00                                                                                           # Schrein
+    tafel(ax - 1.40, ax + 1.40, zs0, zs1, ry)
+    vorn(ax - 0.62, ax + 0.62, zs0 + 0.18, zs1 - 0.18, "blau")                                                                # Mittelbild
     for sx in (-1, 1):
-        tafel(ax + sx * 1.35, ax + sx * 2.30, za + 1.45, za + 3.5, ry, dreh=0.45)
-        for x in (ax + sx * 1.35,):
-            D.farbkasten(k, "Innen", (x - 0.07, ry - 0.07, za + 1.25), (x + 0.07, ry + 0.07, za + 4.3), "gold")
-            D.farbflaeche(k, "Innen", [V((x - 0.10, ry - 0.10, za + 4.3)), V((x + 0.10, ry - 0.10, za + 4.3)), V((x, ry, za + 5.0))], "gold", zu=(x, ry - 6, za + 4.5))
-            D.farbflaeche(k, "Innen", [V((x + sx * 0.10, ry - 0.10, za + 4.3)), V((x + sx * 0.10, ry + 0.10, za + 4.3)), V((x, ry, za + 5.0))], "gold", zu=(x + sx * 6, ry, za + 4.5))
-    # Mittelfeld: Kreuz auf dunklem Grund
-    D.farbflaeche(k, "Innen", [V((ax - 0.75, ry - 0.012, za + 1.6)), V((ax + 0.75, ry - 0.012, za + 1.6)), V((ax + 0.75, ry - 0.012, za + 3.4)), V((ax - 0.75, ry - 0.012, za + 3.4))], "blau", zu=(ax, ry - 6, za))
-    D.farbkasten(k, "Innen", (ax - 0.06, ry - 0.06, za + 1.8), (ax + 0.06, ry - 0.014, za + 3.2), "gold")
-    D.farbkasten(k, "Innen", (ax - 0.42, ry - 0.06, za + 2.65), (ax + 0.42, ry - 0.014, za + 2.77), "gold")
+        vorn(ax + sx * 0.74 - 0.0 if sx > 0 else ax - 1.28, ax + 1.28 if sx > 0 else ax - 0.74, zs0 + 0.18, zs0 + 1.10, "rot")
+        vorn(ax + 0.74 if sx > 0 else ax - 1.28, ax + 1.28 if sx > 0 else ax - 0.74, zs0 + 1.22, zs1 - 0.18, "gruen")
+    # Kreuz: Stamm und zwei einzelne Arme (ein durchgehender Querbalken laege deckungsgleich im Stamm: schwarzer Fleck in der Verdeckung)
+    D.farbkasten(k, "Innen", (ax - 0.06, ry - 0.06, zs0 + 0.36), (ax + 0.06, ry - 0.014, zs1 - 0.36), "gold", ohne=("+y",))
+    for sx in (-1, 1):
+        D.farbkasten(k, "Innen", (min(ax + sx * 0.06, ax + sx * 0.42), ry - 0.06, zs0 + 1.38), (max(ax + sx * 0.06, ax + sx * 0.42), ry - 0.014, zs0 + 1.50), "gold", ohne=("+y", "-x" if sx > 0 else "+x"))
+    # Fluegel: schraeg nach vorn geoeffnet, je zwei Bildfelder
+    for sx in (-1, 1):
+        xa, xb, dreh = ax + sx * 1.40, ax + sx * 2.35, 0.50
+        tafel(xa, xb, zs0 + 0.10, zs1 - 0.10, ry, dreh=dreh)
+        e = V((xb - xa, -dreh, 0)).normalized(); nrm = V((-e.y * sx, e.x * sx, 0)) * (-1 if (V((-e.y * sx, e.x * sx, 0)).y > 0) else 1)
+        for za_, zb_, name in ((zs0 + 0.26, zs0 + 1.08, "blau"), (zs0 + 1.22, zs1 - 0.26, "rot")):
+            p0 = V((xa, ry, 0)) + e * 0.14 + nrm * 0.012; p1 = V((xa, ry, 0)) + e * (V((xb - xa, -dreh, 0)).length - 0.14) + nrm * 0.012
+            D.farbflaeche(k, "Innen", [p0 + EZ * za_, p1 + EZ * za_, p1 + EZ * zb_, p0 + EZ * zb_], name, zu=(p0 + p1) / 2 + nrm * 6 + EZ * za_)
+    # Gesprenge: fuenf Fialen ueber dem Schrein, die mittlere hoch; Kehlleiste als Abschluss
+    D.farbkasten(k, "Innen", (ax - 1.46, ry - 0.05, zs1), (ax + 1.46, ry + 0.09, zs1 + 0.10), "gold")
+    for i, hoch in enumerate((0.7, 1.0, 1.7, 1.0, 0.7)):
+        x = ax - 1.32 + i * 0.66
+        D.farbkasten(k, "Innen", (x - 0.06, ry - 0.04, zs1 + 0.10), (x + 0.06, ry + 0.08, zs1 + 0.10 + hoch * 0.6), "gold", ohne=("-z", "+z"))
+        sp = V((x, ry + 0.02, zs1 + 0.10 + hoch))
+        fuss = [V((x - 0.09, ry - 0.07, zs1 + 0.10 + hoch * 0.6)), V((x + 0.09, ry - 0.07, zs1 + 0.10 + hoch * 0.6)), V((x + 0.09, ry + 0.11, zs1 + 0.10 + hoch * 0.6)), V((x - 0.09, ry + 0.11, zs1 + 0.10 + hoch * 0.6))]
+        for q in range(4):
+            D.farbflaeche(k, "Innen", [fuss[q], fuss[(q + 1) % 4], sp], "gold", weg_von=V((x, ry + 0.02, zs1)))
     # Laeufer ueber Stufen und Podest
     lv0, lv1, lm = BI["stoff"]
     pfad = [(M.ALTARSTUFEN_Y[0] - 2.2, M.Z_CHOR), (M.ALTARSTUFEN_Y[0], M.Z_CHOR), (M.ALTARSTUFEN_Y[0], M.Z_CHOR + 0.15), (M.ALTARSTUFEN_Y[0] + 0.3, M.Z_CHOR + 0.15),
@@ -269,7 +297,7 @@ def weihrauch():
     x, y, z = M.WEIHRAUCH
     oben = 8.4
     D.farbstab(w, "Innen", (x, y, z + 0.3), (x, y, oben), 0.02, "eisen")
-    w.dreh("Innen", (x, y, 0), [(0.0, z - 0.12), (0.13, z - 0.04), (0.16, z + 0.08), (0.10, z + 0.20), (0.03, z + 0.32)], "kleinteile", seiten=8, u_bereich=D.feld("gold", True), deckel=False)
+    w.dreh("Innen", (x, y, 0), [(0.0, z + 0.10), (0.07, z + 0.14), (0.09, z + 0.21), (0.06, z + 0.27), (0.02, z + 0.32)], "kleinteile", seiten=8, u_bereich=D.feld("gold", True), deckel=False)
     return w, (x, y, oben)
 
 
@@ -291,7 +319,8 @@ def kreuz():
     x, y = M.KREUZ
     za = M.Z_ALTAR
     k.stab("Innen", (x, y, za), (x, y, za + 4.4), 0.14, "holz", breite=0.20, oben=(0, 1, 0), kappen=True)
-    k.stab("Innen", (x - 0.85, y, za + 3.4), (x + 0.85, y, za + 3.4), 0.14, "holz", breite=0.20, oben=(0, 1, 0), kappen=True)
+    for seite in (-1, 1):                                  # Arme einzeln (ein durchgehender Balken laege im Stamm: schwarzer Fleck)
+        k.stab("Innen", (x + seite * 0.10, y, za + 3.4), (x + seite * 0.85, y, za + 3.4), 0.14, "holz", breite=0.20, oben=(0, 1, 0), kappen=True)
     return k
 
 
@@ -344,7 +373,7 @@ def main():
     print("DREIECKE innen:", {t.name: t.dreiecke() for t in teile}, "Summe", sum(t.dreiecke() for t in teile))
     objekte = [t.objekt(stoffe, mit_farbe=False) for t in teile]
     rest = [o for o in objekte[1:] if not o.name.startswith("Glas_")]
-    B.uv2_und_ao([([objekte[0]], []), (rest, [objekte[0]])], "dom_innen", MODELL, mit_ao="ohne-ao" not in opt, proben=48)
+    B.uv2_und_ao([([objekte[0]], []), (rest, [objekte[0]])], "dom_innen", MODELL, mit_ao="ohne-ao" not in opt, proben=32)
     ursprung(bpy.data.objects["Weihrauch"], haken)
     B.exportiere(objekte + anker(), os.path.join(B.ZIEL_MODELL, MODELL + "_innen.glb"))
     if "bilder" in opt:
@@ -360,19 +389,9 @@ def bilder(o):
         bpy.context.scene.collection.objects.link(l)
     brenn = 18.0 / math.tan(math.radians(66) / 2)
     ev = ("Einrichtung_Evangelisch", "Kreuz_Evangelisch"); ka = ("Einrichtung_Katholisch", "Weihrauch"); si = ("Einrichtung_Simultan",)
-    B.kontrollbild(os.path.join(o, "dom_innen_blick_katholisch.jpg"), M.BLICK_AUGE, M.BLICK_ZIEL, brennweite=brenn, verbergen=ev + si, proben=64)
-    B.kontrollbild(os.path.join(o, "dom_innen_chor_katholisch.jpg"), (0.6, 4.5, ZB + 1.7), (0.0, 15.5, 3.4), brennweite=brenn, verbergen=ev + si, proben=64)
-    B.kontrollbild(os.path.join(o, "dom_innen_chor_evangelisch.jpg"), (0.6, 4.5, ZB + 1.7), (0.0, 15.5, 3.4), brennweite=brenn, verbergen=ka + si, proben=48)
-    B.kontrollbild(os.path.join(o, "dom_innen_simultan.jpg"), (0.5, -11.0, ZB + 2.6), (0.0, 10.0, 2.5), brennweite=brenn, verbergen=("Kreuz_Evangelisch",), proben=48)
-    # Uebersicht wie die Vorlage: Gewoelbe und rechte Seite weggeschnitten
-    import bmesh
-    r = bpy.data.objects["Raum_Dom"]
-    bm = bmesh.new(); bm.from_mesh(r.data)
-    def weg(f):
-        c = f.calc_center_median()
-        return c.z > 8.95 or (c.x > 3.4 and c.y < YQ0 - 0.1) or (c.x > 3.4 and c.z > 4.0) or (c.y < M.Y_TURM + 0.1 and c.z > 0.5)
-    bmesh.ops.delete(bm, geom=[f for f in bm.faces if weg(f)], context="FACES"); bm.to_mesh(r.data); bm.free()
-    B.kontrollbild(os.path.join(o, "dom_innen_uebersicht.jpg"), (30.0, -34.0, 34.0), (0.0, 1.0, 2.0), brennweite=38, verbergen=ev + si + ("Glas_Dom",), proben=48, welt=1.2)
+    B.kontrollbild(os.path.join(o, "dom_innen_blick_katholisch.jpg"), M.BLICK_AUGE, M.BLICK_ZIEL, brennweite=brenn, verbergen=ev + si, proben=32)
+    B.kontrollbild(os.path.join(o, "dom_innen_chor_katholisch.jpg"), (0.6, 4.5, ZB + 1.7), (0.0, 15.5, 3.4), brennweite=brenn, verbergen=ev + si, proben=32)
+    B.kontrollbild(os.path.join(o, "dom_innen_chor_evangelisch.jpg"), (0.6, 4.5, ZB + 1.7), (0.0, 15.5, 3.4), brennweite=brenn, verbergen=ka + si, proben=32)
 
 
 if __name__ == "__main__":

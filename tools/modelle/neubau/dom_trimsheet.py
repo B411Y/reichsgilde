@@ -17,16 +17,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb  # noqa: E402
 
 # (v0, v1, Meter je UV.x 0..1). Hoehe eines Bandes in Metern = (v1 - v0) * Meter.
+# Reihenfolge nach Farbe: Im Pixel-Look liest der Shader grobe Mip-Stufen, dort mischen sich benachbarte Baender. Neben dem Schiefer
+# und der Mauer liegen darum graue Baender, das braune Holz am Ende (Klicktest 23.11.2026: Holz neben dem Dach faerbte Dach und Mauer braun).
 BAENDER_DOM = {
     "schiefer":       (0.0000, 0.1875, 4.0),
     "schiefer_kante": (0.1875, 0.2500, 4.0),   # Alpha-Cards an den Stufenkanten der Daecher
-    "balken":         (0.2500, 0.3000, 4.0),   # Eiche: Glockenstuhl, Schallladen
-    "planken":        (0.3000, 0.3500, 4.0),   # Tuerblaetter
-    "mauer":          (0.3500, 0.6500, 4.0),   # grauer Werkstein in Lagen: Wandflaechen (1,20 m)
-    "sandstein":      (0.6500, 0.8000, 4.0),   # gelblicher Sandstein: Strebepfeiler, Ecken, Gewaende (0,60 m)
-    "werkstein":      (0.8000, 0.8750, 4.0),   # glatter heller Stein: Masswerk, Fialen, Gesimse (0,30 m)
-    "sockel":         (0.8750, 0.9250, 4.0),   # dunkler Bruchstein: Sockel (0,20 m)
-    "eisen":          (0.9250, 0.9500, 2.0),
+    "sockel":         (0.2500, 0.3000, 4.0),   # dunkler Bruchstein: Sockel (0,20 m)
+    "eisen":          (0.3000, 0.3250, 2.0),
+    "mauer":          (0.3250, 0.6250, 4.0),   # grauer Werkstein in Lagen: Wandflaechen (1,20 m)
+    "werkstein":      (0.6250, 0.7000, 4.0),   # glatter heller Stein: Masswerk, Fialen, Gesimse (0,30 m)
+    "sandstein":      (0.7000, 0.8500, 4.0),   # gelblicher Sandstein: Strebepfeiler, Ecken, Gewaende (0,60 m)
+    "balken":         (0.8500, 0.9000, 4.0),   # Eiche: Glockenstuhl
+    "planken":        (0.9000, 0.9500, 4.0),   # Tuerblaetter
     "kleinteile":     (0.9500, 1.0000, 1.0),   # Farbfelder, siehe FELDER_DOM
 }
 FELDER_DOM = ["gold", "bronze", "zifferblatt", "blei", "holz_dunkel", "nacht", "eisen", "kupfer"]
@@ -43,7 +45,7 @@ BAENDER_DOM_INNEN = {
     "gold":        (0.91, 0.95, 2.0),   # vergoldetes Schnitzwerk: Retabel
     "kleinteile":  (0.95, 1.00, 1.0),   # Farbfelder, siehe FELDER_DOM_INNEN
 }
-FELDER_DOM_INNEN = ["eisen", "messing", "bronze", "pergament", "wachs", "tinte", "glut", "gold", "blau", "haut"]
+FELDER_DOM_INNEN = ["eisen", "messing", "bronze", "pergament", "wachs", "tinte", "glut", "gold", "blau", "haut", "rot", "gruen"]
 
 
 def _felder(blatt, quellen, band, namen, stoffe):
@@ -54,7 +56,7 @@ def _felder(blatt, quellen, band, namen, stoffe):
     for i, name in enumerate(namen):
         metallisch, ton, rau = stoffe[name]
         f, n, arm = (rost if metallisch else putz).streifen(e - a, ab=40)
-        blatt.setze(band, faerbe(f, ton, kontrast=0.6, eigenfarbe=0.15), n, arm, rauheit=rau, metall=1.0 if metallisch else 0.0, x0=i * feld, x1=(i + 1) * feld)
+        blatt.setze(band, faerbe(f, ton, kontrast=0.6, eigenfarbe=0.0 if name == "gold" else 0.15), n, arm, rauheit=rau, metall=1.0 if metallisch else 0.0, x0=i * feld, x1=(i + 1) * feld)
 
 
 def baue_aussen(quellen):
@@ -63,12 +65,12 @@ def baue_aussen(quellen):
     schiefer = Quelle(quellen, "roof_slates_02")
     a, e = blatt.zeilen(B["schiefer"])
     f, n, arm = schiefer.streifen(e - a, ab=60)
-    blatt.setze(B["schiefer"], faerbe(f, (0.40, 0.42, 0.47), kontrast=1.15, eigenfarbe=0.35), n, arm)
+    blatt.setze(B["schiefer"], faerbe(f, (0.50, 0.53, 0.60), kontrast=1.15, eigenfarbe=0.35), n, arm)   # heller als beim Rathaus: im Pixel-Look war das Dach fast schwarz (Klicktest 23.11.2026)
     blatt.verlauf(B["schiefer"], 0.65, 1.0, 90)
     a2, e2 = blatt.zeilen(B["schiefer_kante"])
     h2 = e2 - a2
     f, n, arm = schiefer.streifen(h2, ab=400, versatz=200)
-    blatt.setze(B["schiefer_kante"], faerbe(f, (0.36, 0.38, 0.43), kontrast=1.2, eigenfarbe=0.3), n, arm)
+    blatt.setze(B["schiefer_kante"], faerbe(f, (0.46, 0.49, 0.56), kontrast=1.2, eigenfarbe=0.3), n, arm)
     grob = rauschen(N, 21, 40); stufe = (np.floor(np.arange(N) / 38) % 2).astype(np.float32)
     laenge = h2 * (0.55 + 0.20 * grob + 0.18 * stufe)
     yy = np.arange(h2, dtype=np.float32)[:, None]
@@ -93,7 +95,7 @@ def baue_aussen(quellen):
     f, n, arm = Quelle(quellen, "rusty_metal_02").streifen(e - a, ab=0)
     blatt.setze(B["eisen"], faerbe(f, (0.16, 0.15, 0.15), kontrast=0.5, eigenfarbe=0.25), n, arm, rauheit=0.62, metall=1.0)
     _felder(blatt, quellen, B["kleinteile"], FELDER_DOM, {
-        "gold": (True, (0.80, 0.62, 0.22), 0.3), "bronze": (True, (0.40, 0.32, 0.20), 0.45), "zifferblatt": (False, (0.95, 0.93, 0.86), 0.8),
+        "gold": (True, (0.86, 0.74, 0.40), 0.3), "bronze": (True, (0.40, 0.32, 0.20), 0.45), "zifferblatt": (False, (0.95, 0.93, 0.86), 0.8),
         "blei": (True, (0.34, 0.36, 0.40), 0.5), "holz_dunkel": (False, (0.16, 0.12, 0.09), 0.9), "nacht": (False, (0.03, 0.03, 0.04), 0.9),
         "eisen": (True, (0.13, 0.13, 0.13), 0.55), "kupfer": (True, (0.30, 0.52, 0.44), 0.6),
     })
@@ -139,14 +141,15 @@ def baue_innen(quellen):
     # Gold mit Zeichnung: senkrechte Felder wie Schnitzwerk (dunkle Kehlen alle 0,25 m)
     a, e = blatt.zeilen(B["gold"])
     f, n, arm = Quelle(quellen, "rusty_metal_02", kante=512).streifen(e - a, ab=0)
-    gold = faerbe(f, (0.80, 0.62, 0.22), kontrast=0.7, eigenfarbe=0.15)
+    gold = faerbe(f, (0.86, 0.74, 0.40), kontrast=0.7, eigenfarbe=0.0)       # helles Blattgold (Probe: war orange)
     kehle = (np.arange(N) % 64 < 5)[None, :, None]
     blatt.setze(B["gold"], np.where(kehle, gold * 0.45, gold), n, arm, rauheit=0.35, metall=1.0)
     _felder(blatt, quellen, B["kleinteile"], FELDER_DOM_INNEN, {
         "eisen": (True, (0.13, 0.13, 0.13), 0.55), "messing": (True, (0.62, 0.48, 0.24), 0.35), "bronze": (True, (0.42, 0.33, 0.20), 0.45),
         "pergament": (False, (0.80, 0.75, 0.64), 0.8), "wachs": (False, (0.92, 0.88, 0.76), 0.6), "tinte": (False, (0.05, 0.05, 0.06), 0.4),
-        "glut": (False, (0.95, 0.42, 0.10), 0.9), "gold": (True, (0.80, 0.62, 0.22), 0.3), "blau": (False, (0.16, 0.26, 0.55), 0.8),
+        "glut": (False, (0.95, 0.42, 0.10), 0.9), "gold": (True, (0.86, 0.74, 0.40), 0.3), "blau": (False, (0.16, 0.26, 0.55), 0.8),
         "haut": (False, (0.80, 0.62, 0.50), 0.8),
+        "rot": (False, (0.62, 0.13, 0.11), 0.8), "gruen": (False, (0.20, 0.42, 0.26), 0.8),
     })
     blatt.speichere("dom_innen_trim")
 

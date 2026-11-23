@@ -8,11 +8,11 @@ static class DomSteinMipTests
         yield return ("Dom außen: Werkstein und Sandstein lesen im Pixel-Look den kleinen Mip-Zuschlag", () =>
         {
             var d = SteinMip.Von("dom_trim");
-            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.50f, d, true));       // grauer Werkstein (0,35–0,65)
-            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.70f, d, true));       // Sandstein (0,65–0,80)
+            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.50f, d, true));       // grauer Werkstein (0,325–0,625)
+            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.75f, d, true));       // Sandstein (0,70–0,85)
             Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.10f, d, true));     // Gegenprobe Schiefer
-            Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.30f, d, true));     // Gegenprobe Holz
-            Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.85f, d, true));     // Gegenprobe glatter Werkstein
+            Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.65f, d, true));     // Gegenprobe glatter Werkstein
+            Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.90f, d, true));     // Gegenprobe Holz
             Pruefe.Gleich(0f, SteinMip.Zuschlag(0.50f, d, false));      // ohne Pixel-Look keine Verschiebung
         });
         yield return ("Dom innen: Werkstein und Sandstein sind Steinbänder, Boden und Holz nicht", () =>

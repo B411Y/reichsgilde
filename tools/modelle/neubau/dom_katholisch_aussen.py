@@ -4,7 +4,7 @@ Strebepfeilern mit Fialen und Strebeboegen ueber den Seitenschiffen; grauer Werk
     blender -b --python tools/modelle/neubau/dom_katholisch_aussen.py -- [--bilder=<ordner>] [--ohne-ao]
 
 Schreibt game/assets/modelle/gebaeude/neubau/dom_katholisch.glb mit den Knoten
-    Haus      Mauern, Strebewerk, Tuerme, Portal, Masswerk, Uhren, Glocken (Materialien Bruchstein, Sandstein, Bretter, Fachwerk, Firstblech)
+    Haus      Mauern, Strebewerk, Tuerme, Portal, Masswerk, Glocken (keine Turmuhren: um 1400 gibt es sie hier nicht) (Materialien Bruchstein, Sandstein, Bretter, Fachwerk, Firstblech)
     Dach      Schiefer in Stufen mit Alpha-Cards (Schieferkante): Hochschiff, Querhaus, Chor, Pultdaecher, Turmhelme
     Scheiben  Fenster (Fensterlicht) und Bleinetz; die Innenansicht blendet sie aus
     Anker_Tuer, Anker_Laterne
@@ -205,7 +205,6 @@ def turm(h, s, sx):
                     zu = P(l / 2, z0 + 2, 5)
                     D.scheibe(s, "Fenster", lambda q, z, P=P: P(q, z, -0.30), loch, zu)
                     D.scheibe(s, "Bleinetz", lambda q, z, P=P: P(q, z, -0.294), loch, zu)
-            if i == 2 and sichtbar: uhr(h, P, n3, l / 2, z0 + 4.9)
             if i >= 2 or not (innenseite or wo == "y1"):
                 D.gesimsband(h, a, b, n, z1 - 0.26, hoehe=0.26, vor=0.14, ueber=0.14)
         if i == 3:
@@ -224,28 +223,15 @@ def turm(h, s, sx):
         g = lambda z: (hw - hw * (zh + 3.0 - z) / 3.0, hw + hw * (zh + 3.0 - z) / 3.0)
         mauer(h, "Sandstein", a, eu, n, 2 * hw, zh, zh + 3.0, "sandstein", zbasis=zh, grenze=g)
         mauer(h, "Sandstein", b, (-eu[0], -eu[1]), (-n[0], -n[1]), 2 * hw, zh, zh + 3.0, "sandstein", zbasis=zh, grenze=g)
+    # Deckplatte der Glockenstube: schliesst die Ecken zwischen Wimpergen und achtseitigem Helm (sonst sieht man in den Turm)
+    h.rechteck("Sandstein", (cx - hw, cy - hw, zh + 0.02), (1, 0, 0), (0, 1, 0), 2 * hw, 2 * hw, "werkstein", zu=(cx, cy, zh + 5))
     for fx in (-1, 1):
         for fy in (-1, 1):
             D.fiale_bauen(h, (cx + fx * (hw - 0.28), cy + fy * (hw - 0.28)), 0.56, zh, 2.3, 2.1)
     D.farbstab(h, "Firstblech", (cx, cy, M.Z_SPITZE - 0.3), (cx, cy, M.Z_KREUZ), 0.10, "gold")
-    D.farbstab(h, "Firstblech", (cx - 0.65, cy, M.Z_KREUZ - 0.75), (cx + 0.65, cy, M.Z_KREUZ - 0.75), 0.10, "gold")
+    for seite in (-1, 1):                                  # Arme einzeln: ein durchgehender Balken laege deckungsgleich im Stamm
+        D.farbstab(h, "Firstblech", (cx + seite * 0.05, cy, M.Z_KREUZ - 0.75), (cx + seite * 0.65, cy, M.Z_KREUZ - 0.75), 0.10, "gold")
     D.farbkasten(h, "Firstblech", (cx - 0.17, cy - 0.17, M.Z_SPITZE - 0.1), (cx + 0.17, cy + 0.17, M.Z_SPITZE + 0.24), "gold")
-
-
-def uhr(h, P, n3, sm, zm, r=0.80):
-    """Turmuhr: helles Zifferblatt im Steinring, zwei Zeiger."""
-    c = lambda rr, w, vor: P(sm + rr * math.cos(w), zm + rr * math.sin(w), vor)
-    v0, v1, mm = BA["werkstein"]
-    seg = 12
-    for i in range(seg):
-        w0, w1 = 2 * math.pi * i / seg, 2 * math.pi * (i + 1) / seg
-        D.farbflaeche(h, "Sandstein", [c(0, 0, 0.05), c(r, w0, 0.05), c(r, w1, 0.05)], "zifferblatt", zu=c(0, 0, 5))
-        h.vieleck("Sandstein", [c(r, w0, 0.09), c(r + 0.16, w0, 0.09), c(r + 0.16, w1, 0.09), c(r, w1, 0.09)],
-                  [(i * 0.1, v1), (i * 0.1, v0), (i * 0.1 + 0.1, v0), (i * 0.1 + 0.1, v1)], zu=c(0, 0, 5))
-    for w, lang, breite in ((math.radians(60), 0.48, 0.08), (math.radians(-20), 0.68, 0.06)):
-        a, b = c(0, 0, 0.07), c(lang, w, 0.07)
-        q = (b - a).normalized().cross(n3) * breite / 2
-        D.farbflaeche(h, "Sandstein", [a - q, b - q, b + q, a + q], "eisen", zu=c(0, 0, 5))
 
 
 def baue_dach():
@@ -275,14 +261,14 @@ def baue_dach():
     for sx in (-1, 1):
         xa, xb = (M.X_TURM if sx > 0 else (-M.X_TURM[1], -M.X_TURM[0]))
         cx, cy = (xa + xb) / 2, (M.Y_WEST + M.Y_TURM) / 2
-        hw = (xb - xa) / 2 - 0.36
+        hw = (xb - xa) / 2 - 0.36 - 0.12                  # der Helm steht hinter den Wimpergen (keine Durchdringung mit ihren Flaechen)
         t = hw * math.tan(math.radians(22.5))
         ecken = [(hw, -t), (hw, t), (t, hw), (-t, hw), (-hw, t), (-hw, -t), (-t, -hw), (t, -hw)]
         sp = (cx, cy, M.Z_SPITZE)
         for k in range(8):
             a, b = ecken[k], ecken[(k + 1) % 8]
             dachflaeche(d, (cx + a[0], cy + a[1], M.Z_HELM), (cx + b[0], cy + b[1], M.Z_HELM), sp, sp, (cx + (a[0] + b[0]) * 4, cy + (a[1] + b[1]) * 4, 60),
-                        stufen=4, hub=0.0, saat=30 + k + 4 * sx)
+                        stufen=1, hub=0.0, karten=False, saat=30 + k + 4 * sx)   # glatte Flaechen: Stufen und Karten ueberschnitten sich an den Graten
     return d
 
 
@@ -309,8 +295,8 @@ def main():
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         B.kontrollbild(os.path.join(o, "dom_aussen_artwork_blick.jpg"), (-42.0, -52.0, 46.0), (0.0, -1.0, 12.0), brennweite=40)
-        B.kontrollbild(os.path.join(o, "dom_aussen_chor.jpg"), (36.0, 48.0, 30.0), (0.0, 4.0, 11.0), brennweite=35)
         B.kontrollbild(os.path.join(o, "dom_aussen_portal_nah.jpg"), (-5.0, -27.0, 2.4), (0.0, -17.0, 5.5), brennweite=28)
+        B.kontrollbild(os.path.join(o, "dom_aussen_helme.jpg"), (-16.0, -40.0, 44.0), (0.0, -14.7, 32.0), brennweite=50)
 
 
 if __name__ == "__main__":
