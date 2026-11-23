@@ -900,6 +900,9 @@ public partial class Hauptszene : Node
             "produktion" => _produktionTafel,
             "lager" => _lagerTafel,
             "karren" => _karrenTafel,
+            "fahrt" => _fahrtTafel, // Karren selbst fahren: Transportmenü, Ladefenster, Handelsfenster
+            "laden" => _ladeTafel,
+            "handel" => _karrenHandelTafel,
             "einrichten" or "talentbaum" => _einrichtenTafel,
             "wache" => _wachplanTafel,
             "bank" => _bankTafel,
