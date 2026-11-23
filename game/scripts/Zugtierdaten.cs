@@ -43,12 +43,23 @@ public static class Zugtierdaten
             }
             var faktor = art.Value.TryGetProperty("kurve_faktor", out var kf) ? kf.GetSingle() : 1f;  // volle Biegung im Spiel (Anteil des Messwerts)
             var kurve = art.Value.TryGetProperty("kurve", out var ku)
-                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), e.GetProperty("grad").GetSingle() * faktor)).ToArray()
+                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", AchseNormieren(new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), art.Name), e.GetProperty("grad").GetSingle() * faktor)).ToArray()
                 : Array.Empty<(string, Vector3, float)>();
             aus[art.Name] = new Tierart(new Vector3(a[0].GetSingle(), a[1].GetSingle(), a[2].GetSingle()), art.Value.GetProperty("tempo").GetSingle(),
                 blend.GetProperty(art.Name).GetDouble(), klips, kurve);
         }
         return aus;
+    }
+
+    /// <summary>Die Messwerte der Drehachsen haben nicht die Länge 1, Godots Quaternion verlangt aber eine normierte Achse: hier einmal beim Laden normieren; eine Nullachse wird gemeldet und durch Y ersetzt.</summary>
+    private static Vector3 AchseNormieren(Vector3 achse, string art)
+    {
+        if (achse.LengthSquared() < 1e-8f)
+        {
+            GD.PushError($"Zugtierdaten: Drehachse der Art {art} ist die Nullachse, Ersatz: Hochachse.");
+            return Vector3.Up;
+        }
+        return achse.Normalized();
     }
 
     /// <summary>
