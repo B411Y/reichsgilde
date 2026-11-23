@@ -30,6 +30,10 @@ SCHIEFER_HELL = 0.33      # mittlerer Wert der Schieferbaender in der gespeicher
                           # in Blender nur dunkelgrau; Kunstwerke Stufe 2 und 3: mittelgrauer Schiefer
 
 
+ZIEGEL_TON = (0.56, 0.30, 0.22)       # Tonziegel der Zwerge Stufe 3 (Menschen Stufe 2: 0,52 / 0,33 / 0,26), etwas roetlicher
+ZIEGEL_HELL_ZWERG = 0.24              # mittlere Helligkeit der Dachbaender (Menschen 0,20)
+
+
 def schiefer_aufhellen(blatt):
     """Hebt die Dachbaender („stroh“, „stroh_franse“) linear auf SCHIEFER_HELL; Zeichnung und Verlauf bleiben."""
     from trimsheet import srgb_zu_linear, linear_zu_srgb
@@ -41,20 +45,25 @@ def schiefer_aufhellen(blatt):
         print(f"Schiefer {name}: Helligkeit {hell:.4f} -> {SCHIEFER_HELL}")
 
 
-def baue(quellen):
+def baue(quellen, nur=None):
+    """`nur="s3"`: nur trim_s3_zwerg neu schreiben (Stufe 2 und die Innenblaetter bleiben unberuehrt)."""
     schiefer = Quelle(quellen, "roof_slates_02", kante=1024)
-    s2 = st.lade_blatt("trim_zwerg")
-    st.dach_band(s2, schiefer, (0.36, 0.37, 0.40), kontrast=1.2, eigenfarbe=0.08)
-    schiefer_aufhellen(s2)
-    s2.speichere("trim_s2_zwerg")
+    if nur != "s3":
+        s2 = st.lade_blatt("trim_zwerg")
+        st.dach_band(s2, schiefer, (0.36, 0.37, 0.40), kontrast=1.2, eigenfarbe=0.08)
+        schiefer_aufhellen(s2)
+        s2.speichere("trim_s2_zwerg")
     s3 = st.lade_blatt("trim_zwerg")
-    st.dach_band(s3, schiefer, (0.36, 0.37, 0.40), kontrast=1.2, eigenfarbe=0.08)
-    schiefer_aufhellen(s3)
+    # Dach Stufe 3 (Nutzer 23.11.2026): gebrannte Tonziegel statt Schiefer (Stufe 1 braeunlich, Stufe 2 blau bleiben)
+    st.dach_band(s3, st.Quelle1k(quellen, "clay_roof_tiles_02", kante=1024, aufloesung="2k"), ZIEGEL_TON, eigenfarbe=0.2)
+    st.dach_aufhellen(s3, ZIEGEL_HELL_ZWERG)
+    # Werkstein (Eckquader, Gewaende, Gesimse, Giebel): Quaderlagen mit tiefen Fugen und Fase wie bei den Menschen, in der braunen Farbe der
+    # Zwerge (Nutzer 23.11.2026: braune Steine ohne sichtbare Fugen, im Pixel-Look nicht lesbar): breite Fugen, starke Fase
     stein = Quelle(quellen, "sandstone_blocks_08", kante=1024)
-    a, e = s3.zeilen(BAENDER_AUSSEN["bruchstein"])
-    f, n, arm = stein.streifen(e - a, ab=210)
-    s3.setze(BAENDER_AUSSEN["bruchstein"], faerbe(f, (0.60, 0.52, 0.42), kontrast=1.0, eigenfarbe=0.35), n, arm)
+    st.quaderband(s3, BAENDER_AUSSEN["bruchstein"], stein, (0.60, 0.52, 0.42), saat=47, ab=210, fuge_px=22, fuge_x_px=22, fase_px=12,
+                  streuung=0.10, kontrast=0.8, eigenfarbe=0.2)
     s3.speichere("trim_s3_zwerg")
+    if nur == "s3": return
     # Innen: Schachbrettfeld rechts im Band "lehmboden" (links bleibt das Pflaster der Zwerge)
     i = st.lade_blatt("innen_trim_zwerg")
     fliesen = Quelle(quellen, "large_floor_tiles_02", kante=1024)
@@ -82,4 +91,4 @@ if __name__ == "__main__":
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     bpy.ops.wm.read_factory_settings(use_empty=True)
     ts.ZIEL = ts.ZIEL
-    baue(opt["quellen"])
+    baue(opt["quellen"], opt.get("nur"))

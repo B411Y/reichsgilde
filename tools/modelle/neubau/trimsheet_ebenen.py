@@ -71,7 +71,7 @@ ARRAYS = {
             ("mensch_s3", "trim_s3", {"bruchstein": "k1"}),
             ("zwerg_s1", "trim_zwerg", {}),
             ("zwerg_s2", "trim_s2_zwerg", {}),
-            ("zwerg_s3", "trim_s3_zwerg", {"bruchstein": "k2"}),   # heller Haustein mit Struktur in eigener Farbe (getoent auf den alten Sandstein waere er dunkelbraun)
+            ("zwerg_s3", "trim_s3_zwerg", {}),   # Werkstein-Quaderband (braun, Fugen, Fase) und Tonziegeldach kommen aus trimsheet_zwerg_stufen.py (Nutzer 23.11.2026; vorher K2)
             # Elben Stufe 1 (Auftrag 17.11.2026): eigenes Blatt trim_elb (Kunstwerk: Fachwerk mit Kalkputz, das Putzband bleibt Putz),
             # Haustein K2 im Bruchsteinband (Sockel, Schlot); K5 kommt in Stufe 1 nicht vor (das Kunstwerk zeigt keinen Backstein)
             ("elb_s1", "trim_elb", {"bruchstein": "k2"}),

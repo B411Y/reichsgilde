@@ -84,7 +84,7 @@ def laeden_zu_anlegen(stufe):
         (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
         t0, t1 = fensterhoehe(wand, z0)
         felder = zt.felder_der_lage(S23.LAGEN[wand], breite, S23.loecher(wand), t0, t1)
-        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG)
+        zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0 + 0.04, t1 - 0.04, f"{haus()}|{wand}", Z.LADEN_OG, nebeneinander=False)
     S23.fachwerk_lage = fachwerk_lage
     alt_mauer = S23.steinwand
 
@@ -97,7 +97,7 @@ def laeden_zu_anlegen(stufe):
         felder = zt.felder_der_mauer(achsen, M.BW, breite, S23.loecher(wand))
         # Steinhaus: versteinern() macht den Rahmen (Band balken_c) zu Werkstein, die Fluegel (Band planken) bleiben Holz
         zt.laeden_zu(h, S23.punkt(wand, 0.0, 0.0), (ex, ey, 0), S23.nvec(wand), felder, t0, t1, f"{haus()}|{wand}",
-                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG)
+                     Z.LADEN_EG if wand.endswith("_eg") else Z.LADEN_OG, nebeneinander=False)
     S23.steinwand = steinwand
 
 
@@ -133,10 +133,11 @@ def schicht_anlegen(stufe):
     S23.streifen_boden = lambda r, band, *a, **kw: alt_streifen(r, "lehmboden" if band == "bohlen" else band, *a, **kw)
     # Mauer aus dunklem Quader der Zwerge (Band „putz“ wie im Erdgeschoss der Stufe 1); bei den Menschen Bruchstein bzw. K1
     alt_wand = S23.steinwand
-    S23.steinwand = lambda h, stoff, wand, z0, z1, band="putz", laibung=True: alt_wand(h, stoff, wand, z0, z1, band, laibung)
+    S23.steinwand = lambda h, stoff, wand, z0, z1, band="putz", laibung=True, lage=None: alt_wand(h, stoff, wand, z0, z1, band, laibung, lage)   # lage: seit Patrizier D (Menschen)
     if stufe == 3:
         # Werkstein (Eckquader, Gewaende, Abdeckplatten) im Band „bruchstein“: der helle Haustein der Zwerge (Ebene zwerg_s3)
         S23.WERKSTEIN = "bruchstein"
+        S23.OBEN.update(band="putz", lage=None)             # Obergeschoss bleibt dunkler Quader der Zwerge (Entwurf: dunkle Mauer)
         S23.gewaende = gewaende_zwerg
     # Aussen: Amboss neben der Haustuer an der Gassenwand (Kunstwerke Stufe 2 und 3)
     alt_haus = S23.baue_haus
