@@ -3,27 +3,56 @@ using Reichsgilde.Core.Justiz;
 using Reichsgilde.Core.Politik;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
+using ReligionArt = Reichsgilde.Core.Glaube.Religion;
 
 namespace Reichsgilde.Core.Glaube;
 
 /// <summary>
-/// Die Glaubensrichtungen der Stadt (Entscheidung vom 13.10.2026): zwei anerkannte Konfessionen für die Kulturvölker,
-/// dazu der Naturglaube der Orks und Oger – für die Kirchen sind das Heiden.
+/// Die Glaubensrichtungen (Bekenntnisse) der Stadt (Entscheidung vom 13.10.2026, Ahtnentum 23.11.2026): katholisch und evangelisch
+/// (Christentum), altahtnisch und neuahtnisch (Ahtnentum, der Glaube der Anderlinge – kein Christentum), dazu der Naturglaube der Orks
+/// und Oger – für die Kirchen sind das Heiden. Neue Werte nur hinten anhängen (Spielstände).
 /// </summary>
 public enum Konfession
 {
     Katholisch,
     Evangelisch,
     Naturglaube,
+    /// <summary>Das alte, strenge Bekenntnis des Ahtnentums: nimmt nur Elben, Zwerge und Halblinge auf (Daten <c>glaube.bekenntnisse</c>).</summary>
+    Altahtnisch,
+    /// <summary>Das offene Bekenntnis des Ahtnentums: offen für Zusammenarbeit mit den Christen, nimmt auch Menschen auf.</summary>
+    Neuahtnisch,
+}
+
+/// <summary>Die Religion über den Bekenntnissen.</summary>
+public enum Religion
+{
+    Christentum,
+    Ahtnentum,
+    Naturglaube,
 }
 
 public static class KonfessionTexte
 {
+    /// <summary>Die kirchlichen Bekenntnisse in fester Reihenfolge (für Listen in der Oberfläche, Würfe und Tests).</summary>
+    public static readonly IReadOnlyList<Konfession> Kirchliche =
+        new[] { Konfession.Katholisch, Konfession.Evangelisch, Konfession.Altahtnisch, Konfession.Neuahtnisch };
+
+    public static ReligionArt Religion(this Konfession k) => k switch
+    {
+        Konfession.Katholisch or Konfession.Evangelisch => ReligionArt.Christentum,
+        Konfession.Altahtnisch or Konfession.Neuahtnisch => ReligionArt.Ahtnentum,
+        Konfession.Naturglaube => ReligionArt.Naturglaube,
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unbekannte Konfession"),
+    };
+
     public static string Name(this Konfession k) => k switch
     {
         Konfession.Katholisch => "katholisch",
         Konfession.Evangelisch => "evangelisch",
-        _ => "Naturglaube",
+        Konfession.Altahtnisch => "altahtnisch",
+        Konfession.Neuahtnisch => "neuahtnisch",
+        Konfession.Naturglaube => "Naturglaube",
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unbekannte Konfession"),
     };
 
     /// <summary>„der katholische Glaube" – für Sätze wie „tritt zum … über".</summary>
@@ -31,15 +60,32 @@ public static class KonfessionTexte
     {
         Konfession.Katholisch => "katholischen Glauben",
         Konfession.Evangelisch => "evangelischen Glauben",
-        _ => "Naturglauben",
+        Konfession.Altahtnisch => "altahtnischen Glauben",
+        Konfession.Neuahtnisch => "neuahtnischen Glauben",
+        Konfession.Naturglaube => "Naturglauben",
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unbekannte Konfession"),
     };
 
-    /// <summary>Die Gläubigen: „Katholiken", „Evangelische", „Heiden".</summary>
+    /// <summary>Die Gläubigen: „Katholiken", „Evangelische", „Altahtnen", „Neuahtnen", „Heiden".</summary>
     public static string Gemeinde(this Konfession k) => k switch
     {
         Konfession.Katholisch => "Katholiken",
         Konfession.Evangelisch => "Evangelische",
-        _ => "Heiden",
+        Konfession.Altahtnisch => "Altahtnen",
+        Konfession.Neuahtnisch => "Neuahtnen",
+        Konfession.Naturglaube => "Heiden",
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unbekannte Konfession"),
+    };
+
+    /// <summary>Kurzform für enge Zeilen (Stammbaum): „kath.", „ev.", „altahtn.", „neuahtn.", „Heide".</summary>
+    public static string Kurzname(this Konfession k) => k switch
+    {
+        Konfession.Katholisch => "kath.",
+        Konfession.Evangelisch => "ev.",
+        Konfession.Altahtnisch => "altahtn.",
+        Konfession.Neuahtnisch => "neuahtn.",
+        Konfession.Naturglaube => "Heide",
+        _ => throw new ArgumentOutOfRangeException(nameof(k), k, "Unbekannte Konfession"),
     };
 
     /// <summary>Eine der anerkannten Konfessionen (nur sie haben Kirchen).</summary>
@@ -105,6 +151,22 @@ public sealed class StadtglaubeDaten
     public double Ketzerpredigt { get; init; } = 200;
 }
 
+/// <summary>
+/// Eigene Regeln eines Bekenntnisses (Abschnitt „glaube.bekenntnisse", ab Datenversion 97, Ahtnentum). Fehlt ein Bekenntnis, gilt das Übliche:
+/// offen für alle Kulturvölker, Gunst wie in „glaube.gunst".
+/// </summary>
+public sealed class BekenntnisDaten
+{
+    /// <summary>Nur Häuser dieser Völker (Volk des Oberhaupts) dürfen übertreten oder mit diesem Glauben beginnen (null = alle).</summary>
+    public List<Volk>? OffenFuer { get; init; }
+
+    /// <summary>
+    /// Gunst dieser Gläubigen für das andere Bekenntnis derselben Religion (statt <see cref="GlaubensGunstDaten.Anders"/>; null = wie anders).
+    /// Neuahtnisch: −1 für Altahtnische (die Offenen sind versöhnlich, umgekehrt nicht).
+    /// </summary>
+    public double? GleicheReligion { get; init; }
+}
+
 /// <summary>Glaube und Konfessionen (Abschnitt „glaube"). Fehlt er, spielt der Glaube keine Rolle.</summary>
 public sealed class GlaubeDaten
 {
@@ -131,6 +193,32 @@ public sealed class GlaubeDaten
     public BekehrungDaten Bekehrung { get; init; } = new();
     public StadtglaubeDaten Stadtglaube { get; init; } = new();
 
+    /// <summary>Eigene Regeln je Bekenntnis (Ahtnentum: wer aufgenommen wird, Gunst unter Glaubensverwandten).</summary>
+    public Dictionary<Konfession, BekenntnisDaten> Bekenntnisse { get; init; } = new();
+
+    /// <summary>
+    /// Nimmt dieses Bekenntnis ein Haus dieses Volkes auf? (Übertritt und Start.) Den Naturglauben haben nur Orks und Oger; ins Ahtnentum kommen
+    /// sie nie (Nutzer 23.11.2026), auch wenn die Daten es erlaubten. Christlich taufen lassen können sie sich weiter.
+    /// </summary>
+    public bool NimmtAuf(Konfession k, Volk volk)
+    {
+        if (k == Konfession.Naturglaube) return volk is Volk.Ork or Volk.Oger;
+        if (k.Religion() == ReligionArt.Ahtnentum && volk is Volk.Ork or Volk.Oger) return false;
+        return !Bekenntnisse.TryGetValue(k, out var b) || b.OffenFuer is null || b.OffenFuer.Contains(volk);
+    }
+
+    /// <summary>
+    /// Gunst eines Gläubigen <paramref name="von"/> für einen Gläubigen <paramref name="ueber"/> (Rat und Meinungen): Heide −−, gleicher Glaube +,
+    /// das andere Bekenntnis derselben Religion nach <see cref="BekenntnisDaten.GleicheReligion"/>, sonst anders −.
+    /// </summary>
+    public double GunstFuer(Konfession von, Konfession ueber)
+    {
+        if (ueber == Konfession.Naturglaube && von != Konfession.Naturglaube) return Gunst.Heide;
+        if (ueber == von) return Gunst.Gleich;
+        if (ueber.Religion() == von.Religion() && Bekenntnisse.TryGetValue(von, out var b) && b.GleicheReligion is { } g) return g;
+        return Gunst.Anders;
+    }
+
     /// <summary>Glaube, mit dem ein Haus dieses Volkes beginnt (höchstes Gewicht; Orks und Oger: Naturglaube).</summary>
     public Konfession Startglaube(Volk volk) =>
         Voelker.TryGetValue(volk, out var g) && g.Count > 0
@@ -144,16 +232,26 @@ public sealed class GlaubeDaten
             if (g.Values.Any(x => x < 0) || g.Values.Sum() <= 0) f.Add($"glaube.voelker.{volk}: Gewichte ≥ 0, zusammen mehr als 0.");
             if (volk is not (Volk.Ork or Volk.Oger) && g.Any(x => x.Key == Konfession.Naturglaube && x.Value > 0))
                 f.Add($"glaube.voelker.{volk}: Der Naturglaube gehört zu Orks und Ogern.");
+            foreach (var (k, _) in g.Where(x => x.Value > 0 && x.Key.IstKirchlich() && !NimmtAuf(x.Key, volk)).OrderBy(x => x.Key))
+                f.Add($"glaube.voelker.{volk}: Die {k.Gemeinde()} nehmen keine {volk} auf (glaube.bekenntnisse.{k}.offenFuer).");
         }
-        if (Stadt.Count == 0 || Stadt.Keys.Any(k => !k.IstKirchlich())) f.Add("glaube.stadt: Anteile für Katholisch und Evangelisch.");
+        if (Stadt.Count == 0 || Stadt.Keys.Any(k => !k.IstKirchlich())) f.Add("glaube.stadt: Anteile nur für die kirchlichen Bekenntnisse (katholisch, evangelisch, altahtnisch, neuahtnisch).");
         if (Stadt.Values.Any(x => x < MindestAnteil) || Math.Abs(Stadt.Values.Sum() - 1) > 1e-6)
             f.Add("glaube.stadt: Jeder Anteil mindestens mindestAnteil, zusammen 1.");
         if (Rueckkehr is < 0 or > 1 || MindestAnteil is < 0 or >= 0.5 || FremdeKirche is < 0 or > 1)
             f.Add("glaube: rueckkehr und fremdeKirche zwischen 0 und 1, mindestAnteil unter 0,5.");
         if (Konvertieren.Gebuehr < 0 || Konvertieren.Ansehen < 0 || Bekehrung.Anteil < 0 || Stadtglaube.Abgabe < 0)
             f.Add("glaube: Gebühren, Ansehen, Anteile und Abgaben dürfen nicht negativ sein.");
-        foreach (var r in ratsherren.Where(r => r.Glaube == Konfession.Naturglaube))
-            f.Add($"Ratsherr {r.Name}: Im Rat sitzen nur Katholiken und Evangelische.");
+        foreach (var (k, b) in Bekenntnisse.OrderBy(x => x.Key))
+        {
+            if (!k.IstKirchlich()) f.Add($"glaube.bekenntnisse.{k}: nur für kirchliche Bekenntnisse.");
+            if (b.OffenFuer is { Count: 0 }) f.Add($"glaube.bekenntnisse.{k}.offenFuer: mindestens ein Volk (oder weglassen = alle).");
+        }
+        foreach (var r in ratsherren)
+        {
+            if (r.Glaube == Konfession.Naturglaube) f.Add($"Ratsherr {r.Name}: Im Rat sitzen nur Gläubige der kirchlichen Bekenntnisse.");
+            else if (r.Glaube is { } rg && !NimmtAuf(rg, r.Volk)) f.Add($"Ratsherr {r.Name}: Die {rg.Gemeinde()} nehmen keine {r.Volk} auf.");
+        }
     }
 }
 
@@ -217,7 +315,14 @@ public sealed class Glaubenswesen
     public string? StartglaubeVerboten(Volk volk, Konfession glaube) =>
         volk is Volk.Ork or Volk.Oger
             ? glaube == Konfession.Naturglaube ? null : "Orks und Oger beginnen mit dem Naturglauben – taufen lassen können sie sich später."
-            : glaube.IstKirchlich() ? null : "Der Naturglaube gehört zu Orks und Ogern.";
+            : !glaube.IstKirchlich() ? "Der Naturglaube gehört zu Orks und Ogern."
+            : _d is not null && !_d.NimmtAuf(glaube, volk) ? AufnahmeGrund(glaube) : null;
+
+    /// <summary>Warum dieses Bekenntnis ein Haus nicht aufnimmt (Text für Start und Übertritt).</summary>
+    private string AufnahmeGrund(Konfession glaube) =>
+        _d?.Bekenntnisse.GetValueOrDefault(glaube)?.OffenFuer is { } voelker
+            ? $"Die {glaube.Gemeinde()} nehmen nur {string.Join(", ", voelker.Select(v => v.Mehrzahl()))} auf."
+            : $"Die {glaube.Gemeinde()} nehmen euer Volk nicht auf.";
 
     /// <summary>Glaube eines Hauses = Glaube seines Oberhaupts (null ohne Familie).</summary>
     public Konfession? GlaubeVon(Konto konto) => _w.Familien.Von(konto)?.Oberhaupt.Glaube;
@@ -253,7 +358,7 @@ public sealed class Glaubenswesen
         var g = _d.Gunst;
         var ratsglaube = GlaubeVon(r);
         var eigener = f.Oberhaupt.Glaube;
-        var wert = eigener == Konfession.Naturglaube ? g.Heide : eigener == ratsglaube ? g.Gleich : g.Anders;
+        var wert = _d.GunstFuer(ratsglaube, eigener);
         if (f.Ehepartner is { } e && e.Herkunftsglaube != eigener && e.Herkunftsglaube == ratsglaube)
             wert += g.Mischehe;
         return wert;
@@ -287,6 +392,7 @@ public sealed class Glaubenswesen
         if (_w.Familien.Von(konto) is not { } f) return $"{konto.Inhaber} hat keine Familie.";
         if (!ziel.IstKirchlich()) return "Zum Naturglauben bekehrt keine Kirche.";
         if (f.Oberhaupt.Glaube == ziel) return $"Das Haus {f.Nachname} ist schon {ziel.Name()}.";
+        if (!Daten.NimmtAuf(ziel, f.Oberhaupt.Volk)) return AufnahmeGrund(ziel); // Ahtnentum: die Alten nehmen keine Menschen, Orks und Oger nie
         if (_w.Kirchenwesen.KirchengrenzeKonvertieren(konto, ziel) is { } kirchen) return kirchen; // höchstens eine Kirche je Glaube
         if (konto.Vermoegen < Daten.Konvertieren.Gebuehr)
             return $"Unterricht und {(f.Oberhaupt.Glaube.IstKirchlich() ? "Übertritt" : "Taufe")} kosten {Zahlenformat.Ganz(Daten.Konvertieren.Gebuehr)} {_w.Daten.Allgemein.Waehrung}.";
@@ -525,11 +631,26 @@ public sealed class Glaubenswesen
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _anteile.Clear();
         foreach (var (k, v) in s.Anteile) _anteile[k] = v;
+        AnteileErgaenzen();
         Stadtglaube = s.Stadtglaube;
         Antrag = s.AntragKonto is int ak ? (konten[ak], s.AntragGlaube) : null; // leert die Stimmen
         foreach (var (k, v) in s.Stimmen) _stimmen[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.KonvertiertBis) _konvertiertBis[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.BekehrtIm) _bekehrtIm[konten[int.Parse(k)]] = v;
         foreach (var (k, v) in s.AbgabenVorjahr) _abgabenVorjahr[konten[int.Parse(k)]] = v;
+    }
+
+    /// <summary>
+    /// Spielstände von vor dem Ahtnentum kennen nur katholisch und evangelisch: Fehlende Bekenntnisse der Daten kommen mit ihrem Startanteil dazu,
+    /// die vorhandenen werden im selben Verhältnis gekürzt (die Summe bleibt 1).
+    /// </summary>
+    private void AnteileErgaenzen()
+    {
+        if (_d is null || _anteile.Count == 0) return;
+        var fehlend = _d.Stadt.Where(x => !_anteile.ContainsKey(x.Key)).OrderBy(x => x.Key).ToList();
+        if (fehlend.Count == 0) return;
+        var rest = 1 - fehlend.Sum(x => x.Value);
+        foreach (var k in _anteile.Keys.OrderBy(k => k).ToList()) _anteile[k] *= rest;
+        foreach (var (k, a) in fehlend) _anteile[k] = a;
     }
 }

@@ -334,8 +334,17 @@ public sealed partial class Familienbuch
             return $"{k.Person.Name} sucht {(k.Person.Geschlecht == Geschlecht.Frau ? "einen Ehemann" : "eine Ehefrau")}.";
         if (k.Stand > konto.Stand)
             return $"{k.Person.Name} stammt aus dem Stand {_w.Daten.Staende[k.Stand].Name} – erst ab diesem Stand ist die Partie standesgemäß.";
+        if (HeiratMachtNeuahtnisch(f, k.Person) && _w.Kirchenwesen.KirchengrenzeKonvertieren(konto, Konfession.Neuahtnisch) is { } kirchen)
+            return $"Mit {k.Person.Vorname} würde das Haus neuahtnisch. {kirchen}";
         return null;
     }
+
+    /// <summary>
+    /// Ahtnentum (Nutzer 23.11.2026): Ein Mensch wird nie altahtnisch. Heiratet ein Mensch in ein altahtnisches Haus, werden das Haus (Oberhaupt),
+    /// der Ehepartner und die Kinder des Oberhaupts neuahtnisch. Der Heiratsmarkt bietet die Verbindung trotzdem an (auch der KI).
+    /// </summary>
+    public bool HeiratMachtNeuahtnisch(Familie f, Person partner) =>
+        _w.Glaube.IstAktiv && f.Oberhaupt.Glaube == Konfession.Altahtnisch && partner.Volk == Volk.Mensch;
 
     /// <summary>
     /// Volksnähe für die Wahl im Rat: Ratsherren schätzen ihr eigenes Volk. Eine Ehe zwischen Völkern
@@ -568,6 +577,15 @@ public sealed partial class Familienbuch
 
         var p = k.Person;
         p.Familienname = f.Nachname;
+        var neuahtnisch = HeiratMachtNeuahtnisch(f, p);
+        if (neuahtnisch)
+        {
+            // Das ganze Haus (Oberhaupt und seine Kinder) wird neuahtnisch; der Partner tritt unten zum neuen Glauben des Hauses über.
+            f.Oberhaupt.Glaube = Konfession.Neuahtnisch;
+            foreach (var kind in f.KinderVon(f.Oberhaupt).Where(x => x.Lebt)) kind.Glaube = Konfession.Neuahtnisch;
+            _w.Domamt.Ausscheiden(konto, "Übertritt"); // wie beim Übertritt: ein Domprediger verliert das Amt
+            _w.Geheimnisse.Glaubenswechsel(f.Oberhaupt);
+        }
         var uebertritt = _w.Glaube.IstAktiv && p.Glaube != f.Oberhaupt.Glaube;
         if (uebertritt) p.Glaube = f.Oberhaupt.Glaube; // Mischehe: Der Partner tritt zum Glauben des Hauses über
         f.MitgliederListe.Add(p);
@@ -577,6 +595,7 @@ public sealed partial class Familienbuch
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
                         $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
                         (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
+                        (neuahtnisch ? $" Die Altahtnen nehmen keine Menschen auf: Das Haus {f.Nachname} wird neuahtnisch." : "") +
                         (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""), Meldungsart.Heirat, p);
     }
 

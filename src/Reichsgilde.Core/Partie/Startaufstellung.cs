@@ -53,13 +53,11 @@ public static class Startaufstellung
     public static readonly IReadOnlyList<Volk> KiVoelker = new[] { Volk.Mensch, Volk.Zwerg, Volk.Elb, Volk.Halbling };
 
     // ── Glaubensliste je Volk ───────────────────────────────────────────────
-    // ERWEITERUNG Ahtnentum (Prediger-PR 5): Kommen die Konfessionen Altahtnisch und Neuahtnisch, werden sie nur hier eingetragen –
-    //   Menschen:           Neuahtnisch dazu (nie Altahtnisch),
-    //   Zwerge, Elben, Halblinge: Altahtnisch und Neuahtnisch dazu.
-    // Der Naturglaube bleibt allein bei Orks und Ogern. Die Tests (StartaufstellungTests) prüfen diese Regeln schon über die Namen.
+    // Ahtnentum (Prediger-PR 5, Nutzer 11.11.2026): Menschen können nur neuahtnisch sein (nie altahtnisch), Zwerge, Elben und Halblinge beides.
+    // Der Naturglaube bleibt allein bei Orks und Ogern. Die Liste passt zu glaube.bekenntnisse.*.offenFuer (Test AhtnentumTests).
 
-    private static readonly Konfession[] GlaubenMenschen = { Konfession.Katholisch, Konfession.Evangelisch /* später: Neuahtnisch */ };
-    private static readonly Konfession[] GlaubenAndere = { Konfession.Katholisch, Konfession.Evangelisch /* später: Altahtnisch, Neuahtnisch */ };
+    private static readonly Konfession[] GlaubenMenschen = { Konfession.Katholisch, Konfession.Evangelisch, Konfession.Neuahtnisch };
+    private static readonly Konfession[] GlaubenAndere = { Konfession.Katholisch, Konfession.Evangelisch, Konfession.Altahtnisch, Konfession.Neuahtnisch };
     private static readonly Konfession[] GlaubenNatur = { Konfession.Naturglaube };
 
     /// <summary>Mit welchen Glauben ein Haus dieses Volkes beginnen kann (gelost wird gleich verteilt) – in fester Reihenfolge.</summary>
