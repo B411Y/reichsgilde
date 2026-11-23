@@ -274,3 +274,81 @@ def traufstuetzen(teil, punkte, unter, staerke=0.10):
         oben.append(Vector((x, y, zo - staerke / 2)))
         teil.kasten("Fachwerk", (x - staerke / 2, y - staerke / 2, 0.0), (x + staerke / 2, y + staerke / 2, zo - staerke), "balken_a", ohne=("-z",), laengs="z")
     teil.stab("Fachwerk", oben[0], oben[1], staerke * 0.8, "balken_c", kappen=True)   # schmaler als die Pfosten: keine deckungsgleichen Flaechen
+
+
+# ── Gebogene Streben im echten Fachwerk (Nutzer 23.11.2026: Holzlage wie bei Menschen, Halblingen und Zwergen) ─────────────────────────
+# In der Holzlage (holzlage.py) ist jedes Holz ein gerades Vieleck. Die Strebe der Elben bleibt gebogen: Sie entsteht aus
+# BOGEN_LAGE_TEILE geraden Stuecken entlang desselben Bogens wie bogen_strebe (Stich 8 % der Sehne, hoechstens 12 cm, nach oben), jedes
+# Stueck an den Stoessen auf Gehrung geschnitten (keine Ueberlappung, kein Spalt) und wie bisher auf das Gefach zugeschnitten.
+
+BOGEN_LAGE_TEILE = 4
+
+
+def bogen_in_holzlage(stueck_hoch=None):
+    """Stellt holzlage.Holzlage.holz fuer die Elbenhaeuser um: schraege Hoelzer (Streben, Kopfbaender, Kreuze) werden gebogen gebaut.
+    Senkrechte und waagerechte Hoelzer und alles mit `gerade` bleiben, wie sie sind. `stueck_hoch`: hoechste Hoehe eines Stuecks
+    (Stufe 1: 0,30 m – ein hoeheres zaehlt die Pruefung 7 der Stufe 1 als Staender, wie bei BOGEN_TEILE)."""
+    import holzlage
+    L = holzlage.Holzlage
+    if getattr(L, "_elb_bogen", False): return
+    alt = L.holz
+
+    def holz(self, a, b, breite, band="balken_a", rang=1, zuschnitt=None, gerade=False, ende=True):
+        dx, dz = b[0] - a[0], b[1] - a[1]
+        sehne = math.hypot(dx, dz)
+        if gerade or rang < 1 or abs(dx) < 0.2 or abs(dz) < 0.2 or sehne < 0.6:
+            return alt(self, a, b, breite, band, rang, zuschnitt, gerade, ende)
+        qx, qz = -dz / sehne, dx / sehne                       # quer zur Sehne, nach oben
+        if qz < 0: qx, qz = -qx, -qz
+        stich = min(BOGEN_STICH_MAX, BOGEN_STICH * sehne)
+        n = BOGEN_LAGE_TEILE if not stueck_hoch else max(BOGEN_LAGE_TEILE, math.ceil(abs(dz) / stueck_hoch))
+        p = [(a[0] + dx * k / n + qx * stich * 4 * (k / n) * (1 - k / n), a[1] + dz * k / n + qz * stich * 4 * (k / n) * (1 - k / n))
+             for k in range(n + 1)]
+        tang = [((p[k + 1][0] - p[k][0]), (p[k + 1][1] - p[k][1])) for k in range(n)]
+        tang = [(x / math.hypot(x, z), z / math.hypot(x, z)) for x, z in tang]
+        for k in range(n):
+            poly = holzlage.rechteck(p[k], p[k + 1], breite)
+            if k > 0:                                          # Gehrung am Anfang: Seite des Stuecks behalten
+                g = (tang[k - 1][0] + tang[k][0], tang[k - 1][1] + tang[k][1])
+                poly = holzlage.schneide(poly, p[k], g) if poly else poly
+            if k < n - 1 and poly:                             # Gehrung am Ende
+                g = (tang[k][0] + tang[k + 1][0], tang[k][1] + tang[k + 1][1])
+                poly = holzlage.schneide(poly, p[k + 1], (-g[0], -g[1]))
+            if poly and zuschnitt is not None:
+                poly = holzlage.schnitt(poly, holzlage.ccw(zuschnitt))
+            if not poly or abs(holzlage.flaeche(poly)) < 1e-6: continue
+            self.hoelzer.append((holzlage.ccw(poly), rang, band, (p[k], tang[k]), breite))
+            if not ende: self.ohne_ende.add(len(self.hoelzer) - 1)
+
+    L.holz = holz
+    L._elb_bogen = True
+
+
+class _OhneEfeu:
+    """Die Flaechen eines Teils ohne die Blattkarten des Efeus (fuer zwerg_teile.laeden_zu_pruefen: Efeu verstellt keinen Laden)."""
+
+    def __init__(self, teil):
+        self.flaechen = [f for f in teil.flaechen if f[2] != "Efeublatt"]
+
+
+def ohne_efeu(teil):
+    return _OhneEfeu(teil)
+
+
+def laeden_am_wappen_weg(wappen, abstand=0.12):
+    """Nimmt geschlossene Laeden (zwerg_teile.LAEDEN_ZU) weg, die dem Wappen sein Feld nehmen: ihr Umriss kommt dem des Wappens naeher
+    als `abstand` (Grundform 3 der Stufe 1: der Laden sass im Brustfeld des Wappens, die Wappenregel fand keinen freien Ort mehr)."""
+    import zwerg_teile as zt
+    pw = [p for fl in wappen.flaechen for p in fl[0]]
+    if not pw: return 0
+    wa = [min(p[i] for p in pw) - abstand for i in range(3)]
+    we = [max(p[i] for p in pw) + abstand for i in range(3)]
+    weg = 0
+    for h, marke in zt.LAEDEN_ZU:
+        pl = [p for f in h.flaechen if f[3] is marke for p in f[0]]
+        if not pl: continue
+        if all(min(p[i] for p in pl) < we[i] and max(p[i] for p in pl) > wa[i] for i in range(3)):
+            h.flaechen = [f for f in h.flaechen if f[3] is not marke]
+            weg += 1
+    if weg: print(f"LAEDEN ZU: {weg} am Wappen entfernt")
+    return weg

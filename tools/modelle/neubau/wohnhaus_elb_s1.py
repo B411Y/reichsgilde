@@ -48,6 +48,7 @@ BLICK_G3 = ((-0.45, 0.50), (2.20, -0.30, 1.30))   # Grundform 3: Innenblick von 
 _MASSE = []
 FORM = 1                          # gebaute Grundform (main)
 LETZT = {}                        # zuletzt gebaute Teile (Haus, Dach, Scheiben, Wappen) fuer die Wappenregel
+LAEDEN_TEILE = []                 # Teile der Huelle mit geschlossenen Laeden (Zufallslaeden)
 
 
 def umbenennen(text):
@@ -216,6 +217,11 @@ def rueckwand_einrichten(t):
 EFEU_HOECHSTENS = 120            # Blattkarten je Haus (je 2 Dreiecke), wenn die Dreiecksgrenze der Huelle (4.000) mehr zuliesse
 
 
+# Karten je Grundform, wie sie die fruehere Dreiecksgrenze (4.000) ergab (Stand main 22.11.2026); die Grenze ist jetzt 8.000,
+# der Efeu soll aber nicht mehr werden
+EFEU_KARTEN = {1: 120, 2: 102, 3: 120, 4: 120}
+
+
 def efeu_setzen(t):
     """Efeu als Blattkarten an allen vier Aussenwaenden, auch ueber dem Fachwerkholz (Nutzer 21.11.2026: der Efeu im Putzband ist im
     Pixel-Look nicht zu sehen). efeu_karten.bewachsen liest aus der Huelle, wo eine Karte sitzen darf; Oberkante unter der Traufe bzw.
@@ -225,7 +231,7 @@ def efeu_setzen(t):
     F = s1.F
     haus = t["huelle"][0]
     summe = sum(x.dreiecke() for x in t["huelle"]) + t["scheiben"].dreiecke()
-    budget = max(0, min(EFEU_HOECHSTENS, (4000 - 30 - summe) // 2))
+    budget = EFEU_KARTEN[F.nr]                                      # fest: so viele wie bisher (der Efeu bleibt, wie entschieden)
     ebenen, gesehen = [], set()
     for (ox, oy), (ex, ey), laenge, (nx, ny) in F.WAENDE.values():
         kenn = (round(ox * nx + oy * ny, 2), round(nx), round(ny))
@@ -264,6 +270,8 @@ def elb_dach(g, yw0, yw1):
 def schicht_anlegen():
     """Stoff, Dateinamen, Atlasgruppen und Bauteile auf den Elb umstellen; die Skripte der Menschen bleiben unveraendert."""
     masse_anlegen()
+    g1.FACHWERK_ECHT = True                                        # echtes Fachwerk (Holzlage, Nutzer 23.11.2026), die Streben gebogen
+    et.bogen_in_holzlage(stueck_hoch=0.30)
     alt_stoff, alt_uv = g1.stoff, g1.uv2_und_ao
     g1.stoff = lambda name, blatt=None, **kw: alt_stoff(name, (blatt + "_" + VOLK) if blatt else None, **kw)
     g1.uv2_und_ao = lambda gruppen, gruppe, modell, mit_ao=True: alt_uv(gruppen, umbenennen(gruppe), umbenennen(modell), mit_ao)
@@ -358,8 +366,31 @@ def schicht_anlegen():
 
     def wappen_regel():
         g1.wappen_frei_ruecken(LETZT["wappen"], [LETZT[k] for k in ("haus", "dach", "scheiben")])   # Feinschliff der Menschen (#504); nach dem Dach der Elben noch einmal
-    g1.baue_fahne = lambda: (wappen_regel(), zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH))[1]
-    s1.baue_fahne = lambda x, y, z: (wappen_regel(), zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH))[1]
+
+    def laeden_pruefen():                                           # die Huelle steht (Unterstand, Schlot): verstellte Laeden weg
+        zt.laeden_zu_pruefen([et.ohne_efeu(t) for t in LAEDEN_TEILE] + [zt.LETZTES_DACH])   # Efeu darf vor einem Laden haengen
+    # schon vor der Wappenregel der Menschen (main: wappen_frei_ruecken vor der Fahne): sonst rueckte das Wappen einem Laden aus dem Weg,
+    # der danach wegfaellt, und sass dann auf Holz und Efeu (Pruefung 19, Grundform 3)
+    alt_ruecken = g1.wappen_frei_ruecken
+    g1.wappen_frei_ruecken = lambda w, teile, *a, **kw: (laeden_pruefen(), et.laeden_am_wappen_weg(w), alt_ruecken(w, teile, *a, **kw))[2]
+    g1.baue_fahne = lambda: (laeden_pruefen(), wappen_regel(), zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH))[2]
+    s1.baue_fahne = lambda x, y, z: (laeden_pruefen(), wappen_regel(), zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH))[2]
+    # Geschlossene Laeden im festen Zufall (zwerg_teile.laeden_zu, Verfahren der Zeilenmodule): auf freien Gefachen des Fachwerks
+    alt_lage = g1.fachwerk_wand_lage
+
+    def fachwerk_wand_lage(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, riegel=True, z_fenster=g1.OG_FENSTER, stoss=None):
+        alt_lage(h, P, breite, n3, z0, z1, oeffnungen, n, raehm, riegel, z_fenster, stoss)
+        if not riegel: return
+        import zeile_module as Z
+        h = getattr(h, "_teil", h)                               # das Teil selbst, nicht der Stellvertreter BogenTeil (Laeden fallen spaeter weg)
+        if h not in LAEDEN_TEILE: LAEDEN_TEILE.append(h)
+        fen = [o for o in oeffnungen if o[4] == "fenster"]
+        t0, t1 = (min(f[2] for f in fen), max(f[3] for f in fen)) if fen else z_fenster
+        p0, p1 = Vector(P(0.0, 0.0)), Vector(P(1.0, 0.0))
+        felder = zt.felder_der_lage(g1.LAGEN[-1][4], breite, oeffnungen, t0, t1)
+        schluessel = f"wohnhaus_elb_s1_g{FORM}|{p0.x:.2f},{p0.y:.2f}|{n3[0]:.0f},{n3[1]:.0f}|{z0:.2f}"
+        zt.laeden_zu(h, p0, p1 - p0, n3, felder, t0 + 0.04, t1 - 0.04, schluessel, Z.LADEN_OG, nebeneinander=False)
+    g1.fachwerk_wand_lage = fachwerk_wand_lage
     alt_form = s1.form_setzen
 
     def form_setzen(n):

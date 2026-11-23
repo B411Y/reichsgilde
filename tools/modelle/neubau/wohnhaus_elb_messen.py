@@ -29,6 +29,8 @@ import wohnhaus_elb_s1 as ELB                                             # noqa
 WURZEL = Z.WURZEL
 
 
+DREIECKE_HUELLE = 8000        # Grenze je Huelle (Auftrag 22./23.11.2026: echtes Fachwerk; vorher 4.000 aus wohnhaus_zwerg_neu_messen)
+
 def _blatt(glb, blatt):
     """Blatt der Elben: das der Menschen mit "_elb"."""
     if blatt is None:
@@ -668,12 +670,23 @@ def main_s23(haus, ordner, form, stufe, opt):
         return alt_kein([f for f in fl if not elb_holz(f)], dx)
     MS23.kein_fachwerk = kein_fachwerk
     texturen = opt.get("texturen")
+    alt_spiegel = MS23.giebel_symmetrie
+
+    def giebel_symmetrie(fl, y, zt, zf, mitte=0.0, breite=9.0):
+        """Pruefung 2 der Menschen; in Grundform 2 zaehlt der Giebel des Fluegels (rechts hinten, in der Ebene der Rueckwand) nicht zur
+        Giebelseite des Hauses: seine gebogene Strebe hat Stoesse, die unter seiner Dachlinie (45 Grad ab der Hausecke) in die
+        gepruefte Breite ragen – die gerade Strebe der Menschen hat dort keinen Eckpunkt (23.11.2026)."""
+        anz, ohne, hoch = alt_spiegel(fl, y, zt, zf, mitte, breite)
+        if form == 2:
+            ohne = [p for p in ohne if not (p[0] > MS23.M.BX and p[1] <= zt + (p[0] - MS23.M.BX) + 0.12)]
+        return anz, ohne, hoch
+    MS23.giebel_symmetrie = giebel_symmetrie
     zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
     z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
     z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
+    fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren_s23(M, form, stufe); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
@@ -727,8 +740,8 @@ def main():
     z19, f19 = Z.wappen_frei(glb)
     zeilen.append(f"19. Wappen frei (5 cm zu Laden, Fenster, Gewaende, Holz, Vordach): {'ok' if not f19 else str(f19) + ' FEHLER'}"); zeilen += z19; fehler += f19
     je, summe = Z.dreiecke(glb)
-    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {Z.DREIECKE_HUELLE}) -> {'ok' if summe <= Z.DREIECKE_HUELLE else 'FEHLER'}")
-    fehler += 0 if summe <= Z.DREIECKE_HUELLE else 1
+    zeilen.append(f"20. Dreiecke der Huelle {je} Summe {summe} (Grenze {DREIECKE_HUELLE}) -> {'ok' if summe <= DREIECKE_HUELLE else 'FEHLER'}")
+    fehler += 0 if summe <= DREIECKE_HUELLE else 1
     z, f = tueren(form); zeilen += z; fehler += f
     z22, f22 = Z.fahne_steht(glb)
     zeilen.append(f"22. Fahnenmast steht auf dem Dach: {'ok' if not f22 else 'FEHLER'}"); zeilen += z22; fehler += f22
