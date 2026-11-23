@@ -45,6 +45,7 @@ from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
     "Sack": (0.70, 0.62, 0.46),
+    "Leder dunkel": (0.17, 0.10, 0.06),    # Zugstränge und Riemen der neuen Karren: sollen neben dem Holz als Leder lesbar sein
 })
 
 ARTEN = ("hand", "ochse", "pferd", "pferd_gross")
@@ -362,7 +363,7 @@ def unter(kind, eltern):
 STRAENGE = True            # False nur für die Messung (karren_neu_pruefen.py): Abstand der Wagenteile zum Pferd ohne die Zugstränge, die absichtlich am Kummet enden
 
 
-def zugstrang(n, st, pfad, stoff="Leder", r=0.03):
+def zugstrang(n, st, pfad, stoff="Leder dunkel", r=0.03):
     if not STRAENGE:
         return
     for a, b in zip(pfad[:-1], pfad[1:]):
@@ -371,7 +372,7 @@ def zugstrang(n, st, pfad, stoff="Leder", r=0.03):
 
 def pferd_ein(st):
     """Pferdekarren (1 Pferd): Zweirad, Kasten mit Bock für den Fuhrmann, Gabeldeichsel (Schere). Der Ochsenkarren bleibt als karren_ochse."""
-    zf, halb, y0, y1, hw = 0.95, 0.72, -2.1, 1.4, 0.5        # Kasten 3,50 m: vorn 1,3 m Bock mit Fußraum, dahinter 2,2 m Ladung (Ladefläche wie Ochsenkarren)
+    zf, halb, y0, y1, hw = 0.95, 0.72, -1.85, 1.65, 0.5      # Kasten 3,50 m: vorn 1,3 m Bock mit Fußraum, dahinter 2,2 m Ladung (Ladefläche wie Ochsenkarren); Achse 0,25 m weiter vorn, das Pferd trägt etwas Last
     r, spur = 0.72, 0.90
     sx = 0.60                                                   # Schaftbäume 0,21 m außerhalb der Flanke (Flanke 0,385 m aus der Mitte)
     tip_y, tip_z = y0 - WAAG_ABSTAND - KRUPPE_ZU_RING, RING_Z   # Kruppe 0,45 m vor der Stirnwand
@@ -425,7 +426,7 @@ def pferd_gross(st):
     Mittelbaum 0,21 m neben den Flanken (Pferde ±0,62 m, Flanke ±0,34 m)."""
     zf, halb, y0, y1, hw = 1.04, 0.80, -2.85, 0.55, 0.62       # Kasten 3,40 × 1,60 m
     maße = (halb, y0, y1, zf, hw)
-    r_h, r_v, spur_h, spur_v, y_v = 0.66, 0.46, 1.02, 0.98, -2.20   # Radstand 2,20 m
+    r_h, r_v, spur_h, spur_v, y_v = 0.66, 0.42, 1.02, 0.98, -2.20   # Radstand 2,20 m; Vorderrad Ø 0,84 m: Oberkante 0,05 m unter den Langhölzern, auch im Einschlag frei
     pole_z = 0.86
     pole_y = y0 - 1.175 - SPRITZ_ABSTAND                       # Waagscheit 0,35 m vor dem Spritzbrett (Vorderkante bei y0 - 1,175)
     tip_y, tip_z = pole_y - KRUPPE_ZU_RING - WAAG_ABSTAND, RING_Z   # Ringmitte der Kummete: Kruppe 0,45 m vor dem Waagscheit

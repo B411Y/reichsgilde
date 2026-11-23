@@ -149,7 +149,7 @@ def baue(art, straenge):
 def messung(pferd, art):
     """Abstände aus dem Bauskript (ohne Zugstränge, die enden am Kummet): Pferde zu Wagenteilen gerade; beim Großen im Knick Vorderwagen samt Pferden gegen Kasten und Hinterachse."""
     zwei = art == "pferd_gross"
-    phis = (0, 15, 30, 45) if zwei else (0,)
+    phis = (0, 15, 30, 40, 50, 60, 70) if zwei else (0,)
     for phi in phis:
         objekte = baue(art, False)
         bpy.context.view_layer.update()
@@ -200,14 +200,14 @@ def messung(pferd, art):
             hint = max(max((o.matrix_world @ v.co).y for v in o.data.vertices) for o in meshes)
             front = min(min((o.matrix_world @ v.co).y for v in o.data.vertices) for o in meshes if o.name in ("Karren", "Vorderwagen"))
             print(f"PRUEF {art} zugpunkt_y={ring.y:.3f} nase_y={nase:.3f} (vor dem Ring {ring.y - nase:.3f}) kruppe_y={kruppe:.3f} wagen_vorn_y={front:.3f} wagen_hinten_y={hint:.3f} gespann_vorn={abs(nase):.2f} hinten={hint:.2f}")
-        if zwei and phi in (0, 30, 45):
+        if zwei and phi in (0, 40):
             kam = pb.buehne()
             bilder(kam, f"messmodell_grosser_pferdekarren_knick{phi}", -3.4, 12.5, OPT["aus"], ("oben",))
 
 
 def knick_bilder(pferd, aus):
     """Bilder aus dem Spiel-GLB im Knick: Vorderwagen und Pferde drehen gemeinsam um den Reibnagel (Knoten Vorderwagen)."""
-    for phi in (15, 30, 45):
+    for phi in (30, 40, 60):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         lade_karren(os.path.join(KARREN, "karren_pferd_gross.glb"))
         mat = SR.material(pferd, True)

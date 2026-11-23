@@ -109,7 +109,7 @@ public partial class Stadtansicht
         // die Tiere gehen in Richtung der Deichsel (die Schere bzw. der Mittelbaum führt sie, kein Knick Tier/Deichsel). Der Ochsenkarren bleibt, wie er ist.
         ["Pferdekarren"] = new("karren/karren_pferd", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Bock", "SitzenBock", "pferd",
             new[] { "Anker_Deichsel" }, Pferd: true, TierFolgtDeichsel: true),
-        ["Großer Pferdekarren"] = new("karren/karren_pferd_gross", new[] { ("Rad_HL", 0.66f), ("Rad_HR", 0.66f), ("Rad_VL", 0.46f), ("Rad_VR", 0.46f) }, "Anker_Bock", "SitzenBock", "pferd",
+        ["Großer Pferdekarren"] = new("karren/karren_pferd_gross", new[] { ("Rad_HL", 0.66f), ("Rad_HR", 0.66f), ("Rad_VL", 0.42f), ("Rad_VR", 0.42f) }, "Anker_Bock", "SitzenBock", "pferd",
             new[] { "Anker_Pferd_L", "Anker_Pferd_R" }, Pferd: true, Drehschemel: "Vorderwagen", TierFolgtDeichsel: true),
     };
 
@@ -127,12 +127,12 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Länge des Gespanns vor und hinter dem Ursprung des Karrens (Meter, Fahrtrichtung vorn), gemessen aus den Modellen (Karren und Zugtier an den Ankern,
-    /// <c>tools/modelle/karren.py</c>, Messung <c>karren_neu_pruefen.py</c>): Großer Pferdekarren 7,25 + 1,22 (Zugpunkt 6,47 m vor der Hinterachse, Kopf des Pferds 0,78 m vor dem Ring), Pferdekarren 5,00 + 1,48 (Zugpunkt 4,19 m), Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
+    /// <c>tools/modelle/karren.py</c>, Messung <c>karren_neu_pruefen.py</c>): Großer Pferdekarren 7,25 + 1,22 (Zugpunkt 6,47 m vor der Hinterachse, Kopf des Pferds 0,78 m vor dem Ring), Pferdekarren 4,75 + 1,75 (Zugpunkt 3,94 m), Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
     /// </summary>
     internal static (float Vorn, float Hinten) KarrenGespann(string typ) => typ switch
     {
         "Großer Pferdekarren" => (7.25f, 1.22f),
-        "Pferdekarren" => (5.0f, 1.48f),
+        "Pferdekarren" => (4.75f, 1.75f),
         "Ochsenkarren" => (5.33f, 1.28f),
         _ => (2.93f, 0.88f),
     };
@@ -223,7 +223,7 @@ public partial class Stadtansicht
         var radstand = vorderwagen is not null ? drehZ : 0f;
         var lauf = modell is null || zugZ - drehZ < 0.3f ? null
             : art.Tier is null ? new Gespannlauf(zugZ - drehZ, 0, 80, 1.0)
-            : art.TierFolgtDeichsel ? new Gespannlauf(zugZ - drehZ, radstand, 30, 3.0) // Schere bzw. Mittelbaum führen das Tier: kleiner Knick
+            : art.TierFolgtDeichsel ? new Gespannlauf(zugZ - drehZ, radstand, 30, 3.0, 40) // Schere bzw. Mittelbaum führen das Tier: kleiner Knick; Drehschemel höchstens 40° gegen den Kasten (Unterlauf)
             : art.Pferd ? new Gespannlauf(zugZ - drehZ, 0, 45, 3.0) : new Gespannlauf(zugZ - drehZ, 0, 50, 2.5);
         var ansicht = new KarrenAnsicht
         {

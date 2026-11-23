@@ -26,6 +26,8 @@ public sealed class Gespannlauf
     public double KnickMax { get; }
     /// <summary>Kleinster Bogenhalbmesser (Meter) des Zugtiers.</summary>
     public double KleinsterBogen { get; }
+    /// <summary>Größter Winkel (Bogenmaß) zwischen Deichsel (Vorderwagen) und Kasten beim Drehschemel: darüber dreht der Kasten mit (Unterlauf des echten Wagens, die Vorderräder laufen sonst in den Kasten).</summary>
+    public double WagenKnickMax { get; }
 
     public double ZugX { get; private set; }
     public double ZugZ { get; private set; }
@@ -46,8 +48,9 @@ public sealed class Gespannlauf
     public double WagenZ { get; private set; } = 1;
     public bool Bereit { get; private set; }
 
-    public Gespannlauf(double deichsel, double radstand, double knickMaxGrad, double kleinsterBogen)
+    public Gespannlauf(double deichsel, double radstand, double knickMaxGrad, double kleinsterBogen, double wagenKnickMaxGrad = 180)
     {
+        WagenKnickMax = Math.Min(wagenKnickMaxGrad, 180) * Math.PI / 180.0;
         Deichsel = Math.Max(deichsel, 0.01);
         Radstand = Math.Max(radstand, 0);
         KnickMax = knickMaxGrad * Math.PI / 180.0;
@@ -56,6 +59,8 @@ public sealed class Gespannlauf
 
     /// <summary>Knickwinkel (Bogenmaß, mit Vorzeichen) zwischen Tierkurs und Deichsel.</summary>
     public double Knick => Math.Atan2(KursX * DeichselZ - KursZ * DeichselX, KursX * DeichselX + KursZ * DeichselZ);
+    /// <summary>Winkel (Bogenmaß, mit Vorzeichen) zwischen Deichsel (Vorderwagen) und Kasten; beim Einachser 0.</summary>
+    public double WagenKnick => Math.Atan2(DeichselX * WagenZ - DeichselZ * WagenX, DeichselX * WagenX + DeichselZ * WagenZ);
     /// <summary>Abstand Zugpunkt zum Drehpunkt (soll immer <see cref="Deichsel"/> sein).</summary>
     public double DeichselIst => Math.Sqrt((ZugX - VorneX) * (ZugX - VorneX) + (ZugZ - VorneZ) * (ZugZ - VorneZ));
 
@@ -135,6 +140,13 @@ public sealed class Gespannlauf
         if (Radstand <= 0) { (HintenX, HintenZ) = (VorneX, VorneZ); (WagenX, WagenZ) = (dx, dz); return; }
         var (wx, wz) = (VorneX - HintenX, VorneZ - HintenZ);
         Norm(ref wx, ref wz, WagenX, WagenZ);
+        var wk = Math.Atan2(dx * wz - dz * wx, dx * wx + dz * wz);                 // Winkel Deichsel → Kasten
+        if (Math.Abs(wk) > WagenKnickMax)                                           // Unterlauf: der Kasten dreht mit der Vorderachse, statt weiter zu knicken
+        {
+            var w = Math.Sign(wk) * WagenKnickMax;
+            var (c, s) = (Math.Cos(w), Math.Sin(w));
+            (wx, wz) = (dx * c - dz * s, dx * s + dz * c);
+        }
         (WagenX, WagenZ) = (wx, wz);
         (HintenX, HintenZ) = (VorneX - wx * Radstand, VorneZ - wz * Radstand);
     }
