@@ -2608,3 +2608,19 @@ Seit dem 17.11.2026 nennen die Karten keine festen KI-Häuser mehr; jede Partie 
 
 **Befund:** Das Vermögen der KI-Häuser bleibt gleich (Köln −0,8 %, Messstadt −0,1 bis +6,2 %) – alles innerhalb der Streuung von 10 Startwerten. Der Bezugsspieler liegt höher (+4,5 %, auf „Schwer“ +9,6 %), bei einem Fehler des Mittels von über 11.000 Gulden lässt sich das mit 10 Startwerten nicht von Zufall trennen. Nichts nachgesteuert. Wer es genauer wissen will: `messen bericht 20 20` (900 Partien) vorher und nachher.
 
+
+## Ahtnentum: dritter Glaube der Anderlinge (Datenversion 97, 23.11.2026)
+
+Gemessen auf main 6bc4b696 + dieser PR (vorher: main 6bc4b696). `glaube.voelker` (Elb K 0,35 / E 0,15 / Alt 0,25 / Neu 0,25, Zwerg 0,15 / 0,35 / 0,30 / 0,20, Halbling 0,22 / 0,28 / 0,23 / 0,27, Menschen ohne Ahtnentum), `glaube.stadt` aus den Volksanteilen der Bürger (M 5, H 2, Z 2, E 1) hergeleitet: K 0,41 / E 0,34 / Alt 0,13 / Neu 0,12. Drei Ratsherren ahtnisch (Kämmerer altahtnisch, Marktmeister und ein Nachrücker neuahtnisch).
+
+| Messung | vorher | nachher |
+|---|---|---|
+| `messen 30 20`: Stadtglaube am Ende (20 Partien) | katholisch 14, evangelisch 6 | katholisch 12, neuahtnisch 3, altahtnisch 1, Glaubensfreiheit 4 |
+| Anträge Stadtglaube (gestellt/angenommen) | 22/22 | 41/40 |
+| Katholiken Ø am Ende | 62 % | 43 % |
+| Glaube der drei KI-Häuser am Ende (60) | katholisch 40, evangelisch 20 | katholisch 31, evangelisch 9, neuahtnisch 12, altahtnisch 8 |
+| Glaubenszins Ø je Jahr (Stadtkasse) | 42 | 39 |
+| Vermögen des Spielers Ø (30 J.) | 161.106 | 158.669 |
+| `messen bericht 20 10 --teile=1`: Prediger (ein Betrieb, 20 J.) | 29.801 (+10,6 %) | 29.185 (+5,6 %) |
+
+Ergebnis: Die Gemeinden ohne eigene Kirche (heute meist die Ahtnen) geben in fremden Kirchen nur die halbe Spende; der Prediger verliert dadurch etwa 2 % Vermögen (im Rauschen von 10 Startwerten) und bleibt über dem Mittel. Ein Stadtglaube geht seltener durch, der Rat ist jetzt gemischter (in 4 von 20 Partien bleibt Glaubensfreiheit), ahtnische Stadtglauben kommen vor (4 von 20). Die übrigen Berufe bewegen sich im Rauschen (statische Rechnung unverändert).

@@ -379,6 +379,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Dom katholisch) Das Glas hat einen Farbton für alle Fenster; Bildfenster mit mehreren Farben wären eine Erweiterung von `butzenglas.gdshader`
 - (Dom katholisch) Evangelische Einrichtung und Simultankirche sind im Spiel nur auf der Greybox (Glaubensfreiheit = Simultankirche) gesehen, die rein evangelische und die rein katholische Fassung nur in den Kontrollbildern aus Blender; es gibt keine Startoption für den Stadtglauben
 - (Dom katholisch) Brand am neuen Dom (`--blitzschlag=Dom`) nicht angesehen; die Stoffnamen sind die des Rathauses (Schiefer, Bruchstein, Sandstein, Bretter), der Brandschaden sollte greifen wie dort
+- (von Kern, Ahtnentum) Ein ahtnischer Stadtglaube ist jetzt möglich (`Konfession.Altahtnisch`/`Neuahtnisch`, `Religion.Ahtnentum`): Der Dom-Innenraum (`Stadtansicht.Sonderbauten`, heute nur katholisch/evangelisch/simultan) braucht eine ahtnische Ausstattung (Paket 5 der Dome); bis dahin zeigt er bei ahtnischem Stadtglauben weder das katholische noch das evangelische Stück.
 
 ## Entscheidungen
 

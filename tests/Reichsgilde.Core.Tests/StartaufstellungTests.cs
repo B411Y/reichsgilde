@@ -106,9 +106,9 @@ static class StartaufstellungTests
                     Pruefe.Wahr(g.SequenceEqual(new[] { Konfession.Naturglaube }), $"{volk}: nur Naturglaube");
                 else
                     Pruefe.Wahr(!g.Contains(Konfession.Naturglaube), $"{volk}: kein Naturglaube");
-                // Platzhalter fürs Ahtnentum (Prediger-PR 5): Kommt eine Konfession „Altahtnisch“, darf sie bei Menschen nicht stehen (nur „Neuahtnisch“).
+                // Ahtnentum (Prediger-PR 5): Menschen nie altahtnisch, aber neuahtnisch.
                 if (volk == Volk.Mensch)
-                    Pruefe.Wahr(!g.Any(k => k.ToString().StartsWith("Altahtn", StringComparison.Ordinal)), "Menschen nie altahtnisch");
+                    Pruefe.Wahr(!g.Contains(Konfession.Altahtnisch) && g.Contains(Konfession.Neuahtnisch), "Menschen nur neuahtnisch");
             }
             Pruefe.Wahr(!Startaufstellung.KiVoelker.Contains(Volk.Ork) && !Startaufstellung.KiVoelker.Contains(Volk.Oger), "Orks und Oger haben kein Bürgerrecht");
 
@@ -124,7 +124,7 @@ static class StartaufstellungTests
                     glauben.Add(h.Glaube!.Value);
                 }
             Pruefe.Gleich(4, voelker.Count, "alle vier Völker kommen vor");
-            Pruefe.Wahr(glauben.SetEquals(new[] { Konfession.Katholisch, Konfession.Evangelisch }), string.Join(", ", glauben));
+            Pruefe.Wahr(glauben.SetEquals(new[] { Konfession.Katholisch, Konfession.Evangelisch, Konfession.Altahtnisch, Konfession.Neuahtnisch }), string.Join(", ", glauben));
 
             // In der Partie trägt das Oberhaupt Volk und Glauben der Aufstellung
             // (seit 17.11.2026 würfelt die Partie auf einer Karte auch die Namen – verglichen wird mit der Belegung in der Partiekarte)
