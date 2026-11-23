@@ -2,6 +2,7 @@
 
 importer="2d_array_texture"
 type="CompressedTexture2DArray"
+uid="uid://cll8eu7gllgwe"
 path.bptc="res://.godot/imported/dom_evangelisch_trim_normal.png-8e3c763369333bf775a8e255fe360acd.bptc.ctexarray"
 metadata={
 "imported_formats": ["s3tc_bptc"],

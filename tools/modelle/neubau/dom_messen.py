@@ -1,8 +1,9 @@
 """Neubau Dom: Soll gegen Ist aus den fertigen GLBs (reines Python mit numpy, ohne Blender).
 
-    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch] [--md=<datei>]
+    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch|dom_evangelisch] [--md=<datei>]
 
-Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb und prueft gegen die Massdatei (dom_masse.py):
+Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb und prueft gegen die Massdatei des Modells
+(dom_masse.py fuer den Dom katholisch, sonst <modell>_masse.py):
   * Dreiecke je Knoten, Huelle im Budget des Style-Guides (Monument 8.000-15.000),
   * belegte Flaeche und Hoehe der Huelle, Unterkante bei Z = 0,
   * UV2 (TEXCOORD_1) aller Netze der Huelle und des Raums liegt in der Zelle des Modells im AO-Atlas (ao_atlas.json),
@@ -20,7 +21,7 @@ import numpy as np
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HIER)
-import dom_masse as M                  # noqa: E402
+import dom_masse as M                  # noqa: E402  (main() tauscht sie gegen die Massdatei des Modells)
 from rathaus_messen import Glb         # noqa: E402
 
 ORDNER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(HIER))), "game", "assets", "modelle", "gebaeude", "neubau")
@@ -44,6 +45,10 @@ def zelle(gruppe, modell):
 
 def pruefen(modell):
     z = []
+    # Namen, die nur eine der Massdateien kennt: groesste halbe Breite, Aussenflaeche der Portalwand, Beginn des Hauptdachs
+    x_max = getattr(M, "X_QUER", M.X_AUSSEN)
+    y_west = getattr(M, "Y_WESTWAND", None) or M.Y_WEST
+    y_dach = getattr(M, "Y_TURM", y_west)
     add = lambda name, soll, ist, ok: z.append((name, soll, ist, bool(ok)))
     z.extend(M.soll_ist())
     aussen = Glb(os.path.join(ORDNER, modell + ".glb"))
@@ -70,7 +75,7 @@ def pruefen(modell):
     add("Huelle Unterkante", "0,00", f(lo[2]), abs(lo[2]) < 1e-3)
     add("Huelle Hoehe (Kreuz)", f(M.Z_KREUZ), f(hi[2]), abs(hi[2] - M.Z_KREUZ) < 0.02)
     dach = np.concatenate([p for p, _ in aussen.ecken("Dach").values()])
-    add("First des Hochschiffs", f"{f(M.Z_FIRST)} (+ Deckung)", f(dach[np.abs(dach[:, 0]) < 0.5][:, 2][dach[np.abs(dach[:, 0]) < 0.5][:, 1] > M.Y_TURM].max()), True)
+    add("First des Hochschiffs", f"{f(M.Z_FIRST)} (+ Deckung)", f(dach[np.abs(dach[:, 0]) < 0.5][:, 2][dach[np.abs(dach[:, 0]) < 0.5][:, 1] > y_dach].max()), True)
     # ── UV2 ──
     for glb, gruppe, namen in ((aussen, "dom", ("Haus", "Dach")), (innen, "dom_innen", [n for n in netze_i if not n.startswith("Glas_")])):
         n, sp, ze = zelle(gruppe, modell)
@@ -104,7 +109,7 @@ def pruefen(modell):
     raum = np.concatenate([p for p, _ in innen.ecken("Raum_Dom").values()])
     rlo, rhi = raum.min(axis=0), raum.max(axis=0)
     add("Innenraum in der Huelle (x, y)", "ja", f"x {f(rlo[0])}...{f(rhi[0])}, y {f(rlo[1])}...{f(rhi[1])}",
-        rlo[0] >= -M.X_QUER and rhi[0] <= M.X_QUER and rlo[1] >= M.Y_WESTWAND and rhi[1] <= M.Y_APSIS + M.R_APSIS)
+        rlo[0] >= -x_max and rhi[0] <= x_max and rlo[1] >= y_west and rhi[1] <= M.Y_APSIS + M.R_APSIS)
     add("Innenraum Scheitel", f"<= {f(M.Z_SCHEITEL)}", f(rhi[2]), rhi[2] <= M.Z_SCHEITEL + 1e-3)
     add("Innenraum Boden", f(M.Z_SOCKEL), f(raum[:, 2][raum[:, 2] > 0.2].min()) if (raum[:, 2] > 0.2).any() else "-", True)
     # ── Anker ──
@@ -114,7 +119,7 @@ def pruefen(modell):
     tuer, ex = innen.anker("Tuer_Dom_Stadt")
     add("Tuer_Dom_Stadt", f"im Portal, {f(M.PORTAL[0])} breit, {f(M.PORTAL[2] - M.PORTAL[1])} hoch, ziel stadt",
         f"{f(tuer[0])}/{f(tuer[1])}, {f(float(ex.get('breite', 0)))} x {f(float(ex.get('hoehe', 0)))}, ziel {ex.get('ziel')}",
-        abs(tuer[0]) < 0.01 and M.Y_WESTWAND <= tuer[1] <= M.Y_WESTWAND + M.T_WAND + 0.05 and ex.get("ziel") == "stadt"
+        abs(tuer[0]) < 0.01 and y_west <= tuer[1] <= y_west + M.T_WAND + 0.05 and ex.get("ziel") == "stadt"
         and abs(float(ex.get("breite", 0)) - M.PORTAL[0]) < 0.01)
     moebel = np.concatenate([p for p, _ in innen.ecken("Moebel_Dom").values()])
     sitz = moebel[np.abs(moebel[:, 2] - (M.Z_SOCKEL + M.SITZHOEHE)) < 0.003]
@@ -142,7 +147,12 @@ def pruefen(modell):
 
 def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in sys.argv[1:] if a.startswith("--"))
-    zeilen = pruefen(opt.get("modell", "dom_katholisch"))
+    global M
+    modell = opt.get("modell", "dom_katholisch")
+    if modell != "dom_katholisch":
+        import importlib
+        M = importlib.import_module(modell + "_masse")
+    zeilen = pruefen(modell)
     text = M.tabelle(zeilen)
     print(text)
     fehler = [n for n, _, _, ok in zeilen if not ok]
