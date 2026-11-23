@@ -42,17 +42,20 @@ static class GlaubeTests
         return (k, b);
     }
 
-    /// <summary>Setzt das Haus auf den Sitz des Zöllners (statt Hinnerk Tannenkamp, katholisch).</summary>
+    /// <summary>
+    /// Setzt das Haus auf den Sitz des Marktmeisters (statt Bertram Kesselflick, neuahtnisch) – die übrigen Amtsträger sind dann wie vor dem
+    /// Ahtnentum 3 katholisch, 2 evangelisch, dazu der altahtnische Kämmerer.
+    /// </summary>
     static void InDenRat(Stadtwirtschaft w, Konto k)
     {
-        var amt = w.Rat.AmtNamens("Zöllner")!;
+        var amt = w.Rat.AmtNamens("Marktmeister")!;
         amt.Ratsherr = null;
         amt.Konto = k;
     }
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Daten: Startglaube je Volk (Menschen und Elben katholisch, Zwerge und Halblinge evangelisch, Orks Naturglaube); Rat 7 katholisch, 6 evangelisch; Naturglaube nur für Orks und Oger", () =>
+        ("Daten: Startglaube je Volk (Menschen und Elben katholisch, Zwerge und Halblinge evangelisch, Orks Naturglaube); Rat 5 katholisch, 5 evangelisch, 1 altahtnisch, 2 neuahtnisch; Naturglaube nur für Orks und Oger", () =>
         {
             var d = Daten.Value.Glaube!;
             Pruefe.Gleich(Konfession.Katholisch, d.Startglaube(Volk.Mensch));
@@ -61,8 +64,10 @@ static class GlaubeTests
             Pruefe.Gleich(Konfession.Evangelisch, d.Startglaube(Volk.Halbling));
             Pruefe.Gleich(Konfession.Naturglaube, d.Startglaube(Volk.Ork));
             var rat = Daten.Value.Politik.Ratsherren;
-            Pruefe.Gleich(7, rat.Count(r => r.Glaube == Konfession.Katholisch));
-            Pruefe.Gleich(6, rat.Count(r => r.Glaube == Konfession.Evangelisch));
+            Pruefe.Gleich(5, rat.Count(r => r.Glaube == Konfession.Katholisch));
+            Pruefe.Gleich(5, rat.Count(r => r.Glaube == Konfession.Evangelisch));
+            Pruefe.Gleich(1, rat.Count(r => r.Glaube == Konfession.Altahtnisch));
+            Pruefe.Gleich(2, rat.Count(r => r.Glaube == Konfession.Neuahtnisch));
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Replace("\"Mensch\": { \"Katholisch\": 0.6, \"Evangelisch\": 0.4 }",
                 "\"Mensch\": { \"Katholisch\": 0.6, \"Naturglaube\": 0.4 }")), "Naturglaube");
 
@@ -140,18 +145,24 @@ static class GlaubeTests
             Pruefe.Wahr(taufe.Erfolg && taufe.Meldung.Contains("taufen"), taufe.Meldung);
         }),
 
-        ("Messe: Jede Konfession geht in ihre Kirche (55 % / 45 %); ohne eigene Kirche in eine fremde, aber nur mit halber Spende", () =>
+        ("Messe: Jede Konfession geht in ihre Kirche (Anteile der Daten, seit dem Ahtnentum vier); ohne eigene Kirche in eine fremde, aber nur mit halber Spende", () =>
         {
             var sim = NeueSimulation();
             var (_, kath) = Prediger(sim, "Familie Rom", Konfession.Katholisch);
             var w = sim.Wirtschaft!;
             Pruefe.Ungefaehr(200, w.Kirchenwesen.ErwarteteGlaeubige(kath), 1e-9);
-            Pruefe.Ungefaehr(200 * 0.55 * 2.2 + 200 * 0.45 * 2.2 * 0.5, w.Kirchenwesen.ErwarteteKollekte(kath), 1e-9); // 2,2 je Gläubigem seit PR #177
+            var anteil = w.Glaube.Daten.Stadt;
+            var a = anteil[Konfession.Katholisch];
+            var e = anteil[Konfession.Evangelisch];
+            Pruefe.Ungefaehr(200 * a * 2.2 + 200 * (1 - a) * 2.2 * 0.5, w.Kirchenwesen.ErwarteteKollekte(kath), 1e-9); // 2,2 je Gläubigem seit PR #177
             var (_, ev) = Prediger(sim, "Familie Wittenberg", Konfession.Evangelisch);
             for (var i = 0; i < 10 * 60 + 1 - Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // nach der Messe um 10 Uhr
-            Pruefe.Ungefaehr(110, w.Kirchenwesen.DiesesJahr(kath).Glaeubige, 1e-9);
-            Pruefe.Ungefaehr(90, w.Kirchenwesen.DiesesJahr(ev).Glaeubige, 1e-9);
-            Pruefe.Ungefaehr(90 * 2.2, w.Kirchenwesen.DiesesJahr(ev).Kollekte, 1e-9);
+            // Die eigenen Gemeinden ganz, die Ahtnen ohne eigene Kirche verteilen sich auf beide (halbe Spende).
+            var gk = w.Kirchenwesen.DiesesJahr(kath).Glaeubige;
+            var ge = w.Kirchenwesen.DiesesJahr(ev).Glaeubige;
+            Pruefe.Ungefaehr(200, gk + ge, 1e-9);
+            Pruefe.Wahr(gk >= 200 * a - 1e-9 && ge >= 200 * e - 1e-9, $"{gk} / {ge}");
+            Pruefe.Ungefaehr(200 * e * 2.2 + (ge - 200 * e) * 2.2 * 0.5, w.Kirchenwesen.DiesesJahr(ev).Kollekte, 1e-9);
         }),
 
         ("Bekehrungspredigt: nur Prediger, einmal im Jahr; +4 Punkte × Rhetorik für die eigene Gemeinde, +3 Gunst bei Ratsherren des Glaubens; die Anteile kehren jährlich um 10 % zurück", () =>
@@ -165,14 +176,17 @@ static class GlaubeTests
             var e = w.Ausfuehren(k, new Bekehrungspredigt());
             Pruefe.Wahr(e.Erfolg, e.Meldung);
             Pruefe.Gleich(11, k.Aktionspunkte.Vorrat);
-            Pruefe.Ungefaehr(0.55 + kraft, w.Glaube.Anteil(Konfession.Katholisch), 1e-9);
-            Pruefe.Ungefaehr(0.45 - kraft, w.Glaube.Anteil(Konfession.Evangelisch), 1e-9);
+            var start = w.Glaube.Daten.Stadt;
+            var min = w.Glaube.Daten.MindestAnteil;
+            var verfuegbar = start.Where(x => x.Key != Konfession.Katholisch).Sum(x => x.Value - min); // die anderen geben gleichmäßig bis zum Mindestanteil
+            Pruefe.Ungefaehr(start[Konfession.Katholisch] + kraft, w.Glaube.Anteil(Konfession.Katholisch), 1e-9);
+            Pruefe.Ungefaehr(start[Konfession.Evangelisch] - kraft * (start[Konfession.Evangelisch] - min) / verfuegbar, w.Glaube.Anteil(Konfession.Evangelisch), 1e-9);
             Pruefe.Gleich(3.0, w.Rat.Gunst(w.Rat.RatsherrNamens("Ulrich Wendelstein")!, k));
             Pruefe.Gleich(0.0, w.Rat.Gunst(w.Rat.RatsherrNamens("Konrad Eisenfaust")!, k));
             Pruefe.Wahr(!w.Ausfuehren(k, new Bekehrungspredigt()).Erfolg, "zweimal im Jahr");
             Pruefe.Wahr(w.Justiz.SpurenVon(k).All(s => s.Art != Vergehen.Ketzerei), "ohne Stadtglauben keine Ketzerei");
             JahrBeenden(sim);
-            Pruefe.Ungefaehr(0.55 + kraft * 0.9, w.Glaube.Anteil(Konfession.Katholisch), 1e-9);
+            Pruefe.Ungefaehr(start[Konfession.Katholisch] + kraft * 0.9, w.Glaube.Anteil(Konfession.Katholisch), 1e-9);
             Pruefe.Ungefaehr(1, w.Glaube.Anteile.Values.Sum(), 1e-9);
         }),
 
@@ -195,7 +209,7 @@ static class GlaubeTests
             Pruefe.Wahr(w.Rat.LetzteSitzung.Any(s => s.Contains("Stadtglauben") && s.Contains("ANGENOMMEN")), string.Join(" | ", w.Rat.LetzteSitzung));
             Pruefe.Wahr(w.Glaube.IstAndersglaeubig(ev) && !w.Glaube.IstAndersglaeubig(k), "andersgläubig");
 
-            // Glaubensfreiheit: Die drei evangelischen Ratsherren wären dafür, die katholischen und der Bürgermeister dagegen.
+            // Glaubensfreiheit: Die zwei evangelischen und der altahtnische Ratsherr wären dafür, die katholischen und der Bürgermeister dagegen.
             var frei = w.Glaube.AbstimmungsPrognose(ev, null);
             Pruefe.Gleich(3, frei.Ja);
             Pruefe.Wahr(!Reichsgilde.Core.Politik.Stadtrat.IstAngenommen(frei.Ja, frei.Nein, frei.Buergermeister), "Freiheit ginge durch");
