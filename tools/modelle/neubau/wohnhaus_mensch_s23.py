@@ -1063,7 +1063,7 @@ def giebel_lage(h, wand, y, aussen, fen, xk):
     lage = holzlage.Holzlage(achse=0.0, umriss=[(-x0 - 0.3, zt), (x0 + 0.3, zt), (0.0, zf + 0.3)])
     lage.holz((-x0, zt + 0.09), (x0, zt + 0.09), 0.18, "balken_c", 0, gerade=True)                            # Giebelschwelle (auf dem Raehm)
     for sg in (-1, 1):
-        lage.holz((sg * x0, zt + 0.02), (0.0, zf - 0.02), 0.16, "balken_c", 0, gerade=True)                  # Giebelsparren
+        lage.holz((sg * x0, zt + 0.02), (0.0, zf - 0.02), 0.16, "balken_c", 0, gerade=True, zuschnitt=kasten(-x0 - 0.5, x0 + 0.5, zt, zf + 1.0))   # Giebelsparren: ab der Traufe abgeschnitten (die Fussspitze ragte 3 cm unter zt ins Raehm der anderen Holzlage: deckungsgleich, Pruefer 23.11.2026)
     aus = GIEBEL_AUSSPARUNG.get(wand)
     for za_, zb_ in (((zt, aus[0]), (aus[1], zf + 1.0)) if aus else ((zt, zf + 1.0),)):
         if zb_ - za_ > 0.05:

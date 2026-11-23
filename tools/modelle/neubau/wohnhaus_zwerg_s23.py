@@ -277,6 +277,7 @@ def schicht_anlegen(stufe):
         if stufe == 3:
             vorher = h.dreiecke()
             weg = eckquader_neu(h)
+            print("ECKQUADER Enden gesamt / mit Normale ins Werkstueck:", ECK_ZAEHLER[0], ECK_ZAEHLER[1])
             print("DREIECKE Eckquader (EG ersetzt, OG neu):", h.dreiecke() - vorher, "- entfernte Flaechen", weg)
             vorher = h.dreiecke()
             eisengitter(h)
@@ -317,6 +318,9 @@ def flaechen_entfernen(h, weg):
 FUGE = 0.009     # Lagerfuge der Eckquader: 9 mm (bei 15 mm sah die Lueckenpruefung durch die Fuge an der Ecke einen Durchblick)
 
 
+ECK_ZAEHLER = [0, 0]      # Enden der L-Eckquader gesamt / davon mit Normale ins Werkstueck (Messung)
+
+
 def eckquader_l(h, x_ecke, ys, z_unten, z_oben, ende):
     """Eckquader als Werkstuecke aus hellem Haustein (Band WERKSTEIN), Form wie im Erdgeschoss der Menschen (Laeufer 0,48 x 0,22 und
     Binder 0,22 x 0,48 im Wechsel, Hoehe 0,34 bzw. 0,26 m, 3 cm vor der Mauer; Fuge FUGE), aber jeder Quader als ein L-Prisma ueber die
@@ -339,8 +343,17 @@ def eckquader_l(h, x_ecke, ys, z_unten, z_oben, ende):
                 kern = Vector((sx * (x_ecke - 0.05), y - sy * 0.05, (za + ze) / 2))
                 h.rechteck(st, Vector((min(xa, xi), yf, za)), (1, 0, 0), EZ, abs(xa - xi), hz, band, weg_von=kern)          # Stirn
                 h.rechteck(st, Vector((xa, min(yf, yi), za)), (0, 1, 0), EZ, abs(yf - yi), hz, band, weg_von=kern)          # Seite
-                h.rechteck(st, Vector((xi, min(yf, yw), za)), (0, 1, 0), EZ, abs(yf - yw), hz, band, zu=kern + Vector((sx * 5, 0, 0)))   # Ende entlang x
-                h.rechteck(st, Vector((min(xa, xw), yi, za)), (1, 0, 0), EZ, abs(xa - xw), hz, band, zu=kern + Vector((0, sy * 5, 0)))   # Ende entlang y
+                alt_ = os.environ.get("ECK_ALT")                           # Messung vorher/nachher (Pruefer 23.11.2026): ECK_ALT=1 baut die Enden wie in 0005
+                kx = dict(zu=kern + Vector((sx * 5, 0, 0))) if alt_ else dict(weg_von=kern)
+                ky = dict(zu=kern + Vector((0, sy * 5, 0))) if alt_ else dict(weg_von=kern)
+                h.rechteck(st, Vector((xi, min(yf, yw), za)), (0, 1, 0), EZ, abs(yf - yw), hz, band, **kx)   # Ende entlang x (zeigt von der Ecke weg)
+                h.rechteck(st, Vector((min(xa, xw), yi, za)), (1, 0, 0), EZ, abs(xa - xw), hz, band, **ky)   # Ende entlang y (ebenso)
+                for fl in h.flaechen[-2:]:                                  # Normale ins Werkstueck? (Richtung zum Kern)
+                    p_ = [Vector(q) for q in fl[0]]
+                    nn = (p_[1] - p_[0]).cross(p_[2] - p_[0])
+                    mm = sum(p_, Vector()) / len(p_)
+                    ECK_ZAEHLER[0] += 1
+                    if nn.dot(kern - mm) > 0: ECK_ZAEHLER[1] += 1
                 h.rechteck(st, Vector((min(xa, xi), min(yf, yw), ze)), (1, 0, 0), (0, 1, 0), abs(xa - xi), abs(yf - yw), band, zu=kern + EZ * 9)
                 h.rechteck(st, Vector((min(xa, xw), min(yw, yi), ze)), (1, 0, 0), (0, 1, 0), abs(xa - xw), abs(yw - yi), band, zu=kern + EZ * 9)
                 z = zb
