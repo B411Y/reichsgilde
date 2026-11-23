@@ -95,3 +95,23 @@ Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-glei
 `tools/modelle/pferd2_spielrender.py` liest das Spiel-GLB selbst (Knoten, Haut, Netz, Atlas) und rendert in Blender mit Rückseiten-Wegschneiden, Alpha-Maske und den Normalen der Datei; die Bilder
 für die Kritik kommen daraus, nicht aus dem Werkzeug-Render (`blender -b --python tools/modelle/pferd2_spielrender.py -- --glb=<tier_pferd_*.glb> --aus=<Ordner> [--klip=Ziehen --bild=6] [--karren=<karren_pferd.glb>]`).
 Die `.import`-Dateien der Pferde stellen `meshes/generate_lods` aus (das Geschirr besteht aus dünnen geschlossenen Röhren, die eine LOD-Vereinfachung des Importers zuerst wegnehmen könnte).
+
+## Karten Folge 3 (23.11.2026, Branch phase5/pferd-folge3)
+
+Nur die drei Bilder im Spiel-GLB ändern sich (Albedo-Atlas, Normalkarte, ORM); Netze, Haut, Knoten und Clips bleiben byte-gleich (Prüfung `pferd3_glbvergleich.py`: alle 12 Clips, 1.124 Bilder, Abweichung 0,0000 mm).
+Eingang sind die Spiel-GLBs von 6a9a47c60 (SHA-256 wie oben: fuchs 4af2c8…, rotbraun 005f86…, schwarzbraun 87e625…).
+
+- **Normalkarte (Form)**: `Horse_normal.png` der Quelle (4096², CC BY 4.0, henrysteve973; liegt wie die übrige Quelle nicht im Repository), gleiche UV wie unser Fell, auf 2048² verkleinert und mit eigenem Haarstrich, Hufringen und Kastanien gemischt (Whiteout), im Atlas auf 1024 × 1536 (JPEG 95, OpenGL).
+- **Verdeckung**: `pferd3_ao.py` backt AO in Blender (Cycles, 64 Proben, Abstand 0,25 m) aus der Ruhepose, Geschirr ausgelassen; geht leicht in die Albedo (72–100 %) und in den R-Kanal der ORM.
+- **Albedo** (Eigenbau, ohne Palette): Farbzonen aus Lage und Normale der Ruhepose (`bereiche()`): Huf (Kronrand vorn 10,5 cm, Trachten 5,5 cm; Horn mit Längsstreifen und Wachstumsringen, Kronrand wachsig heller, Sohle grau-gelblich), Unterbein (Braun schwarz bis über Knie und Sprung, Rand weich und leicht unregelmäßig; Rappe und Fuchs schwächer), Kastanien (innen, vorn 8 cm über dem Knie, hinten 9 cm unter dem Sprung), Oberlinie dunkler, Bauch heller, Maul, Nüstern und Lider dunkle Haut, Ohr innen hell, beim Braunen Ohrränder schwarz, schwacher Staub an Unterbeinen und Bauch. Haarstrich (LIC) entlang der Wuchsrichtung mit Wirbeln an Stirn, Hals oben (paarig), Flanke und Brust. Mähne und Schweif: Farbe von der Wurzel (dunkel) zur Spitze (heller), Strähnen aus der bisherigen Alpha-Karte (Form unverändert), Fuchs-Haar dunkler als das Fell (Nutzer).
+- **ORM** 512 × 768 (RGBA): Rauheit je Bereich (Runde 2: Fell Braun/Fuchs 0,66, Rappe 0,58; Glanz Kruppe/Schulter/Hals 0,56 bzw. 0,50, mit dem Haarstrich schwankend; Huf 0,42, Maul 0,42, Nüstern 0,28, innen 0,18, Auge 0,05, Mähne 0,52 bis 0,68 zur Spitze), Hufeisen und Eisen metallisch; **Alpha = Hufmaske** für den Shader (Huf unter weißem Bein).
+- Farben (sRGB, Ziel-Albedo aus der Recherche Phase 1, Fotos nur zum Vergleich, nicht im Repository): Braun 100/55/33, Unterbeine 30/24/22; Rappe 28/25/26; Fuchs 124/68/40.
+- Abzeichen: Masken und Codes unverändert; unter einem weißen Bein (Krone/Fessel, Socke) zeigt `tier_abzeichen.gdshaderinc` den Huf (Hufmaske im ORM-Alpha) als hellen, wachsgelben Horn (196/170/124) mit den Streifen der Albedo statt weiß.
+
+```
+blender -b -t 2 --python tools/modelle/pferd3_ao.py -- --glb=<tier_pferd_rotbraun.glb von 6a9a47c60> --aus=<ao.npy>
+python -I tools/modelle/pferd3_karten.py <alt.glb> <braun|rappe|fuchs> <Horse_normal.png> <Horseshoe_baseColor.png> <neu.glb> --ao=<ao.npy> [--bilder=<Ordner>]
+python -I tools/modelle/pferd3_glbvergleich.py <alt.glb> <neu.glb>
+```
+
+Godot (embedded_image_handling=2, headless geprüft): je Fell Albedo 2048 × 3072 BC7 8,00 MiB, Normal 1024 × 1536 BC5 2,00 MiB, ORM 512 × 768 BC7 0,50 MiB (zweimal angelegt: Verdeckung und Metall/Rauheit), alles mit Mipmaps: **11,00 MiB je Fell**; keine Dateien neben dem GLB.

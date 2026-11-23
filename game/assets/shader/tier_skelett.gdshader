@@ -16,7 +16,8 @@ instance uniform float abzeichen_code = 0.0;
 
 void fragment() {
 	vec4 t = texture(albedo_textur, UV);
-	ALBEDO = abzeichen(t.rgb, UV, abzeichen_code);
+	float huf_maske = hat_orm ? texture(orm_textur, UV).a : 0.0;
+	ALBEDO = abzeichen(t.rgb, UV, abzeichen_code, huf_maske);
 	ALPHA = t.a;
 	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 0.9;

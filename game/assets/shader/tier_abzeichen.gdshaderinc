@@ -11,8 +11,10 @@ uniform sampler2D abzeichen_beine : hint_default_black, filter_nearest, repeat_d
 
 const vec3 ABZEICHEN_WEISS = vec3(0.84, 0.81, 0.75);   // sRGB 236/232/224, leicht warm
 const vec3 ABZEICHEN_MEHL = vec3(0.58, 0.41, 0.22);    // sRGB 200/172/128, Mehlmaul
+const vec3 ABZEICHEN_HORN = vec3(0.55, 0.40, 0.20);    // sRGB 196/170/124, heller (wachsgelber) Huf unter weißem Bein
 
-vec3 abzeichen(vec3 albedo, vec2 uv, float code_f) {
+// huf_maske: Alpha der ORM-Karte (1 = Huf, aus tools/modelle/pferd3_karten.py); unter einem weißen Bein wird der Huf hell-wachsgelb statt weiß.
+vec3 abzeichen(vec3 albedo, vec2 uv, float code_f, float huf_maske) {
 	int code = int(round(code_f));
 	if (!hat_abzeichen || code <= 0) {
 		return albedo;
@@ -28,6 +30,7 @@ vec3 abzeichen(vec3 albedo, vec2 uv, float code_f) {
 		farbe = mix(farbe, ABZEICHEN_MEHL, 0.45 * k.a);
 	}
 	float weiss = 0.0;
+	float huf = 0.0;   // Anteil Huf unter weißem Bein: heller Horn statt Weiß, Streifen der Albedo bleiben
 	if (kopf == 1 || kopf == 4) weiss = max(weiss, k.r);
 	if (kopf == 2 || kopf == 5) weiss = max(weiss, k.g);
 	if (kopf >= 3) weiss = max(weiss, k.b);
@@ -40,8 +43,12 @@ vec3 abzeichen(vec3 albedo, vec2 uv, float code_f) {
 		if (art > 0) {
 			// oberer Rand weich (0,06 = 3 cm) und leicht unregelmäßig (±1,25 cm), wie in pferd2_abzeichen.py (einbrennen)
 			float grenze = (art == 1 ? 0.36 : 0.70) + 0.025 * sin(uv.x * 157.0) * sin(uv.y * 211.0);
-			weiss = max(weiss, 1.0 - smoothstep(grenze - 0.06, grenze, h));
+			float w = 1.0 - smoothstep(grenze - 0.06, grenze, h);
+			weiss = max(weiss, w);
+			huf = max(huf, w * huf_maske);
 		}
 	}
-	return mix(farbe, ABZEICHEN_WEISS, weiss);
+	float hell_horn = clamp(dot(albedo, vec3(0.3333)) / 0.028, 0.7, 1.35);
+	vec3 ziel = mix(ABZEICHEN_WEISS, ABZEICHEN_HORN * hell_horn, huf / max(weiss, 1e-4));
+	return mix(farbe, ziel, weiss);
 }
