@@ -1012,6 +1012,8 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("stein_je_ebene", false);           // eine Ebene mit eigenem Layout: die Steinbänder stehen in stein_baender
         var stein = SteinMip.Von(blatt);                             // Steinbänder: kleinerer Mip-Zuschlag im Pixel-Look
         stoff.SetShaderParameter("stein_baender", new Vector4(stein.A0, stein.A1, stein.B0, stein.B1));
+        // Dome außen: Dach- und Steinbänder im Pixel-Look rein lesen wie bei den Häusern (keine Streifen je Mauerlage); --bandrein=0 zum Vergleich
+        if (blatt == "dom_trim" && NeubauOption("--bandrein") != "0") stoff.SetShaderParameter("band_rein_eigen", 1f);
         if (float.TryParse(NeubauOption("--steinmip"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var steinMip))
             stoff.SetShaderParameter("stein_mip", steinMip);        // Prüfhilfe: Mip-Zuschlag der Steinbänder vergleichen (Standard im Shader 1)
         return _neubauStoffe[schluessel] = stoff;
