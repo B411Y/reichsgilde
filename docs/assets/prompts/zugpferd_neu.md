@@ -54,7 +54,7 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten (kurze Schritte aus dem Stand mit anteiligem Hub und anteiliger Beugung).
    Gang p6 (`--tab=p6`): Oberarm und Oberschenkel im Schwung in einem Fenster um die Ruhelage, Glätte gegen das vorige Bild (kein Zucken der Hinterhand), Schultergelenk gleitet weich
    ±3 cm (statt Drehung des Schulterblatts, das keinen eigenen Knochen hat), Vorderhuf schwingt später vor (Karpus bei 80 % 110 Grad). Gang p7: Stand vorn und hinten weiter hinten (Bein steht am Ende schräg nach hinten), Abrollen 25 %, Knie und Sprung im Stand weicher gewichtet.
-   Befehle: Austauschordner `pferd2/schritt_b/gehen_p7/clips_b/befehle.txt`; `pferd2_spiel.py --fell` schließt den Schweifspalt dabei selbst (`pferd2_schweif.schliessen` mit Rest −3 cm, weil die Haarkarten am Rand durchsichtig sind; Nah- und Fernnetz; im Paket p5c_g5 waren noch bis 15 bzw. 60 mm offen); Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
+   Gang p8: Schritt mit diagonalen Paaren (`--lap=0.3269`: Vorderhuf 0,327 Zyklus nach dem Hinterhuf derselben Seite; Aufsetzen 0 / 0,308 / 0,5 / 0,808), Stand vorn `--vorn_off=-0.11`, hinten `--hint_off=0.06` (Spur −7,8 cm), Kopfnicken am Vorderbein. Befehle: Austauschordner `pferd2/schritt_b/gehen_p8/clips2/befehle.txt`; `pferd2_spiel.py --fell` schließt den Schweifspalt dabei selbst (`pferd2_schweif.schliessen` mit Rest −3 cm, weil die Haarkarten am Rand durchsichtig sind; Nah- und Fernnetz; im Paket p5c_g5 waren noch bis 15 bzw. 60 mm offen); Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
 7. **Export** (`pferd2_spiel.py`): Meter, Füße auf dem Boden, Blick nach +Z (die Welt des Autors ist rund 10,5-fach zu groß; Verschiebungen, Kanäle, Inverse-Bind-Matrizen und Ecken
    werden mit dem Maßstab multipliziert, der oberste Knoten trägt Drehung und Verschiebung), Netze `Nah_pferd` und `Fern_pferd`, Knoten `Anker_Geschirr`. Prüfung nur aus der Datei
    (`pferd2_spielpruef.py`): größte Abweichung der Haut gegen die Rechnung der Werkzeuge 0,001 mm in allen zehn Clips.
@@ -81,8 +81,8 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
 `c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge): `tier_pferd_fuchs.glb`
-`e9bf3f424fe18d7c33fca51cd33b73ebbf2eb46572eadb4fceef61926d788c3d`, `tier_pferd_rotbraun.glb` `a355f717c2032e485b2810abe5f7186a91938cd596bce9dd16852cbd48309651`,
-`tier_pferd_schwarzbraun.glb` `47fb864a398acc347fde6e7f77833af78445b6ee08a621dd13067e94726bbed3` (Gang p7, Fell mit Normal- und ORM-Karte, Schweifspalt im Export geschlossen). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`66d6383d5d9529447f43ca3b814f363efaabaa82b007ef4c8bac672e2f61a0d8`, `tier_pferd_rotbraun.glb` `91874e680d2a69335a0091063e6d9d032c11451cdd36110c6dcc4611db4865d3`,
+`tier_pferd_schwarzbraun.glb` `5996302c02f6c388ddd1225e8e7e15a7125df9270f6c017543262343d59da916` (Gang p8 mit diagonalen Paaren, Fell mit Normal- und ORM-Karte, Schweifspalt im Export geschlossen, Fuchs-Haar dunkler). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

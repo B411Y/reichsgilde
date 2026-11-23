@@ -127,7 +127,9 @@ def main():
             return float(weg[min(n - 27 + g2, n - 1)]) + float(sg_g[nm][g2 % 26])
         if modus == "anfahren":
             vor = [t_ for (_, t_) in plan[nm] if t_ <= tref + 1e-9]
-            if vor and abs(td - max(vor)) < 1e-9 and abs(x - x_join[nm]) < 0.02:
+            if OPT.get("dbg_snap") and vor and abs(td - max(vor)) < 1e-9:
+                print("SNAP", nm, "td %.3f" % td, "x %.3f join %.3f" % (x, x_join[nm]))
+            if vor and abs(td - max(vor)) < 1e-9 and abs(x - x_join[nm]) < float(OPT.get("snap", 0.02)):
                 x = x_join[nm]
         return x
 
@@ -212,6 +214,10 @@ def main():
                     w = sanft(1 - f / float(NB)); gi = f % 26
                 else:
                     continue
+                if OPT.get("tab") == "p6" and standf[nm][f] and zg_[nm][gi] - float(Qst0[h.s12[nm]].mean(0)[2]) > 0.004:
+                    continue                                              # Bein steht hier noch, im Gehen schon in der Luft: Ziel bleibt (kein Gleiten)
+                if OPT.get("tab") == "p6" and modus == "anhalten" and standf[nm][f] and not all(standf[nm][k] for k in range(0, f + 1)):
+                    continue                                              # im Anhalten in der Ueberblendung neu aufgesetzt: der Huf steht fest auf seinem Ziel
                 ziel_s[nm][f] = (1 - w) * ziel_s[nm][f] + w * sg_[nm][gi]
                 ziel_z[nm][f] = (1 - w) * ziel_z[nm][f] + w * (zg_[nm][gi] - float(Qst0[h.s12[nm]].mean(0)[2]))
     # Rumpf-Basis: Stehen <-> Gehen ueberblenden
@@ -390,6 +396,9 @@ def main():
                     if ab <= 7 and f < ab:
                         for kn in KETTEN[nm]:
                             Rn[sk.id[kn]] = ge["R"][f % 26][sk.id[kn]]
+                    elif ab < f and standf[nm][f]:                        # Bein hat in der Ueberblendung neu aufgesetzt: ganz aus dem IK (steht fest)
+                        for kn in KETTEN[nm]:
+                            Rn[sk.id[kn]] = rahmen[f][1][sk.id[kn]]
             rahmen[f] = (rahmen[f][0] * (1 - w) + ge["T"][f % 26] * w, Rn)
     Gfr, Jfr = [], []
     for T, R in rahmen:

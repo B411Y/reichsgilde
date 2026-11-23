@@ -50,6 +50,8 @@ TAB_P6 = {"karpus": [183, 185, 183, 175, 155, 105, 100, 160, 183], "ellbogen": [
 if OPT.get("tab") == "p6":
     TAB.update(TAB_P6)
 VIERTAKT = {"LH": 0.0, "LF": 0.25, "RH": 0.5, "RF": 0.75}
+if "lap" in OPT:                                                       # Phasenlage Vorderhuf nach Hinterhuf derselben Seite (Schritt mit diagonalen Paaren: > 0,25)
+    VIERTAKT.update({"LF": float(OPT["lap"]), "RF": (0.5 + float(OPT["lap"])) % 1.0})
 C = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0.0]])
 
 
@@ -404,7 +406,7 @@ def main():
         pr = Gp[sk.eltern[root]][:3, :3]
         Tt[root] = sk.T[root] + np.linalg.solve(pr, sk.Rm.T @ np.array([0, 0, bob]) / sk.sk)
         G = sk.global_(Tt, R)
-        nick = math.radians(float(OPT.get("nick", 6.5))) * NICKV * math.cos(4 * math.pi * (tz - 0.25 * T) / T) + math.radians(KOPFTIEF)
+        nick = math.radians(float(OPT.get("nick", 6.5))) * NICKV * math.cos(4 * math.pi * (tz - VIERTAKT["LF"] * T) / T) + math.radians(KOPFTIEF)
         R[hals] = np.linalg.solve(G[sk.eltern[hals]][:3, :3], rot_axis(ax_lat_g, nick) @ G[hals][:3, :3]) / sk.S[hals][None, :]
         G = sk.global_(Tt, R)
         beck, hueft = float(OPT.get("beck", 0.0)), float(OPT.get("hueft", 0.0))
