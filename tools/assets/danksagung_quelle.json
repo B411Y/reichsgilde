@@ -158,12 +158,23 @@
           ]
         },
         {
-          "werk": "Pferd und Ochse als Zugtiere der Karren (nach „LowPoly Animated Farm Animal Pack“, bearbeitet)",
+          "werk": "Ochse als Zugtier der Karren (nach „LowPoly Animated Farm Animal Pack“, bearbeitet)",
           "autor": "Quaternius",
           "quelle": "https://opengameart.org/content/lowpoly-animated-farm-animal-pack",
           "lizenz": "CC0 1.0",
           "hinweis": "",
           "pflicht": false,
+          "deckt": [
+            "game/assets/modelle/tiere/tier_{ochse_rotbraun"
+          ]
+        },
+        {
+          "werk": "Zugpferd „Horse“ (Netz, Textur und Skelett; bearbeitet, mit eigenen Bewegungen, Geschirr und Fellfarben)",
+          "autor": "henrysteve973 (Sketchfab-Seite: Henry S, @henry_7)",
+          "quelle": "https://sketchfab.com/3d-models/horse-a6f860e43e364619bccb174a1ac7d0c9",
+          "lizenz": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
+          "hinweis": "This work is based on \"Horse\" (https://sketchfab.com/3d-models/horse-a6f860e43e364619bccb174a1ac7d0c9) by henrysteve973 (https://sketchfab.com/henrysteve973) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+          "pflicht": true,
           "deckt": [
             "game/assets/modelle/tiere/tier_{pferd_rotbraun"
           ]
