@@ -523,6 +523,16 @@ public partial class Hauptszene : Node
                 ziel.Vorwahl = schluessel;
                 ziel.Oeffnen(betrieb);
             };
+        // Karren selbst fahren: das Ziel im Bild wählen (Stadtansicht.Karrenziel.cs); die Tafel nimmt es mit ZielSetzen entgegen
+        _fahrtTafel.ZielWahlImBild += an =>
+        {
+            if (!an) { if (_stadt.KarrenZielWahlLaeuft) _stadt.GebaeudeWahlAbbrechen(); return; }
+            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, _fahrtTafel.ZielSetzen, Protokollieren, _fahrtTafel.ImBildAbgebrochen))
+            {
+                Protokollieren("Ein Ziel im Bild lässt sich hier nicht wählen (in einem Raum oder im Haus) – nimm die Liste.");
+                _fahrtTafel.ImBildAbgebrochen();
+            }
+        };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
         BuecherVerbinden(); // 3D-Bücher: Kamera-Schwenk, Aufklappen, Tafel darüber (Hauptszene.Buecher.cs)
         GegenstaendeVerbinden(); // Kartentisch und Geldtruhe im Kontor (Hauptszene.Gegenstaende.cs)

@@ -35,6 +35,9 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
         ZielGewaehlt?.Invoke(betrieb);
     }
 
+    /// <summary>Die Wahl im Bild endete ohne Ziel (Esc, nicht möglich): der Knopf zeigt wieder „Ziel im Bild wählen“.</summary>
+    public void ImBildAbgebrochen() => _imBild = false;
+
     public override void Hide()
     {
         ImBildBeenden();

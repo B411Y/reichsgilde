@@ -35,9 +35,6 @@ public sealed partial class Stadtwirtschaft
     //  Fahrzeiten
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Gemerkte Strecken von Betrieb zu Betrieb (Name, Name): die Plätze ändern sich nicht.</summary>
-    private readonly Dictionary<(string, string), IReadOnlyList<Fahrtstueck>?> _streckenZwischen = new();
-
     /// <summary>
     /// Wie lange dieser Karren von <paramref name="von"/> nach <paramref name="nach"/> fährt (null: der Markt) und über welche Stücke (für die
     /// Klappbrücke; null ohne Strecke). Der gewohnte Weg Heimat ↔ Markt ist genau <see cref="Fahrzeit(Karren, bool)"/> (mit dem Hafen als Handelsort);
@@ -66,19 +63,33 @@ public sealed partial class Stadtwirtschaft
     }
 
     /// <summary>Die Stücke der Fahrt von Betrieb zu Betrieb (null ohne Karte, ohne Platz eines der beiden, mit alten Daten oder ohne Weg).</summary>
-    public IReadOnlyList<Fahrtstueck>? StreckeZwischen(Betrieb von, Betrieb nach)
+    public IReadOnlyList<Fahrtstueck>? StreckeZwischen(Betrieb von, Betrieb nach) => FahrtZwischen(von, nach)?.Stuecke;
+
+    /// <summary>
+    /// Die Punkte der Fahrt von Betrieb zu Betrieb (Stück i von <see cref="StreckeZwischen"/> führt von Punkt i nach Punkt i + 1): vom Halteplatz
+    /// des ersten über Hof, Zubringer und Wege zum Halteplatz des zweiten. Für die Darstellung, damit sie genau die Strecke des Kerns fährt;
+    /// null wie <see cref="StreckeZwischen"/>.
+    /// </summary>
+    public IReadOnlyList<Kartenort>? KarrenverlaufZwischen(Betrieb von, Betrieb nach) => FahrtZwischen(von, nach)?.Punkte;
+
+    private readonly Dictionary<(string, string), (IReadOnlyList<Fahrtstueck> Stuecke, IReadOnlyList<Kartenort> Punkte)?> _fahrtenZwischen = new();
+
+    private (IReadOnlyList<Fahrtstueck> Stuecke, IReadOnlyList<Kartenort> Punkte)? FahrtZwischen(Betrieb von, Betrieb nach)
     {
-        if (_streckenZwischen.TryGetValue((von.Name, nach.Name), out var bekannt)) return bekannt;
+        if (_fahrtenZwischen.TryGetValue((von.Name, nach.Name), out var bekannt)) return bekannt;
         if (!NachWeglaengeGerechnet || Karte is not { } karte || Karrennetz is not { } netz
             || Bauen.PlatzVon(von.Name) is not { } platzVon || Bauen.PlatzVon(nach.Name) is not { } platzNach)
             return null; // (ohne Platz nicht merken: er kann noch kommen)
         var (ankerVon, hofVon) = Karrenweg.Start(platzVon, von, karte.Katalog);
         var (ankerNach, hofNach) = Karrenweg.Start(platzNach, nach, karte.Katalog);
         var fahrt = Karrenweg.MitZubringer(netz.FahrtMitVerlauf(hofVon, hofNach), ankerVon, hofVon, karte.Gelaendeform);
-        IReadOnlyList<Fahrtstueck>? stuecke = null;
+        (IReadOnlyList<Fahrtstueck>, IReadOnlyList<Kartenort>)? ergebnis = null;
         if (fahrt.Stuecke.Count > 0)
-            stuecke = fahrt.Stuecke.Concat(Karrenweg.Gerade(new[] { fahrt.Punkte[^1], hofNach, ankerNach }, karte.Gelaendeform).Stuecke).ToList();
-        return _streckenZwischen[(von.Name, nach.Name)] = stuecke;
+        {
+            var ende = Karrenweg.Gerade(new[] { fahrt.Punkte[^1], hofNach, ankerNach }, karte.Gelaendeform);
+            ergebnis = (fahrt.Stuecke.Concat(ende.Stuecke).ToList(), fahrt.Punkte.Concat(ende.Punkte.Skip(1)).ToList());
+        }
+        return _fahrtenZwischen[(von.Name, nach.Name)] = ergebnis;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
