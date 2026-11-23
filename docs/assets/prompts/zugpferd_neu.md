@@ -46,7 +46,9 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    Anhalten_Gehen, Anhalten_Ziehen. Die Clips des Autors (Idle, Eat, Walk, Sleep, Arise …) sind nicht mehr enthalten; Schlafen und Aufstehen gibt es nicht.
    Schwung nach Muybridge (`--tab=p5`, 23.11.2026): Karpus im Schwung bis etwa 110 Grad gebeugt, Fessel vorn gebeugt (165 bis 170), der Huf klappt nach dem Abheben ab und hängt mit der
    Sohle nach hinten (vorn bis etwa 70 Grad, hinten etwa 30 Grad gegen den Stand) und wird erst zum Aufsetzen flach; Hub am Sohlenmittelpunkt vorn 0,19 m (Zehe 8 bis 10 cm über dem Boden),
-   hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten. Befehle: Austauschordner `pferd2/schritt_b/gehen_p5/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
+   hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten (kurze Schritte aus dem Stand mit anteiligem Hub und anteiliger Beugung).
+   Gang p6 (`--tab=p6`): Oberarm und Oberschenkel im Schwung in einem Fenster um die Ruhelage, Glätte gegen das vorige Bild (kein Zucken der Hinterhand), Schultergelenk gleitet weich
+   ±3 cm (statt Drehung des Schulterblatts, das keinen eigenen Knochen hat), Vorderhuf schwingt später vor (Karpus bei 80 % 110 Grad). Befehle: Austauschordner `pferd2/schritt_b/gehen_p6/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
 7. **Export** (`pferd2_spiel.py`): Meter, Füße auf dem Boden, Blick nach +Z (die Welt des Autors ist rund 10,5-fach zu groß; Verschiebungen, Kanäle, Inverse-Bind-Matrizen und Ecken
    werden mit dem Maßstab multipliziert, der oberste Knoten trägt Drehung und Verschiebung), Netze `Nah_pferd` und `Fern_pferd`, Knoten `Anker_Geschirr`. Prüfung nur aus der Datei
    (`pferd2_spielpruef.py`): größte Abweichung der Haut gegen die Rechnung der Werkzeuge 0,001 mm in allen zehn Clips.
@@ -72,8 +74,8 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
 `c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge, Atlas unverändert): `tier_pferd_fuchs.glb`
-`a6046aa8be450cab2fda4569ba5b67d60b0b090fdda2c591b9433fddf60c157b`, `tier_pferd_rotbraun.glb` `26e47addbe95070e518cbc417591c199aa2932448cfc7b577cb314811ba482fb`,
-`tier_pferd_schwarzbraun.glb` `10dd13d810ec0e19e4e905ad0de9c29af139640a22be2e5a2c52b4e322910636`. Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`75c09e9a5c3bbb8ee1d3eb2b7bcc71bda4c98d1782211049e891508aed73eb72`, `tier_pferd_rotbraun.glb` `d7f26e242bc8ee8189e292010e9822a5dbaa312c080e227aca032b0ea8af2c69`,
+`tier_pferd_schwarzbraun.glb` `83047d713e5328559ca5b8e64ba3bbceef0185e4a11d7682591b521ef75acfa3` (Gang p6). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

@@ -29,7 +29,7 @@ TZ = 26 / FPS
 STAND = {"LF": float(OPT.get("stand_v", 0.58)), "RF": float(OPT.get("stand_v", 0.58)), "LH": float(OPT.get("stand_h", 0.60)), "RH": float(OPT.get("stand_h", 0.60))}      # wie im Gehen (--stand_v/--stand_h)
 VIERTAKT = G.VIERTAKT
 HUBH = {"F": float(OPT.get("hub", 0.12)), "H": float(OPT.get("hub_h", OPT.get("hub", 0.14)))}
-P5 = OPT.get("tab") == "p5"                                         # Schwung nach Muybridge wie pferd2_gang.py --tab=p5
+P5 = OPT.get("tab") in ("p5", "p6")                                         # Schwung nach Muybridge wie pferd2_gang.py --tab=p5
 THETA = math.radians(float(OPT.get("theta", 32.0)))
 
 
@@ -136,6 +136,7 @@ def main():
     ziel_s = {nm: np.zeros(n) for nm in KETTEN}
     ziel_z = {nm: np.zeros(n) for nm in KETTEN}
     schwung_u = {nm: np.full(n, -1.0) for nm in KETTEN}                        # Anteil des Schwungs je Bild (-1 = Stand), fuer --tab=p5
+    schwung_r = {nm: np.ones(n) for nm in KETTEN}                              # Schrittlaenge des Schwungs gegen den vollen Schritt (0..1), fuer --tab=p5
     for nm in KETTEN:
         # Ausgangslage: Anfahren: Stand (lock) ; Anhalten: Sohlenlage des Gehens Bild 0
         if modus == "anfahren":
@@ -188,6 +189,11 @@ def main():
             s_ = sanft((u - 0.06) / 0.78)
             x_w = x_ws + c0 * (1 - s_) + c1 * s_
             ziel_s[nm][f] = x_w - x_b(t)
+            if P5:                                                       # kurze Schritte (Anlauf aus dem Stand, Auslauf): Hub und Beugung nach der Schrittlaenge
+                r_ = min(1.0, abs(x_land - x_start) / (V * TZ))
+                schwung_r[nm][f] = r_
+                hm = float(OPT.get("hub_min", 0.35))
+                zg = zg * (hm + (1 - hm) * r_)
             ziel_z[nm][f] = zg
     # Anschluss der Hufziele an das Gehen: in den letzten bzw. ersten 10 Bildern vor dem Gehen werden die Ziele (Rumpfsystem) zu den Sohlenlagen des Gehens ueberblendet
     NB = int(OPT.get("nb", 6))
@@ -286,10 +292,16 @@ def main():
                                    + 12.0 * (1 - G.glatt(u_ / 0.12)) + 8.0 * (1 - G.glatt(u_ / 0.35)))           # Gewichte wie im Gehen (pferd2_gang.loese)
                     wflat = max(wflat, 3.0 * (1 - G.glatt(u_ / 0.15)))                                               # beim Abheben fest wie bisher
                     zk = [G.tab("karpus", ph_), G.tab("fessel_v", ph_), G.tab("ellbogen", ph_)] if vorn else [G.tab("knie", ph_), G.tab("sprung", ph_), G.tab("fessel_h", ph_)]
+                    r_ = schwung_r[nm][f]                                    # kurzer Schritt: Beugung und Abklappen des Hufs anteilig (aus dem Stand kleine Schritte)
+                    z0 = [G.tab("karpus", 0.0), G.tab("fessel_v", 0.0), G.tab("ellbogen", 0.0)] if vorn else [G.tab("knie", 0.0), G.tab("sprung", 0.0), G.tab("fessel_h", 0.0)]
+                    zk = [a_ * r_ + b_ * (1 - r_) for a_, b_ in zip(zk, z0)]
+                    alpha *= r_
                     kr0 = 180 + math.degrees(inf["ph0"][4] - inf["ph0"][3])
                     fmin = float(OPT.get("fmin_v", 150)) if vorn else float(OPT.get("fmin_h", 140))
                 else:
                     alpha = 0.0
+
+                xv = np.array(x_prev[nm] if f > 0 else x0)                    # Loesung des vorigen Bildes (Glaette, --tab=p6)
 
                 def fkt(x):
                     so = G.kette_pos(-S_n[1], S_n[2], L, x)[-1]
@@ -310,6 +322,12 @@ def main():
                             res += [(kn - zk[0]) * G.WKN * wz, (spr - zk[1]) * G.WS * wz, (fet - zk[2]) * G.WF * wz]
                         kr = 180 + (d[4] - d[3])
                         res += [max(fmin - fet, 0) * 3.0, max(fet - 238, 0) * 3.0, max(kr - kr0 - 20, 0) * 3.0, max(kr0 - 60 - kr, 0) * 3.0]
+                        if OPT.get("tab") == "p6":                       # wie im Gehen: Oberarm/Oberschenkel im Fenster um die Ruhelage, Glaette gegen das vorige Bild
+                            o0 = math.degrees(inf["ph0"][0])
+                            fen = float(OPT.get("ober_fenster_v", 15)) if vorn else float(OPT.get("ober_fenster_h", 20))
+                            res += [max(abs(d[0] - o0) - fen, 0) * float(OPT.get("wober", 1.5)) * (1 - G.glatt((u_ - 0.7) / 0.25))]
+                            wg =(float(OPT.get("wglatt", 0.15)) if vorn else float(OPT.get("wglatt_h", OPT.get("wglatt", 0.15)))) * (1 - G.glatt((u_ - 0.7) / 0.25))   # vor dem Aufsetzen frei (Huf flach)
+                            res += list((d - np.degrees(xv)) * wg)
                     return np.array(res)
                 x = G.lm_loesen(fkt, x_prev[nm] if f > 0 else x0)
                 for start_ in (x0, np.array(inf["ph0"])):

@@ -1,4 +1,4 @@
-﻿"""Gehen (Schritt) fuer Pferd B: ebenes IK je Bein nach Sollwert-Tabelle (Muybridge 563 / Gelenkwinkel), schreibt Bilder (Gelenkmatrizen), Messwerte und Tabelle.
+"""Gehen (Schritt) fuer Pferd B: ebenes IK je Bein nach Sollwert-Tabelle (Muybridge 563 / Gelenkwinkel), schreibt Bilder (Gelenkmatrizen), Messwerte und Tabelle.
 Reines numpy (normales Python): python -I tools/modelle/pferd2_gang.py <Ausgabeordner> [--v=1.3] [--T=1.3333] [--hub=0.13] [--ueberfuss=...]
 
 Ablauf: Ausgang = Pose "Skeleton|1 Ilde" Bild 0 (Stand). Pro Bein vier (vorn) bzw. fuenf (hinten) Glieder in der Laengsebene; Sohlenweg: Stand 60 % mit -v (Rumpfsystem),
@@ -43,8 +43,12 @@ TAB = {"karpus": [183, 185, 183, 175, 160, 135, 139, 160, 183], "ellbogen": [150
 # --tab=p5: Schwung nach Muybridge 563 (Bild 3 und 12 gemessen: Karpus etwa 95-107 Grad, Roehrbein nach hinten, Huf haengt mit der Sohle nach hinten);
 # Stand unveraendert. Fessel vorn im Schwung gebeugt (165), Hufdrehung gegen den Stand als eigenes Ziel (SCHWUNG_HUF).
 TAB_P5 = {"karpus": [183, 185, 183, 175, 155, 105, 110, 160, 183], "fessel_v": [195, 215, 222, 205, 185, 165, 165, 180, 195]}
-if OPT.get("tab") == "p5":
+if OPT.get("tab") in ("p5", "p6"):
     TAB.update(TAB_P5)
+# --tab=p6: Muybridge Bild 12 (Phase etwa 0,78): Unterarm fast waagerecht vor, Karpus etwa 95-105 Grad: dafuer beugt der Ellbogen staerker (der Oberarm bleibt im Fenster)
+TAB_P6 = {"karpus": [183, 185, 183, 175, 155, 105, 100, 160, 183], "ellbogen": [150, 154, 152, 148, 135, 105, 95, 125, 150]}
+if OPT.get("tab") == "p6":
+    TAB.update(TAB_P6)
 VIERTAKT = {"LH": 0.0, "LF": 0.25, "RH": 0.5, "RF": 0.75}
 C = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0.0]])
 
@@ -269,7 +273,8 @@ def main():
         print("KETTE", nm, "Hufneigung Grad", round(info[nm]["neig"], 1), "Laengen", [round(x, 3) for x in L], "Winkel0", [round(math.degrees(x), 1) for x in ph], "Sohle s,z", [round(v, 3) for v in P2[-1]])
     ZOFF = {nm: 0.0 for nm in ketten}
     THETA = math.radians(float(OPT.get("theta", 32.0)))
-    P5 = OPT.get("tab") == "p5"
+    P5 = OPT.get("tab") in ("p5", "p6")
+    P6 = OPT.get("tab") == "p6"                                        # dazu: Oberarm/Oberschenkel im Fenster, Glätte über die Bilder (gegen Zucken)
     ROLLF = float(OPT.get("roll", 0.15))
     STANDN = {nm: (float(OPT.get("stand_v", 0.58)) if nm[1] == "F" else float(OPT.get("stand_h", 0.6)) + (float(OPT.get("rh_plus", 0.0)) if nm == "RH" else 0.0)) for nm in ketten}
     LSN = {nm: V * STANDN[nm] * T for nm in ketten}
@@ -326,6 +331,8 @@ def main():
             s = td[nm] + m0 * (u - 1)
         else:
             w = (u - u0) / (u1 - u0)
+            if P6 and nm[1] == "F":                                     # Vorderhuf bleibt im Schwung laenger hinten und schwingt spaet vor (Muybridge Bild 12: Huf haengt unter dem Karpus);
+                w = w - 16 * float(OPT.get("spaet_v", 0.0)) * w * w * (1 - w) * (1 - w)   # Anfang und Ende (Lage und Geschwindigkeit) unveraendert
             d_ = (u1 - u0)
             s = (2 * w ** 3 - 3 * w ** 2 + 1) * sa + (w ** 3 - 2 * w ** 2 + w) * m0 * d_ + (-2 * w ** 3 + 3 * w ** 2) * sb + (w ** 3 - w ** 2) * m0 * d_
         up = 0.33
@@ -366,8 +373,16 @@ def main():
                 res += [(kn - tk) * WKN, (spr - ts) * WS, (fet - tf) * WF, max(kn - 181.5, 0) * 5.0, max(spr - 181.5, 0) * 5.0, max(fet - 238, 0) * 3.0, max(fmin - fet, 0) * 3.0]
             if P5 and ph >= STAND:                                      # Hufgelenk im Schwung in anatomischen Grenzen: hoechstens 20 Grad Streckung, 60 Grad Beugung gegen den Stand
                 kr = 180 + (d[4] - d[3])
-                res += [max(kr - kr0 - 20, 0) * 3.0, max(kr0 - 60 - kr, 0) * 3.0]
+                res += [max(kr - kr0 - float(OPT.get("kr_streck", 20)), 0) * 3.0, max(kr0 - 60 - kr, 0) * 3.0]
             res += list((x - x0) * 0.5)
+            if P6 and ph >= STAND:
+                # nur im Schwung: Oberarm bzw. Oberschenkel nur in einem Fenster um die Ruhelage schwingen lassen (das Pferd hat kein Schlüsselbein: der Oberarm liegt
+                # fest am Rumpf, das Vorführen kommt aus dem Drehen des Schulterblatts, hier als Verschieben des Schultergelenks, --pd)
+                o0 = math.degrees(ph0[0])
+                fen = float(OPT.get("ober_fenster_v", 15)) if vorn else float(OPT.get("ober_fenster_h", 20))
+                res += [max(abs(d[0] - o0) - fen, 0) * float(OPT.get("wober", 1.5))]
+                # Glätte: Abstand zur Lösung des vorigen Bildes (in Grad), gegen Springen zwischen zwei Lösungen
+                res += list((d - np.degrees(x0)) * (float(OPT.get("wglatt", 0.15)) if vorn else float(OPT.get("wglatt_h", OPT.get("wglatt", 0.15)))))
             return np.array(res)
         return lm_loesen(f, x0)
 
@@ -402,6 +417,8 @@ def main():
             if nm[1] == "F" and PD:
                 stz = STANDN[nm]
                 dp = PD * (1 - 2 * phase / stz) if phase < stz else PD * (-1 + 2 * (phase - stz) / (1 - stz))       # Schulterblatt-Drehpunkt vor beim Aufsetzen, zurueck beim Abfussen
+                if OPT.get("tab") == "p6":                                  # weich (Kosinus): ohne Knick in der Geschwindigkeit beim Wechsel Stand/Schwung
+                    dp = PD * math.cos(math.pi * phase / stz) if phase < stz else -PD * math.cos(math.pi * (phase - stz) / (1 - stz))
                 ci = sk.id[ks[0]]
                 Gp_ = sk.global_(Tt, R)
                 d_g = sk.Rm.T @ np.array([0.0, -dp, 0.0]) / sk.sk
@@ -631,12 +648,15 @@ def main():
             ph_ = ((f / FPS / T) - VIERTAKT[nm]) % 1.0
             kr_ = 180 + phs[4] - phs[3]                                     # Krongelenk (Fesselbein gegen Huf)
             hd_ = phs[4]                                                    # Hufrichtung; unten gegen die Standmitte (Phase 0,25) gerechnet
+            # Zusatz: Neigung des ersten Glieds (vorn Oberarm = Schulterwinkel gegen die Senkrechte, hinten Oberschenkel = Hueftwinkel) und Laengslage des Kettenanfangs (Schultergelenk bzw. Hueftgelenk)
             if vorn:
-                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0]), kr_, hd_))
+                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0]), kr_, hd_, phs[0], P2[0][0]))
             else:
-                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2], kr_, hd_))
+                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2], kr_, hd_, phs[0], P2[0][0]))
         ref = min(rows, key=lambda r: abs(r[0] - 0.25))[5]                  # Hufdrehung gegen die Standmitte (negativ: Sohle nach hinten)
         winkel[nm] = [r[:5] + (r[5] - ref,) for r in rows]
+        bericht.setdefault("winkel_bilder", {})[nm] = {"spalten": ["phase", "karpus|knie", "fessel_v|sprung", "ellbogen|fessel_h", "krone", "huf", "oberarm|oberschenkel", "gelenk_s_m"],
+                                                       "werte": [[round(float(v), 3) for v in r[:5] + (r[5] - ref,) + r[6:]] for r in rows]}
     bericht["winkel_extrema"] = {}
     for nm, rows in winkel.items():
         a = np.array(rows)
