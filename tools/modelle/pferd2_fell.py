@@ -186,9 +186,12 @@ def main():
         f *= 1 + float(OPT.get("strich_farbe", 0.07)) * h
         f = np.where(fell, f, 1.0)
         neu = np.clip(alb * f[..., None], 0, 255)
+        if v == "rappe":                                                 # Rappe: im Spiel fast flach schwarz; dunkles Schwarzbraun statt Schwarz, Haarstrich in der Farbe staerker
+            heben = np.array([float(x) for x in OPT.get("rappe_heben", "14,10,8").split(",")], np.float32)
+            neu = np.where(fell[..., None], np.clip(neu + heben * (1 + 0.35 * np.clip(h, -2, 2))[..., None], 0, 255), neu)
         Image.fromarray((neu + 0.5).astype(np.uint8)).save(os.path.join(aus, f"Horse_{v}_2048.png"))
-        rau = np.full((N, N), 0.55 if v == "rappe" else 0.72, np.float32)   # Rappe: glaenzenderes Fell
-        rau = rau - 0.04 * np.clip(h, -1.5, 1.5)
+        rau = np.full((N, N), float(OPT.get("rappe_rau", 0.45)) if v == "rappe" else 0.72, np.float32)   # Rappe: glaenzenderes Fell
+        rau = rau - (0.08 if v == "rappe" else 0.04) * np.clip(h, -1.5, 1.5)
         rau = np.where(rosa, 0.45, rau)
         Image.fromarray((np.clip(rau, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(aus, f"Rauheit_{v}_2048.png"))
         print("geschrieben", v, flush=True)

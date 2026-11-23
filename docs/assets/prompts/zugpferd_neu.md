@@ -41,7 +41,7 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    (Rumpf nach hinten unten, Beine nach unten, Kopf zur Nase; Rauschen entlang dieser Richtung gefaltet, fester Zufall 1480), leicht in die Farbe gemischt; Oberlinie etwas dunkler,
    Bauch etwas heller, beim Fuchs die Unterbeine dunkler; keine Abzeichen. Geschirr: Leder mit Narbung und Falten, Holz mit Maserung, Eisen fleckig mit Rost, Gurt als Gewebe;
    die Geschirr-UV bildet die Lage (Periode 0,25 m, gespiegelt) auf das Feld ab. Dazu eine **Normalkarte** (JPEG, 1024 × 1536, OpenGL) und eine **ORM-Karte** (PNG, 512 × 768;
-   Rauheit Fell 0,72, Rappe 0,55, Mähne 0,6, Hufeisen und Eisen metallisch). Speicher je Fell unkomprimiert mit Mip-Stufen: Albedo etwa 34 MB, Normal 8,4 MB, ORM 2,1 MB.
+   Rauheit Fell 0,72, Rappe 0,45 und als dunkles Schwarzbraun leicht aufgehellt (sonst im Spiel flach schwarz), Mähne 0,6, Hufeisen und Eisen metallisch). Speicher je Fell unkomprimiert mit Mip-Stufen: Albedo etwa 34 MB, Normal 8,4 MB, ORM 2,1 MB.
 5. **Geschirr** (`pferd2_geschirr.py`, Eigenbau, 1.032 Dreiecke, extra gezählt): Kummet als geschlossener, gepolsterter Ring in der Hülle von Hals und Brust (Birnenform: Halbmesser 0,20 bis 0,40 m), Querschnitt 9 cm im Ring und 15 cm in Laufrichtung, oben vor dem Widerrist, unten an der Bugspitze, Ebene 25 Grad aus der Senkrechten,
    Hamen als kurze Holzbügel seitlich am Polster (enden am Polster, kreuzen sich nicht) und Eisenhaken daran, Bauchgurt als flaches Band (9 cm breit, 1,2 cm dick) um die Rumpfhülle hinter den Ellbogen;
    Gewichte von der nächsten Hautecke kopiert. Der Zugpunkt (Ringmitte im Ziehen, Mittel über den Zyklus) liegt 1,279 m hoch und 0,67 m vor dem Ursprung (`anker_ziehen_godot` in `zugtiere.json`).
@@ -54,7 +54,7 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten (kurze Schritte aus dem Stand mit anteiligem Hub und anteiliger Beugung).
    Gang p6 (`--tab=p6`): Oberarm und Oberschenkel im Schwung in einem Fenster um die Ruhelage, Glätte gegen das vorige Bild (kein Zucken der Hinterhand), Schultergelenk gleitet weich
    ±3 cm (statt Drehung des Schulterblatts, das keinen eigenen Knochen hat), Vorderhuf schwingt später vor (Karpus bei 80 % 110 Grad). Gang p7: Stand vorn und hinten weiter hinten (Bein steht am Ende schräg nach hinten), Abrollen 25 %, Knie und Sprung im Stand weicher gewichtet.
-   Befehle: Austauschordner `pferd2/schritt_b/gehen_p7/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
+   Befehle: Austauschordner `pferd2/schritt_b/gehen_p7/clips_b/befehle.txt`; `pferd2_spiel.py --fell` schließt den Schweifspalt dabei selbst (`pferd2_schweif.schliessen` mit Rest −3 cm, weil die Haarkarten am Rand durchsichtig sind; Nah- und Fernnetz; im Paket p5c_g5 waren noch bis 15 bzw. 60 mm offen); Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
 7. **Export** (`pferd2_spiel.py`): Meter, Füße auf dem Boden, Blick nach +Z (die Welt des Autors ist rund 10,5-fach zu groß; Verschiebungen, Kanäle, Inverse-Bind-Matrizen und Ecken
    werden mit dem Maßstab multipliziert, der oberste Knoten trägt Drehung und Verschiebung), Netze `Nah_pferd` und `Fern_pferd`, Knoten `Anker_Geschirr`. Prüfung nur aus der Datei
    (`pferd2_spielpruef.py`): größte Abweichung der Haut gegen die Rechnung der Werkzeuge 0,001 mm in allen zehn Clips.
@@ -81,8 +81,8 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
 `c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge): `tier_pferd_fuchs.glb`
-`2ba34c619d963828ea5117177405d5dd56a4521abf69a3507889897a4b711357`, `tier_pferd_rotbraun.glb` `57bc68ec2d8b8cb625bec2a9cd20b0f77b832c716ae79253ab0ad7afe3839f72`,
-`tier_pferd_schwarzbraun.glb` `665979b83e5564fa0a95b45f28c73e8b290b33ec3f556cc0a56268f73490c7c2` (Gang p7, Fell mit Normal- und ORM-Karte). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`e9bf3f424fe18d7c33fca51cd33b73ebbf2eb46572eadb4fceef61926d788c3d`, `tier_pferd_rotbraun.glb` `a355f717c2032e485b2810abe5f7186a91938cd596bce9dd16852cbd48309651`,
+`tier_pferd_schwarzbraun.glb` `47fb864a398acc347fde6e7f77833af78445b6ee08a621dd13067e94726bbed3` (Gang p7, Fell mit Normal- und ORM-Karte, Schweifspalt im Export geschlossen). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

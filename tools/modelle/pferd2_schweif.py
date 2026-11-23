@@ -16,10 +16,9 @@ OPT = {a.split("=")[0][2:]: (a.split("=", 1)[1] if "=" in a else "1") for a in s
 POS = [a for a in sys.argv[1:] if not a.startswith("--")]
 
 
-def main():
+def schliessen(d, J, rest=0.005, dmax=0.06, ausgabe=True):
+    """Neue Rohecken des Netzes Hair (Schweif an die Kruppe gezogen) fuer das geladene Paket d in der Pose J; gibt (Index des Hair-Teils, neue Ecken) zurueck."""
     sk = G.Skelett()
-    d = np.load(POS[0], allow_pickle=True)
-    J = np.load(POS[1])["J"][0].astype(float)
     n = int(d["n"])
     prims = [dict(mat=str(d[f"mat{i}"]), pos=d[f"pos{i}"], uv=d[f"uv{i}"], jo=d[f"jo{i}"], w=d[f"w{i}"], idx=d[f"idx{i}"]) for i in range(n)]
     horse = next(p for p in prims if p["mat"] == "Horse")
@@ -28,8 +27,6 @@ def main():
     K = B.anwenden(sk.mn, B.blender_koord(wk))
     wh, m3 = sk.H.haut(hair, J)
     P = B.anwenden(sk.mn, B.blender_koord(wh))
-    rest = float(OPT.get("rest", 0.005))
-    dmax = float(OPT.get("dy", 0.06))
     # Hinterkante des Koerpers je Hoehe (z >= 0.95, hinten y > 0.3), geglaettet
     zs = np.arange(0.95, 1.6, 0.025)
     by = []
@@ -60,16 +57,27 @@ def main():
     neu = hair["pos"].copy()
     for i in np.where(np.abs(dy) > 1e-6)[0]:
         neu[i] = hair["pos"][i] + np.linalg.solve(m3[i], dg[i])
-    aus = {k: d[k] for k in d.files}
     hi = next(i for i in range(n) if str(d[f"mat{i}"]) == "Hair")
-    aus[f"pos{hi}"] = neu.astype(d[f"pos{hi}"].dtype)
-    np.savez_compressed(POS[2], **aus)
+    neu = neu.astype(d[f"pos{hi}"].dtype)
+    if not ausgabe:
+        return hi, neu
     print("SCHWEIF verschoben:", int((np.abs(dy) > 1e-6).sum()), "Ecken, max %.1f mm" % (np.abs(dy).max() * 1000))
-    w2, _ = sk.H.haut(dict(hair, pos=aus[f"pos{hi}"]), J)
+    w2, _ = sk.H.haut(dict(hair, pos=neu), J)
     P2 = B.anwenden(sk.mn, B.blender_koord(w2))
     for k, z in enumerate(zs[::2]):
         s = P2[(P2[:, 1] > 0.55) & (abs(P2[:, 2] - z) < 0.0375)]
         print("z %.2f Koerper %.3f Schweif min y %.3f" % (z, by[2 * k], s[:, 1].min() if len(s) else np.nan))
+    return hi, neu
 
 
-main()
+def main():
+    d = np.load(POS[0], allow_pickle=True)
+    J = np.load(POS[1])["J"][0].astype(float)
+    hi, neu = schliessen(d, J, float(OPT.get("rest", 0.005)), float(OPT.get("dy", 0.06)))
+    aus = {k: d[k] for k in d.files}
+    aus[f"pos{hi}"] = neu
+    np.savez_compressed(POS[2], **aus)
+
+
+if __name__ == "__main__":
+    main()

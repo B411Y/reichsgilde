@@ -1,4 +1,4 @@
-﻿"""Spiel-GLB des Zugpferds (Pferd B, Basis "Horse" von henrysteve973, CC BY 4.0): ein Netz "Nah_pferd" (Koerper, Maehne, Hufeisen, Augen, Geschirr) und ein Netz "Fern_pferd" mit EINEM Stoff
+"""Spiel-GLB des Zugpferds (Pferd B, Basis "Horse" von henrysteve973, CC BY 4.0): ein Netz "Nah_pferd" (Koerper, Maehne, Hufeisen, Augen, Geschirr) und ein Netz "Fern_pferd" mit EINEM Stoff
 (Farbfeld-Atlas mit Alpha: Maehne als Alpha-Maske), Skelett des Autors, die zehn Clips aus Bildfolgen, Anker "Anker_Geschirr". In Meter und auf den Boden normiert.
 
     python -I tools/modelle/pferd2_spiel.py <nah.npz> <fern.npz> <braun|fuchs|rappe> <texturordner> <ausgabe.glb> --clipdateien=<Name>=<J.npz>;... --ruhepose=<Stehen_J.npz> --info=<geschirr_info.json>
@@ -155,11 +155,15 @@ def uv_atlas(mat, uv, pos=None, nrm=None):
 def zusammenfassen(paket):
     """Alle Teilnetze eines Pakets zu einem Netz (Lage, Normale, UV im Atlas, Knochen, Gewichte, Index)."""
     d = np.load(paket, allow_pickle=True)
+    schweif = None
+    if "fell" in OPT or "schweif" in OPT:                               # Schweifspalt fest im Export schliessen (pferd2_schweif.py, Stehpose der Ruhepose); Rest -3 cm: die Haarkarten sind am Rand durchsichtig (Alpha), erst so liegt der sichtbare Schweif an der Kruppe
+        import pferd2_schweif as SW
+        schweif = SW.schliessen(d, np.load(OPT["ruhepose"])["J"][0].astype(float), float(OPT.get("schweif_rest", -0.03)), float(OPT.get("schweif_dy", 0.08)), ausgabe=False)
     P, N, U, JO, W, F, o = [], [], [], [], [], [], 0
     zahl = {}
     for i in range(int(d["n"])):
         mat = str(d[f"mat{i}"])
-        pos = d[f"pos{i}"].astype(np.float64)
+        pos = (schweif[1] if schweif is not None and schweif[0] == i else d[f"pos{i}"]).astype(np.float64)
         idx = d[f"idx{i}"].astype(np.int64)
         n = B.weiche_normalen(pos, idx)
         P.append(pos)
