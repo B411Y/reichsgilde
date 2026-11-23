@@ -1701,8 +1701,8 @@ public partial class Hauptszene : Node
         {
             var markt when Stadtansicht.IstMarktplatz(markt) => $"{_stadt.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
-            "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
-                     + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
+            "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker; die Kirchen der Altahtnen (Elben, Zwerge, Halblinge) "
+                     + "und Neuahtnen (alle vier Kulturvölker) gehören zum Ahtnentum. Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)

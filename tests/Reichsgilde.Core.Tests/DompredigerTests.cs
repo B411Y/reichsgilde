@@ -97,7 +97,7 @@ static class DompredigerTests
             Pruefe.Gleich(3, d.Amtsjahre);
             Pruefe.Gleich(1.5, d.PredigtFaktor);
             Pruefe.Gleich(3.0, d.Gunst);
-            Pruefe.Gleich(96, Daten.Value.Version);
+            Pruefe.Gleich(97, Daten.Value.Version);
             Pruefe.Gleich(1, Daten.Value.Aktionspunkte!.KostenFuer(new DomBewerben()));
             Pruefe.Gleich(0, Daten.Value.Aktionspunkte!.KostenFuer(new DomStimme(null)));
             Pruefe.Wahr(Json.Contains(DomZeile), "Die Zeile für die Gegenprobe passt nicht mehr zu wirtschaft.json.");
@@ -220,19 +220,20 @@ static class DompredigerTests
             var kd = w.Kirchenwesen.Daten;
             var kath = w.Glaube.Anteil(Konfession.Katholisch);
             var ev = w.Glaube.Anteil(Konfession.Evangelisch);
+            var fremde = 1 - kath; // Evangelische und Ahtnen haben keine eigene Kirche
             var kirchen = w.Kirchenwesen.Kirchen.ToList();
             Pruefe.Gleich(1, kirchen.Count);
 
-            // Gegenprobe ohne Domprediger: alles in die Kirche (die Evangelischen als Fremde mit halber Spende), der Dom bekommt nichts.
+            // Gegenprobe ohne Domprediger: alles in die Kirche (Evangelische und Ahtnen als Fremde mit halber Spende), der Dom bekommt nichts.
             var vorher = w.Kirchenwesen.Verteilen(kirchen, out var leer);
             Pruefe.Gleich((0.0, 0.0), leer);
-            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * (kath + ev), vorher[kirche].Glaeubige, 1e-9);
+            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr, vorher[kirche].Glaeubige, 1e-9);
 
             w.Domamt.Einsetzen(a, 1500);
             var nachher = w.Kirchenwesen.Verteilen(kirchen, out var dom);
-            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * (kath + ev) * 0.6, dom.Glaeubige, 1e-9); // die Evangelischen ohne Kirche gehen auch in den Dom
-            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * kath * 0.6 * kd.SpendeJeGlaeubigem + kd.GlaeubigeJeJahr * ev * 0.6 * kd.SpendeJeGlaeubigem * 0.5, dom.Kollekte, 1e-9);
-            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * (kath + ev) * 0.4, nachher[kirche].Glaeubige, 1e-9);
+            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * 0.6, dom.Glaeubige, 1e-9); // die Gemeinden ohne Kirche gehen auch in den Dom
+            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * kath * 0.6 * kd.SpendeJeGlaeubigem + kd.GlaeubigeJeJahr * fremde * 0.6 * kd.SpendeJeGlaeubigem * 0.5, dom.Kollekte, 1e-9);
+            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * 0.4, nachher[kirche].Glaeubige, 1e-9);
             Pruefe.Ungefaehr(vorher[kirche].Kollekte, nachher[kirche].Kollekte + dom.Kollekte, 1e-9); // nichts geht verloren, nichts kommt dazu
 
             // Gibt es keine Kirche seiner Konfession, nimmt der Dom die ganze Gemeinde (ein evangelischer Domprediger bei Glaubensfreiheit).
@@ -240,7 +241,7 @@ static class DompredigerTests
             var nurKath = new List<Betrieb> { kirche };
             w.Domamt.Einsetzen(luther, 1500);
             w.Kirchenwesen.Verteilen(nurKath, out var domEv);
-            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * ev + kd.GlaeubigeJeJahr * kath * 0, domEv.Glaeubige, 1e-9); // die Katholiken haben ihre Kirche
+            Pruefe.Ungefaehr(kd.GlaeubigeJeJahr * ev + kd.GlaeubigeJeJahr * (1 - kath - ev) * 0.6, domEv.Glaeubige, 1e-9); // die Katholiken haben ihre Kirche; die Ahtnen ohne Kirche zu 60 % in den Dom
 
             // Zur Messe: Die Domkollekte geht an das Haus (steuerfrei), kein Amtseinkommen.
             w.Domamt.Einsetzen(a, 1500);
@@ -261,7 +262,7 @@ static class DompredigerTests
             var (a, _) = Prediger(w, "Haus Psalm", Konfession.Katholisch);
             w.Domamt.Einsetzen(a, 1500);
             var rat = Haus(w, "Haus Kreuz", Konfession.Katholisch);
-            InDenRat(w, rat);
+            InDenRat(w, rat, "Marktmeister"); // statt des neuahtnischen Marktmeisters: 4 Katholiken gegen 3
             Pruefe.Wahr(w.Ausfuehren(rat, new StadtglaubeBeantragen(Konfession.Katholisch)).Erfolg, "Antrag");
             JahrBeenden(sim);
             Pruefe.Gleich((Konfession?)Konfession.Katholisch, w.Glaube.Stadtglaube);

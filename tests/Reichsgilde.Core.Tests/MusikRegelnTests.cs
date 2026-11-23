@@ -105,7 +105,7 @@ static class MusikRegelnTests
             foreach (var name in kern.Berufe.Keys) Pruefe.Wahr(M.GruppeVon(name) != M.Berufsgruppe.Keine, "Beruf ohne Gruppe: " + name);
         }),
 
-        ("Musik Glaube: im Tageswechsel selten das Stück des eigenen Glaubens, nie das des anderen; Ahtnisch und Naturglaube stumm", () =>
+        ("Musik Glaube: im Tageswechsel selten das Stück des eigenen Glaubens, nie das des anderen; Naturglaube stumm", () =>
         {
             var kath = Wuerfeln(Tag(glaube: "Katholisch"));
             var anteil = Anteil(kath, x => x.Lage == "glaube");
@@ -119,10 +119,12 @@ static class MusikRegelnTests
             Pruefe.Gleich(null, M.GlaubeName(null));
             Pruefe.Gleich("Katholisch", M.GlaubeName(Konfession.Katholisch));
             Pruefe.Gleich("Evangelisch", M.GlaubeName(Konfession.Evangelisch));
-            // Ahtnisch ist da (beide Fassungen), spielt aber nicht, solange der Kern es nicht kennt
+            // Ahtnisch: beide Fassungen da, beide ahtnischen Bekenntnisse spielen es
             var (s, _) = MusikTests.Liste();
             Pruefe.Gleich(2, M.GlaubensKandidaten(s, "Ahtnisch").Count);
-            foreach (var k in Enum.GetValues<Konfession>()) Pruefe.Wahr(M.GlaubeName(k) != "Ahtnisch", "Ahtnisch darf erst mit dem Ahtnentum im Kern kommen");
+            Pruefe.Gleich("Ahtnisch", M.GlaubeName(Konfession.Altahtnisch));
+            Pruefe.Gleich("Ahtnisch", M.GlaubeName(Konfession.Neuahtnisch));
+            foreach (var k in Enum.GetValues<Konfession>()) Pruefe.Wahr((M.GlaubeName(k) == "Ahtnisch") == (k.Religion() == Reichsgilde.Core.Glaube.Religion.Ahtnentum), "Ahtnisch nur für das Ahtnentum");
         }),
 
         ("Musik Glaube: Kirchenraum und Messe – das Stück des Kirchenglaubens, nachts und tags; ohne Stück des Glaubens die normale Lage", () =>
@@ -144,7 +146,7 @@ static class MusikRegelnTests
             Pruefe.Gleich("Katholisch", M.GrundWaehlen(s, "kirche", E(12 * 60, M.Ort.Kirche, "Katholisch"), new List<string>(), () => 0.5)!.Glaube);
             // nachts im Kirchenraum ebenfalls die Kirche, nicht die Nacht
             Pruefe.Gleich("kirche", M.LageVon(s, E(22 * 60, M.Ort.Kirche, "Katholisch", "Katholisch")));
-            // Messe draußen: Glaube des Spielers; ohne Glauben (Ork, Oger, Ahtnisch) bleibt es beim Tag
+            // Messe draußen: Glaube des Spielers; ohne Glauben (Ork, Oger) bleibt es beim Tag
             Pruefe.Gleich("kirche", M.LageVon(s, E(10 * 60, glaube: "Evangelisch", messe: true)));
             Pruefe.Gleich("Evangelisch", M.GrundWaehlen(s, "kirche", E(10 * 60, glaube: "Evangelisch", messe: true), new List<string>(), () => 0.1)!.Glaube);
             Pruefe.Gleich("tag", M.LageVon(s, E(10 * 60, glaube: null, messe: true)));
@@ -193,7 +195,7 @@ static class MusikRegelnTests
             Pruefe.Wahr(p.Steuerung.Laufend is { Lage: "glaube" }, "in der Kirche beginnt das Stück nach höchstens 6 s");
         }),
 
-        ("Musik Ahtnisch stumm: über sechs Stunden mit Naturglauben (kein Name) und in jeder Lage kein Glaubensstück; Gegenprobe Katholisch spielt eines", () =>
+        ("Musik Naturglaube stumm: über sechs Stunden mit Naturglauben (kein Name) und in jeder Lage kein Glaubensstück; Gegenprobe Katholisch und Ahtnisch spielen eines", () =>
         {
             var (s, _) = MusikTests.Liste();
             var stumm = new MusikTests.Lauf(s, 23) { Glaube = M.GlaubeName(Konfession.Naturglaube), Volk = Volk.Ork };
@@ -208,6 +210,9 @@ static class MusikRegelnTests
             kath.Schritte(6 * 3600);
             Pruefe.Wahr(kath.Gespielt.Any(x => x.Stueck.Lage == "glaube" && x.Stueck.Glaube == "Katholisch"), "Katholisch kommt vor");
             Pruefe.Gleich(0, kath.Gespielt.Count(x => x.Stueck.Lage == "glaube" && x.Stueck.Glaube != "Katholisch"));
+            var ahtn = new MusikTests.Lauf(s, 23) { Glaube = M.GlaubeName(Konfession.Neuahtnisch), Volk = Volk.Zwerg };
+            ahtn.Schritte(6 * 3600);
+            Pruefe.Wahr(ahtn.Gespielt.Any(x => x.Stueck.Lage == "glaube" && x.Stueck.Glaube == "Ahtnisch"), "Ahtnisch kommt vor");
             // Anteil über die Stunden bleibt klein
             Pruefe.Wahr(kath.Gespielt.Count(x => x.Stueck.Lage == "glaube") < kath.Gespielt.Count / 5, "selten");
         }),

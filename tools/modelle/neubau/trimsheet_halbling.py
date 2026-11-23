@@ -134,6 +134,7 @@ def baue_innen(steine):
 INNEN_PUTZ_S23 = (0.72, 0.62, 0.46)          # Kunstwerke innen Stufe 2/3: cremefarbener Putz (Proben 214/190/150 bis 226/204/164, hell ausgeleuchtet)
 SCHIEFER_BLAU = (0.80, 0.92, 1.22)           # Toenung des Schiefers der Menschen ins Blaue (Vorlagen: blaugraues Dach), Helligkeit bleibt
 KUPFER = dict(gruen=(0.36, 0.58, 0.54), braun=(0.42, 0.30, 0.22), falz_m=0.40)   # Gruenspan, durchscheinendes Kupfer, Abstand der Falze
+WERKSTEIN_S3 = (0.74, 0.675, 0.565)     # Grundfarbe des Werksteinbands "putz" in trim_s3_halbling (sRGB; warmer Sandstein, Rot ueber Gruen ueber Blau)
 BACKSTEIN = r"C:\rg-werkzeuge\backstein_dl"   # Abruf K6 (18.11.2026), nicht im Repository
 
 
@@ -268,6 +269,48 @@ def efeu_blaetter(blatt, band, saat=73):
         print(f"Efeu Bild {k} ({art}): Deckung {float(alpha[:, k * 256:(k + 1) * 256].mean()):.2f}")
 
 
+def werkstein_band(blatt, band, saat=29):
+    """Band „putz“ von trim_s3_halbling (Gewaende, Sturz, Eckquader, Lisenen, Platten): Sandstein, warm, mit Farbschwankung (Streuung etwa 16)
+    und feinem Korn, dazu helle, schmale Fugen. Warum nicht das Quaderband des Patrizierhauses (Streuung 40): Die kleinen Werksteine
+    des Hauses (Kasten 9 bis 20 cm) zeigen das GANZE Band quer auf ihrer Flaeche (netzbau.rechteck), das Quaderband schrumpfte so zu
+    einer glatten Farbe mit schwarzen Fugen an den Kanten. Hier liegen die Fugen darum nur an der Ober- und Unterkante (je 3 Zeilen)
+    und senkrecht alle 0,45 bis 1,1 m (3 Spalten); das Band ist in u nahtlos (Rauschen ueber FFT). Zufall fest (saat)."""
+    a, e = blatt.zeilen(band)
+    h, w = e - a, blatt.albedo.shape[1]
+    rng = np.random.default_rng(saat)
+
+    def feld(sigma):                                         # nahtloses, weiches Rauschen, Streuung 1
+        f = rng.standard_normal((h, w)).astype(np.float32)
+        F = np.fft.rfft2(f)
+        fy, fx = np.fft.fftfreq(h)[:, None], np.fft.rfftfreq(w)[None, :]
+        F *= np.exp(-2 * (np.pi * sigma) ** 2 * (fx ** 2 + fy ** 2))
+        g = np.fft.irfft2(F, s=(h, w))
+        return (g / g.std()).astype(np.float32)
+    var = 0.55 * feld(40) + 0.55 * feld(10) + 0.40 * feld(1.6)   # Streuung etwa 0,9
+    warm = feld(30)
+    basis = np.array(WERKSTEIN_S3, dtype=np.float32)
+    farbe = basis[None, None, :] * (1.0 + 0.10 * var[..., None])
+    farbe[..., 0] += 0.012 * warm
+    farbe[..., 2] -= 0.012 * warm
+    fuge = np.array((0.60, 0.575, 0.52), dtype=np.float32)   # gebrochenes Grau-Beige, hell und warm
+    maske = np.zeros((h, w), dtype=np.float32)
+    maske[:3], maske[-3:] = 1.0, 1.0
+    x = int(rng.integers(40, 200))
+    while x < w:
+        maske[:, x:x + 3] = 1.0
+        x += int(rng.integers(115, 282))
+    maske[:, :3] = np.maximum(maske[:, :3], 1.0)
+    farbe = farbe * (1 - 0.8 * maske[..., None]) + fuge * 0.8 * maske[..., None] * (1.0 + 0.05 * var[..., None])
+    blatt.albedo[a:e, :, :3] = np.clip(farbe, 0, 1)
+    blatt.albedo[a:e, :, 3] = 1.0
+    nx, ny = 0.5 + 0.025 * feld(2.0), 0.5 + 0.025 * feld(2.0)
+    blatt.normal[a:e, :, 0], blatt.normal[a:e, :, 1], blatt.normal[a:e, :, 2] = nx, ny, 0.9
+    blatt.orm[a:e, :, 0] = 0.97 - 0.2 * maske
+    blatt.orm[a:e, :, 1] = 0.62 + 0.04 * var
+    blatt.orm[a:e, :, 2] = 0.0
+    print("Werkstein-Band: Mittel", (farbe * 255).reshape(-1, 3).mean(0).round(1), "Streuung", (farbe * 255).reshape(-1, 3).std(0).round(1))
+
+
 def baue_s23(steine, backstein=BACKSTEIN):
     B = te.layout_lesen(os.path.join(HIER, "trimsheet.py"), "BAENDER_AUSSEN")
     alle = steine + ";" + backstein
@@ -289,6 +332,7 @@ def baue_s23(steine, backstein=BACKSTEIN):
         umtoenen(blatt, B[name], ton)
     umtoenen(blatt, B["planken"], PLANKEN)
     steinband(blatt, B["bruchstein"], B["bruchstein"][2], alle, "k6")
+    werkstein_band(blatt, B["putz"])                         # Werkstein: warmer Sandstein mit Streuung und hellen Fugen (Nutzer 22.11.2026)
     blatt.speichere("trim_s3_halbling")
     I = te.layout_lesen(os.path.join(HIER, "trimsheet.py"), "BAENDER_INNEN")
     i = Blatt("innen_trim_s23")

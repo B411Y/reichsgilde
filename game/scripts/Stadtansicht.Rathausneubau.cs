@@ -996,7 +996,8 @@ public partial class Stadtansicht
         var schluessel = gruppe + (kante ? "|kante" : "");
         if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var blatt = NeubauBlatt(datei);
-        var textur = innen ? blatt : "rathaus_ebenen";                // außen: Array mit dem Stein K1 im Quaderband; innen: das Innenblatt als Array
+        // Rathaus außen: Array mit dem Stein K1 im Quaderband; innen und bei den Domen (Stadtansicht.Domneubau.cs): das Blatt selbst als Array
+        var textur = innen || !gruppe.StartsWith("rathaus") ? blatt : "rathaus_ebenen";
         _neubauShader ??= GD.Load<Shader>("res://assets/shader/building_trim.gdshader");
         _neubauKantenShader ??= GD.Load<Shader>("res://assets/shader/building_trim_kante.gdshader");
         stoff = new ShaderMaterial { Shader = kante ? _neubauKantenShader : _neubauShader, ResourceName = "Trim " + schluessel };

@@ -23,8 +23,8 @@ namespace Reichsgilde;
 ///
 /// <para><b>Runde 2</b> (Nutzer, 11.11.2026): Im Tageswechsel (<see cref="TagWaehlen"/>) kommen die Stücke des <b>Volks des Spielers</b> etwa jedes dritte Mal
 /// (<see cref="GewichtVolk"/>), die anderer Völker nie; Stücke des <b>Berufs</b> (<see cref="Berufsgruppe"/>, öfter in der eigenen Werkstatt) und selten des
-/// <b>Glaubens</b>. Im Kirchenraum und zur Messe spielt das Stück des Kirchenglaubens (<see cref="LageVon"/>). Ahtnisch ist vorbereitet, aber stumm,
-/// bis der Kern das Ahtnentum kennt (<see cref="GlaubeName"/>).</para>
+/// <b>Glaubens</b>. Im Kirchenraum und zur Messe spielt das Stück des Kirchenglaubens (<see cref="LageVon"/>). Beide ahtnischen Bekenntnisse spielen
+/// das Ahtnisch-Stück (<see cref="GlaubeName"/>).</para>
 /// </summary>
 public static class MusikModell
 {
@@ -137,13 +137,14 @@ public static class MusikModell
     private static Berufsgruppe GruppeNamens(string name) => name == "Handwerk" ? Berufsgruppe.Handwerk : name == "Dienstleistung" ? Berufsgruppe.Dienstleistung : Berufsgruppe.Keine;
 
     /// <summary>
-    /// Glaube als Name im Datenfeld <c>glaube</c>. <b>Ahtnisch ist vorbereitet, aber stumm</b>: Der Kern kennt nur Katholisch, Evangelisch und den Naturglauben der
-    /// Orks und Oger (der hier keinem Stück entspricht); sobald es das Ahtnentum im Kern gibt, hier den Fall <c>"Ahtnisch"</c> zurückgeben – die Stücke liegen schon da.
+    /// Glaube als Name im Datenfeld <c>glaube</c>: Altahtnisch und Neuahtnisch spielen beide die Stücke „Ahtnisch“ (das Ahtnentum, eine Religion; Nutzer 23.11.2026).
+    /// Der Naturglaube der Orks und Oger entspricht keinem Stück (stumm).
     /// </summary>
     public static string? GlaubeName(Konfession? k) => k switch
     {
         Konfession.Katholisch => "Katholisch",
         Konfession.Evangelisch => "Evangelisch",
+        Konfession.Altahtnisch or Konfession.Neuahtnisch => "Ahtnisch",
         _ => null,
     };
 

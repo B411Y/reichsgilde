@@ -218,9 +218,11 @@ public sealed partial class Meinungswesen
         if (_w.Glaube.IstAktiv && GlaubeVon(von) is { } gv && GlaubeVon(ueber) is { } gu)
         {
             var g = _w.Glaube.Daten.Gunst;
-            if (gu == Konfession.Naturglaube && gv != Konfession.Naturglaube) Grund(() => "Ein Heide", g.Heide);
-            else if (gu == gv) Grund(() => $"Gleicher Glaube ({gu.Name()})", g.Gleich);
-            else Grund(() => $"Anderer Glaube ({gu.Name()})", g.Anders);
+            var wert = _w.Glaube.Daten.GunstFuer(gv, gu);
+            if (gu == Konfession.Naturglaube && gv != Konfession.Naturglaube) Grund(() => "Ein Heide", wert);
+            else if (gu == gv) Grund(() => $"Gleicher Glaube ({gu.Name()})", wert);
+            else if (gu.Religion() == gv.Religion() && wert != g.Anders) Grund(() => $"Glaubensverwandt ({gu.Name()})", wert); // Ahtnentum: die Neuen sind versöhnlich
+            else Grund(() => $"Anderer Glaube ({gu.Name()})", wert);
             if (hausUeber is not null && hausUeber.Oberhaupt == ueberP && hausUeber.Ehepartner is { } e2 && e2 != vonP && e2.Herkunftsglaube != gu && e2.Herkunftsglaube == gv)
                 Grund(() => $"{e2.Vorname} trat vom {gv.Glaube()} über", g.Mischehe);
         }

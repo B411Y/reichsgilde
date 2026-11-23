@@ -127,7 +127,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(96, d.Version);
+            Pruefe.Gleich(97, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");
@@ -239,7 +239,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Schalter an – die Partie mit Schiff (Greybox, 3 Jahre) läuft bitgleich wie festgehalten (bis 16.11.2026: wie der Kern vor dem Schalter)", () =>
         {
             // ohne die Erntejahre (Datenversion 91), die Feuersteuer (96) und den Vorrat auf Verdacht der KI (ki.vorrat, 16.11.2026), die es damals nicht gab
-            var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Datenpfad.OhneFeuersteuer(Json.Value)))), 3); // und ohne Feuersteuer (22.11.2026)
+            var ist = Partie(Datenpfad.MitSchiffshandel(KiVorratTests.OhneVorrat(Datenpfad.OhneErnte(Datenpfad.OhneAhtnentum(Datenpfad.OhneFeuersteuer(Json.Value))))), 3); // und ohne Feuersteuer (22.11.2026) und Ahtnentum (23.11.2026)
             Pruefe.Gleich(string.Join("\n", Sollwerte), string.Join("\n", ist));
         }),
     };

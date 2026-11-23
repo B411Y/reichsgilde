@@ -288,3 +288,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zweite Ebene | Unterstrichene Begriffe öffnen weiter einen zweiten Tooltip derselben schlichten Art. | 22.11.2026 |
 | Nicht angefasst | Hauptmenü, Kartenwerkstatt, Fenster und Tafeln (Pergament). Der kleine Bauplatz-Hinweis der Baumodus-Tafel (`BauAnzeige`, eigener Stilkasten im Code) war schon dunkel mit goldenem Rand. | 22.11.2026 |
 | Kürzungen | Lange Tooltip-Texte wurden nur gesichtet, nicht gekürzt; Vorschläge siehe Liste des Teamleiters (Einstellungen-Beleuchtung, Familien-Glaube, Zeitstrahl, Wohnhaus, AP-Liste). | 22.11.2026 |
+
+### Ahtnentum in der Oberfläche (Branch phase5/ahtnentum)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Glaubenswahl | Neue Partie: alle vier Bekenntnisse im Feld „Glaube“, nicht mögliche ausgegraut mit dem Grund aus `GlaubeDaten.StartglaubeVerboten` im Tooltip; Orks und Oger zeigen nur den Naturglauben. KI-Zeilen: dieselbe Sperre, sobald ein Volk gewählt ist (Glaube springt sonst auf „zufällig“). | 23.11.2026 |
+| Kern-Ergänzung | `StartglaubeVerboten` und `AufnahmeGrund` liegen jetzt auch in `GlaubeDaten` (öffentlich), damit das Hauptmenü ohne Welt fragen kann; `Glaubenswesen` delegiert. Verhalten unverändert. | 23.11.2026 |
+| Familienbuch | Übertritt-Knöpfe für alle anderen Bekenntnisse (Grund aus `KonvertierenVerboten` als Tooltip), Stammbaum/Brautschau mit `Kurzname()`; Heirat: Folge „Paar und Kinder werden neuahtnisch“ im Tooltip der Volk-Spalte und von „Heiraten“, Sperre als „Kirche im Weg“ mit Grund. | 23.11.2026 |
+| Rat, Dom | Ratsantrag Stadtglaube: alle vier Bekenntnisse; Dom-Infotext nennt Altahtnen und Neuahtnen. Konfessionszeichen (Grafik) nicht gemacht, nichts erfunden. | 23.11.2026 |
+
