@@ -40,6 +40,32 @@ class Quelle1k(Quelle):
         self.kante = kante
 
 
+class SteinflaechenQuelle:
+    """Glatte Steinflaeche ohne Fugen aus dem Inneren eines Quaders der Quelle `q` (Zeilen r0..r1, Spalten c0..c1 der Kantenlaenge
+    von q): das Stueck wird gespiegelt gekachelt (Normale: beim Spiegeln das Vorzeichen der Kippung drehen), damit die Fugen der
+    Quelltextur nicht im Band stehen - die Fugen setzt quaderband selbst, im Raster des Bauskripts."""
+
+    def __init__(self, q, r0, r1, c0, c1):
+        self.kante = r1 - r0
+        self.farbe = q.farbe[r0:r1, c0:c1]
+        self.normale = q.normale[r0:r1, c0:c1]
+        self.arm = q.arm[r0:r1, c0:c1]
+
+    def streifen(self, hoehe, ab=0, versatz=0):
+        def kachel(f, normal):
+            h, b = f.shape[:2]
+            zeilen = (ab + np.arange(hoehe)); spalten = (versatz + np.arange(N))
+            zk, sk = zeilen // h, spalten // b                                       # Kachelnummer
+            zr, sr = zeilen % h, spalten % b
+            zr = np.where(zk % 2 == 1, h - 1 - zr, zr); sr = np.where(sk % 2 == 1, b - 1 - sr, sr)   # jede zweite Kachel gespiegelt
+            out = f[zr][:, sr].copy()
+            if normal:                                                              # R = x-Kippung (um 0,5), G = y-Kippung
+                out[..., 0] = np.where((sk % 2 == 1)[None, :], 1.0 - out[..., 0], out[..., 0])
+                out[..., 1] = np.where((zk % 2 == 1)[:, None], 1.0 - out[..., 1], out[..., 1])
+            return out
+        return kachel(self.farbe, False), kachel(self.normale, True), kachel(self.arm, False)
+
+
 def lade_blatt(name):
     """Liest ein fertiges Blatt (albedo, normal, orm) in ein trimsheet.Blatt."""
     b = Blatt()
@@ -119,10 +145,27 @@ def quader_plan(breite_px, hoehe_px, px_m, saat):
     return steine
 
 
-def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9, streuung=0.08, kontrast=0.45, eigenfarbe=0.08):
+def quader_reihe(breite_px, hoehe_px, px_m, saat, breite_m=(0.55, 1.1)):
+    """Eine einzige Quaderreihe ueber die ganze Bandhoehe (Werksteinband des Steinhauses): gleich hohe Quader unterschiedlicher
+    Breite (breite_m in Metern bei `px_m` Bildpunkten je Meter), waagerecht nahtlos. Die Mauer legt Reihe auf Reihe (u_start
+    versetzt jede Lage), Gewaende und Pfeiler zeigen die Reihe als ein Stein mit gelegentlicher Stossfuge."""
+    z = np.random.default_rng(saat)
+    steine, x = [], 0
+    while x < breite_px - 1:
+        w = int(z.uniform(*breite_m) * px_m)
+        if breite_px - (x + w) < 0.4 * px_m: w = breite_px - x          # kein Splitter am Ende der Reihe
+        w = min(w, breite_px - x)
+        steine.append((x, x + w, 0, hoehe_px)); x += w
+    return steine
+
+
+def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9, streuung=0.08, kontrast=0.45, eigenfarbe=0.08,
+               plan=None, fuge_x_px=None, warm_streuung=0.025):
     """Behauene Steinquader im Band: Oberflaeche aus der Quelltextur (umgefaerbt), je Stein eigener Ton (Helligkeit und leichte
     Waerme), dunkle, vertiefte Fugen (12 px = 2,3 cm: bleiben im Pixel-Look - Mip 2,5 Stufen groeber - als Linie lesbar) und eine
-    Fase an jeder Steinkante in der Normale (Licht oben und links, Schatten unten und rechts wie bei echter Tiefe)."""
+    Fase an jeder Steinkante in der Normale (Licht oben und links, Schatten unten und rechts wie bei echter Tiefe).
+    `plan`: fertige Steinliste (x0, x1, y0, y1) statt quader_plan; `fuge_x_px`: Breite der senkrechten Fugen, falls abweichend
+    (das Band kann waagerecht und senkrecht verschieden gedehnt sein, siehe Werksteinband)."""
     a, e = blatt.zeilen(band)
     h = e - a
     f, n, arm = q.streifen(h, ab=ab)
@@ -131,15 +174,16 @@ def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9,
     stein_id = np.full((h, N), -1, dtype=np.int32)
     rand = np.full((h, N), 1e9, dtype=np.float32)                   # Abstand zur naechsten Steinkante (Pixel)
     nx = np.zeros((h, N), dtype=np.float32); ny = np.zeros((h, N), dtype=np.float32)
-    plan = quader_plan(N, h, px_m, saat)
+    if plan is None: plan = quader_plan(N, h, px_m, saat)
     halb = fuge_px / 2
+    halb_x = (fuge_x_px if fuge_x_px is not None else fuge_px) / 2
     for i, (x0, x1, y0, y1) in enumerate(plan):
         ys = np.arange(y0, y1)
         xs = np.arange(x0, x1)
         dy0, dy1 = ys - y0 + 0.5, y1 - ys - 0.5                     # Abstand zur oberen / unteren Kante
         dx0, dx1 = xs - x0 + 0.5, x1 - xs - 0.5
         # Fuge: halbe Fugenbreite an jeder Kante (oben/unten am Bandrand ebenso: zwei Lagen ergeben eine ganze Fuge)
-        innen_y = np.minimum(dy0, dy1) - halb; innen_x = np.minimum(dx0, dx1) - halb
+        innen_y = np.minimum(dy0, dy1) - halb; innen_x = np.minimum(dx0, dx1) - halb_x
         d = np.minimum(innen_y[:, None], innen_x[None, :])
         cols = xs % N
         stein_id[y0:y1][:, cols] = i
@@ -147,12 +191,12 @@ def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9,
         # Fase: Normale kippt zur naechsten Kante hin (oben +y, unten -y, links -x, rechts +x)
         k = lambda t: np.clip(1 - t / fase_px, 0, 1) * (t >= 0)
         ty0, ty1 = (dy0 - halb)[:, None], (dy1 - halb)[:, None]
-        tx0, tx1 = (dx0 - halb)[None, :], (dx1 - halb)[None, :]
+        tx0, tx1 = (dx0 - halb_x)[None, :], (dx1 - halb_x)[None, :]
         ny[y0:y1][:, cols] = 0.55 * (k(ty0) - k(ty1)) * (np.minimum(ty0, ty1) <= np.minimum(tx0, tx1))
         nx[y0:y1][:, cols] = 0.55 * (k(tx1) - k(tx0)) * (np.minimum(tx0, tx1) < np.minimum(ty0, ty1))
     # Ton je Stein: Helligkeit +- streuung, dazu waermer oder kuehler
     hell = z.uniform(1 - streuung, 1 + streuung, len(plan)).astype(np.float32)
-    warm = z.uniform(-0.025, 0.025, len(plan)).astype(np.float32)
+    warm = z.uniform(-warm_streuung, warm_streuung, len(plan)).astype(np.float32)
     faktor = np.stack([hell * (1 + warm), hell, hell * (1 - warm)], axis=1)
     farbe = farbe * faktor[np.maximum(stein_id, 0)]
     fuge = rand < 0
@@ -181,12 +225,15 @@ def stein_flaeche(blatt, band, q, ton, ab=0, kontrast=1.0, eigenfarbe=0.3, fase_
     blatt.fase(band, px=fase_px, staerke=0.5)
 
 
-def baue(quellen):
+def baue(quellen, nur=None):
+    """`nur="s3"`: nur das Blatt trim_s3 neu schreiben (die anderen Blaetter bleiben unberuehrt)."""
     # Aussen, Stufe 2: Tonziegel
-    s2 = lade_blatt("trim")
-    dach_band(s2, Quelle1k(quellen, "clay_roof_tiles_02", kante=1024), (0.52, 0.33, 0.26), eigenfarbe=0.2)
-    dach_aufhellen(s2, ZIEGEL_HELL)
-    s2.speichere("trim_s2")
+    if nur in (None, "s2"):
+        s2 = lade_blatt("trim")
+        dach_band(s2, Quelle1k(quellen, "clay_roof_tiles_02", kante=1024), (0.52, 0.33, 0.26), eigenfarbe=0.2)
+        dach_aufhellen(s2, ZIEGEL_HELL)
+        s2.speichere("trim_s2")
+    if nur == "s2": return
     # Aussen, Stufe 3: Schiefer und behauener Stein
     s3 = lade_blatt("trim")
     dach_band(s3, Quelle(quellen, "roof_slates_02", kante=1024), (0.38, 0.39, 0.42), kontrast=1.2, eigenfarbe=0.08)
@@ -194,10 +241,20 @@ def baue(quellen):
     # Mauer: Quaderverband aus hellgrauem Haustein (wie die Vorlagen wohnhaus_lvl3_*), Band "bruchstein" = eine Lage von 0,40 m
     stein = Quelle(quellen, "sandstone_blocks_08", kante=1024)
     quaderband(s3, BAENDER_AUSSEN["bruchstein"], stein, (0.66, 0.65, 0.62), saat=31, ab=210)
-    # Werkstein aus hellem Sandstein fuer Eckquader, Gewaende, Sohlbaenke, Stuerze und Abdeckplatten (in den Vorlagen warm abgesetzt):
-    # Band "putz" (im Steinhaus sonst ungenutzt; der Shader toent es mit der Putzfarbe des Standorts - leichte Streuung je Haus)
-    stein_flaeche(s3, BAENDER_AUSSEN["putz"], stein, (0.78, 0.71, 0.60), ab=600, kontrast=0.5, eigenfarbe=0.1)
+    # Werkstein (Band "putz", im Steinhaus sonst ungenutzt): heller, grau-sandfarbener Haustein als EINE Quaderreihe ueber die
+    # Bandhoehe (Nutzer 22.11.2026: Obergeschoss nicht ocker, nicht wie Putz, sichtbare Fugen). Das Band ist 8 m breit und 1,6 m
+    # hoch; die Reihe ist 0,45 m hoch gedacht (Wand: hoehe=WERK_LAGE im Bauskript, Gewaende und Pfeiler zeigen sie als ganzen Stein).
+    # Quader 0,55 bis 1,1 m breit, Fugen 2,2 cm; die Oberflaeche kommt aus dem Inneren eines Quaders von sandstone_blocks_08.
+    # Der Shader toent das Band mit der Putzfarbe des Hauses: fuer das Steinhaus der Menschen gilt dort ein neutraler Steinton.
+    k = stein.kante / 1024.0
+    glatt = SteinflaechenQuelle(stein, int(225 * k), int(392 * k), int(367 * k), int(630 * k))
+    a, e = s3.zeilen(BAENDER_AUSSEN["putz"])
+    px_m = N / BAENDER_AUSSEN["putz"][2]
+    reihe = quader_reihe(N, e - a, px_m, saat=47)
+    quaderband(s3, BAENDER_AUSSEN["putz"], glatt, WERKSTEIN_TON, saat=47, plan=reihe, fuge_px=20, fuge_x_px=6, fase_px=8,
+               streuung=0.06, kontrast=0.6, eigenfarbe=0.03, warm_streuung=0.01)
     s3.speichere("trim_s3")
+    if nur == "s3": return
     # Innen, beide Stufen
     i = lade_blatt("innen_trim")
     putz = Quelle(quellen, "white_plaster_rough_01")
@@ -232,6 +289,11 @@ def baue(quellen):
     i.speichere("innen_trim_s23")
 
 
+WERK_LAGE = 0.45       # Hoehe einer Quaderlage im Werksteinband (m): die Wand des Patrizierhauses setzt das Band mit dieser Hoehe
+# Grau-sandfarbener Haustein. ACHTUNG Trim-Sheet-Pipeline: Blatt.speichere schreibt srgb_zu_linear(Farbe) in die PNG-Bytes
+# (Byte = Farbe hoch 2,2; trimsheet_ebenen.py und Godot lesen die Bytes unveraendert). Der Zielton im Spiel (Bytes etwa 176/170/156) ist
+# darum hier als Farbe^(1/2,2) mit Zuschlag fuer Streuung und Fugen angegeben, nicht als der gewollte Ton selbst.
+WERKSTEIN_TON = (0.87, 0.855, 0.825)
 FLIESEN_U = 0.45      # Breite eines Fliesenfelds im Band "lehmboden" (UV.x), entspricht 1,8 m (Band: 4 m je UV.x 1)
 
 
@@ -239,4 +301,4 @@ if __name__ == "__main__":
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    baue(opt["quellen"])
+    baue(opt["quellen"], opt.get("nur"))
