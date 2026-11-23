@@ -102,15 +102,26 @@ public sealed class Karren
     /// <summary>Bis zu dieser Spielminute wartet er an der Klappbrücke (dann geht sie zu und er fährt weiter; null: wartet nicht).</summary>
     public long? BrueckeWartenBis { get; private set; }
 
+    /// <summary>
+    /// Verweilt der Karren nach dem Handel am Markt bzw. Hafen, steht hier die Spielminute, zu der er zurückfährt (null: verweilt nicht).
+    /// Nur automatisch fahrende Karren verweilen (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/>, <see cref="LogistikDaten.VerweilenMinuten"/>,
+    /// Datenversion 98): Die Zeit steht für das Ab- und Aufladen. Der Zustand bleibt solange <see cref="KarrenZustand.ZumMarkt"/>.
+    /// </summary>
+    public long? VerweiltBis { get; private set; }
+
+    /// <summary>Verweilt der Karren gerade am Markt bzw. Hafen? (für Anzeige und Darstellung)</summary>
+    public bool Verweilt(Spielzeit zeit) => VerweiltBis is { } bis && zeit.VergangeneMinuten < bis;
+
     /// <summary>Wartet der Karren gerade an der offenen Klappbrücke? (für Anzeige und Darstellung)</summary>
     public bool WartetAnBruecke(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && BrueckeWartenAb is { } ab && BrueckeWartenBis is { } bis
                                                    && zeit.VergangeneMinuten >= ab && zeit.VergangeneMinuten < bis;
 
     /// <summary>
     /// Fährt der Karren gerade mit seinem Fuhrmann (unterwegs und nicht am geschlossenen Tor)? Für die Darstellung: am Betrieb und am Tor
-    /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden. Nur eine Abfrage, ändert nichts an den Fahrzeiten.
+    /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden; ebenso, solange er am Markt verweilt (<see cref="Verweilt"/>).
+    /// Nur eine Abfrage, ändert nichts an den Fahrzeiten.
     /// </summary>
-    public bool Faehrt(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && !WartetAmTor(zeit);
+    public bool Faehrt(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && !WartetAmTor(zeit) && !Verweilt(zeit);
 
     /// <summary>
     /// Der Fuhrmann dieses Karrens, nur fürs Bild (abgeleitet, nicht gespeichert, ohne Lohn): fest aus Betriebsname (Heimat.Name) und Karrenname gewürfelt,
@@ -134,6 +145,7 @@ public sealed class Karren
     public string ZustandText(Spielzeit zeit) => WartetAmTor(zeit)
         ? (Zustand == KarrenZustand.ZumMarkt ? "wartet vor dem geschlossenen Stadttor bis zum Morgen" : "wartet in der Stadt, bis das Tor aufgeht")
         : WartetAnBruecke(zeit) ? $"wartet an der offenen Klappbrücke (noch {BrueckeWartenBis!.Value - zeit.VergangeneMinuten} Min.)"
+        : Verweilt(zeit) ? $"lädt am {Handelsort} (noch {VerweiltBis!.Value - zeit.VergangeneMinuten} Min.)"
         : Zustand switch
     {
         KarrenZustand.AmBetrieb => "wartet am Betrieb",
@@ -147,6 +159,14 @@ public sealed class Karren
     {
         if (Zustand != KarrenZustand.AmBetrieb)
         {
+            // Nach dem Handel am Markt verweilen (nur automatisch fahrende Karren), dann zurück.
+            if (VerweiltBis is { } bis)
+            {
+                if (zeit.VergangeneMinuten < bis) return;
+                VerweiltBis = null;
+                Zurueckfahren(zeit, w);
+                return;
+            }
             if (_rueckfahrtWartet)
             {
                 if (zeit.VergangeneMinuten >= TorWartenBis)
@@ -261,6 +281,32 @@ public sealed class Karren
         return false;
     }
 
+    /// <summary>
+    /// Nach dem Handel am Markt: Ein automatisch fahrender Karren verweilt <see cref="LogistikDaten.VerweilenMinuten"/> (Ab- und Aufladen,
+    /// Datenversion 98), dann fährt er zurück (<see cref="Tick"/>); sonst fährt er gleich.
+    /// </summary>
+    private void NachDemHandel(Spielzeit zeit, Stadtwirtschaft w)
+    {
+        if (w.Daten.Logistik.VerweilenMinuten > 0 && w.FaehrtAutomatisch(this))
+        {
+            VerweiltBis = zeit.VergangeneMinuten + w.Daten.Logistik.VerweilenMinuten;
+            return;
+        }
+        Zurueckfahren(zeit, w);
+    }
+
+    /// <summary>
+    /// Wann ist der Karren etwa wieder am Betrieb (Spielminute)? Unterwegs zum Markt: Ankunft, Verweilen und Rückweg; auf dem Rückweg: die Ankunft.
+    /// Ein geschlossenes Tor auf dem Rückweg ist nicht eingerechnet. Am Betrieb: jetzt.
+    /// </summary>
+    internal long ZurueckEtwa(Stadtwirtschaft w) => Zustand switch
+    {
+        KarrenZustand.ZumBetrieb => Ankunft,
+        KarrenZustand.ZumMarkt => (VerweiltBis ?? Ankunft + (w.Daten.Logistik.VerweilenMinuten > 0 && w.FaehrtAutomatisch(this) ? w.Daten.Logistik.VerweilenMinuten : 0))
+                                  + w.Fahrzeit(this, zumMarkt: false),
+        _ => w.Uhr.VergangeneMinuten,
+    };
+
     /// <summary>Vom Markt zurück zum Betrieb – ins Umland erst, wenn das Tor offen ist.</summary>
     private void Zurueckfahren(Spielzeit zeit, Stadtwirtschaft w)
     {
@@ -359,7 +405,7 @@ public sealed class Karren
                     Heimat.Verkaufen(ware, stueck, w.Markt, Faktor(ware), w.SteuersatzMarkt(Heimat.Konto));
                 _ladung.Clear();
                 AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
-                Zurueckfahren(zeit, w);
+                NachDemHandel(zeit, w);
                 return;
             }
 
@@ -370,7 +416,7 @@ public sealed class Karren
 
             // ... und knappe Zutaten einkaufen.
             ZutatenEinkaufen(zeit, w);
-            Zurueckfahren(zeit, w);
+            NachDemHandel(zeit, w);
         }
         else
         {
@@ -480,6 +526,7 @@ public sealed class Karren
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
         TorWartenBis = TorWartenBis, RueckfahrtWartet = _rueckfahrtWartet, BrueckeWartenAb = BrueckeWartenAb, BrueckeWartenBis = BrueckeWartenBis,
+        VerweiltBis = VerweiltBis,
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
@@ -498,6 +545,7 @@ public sealed class Karren
         TorWartenBis = s.TorWartenBis;
         BrueckeWartenAb = s.BrueckeWartenAb;
         BrueckeWartenBis = s.BrueckeWartenBis;
+        VerweiltBis = s.VerweiltBis;
         _rueckfahrtWartet = s.RueckfahrtWartet;
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
         Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null

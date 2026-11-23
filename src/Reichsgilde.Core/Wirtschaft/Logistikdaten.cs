@@ -269,6 +269,13 @@ public sealed class LogistikDaten
     /// <summary>Spätestens nach so vielen Spielminuten fährt der Verwalter mit der Ware los, die da ist.</summary>
     public int MaxWartezeitMinuten { get; init; } = 240;
 
+    /// <summary>
+    /// Wie viele Spielminuten ein automatisch fahrender Karren nach dem Handel am Markt bzw. Hafen verweilt, bevor er zurückfährt (Datenversion 98):
+    /// Die Zeit steht für das Ab- und Aufladen, das der Spieler beim Selbstfahren selbst macht. Gilt nur für Karren, die automatisch fahren
+    /// (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/>). Fehlt der Wert (ältere Daten, alte Spielstände): 0 – die Karren kehren sofort um wie bisher.
+    /// </summary>
+    public int VerweilenMinuten { get; init; }
+
     /// <summary>Ein eigener Karren bringt beim Verkauf diesen Anteil seines Kaufpreises (0,5 = die Hälfte; ab Datenversion 55, PR #205).</summary>
     public double KarrenVerkaufAnteil { get; init; } = 0.5;
 
@@ -342,6 +349,7 @@ public sealed class LogistikDaten
         Weglaenge?.Pruefen(f, Karren);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
+        if (VerweilenMinuten < 0) f.Add("logistik.verweilenMinuten darf nicht negativ sein.");
         if (ZutatenVorratStunden <= 0) f.Add("logistik.zutatenVorratStunden muss größer als 0 sein.");
         if (ZutatenAnteilKasse is <= 0 or > 1) f.Add("logistik.zutatenAnteilKasse muss größer als 0 und höchstens 1 sein.");
         if (KarrenVerkaufAnteil is < 0 or > 1) f.Add("logistik.karrenVerkaufAnteil muss zwischen 0 und 1 liegen.");

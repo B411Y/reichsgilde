@@ -1364,6 +1364,10 @@ public sealed record KarrenStand
     /// <summary>… bis zu dieser Spielminute (null: wartet nicht).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public long? BrueckeWartenBis { get; init; }
+
+    /// <summary>Verweilt nach dem Handel am Markt bis zu dieser Spielminute (null: nein, dann nicht geschrieben; fehlt vor Datenversion 98).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? VerweiltBis { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>

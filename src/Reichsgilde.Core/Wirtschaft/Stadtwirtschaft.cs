@@ -316,6 +316,13 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + FahrzeitBeiAbfahrt(karren);
 
+    /// <summary>
+    /// Fährt dieser Karren nach der Verwalterregel von selbst (true) – oder fährt ihn der Spieler selbst (Entscheidung des Nutzers 23.11.2026)?
+    /// Andockpunkt für das Selbstfahren: Karren der KI-Häuser fahren immer automatisch. Bis das Selbstfahren gebaut ist, fahren alle Karren automatisch.
+    /// Nur automatisch fahrende Karren verweilen nach dem Handel (<see cref="LogistikDaten.VerweilenMinuten"/>).
+    /// </summary>
+    public bool FaehrtAutomatisch(Karren karren) => true;
+
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
 
@@ -384,8 +391,7 @@ public sealed partial class Stadtwirtschaft
         var karren = betrieb.Karren[befehl.Karren];
         if (unterwegs)
         {
-            var zurueck = karren.Zustand == KarrenZustand.ZumBetrieb ? karren.Ankunft
-                : karren.Ankunft + Fahrzeit(karren, zumMarkt: false);
+            var zurueck = karren.ZurueckEtwa(this);
             var um = Uhr.UhrzeitInMinuten + (int)(zurueck - Uhr.VergangeneMinuten);
             karren.Vormerkung = new Vormerkung(new Dictionary<string, int>(befehl.Verkauf), new Dictionary<string, int>(befehl.Kauf));
             return Befehlsergebnis.Ok($"{karren.Name} ist unterwegs – der Auftrag ist vorgemerkt und startet, sobald er zurück ist (etwa {um / 60:00}:{um % 60:00}).");
