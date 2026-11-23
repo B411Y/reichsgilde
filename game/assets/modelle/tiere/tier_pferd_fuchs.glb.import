@@ -1,9 +1,9 @@
-﻿[remap]
+[remap]
 
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://b5e3uem35p4x"
+uid="uid://bbl6crpwvyu2b"
 path="res://.godot/imported/tier_pferd_fuchs.glb-aa4d507d7ff17766477094ccdd65a29c.scn"
 
 [deps]
@@ -41,5 +41,5 @@ materials/extract_format=0
 materials/extract_path=""
 _subresources={}
 gltf/naming_version=2
-gltf/embedded_image_handling=1
+gltf/embedded_image_handling=3
 gltf/texture_map_mode=1
