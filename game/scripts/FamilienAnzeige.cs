@@ -621,7 +621,7 @@ public partial class FamilienAnzeige : PanelContainer
                            $"Heiden {Zahlenformat.Ganz(d.Gunst.Heide)}. Ein übergetretener Ehepartner: {Zahlenformat.Ganz(d.Gunst.Mischehe)} bei den Ratsherren seines alten Glaubens.\n" +
                            $"Stadtglaube: {KonfessionTexte.StadtglaubeText(gw.Stadtglaube)}" +
                            (gw.Stadtglaube is null ? "." : $" – Andersgläubige zahlen {Zahlenformat.Ganz(d.Stadtglaube.Abgabe)} {w.Daten.Allgemein.Waehrung} Glaubenszins im Jahr.");
-        foreach (var ziel in new[] { Konfession.Katholisch, Konfession.Evangelisch }.Where(k => k != o.Glaube))
+        foreach (var ziel in KonfessionTexte.Kirchliche.Where(k => k != o.Glaube))
         {
             var konfession = ziel;
             var knopf = new Button { Text = o.Glaube.IstKirchlich() ? $"{ziel.Name()} werden" : $"{ziel.Name()} taufen lassen", FocusMode = FocusModeEnum.None };
@@ -751,8 +751,11 @@ public partial class FamilienAnzeige : PanelContainer
             PortraetZelle(raster, buch, p, PortraetAnzeige.Klein);
             var name = Text(raster, p.Name + (rivalen.Count > 0 ? " ⚔" : ""), 14, farbe);
             if (rivalen.Count > 0) { name.TooltipText = $"Auch {string.Join(", ", rivalen)} wirbt um {p.Vorname}."; name.MouseFilter = MouseFilterEnum.Stop; }
-            Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}" + (w.Glaube.IstAktiv ? $", {(p.Glaube == Konfession.Katholisch ? "kath." : p.Glaube == Konfession.Evangelisch ? "ev." : "Heide")}" : ""),
+            var neuahtnisch = buch.HeiratMachtNeuahtnisch(f, p);
+            var folge = neuahtnisch ? $"Folge der Hochzeit: Die Altahtnen nehmen keine Menschen auf – Paar und Kinder werden neuahtnisch." : "";
+            var volkszeile = Text(raster, $"{p.Volk.Einzahl()}, {p.Alter(buch.Jahr)}" + (w.Glaube.IstAktiv ? $", {p.Glaube.Kurzname()}" : ""),
                 14, farbe);
+            if (neuahtnisch) { volkszeile.TooltipText = folge; volkszeile.MouseFilter = MouseFilterEnum.Stop; }
             Text(raster, w.Daten.Staende[k.Stand].Name, 14, farbe);
             if (mitTalenten)
             {
@@ -770,14 +773,14 @@ public partial class FamilienAnzeige : PanelContainer
             raster.AddChild(knoepfe);
             if (verboten is not null)
             {
-                var hinweis = Text(knoepfe, "nicht standesgemäß", 12, Grau);
+                var hinweis = Text(knoepfe, neuahtnisch && verboten.Contains("neuahtnisch") ? "Kirche im Weg" : "nicht standesgemäß", 12, Grau);
                 hinweis.TooltipText = verboten;
                 hinweis.MouseFilter = MouseFilterEnum.Stop;
                 continue;
             }
             if (bereit >= schwelle)
             {
-                var heiraten = new Button { Text = "Heiraten", FocusMode = FocusModeEnum.None };
+                var heiraten = new Button { Text = "Heiraten", FocusMode = FocusModeEnum.None, TooltipText = folge };
                 heiraten.Pressed += () => Befehlen(new Heiraten(p.Nummer));
                 UiHilfe.ApKosten(heiraten, w, _spieler!, new Heiraten(0));
                 knoepfe.AddChild(heiraten);
@@ -808,7 +811,8 @@ public partial class FamilienAnzeige : PanelContainer
                       $"Ab der Schwelle willigt die Person ein. Die Zuneigung verblasst um {Zahlenformat.Ganz(d.ZuneigungVerfall * 100)} % im Jahr, " +
                       $"und jedes Jahr heiraten manche anderweitig. Ehen zwischen Völkern sind erlaubt, bringen aber weniger Kinder; " +
                       "die Kinder gehören immer dem Volk eures Hauses an. ⚔ = ein anderes Haus wirbt mit." +
-                      (w.Glaube.IstAktiv ? " Wer anderen Glaubens ist, tritt bei der Hochzeit zu eurem über – die Ratsherren seines alten Glaubens sehen das ungern." : ""),
+                      (w.Glaube.IstAktiv ? " Wer anderen Glaubens ist, tritt bei der Hochzeit zu eurem über – die Ratsherren seines alten Glaubens sehen das ungern. " +
+                                          "Heiratet ein Mensch in ein altahtnisches Haus, werden Haus, Ehepartner und Kinder neuahtnisch." : ""),
                       12, Grau, umbrechen: true);
     }
 }
