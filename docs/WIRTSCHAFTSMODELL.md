@@ -108,11 +108,12 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Karren | Ladeflächen × Stück | Preis | Startausstattung |
 |---|---|---|---|
 | Handkarren | 1 × 15 | 150 | Gießerei |
-| Ochsenkarren | 2 × 20 | 400 | Mine |
-| Pferdekarren | 3 × 25 | 900 | – |
+| Pferdekarren (ein Pferd) | 2 × 20 | 400 | Mine und alle Umlandbetriebe |
+| Großer Pferdekarren (zwei Pferde) | 3 × 25 | 900 | – |
 
-- Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
-- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
+- Bis Datenversion 97 hießen sie Ochsenkarren und Pferdekarren (gleiche Werte, siehe „Karrenarten ohne Ochsen (Datenversion 98)“).
+- Ladeflächen sind frei belegbar (ein Pferdekarren kann 40 Eisen laden).
+- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Pferdekarren 0,8, Handkarren 1,0, Großer Pferdekarren 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
 - Lager je Betrieb: 40 Stück je Ware.
 - **Verwalter-Regel:** Der Karren fährt los, wenn eines davon zutrifft:
   - Er kann mindestens drei Viertel einer Ladung mitnehmen.
@@ -120,7 +121,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
   - Die Zutaten reichen für weniger als 5 Stück.
   - Ware wartet seit 4 Stunden.
 - Ins Umland fährt der Karren nachts (21–06 Uhr) nur, wenn es ausdrücklich erlaubt ist.
-- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Ochsenkarren 200, Pferdekarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
+- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Pferdekarren 200, Großer Pferdekarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
 
 ### Eskorten und Überfälle
 | Eskorte | Kosten je beladener Fahrt | Schutz |
@@ -154,7 +155,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Handkarren | keine | −215 | 51 |
 
 **Spielerische Folge:**
-- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Ochsenkarren die normale, beim Pferdekarren die schwere.
+- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Pferdekarren die normale, beim Großen Pferdekarren die schwere (gemessen mit den Namen bis Datenversion 97: Ochsenkarren, Pferdekarren).
 - Mit einem Handkarren kommt die Mine mit dem Abtransport nicht nach.
 
 ### Neue Referenzwerte mit Logistik (automatische Tests, Mittel über 20 Jahre)
@@ -800,7 +801,7 @@ Eisenbart (Zwerg, Schmied – der einzige Startberuf mit Bonus) gewinnt am meist
 | Händlerspanne beim Einkauf | +10 % auf den Marktpreis (`handel.aufschlag`), Verhandeln −1,5 % je Stern |
 | Preiswirkung | je gekauftes Stück −1 im Angebotsfenster des Jahres (symmetrisch zum Verkauf) |
 | Marktzeit | 8–20 Uhr, maßgeblich ist die Ankunft des Karrens (Stadt 30 Min., Umland 120 Min.) |
-| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Ochsenkarren 2 × 20, Pferdekarren 3 × 25) |
+| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Pferdekarren 2 × 20, Großer Pferdekarren 3 × 25) |
 
 **Rechenbeispiel:** 10 Gold bei Grundpreis 60 (Preis 61,6) kosten von Hand ≈ 675 Gulden (Ø 67,5 je Stück); der Goldpreis steigt dadurch auf 63,2. Wer sofort wieder verkauft, bekommt nach Umsatzsteuer ≈ 600 – Spekulation lohnt nur, wenn der Preis inzwischen deutlich steigt (z. B. weil andere Häuser Gold brauchen und niemand verkauft).
 

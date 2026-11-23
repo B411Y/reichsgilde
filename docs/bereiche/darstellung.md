@@ -381,6 +381,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Dom katholisch) Evangelische Einrichtung und Simultankirche sind im Spiel nur auf der Greybox (Glaubensfreiheit = Simultankirche) gesehen, die rein evangelische und die rein katholische Fassung nur in den Kontrollbildern aus Blender; es gibt keine Startoption für den Stadtglauben
 - (Dom katholisch) Brand am neuen Dom (`--blitzschlag=Dom`) nicht angesehen; die Stoffnamen sind die des Rathauses (Schiefer, Bruchstein, Sandstein, Bretter), der Brandschaden sollte greifen wie dort
 - (von Kern, Ahtnentum) Ein ahtnischer Stadtglaube ist jetzt möglich (`Konfession.Altahtnisch`/`Neuahtnisch`, `Religion.Ahtnentum`): Der Dom-Innenraum (`Stadtansicht.Sonderbauten`, heute nur katholisch/evangelisch/simultan) braucht eine ahtnische Ausstattung (Paket 5 der Dome); bis dahin zeigt er bei ahtnischem Stadtglauben weder das katholische noch das evangelische Stück.
+- (von Kern) Seit Datenversion 98 kennt der Kern nur noch Handkarren, Pferdekarren (ein Pferd, Werte des alten Ochsenkarrens) und Großer Pferdekarren (zwei Pferde, alter Pferdekarren); den Ochsenkarren gibt es nicht mehr. Auf die neuen Namen umzustellen: `Stadtansicht.Karren.cs` (`KarrenArten`, `KarrenGespann`, `KarrenBreite`), `Stadtansicht.KarrenHof.cs` (Breiten), Hufklang (`KarrenArt.Pferd`, `KlangKarren`), Ochsenmodell `karren_ochse.glb` und Ochsen-Zugtier entfernen, Spielbuch `stadt-und-ansicht.md` und `ton.md`.
 
 ## Entscheidungen
 

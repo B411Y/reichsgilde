@@ -310,9 +310,9 @@ public static class Lexikon
                 : null,
             ["meister_umbau_stunden"] = (d, _) => d.Meistergrade is { } m ? (m.UmbauMinuten / 60.0).ToString("0.#") : null,
         };
-        foreach (var art in new[] { "Handkarren", "Ochsenkarren", "Pferdekarren" })
+        foreach (var art in new[] { "Handkarren", "Pferdekarren", "Großer Pferdekarren" })
         {
-            var schluessel = art.ToLowerInvariant();
+            var schluessel = art.ToLowerInvariant().Replace("ß", "ss").Replace(" ", "_"); // „Großer Pferdekarren“ → grosser_pferdekarren
             var name = art;
             w[$"karren_preis_{schluessel}"] = (d, _) => Ganz(d.Logistik.Karren[name].Preis);
             w[$"karren_last_{schluessel}"] = (d, _) => d.Logistik.Karren[name].Gesamtkapazitaet.ToString();

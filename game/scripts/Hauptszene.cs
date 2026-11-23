@@ -57,7 +57,7 @@ namespace Reichsgilde;
 ///   --lexikon=1        das Lexikon öffnen (=<kennung>: gleich bei diesem Begriff, =suche:<text>: mit diesem Suchtext); --lexikon-pruefen=1 prüft die Datei und beendet das Spiel
 ///   --meldung=⚠_Text   eine Meldung einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --meldungen=demo   sechs Siegel in der Ecke unten rechts (Familie, Handel, Rat, Gefahr, Stadt, Befehl) und einen Stillstand; mit =brief dazu ein Brief
-///   --karren=Ochsenkarren,Pferdekarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Pferdekarren)
+///   --karren=Pferdekarren,Großer_Pferdekarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Pferdekarren, Großer_Pferdekarren)
 ///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
 ///   --schiffsauftrag=vorschlag  jedem eigenen Schiff am Kai den Vorschlag geben (=<Ziel>: den Vorschlag für diese ferne Stadt, z. B. Eisenfurt)
 ///   --hafen=1          die Hafentafel des ersten Hafens öffnen (=<Kennung> eines Hafens der Karte, =staedte: auf dem Reiter „Ferne Städte“)
@@ -592,7 +592,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("karren", out var karrenTypen) && _eigeneGiesserei is { } kaeufer && _simulation.Wirtschaft is { } wKarren && _spieler is not null)
             foreach (var typ in karrenTypen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ), ergebnis =>
+                _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ.Replace('_', ' ')), ergebnis => // Leerzeichen als _: Großer_Pferdekarren
                 {
                     if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
                 });
@@ -607,7 +607,7 @@ public partial class Hauptszene : Node
                     if (!ergebnis.Erfolg) Protokollieren("--vorrat=" + eintrag + ": " + ergebnis.Meldung);
                 });
             }
-        if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Ochsenkarren" : umlandWert);
+        if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Pferdekarren" : umlandWert.Replace('_', ' '));
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat != "")
@@ -916,10 +916,10 @@ public partial class Hauptszene : Node
     /// (dafür braucht es Geld: --vermoegen=20000).
     /// </summary>
     /// <summary>
-    /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Ochsenkarren dazukaufen und
+    /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Pferdekarren dazukaufen und
     /// seine Kurzübersicht zeigen – ohne Innenansicht stehen Karren, Eskorte und „Verkaufen“ dort unter „…“.
     /// </summary>
-    private void UmlandVorbereiten(string karrenTyp = "Ochsenkarren")
+    private void UmlandVorbereiten(string karrenTyp = "Pferdekarren")
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
         Betrieb? Erwerben()
