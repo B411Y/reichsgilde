@@ -75,4 +75,41 @@ static class Spielstandfelder
         JsonValue v when v.TryGetValue<double>(out var d) => d == 0,
         _ => false,
     };
+
+    /// <summary>
+    /// Karrenarten ohne Ochsen (Datenversion 98, Spielstand-Format 4): Nur die Namen ändern sich (Pferdekarren war der Ochsenkarren, Großer
+    /// Pferdekarren der Pferdekarren), die Partie rechnet gleich. Für den Vergleich mit Sollwerten eines älteren Kerns: Format 4 → 3 und die alten
+    /// Namen zurück, in einem Durchgang (Schlüssel, Werte, Texte).
+    /// </summary>
+    public static void MitAltenKarrennamen(JsonObject stand)
+    {
+        if ((int?)stand["Format"] == 4) stand["Format"] = 3;
+        AlteNamen(stand);
+    }
+
+    static string AlterName(string text) =>
+        System.Text.RegularExpressions.Regex.Replace(text, "Großer Pferdekarren|Pferdekarren", m => m.Value == "Pferdekarren" ? "Ochsenkarren" : "Pferdekarren");
+
+    static void AlteNamen(JsonNode? knoten)
+    {
+        switch (knoten)
+        {
+            case JsonObject o:
+                var eintraege = o.ToList();
+                if (eintraege.Any(e => AlterName(e.Key) != e.Key))
+                {
+                    o.Clear();
+                    foreach (var (name, wert) in eintraege) o[AlterName(name)] = wert;
+                }
+                foreach (var (name, wert) in o.ToList())
+                    if (wert is JsonValue v && v.TryGetValue<string>(out var t)) { if (AlterName(t) != t) o[name] = AlterName(t); }
+                    else AlteNamen(wert);
+                break;
+            case JsonArray a:
+                for (var i = 0; i < a.Count; i++)
+                    if (a[i] is JsonValue v && v.TryGetValue<string>(out var t)) { if (AlterName(t) != t) a[i] = AlterName(t); }
+                    else AlteNamen(a[i]);
+                break;
+        }
+    }
 }

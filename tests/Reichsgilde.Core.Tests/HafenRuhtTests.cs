@@ -94,6 +94,7 @@ static class HafenRuhtTests
             Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
             Spielstandfelder.Ohne(n, Spielstandfelder.Hauschronik); // die Hauschronik (Datenversion 83): die Simulation liest sie nie
             AlterSpielstandSollwertTests.OhneGrundstuecksverwaltung(n); // nur noch Bauzonen (15.11.2026): Werkstätten sind Grundstücke, keine Bauplätze
+            Spielstandfelder.MitAltenKarrennamen(n); // Karrenarten ohne Ochsen (Datenversion 98): nur die Namen und das Format
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
