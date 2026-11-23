@@ -25,7 +25,7 @@ vec3 abzeichen(vec3 albedo, vec2 uv, float code_f) {
 	if (maul == 1) {
 		farbe = farbe * (1.0 - 0.90 * k.a);   // linear 0,10 = sRGB etwa 0,35 (wie die Vorschau in pferd2_abzeichen.py)
 	} else if (maul == 2) {
-		farbe = mix(farbe, ABZEICHEN_MEHL, 0.65 * k.a);
+		farbe = mix(farbe, ABZEICHEN_MEHL, 0.45 * k.a);
 	}
 	float weiss = 0.0;
 	if (kopf == 1 || kopf == 4) weiss = max(weiss, k.r);

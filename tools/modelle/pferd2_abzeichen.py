@@ -50,7 +50,7 @@ def masken(lage, nrm, maske):
     blesse = vorn_k * glatt((0.030 + 0.012 * t - dx) / 0.007) * glatt((t - 0.12) / 0.04) * glatt((0.88 - t) / 0.04)
     schnippe = kopf * glatt((0.030 - np.hypot(dx, (t - 0.93) * 0.25)) / 0.008)
     maul = maske & (y < -1.2) & (z < 1.75)                                # Maulpartie: rund um die Schnauze (Lippen, Nuestern, Kinn), weicher Uebergang
-    maul = maul * glatt((t - 0.78) / 0.08) * np.clip(0.85 + 0.15 * rausch / 3, 0, 1)
+    maul = maul * glatt((t - 0.84) / 0.07) * np.clip(0.85 + 0.15 * rausch / 3, 0, 1)
     bein = np.zeros_like(z)
     for k, (nm, (hx, hy)) in enumerate(HUFE.items()):
         nah = maske & (np.hypot(x - hx, y - hy) < 0.16) & (z < 0.5)
@@ -84,6 +84,8 @@ def main():
     if "vorschau" in OPT:                                                # Albedo mit eingebrannten Abzeichen (nur fuer Bilder; im Spiel macht es der Shader, gleiche Regeln)
         alb = np.asarray(Image.open(OPT["vorschau"]).convert("RGB")).astype(np.float32)
         for name, (kopf, beine, maul_art) in VORSCHAU.items():
+            if maul_art == 1 and "rappe" in os.path.basename(OPT["vorschau"]).lower():
+                maul_art = 0                                             # wie im Spiel: der Rappe bekommt kein dunkleres Maul
             neu = einbrennen(alb, stern, blesse, schnippe, maul, bein, kopf, beine, maul_art)
             Image.fromarray(np.clip(neu + 0.5, 0, 255).astype(np.uint8)).save(os.path.join(aus, f"vorschau_{name}.png"))
         print("Vorschau", ", ".join(VORSCHAU))
@@ -109,7 +111,7 @@ def einbrennen(alb, stern, blesse, schnippe, maul_k, bein, kopf, beine, maul):
     if maul == 1:
         neu = neu * (1 - 0.65 * maul_k[..., None])
     elif maul == 2:
-        neu = neu * (1 - 0.65 * maul_k[..., None]) + MEHL * 0.65 * maul_k[..., None]
+        neu = neu * (1 - 0.45 * maul_k[..., None]) + MEHL * 0.45 * maul_k[..., None]
     m_ = np.maximum(mk, mb)
     return neu * (1 - m_[..., None]) + WEISS * m_[..., None]
 
