@@ -16,7 +16,7 @@ import struct
 import sys
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pferd2_b as B  # noqa: E402
@@ -30,6 +30,7 @@ OPT = dict(a[2:].split("=", 1) if "=" in a else (a[2:], "1") for a in ARGS if a.
 Image.MAX_IMAGE_PIXELS = None
 AW, AH = 2048, 3072
 LEDER, HOLZ, EISEN, GURT = (150, 104, 62), (214, 176, 118), (72, 74, 82), (112, 76, 46)
+MASSSTAB = [1.0]                                                        # Massstab Autor -> Meter (in main gesetzt), fuer die Geschirr-UV
 
 
 def atlas(variante, texdir, schuh):
@@ -46,8 +47,97 @@ def atlas(variante, texdir, schuh):
     return a
 
 
-def uv_atlas(mat, uv):
+def geschirr_felder(saat=1480):
+    """Geschirr-Stoffe als Eigenbau (512 x 512, vier Felder je 256): Leder (Narbung, Falten), Holz (Maserung), Eisen (fleckig, Rost), Gurt (Gewebe der Laenge nach).
+    Gibt (Farbe RGB uint8, Hoehe float, Rauheit 0..1, Metall 0..1) zurueck."""
+    rng = np.random.default_rng(saat)
+
+    def rauschen(sigma, groesse=256):
+        r = Image.fromarray((rng.random((groesse, groesse)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(sigma))
+        a = np.asarray(r).astype(np.float32)
+        return (a - a.mean()) / max(a.std(), 1e-6)
+    farbe = np.zeros((512, 512, 3), np.float32)
+    hoehe = np.zeros((512, 512), np.float32)
+    rau = np.zeros((512, 512), np.float32)
+    metall = np.zeros((512, 512), np.float32)
+    yy, xx = np.mgrid[0:256, 0:256].astype(np.float32)
+    # Leder: feine Narbung, grobe Flecken, einzelne Falten
+    narbe = 0.7 * rauschen(1.2) + 0.3 * rauschen(5)
+    falten = np.clip(np.sin((yy + 12 * rauschen(20)) / 256 * 2 * np.pi * 5), 0.85, 1.0) - 0.85
+    h_l = narbe * 0.6 - falten * 6
+    farbe[0:256, 0:256] = np.array(LEDER, np.float32) * (1 + 0.06 * narbe - 0.25 * falten)[..., None]
+    hoehe[0:256, 0:256], rau[0:256, 0:256] = h_l, 0.55 - 0.04 * narbe
+    # Holz: Maserung (Jahresringe gestaucht und verworfen), Poren
+    ringe = np.sin((xx + 9 * rauschen(14) + 3 * rauschen(4)) / 256 * 2 * np.pi * 11)
+    poren = rauschen(0.8)
+    h_h = 0.8 * ringe + 0.3 * poren
+    farbe[0:256, 256:512] = np.array(HOLZ, np.float32) * (1 - 0.09 * (ringe > 0.6) - 0.04 * ringe + 0.03 * poren)[..., None]
+    hoehe[0:256, 256:512], rau[0:256, 256:512] = h_h, 0.72 + 0.04 * ringe
+    # Eisen: geschmiedet, fleckig, Rost an etwa 15 % der Flaeche
+    fleck = rauschen(3)
+    rost = glatt_((rauschen(12) - 1.0) / 0.6)
+    e = np.array(EISEN, np.float32) * (1 + 0.10 * fleck)[..., None]
+    farbe[256:512, 0:256] = e * (1 - rost[..., None]) + np.array((112, 70, 44), np.float32) * rost[..., None]
+    hoehe[256:512, 0:256] = 0.5 * fleck + 1.5 * rost * rauschen(1.0)
+    rau[256:512, 0:256], metall[256:512, 0:256] = 0.48 + 0.35 * rost, 0.85 * (1 - rost)
+    # Gurt: Gewebe der Laenge nach (feine Rippen), leichte Flecken
+    rippen = np.sin(xx / 256 * 2 * np.pi * 48) + 0.4 * np.sin(yy / 256 * 2 * np.pi * 96)
+    farbe[256:512, 256:512] = np.array(GURT, np.float32) * (1 + 0.05 * rippen + 0.04 * rauschen(6))[..., None]
+    hoehe[256:512, 256:512], rau[256:512, 256:512] = 0.6 * rippen, 0.66
+    return np.clip(farbe + 0.5, 0, 255).astype(np.uint8), hoehe, np.clip(rau, 0, 1), np.clip(metall, 0, 1)
+
+
+def glatt_(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def karten(variante, texdir, felldir, schuh):
+    """Neue Albedo (Fell aus pferd2_fell.py, Geschirr mit Narbung/Maserung), Normalkarte und ORM-Karte als Atlanten (Lage wie atlas())."""
+    a = atlas(variante, texdir, schuh)
+    a.paste(Image.open(os.path.join(felldir, f"Horse_{variante}_2048.png")).convert("RGBA"), (0, 0))
+    gf, gh, gr, gm = geschirr_felder()
+    a.paste(Image.fromarray(gf).convert("RGBA"), (1024, 2560))
+    nrm = np.zeros((AH, AW, 3), np.float32)
+    nrm[..., 2] = 1.0
+    nrm[:2048, :2048] = np.asarray(Image.open(os.path.join(felldir, "Normal_2048.png")).convert("RGB")).astype(np.float32) / 127.5 - 1.0
+    st = float(OPT.get("geschirr_staerke", 0.35))
+    gx = (np.roll(gh, -1, 1) - np.roll(gh, 1, 1)) / 2
+    gy = (np.roll(gh, 1, 0) - np.roll(gh, -1, 0)) / 2
+    n_ = np.stack([-st * gx, -st * gy, np.ones_like(gh)], -1)
+    nrm[2560:3072, 1024:1536] = n_ / np.linalg.norm(n_, axis=-1, keepdims=True)
+    orm = np.zeros((AH, AW, 3), np.float32)
+    orm[..., 0] = 1.0
+    orm[..., 1] = 0.85
+    orm[:2048, :2048, 1] = np.asarray(Image.open(os.path.join(felldir, f"Rauheit_{variante}_2048.png")).convert("L")).astype(np.float32) / 255
+    orm[2048:3072, 0:1024, 1] = 0.6                                       # Maehne, Schweif
+    orm[2048:2560, 1024:1536, 1], orm[2048:2560, 1024:1536, 2] = 0.5, 0.7   # Hufeisen
+    orm[2048:2560, 1536:2048, 1] = 0.12                                   # Augen
+    orm[2560:3072, 1024:1536, 1], orm[2560:3072, 1024:1536, 2] = gr, gm
+    teil = int(OPT.get("karten_teil", 2))                                 # Normal und ORM in halber Aufloesung (Speicher)
+    nb = Image.fromarray(np.clip((nrm * 0.5 + 0.5) * 255 + 0.5, 0, 255).astype(np.uint8)).resize((AW // teil, AH // teil), Image.BOX)
+    ob = Image.fromarray(np.clip(orm * 255 + 0.5, 0, 255).astype(np.uint8)).resize((AW // (2 * teil), AH // (2 * teil)), Image.BOX)
+    return a, nb, ob
+
+
+def geschirr_uv(uv, pos, nrm):
+    """Geschirr: statt eines Farbpunkts je Feld eine Abbildung der Lage (Meter, Ruhepose) auf das Feld, gespiegelt wiederholt (Dreieckswelle, ohne Naht),
+    Projektion je Ecke auf die Ebene quer zur groessten Normalenachse; Periode 0,25 m auf 256 Texel."""
+    qx, qy = (uv[:, 0] > 0.5).astype(float), (uv[:, 1] > 0.5).astype(float)
+    ach = np.argmax(np.abs(nrm), 1)
+    andere = np.array([[1, 2], [0, 2], [0, 1]])[ach]
+    p1, p2 = pos[np.arange(len(pos)), andere[:, 0]], pos[np.arange(len(pos)), andere[:, 1]]
+    per = float(OPT.get("geschirr_periode", 0.25))
+    welle = lambda t: 1 - np.abs((t / per) % 2 - 1)                          # 0..1..0
+    u = qx * 0.5 + 0.01 + 0.48 * welle(p1)
+    v = qy * 0.5 + 0.01 + 0.48 * welle(p2)
+    return np.stack([u, v], 1)
+
+
+def uv_atlas(mat, uv, pos=None, nrm=None):
     """UV eines Teilnetzes in den Atlas umrechnen (v nach unten wie im glTF)."""
+    if mat == "Geschirr" and pos is not None and "fell" in OPT:
+        uv = geschirr_uv(uv, pos, nrm)
     u, v = uv[:, 0].astype(np.float64), uv[:, 1].astype(np.float64)
     if mat == "Horse":
         return np.stack([u, v * 2048 / AH], 1)
@@ -74,7 +164,7 @@ def zusammenfassen(paket):
         n = B.weiche_normalen(pos, idx)
         P.append(pos)
         N.append(n)
-        U.append(uv_atlas(mat, d[f"uv{i}"]))
+        U.append(uv_atlas(mat, d[f"uv{i}"], pos * MASSSTAB[0], n))
         JO.append(d[f"jo{i}"].astype(np.uint16))
         w = d[f"w{i}"].astype(np.float32)
         W.append(w / np.maximum(w.sum(1, keepdims=True), 1e-9))
@@ -91,6 +181,7 @@ def main():
     sk0 = GG.Skelett()
     mn = sk0.mn
     s = float(np.linalg.norm(mn[:3, 0]))                                   # Massstab
+    MASSSTAB[0] = s
     Rl = mn[:3, :3] / s
     Cb = np.array([[1.0, 0, 0], [0, 0, -1.0], [0, 1.0, 0]])               # glTF-Welt -> Blender-Welt (blender_koord)
     Rg = Cb.T @ Rl @ Cb
@@ -161,15 +252,29 @@ def main():
     if "atlas" in OPT:                                                 # fertiger Atlas (PNG-Bytes unveraendert), z. B. aus dem vorigen Spiel-GLB: neue Clips ohne neue Quantisierung
         bio.write(open(OPT["atlas"], "rb").read())
     else:
-        at = atlas(variante, texdir, OPT.get("hufeisen", "C:/Reichsgilde_Austausch/pferd3/textures/Horseshoe_baseColor.png"))
+        schuh = OPT.get("hufeisen", "C:/Reichsgilde_Austausch/pferd3/textures/Horseshoe_baseColor.png")
+        if "fell" in OPT:                                                  # Fell mit Haarstrich, Geschirr mit Narbung (pferd2_fell.py), dazu Normal- und ORM-Karte
+            at, nkarte, okarte = karten(variante, texdir, OPT["fell"], schuh)
+        else:
+            at = atlas(variante, texdir, schuh)
         if "png-voll" not in OPT:                                          # 256 Farben mit Alpha (mittlere Abweichung 1,5 von 255): 0,4 statt 4,5 MB je Datei
-            at = at.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+            at = at.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.FLOYDSTEINBERG if "fell" in OPT else Image.Dither.NONE)
         at.save(bio, "PNG", optimize=True)
     vi = pb.add(bio.getvalue())
     images = [{"bufferView": vi, "mimeType": "image/png"}]
     textures = [{"sampler": 0, "source": 0}]
     mats = [{"name": "Pferd", "alphaMode": "MASK", "alphaCutoff": 0.5, "doubleSided": True,
              "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}, "metallicFactor": 0.0, "roughnessFactor": 0.85}}]
+    if "fell" in OPT and "atlas" not in OPT:
+        b2 = io.BytesIO()
+        nkarte.save(b2, "JPEG", quality=int(OPT.get("jpeg", 95)))         # Normalkarte als JPEG (glTF erlaubt image/jpeg): rund 1 statt 4 MB
+        b3 = io.BytesIO()
+        okarte.save(b3, "PNG", optimize=True)
+        images += [{"bufferView": pb.add(b2.getvalue()), "mimeType": "image/jpeg"}, {"bufferView": pb.add(b3.getvalue()), "mimeType": "image/png"}]
+        textures += [{"sampler": 0, "source": 1}, {"sampler": 0, "source": 2}]
+        mats[0]["normalTexture"] = {"index": 1}
+        mats[0]["occlusionTexture"] = {"index": 2}
+        mats[0]["pbrMetallicRoughness"] = {"baseColorTexture": {"index": 0}, "metallicRoughnessTexture": {"index": 2}, "metallicFactor": 1.0, "roughnessFactor": 1.0}
     # 5. Knoten: Verschiebungen mal s, Ruhepose, oberster Knoten mit mn, Netze an zwei Knoten, Anker
     nodes = json.loads(json.dumps(j0["nodes"]))
     prim_knoten = [p["knoten"] for p in H.prims]

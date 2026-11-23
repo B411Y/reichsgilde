@@ -35,8 +35,13 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    **7.990 Dreiecke** (Grenze 8.000). `--weld` verschweißt die Ecken gleicher Lage vor dem Kollaps (sonst reißen die UV-Inselkanten auf: ein Schlitz in der Brustmitte).
    Schweifspalt geschlossen (`pferd2_schweif.py`). Fernnetz `Fern_pferd` 1.614 Dreiecke (Körper 949, Haar 420, Hufeisen 60, Augen 15, Geschirr 170).
 4. **Texturen** (`pferd2_umfaerben.py`, `pferd2_tex_naht.py`): Schecke zu einfarbigem Braun, Rappe, Fuchs umgefärbt (Fell 2048², Mähne als RGBA mit Alpha aus der Strähnenkarte, Fuchs-Mähne
-   gedämpft), weicher Fesselbehang als helle Aufhellung, Farbsprünge an UV-Nähten gemittelt. Keine Normalkarten. Im Spiel-GLB steht alles in **einem Atlas** (2048 × 3072, 256 Farben
-   mit Alpha; Fell, Mähne, Hufeisen, Auge, Geschirrfelder), ein Stoff mit Alpha-Maske 0,5.
+   gedämpft), weicher Fesselbehang als helle Aufhellung, Farbsprünge an UV-Nähten gemittelt. Im Spiel-GLB steht alles in **einem Atlas** (2048 × 3072, 256 Farben
+   mit Alpha; Fell, Mähne, Hufeisen, Auge, Geschirr), ein Stoff mit Alpha-Maske 0,5.
+   Fell und Karten (Folge 23.11.2026, Eigenbau ohne fremdes Bildmaterial, `pferd2_fell.py`, `pferd2_spiel.py --fell`): Haarstrich je Texel aus der Lage in der Stehpose
+   (Rumpf nach hinten unten, Beine nach unten, Kopf zur Nase; Rauschen entlang dieser Richtung gefaltet, fester Zufall 1480), leicht in die Farbe gemischt; Oberlinie etwas dunkler,
+   Bauch etwas heller, beim Fuchs die Unterbeine dunkler; keine Abzeichen. Geschirr: Leder mit Narbung und Falten, Holz mit Maserung, Eisen fleckig mit Rost, Gurt als Gewebe;
+   die Geschirr-UV bildet die Lage (Periode 0,25 m, gespiegelt) auf das Feld ab. Dazu eine **Normalkarte** (JPEG, 1024 × 1536, OpenGL) und eine **ORM-Karte** (PNG, 512 × 768;
+   Rauheit Fell 0,72, Rappe 0,55, Mähne 0,6, Hufeisen und Eisen metallisch). Speicher je Fell unkomprimiert mit Mip-Stufen: Albedo etwa 34 MB, Normal 8,4 MB, ORM 2,1 MB.
 5. **Geschirr** (`pferd2_geschirr.py`, Eigenbau, 1.032 Dreiecke, extra gezählt): Kummet als geschlossener, gepolsterter Ring in der Hülle von Hals und Brust (Birnenform: Halbmesser 0,20 bis 0,40 m), Querschnitt 9 cm im Ring und 15 cm in Laufrichtung, oben vor dem Widerrist, unten an der Bugspitze, Ebene 25 Grad aus der Senkrechten,
    Hamen als kurze Holzbügel seitlich am Polster (enden am Polster, kreuzen sich nicht) und Eisenhaken daran, Bauchgurt als flaches Band (9 cm breit, 1,2 cm dick) um die Rumpfhülle hinter den Ellbogen;
    Gewichte von der nächsten Hautecke kopiert. Der Zugpunkt (Ringmitte im Ziehen, Mittel über den Zyklus) liegt 1,279 m hoch und 0,67 m vor dem Ursprung (`anker_ziehen_godot` in `zugtiere.json`).
@@ -61,7 +66,8 @@ python -I tools/modelle/pferd2_schweif.py <p5c_red.npz> <Stehen_J.npz> <p5c.npz>
 python -I tools/modelle/pferd2_umfaerben.py <Horse_baseColor.png> <Hair_baseColor.png> <tex> --naht=<p5c.npz>
 python -I tools/modelle/pferd2_geschirr.py <p5c.npz> <Stehen_J.npz> <Ziehen_gehen_J.npz> <p5c_g.npz> --info=<geschirr_info.json>
 blender -b --python tools/modelle/pferd2_reduce.py -- --ein=<p5c_g.npz> --aus=<p5c_fern.npz> --schutz --weld --Horse=950 --Hair=420 --Horseshoe=60 --Cornea=16 --Geschirr=140 --schutzw=0.9
-python -I tools/modelle/pferd2_spiel.py <p5c_g.npz> <p5c_fern.npz> <braun|fuchs|rappe> <tex> <ausgabe.glb> --clipdateien="Gehen=<J.npz>;…" --ruhepose=<Stehen_J.npz> --info=<geschirr_info.json>
+python -I tools/modelle/pferd2_fell.py <p5c_g.npz> <Stehen_J.npz> <tex> <fell> --staerke=0.35 --strich=16 --strich_fein=6 --strich_farbe=0.09
+python -I tools/modelle/pferd2_spiel.py <p5c_g.npz> <p5c_fern.npz> <braun|fuchs|rappe> <tex> <ausgabe.glb> --clipdateien="Gehen=<J.npz>;…" --ruhepose=<Stehen_J.npz> --info=<geschirr_info.json> --fell=<fell>
 python -I tools/modelle/pferd2_zugtiere_json.py <geschirr_info.json>
 blender -b --python tools/modelle/karren.py -- --nur=pferd
 blender -b --python tools/modelle/pferd2_gespann.py -- --karren=<karren_pferd.glb> --paket=<p5c_g.npz> --framen=<Ziehen gehen_J.npz> --info=<geschirr_info.json> --aus=<Ordner> --norm=<henry_norm.json>
@@ -73,9 +79,9 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
-`c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge, Atlas unverändert): `tier_pferd_fuchs.glb`
-`75c09e9a5c3bbb8ee1d3eb2b7bcc71bda4c98d1782211049e891508aed73eb72`, `tier_pferd_rotbraun.glb` `d7f26e242bc8ee8189e292010e9822a5dbaa312c080e227aca032b0ea8af2c69`,
-`tier_pferd_schwarzbraun.glb` `83047d713e5328559ca5b8e64ba3bbceef0185e4a11d7682591b521ef75acfa3` (Gang p6). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge): `tier_pferd_fuchs.glb`
+`a48816e351991f389d0a77b27bdf6e97363c6570ad89136400cdfa89dd98fa0e`, `tier_pferd_rotbraun.glb` `02a803f52dac5efdccc2ed7af9c818aa0c3e9965b79832e29671f9f5fff7377e`,
+`tier_pferd_schwarzbraun.glb` `8f9ccd40423cb1492891a7374c249b92816aa290b46499832fe09b21d96fdd6d` (Gang p6, Fell mit Normal- und ORM-Karte). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

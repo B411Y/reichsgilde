@@ -838,6 +838,10 @@ public partial class Stadtansicht
                 var arrays = netz.SurfaceGetArrays(0);
                 // Albedo-Textur des Tiers (Pferd: Atlas statt Eckenfarben): UV und Textur bleiben, sonst entfällt die UV
                 var tierTextur = art >= ProbeErsteTierart && netz.SurfaceGetMaterial(0) is BaseMaterial3D tierStoff ? tierStoff.AlbedoTexture : null;
+                // Pferd: Normal- und ORM-Karte aus dem GLB (glTF normalTexture, occlusion/metallicRoughness; Godot macht daraus ein ORM- oder Standard-Material)
+                var tierBasis = tierTextur is not null ? netz.SurfaceGetMaterial(0) as BaseMaterial3D : null;
+                var tierNormal = tierBasis is { NormalEnabled: true } ? tierBasis.NormalTexture : null;
+                var tierOrm = tierBasis?.Get("orm_texture").As<Texture2D>() ?? tierBasis?.RoughnessTexture;
                 if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays, tierTextur is not null); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
                 var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
@@ -903,6 +907,16 @@ public partial class Stadtansicht
                 {
                     stoff.SetShaderParameter("hat_textur", true);
                     stoff.SetShaderParameter("albedo_textur", tierTextur);
+                    if (tierNormal is not null)
+                    {
+                        stoff.SetShaderParameter("hat_normal", true);
+                        stoff.SetShaderParameter("normal_textur", tierNormal);
+                    }
+                    if (tierOrm is not null)
+                    {
+                        stoff.SetShaderParameter("hat_orm", true);
+                        stoff.SetShaderParameter("orm_textur", tierOrm);
+                    }
                 }
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
                 if (!tier)

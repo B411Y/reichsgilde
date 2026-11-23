@@ -77,6 +77,11 @@ class Pferd:
         self.material = j["materials"][p.get("material", 0)]
         bv = j["bufferViews"][j["images"][0]["bufferView"]]
         self.bild = buf[bv.get("byteOffset", 0):bv.get("byteOffset", 0) + bv["byteLength"]]
+        self.bilder = []                                              # alle Bilder (Albedo, Normalkarte, ORM) mit Endung
+        for im_ in j.get("images", []):
+            bv_ = j["bufferViews"][im_["bufferView"]]
+            self.bilder.append((buf[bv_.get("byteOffset", 0):bv_.get("byteOffset", 0) + bv_["byteLength"]], ".jpg" if im_.get("mimeType") == "image/jpeg" else ".png"))
+        self.textur_bild = [t["source"] for t in j.get("textures", [])]
 
     def pose(self, klip=None, bild=0):
         j, buf = self.j, self.buf
@@ -120,8 +125,32 @@ def material(pferd, cull):
     im.pack()
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = im
-    tex.interpolation = "Closest"
+    tex.interpolation = "Linear" if "linear" in OPT else "Closest"
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    pbr = pferd.material.get("pbrMetallicRoughness", {})
+
+    def bild_knoten(tex_index, name):
+        daten, endung = pferd.bilder[pferd.textur_bild[tex_index]]
+        pf = os.path.join(bpy.app.tempdir, "%s_%d%s" % (name, id(pferd), endung))
+        open(pf, "wb").write(daten)
+        b_ = bpy.data.images.load(pf)
+        b_.pack()
+        b_.colorspace_settings.name = "Non-Color"
+        k_ = nt.nodes.new("ShaderNodeTexImage")
+        k_.image = b_
+        k_.interpolation = "Linear"
+        return k_
+    if "normalTexture" in pferd.material and "ohne-normal" not in OPT:   # Normalkarte (Tangentenraum, OpenGL wie glTF)
+        nk = bild_knoten(pferd.material["normalTexture"]["index"], "normal")
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(nk.outputs["Color"], nm.inputs["Color"])
+        nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+    if "metallicRoughnessTexture" in pbr:                            # ORM: G Rauheit, B Metall
+        ok = bild_knoten(pbr["metallicRoughnessTexture"]["index"], "orm")
+        sep = nt.nodes.new("ShaderNodeSeparateColor")
+        nt.links.new(ok.outputs["Color"], sep.inputs["Color"])
+        nt.links.new(sep.outputs["Green"], bsdf.inputs["Roughness"])
+        nt.links.new(sep.outputs["Blue"], bsdf.inputs["Metallic"])
     ende = bsdf.outputs["BSDF"]
     transp = nt.nodes.new("ShaderNodeBsdfTransparent")
     gt = nt.nodes.new("ShaderNodeMath")                              # Alpha-Maske (MASK, Schwelle 0,5)
