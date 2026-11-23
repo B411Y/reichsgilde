@@ -316,13 +316,6 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + FahrzeitBeiAbfahrt(karren);
 
-    /// <summary>
-    /// Fährt dieser Karren nach der Verwalterregel von selbst (true) – oder fährt ihn der Spieler selbst (Entscheidung des Nutzers 23.11.2026)?
-    /// Andockpunkt für das Selbstfahren: Karren der KI-Häuser fahren immer automatisch. Bis das Selbstfahren gebaut ist, fahren alle Karren automatisch.
-    /// Nur automatisch fahrende Karren verweilen nach dem Handel (<see cref="LogistikDaten.VerweilenMinuten"/>).
-    /// </summary>
-    public bool FaehrtAutomatisch(Karren karren) => true;
-
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
 
@@ -354,6 +347,7 @@ public sealed partial class Stadtwirtschaft
         if (Daten.Handel is not { } h) return "In dieser Stadt wird nicht von Hand gehandelt.";
         if (karrenNr < 0 || karrenNr >= betrieb.Karren.Count) return $"{betrieb.Name} hat keinen Karren Nr. {karrenNr + 1}.";
         var karren = betrieb.Karren[karrenNr];
+        if (VerwalterhandelVerboten(betrieb.Konto) is { } selbst) return selbst;
         if (karren.Zustand != KarrenZustand.AmBetrieb && !vormerken) return $"{karren.Name} ist unterwegs – erst wenn er wieder am Betrieb steht.";
         var verkaufen = verkauf.Where(x => x.Value > 0).ToList();
         var kaufen = kauf.Where(x => x.Value > 0).ToList();
@@ -914,6 +908,9 @@ public sealed partial class Stadtwirtschaft
                                                                      or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
                                              "Nur die Betriebe laufen weiter.");
+        if (befehl is KarrenFahrbefehl && Justiz.IstAktiv && Justiz.ImKerker(absender)) // selbst fahren: nicht aus dem Kerker (Teamleiter 23.11.2026)
+            return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker – " +
+                                             "die Karren stehen, bis es frei ist.");
         if (Wohnen.BefehlOhneRaum(absender, befehl) is { } ohneRaum) // Räume je Stufe: z. B. Banden nur mit Hinterzimmer
             return Befehlsergebnis.Abgelehnt(ohneRaum);
         if (befehl is EntscheidungTreffen entscheidung)
@@ -1149,8 +1146,14 @@ public sealed partial class Stadtwirtschaft
                 KasseAbheben a => Bank.KasseAbheben(betrieb, a.Betrag),
                 ZinsSetzen z => Bank.ZinsSetzen(betrieb, z.Satz),
                 Handelsauftrag h => HandelsauftragAusfuehren(betrieb, h),
-                WareZurueckhalten z => ZurueckhaltenAusfuehren(betrieb, z),
+                WareZurueckhalten z => z.Zurueckhalten && VerwalterhandelVerboten(betrieb.Konto) is { } selbst
+                    ? Befehlsergebnis.Abgelehnt(selbst) : ZurueckhaltenAusfuehren(betrieb, z),
                 HandelsauftragVerwerfen v => VormerkungVerwerfen(betrieb, v.Karren),
+                KarrenLosschicken l => KarrenLosschickenAusfuehren(betrieb, l.Karren, l.ZielBetrieb, l.Eskorte),
+                KarrenZurueck z => KarrenLosschickenAusfuehren(betrieb, z.Karren, betrieb.Name, z.Eskorte),
+                KarrenBeladen l => KarrenBeladenAusfuehren(betrieb, l),
+                KarrenAbladen a => KarrenAbladenAusfuehren(betrieb, a),
+                KarrenHandeln h => KarrenHandelnAusfuehren(betrieb, h),
                 _ => Befehlsergebnis.Abgelehnt($"Unbekannter Befehl: {befehl.GetType().Name}"),
             };
         }
@@ -1296,7 +1299,7 @@ public sealed partial class Stadtwirtschaft
         var karren = betrieb.Karren[befehl.Karren];
         var waehrung = Daten.Allgemein.Waehrung;
         var vorgemerkt = karren.Vormerkung is not null;
-        var abgeladen = karren.Abladen(); // ins Lager wie bei jeder Heimkehr – auch über die Lagergrenze, die Werkstatt verkauft den Rest später
+        var abgeladen = karren.Abladen(karren.StandortVon(this) ?? betrieb); // ins Lager wie bei jeder Heimkehr – auch über die Lagergrenze, die Werkstatt verkauft den Rest später
         var erloes = KarrenErloes(karren);
         betrieb.Konto.Verkauf(erloes);
         betrieb.KarrenEntfernen(karren);
@@ -1369,6 +1372,7 @@ public sealed partial class Stadtwirtschaft
         Betriebe = _betriebe.Select(b => b.Sichern(_konten.IndexOf(b.Konto), Uhr.VergangeneMinuten / Spielzeit.MinutenProTag)).ToList(),
         Markt = Markt.Staende.ToDictionary(s => s.Ware, s => s.Sichern()),
         Rivalen = _rivalen.Select(r => r.Sichern(_konten.IndexOf(r.Konto))).ToList(),
+        KarrenAutomatisch = KarrenAutomatisch ? null : false,
         Rat = Rat.Sichern(k => _konten.IndexOf(k)),
         Familien = Familien.IstAktiv ? Familien.Sichern(k => _konten.IndexOf(k)) : null,
         Justiz = Justiz.IstAktiv ? Justiz.Sichern(k => _konten.IndexOf(k)) : null,
@@ -1407,6 +1411,7 @@ public sealed partial class Stadtwirtschaft
             throw new InvalidOperationException("Wiederherstellen geht nur in eine leere Stadtwirtschaft.");
 
         Statut = s.Statut;
+        KarrenAutomatisch = s.KarrenAutomatisch ?? true;
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _reihenfolge = new Zufallsquelle(_reihenfolge.Startwert, s.ReihenfolgeWuerfe);
 

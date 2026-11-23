@@ -375,6 +375,37 @@ public sealed record HandelsauftragVerwerfen(string Betrieb, int Karren) : Betri
 /// <summary>Eine Ware im Lager zurückhalten: Der Karren verkauft sie nicht von selbst (frei).</summary>
 public sealed record WareZurueckhalten(string Betrieb, string Ware, bool Zurueckhalten) : BetriebsBefehl(Betrieb);
 
+// ── Karren selbst fahren (Nutzer 23.11.2026, wie in der „Gilde 1“) ─────────
+
+/// <summary>
+/// Ein Befehl an Karren, die der Spieler selbst fährt (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/> ist für sie falsch). Kostet keine
+/// Aktionspunkte, geht aber nicht aus dem Kerker. <paramref name="Betrieb"/> ist der Heimatbetrieb der Karren, die Nummern zählen ab 0.
+/// </summary>
+public abstract record KarrenFahrbefehl(string Betrieb) : BetriebsBefehl(Betrieb);
+
+/// <summary>
+/// Einen oder mehrere stehende Karren eines Betriebs losschicken: zum Markt (<paramref name="ZielBetrieb"/> null) oder zu einem eigenen Betrieb
+/// derselben Stadt (sein Name; der Heimatbetrieb ist „zurück“). Jede Fahrt einzeln; gehandelt und abgeladen wird erst am Ziel, auf Befehl.
+/// <paramref name="Eskorte"/>: wenn gesetzt, die Eskortenstufe ab dieser Fahrt (wie <see cref="EskorteWaehlen"/>).
+/// </summary>
+public sealed record KarrenLosschicken(string Betrieb, IReadOnlyList<int> Karren, string? ZielBetrieb, string? Eskorte = null) : KarrenFahrbefehl(Betrieb);
+
+/// <summary>Stehende Karren zurück zu ihrem Heimatbetrieb schicken (wie <see cref="KarrenLosschicken"/> mit dem Heimatbetrieb als Ziel).</summary>
+public sealed record KarrenZurueck(string Betrieb, IReadOnlyList<int> Karren, string? Eskorte = null) : KarrenFahrbefehl(Betrieb);
+
+/// <summary>Waren aus dem Lager des Betriebs, an dem der Karren steht (ein eigener), auf den Karren laden – so viel, wie seine Ladeflächen fassen.</summary>
+public sealed record KarrenBeladen(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Waren) : KarrenFahrbefehl(Betrieb);
+
+/// <summary>Ladung ins Lager des Betriebs abladen, an dem der Karren steht (ein eigener): <paramref name="Waren"/> null = alles abladen.</summary>
+public sealed record KarrenAbladen(string Betrieb, int Karren, IReadOnlyDictionary<string, int>? Waren = null) : KarrenFahrbefehl(Betrieb);
+
+/// <summary>
+/// Am Markt handeln: Ladung verkaufen (<paramref name="Verkauf"/>, wie der Verwalter zum Marktpreis mit Verhandeln und Steuer) und Waren für die
+/// Ladung kaufen (<paramref name="Kauf"/>, Marktpreis + Händlerspanne wie beim Handel von Hand). Nur wenn der Karren am Markt steht und der Markt offen hat.
+/// </summary>
+public sealed record KarrenHandeln(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf)
+    : KarrenFahrbefehl(Betrieb);
+
 // ── Schiffshandel (PR #199) ─────────────────────────────────────────────────
 
 /// <summary>Ein Befehl des Schiffshandels (Schiffe gehören dem Haus, nicht einem Betrieb) – siehe <see cref="Schiffahrt"/>.</summary>

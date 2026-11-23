@@ -211,6 +211,12 @@ public sealed partial class Stadtwirtschaft
             return $"{betrieb.Name} wird gerade umgebaut – verkaufen erst, wenn der Umbau fertig ist.";
         if (betrieb.Karren.FirstOrDefault(k => k.Zustand != KarrenZustand.AmBetrieb) is { } unterwegs)
             return $"{unterwegs.Name} ist unterwegs – verkaufen erst, wenn alle Karren am Betrieb stehen.";
+        // Selbst gefahren: Karren dieses Betriebs, die woanders stehen, und fremde Karren, die hier stehen oder hierher fahren (Datenversion 98)
+        if (betrieb.Karren.FirstOrDefault(k => k.StandortBetrieb is not null) is { } woanders)
+            return $"{woanders.Name} steht an {woanders.StandortBetrieb} – verkaufen erst, wenn alle Karren am Betrieb stehen.";
+        if (_betriebe.Where(b => b != betrieb).SelectMany(b => b.Karren)
+                .FirstOrDefault(k => k.StandortBetrieb == betrieb.Name || k.ZielBetrieb == betrieb.Name || k.VonBetrieb == betrieb.Name) is { } gast)
+            return $"{gast.Name} ({gast.Heimat.Name}) steht an {betrieb.Name} oder fährt dorthin – erst wegschicken.";
         return null;
     }
 
