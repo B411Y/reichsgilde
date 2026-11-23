@@ -315,7 +315,7 @@ public partial class Hauptszene
         FachZustand(_fachBauen, w.Wohnen.IstAktiv && w.Wohnen.FertigAb(s) is not null ? "Ausbau läuft" : "", false);
         FachZustand(_fachRat, !w.Rat.IstAktiv ? "" : w.Rat.StimmrundeLaeuft ? "Stimmrunde läuft" : w.Rat.AmtVon(s) is { } amt ? amt.Name : "tagt am Jahresende", w.Rat.IstAktiv && w.Rat.StimmrundeLaeuft);
         var gewinn = s.Laufend.Gewinn;
-        FachZustand(_fachBericht, $"Jahr {Zahlenformat.MitVorzeichen(gewinn)}", gewinn < -0.5);
+        FachZustand(_fachBericht, $"Jahresgewinn {Zahlenformat.MitVorzeichen(gewinn)}", gewinn < -0.5); // Gulden, nicht die Jahreszahl ("Jahr −126" sah wie ein Jahr aus)
         if (EigenerInnenBetrieb(s) is not { } b)
         {
             foreach (var fach in new[] { _fachPersonal, _fachLager, _fachKarren, _fachTalentbaum }) FachZustand(fach, "", false);
