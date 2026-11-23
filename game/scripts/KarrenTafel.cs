@@ -5,8 +5,8 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Gemeinsame Grundlage der drei Tafeln zum Selbstfahren der Karren (Transportmenü <see cref="KarrenFahrtAnzeige"/>, Ladefenster
-/// <see cref="KarrenLadeAnzeige"/>, Handelsfenster <see cref="KarrenHandelAnzeige"/>). Wie jede <see cref="InnenTafel"/> ändern sie nichts
+/// Gemeinsame Grundlage der zwei Tafeln zum Selbstfahren der Karren (Transportmenü <see cref="KarrenFahrtAnzeige"/>, Ladefenster
+/// <see cref="KarrenLadeAnzeige"/>; gehandelt wird im Marktmenü, <see cref="MarktAnzeige"/>). Wie jede <see cref="InnenTafel"/> ändern sie nichts
 /// selbst: jeder Knopf schickt einen Befehl (<see cref="KarrenLosschicken"/>, <see cref="KarrenBeladen"/> …); gesperrte Knöpfe nennen den Grund
 /// aus den Verbots-Abfragen des Kerns. Farben, Breiten und Schriftgrößen kommen aus dem Thema der Fenster (<see cref="FensterStil"/>,
 /// <c>fenster_thema.tres</c>, Maße „karren_…“).
@@ -21,7 +21,7 @@ public abstract class KarrenTafel : InnenTafel
         public string Schluessel => $"{Heimat.Name}#{Nr}";
     }
 
-    /// <summary>Die Hauptszene öffnet eine andere Karrentafel („fahrt“, „laden“, „handel“) für den Karren mit diesem Schlüssel.</summary>
+    /// <summary>Die Hauptszene öffnet eine andere Karrentafel („fahrt“, „laden“; „handel“ öffnet das Marktmenü) für den Karren mit diesem Schlüssel.</summary>
     public event Action<string, Betrieb, string?>? Wechseln;
 
     /// <summary>Welcher Karren beim Öffnen vorgewählt ist (Schlüssel „Betrieb#Nummer“).</summary>

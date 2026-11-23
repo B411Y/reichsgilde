@@ -145,7 +145,6 @@ public partial class Hauptszene : Node
     private KarrenAnzeige _karrenTafel = null!;
     private KarrenFahrtAnzeige _fahrtTafel = null!;
     private KarrenLadeAnzeige _ladeTafel = null!;
-    private KarrenHandelAnzeige _karrenHandelTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
     private WohnhausBaumAnzeige _wohnhausBaum = null!;
     private WachplanAnzeige _wachplanTafel = null!;
@@ -515,11 +514,12 @@ public partial class Hauptszene : Node
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
         _karrenTafel.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
         _uebersicht.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
-        foreach (var karrenTafel in new KarrenTafel[] { _fahrtTafel, _ladeTafel, _karrenHandelTafel })
+        foreach (var karrenTafel in new KarrenTafel[] { _fahrtTafel, _ladeTafel })
             karrenTafel.Wechseln += (name, betrieb, schluessel) =>
             {
-                KarrenTafel ziel = name switch { "laden" => _ladeTafel, "handel" => _karrenHandelTafel, _ => _fahrtTafel };
                 TafelnSchliessen();
+                if (name == "handel") { _markt.Oeffnen(betrieb, schluessel); return; } // gehandelt wird nur im Marktmenü, mit diesem Karren vorgewählt
+                KarrenTafel ziel = name == "laden" ? _ladeTafel : _fahrtTafel;
                 ziel.Vorwahl = schluessel;
                 ziel.Oeffnen(betrieb);
             };
@@ -875,8 +875,7 @@ public partial class Hauptszene : Node
         _bankTafel = new BankAnzeige();
         _fahrtTafel = new KarrenFahrtAnzeige();
         _ladeTafel = new KarrenLadeAnzeige();
-        _karrenHandelTafel = new KarrenHandelAnzeige();
-        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel, _fahrtTafel, _ladeTafel, _karrenHandelTafel };
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel, _fahrtTafel, _ladeTafel };
         var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
@@ -914,15 +913,20 @@ public partial class Hauptszene : Node
             _hinterzimmer.Oeffnen();
             return;
         }
+        if (tafel.Equals("handel", StringComparison.OrdinalIgnoreCase)) // Karren selbst fahren: gehandelt wird im Marktmenü
+        {
+            TafelnSchliessen();
+            _markt.Oeffnen(betrieb, null);
+            return;
+        }
         InnenTafel? ziel = tafel.ToLowerInvariant() switch
         {
             "personal" => _personalTafel,
             "produktion" => _produktionTafel,
             "lager" => _lagerTafel,
             "karren" => _karrenTafel,
-            "fahrt" => _fahrtTafel, // Karren selbst fahren: Transportmenü, Ladefenster, Handelsfenster
+            "fahrt" => _fahrtTafel, // Karren selbst fahren: Transportmenü, Ladefenster
             "laden" => _ladeTafel,
-            "handel" => _karrenHandelTafel,
             "einrichten" or "talentbaum" => _einrichtenTafel,
             "wache" => _wachplanTafel,
             "bank" => _bankTafel,

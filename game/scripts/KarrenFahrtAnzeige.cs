@@ -8,7 +8,7 @@ namespace Reichsgilde;
 /// Das Transportmenü („Karren selbst fahren“, Nutzer 23.11.2026): einen oder mehrere Karren des Hauses wählen, das Ziel aus der Liste wählen
 /// (Markt oder eigener Betrieb in der Stadt) oder – später, Paket K3 – im Bild auf das Gebäude klicken, die Eskorte dieser Fahrt wählen und
 /// losschicken oder heimschicken. Am Ziel steht der Karren, bis ihm ein Befehl gegeben wird; von hier führen Knöpfe zum Ladefenster
-/// (<see cref="KarrenLadeAnzeige"/>) und zum Handelsfenster (<see cref="KarrenHandelAnzeige"/>).
+/// (<see cref="KarrenLadeAnzeige"/>) und zum Marktmenü (<see cref="MarktAnzeige"/>, Karren-Handel).
 ///
 /// <b>Schnittstelle zur Stadtansicht (K3):</b> Drückt der Spieler „Ziel im Bild wählen“, meldet <see cref="ZielWahlImBild"/>(true); die Stadtansicht
 /// nimmt dann den Klick auf ein Gebäude an und ruft <see cref="ZielSetzen"/> mit dem Betriebsnamen (null: Markt). <see cref="ZielWahlImBild"/>(false)
@@ -96,7 +96,7 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
             Zeile(raster, k.ZustandText(Sim!.Zeit), k.Unterwegs ? Akzent : Schrift, Masz("spalte_zustand")).AutowrapMode = TextServer.AutowrapMode.WordSmart;
             Zeile(raster, LadungText(k), Leise, Masz("spalte_ladung")).AutowrapMode = TextServer.AutowrapMode.WordSmart;
             if (k.Zustand == KarrenZustand.AmMarkt)
-                Knopf(raster, "Handeln …", "Am Markt kaufen und verkaufen.", () => Weiter("handel", b, e.Schluessel), grund);
+                Knopf(raster, "Handeln …", "Das Marktmenü öffnen: dort aus der Ladung verkaufen und in die Ladung kaufen.", () => Weiter("handel", b, e.Schluessel), grund);
             else if (k.Zustand == KarrenZustand.AmBetrieb)
                 Knopf(raster, "Beladen …", "Am Betrieb laden und abladen.", () => Weiter("laden", k.StandortVon(w) ?? e.Heimat, e.Schluessel), grund);
             else raster.AddChild(new Control());
