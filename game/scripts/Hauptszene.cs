@@ -1120,6 +1120,7 @@ public partial class Hauptszene : Node
         });
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
         Hauptmenue.Knopf(_menueKnoepfe, "Hilfe (F1)", HilfeOeffnen);
+        EntwicklerKnopfBauen(); // „Entwickler“, nur mit dem Haken (Hauptszene.Entwickler.cs)
         ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => { UmgebungAusblenden(); GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"); });
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());

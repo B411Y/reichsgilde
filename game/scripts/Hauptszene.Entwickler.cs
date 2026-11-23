@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Das Entwicklerfenster in der Hauptszene (<see cref="EntwicklerAnzeige"/>) – ein Teil der <c>partial class Hauptszene</c>: Es gibt nur mit dem Haken
-/// „Entwickler-Optionen“ (<see cref="Entwickler.Aktiv"/>) ein Fenster, die Taste F12 und den Knopf in der Betriebsleiste. Dieselbe Stelle schaltet die
+/// „Entwickler-Optionen“ (<see cref="Entwickler.Aktiv"/>) ein Fenster, die Taste F12 und den Knopf „Entwickler“ im Spielmenü (die Betriebsleiste mit dem alten Knopf ist seit dem Neudesign vom 18.11.2026 weg). Dieselbe Stelle schaltet die
 /// Sperre des Kerns (<c>Simulation.EntwicklerErlaubt</c>): nach dem Haken, nach jedem Laden und nach jedem Neubeginn, denn die Hauptszene entsteht
 /// für jede Partie neu und baut ihre Simulation selbst auf.
 /// </summary>
@@ -14,6 +14,14 @@ public partial class Hauptszene
 
     /// <summary>Sperre des Kerns nach dem Haken setzen (gleich nach dem Aufbau der Simulation, ob neu oder geladen).</summary>
     private void EntwicklerSperreSetzen() => _simulation.EntwicklerErlaubt = Entwickler.Aktiv && _simulation.Wirtschaft is not null;
+
+    /// <summary>Im Spielmenü: der Knopf „Entwickler“. Er ist nur mit dem Haken „Entwickler-Optionen“ sichtbar, schließt das Menü und öffnet das Fenster.</summary>
+    private void EntwicklerKnopfBauen()
+    {
+        var knopf = Hauptmenue.Knopf(_menueKnoepfe, "Entwickler (F12)", () => { SpielmenueSchliessen(); _entwickler?.Oeffnen(); });
+        knopf.Name = "EntwicklerKnopf";
+        knopf.Visible = Entwickler.Aktiv;
+    }
 
     /// <summary>Baut das Fenster, wenn der Haken gesetzt ist. Startoptionen: <c>--entwicklerfenster=1|&lt;Reiter 1–6&gt;</c> öffnet es gleich.</summary>
     private void EntwicklerBauen(Dictionary<string, string> optionen)
