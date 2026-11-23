@@ -127,7 +127,8 @@ public partial class MarktAnzeige : PanelContainer
                                  "Die gelbe Zahl im Bild: so viel liegt in euren Lagern. Einzelheiten zeigt der Mauszeiger.", 12, Grau, umbruchBreite: Spalten * (Kachelbreite + 6));
 
         _ernte = w.Ernte.IstAktiv ? Hauptmenue.Text(_inhalt, "", 13, Gold, umbruchBreite: Spalten * (Kachelbreite + 6)) : null;
-        if (w.Daten.Handel is not null && _spieler is not null)
+        _betriebWahl = null;
+        if (w.Daten.Handel is not null && _spieler is not null && w.VerwalterhandelVerboten(_spieler) is null) // selbst gefahren: kein Handelsauftrag (Handelsfenster der Karren)
             HandelAufbauen(w);
         VorschauAufbauen(w);
 

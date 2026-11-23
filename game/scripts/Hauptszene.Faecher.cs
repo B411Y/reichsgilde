@@ -274,12 +274,15 @@ public partial class Hauptszene
     private LadeInhalt? KarrenInhalt(Stadtwirtschaft w, Konto s)
     {
         if (EigenerInnenBetrieb(s) is not { } b) return null;
-        var zeilen = b.Karren.Select(k => new LadeZeile(k.Name, k.Zustand == KarrenZustand.AmBetrieb ? "wartet am Betrieb" : $"unterwegs · {k.Handelsort}")).ToList();
+        var zeilen = b.Karren.Select(k => new LadeZeile(k.Name, k.ZustandText(_simulation!.Zeit))).ToList();
         var befehle = new List<LadeBefehl>
         {
             new("Karrenhof", "", "Karren kaufen und verkaufen, Eskorte, Nachtfahrt", null, Weiter(() => InnenTafelOeffnen("karren"))),
-            new("Handel am Markt", "", "Handelsauftrag für einen Karren dieses Betriebs", null, Weiter(() => { TafelnSchliessen(); _markt.Oeffnen(b); })),
         };
+        if (w.VerwalterhandelVerboten(s) is not null) // selbst gefahren: kein Handelsauftrag, sondern Transportmenü, Laden und Handeln
+            befehle.Add(new("Karren fahren", "", "Karren des Hauses losschicken: zum Markt oder zu einem eigenen Betrieb, dort laden und handeln", null, Weiter(() => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); })));
+        else
+            befehle.Add(new("Handel am Markt", "", "Handelsauftrag für einen Karren dieses Betriebs", null, Weiter(() => { TafelnSchliessen(); _markt.Oeffnen(b); })));
         return new LadeInhalt("Karren", b.Karren.Count == 1 ? "1 Karren" : $"{b.Karren.Count} Karren", zeilen, befehle);
     }
 

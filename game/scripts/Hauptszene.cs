@@ -143,6 +143,9 @@ public partial class Hauptszene : Node
     private ProduktionAnzeige _produktionTafel = null!;
     private LagerAnzeige _lagerTafel = null!;
     private KarrenAnzeige _karrenTafel = null!;
+    private KarrenFahrtAnzeige _fahrtTafel = null!;
+    private KarrenLadeAnzeige _ladeTafel = null!;
+    private KarrenHandelAnzeige _karrenHandelTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
     private WohnhausBaumAnzeige _wohnhausBaum = null!;
     private WachplanAnzeige _wachplanTafel = null!;
@@ -510,6 +513,16 @@ public partial class Hauptszene : Node
             tafel.Auswahl = () => _stadt.GewaehlteArbeiter;
         }
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _karrenTafel.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
+        _uebersicht.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
+        foreach (var karrenTafel in new KarrenTafel[] { _fahrtTafel, _ladeTafel, _karrenHandelTafel })
+            karrenTafel.Wechseln += (name, betrieb, schluessel) =>
+            {
+                KarrenTafel ziel = name switch { "laden" => _ladeTafel, "handel" => _karrenHandelTafel, _ => _fahrtTafel };
+                TafelnSchliessen();
+                ziel.Vorwahl = schluessel;
+                ziel.Oeffnen(betrieb);
+            };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
         BuecherVerbinden(); // 3D-Bücher: Kamera-Schwenk, Aufklappen, Tafel darüber (Hauptszene.Buecher.cs)
         GegenstaendeVerbinden(); // Kartentisch und Geldtruhe im Kontor (Hauptszene.Gegenstaende.cs)
@@ -840,7 +853,10 @@ public partial class Hauptszene : Node
         _wohnhausBaum = new WohnhausBaumAnzeige();
         _wachplanTafel = new WachplanAnzeige();
         _bankTafel = new BankAnzeige();
-        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel };
+        _fahrtTafel = new KarrenFahrtAnzeige();
+        _ladeTafel = new KarrenLadeAnzeige();
+        _karrenHandelTafel = new KarrenHandelAnzeige();
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel, _fahrtTafel, _ladeTafel, _karrenHandelTafel };
         var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
@@ -1079,7 +1095,7 @@ public partial class Hauptszene : Node
             Rivalen: Math.Min(3, haeuser),
             Startwahl: optionen.GetValueOrDefault("startwahl") == "1"); // --startwahl=1: der Spieler setzt Wohnhaus und Werkstatt selbst (Hauptszene.Startwahl.cs)
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
-        einstellungen ??= Partieeinstellungen.Standard;
+        einstellungen ??= Partieeinstellungen.Standard with { KarrenSelbstFahren = optionen.GetValueOrDefault("karrenselbst") != "0" }; // --karrenselbst=0: die Karren fahren von selbst wie bisher
         if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
             einstellungen = einstellungen with { Schwierigkeit = schwierigkeit }; // --schwierigkeit=Schwer: nur für diesen Start
         if (optionen.TryGetValue("startwert", out var sw) && int.TryParse(sw, out var startwert))
