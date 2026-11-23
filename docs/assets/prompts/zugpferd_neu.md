@@ -44,6 +44,9 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    Hufe per ebenem IK nach Muybridge-Tafel 563 und Gelenkwinkeltabelle), `pferd2_hufhalter.py` (Stehen, Stehen_Ruhen, Stehen_Umschauen, Fressen mit festen Hufen),
    `pferd2_start.py` (Anfahren_ und Anhalten_ je Gehen und Ziehen). Zehn Clips: Stehen, Stehen_Ruhen, Stehen_Umschauen, Fressen, Gehen, Ziehen, Anfahren_Gehen, Anfahren_Ziehen,
    Anhalten_Gehen, Anhalten_Ziehen. Die Clips des Autors (Idle, Eat, Walk, Sleep, Arise …) sind nicht mehr enthalten; Schlafen und Aufstehen gibt es nicht.
+   Schwung nach Muybridge (`--tab=p5`, 23.11.2026): Karpus im Schwung bis etwa 110 Grad gebeugt, Fessel vorn gebeugt (165 bis 170), der Huf klappt nach dem Abheben ab und hängt mit der
+   Sohle nach hinten (vorn bis etwa 70 Grad, hinten etwa 30 Grad gegen den Stand) und wird erst zum Aufsetzen flach; Hub am Sohlenmittelpunkt vorn 0,19 m (Zehe 8 bis 10 cm über dem Boden),
+   hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten. Befehle: Austauschordner `pferd2/schritt_b/gehen_p5/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
 7. **Export** (`pferd2_spiel.py`): Meter, Füße auf dem Boden, Blick nach +Z (die Welt des Autors ist rund 10,5-fach zu groß; Verschiebungen, Kanäle, Inverse-Bind-Matrizen und Ecken
    werden mit dem Maßstab multipliziert, der oberste Knoten trägt Drehung und Verschiebung), Netze `Nah_pferd` und `Fern_pferd`, Knoten `Anker_Geschirr`. Prüfung nur aus der Datei
    (`pferd2_spielpruef.py`): größte Abweichung der Haut gegen die Rechnung der Werkzeuge 0,001 mm in allen zehn Clips.
@@ -68,9 +71,10 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
-`c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB: `tier_pferd_fuchs.glb`
-`90ba19a0c3de332fcdf4a1f7b2a473356793897d9eaa8c8b8c240a9407909a31`, `tier_pferd_rotbraun.glb` `ea092342e6be43fbfca221f2f695eb235d7529be1cd6225eb9eac086370348d8`,
-`tier_pferd_schwarzbraun.glb` `ff34d8c91421df44ce3aeb432d3ff54b207b3be631170c78901f10d293ef6bea`.
+`c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge, Atlas unverändert): `tier_pferd_fuchs.glb`
+`a6046aa8be450cab2fda4569ba5b67d60b0b090fdda2c591b9433fddf60c157b`, `tier_pferd_rotbraun.glb` `26e47addbe95070e518cbc417591c199aa2932448cfc7b577cb314811ba482fb`,
+`tier_pferd_schwarzbraun.glb` `10dd13d810ec0e19e4e905ad0de9c29af139640a22be2e5a2c52b4e322910636`. Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)
 

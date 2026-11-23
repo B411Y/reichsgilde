@@ -190,14 +190,18 @@ def main():
             ziel, az_, el, mass = GESPANN_ANSICHTEN[an]
             pb.aufnahme(kam, Vector(ziel), az_, el, mass, os.path.join(OPT["aus"], f"spielglb_gespann_{an}{tag}.png"), 1400, 900)
         return
-    Q, Nw = pferd.pose(OPT.get("klip"), int(OPT.get("bild", 0)))
-    netz("Pferd", pferd, Q, Nw, material(pferd, cull))
-    for an in OPT.get("ansichten", "seite,schraeg,vorn,kopf").split(","):
-        ziel, az_, el, mass, lat = pb.ANSICHTEN[an]
-        for o in [o for o in bpy.data.objects if o.name.startswith(("_lm", "_lt"))]:
+    mat = material(pferd, cull)
+    for nr in [int(x) for x in str(OPT.get("bild", 0)).split(",")]:     # --bild=3 oder --bild=0,4,8: mehrere Bilder in einem Blender-Lauf
+        for o in [o for o in bpy.data.objects if o.name == "Pferd"]:
             bpy.data.objects.remove(o)
-        pb.latte(az_, lat)
-        pb.aufnahme(kam, Vector(ziel), az_, el, mass, os.path.join(OPT["aus"], f"spielglb_{an}_{OPT.get('klip', 'ruhe')}_{int(OPT.get('bild', 0)):03d}{tag}.png"), b, h)
+        Q, Nw = pferd.pose(OPT.get("klip"), nr)
+        netz("Pferd", pferd, Q, Nw, mat)
+        for an in OPT.get("ansichten", "seite,schraeg,vorn,kopf").split(","):
+            ziel, az_, el, mass, lat = pb.ANSICHTEN[an]
+            for o in [o for o in bpy.data.objects if o.name.startswith(("_lm", "_lt"))]:
+                bpy.data.objects.remove(o)
+            pb.latte(az_, lat)
+            pb.aufnahme(kam, Vector(ziel), az_, el, mass, os.path.join(OPT["aus"], f"spielglb_{an}_{OPT.get('klip', 'ruhe')}_{nr:03d}{tag}.png"), b, h)
 
 
 if __name__ == "__main__":

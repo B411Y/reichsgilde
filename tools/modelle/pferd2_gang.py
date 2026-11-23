@@ -40,12 +40,27 @@ KNOTEN = np.array([0, .15, .30, .45, .60, .70, .80, .90, 1.0])
 TAB = {"karpus": [183, 185, 183, 175, 160, 135, 139, 160, 183], "ellbogen": [150, 154, 152, 148, 135, 115, 109, 125, 150], "fessel_v": [195, 215, 222, 205, 185, 181, 180, 185, 195],
        "knie": [150, 155, 157, 150, 140, 130, 135, 145, 150], "sprung": [160, 165, 167, 160, 145, 127, 135, 150, 160],
        "fessel_h": [195, 212, 216, 200, 175, 156, 160, 175, 195]}
+# --tab=p5: Schwung nach Muybridge 563 (Bild 3 und 12 gemessen: Karpus etwa 95-107 Grad, Roehrbein nach hinten, Huf haengt mit der Sohle nach hinten);
+# Stand unveraendert. Fessel vorn im Schwung gebeugt (165), Hufdrehung gegen den Stand als eigenes Ziel (SCHWUNG_HUF).
+TAB_P5 = {"karpus": [183, 185, 183, 175, 155, 105, 110, 160, 183], "fessel_v": [195, 215, 222, 205, 185, 165, 165, 180, 195]}
+if OPT.get("tab") == "p5":
+    TAB.update(TAB_P5)
 VIERTAKT = {"LH": 0.0, "LF": 0.25, "RH": 0.5, "RF": 0.75}
 C = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0.0]])
 
 
 def tab(name, ph):
     return float(np.interp(ph, KNOTEN, TAB[name]))
+
+
+def schwung_huf(vorn, u, theta):
+    """--tab=p5: Hufwinkel (rad, negativ = Ferse hoch, Sohle nach hinten) im Schwung bei Anteil u: bis u_ab senkrecht abheben (kein Schleifen der Zehe),
+    bis u_auf auf amax abklappen, bis u_halt haengen, bis u_flach zum Aufsetzen flach werden."""
+    amax = math.radians(float(OPT.get("amax_v" if vorn else "amax_h", 70 if vorn else 40)))
+    ab, a0, a1 = float(OPT.get("u_ab", 0.12)), float(OPT.get("u_auf", 0.28)), float(OPT.get("u_halt", 0.40))
+    if u < a0:
+        return -theta - (amax - theta) * glatt((u - ab) / (a0 - ab))
+    return -amax * (1 - glatt((u - a1) / (float(OPT.get("u_flach", 0.80)) - a1)))
 
 
 def glatt(t):
@@ -254,6 +269,7 @@ def main():
         print("KETTE", nm, "Hufneigung Grad", round(info[nm]["neig"], 1), "Laengen", [round(x, 3) for x in L], "Winkel0", [round(math.degrees(x), 1) for x in ph], "Sohle s,z", [round(v, 3) for v in P2[-1]])
     ZOFF = {nm: 0.0 for nm in ketten}
     THETA = math.radians(float(OPT.get("theta", 32.0)))
+    P5 = OPT.get("tab") == "p5"
     ROLLF = float(OPT.get("roll", 0.15))
     STANDN = {nm: (float(OPT.get("stand_v", 0.58)) if nm[1] == "F" else float(OPT.get("stand_h", 0.6)) + (float(OPT.get("rh_plus", 0.0)) if nm == "RH" else 0.0)) for nm in ketten}
     LSN = {nm: V * STANDN[nm] * T for nm in ketten}
@@ -290,6 +306,8 @@ def main():
         if ph < STAND:
             return -rollen(nm, ph)[2]
         u = (ph - STAND) / (1 - STAND)
+        if P5:
+            return schwung_huf(nm[1] == "F", u, THETA)
         return -THETA * (1 - glatt(u / 0.35))
 
     def sohle_ziel0(nm, ph):
@@ -325,7 +343,11 @@ def main():
         else:
             u_ = (ph - STAND) / (1 - STAND)
             w_a = 0.4 + float(OPT.get("wa_end", 30.0)) * glatt((u_ - float(OPT.get("wa_start", 0.45))) / 0.3) + 12.0 * (1 - glatt(u_ / 0.12))
+            if P5:
+                w_a += float(OPT.get("wa_mitte", 6.0))
         ALPHA = alpha_d(nm, ph)
+        kr0 = 180 + math.degrees(ph0[4] - ph0[3])                       # Krongelenk/Hufgelenk im Stand (Fesselbein gegen Huf)
+        fmin = (float(OPT.get("fmin_v", 150)) if vorn else float(OPT.get("fmin_h", 140))) if P5 else (172 if vorn else 150)
         if ph >= STAND:
             w_a += 8.0 * (1 - glatt(((ph - STAND) / (1 - STAND)) / 0.35))
         tk = tab("karpus", ph) if vorn else tab("knie", ph)
@@ -338,10 +360,13 @@ def main():
             d = np.degrees(x)
             if vorn:
                 ell, kar, fet = 180 - (d[1] - d[0]), 180 + (d[2] - d[1]), 180 + (d[3] - d[2])
-                res += [(kar - tk) * WK, (fet - tf) * WF, (ell - tab("ellbogen", ph)) * WE, max(kar - 181.5, 0) * 5.0, max(fet - 238, 0) * 3.0, max(172 - fet, 0) * 3.0, max(ell - 182, 0) * 5.0]
+                res += [(kar - tk) * WK, (fet - tf) * WF, (ell - tab("ellbogen", ph)) * WE, max(kar - 181.5, 0) * 5.0, max(fet - 238, 0) * 3.0, max(fmin - fet, 0) * 3.0, max(ell - 182, 0) * 5.0]
             else:
                 kn, spr, fet = 180 + (d[1] - d[0]), 180 - (d[2] - d[1]), 180 + (d[3] - d[2])
-                res += [(kn - tk) * WKN, (spr - ts) * WS, (fet - tf) * WF, max(kn - 181.5, 0) * 5.0, max(spr - 181.5, 0) * 5.0, max(fet - 238, 0) * 3.0, max(150 - fet, 0) * 3.0]
+                res += [(kn - tk) * WKN, (spr - ts) * WS, (fet - tf) * WF, max(kn - 181.5, 0) * 5.0, max(spr - 181.5, 0) * 5.0, max(fet - 238, 0) * 3.0, max(fmin - fet, 0) * 3.0]
+            if P5 and ph >= STAND:                                      # Hufgelenk im Schwung in anatomischen Grenzen: hoechstens 20 Grad Streckung, 60 Grad Beugung gegen den Stand
+                kr = 180 + (d[4] - d[3])
+                res += [max(kr - kr0 - 20, 0) * 3.0, max(kr0 - 60 - kr, 0) * 3.0]
             res += list((x - x0) * 0.5)
             return np.array(res)
         return lm_loesen(f, x0)
@@ -604,11 +629,14 @@ def main():
             P2 = [(-p[1], p[2]) for p in pts]
             phs = [math.degrees(math.atan2(P2[i + 1][0] - P2[i][0], -(P2[i + 1][1] - P2[i][1]))) for i in range(len(P2) - 1)]
             ph_ = ((f / FPS / T) - VIERTAKT[nm]) % 1.0
+            kr_ = 180 + phs[4] - phs[3]                                     # Krongelenk (Fesselbein gegen Huf)
+            hd_ = phs[4]                                                    # Hufrichtung; unten gegen die Standmitte (Phase 0,25) gerechnet
             if vorn:
-                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0])))
+                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0]), kr_, hd_))
             else:
-                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2]))
-        winkel[nm] = rows
+                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2], kr_, hd_))
+        ref = min(rows, key=lambda r: abs(r[0] - 0.25))[5]                  # Hufdrehung gegen die Standmitte (negativ: Sohle nach hinten)
+        winkel[nm] = [r[:5] + (r[5] - ref,) for r in rows]
     bericht["winkel_extrema"] = {}
     for nm, rows in winkel.items():
         a = np.array(rows)
@@ -624,11 +652,15 @@ def main():
             zeile["karpus"] = [round(float(v[0]), 1), tab("karpus", ph_k)]
             zeile["fessel_v"] = [round(float(v[1]), 1), tab("fessel_v", ph_k)]
             zeile["ellbogen"] = [round(float(v[2]), 1), tab("ellbogen", ph_k)]
+            zeile["krone_v"] = round(float(v[3]), 1)
+            zeile["huf_v"] = round(float(v[4]), 1)
         if hin:
             h = np.array(hin)[:, 1:].mean(0)
             zeile["knie"] = [round(float(h[0]), 1), tab("knie", ph_k)]
             zeile["sprung"] = [round(float(h[1]), 1), tab("sprung", ph_k)]
             zeile["fessel_h"] = [round(float(h[2]), 1), tab("fessel_h", ph_k)]
+            zeile["krone_h"] = round(float(h[3]), 1)
+            zeile["huf_h"] = round(float(h[4]), 1)
         vergleich.append(zeile)
     bericht["tabelle"] = vergleich
     # Naht: Unterschied Bild NF zu Bild 0 (immer 0, da kopiert) und Schritt zum letzten Bild

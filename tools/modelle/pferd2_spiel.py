@@ -158,10 +158,13 @@ def main():
         meshes.append({"name": name, "primitives": [{"attributes": {"POSITION": a_pos, "NORMAL": a_nrm, "TEXCOORD_0": a_uv, "JOINTS_0": a_jo, "WEIGHTS_0": a_w}, "indices": a_idx, "material": 0, "mode": 4}]})
     # 4. Atlas und Stoff
     bio = io.BytesIO()
-    at = atlas(variante, texdir, OPT.get("hufeisen", "C:/Reichsgilde_Austausch/pferd3/textures/Horseshoe_baseColor.png"))
-    if "png-voll" not in OPT:                                          # 256 Farben mit Alpha (mittlere Abweichung 1,5 von 255): 0,4 statt 4,5 MB je Datei
-        at = at.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-    at.save(bio, "PNG", optimize=True)
+    if "atlas" in OPT:                                                 # fertiger Atlas (PNG-Bytes unveraendert), z. B. aus dem vorigen Spiel-GLB: neue Clips ohne neue Quantisierung
+        bio.write(open(OPT["atlas"], "rb").read())
+    else:
+        at = atlas(variante, texdir, OPT.get("hufeisen", "C:/Reichsgilde_Austausch/pferd3/textures/Horseshoe_baseColor.png"))
+        if "png-voll" not in OPT:                                          # 256 Farben mit Alpha (mittlere Abweichung 1,5 von 255): 0,4 statt 4,5 MB je Datei
+            at = at.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
+        at.save(bio, "PNG", optimize=True)
     vi = pb.add(bio.getvalue())
     images = [{"bufferView": vi, "mimeType": "image/png"}]
     textures = [{"sampler": 0, "source": 0}]

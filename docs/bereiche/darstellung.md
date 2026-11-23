@@ -1081,3 +1081,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Einbau | `ProbeArten` um Fuchs am Ende (Art 14, die Nummern der übrigen bleiben), `ZugtierArt` wählt aus dem Startwert des Fuhrmanns Braun, Rappe oder Fuchs je Pferd; `tier_vat.gdshader` und `ProbeVerschweissen` behalten UV und Albedo-Textur des Pferds (`hat_textur`, Alpha-Maske); `FarbenEinrichten` nur ohne Textur. `zugtiere.json` Block pferd und die Regeltexte neu (Werkzeug `pferd2_zugtiere_json.py`), `zugtiere.py` baut das Pferd nur noch mit `--altes-pferd`. | 23.11.2026 |
 | Dreiecksgrenze | 8.000 je Tier ohne Geschirr (Teamleiter 23.11.2026); Pferd 7.990, Geschirr 1.032 zusätzlich im selben Nahnetz (die VAT bäckt nur `Nah_<tier>`), Fernnetz 1.614. | 23.11.2026 |
 | Offen | Godot-Fenster (NAS): Import, VAT mit Atlas, Größe, Zugpunkt, Zweispänner (siehe Offen). Der Kern ist nicht berührt. | 23.11.2026 |
+
+### Zugpferd: Schwung nach Muybridge (Folge-Patch, Branch phase5/pferd-folge)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anlass | Nutzer: Beim Anheben knickte das Vorderbein kaum ein, der Huf zeigte nach vorn. Ursache: Die Tabelle verlangte im Schwung Karpus 135 bis 139 Grad, die Fessel vorn durfte nicht unter 172 Grad, der Huf musste nach 35 % des Schwungs schon flach sein. | 23.11.2026 |
+| Rig | Reicht: Karpus (Forearm-Knochen, 0,51 m), Fessel (Hand, 0,17 m) und Krongelenk/Huf (Toe, 0,10 m) sind eigene Knochen mit eigenem Drehpunkt, hinten ebenso. Anzahl und Namen der Knochen unverändert (VAT unberührt). | 23.11.2026 |
+| Muybridge | Tafel 563 (nur Anschauung, nicht im Repository): Die zwölf Bilder umfassen etwa 1,4 Schrittzyklen (dasselbe Vorderbein ist in Bild 3 und zwischen Bild 11 und 12 gebeugt), nicht einen. Gemessen: Karpus etwa 107 Grad (Bild 3) und 95 Grad (Bild 12), Sohle nach hinten, Fessel 167 bis 178 Grad. Vergleichsbild mit der richtigen Phase: `pferd2_muybridge_ueber.py`. | 23.11.2026 |
+| Schwung | `--tab=p5` in `pferd2_gang.py` und `pferd2_start.py`: Karpus 155/105/110/160 Grad bei 60/70/80/90 % (erreicht 156/112/119/163), Fessel vorn 165 (erreicht 168/172), der Huf klappt nach dem Abheben ab (vorn bis 70 Grad, hinten 40 Grad gegen den Stand), hängt und wird bis 80 % des Schwungs flach. Stand, Takt, Spur unverändert. | 23.11.2026 |
+| Hub vorn | 0,19 m am Sohlenmittelpunkt statt 0,13: Mit Karpus um 110 Grad reicht das Bein geometrisch nicht tiefer. Die Zehe (tiefste Ecke) geht 8 bis 10 cm hoch. Hinten bleibt 0,14 m (Sohlenpunkt 13,7 cm). | 23.11.2026 |
+| Messwerte | Aufsetzen 0 / 0,231 / 0,5 / 0,731, Standanteil 0,62 überall, Spur −7,0 / −6,5 cm, Gleiten je Ecke 3,2 / 3,3 / 1,9 / 4,4 mm (RH wie vorher), Eintauchen höchstens 5 mm, Naht 0,0; Anfahren und Anhalten Gleiten höchstens 4,4 mm, Anschluss 0,0 mm. Haut im Spiel-GLB gegen die Werkzeuge 0,001 mm. | 23.11.2026 |

@@ -29,6 +29,8 @@ TZ = 26 / FPS
 STAND = {"LF": float(OPT.get("stand_v", 0.58)), "RF": float(OPT.get("stand_v", 0.58)), "LH": float(OPT.get("stand_h", 0.60)), "RH": float(OPT.get("stand_h", 0.60))}      # wie im Gehen (--stand_v/--stand_h)
 VIERTAKT = G.VIERTAKT
 HUBH = {"F": float(OPT.get("hub", 0.12)), "H": float(OPT.get("hub_h", OPT.get("hub", 0.14)))}
+P5 = OPT.get("tab") == "p5"                                         # Schwung nach Muybridge wie pferd2_gang.py --tab=p5
+THETA = math.radians(float(OPT.get("theta", 32.0)))
 
 
 def sanft(t):
@@ -133,6 +135,7 @@ def main():
     standf = {nm: np.zeros(n, bool) for nm in KETTEN}
     ziel_s = {nm: np.zeros(n) for nm in KETTEN}
     ziel_z = {nm: np.zeros(n) for nm in KETTEN}
+    schwung_u = {nm: np.full(n, -1.0) for nm in KETTEN}                        # Anteil des Schwungs je Bild (-1 = Stand), fuer --tab=p5
     for nm in KETTEN:
         # Ausgangslage: Anfahren: Stand (lock) ; Anhalten: Sohlenlage des Gehens Bild 0
         if modus == "anfahren":
@@ -164,6 +167,7 @@ def main():
                 continue
             lo, td = aktiv
             u = (t - lo) / (td - lo)
+            schwung_u[nm][f] = u
             # Startlage des Schwungs: Welt-x des letzten Standes
             x_start = x_pos
             for (lo2, td2) in sw:
@@ -273,16 +277,39 @@ def main():
                 vorn = nm[1] == "F"
                 x0 = ang
                 wflat = 30.0 if ziel_z[nm][f] < 0.004 else 3.0
+                u_ = schwung_u[nm][f]
+                p5 = P5 and u_ >= 0.0 and not standf[nm][f]
+                if p5:                                                       # --tab=p5: Schwung wie im Gehen (Gelenkziele der Tabelle, Huf klappt nach hinten ab)
+                    ph_ = STAND[nm] + u_ * (1 - STAND[nm])
+                    alpha = G.schwung_huf(vorn, u_, THETA) * G.glatt((u_ - 0.08) / 0.22)       # ohne Abrollen im Stand: erst abheben, dann abklappen (Zehe schleift nicht)
+                    wflat = 0.1 * (0.4 + float(OPT.get("wa_mitte", 6.0)) + float(OPT.get("wa_end", 30.0)) * G.glatt((u_ - float(OPT.get("wa_start", 0.45))) / 0.3)
+                                   + 12.0 * (1 - G.glatt(u_ / 0.12)) + 8.0 * (1 - G.glatt(u_ / 0.35)))           # Gewichte wie im Gehen (pferd2_gang.loese)
+                    wflat = max(wflat, 3.0 * (1 - G.glatt(u_ / 0.15)))                                               # beim Abheben fest wie bisher
+                    zk = [G.tab("karpus", ph_), G.tab("fessel_v", ph_), G.tab("ellbogen", ph_)] if vorn else [G.tab("knie", ph_), G.tab("sprung", ph_), G.tab("fessel_h", ph_)]
+                    kr0 = 180 + math.degrees(inf["ph0"][4] - inf["ph0"][3])
+                    fmin = float(OPT.get("fmin_v", 150)) if vorn else float(OPT.get("fmin_h", 140))
+                else:
+                    alpha = 0.0
 
                 def fkt(x):
                     so = G.kette_pos(-S_n[1], S_n[2], L, x)[-1]
-                    res = [(so[0] - s_t) * 4000.0, (so[1] - z_t) * 4000.0, math.degrees(x[-1] - flach_ref[nm]) * wflat]
+                    res = [(so[0] - s_t) * 4000.0, (so[1] - z_t) * 4000.0, math.degrees(x[-1] - flach_ref[nm] - alpha) * wflat]
                     res += list(np.degrees(x - x0) * 0.05)
                     d = np.degrees(x)
                     if vorn:
                         res += [max(180 + (d[2] - d[1]) - 181.5, 0) * 5.0, max(180 - (d[1] - d[0]) - 182, 0) * 5.0]
                     else:
                         res += [max(180 + (d[1] - d[0]) - 181.5, 0) * 5.0, max(180 - (d[2] - d[1]) - 181.5, 0) * 5.0]
+                    if p5:
+                        wz = G.glatt((u_ - 0.05) / 0.2) * (1 - G.glatt((u_ - 0.75) / 0.2))      # Gelenkziele nur nach dem Abheben und vor dem Aufsetzen (sonst Schleifen bzw. schraeg landender Huf)
+                        if vorn:
+                            ell, kar, fet = 180 - (d[1] - d[0]), 180 + (d[2] - d[1]), 180 + (d[3] - d[2])
+                            res += [(kar - zk[0]) * G.WK * wz, (fet - zk[1]) * G.WF * wz, (ell - zk[2]) * G.WE * wz]
+                        else:
+                            kn, spr, fet = 180 + (d[1] - d[0]), 180 - (d[2] - d[1]), 180 + (d[3] - d[2])
+                            res += [(kn - zk[0]) * G.WKN * wz, (spr - zk[1]) * G.WS * wz, (fet - zk[2]) * G.WF * wz]
+                        kr = 180 + (d[4] - d[3])
+                        res += [max(fmin - fet, 0) * 3.0, max(fet - 238, 0) * 3.0, max(kr - kr0 - 20, 0) * 3.0, max(kr0 - 60 - kr, 0) * 3.0]
                     return np.array(res)
                 x = G.lm_loesen(fkt, x_prev[nm] if f > 0 else x0)
                 for start_ in (x0, np.array(inf["ph0"])):
@@ -347,7 +374,7 @@ def main():
     np.savez_compressed(os.path.join(aus, f"{name}_J.npz"), J=np.array(Jfr, np.float32), R=np.array([r for _, r in rahmen]), T=np.array([t for t, _ in rahmen]), fps=FPS, V=0.0, Tz=(n - 1) / FPS, weg=weg)
     schuhw = [h.schuhe(Gm) for Gm in Gfr]
     if OPT.get("debug2"):
-        for nm in ("RF", "RH"):
+        for nm in ("LF", "RF", "RH"):
             print("DIAG", nm, " ".join("%d%s:%.0f/%.0f/%.0f" % (f, "S" if standf[nm][f] else "w", ziel_s[nm][f] * 1000, (-schuhw[f][h.s12[nm]].mean(0)[1]) * 1000, schuhw[f][h.alle[nm]][:, 2].min() * 1000) for f in range(0, n, 2)))
     erg = {"clip": name, "bilder": n, "dauer": (n - 1) / FPS}
     for nm in KETTEN:
@@ -363,7 +390,10 @@ def main():
                     e = f
                     while e + 1 < n and kont[e + 1]:
                         e += 1
-                    worst = max(worst, float((xx[f:e + 1, k].max() - xx[f:e + 1, k].min()) * 1000))
+                    g_ = float((xx[f:e + 1, k].max() - xx[f:e + 1, k].min()) * 1000)
+                    if OPT.get("diag_gleiten") and g_ > 4.0:
+                        print("GLEITEN", nm, "Ecke", k, "Bilder", f, e, "mm %.1f" % g_)
+                    worst = max(worst, g_)
                     f = e + 1
                 else:
                     f += 1
