@@ -295,7 +295,8 @@ def main():
     def rollen(nm, ph):
         """Abrollen ueber die Zehe in den letzten ROLLF des Stands: (Schwerpunkt s, z, Hufdrehung th >= 0 = Ferse hoch)."""
         STAND = STANDN[nm]
-        r0 = STAND * (1 - ROLLF)
+        rf_ = float(OPT.get("roll_v" if nm[1] == "F" else "roll_h", ROLLF))     # Abrollanteil je Bein vorn/hinten (Standard: --roll)
+        r0 = STAND * (1 - rf_)
         vf = info[nm]["toe_v"]
         c0s = td[nm] - V * min(ph, STAND) * T
         if ph < r0:
@@ -383,6 +384,10 @@ def main():
                 res += [max(abs(d[0] - o0) - fen, 0) * float(OPT.get("wober", 1.5))]
                 # Glätte: Abstand zur Lösung des vorigen Bildes (in Grad), gegen Springen zwischen zwei Lösungen
                 res += list((d - np.degrees(x0)) * (float(OPT.get("wglatt", 0.15)) if vorn else float(OPT.get("wglatt_h", OPT.get("wglatt", 0.15)))))
+            elif P6 and vorn and "ober_stand_v" in OPT:
+                # Stand vorn: der Oberarm bleibt nahe der Ruhelage (Schultergelenk-Winkel im Stand fast fest), das Bein dreht sich als Ganzes um den Huf
+                o0 = math.degrees(ph0[0]) + float(OPT.get("ober_stand_mitte", 0.0))
+                res += [max(abs(d[0] - o0) - float(OPT["ober_stand_v"]), 0) * float(OPT.get("wober_stand", 1.0))]
             return np.array(res)
         return lm_loesen(f, x0)
 
@@ -483,7 +488,7 @@ def main():
                 e = np.array([s_t - (-ist[1]), (z_t + 0.004) - ist[2]])
                 if OPT.get("fehler") and durchlauf == int(OPT.get("passes", 6)) - 1 and phase < STAND:
                     print("ERR", nm, fr, "ph %.2f" % phase, "es %.1f ez %.1f mm" % (e[0] * 1000, e[1] * 1000))
-                if phase < STANDN[nm] - 0.03 or phase > 0.93:
+                if phase < STANDN[nm] - float(OPT.get("korr_ende", 0.03)) or phase > 0.93:
                     KORR[nm][fr] = np.clip(KORR[nm][fr] + 0.8 * e, -0.03, 0.03)
                 fehler = max(fehler, float(np.abs(e).max()))
         print("PASS", durchlauf, "max Fehler mm", round(fehler * 1000, 1))
@@ -613,6 +618,8 @@ def main():
                         e += 1
                     if e - f + 1 < 2 * NF:
                         worst = max(worst, float((xs[f:e + 1].max() - xs[f:e + 1].min()) * 1000))
+                        if OPT.get("diag_gleiten") and (xs[f:e + 1].max() - xs[f:e + 1].min()) > 0.004:
+                            print("GLEITEN", nm, "Ecke", kk, "Bilder", f, e, "mm %.1f" % ((xs[f:e + 1].max() - xs[f:e + 1].min()) * 1000), "x", " ".join("%.0f" % (v * 1000) for v in xs[f:e + 1]))
                     f = e + 1
                 else:
                     f += 1
@@ -650,12 +657,12 @@ def main():
             hd_ = phs[4]                                                    # Hufrichtung; unten gegen die Standmitte (Phase 0,25) gerechnet
             # Zusatz: Neigung des ersten Glieds (vorn Oberarm = Schulterwinkel gegen die Senkrechte, hinten Oberschenkel = Hueftwinkel) und Laengslage des Kettenanfangs (Schultergelenk bzw. Hueftgelenk)
             if vorn:
-                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0]), kr_, hd_, phs[0], P2[0][0]))
+                rows.append((ph_, 180 + phs[2] - phs[1], 180 + phs[3] - phs[2], 180 - (phs[1] - phs[0]), kr_, hd_, phs[0], P2[0][0], phs[1], phs[2], phs[3]))
             else:
-                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2], kr_, hd_, phs[0], P2[0][0]))
+                rows.append((ph_, 180 + phs[1] - phs[0], 180 - (phs[2] - phs[1]), 180 + phs[3] - phs[2], kr_, hd_, phs[0], P2[0][0], phs[1], phs[2], phs[3]))
         ref = min(rows, key=lambda r: abs(r[0] - 0.25))[5]                  # Hufdrehung gegen die Standmitte (negativ: Sohle nach hinten)
         winkel[nm] = [r[:5] + (r[5] - ref,) for r in rows]
-        bericht.setdefault("winkel_bilder", {})[nm] = {"spalten": ["phase", "karpus|knie", "fessel_v|sprung", "ellbogen|fessel_h", "krone", "huf", "oberarm|oberschenkel", "gelenk_s_m"],
+        bericht.setdefault("winkel_bilder", {})[nm] = {"spalten": ["phase", "karpus|knie", "fessel_v|sprung", "ellbogen|fessel_h", "krone", "huf", "oberarm|oberschenkel", "gelenk_s_m", "neigung_glied1", "neigung_glied2", "neigung_glied3"],
                                                        "werte": [[round(float(v), 3) for v in r[:5] + (r[5] - ref,) + r[6:]] for r in rows]}
     bericht["winkel_extrema"] = {}
     for nm, rows in winkel.items():

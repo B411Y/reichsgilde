@@ -383,7 +383,14 @@ def main():
     else:
         for f in range(0, 7):
             w = sanft(1 - f / 7.0)
-            rahmen[f] = (rahmen[f][0] * (1 - w) + ge["T"][f % 26] * w, mischen_R(rahmen[f][1], ge["R"][f % 26], w))
+            Rn = mischen_R(rahmen[f][1], ge["R"][f % 26], w)
+            if OPT.get("tab") == "p6":                                   # Bein, das vom Gehen her noch steht (Abrollen ueber die Zehe): ganz aus dem Gehen, sonst gleitet der Huf
+                for nm in KETTEN:
+                    ab = next((k for k in range(n) if not standf[nm][k]), n)     # erstes Bild im Schwung
+                    if ab <= 7 and f < ab:
+                        for kn in KETTEN[nm]:
+                            Rn[sk.id[kn]] = ge["R"][f % 26][sk.id[kn]]
+            rahmen[f] = (rahmen[f][0] * (1 - w) + ge["T"][f % 26] * w, Rn)
     Gfr, Jfr = [], []
     for T, R in rahmen:
         Gm = sk.global_(T, R)

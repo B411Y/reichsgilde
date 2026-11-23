@@ -53,7 +53,8 @@ Quelle, `schritt_*` für Zwischenstände), die Zwischendateien (npz-Pakete, Bild
    Sohle nach hinten (vorn bis etwa 70 Grad, hinten etwa 30 Grad gegen den Stand) und wird erst zum Aufsetzen flach; Hub am Sohlenmittelpunkt vorn 0,19 m (Zehe 8 bis 10 cm über dem Boden),
    hinten 0,14 m. Gleiche Ziele in `pferd2_start.py` für Anfahren und Anhalten (kurze Schritte aus dem Stand mit anteiligem Hub und anteiliger Beugung).
    Gang p6 (`--tab=p6`): Oberarm und Oberschenkel im Schwung in einem Fenster um die Ruhelage, Glätte gegen das vorige Bild (kein Zucken der Hinterhand), Schultergelenk gleitet weich
-   ±3 cm (statt Drehung des Schulterblatts, das keinen eigenen Knochen hat), Vorderhuf schwingt später vor (Karpus bei 80 % 110 Grad). Befehle: Austauschordner `pferd2/schritt_b/gehen_p6/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
+   ±3 cm (statt Drehung des Schulterblatts, das keinen eigenen Knochen hat), Vorderhuf schwingt später vor (Karpus bei 80 % 110 Grad). Gang p7: Stand vorn und hinten weiter hinten (Bein steht am Ende schräg nach hinten), Abrollen 25 %, Knie und Sprung im Stand weicher gewichtet.
+   Befehle: Austauschordner `pferd2/schritt_b/gehen_p7/clips/befehle.txt`; Spiel-GLB mit `--atlas=<PNG>` (Atlas des vorigen GLB unverändert).
 7. **Export** (`pferd2_spiel.py`): Meter, Füße auf dem Boden, Blick nach +Z (die Welt des Autors ist rund 10,5-fach zu groß; Verschiebungen, Kanäle, Inverse-Bind-Matrizen und Ecken
    werden mit dem Maßstab multipliziert, der oberste Knoten trägt Drehung und Verschiebung), Netze `Nah_pferd` und `Fern_pferd`, Knoten `Anker_Geschirr`. Prüfung nur aus der Datei
    (`pferd2_spielpruef.py`): größte Abweichung der Haut gegen die Rechnung der Werkzeuge 0,001 mm in allen zehn Clips.
@@ -80,8 +81,8 @@ Namen im Spiel: Braun = `tier_pferd_rotbraun.glb`, Rappe = `tier_pferd_schwarzbr
 Der Schweifspalt wird mit `pferd2_schweif.py` und den Standardwerten (`--dy=0.06 --rest=0.005`) geschlossen; es gibt keinen Zufall, Reduktion (Blender Decimate) und Schweif sind
 deterministisch. SHA-256 über Namen und Bytes aller Felder der Pakete: `p5c` (nach Schweif) `fa673906e5e259ef577ca810ede6d344ce43986a65c5cbbea83758ff162949de`, `p5c_g5` (mit Geschirr)
 `c958c913cd33006a859223d83b9a70da62e06a6fe38e19de8516f3f6c55de736`. SHA-256 der drei Spiel-GLB (Schwung nach Muybridge): `tier_pferd_fuchs.glb`
-`a48816e351991f389d0a77b27bdf6e97363c6570ad89136400cdfa89dd98fa0e`, `tier_pferd_rotbraun.glb` `02a803f52dac5efdccc2ed7af9c818aa0c3e9965b79832e29671f9f5fff7377e`,
-`tier_pferd_schwarzbraun.glb` `8f9ccd40423cb1492891a7374c249b92816aa290b46499832fe09b21d96fdd6d` (Gang p6, Fell mit Normal- und ORM-Karte). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
+`2ba34c619d963828ea5117177405d5dd56a4521abf69a3507889897a4b711357`, `tier_pferd_rotbraun.glb` `57bc68ec2d8b8cb625bec2a9cd20b0f77b832c716ae79253ab0ad7afe3839f72`,
+`tier_pferd_schwarzbraun.glb` `665979b83e5564fa0a95b45f28c73e8b290b33ec3f556cc0a56268f73490c7c2` (Gang p7, Fell mit Normal- und ORM-Karte). Der Stand davor (ea0923…, ff34d8…, 90ba19…) lässt sich mit den
 Clips aus `etappe2` (gehen_p4, ziehen_p4, p4_*, Fressen) und `--atlas` byte-gleich nachbauen.
 
 ## Prüfung des Spiel-GLB (ohne Godot)

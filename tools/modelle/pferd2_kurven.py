@@ -11,7 +11,8 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 
 FPS = 24
-PLOTS = [("LF", 1, "Karpus vorn (Grad)"), ("LF", 6, "Schulter vorn: Oberarm gegen Senkrechte (Grad)"), ("LF", 7, "Schultergelenk laengs (m)"),
+PLOTS = [("LF", 8, "Unterarm vorn gegen Senkrechte (Grad, + = unten vorn)"), ("LF", 9, "Roehre vorn gegen Senkrechte (Grad)"), ("LF", 2, "Fessel vorn (Grad, > 180 = durchgetreten)"),
+         ("LF", 1, "Karpus vorn (Grad)"), ("LF", 6, "Schulter vorn: Oberarm gegen Senkrechte (Grad)"), ("LF", 7, "Schultergelenk laengs (m)"),
          ("LH", 6, "Huefte: Oberschenkel gegen Senkrechte (Grad)"), ("LH", 1, "Knie hinten (Grad)"), ("LH", 2, "Sprunggelenk hinten (Grad)")]
 FARBEN = [(200, 40, 40), (40, 90, 200), (40, 150, 60)]
 aus = sys.argv[1]
