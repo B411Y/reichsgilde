@@ -670,6 +670,17 @@ def main_s23(haus, ordner, form, stufe, opt):
         return alt_kein([f for f in fl if not elb_holz(f)], dx)
     MS23.kein_fachwerk = kein_fachwerk
     texturen = opt.get("texturen")
+    alt_spiegel = MS23.giebel_symmetrie
+
+    def giebel_symmetrie(fl, y, zt, zf, mitte=0.0, breite=9.0):
+        """Pruefung 2 der Menschen; in Grundform 2 zaehlt der Giebel des Fluegels (rechts hinten, in der Ebene der Rueckwand) nicht zur
+        Giebelseite des Hauses: seine gebogene Strebe hat Stoesse, die unter seiner Dachlinie (45 Grad ab der Hausecke) in die
+        gepruefte Breite ragen – die gerade Strebe der Menschen hat dort keinen Eckpunkt (23.11.2026)."""
+        anz, ohne, hoch = alt_spiegel(fl, y, zt, zf, mitte, breite)
+        if form == 2:
+            ohne = [p for p in ohne if not (p[0] > MS23.M.BX and p[1] <= zt + (p[0] - MS23.M.BX) + 0.12)]
+        return anz, ohne, hoch
+    MS23.giebel_symmetrie = giebel_symmetrie
     zeilen, fehler = MS23.pruefe(haus, ordner, texturen)
     z, f = raeume_s23(haus, ordner, texturen); zeilen += z; fehler += f
     z, f = blick_licht_s23(haus, ordner, texturen); zeilen += z; fehler += f

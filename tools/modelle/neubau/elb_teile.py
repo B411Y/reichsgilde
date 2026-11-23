@@ -284,9 +284,10 @@ def traufstuetzen(teil, punkte, unter, staerke=0.10):
 BOGEN_LAGE_TEILE = 4
 
 
-def bogen_in_holzlage():
+def bogen_in_holzlage(stueck_hoch=None):
     """Stellt holzlage.Holzlage.holz fuer die Elbenhaeuser um: schraege Hoelzer (Streben, Kopfbaender, Kreuze) werden gebogen gebaut.
-    Senkrechte und waagerechte Hoelzer und alles mit `gerade` bleiben, wie sie sind."""
+    Senkrechte und waagerechte Hoelzer und alles mit `gerade` bleiben, wie sie sind. `stueck_hoch`: hoechste Hoehe eines Stuecks
+    (Stufe 1: 0,30 m – ein hoeheres zaehlt die Pruefung 7 der Stufe 1 als Staender, wie bei BOGEN_TEILE)."""
     import holzlage
     L = holzlage.Holzlage
     if getattr(L, "_elb_bogen", False): return
@@ -300,7 +301,7 @@ def bogen_in_holzlage():
         qx, qz = -dz / sehne, dx / sehne                       # quer zur Sehne, nach oben
         if qz < 0: qx, qz = -qx, -qz
         stich = min(BOGEN_STICH_MAX, BOGEN_STICH * sehne)
-        n = BOGEN_LAGE_TEILE
+        n = BOGEN_LAGE_TEILE if not stueck_hoch else max(BOGEN_LAGE_TEILE, math.ceil(abs(dz) / stueck_hoch))
         p = [(a[0] + dx * k / n + qx * stich * 4 * (k / n) * (1 - k / n), a[1] + dz * k / n + qz * stich * 4 * (k / n) * (1 - k / n))
              for k in range(n + 1)]
         tang = [((p[k + 1][0] - p[k][0]), (p[k + 1][1] - p[k][1])) for k in range(n)]
@@ -332,3 +333,22 @@ class _OhneEfeu:
 
 def ohne_efeu(teil):
     return _OhneEfeu(teil)
+
+
+def laeden_am_wappen_weg(wappen, abstand=0.12):
+    """Nimmt geschlossene Laeden (zwerg_teile.LAEDEN_ZU) weg, die dem Wappen sein Feld nehmen: ihr Umriss kommt dem des Wappens naeher
+    als `abstand` (Grundform 3 der Stufe 1: der Laden sass im Brustfeld des Wappens, die Wappenregel fand keinen freien Ort mehr)."""
+    import zwerg_teile as zt
+    pw = [p for fl in wappen.flaechen for p in fl[0]]
+    if not pw: return 0
+    wa = [min(p[i] for p in pw) - abstand for i in range(3)]
+    we = [max(p[i] for p in pw) + abstand for i in range(3)]
+    weg = 0
+    for h, marke in zt.LAEDEN_ZU:
+        pl = [p for f in h.flaechen if f[3] is marke for p in f[0]]
+        if not pl: continue
+        if all(min(p[i] for p in pl) < we[i] and max(p[i] for p in pl) > wa[i] for i in range(3)):
+            h.flaechen = [f for f in h.flaechen if f[3] is not marke]
+            weg += 1
+    if weg: print(f"LAEDEN ZU: {weg} am Wappen entfernt")
+    return weg

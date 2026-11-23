@@ -271,7 +271,7 @@ def schicht_anlegen():
     """Stoff, Dateinamen, Atlasgruppen und Bauteile auf den Elb umstellen; die Skripte der Menschen bleiben unveraendert."""
     masse_anlegen()
     g1.FACHWERK_ECHT = True                                        # echtes Fachwerk (Holzlage, Nutzer 23.11.2026), die Streben gebogen
-    et.bogen_in_holzlage()
+    et.bogen_in_holzlage(stueck_hoch=0.30)
     alt_stoff, alt_uv = g1.stoff, g1.uv2_und_ao
     g1.stoff = lambda name, blatt=None, **kw: alt_stoff(name, (blatt + "_" + VOLK) if blatt else None, **kw)
     g1.uv2_und_ao = lambda gruppen, gruppe, modell, mit_ao=True: alt_uv(gruppen, umbenennen(gruppe), umbenennen(modell), mit_ao)
@@ -369,6 +369,10 @@ def schicht_anlegen():
 
     def laeden_pruefen():                                           # die Huelle steht (Unterstand, Schlot): verstellte Laeden weg
         zt.laeden_zu_pruefen([et.ohne_efeu(t) for t in LAEDEN_TEILE] + [zt.LETZTES_DACH])   # Efeu darf vor einem Laden haengen
+    # schon vor der Wappenregel der Menschen (main: wappen_frei_ruecken vor der Fahne): sonst rueckte das Wappen einem Laden aus dem Weg,
+    # der danach wegfaellt, und sass dann auf Holz und Efeu (Pruefung 19, Grundform 3)
+    alt_ruecken = g1.wappen_frei_ruecken
+    g1.wappen_frei_ruecken = lambda w, teile, *a, **kw: (laeden_pruefen(), et.laeden_am_wappen_weg(w), alt_ruecken(w, teile, *a, **kw))[2]
     g1.baue_fahne = lambda: (laeden_pruefen(), wappen_regel(), zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH))[2]
     s1.baue_fahne = lambda x, y, z: (laeden_pruefen(), wappen_regel(), zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH))[2]
     # Geschlossene Laeden im festen Zufall (zwerg_teile.laeden_zu, Verfahren der Zeilenmodule): auf freien Gefachen des Fachwerks
@@ -378,6 +382,7 @@ def schicht_anlegen():
         alt_lage(h, P, breite, n3, z0, z1, oeffnungen, n, raehm, riegel, z_fenster, stoss)
         if not riegel: return
         import zeile_module as Z
+        h = getattr(h, "_teil", h)                               # das Teil selbst, nicht der Stellvertreter BogenTeil (Laeden fallen spaeter weg)
         if h not in LAEDEN_TEILE: LAEDEN_TEILE.append(h)
         fen = [o for o in oeffnungen if o[4] == "fenster"]
         t0, t1 = (min(f[2] for f in fen), max(f[3] for f in fen)) if fen else z_fenster

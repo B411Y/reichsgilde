@@ -769,6 +769,7 @@ def schicht_anlegen(stufe):
 
     def wappen():
         w = alt_wappen()
+        et.laeden_am_wappen_weg(w)                                # kein geschlossener Laden im Feld des Wappens
         g1.wappen_frei_ruecken(w, [LETZT["haus"], LETZT["dach"], LETZT["scheiben"]])   # Wappenregel (Spitzbogen, Unterstand)
         return w
     S23.baue_wappen = wappen
