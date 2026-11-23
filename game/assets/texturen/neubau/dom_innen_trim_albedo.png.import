@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://dffs3p0esmqno"
+path.bptc="res://.godot/imported/dom_innen_trim_albedo.png-985b386df90c1edb5e854b6da5afa7d4.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://assets/texturen/neubau/dom_innen_trim_albedo.png"
+dest_files=["res://.godot/imported/dom_innen_trim_albedo.png-985b386df90c1edb5e854b6da5afa7d4.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=true
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=1

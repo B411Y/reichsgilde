@@ -131,6 +131,7 @@ public partial class Stadtansicht
         if (WohnraumGruppe(name) is { } raeume) return raeume; // Hinterzimmer, Bibliothek: eigene Gruppe (Stadtansicht.Wohnraeume.cs)
         var innen = name.EndsWith("_innen");
         if (name.StartsWith("rathaus")) return innen ? "rathaus_innen" : "rathaus"; // Rathaus: Hülle und sieben Räume (Stadtansicht.Rathausneubau.cs)
+        if (name.StartsWith("dom_")) return innen ? "dom_innen" : "dom";            // Dome: Hülle und Innenraum je Dom (Stadtansicht.Domneubau.cs)
         if (innen) name = name[..^"_innen".Length];
         var stufe = System.Text.RegularExpressions.Regex.Match(name, "_s(\\d+)_g\\d+$") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         name = System.Text.RegularExpressions.Regex.Replace(name, "_s\\d+_g\\d+$", "");
@@ -151,6 +152,7 @@ public partial class Stadtansicht
         var volk = name.StartsWith("wohnhaus_zwerg_") ? "_zwerg" : name.StartsWith("wohnhaus_elb_") ? "_elb" : name.StartsWith("wohnhaus_halbling_") ? "_halbling" : "";
         if (WohnraumGruppe(name) is not null) return "raeume_innen_trim" + volk;
         if (name.StartsWith("rathaus")) return name.EndsWith("_innen") ? "rathaus_innen_trim" : "rathaus_trim"; // Rathaus: eigene Blätter (Schiefer, Quader, Steinplatten)
+        if (name.StartsWith("dom_")) return name.EndsWith("_innen") ? "dom_innen_trim" : "dom_trim";             // Dome: eigene Blätter (Werkstein, Sandstein, Schachbrett)
         var innen = name.EndsWith("_innen");
         var stufe = System.Text.RegularExpressions.Regex.Match(name, @"_s(\d+)_g\d+") is { Success: true } m ? int.Parse(m.Groups[1].Value) : 1;
         return (stufe <= 1 ? (innen ? "innen_trim" : "trim") : innen ? "innen_trim_s23" : $"trim_s{stufe}") + volk;
@@ -164,7 +166,7 @@ public partial class Stadtansicht
     {
         var gruppe = NeubauGruppe(datei);
         var innen = gruppe.EndsWith("_innen");
-        if (gruppe.StartsWith("rathaus")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets (Arrays mit einer Ebene), derselbe Shader
+        if (gruppe.StartsWith("rathaus") || gruppe.StartsWith("dom")) return RathausStoff(datei, gruppe, innen, kante); // eigene Trim-Sheets (Arrays mit einer Ebene), derselbe Shader
         var schluessel = (innen ? gruppe : "haeuser") + (kante ? "|kante" : "") + (efeu ? "|efeu" : "");
         if (_neubauStoffe.TryGetValue(schluessel, out var stoff)) return stoff;
         var array = innen ? "innen" : "haeuser";
@@ -363,6 +365,11 @@ public partial class Stadtansicht
         if (RathausNeuRaumKnoten() is { } rathausRaum) // neues Rathaus: Raum im Haus selbst (Stadtansicht.Rathausneubau.cs)
         {
             RathausNeuZeigen(rathausRaum);
+            return true;
+        }
+        if (DomNeuRaumKnoten() is { } domRaum) // neuer Dom: das Schiff im Haus selbst (Stadtansicht.Domneubau.cs)
+        {
+            DomNeuZeigen(domRaum);
             return true;
         }
         Node3D? haus = null;
