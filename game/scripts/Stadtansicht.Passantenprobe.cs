@@ -61,6 +61,8 @@ public partial class Stadtansicht
         new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
         new("tiere/tier_ochse_rotbraun", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
         new("tiere/tier_ochse_falb", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
+        // dritte Fellfarbe des Pferds (Fuchs; 23.11.2026): ans Ende gestellt, damit die Nummern der übrigen Tiere gleich bleiben (<see cref="ZugtierArt"/>)
+        new("tiere/tier_pferd_fuchs", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
     };
 
     /// <summary>Körpergröße in Metern (Mitte der Spanne, je Figur ±5 cm gestreut): Zwerg 1,30–1,40, Elb 1,80–1,90, Halbling 1,05–1,15; Frauen 5 % kleiner.</summary>
@@ -648,13 +650,15 @@ public partial class Stadtansicht
     /// <summary>
     /// Verschweißt die Ecken eines Tiernetzes, die sich nur in der UV unterscheiden: Lage, Normale, Farbe, Knochen und Gewichte gleich heißt dieselbe Spalte in der VAT-Textur.
     /// Der Importer von Godot trennt Ecken an jeder UV-Naht (Pferd Nah 16 381 statt 8 713, Fern 2 783 statt 1 360), der Shader <c>tier_vat.gdshader</c> liest aber nur Farbe und
-    /// UV2. Die UV entfällt im Ergebnis. Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
+    /// UV2. Die UV entfällt im Ergebnis, außer das Netz trägt eine Textur (Pferd, Atlas mit Mähne als Alpha-Maske): dann gehört sie zum Schlüssel und bleibt erhalten.
+    /// Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
     /// </summary>
-    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays)
+    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays, bool mitUv = false)
     {
         var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
         var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
         var farben = arrays[(int)Mesh.ArrayType.Color].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var uvs = !mitUv || arrays[(int)Mesh.ArrayType.TexUV].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.TexUV].AsVector2Array();
         var knochen = arrays[(int)Mesh.ArrayType.Bones].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
         var gewichte = arrays[(int)Mesh.ArrayType.Weights].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
         var index = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
@@ -669,6 +673,7 @@ public partial class Stadtansicht
             Zahl(ecken[e].X); Zahl(ecken[e].Y); Zahl(ecken[e].Z);
             Zahl(normalen[e].X); Zahl(normalen[e].Y); Zahl(normalen[e].Z);
             if (farben is not null) { Zahl(farben[e].R); Zahl(farben[e].G); Zahl(farben[e].B); Zahl(farben[e].A); }
+            if (uvs is not null) { Zahl(uvs[e].X); Zahl(uvs[e].Y); }
             for (var k = 0; k < je; k++) sb.Append(knochen![e * je + k]).Append(',');
             for (var k = 0; k < je; k++) Zahl(gewichte![e * je + k]);
             var schluessel = sb.ToString();
@@ -680,6 +685,7 @@ public partial class Stadtansicht
         ergebnis[(int)Mesh.ArrayType.Vertex] = neu.Select(e => ecken[e]).ToArray();
         ergebnis[(int)Mesh.ArrayType.Normal] = neu.Select(e => normalen[e]).ToArray();
         if (farben is not null) ergebnis[(int)Mesh.ArrayType.Color] = neu.Select(e => farben[e]).ToArray();
+        if (uvs is not null) ergebnis[(int)Mesh.ArrayType.TexUV] = neu.Select(e => uvs[e]).ToArray();
         if (knochen is not null)
         {
             ergebnis[(int)Mesh.ArrayType.Bones] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => knochen[e * je + k])).ToArray();
@@ -830,7 +836,9 @@ public partial class Stadtansicht
                 var netz = (ArrayMesh)teil.Mesh;
                 var skin = teil.Skin!;
                 var arrays = netz.SurfaceGetArrays(0);
-                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
+                // Albedo-Textur des Tiers (Pferd: Atlas statt Eckenfarben): UV und Textur bleiben, sonst entfällt die UV
+                var tierTextur = art >= ProbeErsteTierart && netz.SurfaceGetMaterial(0) is BaseMaterial3D tierStoff ? tierStoff.AlbedoTexture : null;
+                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays, tierTextur is not null); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
                 var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
                 var name = teil.Name.ToString();
@@ -891,6 +899,11 @@ public partial class Stadtansicht
                 stoff.SetShaderParameter("lage", lageTextur);
                 stoff.SetShaderParameter("normale", richtungTextur);
                 if (name.StartsWith("Zub_bart")) stoff.SetShaderParameter("bartnetz", true);
+                if (tier && tierTextur is not null)
+                {
+                    stoff.SetShaderParameter("hat_textur", true);
+                    stoff.SetShaderParameter("albedo_textur", tierTextur);
+                }
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
                 if (!tier)
                 {

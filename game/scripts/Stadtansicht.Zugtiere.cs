@@ -64,6 +64,21 @@ public partial class Stadtansicht
 
     private static readonly string[] TierStehenVarianten = { "Stehen", "Stehen", "Stehen_Ruhen", "Stehen_Umschauen", "Fressen" };
 
+    /// <summary>
+    /// Art (Nummer in <see cref="ProbeArten"/>) des Zugtiers Nummer <paramref name="i"/> eines Karrens: Pferde in drei Fellen (Braun, Rappe, Fuchs; je ein Drittel der
+    /// Startwerte), Ochsen in zwei (rotbraun, falb). Das Fell folgt nur aus dem Startwert des Fuhrmanns und der Nummer des Tiers (nicht gespeichert).
+    /// </summary>
+    internal static int ZugtierArt(string tier, int startwert, int i)
+    {
+        if (tier != "pferd") return ProbeErsteTierart + 2 + ((startwert >> i) & 1);
+        return (int)(((uint)startwert >> (2 * i)) % 3) switch
+        {
+            0 => ProbeErsteTierart,          // Braun (tier_pferd_rotbraun)
+            1 => ProbeErsteTierart + 1,      // Rappe (tier_pferd_schwarzbraun)
+            _ => ProbeArten.Length - 1,      // Fuchs (tier_pferd_fuchs, letzte Art)
+        };
+    }
+
     /// <summary>Name des Tiers einer Art („pferd“, „ochse“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
     private static string TierNameVon(int art) => ProbeArten[art].Varianten[0];
 
@@ -91,8 +106,7 @@ public partial class Stadtansicht
         {
             if (modell.FindChild(art.TierAnker[i], true, false) is not Node3D anker || anker.GetParent() is not { } eltern) continue;
             ankerPunkte.Add(anker.Position);
-            var fell = (fuhrmann.Startwert >> i) & 1; // beide Pferde können verschiedene Felle haben
-            var nummer = (tier == "pferd" ? ProbeErsteTierart : ProbeErsteTierart + 2) + fell;
+            var nummer = ZugtierArt(tier, fuhrmann.Startwert, i); // beide Pferde können verschiedene Felle haben
             if (Modell(ProbeArten[nummer].Datei) is not { } szene) continue;
             var tierModell = szene.Instantiate<Node3D>();
             var halter = new Node3D { Name = $"Zugtier{i + 1}" };
@@ -105,7 +119,7 @@ public partial class Stadtansicht
             foreach (var fern in tierModell.FindChildren("Fern_*", nameof(MeshInstance3D), true, false)) fern.QueueFree(); // das Fernnetz zeichnet nur der VAT
             foreach (var teil in tierModell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
                 for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
-                    if (teil.Mesh!.SurfaceGetMaterial(s) is BaseMaterial3D stoff) FarbenEinrichten(stoff); // Eckenfarben (sRGB), wie bei allen Modellen
+                    if (teil.Mesh!.SurfaceGetMaterial(s) is BaseMaterial3D { AlbedoTexture: null } stoff) FarbenEinrichten(stoff); // Eckenfarben (sRGB), wie bei allen Modellen; das Pferd trägt eine Textur
             var spieler = tierModell.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
             spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual; // das Spiel setzt die Pose selbst
             Zugtierdaten.KlipsEinrichten(spieler, tier); // Länge = Dauer der Datei, Schleifen linear (Godot nennt sie sonst um 1/24 s zu lang)

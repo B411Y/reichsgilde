@@ -1,13 +1,17 @@
 // Zugtiere (Pferd, Ochse) als gebackene Vertex-Animation (VAT) im MultiMesh (Stadtansicht.Passantenprobe.cs, Arten ab ProbeErsteTierart):
 // dasselbe Verfahren wie figur_vat.gdshader (Lage und Normale jeder Ecke je Bild der Clips in zwei Texturen, Spalte = Eckennummer in UV2.x,
-// Zeile = Bild), aber ohne Zonen, Palette und Stoffschichten: das Fell, Leder und Holz der Tiere sind reine Eckenfarben (wie im Skelett-Material
-// „Farben“ der Modelle, sRGB). INSTANCE_CUSTOM.x = Stand in der Schleife (Bilder), y = Clip.
+// Zeile = Bild), aber ohne Zonen, Palette und Stoffschichten: das Fell, Leder und Holz des Ochsen sind reine Eckenfarben (wie im Skelett-Material
+// „Farben“ der Modelle, sRGB). Das Pferd (Modell „Horse“ von henrysteve973, CC BY 4.0) trägt stattdessen eine Albedo-Textur (hat_textur, UV im Netz,
+// ein Atlas: Fell, Mähne als Alpha-Maske, Hufeisen, Augen, Geschirr in Farbfeldern); die Mähne wird bei Alpha < 0,5 weggeschnitten (wie MASK im Skelett-Material).
+// INSTANCE_CUSTOM.x = Stand in der Schleife (Bilder), y = Clip.
 shader_type spatial;
 render_mode cull_disabled;
 
 uniform sampler2D lage : filter_nearest, repeat_disable;
 uniform sampler2D normale : filter_nearest, repeat_disable;
 uniform vec2 klips[16];          // erste Zeile und Bildzahl je Clip
+uniform bool hat_textur = false;
+uniform sampler2D albedo_textur : source_color, filter_linear_mipmap, repeat_disable;
 
 varying vec3 grundfarbe;
 
@@ -34,6 +38,13 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = min(grundfarbe, vec3(1.0));
+	if (hat_textur) {
+		vec4 t = texture(albedo_textur, UV);
+		ALBEDO = t.rgb;
+		ALPHA = t.a;
+		ALPHA_SCISSOR_THRESHOLD = 0.5;
+	} else {
+		ALBEDO = min(grundfarbe, vec3(1.0));
+	}
 	ROUGHNESS = 0.9;
 }
