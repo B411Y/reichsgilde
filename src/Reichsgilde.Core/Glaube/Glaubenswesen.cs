@@ -207,6 +207,19 @@ public sealed class GlaubeDaten
         return !Bekenntnisse.TryGetValue(k, out var b) || b.OffenFuer is null || b.OffenFuer.Contains(volk);
     }
 
+    /// <summary>Darf ein Haus dieses Volkes mit diesem Glauben beginnen? (null = ja, sonst der Grund; auch für das Hauptmenü, das keine Welt hat.)</summary>
+    public string? StartglaubeVerboten(Volk volk, Konfession glaube) =>
+        volk is Volk.Ork or Volk.Oger
+            ? glaube == Konfession.Naturglaube ? null : "Orks und Oger beginnen mit dem Naturglauben – taufen lassen können sie sich später."
+            : !glaube.IstKirchlich() ? "Der Naturglaube gehört zu Orks und Ogern."
+            : !NimmtAuf(glaube, volk) ? AufnahmeGrund(glaube) : null;
+
+    /// <summary>Warum dieses Bekenntnis ein Haus nicht aufnimmt (Text für Start und Übertritt).</summary>
+    public string AufnahmeGrund(Konfession glaube) =>
+        Bekenntnisse.GetValueOrDefault(glaube)?.OffenFuer is { } voelker
+            ? $"Die {glaube.Gemeinde()} nehmen nur {string.Join(", ", voelker.Select(v => v.Mehrzahl()))} auf."
+            : $"Die {glaube.Gemeinde()} nehmen euer Volk nicht auf.";
+
     /// <summary>
     /// Gunst eines Gläubigen <paramref name="von"/> für einen Gläubigen <paramref name="ueber"/> (Rat und Meinungen): Heide −−, gleicher Glaube +,
     /// das andere Bekenntnis derselben Religion nach <see cref="BekenntnisDaten.GleicheReligion"/>, sonst anders −.
@@ -312,17 +325,14 @@ public sealed class Glaubenswesen
     public Konfession Startglaube(Volk volk) => _d?.Startglaube(volk) ?? Konfession.Katholisch;
 
     /// <summary>Darf ein Haus dieses Volkes mit diesem Glauben beginnen? (null = ja, sonst der Grund)</summary>
-    public string? StartglaubeVerboten(Volk volk, Konfession glaube) =>
+    public string? StartglaubeVerboten(Volk volk, Konfession glaube) => _d is null ? StartglaubeVerbotenOhneDaten(volk, glaube) : _d.StartglaubeVerboten(volk, glaube);
+
+    private static string? StartglaubeVerbotenOhneDaten(Volk volk, Konfession glaube) =>
         volk is Volk.Ork or Volk.Oger
             ? glaube == Konfession.Naturglaube ? null : "Orks und Oger beginnen mit dem Naturglauben – taufen lassen können sie sich später."
-            : !glaube.IstKirchlich() ? "Der Naturglaube gehört zu Orks und Ogern."
-            : _d is not null && !_d.NimmtAuf(glaube, volk) ? AufnahmeGrund(glaube) : null;
+            : !glaube.IstKirchlich() ? "Der Naturglaube gehört zu Orks und Ogern." : null;
 
-    /// <summary>Warum dieses Bekenntnis ein Haus nicht aufnimmt (Text für Start und Übertritt).</summary>
-    private string AufnahmeGrund(Konfession glaube) =>
-        _d?.Bekenntnisse.GetValueOrDefault(glaube)?.OffenFuer is { } voelker
-            ? $"Die {glaube.Gemeinde()} nehmen nur {string.Join(", ", voelker.Select(v => v.Mehrzahl()))} auf."
-            : $"Die {glaube.Gemeinde()} nehmen euer Volk nicht auf.";
+    private string AufnahmeGrund(Konfession glaube) => Daten.AufnahmeGrund(glaube);
 
     /// <summary>Glaube eines Hauses = Glaube seines Oberhaupts (null ohne Familie).</summary>
     public Konfession? GlaubeVon(Konto konto) => _w.Familien.Von(konto)?.Oberhaupt.Glaube;
