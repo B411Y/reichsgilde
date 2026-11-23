@@ -68,7 +68,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Zunftlade, Teil 2) Die alten Tafeln haben ihre festen Farben und Größen weiter im Code (rund 800 Stellen); auf dem Pergament rechnet `FensterStil` sie beim Eintritt in den Baum in Tinte um. Wer eine Tafel neu fasst, nimmt die Farben gleich aus `fenster_thema.tres` (Typ-Varianten) und lässt die festen Farben weg. `Zeitstrahl.cs` und `WetterAnzeige.cs` (auf Holz) sind unverändert.
 - (Zunftlade, Teil 2) Selbst gezeichnete Teile (`_Draw` mit festen hellen Farben) und Farben im BBCode rechnet die Umrechnung nicht um; geprüft und angepasst sind die im PR genannten Fenster, Reste bitte melden.
 - (Zunftlade, Teil 2) Dunkel geblieben: Hauptmenü, Ladebildschirm, Kartenwerkstatt, die Einstellungen im Hauptmenü (im Spiel liegen sie auf Pergament), der 3D-Faltbrief, der Entscheidungsbrief (Teil 4), das Hinterzimmer (eigenes Thema, getrennt gebaut).
-- (von Kern) Karren selbst fahren (K2, Kern fertig in Branch phase5/karren-selbst): Transport-Tafel mit Karrenwahl (einer oder mehrere), „Ziel“ per Klick aufs Gebäude in der 3D-Stadt oder aus der Liste (Markt, eigene Betriebe), Eskorte je Fahrt; am Markt Handeln (`KarrenHandeln`), am Betrieb Beladen und „alles abladen“; Knöpfe sperren mit den `…Verboten`-Gründen (`KarrenLosschickenVerboten`, `KarrenBeladenVerboten`, `KarrenAbladenVerboten`, `KarrenHandelnVerboten`); Meldung `Meldungsart.KarrenAngekommen`. Handelsauftrag, Vormerkung und „Ware zurückhalten“ ausblenden, wenn `VerwalterhandelVerboten(konto)` einen Grund nennt. Neue Partie aus dem Spiel: `Partieeinstellungen.KarrenSelbstFahren = true`; Entwickler-Haken „Karren fahren automatisch“ = `EntwicklerKarrenAutomatisch`. Neuer Zustand `KarrenZustand.AmMarkt` (Texte, Zähler „unterwegs“).
 
 ## Entscheidungen
 
@@ -305,3 +304,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Knopf | Im Spielmenü steht „Entwickler (F12)“ (nach „Hilfe“), nur sichtbar mit dem Haken „Entwickler-Optionen“ (`Entwickler.Aktiv`); Klick schließt das Menü (Pause wie vorher) und öffnet das Fenster. Der Haken auf der Starttafel bleibt. | 23.11.2026 |
 | Betriebsleiste | Der alte Knopf in der Betriebsleiste fehlt zu Recht: Kopfzeile und Betriebsleiste entfielen mit dem Zunftlade-Umbau (18.11.2026); nur Kommentare erwähnten ihn noch, jetzt berichtigt. | 23.11.2026 |
+
+### Karren selbst fahren (Paket K2, Branch phase5/karren-selbst)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafeln | Drei Tafeln auf dem Grund `InnenTafel` (Basis `KarrenTafel`): Transportmenü `KarrenFahrtAnzeige` (alle Karren des Hauses ankreuzen, Ziel aus der Liste, Eskorte je Fahrt, „Losschicken“ und „Zurück zum Heimatbetrieb“), Ladefenster `KarrenLadeAnzeige` (laden, abladen, „Alles abladen“) und Handelsfenster `KarrenHandelAnzeige` (verkaufen, kaufen). Karren werden über Heimatbetrieb und Nummer angesprochen; eine Auswahl über mehrere Heimatbetriebe sendet einen Befehl je Betrieb. Maße, Farben und Schrift aus `fenster_thema.tres` (Maße „karren_…“, Farben `FensterStil.Farbe`). | 23.11.2026 |
+| Zugänge | „Karren fahren …“ im Bedienfeld (ersetzt „Handel am Markt …“, solange selbst gefahren wird), in der Zunftlade (Fach „Karren“), im Karrenhof; `--tafel=fahrt\|laden\|handel` mit `--innen`. Aus dem Transportmenü führen „Beladen …“ und „Handeln …“ in die beiden anderen Tafeln. | 23.11.2026 |
+| Schnittstelle K3 | `KarrenFahrtAnzeige.ZielWahlImBild(bool)` meldet, dass die Wahl im Bild beginnt oder endet; die Stadtansicht ruft nach dem Klick aufs Gebäude `ZielSetzen(betriebsname)` (null = Markt); `ZielGewaehlt(name)` meldet jedes gewählte Ziel. Die Tafel wird über `Hauptszene._fahrtTafel` erreicht. | 23.11.2026 |
+| Handelsauftrag | Wo `VerwalterhandelVerboten(spieler)` einen Grund nennt, fehlt der Handelsauftrag im Marktfenster (`MarktAnzeige`) und der Knopf im Bedienfeld. | 23.11.2026 |
+| Neue Partien | Menü „Neue Partie“ und Start ohne Menü setzen `KarrenSelbstFahren = true`; `--karrenselbst=0` schaltet es für einen Start aus. Entwicklerfenster: Haken „Karren fahren automatisch“ (`EntwicklerKarrenAutomatisch`), der Stand kommt aus `Stadtwirtschaft.KarrenAutomatisch`. | 23.11.2026 |
+| Meldung | Neue Art „KarrenAngekommen“ in `meldungen.json` (Thema Handel, eigenes Haus als Siegel, sonst nur Verlauf, ohne Textmuster über die Kern-Art). | 23.11.2026 |
