@@ -62,4 +62,7 @@ if __name__ == "__main__":
         {"hinterzimmer": raum_hinterzimmer, "bibliothek": raum_bibliothek}[opt["raum"]].main()
     else:
         import raeume_s23
+        import raum_bibliothek_dach
+        # Gaube der Zwerge hinter dem Schornstein (wohnhaus_zwerg_s23.GAUBE_ZWERG, Nutzer 22.11.2026): das Fenster der Dachbibliothek zieht mit
+        raum_bibliothek_dach.GAUBE = dict(raum_bibliothek_dach.GAUBE, y=(0.45, 1.65))
         raeume_s23.main()

@@ -38,8 +38,14 @@ def umbenennen(text):
     return text.replace("mensch", VOLK)
 
 
+FORM = 1                # Grundform des laufenden Baus (main); Teil der festen Saat der Zufallslaeden
+LAEDEN_TEILE = []        # Teile der Huelle mit geschlossenen Laeden (Zufallslaeden)
+
+
 def schicht_anlegen():
     """Stoff, Dateinamen und Atlasgruppen auf den Zwerg umstellen; die Bauteile der Menschen bleiben unveraendert."""
+    g1.FACHWERK_ECHT = True                           # echtes Fachwerk im Obergeschoss und Giebel (Holzlage, Nutzer 22.11.2026)
+    zt.quader_in_lagen()                              # Gefache und Giebel aus dunklem Quader in Lagen der Bandhoehe (keine Streckung)
     alt_stoff, alt_uv = g1.stoff, g1.uv2_und_ao
     g1.stoff = lambda name, blatt=None, **kw: alt_stoff(name, (blatt + "_" + VOLK) if blatt else None, **kw)
     g1.uv2_und_ao = lambda gruppen, gruppe, modell, mit_ao=True: alt_uv(gruppen, umbenennen(gruppe), umbenennen(modell), mit_ao)
@@ -166,8 +172,27 @@ def schicht_anlegen():
     # ── Fahnenmast auf dem First verankert (er schwebte ueber dem duennen Schindeldach: der Mast der Menschen steht 25 cm ueber der
     #    Unterseite des Firsts, das Stroh ist 28 cm dick, die Schindeln 1,5 bis 7 cm) ──
     alt_fahne1, alt_fahne24 = g1.baue_fahne, s1.baue_fahne
-    g1.baue_fahne = lambda: zt.fahne_verankern(alt_fahne1(), zt.LETZTES_DACH)
-    s1.baue_fahne = lambda x, y, z: zt.fahne_verankern(alt_fahne24(x, y, z), zt.LETZTES_DACH)
+
+    def fahne(mast):
+        zt.laeden_zu_pruefen(LAEDEN_TEILE + [zt.LETZTES_DACH])     # die Huelle steht (Schuppen, Laube, Schlot): verstellte Laeden weg
+        return zt.fahne_verankern(mast, zt.LETZTES_DACH)
+    g1.baue_fahne = lambda: fahne(alt_fahne1())
+    s1.baue_fahne = lambda x, y, z: fahne(alt_fahne24(x, y, z))
+    # Geschlossene Laeden im festen Zufall (zwerg_teile.laeden_zu, Verfahren der Zeilenmodule): auf freien Gefachen des Fachwerks
+    alt_lage = g1.fachwerk_wand_lage
+
+    def fachwerk_wand_lage(h, P, breite, n3, z0, z1, oeffnungen, n=None, raehm=True, riegel=True, z_fenster=g1.OG_FENSTER, stoss=None):
+        alt_lage(h, P, breite, n3, z0, z1, oeffnungen, n, raehm, riegel, z_fenster, stoss)
+        if not riegel: return
+        import zeile_module as Z
+        if h not in LAEDEN_TEILE: LAEDEN_TEILE.append(h)
+        fen = [o for o in oeffnungen if o[4] == "fenster"]
+        t0, t1 = (min(f[2] for f in fen), max(f[3] for f in fen)) if fen else z_fenster
+        p0, p1 = Vector(P(0.0, 0.0)), Vector(P(1.0, 0.0))
+        felder = zt.felder_der_lage(g1.LAGEN[-1][4], breite, oeffnungen, t0, t1)
+        schluessel = f"wohnhaus_zwerg_s1_g{FORM}|{p0.x:.2f},{p0.y:.2f}|{n3[0]:.0f},{n3[1]:.0f}|{z0:.2f}"
+        zt.laeden_zu(h, p0, p1 - p0, n3, felder, t0 + 0.04, t1 - 0.04, schluessel, Z.LADEN_OG)
+    g1.fachwerk_wand_lage = fachwerk_wand_lage
 
 
 WAPPEN_G = 0.62                                   # Groesse des Schilds der Menschen (g1.baue_wappen)
@@ -253,7 +278,8 @@ def zwerg_hoehe(figur):
 def main():
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
-    form = int(opt.get("form", "1"))
+    global FORM
+    form = FORM = int(opt.get("form", "1"))
     schicht_anlegen()
     if form == 1: g1.main()
     else:
