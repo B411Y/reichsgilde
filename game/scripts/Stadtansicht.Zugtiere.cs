@@ -67,11 +67,16 @@ public partial class Stadtansicht
         /// <summary>Wurzelknochen der vier Beine (behalten bei der Biegung ihre Richtung, die Hufe drehen nicht mit).</summary>
         public int[] Beinwurzeln { get; set; } = Array.Empty<int>();
         public Skeleton3D? Skelett { get; set; }
+        /// <summary>Je Clip die Biegungsknochen ohne eigene Drehspur: deren Pose setzt der Spieler nicht neu, die Biegung geht dann von der Ruhepose aus (nicht kumulativ).</summary>
+        public Dictionary<string, HashSet<int>> OhneSpur { get; } = new();
+        /// <summary>Fern: gerade gezeigter Kurvenclip (0 gerade, +1 links, −1 rechts), mit getrennten Schwellen zum Ein- und Ausschalten.</summary>
+        public int KurveVat { get; set; }
     }
 
     /// <summary>Knickwinkel (Grad), bei dem die Kurvenhaltung voll erreicht ist; die gebackene Stufe (fern) wechselt ab <see cref="KurveVatSchwelle"/> in den Kurvenclip.</summary>
     private const double KurveVoll = 30.0;
-    private const double KurveVatSchwelle = 12.0 / KurveVoll;
+    /// <summary>Fern: in den Kurvenclip ab dieser Kurvenstärke, zurück erst darunter (kein Pendeln an der Schwelle).</summary>
+    private const double KurveVatEin = 0.45, KurveVatAus = 0.30;
     /// <summary>Zeitkonstante der Glättung (Sekunden): kein Ruck, wenn der Knick springt.</summary>
     private const double KurveGlaettung = 0.35;
     /// <summary>Vorzeichen Knick → Kurve (Linkskurve positiv); im NAS-Lauf geprüft.</summary>
@@ -96,7 +101,9 @@ public partial class Stadtansicht
         foreach (var (knochen, achse, grad) in t.Biegung)
         {
             var dreh = new Quaternion(achse, Mathf.DegToRad(grad) * (float)t.Kurve);
-            sk.SetBonePoseRotation(knochen, dreh * sk.GetBonePoseRotation(knochen));
+            // ohne Spur im laufenden Clip setzt der Spieler die Pose nicht neu: dann von der Ruhepose aus, sonst summierte sich die Drehung von Bild zu Bild
+            var grund = t.OhneSpur.TryGetValue(t.Klip, out var ohne) && ohne.Contains(knochen) ? sk.GetBoneRest(knochen).Basis.GetRotationQuaternion() : sk.GetBonePoseRotation(knochen);
+            sk.SetBonePoseRotation(knochen, dreh * grund);
         }
         for (var i = 0; i < t.Beinwurzeln.Length; i++)
         {
@@ -179,7 +186,17 @@ public partial class Stadtansicht
                 // Kurvenhaltung nah (ZugtierBiegen): Wirbelsäulenknochen und Beinwurzeln des Skeletts; fehlt ein Name, bleibt das Tier gerade
                 var biegung = daten.Kurve.Select(k => (skelett.FindBone(k.Knochen), k.Achse, k.Grad)).ToArray();
                 var wurzeln = new[] { "BN_L_Clavicle_038_039", "BN_R_Clavicle_043_045", "BN_L_Thing_051_054", "BN_R_Thing_056_060" }.Select(skelett.FindBone).ToArray();
-                if (biegung.All(b => b.Item1 >= 0) && wurzeln.All(w => w >= 0)) { t.Skelett = skelett; t.Biegung = biegung; t.Beinwurzeln = wurzeln; }
+                if (biegung.All(b => b.Item1 >= 0) && wurzeln.All(w => w >= 0))
+                {
+                    t.Skelett = skelett; t.Biegung = biegung; t.Beinwurzeln = wurzeln;
+                    foreach (var name in spieler.GetAnimationList())
+                    {
+                        var anim = spieler.GetAnimation(name);
+                        var mitSpur = Enumerable.Range(0, anim.GetTrackCount()).Where(k => anim.TrackGetType(k) == Animation.TrackType.Rotation3D)
+                            .Select(k => anim.TrackGetPath(k).ToString()).ToArray();
+                        t.OhneSpur[name] = biegung.Where(b => !mitSpur.Any(p => p.EndsWith(":" + skelett.GetBoneName(b.Item1)))).Select(b => b.Item1).ToHashSet();
+                    }
+                }
             }
             TierKlipSpielen(t, "Stehen", 0, seed % 1000 / 1000.0 * daten.Klips["Stehen"].Dauer); // zufällige Anfangsstelle: nicht alle im Gleichtakt
             tiere.Add(t);
@@ -498,7 +515,10 @@ public partial class Stadtansicht
                 var stehen = tier.Zustand is TierZustand.Stehen or TierZustand.Anhalten;
                 var nr = stehen ? 0 : 1; // Ziehen zeigt das gebackene Tier wie Gehen (siehe TierKlips)
                 // Pferd fern: ab der Schwelle der Kurvenclip (Gehen_Links = 2, Gehen_Rechts = 3, gleiche Stelle der Schleife); nah biegt ZugtierBiegen stufenlos
-                if (!stehen && ProbeKlipsVon(tier.Art).Length >= 4 && Math.Abs(tier.Kurve) >= KurveVatSchwelle) nr = tier.Kurve > 0 ? 2 : 3;
+                if (stehen || ProbeKlipsVon(tier.Art).Length < 4) tier.KurveVat = 0;
+                else if (tier.KurveVat == 0 && Math.Abs(tier.Kurve) >= KurveVatEin) tier.KurveVat = Math.Sign(tier.Kurve);
+                else if (tier.KurveVat != 0 && (Math.Abs(tier.Kurve) < KurveVatAus || Math.Sign(tier.Kurve) != tier.KurveVat)) tier.KurveVat = 0;
+                if (tier.KurveVat != 0) nr = tier.KurveVat > 0 ? 2 : 3;
                 var dauer = tier.Daten.Klips[nr == 0 ? "Stehen" : "Gehen"].Dauer;
                 var phase = stehen ? tier.Phase : tier.LaufPhase;
                 var (_, bilder) = _probeKlipZeilen[tier.Art][nr];

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;

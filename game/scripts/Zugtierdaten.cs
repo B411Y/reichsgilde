@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Godot;
 
 namespace Reichsgilde;
@@ -41,8 +41,9 @@ public static class Zugtierdaten
                 var weg = k.Value.TryGetProperty("weg", out var w) ? w.EnumerateArray().Select(x => x.GetSingle()).ToArray() : Array.Empty<float>();
                 klips[k.Name] = new Klip(k.Value.GetProperty("dauer").GetDouble(), k.Value.GetProperty("schleife").GetBoolean(), weg);
             }
+            var faktor = art.Value.TryGetProperty("kurve_faktor", out var kf) ? kf.GetSingle() : 1f;  // volle Biegung im Spiel (Anteil des Messwerts)
             var kurve = art.Value.TryGetProperty("kurve", out var ku)
-                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), e.GetProperty("grad").GetSingle())).ToArray()
+                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), e.GetProperty("grad").GetSingle() * faktor)).ToArray()
                 : Array.Empty<(string, Vector3, float)>();
             aus[art.Name] = new Tierart(new Vector3(a[0].GetSingle(), a[1].GetSingle(), a[2].GetSingle()), art.Value.GetProperty("tempo").GetSingle(),
                 blend.GetProperty(art.Name).GetDouble(), klips, kurve);

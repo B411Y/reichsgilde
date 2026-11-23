@@ -24,11 +24,13 @@ for name in ("Gehen", "Ziehen", "Gehen_Links", "Gehen_Rechts"):                 
     k["weg"] = [round(V * i / FPS, 5) for i in range(n)]
     k["anlauf"] = [1.0] * n
 # Kurvenhaltung nah: Biegung der Wirbelsaeule bei voller Linkskurve, gemessen aus Walk_L gegen Walk des Originals (pferd2_gang.kurven_biegung)
+OPT_FAKTOR = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--kurve_faktor=")), "0.6")
 sys.argv = sys.argv[:1]
 import os  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pferd2_gang as GG  # noqa: E402
 sk = GG.Skelett()
+p["kurve_faktor"] = float(OPT_FAKTOR)                                       # Anteil der gemessenen Biegung im Spiel (Nutzer 23.11.2026: 60 %), gleich dem --kurve der Kurvenclips
 p["kurve"] = [{"knochen": sk.namen[i], "achse": [round(float(v), 4) for v in ax], "grad": round(float(g), 2)} for i, ax, g in GG.kurven_biegung(sk)]
 json.dump(z, open(pfad, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
 open(pfad, "a", encoding="utf-8", newline="\n").write("\n")

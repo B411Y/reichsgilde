@@ -62,7 +62,7 @@ def tab(name, ph):
 def kurven_biegung(sk, links="Skeleton|Walk_L", gerade="Skeleton|Walk"):
     """Kurvenhaltung aus dem Original (nur als Messwert, keine Beinbahn): mittlere Zusatzdrehung jedes Wirbelsaeulenknochens in Walk_L gegen Walk
     (Mittel ueber 20 Stellen des Zyklus), als (Knochen, Achse im Elternraum, Grad). Ergebnis Pferd B: Spine_00 1,4, Spine_01 9,7, Spine_02 14,0, Spine_03 4,8 Grad,
-    jeweils um die Hochachse."""
+    jeweils um die Hochachse; zusammen 30,0 Grad, verteilt nach --kurve_anteile."""
     def mittel(clip):
         acc = {}
         for a in np.linspace(0, 0.95, 20):
@@ -78,7 +78,11 @@ def kurven_biegung(sk, links="Skeleton|Walk_L", gerade="Skeleton|Walk"):
         grad = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(D) - 1) / 2))))
         ax = np.array([D[2, 1] - D[1, 2], D[0, 2] - D[2, 0], D[1, 0] - D[0, 1]])
         aus.append((i, ax / max(np.linalg.norm(ax), 1e-12), grad))
-    return aus
+    # Verteilung (Kritik 23.11.2026): die Gesamtbiegung bleibt der Messwert, aber mehr im Rumpf und weniger am Widerrist (sonst wirkt sie wie ein Scharnier
+    # am Kummet): Anteile Spine_00/01/02/03 = 20/40/30/10 % statt gemessen 5/32/47/16 %
+    anteil = [float(x) for x in OPT.get("kurve_anteile", "0.2,0.4,0.3,0.1").split(",")]
+    gesamt = sum(g for _, _, g in aus)
+    return [(i, ax, gesamt * a) for (i, ax, _), a in zip(aus, anteil)]
 
 
 def schwung_huf(vorn, u, theta):
