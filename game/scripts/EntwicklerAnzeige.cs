@@ -8,7 +8,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das <b>Entwicklerfenster</b> („Trainer“, Taste <b>F12</b> und Knopf „Entwickler“ in der Betriebsleiste – beides nur mit dem Haken
+/// Das <b>Entwicklerfenster</b> („Trainer“, Taste <b>F12</b> und Knopf „Entwickler“ im Spielmenü – beides nur mit dem Haken
 /// „Entwickler-Optionen“ im Hauptmenü, <see cref="Entwickler.Aktiv"/>): in der Bildmitte sechs Reiter. <b>Haus und Zeit</b> (Gulden, Aktionspunkte, Stand, Ansehen,
 /// Meinung, Vorspulen), <b>Familie und Ereignisse</b> (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), <b>Wirtschaft</b> (Ware, Zutaten),
 /// <b>Wetter und Darstellung</b>, <b>Messwerte</b> (EntwicklerAnzeige.Darstellung.cs) und <b>Klänge</b> (alle Klänge zum Anhören mit Bus und Pegel, EntwicklerAnzeige.Klaenge.cs).
