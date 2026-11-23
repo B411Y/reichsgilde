@@ -26,7 +26,7 @@ Startoptionen (nach `--`). Jede Option steht einmal in einer Tabelle (Option, We
 | `--startstunde` | `<Stunde>` | 4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke | Spiel |
 | `--startrunde` | `<n>` | die Partie beginnt in der n-ten Runde statt der ersten, z. B. `4` = Winter, `1`–`4` = Frühling bis Winter; nur für Bilder, zusammen mit `--startstunde` | Spiel |
 | `--startwert` | `<n>` | Zufallsstartwert der Partie, nur für Bilder; zusammen mit `--startrunde` wählt er die Lagen der Rohstoffquellen: `--startwert=12` gibt den Gruben im Frühling 1404 eine schlechte Lage, Wassereinbruch – Jahr davor 1403 = `--startrunde=4` (nichts zu sehen), Lage im Jahr 1404 = `--startrunde=5` | Spiel |
-| `--glaube` | `<Katholisch\|Evangelisch\|Naturglaube>` | Konfession des eigenen Hauses bei einer neuen Partie | Spiel |
+| `--glaube` | `<Katholisch\|Evangelisch\|Altahtnisch\|Neuahtnisch\|Naturglaube>` | Konfession des eigenen Hauses bei einer neuen Partie (altahtnisch nur Zwerge, Elben, Halblinge; Naturglaube nur Orks und Oger) | Spiel |
 | `--tempo` | `<1–32>` |  | Spiel |
 | `--innen` | `1` | (eigene Werkstatt) oder `--innen=Rathaus\|Dom\|wohnhaus:<Inhaber>` (`--innen=wohnhaus` = das eigene Wohnhaus; Prüfhilfe Wohnstube mit Bewohnern: `--innen=wohnhaus --charakter-ehe=1 --vermoegen=30000 --startstunde=21` – ohne `--vermoegen=30000` kommt die Ehe nicht zustande und die Ehefrau fehlt; das Oberhaupt sitzt nur außerhalb der Arbeitszeit am Tisch, die Ehefrau steht am Herd) | Spiel |
 | `--raum` | `<Nummer>` | mit `--innen`: Raum der Raumleiste, 1 = erster | Spiel |
