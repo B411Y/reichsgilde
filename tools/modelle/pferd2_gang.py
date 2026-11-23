@@ -59,6 +59,28 @@ def tab(name, ph):
     return float(np.interp(ph, KNOTEN, TAB[name]))
 
 
+def kurven_biegung(sk, links="Skeleton|Walk_L", gerade="Skeleton|Walk"):
+    """Kurvenhaltung aus dem Original (nur als Messwert, keine Beinbahn): mittlere Zusatzdrehung jedes Wirbelsaeulenknochens in Walk_L gegen Walk
+    (Mittel ueber 20 Stellen des Zyklus), als (Knochen, Achse im Elternraum, Grad). Ergebnis Pferd B: Spine_00 1,4, Spine_01 9,7, Spine_02 14,0, Spine_03 4,8 Grad,
+    jeweils um die Hochachse."""
+    def mittel(clip):
+        acc = {}
+        for a in np.linspace(0, 0.95, 20):
+            for i, v in bd.abtasten(sk.j, sk.H.buf, clip, float(a)).items():
+                if "rotation" in v:
+                    acc.setdefault(i, []).append(np.array(v["rotation"]))
+        return {i: np.mean(v, 0) / np.linalg.norm(np.mean(v, 0)) for i, v in acc.items()}
+    w, l = mittel(gerade), mittel(links)
+    aus = []
+    for name in ("BN_Spine_00_02_02", "BN_Spine_01_03_03", "BN_Spine_02_04_04", "BN_Spine_03_05_05"):
+        i = sk.id[name]
+        D = bd.quat_matrix(l[i]) @ bd.quat_matrix(w[i]).T
+        grad = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(D) - 1) / 2))))
+        ax = np.array([D[2, 1] - D[1, 2], D[0, 2] - D[2, 0], D[1, 0] - D[0, 1]])
+        aus.append((i, ax / max(np.linalg.norm(ax), 1e-12), grad))
+    return aus
+
+
 def schwung_huf(vorn, u, theta):
     """--tab=p5: Hufwinkel (rad, negativ = Ferse hoch, Sohle nach hinten) im Schwung bei Anteil u: bis u_ab senkrecht abheben (kein Schleifen der Zehe),
     bis u_auf auf amax abklappen, bis u_halt haengen, bis u_flach zum Aufsetzen flach werden."""
@@ -394,6 +416,21 @@ def main():
         return lm_loesen(f, x0)
 
     root, hals = sk.id["BN_Root_01_01"], sk.id["BN_Neck_00_06_06"]
+    KURVE = kurven_biegung(sk) if "kurve" in OPT else []
+    if KURVE and "kurve_stand" not in OPT:
+        # Der Stand jedes Beins folgt seinem Ansatz: um so viel, wie die Biegung Schulter- bzw. Hueftgelenk in der Ruhepose laengs verschiebt
+        Rb = sk.R.copy()
+        Gb = sk.global_(sk.T, Rb)
+        for i_, ax_p, grad in KURVE:
+            ax_w = Gb[sk.eltern[i_]][:3, :3] @ ax_p
+            rot = rot_axis(ax_w / np.linalg.norm(ax_w), math.radians(grad) * float(OPT["kurve"]))
+            Rb[i_] = np.linalg.solve(Gb[sk.eltern[i_]][:3, :3], rot @ Gb[i_][:3, :3]) / sk.S[i_][None, :]
+            Gb = sk.global_(sk.T, Rb)
+        for nm, ks in ketten.items():
+            ds = -sk.norm(Gb[sk.id[ks[0]]][:3, 3])[1] - info[nm]["P2"][0][0]
+            td[nm] += ds
+            lo[nm] += ds
+            print("KURVE Stand", nm, "verschoben um %.1f cm" % (ds * 100))
     ax_lat_g = sk.Rm.T @ np.array([1.0, 0.0, 0.0])
     x_prev = {nm: np.array(info[nm]["ph0"]) for nm in ketten}
 
@@ -418,6 +455,19 @@ def main():
                 i_ = sk.id[name]
                 rot = rot_axis(ax_len, math.radians(beck) * f_roll * math.sin(ph_)) @ rot_axis(ax_up, math.radians(hueft) * f_gier * math.cos(ph_))
                 R[i_] = np.linalg.solve(G[sk.eltern[i_]][:3, :3], rot @ G[i_][:3, :3]) / sk.S[i_][None, :]
+                G = sk.global_(Tt, R)
+        if KURVE:                                                    # Kurvenhaltung: Biegung der Wirbelsaeule wie Walk_L gegen Walk des Originals (Mittel), mal --kurve (+1 links, -1 rechts);
+            G = sk.global_(Tt, R)                                    # vor dem IK der Beine: deren Ansatz behaelt die Richtung in der Welt, das IK rechnet vom versetzten Schultergelenk aus
+            fest = {ks[0]: G[sk.id[ks[0]]][:3, :3].copy() for ks in ketten.values()}
+            for i_, ax_p, grad in KURVE:
+                ax_w = G[sk.eltern[i_]][:3, :3] @ ax_p
+                ax_w = ax_w / np.linalg.norm(ax_w)
+                rot = rot_axis(ax_w, math.radians(grad) * float(OPT["kurve"]))
+                R[i_] = np.linalg.solve(G[sk.eltern[i_]][:3, :3], rot @ G[i_][:3, :3]) / sk.S[i_][None, :]
+                G = sk.global_(Tt, R)
+            for kn, Mw in fest.items():
+                i_ = sk.id[kn]
+                R[i_] = np.linalg.solve(G[sk.eltern[i_]][:3, :3], Mw) / sk.S[i_][None, :]
                 G = sk.global_(Tt, R)
         for nm, ks in ketten.items():
             phase = ((tz / T) - VIERTAKT[nm] + VL) % 1.0

@@ -60,6 +60,51 @@ public partial class Stadtansicht
         public bool Gezeigt { get; set; }
         /// <summary>Lage der Tierwurzel zum Zugpunkt im Bild des Tiers (Meter; Zugpunkt = Anker am Deichselende, Kummet bzw. Ortscheit): Das Tier läuft den Weg, der Karren hängt am Zugpunkt (<see cref="KarrenGespannSetzen"/>).</summary>
         public Vector3 ZugVersatz { get; set; }
+        /// <summary>Kurvenstärke −1 (rechts) … +1 (links), geglättet aus dem Knickwinkel des Gespanns (<see cref="ZugtierKurveSetzen"/>).</summary>
+        public double Kurve { get; set; }
+        /// <summary>Knochen der Wirbelsäule im Skelett (Index, Achse im Elternraum, Grad bei voller Kurve) für die Kurvenbiegung nah; leer: ohne Biegung.</summary>
+        public (int Knochen, Vector3 Achse, float Grad)[] Biegung { get; set; } = Array.Empty<(int, Vector3, float)>();
+        /// <summary>Wurzelknochen der vier Beine (behalten bei der Biegung ihre Richtung, die Hufe drehen nicht mit).</summary>
+        public int[] Beinwurzeln { get; set; } = Array.Empty<int>();
+        public Skeleton3D? Skelett { get; set; }
+    }
+
+    /// <summary>Knickwinkel (Grad), bei dem die Kurvenhaltung voll erreicht ist; die gebackene Stufe (fern) wechselt ab <see cref="KurveVatSchwelle"/> in den Kurvenclip.</summary>
+    private const double KurveVoll = 30.0;
+    private const double KurveVatSchwelle = 12.0 / KurveVoll;
+    /// <summary>Zeitkonstante der Glättung (Sekunden): kein Ruck, wenn der Knick springt.</summary>
+    private const double KurveGlaettung = 0.35;
+    /// <summary>Vorzeichen Knick → Kurve (Linkskurve positiv); im NAS-Lauf geprüft.</summary>
+    private static readonly double KurveVorzeichen = double.TryParse(Wasserarten.Startoption("kurvevorzeichen"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var kv) ? kv : 1.0;
+
+    /// <summary>Glättet die Kurvenstärke eines Tiers aus dem Knickwinkel des Gespanns (nur Darstellung, kein Kern).</summary>
+    private static void ZugtierKurveSetzen(Zugtier t, double knickGrad, double dt)
+    {
+        var ziel = Math.Clamp(KurveVorzeichen * knickGrad / KurveVoll, -1.0, 1.0);
+        var a = dt <= 0 ? 0 : 1 - Math.Exp(-dt / KurveGlaettung);
+        t.Kurve += (ziel - t.Kurve) * a;
+    }
+
+    /// <summary>
+    /// Kurvenhaltung nah (Skelett), stufenlos: nach dem Abspielen der Pose dreht jeder Wirbelsäulenknochen um seine Achse um Grad × Kurve (Messwert aus Walk_L des Originals,
+    /// <c>zugtiere.json</c> „kurve“), die Beinwurzeln behalten ihre Richtung in der Welt. Nur im Lauf (Gehen/Ziehen, Anfahren, Bremsen), sonst gerade.
+    /// </summary>
+    private static void ZugtierBiegen(Zugtier t)
+    {
+        if (t.Skelett is not { } sk || t.Biegung.Length == 0 || Math.Abs(t.Kurve) < 1e-3 || t.Zustand is TierZustand.Stehen or TierZustand.Anhalten) return;
+        var fest = t.Beinwurzeln.Select(b => sk.GetBoneGlobalPose(b).Basis).ToArray();
+        foreach (var (knochen, achse, grad) in t.Biegung)
+        {
+            var dreh = new Quaternion(achse, Mathf.DegToRad(grad) * (float)t.Kurve);
+            sk.SetBonePoseRotation(knochen, dreh * sk.GetBonePoseRotation(knochen));
+        }
+        for (var i = 0; i < t.Beinwurzeln.Length; i++)
+        {
+            var b = t.Beinwurzeln[i];
+            var eltern = sk.GetBoneParent(b);
+            var elternBasis = eltern >= 0 ? sk.GetBoneGlobalPose(eltern).Basis : Basis.Identity;
+            sk.SetBonePoseRotation(b, (elternBasis.Inverse() * fest[i]).GetRotationQuaternion());
+        }
     }
 
     private static readonly string[] TierStehenVarianten = { "Stehen", "Stehen", "Stehen_Ruhen", "Stehen_Umschauen", "Fressen" };
@@ -129,6 +174,13 @@ public partial class Stadtansicht
                 ZugVersatz = zugVersatz,
                 Versatz = art.TierAnker.Length > 1 ? i * 0.5 : 0, // Zweispänner: das zweite Pferd um eine halbe Schleife versetzt
             };
+            if (daten.Kurve.Length > 0 && tierModell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault() is { } skelett)
+            {
+                // Kurvenhaltung nah (ZugtierBiegen): Wirbelsäulenknochen und Beinwurzeln des Skeletts; fehlt ein Name, bleibt das Tier gerade
+                var biegung = daten.Kurve.Select(k => (skelett.FindBone(k.Knochen), k.Achse, k.Grad)).ToArray();
+                var wurzeln = new[] { "BN_L_Clavicle_038_039", "BN_R_Clavicle_043_045", "BN_L_Thing_051_054", "BN_R_Thing_056_060" }.Select(skelett.FindBone).ToArray();
+                if (biegung.All(b => b.Item1 >= 0) && wurzeln.All(w => w >= 0)) { t.Skelett = skelett; t.Biegung = biegung; t.Beinwurzeln = wurzeln; }
+            }
             TierKlipSpielen(t, "Stehen", 0, seed % 1000 / 1000.0 * daten.Klips["Stehen"].Dauer); // zufällige Anfangsstelle: nicht alle im Gleichtakt
             tiere.Add(t);
         }
@@ -253,11 +305,13 @@ public partial class Stadtansicht
             if (tier.Modell.Visible == vat) tier.Modell.Visible = !vat;
             if (pause) continue;
             var vorher = tier.Klip;
+            ZugtierKurveSetzen(tier, karren.Lauf is { } gl ? gl.Knick * 180.0 / Math.PI : 0.0, delta);
             ZugtierSchritt(tier, rollt, beladen, geschwindigkeit, delta, out var schritt);
             if (ZugtierProtokoll && tier.Klip != vorher) GD.Print($"[zugtier] {tier.Halter.GetParent()?.GetParent()?.GetInstanceId()} {tier.Halter.Name}: {vorher} -> {tier.Klip} ({tier.Zustand}), Takt {geschwindigkeit / tier.Daten.Tempo:0.00}, Stelle {tier.Phase:0.00}/{tier.Dauer:0.00} s");
             if (!imBild || vat) { tier.Gezeigt = false; continue; }
             if (!tier.Gezeigt) { tier.Spieler.Seek(tier.Phase, true); tier.Gezeigt = true; } // wieder im Bild: die Pose steht an der richtigen Stelle
             tier.Spieler.Advance(schritt);
+            ZugtierBiegen(tier); // Kurvenhaltung stufenlos auf die eben gesetzte Pose (nah)
         }
     }
 
@@ -443,6 +497,8 @@ public partial class Stadtansicht
                 // gebacken sind Stehen (alle Stehen-Varianten und Fressen), Gehen und Ziehen; Anfahren und Bremsen zeigen Gehen/Ziehen im Takt der Fahrt
                 var stehen = tier.Zustand is TierZustand.Stehen or TierZustand.Anhalten;
                 var nr = stehen ? 0 : 1; // Ziehen zeigt das gebackene Tier wie Gehen (siehe TierKlips)
+                // Pferd fern: ab der Schwelle der Kurvenclip (Gehen_Links = 2, Gehen_Rechts = 3, gleiche Stelle der Schleife); nah biegt ZugtierBiegen stufenlos
+                if (!stehen && ProbeKlipsVon(tier.Art).Length >= 4 && Math.Abs(tier.Kurve) >= KurveVatSchwelle) nr = tier.Kurve > 0 ? 2 : 3;
                 var dauer = tier.Daten.Klips[nr == 0 ? "Stehen" : "Gehen"].Dauer;
                 var phase = stehen ? tier.Phase : tier.LaufPhase;
                 var (_, bilder) = _probeKlipZeilen[tier.Art][nr];

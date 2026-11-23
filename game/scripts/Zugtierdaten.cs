@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Godot;
 
 namespace Reichsgilde;
@@ -12,8 +12,8 @@ public static class Zugtierdaten
     /// <summary>Ein Clip: Dauer in Sekunden (Godot nennt Schleifen um 1/24 s zu lang), ob er schleift, und der Rumpfweg in Metern je Bild (24 je Sekunde).</summary>
     public sealed record Klip(double Dauer, bool Schleife, float[] Weg);
 
-    /// <summary>Eine Tierart.</summary>
-    public sealed record Tierart(Vector3 AnkerZiehen, float Tempo, double BlendGehenZiehen, Dictionary<string, Klip> Klips);
+    /// <summary>Eine Tierart; <paramref name="Kurve"/>: Biegung der Wirbelsäule bei voller Kurve nach links (Knochen, Achse im Elternraum, Grad), leer ohne Angabe.</summary>
+    public sealed record Tierart(Vector3 AnkerZiehen, float Tempo, double BlendGehenZiehen, Dictionary<string, Klip> Klips, (string Knochen, Vector3 Achse, float Grad)[] Kurve);
 
     private static Dictionary<string, Tierart>? _arten;
 
@@ -41,8 +41,11 @@ public static class Zugtierdaten
                 var weg = k.Value.TryGetProperty("weg", out var w) ? w.EnumerateArray().Select(x => x.GetSingle()).ToArray() : Array.Empty<float>();
                 klips[k.Name] = new Klip(k.Value.GetProperty("dauer").GetDouble(), k.Value.GetProperty("schleife").GetBoolean(), weg);
             }
+            var kurve = art.Value.TryGetProperty("kurve", out var ku)
+                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), e.GetProperty("grad").GetSingle())).ToArray()
+                : Array.Empty<(string, Vector3, float)>();
             aus[art.Name] = new Tierart(new Vector3(a[0].GetSingle(), a[1].GetSingle(), a[2].GetSingle()), art.Value.GetProperty("tempo").GetSingle(),
-                blend.GetProperty(art.Name).GetDouble(), klips);
+                blend.GetProperty(art.Name).GetDouble(), klips, kurve);
         }
         return aus;
     }

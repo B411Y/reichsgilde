@@ -98,7 +98,7 @@ def karten(variante, texdir, felldir, schuh):
     a.paste(Image.open(os.path.join(felldir, f"Horse_{variante}_2048.png")).convert("RGBA"), (0, 0))
     if variante == "fuchs":                                              # Fuchs: Maehne und Schweif etwas dunkler im Farbton (Nutzer), Alpha bleibt
         haar = np.asarray(a.crop((0, 2048, 1024, 3072))).astype(np.float32)
-        haar[..., :3] *= np.array([float(x) for x in OPT.get("haar_fuchs", "0.80,0.74,0.72").split(",")], np.float32)
+        haar[..., :3] *= np.array([float(x) for x in OPT.get("haar_fuchs", "0.90,0.87,0.86").split(",")], np.float32)
         a.paste(Image.fromarray(np.clip(haar + 0.5, 0, 255).astype(np.uint8), "RGBA"), (0, 2048))
     gf, gh, gr, gm = geschirr_felder()
     a.paste(Image.fromarray(gf).convert("RGBA"), (1024, 2560))

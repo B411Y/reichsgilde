@@ -1,4 +1,4 @@
-﻿"""Schreibt den Block "pferd" in game/daten/zugtiere.json fuer das Pferd B (Horse von henrysteve973, CC BY 4.0): Zugpunkt aus pferd2_geschirr.py, Gehen/Ziehen aus den Bildfolgen
+"""Schreibt den Block "pferd" in game/daten/zugtiere.json fuer das Pferd B (Horse von henrysteve973, CC BY 4.0): Zugpunkt aus pferd2_geschirr.py, Gehen/Ziehen aus den Bildfolgen
 (26 Bilder + Schlussbild, 1,0833 s, 1,3 m/s). Die uebrigen Clips (Anfahren, Anhalten, Stehen, Fressen) behalten Bilder, Dauer, Weg und Anlauf; der Ochse bleibt unveraendert.
 
     python -I tools/modelle/pferd2_zugtiere_json.py <geschirr_info.json> [<zugtiere.json>]
@@ -17,12 +17,19 @@ p["anker_ziehen_godot"] = anker
 p["schleife"] = round(ZYKLUS_BILDER / FPS, 4)
 p["schrittlaenge"] = round(V * ZYKLUS_BILDER / FPS, 3)
 p["tempo"] = V
-for name in ("Gehen", "Ziehen"):
-    k = p["klips"][name]
+for name in ("Gehen", "Ziehen", "Gehen_Links", "Gehen_Rechts"):                 # Gehen_Links/_Rechts: Kurvenhaltung (gebacken fuer die ferne Stufe)
+    k = p["klips"].setdefault(name, {})
     n = ZYKLUS_BILDER + 1
     k["bilder"], k["dauer"], k["schleife"] = n, round(ZYKLUS_BILDER / FPS, 4), True
     k["weg"] = [round(V * i / FPS, 5) for i in range(n)]
     k["anlauf"] = [1.0] * n
+# Kurvenhaltung nah: Biegung der Wirbelsaeule bei voller Linkskurve, gemessen aus Walk_L gegen Walk des Originals (pferd2_gang.kurven_biegung)
+sys.argv = sys.argv[:1]
+import os  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pferd2_gang as GG  # noqa: E402
+sk = GG.Skelett()
+p["kurve"] = [{"knochen": sk.namen[i], "achse": [round(float(v), 4) for v in ax], "grad": round(float(g), 2)} for i, ax, g in GG.kurven_biegung(sk)]
 json.dump(z, open(pfad, "w", encoding="utf-8", newline="\n"), indent=1, ensure_ascii=False)
 open(pfad, "a", encoding="utf-8", newline="\n").write("\n")
 print("pferd: Anker", anker, "Gehen/Ziehen", ZYKLUS_BILDER + 1, "Bilder")

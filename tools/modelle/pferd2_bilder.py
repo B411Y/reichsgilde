@@ -1,4 +1,4 @@
-﻿"""Neustart Zugpferd: Bilder eines Modells (Original oder Ergebnis) in festen Ansichten mit Bodenlinie und Massstab, gleiche Kamera fuer beide.
+"""Neustart Zugpferd: Bilder eines Modells (Original oder Ergebnis) in festen Ansichten mit Bodenlinie und Massstab, gleiche Kamera fuer beide.
 
     blender -b --python tools/modelle/pferd2_bilder.py -- --modell=<scene.gltf|.glb> --aus=<Ordner> --name=<vorher|nachher> [--s=1.0] [--ansichten=seite,schraeg,vorn,kopf]
                                                           [--klip=<Name>] [--bild=<Nr>] [--proben=24] [--b=960] [--h=720]
@@ -29,6 +29,7 @@ ANSICHTEN = {
     "spiel": ((0.0, 0.0, 0.8), 40, 38, 8.0, -3.6),
     "huf": ((0.0, 0.0, 0.1), 35, 12, 0.55, -0.9),
     "beine": ((0.0, 0.0, 0.55), 0, 0, 2.6, -1.85),
+    "oben": ((0.0, 0.0, 1.0), 0, 89, 3.6, -1.85),
     "mensch": ((0.0, -0.45, 0.95), 0, 0, 4.0, -2.45),
 }
 

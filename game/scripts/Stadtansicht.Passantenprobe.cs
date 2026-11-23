@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Dynastie;
@@ -41,6 +41,9 @@ public partial class Stadtansicht
     /// Passanten über 100 MB; das Skelett (nah) kennt alle Clips.</summary>
     private static readonly string[] TierKlips = { "Stehen", "Gehen" };
 
+    /// <summary>Pferd: dazu Gehen in der Linkskurve und in der Rechtskurve (Biegung der Wirbelsäule; gewählt nach dem Knickwinkel des Gespanns, <see cref="KarrenVatEintragen"/>).</summary>
+    private static readonly string[] PferdKlips = { "Stehen", "Gehen", "Gehen_Links", "Gehen_Rechts" };
+
     private static readonly ProbeArtDaten[] ProbeArten =
     {
         new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.933f, 1.287f, 0.898f, 0.446f),
@@ -57,10 +60,10 @@ public partial class Stadtansicht
         new("figuren/probe/passant_probe_halbling", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.881f, 1.009f, 0.697f, 0.373f, 1.675f),
         new("figuren/probe/passant_probe_halblingin", new[] { "haube", "gebende", "bettler" }, 0.781f, 0.850f, 0.601f, 0.313f, 1.532f),
         // Zugtiere (Karren-Umbau Teil d, Art 4 bis 7): zwei Felle je Tier; Netze „Nah_<tier>“ und „Fern_<tier>“, Tempo des Clips „Gehen“ in m/s
-        new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
+        new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
         // dritte Fellfarbe des Pferds (Fuchs; 23.11.2026): ans Ende gestellt, damit die Nummern der übrigen Tiere gleich bleiben (<see cref="ZugtierArt"/>)
-        new("tiere/tier_pferd_fuchs", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_pferd_fuchs", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
     };
 
     /// <summary>Körpergröße in Metern (Mitte der Spanne, je Figur ±5 cm gestreut): Zwerg 1,30–1,40, Elb 1,80–1,90, Halbling 1,05–1,15; Frauen 5 % kleiner.</summary>
@@ -184,7 +187,7 @@ public partial class Stadtansicht
         "Sitzen" or "Kauern" or "Betteln" or "SitzenBock" => ProbeVatBilder / 2,
         "Stehen" when art >= ProbeErsteTierart => 1.0 / 3, // das Tier steht und atmet (6 s Schleife): 2 Bilder, der Shader mischt (Dreieckswelle)
         "Stehen" => (ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder) / 2.0,
-        "Gehen" or "Ziehen" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
+        "Gehen" or "Ziehen" or "Gehen_Links" or "Gehen_Rechts" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
         _ => ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder,
     };
 
