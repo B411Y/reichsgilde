@@ -2659,3 +2659,56 @@ Nutzer 23.11.2026: Den Ochsenkarren gibt es nicht mehr. Der **Pferdekarren** (ei
 Gemessen auf main 0e6e6e25 + dieser PR (vorher: main 0e6e6e25 mit dem Stand des Branches `phase5/zugpferd`). `messen karren --jahre=10` (Greybox und Köln, „Schwer“, alle KI-Häuser: Fahrzeiten je Art, je Jahr und Betrieb Karren, Fahrten, Stillstand, Umsatz, Gewinn) und `messen 20 10`: Nach dem Gleichsetzen der Namen sind beide Ausgaben Zeile für Zeile gleich (bis auf die Datenversion in der Kopfzeile). Auch die KI kauft und tauscht dieselben Karren: Die Reihenfolge der Arten (ordinal nach Namen) ändert sich zwar, sie entscheidet aber nur bei gleichem Wert und gleichen Kosten, und das kommt bei verschiedenen Preisen nicht vor.
 
 **Zusammengeführt mit „Karren selbst fahren“ (#559, Datenversion 98 mit dem Verweilen am Markt):** Die Umbenennung ist jetzt Datenversion 99, Spielstand-Format 4 (main schrieb weiter Format 3; dessen Spielstände mit Selbstfahr- und Verweilfeldern werden beim Laden ebenso umbenannt). Gemessen auf main 95a145a7 + dieser Branch gegen main 95a145a7: `messen 30 20` Zeile für Zeile gleich (die Ausgabe nennt keine Karrenart; Spieler Vermögen Ø 152.879 vorher wie nachher).
+
+## Selbstfahrer: Karren selbst gefahren gegen automatisch (Paket M, 24.11.2026)
+
+Gemessen mit `messen selbstfahrer 20 20` (neu, `tests/Reichsgilde.Core.Tests/Selbstfahrermessung.cs`) auf Branch `phase5/karren-selbst` 77eba39d1 + Messcode. Der Branch beruht auf main 0e6e6e25; main stand bei der Messung auf 69b99574e (nicht eingemergt, die Messung braucht nur den Kern). Die Werte in `wirtschaft.json` sind unverändert (Datenversion 98); die Varianten ändern nur für die Messung den Text der Daten. Datei `docs/messungen/balancing-2026-11-24-selbstfahrer.json` (440 Partien, 0 Fehler).
+
+**Aufbau:** Je Karte und Startwert dieselbe Partie: alle KI-Häuser der Karte, der Spieler als Schmied mit seiner Gießerei, passiv (kein Personal, kein Ausbau). Gemessen wird sein Reinvermögen nach 20 Jahren. Die KI fährt immer automatisch und verweilt nach dem Abschnitt [Karren verweilen am Markt](#karren-verweilen-am-markt-datenversion-98-23112026).
+
+- **„selbst“:** Ein Messspieler fährt die Karren des Spielers mit den Befehlen des Selbstfahrens (`KarrenBeladen`, `KarrenLosschicken`, `KarrenHandeln`, `KarrenZurueck`, `KarrenAbladen`, Partie-Einstellung `KarrenSelbstFahren`). Er folgt derselben Regel wie der Verwalter: Er fährt los bei genug Ware (Füllgrad oder Lager fast voll), wenn die Zutaten knapp werden oder die Ware 4 Stunden wartet. Am Markt wartet er auf die Marktzeit (8–20 Uhr), verkauft alles und kauft die knappen Zutaten wie der Verwalter, aber zum Handkaufpreis mit Händlerspanne. Dann fährt er zurück und lädt ab. Er verweilt nicht und fährt nur zum Marktplatz, nicht zum Hafen.
+- **Grube und Gießerei:** Der Spieler pachtet am Start die erste freie Grube (für die Messung zum Stand Bürger gehoben, mit dem Geld für Pacht und ein Jahr, 3 Altknechte).
+  - „selbst direkt“: Die Grube fährt ihr Erz zur eigenen Gießerei, wenn dort eine Zutat unter halbem Lager liegt, lädt ab, was ins Lager passt, und bringt den Rest zum Markt.
+
+**Reinvermögen des Spielers nach 20 Jahren (Mittel; Median; kleinstes–größtes) und KI-Häuser im Mittel:**
+
+| Szenario | Greybox Spieler | Greybox KI | Köln Spieler | Köln KI |
+|---|---|---|---|---|
+| Werkstatt, automatisch, Verweilen 20 (heute) | 15.037; 15.557; 7.175–17.434 | 56.264 | 15.412; 16.081; 4.440–18.799 | 61.493 |
+| Werkstatt, automatisch, Verweilen 10 | 15.061; 15.357; 7.308–17.972 | 57.376 | 15.080; 15.870; 4.371–18.570 | 64.309 |
+| Werkstatt, automatisch, Verweilen 0 | 15.215; 15.882; 7.298–18.252 | 61.163 | 14.932; 15.958; 4.531–18.772 | 64.749 |
+| Werkstatt, automatisch, Verweilen 0, nur Marktplatz | 15.215 (wie oben, Greybox ohne Hafenweg) | 61.163 | 14.197; 15.893; 4.531–19.140 | 63.734 |
+| Werkstatt, selbst | 14.119; 14.445; 6.395–16.751 | 56.289 | 14.061; 14.853; 4.169–17.880 | 62.037 |
+| Werkstatt, selbst ohne Händlerspanne | 14.947; 15.347; 6.672–17.861 | 56.431 | 14.676; 15.934; 4.271–19.260 | 61.734 |
+| Werkstatt, selbst ohne Spanne, Markt ganztags | 15.150; 15.867; 7.391–17.601 | 56.015 | 14.430; 15.709; 4.550–19.395 | 62.280 |
+| Grube + Gießerei, automatisch, Verweilen 20 | 34.187; 34.753; 13.965–40.851 | 53.540 | 23.215; 25.876; 5.090–29.232 | 58.158 |
+| Grube + Gießerei, automatisch, Verweilen 0 | 33.305; 34.552; 14.701–39.571 | 56.824 | 24.740; 26.108; 5.179–31.266 | 62.605 |
+| Grube + Gießerei, selbst über den Markt | 31.371; 33.482; 12.246–39.025 | 54.714 | 21.901; 23.131; 4.474–29.840 | 59.398 |
+| Grube + Gießerei, selbst direkt | 29.713; 31.838; 12.278–36.167 | 51.935 | 18.850; 19.547; 2.584–24.606 | 58.990 |
+
+**Fahrten und Wartezeiten je Jahr (Mittel):**
+- Werkstatt automatisch: 2,7–3,0 Fahrten, 53–56 Minuten verweilt (Verweilen 20), Stillstand 1–2 %.
+- Werkstatt selbst: gleich viele Fahrten, 175–200 Minuten Warten am Markt auf die Marktzeit, Stillstand 2–6 %.
+- Grube + Gießerei selbst: 230–410 Minuten am Markt gewartet; direkt 0,5–0,7 Lieferfahrten zur Gießerei je Jahr.
+
+**Aufteilung (Werkstatt, Mittel des Spielers gegen automatisch mit Verweilen 20):**
+
+| Schritt | Greybox | Köln |
+|---|---|---|
+| Verweilen 20 → 0 (automatisch) | +1,2 % | −3,1 % (Rauschen; Median −0,8 %) |
+| automatisch 0 → nur Marktplatz (der Messspieler fährt nicht zum Hafen) | 0 % | −4,9 % |
+| nur Marktplatz → selbst ohne Spanne, ganztags (Regel, 1 Minute je Handgriff) | −0,4 % | +1,6 % |
+| Marktzeit 8–20 Uhr (ganztags → mit Marktzeit, ohne Spanne) | −1,3 % | +1,7 % (Rauschen) |
+| Händlerspanne beim Einkauf (ohne → mit) | −5,5 % | −4,2 % |
+| **selbst gegen automatisch (heute)** | **−6,1 %** | **−8,8 %** |
+
+**Befund:**
+- Für einen Spieler mit einer Werkstatt kostet das Verweilen fast nichts (±2 %, im Rauschen). Sein Karren ist nicht ausgelastet: 3 Fahrten im Jahr, Stillstand 1–2 %.
+- Das Verweilen trifft vor allem die KI-Häuser mit mehreren Betrieben und weiten Wegen: −8 % (Greybox 61.163 → 56.264) bzw. −5 % (Köln 64.749 → 61.493). Mit 10 Minuten ist es etwa die Hälfte. Die −4 bis −12 % aus Paket V betreffen also vor allem die KI und den Bezugsspieler mit der Strategie der KI.
+- Der Selbstfahrer ist heute schlechter als der Verwalter: −6 % in der Greybox, −9 % in Köln. Gründe:
+  - Er kauft Zutaten mit Händlerspanne (der Verwalter ohne): etwa −4 bis −6 %.
+  - Er fährt nie zum näheren Hafen (Köln): etwa −5 %.
+  - Er wartet auf die Marktzeit: −1 bis −2 %.
+  - Das gesparte Verweilen bringt ihm kaum etwas.
+- Grube und Gießerei: Selbst über den Markt verliert der Spieler 6–8 %. Die Lieferung direkt zur Gießerei ist mit dieser einfachen Regel noch schlechter (−13 % bzw. −19 %): Das Erz bringt am Markt mehr, als die Gießerei beim Einkauf spart, und der Karren der Grube fährt seltener zum Markt.
+- Nichts nachgesteuert; die Entscheidung trifft der Nutzer (F3).

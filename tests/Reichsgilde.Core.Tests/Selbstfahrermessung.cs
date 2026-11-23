@@ -30,13 +30,15 @@ static class Selbstfahrermessung
 
     /// <param name="OhneSpanne">Zur Aufteilung: Händlerspanne 0 (handel.aufschlag).</param>
     /// <param name="Ganztags">Zur Aufteilung: Markt von 4 bis 23 Uhr (handel.marktVon/-Bis), der Messspieler wartet nie auf die Marktzeit.</param>
-    sealed record Szenario(string Name, bool MitMine, Fahrweise Weise, int Verweilen, bool OhneSpanne = false, bool Ganztags = false);
+    /// <param name="OhneHafen">Zur Aufteilung: automatische Karren fahren nie zum Hafen (schiffshandel.karrenZumHafen false) – wie der Messspieler.</param>
+    sealed record Szenario(string Name, bool MitMine, Fahrweise Weise, int Verweilen, bool OhneSpanne = false, bool Ganztags = false, bool OhneHafen = false);
 
     static readonly Szenario[] Szenarien =
     {
         new("Werkstatt, automatisch (Verweilen 20)", false, Fahrweise.Automatisch, 20),
         new("Werkstatt, automatisch (Verweilen 10)", false, Fahrweise.Automatisch, 10),
         new("Werkstatt, automatisch (Verweilen 0)", false, Fahrweise.Automatisch, 0),
+        new("Werkstatt, automatisch (Verweilen 0, nur Marktplatz)", false, Fahrweise.Automatisch, 0, OhneHafen: true),
         new("Werkstatt, selbst", false, Fahrweise.Selbst, 20),
         new("Werkstatt, selbst ohne Händlerspanne", false, Fahrweise.Selbst, 20, OhneSpanne: true),
         new("Werkstatt, selbst ohne Spanne, Markt ganztags", false, Fahrweise.Selbst, 20, OhneSpanne: true, Ganztags: true),
@@ -134,6 +136,12 @@ static class Selbstfahrermessung
         if (!json.Contains(handel, StringComparison.Ordinal)) throw new InvalidDataException("handel nicht gefunden");
         json = json.Replace(handel, $"\"handel\": {{ \"aufschlag\": {(sz.OhneSpanne ? "0" : "0.10")}, \"marktVon\": {(sz.Ganztags ? 4 : 8)}, \"marktBis\": {(sz.Ganztags ? 23 : 20)} }},",
             StringComparison.Ordinal);
+        if (sz.OhneHafen)
+        {
+            const string hafen = "\"karrenZumHafen\": true,";
+            if (!json.Contains(hafen, StringComparison.Ordinal)) throw new InvalidDataException("karrenZumHafen nicht gefunden");
+            json = json.Replace(hafen, "\"karrenZumHafen\": false,", StringComparison.Ordinal);
+        }
         var daten = Wirtschaftsdaten.AusJson(json);
         var karte = Stadtkarte.AusJson(kartenText, Gebaeudekatalog.AusJson(katalog));
         var anzahl = Math.Min(Kartenhaeuser.Anzahl(kartenText), Partiebesetzung.HoechstensKi(karte, Aufstellungsart.Gelost, daten));

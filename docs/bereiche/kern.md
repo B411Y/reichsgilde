@@ -103,7 +103,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Zufallsgegner, an Oberfläche) Die Kartenwerkstatt zeigt Umland-Startplätze und Namen der Stadt im Reiter Start nur an; ändern geht über die Kartendatei oder das Stadtskript (`StartumlandHinzufuegen`, `StartumlandEntfernen`, `HausnamenSetzen` sind im Kern da). „Haus hinzufügen“ bleibt für die Probe. Im Menü „Erweitert“ kann man zwei KI-Häusern von Hand Wappen derselben Hauptfarbe geben – nur gewürfelte Wappen meiden vergebene Farben.
 - (Zufallsgegner) Namen: Ein KI-Haus würfelt aus den Namen der Stadt und denen seines Volkes in einem Topf (Köln: 7 Namen der Stadt neben 8–12 des Volkes). Alternative, falls die Geschlechter öfter vorkommen sollen: Namen der Stadt zuerst aufbrauchen. Der Vorschlag für den Spielernamen im Menü würfelt weiter nur aus den Namen seines Volkes.
 - (Zufallsgegner) Direktstart ohne Menü (`--karte=…`) stellt jetzt drei gewürfelte KI-Häuser auf wie die Vorwahl im Menü (vorher alle Häuser der Karte: Köln sieben). Messungen und Tests zählen weiter „alle Häuser der Karte“ über die Zahl der Namen der Stadt (`Kartenhaeuser.Anzahl`).
-- (Karren selbst) Messung M „Selbstfahrer“ (Spieler, der seine Karren selbst fährt) fehlt; danach Entscheidung über das Vermögen −4 bis −12 % durch das Verweilen (Nutzer).
+- (Karren selbst, Nutzer) F3 Verweilen nach Messung M (WIRTSCHAFTSMODELL „Selbstfahrer“): Das Verweilen kostet vor allem die KI (−5 bis −8 %), den Spieler mit einer Werkstatt kaum; der Selbstfahrer ist heute 6–9 % schlechter als der Verwalter (Händlerspanne beim Einkauf, kein Hafen, Marktzeit). Empfehlung: Verweilen 20 lassen, Einkauf mit `KarrenHandeln` zum Marktpreis ohne Spanne, Hafen als Ziel.
 - (Karren selbst) Strecke Betrieb → Betrieb hat noch keinen Kartenverlauf für das Bild (nur Stücke für Fahrzeit und Klappbrücke); Meister als dritter Fall von `FaehrtAutomatisch` (mit Budget).
 
 ## Entscheidungen
@@ -307,4 +307,12 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Betrieb verkaufen | Nicht, solange ein Karren des Betriebs woanders steht oder ein anderer Karren an ihm steht bzw. dorthin oder von dort fährt. Steht ein Karren an einem Betrieb, der nicht mehr dem Haus gehört, steht er wieder daheim (`StandortPruefen`). Beladene Karren am Betrieb laden beim Verkauf bzw. bei der Kündigung erst ab; die Ladung wird mit der Lagerware ausgezahlt (auch in der Vorschau). | 23.11.2026 |
 | Durchfluss | `Werkstattwesen.Durchfluss` rechnet das Verweilen nur, wenn das Haus automatisch fährt. | 23.11.2026 |
 | Tests | Neu `KarrenSelbstFahrenTests` (15: auch Kerker, Standort, Überfall Betrieb → Betrieb, Geld beim Handeln, Betriebsverkauf mit Ladung), in `HafenzielTests` einer zum Selbstfahren am Hafen. `BefehlsboteTests`: Beispielwert für `IReadOnlyList<int>`. | 23.11.2026 |
+
+### Messung Selbstfahrer (Paket M, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Werkzeug | `messen selbstfahrer [Jahre] [Startwerte] [--karten=greybox,koeln] [--datei=…] [--parallel=n]` (`tests/Reichsgilde.Core.Tests/Selbstfahrermessung.cs`): Messspieler im Messcode, fährt über die Selbstfahr-Befehle nach der Verwalterregel; Varianten nur über den Text der Daten (Verweilen 20/10/0, Händlerspanne, Marktzeit, Hafen). Kein Kerncode geändert. | 24.11.2026 |
+| Messaufbau | Grubenszenarien: Der Spieler wird für die Messung am Start Bürger und bekommt das Geld für Pacht und ein Jahr (sonst keine Grube zu haben). | 24.11.2026 |
+| Ergebnis | WIRTSCHAFTSMODELL „Selbstfahrer“: selbst −6 % (Greybox) bzw. −9 % (Köln) gegen automatisch; Spanne −4 bis −6 %, Hafen −5 % (Köln), Marktzeit −1 bis −2 %, Verweilen für den Spieler ±2 %, für die KI −5 bis −8 %. Datei `docs/messungen/balancing-2026-11-24-selbstfahrer.json`. | 24.11.2026 |
 
