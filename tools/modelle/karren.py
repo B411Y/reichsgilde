@@ -342,10 +342,13 @@ def pferd(st):
     maße = (halb, y0, y1, zf, hw)
     r_h, r_v, spur = 0.62, 0.5, 1.0
     y_vorn = -1.9
-    tip_y, tip_z = -7.6, 1.279         # Höhe des Zugpunkts der Pferde im Ziehen (tier_pferd_*, anker_ziehen_godot: Ringmitte des Kummets; Pferd B mit 1,6 m Widerrist: 1,279 m)
-    haken = 0.347                      # Abstand der Zughaken am Kummet von der Ringmitte (pferd2_geschirr.py: Ring in der Hülle von Hals und Brust, Polster, Hamen, Eisenhaken)
+    # Abstände nach dem Vorbild echter Gespanne: zwischen Pferd und dem nächsten Teil des Wagens (Waagscheit bzw. Spritzbrett) 8 bis 20 Zoll = 0,20 bis 0,51 m
+    # (IVC Carriage, „Types of Horse Carriage Shafts“). Waagscheit 0,45 m hinter der Kruppe (Pferd B: Kruppe 1,64 m hinter der Ringmitte des Kummets),
+    # Spritzbrett 0,35 m hinter dem Waagscheit: Kruppe bis Wagen 0,80 m (vorher 2,34 m).
     pole_z = 0.86                     # Höhe von Deichselende und Waagscheit (die Zugstränge steigen von dort zu den Kummeten)
-    pole_y = tip_y + 2.4               # Deichselende und Waagscheit liegen 1,3 m hinter den Kummeten (hinter den Tieren), die Zugstränge laufen an den Flanken entlang
+    pole_y = y0 - 1.175 - 0.35         # Deichselende und Waagscheit 0,35 m vor dem Spritzbrett (Vorderkante bei y0 - 1,175)
+    tip_y, tip_z = pole_y - 1.64 - 0.45, 1.279    # Zugpunkt der Pferde im Ziehen (tier_pferd_*, anker_ziehen_godot: Ringmitte des Kummets, 1,279 m hoch); Kruppe 0,45 m vor dem Waagscheit
+    haken = 0.347                      # Abstand der Zughaken am Kummet von der Ringmitte (pferd2_geschirr.py: Ring in der Hülle von Hals und Brust, Polster, Hamen, Eisenhaken)
     n = bs.Netz("Karren")
     kasten(n, st, halb, y0, y1, zf, hw, 4)
     for y, r in ((0.0, r_h), (y_vorn, r_v)):
@@ -412,10 +415,11 @@ def pferd(st):
         wn.quader(pfad[-1], (0.08, 0.06, 0.08), st["Eisen"])                                 # Haken am Hamen
     objekte.append(wn.objekt())
     sn = bs.Netz("Stuetze")
+    y_st = pole_y + 0.25                                                       # Stützbock kurz vor dem Deichselende (vorher fest bei y = -4,0)
     for s in (-1, 1):
-        zg = 0.62 + (pole_z - 0.62) * (-4.0 - (y_vorn + 0.1)) / (pole_y - (y_vorn + 0.1))
-        balken(sn, st, (s * 0.1, -4.0, zg - 0.03), (s * 0.12, -4.0, 0.0), 0.08, 0.08, "Holz", ohne=("+x", "-x"))
-        sn.quader((s * 0.12, -4.0, 0.015), (0.1, 0.12, 0.03), st["Eisen"])
+        zg = 0.62 + (pole_z - 0.62) * (y_st - (y_vorn + 0.1)) / (pole_y - (y_vorn + 0.1))
+        balken(sn, st, (s * 0.1, y_st, zg - 0.03), (s * 0.12, y_st, 0.0), 0.08, 0.08, "Holz", ohne=("+x", "-x"))
+        sn.quader((s * 0.12, y_st, 0.015), (0.1, 0.12, 0.03), st["Eisen"])
     objekte.append(bs.zustand(sn.objekt()))
     objekte += [bs.anker("Anker_Deichsel", (0, tip_y, tip_z), 180.0),
                 bs.anker("Anker_Deichselende", (0, pole_y, pole_z), 180.0),
