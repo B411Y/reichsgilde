@@ -68,7 +68,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Zunftlade, Teil 2) Die alten Tafeln haben ihre festen Farben und Größen weiter im Code (rund 800 Stellen); auf dem Pergament rechnet `FensterStil` sie beim Eintritt in den Baum in Tinte um. Wer eine Tafel neu fasst, nimmt die Farben gleich aus `fenster_thema.tres` (Typ-Varianten) und lässt die festen Farben weg. `Zeitstrahl.cs` und `WetterAnzeige.cs` (auf Holz) sind unverändert.
 - (Zunftlade, Teil 2) Selbst gezeichnete Teile (`_Draw` mit festen hellen Farben) und Farben im BBCode rechnet die Umrechnung nicht um; geprüft und angepasst sind die im PR genannten Fenster, Reste bitte melden.
 - (Zunftlade, Teil 2) Dunkel geblieben: Hauptmenü, Ladebildschirm, Kartenwerkstatt, die Einstellungen im Hauptmenü (im Spiel liegen sie auf Pergament), der 3D-Faltbrief, der Entscheidungsbrief (Teil 4), das Hinterzimmer (eigenes Thema, getrennt gebaut).
-- (von Kern, Ahtnentum) Der Kern kennt jetzt die Bekenntnisse `Altahtnisch` und `Neuahtnisch` (Religion Ahtnentum). Nachzuziehen: Glaubenswahl im Hauptmenü (`Hauptmenue.Besetzung`, heute nur K/E; Liste `KonfessionTexte.Kirchliche`, gesperrt mit `Glaubenswesen.StartglaubeVerboten`, z. B. Mensch altahtnisch), Übertritt-Knöpfe im Familienbuch (`FamilienAnzeige`, heute fest K/E; Grund aus `KonvertierenVerboten`), Kurzname im Stammbaum (`Konfession.Kurzname()`, heute zeigt er Ahtnen als „Heide“), Ziele des Ratsantrags Stadtglaube (`RatAnzeige`, heute K/E/Freiheit), Dom-Infotext in `Hauptszene`, zwei Konfessionszeichen (mit Protokolleintrag). Heirat: `Familienbuch.HeiratMachtNeuahtnisch(f, partner)` sagt vorab, ob die Hochzeit das Haus neuahtnisch macht (für einen Hinweis in der Brautschau).
 
 ## Entscheidungen
 
@@ -289,3 +288,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zweite Ebene | Unterstrichene Begriffe öffnen weiter einen zweiten Tooltip derselben schlichten Art. | 22.11.2026 |
 | Nicht angefasst | Hauptmenü, Kartenwerkstatt, Fenster und Tafeln (Pergament). Der kleine Bauplatz-Hinweis der Baumodus-Tafel (`BauAnzeige`, eigener Stilkasten im Code) war schon dunkel mit goldenem Rand. | 22.11.2026 |
 | Kürzungen | Lange Tooltip-Texte wurden nur gesichtet, nicht gekürzt; Vorschläge siehe Liste des Teamleiters (Einstellungen-Beleuchtung, Familien-Glaube, Zeitstrahl, Wohnhaus, AP-Liste). | 22.11.2026 |
+
+### Ahtnentum in der Oberfläche (Branch phase5/ahtnentum)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Glaubenswahl | Neue Partie: alle vier Bekenntnisse im Feld „Glaube“, nicht mögliche ausgegraut mit dem Grund aus `GlaubeDaten.StartglaubeVerboten` im Tooltip; Orks und Oger zeigen nur den Naturglauben. KI-Zeilen: dieselbe Sperre, sobald ein Volk gewählt ist (Glaube springt sonst auf „zufällig“). | 23.11.2026 |
+| Kern-Ergänzung | `StartglaubeVerboten` und `AufnahmeGrund` liegen jetzt auch in `GlaubeDaten` (öffentlich), damit das Hauptmenü ohne Welt fragen kann; `Glaubenswesen` delegiert. Verhalten unverändert. | 23.11.2026 |
+| Familienbuch | Übertritt-Knöpfe für alle anderen Bekenntnisse (Grund aus `KonvertierenVerboten` als Tooltip), Stammbaum/Brautschau mit `Kurzname()`; Heirat: Folge „Paar und Kinder werden neuahtnisch“ im Tooltip der Volk-Spalte und von „Heiraten“, Sperre als „Kirche im Weg“ mit Grund. | 23.11.2026 |
+| Rat, Dom | Ratsantrag Stadtglaube: alle vier Bekenntnisse; Dom-Infotext nennt Altahtnen und Neuahtnen. Konfessionszeichen (Grafik) nicht gemacht, nichts erfunden. | 23.11.2026 |
+
