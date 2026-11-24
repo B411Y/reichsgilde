@@ -49,6 +49,8 @@ Blender-Bauskripte, Trim-Sheets, Texturen, GLB, Asset-Protokoll, Messskripte. Ne
 - (Steinebenen) Die einzelnen Blätter `trim_*.png`, `innen_trim_*.png` und die AO-Atlanten liegen weiter in `game/assets/texturen/neubau/` (Quellen des Bauskripts); das Spiel lädt sie nicht mehr, sie würden aber mit exportiert. Vorschlag: aus dem Spielordner nehmen oder vom Export ausschließen.
 
 
+- (Dom evangelisch, Probe 24.11.2026) Hülle neu nach dem Artwork des Nutzers (Gemini; nur Vorlage) per Skript `dom_evangelisch_aussen.py` mit Maßen in `dom_evangelisch_form.py` (Langhaus mit Sandsteingiebel und Vorhalle, Achteck mit Zeltdach und 5 Gauben, Chor 5/8, 2 Treppentürmchen, Turm mit Kupferhaube 31 m, etwa 12.100 Dreiecke, Platz höchstens 20 × 38 m). Der Bausatz des Nutzers (`Dom_Module.blend`, Tripo3D) liefert nur Größenordnungen: Netze ohne UV und Material, 21.400 Dreiecke für je ein Modul, Fehler am Satteldach. Offen nach Freigabe der Probe: Innenraum an den neuen Grundriss anpassen (`dom_evangelisch_innen.py`, `dom_evangelisch_masse.py` stammen noch von der Hallenkirche), Rundbogenfries am Turm, Klickfläche und Schild in `Stadtansicht.Domneubau.cs` (von Darstellung: Maße der Hülle sind andere), Katalog.
+
 ## Entscheidungen
 
 ### Karrenmodelle ohne Zugtier und Figur (Branch phase5/karren-modelle, Teil b von „Karren, Zieher und Zugtiere trennen“)
