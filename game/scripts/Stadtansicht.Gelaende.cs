@@ -16,7 +16,7 @@ namespace Reichsgilde;
 /// Wege, Pflanzen und Figuren nicht in den Boden sinken oder darüber schweben. <see cref="FussHoehe"/> gilt für Figuren und Karren: Auf dem
 /// Fundament eines Gebäudes (Marktplatz, Hof) ist es dessen Höhe.</item>
 /// <item><b>Fundament</b> (<see cref="FundamentVon"/>, <see cref="SockelBauen"/>): Ein Gebäude steht auf dem höchsten Punkt unter seiner Fläche; darunter
-/// wächst ein Sockel aus Bruchstein bis zum tiefsten – das Gelände bleibt, wie es ist.</item>
+/// wächst ein Sockel aus Bruchstein bis zum tiefsten. Schwankt der Boden um höchstens 0,5 m, ebnet der Kern das Gelände ein (Tiefe 0, kein Sockel).</item>
 /// <item><b>Maus</b> (<see cref="BodenTrefferBei"/>): Der Strahl der Kamera trifft das Gelände, nicht die Ebene y = 0.</item>
 /// <item><b>Kamera</b> (<see cref="KameraHoeheNachfuehren"/>): Der Blickpunkt steigt und fällt weich mit dem Boden.</item>
 /// </list>
@@ -385,6 +385,18 @@ public partial class Stadtansicht
     {
         const double kachel = KachelZellen * Hoehenraster.Abstand;
         return new Kartenrechteck(i0 * kachel, j0 * kachel, (i1 + 1) * kachel, (j1 + 1) * kachel);
+    }
+
+    /// <summary>
+    /// Hat der Kern das Gelände unter einem Gebäude neu eingeebnet (Bauen und Abriss im Spiel, Gebäude in der Werkstatt; <see cref="Gelaendeform.EinebnungAbholen"/>)?
+    /// Dann dort die Kacheln neu – in der Werkstatt wie nach einem Pinselstrich samt allem, was darauf steht. Jedes Bild aus <c>ProzessBild</c>.
+    /// </summary>
+    private void EinebnungNachziehen()
+    {
+        if (_gelaende is not { EinebnungOffen: true } g) return;
+        foreach (var r in g.EinebnungAbholen())
+            if (_entwurf is not null) GelaendeVormerken(r);
+            else if (_bodenGebaut) GelaendeKachelnNeu(r);
     }
 
     /// <summary>
