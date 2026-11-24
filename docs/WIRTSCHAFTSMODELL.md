@@ -2747,3 +2747,7 @@ Gemessen mit `messen selbstfahrer 20 20` auf main 84d6b1ab8 + Branch `phase5/kar
 Der Rest von −1 bis −2,5 % ist etwa zur Hälfte die Marktzeit: Mit ganztags offenem Markt sind es −0,2 % bzw. −1,8 %. Die andere Hälfte ist Rauschen bzw. die Regel des Messspielers.
 
 **Befund:** Mit Hafen und Einkauf ohne Spanne fährt der Selbstfahrer etwa so gut wie der Verwalter (−1 bis −2,5 %). Gegen die KI-Häuser steht er besser da als ein Spieler mit Verwalter: Sie verlieren durch das Verweilen 5–8 %, er nichts. Mit Grube und Gießerei bleibt er über den Markt 2–8 % hinter der Automatik; die Direktlieferung bleibt mit der einfachen Regel schlechter (siehe oben).
+
+## Einebnung der Bauplätze – Messung vorher/nachher (24.11.2026, ohne neue Datenversion)
+
+Gemessen auf main 7d3b40e2 + dieser PR (vorher: main 13fcac09; der Kern und `wirtschaft.json` sind dort gleich wie in 7d3b40e2, #565 änderte nur die Darstellung). Die Einebnung ändert nur den Boden, den die Darstellung zeichnet; das Längsprofil der Wege und die Weghöhe der Zubringer (Fahrzeiten der Karren) rechnen ohne sie. `messen 30 20` und `messen 30 20 greybox`: Ausgabe vorher und nachher **Zeile für Zeile gleich** (`diff` ohne Unterschied, 48 bzw. 49 Zeilen).
