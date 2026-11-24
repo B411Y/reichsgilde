@@ -67,6 +67,12 @@ public partial class Stadtansicht
         new(NeubauOrdner + "dom_", Bodenfleckart.Steinplatten, new Vector2(21f, 39f)),
         new(NeubauOrdner + "rathaus", Bodenfleckart.Steinplatten, new Vector2(17.5f, 11.5f)),
         new(NeubauOrdner + "wohnhaus_", Bodenfleckart.Wohnhaus, new Vector2(10.6f, 10.2f), -0.2f),
+        // die fünf Wohnhaus-Modelle vor dem Neubau: Grundfläche aus dem Modell
+        new("gebaeude/fachwerkhaus", Bodenfleckart.Wohnhaus),
+        new("gebaeude/buergerhaus", Bodenfleckart.Wohnhaus),
+        new("gebaeude/steinhaus", Bodenfleckart.Wohnhaus),
+        new("gebaeude/stadtpalais", Bodenfleckart.Wohnhaus),
+        new("gebaeude/stadthof", Bodenfleckart.Wohnhaus),
         new("gebaeude/schmied", Bodenfleckart.Schmiede),
         new("gebaeude/tischler", Bodenfleckart.Schreiner),
         new("gebaeude/steinmetz", Bodenfleckart.Steinmetz),
@@ -214,7 +220,7 @@ public partial class Stadtansicht
         fleck.Transform = lageModell.AffineInverse() * oben * new Transform3D(Basis.Identity, new Vector3(0, 0.02f, 0));
         fleck.Size = new Vector3(groesse.X * mehr, 0.36f, groesse.Y * mehr);
         fleck.TextureAlbedo = BodenfleckTextur(art, gross);
-        fleck.AlbedoMix = 1f; // die Platte ist helles Pflaster: Der Fleck soll sie ganz zeigen, nicht nur tönen
+        fleck.AlbedoMix = 0.9f; // die Platte ist Erde: Der Fleck deckt sie fast ganz, ein Rest Erdton bleibt
         return true;
     }
 

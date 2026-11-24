@@ -1277,3 +1277,14 @@ Rückmeldung des Nutzers vom 23.11.2026 („Der Dom gefällt mir richtig gut, au
 | Marktstände | eigener Fleck je Stand mit 0,9 m Rand; er richtet sich nicht nach dem Sockel des Marktplatzes |
 | Klicktest | nach dem Merge von main (#564), Vulkan (NAS, RTX 2000 Ada), Köln und Greybox, Zoom 25 und 50, Pixel-Look an und aus, vorher (`alt`) und nachher: 62 Bilder, keine Skriptfehler. Lesbar auch bei Zoom 50: Kohle, Späne, Stroh und Kies auf den Sockelplatten, Saum um den Sockelfuß, Stroh an den Marktständen, Vorplatz an Rathaus und Stapelhaus; am Kölner Dom bleibt der Vorplatz unauffällig |
 | Leistung | Köln, Zoom 50, Pixel-Look, `--messung=20 --vsync=Aus`, ein Lauf je Zustand; sichtbare Decals 12 (ohne Flecke), 16 (vorher), 99 (jetzt). Mittel über 20 s: Bildzeit 56,1 / 54,6 / 57,4 ms, GPU 18,1 / 16,8 / 17,7 ms; eingeschwungen (zweite Hälfte): Bildzeit 36–40 / 36–40 / 35–46 ms, GPU je 11–13 ms. Kein Unterschied über dem Rauschen. Die Zahlen der Probe (GPU 41–46 ms) stammten aus den ersten Sekunden nach dem Laden, in denen jedes Bild rund 120 ms braucht |
+
+### Bodenflecke neu, Bruchsteinsockel statt Platte (Nutzerbefund 24.11.2026 „Tarnmuster“, „helle Platte unrealistisch“; Branch phase5/boden-decals, Runde 2, Probe)
+
+| Thema | Entscheidung |
+|---|---|
+| Ursache Tarnmuster | Das Foto war auf die ganze Fläche gestreckt und mit harten Schwellen in Hell und Dunkel zerschnitten (Schmiede: helle Asche auf Kohle) |
+| Neue Flecke | `bodenflecke.py` nimmt vom Foto nur die feine Zeichnung (Hochpass), kachelt sie in fester Metergröße (etwa 3 m), vereinfacht die Helligkeit auf drei Stufen mit kleinem Abstand, legt sie auf eine gedämpfte Grundfarbe nahe am Stadtlehm und streut wenige Körner (Schlacke, Kies, Späne, Stroh). Weicher unregelmäßiger Alpha-Rand. Schmiede: gleichmäßig dunkelgrau, Schlacke dunkel, kein Weiß. Quellen: fünf CC0-Fotos (Stroh und Späne entfallen) |
+| Wohnhaus-Fleck für die fünf alten Modelle | Zeilen in `BodenfleckRegeln` für `fachwerkhaus`, `buergerhaus`, `steinhaus`, `stadtpalais`, `stadthof` (Grundfläche aus dem Modell) |
+| Sockel | Wände aus dunklem Bruchstein (Poly Haven rock_wall_08, CC0, dreiseitig gekachelt, `SockelStein()`), oben Erde statt Pflaster (der Bodenfleck liegt darauf, Deckung 0,9). Der Sockel reicht nur noch 12 cm (vorher 35 cm) unter den tiefsten Punkt: bergseits steckt er im Boden, talseits steht die Mauer |
+| Kleine Einebnung (bis 0,5 m) | nur geprüft, nicht gebaut: Das Gelände (Höhenraster, Wegbett, Normalen, Fundamente) kommt aus `Gelaendeform` im Kern; die Darstellung liest `Punkthoehe` nur an vier Stellen, aber Normale, Fundament und Wegbett kämen weiter aus dem Kern. Sauber geht es nur dort (Einebnung als Schicht im Kern); Entscheidung beim Teamleiter |
+

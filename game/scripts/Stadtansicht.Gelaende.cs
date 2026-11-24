@@ -124,6 +124,16 @@ public partial class Stadtansicht
         return f;
     }
 
+    private static StandardMaterial3D? _sockelStein;
+
+    /// <summary>Das Material der Sockelwände: dunkler Bruchstein (Poly Haven rock_wall_08, CC0), dreiseitig gekachelt, etwa 2,5 m je Kachel.</summary>
+    private static StandardMaterial3D SockelStein() => _sockelStein ??= new StandardMaterial3D
+    {
+        AlbedoTexture = GD.Load<Texture2D>("res://assets/texturen/sockel/sockel_bruchstein.png"), Roughness = 1f,
+        Uv1Triplanar = true, Uv1WorldTriplanar = false, Uv1Scale = new Vector3(0.4f, 0.4f, 0.4f), TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
+        ResourceName = "Bruchstein dunkel",
+    };
+
     /// <summary>
     /// Der Sockel aus Bruchstein unter einem Gebäude: ein Quader von der Höhe des Fußbodens (lokal y = 0) <paramref name="tiefe"/> Meter nach unten, etwas
     /// in den Boden hinein, auf der Fläche des Gebäudes. <paramref name="mitte"/> und <paramref name="drehung"/> sind lokal im Knoten <paramref name="eltern"/>.
@@ -132,26 +142,24 @@ public partial class Stadtansicht
     private MeshInstance3D? SockelBauen(Node3D eltern, Vector3 mitte, float drehung, Vector2 groesse, float tiefe, bool erde = false)
     {
         if (tiefe < SockelMindestTiefe || groesse == Vector2.Zero) return null;
-        const float einsatz = 0.35f;
+        const float einsatz = 0.12f; // nur wenig unter den tiefsten Punkt des Bodens: Bergseits verschwindet der Fuss im Boden, talseits steht die Mauer
         var hoehe = tiefe + einsatz;
         var sockel = new MeshInstance3D
         {
             Name = "Sockel",
             Mesh = new BoxMesh { Size = new Vector3(groesse.X - 0.15f, hoehe, groesse.Y - 0.15f) },
-            MaterialOverride = Material(Bruchstein),
+            // Wände: dunkler, rauer Bruchstein (CC0-Foto, dreiseitig gekachelt); oben festgetretene Erde, darauf liegt der Bodenfleck des Gebäudes
+            MaterialOverride = erde ? Material(Weg) : SockelStein(),
             Position = mitte + new Vector3(0, -hoehe / 2, 0),
             Rotation = new Vector3(0, drehung, 0),
         };
         eltern.AddChild(sockel);
-        // Höfe vor der Stadt (Boden Stufe 2): oben festgetretene Erde wie der Hof des Modells (Stadtansicht.Bodenstempel.cs), kein helles Pflaster – das war die
-        // graue Fläche um die Mühle auf hängigem Gelände
-        if (erde) sockel.MaterialOverride = Material(Weg);
-        // oben liegt das Pflaster (nicht der helle Bruchstein): So sieht der Sockel wie ein gepflasterter Vorplatz aus
-        else sockel.AddChild(new MeshInstance3D
-        {
-            Name = "Pflaster", Mesh = new PlaneMesh { Size = new Vector2(groesse.X - 0.15f, groesse.Y - 0.15f) }, MaterialOverride = Material(Pflaster),
-            Position = new Vector3(0, hoehe / 2 + 0.02f, 0),
-        });
+        if (!erde)
+            sockel.AddChild(new MeshInstance3D
+            {
+                Name = "Erdoberseite", Mesh = new PlaneMesh { Size = new Vector2(groesse.X - 0.15f, groesse.Y - 0.15f) }, MaterialOverride = Material(Weg),
+                Position = new Vector3(0, hoehe / 2 + 0.02f, 0),
+            });
         if (!erde) SockelFleckeAnlegen(sockel, groesse); // Bodenfleck des Gebäudes auf die Platte, Erdsaum um den Fuß (Stadtansicht.Bodenfleck.cs)
         return sockel;
     }
