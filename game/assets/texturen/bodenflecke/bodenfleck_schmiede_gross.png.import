@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cl1t7h2jqdlih"
-path="res://.godot/imported/bodenfleck_schmiede.png-b1ce5a0662ed70e5fb5a085998294879.ctex"
+uid="uid://6l6ualoudhr"
+path="res://.godot/imported/bodenfleck_schmiede_gross.png-43edf63314faddc273e30c92fa68be3b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/bodenflecke/bodenfleck_schmiede.png"
-dest_files=["res://.godot/imported/bodenfleck_schmiede.png-b1ce5a0662ed70e5fb5a085998294879.ctex"]
+source_file="res://assets/texturen/bodenflecke/bodenfleck_schmiede_gross.png"
+dest_files=["res://.godot/imported/bodenfleck_schmiede_gross.png-43edf63314faddc273e30c92fa68be3b.ctex"]
 
 [params]
 

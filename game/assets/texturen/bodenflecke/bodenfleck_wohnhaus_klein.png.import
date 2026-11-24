@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwalpk3rudavw"
-path="res://.godot/imported/bodenfleck_hof.png-54053b112067cb1770057be81162f0ab.ctex"
+uid="uid://dl6h86sd41qb"
+path="res://.godot/imported/bodenfleck_wohnhaus_klein.png-1a63f144d152deffec0169eb241860e4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/bodenflecke/bodenfleck_hof.png"
-dest_files=["res://.godot/imported/bodenfleck_hof.png-54053b112067cb1770057be81162f0ab.ctex"]
+source_file="res://assets/texturen/bodenflecke/bodenfleck_wohnhaus_klein.png"
+dest_files=["res://.godot/imported/bodenfleck_wohnhaus_klein.png-1a63f144d152deffec0169eb241860e4.ctex"]
 
 [params]
 

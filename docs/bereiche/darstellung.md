@@ -385,9 +385,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Karren selbst fahren) Kamera zum Karren (Knopf in der Fahrtafel, springt zum gewählten Karren) ist nicht gebaut: Es braucht eine Rückmeldung von der Tafel an die Kamera und das Wiederfinden des Karrens beim Zoomen; Empfehlung: ein Knopf „Hinsehen“ in der Zeile des Karrens (`KarrenFahrtAnzeige`), dazu `Stadtansicht.KarrenZeigen(karren)` (ruft `Kamerafahrt` auf die Stelle von `_karren[karren].Wurzel`).
 - (Karren selbst fahren) Fahrt Betrieb → Betrieb zeigt der Karren auf dem Weg des Kerns (`Stadtwirtschaft.KarrenverlaufZwischen`, mit Fahrzeit nach der Kernzeit: gleichmäßig, ohne Folgeregel und ohne Warten an der Klappbrücke); am Halt des Heimatbetriebs am Markt springt die Reihe der Karren um den Rückstand (ein paar Meter). Die Hofreihe fremder Betriebe zeigt nur die Nummer des Karrens als Abstand; zwei fremde Karren am selben Betrieb stehen nebeneinander, mehr als drei überlappen.
 - (Karren selbst fahren) Die Karrenfahrt-Tafel erscheint im Klicktest teils in schmaler Fassung (Zustandsspalte bricht in drei Zeilen um, ohne Titelleiste), teils breit; ungeklärt, ob das vom Neuaufbau nach „Ziel im Bild wählen“ kommt (Sache der Oberfläche).
-- (Bodenflecke, Probe) Am Hang greift der Bodenfleck nicht: Der Decal-Kasten ist 0,36 m hoch um die Hausunterkante, der Boden neben einem Sockel liegt tiefer; in Köln liegt der Fleck darum nur auf der Sockelplatte (bei der Schmiede gewollt, beim Wohnhaus ragt er über die Platte ins Leere). Für den vollen Ausbau: Fleck auf die Sockelplatte zuschneiden oder Kasten nach unten verlängern und auf die Gelände-Ebene beschränken (`CullMask` wie `Stadtansicht.Torerde.cs`).
-- (Bodenflecke, Probe) Die Textur wird über die ganze Fläche gezogen: Bei großen Gebäuden wird der Ring (Kiesband, weicher Rand) in Metern breiter als bei kleinen. Feste Maße bräuchten je Größenklasse eine Textur oder ein eigenes Netz statt Decal.
-- (Bodenflecke, Probe) Der gerechnete Fleck der Werkstätten deckt das ganze Grundstück samt Zaunhof (Schmiede 15,7 × 13,0 m plus Rand); der Fleck des Wohnhauses reicht in Köln bis auf den Pflasterweg davor.
+- (Bodenflecke) Einwohnerhäuser und die alten Wohnhaus-Modelle (`fachwerkhaus` bis `stadthof`, Standard ohne `--neubauprobe=1`) haben keinen Bodenfleck: Einwohnerhäuser kommen mit den Streifen je Häuserzeile (Nutzer 24.11.2026), die alten Wohnhäuser standen nicht auf der Liste.
+- (Bodenflecke) Der Vorplatz des Kölner Doms nutzt ein 512er-Bild über rund 40 m: aus der Nähe (Zoom 25) ist das Pflaster unscharf. Eine dritte Größenklasse oder ein gekacheltes Netz statt Decal wäre der nächste Schritt.
+- (Bodenflecke) Der gerechnete Fleck der Werkstätten deckt auf ebenem Grund das ganze Grundstück samt Zaunhof plus 1,8 m; an engen Gassen reicht er bis auf den Pflasterweg.
+- (Bodenflecke) Schlussmessung auf dem Grafik-PC steht aus (NAS: kein Unterschied über dem Rauschen).
 
 ## Entscheidungen
 
@@ -1263,3 +1264,14 @@ Rückmeldung des Nutzers vom 23.11.2026 („Der Dom gefällt mir richtig gut, au
 | Vergleich | `--bodenflecke=0\|alt\|alle` (keine, Stand vor der Probe, alle Gebäude mit Erde zum Messen) |
 | Klicktest | Vulkan (NAS, RTX 2000 Ada), Köln und Greybox, Zoom 25 und 50, Pixel-Look an und aus, vorher (`alt`) und nachher, 40 Bilder, keine Skriptfehler. Lesbar: Kies und Erde am Wohnhaus, Stroh am Hof, Kohle auf der Sockelplatte der Schmiede in Köln (auch bei Zoom 50); auf ebenem Lehm (Greybox) bleibt die Schmiede schwach |
 | Leistung | Köln, Zoom 50, Pixel-Look, `--messung=20 --vsync=Aus`, je zwei Läufe (Probe: einer, der zweite lud nicht rechtzeitig): GPU-Zeit ohne Flecke 41–46 ms, vorher 43–46 ms (ein gestörter Lauf bis 96 ms), Probe 42–46 ms, alle Gebäude (rund 130 Decals auf der Karte) 41–45 ms; Bildzeit 111–135 ms in allen Zuständen (NAS, andere Last). Kein Unterschied über dem Rauschen von etwa 3 ms; eine Schlussmessung auf dem Grafik-PC steht aus |
+
+### Bodenflecke je Gebäudeart, voller Ausbau (Nutzer 24.11.2026 „Empfehlungen ok“; Branch phase5/boden-decals)
+
+| Thema | Entscheidung |
+|---|---|
+| Liste | Schreiner (Späne), Steinmetz (Steinstaub, Splitt), Wirt (nasse Erde, Stroh), Alchimist und Parfumeur (fleckig-dunkel), Prediger, Geldleiher, Gardist, Dieb (Wohnhaus-Fleck), Dom, Rathaus, Kirchen, Stapelhaus (gepflasterter Vorplatz), Marktstände (dünnes Stroh), Mühle (zweites Rechteck am Bauernhof, Bild des Hofs). Die Neubau-Häuser, Rathaus und Dom des Neubaus wechseln von der Erde auf Wohnhaus bzw. Vorplatz |
+| Einwohnerhäuser | nicht jetzt; sie bekommen später einen Streifen je Häuserzeile |
+| Mine, Steinbruch, Holzschlag | über die Bodenstempel statt Decal (kostet je Bild nichts): Grube und Steinbruch bekommen Kies mit Lücken vor der Erde; der Holzschlag hatte schon Waldboden und bleibt |
+| Zwei Größenklassen | je Art `…_klein.png` und `…_gross.png`; ab 13 m Kante das große Bild, in dem Rand, Bänder, Flecken und die Aufnahme halb so groß sind |
+| Sockel am Hang | Der Fleck des Gebäudes deckt die ganze Sockelplatte (Größe der Platte geteilt durch 1 − Randanteil, Deckung 1,0), der weiche Rand fällt über die Kante. Dazu das Decal „Sockelsaum“ (dunkle feuchte Erde, 1,6 m über die Kante, nur auf dem Gelände). Sockel aus Erde im Umland bleiben, wie sie sind (Böschung, Bodenstempel) |
+| Marktstände | eigener Fleck je Stand mit 0,9 m Rand; er richtet sich nicht nach dem Sockel des Marktplatzes |

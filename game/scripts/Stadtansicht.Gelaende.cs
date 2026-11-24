@@ -152,6 +152,7 @@ public partial class Stadtansicht
             Name = "Pflaster", Mesh = new PlaneMesh { Size = new Vector2(groesse.X - 0.15f, groesse.Y - 0.15f) }, MaterialOverride = Material(Pflaster),
             Position = new Vector3(0, hoehe / 2 + 0.02f, 0),
         });
+        if (!erde) SockelFleckeAnlegen(sockel, groesse); // Bodenfleck des Gebäudes auf die Platte, Erdsaum um den Fuß (Stadtansicht.Bodenfleck.cs)
         return sockel;
     }
 

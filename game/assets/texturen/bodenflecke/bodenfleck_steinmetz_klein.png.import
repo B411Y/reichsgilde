@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dmfe7nout4rem"
-path="res://.godot/imported/bodenfleck_wohnhaus.png-47df3e604246d46c7c0d5c663dbd1073.ctex"
+uid="uid://di75tsc0op7s0"
+path="res://.godot/imported/bodenfleck_steinmetz_klein.png-b10fc23a09ae90c25d8f8329ab4467c1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/texturen/bodenflecke/bodenfleck_wohnhaus.png"
-dest_files=["res://.godot/imported/bodenfleck_wohnhaus.png-47df3e604246d46c7c0d5c663dbd1073.ctex"]
+source_file="res://assets/texturen/bodenflecke/bodenfleck_steinmetz_klein.png"
+dest_files=["res://.godot/imported/bodenfleck_steinmetz_klein.png-b10fc23a09ae90c25d8f8329ab4467c1.ctex"]
 
 [params]
 
