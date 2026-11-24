@@ -15,6 +15,8 @@ Keine Bild-KI und keine Image-to-3D-KI. Modelle, UV und Texturen entstehen aus S
 5. `tools/modelle/neubau/dom_messen.py`: Soll gegen Ist aus den fertigen GLB (Dreiecke, Fläche, UV2, Fenster innen = außen, Anker).
 6. Im Spiel setzen `Stadtansicht.Neubau.cs` und `Stadtansicht.Domneubau.cs` Trim-Sheet, Shader, Licht, Figuren und Einrichtung je Stadtglaube.
 
+**Nachtrag 24.11.2026 (Branch phase5/dom-stein):** Das Mauerband der Hülle (`mauer`) nimmt den Stein der Menschenhäuser S2/S3 (Poly Haven `castle_wall_varriation`, 1K, CC0, Abruf 15.11.2026) in eigener Farbe, im Maßstab 1:1 wie am Haus (`haus_stein_band` in `dom_trimsheet.py`, dieselbe Rechnung wie `trimsheet_ebenen.stein_band`). Grund: das umgefärbte `sandstone_blocks_08` las sich im Pixel-Look als glatter Putz. Sandstein, Werkstein, Sockel, Schiefer und der Innenraum bleiben. Der Quellordner `--quellen` braucht dazu den Unterordner `castle_wall_varriation` mit `_diff_1k`, `_nor_gl_1k`, `_arm_1k`. Keine Bild-KI.
+
 **Aufruf**
 
 ```bash

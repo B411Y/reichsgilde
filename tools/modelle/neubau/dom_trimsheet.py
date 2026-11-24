@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb  # noqa: E402
+from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb, lade  # noqa: E402
 
 # (v0, v1, Meter je UV.x 0..1). Hoehe eines Bandes in Metern = (v1 - v0) * Meter.
 # Reihenfolge nach Farbe: Im Pixel-Look liest der Shader grobe Mip-Stufen, dort mischen sich benachbarte Baender. Neben dem Schiefer
@@ -59,6 +59,33 @@ def _felder(blatt, quellen, band, namen, stoffe):
         blatt.setze(band, faerbe(f, ton, kontrast=0.6, eigenfarbe=0.0 if name == "gold" else 0.15), n, arm, rauheit=rau, metall=1.0 if metallisch else 0.0, x0=i * feld, x1=(i + 1) * feld)
 
 
+def haus_stein_band(quellen, hoehe, meter=4.0):
+    """Mauerband mit dem Stein der Menschenhaeuser S2/S3 (Poly Haven castle_wall_varriation, 1K, reale Groesse 2 x 2 m laut
+    trimsheet_ebenen.STEINE["k1"]): in seiner eigenen Farbe, waagerecht nahtlos (2^k Kacheln je Band), derselbe Massstab wie am Haus
+    (Band von `meter` Metern Breite, hier 4,0 wie im Haus-Layout = 512 Bildpunkte je Meter), Ober- und Unterkante des Bandes auf moeglichst
+    dunklen Lagerfugen. Dieselbe Rechnung wie trimsheet_ebenen.stein_band (dort ohne Blender, hier mit den Funktionen von trimsheet.py)."""
+    n = "castle_wall_varriation"
+    o = os.path.join(quellen, n)
+    farbe = lade(os.path.join(o, f"{n}_diff_1k.jpg"))
+    normale = lade(os.path.join(o, f"{n}_nor_gl_1k.jpg"), daten=True)
+    arm = lade(os.path.join(o, f"{n}_arm_1k.jpg"), daten=True)
+    kb, kh = 2.0, 2.0
+    k = max(1, int(2 ** round(np.log2(meter / kb))))
+    tw = N // k
+    massstab = (meter / k) / kb
+    th = max(2, int(round(kh * massstab * N / meter)))
+    if farbe.shape[0] != th or farbe.shape[1] != tw:
+        raise SystemExit(f"castle_wall_varriation: Kachel {farbe.shape[1]}x{farbe.shape[0]} statt {tw}x{th} (Massstab des Hauses nicht 1:1)")
+    hell = (farbe @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean(axis=1)
+    hell = np.convolve(np.concatenate([hell[-2:], hell, hell[:2]]), np.ones(5) / 5, mode="valid")
+    ab = int(np.argmin(hell + np.roll(hell, -(hoehe % th))))
+    zeilen = (ab + np.arange(hoehe)) % th
+    spalten = np.arange(N) % tw
+    hole = lambda f: f[zeilen][:, spalten].copy()
+    print(f"Dom-Mauer: {n}: {k} Kachel(n) je {meter:g} m, Massstab {massstab:.2f}, ab Zeile {ab} von {th}")
+    return hole(farbe), hole(normale), hole(arm)
+
+
 def baue_aussen(quellen):
     B = BAENDER_DOM
     blatt = Blatt()
@@ -85,7 +112,9 @@ def baue_aussen(quellen):
     blatt.fase(B["balken"])
     band("planken", Quelle(quellen, "old_planks_02", kante=512, gedreht=True), (0.36, 0.26, 0.18), ab=8, kontrast=1.1)
     quader = Quelle(quellen, "sandstone_blocks_08")
-    band("mauer", quader, (0.68, 0.67, 0.65), ab=0, kontrast=1.6, eigenfarbe=0.2)
+    a, e = blatt.zeilen(B["mauer"])
+    f, n, arm = haus_stein_band(quellen, e - a, BAENDER_DOM["mauer"][2])          # Mauer: Stein der Menschenhaeuser S3 (24.11.2026), nicht umgefaerbt
+    blatt.setze(B["mauer"], f, n, arm)
     band("sandstein", quader, (0.80, 0.74, 0.62), ab=640, versatz=300, kontrast=1.5, eigenfarbe=0.15)
     blatt.verlauf(B["sandstein"], 0.9, 0.9, 12)
     band("werkstein", Quelle(quellen, "white_plaster_rough_01"), (0.82, 0.77, 0.66), ab=200, kontrast=1.3, eigenfarbe=0.1)
