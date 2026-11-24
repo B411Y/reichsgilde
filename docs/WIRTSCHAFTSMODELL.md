@@ -2712,3 +2712,38 @@ Gemessen mit `messen selbstfahrer 20 20` (neu, `tests/Reichsgilde.Core.Tests/Sel
   - Das gesparte Verweilen bringt ihm kaum etwas.
 - Grube und Gießerei: Selbst über den Markt verliert der Spieler 6–8 %. Die Lieferung direkt zur Gießerei ist mit dieser einfachen Regel noch schlechter (−13 % bzw. −19 %): Das Erz bringt am Markt mehr, als die Gießerei beim Einkauf spart, und der Karren der Grube fährt seltener zum Markt.
 - Nichts nachgesteuert; die Entscheidung trifft der Nutzer (F3).
+
+### Nach K4: Hafen als Ziel und Einkauf ohne Händlerspanne (24.11.2026)
+
+Gemessen mit `messen selbstfahrer 20 20` auf main 84d6b1ab8 + Branch `phase5/karren-k4` (Datenversion 99; Paket M eingespielt, Hafen als Ziel, `KarrenHandeln` kauft zum Marktpreis ohne Spanne wie der Verwalter). Datei `docs/messungen/balancing-2026-11-24-selbstfahrer-hafen.json` (440 Partien, 0 Fehler). Die automatischen Szenarien sind Zahl für Zahl gleich wie in Paket M. Der Messspieler fährt jetzt wie der Verwalter zum näheren Handelsort (`FaehrtZumHafen`) und kauft zu `KarrenKaufpreis`.
+
+**Spieler mit einer Werkstatt, Reinvermögen nach 20 Jahren (Mittel; Median):**
+
+| Szenario | Greybox | Köln |
+|---|---|---|
+| automatisch, Verweilen 20 (heute) | 15.037; 15.557 | 15.412; 16.081 |
+| selbst in Paket M (Spanne, nur Marktplatz) | 14.119; 14.445 | 14.061; 14.853 |
+| selbst ohne Spanne, nur Marktplatz | 14.840; 15.451 | 14.644; 15.413 |
+| selbst ohne Spanne, mit Hafen (heute) | 14.840; 15.451 | 15.031; 15.706 |
+| selbst ohne Spanne, mit Hafen, Markt ganztags | 15.007; 15.554 | 15.127; 16.166 |
+
+**Grube + Gießerei:**
+
+| Szenario | Greybox | Köln |
+|---|---|---|
+| selbst über den Markt mit Hafen (Paket M ohne Hafen, mit Spanne) | 31.513 (31.371) | 22.789 (21.901) |
+| selbst direkt mit Hafen | 29.689 (29.713) | 18.655 (18.850) |
+| automatisch, Verweilen 20 | 34.187 | 23.215 |
+
+**Zerlegung gegen Paket M (Werkstatt, Mittel):**
+
+| Wirkung | Greybox | Köln |
+|---|---|---|
+| ohne Händlerspanne | +5,1 % | +4,1 % |
+| Hafen als Ziel | 0 % (kein kürzerer Hafenweg) | +2,6 % |
+| selbst gegen automatisch: Paket M | −6,1 % | −8,8 % |
+| selbst gegen automatisch: heute | −1,3 % | −2,5 % (Median −2,3 %) |
+
+Der Rest von −1 bis −2,5 % ist etwa zur Hälfte die Marktzeit: Mit ganztags offenem Markt sind es −0,2 % bzw. −1,8 %. Die andere Hälfte ist Rauschen bzw. die Regel des Messspielers.
+
+**Befund:** Mit Hafen und Einkauf ohne Spanne fährt der Selbstfahrer etwa so gut wie der Verwalter (−1 bis −2,5 %). Gegen die KI-Häuser steht er besser da als ein Spieler mit Verwalter: Sie verlieren durch das Verweilen 5–8 %, er nichts. Mit Grube und Gießerei bleibt er über den Markt 2–8 % hinter der Automatik; die Direktlieferung bleibt mit der einfachen Regel schlechter (siehe oben).
