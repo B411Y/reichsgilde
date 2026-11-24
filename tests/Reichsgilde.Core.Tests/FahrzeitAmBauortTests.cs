@@ -10,7 +10,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class FahrzeitAmBauortTests
 {
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
+    static readonly string[] Arten = { "Handkarren", "Pferdekarren", "Großer Pferdekarren" };
 
     /// <summary>Die Wirtschaftsdaten mit Bauzeit 0 für Werkstätten: Die Werkstatt steht sofort, ohne ein Jahr zu spielen.</summary>
     static readonly Lazy<string> DatenSofort = new(() =>
@@ -74,7 +74,7 @@ static class FahrzeitAmBauortTests
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, daten, new NeuePartie(Rivalen: 1), karte: karte);
             var w = sim.Wirtschaft!;
-            Pruefe.Gleich(null, w.FahrzeitAmBauort(new WerkstattBauen(Betriebsart.Mine, -24, 11, 2), "Ochsenkarren"));
+            Pruefe.Gleich(null, w.FahrzeitAmBauort(new WerkstattBauen(Betriebsart.Mine, -24, 11, 2), "Pferdekarren"));
 
             // Alte Daten: ohne Abschnitt „weglaenge“ rechnet der Kern auch die gebaute Werkstatt mit fester Zeit (mal dem Belag, gemittelt über die
             // Strecke der Karrenstraßen) – die Abfrage ebenso.
@@ -89,12 +89,12 @@ static class FahrzeitAmBauortTests
             k.BerufLernen("Schmied");
             wa.Wohnen.HauswertAktualisieren(k);
             var ort = (WerkstattBauen)wa.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).First();
-            var vorher = (wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Ochsenkarren", zumMarkt: false));
+            var vorher = (wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Pferdekarren", zumMarkt: false));
             Pruefe.Wahr(wa.Ausfuehren(k, ort).Erfolg, "Bau mit alten Daten");
             var betrieb = wa.Betriebe.Single(b => b.Name == wa.Bauen.Grundstuecke.Last(g => g.Art == Grundstuecksart.Werkstatt).Betrieb);
-            Pruefe.Gleich(((int?)wa.Fahrzeit(betrieb, "Handkarren", true), (int?)wa.Fahrzeit(betrieb, "Ochsenkarren", false)), vorher);
+            Pruefe.Gleich(((int?)wa.Fahrzeit(betrieb, "Handkarren", true), (int?)wa.Fahrzeit(betrieb, "Pferdekarren", false)), vorher);
             // ohne Weglänge hängt die Zeit nicht an der Karrenart
-            Pruefe.Gleich(wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Pferdekarren"));
+            Pruefe.Gleich(wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Großer Pferdekarren"));
             // Die Zeit allein sagt in der Greybox wenig (Belag am Start überall 1: jede Strecke 30 Minuten, Befund der Prüfung) – darum die Strecke
             // selbst: vor dem Bau dieselben Stücke wie nach dem Bau, an drei Bauorten von nah bis fern
             var orte = wa.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()

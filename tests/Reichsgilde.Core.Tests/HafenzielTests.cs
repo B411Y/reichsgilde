@@ -193,7 +193,7 @@ static class HafenzielTests
                 var mitWeg = w.Betriebe.Where(b => w.FahrtenZumHafen(b) is not null).ToList();
                 Pruefe.Wahr(mitWeg.Count >= 4, $"{kennung}: {mitWeg.Count} Betriebe mit Weg zum Hafen");
                 foreach (var b in w.Betriebe)
-                    foreach (var typ in new[] { Hand, "Ochsenkarren", "Pferdekarren" })
+                    foreach (var typ in new[] { Hand, "Pferdekarren", "Großer Pferdekarren" })
                         Pruefe.Wahr(!w.FaehrtZumHafen(b, typ), $"{kennung}: {b.Name} {typ} fährt zum Marktplatz");
             }
             var (simM, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos },

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dqls5xg6kukpl"
-path="res://.godot/imported/tier_ochse_rotbraun.glb-082ebaaf6da8e6904d5131c741409336.scn"
+uid="uid://cjifx3li7yx"
+path="res://.godot/imported/karren_pferd_gross.glb-816aec49b1365ce37eb556b4db75d220.scn"
 
 [deps]
 
-source_file="res://assets/modelle/tiere/tier_ochse_rotbraun.glb"
-dest_files=["res://.godot/imported/tier_ochse_rotbraun.glb-082ebaaf6da8e6904d5131c741409336.scn"]
+source_file="res://assets/modelle/karren/karren_pferd_gross.glb"
+dest_files=["res://.godot/imported/karren_pferd_gross.glb-816aec49b1365ce37eb556b4db75d220.scn"]
 
 [params]
 

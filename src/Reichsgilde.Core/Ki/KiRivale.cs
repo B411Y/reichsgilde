@@ -1936,8 +1936,8 @@ public sealed partial class KiRivale
             return;
 
         // Kurze Stadtwege: kleiner, billiger Karren. Lange, gefährliche Umlandwege: viel Ladung je Fahrt.
-        // Ab Stufe 2 braucht die Werkstatt mehr Zutaten-Sorten auf einmal – dann lohnt der Ochsenkarren mit zwei Ladeflächen.
-        var typ = betrieb.Ort == Arbeitsort.Werkstatt && betrieb.Stufe < 2 ? "Handkarren" : "Ochsenkarren";
+        // Ab Stufe 2 braucht die Werkstatt mehr Zutaten-Sorten auf einmal – dann lohnt der Pferdekarren mit zwei Ladeflächen.
+        var typ = betrieb.Ort == Arbeitsort.Werkstatt && betrieb.Stufe < 2 ? "Handkarren" : "Pferdekarren";
         if (!_w.Daten.Logistik.Karren.TryGetValue(typ, out var daten))
             return;
         if (Konto.Vermoegen - daten.Preis < Profil.Reserve)

@@ -94,6 +94,7 @@ static class HafenRuhtTests
             Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
             Spielstandfelder.Ohne(n, Spielstandfelder.Hauschronik); // die Hauschronik (Datenversion 83): die Simulation liest sie nie
             AlterSpielstandSollwertTests.OhneGrundstuecksverwaltung(n); // nur noch Bauzonen (15.11.2026): Werkstätten sind Grundstücke, keine Bauplätze
+            Spielstandfelder.MitAltenKarrennamen(n); // Karrenarten ohne Ochsen (Datenversion 99): nur die Namen und das Format
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
@@ -127,7 +128,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(98, d.Version);
+            Pruefe.Gleich(99, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

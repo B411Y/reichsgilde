@@ -73,7 +73,7 @@ static class GehtempoRegelTests
         ("Gehtempo: gekappte Fahrt – der Kern rechnet höchstens 360 Minuten, das Bild fährt im festen Tempo weiter (nie gestaucht) und wendet am Markt sofort", () =>
         {
             var daten = Daten.Value;
-            var ochse = daten.Logistik.Karren["Ochsenkarren"];
+            var ochse = daten.Logistik.Karren["Pferdekarren"];
             var hoechst = daten.Logistik.Weglaenge!.HoechstMinuten;
             const double weg = 300; // weiter, als ein Ochse in 360 Minuten kommt (227 m)
             var frei = weg / ochse.MeterJeMinute;
