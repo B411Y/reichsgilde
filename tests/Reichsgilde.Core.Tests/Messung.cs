@@ -13,6 +13,7 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen 30 20 greybox   („greybox“ an beliebiger Stelle: mit der Greybox-Karte – Bauen, Leerstand, Neubau)
 ///          … -- messen bericht 20 20   (Balancing-Bericht als JSON in docs/messungen/, siehe Balancingbericht.cs)
 ///          … -- messen karren [Karte …]   (Fahrzeiten der Karren je Betrieb, siehe Karrenmessung.cs)
+///          … -- messen selbstfahrer [Jahre] [Startwerte] [--karten=greybox,koeln]   (Karren selbst gefahren gegen automatisch, siehe Selbstfahrermessung.cs)
 ///          … -- messen bauorte [Karte …]   (Fahrzeit an jedem Werkstatt-Bauort, siehe Bauortmessung.cs)
 ///          … -- messen blitz 20 8 [--karten=…] [--berufe=…]   (Blitzschaden mit/ohne, Sprünge je Partie, siehe Blitzmessung.cs)
 ///          … -- messen meldungen 20 8 [--karten=…] [--rollen=…]   (Meldungen je Spieljahr nach Art und Stufe, siehe Meldungsmessung.cs)
@@ -75,6 +76,9 @@ static class Messung
         // Klappbrücke über den Rhein (Datenversion 90, 15.11.2026): … -- messen klappbruecke [Jahre] [Startwerte] – siehe Klappbrueckenmessung.cs
         if (args.Length > 0 && args[0] == "klappbruecke")
             return Klappbrueckenmessung.Erstellen(args[1..]);
+        // Karren selbst fahren (Paket M, 24.11.2026): … -- messen selbstfahrer [Jahre] [Startwerte] [--karten=…] – siehe Selbstfahrermessung.cs
+        if (args.Length > 0 && args[0] == "selbstfahrer")
+            return Selbstfahrermessung.Erstellen(args[1..]);
         // Rechenzeit einer Partie (14.11.2026): … -- messen tempo [Jahre] [Startwerte] [--karte=koeln] – siehe Tempomessung.cs
         if (args.Length > 0 && args[0] == "tempo")
             return Tempomessung.Erstellen(args[1..]);

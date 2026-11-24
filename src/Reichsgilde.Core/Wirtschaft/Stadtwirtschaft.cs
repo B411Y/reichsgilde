@@ -1149,7 +1149,7 @@ public sealed partial class Stadtwirtschaft
                 WareZurueckhalten z => z.Zurueckhalten && VerwalterhandelVerboten(betrieb.Konto) is { } selbst
                     ? Befehlsergebnis.Abgelehnt(selbst) : ZurueckhaltenAusfuehren(betrieb, z),
                 HandelsauftragVerwerfen v => VormerkungVerwerfen(betrieb, v.Karren),
-                KarrenLosschicken l => KarrenLosschickenAusfuehren(betrieb, l.Karren, l.ZielBetrieb, l.Eskorte),
+                KarrenLosschicken l => KarrenLosschickenAusfuehren(betrieb, l.Karren, l.ZielBetrieb, l.Eskorte, l.Hafen),
                 KarrenZurueck z => KarrenLosschickenAusfuehren(betrieb, z.Karren, betrieb.Name, z.Eskorte),
                 KarrenBeladen l => KarrenBeladenAusfuehren(betrieb, l),
                 KarrenAbladen a => KarrenAbladenAusfuehren(betrieb, a),

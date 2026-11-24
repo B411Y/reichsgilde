@@ -114,7 +114,7 @@ static class KarrenSelbstFahrenTests
             Nein(w.Ausfuehren(k, new KarrenAbladen("Grube", 0)), "am Markt");
         }),
 
-        ("Karren selbst: Am Markt verkaufen und kaufen (Händlerspanne), dann zu einem anderen eigenen Betrieb; dort steht er mit der Ladung, „alles abladen“", () =>
+        ("Karren selbst: Am Markt verkaufen und kaufen (Marktpreis ohne Händlerspanne), dann zu einem anderen eigenen Betrieb; dort steht er mit der Ladung, „alles abladen“", () =>
         {
             var (sim, w, k, grube, g, _) = Aufbau();
             var karren = grube.Karren[0];
@@ -123,7 +123,7 @@ static class KarrenSelbstFahrenTests
             Nein(w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 5)), D())), "unterwegs");
             Ticken(sim, karren.Ankunft + 1);
             var preis = w.Markt["Eisen"].Preis;
-            var kosten = w.HandKaufpreis(k, "Holz", 5);
+            var kosten = w.KarrenKaufpreis("Holz", 5);
             Nein(w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 21)), D())), "nur 20 Eisen");
             var e = w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 20)), D(("Holz", 5))));
             Ok(e);
@@ -321,8 +321,8 @@ static class KarrenSelbstFahrenTests
             var roh = w.Markt["Eisen"].Preis * 20;
             Pruefe.Wahr(bar < roh, $"nach Steuer und Preisdruck {bar} < {roh}");
             var n = 0;
-            while (w.HandKaufpreis(k, "Holz", n + 1) <= k.Vermoegen + bar) n++;
-            Pruefe.Wahr(n > 0 && w.HandKaufpreis(k, "Holz", n + 1) <= k.Vermoegen + roh, $"die alte Schätzung (Preis × Stück) hätte {n + 1} Holz erlaubt");
+            while (w.KarrenKaufpreis("Holz", n + 1) <= k.Vermoegen + bar) n++;
+            Pruefe.Wahr(n > 0 && w.KarrenKaufpreis("Holz", n + 1) <= k.Vermoegen + roh, $"die alte Schätzung (Preis × Stück) hätte {n + 1} Holz erlaubt");
             Nein(w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 20)), D(("Holz", n + 1)))), "so viel habt ihr nicht");
             var vorher = k.Vermoegen;
             var e = w.Ausfuehren(k, new KarrenHandeln("Grube", 0, D(("Eisen", 20)), D(("Holz", n))));
