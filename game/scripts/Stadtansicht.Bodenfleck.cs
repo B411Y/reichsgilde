@@ -84,7 +84,7 @@ public partial class Stadtansicht
         new("gebaeude/stapelhaus", Bodenfleckart.Steinplatten),
         new("gebaeude/marktstaende", Bodenfleckart.Marktstroh, Rand: 0.9f, AufSockel: false),
         // der Hof zwischen Haus, Scheune und Stall (dieselbe Fläche wie der Erdstempel in game/daten/bodenstempel.json) und der Platz um die Bockwindmühle
-        new("umland/bauernhof", Bodenfleckart.Hof, Flaechen: [new Rect2(-13f, 0.6f, 10.2f, 9.4f), new Rect2(-9.5f, -9.8f, 8f, 8f)], AufSockel: false),
+        new("umland/bauernhof", Bodenfleckart.Hof, Flaechen: [new Rect2(-13f, 0.6f, 10.2f, 9.4f), new Rect2(-11f, -10.5f, 8f, 8f)], AufSockel: false),
     ];
 
     /// <summary>Ab dieser Kante (Meter, längere Seite) nimmt ein Fleck das große Bild.</summary>
