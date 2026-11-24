@@ -129,7 +129,7 @@ public partial class Stadtansicht
     /// <summary>Das Material der Sockelwände: dunkler Bruchstein (Poly Haven rock_wall_08, CC0), dreiseitig gekachelt, etwa 2,5 m je Kachel.</summary>
     private static StandardMaterial3D SockelStein() => _sockelStein ??= new StandardMaterial3D
     {
-        AlbedoTexture = GD.Load<Texture2D>("res://assets/texturen/sockel/sockel_bruchstein.png"), Roughness = 1f,
+        AlbedoTexture = GD.Load<Texture2D>("res://assets/texturen/sockel/sockel_bruchstein.png"), Roughness = 1f, AlbedoColor = new Color(0.75f, 0.75f, 0.75f), // 25 % dunkler (Nutzer 24.11.)
         Uv1Triplanar = true, Uv1WorldTriplanar = false, Uv1Scale = new Vector3(0.4f, 0.4f, 0.4f), TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
         ResourceName = "Bruchstein dunkel",
     };

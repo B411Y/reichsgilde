@@ -16,7 +16,7 @@ Aufbau (anders als die erste Runde, die ein Foto auf die Flaeche streckte und da
   * Die Helligkeit wird auf 3 Stufen vereinfacht (dunkel, mittel, hell, weich ineinander) und nur wenig von der Grundfarbe abgesetzt.
   * Die Grundfarbe ist je Art ein gedaempfter Ton nahe am Stadtlehm (LEHM), nie weiss oder reinschwarz.
   * Wenige kleine Koerner in einer Akzentfarbe (Schlacke, Kies, Spaene, Stroh) statt grosser Flecken.
-  * Die Deckung ist eine weiche, unregelmaessige Randmaske.
+  * Die Deckung laeuft zum Rand weich und unregelmaessig aus und ist innen in grossen Wolken nicht ganz voll; dazu leichte grossflaechige Helligkeitswolken.
 Alles ist fest gesaet: gleiche Quellen geben gleiche Bilder.
 """
 import os
@@ -80,10 +80,13 @@ def randabstand():
     return np.clip(-(aussen + innen - ecke), 0, 1) * K
 
 
-def alpha_rand(saat, breite=0.12, unruhe=0.07):
-    """Die Deckung: voll in der Mitte, zum Rand weich und unregelmaessig aus (Masse wie randabstand)."""
+def alpha_rand(saat, breite=0.20, unruhe=0.08, innen=0.72):
+    """Die Deckung: zum Rand weich und unregelmaessig auslaufend (Masse wie randabstand); innen nicht gleichmaessig voll, sondern in grossen
+    Wolken zwischen `innen` und 1, damit der Boden darunter stellenweise durchscheint (kein Podest)."""
     abstand = randabstand() + (rauschen(saat, 5) - 0.5) * unruhe * 2
-    return stufe(abstand, 0.02, 0.02 + breite)
+    rand = stufe(abstand, 0.02, 0.02 + breite)
+    wolke = stufe(rauschen(saat + 3, 3, 2), 0.25, 0.75)
+    return rand * (innen + (1 - innen) * wolke)
 
 
 def drei_stufen(feld, weiche=0.35):
@@ -99,7 +102,8 @@ def grund(saat, quelle_name, farbe, spanne=0.10, grob=0.5):
     fein = feinzeichnung(quelle_name, KACHELN * K)
     wolke = (rauschen(saat, 4, 2) - 0.5) * 3.0
     stufen = drei_stufen(fein * (1 - grob) + wolke * grob)
-    return farbe[None, None, :] * (1 + stufen[..., None] * spanne)
+    gross = (rauschen(saat + 5, 2, 2) - 0.5) * 2 * 0.12  # leichte grossflaechige Helligkeitswolken (+-12 %)
+    return farbe[None, None, :] * (1 + stufen[..., None] * spanne + gross[..., None])
 
 
 def koerner(saat, anteil, zellen=70, oktaven=1):
@@ -139,7 +143,7 @@ def schmiede(ziel):
     f = grund(21, "burned_ground_01", (0.20, 0.19, 0.185), 0.12)
     f = auftragen(f, koerner(22, 0.012, 80), (0.31, 0.27, 0.24), 0.8)  # Schlacke, rostig
     f = auftragen(f, koerner(23, 0.010, 90), (0.13, 0.13, 0.14), 0.8)  # Schlacke, schwarz
-    speichern(ziel, "schmiede", f, alpha_rand(24))
+    speichern(ziel, "schmiede", f, alpha_rand(24, innen=0.78))
 
 
 def hof(ziel):
@@ -174,7 +178,7 @@ def dunkel(ziel):
 
 def steinplatten(ziel):
     f = grund(81, "cobblestone_large_01", (0.43, 0.41, 0.38), 0.10, 0.2)
-    speichern(ziel, "steinplatten", f, alpha_rand(84, 0.07, 0.04))
+    speichern(ziel, "steinplatten", f, alpha_rand(84, 0.07, 0.04, 0.9))
 
 
 def marktstroh(ziel):
