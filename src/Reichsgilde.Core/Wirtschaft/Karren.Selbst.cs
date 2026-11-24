@@ -70,21 +70,20 @@ public sealed partial class Karren
     }
 
     /// <summary>
-    /// Am Markt: Waren auf den Karren kaufen (Marktpreis + Händlerspanne, jedes Stück hebt den Preis), als Zutaten gebucht – nach dem Verkauf und
-    /// je Ware nur so viel, wie das Geld dann reicht (wie der Einkaufszettel des Handelsauftrags). Zurück: die Kosten und was gekauft wurde.
+    /// Am Markt oder Hafen: Waren auf den Karren kaufen, als Zutaten gebucht – zum reinen Marktpreis wie der Verwalter, ohne Händlerspanne
+    /// (<see cref="Stadtwirtschaft.KarrenKaufpreis"/>, Nutzer 24.11.2026) – nach dem Verkauf und je Ware nur so viel, wie das Geld dann reicht.
+    /// Zurück: die Kosten und was gekauft wurde.
     /// </summary>
     internal (double Kosten, Dictionary<string, int> Gekauft) Kaufen(IReadOnlyDictionary<string, int> kauf, Stadtwirtschaft w)
     {
-        var faktor = w.HandKaufFaktor(Heimat.Konto);
         double summe = 0;
         var gekauft = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var (ware, wunsch) in kauf.Where(x => x.Value > 0).OrderBy(x => x.Key, StringComparer.Ordinal))
         {
-            var stand = w.Markt[ware];
-            var stueck = wunsch;
-            while (stueck > 0 && stand.HandKaufpreis(stueck, faktor) > Heimat.Konto.Vermoegen) stueck--;
+            var stueck = Math.Min(wunsch, (int)Math.Floor(Math.Max(0, Heimat.Konto.Vermoegen) / Math.Max(w.KarrenKaufpreis(ware, 1), 1e-9)));
+            while (stueck > 0 && w.KarrenKaufpreis(ware, stueck) > Heimat.Konto.Vermoegen) stueck--;
             if (stueck <= 0) continue;
-            var kosten = stand.HandKaufen(stueck, faktor);
+            var kosten = w.KarrenKaufpreis(ware, stueck);
             Heimat.ZutatenBuchen(kosten);
             _ladung[ware] = _ladung.GetValueOrDefault(ware) + stueck;
             gekauft[ware] = stueck;

@@ -20,7 +20,8 @@ using Reichsgilde.Core.Zeit;
 //      und selbst direkt (Erz der Grube fährt zur eigenen Gießerei, nur der Rest zum Markt).
 //  Der Messspieler fährt mit den Befehlen des Selbstfahrens (KarrenBeladen, KarrenLosschicken, KarrenHandeln, KarrenZurueck, KarrenAbladen)
 //  nach einer einfachen Regel wie der Verwalter: losfahren, wenn genug Ware da ist (Füllgrad), die Zutaten knapp werden oder die Ware zu lange
-//  wartet; am Markt wartet er auf die Marktzeit (8–20 Uhr), verkauft alles und kauft die knappen Zutaten (Händlerspanne), fährt
+//  wartet; am Markt wartet er auf die Marktzeit (8–20 Uhr), verkauft alles und kauft die knappen Zutaten (seit K4 zum Marktpreis ohne
+//  Händlerspanne wie der Verwalter), fährt
 //  zurück und lädt ab. Er verweilt nicht.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -28,10 +29,10 @@ static class Selbstfahrermessung
 {
     enum Fahrweise { Automatisch, Selbst, SelbstDirekt }
 
-    /// <param name="OhneSpanne">Zur Aufteilung: Händlerspanne 0 (handel.aufschlag).</param>
+    /// <param name="MitHafen">Der Messspieler fährt wie der Verwalter zum näheren Handelsort (Hafen als Ziel, K4); sonst nur zum Marktplatz.</param>
     /// <param name="Ganztags">Zur Aufteilung: Markt von 4 bis 23 Uhr (handel.marktVon/-Bis), der Messspieler wartet nie auf die Marktzeit.</param>
     /// <param name="OhneHafen">Zur Aufteilung: automatische Karren fahren nie zum Hafen (schiffshandel.karrenZumHafen false) – wie der Messspieler.</param>
-    sealed record Szenario(string Name, bool MitMine, Fahrweise Weise, int Verweilen, bool OhneSpanne = false, bool Ganztags = false, bool OhneHafen = false);
+    sealed record Szenario(string Name, bool MitMine, Fahrweise Weise, int Verweilen, bool MitHafen = false, bool Ganztags = false, bool OhneHafen = false);
 
     static readonly Szenario[] Szenarien =
     {
@@ -39,13 +40,13 @@ static class Selbstfahrermessung
         new("Werkstatt, automatisch (Verweilen 10)", false, Fahrweise.Automatisch, 10),
         new("Werkstatt, automatisch (Verweilen 0)", false, Fahrweise.Automatisch, 0),
         new("Werkstatt, automatisch (Verweilen 0, nur Marktplatz)", false, Fahrweise.Automatisch, 0, OhneHafen: true),
-        new("Werkstatt, selbst", false, Fahrweise.Selbst, 20),
-        new("Werkstatt, selbst ohne Händlerspanne", false, Fahrweise.Selbst, 20, OhneSpanne: true),
-        new("Werkstatt, selbst ohne Spanne, Markt ganztags", false, Fahrweise.Selbst, 20, OhneSpanne: true, Ganztags: true),
+        new("Werkstatt, selbst nur Marktplatz", false, Fahrweise.Selbst, 20),
+        new("Werkstatt, selbst mit Hafen", false, Fahrweise.Selbst, 20, MitHafen: true),
+        new("Werkstatt, selbst mit Hafen, Markt ganztags", false, Fahrweise.Selbst, 20, MitHafen: true, Ganztags: true),
         new("Mine + Werkstatt, automatisch (Verweilen 20)", true, Fahrweise.Automatisch, 20),
         new("Mine + Werkstatt, automatisch (Verweilen 0)", true, Fahrweise.Automatisch, 0),
-        new("Mine + Werkstatt, selbst über den Markt", true, Fahrweise.Selbst, 20),
-        new("Mine + Werkstatt, selbst direkt", true, Fahrweise.SelbstDirekt, 20),
+        new("Mine + Werkstatt, selbst über den Markt mit Hafen", true, Fahrweise.Selbst, 20, MitHafen: true),
+        new("Mine + Werkstatt, selbst direkt mit Hafen", true, Fahrweise.SelbstDirekt, 20, MitHafen: true),
     };
 
     /// <summary>Ein Lauf: Reinvermögen des Spielers und der KI am Ende, dazu was seine Karren taten.</summary>
@@ -63,7 +64,7 @@ static class Selbstfahrermessung
         string Wert(string name, string vorgabe) => args.FirstOrDefault(a => a.StartsWith($"--{name}=", StringComparison.Ordinal))?[(name.Length + 3)..] ?? vorgabe;
         var karten = Wert("karten", "greybox,koeln").Split(',', StringSplitOptions.RemoveEmptyEntries);
         var parallel = int.Parse(Wert("parallel", Math.Max(1, Environment.ProcessorCount - 2).ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        var datei = Wert("datei", Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "..", "..", "docs", "messungen", "balancing-2026-11-24-selbstfahrer.json"));
+        var datei = Wert("datei", Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "..", "..", "docs", "messungen", "balancing-2026-11-24-selbstfahrer-hafen.json"));
 
         var json = File.ReadAllText(Datenpfad.Wirtschaft());
         var katalog = File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "katalog.json"));
@@ -83,7 +84,7 @@ static class Selbstfahrermessung
 
         var wurzel = new JsonObject
         {
-            ["messung"] = "Selbstfahrer (Paket M)", ["jahre"] = jahre, ["startwerte"] = startwerte,
+            ["messung"] = "Selbstfahrer (Paket M, ab K4 mit Hafen als Ziel und Einkauf ohne Händlerspanne)", ["jahre"] = jahre, ["startwerte"] = startwerte,
             ["erklaerung"] = "Reinvermögen des Spielers (Schmied, passiv) nach den Jahren je Szenario: Median, Mittel, kleinstes, größtes über die Startwerte; " +
                              "KI = Mittel aller KI-Häuser. Fahrten = Fahrten zum Markt je Jahr (direkt: zur eigenen Gießerei), Verweilt und MarktWarten = Minuten je Jahr, " +
                              "Stillstand = Anteil der Arbeitszeit, in dem die Betriebe des Spielers standen.",
@@ -134,7 +135,7 @@ static class Selbstfahrermessung
         json = json.Replace(zeile, $"\"verweilenMinuten\": {sz.Verweilen},", StringComparison.Ordinal);
         const string handel = "\"handel\": { \"aufschlag\": 0.10, \"marktVon\": 8, \"marktBis\": 20 },";
         if (!json.Contains(handel, StringComparison.Ordinal)) throw new InvalidDataException("handel nicht gefunden");
-        json = json.Replace(handel, $"\"handel\": {{ \"aufschlag\": {(sz.OhneSpanne ? "0" : "0.10")}, \"marktVon\": {(sz.Ganztags ? 4 : 8)}, \"marktBis\": {(sz.Ganztags ? 23 : 20)} }},",
+        json = json.Replace(handel, $"\"handel\": {{ \"aufschlag\": 0.10, \"marktVon\": {(sz.Ganztags ? 4 : 8)}, \"marktBis\": {(sz.Ganztags ? 23 : 20)} }},",
             StringComparison.Ordinal);
         if (sz.OhneHafen)
         {
@@ -172,7 +173,7 @@ static class Selbstfahrermessung
                 throw new InvalidOperationException("keine freie Grube: " + string.Join(", ", w.FreieLiegenschaften.Select(l => $"{l.Name} ({l.Art}): {w.LiegenschaftErwerbVerboten(spieler, l.Name) ?? "frei"}")));
             lauf.Grube = grube.Name;
         }
-        var fahrer = selbst ? new Messspieler(w, spieler, werkstatt, sz.Weise == Fahrweise.SelbstDirekt ? grube : null, lauf) : null;
+        var fahrer = selbst ? new Messspieler(w, spieler, werkstatt, sz.Weise == Fahrweise.SelbstDirekt ? grube : null, lauf, sz.MitHafen) : null;
         var vorher = new Dictionary<Karren, KarrenZustand>(ReferenceEqualityComparer.Instance);
         double stillstand = 0, arbeit = 0;
         for (var jahr = 0; jahr < jahre; jahr++)
@@ -218,10 +219,11 @@ static class Selbstfahrermessung
         private readonly Betrieb _werkstatt;
         private readonly Betrieb? _direkt;
         private readonly Lauf _lauf;
+        private readonly bool _mitHafen;
         private readonly Dictionary<Karren, long> _wareWartetSeit = new(ReferenceEqualityComparer.Instance);
 
-        public Messspieler(Stadtwirtschaft w, Konto k, Betrieb werkstatt, Betrieb? direkt, Lauf lauf) =>
-            (_w, _k, _werkstatt, _direkt, _lauf) = (w, k, werkstatt, direkt, lauf);
+        public Messspieler(Stadtwirtschaft w, Konto k, Betrieb werkstatt, Betrieb? direkt, Lauf lauf, bool mitHafen) =>
+            (_w, _k, _werkstatt, _direkt, _lauf, _mitHafen) = (w, k, werkstatt, direkt, lauf, mitHafen);
 
         private LogistikDaten L => _w.Daten.Logistik;
 
@@ -306,7 +308,8 @@ static class Selbstfahrermessung
                 }
             }
             if (plan.Count > 0 && Befehl(new KarrenBeladen(heimat.Name, nr, plan))) _wareWartetSeit.Remove(k);
-            Befehl(new KarrenLosschicken(heimat.Name, new[] { nr }, null));
+            // Wie der Verwalter zum näheren Handelsort (Hafen, wenn er offen und die Rundfahrt dorthin kürzer ist).
+            Befehl(new KarrenLosschicken(heimat.Name, new[] { nr }, null, Hafen: _mitHafen && _w.FaehrtZumHafen(heimat, k.Typ)));
         }
 
         /// <summary>Wie der Verwalter: jede Ladefläche mit der Ware, von der am meisten übrig ist.</summary>
@@ -327,7 +330,7 @@ static class Selbstfahrermessung
 
         /// <summary>
         /// Wie der Verwalter (Karren.ZutatenEinkaufen): die knappste Zutat zuerst, bis zum Vorrat für einige Arbeitsstunden, höchstens die Hälfte des
-        /// freien Geldes – nur zum Handkaufpreis (Händlerspanne). Die Ladeflächen nach dem Verkauf der ganzen Ladung.
+        /// freien Geldes – zum Preis des Selbstfahrens (<see cref="Stadtwirtschaft.KarrenKaufpreis"/>). Die Ladeflächen nach dem Verkauf der ganzen Ladung.
         /// </summary>
         private Dictionary<string, int> Einkauf(Betrieb b, Karren k, IReadOnlyDictionary<string, int> verkauf)
         {
@@ -348,7 +351,7 @@ static class Selbstfahrermessung
                     .OrderBy(z => z.Bestand / z.Menge).ThenBy(z => z.Zutat, StringComparer.Ordinal)
                     .FirstOrDefault();
                 if (knappste.Zutat is null) break;
-                var preis = _w.HandKaufpreis(_k, knappste.Zutat, 1);
+                var preis = _w.KarrenKaufpreis(knappste.Zutat, 1);
                 var platz = Math.Min(k.Daten.KapazitaetJeSorte, knappste.Ziel - knappste.Bestand);
                 var menge = (int)Math.Min(platz, Math.Floor(budget / preis));
                 var noetig = stockt ? Math.Min(platz, L.NachkaufUnterStueck * knappste.Menge - knappste.Bestand) : 0;

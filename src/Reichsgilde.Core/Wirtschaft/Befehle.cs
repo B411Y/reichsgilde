@@ -402,7 +402,7 @@ public sealed record KarrenAbladen(string Betrieb, int Karren, IReadOnlyDictiona
 
 /// <summary>
 /// Am Markt handeln: Ladung verkaufen (<paramref name="Verkauf"/>, wie der Verwalter zum Marktpreis mit Verhandeln und Steuer) und Waren für die
-/// Ladung kaufen (<paramref name="Kauf"/>, Marktpreis + Händlerspanne wie beim Handel von Hand). Nur wenn der Karren am Markt steht und der Markt offen hat.
+/// Ladung kaufen (<paramref name="Kauf"/>, zum reinen Marktpreis wie der Verwalter, ohne Händlerspanne (Nutzer 24.11.2026)). Nur wenn der Karren am Markt steht und der Markt offen hat.
 /// </summary>
 public sealed record KarrenHandeln(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf)
     : KarrenFahrbefehl(Betrieb);

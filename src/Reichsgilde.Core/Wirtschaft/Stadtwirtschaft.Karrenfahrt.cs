@@ -248,13 +248,19 @@ public sealed partial class Stadtwirtschaft
         if (karren.Flaechen(danach) > karren.Daten.Sorten)
             return $"So viel fasst {karren.Name} nicht: {Zahlenformat.Ganz(karren.Daten.Sorten)} × {Zahlenformat.Ganz(karren.Daten.KapazitaetJeSorte)} Stück (je Ladefläche eine Ware).";
         // Erst wird verkauft, dann gekauft: Der Erlös nach Steuer (dieselbe Rechnung wie die Abrechnung) zählt zum Geld für die Einkäufe.
-        var kosten = kaufen.Sum(x => HandKaufpreis(konto, x.Key, x.Value));
+        var kosten = kaufen.Sum(x => KarrenKaufpreis(x.Key, x.Value));
         var erloes = verkaufen.Sum(x => KarrenHandelBarerloes(karren, x.Key, x.Value));
         if (kosten > konto.Vermoegen + erloes)
             return $"Die Einkäufe kosten {Zahlenformat.Ganz(kosten)} {Daten.Allgemein.Waehrung}" +
                    (erloes > 0 ? $", der Verkauf bringt nach Steuer {Zahlenformat.Ganz(erloes)}" : "") + " – so viel habt ihr nicht.";
         return null;
     }
+
+    /// <summary>
+    /// Was ein selbst gefahrener Karren für so viele Stück einer Ware am Markt oder Hafen zahlt: der reine Marktpreis, genau wie der Verwalter einkauft
+    /// (<see cref="Marktstand.Kaufen"/>), ohne Händlerspanne (Nutzer 24.11.2026, F12). Für Prüfung, Abrechnung und Oberfläche.
+    /// </summary>
+    public double KarrenKaufpreis(string ware, int stueck) => Markt[ware].Kaufen(stueck);
 
     /// <summary>Warum Handelsauftrag, Vormerkung und „Ware zurückhalten“ für dieses Haus nicht gehen (selbst gefahren: der Spieler handelt am Markt) – oder null.</summary>
     public string? VerwalterhandelVerboten(Konto konto) =>

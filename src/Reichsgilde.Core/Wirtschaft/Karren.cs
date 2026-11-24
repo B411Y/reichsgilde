@@ -607,7 +607,7 @@ public sealed partial class Karren
                 nurNoetigstes = true;
             }
             if (menge <= 0) break;
-            var kosten = w.Markt[knappste.Zutat].Kaufen(menge);
+            var kosten = w.KarrenKaufpreis(knappste.Zutat, menge); // derselbe Preis wie beim Selbstfahren (ohne Händlerspanne)
             budget -= kosten;
             Heimat.ZutatenBuchen(kosten);
             _ladung[knappste.Zutat] = _ladung.GetValueOrDefault(knappste.Zutat) + menge;
