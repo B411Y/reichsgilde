@@ -19,7 +19,7 @@ HIER = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HIER)
 import rathaus_bib as B                                              # noqa: E402
 from rathaus_bib import EZ, Loch, mauer                              # noqa: E402
-from dom_trimsheet import BAENDER_DOM, BAENDER_DOM_INNEN, FELDER_DOM, FELDER_DOM_INNEN   # noqa: E402
+from dom_trimsheet import BAENDER_DOM, BAENDER_DOM_INNEN, FELDER_DOM, FELDER_DOM_INNEN, SCHIEFER_REIHEN   # noqa: E402
 
 V = Vector
 
@@ -433,6 +433,56 @@ def saeule(teil, mitte, radius, z0, z1, seiten=8, band="werkstein", kapitell=0.5
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 #  Stoffe, Bau, Export
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=True, saat=1, band="schiefer"):
+    """Schieferdach in Deckreihen (Nutzer, 24.11.2026), nach dem Verfahren von wohnhaus_mensch_s23.ziegelflaeche: Die Flaeche von der
+    Unterkante a0-a1 zur Oberkante b0-b1 (b0 == b1: Dreieck, Helm) liegt in Lagen von `lage` Metern, jede am Fuss angehoben (Keil).
+    Jede Lage fuellt eine der Reihen des Bandes (dom_trimsheet.SCHIEFER_REIHEN, reihum).
+    Anders als am Wohnhaus steht die Stirn jeder Lage SENKRECHT (`stufe` Meter hoch) und nimmt ihre Farbe aus dem dunklen Band
+    "schiefer_kante": Am Wohnhaus zeichnet die gebackene Verdeckung (AO-Atlas) die Reihen, die Zelle des Doms ist dafuer zu grob
+    (rund 0,25 m je Texel), und eine Stirn quer zur Dachflaeche zeigt nach unten - von der Kamera aus unsichtbar. Die senkrechte
+    Stirn sieht die Kamera als dunkle Linie; die Lage darunter endet am Fuss der Stirn.
+    `stufe=0`: glatte Flaeche in Streifen von Bandhoehe (Turmhelme: Keile ueberschnitten sich an den Graten), die Reihen kommen dort
+    nur aus der Textur. `karte`: Alpha-Card (Schieferkante) an der Traufe. Lage 0,30 m statt 0,25 m wie am Wohnhaus: mit 0,25 m lag
+    die Huelle 163 Dreiecke ueber dem Budget (15.163 von 15.000); die Reihe der Textur (0,25 m) wird dafuer um ein Fuenftel gestreckt."""
+    a0, a1, b0, b1 = Vector(a0), Vector(a1), Vector(b0), Vector(b1)
+    e = (a1 - a0).normalized()
+    hoch = (b0 + b1) / 2 - (a0 + a1) / 2
+    n = e.cross(hoch).normalized()
+    if n.dot(Vector(aussen) - a0) < 0: n = -n
+    lang = hoch.length
+    runter = -hoch.normalized()
+    v0, v1, m = teil.baender[band]
+    c0, c1, _ = teil.baender["schiefer_kante"]
+    reihen = SCHIEFER_REIHEN if stufe > 0 else 1
+    rh = (v1 - v0) / reihen
+    rand = 1.5 / 2048                                       # Abstand zur Nachbarreihe (kein Durchscheinen beim Filtern)
+    anz = max(1, round(lang / (lage * (1 if stufe > 0 else SCHIEFER_REIHEN))))
+    hub = n * (stufe * n.z)                                 # Fuss der Lage: so weit ueber der Dachebene, dass die Stirn senkrecht `stufe` hoch ist
+    fall = EZ * stufe
+    for k in range(anz):
+        t0, t1 = k / anz, (k + 1) / anz
+        p0, q0, p1, q1 = a0.lerp(b0, t0), a1.lerp(b1, t0), a0.lerp(b0, t1), a1.lerp(b1, t1)
+        if k < anz - 1: p1, q1 = p1 + hub - fall, q1 + hub - fall        # Oberkante = Fuss der Stirn der naechsten Lage (liegt in der Dachebene)
+        r = (k + saat) % reihen
+        va, vb = v0 + r * rh + rand, v0 + (r + 1) * rh - rand            # va oben (Schatten der naechsten Reihe), vb unten (helle Kante)
+        off = ((k * 7919 + saat * 31) % 1000) / 1000.0 * m
+        u = lambda p: ((p - a0).dot(e) + off) / m
+        pts = [p0 + hub, q0 + hub, q1, p1]
+        uvs = [(u(p0), vb), (u(q0), vb), (u(q1), va), (u(p1), va)]
+        if (q1 - p1).length < 1e-5: pts, uvs = pts[:3], uvs[:3]
+        teil.vieleck("Schiefer", pts, uvs, zu=(pts[0] + pts[1] + pts[2]) / 3 + n)
+        if stufe > 0:                                       # senkrechte Stirn der Lage, dunkel (Mitte des Bandes "schiefer_kante")
+            cm, ch = (c0 + c1) / 2, (c1 - c0) * 0.2
+            teil.vieleck("Schiefer", [p0 + hub - fall, q0 + hub - fall, q0 + hub, p0 + hub],
+                         [(u(p0), cm + ch), (u(q0), cm + ch), (u(q0), cm - ch), (u(p0), cm - ch)], zu=(p0 + q0) / 2 + hub + (n - EZ * n.z) * 5 - fall / 2)
+    if karte:
+        hk = 0.20
+        hebe = hub + n * 0.012
+        pts = [a0 + runter * 0.14 + hebe, a1 + runter * 0.14 + hebe, a1 - runter * (hk - 0.14) + hebe, a0 - runter * (hk - 0.14) + hebe]
+        uu = lambda p: ((p - a0).dot(e) + 0.3) / m
+        teil.vieleck("Schieferkante", pts, [(uu(a0), c1), (uu(a1), c1), (uu(a1), c0), (uu(a0), c0)], zu=(pts[0] + pts[2]) / 2 + n)
+
 
 def stoffe_aussen():
     b = "dom_trim"
