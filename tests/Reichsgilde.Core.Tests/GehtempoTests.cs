@@ -178,6 +178,24 @@ static class GehtempoTests
             Pruefe.Ungefaehr(0.7, z.Weg(kurz, kurz), 1e-9); // 3 von 10 Minuten zurück
         }),
 
+        ("Karrenzug: ein selbst gefahrener Karren steht am Markt (AmMarkt), so lange der Spieler ihn nicht zurückschickt; Abgleichen stellt ihn dorthin, nicht auf den Rückweg", () =>
+        {
+            var kurz = Eben(10, 1);
+            var z = new Karrenzug();
+            z.Weiter(0, KarrenZustand.ZumMarkt, kurz, kurz);
+            z.Weiter(12, KarrenZustand.AmMarkt, kurz, kurz); // der Kern hat ihn schon am Markt abgestellt, der Zug kommt gerade an
+            Pruefe.Gleich(Etappe.Markt, z.Etappe);
+            z.Weiter(600, KarrenZustand.AmMarkt, kurz, kurz);
+            Pruefe.Gleich(Etappe.Markt, z.Etappe);
+            Pruefe.Ungefaehr(1, z.Weg(kurz, kurz), 1e-9);
+            Pruefe.Wahr(z.ZumMarkt, "blickt zum Markt");
+            z.Weiter(3, KarrenZustand.ZumBetrieb, kurz, kurz);
+            Pruefe.Gleich(Etappe.Zurueck, z.Etappe);
+            var a = new Karrenzug();
+            a.Abgleichen(KarrenZustand.AmMarkt, 1, kurz, kurz);
+            Pruefe.Gleich(Etappe.Markt, a.Etappe);
+        }),
+
         ("Karrenzug: verpasste Fahrten verfallen – höchstens eine bleibt offen", () =>
         {
             var hin = Eben(100, 1);

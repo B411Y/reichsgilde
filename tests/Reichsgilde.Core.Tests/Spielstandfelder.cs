@@ -77,7 +77,7 @@ static class Spielstandfelder
     };
 
     /// <summary>
-    /// Karrenarten ohne Ochsen (Datenversion 98, Spielstand-Format 4): Nur die Namen ändern sich (Pferdekarren war der Ochsenkarren, Großer
+    /// Karrenarten ohne Ochsen (Datenversion 99, Spielstand-Format 4): Nur die Namen ändern sich (Pferdekarren war der Ochsenkarren, Großer
     /// Pferdekarren der Pferdekarren), die Partie rechnet gleich. Für den Vergleich mit Sollwerten eines älteren Kerns: Format 4 → 3 und die alten
     /// Namen zurück, in einem Durchgang (Schlüssel, Werte, Texte).
     /// </summary>

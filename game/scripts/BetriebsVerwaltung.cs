@@ -96,7 +96,11 @@ public partial class BetriebsVerwaltung : VBoxContainer
 
     /// <summary>Der Spieler will mit diesem Betrieb am Markt handeln (öffnet das Marktfenster).</summary>
     public event Action<Betrieb>? HandelGewuenscht;
+
+    /// <summary>Der Spieler fährt seine Karren selbst und will sie losschicken (öffnet das Transportmenü, <see cref="KarrenFahrtAnzeige"/>).</summary>
+    public event Action<Betrieb>? KarrenFahrtGewuenscht;
     private Button _handelKnopf = null!;
+    private bool _selbstFahren;
 
     /// <summary>Der Spieler will den Betrieb verkaufen bzw. die Pacht kündigen (öffnet die Rückfrage).</summary>
     public event Action<Betrieb>? VerkaufGewuenscht;
@@ -269,7 +273,12 @@ public partial class BetriebsVerwaltung : VBoxContainer
         kauf.AddChild(_kaufenKnopf);
         _handelKnopf = new Button { Text = "Handel am Markt …", FocusMode = FocusModeEnum.None,
                                     TooltipText = "Einen Karren mit einem Auftrag zum Markt schicken: verkaufen, einkaufen, Waren zurückhalten." };
-        _handelKnopf.Pressed += () => { if (_betrieb is not null) HandelGewuenscht?.Invoke(_betrieb); };
+        _handelKnopf.Pressed += () =>
+        {
+            if (_betrieb is null) return;
+            if (_selbstFahren) KarrenFahrtGewuenscht?.Invoke(_betrieb);
+            else HandelGewuenscht?.Invoke(_betrieb);
+        };
         kauf.AddChild(_handelKnopf);
 
         // Verkaufen bzw. Pacht kündigen – erst nach einer Rückfrage (VerkaufAnzeige). Gesperrt mit Grund aus dem Kern.
@@ -462,6 +471,12 @@ public partial class BetriebsVerwaltung : VBoxContainer
         _kaufenKnopf.Disabled = grenze is not null || b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
         _kaufenKnopf.TooltipText = grenze ?? (w.Daten.Logistik.HoechstKarren(b.Ort) is { } n ? $"Höchstens {n} Karren je Betrieb {(b.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")}." : "");
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
+        // Selbst gefahren: kein Handelsauftrag, sondern das Transportmenü (Handelsauftrag, Vormerkung und „zurückhalten“ gibt es dann nicht)
+        _selbstFahren = _spieler is not null && w.VerwalterhandelVerboten(_spieler) is not null;
+        _handelKnopf.Text = _selbstFahren ? "Karren fahren …" : "Handel am Markt …";
+        _handelKnopf.TooltipText = _selbstFahren
+            ? "Karren des Hauses losschicken: zum Markt oder zu einem eigenen Betrieb, dort laden, handeln und zurückschicken."
+            : "Einen Karren mit einem Auftrag zum Markt schicken: verkaufen, einkaufen, Waren zurückhalten.";
     }
 
     /// <summary>Der Knopf „Verkaufen (… Gulden)“ eines Karrens: gesperrt, solange der Kern einen Grund nennt (unterwegs).</summary>

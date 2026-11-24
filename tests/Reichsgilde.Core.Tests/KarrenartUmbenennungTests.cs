@@ -6,7 +6,7 @@ using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Tests: Umbenannte Karrenarten. Seit Datenversion 98 (Nutzer, 23.11.2026) gibt es den Ochsenkarren nicht mehr: Der „Pferdekarren“ mit einem
+/// Tests: Umbenannte Karrenarten. Seit Datenversion 99 (Nutzer, 23.11.2026) gibt es den Ochsenkarren nicht mehr: Der „Pferdekarren“ mit einem
 /// Pferd hat seine Werte, der bisherige „Pferdekarren“ mit zwei Pferden heißt „Großer Pferdekarren“ (bis 04.11.2026 „Kriegskarren“).
 /// Spielstände bis Format 3 tragen die alten Namen in ihren mitgespeicherten Daten, in den Karren, in Befehlen und Texten – beim Laden werden
 /// sie in einem Durchgang umgestellt (nie zweimal), die Partie läuft genau so weiter.

@@ -50,7 +50,8 @@ static class KiKarrenwahlTests
     {
         var d = w.Daten.Logistik.Karren[typ];
         var waren = Math.Max(1, b.IstWerkstatt ? Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count) : b.Rohstoffe.Count);
-        return Math.Min(d.Gesamtkapazitaet, b.LagerKapazitaetJeWare * waren) / (double)(w.Fahrzeit(b, typ, true) + w.Fahrzeit(b, typ, false));
+        // Rundfahrt samt Verweilen am Markt (Datenversion 98)
+        return Math.Min(d.Gesamtkapazitaet, b.LagerKapazitaetJeWare * waren) / (double)(w.Fahrzeit(b, typ, true) + w.Fahrzeit(b, typ, false) + w.Daten.Logistik.VerweilenMinuten);
     }
 
     /// <summary>Wie <c>Pruefe.Ungefaehr</c>, mit Hinweis.</summary>
@@ -75,7 +76,7 @@ static class KiKarrenwahlTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("KI-Karrenwahl: Durchfluss = Ladung (höchstens das Lager) ÷ (hin + zurück) nach der Fahrzeit des Kerns – im Kölner Umland das Pferd vorn, der Handkarren hinten", () =>
+        ("KI-Karrenwahl: Durchfluss = Ladung (höchstens das Lager) ÷ (hin + zurück + Verweilen am Markt) nach der Fahrzeit des Kerns – im Kölner Umland das Pferd vorn, der Handkarren hinten", () =>
         {
             var (_, w) = Koeln();
             foreach (var name in new[] { Holzschlag, Bauernhof })
@@ -90,8 +91,8 @@ static class KiKarrenwahlTests
             // Holz ist eine Ware: Das Lager fasst 40 – mehr lädt auch der Große Pferdekarren (75) nicht. Zwei Waren: 80, der Große Pferdekarren fährt voll.
             var (k1, holz) = Von(w, Holzschlag);
             var (k2, hof) = Von(w, Bauernhof);
-            Pruefe.Ungefaehr(40.0 / (w.Fahrzeit(holz, "Großer Pferdekarren", true) + w.Fahrzeit(holz, "Großer Pferdekarren", false)), k1.Durchfluss(holz, "Großer Pferdekarren"), 1e-12);
-            Pruefe.Ungefaehr(75.0 / (w.Fahrzeit(hof, "Großer Pferdekarren", true) + w.Fahrzeit(hof, "Großer Pferdekarren", false)), k2.Durchfluss(hof, "Großer Pferdekarren"), 1e-12);
+            Pruefe.Ungefaehr(40.0 / (w.Fahrzeit(holz, "Großer Pferdekarren", true) + w.Fahrzeit(holz, "Großer Pferdekarren", false) + w.Daten.Logistik.VerweilenMinuten), k1.Durchfluss(holz, "Großer Pferdekarren"), 1e-12);
+            Pruefe.Ungefaehr(75.0 / (w.Fahrzeit(hof, "Großer Pferdekarren", true) + w.Fahrzeit(hof, "Großer Pferdekarren", false) + w.Daten.Logistik.VerweilenMinuten), k2.Durchfluss(hof, "Großer Pferdekarren"), 1e-12);
         }),
 
         ("KI-Karrenwahl: Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ vorher); Mehrgewinn = gesparter Anteil × Wert eines vollen Arbeitsjahres", () =>

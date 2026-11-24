@@ -103,8 +103,10 @@ static class SteinebenenTests
             var soll = new[] { Steinebenen.Ebene(Volk.Halbling, 2), Steinebenen.Ebene(Volk.Halbling, 3) };
             for (var i = 0; i < werte.Length; i++)
                 Pruefe.Gleich(1f, werte[i], $"BAND_REIN Ebene {i} ({Steinebenen.Haeuser[i].Name})");   // seit 19.11.2026 alle Völker (Halblinge zuerst: soll)
-            // Ohne Pixel-Look bleibt alles bildpunktgleich: der Zweig mit band_lesen steht hinter pixel_look > 0,5 (und nur aussen, nur im Häuser-Array)
-            Pruefe.Wahr(Regex.IsMatch(text, @"if \(!scharf && pixel_look > 0\.5 && haus_baender > 0\.5 && stein_je_ebene && BAND_REIN\["), "band_lesen nur im Pixel-Look");
+            // Ohne Pixel-Look bleibt alles bildpunktgleich: der Zweig mit band_lesen steht hinter pixel_look > 0,5 (und nur aussen; im Häuser-Array
+            // nach BAND_REIN, bei eigenen Blättern nur mit band_rein_eigen – seit dem 23.11.2026 der Dom aussen, Standard 0)
+            Pruefe.Wahr(Regex.IsMatch(text, @"if \(!scharf && pixel_look > 0\.5 && haus_baender > 0\.5 && \(stein_je_ebene \? BAND_REIN\[[^\]]*\] > 0\.5 : band_rein_eigen > 0\.5\)"), "band_lesen nur im Pixel-Look");
+            Pruefe.Wahr(Regex.IsMatch(text, @"uniform float band_rein_eigen = 0\.0;"), "eigene Blätter lesen ohne Zutun wie bisher (band_rein_eigen 0)");
             Pruefe.Wahr(!soll.Contains(Steinebenen.Ebene(Volk.Elb, 3)), "Gegenprobe: Elb S3 liegt nicht auf einer Halbling-Ebene");
             // Geteiltes Band „stroh“ (Efeu oben, Kupfer darunter): nur Halbling Stufe 3
             var teil = Regex.Match(text, @"const float STROH_TEIL\[(\d+)\] = float\[\d+\]\(([^)]*)\);");

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Reichsgilde.Core.Speichern;
 
 /// <summary>
-/// Umbenannte Karrenarten in alten Spielständen (Format bis 3; Entscheidung des Nutzers, 23.11.2026, Datenversion 98):
+/// Umbenannte Karrenarten in alten Spielständen (Format bis 3; Entscheidung des Nutzers, 23.11.2026, Datenversion 99):
 ///   • den Ochsenkarren gibt es nicht mehr – an seine Stelle tritt der „Pferdekarren“ mit einem Pferd und denselben Werten;
 ///   • der bisherige „Pferdekarren“ mit zwei Pferden heißt „Großer Pferdekarren“ (gleiche Werte);
 ///   • der „Kriegskarren“ (bis 04.11.2026 der Name des Zweispänners) wird ebenfalls zum „Großen Pferdekarren“.

@@ -46,7 +46,7 @@ static class ToreTests
             Pruefe.Gleich((long)Spielzeit.MinutenProTag, karren.TorWartenBis!.Value);
 
             // Nächster Morgen (= nächstes Spieljahr): Tor offen, der Karren kommt am Markt an.
-            Ticken(sim, Spielzeit.MinutenProTag + 2);
+            Ticken(sim, Spielzeit.MinutenProTag + 22); // verkauft, 20 Minuten am Markt verweilt (Datenversion 98), auf dem Rückweg
             Pruefe.Wahr(!karren.WartetAmTor(sim.Zeit), "Am Morgen wartet niemand mehr");
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, karren.Zustand);
             Pruefe.Wahr(k.Laufend.Umsatz > 0, "Am Morgen verkauft");
@@ -57,7 +57,7 @@ static class ToreTests
             var (sim, k, mine) = Aufbau(19);
             mine.Karren[0].NachtsFahren = true;
             sim.Tick();
-            Ticken(sim, Um(21, 5));
+            Ticken(sim, Um(21, 25)); // mit dem Verweilen am Markt
             var karren = mine.Karren[0];
             Pruefe.Wahr(!karren.WartetAmTor(sim.Zeit), "Mit Erlaubnis wartet der Karren nicht");
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, karren.Zustand);
@@ -69,7 +69,7 @@ static class ToreTests
         {
             var (sim, k, mine) = Aufbau(17);
             sim.Tick();
-            Ticken(sim, Um(19, 5));
+            Ticken(sim, Um(19, 25)); // mit dem Verweilen am Markt
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, mine.Karren[0].Zustand);
             Pruefe.Gleich(0.0, k.Laufend.Transport);
             Pruefe.Wahr(mine.Karren[0].TorWartenBis is null, "kein Warten");
@@ -82,7 +82,7 @@ static class ToreTests
             var k = w.KontoEroeffnen("Spieler");
             var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, k);
             sim.Tick(); // braucht Zutaten → fährt zum Markt
-            Ticken(sim, Um(21, 10));
+            Ticken(sim, Um(21, 30)); // mit dem Verweilen am Markt
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, g.Karren[0].Zustand);
             Pruefe.Wahr(g.Karren[0].TorWartenBis is null, "Stadtkarren warten nie am Tor");
         }),
@@ -93,7 +93,7 @@ static class ToreTests
             Pruefe.Wahr(ohne.Logistik.Tore is null, "Abschnitt nicht entfernt");
             var (sim, k, mine) = Aufbau(19, daten: ohne);
             sim.Tick();
-            Ticken(sim, Um(21, 5));
+            Ticken(sim, Um(21, 25)); // mit dem Verweilen am Markt
             Pruefe.Gleich(KarrenZustand.ZumBetrieb, mine.Karren[0].Zustand);
             Pruefe.Wahr(k.Laufend.Umsatz > 0, "verkauft wie früher");
         }),

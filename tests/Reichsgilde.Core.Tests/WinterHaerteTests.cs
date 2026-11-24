@@ -61,7 +61,7 @@ static class WinterHaerteTests
         ("Winterhärte: Die Daten nennen je Stufe Chance und Nachfragezuschlag (Datenversion 94)", () =>
         {
             var s = Daten.Value.Jahreszeiten!.StrengerWinter!;
-            Pruefe.Gleich(98, Daten.Value.Version);
+            Pruefe.Gleich(99, Daten.Value.Version);
             Pruefe.Gleich(0.15, s.Von(HaerteDerZeit.Mild).Chance);
             Pruefe.Gleich(0.2, s.Von(HaerteDerZeit.Ueberliefert).Chance);
             Pruefe.Gleich(0.3, s.Von(HaerteDerZeit.Hart).Chance);

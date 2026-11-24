@@ -5,7 +5,7 @@ namespace Reichsgilde.Core.Ki;
 
 /// <summary>
 /// Umland nach dem Karrenweg (phase5/deutz-ki). Seit der Kern die Fahrzeit nach Weglänge rechnet (Datenversion 65), liegt das Kölner Umland
-/// weit draußen: Die Umlandbetriebe der KI-Häuser fahren mit dem Ochsenkarren (seit Datenversion 98 Pferdekarren, gleiche Werte) im Median 263 Minuten zum Markt (vorher fest 116), die KI-Häuser
+/// weit draußen: Die Umlandbetriebe der KI-Häuser fahren mit dem Ochsenkarren (seit Datenversion 99 Pferdekarren, gleiche Werte) im Median 263 Minuten zum Markt (vorher fest 116), die KI-Häuser
 /// lagen 11–13 % unter dem alten main. Fast der ganze Verlust kam aus dem Umland (Teil 5, Normal, je KI-Haus in 20 Jahren 32.971 → 26.510 Gulden),
 /// am meisten aus Liegenschaften, die die KI ohne Blick auf den Weg pachtete: Der Holzschlag im Eichenforst fährt an der Höchstdauer
 /// (360 Minuten), steht trotz drei Karren 53 % still und brachte 62 Gulden im Jahr; der Kräutergarten am Bach (325 Minuten) 26 % Stillstand.
@@ -62,7 +62,7 @@ public sealed partial class KiRivale
     /// Was die KI von einer freien Umland-Liegenschaft erwartet, wenn sie dort Karren der Art mit dem meisten Durchfluss hält (wie beim Karrenkauf):
     ///   • <paramref name="Anteil"/>: welcher Teil der Förderung weggebracht wird (0 … 1), <c>min(1, Karren × Durchfluss × <see cref="FahrminutenJeKarrenUndJahr"/>
     ///     ÷ Förderung im Jahr)</c> mit höchstens <see cref="KiProfil.MaxKarrenJeBetrieb"/> (3) Karren. Durchfluss: Ladung (was der Karren fasst, höchstens
-    ///     Lager je Ware × Zahl der Rohstoffe) ÷ Fahrzeit hin und zurück. Förderung: volle Belegung mit der besten Arbeitskraft, die Ware mit dem
+    ///     Lager je Ware × Zahl der Rohstoffe) ÷ (Fahrzeit hin und zurück + Verweilen am Markt, Datenversion 98). Förderung: volle Belegung mit der besten Arbeitskraft, die Ware mit dem
     ///     meisten Gewinn je Minute (wie <see cref="Kalkulation.ErwarteterJahresgewinn"/>);
     ///   • <paramref name="Wert"/>: Wert der vollen Förderung im Jahr (Gewinn je Arbeitsminute × Arbeitsminuten aller Plätze);
     ///   • <paramref name="Karren"/> und <paramref name="Typ"/>: so viele Karren dieser Art braucht es dafür (mindestens einer, höchstens die Grenze).
@@ -78,7 +78,8 @@ public sealed partial class KiRivale
         foreach (var (t, k) in _w.Daten.Logistik.Karren.OrderBy(x => x.Key, StringComparer.Ordinal))
         {
             if (FahrzeitDerLiegenschaft(name, art, t) is not var (hin, zurueck)) return null;
-            var f = Math.Min(k.Gesamtkapazitaet, _w.Daten.Logistik.LagerJeWare * d.Rohstoffe.Count) / (double)Math.Max(1, hin + zurueck);
+            // Rundfahrt samt Verweilen am Markt (Datenversion 98) – wie der Durchfluss beim Karrenkauf (Werkstattwesen.Durchfluss)
+            var f = Math.Min(k.Gesamtkapazitaet, _w.Daten.Logistik.LagerJeWare * d.Rohstoffe.Count) / (double)Math.Max(1, hin + zurueck + _w.Daten.Logistik.VerweilenMinuten);
             // bei gleichem Durchfluss (etwa an der Höchstdauer) die billigere Art – wie der Karrenkauf (BesterKarrenplan)
             if (f > fluss + 1e-12 || (Math.Abs(f - fluss) <= 1e-12 && typ != "" && k.Preis < _w.Daten.Logistik.Karren[typ].Preis)) (fluss, typ) = (f, t);
         }

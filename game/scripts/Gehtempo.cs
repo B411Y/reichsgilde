@@ -214,7 +214,7 @@ public enum Etappe
     Hof,
     /// <summary>Auf dem Weg zum Markt.</summary>
     Hin,
-    /// <summary>Am Markt (wartet, bis der Kern verkauft hat).</summary>
+    /// <summary>Am Markt (wartet, bis der Kern verkauft hat bzw. verweilt hat oder der Spieler ihn zurückschickt).</summary>
     Markt,
     /// <summary>Auf dem Rückweg.</summary>
     Zurueck,
@@ -227,7 +227,8 @@ public enum Etappe
 /// und mit alten Daten (dann sucht das Bild seinen Weg im Gassennetz). So gleicht der Zug es aus:
 ///   • Jede Fahrt, die der Kern beginnt (Wechsel nach „zum Markt“), merkt sich der Zug als offen. Am Hof fährt er sie, sobald er da ist.
 ///     Fährt er noch, verfallen verpasste Fahrten nicht – aber es bleibt höchstens <b>eine</b> offen, die übrigen werden übersprungen.
-///   • Am Markt wartet der Zug, solange der Kern ihn noch dort wähnt, und kehrt sofort um, wenn der Kern verkauft hat.
+///   • Am Markt wartet der Zug, solange der Kern ihn noch dort wähnt (er hat noch nicht verkauft, der Karren verweilt als KI-Karren die 20 Minuten,
+///     oder er steht selbst gefahren am Markt, <see cref="KarrenZustand.AmMarkt"/>), und kehrt sofort um, wenn der Kern ihn zurückschickt.
 ///   • Sieht keiner hin (Karren und der Ort, wo der Kern ihn hätte, liegen außerhalb des Bildes), gilt der Kern: <see cref="Abgleichen"/>
 ///     setzt den Zug auf den Ort des Kerns. So springt nie ein Karren im Bild, und wer wegschaut, findet den Betrieb im Stand der Simulation.
 /// </summary>
@@ -263,7 +264,7 @@ public sealed class Karrenzug
                     (Etappe, Minute) = (Etappe.Markt, 0);
                     break;
                 case Etappe.Markt:
-                    if (kern == KarrenZustand.ZumMarkt) return; // der Kern hat noch nicht verkauft
+                    if (kern is KarrenZustand.ZumMarkt or KarrenZustand.AmMarkt) return; // der Kern hat noch nicht verkauft bzw. der Karren verweilt (KI) oder steht, bis der Spieler ihn zurückschickt
                     (Etappe, Minute) = (Etappe.Zurueck, 0);
                     break;
                 default:
@@ -290,6 +291,9 @@ public sealed class Karrenzug
                 break;
             case KarrenZustand.ZumMarkt:
                 (Etappe, Minute) = kernWeg >= 1 ? (Etappe.Markt, 0) : (Etappe.Hin, hin.ZeitBei(kernWeg));
+                break;
+            case KarrenZustand.AmMarkt: // selbst gefahren: steht am Markt, bis der Spieler ihn losschickt (nicht der Rückweg)
+                (Etappe, Minute) = (Etappe.Markt, 0);
                 break;
             default: // der Rückweg zählt vom Markt aus
                 (Etappe, Minute) = kernWeg <= 0 ? (Etappe.Hof, 0) : (Etappe.Zurueck, zurueck.ZeitBei(1 - kernWeg));
