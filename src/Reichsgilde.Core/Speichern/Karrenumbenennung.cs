@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde.Core.Speichern;
 
@@ -28,17 +29,30 @@ public static class Karrenumbenennung
         ["Kriegskarren"] = "Großer Pferdekarren",
     };
 
-    /// <summary>Die alten Namen als ganze Wörter am Wortanfang (auch „Ochsenkarren 2“, „Pferdekarrens“).</summary>
-    private static readonly Regex ImText = new(@"(?<!\p{L})(Ochsenkarren|Pferdekarren|Kriegskarren)", RegexOptions.CultureInvariant);
+    /// <summary>Die alten Namen als ganze Wörter am Wortanfang (auch „Ochsenkarren 2“, „Pferdekarrens“), mit einem davorstehenden „einen “,
+    /// falls vorhanden – Meldungen schreiben „für einen Pferdekarren“, das wird zu „für einen Großen Pferdekarren“ (Akkusativ).</summary>
+    private static readonly Regex ImText = new(@"(?<einen>(?<!\p{L})[Ee]inen )?(?<!\p{L})(?<name>Ochsenkarren|Pferdekarren|Kriegskarren)", RegexOptions.CultureInvariant);
 
-    /// <summary>Ein Wert oder Text mit alten Namen, in einem Durchgang umgeschrieben („Pferdekarren 2“ → „Großer Pferdekarren 2“).</summary>
-    public static string Text(string text) => ImText.Replace(text, m => Namen[m.Value]);
+    /// <summary>Ein Wert oder Text mit alten Namen, in einem Durchgang umgeschrieben („Pferdekarren 2“ → „Großer Pferdekarren 2“,
+    /// „einen Kriegskarren“ → „einen Großen Pferdekarren“).</summary>
+    public static string Text(string text) => ImText.Replace(text, m =>
+    {
+        var neu = Namen[m.Groups["name"].Value];
+        var einen = m.Groups["einen"];
+        return einen.Success ? einen.Value + LogistikDaten.KarrenartAkkusativ(neu) : neu;
+    });
 
-    /// <summary>Schreibt einen Spielstand bis Format 3 auf die neuen Namen um (neuere bleiben, wie sie sind).</summary>
+    /// <summary>Schreibt einen Spielstand bis Format 3 auf die neuen Namen um (neuere bleiben, wie sie sind).
+    /// Ein Stand ohne Feld „Format“ bleibt ebenfalls, wie er ist: Das Lesen setzt dann das aktuelle Format ein (<see cref="Speicherstand.Format"/>),
+    /// und jede Programmversion hat das Feld geschrieben – ein solcher Stand ist von Hand gebaut und trägt schon die neuen Namen.
+    /// Ein umgeschriebener Stand trägt danach Format 4, ein zweiter Lauf ändert nichts.</summary>
     public static void Umrechnen(JsonObject stand)
     {
-        if ((int?)stand["Format"] is int format && format >= FormatMitNeuenNamen) return;
+        if ((int?)stand["Format"] is not int format || format >= FormatMitNeuenNamen) return;
         Umbenennen(stand);
+        // Wie die Uhrumstellung: danach trägt der Stand das neue Format, ein zweiter Lauf ändert nichts mehr
+        // (Format 1 bleibt, damit das Lesen ihn weiter als zu alt ablehnt).
+        if (format >= 2) stand["Format"] = FormatMitNeuenNamen;
     }
 
     private static void Umbenennen(JsonNode? knoten)
