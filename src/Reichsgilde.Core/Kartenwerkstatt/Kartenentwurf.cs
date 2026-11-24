@@ -276,7 +276,7 @@ public sealed partial class Kartenentwurf
         (_felsen, _grundgestein) = (felsen, new EntwurfGrundgestein { Gestein = grundgestein });
         (_gewaesser, _faehren) = (gewaesser, faehren);
         (_hoehen, _boden) = (hoehen, boden);
-        _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern);
+        _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern, Bauflaechen);
         (_wege, _bauzonen, _naturflaechen, _pflanzen, _mauern, _start, _felder) = (wege, bauzonen, naturflaechen, pflanzen, mauern, start, felder);
         foreach (var g in _gebaeude) g.Baustein = katalog.Finde(g.Katalog);
         foreach (var p in _pflanzen) p.Baustein = katalog.Finde(p.Katalog);
@@ -1219,6 +1219,7 @@ public sealed partial class Kartenentwurf
             if (bettVorher is { } vorher) _gelaende.LinienVeraltet(vorher);
             if (BettBereich(a.Objekt) is { } jetzt) _gelaende.LinienVeraltet(jetzt);
         }
+        if (a.Teil == Kartenteil.Gebaeude) _gelaende.FlaechenVeraltet(); // die Einebnung unter den Gebäuden
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
         if (a.Objekt is EntwurfKopf && _grund is not null) (_schichtNeu, _schichtStand) = (true, null); // P4a: Größe und Rand begrenzen den Hang (ganz neu)

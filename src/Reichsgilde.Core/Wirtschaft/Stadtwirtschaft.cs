@@ -211,6 +211,7 @@ public sealed partial class Stadtwirtschaft
         if (Karte is not null) throw new InvalidOperationException("Die Karte der Stadt steht schon fest.");
         Karte = karte;
         karte.KlappbrueckeSetzen(Daten.Logistik.Klappbruecke?.Gewaesser);
+        karte.BauflaechenSetzen(() => Bauen.Grundstuecke.Select(g => Bauen.Flaeche(g).Ecken())); // Einebnung unter gebauten Häusern (nur Darstellung)
         Kasse.KarteGesetzt(karte.Kennung);
     }
 

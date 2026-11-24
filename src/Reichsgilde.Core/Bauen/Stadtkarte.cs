@@ -656,7 +656,25 @@ public sealed class Stadtkarte
             .ToList(),
         () => Wasser,
         () => Gebaeude.Where(g => g.Baustein is { AmUfer: true, Groesse: { Length: 2 } }).Select(g => Kaimauer.Von(g.Name, g.Punkt[0], g.Punkt[1], g.Drehung,
-            g.Baustein!.Groesse![0] * g.Massstab, g.Baustein.Groesse[1] * g.Massstab)).ToList());
+            g.Baustein!.Groesse![0] * g.Massstab, g.Baustein.Groesse[1] * g.Massstab)).ToList(),
+        () => Gebaeude.Where(g => Bauen.Gelaendeform.WirdEingeebnet(g.Baustein))
+            .Select(g => Bauen.Kartengrenzen.GebaeudeEcken(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab))
+            .Concat(_bauflaechen?.Invoke() ?? Enumerable.Empty<IReadOnlyList<Kartenort>>()).ToList());
+
+    private Func<IEnumerable<IReadOnlyList<Kartenort>>>? _bauflaechen;
+
+    /// <summary>
+    /// Die Grundflächen der Häuser, die im Spiel gebaut werden (Grundstücke des Bauwesens; setzt die Stadtwirtschaft mit der Karte): Auch unter
+    /// ihnen wird das Gelände eingeebnet (<see cref="Bauen.Gelaendeform.EinebnenBis"/>).
+    /// </summary>
+    public void BauflaechenSetzen(Func<IEnumerable<IReadOnlyList<Kartenort>>> quelle)
+    {
+        _bauflaechen = quelle;
+        BauflaechenGeaendert();
+    }
+
+    /// <summary>Ein Grundstück kam dazu oder fiel weg (Bauen, Abriss, Laden): die Einebnung beim nächsten Lesen nachführen.</summary>
+    public void BauflaechenGeaendert() => _gelaendeform?.FlaechenVeraltet();
 
     private Wasserplan? _wasserplan;
 
