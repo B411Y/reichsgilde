@@ -385,6 +385,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Karren selbst fahren) Kamera zum Karren (Knopf in der Fahrtafel, springt zum gewählten Karren) ist nicht gebaut: Es braucht eine Rückmeldung von der Tafel an die Kamera und das Wiederfinden des Karrens beim Zoomen; Empfehlung: ein Knopf „Hinsehen“ in der Zeile des Karrens (`KarrenFahrtAnzeige`), dazu `Stadtansicht.KarrenZeigen(karren)` (ruft `Kamerafahrt` auf die Stelle von `_karren[karren].Wurzel`).
 - (Karren selbst fahren) Fahrt Betrieb → Betrieb zeigt der Karren auf dem Weg des Kerns (`Stadtwirtschaft.KarrenverlaufZwischen`, mit Fahrzeit nach der Kernzeit: gleichmäßig, ohne Folgeregel und ohne Warten an der Klappbrücke); am Halt des Heimatbetriebs am Markt springt die Reihe der Karren um den Rückstand (ein paar Meter). Die Hofreihe fremder Betriebe zeigt nur die Nummer des Karrens als Abstand; zwei fremde Karren am selben Betrieb stehen nebeneinander, mehr als drei überlappen.
 - (Karren selbst fahren) Die Karrenfahrt-Tafel erscheint im Klicktest teils in schmaler Fassung (Zustandsspalte bricht in drei Zeilen um, ohne Titelleiste), teils breit; ungeklärt, ob das vom Neuaufbau nach „Ziel im Bild wählen“ kommt (Sache der Oberfläche).
+- (Bodenflecke) Einwohnerhäuser und die alten Wohnhaus-Modelle (`fachwerkhaus` bis `stadthof`, Standard ohne `--neubauprobe=1`) haben keinen Bodenfleck: Einwohnerhäuser kommen mit den Streifen je Häuserzeile (Nutzer 24.11.2026), die alten Wohnhäuser standen nicht auf der Liste.
+- (Bodenflecke) Der Vorplatz des Kölner Doms nutzt ein 512er-Bild über rund 40 m: aus der Nähe (Zoom 25) ist das Pflaster unscharf. Eine dritte Größenklasse oder ein gekacheltes Netz statt Decal wäre der nächste Schritt.
+- (Bodenflecke) Der gerechnete Fleck der Werkstätten deckt auf ebenem Grund das ganze Grundstück samt Zaunhof plus 1,8 m; an engen Gassen reicht er bis auf den Pflasterweg.
+- (Bodenflecke) Schlussmessung auf dem Grafik-PC steht aus (NAS: kein Unterschied über dem Rauschen).
 
 ## Entscheidungen
 
@@ -1248,3 +1252,39 @@ Rückmeldung des Nutzers vom 23.11.2026 („Der Dom gefällt mir richtig gut, au
 | Halt am Markt | `Karrenzug` kennt `KarrenZustand.AmMarkt`: Der Zug bleibt in `Etappe.Markt` (stehen, bis der Spieler zurückschickt) und `Abgleichen` stellt ihn dorthin statt auf den Rückweg (Kern-Hinweis zum Gehtempo). Automatisch fahrende Karren bleiben für die Verweilzeit des Kerns (20 Minuten) im Zustand „zum Markt“, der Zug wartet dort schon (nichts weiter nötig). Der Halt ist der alte (am Pflasterrand, 3,5 m vor dem Pflaster, in der Reihe nach Gespannlänge), kein eigener Platz am Stand. | 23.11.2026 |
 | Sonderfahrten | Steht ein selbst gefahrener Karren an einem anderen eigenen Betrieb oder fährt er von/zu einem anderen Betrieb, fährt ihn `Stadtansicht.Karrenfahrt.cs` (`KarrenSonderBewegen`) ohne `Karrenzug` nach der Zeit des Kerns (Anteil = vergangene Fahrzeit durch Fahrzeit nach `Karren.Ankunft`): Betrieb → Betrieb auf der Strecke des Kerns (`Stadtwirtschaft.KarrenverlaufZwischen`, neu, mit Test), Betrieb ↔ Markt auf dem Weg des Betriebs bis zum Halt und gerade zum Halt des Heimatbetriebs. Pose, Schleppkurve, Ladung und Eskorte teilen sich mit der gewohnten Fahrt (`KarrenPoseSetzen`, `KarrenLadungZeigen`). Zurück auf dem gewohnten Weg wird der Zug einmal auf den Kern abgeglichen. | 23.11.2026 |
 | Tests | `KarrenverlaufZwischenTests` (Punkte = Stücke + 1, Längen, Halteplätze), `GehtempoTests` (Zug bleibt bei `AmMarkt`, `Abgleichen` stellt ihn an den Markt). | 23.11.2026 |
+
+### Bodenflecke je Gebäudeart, Probe (Nutzer 24.11.2026; Branch phase5/boden-decals)
+
+| Thema | Entscheidung |
+|---|---|
+| Umfang | Probe mit drei Arten: Wohnhaus (Traufkies am Haus, außen Erde), Schmiede (Kohlestaub und Asche), Hof des Bauernhofs (Matsch und Stroh). Rathaus und Dom des Neubaus behalten die bisherige Erde. Häuserzeilen und Splat im Boden-Shader sind nicht Teil der Probe |
+| Tabelle statt Pfade | `Stadtansicht.Bodenfleck.cs`: `BodenfleckRegeln` (Anfang des Dateinamens → Art, Größe), `BodenfleckTexturen` (Art → Textur); `ModellEinsetzen` ruft `BodenfleckAnlegen` für jedes Modell, der Block in `NeubauEinkleiden` ist entfallen |
+| Größe | Wohnhaus fest 10,6 × 10,2 m (vorher 8,6 × 8,2 m: der Ring lag fast ganz im weichen Rand und war nicht zu sehen); Schmiede aus der Grundfläche des Modells plus 1,8 m; Hof als Rechteck des Erdstempels (`bodenstempel.json`) |
+| Texturen | 512 × 512 mit Alpha aus fünf CC0-Aufnahmen von Poly Haven, `tools/modelle/bodenflecke/bodenflecke.py` (Pillow, numpy): umgefärbt, mit fest gesätem Rauschen zu groben Flecken gemischt, schmaler weicher Rand. Grobe Formen und klares Hell-Dunkel, weil auf dem braunen Stadtlehm nur ein anderer Ton lesbar ist (Kies hell, Kohle schwarz, Stroh gelb) |
+| Vergleich | `--bodenflecke=0\|alt\|alle` (keine, Stand vor der Probe, alle Gebäude mit Erde zum Messen) |
+| Klicktest | Vulkan (NAS, RTX 2000 Ada), Köln und Greybox, Zoom 25 und 50, Pixel-Look an und aus, vorher (`alt`) und nachher, 40 Bilder, keine Skriptfehler. Lesbar: Kies und Erde am Wohnhaus, Stroh am Hof, Kohle auf der Sockelplatte der Schmiede in Köln (auch bei Zoom 50); auf ebenem Lehm (Greybox) bleibt die Schmiede schwach |
+| Leistung | Köln, Zoom 50, Pixel-Look, `--messung=20 --vsync=Aus`, je zwei Läufe (Probe: einer, der zweite lud nicht rechtzeitig): GPU-Zeit ohne Flecke 41–46 ms, vorher 43–46 ms (ein gestörter Lauf bis 96 ms), Probe 42–46 ms, alle Gebäude (rund 130 Decals auf der Karte) 41–45 ms; Bildzeit 111–135 ms in allen Zuständen (NAS, andere Last). Kein Unterschied über dem Rauschen von etwa 3 ms; eine Schlussmessung auf dem Grafik-PC steht aus |
+
+### Bodenflecke je Gebäudeart, voller Ausbau (Nutzer 24.11.2026 „Empfehlungen ok“; Branch phase5/boden-decals)
+
+| Thema | Entscheidung |
+|---|---|
+| Liste | Schreiner (Späne), Steinmetz (Steinstaub, Splitt), Wirt (nasse Erde, Stroh), Alchimist und Parfumeur (fleckig-dunkel), Prediger, Geldleiher, Gardist, Dieb (Wohnhaus-Fleck), Dom, Rathaus, Kirchen, Stapelhaus (gepflasterter Vorplatz), Marktstände (dünnes Stroh), Mühle (zweites Rechteck am Bauernhof, Bild des Hofs). Die Neubau-Häuser, Rathaus und Dom des Neubaus wechseln von der Erde auf Wohnhaus bzw. Vorplatz |
+| Einwohnerhäuser | nicht jetzt; sie bekommen später einen Streifen je Häuserzeile |
+| Mine, Steinbruch, Holzschlag | über die Bodenstempel statt Decal (kostet je Bild nichts): Grube und Steinbruch bekommen Kies mit Lücken vor der Erde; der Holzschlag hatte schon Waldboden und bleibt |
+| Zwei Größenklassen | je Art `…_klein.png` und `…_gross.png`; ab 13 m Kante das große Bild, in dem Rand, Bänder, Flecken und die Aufnahme halb so groß sind |
+| Sockel am Hang | Der Fleck des Gebäudes deckt die ganze Sockelplatte (Größe der Platte geteilt durch 1 − Randanteil, Deckung 1,0), der weiche Rand fällt über die Kante. Dazu das Decal „Sockelsaum“ (dunkle feuchte Erde, 1,6 m über die Kante, nur auf dem Gelände). Sockel aus Erde im Umland bleiben, wie sie sind (Böschung, Bodenstempel) |
+| Marktstände | eigener Fleck je Stand mit 0,9 m Rand; er richtet sich nicht nach dem Sockel des Marktplatzes |
+| Klicktest | nach dem Merge von main (#564), Vulkan (NAS, RTX 2000 Ada), Köln und Greybox, Zoom 25 und 50, Pixel-Look an und aus, vorher (`alt`) und nachher: 62 Bilder, keine Skriptfehler. Lesbar auch bei Zoom 50: Kohle, Späne, Stroh und Kies auf den Sockelplatten, Saum um den Sockelfuß, Stroh an den Marktständen, Vorplatz an Rathaus und Stapelhaus; am Kölner Dom bleibt der Vorplatz unauffällig |
+| Leistung | Köln, Zoom 50, Pixel-Look, `--messung=20 --vsync=Aus`, ein Lauf je Zustand; sichtbare Decals 12 (ohne Flecke), 16 (vorher), 99 (jetzt). Mittel über 20 s: Bildzeit 56,1 / 54,6 / 57,4 ms, GPU 18,1 / 16,8 / 17,7 ms; eingeschwungen (zweite Hälfte): Bildzeit 36–40 / 36–40 / 35–46 ms, GPU je 11–13 ms. Kein Unterschied über dem Rauschen. Die Zahlen der Probe (GPU 41–46 ms) stammten aus den ersten Sekunden nach dem Laden, in denen jedes Bild rund 120 ms braucht |
+
+### Bodenflecke neu, Bruchsteinsockel statt Platte (Nutzerbefund 24.11.2026 „Tarnmuster“, „helle Platte unrealistisch“; Branch phase5/boden-decals, Runde 2, Probe)
+
+| Thema | Entscheidung |
+|---|---|
+| Ursache Tarnmuster | Das Foto war auf die ganze Fläche gestreckt und mit harten Schwellen in Hell und Dunkel zerschnitten (Schmiede: helle Asche auf Kohle) |
+| Neue Flecke | `bodenflecke.py` nimmt vom Foto nur die feine Zeichnung (Hochpass), kachelt sie in fester Metergröße (etwa 3 m), vereinfacht die Helligkeit auf drei Stufen mit kleinem Abstand, legt sie auf eine gedämpfte Grundfarbe nahe am Stadtlehm und streut wenige Körner (Schlacke, Kies, Späne, Stroh). Dazu leichte großflächige Helligkeitswolken (±12 %); die Deckung läuft zum Rand unregelmäßig aus und ist innen in Wolken nicht ganz voll (0,72 bis 1; Schmiede 0,78), damit der Boden durchscheint und die Platte kein Podest ist. Schmiede: gleichmäßig dunkelgrau, Schlacke dunkel, kein Weiß. Quellen: fünf CC0-Fotos (Stroh und Späne entfallen) |
+| Wohnhaus-Fleck für die fünf alten Modelle | Zeilen in `BodenfleckRegeln` für `fachwerkhaus`, `buergerhaus`, `steinhaus`, `stadtpalais`, `stadthof` (Grundfläche aus dem Modell) |
+| Sockel | Wände aus dunklem Bruchstein (Poly Haven rock_wall_08, CC0, dreiseitig gekachelt, Albedo um 25 % abgedunkelt, `SockelStein()`), oben Erde statt Pflaster (der Bodenfleck liegt darauf, Deckung 0,9). Der Sockel reicht nur noch 12 cm (vorher 35 cm) unter den tiefsten Punkt: bergseits steckt er im Boden, talseits steht die Mauer |
+| Kleine Einebnung (bis 0,5 m) | nur geprüft, nicht gebaut (Nutzer 24.11.: kommt als eigener Kern-Auftrag): Das Gelände (Höhenraster, Wegbett, Normalen, Fundamente) kommt aus `Gelaendeform` im Kern; die Darstellung liest `Punkthoehe` nur an vier Stellen, aber Normale, Fundament und Wegbett kämen weiter aus dem Kern. Sauber geht es nur dort (Einebnung als Schicht im Kern); Entscheidung beim Teamleiter |
+

@@ -20,9 +20,11 @@
     ],
     "umland/steinbruch": [
       {"textur": "kies", "staerke": 0.85, "rand": 1.2, "flaechen": [[[-1.5, 5.5], [7.5, 6.5], [9.6, 1.4], [0.5, 1.0]]]},
+      {"textur": "kies", "staerke": 0.8, "fleck": 0.55, "flaechen": [[-11, 0.8, 11, 9]]},
       {"textur": "erde", "staerke": 0.9, "flaechen": [[-11, 0.8, 11, 9]]}
     ],
     "umland/grube": [
+      {"textur": "kies", "staerke": 0.8, "fleck": 0.6, "flaechen": [[[-11, 9], [11, 9], [11, -1], [6, -3.2], [-5, -3.2], [-11, -1.5]]]},
       {"textur": "erde", "staerke": 0.9, "flaechen": [[[-11, 9], [11, 9], [11, -1], [6, -3.2], [-5, -3.2], [-11, -1.5]]]}
     ],
     "umland/holzschlag": [
