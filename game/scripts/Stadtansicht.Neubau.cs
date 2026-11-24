@@ -323,17 +323,6 @@ public partial class Stadtansicht
             teil.SetInstanceShaderParameter("plaster_tint", putz);
             teil.SetInstanceShaderParameter("accent_tint", akzent);
         }
-        if (innen || modell.HasNode("Bodenfleck")) return;
-        // Bodenübergang (Style-Guide 5.1): festgetretene Erde rund ums Haus als Decal, nur dünn über dem Boden (trifft keine Wände)
-        var rathaus = NeubauGruppe(datei) == "rathaus";
-        var dom = NeubauGruppe(datei) == "dom";
-        modell.AddChild(new Decal
-        {
-            Name = "Bodenfleck", Position = new Vector3(0, 0.02f, rathaus || dom ? 0f : -0.2f),
-            Size = dom ? new Vector3(21f, 0.36f, 39f) : rathaus ? new Vector3(17.5f, 0.36f, 11.5f) : new Vector3(8.6f, 0.36f, 8.2f),
-            TextureAlbedo = NeubauTextur<Texture2D>("bodenfleck.png"), AlbedoMix = 0.85f, NormalFade = 0.6f, UpperFade = 0.6f, LowerFade = 0.6f,
-            DistanceFadeEnabled = true, DistanceFadeBegin = 160, DistanceFadeLength = 40,
-        });
     }
 
     /// <summary>
