@@ -388,7 +388,8 @@ public abstract record KarrenFahrbefehl(string Betrieb) : BetriebsBefehl(Betrieb
 /// derselben Stadt (sein Name; der Heimatbetrieb ist „zurück“). Jede Fahrt einzeln; gehandelt und abgeladen wird erst am Ziel, auf Befehl.
 /// <paramref name="Eskorte"/>: wenn gesetzt, die Eskortenstufe ab dieser Fahrt (wie <see cref="EskorteWaehlen"/>).
 /// </summary>
-public sealed record KarrenLosschicken(string Betrieb, IReadOnlyList<int> Karren, string? ZielBetrieb, string? Eskorte = null) : KarrenFahrbefehl(Betrieb);
+/// <paramref name="Hafen"/>: Ziel ist der Hafen statt des Marktplatzes (K4; nur mit <paramref name="ZielBetrieb"/> null; fehlt in älteren Protokollen: false).
+public sealed record KarrenLosschicken(string Betrieb, IReadOnlyList<int> Karren, string? ZielBetrieb, string? Eskorte = null, bool Hafen = false) : KarrenFahrbefehl(Betrieb);
 
 /// <summary>Stehende Karren zurück zu ihrem Heimatbetrieb schicken (wie <see cref="KarrenLosschicken"/> mit dem Heimatbetrieb als Ziel).</summary>
 public sealed record KarrenZurueck(string Betrieb, IReadOnlyList<int> Karren, string? Eskorte = null) : KarrenFahrbefehl(Betrieb);
@@ -401,7 +402,7 @@ public sealed record KarrenAbladen(string Betrieb, int Karren, IReadOnlyDictiona
 
 /// <summary>
 /// Am Markt handeln: Ladung verkaufen (<paramref name="Verkauf"/>, wie der Verwalter zum Marktpreis mit Verhandeln und Steuer) und Waren für die
-/// Ladung kaufen (<paramref name="Kauf"/>, Marktpreis + Händlerspanne wie beim Handel von Hand). Nur wenn der Karren am Markt steht und der Markt offen hat.
+/// Ladung kaufen (<paramref name="Kauf"/>, zum reinen Marktpreis wie der Verwalter, ohne Händlerspanne (Nutzer 24.11.2026)). Nur wenn der Karren am Markt steht und der Markt offen hat.
 /// </summary>
 public sealed record KarrenHandeln(string Betrieb, int Karren, IReadOnlyDictionary<string, int> Verkauf, IReadOnlyDictionary<string, int> Kauf)
     : KarrenFahrbefehl(Betrieb);
