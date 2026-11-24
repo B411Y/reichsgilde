@@ -15,6 +15,10 @@ Keine Bild-KI und keine Image-to-3D-KI. Modelle, UV und Texturen entstehen aus S
 5. `tools/modelle/neubau/dom_messen.py`: Soll gegen Ist aus den fertigen GLB (Dreiecke, Fläche, UV2, Fenster innen = außen, Anker).
 6. Im Spiel setzen `Stadtansicht.Neubau.cs` und `Stadtansicht.Domneubau.cs` Trim-Sheet, Shader, Licht, Figuren und Einrichtung je Stadtglaube.
 
+**Nachtrag 24.11.2026 (Branch phase5/dom-stein):** Das Mauerband der Hülle (`mauer`) nimmt den Stein der Menschenhäuser S2/S3 (Poly Haven `castle_wall_varriation`, 1K, CC0, Abruf 15.11.2026) in eigener Farbe, im Maßstab 1:1 wie am Haus (`haus_stein_band` in `dom_trimsheet.py`, dieselbe Rechnung wie `trimsheet_ebenen.stein_band`). Grund: das umgefärbte `sandstone_blocks_08` las sich im Pixel-Look als glatter Putz. Sandstein, Werkstein, Sockel, Schiefer und der Innenraum bleiben. Der Quellordner `--quellen` braucht dazu den Unterordner `castle_wall_varriation` mit `_diff_1k`, `_nor_gl_1k`, `_arm_1k`. Keine Bild-KI.
+
+**Nachtrag 24.11.2026, Runde 2 (Branch phase5/dom-stein, Wunsch des Nutzers):** (1) Das Mauerband bleibt der Stein der Menschenhäuser mit denselben Lagen und Fugen, wird aber kühl grau eingefärbt (`MAUER_GRAU`), damit sich die gelben Sandstein-Glieder abheben. (2) Das Schieferdach zeigt Deckreihen wie das Ziegeldach des Wohnhauses: `dom_trimsheet.schiefer_reihen` malt drei Reihen von 0,25 m ins Band `schiefer`, `dom_bib.schieferflaeche` legt die Dachflächen in Lagen von 0,30 m mit senkrechter Stirn (9 cm), die ihre Farbe aus dem jetzt dunklen Band `schiefer_kante` nimmt. Hülle und `dom_ao_atlas.png` neu gebaut, Innenraum unverändert.
+
 **Aufruf**
 
 ```bash
