@@ -160,7 +160,7 @@ def quader_reihe(breite_px, hoehe_px, px_m, saat, breite_m=(0.55, 1.1)):
 
 
 def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9, streuung=0.08, kontrast=0.45, eigenfarbe=0.08,
-               plan=None, fuge_x_px=None, warm_streuung=0.025):
+               plan=None, fuge_x_px=None, warm_streuung=0.025, fuge_dunkel=0.55):
     """Behauene Steinquader im Band: Oberflaeche aus der Quelltextur (umgefaerbt), je Stein eigener Ton (Helligkeit und leichte
     Waerme), dunkle, vertiefte Fugen (12 px = 2,3 cm: bleiben im Pixel-Look - Mip 2,5 Stufen groeber - als Linie lesbar) und eine
     Fase an jeder Steinkante in der Normale (Licht oben und links, Schatten unten und rechts wie bei echter Tiefe).
@@ -202,7 +202,7 @@ def quaderband(blatt, band, q, ton, saat, ab=0, px_m=512, fuge_px=12, fase_px=9,
     fuge = rand < 0
     nah = np.clip(rand / fase_px, 0, 1)                             # Kante etwas dunkler (abgerundet, Schmutz in der Fase)
     farbe = farbe * (0.86 + 0.14 * nah)[..., None]
-    farbe = np.where(fuge[..., None], farbe * 0.55, farbe)
+    farbe = np.where(fuge[..., None], farbe * fuge_dunkel, farbe)
     # Normale: Quelltextur halb so stark, dazu die Fasen; in der Fuge flach
     normale = 0.5 + (n - 0.5) * 0.5
     normale[..., 0] = np.clip(normale[..., 0] + nx * 0.5, 0, 1)

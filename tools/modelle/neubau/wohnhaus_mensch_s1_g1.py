@@ -1719,7 +1719,7 @@ def main():
 
     mit_ao = "ohne-ao" not in opt
     uv2_und_ao([(o_huelle, [boden]), (o_zusatz, o_huelle + [boden])], "wohnhaus_mensch", NAME, mit_ao=mit_ao)
-    uv2_und_ao([(o_raum, []), (o_einrichtung, o_raum)], "wohnhaus_mensch_innen", NAME, mit_ao=mit_ao)
+    uv2_und_ao([(o_raum, []), (o_einrichtung, o_raum)], "wohnhaus_mensch_innen", NAME, mit_ao=mit_ao and "innen-ao-aus" not in opt)   # --innen-ao-aus: Innenraum nicht neu backen. der Innen-Atlas und die _innen.glb bleiben unveraendert (Folge-Patch 0004: die _innen.glb wird dann nicht mehr geschrieben)
 
     tuer = next(f for f in FENSTER if f[3] == "tuer")
     x0, x1, y0, y1 = KAMIN
@@ -1746,7 +1746,7 @@ def main():
     # Zimmertueren: Klickflaeche im Spiel aus Lage und extras (ziel = Raum, achse x: die Wand steht quer zur X-Achse)
     anker_innen += [anker(f"Tuer_Wohnstube_{raum}", tuple(m), ziel=raum, breite=RM.TUER_B, hoehe=RM.TUER_H, achse="x") for raum, m in tuer_mitten.items()]
     exportiere(aussen + anker_aussen, os.path.join(ZIEL_MODELL, f"{NAME}.glb"))
-    exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))
+    if "innen-ao-aus" not in opt: exportiere(innen + anker_innen, os.path.join(ZIEL_MODELL, f"{NAME}_innen.glb"))   # --innen-ao-aus: Innen-GLB bleibt, wie es ist
 
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)

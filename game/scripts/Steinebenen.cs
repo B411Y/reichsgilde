@@ -34,7 +34,7 @@ public static class Steinebenen
         ("elb_s1", Bruchstein),             // Stufe 1 (trim_elb): Putz bleibt Putz (Kunstwerk), Haustein K2 (large_sandstone_blocks_01) im Bruchsteinband
         ("halbling_s1", Bruchstein),        // Stufe 1 (trim_halbling): ockergelber Lehmputz (Kunstwerk), K2 (large_sandstone_blocks_01) im Bruchsteinband (Sockel, Schlot)
         ("elb_s2", Bruchstein),             // Bürgerhaus (trim_s2_elb): Putzsockel und Gefache Kalkputz, Haustein K2 im Bruchsteinband
-        ("elb_s3", PutzUndBruchstein),      // Steinhaus (trim_s3_elb): Werkstein K5 (Bricks100) im Putzband, Mauer K2 mit Efeu
+        ("elb_s3", PutzUndBruchstein),      // Patrizierhaus (trim_s3_elb): Kalkputz mit Efeu im Putzband (Obergeschoss; als Steinband gefuehrt wie bisher), Haustein K2 im Bruchsteinband (Erdgeschoss, Giebel, Werkstein)
         ("halbling_s2", Bruchstein),        // Bürgerhaus (trim_s2_halbling, Vorlage): Erdgeschoss roter Backstein K6 (medieval_red_brick), Fachwerk mit Lehmputz, blaues Schieferdach
         ("halbling_s3", PutzUndBruchstein), // Steinhaus (trim_s3_halbling, Vorlage): roter Backstein K6, Werkstein der Menschen im Putzband, Schiefer, Kupfer
     };
