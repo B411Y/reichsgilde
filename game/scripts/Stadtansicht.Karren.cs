@@ -58,6 +58,10 @@ public partial class Stadtansicht
         public Vector3[]? WegRef { get; set; }
         public float Tempo { get; set; } = 1f;
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
+        /// <summary>Der Karren wird gerade auf einer Sonderfahrt gezeigt (selbst gefahren: am anderen Betrieb, von oder zu einem anderen Betrieb; Stadtansicht.Karrenfahrt.cs) und die Angaben dazu.</summary>
+        public bool Sonder { get; set; }
+        public (KarrenZustand Zustand, long Ankunft, string Von, string Nach)? SonderSchluessel { get; set; }
+        public double SonderDauer { get; set; } = 1;
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
         /// <summary>Hufklang (Stadtansicht.KarrenKlang.cs): der Untergrund unter dem Karren, wann er zuletzt gelesen wurde (echte Sekunden) und der Betrieb für das Protokoll.</summary>
@@ -371,6 +375,11 @@ public partial class Stadtansicht
             _karren[karren] = gezeigt;
         }
         var knoten = gezeigt.Wurzel;
+        // Selbst gefahren: am anderen Betrieb stehen oder von/zu einem anderen Betrieb fahren (Stadtansicht.Karrenfahrt.cs); sonst die gewohnte Fahrt Heimat <-> Markt
+        if (KarrenSonderBewegen(karren, nummer, gezeigt, jetztGenau, delta)) return;
+        var ausSonder = gezeigt.Sonder; // gerade aus der Sonderfahrt zurück auf den gewohnten Weg: Zug und Gespann auf den Ort des Kerns setzen
+        gezeigt.Sonder = false;
+        neu |= ausSonder;
 
         // Mehrere Karren eines Betriebs fahren hintereinander statt ineinander (mit den Tieren sind sie bis zu 6 m lang): Karren Nr. n
         // liegt immer n · KarrenAbstand weiter Richtung Markt als der erste. Am Halteplatz warten sie so in einer Reihe auf dem Weg,
@@ -403,7 +412,7 @@ public partial class Stadtansicht
         var halt = !neu && karren.WartetAnBruecke(sim.Zeit) ? KlappbrueckeHaltMeter(weg, zug.ZumMarkt, karren.Typ) : null;
         var steht = halt is { } h && zug.Etappe is Etappe.Hin or Etappe.Zurueck && (zug.ZumMarkt ? zug.Weg(hin, zurueck) * laenge >= h - 0.05f : zug.Weg(hin, zurueck) * laenge <= h + 0.05f);
         KlappbrueckeWartenMelden(karren, steht, halt);
-        if (neu) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
+        if (neu || ausSonder) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         else
         {
             zug.Weiter(sim.Takt.IstPausiert || steht ? 0 : delta * sim.Takt.TicksProSekunde, karren.Zustand, hin, zurueck);
@@ -428,7 +437,7 @@ public partial class Stadtansicht
         stelleM = Math.Clamp(stelleM, 0f, laenge);
         var vorherM = gezeigt.Meter;
         var imBild = KarrenImBild(knoten.GlobalPosition);
-        if (neu || !imBild || zug.Etappe == Etappe.Hof || Math.Abs(stelleM - vorherM) > 12f) gezeigt.Meter = stelleM; // unbeobachtet oder weit weg: gleich dort
+        if (neu || ausSonder || !imBild || zug.Etappe == Etappe.Hof || Math.Abs(stelleM - vorherM) > 12f) gezeigt.Meter = stelleM; // unbeobachtet oder weit weg: gleich dort
         else
         {
             // Aufholen nach dem Warten höchstens im Tempo der Fahrt, nie schneller als die Zeit
@@ -492,6 +501,21 @@ public partial class Stadtansicht
             }
         }
 
+        KarrenPoseSetzen(gezeigt, ziel, blick, neu || ausSonder || zug.Etappe == Etappe.Hof, imBild, delta);
+        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
+        KarrenLadungZeigen(karren, gezeigt);
+
+        KarrenAnimieren(karren, gezeigt, gezeigt.Geschwindigkeit, delta);
+    }
+
+    /// <summary>
+    /// Setzt den Karren an den Zugpunkt <paramref name="ziel"/> mit Blick auf <paramref name="blick"/>: Schleppkurve (Gespannlauf.cs: Zugtier am Weg, Wagen hängt nach),
+    /// Boden, Nicken am Hang und das Gespann. <paramref name="setzen"/>: gleich dort (neu, am Hof, unbeobachtet), sonst folgt das Gespann der Kurve.
+    /// </summary>
+    private void KarrenPoseSetzen(KarrenAnsicht gezeigt, Vector3 ziel, Vector3 blick, bool setzen, bool imBild, double delta)
+    {
+        var sim = _simulation!;
+        var knoten = gezeigt.Wurzel;
         // Auf Gelände fährt der Karren auf dem Boden (Stadtansicht.Gelaende.cs)
         ziel = AufFuss(ziel);
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
@@ -503,7 +527,7 @@ public partial class Stadtansicht
         if (gezeigt.Lauf is { } lauf && fahrtRichtung.LengthSquared() > 1e-6f)
         {
             var sekunden = sim.Takt.IstPausiert ? 0.0 : delta;
-            if (neu || !imBild || zug.Etappe == Etappe.Hof || KarrenStarr) lauf.Setzen(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z);
+            if (!imBild || setzen || KarrenStarr) lauf.Setzen(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z);
             else
             {
                 var t0 = KarrenKurveStart();
@@ -520,7 +544,6 @@ public partial class Stadtansicht
             knoten.Position = AufFuss(ziel);
             if (fahrtRichtung.LengthSquared() > 1e-6f) knoten.Rotation = new Vector3(0, Mathf.Atan2(fahrtRichtung.X, fahrtRichtung.Z), 0);
         }
-        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
         if (BodenBewegt) // am Hang nickt der Karren mit dem Gefälle (3 m vor und hinter der Achse)
         {
             var vorne = new Vector3(Mathf.Sin(knoten.Rotation.Y), 0, Mathf.Cos(knoten.Rotation.Y));
@@ -530,7 +553,11 @@ public partial class Stadtansicht
         }
         KarrenGespannSetzen(gezeigt);
 
-        // Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten)
+    }
+
+    /// <summary>Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten).</summary>
+    private static void KarrenLadungZeigen(Karren karren, KarrenAnsicht gezeigt)
+    {
         var sorten = Math.Min(karren.Ladung.Count(l => l.Value > 0), gezeigt.Ladung.Length);
         if (sorten != gezeigt.GezeigteLadung)
         {
@@ -545,7 +572,6 @@ public partial class Stadtansicht
             gezeigt.Eskorte.Visible = eskortiert;
         }
 
-        KarrenAnimieren(karren, gezeigt, gezeigt.Geschwindigkeit, delta);
     }
 
     /// <summary>
@@ -626,6 +652,7 @@ public partial class Stadtansicht
     private static double KernAnteil(Karren karren, Fahrprofil hin, Fahrprofil zurueck, int fahrzeit, double jetztGenau)
     {
         if (karren.Zustand == KarrenZustand.AmBetrieb) return 0;
+        if (karren.Zustand == KarrenZustand.AmMarkt) return 1; // selbst gefahren: steht am Markt
         var vorbei = 1 - Math.Clamp((karren.Ankunft - jetztGenau) / Math.Max(fahrzeit, 1), 0, 1); // Anteil der Fahrzeit, der vorbei ist
         return karren.Zustand == KarrenZustand.ZumMarkt ? hin.WegBei(vorbei * hin.Dauer) : 1 - zurueck.WegBei(vorbei * zurueck.Dauer);
     }

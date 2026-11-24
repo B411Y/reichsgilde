@@ -881,6 +881,7 @@ public partial class Stadtansicht : Node3D
         FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
         Ladezeit.Phase("im Bild: Feuer");
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
+        KarrenZielAktualisieren(); // Karren selbst fahren: Ringe um mögliche Ziele, Ziel unter der Maus (Stadtansicht.Karrenziel.cs)
         Ladezeit.Phase("im Bild: Stadtbau");
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);

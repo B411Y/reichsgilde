@@ -40,6 +40,9 @@ public abstract class InnenTafel
     /// <summary>Der Spieler will am Markt handeln (nur die Karrentafel).</summary>
     public event Action<Betrieb>? HandelGewuenscht;
 
+    /// <summary>Der Spieler will Karren losschicken (Transportmenü, Karrenfahrt); die Hauptszene öffnet die Tafel.</summary>
+    public event Action<Betrieb>? KarrenFahrtGewuenscht;
+
     private string _stand = "";
     private double _seitAufbau;
 
@@ -58,7 +61,7 @@ public abstract class InnenTafel
     }
 
     public bool Visible => Tafel.Visible;
-    public void Hide() => Tafel.Hide();
+    public virtual void Hide() => Tafel.Hide();
 
     public virtual void Verbinden(Simulation simulation, Konto spieler)
     {
@@ -132,6 +135,8 @@ public abstract class InnenTafel
     }
 
     protected void HandelMelden(Betrieb b) => HandelGewuenscht?.Invoke(b);
+
+    protected void KarrenFahrtMelden(Betrieb b) => KarrenFahrtGewuenscht?.Invoke(b);
 
     // ── Bausteine ───────────────────────────────────────────────────────────
 

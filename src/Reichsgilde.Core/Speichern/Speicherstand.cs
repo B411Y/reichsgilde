@@ -125,6 +125,13 @@ public sealed record WirtschaftStand
     public Dictionary<string, MarktstandStand> Markt { get; init; } = new();
     public List<RivaleStand> Rivalen { get; init; } = new();
 
+    /// <summary>
+    /// Fahren die Spieler ihre Karren selbst? Nur geschrieben, wenn ja (<c>false</c> = <see cref="Wirtschaft.Stadtwirtschaft.KarrenAutomatisch"/> aus);
+    /// fehlt es (alte Spielstände, automatische Partien), fahren alle Karren automatisch (Datenversion 98).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? KarrenAutomatisch { get; init; }
+
     /// <summary>Der Stadtrat (null in Spielständen von vor dem Rat – dann beginnt er wie bei Spielstart).</summary>
     public RatStand? Rat { get; init; }
 
@@ -1364,6 +1371,22 @@ public sealed record KarrenStand
     /// <summary>… bis zu dieser Spielminute (null: wartet nicht).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public long? BrueckeWartenBis { get; init; }
+
+    /// <summary>Verweilt nach dem Handel am Markt bis zu dieser Spielminute (null: nein, dann nicht geschrieben; fehlt vor Datenversion 98).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? VerweiltBis { get; init; }
+
+    /// <summary>Selbst gefahren: steht an diesem Betrieb statt am Heimatbetrieb (null: nein, dann nicht geschrieben; fehlt vor Datenversion 98).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? StandortBetrieb { get; init; }
+
+    /// <summary>Selbst gefahren: unterwegs zu diesem Betrieb statt zum Heimatbetrieb (null: nein, dann nicht geschrieben).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ZielBetrieb { get; init; }
+
+    /// <summary>Selbst gefahren: Herkunft der Fahrt, wenn nicht der gewohnte Weg (siehe <see cref="Wirtschaft.Karren.VonBetrieb"/>; null: dann nicht geschrieben).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? VonBetrieb { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>

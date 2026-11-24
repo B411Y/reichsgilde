@@ -66,6 +66,9 @@ public sealed class Entwicklerhilfe
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);
             case EntwicklerHausbrand hb: return MitHaus(absender, hb.Haus, Hausbrand);
             case EntwicklerBlitz bl: return _w.Blitz.Entwicklerblitz(bl.Gebaeude, absender);
+            case EntwicklerKarrenAutomatisch ka:
+                _w.KarrenAutomatisch = ka.An;
+                return Befehlsergebnis.Ok(ka.An ? "Alle Karren fahren jetzt automatisch (Verwalter)." : "Die Spieler fahren ihre Karren jetzt selbst; die KI fährt weiter automatisch.");
             case EntwicklerDiebeshaus dh: return MitHaus(absender, dh.Haus, Diebeshaus);
             case EntwicklerForderung fo: return MitHaus(absender, fo.Haus, k => Forderung(k, fo));
             case EntwicklerWare ware: return MitBetrieb(ware.Betrieb, b => Ware(b, ware.Ware, ware.Menge));

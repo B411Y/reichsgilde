@@ -656,6 +656,7 @@ public partial class Hauptmenue : Node
             Schwierigkeit = (Schwierigkeit)_schwierigkeit.GetSelectedId(),
             HaerteDerZeit = (HaerteDerZeit)_haerte.GetSelectedId(),
             Zufallsstartwert = (int)_startwert.Value,
+            KarrenSelbstFahren = true, // neue Partien: der Spieler bedient seine Karren selbst (Entwicklerhaken „Karren fahren automatisch“)
         };
         var fehler = einstellungen.Pruefen().ToList();
         var hausname = Partieaufbau.Hausname(_familie.Text);

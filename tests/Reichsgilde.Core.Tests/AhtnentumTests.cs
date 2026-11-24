@@ -57,7 +57,7 @@ static class AhtnentumTests
         ("Ahtnentum Daten: Version 97; etwa die Hälfte der Anderlinge ahtnisch, Zwerge eher alt, Halblinge eher neu, Menschen nie; Startglaube je Volk bleibt christlich; Stadt vier Anteile", () =>
         {
             var d = Daten.Value.Glaube!;
-            Pruefe.Gleich(97, Daten.Value.Version);
+            Pruefe.Gleich(98, Daten.Value.Version);
             foreach (var volk in Anderlinge)
             {
                 var g = d.Voelker[volk];
