@@ -1388,6 +1388,10 @@ public sealed record KarrenStand
     /// <summary>Selbst gefahren: Herkunft der Fahrt, wenn nicht der gewohnte Weg (siehe <see cref="Wirtschaft.Karren.VonBetrieb"/>; null: dann nicht geschrieben).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? VonBetrieb { get; init; }
+
+    /// <summary>Selbst gefahren: unterwegs vom einen Handelsort zum anderen (Markt ↔ Hafen; null: nein, dann nicht geschrieben; fehlt vor K4).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? VonHandelsort { get; init; }
     public long? WareWartetSeit { get; init; }
 
     /// <summary>Einkäufe eines Handelsauftrags, solange der Karren zum Markt unterwegs ist (null: kein Auftrag).</summary>

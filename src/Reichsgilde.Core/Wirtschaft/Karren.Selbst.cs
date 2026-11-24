@@ -15,12 +15,15 @@ public sealed partial class Karren
     /// <summary>Wie viele Ladeflächen die jetzige Ladung belegt.</summary>
     public int BelegteFlaechen => Flaechen(_ladung);
 
-    /// <summary>Losfahren vom Standort nach <paramref name="nach"/> (null: zum Markt); ins Umland erst, wenn das Tor offen ist.</summary>
-    internal void Losschicken(Betrieb? nach, Spielzeit zeit, Stadtwirtschaft w)
+    /// <summary>
+    /// Losfahren vom Standort nach <paramref name="nach"/> (null: zu einem Handelsort – mit <paramref name="hafen"/> zum Hafen, sonst zum Marktplatz);
+    /// ins Umland erst, wenn das Tor offen ist.
+    /// </summary>
+    internal void Losschicken(Betrieb? nach, bool hafen, Spielzeit zeit, Stadtwirtschaft w)
     {
         var von = Zustand == KarrenZustand.AmMarkt ? null : StandortVon(w) ?? Heimat;
         _wareWartetSeit = null;
-        Abfahren(nach is null ? KarrenZustand.ZumMarkt : KarrenZustand.ZumBetrieb, von, nach, zeit, w);
+        Abfahren(nach is null ? KarrenZustand.ZumMarkt : KarrenZustand.ZumBetrieb, von, nach, zeit, w, nach is null ? hafen : null);
     }
 
     /// <summary>Waren aus dem Lager von <paramref name="lager"/> auf den Karren laden.</summary>

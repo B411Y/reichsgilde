@@ -38,15 +38,59 @@ public sealed partial class Stadtwirtschaft
     /// <summary>
     /// Wie lange dieser Karren von <paramref name="von"/> nach <paramref name="nach"/> fährt (null: der Markt) und über welche Stücke (für die
     /// Klappbrücke; null ohne Strecke). Der gewohnte Weg Heimat ↔ Markt ist genau <see cref="Fahrzeit(Karren, bool)"/> (mit dem Hafen als Handelsort);
-    /// ein anderer Betrieb ↔ Markt die Fahrzeit jenes Betriebs; Betrieb → Betrieb <see cref="FahrzeitZwischen"/>.
+    /// ein anderer Betrieb ↔ Handelsort die Fahrzeit jenes Betriebs (zum Hafen, wenn <see cref="Karren.ZielHafen"/>, K4); Betrieb → Betrieb
+    /// <see cref="FahrzeitZwischen"/>; Markt ↔ Hafen <see cref="FahrzeitZwischenHandelsorten"/> (vom anderen Handelsort zu dem in <see cref="Karren.ZielHafen"/>).
     /// </summary>
-    public (int Minuten, IReadOnlyList<Fahrtstueck>? Strecke) KarrenFahrt(Karren karren, Betrieb? von, Betrieb? nach)
+    public (int Minuten, IReadOnlyList<Fahrtstueck>? Strecke) KarrenFahrt(Karren karren, Betrieb? von, Betrieb? nach) =>
+        KarrenFahrt(karren, von, nach, vonHafen: von is null && nach is null ? !karren.ZielHafen : karren.ZielHafen, nachHafen: karren.ZielHafen);
+
+    /// <summary>
+    /// Wie <see cref="KarrenFahrt(Karren, Betrieb?, Betrieb?)"/>, mit ausdrücklichem Handelsort: <paramref name="vonHafen"/> gilt, wenn <paramref name="von"/>
+    /// null ist (vom Hafen statt vom Marktplatz), <paramref name="nachHafen"/>, wenn <paramref name="nach"/> null ist.
+    /// </summary>
+    public (int Minuten, IReadOnlyList<Fahrtstueck>? Strecke) KarrenFahrt(Karren karren, Betrieb? von, Betrieb? nach, bool vonHafen, bool nachHafen)
     {
-        if (von == karren.Heimat && nach is null) return (Fahrzeit(karren, zumMarkt: true), Fahrten(karren)?.Hin);
-        if (von is null && nach == karren.Heimat) return (Fahrzeit(karren, zumMarkt: false), Fahrten(karren)?.Zurueck);
-        if (nach is null) return (Fahrzeit(von!, karren.Typ, zumMarkt: true), Fahrten(von!)?.Hin);
-        if (von is null) return (Fahrzeit(nach, karren.Typ, zumMarkt: false), Fahrten(nach)?.Zurueck);
+        if (von is null && nach is null)
+            return vonHafen == nachHafen ? (0, null) : (FahrzeitZwischenHandelsorten(karren, nachHafen), StreckeZwischenHandelsorten(karren.Heimat, nachHafen)?.Stuecke);
+        // der gewohnte Weg wie bisher (Fahrzeit und Fahrten des Karrens kennen seinen Handelsort)
+        if (von == karren.Heimat && nach is null && nachHafen == karren.ZielHafen) return (Fahrzeit(karren, zumMarkt: true), Fahrten(karren)?.Hin);
+        if (von is null && nach == karren.Heimat && vonHafen == karren.ZielHafen) return (Fahrzeit(karren, zumMarkt: false), Fahrten(karren)?.Zurueck);
+        if (nach is null)
+            return nachHafen && FahrzeitZumHafen(von!, karren.Typ, hin: true) is { } hin ? (hin, FahrtenZumHafen(von!)?.Hin)
+                : (Fahrzeit(von!, karren.Typ, zumMarkt: true), Fahrten(von!)?.Hin);
+        if (von is null)
+            return vonHafen && FahrzeitZumHafen(nach, karren.Typ, hin: false) is { } zurueck ? (zurueck, FahrtenZumHafen(nach)?.Zurueck)
+                : (Fahrzeit(nach, karren.Typ, zumMarkt: false), Fahrten(nach)?.Zurueck);
         return (FahrzeitZwischen(von, nach, karren.Typ), StreckeZwischen(von, nach));
+    }
+
+    /// <summary>
+    /// Wie lange ein Karren vom Marktplatz zum Hafen fährt (<paramref name="zumHafen"/>) bzw. zurück (K4): nach Weglänge auf
+    /// <see cref="StreckeZwischenHandelsorten"/> (Marktplatz und Hafen des Heimatbetriebs, <see cref="MarktplatzVon"/>, <see cref="HafenVon"/>);
+    /// ohne Strecke so lange wie über den Heimatbetrieb.
+    /// </summary>
+    public int FahrzeitZwischenHandelsorten(Karren karren, bool zumHafen)
+    {
+        var b = karren.Heimat;
+        var marktHin = Fahrzeit(b, karren.Typ, zumMarkt: true);
+        var marktZurueck = Fahrzeit(b, karren.Typ, zumMarkt: false);
+        var hafenHin = FahrzeitZumHafen(b, karren.Typ, hin: true) ?? marktHin;
+        var hafenZurueck = FahrzeitZumHafen(b, karren.Typ, hin: false) ?? marktZurueck;
+        var ueberDenBetrieb = zumHafen ? marktZurueck + hafenHin : hafenZurueck + marktHin;
+        if (NachWeglaenge(karren.Typ) is not { } art || StreckeZwischenHandelsorten(b, zumHafen) is not { } fahrt) return ueberDenBetrieb;
+        return NachLaenge(fahrt.Stuecke, art, ueberDenBetrieb);
+    }
+
+    /// <summary>
+    /// Die Fahrt vom Marktplatz zum Hafen (<paramref name="zumHafen"/>) bzw. zurück für die Karren dieses Betriebs (Mitte zu Mitte über das Netz der
+    /// Wege; K4). Null ohne Karte, ohne Hafen oder ohne Weg. <c>Punkte</c> für die Darstellung.
+    /// </summary>
+    public Netzfahrt? StreckeZwischenHandelsorten(Betrieb betrieb, bool zumHafen)
+    {
+        if (!NachWeglaengeGerechnet || Karrennetz is not { } netz || MarktplatzVon(betrieb) is not { } markt || HafenVon(betrieb) is not { } hafen) return null;
+        var (a, b) = zumHafen ? (markt, hafen) : (hafen, markt);
+        var fahrt = netz.FahrtMitVerlauf(Mitte(a), Mitte(b));
+        return fahrt.Stuecke.Count > 0 ? fahrt : null;
     }
 
     /// <summary>
@@ -110,10 +154,15 @@ public sealed partial class Stadtwirtschaft
     /// <summary>
     /// Warum diese Karren nicht nach <paramref name="zielBetrieb"/> (null: zum Markt; sonst der Name eines eigenen Betriebs) losfahren können – oder null.
     /// </summary>
-    public string? KarrenLosschickenVerboten(Konto konto, Betrieb betrieb, IReadOnlyList<int> karren, string? zielBetrieb, string? eskorte = null)
+    /// <param name="hafen">Ziel ist der Hafen (K4, nur mit <paramref name="zielBetrieb"/> null): nur, wenn Karren zum Hafen fahren, die Stadt einen
+    /// erreichbaren Hafen hat und er offen ist (nicht im Winter, nicht im Eis) – wie der Verwalter zum Hafen fährt.</param>
+    public string? KarrenLosschickenVerboten(Konto konto, Betrieb betrieb, IReadOnlyList<int> karren, string? zielBetrieb, string? eskorte = null, bool hafen = false)
     {
         if (karren.Count == 0) return "Kein Karren gewählt.";
         if (karren.Distinct().Count() != karren.Count) return "Ein Karren ist doppelt gewählt.";
+        if (hafen && zielBetrieb is not null) return "Ziel ist entweder ein Betrieb oder der Hafen.";
+        if (hafen && (!Schiffahrt.KarrenZumHafen || Schiffahrt.Hafengebaeude.Count == 0)) return "In dieser Stadt fahren Karren nicht zum Hafen.";
+        if (hafen && !Schiffahrt.HafenOffen) return "Der Hafen ist geschlossen (Winter oder Eis) – Karren fahren erst wieder hin, wenn er offen ist.";
         Betrieb? ziel = null;
         if (zielBetrieb is not null)
         {
@@ -130,7 +179,13 @@ public sealed partial class Stadtwirtschaft
         {
             if (KarrenBefehlVerboten(konto, betrieb, nr) is { } grund) return grund;
             var k = betrieb.Karren[nr];
-            if (ziel is null && k.Zustand == KarrenZustand.AmMarkt) return $"{k.Name} steht schon am Markt.";
+            if (ziel is null && k.Zustand == KarrenZustand.AmMarkt && k.ZielHafen == hafen) return $"{k.Name} steht schon am {k.Handelsort}.";
+            if (hafen)
+            {
+                var von = k.Zustand == KarrenZustand.AmMarkt ? null : k.StandortVon(this);
+                var weg = von is null ? HafenVon(k.Heimat) is not null : FahrzeitZumHafen(von, k.Typ, hin: true) is not null;
+                if (!weg) return $"Von {von?.Name ?? "dort"} führt für {k.Name} kein Weg zum Hafen.";
+            }
             if (ziel is not null && k.StandortVon(this) == ziel) return $"{k.Name} steht schon an {ziel.Name}.";
         }
         return null;
@@ -209,18 +264,18 @@ public sealed partial class Stadtwirtschaft
     //  Ausführen
     // ═════════════════════════════════════════════════════════════════════════
 
-    private Befehlsergebnis KarrenLosschickenAusfuehren(Betrieb betrieb, IReadOnlyList<int> nummern, string? zielBetrieb, string? eskorte)
+    private Befehlsergebnis KarrenLosschickenAusfuehren(Betrieb betrieb, IReadOnlyList<int> nummern, string? zielBetrieb, string? eskorte, bool hafen = false)
     {
-        if (KarrenLosschickenVerboten(betrieb.Konto, betrieb, nummern, zielBetrieb, eskorte) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
+        if (KarrenLosschickenVerboten(betrieb.Konto, betrieb, nummern, zielBetrieb, eskorte, hafen) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var ziel = zielBetrieb is null ? null : _betriebe.First(b => b.Name == zielBetrieb);
         var zeilen = new List<string>();
         foreach (var nr in nummern)
         {
             var karren = betrieb.Karren[nr];
             if (eskorte is not null) karren.Eskorte = eskorte;
-            karren.Losschicken(ziel, Uhr, this);
+            karren.Losschicken(ziel, hafen, Uhr, this);
             var an = Uhr.UhrzeitInMinuten + (int)(karren.Ankunft - Uhr.VergangeneMinuten);
-            zeilen.Add($"{karren.Name} fährt {(ziel is null ? "zum Markt" : ziel == betrieb ? "zurück zu " + ziel.Name : "nach " + ziel.Name)} (an {UhrText(an)})");
+            zeilen.Add($"{karren.Name} fährt {(ziel is null ? (hafen ? "zum Hafen" : "zum Markt") : ziel == betrieb ? "zurück zu " + ziel.Name : "nach " + ziel.Name)} (an {UhrText(an)})");
         }
         return Befehlsergebnis.Ok(string.Join("; ", zeilen) + ".");
     }
