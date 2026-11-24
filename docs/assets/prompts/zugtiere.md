@@ -1,5 +1,7 @@
 # Zugtiere (Pferd und Ochse)
 
+> **Stand 23.11.2026:** Das Pferd stammt nicht mehr von Quaternius, sondern aus dem Modell „Horse“ von henrysteve973 (CC BY 4.0), siehe `zugpferd_neu.md`. Dieser Ablauf gilt für den Ochsen (und für `--altes-pferd`).
+
 Kein KI-Inhalt, ein Fremdpaket mit Eigenbau-Nachbearbeitung. Diese Datei hält Herkunft und Ablauf fest (Prompt entfällt).
 
 ## Quelle

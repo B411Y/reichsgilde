@@ -15,7 +15,7 @@ static class GehtempoTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
+    static readonly string[] Arten = { "Handkarren", "Pferdekarren", "Großer Pferdekarren" };
 
     /// <summary>Ein ebener Weg von 100 m mit 1 m/s = 0,79 m je Spielminute (Rundendauer 15 min).</summary>
     static Fahrprofil Eben(double laenge = 100, double meterJeMinute = 1) =>
@@ -85,8 +85,8 @@ static class GehtempoTests
         ("Karrentempo: Ochse 0,8, Pferd 1,3, Handkarren 1,0 m/s aus dem Kern; Geschwindigkeit = 1 ÷ Zeitfaktor des Kerns (der Kern begrenzt den Ausbau auf 15 %)", () =>
         {
             var karren = Daten.Value.Logistik.Karren;
-            Pruefe.Gleich(0.8, karren["Ochsenkarren"].Tempo);
-            Pruefe.Gleich(1.3, karren["Pferdekarren"].Tempo);
+            Pruefe.Gleich(0.8, karren["Pferdekarren"].Tempo);
+            Pruefe.Gleich(1.3, karren["Großer Pferdekarren"].Tempo);
             Pruefe.Gleich(1.0, karren["Handkarren"].Tempo);
             Pruefe.Gleich(1.0, Karrentempo.Geschwindigkeitsfaktor(1));
             Pruefe.Ungefaehr(1 / 0.9, Karrentempo.Geschwindigkeitsfaktor(0.9), 1e-9);
@@ -317,7 +317,7 @@ static class GehtempoTests
                     var fahrt = netz.Fahrt(new Kartenort(g.X, g.Z), markt);
                     var laenge = fahrt.Sum(s => s.Laenge);
                     var stuecke = Karrentempo.Stuecke(fahrt, w.Zeitfaktor, 5, 30);
-                    foreach (var typ in new[] { "Handkarren", "Ochsenkarren", "Pferdekarren" })
+                    foreach (var typ in new[] { "Handkarren", "Pferdekarren", "Großer Pferdekarren" })
                     {
                         var jeMinute = Daten.Value.Logistik.Karren[typ].Tempo * 900.0 / 1140;
                         var p = new Fahrprofil(stuecke, laenge, jeMinute);

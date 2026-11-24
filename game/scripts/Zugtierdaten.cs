@@ -4,7 +4,7 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Regeln der Zugtiere aus <c>res://daten/zugtiere.json</c> (erzeugt von <c>tools/modelle/zugtiere.py</c>): je Tierart (<c>pferd</c>, <c>ochse</c>) und Clip
+/// Die Regeln der Zugtiere aus <c>res://daten/zugtiere.json</c> (erzeugt von <c>tools/modelle/zugtiere.py</c>): je Tierart (<c>pferd</c>) und Clip
 /// Dauer, Schleife, Rumpfweg je Bild und Anlauf, dazu Tempo, Anker im Ziehen und Blendzeit zwischen Gehen und Ziehen. Nur lesen, nichts rechnen.
 /// </summary>
 public static class Zugtierdaten
@@ -12,12 +12,12 @@ public static class Zugtierdaten
     /// <summary>Ein Clip: Dauer in Sekunden (Godot nennt Schleifen um 1/24 s zu lang), ob er schleift, und der Rumpfweg in Metern je Bild (24 je Sekunde).</summary>
     public sealed record Klip(double Dauer, bool Schleife, float[] Weg);
 
-    /// <summary>Eine Tierart.</summary>
-    public sealed record Tierart(Vector3 AnkerZiehen, float Tempo, double BlendGehenZiehen, Dictionary<string, Klip> Klips);
+    /// <summary>Eine Tierart; <paramref name="Kurve"/>: Biegung der Wirbelsäule bei voller Kurve nach links (Knochen, Achse im Elternraum, Grad), leer ohne Angabe.</summary>
+    public sealed record Tierart(Vector3 AnkerZiehen, float Tempo, double BlendGehenZiehen, Dictionary<string, Klip> Klips, (string Knochen, Vector3 Achse, float Grad)[] Kurve);
 
     private static Dictionary<string, Tierart>? _arten;
 
-    /// <summary>Die Tierart („pferd“, „ochse“); null, wenn die Datei fehlt.</summary>
+    /// <summary>Die Tierart („pferd“); null, wenn die Datei fehlt.</summary>
     public static Tierart? Von(string tier)
     {
         _arten ??= Laden();
@@ -41,10 +41,25 @@ public static class Zugtierdaten
                 var weg = k.Value.TryGetProperty("weg", out var w) ? w.EnumerateArray().Select(x => x.GetSingle()).ToArray() : Array.Empty<float>();
                 klips[k.Name] = new Klip(k.Value.GetProperty("dauer").GetDouble(), k.Value.GetProperty("schleife").GetBoolean(), weg);
             }
+            var faktor = art.Value.TryGetProperty("kurve_faktor", out var kf) ? kf.GetSingle() : 1f;  // volle Biegung im Spiel (Anteil des Messwerts)
+            var kurve = art.Value.TryGetProperty("kurve", out var ku)
+                ? ku.EnumerateArray().Select(e => (e.GetProperty("knochen").GetString() ?? "", AchseNormieren(new Vector3(e.GetProperty("achse")[0].GetSingle(), e.GetProperty("achse")[1].GetSingle(), e.GetProperty("achse")[2].GetSingle()), art.Name), e.GetProperty("grad").GetSingle() * faktor)).ToArray()
+                : Array.Empty<(string, Vector3, float)>();
             aus[art.Name] = new Tierart(new Vector3(a[0].GetSingle(), a[1].GetSingle(), a[2].GetSingle()), art.Value.GetProperty("tempo").GetSingle(),
-                blend.GetProperty(art.Name).GetDouble(), klips);
+                blend.GetProperty(art.Name).GetDouble(), klips, kurve);
         }
         return aus;
+    }
+
+    /// <summary>Die Messwerte der Drehachsen haben nicht die Länge 1, Godots Quaternion verlangt aber eine normierte Achse: hier einmal beim Laden normieren; eine Nullachse wird gemeldet und durch Y ersetzt.</summary>
+    private static Vector3 AchseNormieren(Vector3 achse, string art)
+    {
+        if (achse.LengthSquared() < 1e-8f)
+        {
+            GD.PushError($"Zugtierdaten: Drehachse der Art {art} ist die Nullachse, Ersatz: Hochachse.");
+            return Vector3.Up;
+        }
+        return achse.Normalized();
     }
 
     /// <summary>

@@ -605,7 +605,7 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>
     /// Eröffnet einen Betrieb mit Startausstattung: Eine Gießerei bekommt einen Handkarren,
-    /// eine Mine einen Ochsenkarren (mit einem Handkarren käme sie mit dem Abtransport nicht nach).
+    /// eine Mine einen Pferdekarren (mit einem Handkarren käme sie mit dem Abtransport nicht nach).
     /// </summary>
     /// <param name="startkarren">Anderer Karrentyp als Startausstattung oder "" für keinen.</param>
     public Betrieb BetriebEroeffnen(string name, Betriebsart art, Konto konto, string? startkarren = null)
@@ -1281,13 +1281,13 @@ public sealed partial class Stadtwirtschaft
 
     private Befehlsergebnis KarrenKaufenAusfuehren(Betrieb betrieb, KarrenKaufen befehl)
     {
-        var typ = LogistikDaten.Karrenart(befehl.Typ); // alte Kennung aus Protokoll, Warteschlange oder Startoption (Kriegskarren → Pferdekarren)
+        var typ = LogistikDaten.Karrenart(befehl.Typ); // alte Kennung aus Protokoll, Warteschlange oder Startoption (Ochsenkarren → Pferdekarren, Kriegskarren → Großer Pferdekarren)
         if (!Daten.Logistik.Karren.TryGetValue(typ, out var daten))
             return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
         if (KarrenKaufVerboten(betrieb) is { } grenze) return Befehlsergebnis.Abgelehnt(grenze);
         if (betrieb.Konto.Vermoegen < daten.Preis)
             return Befehlsergebnis.Abgelehnt(
-                $"Für einen {typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
+                $"Für einen {LogistikDaten.KarrenartAkkusativ(typ)} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
         var karren = betrieb.KarrenKaufen(typ);
         return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
     }

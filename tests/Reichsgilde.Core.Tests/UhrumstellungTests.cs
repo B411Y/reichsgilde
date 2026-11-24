@@ -103,11 +103,11 @@ static class UhrumstellungTests
             var typ = w.Daten.Schiffshandel.Schiffe["Flussschiff"]; // Fahrtzeiten mit dem Spieltag (Datenversion 57)
             Pruefe.Gleich((67, 112, 22, 34), (typ.MinutenFlussab, typ.MinutenFlussauf, typ.LadeMinuten, typ.LiegeMinuten));
 
-            // Weiterspielen über den Jahreswechsel; der neue Spielstand ist Format 3 und lädt Wurf für Wurf gleich.
+            // Weiterspielen über den Jahreswechsel; der neue Spielstand hat das heutige Format (3; seit den Karrenarten 4) und lädt Wurf für Wurf gleich.
             Ticken(sim, 23 * 60 - sim.Zeit.UhrzeitInMinuten + 30);
             Pruefe.Gleich(("Winter 1407", "04:30"), (sim.Zeit.DatumText, sim.Zeit.UhrzeitText));
             var neu = Speicherung.Speichern(sim, spieler, DateTime.UnixEpoch);
-            Pruefe.Gleich(3, (int)JsonNode.Parse(neu)!["Format"]!);
+            Pruefe.Gleich(Speicherstand.AktuellesFormat, (int)JsonNode.Parse(neu)!["Format"]!);
             var (kopie, kopieSpieler) = Speicherung.Laden(neu);
             Ticken(sim, 300);
             Ticken(kopie, 300);

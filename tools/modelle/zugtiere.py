@@ -1,8 +1,8 @@
-"""Zugtiere: Pferd und Ochse aus dem „LowPoly Animated Farm Animal Pack“ von Quaternius (CC0), an den Stil der Welt angepasst.
+"""Zugtiere: das Pferd (Quaternius „LowPoly Animated Farm Animal Pack“ bzw. Zugpferd Horse, CC0; der Ochse wurde am 23.11.2026 aus dem Spiel genommen), an den Stil der Welt angepasst.
 
     blender -b --python tools/modelle/zugtiere.py -- [--nur=pferd_rotbraun,...] [--ohne-bilder] [--schnell]
 
-Schreibt game/assets/modelle/tiere/tier_pferd_rotbraun.glb, tier_pferd_schwarzbraun.glb, tier_ochse_rotbraun.glb, tier_ochse_falb.glb
+Schreibt game/assets/modelle/tiere/tier_pferd_rotbraun.glb, tier_pferd_schwarzbraun.glb,
 und Vorschaubilder (Umgebungsvariable ZUGTIERE_VORSCHAU, sonst docs/modelle/).
 
 Quelle (Lizenz CC0 1.0, an der Seite und in der mitgelieferten License.txt geprüft, siehe docs/assets/protokoll.csv): die Blender-Dateien
@@ -56,11 +56,8 @@ PASSANT = os.path.join(bs.MODELLE, "figuren", "probe", "passant_probe.glb")
 PALETTEN = {
     "pferd_rotbraun": {"Fell": (0.42, 0.22, 0.11), "Dunkel": (0.075, 0.048, 0.036), "Maul": (0.30, 0.20, 0.15), "Huf": (0.20, 0.165, 0.14)},
     "pferd_schwarzbraun": {"Fell": (0.23, 0.155, 0.11), "Dunkel": (0.065, 0.055, 0.05), "Maul": (0.33, 0.25, 0.19), "Huf": (0.17, 0.14, 0.12)},
-    "ochse_rotbraun": {"Fell": (0.44, 0.25, 0.14), "Dunkel": (0.21, 0.12, 0.075), "Maul": (0.60, 0.46, 0.38), "Huf": (0.25, 0.21, 0.175)},
-    "ochse_falb": {"Fell": (0.67, 0.51, 0.32), "Dunkel": (0.44, 0.31, 0.19), "Maul": (0.80, 0.66, 0.52), "Huf": (0.30, 0.25, 0.20)},
 }
-HAARFARBE = {"pferd_rotbraun": (0.33, 0.175, 0.085), "pferd_schwarzbraun": (0.085, 0.07, 0.065),
-             "ochse_rotbraun": (0.19, 0.095, 0.055), "ochse_falb": (0.15, 0.105, 0.07)}      # Fuchs: Mähne heller rotbraun, Rappe fast schwarz, Falbe dunkel
+HAARFARBE = {"pferd_rotbraun": (0.33, 0.175, 0.085), "pferd_schwarzbraun": (0.085, 0.07, 0.065)}      # Fuchs: Mähne heller rotbraun, Rappe fast schwarz, Falbe dunkel
 bs.FARBEN.update({
     "Horn": (0.80, 0.74, 0.60), "Hornspitze": (0.20, 0.17, 0.14), "Gurt": (0.12, 0.10, 0.09),
 })
@@ -82,12 +79,8 @@ TIERE = {
     "pferd": dict(blend="Horse.blend", objekt="Horse", s=0.37, tempo=1.3,
                   ziehen={"Shoulders": 6.0, "Neck": 9.0, "Head": 5.0, "Torso": 1.5},
                   fressen={"Shoulders": 14.0, "Neck": 40.0, "Head": 22.0}),
-    "ochse": dict(blend="Cow.blend", objekt="Cow", s=0.31, tempo=0.8,
-                  ziehen={"Shoulders": 8.0, "Neck": 14.0, "Head": 8.0, "Torso": 2.0},
-                  fressen={"Shoulders": 14.0, "Neck": 36.0, "Head": 24.0}),
 }
-DATEIEN = [("tier_pferd_rotbraun", "pferd", "rotbraun"), ("tier_pferd_schwarzbraun", "pferd", "schwarzbraun"),
-           ("tier_ochse_rotbraun", "ochse", "rotbraun"), ("tier_ochse_falb", "ochse", "falb")]
+DATEIEN = [("tier_pferd_rotbraun", "pferd", "rotbraun"), ("tier_pferd_schwarzbraun", "pferd", "schwarzbraun")]
 
 
 def _weich(x):
@@ -949,8 +942,8 @@ def versatz(rahmen, ske, grad, wellen=None):
 
 # Lage des Ankers im Ziehen gegenüber der Ruhelage (Godot-Koordinaten x, Höhe, Strecke vor dem Ursprung; Mittel über die Schleife, gemessen mit zugtiere_gespann.py):
 # der Rumpf sinkt im Gehen und Ziehen, bis jedes Bein sein Hufziel erreicht, das Geschirr sinkt mit
-ANKER_ZIEHEN_VERSATZ = {"pferd": (0.003, -0.083, 0.003), "ochse": (0.004, -0.120, 0.007)}
-ANKER_ABWEICHUNG_MM = {"pferd": (18, 25), "ochse": (51, 39)}     # Ziehen, Gehen ohne Zug (um die Mitte, gemessen mit zugtiere_gespann.py)
+ANKER_ZIEHEN_VERSATZ = {"pferd": (0.003, -0.083, 0.003)}
+ANKER_ABWEICHUNG_MM = {"pferd": (18, 25)}     # Ziehen, Gehen ohne Zug (um die Mitte, gemessen mit zugtiere_gespann.py)
 
 
 def clips_schreiben(art, cfg, clips, daten, zug=None):
@@ -982,20 +975,20 @@ def clips_schreiben(art, cfg, clips, daten, zug=None):
                    "laufenden Durchlaufs (Bild 0), dann Anhalten_X mit Blendzeit 0; danach Stehen mit Blendzeit 0,05 s.",
         "gespann": "Anker_Geschirr (Zugpunkt, Blickrichtung des Tiers) hängt am eigenen, nie bewegten Knochen Geschirr (Kind des Wurzelknochens, in Godot ein BoneAttachment3D) "
                    "und liegt in ALLEN Clips fest auf der mittleren Lage des Geschirrs im Ziehen (gemessene Abweichung 0,0 mm in Stehen, Gehen, Ziehen); Kummet bzw. Joch wippen mit dem Rumpf darunter "
-                   "(Pferd +-35 mm, Ochse +-50 mm), die Zugstränge geben nach. Beim Anhalten gibt es deshalb keinen Sprung am Karren. "
+                   "(Pferd +-10 mm seitlich und +-10 mm hoch), die Zugstränge geben nach. Beim Anhalten gibt es deshalb keinen Sprung am Karren. "
                    "Platzierung: Tier-Wurzel = Position(Anker_Deichsel des Karrens) - Drehung(Karren) * tiere.<art>.anker_ziehen_godot (x, Höhe, Strecke vor dem Ursprung; "
-                   "Godot-Koordinaten; Pferd 1,56 m hoch, 0,67 m vor dem Ursprung, Ochse 1,56 m und 1,03 m; anker_lokal_godot ist derselbe Wert); "
-                   "Ausrichtung des Tiers = Ausrichtung des Karrens (beide blicken nach +Z). Im Stehen sitzt das Kummet 8 cm (Pferd) bzw. 12 cm (Ochse) höher als im Ziehen "
+                   "Godot-Koordinaten; Pferd 1,28 m hoch, 0,67 m vor dem Ursprung (Ringmitte des Kummets im Ziehen); anker_lokal_godot ist derselbe Wert); "
+                   "Ausrichtung des Tiers = Ausrichtung des Karrens (beide blicken nach +Z). Im Stehen sitzt das Kummet 6,8 cm (Pferd) höher als im Ziehen "
                    "(der Rumpf sinkt beim Gehen und Ziehen, sonst erreichen die Beine ihre Hufziele nicht), der Anker nicht. Beim Zweispänner Anker_Pferd_L (x = +0,62) und Anker_Pferd_R (x = -0,62) statt Anker_Deichsel "
                    "(Abstand der Tiere 1,24 m).",
-        "blendzeit_gehen_ziehen": {"pferd": 0.4, "ochse": 0.6},
+        "blendzeit_gehen_ziehen": {"pferd": 0.4},
         "phasenregel": "Überblenden zwischen Gehen und Ziehen nur, wenn beide Clips dieselbe Abspielstelle (Phase) haben: Der Code setzt den neuen Clip auf "
                        "dieselbe Stelle (seek) und blendet dann. Läuft ein Tier mit absichtlich versetzter Stelle (zweites Pferd, Versatz 0,5 Schleifen), "
                        "behält es seinen Versatz in beiden Clips (derselbe Versatz im neuen Clip), sonst würden die Hufe beim Blenden ineinander greifen. "
                        "Wechsel zwischen Stehen, Stehen-Varianten und Anfahren_/Anhalten_ sind ohne Blendzeit möglich (Abstand höchstens 2,2 mm).",
         "mehrere_tiere": "Zwei Pferde nie im Gleichtakt: das zweite startet Gehen/Ziehen mit seek(0,5 · Dauer) bzw. um diese Zeit später "
                          "(Fußfolge gegen das erste verschoben); Stehen-Varianten je Tier zufällig und zeitlich versetzt.",
-        "lod": "Dreiecksbudget (Runde 11): Nahnetz Pferd rund 11 700, Ochse 6 170 Dreiecke; Fernnetz Pferd rund 1 250, Ochse 862. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 11 700 = 23 400 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Fernnetz der Pferde liegt 10 mm höher (Decimate-Ausgleich).",
+        "lod": "Dreiecksbudget (Pferd B, 23.11.2026): Nahnetz Pferd 9 022 Dreiecke (Pferd 7 990 plus Geschirr 1 032); Fernnetz Pferd 1 614. Nahnetz (Skelett) nur bei Zoom 25 und höchstens 4 Tieren gleichzeitig im Bild (Zweispänner 2 x 9 022 = 18 044 plus Karren); alle weiteren Tiere und ab Zoom 50 die gebackene Vertex-Animation (Nahnetz gebacken), ab Zoom 100 das Fernnetz (genügt für die Spielkamera). Das Pferd trägt eine Albedo-Textur (ein Atlas, UV im Netz, Mähne als Alpha-Maske).",
         "vat": "Gehen und Ziehen mit 24 Bildern je Sekunde backen (nicht 12): Mitte zwischen zwei Bildern höchstens rund 1 cm Abweichung, "
                "bei 12 rund 7 bis 9 cm (siehe docs/bereiche/darstellung.md).",
     }
@@ -1563,6 +1556,8 @@ def main():
     for datei, art, variante in DATEIEN:
         if nur and datei.replace("tier_", "") not in nur:
             continue
+        if art == "pferd" and "--altes-pferd" not in sys.argv:
+            continue                      # das Pferd kommt seit 23.11.2026 aus tools/modelle/pferd2_*.py (Modell von henrysteve973); --altes-pferd baut das frühere (Quaternius)
         ske, ob, fern, anker, zug = bauen(datei, art, variante)
         if "--ohne-bilder" not in sys.argv:
             vorschau(datei, art, ske, zug, "--schnell" in sys.argv)

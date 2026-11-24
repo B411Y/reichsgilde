@@ -17,14 +17,14 @@ static class KarrenVerkaufenTests
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, wirtschaftsdaten: daten ?? Daten.Value);
 
-    /// <summary>Ein Haus mit einer Gießerei (Handkarren der Startausstattung) und einem gekauften Ochsenkarren.</summary>
+    /// <summary>Ein Haus mit einer Gießerei (Handkarren der Startausstattung) und einem gekauften Pferdekarren.</summary>
     static (Simulation Sim, Stadtwirtschaft W, Konto K, Betrieb B) GiessereiMitZweiKarren()
     {
         var sim = NeueSimulation();
         var w = sim.Wirtschaft!;
         var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 5_000);
         var b = w.BetriebEroeffnen("Gießerei", Betriebsart.Giesserei, k);
-        Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(b.Name, "Ochsenkarren")).Erfolg, "Ochsenkarren gekauft");
+        Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(b.Name, "Pferdekarren")).Erfolg, "Pferdekarren gekauft");
         return (sim, w, k, b);
     }
 
@@ -42,10 +42,10 @@ static class KarrenVerkaufenTests
         {
             var (_, w, k, b) = GiessereiMitZweiKarren();
             var vorher = k.Vermoegen;
-            Pruefe.Ungefaehr(200, w.KarrenErloes(b.Karren[1]), 1e-9); // Ochsenkarren 400 × 0,5
+            Pruefe.Ungefaehr(200, w.KarrenErloes(b.Karren[1]), 1e-9); // Pferdekarren 400 × 0,5
             var e = w.Ausfuehren(k, new KarrenVerkaufen(b.Name, 1));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
-            Pruefe.Wahr(e.Meldung.Contains("Ochsenkarren 2") && e.Meldung.Contains("200"), e.Meldung);
+            Pruefe.Wahr(e.Meldung.Contains("Pferdekarren 2") && e.Meldung.Contains("200"), e.Meldung);
             Pruefe.Gleich("Handkarren", b.Karren.Single().Typ);
             Pruefe.Ungefaehr(vorher + 200, k.Vermoegen, 1e-9);
             Pruefe.Ungefaehr(200, k.Laufend.Verkaeufe, 1e-9);
@@ -105,10 +105,10 @@ static class KarrenVerkaufenTests
 
         ("Karren verkaufen: Ein neuer Karren nimmt die nächste freie Nummer – kein Name doppelt", () =>
         {
-            var (_, w, k, b) = GiessereiMitZweiKarren(); // Handkarren 1, Ochsenkarren 2
+            var (_, w, k, b) = GiessereiMitZweiKarren(); // Handkarren 1, Pferdekarren 2
             w.Ausfuehren(k, new KarrenVerkaufen(b.Name, 0));
-            w.Ausfuehren(k, new KarrenKaufen(b.Name, "Ochsenkarren"));
-            Pruefe.Gleich("Ochsenkarren 2,Ochsenkarren 3", string.Join(",", b.Karren.Select(x => x.Name)));
+            w.Ausfuehren(k, new KarrenKaufen(b.Name, "Pferdekarren"));
+            Pruefe.Gleich("Pferdekarren 2,Pferdekarren 3", string.Join(",", b.Karren.Select(x => x.Name)));
             w.Ausfuehren(k, new KarrenKaufen(b.Name, "Handkarren"));
             Pruefe.Gleich("Handkarren 3", b.Karren[^1].Name); // die Nummer zählt über alle Typen, Handkarren 3 gab es noch nicht
         }),
@@ -131,18 +131,18 @@ static class KarrenVerkaufenTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 50_000);
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k); // ohne Personal: keine Ware, keine Zutaten – kein Karren fährt
-            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Ochsenkarren"));
             w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Pferdekarren"));
+            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Großer Pferdekarren"));
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9)); // stellt niemanden ein, kauft und baut nichts
             Jahr(sim, danach: 1);
             Pruefe.Gleich(3, grube.Karren.Count); // das erste Jahr zählt nicht ganz
             Jahr(sim, danach: 1);
-            Pruefe.Gleich("Ochsenkarren 1,Ochsenkarren 2", string.Join(",", grube.Karren.Select(x => x.Name)));
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Pferdekarren 3") && e.Contains("nicht gefahren")), "Begründung");
-            Pruefe.Ungefaehr(450, k.Laufend.Verkaeufe, 1e-9); // Pferdekarren 900 × 0,5 – schon im neuen Jahr gebucht
+            Pruefe.Gleich("Pferdekarren 1,Pferdekarren 2", string.Join(",", grube.Karren.Select(x => x.Name)));
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Großer Pferdekarren 3") && e.Contains("nicht gefahren")), "Begründung");
+            Pruefe.Ungefaehr(450, k.Laufend.Verkaeufe, 1e-9); // Großer Pferdekarren 900 × 0,5 – schon im neuen Jahr gebucht
             Jahr(sim, danach: 1);
             Jahr(sim, danach: 1);
-            Pruefe.Gleich("Ochsenkarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
+            Pruefe.Gleich("Pferdekarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
         }),
 
         ("KI: Ein Betrieb, der oft stillstand, behält seine Karren – auch einen, der nicht fuhr", () =>
@@ -151,7 +151,7 @@ static class KarrenVerkaufenTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 50_000);
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k);
-            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Ochsenkarren"));
+            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Pferdekarren"));
             w.KiAnmelden(k, new KiProfil(Reserve: 1e9, StillstandFuerKarrenkauf: 0)); // jeder Stillstand (auch keiner) gilt als „zu oft“
             Jahr(sim, danach: 1);
             Jahr(sim, danach: 1);
@@ -164,13 +164,13 @@ static class KarrenVerkaufenTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: -3_000); // verschuldet
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k);
-            grube.KarrenHinzufuegen("Pferdekarren"); // geschenkt – das Haus hat kein Geld
+            grube.KarrenHinzufuegen("Großer Pferdekarren"); // geschenkt – das Haus hat kein Geld
             Jahr(sim, danach: 1);
             Pruefe.Wahr(k.Schuldenjahre > 0, $"gemahnt (Reinvermögen {k.Reinvermoegen})");
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
             for (var i = 0; i < 6 * 60 && grube.Karren.Count == 2; i++) sim.Tick();
-            Pruefe.Gleich("Ochsenkarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Pferdekarren 2") && e.Contains("Kämmerer")), "Begründung");
+            Pruefe.Gleich("Pferdekarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Großer Pferdekarren 2") && e.Contains("Kämmerer")), "Begründung");
             for (var i = 0; i < 6 * 60; i++) sim.Tick();
             Pruefe.Gleich(1, grube.Karren.Count);
         }),

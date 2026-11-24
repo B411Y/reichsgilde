@@ -37,7 +37,7 @@ static class KarrenVerweilenTests
         ("Karren verweilen: Daten 98 mit verweilenMinuten 20", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json);
-            Pruefe.Gleich(98, d.Version);
+            Pruefe.Gleich(99, d.Version);
             Pruefe.Gleich(20, d.Logistik.VerweilenMinuten);
         }),
 
