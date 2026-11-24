@@ -38,6 +38,24 @@ public sealed partial class Stadtwirtschaft
         stueck <= 0 ? 0 : Markt[ware].Verkaufswert(stueck) * KarrenVerkaufsFaktor(karren, ware) * karren.Heimat.PreisFaktor;
 
     /// <summary>
+    /// Selbst gefahren, der Karren steht am Markt bzw. Hafen: Verkaufsfaktor (Verhandeln, Aufschlag am Hafen nach <see cref="Karren.ZielHafen"/>)
+    /// und Steuersatz, mit denen er aus seiner Ladung verkauft. Dieselben Sätze für Prüfung (<see cref="KarrenHandelBarerloes"/>) und Abrechnung.
+    /// </summary>
+    internal (double Faktor, double Steuersatz) KarrenHandelSaetze(Karren karren, string ware) =>
+        (KarrenVerkaufsFaktor(karren.Heimat.Konto, ware, karren.ZielHafen), SteuersatzMarkt(karren.Heimat.Konto));
+
+    /// <summary>
+    /// Selbst gefahren, am Markt: was der Verkauf so vieler Stück aus der Ladung jetzt bar in die Kasse brächte – Marktpreis mit dem Preisdruck
+    /// jedes Stücks × <see cref="KarrenHandelSaetze"/> × Preisfaktor des Betriebs, abzüglich Steuer; genau wie die Abrechnung (<see cref="Karren.Verkaufen"/>).
+    /// </summary>
+    public double KarrenHandelBarerloes(Karren karren, string ware, int stueck)
+    {
+        if (stueck <= 0) return 0;
+        var (faktor, steuersatz) = KarrenHandelSaetze(karren, ware);
+        return Markt[ware].Verkaufswert(stueck) * faktor * karren.Heimat.PreisFaktor * (1 - steuersatz);
+    }
+
+    /// <summary>
     /// Aufschlag am Hafen auf die Ware dieses Betriebs im Mittel seiner Karren (je Karren <see cref="HandelsortFaktor"/> nach
     /// <see cref="HandeltAmHafen"/>) – für Vorschauen, die für den ganzen Betrieb rechnen (<see cref="Kalkulation.GewinnJeStueck"/>, Einrichtung),
     /// und die Gewinnschätzung (<see cref="Kalkulation.GewinnJeArbeitsminute"/> mit Betrieb, <see cref="Kalkulation.ErwarteterJahresgewinn"/> beim Ausbau).

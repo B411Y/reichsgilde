@@ -103,6 +103,19 @@ static class Datenpfad
         return json;
     }
 
+    /// <summary>
+    /// Die echten Daten ohne „logistik.verweilenMinuten“ (Datenversion 98): Automatisch fahrende Karren kehren am Markt sofort um wie bis Datenversion 97.
+    /// Für Tests, die einen Ablauf von davor festhalten.
+    /// </summary>
+    public static string OhneVerweilen(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        const string zeile = "\n    \"verweilenMinuten\": 20,";
+        if (!json.Contains(zeile, StringComparison.Ordinal))
+            throw new InvalidDataException("„logistik.verweilenMinuten“ steht nicht wie erwartet in den Daten – Datenpfad.OhneVerweilen anpassen.");
+        return json.Replace(zeile, "", StringComparison.Ordinal);
+    }
+
     /// <summary>Die echten Daten ohne Abschnitt „lagen“ (Datenversion 92): nur die Ernte, wie in Datenversion 91 (mit deren Werten aus „ernte“).</summary>
     public static string OhneLagen(string? json = null) => OhneTextabschnitt(json ?? File.ReadAllText(Wirtschaft()), "lagen");
 
@@ -458,22 +471,22 @@ static class WirtschaftTests
         }),
 
         // Seit den Lagen aller Rohstoffquellen (Datenversion 92: Lage der Grube auf Eisen- und Silberpreis und halb auf die Förderung): 947 → 996.
-        ("Mine, 3 Bergleute (Statut A), Ochsenkarren ohne Eskorte: Gewinn ≈ 996 Gulden/Jahr", () =>
+        ("Mine, 3 Bergleute (Statut A), Pferdekarren ohne Eskorte: Gewinn ≈ 924 Gulden/Jahr (bis Datenversion 97 ohne Verweilen am Markt: 996)", () =>
         {
             var sim = NeueSimulation(Fronstatut.FreieStadt);
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Altknecht", 3);
-            Pruefe.Ungefaehr(996, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(924, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
-        ("Mine, 3 Orks (Statut B), Ochsenkarren: Gewinn ≈ 1.365 Gulden/Jahr – deutlich mehr als mit Bergleuten", () =>
+        ("Mine, 3 Orks (Statut B), Pferdekarren: Gewinn ≈ 1.293 Gulden/Jahr – deutlich mehr als mit Bergleuten (bis Datenversion 97: 1.365)", () =>
         {
             var sim = NeueSimulation(Fronstatut.Bestienfron);
             var w = sim.Wirtschaft!;
             var konto = w.KontoEroeffnen("Spieler");
             w.Einstellen(w.BetriebEroeffnen("Mine", Betriebsart.Mine, konto), "Ork", 3);
-            Pruefe.Ungefaehr(1365, MittlererGewinn(sim, konto).Gewinn, 0.05);
+            Pruefe.Ungefaehr(1293, MittlererGewinn(sim, konto).Gewinn, 0.05);
         }),
 
         // ── Fronstatut ──────────────────────────────────────────────────────

@@ -11,8 +11,11 @@ public enum KarrenZustand
     /// <summary>Unterwegs zum Marktplatz.</summary>
     ZumMarkt,
 
-    /// <summary>Unterwegs zurück zum Betrieb.</summary>
+    /// <summary>Unterwegs zu einem Betrieb: zurück zum Heimatbetrieb oder (selbst gefahren) zu einem anderen eigenen (<see cref="Karren.ZielBetrieb"/>).</summary>
     ZumBetrieb,
+
+    /// <summary>Steht am Markt und wartet auf Befehle (nur selbst gefahrene Karren; automatisch fahrende kehren nach dem Handel um).</summary>
+    AmMarkt,
 }
 
 /// <summary>
@@ -26,9 +29,14 @@ public enum KarrenZustand
 ///   ZumMarkt  ──(Ankunft: verkaufen, Zutaten kaufen)──▶ ZumBetrieb
 ///   ZumBetrieb ──(Ankunft: abladen)──▶ AmBetrieb
 ///
+/// Fährt der Spieler seine Karren selbst (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/> falsch, Nutzer 23.11.2026), entscheidet der Verwalter
+/// nichts: Der Karren fährt nur auf Befehl (<see cref="KarrenLosschicken"/>) zum Markt oder zu einem eigenen Betrieb, steht dort
+/// (<see cref="KarrenZustand.AmMarkt"/> bzw. <see cref="KarrenZustand.AmBetrieb"/> mit <see cref="StandortBetrieb"/>) mit seiner Ladung und
+/// wartet auf den nächsten Befehl (Handeln, Beladen, Abladen, Losschicken).
+///
 /// Beladene Fahrten ins und aus dem Umland können überfallen werden.
 /// </summary>
-public sealed class Karren
+public sealed partial class Karren
 {
     private readonly Dictionary<string, int> _ladung = new();
     private long? _wareWartetSeit;
@@ -39,6 +47,63 @@ public sealed class Karren
     public Betrieb Heimat { get; }
 
     public KarrenZustand Zustand { get; private set; } = KarrenZustand.AmBetrieb;
+
+    /// <summary>Ist der Karren unterwegs (zum Markt oder zu einem Betrieb, auch wartend an Tor, Brücke oder beim Verweilen)?</summary>
+    public bool Unterwegs => Zustand is KarrenZustand.ZumMarkt or KarrenZustand.ZumBetrieb;
+
+    /// <summary>
+    /// Steht der Karren an einem anderen eigenen Betrieb als seinem Heimatbetrieb, dessen Name (null: am Heimatbetrieb, unterwegs oder am Markt).
+    /// Nur selbst gefahrene Karren stehen woanders.
+    /// </summary>
+    public string? StandortBetrieb { get; private set; }
+
+    /// <summary>Unterwegs zu einem Betrieb (<see cref="KarrenZustand.ZumBetrieb"/>): dessen Name, wenn es nicht der Heimatbetrieb ist (sonst null).</summary>
+    public string? ZielBetrieb { get; private set; }
+
+    /// <summary>
+    /// Woher die Fahrt kommt, wenn nicht wie gewohnt: zum Markt von einem anderen Betrieb als dem Heimatbetrieb; zu einem Betrieb von einem Betrieb
+    /// (auch dem Heimatbetrieb) statt vom Markt. Null: der gewohnte Weg (zum Markt vom Heimatbetrieb, zum Betrieb vom Markt).
+    /// </summary>
+    public string? VonBetrieb { get; private set; }
+
+    /// <summary>
+    /// Selbst gefahren: Fährt der Karren von einem Handelsort zum anderen (vom Markt zum Hafen oder umgekehrt; <see cref="ZielHafen"/> ist das Ziel)?
+    /// Dann ist die Herkunft kein Betrieb (<see cref="Herkunft"/> null), sondern der andere Handelsort.
+    /// </summary>
+    public bool VonHandelsort { get; private set; }
+
+    private Betrieb? BetriebNamens(Stadtwirtschaft w, string name) => w.Betriebe.FirstOrDefault(b => b.Name == name);
+
+    /// <summary>Der Betrieb, an dem der Karren steht (null: am Markt oder unterwegs).</summary>
+    public Betrieb? StandortVon(Stadtwirtschaft w) => Zustand != KarrenZustand.AmBetrieb ? null
+        : StandortBetrieb is { } name ? BetriebNamens(w, name) ?? Heimat : Heimat;
+
+    /// <summary>Woher die laufende Fahrt kommt: ein Betrieb oder der Markt (null). Am Betrieb bzw. Markt: der Standort.</summary>
+    public Betrieb? Herkunft(Stadtwirtschaft w) => Zustand switch
+    {
+        KarrenZustand.ZumMarkt => VonHandelsort ? null : VonBetrieb is { } von ? BetriebNamens(w, von) ?? Heimat : Heimat,
+        KarrenZustand.ZumBetrieb => VonBetrieb is { } von ? BetriebNamens(w, von) ?? Heimat : null,
+        _ => StandortVon(w),
+    };
+
+    /// <summary>Wohin die laufende Fahrt geht: ein Betrieb oder der Markt (null). Am Betrieb bzw. Markt: der Standort.</summary>
+    public Betrieb? Ziel(Stadtwirtschaft w) => Zustand switch
+    {
+        KarrenZustand.ZumMarkt => null,
+        KarrenZustand.ZumBetrieb => ZielBetrieb is { } ziel ? BetriebNamens(w, ziel) ?? Heimat : Heimat,
+        _ => StandortVon(w),
+    };
+
+    /// <summary>
+    /// Selbst gefahren: Steht der Karren an einem Betrieb, der nicht mehr seinem Haus gehört (verkauft, abgerissen), steht er wieder am
+    /// Heimatbetrieb – ein Fuhrmann bringt ihn heim, die Ladung bleibt auf dem Karren.
+    /// </summary>
+    private void StandortPruefen(Stadtwirtschaft w)
+    {
+        if (StandortBetrieb is not { } name) return;
+        if (BetriebNamens(w, name) is { } b && b.Konto == Heimat.Konto) return;
+        StandortBetrieb = null;
+    }
 
     /// <summary>Spielminute der Ankunft am Ziel (nur unterwegs von Bedeutung).</summary>
     public long Ankunft { get; private set; }
@@ -102,15 +167,26 @@ public sealed class Karren
     /// <summary>Bis zu dieser Spielminute wartet er an der Klappbrücke (dann geht sie zu und er fährt weiter; null: wartet nicht).</summary>
     public long? BrueckeWartenBis { get; private set; }
 
+    /// <summary>
+    /// Verweilt der Karren nach dem Handel am Markt bzw. Hafen, steht hier die Spielminute, zu der er zurückfährt (null: verweilt nicht).
+    /// Nur automatisch fahrende Karren verweilen (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/>, <see cref="LogistikDaten.VerweilenMinuten"/>,
+    /// Datenversion 98): Die Zeit steht für das Ab- und Aufladen. Der Zustand bleibt solange <see cref="KarrenZustand.ZumMarkt"/>.
+    /// </summary>
+    public long? VerweiltBis { get; private set; }
+
+    /// <summary>Verweilt der Karren gerade am Markt bzw. Hafen? (für Anzeige und Darstellung)</summary>
+    public bool Verweilt(Spielzeit zeit) => VerweiltBis is { } bis && zeit.VergangeneMinuten < bis;
+
     /// <summary>Wartet der Karren gerade an der offenen Klappbrücke? (für Anzeige und Darstellung)</summary>
-    public bool WartetAnBruecke(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && BrueckeWartenAb is { } ab && BrueckeWartenBis is { } bis
+    public bool WartetAnBruecke(Spielzeit zeit) => Unterwegs && BrueckeWartenAb is { } ab && BrueckeWartenBis is { } bis
                                                    && zeit.VergangeneMinuten >= ab && zeit.VergangeneMinuten < bis;
 
     /// <summary>
     /// Fährt der Karren gerade mit seinem Fuhrmann (unterwegs und nicht am geschlossenen Tor)? Für die Darstellung: am Betrieb und am Tor
-    /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden. Nur eine Abfrage, ändert nichts an den Fahrzeiten.
+    /// ist der Fuhrmann nicht zu sehen und das Zugtier steht angebunden; ebenso, solange er am Markt verweilt (<see cref="Verweilt"/>).
+    /// Nur eine Abfrage, ändert nichts an den Fahrzeiten.
     /// </summary>
-    public bool Faehrt(Spielzeit zeit) => Zustand != KarrenZustand.AmBetrieb && !WartetAmTor(zeit);
+    public bool Faehrt(Spielzeit zeit) => Unterwegs && !WartetAmTor(zeit) && !Verweilt(zeit);
 
     /// <summary>
     /// Der Fuhrmann dieses Karrens, nur fürs Bild (abgeleitet, nicht gespeichert, ohne Lohn): fest aus Betriebsname (Heimat.Name) und Karrenname gewürfelt,
@@ -132,11 +208,14 @@ public sealed class Karren
 
     /// <summary>Kurzer Text für die Anzeige.</summary>
     public string ZustandText(Spielzeit zeit) => WartetAmTor(zeit)
-        ? (Zustand == KarrenZustand.ZumMarkt ? "wartet vor dem geschlossenen Stadttor bis zum Morgen" : "wartet in der Stadt, bis das Tor aufgeht")
+        ? (_rueckfahrtWartet ? "wartet in der Stadt, bis das Tor aufgeht" : "wartet vor dem geschlossenen Stadttor bis zum Morgen") // drinnen nur vor der Fahrt ins Umland (Abfahren)
         : WartetAnBruecke(zeit) ? $"wartet an der offenen Klappbrücke (noch {BrueckeWartenBis!.Value - zeit.VergangeneMinuten} Min.)"
+        : Verweilt(zeit) ? $"lädt am {Handelsort} (noch {VerweiltBis!.Value - zeit.VergangeneMinuten} Min.)"
         : Zustand switch
     {
-        KarrenZustand.AmBetrieb => "wartet am Betrieb",
+        KarrenZustand.AmBetrieb => StandortBetrieb is { } dort ? $"steht an {dort}" : "wartet am Betrieb",
+        KarrenZustand.AmMarkt => $"steht am {Handelsort}",
+        KarrenZustand.ZumBetrieb when ZielBetrieb is { } ziel => $"unterwegs nach {ziel} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         KarrenZustand.ZumMarkt => $"{(Auftrag is null ? "unterwegs zum " : "mit Handelsauftrag zum ")}{Handelsort} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         KarrenZustand.ZumBetrieb => $"auf dem Rückweg (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         _ => Zustand.ToString(),
@@ -145,22 +224,30 @@ public sealed class Karren
     /// <summary>Eine Spielminute für diesen Karren.</summary>
     internal void Tick(Spielzeit zeit, Stadtwirtschaft w)
     {
-        if (Zustand != KarrenZustand.AmBetrieb)
+        if (Unterwegs)
         {
+            // Nach dem Handel am Markt verweilen (nur automatisch fahrende Karren), dann zurück.
+            if (VerweiltBis is { } bis)
+            {
+                if (zeit.VergangeneMinuten < bis) return;
+                VerweiltBis = null;
+                Zurueckfahren(zeit, w);
+                return;
+            }
             if (_rueckfahrtWartet)
             {
                 if (zeit.VergangeneMinuten >= TorWartenBis)
                 {
                     _rueckfahrtWartet = false;
                     TorWartenBis = null;
-                    Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+                    Fahren(Zustand, Herkunft(w), Ziel(w), zeit, w);
                 }
                 return;
             }
             if (zeit.VergangeneMinuten >= Ankunft)
             {
-                // Vom Umland in die Stadt führt der Weg durchs Tor – kurz vor dem Markt.
-                if (Zustand == KarrenZustand.ZumMarkt && !DurchsTor(zeit, w))
+                // Vom Umland in die Stadt führt der Weg durchs Tor – kurz vor dem Ziel.
+                if (Herkunft(w)?.Ort == Arbeitsort.Umland && Ziel(w)?.Ort != Arbeitsort.Umland && !DurchsTor(zeit, w))
                 {
                     Ankunft = TorWartenBis!.Value;
                     return;
@@ -168,6 +255,25 @@ public sealed class Karren
                 TorWartenBis = null;
                 Ankommen(zeit, w);
             }
+            return;
+        }
+
+        // Selbst gefahren: Der Karren steht, bis der Spieler ihn losschickt.
+        if (!w.FaehrtAutomatisch(this))
+        {
+            StandortPruefen(w);
+            return;
+        }
+        // Fährt er (wieder) automatisch, kommt er zuerst nach Hause: vom Markt zurück, von einem anderen Betrieb heim.
+        if (Zustand == KarrenZustand.AmMarkt)
+        {
+            Zurueckfahren(zeit, w);
+            return;
+        }
+        if (StandortBetrieb is not null)
+        {
+            if (StandortVon(w) is { } dort && dort != Heimat) Abfahren(KarrenZustand.ZumBetrieb, dort, Heimat, zeit, w);
+            else StandortBetrieb = null;
             return;
         }
 
@@ -181,7 +287,7 @@ public sealed class Karren
         if (SollLosfahren(zeit, w.Daten.Logistik))
         {
             Beladen(w.Daten.Logistik);
-            Losfahren(KarrenZustand.ZumMarkt, zeit, w);
+            Fahren(KarrenZustand.ZumMarkt, Heimat, null, zeit, w);
         }
     }
 
@@ -245,12 +351,12 @@ public sealed class Karren
     // ── Fahrten ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Kommt der Karren jetzt durchs Stadttor? Nur Umlandkarren müssen hindurch. Ist es zu, zahlt ein Karren mit
-    /// Nachtfahrt-Erlaubnis das Torgeld; sonst wartet er (<see cref="TorWartenBis"/> = nächster Morgen).
+    /// Kommt der Karren jetzt durchs Stadttor? Gefragt wird nur bei Fahrten zwischen Umland und Stadt (der Markt liegt in der Stadt). Ist es zu,
+    /// zahlt ein Karren mit Nachtfahrt-Erlaubnis das Torgeld; sonst wartet er (<see cref="TorWartenBis"/> = nächster Morgen).
     /// </summary>
     private bool DurchsTor(Spielzeit zeit, Stadtwirtschaft w)
     {
-        if (Heimat.Ort != Arbeitsort.Umland || w.Daten.Logistik.Tore is not { } tore || !tore.IstZu(zeit))
+        if (w.Daten.Logistik.Tore is not { } tore || !tore.IstZu(zeit))
             return true;
         if (NachtsFahren)
         {
@@ -261,35 +367,91 @@ public sealed class Karren
         return false;
     }
 
-    /// <summary>Vom Markt zurück zum Betrieb – ins Umland erst, wenn das Tor offen ist.</summary>
-    private void Zurueckfahren(Spielzeit zeit, Stadtwirtschaft w)
+    /// <summary>
+    /// Nach dem Handel am Markt: Ein automatisch fahrender Karren verweilt <see cref="LogistikDaten.VerweilenMinuten"/> (Ab- und Aufladen,
+    /// Datenversion 98), dann fährt er zurück (<see cref="Tick"/>); sonst fährt er gleich.
+    /// </summary>
+    private void NachDemHandel(Spielzeit zeit, Stadtwirtschaft w)
     {
-        if (DurchsTor(zeit, w))
+        if (w.Daten.Logistik.VerweilenMinuten > 0 && w.FaehrtAutomatisch(this))
         {
-            Losfahren(KarrenZustand.ZumBetrieb, zeit, w);
+            VerweiltBis = zeit.VergangeneMinuten + w.Daten.Logistik.VerweilenMinuten;
             return;
         }
-        Zustand = KarrenZustand.ZumBetrieb;
-        _rueckfahrtWartet = true;
-        Ankunft = TorWartenBis!.Value + w.Fahrzeit(this, zumMarkt: false);
+        Zurueckfahren(zeit, w);
     }
 
-    private void Losfahren(KarrenZustand ziel, Spielzeit zeit, Stadtwirtschaft w)
+    /// <summary>
+    /// Wann ist der Karren etwa wieder am Betrieb (Spielminute)? Unterwegs zum Markt: Ankunft, Verweilen und Rückweg; auf dem Rückweg: die Ankunft.
+    /// Ein geschlossenes Tor auf dem Rückweg ist nicht eingerechnet. Am Betrieb: jetzt.
+    /// </summary>
+    internal long ZurueckEtwa(Stadtwirtschaft w) => Zustand switch
     {
-        Zustand = ziel;
-        if (ziel == KarrenZustand.ZumMarkt) ZielHafen = w.FaehrtZumHafen(Heimat, Typ); // der nähere Handelsort (Datenversion 73)
-        var fahrzeit = w.Fahrzeit(this, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        KarrenZustand.ZumBetrieb => Ankunft,
+        KarrenZustand.ZumMarkt => (VerweiltBis ?? Ankunft + (w.Daten.Logistik.VerweilenMinuten > 0 && w.FaehrtAutomatisch(this) ? w.Daten.Logistik.VerweilenMinuten : 0))
+                                  + w.Fahrzeit(this, zumMarkt: false),
+        _ => w.Uhr.VergangeneMinuten,
+    };
+
+    /// <summary>Vom Markt zurück zum Heimatbetrieb – ins Umland erst, wenn das Tor offen ist.</summary>
+    private void Zurueckfahren(Spielzeit zeit, Stadtwirtschaft w) => Abfahren(KarrenZustand.ZumBetrieb, null, Heimat, zeit, w);
+
+    /// <summary>
+    /// Aufbrechen von <paramref name="von"/> nach <paramref name="nach"/> (null: der Markt). Führt die Fahrt aus der Stadt ins Umland und ist
+    /// das Tor zu, wartet der Karren drinnen, bis es aufgeht (ohne Nachtfahrt-Erlaubnis), und fährt dann (<see cref="Tick"/>).
+    /// </summary>
+    /// <param name="zumHafen">Selbst gefahren zu einem Handelsort: zum Hafen (true) oder zum Marktplatz (false); null: wie der Verwalter wählt.</param>
+    private void Abfahren(KarrenZustand zustand, Betrieb? von, Betrieb? nach, Spielzeit zeit, Stadtwirtschaft w, bool? zumHafen = null)
+    {
+        if (von?.Ort != Arbeitsort.Umland && nach?.Ort == Arbeitsort.Umland && !DurchsTor(zeit, w))
+        {
+            Zustand = zustand;
+            OrteMerken(von, nach);
+            _rueckfahrtWartet = true;
+            Ankunft = TorWartenBis!.Value + w.KarrenFahrt(this, von, nach).Minuten;
+            return;
+        }
+        Fahren(zustand, von, nach, zeit, w, zumHafen);
+    }
+
+    /// <summary>Merkt Herkunft und Ziel einer Fahrt so, wie der Spielstand sie hält (der gewohnte Weg Heimat ↔ Markt ohne Namen).</summary>
+    private void OrteMerken(Betrieb? von, Betrieb? nach)
+    {
+        StandortBetrieb = null;
+        VonHandelsort = false;
+        ZielBetrieb = nach is null || nach == Heimat ? null : nach.Name;
+        VonBetrieb = Zustand == KarrenZustand.ZumMarkt
+            ? (von is null || von == Heimat ? null : von.Name)
+            : von?.Name;
+    }
+
+    /// <summary>
+    /// Losfahren von <paramref name="von"/> nach <paramref name="nach"/> (null: der Markt): Fahrzeit des Kerns (<see cref="Stadtwirtschaft.KarrenFahrt"/>),
+    /// Klappbrücke, Eskorte und – wenn die Fahrt das Umland berührt – Überfall. Automatisch fahrende Karren wählen den näheren Handelsort
+    /// (Markt oder Hafen, Datenversion 73); selbst gefahrene fahren dorthin, wohin der Spieler sie schickt (<paramref name="zumHafen"/>).
+    /// </summary>
+    private void Fahren(KarrenZustand zustand, Betrieb? von, Betrieb? nach, Spielzeit zeit, Stadtwirtschaft w, bool? zumHafen = null)
+    {
+        var vonHafen = ZielHafen; // steht er an einem Handelsort, an welchem
+        Zustand = zustand;
+        OrteMerken(von, nach);
+        var gewohnt = (zustand == KarrenZustand.ZumMarkt && von == Heimat) || (zustand == KarrenZustand.ZumBetrieb && von is null && nach == Heimat);
+        if (zustand == KarrenZustand.ZumMarkt)
+        {
+            VonHandelsort = von is null;
+            ZielHafen = zumHafen ?? (von == Heimat && w.FaehrtAutomatisch(this) && w.FaehrtZumHafen(Heimat, Typ)); // der nähere Handelsort (Datenversion 73)
+        }
+        var (fahrzeit, strecke) = VonHandelsort ? w.KarrenFahrt(this, null, null, vonHafen, ZielHafen) : w.KarrenFahrt(this, von, nach);
         Ankunft = zeit.VergangeneMinuten + fahrzeit;
         // Führt die Fahrt über die Klappbrücke und ist sie offen, wenn er sie erreicht: warten, bis sie zugeht (Datenversion 90).
         (BrueckeWartenAb, BrueckeWartenBis) = ((long?)null, (long?)null);
-        if (w.Fahrten(this) is var (hin, zurueck)
-            && w.Klappbruecke.Halt(ziel == KarrenZustand.ZumMarkt ? hin : zurueck, zeit.VergangeneMinuten, fahrzeit) is { } halt)
+        if (strecke is not null && w.Klappbruecke.Halt(strecke, zeit.VergangeneMinuten, fahrzeit) is { } halt)
         {
             (BrueckeWartenAb, BrueckeWartenBis) = (halt.Von, halt.Bis);
             Ankunft += halt.Bis - halt.Von;
         }
-        if (ziel == KarrenZustand.ZumMarkt) FahrtenImJahr++;
-        w.Wegebau.FahrtZaehlen(Heimat, ZielHafen); // Verkehr auf den Wegen (Austritt)
+        if (zustand == KarrenZustand.ZumMarkt) FahrtenImJahr++;
+        if (gewohnt) w.Wegebau.FahrtZaehlen(Heimat, ZielHafen); // Verkehr auf den Wegen (Austritt)
 
         if (_ladung.Count == 0)
             return; // Leere Karren kosten nichts und lohnen keinen Überfall.
@@ -303,7 +465,7 @@ public sealed class Karren
         }
 
         // Ein bestellter Hinterhalt geht vor; sonst würfeln die gewöhnlichen Banden.
-        if (Heimat.Ort == Arbeitsort.Umland && !w.Gauner.HinterhaltAusloesen(this, eskorte, zeit))
+        if ((von?.Ort == Arbeitsort.Umland || nach?.Ort == Arbeitsort.Umland) && !w.Gauner.HinterhaltAusloesen(this, eskorte, zeit))
             Ueberfall.Wuerfeln(this, eskorte, zeit, w);
     }
 
@@ -317,7 +479,7 @@ public sealed class Karren
             _ladung[ware] = _ladung.GetValueOrDefault(ware) + Heimat.Auslagern(ware, stueck);
         Auftrag = new Handelsplan(kauf.Where(x => x.Value > 0).ToDictionary(x => x.Key, x => x.Value));
         _wareWartetSeit = null;
-        Losfahren(KarrenZustand.ZumMarkt, zeit, w);
+        Fahren(KarrenZustand.ZumMarkt, Heimat, null, zeit, w);
     }
 
     /// <summary>Am Markt: den Einkaufszettel abarbeiten – so viel, wie das Geld reicht.</summary>
@@ -359,7 +521,16 @@ public sealed class Karren
                     Heimat.Verkaufen(ware, stueck, w.Markt, Faktor(ware), w.SteuersatzMarkt(Heimat.Konto));
                 _ladung.Clear();
                 AuftragEinkaufen(w, Heimat.Konto.Laufend.Umsatz - vorher);
-                Zurueckfahren(zeit, w);
+                NachDemHandel(zeit, w);
+                return;
+            }
+
+            // Selbst gefahren: Er steht am Markt, bis der Spieler handelt oder ihn weiterschickt.
+            if (!w.FaehrtAutomatisch(this))
+            {
+                Zustand = KarrenZustand.AmMarkt;
+                OrteVergessen();
+                w.Melden(Meldungsart.KarrenAngekommen, $"{Name} ({Heimat.Name}) ist am {Handelsort} angekommen{LadungsText()}.", betrieb: Heimat);
                 return;
             }
 
@@ -370,16 +541,32 @@ public sealed class Karren
 
             // ... und knappe Zutaten einkaufen.
             ZutatenEinkaufen(zeit, w);
-            Zurueckfahren(zeit, w);
+            NachDemHandel(zeit, w);
         }
         else
         {
-            foreach (var (ware, stueck) in _ladung)
-                Heimat.Einlagern(ware, stueck);
-            _ladung.Clear();
+            var ziel = Ziel(w) ?? Heimat;
             Zustand = KarrenZustand.AmBetrieb;
+            OrteVergessen();
+            StandortBetrieb = ziel == Heimat ? null : ziel.Name;
+            if (!w.FaehrtAutomatisch(this))
+            {
+                // Selbst gefahren: kein Abladen von allein – die Ladung bleibt auf dem Karren.
+                w.Melden(Meldungsart.KarrenAngekommen, $"{Name} ({Heimat.Name}) ist an {ziel.Name} angekommen{LadungsText()}.", betrieb: ziel);
+                return;
+            }
+            foreach (var (ware, stueck) in _ladung)
+                ziel.Einlagern(ware, stueck);
+            _ladung.Clear();
         }
     }
+
+    /// <summary>„ mit 10 Eisen, 5 Holz“ – oder leer, wenn der Karren nichts geladen hat (für Meldungen).</summary>
+    private string LadungsText() => _ladung.Count == 0 ? " (leer)"
+        : " mit " + string.Join(", ", _ladung.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{Zahlenformat.Ganz(x.Value)} {x.Key}"));
+
+    /// <summary>Am Ziel: Herkunft und Ziel der Fahrt gelten nicht mehr.</summary>
+    private void OrteVergessen() => (VonBetrieb, ZielBetrieb, VonHandelsort) = (null, null, false);
 
     /// <summary>
     /// Füllt jede Ladefläche mit der Zutat, die (einschließlich bereits geladener Menge)
@@ -420,7 +607,7 @@ public sealed class Karren
                 nurNoetigstes = true;
             }
             if (menge <= 0) break;
-            var kosten = w.Markt[knappste.Zutat].Kaufen(menge);
+            var kosten = w.KarrenKaufpreis(knappste.Zutat, menge); // derselbe Preis wie beim Selbstfahren (ohne Händlerspanne)
             budget -= kosten;
             Heimat.ZutatenBuchen(kosten);
             _ladung[knappste.Zutat] = _ladung.GetValueOrDefault(knappste.Zutat) + menge;
@@ -462,12 +649,12 @@ public sealed class Karren
         _ganzesJahr = true;
     }
 
-    /// <summary>Vor dem Verkauf: Die Ladung kommt ins Lager (wie bei jeder Heimkehr), ein vorgemerkter Auftrag verfällt.</summary>
-    internal Dictionary<string, int> Abladen()
+    /// <summary>Vor dem Verkauf: Die Ladung kommt ins Lager des Betriebs, an dem er steht (wie bei jeder Heimkehr), ein vorgemerkter Auftrag verfällt.</summary>
+    internal Dictionary<string, int> Abladen(Betrieb ort)
     {
         var abgeladen = new Dictionary<string, int>(_ladung);
         foreach (var (ware, stueck) in _ladung)
-            Heimat.Einlagern(ware, stueck);
+            ort.Einlagern(ware, stueck);
         _ladung.Clear();
         Vormerkung = null;
         return abgeladen;
@@ -480,6 +667,8 @@ public sealed class Karren
         Name = Name, Typ = Typ, Zustand = Zustand, Ankunft = Ankunft, Ladung = new(_ladung),
         Eskorte = Eskorte, NachtsFahren = NachtsFahren, WareWartetSeit = _wareWartetSeit,
         TorWartenBis = TorWartenBis, RueckfahrtWartet = _rueckfahrtWartet, BrueckeWartenAb = BrueckeWartenAb, BrueckeWartenBis = BrueckeWartenBis,
+        VerweiltBis = VerweiltBis, StandortBetrieb = StandortBetrieb, ZielBetrieb = ZielBetrieb, VonBetrieb = VonBetrieb,
+        VonHandelsort = VonHandelsort ? true : null,
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
@@ -498,6 +687,11 @@ public sealed class Karren
         TorWartenBis = s.TorWartenBis;
         BrueckeWartenAb = s.BrueckeWartenAb;
         BrueckeWartenBis = s.BrueckeWartenBis;
+        VerweiltBis = s.VerweiltBis;
+        StandortBetrieb = s.StandortBetrieb;
+        ZielBetrieb = s.ZielBetrieb;
+        VonBetrieb = s.VonBetrieb;
+        VonHandelsort = s.VonHandelsort ?? false;
         _rueckfahrtWartet = s.RueckfahrtWartet;
         Auftrag = s.Auftrag is null ? null : new Handelsplan(new Dictionary<string, int>(s.Auftrag));
         Vormerkung = s.VormerkungVerkauf is null || s.VormerkungKauf is null ? null

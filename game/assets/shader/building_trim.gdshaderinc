@@ -36,11 +36,11 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 	vec4(0.50, 0.70, 0.85, 0.95),   // 2 Mensch Stufe 3: Werkstein im Putzband, Mauer (K1)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 3 Zwerg Stufe 1: dunkler Quader im Putzband, Bruchstein (K3)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 4 Zwerg Stufe 2: dunkler Quader, Bruchstein (K3)
-	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein
+	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein K2
 	vec4(0.85, 0.95, -1.0, -1.0),   // 6 Elb Stufe 1: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz
 	vec4(0.85, 0.95, -1.0, -1.0),   // 7 Halbling Stufe 1: K2 im Bruchsteinband (Sockel, Schlot), im Putzband Lehmputz
 	vec4(0.85, 0.95, -1.0, -1.0),   // 8 Elb Stufe 2: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz (Putzsockel, Gefache)
-	vec4(0.50, 0.70, 0.85, 0.95),   // 9 Elb Stufe 3: Werkstein (K5) im Putzband, Mauer (K2)
+	vec4(0.50, 0.70, 0.85, 0.95),   // 9 Elb Stufe 3: Haustein K2 im Bruchsteinband (Erdgeschoss, Giebel, Werkstein), im Putzband Kalkputz mit Efeu (Obergeschoss; als Steinband geführt wie bisher)
 	vec4(0.85, 0.95, -1.0, -1.0),   // 10 Halbling Stufe 2: Backstein K6 im Bruchsteinband (Erdgeschoss), im Putzband Lehmputz
 	vec4(0.50, 0.70, 0.85, 0.95)    // 11 Halbling Stufe 3: Werkstein im Putzband, Mauer Backstein K6
 );

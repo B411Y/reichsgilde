@@ -91,6 +91,14 @@ public sealed record Partieeinstellungen
     public int Zufallsstartwert { get; init; } = 1400;
 
     /// <summary>
+    /// Fahren die Spieler ihre Karren selbst (wie in der „Gilde 1“, Nutzer 23.11.2026)? Standard des Kerns: nein – alle Karren fahren nach der
+    /// Verwalterregel (alte Spielstände, Tests, Messung). Eine neue Partie aus dem Spiel setzt es (Oberfläche). Die KI fährt immer automatisch.
+    /// Im Spielstand nur, wenn gesetzt.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool KarrenSelbstFahren { get; init; }
+
+    /// <summary>
     /// Prüft die Einstellungen und liefert eine Liste verständlicher Fehlermeldungen.
     /// Leere Liste = alles in Ordnung.
     /// </summary>

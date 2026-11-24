@@ -304,3 +304,24 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Knopf | Im Spielmenü steht „Entwickler (F12)“ (nach „Hilfe“), nur sichtbar mit dem Haken „Entwickler-Optionen“ (`Entwickler.Aktiv`); Klick schließt das Menü (Pause wie vorher) und öffnet das Fenster. Der Haken auf der Starttafel bleibt. | 23.11.2026 |
 | Betriebsleiste | Der alte Knopf in der Betriebsleiste fehlt zu Recht: Kopfzeile und Betriebsleiste entfielen mit dem Zunftlade-Umbau (18.11.2026); nur Kommentare erwähnten ihn noch, jetzt berichtigt. | 23.11.2026 |
+
+### Karren selbst fahren (Paket K2, Branch phase5/karren-selbst)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafeln | Zwei Tafeln auf dem Grund `InnenTafel` (Basis `KarrenTafel`): Transportmenü `KarrenFahrtAnzeige` (alle Karren des Hauses ankreuzen, Ziel aus der Liste, Eskorte je Fahrt, „Losschicken“ und „Zurück zum Heimatbetrieb“), Ladefenster `KarrenLadeAnzeige` (laden, abladen, „Alles abladen“) (K2b, 23.11.: das Handelsfenster entfällt, gehandelt wird nur im Marktmenü, siehe „Handel im Marktmenü“). Karren werden über Heimatbetrieb und Nummer angesprochen; eine Auswahl über mehrere Heimatbetriebe sendet einen Befehl je Betrieb. Maße, Farben und Schrift aus `fenster_thema.tres` (Maße „karren_…“, Farben `FensterStil.Farbe`). | 23.11.2026 |
+| Zugänge | „Karren fahren …“ im Bedienfeld (ersetzt „Handel am Markt …“, solange selbst gefahren wird), in der Zunftlade (Fach „Karren“), im Karrenhof; `--tafel=fahrt\|laden` mit `--innen` (`handel` öffnet das Marktmenü). Aus dem Transportmenü führen „Beladen …“ in das Ladefenster und „Handeln …“ (am Markt) ins Marktmenü mit diesem Karren vorgewählt. | 23.11.2026 |
+| Schnittstelle K3 | `KarrenFahrtAnzeige.ZielWahlImBild(bool)` meldet, dass die Wahl im Bild beginnt oder endet; die Stadtansicht ruft nach dem Klick aufs Gebäude `ZielSetzen(betriebsname)` (null = Markt); `ZielGewaehlt(name)` meldet jedes gewählte Ziel. Die Tafel wird über `Hauptszene._fahrtTafel` erreicht. | 23.11.2026 |
+| Handelsauftrag | Wo `VerwalterhandelVerboten(spieler)` einen Grund nennt, fehlt der Handelsauftrag im Marktfenster (`MarktAnzeige`) und der Knopf im Bedienfeld. | 23.11.2026 |
+| Handel im Marktmenü (K2b) | Nutzer 23.11.: gehandelt wird nur im Marktmenü und nur mit eigenem Karren am Markt (`MarktAnzeige.Karren.cs`): Karren wählen, Ladung und freie Flächen, verkaufen aus der Ladung, kaufen in die Ladung (`KarrenHandeln`, Gründe aus `KarrenHandelnVerboten`); ohne Karren am Markt der Hinweis „Kein Karren am Markt – schicke einen Karren her, um zu handeln.“ Der Block ersetzt im Selbstfahren das Handelsfenster; beim Selbstfahren gibt es weiter keinen Handelsauftrag (Kern: `VerwalterhandelVerboten`). Kasse nach Verkauf: Erlös minus Marktsteuer (5 %), kein Fehler; die Meldung nennt den Erlös vor Steuer. | 23.11.2026 |
+| Neue Partien | Menü „Neue Partie“ und Start ohne Menü setzen `KarrenSelbstFahren = true`; `--karrenselbst=0` schaltet es für einen Start aus. Entwicklerfenster: Haken „Karren fahren automatisch“ (`EntwicklerKarrenAutomatisch`), der Stand kommt aus `Stadtwirtschaft.KarrenAutomatisch`. | 23.11.2026 |
+| Meldung | Neue Art „KarrenAngekommen“ in `meldungen.json` (Thema Handel, eigenes Haus als Siegel, sonst nur Verlauf, ohne Textmuster über die Kern-Art). | 23.11.2026 |
+
+### Karren selbst fahren: Hafen und Einkauf ohne Spanne (K4, Branch phase5/karren-k4)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hafen als Ziel | Das Transportmenü (`KarrenFahrtAnzeige`) führt „Hafen“ in der Zielliste, wo `Schiffahrt.KarrenZumHafen` gilt (im Winter und bei Eis „Hafen (geschlossen)“, nur mit Hinweis); `Losschicken` sendet `KarrenLosschicken(…, Hafen: true)`, gesperrte Knöpfe nennen den Grund aus `KarrenLosschickenVerboten(…, hafen)`. `ZielSetzen`, `ZielVorgeben` und `ZielGewaehlt` tragen jetzt zusätzlich das Hafen-Flag. | 24.11.2026 |
+| Ziel im Bild | Die Wahl im Bild (`Stadtansicht.Karrenziel.cs`) nimmt auch einen Klick auf Hafen und Hafenbauten an (Kennung `hafen:`), mit Ring am Liegeplatz und Namen unter der Maus; ohne Karrenhafen die Absage „In dieser Stadt fahren Karren nicht zum Hafen“. | 24.11.2026 |
+| Marktmenü | Karren am Hafen handeln im selben Fenster (Text „Markt oder Hafen“, Karrenliste mit Ort); der Hinweis „Einkauf zum Marktpreis ohne Händlerspanne“ steht über dem Kaufen, der Preis kommt aus `Stadtwirtschaft.KarrenKaufpreis` (nicht mehr `HandKaufpreis`). Der Handelsauftrag des Verwalters bleibt bei `HandKaufpreis`. | 24.11.2026 |
+| Bild (K3, klein) | Fahrten Markt ↔ Hafen und von/zu einem anderen Betrieb mit Hafen zeichnet `Stadtansicht.Karrenfahrt.cs` als Sonderfahrt: Halt des einen Handelsorts, Strecke des Kerns (`StreckeZwischenHandelsorten`), Halt des anderen; der Halt am Hafen ist das Ende des Hafenwegs. | 24.11.2026 |

@@ -24,6 +24,7 @@ public sealed class KarrenAnzeige : InnenTafel
         _keine.Visible = false;
         Inhalt.AddChild(_karren);
         _karren.HandelGewuenscht += HandelMelden;
+        _karren.KarrenFahrtGewuenscht += KarrenFahrtMelden;
         _karren.Gemeldet += Melden;
     }
 

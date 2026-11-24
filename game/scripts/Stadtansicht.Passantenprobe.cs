@@ -28,9 +28,9 @@ public partial class Stadtansicht
     /// Hüfthöhe (Kopf des Oberschenkelknochens), Meter je Sekunde, die „Gehen“ und „Tragen“ bei Takt 1 schaffen (Standfuß: so rutschen die Füße
     /// nicht), Höhe des Gesäßes über den Sohlen beim Sitzen.
     ///
-    /// Seit dem Karrenumbau (Teil d) stehen die vier Zugtiere (<c>tiere/tier_&lt;pferd|ochse&gt;_&lt;fell&gt;.glb</c>) hinter den Menschen in derselben Liste:
+    /// Seit dem Karrenumbau (Teil d) stehen die vier Zugtiere (<c>tiere/tier_&lt;pferd&gt;_&lt;fell&gt;.glb</c>) hinter den Menschen in derselben Liste:
     /// gebacken, zwischengespeichert und gezeichnet wird mit derselben Pipeline; <paramref name="Klips"/> ist ihre eigene Clipliste (null: <see cref="ProbeKlips"/>),
-    /// <c>GehTempo</c> das Tempo (m/s) ihres Clips „Gehen“ bei Takt 1 (Pferd 1,3, Ochse 0,8).
+    /// <c>GehTempo</c> das Tempo (m/s) ihres Clips „Gehen“ bei Takt 1 (Pferd 1,3).
     /// </summary>
     /// <param name="Hoehe">Höhe des Modells (Scheitel) in Metern; bei den Völkern ab Art 4 setzt das Spiel den Maßstab = Körpergröße ÷ Hoehe (0 = Menschenmaß, Maßstab aus <see cref="FigurMasse"/>).</param>
     /// <param name="Schritt">Zusatzfaktor auf Tempo und Takt (kleine Völker gehen kürzere, schnellere Schritte als ihre Beinlänge allein ergäbe).</param>
@@ -40,6 +40,9 @@ public partial class Stadtansicht
     /// und Anfahren/Anhalten backt das Spiel nicht (ab Zoom 50 zeigt das Tier dafür Stehen bzw. Gehen): sonst läge der Tierspeicher bei rund 22 statt 12 MB und die
     /// Passanten über 100 MB; das Skelett (nah) kennt alle Clips.</summary>
     private static readonly string[] TierKlips = { "Stehen", "Gehen" };
+
+    /// <summary>Pferd: dazu Gehen in der Linkskurve und in der Rechtskurve (Biegung der Wirbelsäule; gewählt nach dem Knickwinkel des Gespanns, <see cref="KarrenVatEintragen"/>).</summary>
+    private static readonly string[] PferdKlips = { "Stehen", "Gehen", "Gehen_Links", "Gehen_Rechts" };
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
@@ -57,10 +60,10 @@ public partial class Stadtansicht
         new("figuren/probe/passant_probe_halbling", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.881f, 1.009f, 0.697f, 0.373f, 1.675f),
         new("figuren/probe/passant_probe_halblingin", new[] { "haube", "gebende", "bettler" }, 0.781f, 0.850f, 0.601f, 0.313f, 1.532f),
         // Zugtiere (Karren-Umbau Teil d, Art 4 bis 7): zwei Felle je Tier; Netze „Nah_<tier>“ und „Fern_<tier>“, Tempo des Clips „Gehen“ in m/s
-        new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_ochse_rotbraun", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
-        new("tiere/tier_ochse_falb", new[] { "ochse" }, 0f, 0.8f, 0f, 0f, Klips: TierKlips),
+        new("tiere/tier_pferd_rotbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
+        new("tiere/tier_pferd_schwarzbraun", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
+        // dritte Fellfarbe des Pferds (Fuchs; 23.11.2026): ans Ende gestellt, damit die Nummern der übrigen Tiere gleich bleiben (<see cref="ZugtierArt"/>)
+        new("tiere/tier_pferd_fuchs", new[] { "pferd" }, 0f, 1.3f, 0f, 0f, Klips: PferdKlips),
     };
 
     /// <summary>Körpergröße in Metern (Mitte der Spanne, je Figur ±5 cm gestreut): Zwerg 1,30–1,40, Elb 1,80–1,90, Halbling 1,05–1,15; Frauen 5 % kleiner.</summary>
@@ -184,7 +187,7 @@ public partial class Stadtansicht
         "Sitzen" or "Kauern" or "Betteln" or "SitzenBock" => ProbeVatBilder / 2,
         "Stehen" when art >= ProbeErsteTierart => 1.0 / 3, // das Tier steht und atmet (6 s Schleife): 2 Bilder, der Shader mischt (Dreieckswelle)
         "Stehen" => (ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder) / 2.0,
-        "Gehen" or "Ziehen" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
+        "Gehen" or "Ziehen" or "Gehen_Links" or "Gehen_Rechts" when art >= ProbeErsteTierart => 24, // Zugtiere: 24 Bilder/s (bei 12 wich die Mitte zwischen zwei Bildern bis 9 cm ab, bei 24 rund 1 cm)
         _ => ProbeKleinesVolk(art) ? ProbeVatBilderKleineVoelker : ProbeVatBilder,
     };
 
@@ -502,13 +505,13 @@ public partial class Stadtansicht
         string klip;
         float probeTakt;
         var daten = ProbeArten[f.ProbeArt];
-        if (bewegung is "Ziehen" or "Nebenhergehen" && takt >= ProbeStehenUnterTakt)
+        if (bewegung is "Ziehen" && takt >= ProbeStehenUnterTakt)
         {
-            // Zieher am Handkarren und Läufer am Ochsen (Karren-Umbau Teil d): Clips aus „Gehen“, dieselbe Schrittweite
+            // Zieher am Handkarren (Karren-Umbau Teil d): Clips aus „Gehen“, dieselbe Schrittweite
             klip = bewegung;
             probeTakt = takt * GehenTempo * f.Beinfaktor / (daten.GehTempo * f.Modell.Scale.Y);
         }
-        else if (bewegung is "Ziehen" or "Nebenhergehen") { klip = "Stehen"; probeTakt = 1; }
+        else if (bewegung is "Ziehen") { klip = "Stehen"; probeTakt = 1; }
         else if (bewegung == "SitzenBock") { klip = bewegung; probeTakt = 1; } // der Kutscher auf dem Bock (auch beim Halt)
         else if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen" && takt >= ProbeStehenUnterTakt)
         {
@@ -648,13 +651,15 @@ public partial class Stadtansicht
     /// <summary>
     /// Verschweißt die Ecken eines Tiernetzes, die sich nur in der UV unterscheiden: Lage, Normale, Farbe, Knochen und Gewichte gleich heißt dieselbe Spalte in der VAT-Textur.
     /// Der Importer von Godot trennt Ecken an jeder UV-Naht (Pferd Nah 16 381 statt 8 713, Fern 2 783 statt 1 360), der Shader <c>tier_vat.gdshader</c> liest aber nur Farbe und
-    /// UV2. Die UV entfällt im Ergebnis. Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
+    /// UV2. Die UV entfällt im Ergebnis, außer das Netz trägt eine Textur (Pferd, Atlas mit Mähne als Alpha-Maske): dann gehört sie zum Schlüssel und bleibt erhalten.
+    /// Die Reihenfolge der ersten Vorkommen bleibt (bei zwei Fellen derselben Art gleich, <see cref="EckenZuordnen"/>).
     /// </summary>
-    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays)
+    private static Godot.Collections.Array ProbeVerschweissen(Godot.Collections.Array arrays, bool mitUv = false)
     {
         var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
         var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
         var farben = arrays[(int)Mesh.ArrayType.Color].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Color].AsColorArray();
+        var uvs = !mitUv || arrays[(int)Mesh.ArrayType.TexUV].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.TexUV].AsVector2Array();
         var knochen = arrays[(int)Mesh.ArrayType.Bones].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
         var gewichte = arrays[(int)Mesh.ArrayType.Weights].VariantType == Variant.Type.Nil ? null : arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
         var index = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
@@ -669,6 +674,7 @@ public partial class Stadtansicht
             Zahl(ecken[e].X); Zahl(ecken[e].Y); Zahl(ecken[e].Z);
             Zahl(normalen[e].X); Zahl(normalen[e].Y); Zahl(normalen[e].Z);
             if (farben is not null) { Zahl(farben[e].R); Zahl(farben[e].G); Zahl(farben[e].B); Zahl(farben[e].A); }
+            if (uvs is not null) { Zahl(uvs[e].X); Zahl(uvs[e].Y); }
             for (var k = 0; k < je; k++) sb.Append(knochen![e * je + k]).Append(',');
             for (var k = 0; k < je; k++) Zahl(gewichte![e * je + k]);
             var schluessel = sb.ToString();
@@ -680,6 +686,7 @@ public partial class Stadtansicht
         ergebnis[(int)Mesh.ArrayType.Vertex] = neu.Select(e => ecken[e]).ToArray();
         ergebnis[(int)Mesh.ArrayType.Normal] = neu.Select(e => normalen[e]).ToArray();
         if (farben is not null) ergebnis[(int)Mesh.ArrayType.Color] = neu.Select(e => farben[e]).ToArray();
+        if (uvs is not null) ergebnis[(int)Mesh.ArrayType.TexUV] = neu.Select(e => uvs[e]).ToArray();
         if (knochen is not null)
         {
             ergebnis[(int)Mesh.ArrayType.Bones] = neu.SelectMany(e => Enumerable.Range(0, je).Select(k => knochen[e * je + k])).ToArray();
@@ -830,7 +837,13 @@ public partial class Stadtansicht
                 var netz = (ArrayMesh)teil.Mesh;
                 var skin = teil.Skin!;
                 var arrays = netz.SurfaceGetArrays(0);
-                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
+                // Albedo-Textur des Tiers (Pferd: Atlas statt Eckenfarben): UV und Textur bleiben, sonst entfällt die UV
+                var tierTextur = art >= ProbeErsteTierart && netz.SurfaceGetMaterial(0) is BaseMaterial3D tierStoff ? tierStoff.AlbedoTexture : null;
+                // Pferd: Normal- und ORM-Karte aus dem GLB (glTF normalTexture, occlusion/metallicRoughness; Godot macht daraus ein ORM- oder Standard-Material)
+                var tierBasis = tierTextur is not null ? netz.SurfaceGetMaterial(0) as BaseMaterial3D : null;
+                var tierNormal = tierBasis is { NormalEnabled: true } ? tierBasis.NormalTexture : null;
+                var tierOrm = tierBasis?.Get("orm_texture").As<Texture2D>() ?? tierBasis?.RoughnessTexture;
+                if (art >= ProbeErsteTierart) arrays = ProbeVerschweissen(arrays, tierTextur is not null); // Zugtiere: Ecken, die sich nur in der UV unterscheiden, sind eine (spart rund die Hälfte der VAT-Spalten)
                 var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
                 var name = teil.Name.ToString();
@@ -891,6 +904,27 @@ public partial class Stadtansicht
                 stoff.SetShaderParameter("lage", lageTextur);
                 stoff.SetShaderParameter("normale", richtungTextur);
                 if (name.StartsWith("Zub_bart")) stoff.SetShaderParameter("bartnetz", true);
+                if (tier && tierTextur is not null)
+                {
+                    stoff.SetShaderParameter("hat_textur", true);
+                    stoff.SetShaderParameter("albedo_textur", tierTextur);
+                    if (tierNormal is not null)
+                    {
+                        stoff.SetShaderParameter("hat_normal", true);
+                        stoff.SetShaderParameter("normal_textur", tierNormal);
+                    }
+                    if (tierOrm is not null)
+                    {
+                        stoff.SetShaderParameter("hat_orm", true);
+                        stoff.SetShaderParameter("orm_textur", tierOrm);
+                    }
+                    if (ProbeArten[art].Varianten[0] == "pferd" && AbzeichenMasken() is { } masken) // Code je Pferd in INSTANCE_CUSTOM.z (KarrenVatEintragen)
+                    {
+                        stoff.SetShaderParameter("hat_abzeichen", true);
+                        stoff.SetShaderParameter("abzeichen_kopf", masken.Kopf);
+                        stoff.SetShaderParameter("abzeichen_beine", masken.Beine);
+                    }
+                }
                 stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
                 if (!tier)
                 {

@@ -88,7 +88,7 @@ static class SteinebenenTests
             Pruefe.Wahr(!Steinebenen.Haeuser[0].Stein.Enthaelt(0.6f) && Steinebenen.Haeuser[3].Stein.Enthaelt(0.6f), "Putz Mensch S1 nein, Zwerg ja");
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 1)].Stein.Enthaelt(0.6f), "Elb S1: im Putzband Kalkputz, kein Stein");
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 2)].Stein.Enthaelt(0.6f), "Elb S2: Putzsockel und Gefache Kalkputz");
-            Pruefe.Wahr(Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 3)].Stein.Enthaelt(0.6f), "Elb S3: Werkstein (K5) im Putzband");
+            Pruefe.Wahr(Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Elb, 3)].Stein.Enthaelt(0.6f), "Elb S3: Putzband bleibt im Shader ein Steinband (Kalkputz mit Efeu im Obergeschoss)");
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Halbling, 1)].Stein.Enthaelt(0.6f), "Halbling S1: im Putzband Lehmputz, kein Stein");
             Pruefe.Wahr(!Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Halbling, 2)].Stein.Enthaelt(0.6f), "Halbling S2: im Putzband Lehmputz (Fachwerk)");
             Pruefe.Wahr(Steinebenen.Haeuser[Steinebenen.Ebene(Volk.Halbling, 3)].Stein.Enthaelt(0.6f), "Halbling S3: Werkstein im Putzband");

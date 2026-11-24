@@ -5,7 +5,7 @@ Strebepfeilern mit Fialen und Strebeboegen ueber den Seitenschiffen; grauer Werk
 
 Schreibt game/assets/modelle/gebaeude/neubau/dom_katholisch.glb mit den Knoten
     Haus      Mauern, Strebewerk, Tuerme, Portal, Masswerk, Glocken (keine Turmuhren: um 1400 gibt es sie hier nicht) (Materialien Bruchstein, Sandstein, Bretter, Fachwerk, Firstblech)
-    Dach      Schiefer in Stufen mit Alpha-Cards (Schieferkante): Hochschiff, Querhaus, Chor, Pultdaecher, Turmhelme
+    Dach      Schiefer in Deckreihen von 0,25 m (D.schieferflaeche), Alpha-Cards (Schieferkante) an der Traufe: Hochschiff, Querhaus, Chor, Pultdaecher, Turmhelme
     Scheiben  Fenster (Fensterlicht) und Bleinetz; die Innenansicht blendet sie aus
     Anker_Tuer, Anker_Laterne
 und die gebackene Verdeckung in game/assets/texturen/neubau/dom_ao_atlas.png (Gruppe "dom", ao_atlas.json).
@@ -23,7 +23,6 @@ import rathaus_bib as B                                  # noqa: E402
 import dom_bib as D                                      # noqa: E402
 import dom_masse as M                                    # noqa: E402
 from rathaus_bib import EZ, mauer                        # noqa: E402
-from rathaus_aussen import dachflaeche                   # noqa: E402
 
 BA = D.BAENDER_DOM
 MODELL = "dom_katholisch"
@@ -241,22 +240,22 @@ def baue_dach():
     oben = (0, 0, 60)
     for sx in (-1, 1):
         # Hochschiff
-        dachflaeche(d, (sx * xe, M.Y_WESTWAND, zt), (sx * xe, M.Y_APSIS, zt), (0, M.Y_WESTWAND, zf), (0, M.Y_APSIS, zf), (sx * 40, 0, 60), saat=1 + sx)
+        D.schieferflaeche(d, (sx * xe, M.Y_WESTWAND, zt), (sx * xe, M.Y_APSIS, zt), (0, M.Y_WESTWAND, zf), (0, M.Y_APSIS, zf), (sx * 40, 0, 60), saat=1 + sx)
         # Pultdach des Seitenschiffs
-        dachflaeche(d, (sx * (M.X_AUSSEN + 0.30), M.Y_TURM, M.Z_SEITE - 0.19), (sx * (M.X_AUSSEN + 0.30), M.Y_QUER[0], M.Z_SEITE - 0.19),
-                    (sx * M.X_ARKADE, M.Y_TURM, M.Z_PULT), (sx * M.X_ARKADE, M.Y_QUER[0], M.Z_PULT), (sx * 40, 0, 60), stufen=2, saat=5 + sx)
+        D.schieferflaeche(d, (sx * (M.X_AUSSEN + 0.30), M.Y_TURM, M.Z_SEITE - 0.19), (sx * (M.X_AUSSEN + 0.30), M.Y_QUER[0], M.Z_SEITE - 0.19),
+                    (sx * M.X_ARKADE, M.Y_TURM, M.Z_PULT), (sx * M.X_ARKADE, M.Y_QUER[0], M.Z_PULT), (sx * 40, 0, 60), saat=5 + sx)
     # Querhaus: First quer zum Hochschiff, niedriger als dessen First
     ym = (M.Y_QUER[0] + M.Y_QUER[1]) / 2
     xq = M.X_QUER + 0.25
     for sy in (-1, 1):
         ye = ym + sy * ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30)
-        dachflaeche(d, (-xq, ye, zt), (xq, ye, zt), (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (0, ym + sy * 40, 60), saat=8 + sy)
+        D.schieferflaeche(d, (-xq, ye, zt), (xq, ye, zt), (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (0, ym + sy * 40, 60), saat=8 + sy)
     # Chorschluss: fuenf Flaechen zum Firstpunkt
     spitze = (0, M.Y_APSIS, zf)
     for k in range(5):
         a, b = M.apsis_ecke(k, M.R_APSIS + 0.30), M.apsis_ecke(k + 1, M.R_APSIS + 0.30)
         m = ((a[0] + b[0]) * 2, M.Y_APSIS + (a[1] + b[1] - 2 * M.Y_APSIS) * 2, 60)
-        dachflaeche(d, (*a, zt), (*b, zt), spitze, spitze, m, saat=20 + k)
+        D.schieferflaeche(d, (*a, zt), (*b, zt), spitze, spitze, m, saat=20 + k)
     # Turmhelme: achtseitig
     for sx in (-1, 1):
         xa, xb = (M.X_TURM if sx > 0 else (-M.X_TURM[1], -M.X_TURM[0]))
@@ -267,8 +266,8 @@ def baue_dach():
         sp = (cx, cy, M.Z_SPITZE)
         for k in range(8):
             a, b = ecken[k], ecken[(k + 1) % 8]
-            dachflaeche(d, (cx + a[0], cy + a[1], M.Z_HELM), (cx + b[0], cy + b[1], M.Z_HELM), sp, sp, (cx + (a[0] + b[0]) * 4, cy + (a[1] + b[1]) * 4, 60),
-                        stufen=1, hub=0.0, karten=False, saat=30 + k + 4 * sx)   # glatte Flaechen: Stufen und Karten ueberschnitten sich an den Graten
+            D.schieferflaeche(d, (cx + a[0], cy + a[1], M.Z_HELM), (cx + b[0], cy + b[1], M.Z_HELM), sp, sp, (cx + (a[0] + b[0]) * 4, cy + (a[1] + b[1]) * 4, 60),
+                        stufe=0.0, karte=False, saat=30 + k + 4 * sx)   # glatte Flaechen: Keile und Karten ueberschnitten sich an den Graten; Reihen aus der Textur
     return d
 
 

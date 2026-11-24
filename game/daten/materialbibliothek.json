@@ -116,13 +116,7 @@
     "pferd_rotbraun Haar": "fell",
     "pferd_schwarzbraun Fell": "fell",
     "pferd_schwarzbraun Dunkel": "fell",
-    "pferd_schwarzbraun Haar": "fell",
-    "ochse_rotbraun Fell": "fell",
-    "ochse_rotbraun Dunkel": "fell",
-    "ochse_rotbraun Haar": "fell",
-    "ochse_falb Fell": "fell",
-    "ochse_falb Dunkel": "fell",
-    "ochse_falb Haar": "fell"
+    "pferd_schwarzbraun Haar": "fell"
   },
   "relief": {
     "_hinweis": "Relief-Texturen (CC0, Poly Haven): tools/oberflaeche/relief_texturen.py. Gleicher Name wie eine bisherige Schicht ersetzt sie, wo die Dateien da sind; 'neu' = Schicht ohne Vorgaenger (nur mit Relief). 'namen' bildet Materialnamen auf neue Schichten ab.",

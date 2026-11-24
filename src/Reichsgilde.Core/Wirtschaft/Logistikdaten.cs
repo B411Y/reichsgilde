@@ -18,7 +18,7 @@ public sealed class KarrenDaten
 
     /// <summary>
     /// Wie schnell der Karren fährt: Meter je echter Sekunde bei Tempo 1 und Standard-Rundendauer (ab Datenversion 65, Nutzer 31.10.2026) –
-    /// so schnell, wie man ihn im Bild fahren sieht (Ochse 0,8, Handkarren 1,0, Pferd 1,3). Gilt auf ebenem Fahrweg (dem Bezugsbelag).
+    /// so schnell, wie man ihn im Bild fahren sieht (Pferdekarren 0,8, Handkarren 1,0, Großer Pferdekarren 1,3). Gilt auf ebenem Fahrweg (dem Bezugsbelag).
     /// 0: nicht angegeben (alte Daten).
     /// </summary>
     public double Tempo { get; init; }
@@ -269,34 +269,35 @@ public sealed class LogistikDaten
     /// <summary>Spätestens nach so vielen Spielminuten fährt der Verwalter mit der Ware los, die da ist.</summary>
     public int MaxWartezeitMinuten { get; init; } = 240;
 
+    /// <summary>
+    /// Wie viele Spielminuten ein automatisch fahrender Karren nach dem Handel am Markt bzw. Hafen verweilt, bevor er zurückfährt (Datenversion 98):
+    /// Die Zeit steht für das Ab- und Aufladen, das der Spieler beim Selbstfahren selbst macht. Gilt nur für Karren, die automatisch fahren
+    /// (<see cref="Stadtwirtschaft.FaehrtAutomatisch"/>). Fehlt der Wert (ältere Daten, alte Spielstände): 0 – die Karren kehren sofort um wie bisher.
+    /// </summary>
+    public int VerweilenMinuten { get; init; }
+
     /// <summary>Ein eigener Karren bringt beim Verkauf diesen Anteil seines Kaufpreises (0,5 = die Hälfte; ab Datenversion 55, PR #205).</summary>
     public double KarrenVerkaufAnteil { get; init; } = 0.5;
 
     public Dictionary<string, KarrenDaten> Karren { get; init; } = new();
 
     /// <summary>
-    /// Umbenannte Karrenarten (alte Kennung → neue), damit ältere Spielstände, Befehlsprotokolle und Startoptionen weiter passen:
-    /// Der „Kriegskarren“ heißt seit 04.11.2026 „Pferdekarren“ (Wunsch des Nutzers, nur der Name, gleiche Werte).
+    /// Umbenannte Karrenarten (alte Kennung → neue) für Befehle mit einer alten Kennung (Startoption, Protokoll): Den Ochsenkarren gibt es
+    /// seit Datenversion 99 nicht mehr, an seine Stelle tritt der „Pferdekarren“ (ein Pferd, gleiche Werte); der „Kriegskarren“ (bis 04.11.2026)
+    /// ist der „Große Pferdekarren“ (Entscheidungen des Nutzers, 04.11. und 23.11.2026). „Pferdekarren“ selbst bleibt: Der Name bedeutet heute den
+    /// Einspänner. Spielstände bis Format 3 stellt <see cref="Speichern.Karrenumbenennung"/> beim Lesen um, dort auch „Pferdekarren“ → „Großer Pferdekarren“.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, string> AlteKarrenarten = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["Kriegskarren"] = "Pferdekarren",
+        ["Ochsenkarren"] = "Pferdekarren",
+        ["Kriegskarren"] = "Großer Pferdekarren",
     };
 
     /// <summary>Die heutige Kennung einer Karrenart (eine alte wird übersetzt, sonst bleibt sie, wie sie ist).</summary>
     public static string Karrenart(string typ) => AlteKarrenarten.GetValueOrDefault(typ, typ);
 
-    /// <summary>
-    /// Daten aus einem älteren Spielstand: alte Kennungen in <see cref="Karren"/> auf die heutigen umstellen. Die Reihenfolge der Einträge
-    /// bleibt; ohne alte Kennung ändert sich nichts.
-    /// </summary>
-    internal void AlteKarrenartenUmstellen()
-    {
-        if (!Karren.Keys.Any(AlteKarrenarten.ContainsKey)) return;
-        var eintraege = Karren.ToList();
-        Karren.Clear();
-        foreach (var (typ, daten) in eintraege) Karren[Karrenart(typ)] = daten;
-    }
+    /// <summary>Die Karrenart nach „einen“, „den“ oder „für einen“ („Großer Pferdekarren“ → „Großen Pferdekarren“; andere bleiben, wie sie sind).</summary>
+    public static string KarrenartAkkusativ(string typ) => typ.StartsWith("Großer ", StringComparison.Ordinal) ? "Großen " + typ["Großer ".Length..] : typ;
 
     public Dictionary<string, EskorteDaten> Eskorten { get; init; } = new();
     public UeberfallDaten Ueberfall { get; init; } = new();
@@ -342,6 +343,7 @@ public sealed class LogistikDaten
         Weglaenge?.Pruefen(f, Karren);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
+        if (VerweilenMinuten < 0) f.Add("logistik.verweilenMinuten darf nicht negativ sein.");
         if (ZutatenVorratStunden <= 0) f.Add("logistik.zutatenVorratStunden muss größer als 0 sein.");
         if (ZutatenAnteilKasse is <= 0 or > 1) f.Add("logistik.zutatenAnteilKasse muss größer als 0 und höchstens 1 sein.");
         if (KarrenVerkaufAnteil is < 0 or > 1) f.Add("logistik.karrenVerkaufAnteil muss zwischen 0 und 1 liegen.");

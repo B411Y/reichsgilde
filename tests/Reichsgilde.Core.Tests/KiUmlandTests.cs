@@ -40,7 +40,7 @@ static class KiUmlandTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("KI-Umland: Im gebremsten Holzschlag (Köln, „Schwer“, ein Jahr) wählt der Vorarbeiter „Ordnungsliebend“ (mehr Lager: jeder Pferdekarren lädt 60 statt 40) – gerechnet wie beim Karrenkauf", () =>
+        ("KI-Umland: Im gebremsten Holzschlag (Köln, „Schwer“, ein Jahr) wählt der Vorarbeiter „Ordnungsliebend“ (mehr Lager: jeder Große Pferdekarren lädt 60 statt 40) – gerechnet wie beim Karrenkauf", () =>
         {
             var pfad = Altkarte.Pfad("koeln");
             var haeuser = Kartenhaeuser.Anzahl(File.ReadAllText(pfad));
@@ -105,7 +105,7 @@ static class KiUmlandTests
             var (gEiche, karren) = ki.NachDemWeg("Holzschlag im Eichenforst", Betriebsart.Holzfaellerei, g);
             Pruefe.Wahr(Math.Abs(gEiche - (g - (1 - eiche.Anteil) * eiche.Wert)) < 1e-9, $"{gEiche} statt {g}");
             Pruefe.Gleich((eiche.Karren - 1) * w.Daten.Logistik.Karren[eiche.Typ].Preis, karren);
-            Pruefe.Gleich("Ochsenkarren", eiche.Typ); // an der Höchstdauer gleicher Durchfluss: die billigere Art
+            Pruefe.Gleich("Pferdekarren", eiche.Typ); // an der Höchstdauer gleicher Durchfluss: die billigere Art
             Pruefe.Gleich(null, ki.UmlandSchaetzen("Wachturm an der Landstraße", Betriebsart.Wachturm));
             Pruefe.Gleich(null, ki.UmlandSchaetzen("Gießerei", Betriebsart.Giesserei));
         }),

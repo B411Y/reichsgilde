@@ -40,7 +40,7 @@ public partial class Stadtansicht
             _kurveUebersicht = 0;
             GD.Print($"[karrenkurve] Karren {_karren.Count}, auf dem Weg {_karren.Values.Count(k => k.AufWeg)}, fahrend {_karren.Values.Count(k => k.AufWeg && k.Geschwindigkeit > 0.1f)}, mit Schleppkurve {_karren.Values.Count(k => k.Lauf is not null)}");
         }
-        // Der erste fahrende Karren (der gewünschten Art, <c>--karrenkurveart=hand|ochse|pferd</c>) im Bild; er bleibt gewählt, solange er auf dem Weg ist (so sind Bilder mit und ohne Schleppkurve vergleichbar)
+        // Der erste fahrende Karren (der gewünschten Art, <c>--karrenkurveart=hand|pferd</c>) im Bild; er bleibt gewählt, solange er auf dem Weg ist (so sind Bilder mit und ohne Schleppkurve vergleichbar)
         if (_kurveKarren is null || !IsInstanceValid(_kurveKarren.Wurzel) || !_kurveKarren.AufWeg)
             _kurveKarren = _karren.Values.FirstOrDefault(k => k.Lauf is not null && k.AufWeg && k.Geschwindigkeit > 0.1f && (KarrenKurveArt is null || k.Art.Datei.EndsWith("_" + KarrenKurveArt)));
         if (_kurveKarren?.Lauf is not { } lauf) return;

@@ -221,7 +221,7 @@ public partial class Hauptszene
             var zusatz = Math.Abs(abweichung) < 0.05 ? "" : $" · {Zahlenformat.MitVorzeichen(abweichung * 100)} % zum Grundpreis";
             zeilen.Add(new LadeZeile(ware, $"{Zahlenformat.Kommazahl(stand.Preis)} {waehrung}{zusatz}"));
         }
-        var befehle = new List<LadeBefehl> { new("Markt öffnen", "M", "alle Waren und Preise, Handelsauftrag für einen Karren", null, Weiter(MarktOeffnen)) };
+        var befehle = new List<LadeBefehl> { new("Markt öffnen", "M", w.VerwalterhandelVerboten(s) is not null ? "alle Waren und Preise, Handel mit dem Karren am Markt" : "alle Waren und Preise, Handelsauftrag für einen Karren", null, Weiter(MarktOeffnen)) };
         return new LadeInhalt("Markt", waren.Count == 0 ? "Der Markt der Stadt" : "Preise der Waren eurer Betriebe", zeilen, befehle);
     }
 
@@ -274,12 +274,15 @@ public partial class Hauptszene
     private LadeInhalt? KarrenInhalt(Stadtwirtschaft w, Konto s)
     {
         if (EigenerInnenBetrieb(s) is not { } b) return null;
-        var zeilen = b.Karren.Select(k => new LadeZeile(k.Name, k.Zustand == KarrenZustand.AmBetrieb ? "wartet am Betrieb" : $"unterwegs · {k.Handelsort}")).ToList();
+        var zeilen = b.Karren.Select(k => new LadeZeile(k.Name, k.ZustandText(_simulation!.Zeit))).ToList();
         var befehle = new List<LadeBefehl>
         {
             new("Karrenhof", "", "Karren kaufen und verkaufen, Eskorte, Nachtfahrt", null, Weiter(() => InnenTafelOeffnen("karren"))),
-            new("Handel am Markt", "", "Handelsauftrag für einen Karren dieses Betriebs", null, Weiter(() => { TafelnSchliessen(); _markt.Oeffnen(b); })),
         };
+        if (w.VerwalterhandelVerboten(s) is not null) // selbst gefahren: kein Handelsauftrag, sondern Transportmenü, Laden und Handeln
+            befehle.Add(new("Karren fahren", "", "Karren des Hauses losschicken: zum Markt oder zu einem eigenen Betrieb, dort laden und handeln", null, Weiter(() => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); })));
+        else
+            befehle.Add(new("Handel am Markt", "", "Handelsauftrag für einen Karren dieses Betriebs", null, Weiter(() => { TafelnSchliessen(); _markt.Oeffnen(b); })));
         return new LadeInhalt("Karren", b.Karren.Count == 1 ? "1 Karren" : $"{b.Karren.Count} Karren", zeilen, befehle);
     }
 
@@ -315,7 +318,7 @@ public partial class Hauptszene
         FachZustand(_fachBauen, w.Wohnen.IstAktiv && w.Wohnen.FertigAb(s) is not null ? "Ausbau läuft" : "", false);
         FachZustand(_fachRat, !w.Rat.IstAktiv ? "" : w.Rat.StimmrundeLaeuft ? "Stimmrunde läuft" : w.Rat.AmtVon(s) is { } amt ? amt.Name : "tagt am Jahresende", w.Rat.IstAktiv && w.Rat.StimmrundeLaeuft);
         var gewinn = s.Laufend.Gewinn;
-        FachZustand(_fachBericht, $"Jahr {Zahlenformat.MitVorzeichen(gewinn)}", gewinn < -0.5);
+        FachZustand(_fachBericht, $"Jahresgewinn {Zahlenformat.MitVorzeichen(gewinn)}", gewinn < -0.5); // Gulden, nicht die Jahreszahl ("Jahr −126" sah wie ein Jahr aus)
         if (EigenerInnenBetrieb(s) is not { } b)
         {
             foreach (var fach in new[] { _fachPersonal, _fachLager, _fachKarren, _fachTalentbaum }) FachZustand(fach, "", false);

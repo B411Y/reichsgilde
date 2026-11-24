@@ -115,7 +115,7 @@ def fluegel_dach(d, f, ziegelflaeche):
         ze = zw - (abs(xe - xm) - (xm - x0)) * NEIG_FLUEGEL + dick
         unten = lambda y, xe=xe, ze=ze: Vector((xe, y, ze))
         oben = lambda y: Vector((xm, y, zf + dick))
-        ziegelflaeche(d, "Dachziegel", unten, oben, (yv, yh), saat=7 + seite)
+        ziegelflaeche(d, "Dachziegel", unten, oben, (yv, yh), saat=7 + seite, weg_von=(xm, (yv + yh) / 2, 0.0))   # Lagen zeigen vom Firstlot weg (Geometriepruefung 23.11.2026: die Seite zum Haus war verkehrt, AO 0,00)
         d.vieleck("Fachwerk", [Vector((xe, yv, ze - dick)), Vector((xe, yh, ze - dick)), Vector((xm, yh, zf)), Vector((xm, yv, zf))],
                   [(0, 0.775), ((yh - yv) / 4, 0.775), ((yh - yv) / 4, 0.70), (0, 0.70)], zu=(xm, 0, 0))
         for y, aussen in ((yv, -1), (yh, 1)):

@@ -1067,11 +1067,9 @@ public sealed class Betrieb
         foreach (var ware in s.Zurueckgehalten ?? new()) _zurueckgehalten.Add(ware);
         foreach (var karrenStand in s.Karren)
         {
-            // umbenannte Karrenart (Kriegskarren → Pferdekarren): Art und Name („Kriegskarren 2“ → „Pferdekarren 2“) auf die heutige Kennung
-            var typ = LogistikDaten.Karrenart(karrenStand.Typ);
-            var name = typ != karrenStand.Typ && karrenStand.Name.StartsWith(karrenStand.Typ + " ", StringComparison.Ordinal)
-                ? typ + karrenStand.Name[karrenStand.Typ.Length..]
-                : karrenStand.Name;
+            // alte Karrenarten stellt Karrenumbenennung schon beim Lesen des Spielstands um (Format bis 3)
+            var typ = karrenStand.Typ;
+            var name = karrenStand.Name;
             if (!_daten.Logistik.Karren.TryGetValue(typ, out var daten))
                 throw new InvalidDataException($"Den Karrentyp „{karrenStand.Typ}“ gibt es in den Daten nicht.");
             var karren = new Karren(name, typ, daten, this);

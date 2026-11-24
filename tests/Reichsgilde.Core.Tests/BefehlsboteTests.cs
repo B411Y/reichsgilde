@@ -49,6 +49,7 @@ static class BefehlsboteTests
         if (typ == typeof(bool)) return true;
         if (typ.IsEnum) return Enum.GetValues(typ).GetValue(Enum.GetValues(typ).Length - 1);
         if (typ == typeof(IReadOnlyDictionary<string, int>)) return new Dictionary<string, int> { ["Eisen"] = 2, ["Holz"] = 5 };
+        if (typ == typeof(IReadOnlyList<int>)) return new List<int> { 0, 2 }; // Karren-Nummern (KarrenLosschicken)
         throw new Exception($"Für den Typ {typ.Name} kennt der Test keinen Beispielwert – bitte ergänzen.");
     }
 
@@ -230,7 +231,7 @@ static class BefehlsboteTests
             foreach (var (vorher, nachher) in sim.Bote.Warteschlange.Zip(geladen.Bote.Warteschlange))
             {
                 Pruefe.Gleich(vorher.Befehl.GetType(), nachher.Befehl.GetType());
-                if (vorher.Befehl is not (Handelsauftrag or SchiffsauftragErteilen)) // Wörterbücher vergleicht ein record nur als Verweis
+                if (vorher.Befehl is not (Handelsauftrag or SchiffsauftragErteilen or KarrenLosschicken or KarrenZurueck or KarrenBeladen or KarrenAbladen or KarrenHandeln)) // Wörterbücher und Listen vergleicht ein record nur als Verweis
                     Pruefe.Gleich(vorher.Befehl, nachher.Befehl);
             }
         }),

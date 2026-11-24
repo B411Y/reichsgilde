@@ -191,7 +191,7 @@ def schicht_anlegen():
         p0, p1 = Vector(P(0.0, 0.0)), Vector(P(1.0, 0.0))
         felder = zt.felder_der_lage(g1.LAGEN[-1][4], breite, oeffnungen, t0, t1)
         schluessel = f"wohnhaus_zwerg_s1_g{FORM}|{p0.x:.2f},{p0.y:.2f}|{n3[0]:.0f},{n3[1]:.0f}|{z0:.2f}"
-        zt.laeden_zu(h, p0, p1 - p0, n3, felder, t0 + 0.04, t1 - 0.04, schluessel, Z.LADEN_OG)
+        zt.laeden_zu(h, p0, p1 - p0, n3, felder, t0 + 0.04, t1 - 0.04, schluessel, Z.LADEN_OG, nebeneinander=False)
     g1.fachwerk_wand_lage = fachwerk_wand_lage
 
 

@@ -140,13 +140,13 @@ static class MarktplaetzeTests
             var (sim, spieler, _) = Probestadt(("Ostmarkt", 60));
             var w = sim.Wirtschaft!;
             var vorher = w.Betriebe.Where(b => w.Fahrten(b) is not null)
-                .ToDictionary(b => b.Name, b => (w.MarktplatzVon(b)!.Name, w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Ochsenkarren", false)));
+                .ToDictionary(b => b.Name, b => (w.MarktplatzVon(b)!.Name, w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Pferdekarren", false)));
             Pruefe.Wahr(vorher.Values.Select(x => x.Item1).Distinct().Count() == 2, "beide Plätze werden angefahren");
             var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var w2 = geladen.Wirtschaft!;
             Pruefe.Gleich(2, w2.Karte!.Marktplaetze.Count);
             foreach (var b in w2.Betriebe.Where(b => vorher.ContainsKey(b.Name)))
-                Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
+                Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Pferdekarren", false)), b.Name);
         }),
 
         ("Köln: zwei Plätze an den Enden der Mauer (eine Hausreihe vor dem Tor), einer in Deutz; jede Startwerkstatt fährt zu ihrem Platz – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
@@ -197,9 +197,9 @@ static class MarktplaetzeTests
                 Pruefe.Wahr(verlauf.All(p => rechts ? p.X > 100 : p.X < 62) && w.Fahrten(b)!.Value.Hin.All(s => s.Art != Fahrbahn.Faehre), $"{b.Name}: über den Rhein");
             }
             Pruefe.Wahr(mitWeg.Count(b => w.MarktplatzVon(b)!.Kennung == "MarktDeutz") >= 3 + 5, "drei Werkstätten und mindestens fünf Umlandbetriebe in Deutz");
-            // Umland: keine Fahrt an der Höchstdauer (Ochsenkarren; bis zum 31.10.2026 lagen 26 von 42 Fahrten dort)
+            // Umland: keine Fahrt an der Höchstdauer (Pferdekarren; bis zum 31.10.2026 lagen 26 von 42 Fahrten dort)
             foreach (var b in mitWeg.Where(b => !b.InDerStadt))
-                Pruefe.Wahr(w.Fahrzeit(b, "Ochsenkarren", true) < w.Daten.Logistik.Weglaenge!.HoechstMinuten, $"{b.Name}: {w.Fahrzeit(b, "Ochsenkarren", true)} Minuten");
+                Pruefe.Wahr(w.Fahrzeit(b, "Pferdekarren", true) < w.Daten.Logistik.Weglaenge!.HoechstMinuten, $"{b.Name}: {w.Fahrzeit(b, "Pferdekarren", true)} Minuten");
         }),
 
         ("Mehrere Marktplätze: Ein alter Spielstand (Greybox, Herbst 1406) lädt mit seiner Karte – ein Marktplatz, jeder Betrieb mit Weg fährt dorthin", () =>

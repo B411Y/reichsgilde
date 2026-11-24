@@ -126,8 +126,9 @@ Die AO-Atlanten `wohnhaus_halbling_s2_ao_atlas.png`, `wohnhaus_halbling_s3_ao_at
 
 | Asset-ID | Verwendet für |
 |---|---|
-| `roof_slates_02` | außen: Schiefer, Schieferkante (Alpha selbst erzeugt) |
-| `sandstone_blocks_08` | außen und innen: grauer Werkstein der Mauern (grau umgefärbt) und gelblicher Sandstein (Strebepfeiler, Ecken, Bögen, Stufen) |
+| `roof_slates_02` | außen: Schiefer, Schieferkante (Alpha selbst erzeugt); seit dem 24.11.2026 in drei Deckreihen von je 128 Bildpunkten (0,25 m; oben Schatten, unten helle Kante, einzelne Platten verschieden hell mit Stoßfuge, selbst gerechnet), die Schieferkante dunkel (Fuge zwischen den Reihen) |
+| `sandstone_blocks_08` | außen: gelblicher Sandstein (Strebepfeiler, Ecken, Bögen, Stufen); innen: grauer Werkstein der Mauern (grau umgefärbt) und Sandstein |
+| `castle_wall_varriation` (K1, siehe Steinebenen) | außen: Mauerband der Wandflächen, seit dem 24.11.2026 der Stein der Menschenhäuser S2/S3 (1K-JPG, Maßstab 1:1 wie am Haus, Lagerfugen an Ober- und Unterkante des Bandes; kühl grau eingefärbt, Lagen und Fugen unverändert); vorher grau umgefärbtes `sandstone_blocks_08` |
 | `white_plaster_rough_01` | außen und innen: glatter heller Stein (Maßwerk, Fialen, Gesimse, Pfeiler, Rippen), innen der Putz der Gewölbekappen; Farbfelder |
 | `castle_wall_slates` | außen: dunkler Sockel |
 | `rough_wood` | außen: Balken des Glockenstuhls |

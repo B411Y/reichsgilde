@@ -37,7 +37,7 @@ static class KarrenHoechstzahlTests
         ("Karren-Höchstzahl: Daten ab 66 – Werkstatt 3, Umland 5; Prüfung meldet unbekannte Orte und Werte unter 1", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(97, d.Version);
+            Pruefe.Gleich(99, d.Version);
             Pruefe.Gleich(3, d.Logistik.HoechstKarren(Arbeitsort.Werkstatt));
             Pruefe.Gleich(5, d.Logistik.HoechstKarren(Arbeitsort.Umland));
             Pruefe.Wirft(() => DatenMit(j => j["logistik"]!["karrenHoechstens"]!["Umland"] = 0));
@@ -53,8 +53,8 @@ static class KarrenHoechstzahlTests
             var umland = w.BetriebEroeffnen("Grube am Silberberg", Betriebsart.Mine, k, "");
             var stadt = w.BetriebEroeffnen("Gießerei Lind", Betriebsart.Giesserei, k, "");
             for (var i = 0; i < 5; i++)
-                Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(umland.Name, "Ochsenkarren")).Erfolg, $"Umland Karren {i + 1}");
-            var sechster = w.Ausfuehren(k, new KarrenKaufen(umland.Name, "Ochsenkarren"));
+                Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(umland.Name, "Pferdekarren")).Erfolg, $"Umland Karren {i + 1}");
+            var sechster = w.Ausfuehren(k, new KarrenKaufen(umland.Name, "Pferdekarren"));
             Pruefe.Wahr(!sechster.Erfolg && sechster.Meldung.Contains("5 Karren"), sechster.Meldung);
             Pruefe.Gleich(5, umland.Karren.Count);
             for (var i = 0; i < 3; i++)
@@ -69,7 +69,7 @@ static class KarrenHoechstzahlTests
             var (_, w) = Koeln(DatenMit(j => j["logistik"]!.AsObject().Remove("karrenHoechstens")));
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 50_000);
             var b = w.BetriebEroeffnen("Grube am Silberberg", Betriebsart.Mine, k, "");
-            for (var i = 0; i < 7; i++) Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(b.Name, "Ochsenkarren")).Erfolg, $"Karren {i + 1}");
+            for (var i = 0; i < 7; i++) Pruefe.Wahr(w.Ausfuehren(k, new KarrenKaufen(b.Name, "Pferdekarren")).Erfolg, $"Karren {i + 1}");
             Pruefe.Gleich(KiProfil.Standard.MaxKarrenJeBetrieb, w.Rivalen[0].MaxKarren(Arbeitsort.Umland));
         }),
 
@@ -81,7 +81,7 @@ static class KarrenHoechstzahlTests
             holz.Konto.Entwicklerhilfe(20_000);
             Pruefe.Gleich(5, ki.MaxKarren(Arbeitsort.Umland));
             Pruefe.Gleich(3, ki.MaxKarren(Arbeitsort.Werkstatt));
-            while (holz.Karren.Count < 3) holz.KarrenKaufen("Pferdekarren");
+            while (holz.Karren.Count < 3) holz.KarrenKaufen("Großer Pferdekarren");
             // bei 25 % Stillstand: unter der Grenze nur Käufe (je Art einer)
             var plaene = ki.Karrenplaene(holz, 0.25).ToList();
             Pruefe.Wahr(plaene.All(p => p.Tausch is null) && plaene.Count == w.Daten.Logistik.Karren.Count, "Käufe");
@@ -90,7 +90,7 @@ static class KarrenHoechstzahlTests
             Pruefe.Wahr(bester!.Value.Kosten <= bester.Value.Mehrgewinn * ki.Amortisationsjahre, "in der Frist bezahlt");
             // unter 20 % kauft die KI zum Jahresende nichts (KarrenNachkaufen), und ein Plan ohne Mehrgewinn wird nie gewählt
             Pruefe.Gleich(null, ki.BesterKarrenplan(holz, 0.0));
-            while (holz.Karren.Count < 5) holz.KarrenKaufen("Pferdekarren");
+            while (holz.Karren.Count < 5) holz.KarrenKaufen("Großer Pferdekarren");
             Pruefe.Wahr(ki.Karrenplaene(holz, 0.25).All(p => p.Tausch is not null), "an der Grenze nur Tausch");
         }),
     };

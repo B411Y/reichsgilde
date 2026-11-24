@@ -418,6 +418,18 @@ FensterKreuz/constants/klein = 24
 FensterMasse/constants/fenster_unten = 310
 FensterMasse/constants/griff = 62
 FensterMasse/constants/griff_ohne_kopf = 34
+; ── Karrenfahrt (Transportmenü, Ladefenster, Handelsfenster): Breite der Tafeln, Spalten, Schriftgrößen ──
+FensterMasse/constants/karren_breite = 780
+FensterMasse/constants/karren_spalte_name = 150
+FensterMasse/constants/karren_spalte_zustand = 250
+FensterMasse/constants/karren_spalte_ladung = 150
+FensterMasse/constants/karren_spalte_ware = 130
+FensterMasse/constants/karren_spalte_zahl = 80
+FensterMasse/constants/karren_feld = 90
+FensterMasse/constants/karren_auswahl = 280
+FensterMasse/constants/karren_schrift = 14
+FensterMasse/constants/karren_klein = 12
+FensterMasse/constants/karren_titel = 24
 ; ── Farben auf dem Pergament; „grund“ ist die mittlere Farbe der Textur (für die Kontrastrechnung) ──
 FensterFarben/colors/grund = Color(0.886, 0.781, 0.59, 1)
 FensterFarben/colors/tinte = Color(0.141, 0.094, 0.051, 1)
