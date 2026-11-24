@@ -1,0 +1,3 @@
+# Herkunft der Sockeltextur
+
+`sockel_bruchstein.png` (512 × 512, sRGB) ist die Farbaufnahme **Rock Wall 08** von Amal Kumar, Poly Haven (https://polyhaven.com/a/rock_wall_08), CC0 1.0 Universal (https://polyhaven.com/license). Quelle: `rock_wall_08_diff_1k.jpg`, abgerufen am 24.11.2026 über `api.polyhaven.com/files/rock_wall_08`, SHA-256 `9cd907e8d8ce9317bc51a840a9e87b547fdf768aa61f5288aaee0f6fbcaac2ac`. Nachbearbeitung: nur von 1024 auf 512 Pixel verkleinert. Verwendet für die Wände der Bruchsteinsockel unter Gebäuden auf Hängen (`Stadtansicht.Gelaende.cs`, `SockelStein`). Das Bild selbst: Alle Rechte vorbehalten (`LICENSE-INHALTE.md`), die Quelle bleibt CC0.
