@@ -22,28 +22,28 @@ public partial class Stadtansicht
     public bool KarrenZielWahlLaeuft => _karrenZielMarken.Count > 0;
 
     /// <summary>
-    /// Beginnt die Wahl des Karrenziels für das Haus <paramref name="spieler"/>. <paramref name="gewaehlt"/> bekommt den Namen des Betriebs (null: der Markt);
+    /// Beginnt die Wahl des Karrenziels für das Haus <paramref name="spieler"/>. <paramref name="gewaehlt"/> bekommt den Namen des Betriebs (null: der Markt) und ob es der Hafen ist (K4, nur wo Karren zum Hafen fahren);
     /// <paramref name="meldung"/> sagt dem Spieler, was nicht geht (ein anderes Gebäude, ein fremder Betrieb); <paramref name="abgebrochen"/> kommt bei Esc.
     /// Drinnen (Innenansicht, Raum) geht es nicht: false.
     /// </summary>
-    public bool KarrenZielWaehlen(Konto spieler, Action<string?> gewaehlt, Action<string> meldung, Action abgebrochen)
+    public bool KarrenZielWaehlen(Konto spieler, Action<string?, bool> gewaehlt, Action<string> meldung, Action abgebrochen)
     {
         KarrenZielMarkenWeg();
         _karrenZielSpieler = spieler;
-        _karrenZielHinweis = "Ziel wählen: der Markt oder einer deiner Betriebe";
+        _karrenZielHinweis = _wirtschaft?.Schiffahrt.KarrenZumHafen == true ? "Ziel wählen: der Markt, der Hafen oder einer deiner Betriebe" : "Ziel wählen: der Markt oder einer deiner Betriebe";
         bool Beginnen()
         {
-            if (!GebaeudeWaehlen(_karrenZielHinweis, Ziel, k => KarrenZielBetrieb(k, out _))) return false;
+            if (!GebaeudeWaehlen(_karrenZielHinweis, Ziel, k => KarrenZielBetrieb(k, out _, out _))) return false;
             _gebaeudeWahlAbbruch = () => { KarrenZielMarkenWeg(); abgebrochen(); };
             KarrenZielMarkenSetzen();
             return true;
         }
         void Ziel(string kennung)
         {
-            if (KarrenZielBetrieb(kennung, out var betrieb))
+            if (KarrenZielBetrieb(kennung, out var betrieb, out var hafen))
             {
                 KarrenZielMarkenWeg();
-                gewaehlt(betrieb);
+                gewaehlt(betrieb, hafen);
                 return;
             }
             meldung(KarrenZielAbsage(kennung));
@@ -52,11 +52,13 @@ public partial class Stadtansicht
         return Beginnen();
     }
 
-    /// <summary>Ist diese Kennung ein Ziel (Markt: Betrieb null; eigener Betrieb der Stadt: dessen Name)?</summary>
-    private bool KarrenZielBetrieb(string kennung, out string? betrieb)
+    /// <summary>Ist diese Kennung ein Ziel (Markt: Betrieb null; Hafen: <paramref name="hafen"/>, nur wo Karren zum Hafen fahren; eigener Betrieb der Stadt: dessen Name)?</summary>
+    private bool KarrenZielBetrieb(string kennung, out string? betrieb, out bool hafen)
     {
         betrieb = null;
+        hafen = false;
         if (IstMarktplatz(kennung)) return true;
+        if (HafenAusKennung(kennung) is not null) return hafen = _wirtschaft?.Schiffahrt.KarrenZumHafen == true;
         if (!kennung.StartsWith("betrieb:", StringComparison.Ordinal)) return false;
         var b = _betriebe.Keys.FirstOrDefault(x => BetriebsKennung(x) == kennung);
         if (b is null || b.Konto != _karrenZielSpieler || !b.InDerStadt) return false;
@@ -72,7 +74,8 @@ public partial class Stadtansicht
             if (b is not null && b.Konto != _karrenZielSpieler) return $"{b.Name} gehört dir nicht – Karren fahren nur zum Markt oder zu eigenen Betrieben.";
             if (b is not null && !b.InDerStadt) return $"{b.Name} liegt im Umland – Ziele sind der Markt und eigene Betriebe in der Stadt.";
         }
-        return "Das ist kein Ziel – Karren fahren nur zum Markt oder zu eigenen Betrieben der Stadt.";
+        if (HafenAusKennung(kennung) is not null) return "In dieser Stadt fahren Karren nicht zum Hafen.";
+        return "Das ist kein Ziel – Karren fahren nur zum Markt, zum Hafen oder zu eigenen Betrieben der Stadt.";
     }
 
     /// <summary>Die goldenen Ringe um jedes mögliche Ziel (nur beim Beginn der Wahl und nachdem ein falscher Klick sie abgebaut hat).</summary>
@@ -83,6 +86,9 @@ public partial class Stadtansicht
         _karrenZielWeiss ??= RingStoff(new Color(1f, 1f, 0.92f, 0.95f));
         foreach (var platz in _maerkte)
             RingSetzen(platz.Kennung, platz.Mitte, platz.Halb * 0.98f);
+        if (_wirtschaft is { } wi && wi.Schiffahrt.KarrenZumHafen)
+            foreach (var h in wi.Schiffahrt.Haefen)
+                RingSetzen(HafenKennung(h.Kennung), new Vector3((float)h.Liegeplatz.X, 0, (float)h.Liegeplatz.Z), 10f);
         foreach (var (betrieb, ansicht) in _betriebe)
             if (betrieb.Konto == _karrenZielSpieler && betrieb.InDerStadt)
                 RingSetzen(BetriebsKennung(betrieb), ansicht.Mitte, 8.5f);
@@ -118,7 +124,7 @@ public partial class Stadtansicht
     {
         if (_karrenZielMarken.Count == 0 || !GebaeudeWahlLaeuft) return;
         string? ueber = null;
-        if (!MausUeberOberflaeche && GebaeudeWahlKennung(GetViewport().GetMousePosition(), still: true) is { } kennung && KarrenZielBetrieb(kennung, out _)) ueber = kennung;
+        if (!MausUeberOberflaeche && GebaeudeWahlKennung(GetViewport().GetMousePosition(), still: true) is { } kennung && KarrenZielBetrieb(kennung, out _, out _)) ueber = kennung;
         var puls = 1f + 0.04f * Mathf.Sin((float)Time.GetTicksMsec() / 1000f * 4f);
         foreach (var (ring, k, radius) in _karrenZielMarken)
         {
@@ -130,7 +136,7 @@ public partial class Stadtansicht
         if (ueber != _karrenZielUeber && _gebaeudeWahlText is not null)
         {
             _karrenZielUeber = ueber;
-            var name = ueber is null ? null : IstMarktplatz(ueber) ? "Markt" : _betriebe.Keys.FirstOrDefault(x => BetriebsKennung(x) == ueber)?.Name;
+            var name = ueber is null ? null : IstMarktplatz(ueber) ? "Markt" : HafenAusKennung(ueber) is { } hk ? _wirtschaft?.Schiffahrt.Hafen(hk)?.Name ?? "Hafen" : _betriebe.Keys.FirstOrDefault(x => BetriebsKennung(x) == ueber)?.Name;
             _gebaeudeWahlText.Text = (name is null ? _karrenZielHinweis : $"Ziel: {name} – Klick wählt") + " · Esc: abbrechen";
         }
     }

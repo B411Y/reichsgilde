@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Karren selbst fahren: Gehandelt wird nur hier im Marktmenü und nur mit einem eigenen Karren, der am Markt steht
+/// Karren selbst fahren: Gehandelt wird nur hier im Marktmenü und nur mit einem eigenen Karren, der am Markt oder am Hafen steht
 /// (<see cref="KarrenZustand.AmMarkt"/>). Der Spieler verkauft Waren aus der Ladung und kauft Waren in die Ladung
 /// (<see cref="KarrenHandeln"/>; die Regeln und Gründe liefert <see cref="Stadtwirtschaft.KarrenHandelnVerboten"/>). Nichts wird vorher
 /// festgelegt – Handelsauftrag, Vormerkung und „zurückhalten“ gibt es im Selbstfahren nicht (<see cref="Stadtwirtschaft.VerwalterhandelVerboten"/>).
@@ -68,7 +68,7 @@ public partial class MarktAnzeige
         var gewaehlt = am.FirstOrDefault(e => e.Schluessel == _selbstKarren) ?? am.FirstOrDefault();
         var waren = w.Markt.Staende.Select(s => s.Ware).Where(x => w.Daten.Waren.ContainsKey(x)).OrderBy(x => x, StringComparer.Ordinal).ToList();
         var preise = gewaehlt is null ? "" : string.Join(",", gewaehlt.Karren.Ladung.Keys.Append(_selbstKaufWare ?? "").Distinct().Where(x => w.Daten.Waren.ContainsKey(x)).Select(x => (int)Math.Round(w.Markt[x].Preis * 10)));
-        var stand = $"{string.Join(";", am.Select(x => $"{x.Schluessel}:{string.Join(",", x.Karren.Ladung.OrderBy(l => l.Key, StringComparer.Ordinal).Select(l => $"{l.Key}:{l.Value}"))}"))}|{gewaehlt?.Schluessel}|{preise}|{_selbstKaufWare}|{w.Uhr.UhrzeitInMinuten / 30}|{Math.Round(_spieler.Vermoegen)}";
+        var stand = $"{string.Join(";", am.Select(x => $"{x.Schluessel}:{string.Join(",", x.Karren.Ladung.OrderBy(l => l.Key, StringComparer.Ordinal).Select(l => $"{l.Key}:{l.Value}"))}"))}|{gewaehlt?.Schluessel}|{preise}|{_selbstKaufWare}|{gewaehlt?.Karren.Handelsort}|{w.Uhr.UhrzeitInMinuten / 30}|{Math.Round(_spieler.Vermoegen)}";
         if (stand == _karrenStand) return;
         // Wer gerade in ein Zahlfeld tippt, wird nicht unterbrochen.
         if (_karrenInhalt.GetViewport()?.GuiGetFocusOwner() is LineEdit fokus && _karrenInhalt.IsAncestorOf(fokus)) return;
@@ -78,9 +78,9 @@ public partial class MarktAnzeige
         var waehrung = w.Daten.Allgemein.Waehrung;
         if (gewaehlt is null)
         {
-            Hauptmenue.Text(_karrenInhalt, "Kein Karren am Markt – schicke einen Karren her, um zu handeln.", 13, Grau,
+            Hauptmenue.Text(_karrenInhalt, "Kein Karren am Markt oder Hafen – schicke einen Karren her, um zu handeln.", 13, Grau,
                 umbruchBreite: Spalten * (Kachelbreite + 6) - 40);
-            Hauptmenue.Text(_karrenInhalt, "Im Transportmenü des Betriebs (Karrenfahrt, Ziel Markt) schickst du ihn los; gehandelt wird erst, wenn er hier steht.", 12, Grau,
+            Hauptmenue.Text(_karrenInhalt, "Im Transportmenü des Betriebs (Karrenfahrt, Ziel Markt oder Hafen) schickst du ihn los; gehandelt wird erst, wenn er dort steht.", 12, Grau,
                 umbruchBreite: Spalten * (Kachelbreite + 6) - 40);
             return;
         }
@@ -91,8 +91,8 @@ public partial class MarktAnzeige
         kopf.AddThemeConstantOverride("separation", 10);
         _karrenInhalt.AddChild(kopf);
         Hauptmenue.Text(kopf, "Karren:", 13, Hell);
-        var liste = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Welcher der am Markt stehenden Karren handelt." };
-        foreach (var x in am) liste.AddItem($"{x.Karren.Name} ({x.Heimat.Name})");
+        var liste = new OptionButton { FocusMode = FocusModeEnum.None, TooltipText = "Welcher der am Markt oder Hafen stehenden Karren handelt." };
+        foreach (var x in am) liste.AddItem($"{x.Karren.Name} ({x.Heimat.Name}, {(x.Karren.ZielHafen ? "Hafen" : "Markt")})");
         liste.Select(am.IndexOf(gewaehlt));
         liste.ItemSelected += i => { _selbstKarren = am[(int)i].Schluessel; _karrenStand = ""; KarrenAktualisieren(w); };
         kopf.AddChild(liste);
@@ -134,6 +134,7 @@ public partial class MarktAnzeige
         // Kaufen in die Ladung
         _karrenInhalt.AddChild(new HSeparator());
         Hauptmenue.Text(_karrenInhalt, "Kaufen (in die Ladung)", 14, Gold);
+        Hauptmenue.Text(_karrenInhalt, $"Einkauf zum Marktpreis ohne Händlerspanne – so kauft auch der Verwalter am {k.Handelsort}.", 12, Grau);
         var kauf = new HBoxContainer();
         kauf.AddThemeConstantOverride("separation", 10);
         _karrenInhalt.AddChild(kauf);
@@ -148,9 +149,9 @@ public partial class MarktAnzeige
         {
             var kaufen = new Dictionary<string, int> { [kw] = _selbstKaufMenge };
             var leer = new Dictionary<string, int>();
-            KarrenKnopf(kauf, "kaufen", $"{Zahlenformat.Ganz(_selbstKaufMenge)} {kw} in die Ladung kaufen: Marktpreis mit Händlerspanne, jedes Stück hebt den Preis.",
+            KarrenKnopf(kauf, "kaufen", $"{Zahlenformat.Ganz(_selbstKaufMenge)} {kw} in die Ladung kaufen: reiner Marktpreis ohne Händlerspanne (wie beim Verwalter), jedes Stück hebt den Preis.",
                 () => new KarrenHandeln(gewaehlt.Heimat.Name, gewaehlt.Nr, leer, new Dictionary<string, int> { [kw] = _selbstKaufMenge }), w.KarrenHandelnVerboten(_spieler, gewaehlt.Heimat, gewaehlt.Nr, leer, kaufen));
-            Hauptmenue.Text(kauf, $"etwa {Zahlenformat.Ganz(w.HandKaufpreis(_spieler, kw, _selbstKaufMenge))} {waehrung}", 13, Grau);
+            Hauptmenue.Text(kauf, $"etwa {Zahlenformat.Ganz(w.KarrenKaufpreis(kw, _selbstKaufMenge))} {waehrung}", 13, Grau);
         }
     }
 

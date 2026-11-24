@@ -11,32 +11,33 @@ namespace Reichsgilde;
 /// (<see cref="KarrenLadeAnzeige"/>) und zum Marktmenü (<see cref="MarktAnzeige"/>, Karren-Handel).
 ///
 /// <b>Schnittstelle zur Stadtansicht (K3):</b> Drückt der Spieler „Ziel im Bild wählen“, meldet <see cref="ZielWahlImBild"/>(true); die Stadtansicht
-/// nimmt dann den Klick auf ein Gebäude an und ruft <see cref="ZielSetzen"/> mit dem Betriebsnamen (null: Markt). <see cref="ZielWahlImBild"/>(false)
+/// nimmt dann den Klick auf ein Gebäude an und ruft <see cref="ZielSetzen"/> mit dem Betriebsnamen (null: Markt, oder mit hafen: der Hafen, K4). <see cref="ZielWahlImBild"/>(false)
 /// heißt: die Wahl im Bild ist zu Ende (Abbruch, Tafel geschlossen oder Ziel gesetzt).
 /// </summary>
 public sealed class KarrenFahrtAnzeige : KarrenTafel
 {
     private readonly HashSet<string> _gewaehlt = new();
-    private string? _ziel; // Betriebsname; null = Markt
+    private string? _ziel; // Betriebsname; null = Markt (oder Hafen, wenn _hafen)
+    private bool _hafen;   // Ziel ist der Hafen (K4)
     private string? _eskorte; // null: die Stufe des ersten gewählten Karrens
     private bool _imBild;
 
     /// <summary>Die Wahl des Ziels im Bild beginnt (true) oder endet (false) – für die Stadtansicht.</summary>
     public event Action<bool>? ZielWahlImBild;
 
-    /// <summary>Das Ziel der Fahrt kam aus dem Bild (Klick aufs Gebäude) oder der Liste: Betriebsname, null = Markt.</summary>
-    public event Action<string?>? ZielGewaehlt;
+    /// <summary>Das Ziel der Fahrt kam aus dem Bild (Klick aufs Gebäude) oder der Liste: Betriebsname, null = Markt; zweiter Wert: Hafen (K4).</summary>
+    public event Action<string?, bool>? ZielGewaehlt;
 
     /// <summary>Die Stadtansicht hat ein Gebäude angeklickt: Ziel setzen (Betriebsname eines eigenen Betriebs in der Stadt; null = Markt).</summary>
-    public void ZielSetzen(string? betrieb)
+    public void ZielSetzen(string? betrieb, bool hafen = false)
     {
-        _ziel = betrieb;
+        (_ziel, _hafen) = (betrieb, hafen && betrieb is null);
         ImBildBeenden();
-        ZielGewaehlt?.Invoke(betrieb);
+        ZielGewaehlt?.Invoke(_ziel, _hafen);
     }
 
     /// <summary>Das Ziel aus der Wahl im Bild setzen, wenn die Tafel gerade zu ist (die Hauptszene öffnet sie danach wieder).</summary>
-    public void ZielVorgeben(string? betrieb) => _ziel = betrieb;
+    public void ZielVorgeben(string? betrieb, bool hafen = false) => (_ziel, _hafen) = (betrieb, hafen && betrieb is null);
 
     /// <summary>Die Wahl im Bild endete ohne Ziel (Esc, nicht möglich): der Knopf zeigt wieder „Ziel im Bild wählen“.</summary>
     public void ImBildAbgebrochen() => _imBild = false;
@@ -61,7 +62,7 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
     {
         var karren = Karren(w, b);
         var ziele = string.Join(",", w.Betriebe.Where(x => x.Konto == Spieler && x.InDerStadt).Select(x => x.Name));
-        return $"{string.Join(";", karren.Select(e => $"{e.Schluessel}:{e.Karren.ZustandText(Sim!.Zeit)}:{LadungStand(e.Karren)}:{e.Karren.Eskorte}"))}|{ziele}|{string.Join(",", _gewaehlt.OrderBy(x => x))}|{_ziel}|{_eskorte}|{_imBild}|{w.HausFaehrtAutomatisch(Spieler!)}|{string.Join(",", w.Daten.Logistik.Eskorten.Keys.Where(w.Wache.EskorteVerfuegbar))}";
+        return $"{string.Join(";", karren.Select(e => $"{e.Schluessel}:{e.Karren.ZustandText(Sim!.Zeit)}:{LadungStand(e.Karren)}:{e.Karren.Eskorte}"))}|{ziele}|{string.Join(",", _gewaehlt.OrderBy(x => x))}|{_ziel}|{_hafen}|{w.Schiffahrt.KarrenZumHafen}|{w.Schiffahrt.HafenOffen}|{_eskorte}|{_imBild}|{w.HausFaehrtAutomatisch(Spieler!)}|{string.Join(",", w.Daten.Logistik.Eskorten.Keys.Where(w.Wache.EskorteVerfuegbar))}";
     }
 
     protected override void Aufbauen(Stadtwirtschaft w, Betrieb b)
@@ -116,23 +117,29 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
         zeile.AddThemeConstantOverride("separation", 10);
         Inhalt.AddChild(zeile);
         Zeile(zeile, "Ziel:", Schrift);
-        var liste = new OptionButton { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(Masz("auswahl"), 0), TooltipText = "Wohin die gewählten Karren fahren: zum Markt oder zu einem eigenen Betrieb in der Stadt." };
-        var namen = new List<string?> { null };
+        var liste = new OptionButton { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(Masz("auswahl"), 0), TooltipText = "Wohin die gewählten Karren fahren: zum Markt, zum Hafen (wo Karren dorthin fahren) oder zu einem eigenen Betrieb in der Stadt." };
+        var namen = new List<(string? Betrieb, bool Hafen)> { (null, false) };
         liste.AddItem("Markt");
+        if (w.Schiffahrt.KarrenZumHafen)
+        {
+            namen.Add((null, true));
+            liste.AddItem(w.Schiffahrt.HafenOffen ? "Hafen" : "Hafen (geschlossen)");
+            if (!w.Schiffahrt.HafenOffen) liste.SetItemTooltip(1, "Im Winter und bei Eis ist der Hafen zu – Karren fahren erst wieder hin, wenn er offen ist.");
+        }
         foreach (var x in w.Betriebe.Where(x => x.Konto == Spieler && x.InDerStadt).OrderBy(x => x == b ? 0 : 1).ThenBy(x => x.Name, StringComparer.Ordinal))
         {
-            namen.Add(x.Name);
+            namen.Add((x.Name, false));
             liste.AddItem(x.Name + (x == b ? " (hier)" : ""));
         }
-        liste.Select(Math.Max(0, namen.IndexOf(_ziel)));
-        liste.ItemSelected += i => { _ziel = namen[(int)i]; ZielGewaehlt?.Invoke(_ziel); };
+        liste.Select(Math.Max(0, namen.IndexOf((_ziel, _hafen))));
+        liste.ItemSelected += i => { (_ziel, _hafen) = namen[(int)i]; ZielGewaehlt?.Invoke(_ziel, _hafen); };
         zeile.AddChild(liste);
         var bild = Hauptmenue.Knopf(zeile, _imBild ? "Gebäude anklicken … (Abbrechen)" : "Ziel im Bild wählen", () =>
         {
             _imBild = !_imBild;
             ZielWahlImBild?.Invoke(_imBild);
         });
-        bild.TooltipText = "Auf das Gebäude in der Stadt klicken, zu dem die Karren fahren sollen (der Markt zählt auch).";
+        bild.TooltipText = "Auf das Gebäude in der Stadt klicken, zu dem die Karren fahren sollen (der Markt zählt auch, und wo Karren zum Hafen fahren, auch der Hafen).";
     }
 
     private void EskorteZeile(Stadtwirtschaft w, List<Eintrag> wahl)
@@ -168,11 +175,11 @@ public sealed class KarrenFahrtAnzeige : KarrenTafel
         string? Grund(Func<IGrouping<Betrieb, Eintrag>, string?> pruefung) =>
             wahl.Count == 0 ? "Erst einen oder mehrere Karren ankreuzen." : gruppen.Select(pruefung).FirstOrDefault(g => g is not null);
 
-        var losGrund = Grund(g => w.KarrenLosschickenVerboten(Spieler!, g.Key, g.Select(e => e.Nr).ToList(), _ziel, eskorte));
-        var ziel = _ziel ?? "den Markt";
+        var losGrund = Grund(g => w.KarrenLosschickenVerboten(Spieler!, g.Key, g.Select(e => e.Nr).ToList(), _ziel, eskorte, _hafen));
+        var ziel = _ziel ?? (_hafen ? "den Hafen" : "den Markt");
         Knopf(zeile, "Losschicken", $"Die gewählten Karren fahren zu {ziel} (mit der gewählten Eskorte).", () =>
         {
-            foreach (var g in gruppen) Befehlen(new KarrenLosschicken(g.Key.Name, g.Select(e => e.Nr).ToList(), _ziel, eskorte));
+            foreach (var g in gruppen) Befehlen(new KarrenLosschicken(g.Key.Name, g.Select(e => e.Nr).ToList(), _ziel, eskorte, _hafen));
             _gewaehlt.Clear();
         }, losGrund);
         var zurueckGrund = Grund(g => w.KarrenLosschickenVerboten(Spieler!, g.Key, g.Select(e => e.Nr).ToList(), g.Key.Name, eskorte));

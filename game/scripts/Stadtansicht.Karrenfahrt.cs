@@ -28,27 +28,44 @@ public partial class Stadtansicht
     };
 
     /// <summary>Gebaute Sonderwege (Herkunft, Ziel, Heimat; Betriebsnamen, leer = Markt). Fällt weg, wenn sich die Betriebe ändern.</summary>
-    private readonly Dictionary<(string Von, string Nach, string Heimat), Vector3[]?> _karrenSonderwege = new();
+    private readonly Dictionary<(string Von, string Nach, string Heimat, bool Hafen), Vector3[]?> _karrenSonderwege = new();
     private int _karrenSonderwegeBetriebe = -1;
 
     /// <summary>Wo der Karren eines Betriebs am Markt hält (Ende seines Weges); null ohne Weg.</summary>
-    private Vector3? KarrenMarktHalt(Betrieb betrieb) =>
-        _betriebe.TryGetValue(betrieb, out var a) && KarrenWeg(a) is { Length: >= 2 } weg ? weg[^1] : null;
+    private Vector3? KarrenMarktHalt(Betrieb betrieb) => KarrenHandelsortHalt(betrieb, false);
+
+    /// <summary>Wo der Karren eines Betriebs am Marktplatz (<paramref name="hafen"/> false) oder am Hafen (true) hält (Ende seines Weges dorthin); null ohne Weg.</summary>
+    private Vector3? KarrenHandelsortHalt(Betrieb betrieb, bool hafen) =>
+        _betriebe.TryGetValue(betrieb, out var a) && KarrenWeg(a, hafen) is { Length: >= 2 } weg ? weg[^1] : null;
 
     /// <summary>
     /// Der Weg einer Sonderfahrt von <paramref name="von"/> nach <paramref name="nach"/> (null: der Markt): Betrieb → Markt der Weg des Betriebs bis zum Halt und gerade weiter
     /// zum Halt des Heimatbetriebs (dort steht der Karren dann); Markt → Betrieb vom Halt des Heimatbetriebs den Weg des Betriebs rückwärts; Betrieb → Betrieb die Strecke des Kerns.
     /// Null, wenn ein Betrieb im Bild fehlt.
     /// </summary>
-    private Vector3[]? KarrenSonderWeg(Karren karren, Betrieb? von, Betrieb? nach)
+    private Vector3[]? KarrenSonderWeg(Karren karren, Betrieb? von, Betrieb? nach, bool hafen = false)
     {
         if (_wirtschaft is not { } w) return null;
         if (_karrenSonderwegeBetriebe != _betriebe.Count) { _karrenSonderwege.Clear(); _karrenSonderwegeBetriebe = _betriebe.Count; }
-        var schluessel = (von?.Name ?? "", nach?.Name ?? "", karren.Heimat.Name);
+        var schluessel = (von?.Name ?? "", nach?.Name ?? "", karren.Heimat.Name, hafen);
         if (_karrenSonderwege.TryGetValue(schluessel, out var bekannt)) return bekannt;
         Vector3[]? weg = null;
-        var heimatHalt = KarrenMarktHalt(karren.Heimat);
-        if (von is not null && nach is not null)
+        var heimatHalt = KarrenHandelsortHalt(karren.Heimat, hafen);
+        if (von is null && nach is null)
+        {
+            // K4: von einem Handelsort zum anderen (Markt ↔ Hafen): vom Halt des einen über die Strecke des Kerns zum Halt des anderen (Ziel ist der Hafen, wenn hafen)
+            var anfang = KarrenHandelsortHalt(karren.Heimat, !hafen);
+            var liste = new List<Vector3>();
+            if (anfang is { } a0) liste.Add(a0);
+            foreach (var p in w.StreckeZwischenHandelsorten(karren.Heimat, hafen)?.Punkte ?? [])
+            {
+                var punkt = new Vector3((float)p.X, 0, (float)p.Z);
+                if (liste.Count == 0 || liste[^1].DistanceTo(punkt) > 0.5f) liste.Add(punkt);
+            }
+            if (heimatHalt is { } e0 && (liste.Count == 0 || liste[^1].DistanceTo(e0) > 0.5f)) liste.Add(e0);
+            weg = liste.ToArray();
+        }
+        else if (von is not null && nach is not null)
         {
             if (w.KarrenverlaufZwischen(von, nach) is { Count: >= 2 } punkte)
                 weg = punkte.Select(p => new Vector3((float)p.X, 0, (float)p.Z)).ToArray();
@@ -57,13 +74,13 @@ public partial class Stadtansicht
         }
         else if (von is not null && _betriebe.TryGetValue(von, out var vonAnsicht))
         {
-            var liste = KarrenWeg(vonAnsicht).ToList();
+            var liste = KarrenWeg(vonAnsicht, hafen).ToList();
             if (heimatHalt is { } h && liste[^1].DistanceTo(h) > 0.5f) liste.Add(h);
             weg = liste.ToArray();
         }
         else if (nach is not null && _betriebe.TryGetValue(nach, out var nachAnsicht))
         {
-            var liste = KarrenWeg(nachAnsicht).Reverse().ToList();
+            var liste = KarrenWeg(nachAnsicht, hafen).Reverse().ToList();
             if (heimatHalt is { } h && liste[0].DistanceTo(h) > 0.5f) liste.Insert(0, h);
             weg = liste.ToArray();
         }
@@ -81,7 +98,7 @@ public partial class Stadtansicht
         var (von, nach) = (karren.Herkunft(w), karren.Ziel(w));
         var steht = karren.Zustand == KarrenZustand.AmBetrieb;
         // Am anderen Betrieb: der Weg dieses Betriebs, der Karren steht an seinem Anfang (dem Halteplatz)
-        var weg = steht ? (von is not null && _betriebe.TryGetValue(von, out var standort) ? KarrenWeg(standort) : null) : KarrenSonderWeg(karren, von, nach);
+        var weg = steht ? (von is not null && _betriebe.TryGetValue(von, out var standort) ? KarrenWeg(standort) : null) : KarrenSonderWeg(karren, von, nach, karren.ZielHafen);
         if (weg is not { Length: >= 2 }) return false; // kein Weg im Bild: die gewohnte Fahrt zeigt ihn (am Heimatbetrieb)
         var laenge = WegLaenge(weg);
 

@@ -530,14 +530,14 @@ public partial class Hauptszene : Node
             if (!an) { if (_stadt.KarrenZielWahlLaeuft) _stadt.GebaeudeWahlAbbrechen(); return; }
             var drinnen = _stadt.InnenBetrieb;
             if (drinnen is not null) _stadt.InnenansichtVerlassen();
-            void Zurueck(string? ziel, bool gewaehlt)
+            void Zurueck(string? ziel, bool gewaehlt, bool hafen = false)
             {
-                if (drinnen is null) { if (gewaehlt) _fahrtTafel.ZielSetzen(ziel); else _fahrtTafel.ImBildAbgebrochen(); return; }
-                if (gewaehlt) _fahrtTafel.ZielVorgeben(ziel);
+                if (drinnen is null) { if (gewaehlt) _fahrtTafel.ZielSetzen(ziel, hafen); else _fahrtTafel.ImBildAbgebrochen(); return; }
+                if (gewaehlt) _fahrtTafel.ZielVorgeben(ziel, hafen);
                 _fahrtTafel.ImBildAbgebrochen();
                 BetriebBetreten(drinnen, "fahrt");
             }
-            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, z => Zurueck(z, true), Protokollieren, () => Zurueck(null, false)))
+            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, (z, hafen) => Zurueck(z, true, hafen), Protokollieren, () => Zurueck(null, false)))
             {
                 Protokollieren("Ein Ziel im Bild lässt sich jetzt nicht wählen – nimm die Liste.");
                 Zurueck(null, false);
