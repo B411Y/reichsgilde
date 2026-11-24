@@ -9,7 +9,7 @@ namespace Reichsgilde;
 /// Original. Der Preis ist grün, wenn er über dem Grundpreis liegt (gut zum Verkaufen), rot darunter (gut zum Einkaufen).
 /// Einzelheiten (Nachfrage, Zutaten, Gewinn je Minute, eigener Bestand) stehen im Tooltip.
 ///
-/// Handel von Hand: Oben wählt man Betrieb und Karren, klickt eine Ware an und setzt sie mit Menge auf den
+/// Handel von Hand (Karren fahren von selbst): Oben wählt man Betrieb und Karren, klickt eine Ware an und setzt sie mit Menge auf den
 /// Auftrag (verkaufen aus dem Lager / kaufen ins Lager). Der Karren fährt los, handelt bei Ankunft und bringt die
 /// Einkäufe heim – die Regeln prüft der Kern (<see cref="Stadtwirtschaft.HandelsauftragVerboten"/>).
 /// </summary>
@@ -127,8 +127,13 @@ public partial class MarktAnzeige : PanelContainer
                                  "Die gelbe Zahl im Bild: so viel liegt in euren Lagern. Einzelheiten zeigt der Mauszeiger.", 12, Grau, umbruchBreite: Spalten * (Kachelbreite + 6));
 
         _ernte = w.Ernte.IstAktiv ? Hauptmenue.Text(_inhalt, "", 13, Gold, umbruchBreite: Spalten * (Kachelbreite + 6)) : null;
+        _betriebWahl = null;
+        _karrenInhalt = null;
         if (w.Daten.Handel is not null && _spieler is not null)
-            HandelAufbauen(w);
+        {
+            if (w.VerwalterhandelVerboten(_spieler) is null) HandelAufbauen(w);
+            else KarrenAufbauen(w); // selbst gefahren: kein Handelsauftrag, gehandelt wird mit dem Karren, der am Markt steht (MarktAnzeige.Karren.cs)
+        }
         VorschauAufbauen(w);
 
         var d = w.Daten;
@@ -216,6 +221,7 @@ public partial class MarktAnzeige : PanelContainer
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
         HandelAktualisieren(w);
+        KarrenAktualisieren(w);
         VorschauAktualisieren(w);
         ErnteAktualisieren(w);
         var vorschau = w.Befugnisse.Marktvorschau(_spieler).ToDictionary(v => v.Ware); // leer, wenn der Spieler nicht Marktmeister ist

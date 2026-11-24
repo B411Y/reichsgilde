@@ -1,5 +1,5 @@
 {
-  "version": 97,
+  "version": 98,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -845,6 +845,7 @@
     "zutatenVorratStunden": 4,
     "zutatenAnteilKasse": 0.5,
     "maxWartezeitMinuten": 240,
+    "verweilenMinuten": 20,
     "karrenVerkaufAnteil": 0.5,
     "tore": {
       "schliessenUm": 20,

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Entwickler;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -94,14 +95,15 @@ static class HafenzielTests
             var preis = zutaten.ToDictionary(z => z, z => w.Markt[z].Preis);
             var zutatenVorher = b.Laufend.Zutaten;
 
-            var an = Bis(sim, karren, KarrenZustand.ZumBetrieb) - 1;
+            var verweilen = w.Daten.Logistik.VerweilenMinuten; // nach dem Handel bleibt er so lange am Hafen (Datenversion 98)
+            var an = Bis(sim, karren, KarrenZustand.ZumBetrieb) - 1 - verweilen;
             Pruefe.Gleich(los + hafenHin, an);
             Pruefe.Wahr(karren.ZielHafen, "auf dem Rückweg weiter Ziel Hafen");
             Pruefe.Wahr(karren.Ladung.Count > 0 && karren.Ladung.Keys.All(zutaten.Contains), $"Zutaten geladen: {string.Join(", ", karren.Ladung.Keys)}");
             // bezahlt zu den Preisen des Stadtmarkts (in der Minute der Ankunft; der Verwalter kauft zum Marktpreis)
             Pruefe.Ungefaehr(karren.Ladung.Sum(x => x.Value * preis[x.Key]), b.Laufend.Zutaten - zutatenVorher, 0.05 * (b.Laufend.Zutaten - zutatenVorher) + 1e-9);
-            Pruefe.Gleich(an + hafenZurueck, karren.Ankunft);
-            Pruefe.Gleich(an + hafenZurueck, Bis(sim, karren, KarrenZustand.AmBetrieb) - 1);
+            Pruefe.Gleich(an + verweilen + hafenZurueck, karren.Ankunft);
+            Pruefe.Gleich(an + verweilen + hafenZurueck, Bis(sim, karren, KarrenZustand.AmBetrieb) - 1);
 
             // Gegenprobe: ohne Schalter fährt derselbe Karren zum Marktplatz
             var (simO, wO, _, bO, karrenO) = Werkstatt(Datenpfad.OhneHafenziel(Json.Value), Minute(1, 9));
@@ -111,6 +113,43 @@ static class HafenzielTests
             Pruefe.Wahr(!karrenO.ZielHafen, "ohne Schalter Ziel Marktplatz");
             Pruefe.Gleich(losO + marktHin, karrenO.Ankunft);
             Pruefe.Gleich(wO.MarktplatzVon(bO)!.Kennung, wO.HandelsortVon(karrenO)!.Kennung);
+        }),
+
+        ("Hafenziel: Selbst gefahren – unterwegs zum Hafen umgeschaltet, steht der Karren am Hafen und verkauft dort mit Aufschlag (die Geldprüfung " +
+         "rechnet wie die Abrechnung); selbst losgeschickt fährt er zum Marktplatz, auch nahe dem Hafen", () =>
+        {
+            var (sim, w, k, b, karren) = Werkstatt(Json.Value, Minute(1, 9));
+            b.Einlagern("Silberring", 15);
+            Bis(sim, karren, KarrenZustand.ZumMarkt);
+            Pruefe.Wahr(karren.ZielHafen && karren.Ladung.GetValueOrDefault("Silberring") == 15, "zum Hafen mit 15 Silberringen");
+            w.Entwicklerhilfe.Erlaubt = true;
+            var e = w.Ausfuehren(k, new EntwicklerKarrenAutomatisch(false));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Bis(sim, karren, KarrenZustand.AmMarkt);
+            Pruefe.Gleich("Hafen", karren.Handelsort);
+            Pruefe.Gleich(15, karren.Ladung.GetValueOrDefault("Silberring"));
+
+            var aufschlag = w.HandelsortFaktor("Silberring", true);
+            Pruefe.Ungefaehr(1 + w.Daten.Schiffshandel!.HafenAufschlag, aufschlag, 1e-12);
+            Pruefe.Wahr(aufschlag > 1, "Silberring ist Ausfuhrware");
+            var bar = w.KarrenHandelBarerloes(karren, "Silberring", 15);
+            var amMarktplatz = w.Markt["Silberring"].Verkaufswert(15) * w.KarrenVerkaufsFaktor(k, "Silberring", false) * b.PreisFaktor * (1 - w.SteuersatzMarkt(k));
+            Pruefe.Ungefaehr(amMarktplatz * aufschlag, bar, 1e-6);
+            var vorher = k.Vermoegen;
+            var verkauf = new Dictionary<string, int> { ["Silberring"] = 15 };
+            e = w.Ausfuehren(k, new KarrenHandeln(b.Name, 0, verkauf, new Dictionary<string, int>()));
+            Pruefe.Wahr(e.Erfolg && e.Meldung.Contains("am Hafen", StringComparison.Ordinal), e.Meldung);
+            Pruefe.Ungefaehr(bar, k.Vermoegen - vorher, 1e-6);
+
+            e = w.Ausfuehren(k, new KarrenLosschicken(b.Name, new[] { 0 }, b.Name));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Bis(sim, karren, KarrenZustand.AmBetrieb);
+            Pruefe.Wahr(w.FaehrtZumHafen(b, Hand), "der Hafen wäre näher");
+            var los = sim.Zeit.VergangeneMinuten;
+            e = w.Ausfuehren(k, new KarrenLosschicken(b.Name, new[] { 0 }, null));
+            Pruefe.Wahr(e.Erfolg, e.Meldung);
+            Pruefe.Wahr(!karren.ZielHafen && karren.Handelsort == "Markt", "selbst gefahren zum Marktplatz");
+            Pruefe.Gleich(los + w.Fahrzeit(b, Hand, true), karren.Ankunft);
         }),
 
         ("Hafenziel: Im Winter (Eisschollen) fährt derselbe Karren zum Marktplatz; schließt der Hafen, während er zum Hafen unterwegs ist, " +
@@ -133,9 +172,9 @@ static class HafenzielTests
             Pruefe.Wahr(!wH.Schiffahrt.HafenOffen, "der Hafen ist zu");
             Pruefe.Wahr(karrenH.ZielHafen && karrenH.Zustand == KarrenZustand.ZumMarkt, "fährt weiter zum Hafen");
             Pruefe.Gleich(losH + hin, karrenH.Ankunft);
-            var an = Bis(simH, karrenH, KarrenZustand.ZumBetrieb) - 1;
+            var an = Bis(simH, karrenH, KarrenZustand.ZumBetrieb) - 1 - wH.Daten.Logistik.VerweilenMinuten;
             Pruefe.Gleich(losH + hin, an);
-            Pruefe.Gleich(an + wH.FahrzeitZumHafen(bH, Hand, false)!.Value, karrenH.Ankunft);
+            Pruefe.Gleich(an + wH.Daten.Logistik.VerweilenMinuten + wH.FahrzeitZumHafen(bH, Hand, false)!.Value, karrenH.Ankunft);
             // nach der Heimkehr bricht er zum Marktplatz auf
             Bis(simH, karrenH, KarrenZustand.AmBetrieb);
             Bis(simH, karrenH, KarrenZustand.ZumMarkt);
@@ -185,7 +224,7 @@ static class HafenzielTests
             var ba = wa.Betriebe.Single(x => x.Name == b.Name);
             var karrenA = ba.Karren[0];
             Pruefe.Wahr(!karrenA.ZielHafen, "alter Stand: Ziel Marktplatz");
-            var an = Bis(altSim, karrenA, KarrenZustand.ZumBetrieb) - 1;
+            var an = Bis(altSim, karrenA, KarrenZustand.ZumBetrieb) - 1; // Abfahrt vom Markt (nach dem Verweilen)
             Pruefe.Gleich(an + wa.Fahrzeit(ba, Hand, false), karrenA.Ankunft);
 
             static void Entfernen(JsonNode? n, string feld)

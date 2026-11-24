@@ -109,6 +109,7 @@ public sealed class Simulation
             {
                 AktionspunkteJeRunde = Einstellungen.AktionspunkteProRunde,
                 HaerteDerZeit = Einstellungen.HaerteDerZeit,
+                KarrenAutomatisch = !Einstellungen.KarrenSelbstFahren,
                 Uhr = Zeit, // dieselbe Uhr – die Wirtschaft sieht immer die aktuelle Zeit (Marktzeiten)
             };
     }

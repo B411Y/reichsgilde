@@ -105,6 +105,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Andockstellen | `wirtschaft.json` Abschnitt `ki.vorrat` (`chance`, `chanceMitAnzeichen`, `anteil`, `streuung`, `grundnahrung`; Datenversion unverändert, ohne Abschnitt aus); `RivaleStand.Vorrat`, `VorratOffen` (`Speicherstand.cs`, leer = nicht geschrieben, alte Stände bleiben bitgleich); `Karren.Vorratsziel` fragt `KiRivale.Vorhalten` (vorher `WinterVorrat`, auch ohne Jahreszeiten, wenn `ki.vorrat` da ist). | 16.11.2026 |
 | Tests | Neu `KiVorratTests` (7): Chance 10/30 %, Anteil 15–35 %, Anzeichen, Menge je Ware, Karren holt Gerste und hält sie zurück, Geldgrenze, Freigabe, Spielstand, ohne Abschnitt aus, kein `Angesagt` in `Ki/`. `HafenRuhtTests` (bitgleich mit dem Kern davor) rechnet ohne `ki.vorrat` (`KiVorratTests.OhneVorrat`). Einkauf und Freigabe stehen nicht einzeln in den Entscheidungen (`StillBefehlen`), nur Treffer und Freigabe – sonst über 110 Entscheidungen im Langzeittest. | 16.11.2026 |
 
+### Verweilen am Markt in der Karrenrechnung (Karren selbst fahren, Paket V-KI, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Durchfluss | Karrenkauf und Tausch (`Werkstattwesen.Durchfluss`, Kern) und die Schätzung beim Pachten (`KiRivale.UmlandSchaetzen`) rechnen die Rundfahrt mit hin + zurück + `logistik.verweilenMinuten` (20, Datenversion 98). Standortwahl (`ErwarteteRundfahrt`) unverändert: das Verweilen verschiebt jeden Bauort gleich. | 23.11.2026 |
+| Eichung | `FahrminutenJeKarrenUndJahr` bleibt 600. Köln, `messen bericht 20 20 --karte=koeln --teile=5 --betriebe=…`, gemessen auf main 0e6e6e25 + Branch phase5/karren-selbst; weggebracht = 100 − Stillstand in den Jahren mit 1–3 Karren gegen die Schätzung: Kräutergarten am Bach 78,6 % gemessen / 67,6 % geschätzt (vor dem Verweilen 73,0 / 69,4), Steinbruch am Felsenhang 88,2 / 100 (vorher 87,3 / 100), Bauernhof an der Mühle 89,4 / 100 (90,8 / 100), Klosterhof am Osthang 92,8 / 100, Duftgarten am Lavendelhang 92,0 / 100, Grube am Silberberg 95,9 / 100. Die einzige ungedeckelte Schätzung liegt 11 Punkte daneben, aber zu niedrig, obwohl das Verweilen die gemessene Abfuhr nur senken kann – Rauschen; die gedeckelten (100 %) liegen schon vor dem Verweilen so weit daneben (Stillstand aus anderen Gründen), daran ändert der Wert nichts. | 23.11.2026 |
+| Wirkung | `messen bericht 20 20` gegen Paket V: Karren der KI in Not verkauft 29 → 27, nach einem Jahr ohne Fahrt 229 → 236; KI-Stärke Greybox 57.023 → 57.075, „Schwer“ 67.425 → 67.767; `messen 30 20` Zeichen für Zeichen gleich (ohne Karte kein Durchfluss). | 23.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
