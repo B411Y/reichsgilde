@@ -12,7 +12,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///     teurer) bis zum Halt 3,5 m vor dem Pflaster, zurück denselben Weg. Vorher (alte Daten) vom nächsten Punkt einer Karrenstraße zur Mitte des
 ///     Platzes, nur über Karrenstraßen. Hat die Stadt mehrere Marktplätze (ein Stadtmarkt mit gemeinsamen Preisen und gemeinsamem Bestand), fährt
 ///     der Karren zum nächsten (<see cref="MarktplatzVon"/>).
-///   • Ein Karren fährt so schnell wie seine Art (<see cref="KarrenDaten.Tempo"/>: Ochse 0,8, Handkarren 1,0, Pferd 1,3 Meter je Sekunde bei
+///   • Ein Karren fährt so schnell wie seine Art (<see cref="KarrenDaten.Tempo"/>: Pferdekarren 0,8, Handkarren 1,0, Großer Pferdekarren 1,3 Meter je Sekunde bei
 ///     Tempo 1, umgerechnet in Meter je Spielminute über <see cref="Zeit.Taktgeber.SekundenJeSpielminute"/>, fest mit der Standard-Rundendauer)
 ///     – bei 15 Minuten je Runde genau so schnell, wie man ihn im Bild fahren sieht. Jedes Stück dauert Länge ÷ Tempo × <see cref="Zeitfaktor"/>:
 ///       – Steigung (Kartenwerkstatt, Schritt 5b, <c>logistik.steigung</c>): bergauf ab 6 % länger, bergab und eben wie auf ebenem Weg;

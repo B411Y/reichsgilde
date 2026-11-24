@@ -351,6 +351,7 @@ public partial class Stadtansicht
         // Fläche 14 × 34 m, die Türme (58 m) im Westen (vorne), der Chor im Osten. Der Innenraum ist EIN Raum aus Mittel- und Seitenschiffen mit offener
         // Arkade (x ±5,4, y −10,55 … 3 vom Ursprung, Mitte 3,775 m vor dem Ursprung), kürzer als der des Doms der übrigen Karten: der Chor mit Altar
         // rückt um 3,7 m vor. Beim Hineinsehen gehen Chor und Langhausdach („Dach“), Türme und Portalwand („Turm“) und die Wände zur Kamera weg.
+        if (DomNeuDatei(g) is { } neubau) { DomNeuBauen(g, neubau); return; } // Neubau mit Innenraum im Haus (Stadtansicht.Domneubau.cs)
         var koeln = g.Katalog == "koelner_dom";
         var lage = ModellLage(g);
         var p = lage.Origin;
@@ -495,51 +496,63 @@ public partial class Stadtansicht
         a.Zustand = (zeit, arbeitszeit, aktiv) =>
         {
             if (_simulation?.Wirtschaft is not { } w) return;
-            var glaubeAktiv = w.Glaube.IstAktiv;
-            Konfession? stadtglaube = glaubeAktiv ? w.Glaube.Stadtglaube : Konfession.Katholisch;
-            var istSimultan = glaubeAktiv && stadtglaube is null;
-            katholisch.Visible = stadtglaube is Konfession.Katholisch || istSimultan;
-            evangelisch.Visible = stadtglaube is Konfession.Evangelisch || istSimultan;
+            var (zeigtKatholisch, zeigtEvangelisch, istSimultan, text) = DomZustandSetzen(a, w, zeit, messe, glaeubige, betende, sitzplaetze, reihenfolge);
+            katholisch.Visible = zeigtKatholisch;
+            evangelisch.Visible = zeigtEvangelisch;
             simultan.Visible = istSimultan;
-            kreuzLang.Visible = stadtglaube is Konfession.Evangelisch; // in der Simultankirche hängt das Retabel dahinter
+            kreuzLang.Visible = zeigtEvangelisch && !istSimultan; // in der Simultankirche hängt das Retabel dahinter
             bischof.Koerper.Visible = arbeitszeit && katholisch.Visible;
             pfarrer.Koerper.Visible = arbeitszeit && evangelisch.Visible;
-
-            // Messe: Wer keine Kirche eines Hauses besucht hat, kommt in den Dom.
-            var k = w.Kirchenwesen;
-            var stunde = zeit.UhrzeitInMinuten / 60;
-            messe[0] = k.IstAktiv && stunde == k.Daten.MesseUm;
-            var imDom = k.IstAktiv ? Math.Max(0, k.Daten.GlaeubigeJeJahr - k.Kirchen.Sum(b => k.DiesesJahr(b).Glaeubige)) : 0;
-            var zahl = messe[0] ? Math.Min(glaeubige.Count, (int)Math.Ceiling(imDom / 5)) : 0;
-            // In der Simultankirche sitzen Katholiken links, Evangelische rechts – nach ihren Anteilen in der Stadt.
-            var anteilKatholisch = glaubeAktiv ? w.Glaube.Anteile.GetValueOrDefault(Konfession.Katholisch) : 1;
-            var links = istSimultan ? (int)Math.Round(zahl * anteilKatholisch) : -1;
-            int linksGesetzt = 0, rechtsGesetzt = 0;
-            var besetzt = BetendeSetzen(a, betende, sitzplaetze, reihenfolge, istSimultan);
-            foreach (var g in glaeubige) g.Koerper.Visible = false;
-            foreach (var i in reihenfolge)
-            {
-                if (besetzt.Contains(i)) continue; // dort sitzt schon ein Einwohner
-                var istLinks = sitzplaetze[i].Links;
-                if (links < 0) { if (linksGesetzt + rechtsGesetzt < zahl) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; } continue; }
-                if (istLinks && linksGesetzt < links) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; }
-                else if (!istLinks && rechtsGesetzt < zahl - links) { glaeubige[i].Koerper.Visible = true; rechtsGesetzt++; }
-            }
             // Zur Messe predigt der Pfarrer von der Kanzel.
             pfarrer.Koerper.Position = a.Mitte + (messe[0] && !istSimultan ? kanzel + new Vector3(-0.1f, 1.7f, 0) : pfarrerPlatz.Ort);
             pfarrer.Koerper.Rotation = new Vector3(0, messe[0] && !istSimultan ? West : Sued, 0);
 
-            var titel = !glaubeAktiv ? "Dom"
-                : istSimultan ? "Dom – Simultankirche (Glaubensfreiheit): Katholiken links, Evangelische rechts"
-                : $"Dom – Hauptkirche des Stadtglaubens: {stadtglaube!.Value.Name()}";
-            var messeText = !k.IstAktiv ? ""
-                : messe[0] ? $"\nMesse: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses"
-                : stunde < k.Daten.MesseUm ? $"\nMesse um {k.Daten.MesseUm} Uhr"
-                : $"\nMesse gehalten: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses";
-            var betenText = betende.Count == 0 ? "" : $"\nZum Gebet im Dom: {PersonenText(betende.Count)}";
-            a.Infotafel!.Text = titel + messeText + betenText;
+            a.Infotafel!.Text = text;
             // Betende und Gläubige sitzen und atmen: SitzendeBewegen läuft jetzt in jedem Raum einmal je Bild (Stadtansicht.cs)
         };
+    }
+
+    /// <summary>
+    /// Der Zustand des Doms aus der Simulation, gemeinsam für den Dom aus Grundkörpern und den Neubau (Stadtansicht.Domneubau.cs): welche
+    /// Einrichtung der Stadtglaube zeigt, ob Messe ist (<paramref name="messe"/>[0]), wer auf den Bänken sitzt (Einwohner zum Gebet, dazu zur
+    /// Messe eine Figur je fünf Gläubige ohne Kirche eines Hauses; in der Simultankirche Katholiken links, Evangelische rechts) und der Text der Tafel.
+    /// </summary>
+    private (bool Katholisch, bool Evangelisch, bool Simultan, string Text) DomZustandSetzen(SonderbauAnsicht a, Stadtwirtschaft w, Spielzeit zeit, bool[] messe,
+        List<Arbeiterfigur> glaeubige, Dictionary<int, (Arbeiterfigur Figur, int Platz)> betende, List<(Arbeitsplatz Platz, bool Links)> sitzplaetze, List<int> reihenfolge)
+    {
+        var glaubeAktiv = w.Glaube.IstAktiv;
+        Konfession? stadtglaube = glaubeAktiv ? w.Glaube.Stadtglaube : Konfession.Katholisch;
+        var istSimultan = glaubeAktiv && stadtglaube is null;
+
+        // Messe: Wer keine Kirche eines Hauses besucht hat, kommt in den Dom.
+        var k = w.Kirchenwesen;
+        var stunde = zeit.UhrzeitInMinuten / 60;
+        messe[0] = k.IstAktiv && stunde == k.Daten.MesseUm;
+        var imDom = k.IstAktiv ? Math.Max(0, k.Daten.GlaeubigeJeJahr - k.Kirchen.Sum(b => k.DiesesJahr(b).Glaeubige)) : 0;
+        var zahl = messe[0] ? Math.Min(glaeubige.Count, (int)Math.Ceiling(imDom / 5)) : 0;
+        // In der Simultankirche sitzen Katholiken links, Evangelische rechts – nach ihren Anteilen in der Stadt.
+        var anteilKatholisch = glaubeAktiv ? w.Glaube.Anteile.GetValueOrDefault(Konfession.Katholisch) : 1;
+        var links = istSimultan ? (int)Math.Round(zahl * anteilKatholisch) : -1;
+        int linksGesetzt = 0, rechtsGesetzt = 0;
+        var besetzt = BetendeSetzen(a, betende, sitzplaetze, reihenfolge, istSimultan);
+        foreach (var g in glaeubige) g.Koerper.Visible = false;
+        foreach (var i in reihenfolge)
+        {
+            if (besetzt.Contains(i)) continue; // dort sitzt schon ein Einwohner
+            var istLinks = sitzplaetze[i].Links;
+            if (links < 0) { if (linksGesetzt + rechtsGesetzt < zahl) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; } continue; }
+            if (istLinks && linksGesetzt < links) { glaeubige[i].Koerper.Visible = true; linksGesetzt++; }
+            else if (!istLinks && rechtsGesetzt < zahl - links) { glaeubige[i].Koerper.Visible = true; rechtsGesetzt++; }
+        }
+        var titel = !glaubeAktiv ? "Dom"
+            : istSimultan ? "Dom – Simultankirche (Glaubensfreiheit): Katholiken links, Evangelische rechts"
+            : $"Dom – Hauptkirche des Stadtglaubens: {stadtglaube!.Value.Name()}";
+        var messeText = !k.IstAktiv ? ""
+            : messe[0] ? $"\nMesse: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses"
+            : stunde < k.Daten.MesseUm ? $"\nMesse um {k.Daten.MesseUm} Uhr"
+            : $"\nMesse gehalten: {Zahlenformat.Ganz(imDom)} Gläubige ohne Kirche eines Hauses";
+        var betenText = betende.Count == 0 ? "" : $"\nZum Gebet im Dom: {PersonenText(betende.Count)}";
+        return (stadtglaube is Konfession.Katholisch || istSimultan, stadtglaube is Konfession.Evangelisch || istSimultan, istSimultan, titel + messeText + betenText);
     }
 
     /// <summary>

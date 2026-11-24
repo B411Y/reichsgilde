@@ -22,6 +22,8 @@ public static class SteinMip
     {
         "rathaus_trim" => new(0.60f, 0.70f, 0.85f, 0.95f),            // Quader, Bruchstein
         "rathaus_innen_trim" => new(0.48f, 0.68f, 0.68f, 0.83f),      // Quader + Bruchstein, Platten + Kerkermauer
+        "dom_trim" => new(0.325f, 0.625f, 0.70f, 0.85f),                // Dome: grauer Werkstein, Sandstein (tools/modelle/neubau/dom_trimsheet.py)
+        "dom_innen_trim" => new(0.14f, 0.44f, 0.44f, 0.59f),          // Dome innen: Werkstein, Sandstein
         "innen_trim" => new(0.70f, 0.80f, -1f, -1f),                  // Bruchstein innen
         _ => Haus,                                                     // trim und die Stufenblätter der Häuser: Bruchstein 0,85–0,95
     };

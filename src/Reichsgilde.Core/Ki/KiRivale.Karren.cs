@@ -7,7 +7,7 @@ namespace Reichsgilde.Core.Ki;
 /// Den letzten Karren eines Betriebs, der Ware fährt, verkauft sie nie – nur Wache und Geldleihe brauchen keinen.
 ///
 /// Karren wählen nach Durchfluss (phase5/gehtempo, Befund H1 der Prüfung): Seit der Kern die Fahrzeit nach Weglänge und Karrenart rechnet
-/// (Datenversion 65; Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s), kauft die KI die Art, die auf dem echten Weg am meisten bringt, und tauscht an der
+/// (Datenversion 65; Pferdekarren 0,8, Handkarren 1,0, Großer Pferdekarren 1,3 m/s), kauft die KI die Art, die auf dem echten Weg am meisten bringt, und tauscht an der
 /// Grenze von <see cref="MaxKarren"/> Karren einen langsamen gegen einen schnelleren (<see cref="KarrenNachDurchfluss"/>).
 /// </summary>
 public sealed partial class KiRivale
@@ -79,7 +79,7 @@ public sealed partial class KiRivale
     /// <summary>
     /// Rechnet der Kern die Fahrzeit dieses Betriebs nach Weglänge (Abschnitt <c>logistik.weglaenge</c>, Datenversion 65, und ein Weg zum Markt)?
     /// Nur dann fahren die Karrenarten verschieden lang. Sonst (keine Karte, kein Weg, alte Daten) gilt die feste Fahrzeit für alle Arten,
-    /// und die KI kauft wie bisher: Handkarren für eine Werkstatt unter Stufe 2, sonst Ochsenkarren, ohne Tausch.
+    /// und die KI kauft wie bisher: Handkarren für eine Werkstatt unter Stufe 2, sonst Pferdekarren, ohne Tausch.
     /// </summary>
     internal bool KarrenwahlNachDurchfluss(Betrieb b) =>
         _w.Daten.Logistik.Weglaenge is not null && _w.Fahrten(b) is var (hin, zurueck) && hin.Count > 0 && zurueck.Count > 0;
@@ -88,7 +88,7 @@ public sealed partial class KiRivale
     /// Wie viele Stück ein Karren dieser Art je Minute seiner Fahrt bewegt: Ladung ÷ (Fahrzeit hin + zurück). Die Fahrzeit ist die des Kerns
     /// (<see cref="Stadtwirtschaft.Fahrzeit(Betrieb, string, bool)"/>: Weg, Tempo der Art, Steigung, Belag samt Wegebau, Furten, Mindest- und
     /// Höchstdauer). Ladung: was der Karren fasst, aber höchstens, was das Lager hergibt – Lager je Ware × Zahl der Waren (Umland: seine
-    /// Rohstoffe; Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Ein Holzschlag (nur Holz, Lager 40) füllt den Pferdekarren
+    /// Rohstoffe; Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Ein Holzschlag (nur Holz, Lager 40) füllt den Großen Pferdekarren
     /// (75) also nie; ein Bauernhof mit Gerste und Roggen schon.
     /// </summary>
     internal double Durchfluss(Betrieb b, string typ) => Durchfluss(b, typ, b.LagerKapazitaetJeWare);
@@ -102,7 +102,7 @@ public sealed partial class KiRivale
     ///   • an der Grenze je Karren und jeder Art mit mehr Durchfluss einen Tausch (Preis − Erlös des alten) – auch für einen Karren, der gerade
     ///     unterwegs ist: Getauscht wird er, sobald er am Hof steht (<see cref="KarrenTauschen"/>).
     /// Die Wirkung schätzt sie aus dem Vorjahr: <c>Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ Durchfluss vorher)</c> –
-    /// jeder zusätzliche Durchfluss drückt den Stillstand um denselben Faktor (auf den Kölner Umlandbetrieben nachgemessen: zwei Ochsen 50 %,
+    /// jeder zusätzliche Durchfluss drückt den Stillstand um denselben Faktor (auf den Kölner Umlandbetrieben nachgemessen, noch mit den Namen bis Datenversion 97 – Ochse heute Pferdekarren, zwei Pferde heute Großer Pferdekarren: zwei Ochsen 50 %,
     /// drei Ochsen geschätzt 35 % und gemessen 32–38 %; Ochse und zwei Pferde geschätzt 23 %, gemessen 22 %). Ein linearer Ansatz versprach für
     /// einen zweiten Karren derselben Art zu viel. Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres (Leistung × Arbeitsminuten ×
     /// <see cref="Kalkulation.WertJeArbeitsminute"/>; Lohn und Unterhalt fallen ohnehin an). Kosten je Fahrt (Eskorte) zählen nicht: Ein Karren
@@ -174,9 +174,9 @@ public sealed partial class KiRivale
             var alt = b.Karren[nr];
             var erloes = _w.KarrenErloes(alt);
             if (!Befehlen(new KarrenVerkaufen(b.Name, nr),
-                    $"{b.Name} stand {Prozent(stillstand)} der Arbeitszeit still – verkauft {alt.Name} ({Zahlenformat.Ganz(erloes)} {waehrung}) für einen {plan.Typ}."))
+                    $"{b.Name} stand {Prozent(stillstand)} der Arbeitszeit still – verkauft {alt.Name} ({Zahlenformat.Ganz(erloes)} {waehrung}) für einen {LogistikDaten.KarrenartAkkusativ(plan.Typ)}."))
                 return;
-            text = $"{b.Name} stand {Prozent(stillstand)} der Arbeitszeit still – tauscht einen {alt.Typ} gegen einen {plan.Typ} " +
+            text = $"{b.Name} stand {Prozent(stillstand)} der Arbeitszeit still – tauscht einen {LogistikDaten.KarrenartAkkusativ(alt.Typ)} gegen einen {LogistikDaten.KarrenartAkkusativ(plan.Typ)} " +
                    $"({Zahlenformat.Ganz(preis)} {waehrung}; {wirkung}).";
         }
         else

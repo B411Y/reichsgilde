@@ -72,6 +72,7 @@ static class AlterSpielstandSollwertTests
                 Spielstandfelder.Ohne(n, Spielstandfelder.Erbgut); // Allele für den 3D-Kopf: die Simulation liest sie nie (Bart der Zwerginnen, 11.11.2026)
                 Spielstandfelder.Ohne(n, Spielstandfelder.Hauschronik); // die Hauschronik (Datenversion 83): die Simulation liest sie nie
                 OhneGrundstuecksverwaltung(n); // nur noch Bauzonen (15.11.2026): Werkstätten auf Werkstattplätzen sind jetzt auch Grundstücke
+                Spielstandfelder.MitAltenKarrennamen(n); // Karrenarten ohne Ochsen (Datenversion 99): nur die Namen und das Format
                 var ist = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant();
                 if (Environment.GetEnvironmentVariable("SOLLWERTE_ZEIGEN") is not null) Console.WriteLine($"Jahr {jahr + 1}: {ist}");
                 else Pruefe.Gleich(Sollwerte[jahr], ist, $"Jahr {jahr + 1} nach dem Laden");

@@ -529,7 +529,7 @@ public sealed class Werkstattwesen
     /// Was mehr Lager je Ware dem Betrieb im Jahr einbringt – dieselbe Rechnung wie die KI beim Karrenkauf: Hat er im Vorjahr den Anteil s der
     /// Arbeitszeit stillgestanden, sinkt der Stillstand auf <c>s ^ (Durchfluss nachher ÷ vorher)</c> (<see cref="Durchfluss"/>: Ein Karren lädt höchstens
     /// das Lager); Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres. Lädt kein Karren mehr, weil er schon weniger fasst als das Lager
-    /// (Handkarren 15, Ochsenkarren 2 × 20 bei Lager 40), bringt mehr Lager nichts. 0 ohne Schalter, ohne Karren, ohne Ware oder ohne Stillstand.
+    /// (Handkarren 15, Pferdekarren 2 × 20 bei Lager 40), bringt mehr Lager nichts. 0 ohne Schalter, ohne Karren, ohne Ware oder ohne Stillstand.
     /// </summary>
     public double LagerMehrgewinn(Betrieb b, int plus)
     {
@@ -543,14 +543,16 @@ public sealed class Werkstattwesen
     }
 
     /// <summary>
-    /// Wie viele Stück ein Karren dieser Art je Minute seiner Fahrt bewegt: Ladung ÷ (Fahrzeit hin + zurück, <see cref="Stadtwirtschaft.Fahrzeit(Betrieb, string, bool)"/>).
+    /// Wie viele Stück ein Karren dieser Art je Minute seiner Fahrt bewegt: Ladung ÷ (Fahrzeit hin + zurück, <see cref="Stadtwirtschaft.Fahrzeit(Betrieb, string, bool)"/>,
+    /// samt dem Verweilen am Markt, wenn die Karren des Hauses automatisch fahren, <see cref="LogistikDaten.VerweilenMinuten"/>, Datenversion 98).
     /// Ladung: was der Karren fasst, aber höchstens, was das Lager hergibt – <paramref name="lagerJeWare"/> × Zahl der Waren (Umland: seine Rohstoffe;
     /// Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Dieselbe Rechnung nutzt die KI beim Karrenkauf.
     /// </summary>
     public double Durchfluss(Betrieb b, string typ, int lagerJeWare)
     {
         var daten = _w.Daten.Logistik.Karren[typ];
-        var minuten = _w.Fahrzeit(b, typ, zumMarkt: true) + _w.Fahrzeit(b, typ, zumMarkt: false);
+        var minuten = _w.Fahrzeit(b, typ, zumMarkt: true) + _w.Fahrzeit(b, typ, zumMarkt: false)
+                      + (_w.HausFaehrtAutomatisch(b.Konto) ? _w.Daten.Logistik.VerweilenMinuten : 0); // selbst gefahren: kein Verweilen
         var waren = Math.Max(1, b.IstWerkstatt ? Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count) : b.Rohstoffe.Count);
         return Math.Min(daten.Gesamtkapazitaet, lagerJeWare * waren) / (double)Math.Max(1, minuten);
     }

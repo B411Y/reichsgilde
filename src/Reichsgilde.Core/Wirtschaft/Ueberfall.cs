@@ -31,7 +31,11 @@ internal static class Ueberfall
         var erfolgschance = Math.Min(1, bande.Staerke * (1 - schutz) * w.Wache.UeberfallFaktor(eskorte)
                                         * w.Familien.Lebenswirkung(karren.Heimat.Konto).UeberfallFaktor); // Wegekundig (Lebensweise)
         var wer = $"{(bande.Wild ? "Eine wilde " : "Eine Bande „")}{bande.Name}{(bande.Wild ? "" : "“")} ({bande.ZusammensetzungText})";
-        var wo = karren.Zustand == KarrenZustand.ZumMarkt ? $"auf dem Weg von {karren.Heimat.Name} zum Markt" : $"auf dem Rückweg nach {karren.Heimat.Name}";
+        // Selbst gefahren auch von einem Betrieb zum anderen (VonBetrieb/ZielBetrieb; null = Heimat bzw. Markt).
+        var wo = karren.Zustand == KarrenZustand.ZumMarkt ? $"auf dem Weg von {karren.VonBetrieb ?? karren.Heimat.Name} zum Markt"
+            : karren.VonBetrieb is not null || karren.ZielBetrieb is not null
+                ? $"auf dem Weg {(karren.VonBetrieb is { } von ? "von " + von : "vom Markt")} nach {karren.ZielBetrieb ?? karren.Heimat.Name}"
+                : $"auf dem Rückweg nach {karren.Heimat.Name}";
 
         var erfolg = w.Zufall.NextDouble() < erfolgschance;
         double wert = 0;

@@ -4,10 +4,10 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Ochsenkarren und Pferdekarren als Modelle aus Blender
-/// (<c>karren/karren_hand.glb</c>, <c>karren_ochse.glb</c>, <c>karren_pferd.glb</c>, Fahrtrichtung +Z) – ohne Tier und ohne Figur, mit Rädern als
+/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Pferdekarren und Großer Pferdekarren als Modelle aus Blender
+/// (<c>karren/karren_hand.glb</c>, <c>karren_pferd.glb</c>, <c>karren_pferd_gross.glb</c>, Fahrtrichtung +Z) – ohne Tier und ohne Figur, mit Rädern als
 /// eigenen Knoten (<c>Rad_*</c>), die sich nach der gefahrenen Strecke drehen. Zieher und Zugtiere sind eigene Figuren an den Ankern
-/// (<c>Stadtansicht.Zugtiere.cs</c>): ein Passant aus dem Fuhrmann des Karrens, Ochse oder Pferde mit Skelett (nah), gebacken (ab Zoom 50) und als Fernnetz (ab 100).
+/// (<c>Stadtansicht.Zugtiere.cs</c>): ein Passant aus dem Fuhrmann des Karrens, Pferde mit Skelett (nah), gebacken (ab Zoom 50) und als Fernnetz (ab 100).
 ///
 /// Die Darstellung rechnet nichts aus, sie liest nur den <see cref="Karren"/> des Kerns: Zustand (fährt, steht am Betrieb oder am Tor), Ladung (wie viele Sorten),
 /// Besitzer (Farbe von Plane, Wimpel und Decke) und den Fuhrmann (<see cref="Karren.FuhrmannIn"/>). <see cref="KarrenBewegen"/> schiebt den Karren und stellt das
@@ -25,16 +25,18 @@ public partial class Stadtansicht
         /// <summary>Die Stützbeine des Handkarrens (nur im Stand gezeigt) und ob sie gerade sichtbar sind.</summary>
         public Node3D? Stuetze { get; init; }
         public bool StuetzeSichtbar { get; set; }
-        /// <summary>Die Zugtiere (Ochse, ein oder zwei Pferde) an den Ankern des Karrens.</summary>
+        /// <summary>Die Zugtiere (ein oder zwei Pferde) an den Ankern des Karrens.</summary>
         public Zugtier[] Tiere { get; set; } = Array.Empty<Zugtier>();
         /// <summary>Der Halter des Ziehers am Anker (null ohne Figur) und ob er gerade gezeigt wird (Nachtregel: nur ein fahrender Karren hat seinen Fuhrmann bei sich).</summary>
         public Node3D? FahrerHalter { get; set; }
-        /// <summary>Lage und Ausrichtung des Ziehers bzw. Läufers zum Zugpunkt (Bild des Tiers; Stadtansicht.Zugtiere.cs). Der Kutscher auf dem Bock fährt mit dem Wagen (FahrerVersatz null).</summary>
+        /// <summary>Lage und Ausrichtung des Ziehers zum Zugpunkt (Bild des Tiers; Stadtansicht.Zugtiere.cs). Der Kutscher auf dem Bock fährt mit dem Wagen (FahrerVersatz null).</summary>
         public Vector3? FahrerVersatz { get; set; }
         public Basis FahrerBasis { get; set; } = Basis.Identity;
         /// <summary>Z des Zugpunkts im Modell des Karrens (Anker am Deichselende bzw. beim Handkarren der Standpunkt des Ziehers) und Z des Drehpunkts (vorderste Radachse; Einachser 0).</summary>
         public float ZugZ { get; init; }
         public float DrehpunktZ { get; init; }
+        /// <summary>Der Vorderwagen des Drehschemels (Knoten „Vorderwagen“, Ursprung = Reibnagel; null beim Einachser und bei starren Wagen): er dreht gegen den Kasten.</summary>
+        public Node3D? Vorderwagen { get; init; }
         /// <summary>Die Schleppkurve (Gespannlauf.cs): Zugtier am Weg, Wagen hängt nach. Null ohne Modell.</summary>
         public Gespannlauf? Lauf { get; init; }
         public bool FahrerSichtbar { get; set; } = true;
@@ -47,7 +49,7 @@ public partial class Stadtansicht
         public bool Eskortiert { get; set; }
         /// <summary>Versetzt die Bilder, in denen Karren animiert werden, damit nicht alle im selben Bild dran sind.</summary>
         public int Versatz { get; init; }
-        /// <summary>Der Fuhrmann am Karren (Zieher, Läufer am Ochsen, Kutscher), eine Passantenfigur mit Skelett; null, wenn das Figurenmodell oder der Kern fehlt.</summary>
+        /// <summary>Der Fuhrmann am Karren (Zieher, Kutscher), eine Passantenfigur mit Skelett; null, wenn das Figurenmodell oder der Kern fehlt.</summary>
         public Figur? Fahrer { get; set; }
         /// <summary>Die sichtbare Fahrt mit fester Geschwindigkeit (Stadtansicht.Karren.cs, <see cref="Karrenzug"/>) und die Profile, mit denen sie zuletzt gerechnet wurde.</summary>
         public Karrenzug Zug { get; } = new();
@@ -58,6 +60,10 @@ public partial class Stadtansicht
         public Vector3[]? WegRef { get; set; }
         public float Tempo { get; set; } = 1f;
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
+        /// <summary>Der Karren wird gerade auf einer Sonderfahrt gezeigt (selbst gefahren: am anderen Betrieb, von oder zu einem anderen Betrieb; Stadtansicht.Karrenfahrt.cs) und die Angaben dazu.</summary>
+        public bool Sonder { get; set; }
+        public (KarrenZustand Zustand, long Ankunft, string Von, string Nach)? SonderSchluessel { get; set; }
+        public double SonderDauer { get; set; } = 1;
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
         /// <summary>Hufklang (Stadtansicht.KarrenKlang.cs): der Untergrund unter dem Karren, wann er zuletzt gelesen wurde (echte Sekunden) und der Betrieb für das Protokoll.</summary>
@@ -83,25 +89,30 @@ public partial class Stadtansicht
         /// <summary>Letzter Ort des Rades in der Welt (für den eigenen Weg des Rades, <see cref="KarrenRaederDrehen"/>).</summary>
         public Vector3 Letzte { get; set; }
         public bool LetzteGueltig { get; set; }
+        /// <summary>Das Rad hängt am Vorderwagen (Drehschemel) und fährt in dessen Richtung, nicht in der des Kastens.</summary>
+        public bool AmVorderwagen { get; init; }
     }
 
     /// <summary>
     /// Was an einer Karrenart verschieden ist: das Modell, die Räder (Knotennamen, Halbmesser nach <c>tools/modelle/karren.py</c>, falls das Modell ihn nicht als
-    /// Extra <c>radius</c> mitbringt), der Anker und der Clip des Ziehers, die Zugtierart (<c>pferd</c>, <c>ochse</c>; null: keines) mit ihren Ankern.
+    /// Extra <c>radius</c> mitbringt), der Anker und der Clip des Ziehers, die Zugtierart (<c>pferd</c>; null: keines) mit ihren Ankern.
     /// </summary>
-    private sealed record KarrenArt(string Datei, (string Name, float Radius)[] Raeder, string ZieherAnker, string ZieherClip, string? Tier, string[] TierAnker, bool Pferd = false);
+    private sealed record KarrenArt(string Datei, (string Name, float Radius)[] Raeder, string ZieherAnker, string ZieherClip, string? Tier, string[] TierAnker, bool Pferd = false,
+        string? Drehschemel = null, bool TierFolgtDeichsel = false);
 
     /// <summary>
-    /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. Der Handkarren wird gezogen (Nutzer, 10.11.2026): der Zieher steht an der Zugstange vorn
-    /// (<c>Anker_Ziehen</c>, Hände hinter dem Körper, Clip „Ziehen“); am Ochsenkarren geht der Fuhrmann mit dem Stecken neben dem Ochsen
-    /// („Nebenhergehen“), am Pferdekarren sitzt er auf dem Bock („SitzenBock“, auch beim Halt).
+    /// Die drei Karrenarten (Hand, Pferd, Großer Pferdekarren), nach <see cref="Karren.Typ"/>. Der Handkarren wird gezogen (Nutzer, 10.11.2026): der Zieher steht an der Zugstange vorn
+    /// (<c>Anker_Ziehen</c>, Hände hinter dem Körper, Clip „Ziehen“); an den Pferdekarren sitzt er auf dem Bock („SitzenBock“, auch beim Halt).
     /// </summary>
     private static readonly Dictionary<string, KarrenArt> KarrenArten = new()
     {
         ["Handkarren"] = new("karren/karren_hand", new[] { ("Rad_L", 0.45f), ("Rad_R", 0.45f) }, "Anker_Ziehen", "Ziehen", null, Array.Empty<string>()),
-        ["Ochsenkarren"] = new("karren/karren_ochse", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Fahrer_Seite", "Nebenhergehen", "ochse", new[] { "Anker_Deichsel" }),
-        ["Pferdekarren"] = new("karren/karren_pferd", new[] { ("Rad_HL", 0.62f), ("Rad_HR", 0.62f), ("Rad_VL", 0.5f), ("Rad_VR", 0.5f) }, "Anker_Bock", "SitzenBock", "pferd",
-            new[] { "Anker_Pferd_L", "Anker_Pferd_R" }, Pferd: true),
+        // Pferdekarren (1 Pferd, Zweirad, Gabeldeichsel) und Großer Pferdekarren (2 Pferde, Vierrad mit Drehschemel, Mittelbaum zwischen den Pferden): der Fuhrmann sitzt auf dem Bock;
+        // die Tiere gehen in Richtung der Deichsel (die Schere bzw. der Mittelbaum führt sie, kein Knick Tier/Deichsel).
+        ["Pferdekarren"] = new("karren/karren_pferd", new[] { ("Rad_L", 0.72f), ("Rad_R", 0.72f) }, "Anker_Bock", "SitzenBock", "pferd",
+            new[] { "Anker_Deichsel" }, Pferd: true, TierFolgtDeichsel: true),
+        ["Großer Pferdekarren"] = new("karren/karren_pferd_gross", new[] { ("Rad_HL", 0.66f), ("Rad_HR", 0.66f), ("Rad_VL", 0.42f), ("Rad_VR", 0.42f) }, "Anker_Bock", "SitzenBock", "pferd",
+            new[] { "Anker_Pferd_L", "Anker_Pferd_R" }, Pferd: true, Drehschemel: "Vorderwagen", TierFolgtDeichsel: true),
     };
 
     /// <summary>So weit (in Metern) darf ein Karren außerhalb des Bildes stehen und wird noch animiert (seine Tiere sind rund 5 m lang).</summary>
@@ -118,12 +129,12 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Länge des Gespanns vor und hinter dem Ursprung des Karrens (Meter, Fahrtrichtung vorn), gemessen aus den Modellen (Karren und Zugtier an den Ankern,
-    /// <c>tools/modelle/karren.py</c>): Pferdekarren 8,98 + 1,22 (hinteres Rad), Ochsenkarren 5,33 + 1,28, Handkarren 2,93 (mit Zieher) + 0,88.
+    /// <c>tools/modelle/karren.py</c>, Messung <c>karren_neu_pruefen.py</c>): Großer Pferdekarren 7,25 + 1,22 (Zugpunkt 6,47 m vor der Hinterachse, Kopf des Pferds 0,78 m vor dem Ring), Pferdekarren 4,75 + 1,75 (Zugpunkt 3,94 m), Handkarren 2,93 (mit Zieher) + 0,88.
     /// </summary>
     internal static (float Vorn, float Hinten) KarrenGespann(string typ) => typ switch
     {
-        "Pferdekarren" => (8.98f, 1.22f),
-        "Ochsenkarren" => (5.33f, 1.28f),
+        "Großer Pferdekarren" => (7.25f, 1.22f),
+        "Pferdekarren" => (4.75f, 1.75f),
         _ => (2.93f, 0.88f),
     };
 
@@ -200,20 +211,24 @@ public partial class Stadtansicht
             if (stuetze is not null) stuetze.Visible = false;
             foreach (var (name, radius) in art.Raeder)
                 if (modell.FindChild(name, true, false) is Node3D rad)
-                    raeder.Add(new Rad { Knoten = rad, Ruhe = rad.Transform, Radius = RadHalbmesser(rad, radius) });
+                    raeder.Add(new Rad { Knoten = rad, Ruhe = rad.Transform, Radius = RadHalbmesser(rad, radius), AmVorderwagen = art.Drehschemel is not null && rad.Name.ToString().StartsWith("Rad_V") });
         }
         // Die Eskorte bleibt vorerst ein Begleiter neben dem Karren
         var eskorte = new MeshInstance3D { Name = "Eskorte", Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.8f }, MaterialOverride = Material(new Color(0.35f, 0.35f, 0.38f)), Position = new Vector3(1.8f, 0.9f, 0.6f), Visible = false };
         wurzel.AddChild(eskorte);
         // Zugpunkt und Drehpunkt des Gespanns aus den vorhandenen Ankern und Rädern (Anker_Deichsel bzw. Anker_Ziehen; vorderste Radachse)
         var zugZ = modell is null ? 0f : (art.TierAnker.Length > 0 ? art.TierAnker[0] : art.ZieherAnker) is { } zugName && modell.FindChild(zugName, true, false) is Node3D zugAnker ? zugAnker.Position.Z : 0f;
-        var drehZ = raeder.Count == 0 ? 0f : Math.Max(0f, raeder.Max(r => r.Ruhe.Origin.Z));
+        // Drehschemel: der Ursprung des Knotens „Vorderwagen“ ist der Reibnagel (Drehpunkt, vordere Achse); sein Abstand zum Modellursprung (hintere Achse) ist der Radstand
+        var vorderwagen = modell is not null && art.Drehschemel is { } vwName ? modell.FindChild(vwName, true, false) as Node3D : null;
+        var drehZ = vorderwagen is not null ? vorderwagen.Position.Z : raeder.Count == 0 ? 0f : Math.Max(0f, raeder.Max(r => r.Ruhe.Origin.Z));
+        var radstand = vorderwagen is not null ? drehZ : 0f;
         var lauf = modell is null || zugZ - drehZ < 0.3f ? null
             : art.Tier is null ? new Gespannlauf(zugZ - drehZ, 0, 80, 1.0)
+            : art.TierFolgtDeichsel ? new Gespannlauf(zugZ - drehZ, radstand, 30, 3.0, 40) // Schere bzw. Mittelbaum führen das Tier: kleiner Knick; Drehschemel höchstens 40° gegen den Kasten (Unterlauf)
             : art.Pferd ? new Gespannlauf(zugZ - drehZ, 0, 45, 3.0) : new Gespannlauf(zugZ - drehZ, 0, 50, 2.5);
         var ansicht = new KarrenAnsicht
         {
-            ZugZ = zugZ, DrehpunktZ = drehZ, Lauf = lauf,
+            ZugZ = zugZ, DrehpunktZ = drehZ, Lauf = lauf, Vorderwagen = vorderwagen,
             Wurzel = wurzel, Art = art, Raeder = raeder.ToArray(), Stuetze = stuetze, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
             KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
         };
@@ -239,12 +254,13 @@ public partial class Stadtansicht
         if (karren.Raeder.Length == 0) return;
         var sichtbar = KarrenImBild(karren.Wurzel);
         var vorwaerts = karren.Wurzel.GlobalBasis * Vector3.Back; // Fahrtrichtung des Modells (+Z)
+        var vorwaertsVorn = karren.Vorderwagen is { } vw ? vw.GlobalBasis * Vector3.Back : vorwaerts; // Vorderräder des Drehschemels fahren in Richtung des Vorderwagens
         var pause = _simulation?.Takt.IstPausiert == true;
         foreach (var rad in karren.Raeder)
         {
             // Jedes Rad dreht nach seinem eigenen Weg (Ortsänderung längs der Fahrtrichtung): innen langsamer als außen, bei der Wende gegenläufig
             var ort = rad.Knoten.GlobalPosition;
-            var meter = rad.LetzteGueltig ? (ort - rad.Letzte).Dot(vorwaerts) : 0f;
+            var meter = rad.LetzteGueltig ? (ort - rad.Letzte).Dot(rad.AmVorderwagen ? vorwaertsVorn : vorwaerts) : 0f;
             (rad.Letzte, rad.LetzteGueltig) = (ort, true);
             if (pause || Math.Abs(meter) > KarrenMaxTempo * Math.Max((float)delta, 1f / 60f)) continue; // Sprünge (Abgleich, Wende der Zeit) drehen nicht mit
             rad.Winkel = Mathf.PosMod(rad.Winkel + meter / rad.Radius, Mathf.Tau);
@@ -371,6 +387,11 @@ public partial class Stadtansicht
             _karren[karren] = gezeigt;
         }
         var knoten = gezeigt.Wurzel;
+        // Selbst gefahren: am anderen Betrieb stehen oder von/zu einem anderen Betrieb fahren (Stadtansicht.Karrenfahrt.cs); sonst die gewohnte Fahrt Heimat <-> Markt
+        if (KarrenSonderBewegen(karren, nummer, gezeigt, jetztGenau, delta)) return;
+        var ausSonder = gezeigt.Sonder; // gerade aus der Sonderfahrt zurück auf den gewohnten Weg: Zug und Gespann auf den Ort des Kerns setzen
+        gezeigt.Sonder = false;
+        neu |= ausSonder;
 
         // Mehrere Karren eines Betriebs fahren hintereinander statt ineinander (mit den Tieren sind sie bis zu 6 m lang): Karren Nr. n
         // liegt immer n · KarrenAbstand weiter Richtung Markt als der erste. Am Halteplatz warten sie so in einer Reihe auf dem Weg,
@@ -387,7 +408,7 @@ public partial class Stadtansicht
         var rueckstand = KarrenHaltRueckstand(typen, nummer);
         var spaet = laenge > 0 ? rueckstand / laenge : 0f;
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil, 1f - spaet), 0f, 1f);
-        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
+        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Hand 1,0, Pferdekarren 0,8, Großer Pferdekarren 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
         // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo und auf demselben Weg (Halteplatz, Hof, Zubringer, Wege,
         // Halt vor dem Pflaster), bei der Standard-Rundendauer kommen beide bis auf die Rundung auf ganze Minuten zugleich an. Wer früher da ist
         // (längere Runden), wartet am Markt, bis der Kern verkauft; wer später kommt (kürzere Runden, eine vom Kern gekappte Fahrt über der
@@ -403,7 +424,7 @@ public partial class Stadtansicht
         var halt = !neu && karren.WartetAnBruecke(sim.Zeit) ? KlappbrueckeHaltMeter(weg, zug.ZumMarkt, karren.Typ) : null;
         var steht = halt is { } h && zug.Etappe is Etappe.Hin or Etappe.Zurueck && (zug.ZumMarkt ? zug.Weg(hin, zurueck) * laenge >= h - 0.05f : zug.Weg(hin, zurueck) * laenge <= h + 0.05f);
         KlappbrueckeWartenMelden(karren, steht, halt);
-        if (neu) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
+        if (neu || ausSonder) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         else
         {
             zug.Weiter(sim.Takt.IstPausiert || steht ? 0 : delta * sim.Takt.TicksProSekunde, karren.Zustand, hin, zurueck);
@@ -428,7 +449,7 @@ public partial class Stadtansicht
         stelleM = Math.Clamp(stelleM, 0f, laenge);
         var vorherM = gezeigt.Meter;
         var imBild = KarrenImBild(knoten.GlobalPosition);
-        if (neu || !imBild || zug.Etappe == Etappe.Hof || Math.Abs(stelleM - vorherM) > 12f) gezeigt.Meter = stelleM; // unbeobachtet oder weit weg: gleich dort
+        if (neu || ausSonder || !imBild || zug.Etappe == Etappe.Hof || Math.Abs(stelleM - vorherM) > 12f) gezeigt.Meter = stelleM; // unbeobachtet oder weit weg: gleich dort
         else
         {
             // Aufholen nach dem Warten höchstens im Tempo der Fahrt, nie schneller als die Zeit
@@ -492,6 +513,21 @@ public partial class Stadtansicht
             }
         }
 
+        KarrenPoseSetzen(gezeigt, ziel, blick, neu || ausSonder || zug.Etappe == Etappe.Hof, imBild, delta);
+        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
+        KarrenLadungZeigen(karren, gezeigt);
+
+        KarrenAnimieren(karren, gezeigt, gezeigt.Geschwindigkeit, delta);
+    }
+
+    /// <summary>
+    /// Setzt den Karren an den Zugpunkt <paramref name="ziel"/> mit Blick auf <paramref name="blick"/>: Schleppkurve (Gespannlauf.cs: Zugtier am Weg, Wagen hängt nach),
+    /// Boden, Nicken am Hang und das Gespann. <paramref name="setzen"/>: gleich dort (neu, am Hof, unbeobachtet), sonst folgt das Gespann der Kurve.
+    /// </summary>
+    private void KarrenPoseSetzen(KarrenAnsicht gezeigt, Vector3 ziel, Vector3 blick, bool setzen, bool imBild, double delta)
+    {
+        var sim = _simulation!;
+        var knoten = gezeigt.Wurzel;
         // Auf Gelände fährt der Karren auf dem Boden (Stadtansicht.Gelaende.cs)
         ziel = AufFuss(ziel);
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
@@ -503,7 +539,7 @@ public partial class Stadtansicht
         if (gezeigt.Lauf is { } lauf && fahrtRichtung.LengthSquared() > 1e-6f)
         {
             var sekunden = sim.Takt.IstPausiert ? 0.0 : delta;
-            if (neu || !imBild || zug.Etappe == Etappe.Hof || KarrenStarr) lauf.Setzen(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z);
+            if (!imBild || setzen || KarrenStarr) lauf.Setzen(ziel.X, ziel.Z, fahrtRichtung.X, fahrtRichtung.Z);
             else
             {
                 var t0 = KarrenKurveStart();
@@ -512,15 +548,22 @@ public partial class Stadtansicht
             }
             var dx = (float)lauf.DeichselX; var dz = (float)lauf.DeichselZ;
             var achse = new Vector3((float)lauf.VorneX - dx * gezeigt.DrehpunktZ, 0, (float)lauf.VorneZ - dz * gezeigt.DrehpunktZ); // Ursprung des Modells (hintere Achse)
+            var gier = Mathf.Atan2(dx, dz);
+            if (gezeigt.Vorderwagen is { } vorder) // Drehschemel: der Kasten steht auf der Hinterachse und folgt der Vorderachse im Radstand, der Vorderwagen dreht mit der Deichsel
+            {
+                achse = new Vector3((float)lauf.HintenX, 0, (float)lauf.HintenZ);
+                var kasten = Mathf.Atan2((float)lauf.WagenX, (float)lauf.WagenZ);
+                vorder.Rotation = new Vector3(0, Mathf.Wrap(gier - kasten, -Mathf.Pi, Mathf.Pi), 0);
+                gier = kasten;
+            }
             knoten.Position = AufFuss(achse);
-            knoten.Rotation = new Vector3(0, Mathf.Atan2(dx, dz), 0); // das Nicken kommt gleich
+            knoten.Rotation = new Vector3(0, gier, 0); // das Nicken kommt gleich
         }
         else
         {
             knoten.Position = AufFuss(ziel);
             if (fahrtRichtung.LengthSquared() > 1e-6f) knoten.Rotation = new Vector3(0, Mathf.Atan2(fahrtRichtung.X, fahrtRichtung.Z), 0);
         }
-        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && amHalt, jetztGenau, gezeigt.Meter, knoten.Position, neu);
         if (BodenBewegt) // am Hang nickt der Karren mit dem Gefälle (3 m vor und hinter der Achse)
         {
             var vorne = new Vector3(Mathf.Sin(knoten.Rotation.Y), 0, Mathf.Cos(knoten.Rotation.Y));
@@ -530,7 +573,11 @@ public partial class Stadtansicht
         }
         KarrenGespannSetzen(gezeigt);
 
-        // Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten)
+    }
+
+    /// <summary>Ladung nach der Zahl der geladenen Sorten, Plane darüber, Eskorte als Begleiter (nur beim Wechsel schalten).</summary>
+    private static void KarrenLadungZeigen(Karren karren, KarrenAnsicht gezeigt)
+    {
         var sorten = Math.Min(karren.Ladung.Count(l => l.Value > 0), gezeigt.Ladung.Length);
         if (sorten != gezeigt.GezeigteLadung)
         {
@@ -545,7 +592,6 @@ public partial class Stadtansicht
             gezeigt.Eskorte.Visible = eskortiert;
         }
 
-        KarrenAnimieren(karren, gezeigt, gezeigt.Geschwindigkeit, delta);
     }
 
     /// <summary>
@@ -626,6 +672,7 @@ public partial class Stadtansicht
     private static double KernAnteil(Karren karren, Fahrprofil hin, Fahrprofil zurueck, int fahrzeit, double jetztGenau)
     {
         if (karren.Zustand == KarrenZustand.AmBetrieb) return 0;
+        if (karren.Zustand == KarrenZustand.AmMarkt) return 1; // selbst gefahren: steht am Markt
         var vorbei = 1 - Math.Clamp((karren.Ankunft - jetztGenau) / Math.Max(fahrzeit, 1), 0, 1); // Anteil der Fahrzeit, der vorbei ist
         return karren.Zustand == KarrenZustand.ZumMarkt ? hin.WegBei(vorbei * hin.Dauer) : 1 - zurueck.WegBei(vorbei * zurueck.Dauer);
     }
@@ -681,13 +728,13 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Setzt Zugtiere und Zieher bzw. Läufer an den Zugpunkt der Schleppkurve: Sie laufen den Weg (Kurs des Zugtiers), der Karren hängt an ihnen
+    /// Setzt Zugtiere und Zieher an den Zugpunkt der Schleppkurve: Sie laufen den Weg (Kurs des Zugtiers), der Karren hängt an ihnen
     /// (der Anker am Deichselende liegt auf dem Zugpunkt). Der Kutscher auf dem Bock bleibt am Wagen.
     /// </summary>
     private void KarrenGespannSetzen(KarrenAnsicht k)
     {
         if (k.Lauf is not { } lauf) return;
-        var kurs = new Vector3((float)lauf.KursX, 0, (float)lauf.KursZ);
+        var kurs = k.Art.TierFolgtDeichsel ? new Vector3((float)lauf.DeichselX, 0, (float)lauf.DeichselZ) : new Vector3((float)lauf.KursX, 0, (float)lauf.KursZ); // Schere/Mittelbaum: das Gespann geht in Richtung der Deichsel
         var zug = new Vector3((float)lauf.ZugX, 0, (float)lauf.ZugZ);
         zug = AufFuss(zug);
         var basis = new Basis(Vector3.Up, Mathf.Atan2(kurs.X, kurs.Z));

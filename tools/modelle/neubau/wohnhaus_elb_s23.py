@@ -72,6 +72,7 @@ def licht_vor_den_herd(licht, auge):
 # je Stufe und Grundform (Messung 20.11.2026); 24 Dreiecke Abstand, hoechstens 110 Karten. Bei wenig Platz groessere Karten.
 EFEU_HUELLE = {(2, 1): 3630, (2, 2): 3908, (2, 3): 3942, (2, 4): 3630, (3, 1): 3586, (3, 2): 3738, (3, 3): 3898, (3, 4): 3586}
 EFEU_HOECHSTENS = 110
+EFEU_S3_KARTEN = 56
 
 
 def efeu_setzen(h):
@@ -80,21 +81,28 @@ def efeu_setzen(h):
     efeu_karten.stoff_anlegen(g1, f"trim_s{STUFE[0]}")
     M = S23.M
     budget = max(0, min(EFEU_HOECHSTENS, (4000 - 24 - EFEU_HUELLE[(STUFE[0], FORM[0])]) // 2))
+    if STUFE[0] == 3: budget = EFEU_S3_KARTEN      # Patrizier: Efeu beschraenkt (Entwurf), die 4.000er Grenze gilt hier nicht mehr
     L = M.HINTEN - M.VORN
     ebenen = [((-M.BX, M.VORN), (1, 0), 2 * M.BX, (0, -1)), ((-M.OX, M.HINTEN), (1, 0), 2 * M.OX, (0, 1)),
               ((-M.BX, M.VORN), (0, 1), L, (-1, 0)), ((M.BX, M.VORN), (0, 1), L, (1, 0))]
     if abs(M.OVORN - M.VORN) > 0.02: ebenen.append(((-M.OX, M.OVORN), (1, 0), 2 * M.OX, (0, -1)))
     if abs(M.OX - M.BX) > 0.02:
         ebenen += [((-M.OX, M.OVORN), (0, 1), M.HINTEN - M.OVORN, (-1, 0)), ((M.OX, M.OVORN), (0, 1), M.HINTEN - M.OVORN, (1, 0))]
+    giebel_nr = None
+    if STUFE[0] == 3:                                                # Efeu am Giebelrand (Nutzer 23.11.2026): Ebene der Schildgiebel-Vorderseite
+        giebel_nr = len(ebenen)
+        ebenen.append(((-M.OX - 0.06, M.OVORN - 0.04), (1, 0), 2 * (M.OX + 0.06), (0, -1)))
     teile = [h]
     try: teile.append(S23.baue_wappen())                             # das Wappen bleibt frei
     except Exception as fehler: print("EFEU ohne Wappen:", fehler)   # noqa: BLE001
 
     def z_grenze(nr, s_):
         (ox, oy), (ex, ey), _l, _n = ebenen[nr]
+        if nr == giebel_nr: return M.z_dach(abs(ox + ex * s_)) + 0.10 + BRUSTUNG - 0.22   # unter der Abdeckplatte des Schildgiebels
         if abs(ey) > 0.5: return M.Z_TRAUFE - 0.25
         return M.z_dach(ox + ex * s_) - 0.35
-    n = efeu_karten.bewachsen(h, teile, ebenen, budget, 53 + 10 * STUFE[0] + FORM[0], z_grenze, gross=1.35 if budget < 45 else 1.0)
+    n = efeu_karten.bewachsen(h, teile, ebenen, budget, 53 + 10 * STUFE[0] + FORM[0], z_grenze, gross=1.35 if budget < 45 else 1.0, nur_ecken=STUFE[0] == 3,
+                              orte_je_ebene={giebel_nr: (0.90, 2 * (M.OX + 0.06) - 0.90)} if giebel_nr is not None else None)
     print(f"EFEU Karten: {n} (Budget {budget})")
 
 
@@ -288,7 +296,7 @@ def schildgiebel(h, stufen=None, dicke=0.36):
     # Abdeckplatten aus Werkstein auf der Schraege (je Seite ein Prisma, 8 cm dick, 5 cm ueber die Mauer)
     for sx in (-1, 1):
         a, b = Vector((sx * w0, 0, zs)), Vector((0, 0, zf))      # genau auf der Oberkante der Mauer, buendig mit der Stirnseite
-        ya, yb = y0 - 0.05, y1 + 0.03
+        ya, yb = y0 - 0.13, y1 + 0.03                          # Ortgang-Ueberstand: die Abdeckplatte steht 13 cm vor der Giebelmauer (Nutzer 23.11.2026)
         ecken = lambda yy, dz: [Vector((a.x, yy, a.z + dz)), Vector((b.x, yy, b.z + dz))]
         u0, u1, _ = BA[W]
         lang = (b - a).length / BA[W][2]
@@ -307,6 +315,7 @@ def schildgiebel(h, stufen=None, dicke=0.36):
     xf = w0 - FIALE["schaft"] / 2 - 0.14
     for x in (-xf, xf, 0.0):
         fiale(h, x, ym, zp(abs(x) + FIALE["schaft"] / 2) + 0.08 - 0.02, W)     # Fuss 2 cm unter der Abdeckplatte (an ihrer tiefsten Stelle)
+    if S23.GURT_WERK: giebel_zier(h, y0, loch, xp, zt)                  # Patrizier: Kielbogen, Astwerk
     # Gesims an der Traufe
     h.kasten("Bruchstein", (-M.OX - 0.08, y0 - 0.08, zt - 0.10), (M.OX + 0.08, y1, zt), "bruchstein", ohne=("+y",), laengs="x")
 
@@ -323,6 +332,8 @@ def fiale(h, x, y, z, band):
                   [(i * 0.07, v1), (i * 0.07 + 2 * s / m, v1), (i * 0.07 + 2 * s / m, v1 - hoch / m * 0.5), (i * 0.07, v1 - hoch / m * 0.5)], weg_von=mitte)
         h.vieleck("Bruchstein", [(xa, ya, z + hoch), (xb, yb, z + hoch), (x, y, z + hoch + spitze)],
                   [(i * 0.07, v1), (i * 0.07 + 2 * s / m, v1), (i * 0.07 + s / m, v0)], weg_von=Vector((x, y, z + hoch)))
+    if S23.GURT_WERK and abs(x) > 0.01: knospe(h, x, y, z + hoch + spitze - 0.015, band, s=0.05)      # Stufe 3 Patrizier: Knospe auf der Spitze
+
 
 
 # ── Holzunterstand, Spitzbogen ──────────────────────────────────────────────────────────────────────────────────────────
@@ -334,6 +345,13 @@ def unterstand_links(h):
     tmp = Teil("_", h.baender, saat=43)
     u = UNTERSTAND
     et.unterstand(tmp, M.BX, u["y0"], u["y1"], u["z"], tiefe=u["tiefe"], fall=u["fall"])
+    xp = M.BX + u["tiefe"] - 0.12
+    for y in (u["y0"] + 0.08, u["y1"] - 0.08):                        # geschnitzte Pfosten (Entwurf 3.5): Basis, drei Ringe, Kapitell, Kopfband zur Pfette
+        zo = u["z"] - u["fall"] * (xp - M.BX) / u["tiefe"] - 0.14
+        for k in range(3):                                           # Ringe erst ab 0,9 m: unter 0,7 m liegt das Scheitholz (Pruefung 16 zaehlt sonst seine Fugen)
+            tmp.kasten("Fachwerk", (xp - 0.07, y - 0.07, 0.95 + 0.40 * k), (xp + 0.07, y + 0.07, 1.00 + 0.40 * k), "balken_c", laengs="z")
+        tmp.kasten("Fachwerk", (xp - 0.09, y - 0.09, zo - 0.12), (xp + 0.09, y + 0.09, zo), "balken_c", laengs="z")
+        tmp.stab("Fachwerk", Vector((xp, y, zo - 0.14)), Vector((xp - 0.22, y, zo)), 0.05, "balken_c", kappen=True)
     S23.holz_akzent(h, lambda: gespiegelt(tmp, h))
 
 
@@ -370,6 +388,201 @@ def spitzbogen(teil, P, n, s0, s1, oben, vor=0.01):
             teil.vieleck("Fachwerk", [Q(sa, za, 0.006), Q(sb, zb, 0.006), Q(*innen[i + 1], 0.006), Q(*innen[i], 0.006)],
                          [(u, v1), (u + l, v1), (u + l, v0), (u, v0)], weg_von=hinten)
             u += l
+
+
+# ── Stufe 3, Patrizierhaus der Elben (Nutzer 23.11.2026, Entwurf „Haus aus Stein, Holz und Licht“): Kielbogen, Astwerk, Knospenfialen, Laterne ──
+#    Vorbilder: Astwerkgewoelbe Ellwangen (CC0), Kielbogenfenster Pforzheim (Public domain), Knochenhaueramtshaus Hildesheim (CC0).
+RELIEF_ELB = 0.05           # Relieftiefe des Zierwerks vor der Giebelmauer (Pixel-Look: 5 cm und mehr sind lesbar)
+
+
+def kielbogen(x0, x1, zs, hoch, n=10):
+    """Kielbogen (Eselsruecken) ueber x0..x1 mit Kaempfer zs und Scheitelhoehe `hoch`: je Haelfte eine S-Kurve (senkrecht am Kaempfer, konvex,
+    dann konkav in die Spitze). Punkte vom linken Kaempfer ueber die Spitze zum rechten."""
+    xm = (x0 + x1) / 2
+    links = []
+    for k in range(n + 1):
+        t = k / n
+        links.append((x0 + (xm - x0) * (3 * t * t - 2 * t ** 3), zs + hoch * t))
+    return links + [(2 * xm - x, z) for x, z in reversed(links[:-1])]
+
+
+HOLZ_ZIER = [False]      # True: Zierteile des Schildgiebels aus dunklem Holz (Band balken_c, Holzakzent) wie die Fensterlaeden (Nutzer 23.11.2026)
+
+
+def _stange(h, pts, y, dick=0.05, band=None):
+    """Streckenzug aus Staeben (Relief) vor der Ebene y: Werkstein oder, mit HOLZ_ZIER, dunkles Holz. Stuecke ueber 0,7 m werden geteilt (Pruefung 10:
+    kein langer schmaler Staender), Stabenden haben Kappen (sonst Durchblick, Pruefung 16)."""
+    holz = HOLZ_ZIER[0]
+    stoff, band = ("Fachwerk", "balken_c") if holz else ("Bruchstein", band or S23.WERKSTEIN)
+    for (xa, za), (xb, zb) in zip(pts, pts[1:]):
+        a, b = Vector((xa, y, za)), Vector((xb, y, zb))
+        n = max(1, int((b - a).length / 0.7) + 1)
+        for k in range(n):
+            h.stab(stoff, a + (b - a) * (k / n), a + (b - a) * ((k + 1) / n), dick, band, breite=dick, kappen=True)
+
+
+def knospe(h, x, y, z, band=None, s=0.05):
+    """Kleine Knospe (Raute aus acht Dreiecken) als Spitze der Kielboegen und Fialen."""
+    stoff = "Bruchstein"
+    if HOLZ_ZIER[0]: stoff, band = "Fachwerk", "balken_c"
+    band = band or S23.WERKSTEIN
+    v0, v1, m = h.baender[band]
+    o, u, a, b = Vector((x, y, z)), Vector((0, 0, 1)), Vector((1, 0, 0)), Vector((0, 1, 0))
+    oben, unten = o + u * (1.6 * s), o - u * (0.4 * s)
+    ring = [o + a * s, o + b * s, o - a * s, o - b * s]
+    for i in range(4):
+        for spitze in (oben, unten):
+            h.vieleck(stoff, [ring[i], ring[(i + 1) % 4], spitze] if spitze is oben else [ring[(i + 1) % 4], ring[i], spitze],
+                      [(0, v1), (0.1, v1), (0.05, v0)], weg_von=o)
+
+
+def astwerk(h, x, y, z):
+    """Astwerk-Relief (verzweigte Aeste statt Okulus) ueber dem Giebelfenster: Stamm, zwei Hauptaeste, vier Zweige, Knospen an den Spitzen."""
+    stamm = [(x, z), (x, z + 0.18), (x - 0.03, z + 0.38)]
+    _stange(h, stamm, y, 0.045)
+    for sx in (-1, 1):
+        ast = [(x + sx * 0.0, z + 0.22), (x + sx * 0.13, z + 0.36), (x + sx * 0.24, z + 0.55), (x + sx * 0.25, z + 0.78)]
+        _stange(h, ast, y, 0.04)
+        _stange(h, [(x + sx * 0.14, z + 0.37), (x + sx * 0.36, z + 0.43), (x + sx * 0.42, z + 0.58)], y, 0.03)
+        _stange(h, [(x + sx * 0.24, z + 0.55), (x + sx * 0.12, z + 0.66), (x + sx * 0.08, z + 0.88)], y, 0.03)
+        for kx, kz in ((x + sx * 0.25, z + 0.80), (x + sx * 0.42, z + 0.60), (x + sx * 0.08, z + 0.90)):
+            knospe(h, kx, y, kz, s=0.035)
+    knospe(h, x - 0.03, y, z + 0.40, s=0.04)
+
+
+def giebel_zier(h, y0, loch, xp, zt):
+    HOLZ_ZIER[0] = True
+    try: S23.holz_akzent(h, lambda: _giebel_zier(h, y0, loch, xp, zt))
+    finally: HOLZ_ZIER[0] = False
+
+
+def _giebel_zier(h, y0, loch, xp, zt):
+    """Schaugiebel der Elben: Kielbogen-Blenden links und rechts vom Giebelfenster (erhabener Rahmen mit Pfosten), Kielbogen mit Knospe ueber
+    dem Fenster und darueber Astwerk (nur im Mittelfeld)."""
+    y = y0 - RELIEF_ELB / 2
+    for a0, a1, z0_, z1_ in loch:
+        xm = (a0 + a1) / 2
+        bogen = kielbogen(a0 - 0.12, a1 + 0.12, z1_ + 0.18, 0.34)
+        _stange(h, bogen, y, 0.055)
+        knospe(h, xm, y, z1_ + 0.18 + 0.34 + 0.02, s=0.05)
+        astwerk(h, xm, y, z1_ + 0.58)
+        for xc in (-1.0, 1.0):                                                  # Blenden neben dem Fenster
+            zb, zk = z0_ - 0.05, z0_ + 0.95
+            if xp(zk + 0.3) < abs(xc) + 0.30: continue
+            xa, xb = xc - 0.24, xc + 0.24
+            _stange(h, [(xa, zb), (xa, zk)], y, 0.05)
+            _stange(h, [(xb, zb), (xb, zk)], y, 0.05)
+            _stange(h, [(xa, zb), (xb, zb)], y, 0.05)
+            _stange(h, kielbogen(xa, xb, zk, 0.30, n=8), y, 0.05)
+            knospe(h, xc, y, zk + 0.32, s=0.04)
+            _stange(h, [(xc, zb + 0.05), (xc, zk + 0.05)], y, 0.025)           # Mittelsprosse
+
+
+def kielbogenfries(h):
+    """Fries unter dem Gesims der Gassenseite (statt Rundbogenfries der Menschen): Deckband aus Werkstein, darunter eine Reihe kleiner Kielboegen."""
+    M = S23.M
+    z0, z1 = M.Z_EG_DECKE - 0.12, M.Z_EG_DECKE - 0.06
+    x0, x1 = -M.BX + 0.52, M.BX - 0.52
+    h.kasten("Bruchstein", (x0, M.VORN - S23.RELIEF, z0), (x1, M.VORN, z1), S23.WERKSTEIN, ohne=("+y",), laengs="x", ohne_streckung=True)
+    n = int((x1 - x0) / 0.36)
+    rand = (x1 - x0 - n * 0.36) / 2
+    for k in range(n):
+        xa = x0 + rand + k * 0.36
+        _stange(h, kielbogen(xa + 0.03, xa + 0.33, z0 - 0.16, 0.13, n=3), M.VORN - 0.02, 0.03)
+
+
+def holz_zier(h):
+    """Holz der Elben am Patrizierhaus (Entwurf 3.5): Stuetzen der Holzlaube (Vordach) mit Schnitzwerk (Basis, drei Ringe, Kapitell mit
+    Kopfband) und Balkenkoepfe unter der Auskragung der Gassenseite. Als Holzakzent: versteinern() laesst sie Holz."""
+    M = S23.M
+    tuer = next(f for f in M.FENSTER if f[3] == "tuer" and f[0] == "vorn_eg")
+    xt = (tuer[1][0] + tuer[1][1]) / 2
+    z_tuer_oben = tuer[2][1]
+
+    def bau():
+        zb = 0.0                                                   # Boden vor dem Haus
+        for dx in (-0.64, 0.64):
+            x, y = xt + dx, M.VORN - 0.48                          # innerhalb der Tiefe des Vordachs (0,70 m): Fussabdruck der Grundform (Pruefung 27)
+            zo = LETZT['vordach_z'] - 0.02 + 0.03                  # Unterseite der Dachplatten des Vordachs (z - 0,02) und 3 cm hinein: kein Spalt, Pruefung 16
+            ringe = [zb + 0.50, zb + 1.00, zb + 1.50]              # Schnitzringe 5 cm; die Stuetze besteht aus Stuecken unter 0,8 m (Pruefung 10: kein langer, schmaler Staender)
+            grenzen = [zb + 0.10] + [z_ for r_ in ringe for z_ in (r_, r_ + 0.05)] + [zo - 0.14]
+            for k in range(0, len(grenzen), 2):
+                h.kasten("Fachwerk", (x - 0.055, y - 0.055, grenzen[k]), (x + 0.055, y + 0.055, grenzen[k + 1]), "balken_c", laengs="z")
+            h.kasten("Fachwerk", (x - 0.085, y - 0.085, zb), (x + 0.085, y + 0.085, zb + 0.10), "balken_c", laengs="z")           # Basis
+            for r_ in ringe:
+                h.kasten("Fachwerk", (x - 0.075, y - 0.075, r_), (x + 0.075, y + 0.075, r_ + 0.05), "balken_c", laengs="z")
+            h.kasten("Fachwerk", (x - 0.10, y - 0.10, zo - 0.14), (x + 0.10, y + 0.10, zo), "balken_c", laengs="z")                # Kapitell
+            h.stab("Fachwerk", Vector((x, y + 0.02, zo - 0.12)), Vector((x, y + 0.28, zo)), 0.06, "balken_c", kappen=True)                               # Kopfband zur Wand (kuerzer als 0,4 m)
+        bx = M.BX - 0.45
+        n = int(2 * bx / 0.6)
+        for k in range(n + 1):
+            x = -bx + k * (2 * bx / n)
+            if abs(x - xt) < 0.95: continue                         # nicht ueber der Laube
+            h.kasten("Fachwerk", (x - 0.06, M.VORN - 0.34, M.Z_EG_DECKE - 0.10), (x + 0.06, M.VORN - 0.06, M.Z_EG_DECKE - 0.0), "balken_c", ohne=("+z",), laengs="y")
+            h.kasten("Fachwerk", (x - 0.04, M.VORN - 0.40, M.Z_EG_DECKE - 0.085), (x + 0.04, M.VORN - 0.34, M.Z_EG_DECKE - 0.015), "balken_c", laengs="y")      # Schnittprofil: abgesetztes Kopfende
+    S23.holz_akzent(h, bau)
+
+
+def blumenkaesten_und_band(h):
+    """Weitere Elbendetails (Nutzerwunsch 23.11.2026): Blumenkaesten aus dunklem Holz unter den Fenstern des Obergeschosses (Kasten, zwei Knaggen, Erdfuellung
+    mit Pflanzenreihe aus kleinen Knospen) und ein Rautenband (Wandmalerei-Streifen) in der Hausfarbe ueber dem Gurtgesims der Gassenseite."""
+    M = S23.M
+
+    def holz():
+        for wand, (a0, a1), (b0, b1), art in M.FENSTER:
+            if wand != "vorn_og" or art != "fenster": continue
+            y, zt_ = M.OVORN, b0 - 0.04
+            x0, x1 = a0 - 0.05, a1 + 0.05
+            xm_ = (x0 + x1) / 2                                    # in zwei Haelften unter 0,8 m (Pruefung 10: kein langer, niedriger Riegel)
+            for xa_, xb_ in ((x0, xm_ - 0.01), (xm_ + 0.01, x1)):
+                h.kasten("Fachwerk", (xa_, y - 0.22, zt_ - 0.17), (xb_, y - 0.02, zt_), "balken_c", ohne=("+z",), laengs="x")
+            for xk in (x0 + 0.10, x1 - 0.10):
+                h.kasten("Fachwerk", (xk - 0.025, y - 0.20, zt_ - 0.30), (xk + 0.025, y - 0.02, zt_ - 0.17), "balken_c", laengs="z")
+    S23.holz_akzent(h, holz)
+    for wand, (a0, a1), (b0, b1), art in M.FENSTER:
+        if wand != "vorn_og" or art != "fenster": continue
+        y, zt_ = M.OVORN, b0 - 0.04
+        n = max(3, int((a1 - a0) / 0.14))
+        for k in range(n):                                          # Pflanzenreihe: Knospen auf der Erde (Stoff Haustein, farblos), 4 Dreieck-Pyramiden je Pflanze
+            knospe(h, a0 + 0.02 + (a1 - a0 - 0.04) * (k + 0.5) / n, y - 0.12, zt_ + 0.01, s=0.045)
+    # Rautenband in der Hausfarbe: flache Rauten 2 cm vor dem Putz, 0,16 m hoch, alle 0,30 m, zwischen den Eckquadern
+    v0, v1, mm = h.baender["eisen"]
+    zc = M.Z_EG_DECKE + 0.27
+    bx = M.OX - 0.55
+    k = 0
+    while -bx + k * 0.30 <= bx:
+        xc = -bx + k * 0.30
+        pts = [Vector((xc - 0.11, M.OVORN - 0.02, zc)), Vector((xc, M.OVORN - 0.02, zc - 0.08)), Vector((xc + 0.11, M.OVORN - 0.02, zc)), Vector((xc, M.OVORN - 0.02, zc + 0.08))]
+        h.vieleck("Hausfarbe", pts[::-1], [(0.1, v0 + 0.01), (0.2, v0 + 0.01), (0.3, v1 - 0.01), (0.2, v1 - 0.01)], weg_von=Vector((xc, M.OVORN + 1.0, zc)))
+        k += 1
+
+
+def vorder_zier(h):
+    """Gassenseite: Kielbogen mit Knospe ueber jedem Fenster, Laterne auf einer Konsole rechts der Haustuer (nur Modell, ohne Lichtanbindung)."""
+    M = S23.M
+    for wand, (a0, a1), (b0, b1), art in M.FENSTER:
+        if wand not in ("vorn_eg", "vorn_og") or art != "fenster": continue
+        y = (M.VORN if wand == "vorn_eg" else M.OVORN) - 0.03
+        _stange(h, kielbogen(a0 - 0.17, a1 + 0.17, b1 + 0.17, 0.20, n=5), y, 0.04)
+        knospe(h, (a0 + a1) / 2, y, b1 + 0.17 + 0.21, s=0.035)
+    holz_zier(h)
+    blumenkaesten_und_band(h)
+    tuer = next(f for f in M.FENSTER if f[3] == "tuer" and f[0] == "vorn_eg")
+    (a0, a1), (b0, b1) = tuer[1], tuer[2]
+    x = a1 + 0.35 if a1 + 0.5 < M.BX - 0.55 else a0 - 0.35
+    y = M.VORN
+    z = b1 - 0.25
+    h.kasten("Bruchstein", (x - 0.06, y - 0.22, z - 0.12), (x + 0.06, y, z), S23.WERKSTEIN, ohne=("+y",), ohne_streckung=True)            # Konsole
+    h.kasten("Eisen", (x - 0.012, y - 0.28, z), (x + 0.012, y - 0.04, z + 0.03), "eisen")                                                  # Arm
+    h.kasten("Eisen", (x - 0.012, y - 0.30, z - 0.02), (x + 0.012, y - 0.28, z + 0.40), "eisen")                                           # Haken
+    # Laternenhalter als Ranke: Eisenschnecke unter dem Arm (drei Stufen, nach unten eingerollt) und Blatt am Wandende
+    for (dy0, dy1, dz0, dz1) in ((0.04, 0.14, -0.045, -0.025), (0.10, 0.17, -0.075, -0.045), (0.14, 0.17, -0.075, -0.05)):
+        h.kasten("Eisen", (x - 0.010, y - dy1, z + dz0), (x + 0.010, y - dy0, z + dz1), "eisen")
+    h.kasten("Eisen", (x - 0.03, y - 0.05, z - 0.10), (x + 0.03, y - 0.04, z + 0.10), "eisen")                                              # Wandplatte (Blattform)
+    for dx, dy in ((-0.06, -0.06), (0.06, -0.06), (-0.06, 0.06), (0.06, 0.06)):                                                           # Laterne: vier Stangen
+        h.kasten("Eisen", (x + dx - 0.007, y - 0.36 + dy - 0.007, z + 0.02), (x + dx + 0.007, y - 0.36 + dy + 0.007, z + 0.22), "eisen")
+    h.kasten("Eisen", (x - 0.08, y - 0.44, z + 0.22), (x + 0.08, y - 0.28, z + 0.25), "eisen")                                             # Dach
+    h.kasten("Eisen", (x - 0.08, y - 0.44, z - 0.01), (x + 0.08, y - 0.28, z + 0.02), "eisen")                                             # Boden
 
 
 def spitzboegen(h):
@@ -654,6 +867,31 @@ def laeden_zu_anlegen(stufe):
     S23.baue_fahne = fahne
 
 
+def bleiruten(s):
+    """Feinere Teilung der Fenster ohne die Oeffnungen zu aendern (Prueferbefund und Nutzerwunsch 23.11.2026: Oeffnungen sind durch Pruefung 3, 7, 24, 27 und den
+    Innenraum gebunden): Rautenteilung aus Bleiruten (Stoff Bleinetz, 1,2 cm breit, Raster 11 cm unter 45 Grad) auf dem Glas jedes Fensters."""
+    M = S23.M
+    for wand, (a0, a1), (z0, z1), art in M.FENSTER:
+        if art != "fenster": continue
+        tief = 0.10 if wand.endswith("_gb") else 0.18 if wand.endswith("_tg") else M.T / 2
+        (ox, oy), (ex, ey), _, _ = S23.WAENDE[wand]
+        start = ox if ex else oy
+        w, d = 0.012, 0.11
+        n = int((a1 - a0 + z1 - z0) / d) + 2
+        for sign in (1, -1):
+            for k in range(-n, n):
+                c = a0 + k * d                                       # Linie s = c + sign * (z - z0)
+                zl, zh = z0, z1
+                for lim in (a0, a1):                                 # Schnitt mit den senkrechten Kanten
+                    zz = z0 + sign * (lim - c)
+                    if (sign > 0) == (lim == a0): zl = max(zl, zz)
+                    else: zh = min(zh, zz)
+                if zh - zl < 0.03: continue
+                p = lambda s_, z_: S23.punkt(wand, s_ - start, z_, -tief + 0.009)
+                sl, sh = c + sign * (zl - z0), c + sign * (zh - z0)
+                s.vieleck("Bleinetz", [p(sl - w / 2, zl), p(sl + w / 2, zl), p(sh + w / 2, zh), p(sh - w / 2, zh)], [(0, 1), (w, 1), (w, 0.9), (0, 0.9)], weg_von=S23.MITTE)
+
+
 def schicht_anlegen(stufe):
     """Stoff, Dateinamen, Atlasgruppen, Elbenmasse und die Bauteile der Elben; die Skripte der Menschen bleiben unveraendert."""
     # Echtes Fachwerk im Buergerhaus (Holzlage wie bei Menschen, Halblingen und Zwergen, Nutzer 23.11.2026), die Streben gebogen
@@ -687,6 +925,7 @@ def schicht_anlegen(stufe):
 
     def vordach(h, x, z):
         ab = len(h.flaechen)
+        LETZT['vordach_z'] = z - (TUER_HOCH - 2.00)               # Hoehe des Vordachs (fuer die Stuetzen der Holzlaube)
         alt_vordach(h, x, z - (TUER_HOCH - 2.00))
         # die Untersicht der Menschen reicht mit v 0,78 eine Spur ueber das Band „planken“ (bis 0,775) ins Band „farbholz“: Pruefung 17
         v0, v1, _ = h.baender["planken"]
@@ -702,9 +941,43 @@ def schicht_anlegen(stufe):
         S23.steinwand = lambda h, stoff, wand, z0, z1, band="putz", laibung=True: alt_wand(h, "Lehmputz" if band == "putz" else stoff, wand, z0, z1, band, laibung)
     else:
         S23.treppengiebel = schildgiebel
+        # Patrizierhaus der Elben (Entwurf 23.11.2026): Kalkputz mit Hausteinrahmen, Gurtgesims und Werkstein aus Haustein (K2), Kielbogenfries
+        S23.GURT_WERK = True
+        S23.WERKSTEIN = "bruchstein"
+        S23.OBEN.update(band="putz", lage=None)
+        S23.rundbogenfries = kielbogenfries
+        # Erdgeschoss und Giebel Haustein (Band „bruchstein“), Obergeschoss Kalkputz (Band „putz“, `OBEN`): der Putz bekommt den Stoff Lehmputz
+        alt_wand3 = S23.steinwand
+        import zwerg_teile as zt
+
+        def steinwand_og_putz(h, stoff, wand, z0, z1, band="bruchstein", laibung=True, lage=None):
+            if band != "putz": return alt_wand3(h, stoff, wand, z0, z1, band, laibung, lage)
+            zt.PUTZ_BLEIBT[0] = True                       # quader_in_lagen (unten) legte den Putz sonst auf das Steinband (Befund Pruefer 23.11.2026)
+            try: r = alt_wand3(h, "Lehmputz", wand, z0, z1, band, False, lage)
+            finally: zt.PUTZ_BLEIBT[0] = False
+            if laibung:                                    # Laibungen bleiben Stein (Pruefung 11): vier Seiten aus Haustein wie im Erdgeschoss
+                (ox, oy), (ex, ey), breite, _ = S23.WAENDE[wand]
+                for s0, s1_, za, zb, *_rest in [x[:4] for x in S23.loecher(wand)]:
+                    n = S23.nvec(wand)
+                    mitte = S23.punkt(wand, (s0 + s1_) / 2, (max(za, z0) + min(zb, z1)) / 2, -S23.M.T / 2)
+                    za, zb = max(za, z0), min(zb, z1)
+                    for p, richtung, laenge in ((S23.punkt(wand, s0, za), Vector((ex, ey, 0)), s1_ - s0), (S23.punkt(wand, s0, zb), Vector((ex, ey, 0)), s1_ - s0),
+                                                (S23.punkt(wand, s0, za), S23.EZ, zb - za), (S23.punkt(wand, s1_, za), S23.EZ, zb - za)):
+                        h.rechteck("Bruchstein", p, richtung, -n, laenge, S23.M.T, "bruchstein", zu=mitte, anteil=(0.0, 0.6))
+            return r
+        S23.steinwand = steinwand_og_putz
         alt_versteinern = S23.versteinern
-        # Schuppen (Grundform 3) bleibt Holz: der Holzunterstand der Elben (bei den Menschen Pfeiler aus Haustein)
-        S23.versteinern = lambda teil, ab=0, bis=None, z_min=0.7, ganz=False: None if ganz else alt_versteinern(teil, ab, bis, z_min, ganz)
+
+        def versteinern_elb(teil, ab=0, bis=None, z_min=0.7, ganz=False):
+            """Schuppen (Grundform 3) bleibt Holz (Holzunterstand der Elben, bei den Menschen Pfeiler aus Haustein). Der Kalkputz des Obergeschosses
+            bleibt Putz: versteinern() legt sonst jede Lehmputz-Flaeche auf das Band „bruchstein“ (Befund Pruefer 23.11.2026: das Obergeschoss
+            war Haustein-Quader, nicht Putz)."""
+            if ganz: return None
+            for i, (pts, uv, st, fa, gl) in enumerate(teil.flaechen):
+                if st == "Lehmputz": teil.flaechen[i] = (pts, uv, "Lehmputz_", fa, gl)
+            alt_versteinern(teil, ab, bis, z_min, ganz)
+            teil.flaechen = [(pts, uv, "Lehmputz" if st == "Lehmputz_" else st, fa, gl) for pts, uv, st, fa, gl in teil.flaechen]
+        S23.versteinern = versteinern_elb
     # Huelle
     alt_haus = S23.baue_haus
 
@@ -717,7 +990,14 @@ def schicht_anlegen(stufe):
             vorher = h.dreiecke()
             unterstand_links(h)
             print("DREIECKE Unterstand:", h.dreiecke() - vorher)
+        if stufe == 3:
+            vorher = h.dreiecke()
+            vorder_zier(h)
+            print("DREIECKE Kielboegen und Laterne:", h.dreiecke() - vorher)
         efeu_setzen(h)
+        if stufe == 3:
+            import zwerg_teile
+            zwerg_teile.entflimmern(h)                     # Geometriepruefung: deckungsgleiche gleichlaufende Flaechen
         LETZT["haus"] = h
         return h
     S23.baue_haus = haus
@@ -762,6 +1042,7 @@ def schicht_anlegen(stufe):
     def scheiben():
         s = alt_scheiben()
         if stufe == 3: s.flaechen = s.flaechen[:-2]             # ohne Gaube: ihr Glas entfaellt
+        if stufe == 3: bleiruten(s)
         LETZT["scheiben"] = s
         return s
     S23.baue_scheiben = scheiben
@@ -819,8 +1100,15 @@ def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in args if a.startswith("--"))
     stufe = int(opt.get("stufe", "2"))
     FORM[0] = int(opt.get("form", "1"))
+    if stufe == 3: sys.argv.append("--dach-alt")               # Schildgiebel statt Blendnischen: die Dachvorderkante bleibt, wo sie war (sonst Durchblick am First)
+    if os.environ.get("REICHSGILDE_ZAEHLEN"):                  # Messung der Dreiecke je Bauteil (dreiecke_zaehler.py; vor schicht_anlegen, damit die ersetzten Teile gezaehlt werden)
+        import dreiecke_zaehler
+        dreiecke_zaehler.anlegen(S23, sys.modules[__name__])
     schicht_anlegen(stufe)
     S23.main()
+    if opt.get("bilder"):
+        import bild_zusatz
+        bild_zusatz.zeichne(g1, S23.M, opt["bilder"], stufe, FORM if isinstance(FORM, int) else FORM[0], S23.M.FORMEN[FORM if isinstance(FORM, int) else FORM[0]]["dx"], bpy)
     messen(stufe, int(opt.get("form", "1")), opt.get("bilder"))
 
 

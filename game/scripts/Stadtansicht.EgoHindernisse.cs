@@ -13,7 +13,7 @@ namespace Reichsgilde;
 /// Netzes. Ein Zaun ist so eine Kette von Kisten (jedes Feld ein Stück). Teile unter 35 cm Höhe (Beete, Pfützen, Gras) zählen nicht.</item>
 /// <item><b>Gitter</b>: Die kleinen Hindernisse liegen in Zellen zu 8 m; gefragt wird nur nach den neun Zellen um die Figur, so bleibt es bei Tausenden Bäumen billig.
 /// Größere als 6 m kommen in eine eigene Liste.</item>
-/// <item><b>Bewegtes</b> (Karren samt Ochse oder Pferden) wird jedes Bild aus den Netzen der Knoten „Karren“ und „…_Rumpf“ neu gelesen (nur die in 40 m Nähe).
+/// <item><b>Bewegtes</b> (Karren samt Pferden) wird jedes Bild aus den Netzen der Knoten „Karren“ und „…_Rumpf“ neu gelesen (nur die in 40 m Nähe).
 /// Passanten und Streuner sind keine Hindernisse (sonst Stau).</item>
 /// <item>Gelesen wird neu, wenn sich die Natur-Dichte, die Füllung oder die Jahreszeit ändert, die Marktkreise wachsen nicht mehr.</item>
 /// </list>

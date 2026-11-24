@@ -26,7 +26,7 @@ _orte = {}
 
 V, H = HM.DG_VORN, HM.DG_HINTEN                       # Innenseite Treppengiebel, Trennwand
 XI = HM.DG_IX                                         # Fusspunkt der Schraege
-GAUBE = dict(y=(-0.75, 0.45), x=1.75, fenster=(0.55, 0.62))   # wie wohnhaus_mensch_s23.GAUBE
+GAUBE = dict(y=(0.45, 1.65), x=1.75, fenster=(0.55, 0.62))    # wie wohnhaus_mensch_s23.GAUBE_PATRIZIER (hinter dem Schornstein, Nutzer 22.11.2026)
 
 
 def decke(x):

@@ -122,7 +122,7 @@ static class LiegenschaftTests
             Pruefe.Ungefaehr(5000, k.Vermoegen, 1e-9);
             var grube = w.Betriebe.Single(b => b.Name == "Grube am Silberberg");
             Pruefe.Gleich(Betriebsart.Mine, grube.Art);
-            Pruefe.Gleich("Ochsenkarren", grube.Karren.Single().Typ);
+            Pruefe.Gleich("Pferdekarren", grube.Karren.Single().Typ);
             for (var i = 0; i < Spielzeit.MinutenProTag; i++) sim.Tick();
             Pruefe.Ungefaehr(w.Daten.Allgemein.PachtMine, k.Vorjahr!.Fixkosten, 1e-9); // Pacht am Jahresende
         }),

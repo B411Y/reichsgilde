@@ -31,12 +31,12 @@ static class LogistikTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Startausstattung: Gießerei mit Handkarren, Mine mit Ochsenkarren", () =>
+        ("Startausstattung: Gießerei mit Handkarren, Mine mit Pferdekarren", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
             Pruefe.Gleich("Handkarren", w.BetriebEroeffnen("G", Betriebsart.Giesserei, k).Karren.Single().Typ);
-            Pruefe.Gleich("Ochsenkarren", w.BetriebEroeffnen("M", Betriebsart.Mine, k).Karren.Single().Typ);
+            Pruefe.Gleich("Pferdekarren", w.BetriebEroeffnen("M", Betriebsart.Mine, k).Karren.Single().Typ);
             Pruefe.Gleich(w.Daten.Allgemein.Startvermoegen, k.Vermoegen); // Startausstattung kostet nichts
         }),
 
@@ -57,7 +57,7 @@ static class LogistikTests
             Pruefe.Gleich(start + 120, mine.Karren[0].Ankunft);
         }),
 
-        ("Ladeflächen: Ein Ochsenkarren lädt 2 × 20 Eisen, wenn nur Eisen da ist", () =>
+        ("Ladeflächen: Ein Pferdekarren lädt 2 × 20 Eisen, wenn nur Eisen da ist", () =>
         {
             var sim = NeueSimulation(startwert: 5);
             var w = sim.Wirtschaft!;
@@ -243,7 +243,7 @@ static class LogistikTests
             var w = NeueSimulation().Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
             var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, k);
-            mine.KarrenKaufen("Pferdekarren");
+            mine.KarrenKaufen("Großer Pferdekarren");
             Pruefe.Gleich(2, mine.Karren.Count);
             Pruefe.Gleich(w.Daten.Allgemein.Startvermoegen - 900, k.Vermoegen);
             Pruefe.Gleich(900.0, k.Laufend.Investitionen);

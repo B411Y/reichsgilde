@@ -16,12 +16,16 @@ public partial class Stadtansicht
     /// <summary>Wartet die Ansicht auf den Klick, der ein Gebäude für ein Entwicklerwerkzeug wählt?</summary>
     private Func<string, bool>? _gebaeudeWahlGueltig;
 
+    /// <summary>Wird gerufen, wenn der Spieler die Wahl mit Esc abbricht (nicht bei <see cref="GebaeudeWahlAbbrechen"/> von außen).</summary>
+    private Action? _gebaeudeWahlAbbruch;
+
     public bool GebaeudeWahlLaeuft => _gebaeudeWahl is not null;
 
     /// <summary>Beginnt die Wahl; <paramref name="gewaehlt"/> bekommt die Kennung des angeklickten Gebäudes. Drinnen (Innenansicht, Raum) geht es nicht: false.</summary>
     public bool GebaeudeWaehlen(string hinweis, Action<string> gewaehlt, Func<string, bool>? gueltig = null)
     {
         _gebaeudeWahlGueltig = gueltig;
+        _gebaeudeWahlAbbruch = null;
         if (_raum is not null || _innen is not null || _entwurf is not null || _ego is not null) return false;
         _gebaeudeWahl = gewaehlt;
         GebaeudeWahlHinweis(hinweis);
@@ -32,6 +36,7 @@ public partial class Stadtansicht
     public void GebaeudeWahlAbbrechen()
     {
         _gebaeudeWahl = null;
+        KarrenZielMarkenWeg();
         if (_gebaeudeWahlEbene is not null) _gebaeudeWahlEbene.Visible = false;
     }
 
@@ -68,6 +73,7 @@ public partial class Stadtansicht
         {
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }:
                 GebaeudeWahlEnde();
+                _gebaeudeWahlAbbruch?.Invoke(); // Esc: wer die Wahl gestartet hat (Karrenziel), erfährt es
                 return true;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } klick:
                 if (GebaeudeWahlKennung(klick.Position) is { } kennung)
@@ -88,7 +94,7 @@ public partial class Stadtansicht
     /// eine Kennung hat und (falls die Wahl eine Prüfung mitbrachte) ein gültiges Ziel ist – so verdeckt die hohe Klickfläche eines Nachbarn kein Wohnhaus dahinter, und
     /// Figuren und Vögel zählen hier nicht. Jeder Klick steht im Protokoll (Mausposition, getroffene Kennungen, Wahl).
     /// </summary>
-    private string? GebaeudeWahlKennung(Vector2 bildschirm)
+    private string? GebaeudeWahlKennung(Vector2 bildschirm, bool still = false)
     {
         var kamera = _raum is not null ? _raumKamera : StadtKamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
@@ -113,7 +119,7 @@ public partial class Stadtansicht
             if (gueltig) { gewaehlt = kennung; break; }
         }
         gewaehlt ??= erste; // nichts Gültiges: die Meldung des Entwicklerfensters erklärt dem Nutzer, was an dem ersten Treffer nicht geht
-        GD.Print($"[gebaeudewahl] Klick {bildschirm}: Treffer {(treffer.Count == 0 ? "keiner" : string.Join(" > ", treffer))} -> {gewaehlt ?? "nichts getroffen"}");
+        if (!still) GD.Print($"[gebaeudewahl] Klick {bildschirm}: Treffer {(treffer.Count == 0 ? "keiner" : string.Join(" > ", treffer))} -> {gewaehlt ?? "nichts getroffen"}");
         return gewaehlt;
     }
 

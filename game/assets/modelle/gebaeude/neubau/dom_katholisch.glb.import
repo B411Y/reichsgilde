@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dgccd044cd18r"
-path="res://.godot/imported/tier_ochse_falb.glb-2f7ccf4ec68054a6f9f84cfa11d04021.scn"
+uid="uid://cnoc4y1pkk2as"
+path="res://.godot/imported/dom_katholisch.glb-3edeb3a52f64265f1fc83380173a3461.scn"
 
 [deps]
 
-source_file="res://assets/modelle/tiere/tier_ochse_falb.glb"
-dest_files=["res://.godot/imported/tier_ochse_falb.glb-2f7ccf4ec68054a6f9f84cfa11d04021.scn"]
+source_file="res://assets/modelle/gebaeude/neubau/dom_katholisch.glb"
+dest_files=["res://.godot/imported/dom_katholisch.glb-3edeb3a52f64265f1fc83380173a3461.scn"]
 
 [params]
 

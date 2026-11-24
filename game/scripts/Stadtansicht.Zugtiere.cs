@@ -7,9 +7,9 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Zugtiere und Fuhrmann der Karren (Teil der <c>partial class Stadtansicht</c>, Karren-Umbau Teil d): Der Karren ist ein Modell ohne Tier und ohne Figur
-/// (<c>Stadtansicht.Karren.cs</c>); Ochse, Pferde und der Mensch am Karren hängen als eigene Figuren an seinen Ankern.
+/// (<c>Stadtansicht.Karren.cs</c>); Pferde und der Mensch am Karren hängen als eigene Figuren an seinen Ankern.
 ///
-/// <para><b>Zugtiere</b> (<c>tiere/tier_&lt;pferd|ochse&gt;_&lt;fell&gt;.glb</c>, Skelett, Regeln in <c>daten/zugtiere.json</c>, gelesen von <see cref="Zugtierdaten"/>):
+/// <para><b>Zugtiere</b> (<c>tiere/tier_&lt;pferd&gt;_&lt;fell&gt;.glb</c>, Skelett, Regeln in <c>daten/zugtiere.json</c>, gelesen von <see cref="Zugtierdaten"/>):
 /// Platzierung: Tier-Wurzel = Position(Anker_Deichsel bzw. Anker_Pferd_L/R) − <c>anker_ziehen_godot</c> der Tierart (der Anker_Geschirr hängt am nie bewegten
 /// Knochen „Geschirr“ und liegt in allen Clips fest). Das Fell (zwei je Tier) und die Anfangsstelle der Stehen-Varianten folgen aus dem Fuhrmann des Karrens
 /// (<see cref="Karren.FuhrmannIn"/>, nichts davon wird gespeichert, kein Einfluss auf den Kern). Stufen wie die Passanten: nah (Zoom unter 50) ein echtes
@@ -19,10 +19,10 @@ namespace Reichsgilde;
 /// <para><b>Ablauf je Tier</b> (<see cref="ZugtierSchritt"/>): Stehen (Varianten Stehen, Ruhen, Umschauen, Fressen, nacheinander ohne Blendzeit, Wahl aus dem Seed des
 /// Karrens) → Anfahren_&lt;Gehen|Ziehen&gt; (läuft nach der gefahrenen Strecke, die Hufe rutschen nicht) → Gehen (leer) oder Ziehen (beladen), dazwischen Überblenden
 /// mit der Blendzeit der Tierart bei gleicher Abspielstelle → beim Halt den Durchlauf zu Ende (Bild 0), Anhalten_… → Stehen. Das zweite Pferd geht eine halbe
-/// Schleife später los (Phasenversatz 0,5), der Ochse ist ein Tier. Die Schritte laufen im Takt der gezeigten Geschwindigkeit.</para>
+/// Schleife später los (Phasenversatz 0,5). Die Schritte laufen im Takt der gezeigten Geschwindigkeit.</para>
 ///
 /// <para><b>Fuhrmann</b>: eine Passantenfigur (<see cref="ProbefigurEinsetzen"/>, Rolle „Fuhrmann“) aus <see cref="Karren.FuhrmannIn"/> (Volk, Geschlecht): Handkarren
-/// „Ziehen“ (Hände an der Zugstange vorn), Ochsenkarren „Nebenhergehen“ mit dem Stecken, Pferdekarren „SitzenBock“ auf dem Bock. Das Gewand ist gedeckt wie bei allen
+/// „Ziehen“ (Hände an der Zugstange vorn), Pferdekarren „SitzenBock“ auf dem Bock. Das Gewand ist gedeckt wie bei allen
 /// Passanten; die Hausfarbe tragen nur Plane, Wimpel und Decke am Karren. Nachtregel nach dem Zustand des Karrens (<see cref="Karren.Faehrt"/>), nicht nach der Uhr.</para>
 /// </summary>
 public partial class Stadtansicht
@@ -60,11 +60,148 @@ public partial class Stadtansicht
         public bool Gezeigt { get; set; }
         /// <summary>Lage der Tierwurzel zum Zugpunkt im Bild des Tiers (Meter; Zugpunkt = Anker am Deichselende, Kummet bzw. Ortscheit): Das Tier läuft den Weg, der Karren hängt am Zugpunkt (<see cref="KarrenGespannSetzen"/>).</summary>
         public Vector3 ZugVersatz { get; set; }
+        /// <summary>Kurvenstärke −1 (rechts) … +1 (links), geglättet aus dem Knickwinkel des Gespanns (<see cref="ZugtierKurveSetzen"/>).</summary>
+        public double Kurve { get; set; }
+        /// <summary>Knochen der Wirbelsäule im Skelett (Index, Achse im Elternraum, Grad bei voller Kurve) für die Kurvenbiegung nah; leer: ohne Biegung.</summary>
+        public (int Knochen, Vector3 Achse, float Grad)[] Biegung { get; set; } = Array.Empty<(int, Vector3, float)>();
+        /// <summary>Wurzelknochen der vier Beine (behalten bei der Biegung ihre Richtung, die Hufe drehen nicht mit).</summary>
+        public int[] Beinwurzeln { get; set; } = Array.Empty<int>();
+        public Skeleton3D? Skelett { get; set; }
+        /// <summary>Je Clip die Biegungsknochen ohne eigene Drehspur: deren Pose setzt der Spieler nicht neu, die Biegung geht dann von der Ruhepose aus (nicht kumulativ).</summary>
+        public Dictionary<string, HashSet<int>> OhneSpur { get; } = new();
+        /// <summary>Fern: gerade gezeigter Kurvenclip (0 gerade, +1 links, −1 rechts), mit getrennten Schwellen zum Ein- und Ausschalten.</summary>
+        public int KurveVat { get; set; }
+        /// <summary>Abzeichen-Code (<see cref="AbzeichenCode"/>; 0 = keine), nah als Instanz-Parameter, fern in INSTANCE_CUSTOM.z.</summary>
+        public int Abzeichen { get; set; }
+    }
+
+    /// <summary>Knickwinkel (Grad), bei dem die Kurvenhaltung voll erreicht ist; die gebackene Stufe (fern) wechselt ab <see cref="KurveVatSchwelle"/> in den Kurvenclip.</summary>
+    private const double KurveVoll = 30.0;
+    /// <summary>Fern: in den Kurvenclip ab dieser Kurvenstärke, zurück erst darunter (kein Pendeln an der Schwelle).</summary>
+    private const double KurveVatEin = 0.45, KurveVatAus = 0.30;
+    /// <summary>Zeitkonstante der Glättung (Sekunden): kein Ruck, wenn der Knick springt.</summary>
+    private const double KurveGlaettung = 0.35;
+    /// <summary>Vorzeichen Knick → Kurve (Linkskurve positiv); im NAS-Lauf geprüft.</summary>
+    private static readonly double KurveVorzeichen = double.TryParse(Wasserarten.Startoption("kurvevorzeichen"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var kv) ? kv : 1.0;
+
+    /// <summary>Glättet die Kurvenstärke eines Tiers aus dem Knickwinkel des Gespanns (nur Darstellung, kein Kern).</summary>
+    private static void ZugtierKurveSetzen(Zugtier t, double knickGrad, double dt)
+    {
+        var ziel = Math.Clamp(KurveVorzeichen * knickGrad / KurveVoll, -1.0, 1.0);
+        var a = dt <= 0 ? 0 : 1 - Math.Exp(-dt / KurveGlaettung);
+        t.Kurve += (ziel - t.Kurve) * a;
+    }
+
+    /// <summary>
+    /// Kurvenhaltung nah (Skelett), stufenlos: nach dem Abspielen der Pose dreht jeder Wirbelsäulenknochen um seine Achse um Grad × Kurve (Messwert aus Walk_L des Originals,
+    /// <c>zugtiere.json</c> „kurve“), die Beinwurzeln behalten ihre Richtung in der Welt. Nur im Lauf (Gehen/Ziehen, Anfahren, Bremsen), sonst gerade.
+    /// </summary>
+    private static void ZugtierBiegen(Zugtier t)
+    {
+        if (t.Skelett is not { } sk || t.Biegung.Length == 0 || Math.Abs(t.Kurve) < 1e-3 || t.Zustand is TierZustand.Stehen or TierZustand.Anhalten) return;
+        var fest = t.Beinwurzeln.Select(b => sk.GetBoneGlobalPose(b).Basis).ToArray();
+        foreach (var (knochen, achse, grad) in t.Biegung)
+        {
+            var dreh = new Quaternion(achse, Mathf.DegToRad(grad) * (float)t.Kurve);
+            // ohne Spur im laufenden Clip setzt der Spieler die Pose nicht neu: dann von der Ruhepose aus, sonst summierte sich die Drehung von Bild zu Bild
+            var grund = t.OhneSpur.TryGetValue(t.Klip, out var ohne) && ohne.Contains(knochen) ? sk.GetBoneRest(knochen).Basis.GetRotationQuaternion() : sk.GetBonePoseRotation(knochen);
+            sk.SetBonePoseRotation(knochen, dreh * grund);
+        }
+        for (var i = 0; i < t.Beinwurzeln.Length; i++)
+        {
+            var b = t.Beinwurzeln[i];
+            var eltern = sk.GetBoneParent(b);
+            var elternBasis = eltern >= 0 ? sk.GetBoneGlobalPose(eltern).Basis : Basis.Identity;
+            sk.SetBonePoseRotation(b, (elternBasis.Inverse() * fest[i]).GetRotationQuaternion());
+        }
     }
 
     private static readonly string[] TierStehenVarianten = { "Stehen", "Stehen", "Stehen_Ruhen", "Stehen_Umschauen", "Fressen" };
 
-    /// <summary>Name des Tiers einer Art („pferd“, „ochse“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
+    /// <summary>
+    /// Art (Nummer in <see cref="ProbeArten"/>) des Zugtiers Nummer <paramref name="i"/> eines Karrens: Pferde in drei Fellen (Braun, Rappe, Fuchs; je ein Drittel der
+    /// Startwerte). Das Fell folgt nur aus dem Startwert des Fuhrmanns und der Nummer des Tiers (nicht gespeichert).
+    /// </summary>
+    internal static int ZugtierArt(string tier, int startwert, int i)
+    {
+        return (int)(((uint)startwert >> (2 * i)) % 3) switch
+        {
+            0 => ProbeErsteTierart,          // Braun (tier_pferd_rotbraun)
+            1 => ProbeErsteTierart + 1,      // Rappe (tier_pferd_schwarzbraun)
+            _ => ProbeArten.Length - 1,      // Fuchs (tier_pferd_fuchs, letzte Art)
+        };
+    }
+
+    // Abzeichen (Nutzer 23.11.2026): jede Gruppe gleich häufig, alle Gruppen unabhängig; nur Darstellung, fester Hash aus dem Startwert des Fuhrmanns
+    // (wie das Fell) und der Nummer des Tiers, nicht gespeichert und nicht aus der Zufallsquelle des Kerns. Masken: tools/modelle/pferd2_abzeichen.py.
+    private const string AbzeichenKopfPfad = "res://assets/texturen/tiere/pferd_abzeichen_kopf.png";
+    private const string AbzeichenBeinePfad = "res://assets/texturen/tiere/pferd_abzeichen_beine.png";
+
+    /// <summary>
+    /// Abzeichen-Code eines Pferds (Aufbau in <c>tier_abzeichen.gdshaderinc</c>): Kopf 6 Möglichkeiten (keins, Stern, Blesse, Schnippe, Stern+Schnippe,
+    /// Blesse+Schnippe), je Bein 3 (nichts, Krone/Fessel, Socke), Maul 3 (wie das Fell, dunkler, heller); beim Rappen ist „dunkler“ nicht zu sehen, dort
+    /// nur „wie das Fell“ oder „heller“ (je die Hälfte). Gleich häufig über den Rest eines 32-Bit-Hashs (Abweichung unter 1e-8).
+    /// </summary>
+    internal static int AbzeichenCode(int startwert, int i, bool rappe)
+    {
+        var h = StabilerHash(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{startwert}/{i}/abzeichen")); // Minuszeichen unabhängig von der Systemkultur
+        var kopf = (int)(h % 6); h /= 6;
+        var beine = 0;
+        for (int b = 0, stelle = 1; b < 4; b++, stelle *= 3) { beine += (int)(h % 3) * stelle; h /= 3; }
+        var maul = rappe ? (int)(h % 2) * 2 : (int)(h % 3);
+        return kopf + 6 * beine + 486 * maul;
+    }
+
+    private Texture2D? _abzeichenKopf, _abzeichenBeine;
+    private readonly Dictionary<Material, ShaderMaterial> _abzeichenStoffe = new();
+
+    /// <summary>Lädt die Abzeichen-Masken einmal; null, wenn sie fehlen (dann ohne Abzeichen).</summary>
+    private (Texture2D Kopf, Texture2D Beine)? AbzeichenMasken()
+    {
+        if (_abzeichenKopf is null && ResourceLoader.Exists(AbzeichenKopfPfad) && ResourceLoader.Exists(AbzeichenBeinePfad))
+        {
+            _abzeichenKopf = GD.Load<Texture2D>(AbzeichenKopfPfad);
+            _abzeichenBeine = GD.Load<Texture2D>(AbzeichenBeinePfad);
+        }
+        return _abzeichenKopf is not null && _abzeichenBeine is not null ? (_abzeichenKopf, _abzeichenBeine) : null;
+    }
+
+    /// <summary>Setzt das Abzeichen-Material (tier_skelett.gdshader, eins je Fell) auf die Fläche mit dem Fell und den Code als Instanz-Parameter.</summary>
+    private void AbzeichenSetzen(Node3D tierModell, int code)
+    {
+        if (AbzeichenMasken() is not { } masken) return;
+        foreach (var teil in tierModell.FindChildren("Nah_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
+            {
+                if (teil.Mesh!.SurfaceGetMaterial(s) is not BaseMaterial3D { AlbedoTexture: not null } quelle) continue;
+                if (!_abzeichenStoffe.TryGetValue(quelle, out var stoff))
+                {
+                    stoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/tier_skelett.gdshader") };
+                    stoff.SetShaderParameter("albedo_textur", quelle.AlbedoTexture);
+                    if (quelle is { NormalEnabled: true, NormalTexture: { } normal })
+                    {
+                        stoff.SetShaderParameter("hat_normal", true);
+                        stoff.SetShaderParameter("normal_textur", normal);
+                        stoff.SetShaderParameter("normal_staerke", quelle.NormalScale);
+                    }
+                    if ((quelle.Get("orm_texture").As<Texture2D>() ?? quelle.RoughnessTexture) is { } orm)
+                    {
+                        stoff.SetShaderParameter("hat_orm", true);
+                        stoff.SetShaderParameter("orm_textur", orm);
+                    }
+                    stoff.SetShaderParameter("hat_abzeichen", true);
+                    stoff.SetShaderParameter("abzeichen_kopf", masken.Kopf);
+                    stoff.SetShaderParameter("abzeichen_beine", masken.Beine);
+                    _abzeichenStoffe[quelle] = stoff;
+                }
+                teil.SetSurfaceOverrideMaterial(s, stoff);
+            }
+            teil.SetInstanceShaderParameter("abzeichen_code", (float)code);
+        }
+    }
+
+    /// <summary>Name des Tiers einer Art („pferd“) – so heißen die Netze „Nah_…“ und „Fern_…“.</summary>
     private static string TierNameVon(int art) => ProbeArten[art].Varianten[0];
 
     /// <summary>
@@ -91,8 +228,7 @@ public partial class Stadtansicht
         {
             if (modell.FindChild(art.TierAnker[i], true, false) is not Node3D anker || anker.GetParent() is not { } eltern) continue;
             ankerPunkte.Add(anker.Position);
-            var fell = (fuhrmann.Startwert >> i) & 1; // beide Pferde können verschiedene Felle haben
-            var nummer = (tier == "pferd" ? ProbeErsteTierart : ProbeErsteTierart + 2) + fell;
+            var nummer = ZugtierArt(tier, fuhrmann.Startwert, i); // beide Pferde können verschiedene Felle haben
             if (Modell(ProbeArten[nummer].Datei) is not { } szene) continue;
             var tierModell = szene.Instantiate<Node3D>();
             var halter = new Node3D { Name = $"Zugtier{i + 1}" };
@@ -105,7 +241,9 @@ public partial class Stadtansicht
             foreach (var fern in tierModell.FindChildren("Fern_*", nameof(MeshInstance3D), true, false)) fern.QueueFree(); // das Fernnetz zeichnet nur der VAT
             foreach (var teil in tierModell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
                 for (var s = 0; s < (teil.Mesh?.GetSurfaceCount() ?? 0); s++)
-                    if (teil.Mesh!.SurfaceGetMaterial(s) is BaseMaterial3D stoff) FarbenEinrichten(stoff); // Eckenfarben (sRGB), wie bei allen Modellen
+                    if (teil.Mesh!.SurfaceGetMaterial(s) is BaseMaterial3D { AlbedoTexture: null } stoff) FarbenEinrichten(stoff); // Eckenfarben (sRGB), wie bei allen Modellen; das Pferd trägt eine Textur
+            var abzeichen = tier == "pferd" ? AbzeichenCode(fuhrmann.Startwert, i, rappe: nummer == ProbeErsteTierart + 1) : 0;
+            if (abzeichen > 0) AbzeichenSetzen(tierModell, abzeichen);
             var spieler = tierModell.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
             spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual; // das Spiel setzt die Pose selbst
             Zugtierdaten.KlipsEinrichten(spieler, tier); // Länge = Dauer der Datei, Schleifen linear (Godot nennt sie sonst um 1/24 s zu lang)
@@ -113,9 +251,26 @@ public partial class Stadtansicht
             var t = new Zugtier
             {
                 Halter = halter, Modell = tierModell, Spieler = spieler, Art = nummer, Daten = daten, Seed = seed,
-                ZugVersatz = zugVersatz,
+                ZugVersatz = zugVersatz, Abzeichen = abzeichen,
                 Versatz = art.TierAnker.Length > 1 ? i * 0.5 : 0, // Zweispänner: das zweite Pferd um eine halbe Schleife versetzt
             };
+            if (daten.Kurve.Length > 0 && tierModell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault() is { } skelett)
+            {
+                // Kurvenhaltung nah (ZugtierBiegen): Wirbelsäulenknochen und Beinwurzeln des Skeletts; fehlt ein Name, bleibt das Tier gerade
+                var biegung = daten.Kurve.Select(k => (skelett.FindBone(k.Knochen), k.Achse, k.Grad)).ToArray();
+                var wurzeln = new[] { "BN_L_Clavicle_038_039", "BN_R_Clavicle_043_045", "BN_L_Thing_051_054", "BN_R_Thing_056_060" }.Select(skelett.FindBone).ToArray();
+                if (biegung.All(b => b.Item1 >= 0) && wurzeln.All(w => w >= 0))
+                {
+                    t.Skelett = skelett; t.Biegung = biegung; t.Beinwurzeln = wurzeln;
+                    foreach (var name in spieler.GetAnimationList())
+                    {
+                        var anim = spieler.GetAnimation(name);
+                        var mitSpur = Enumerable.Range(0, anim.GetTrackCount()).Where(k => anim.TrackGetType(k) == Animation.TrackType.Rotation3D)
+                            .Select(k => anim.TrackGetPath(k).ToString()).ToArray();
+                        t.OhneSpur[name] = biegung.Where(b => !mitSpur.Any(p => p.EndsWith(":" + skelett.GetBoneName(b.Item1)))).Select(b => b.Item1).ToHashSet();
+                    }
+                }
+            }
             TierKlipSpielen(t, "Stehen", 0, seed % 1000 / 1000.0 * daten.Klips["Stehen"].Dauer); // zufällige Anfangsstelle: nicht alle im Gleichtakt
             tiere.Add(t);
         }
@@ -240,11 +395,13 @@ public partial class Stadtansicht
             if (tier.Modell.Visible == vat) tier.Modell.Visible = !vat;
             if (pause) continue;
             var vorher = tier.Klip;
+            ZugtierKurveSetzen(tier, karren.Lauf is { } gl ? gl.Knick * 180.0 / Math.PI : 0.0, delta);
             ZugtierSchritt(tier, rollt, beladen, geschwindigkeit, delta, out var schritt);
             if (ZugtierProtokoll && tier.Klip != vorher) GD.Print($"[zugtier] {tier.Halter.GetParent()?.GetParent()?.GetInstanceId()} {tier.Halter.Name}: {vorher} -> {tier.Klip} ({tier.Zustand}), Takt {geschwindigkeit / tier.Daten.Tempo:0.00}, Stelle {tier.Phase:0.00}/{tier.Dauer:0.00} s");
             if (!imBild || vat) { tier.Gezeigt = false; continue; }
             if (!tier.Gezeigt) { tier.Spieler.Seek(tier.Phase, true); tier.Gezeigt = true; } // wieder im Bild: die Pose steht an der richtigen Stelle
             tier.Spieler.Advance(schritt);
+            ZugtierBiegen(tier); // Kurvenhaltung stufenlos auf die eben gesetzte Pose (nah)
         }
     }
 
@@ -371,12 +528,8 @@ public partial class Stadtansicht
         return p.DistanceTo(a + ab * (vb * denom) + ac * (vc * denom));
     }
 
-    /// <summary>Seitlicher Abstand (Meter) des Läufers von der Mitte des Ochsen und sein Vorsprung (Meter) vor dem Joch: neben Schulter und Kopf.</summary>
-    private const float KarrenLaeuferAbstand = 1.1f;
-    private const float KarrenLaeuferVorn = 0.9f;
-
     /// <summary>
-    /// Stellt den Fuhrmann an den Anker des Karrens (Handkarren: <c>Anker_Ziehen</c> vor der Zugstange, Ochsenkarren: <c>Anker_Fahrer_Seite</c>, Pferdekarren:
+    /// Stellt den Fuhrmann an den Anker des Karrens (Handkarren: <c>Anker_Ziehen</c> vor der Zugstange, Pferdekarren:
     /// <c>Anker_Bock</c>, die Hüfte auf der Sitzfläche). Der Anker blickt mit −Z, die Figur mit +Z: Ein Halter am Anker dreht sie um 180° um die Hochachse.
     /// Ohne Passantenfiguren (<c>--passantenprobe=0</c>) gibt es keinen Fuhrmann am Karren.
     /// </summary>
@@ -386,59 +539,22 @@ public partial class Stadtansicht
         var halter = new Node3D { Name = "Fuhrmann" };
         eltern.AddChild(halter);
         halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
-        if (art.ZieherClip == "Nebenhergehen" && art.TierAnker.Length > 0 && modell.FindChild(art.TierAnker[0], true, false) is Node3D joch)
-        {
-            // Der Läufer geht neben dem Ochsen auf Höhe von Schulter und Kopf (nicht am Wagen): seitlich 1,1 m von der Mitte des Tiers, 0,9 m vor dem Joch; die Höhe bleibt die des Ankers (Boden)
-            var seite = anker.Position.X >= 0 ? 1f : -1f;
-            halter.Position = new Vector3(seite * KarrenLaeuferAbstand, anker.Position.Y, joch.Position.Z + KarrenLaeuferVorn);
-        }
         // Aussehen aus dem Baukasten (Volk, Geschlecht und Haar des Fuhrmanns im Kern, Tracht „Fuhrmann“); die Hausfarbe trägt nur der Karren.
-        // Den Stecken führt nur der Läufer am Ochsen – er gehört zur Arbeit am Karren, nicht zur Person.
         var rezept = FigurenBaukasten.Von(fuhrmann);
-        if (art.ZieherClip == "Nebenhergehen") rezept = rezept with { Tracht = rezept.Tracht with { Last = Last.Stab } };
         var figur = BaukastenProbeEinsetzen(halter, rezept, innen: false);
         if (figur is null) { halter.QueueFree(); return null; }
-        if (art.ZieherClip == "Nebenhergehen") StabKraeftigen(figur);
         if (art.ZieherClip == "SitzenBock") halter.Position -= new Vector3(0, figur.Kniehoehe - 0.02f, 0); // die Hüfte sitzt auf der Sitzfläche
         ansicht.FahrerHalter = halter;
         ansicht.FahrerBasis = halter.Basis;
-        if (art.ZieherClip != "SitzenBock") // Läufer und Zieher gehen mit dem Zugpunkt, nicht mit dem Wagen; der Kutscher sitzt auf dem Bock
+        if (art.ZieherClip != "SitzenBock") // Der Zieher geht mit dem Zugpunkt, nicht mit dem Wagen; der Kutscher sitzt auf dem Bock
             ansicht.FahrerVersatz = halter.Position - new Vector3(0, 0, ansicht.ZugZ);
         halter.Visible = false; // gezeigt wird er erst, wenn der Karren fährt (KarrenFuhrmannBewegen)
         ansicht.FahrerSichtbar = false;
         return figur;
     }
 
-    /// <summary>Wie viel dicker (Meter, je Seite) und in welcher Farbe der Stecken des Läufers erscheint: aus 3,4 cm werden gut 6 cm, hell wie frisch geschält (NAS-Klicktest: sonst nicht zu erkennen).</summary>
-    private const float StabDickePlus = 0.013f;
-    private static readonly Color StabFarbe = new(0.80f, 0.64f, 0.38f);
-
     /// <summary>
-    /// Der Stecken des Läufers (Zubehör „Zub_stab“ des Figurenmodells, nur im Nahnetz mit Skelett): Die Ecken rücken 1,3 cm entlang ihrer Normale hinaus (aus dem dünnen Stab wird ein
-    /// kräftiger Stecken, sein Modell im Blender-Skript bleibt unberührt) und er bekommt ein helles Holz, damit er sich von Gewand und Hand abhebt.
-    /// </summary>
-    private static void StabKraeftigen(Figur figur)
-    {
-        foreach (var teil in figur.Modell.FindChildren("Zub_stab", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
-        {
-            if (teil.Mesh is not ArrayMesh netz || netz.GetSurfaceCount() == 0) continue;
-            var arrays = netz.SurfaceGetArrays(0);
-            if (arrays[(int)Mesh.ArrayType.Vertex].VariantType == Variant.Type.Nil || arrays[(int)Mesh.ArrayType.Normal].VariantType == Variant.Type.Nil) continue;
-            var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
-            var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
-            var neu = new Vector3[ecken.Length];
-            for (var i = 0; i < ecken.Length; i++) neu[i] = ecken[i] + normalen[i] * StabDickePlus;
-            arrays[(int)Mesh.ArrayType.Vertex] = neu;
-            var dick = new ArrayMesh();
-            dick.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-            dick.CustomAabb = netz.GetAabb().Grow(0.05f);
-            teil.Mesh = dick;
-            teil.MaterialOverride = new StandardMaterial3D { AlbedoColor = StabFarbe, Roughness = 0.85f };
-        }
-    }
-
-    /// <summary>
-    /// Der Fuhrmann bewegt sich mit: fahrend „Ziehen“, „Nebenhergehen“ bzw. auf dem Bock „SitzenBock“ im Takt des Karrens (die Schritte passen zum Tempo), am Halt
+    /// Der Fuhrmann bewegt sich mit: fahrend „Ziehen“ bzw. auf dem Bock „SitzenBock“ im Takt des Karrens (die Schritte passen zum Tempo), am Halt
     /// „Stehen“ (auf dem Bock bleibt er sitzen). Am Betrieb und am geschlossenen Tor ist er nicht da.
     /// </summary>
     private void KarrenFuhrmannBewegen(KarrenAnsicht karren, bool faehrt, bool rollt, float geschwindigkeit, double delta)
@@ -471,11 +587,16 @@ public partial class Stadtansicht
                 // gebacken sind Stehen (alle Stehen-Varianten und Fressen), Gehen und Ziehen; Anfahren und Bremsen zeigen Gehen/Ziehen im Takt der Fahrt
                 var stehen = tier.Zustand is TierZustand.Stehen or TierZustand.Anhalten;
                 var nr = stehen ? 0 : 1; // Ziehen zeigt das gebackene Tier wie Gehen (siehe TierKlips)
+                // Pferd fern: ab der Schwelle der Kurvenclip (Gehen_Links = 2, Gehen_Rechts = 3, gleiche Stelle der Schleife); nah biegt ZugtierBiegen stufenlos
+                if (stehen || ProbeKlipsVon(tier.Art).Length < 4) tier.KurveVat = 0;
+                else if (tier.KurveVat == 0 && Math.Abs(tier.Kurve) >= KurveVatEin) tier.KurveVat = Math.Sign(tier.Kurve);
+                else if (tier.KurveVat != 0 && (Math.Abs(tier.Kurve) < KurveVatAus || Math.Sign(tier.Kurve) != tier.KurveVat)) tier.KurveVat = 0;
+                if (tier.KurveVat != 0) nr = tier.KurveVat > 0 ? 2 : 3;
                 var dauer = tier.Daten.Klips[nr == 0 ? "Stehen" : "Gehen"].Dauer;
                 var phase = stehen ? tier.Phase : tier.LaufPhase;
                 var (_, bilder) = _probeKlipZeilen[tier.Art][nr];
                 var bild = (float)(phase % dauer / dauer * bilder);
-                Eintragen($"{tier.Art}:{(_probeFern ? "Fern" : "Nah")}_{TierNameVon(tier.Art)}", tier.Modell.GlobalTransform, bild, nr, 0f);
+                Eintragen($"{tier.Art}:{(_probeFern ? "Fern" : "Nah")}_{TierNameVon(tier.Art)}", tier.Modell.GlobalTransform, bild, nr, tier.Abzeichen);
                 _probeGezeichnet++;
             }
         }

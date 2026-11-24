@@ -250,7 +250,7 @@ public partial class RatAnzeige : PanelContainer
             var zeile = new HBoxContainer();
             zeile.AddThemeConstantOverride("separation", 10);
             _inhalt.AddChild(zeile);
-            var ziele = new Konfession?[] { Konfession.Katholisch, Konfession.Evangelisch, null }.Where(k => k != gw.Stadtglaube).ToList();
+            var ziele = KonfessionTexte.Kirchliche.Select(k => (Konfession?)k).Append(null).Where(k => k != gw.Stadtglaube).ToList();
             var auswahl = new OptionButton { FocusMode = FocusModeEnum.None };
             foreach (var z in ziele)
             {

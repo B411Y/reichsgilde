@@ -36,11 +36,11 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 	vec4(0.50, 0.70, 0.85, 0.95),   // 2 Mensch Stufe 3: Werkstein im Putzband, Mauer (K1)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 3 Zwerg Stufe 1: dunkler Quader im Putzband, Bruchstein (K3)
 	vec4(0.50, 0.70, 0.85, 0.95),   // 4 Zwerg Stufe 2: dunkler Quader, Bruchstein (K3)
-	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein
+	vec4(0.50, 0.70, 0.85, 0.95),   // 5 Zwerg Stufe 3: dunkler Quader, heller Haustein K2
 	vec4(0.85, 0.95, -1.0, -1.0),   // 6 Elb Stufe 1: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz
 	vec4(0.85, 0.95, -1.0, -1.0),   // 7 Halbling Stufe 1: K2 im Bruchsteinband (Sockel, Schlot), im Putzband Lehmputz
 	vec4(0.85, 0.95, -1.0, -1.0),   // 8 Elb Stufe 2: Haustein (K2) im Bruchsteinband, im Putzband Kalkputz (Putzsockel, Gefache)
-	vec4(0.50, 0.70, 0.85, 0.95),   // 9 Elb Stufe 3: Werkstein (K5) im Putzband, Mauer (K2)
+	vec4(0.50, 0.70, 0.85, 0.95),   // 9 Elb Stufe 3: Haustein K2 im Bruchsteinband (Erdgeschoss, Giebel, Werkstein), im Putzband Kalkputz mit Efeu (Obergeschoss; als Steinband geführt wie bisher)
 	vec4(0.85, 0.95, -1.0, -1.0),   // 10 Halbling Stufe 2: Backstein K6 im Bruchsteinband (Erdgeschoss), im Putzband Lehmputz
 	vec4(0.50, 0.70, 0.85, 0.95)    // 11 Halbling Stufe 3: Werkstein im Putzband, Mauer Backstein K6
 );
@@ -57,6 +57,9 @@ const vec4 STEIN_EBENE[12] = vec4[12](
 // (Stroh, Ziegel, Schiefer: Farbe bis 0,23, Rauheit bis −0,2; Steinbänder: Metall bis +0,25 aus dem Eisenband, Streifen), mit band_lesen
 // höchstens 0,03. Ohne Pixel-Look greift der Zweig nicht (pixel_look > 0,5), dort bleibt alles bildpunktgleich.
 const float BAND_REIN[12] = float[12](1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);   // 0 = Ebene ohne reine Bänder
+// Eigene Blätter (stein_je_ebene = false) mit reinen Bändern: Dachbänder (v bis 0,25) und stein_baender. Dome (Nutzer, 23.11.2026): ohne das
+// zeichnete sich jede Mauerlage (1,2 m) als Streifen ab – oben das dunkle Eisenband, unten der helle Werkstein beigemischt.
+uniform float band_rein_eigen = 0.0;
 // Geteiltes Band „stroh“ (Halbling Stufe 3, belebt 19.11.2026): oben Efeu (v bis 0,125), darunter Kupfer – zwei reine Bänder; 0 = ungeteilt
 const float STROH_TEIL[12] = float[12](0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.125);
 
@@ -184,9 +187,9 @@ void fragment() {
 	vec3 normal_tx = texture(normal_tex, uvw, grob_licht).rgb;
 	// Reine Bänder (BAND_REIN, siehe oben): Dachbänder „stroh“ und „stroh_franse“, die Steinbänder der Ebene
 	float yb = fract(UV.y);
-	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && stein_je_ebene && BAND_REIN[clamp(eb, 0, 11)] > 0.5 && (yb < 0.25 || stein)) {
+	if (!scharf && pixel_look > 0.5 && haus_baender > 0.5 && (stein_je_ebene ? BAND_REIN[clamp(eb, 0, 11)] > 0.5 : band_rein_eigen > 0.5) && (yb < 0.25 || stein)) {
 		vec2 bd = yb < 0.1875 ? vec2(0.0, 0.1875) : (yb < 0.25 ? vec2(0.1875, 0.25) : ((UV.y >= sb.x && UV.y < sb.y) ? sb.xy : sb.zw));
-		float teil = STROH_TEIL[clamp(eb, 0, 11)];
+		float teil = stein_je_ebene ? STROH_TEIL[clamp(eb, 0, 11)] : 0.0;
 		if (teil > 0.0 && yb < 0.1875) bd = yb < teil ? vec2(0.0, teil) : vec2(teil, 0.1875);
 		tex = band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob);
 		if (stein) tex = mix(tex, band_lesen(albedo_tex, uvw, bd.x, bd.y, lod + grob_licht), stein_ruhe);

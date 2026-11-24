@@ -288,3 +288,31 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zweite Ebene | Unterstrichene Begriffe öffnen weiter einen zweiten Tooltip derselben schlichten Art. | 22.11.2026 |
 | Nicht angefasst | Hauptmenü, Kartenwerkstatt, Fenster und Tafeln (Pergament). Der kleine Bauplatz-Hinweis der Baumodus-Tafel (`BauAnzeige`, eigener Stilkasten im Code) war schon dunkel mit goldenem Rand. | 22.11.2026 |
 | Kürzungen | Lange Tooltip-Texte wurden nur gesichtet, nicht gekürzt; Vorschläge siehe Liste des Teamleiters (Einstellungen-Beleuchtung, Familien-Glaube, Zeitstrahl, Wohnhaus, AP-Liste). | 22.11.2026 |
+
+### Ahtnentum in der Oberfläche (Branch phase5/ahtnentum)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Glaubenswahl | Neue Partie: alle vier Bekenntnisse im Feld „Glaube“, nicht mögliche ausgegraut mit dem Grund aus `GlaubeDaten.StartglaubeVerboten` im Tooltip; Orks und Oger zeigen nur den Naturglauben. KI-Zeilen: dieselbe Sperre, sobald ein Volk gewählt ist (Glaube springt sonst auf „zufällig“). | 23.11.2026 |
+| Kern-Ergänzung | `StartglaubeVerboten` und `AufnahmeGrund` liegen jetzt auch in `GlaubeDaten` (öffentlich), damit das Hauptmenü ohne Welt fragen kann; `Glaubenswesen` delegiert. Verhalten unverändert. | 23.11.2026 |
+| Familienbuch | Übertritt-Knöpfe für alle anderen Bekenntnisse (Grund aus `KonvertierenVerboten` als Tooltip), Stammbaum/Brautschau mit `Kurzname()`; Heirat: Folge „Paar und Kinder werden neuahtnisch“ im Tooltip der Volk-Spalte und von „Heiraten“, Sperre als „Kirche im Weg“ mit Grund. | 23.11.2026 |
+| Rat, Dom | Ratsantrag Stadtglaube: alle vier Bekenntnisse; Dom-Infotext nennt Altahtnen und Neuahtnen. Konfessionszeichen (Grafik) nicht gemacht, nichts erfunden. | 23.11.2026 |
+
+### Knopf „Entwickler“ im Spielmenü (Branch phase5/entwickler-knopf)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Knopf | Im Spielmenü steht „Entwickler (F12)“ (nach „Hilfe“), nur sichtbar mit dem Haken „Entwickler-Optionen“ (`Entwickler.Aktiv`); Klick schließt das Menü (Pause wie vorher) und öffnet das Fenster. Der Haken auf der Starttafel bleibt. | 23.11.2026 |
+| Betriebsleiste | Der alte Knopf in der Betriebsleiste fehlt zu Recht: Kopfzeile und Betriebsleiste entfielen mit dem Zunftlade-Umbau (18.11.2026); nur Kommentare erwähnten ihn noch, jetzt berichtigt. | 23.11.2026 |
+
+### Karren selbst fahren (Paket K2, Branch phase5/karren-selbst)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafeln | Zwei Tafeln auf dem Grund `InnenTafel` (Basis `KarrenTafel`): Transportmenü `KarrenFahrtAnzeige` (alle Karren des Hauses ankreuzen, Ziel aus der Liste, Eskorte je Fahrt, „Losschicken“ und „Zurück zum Heimatbetrieb“), Ladefenster `KarrenLadeAnzeige` (laden, abladen, „Alles abladen“) (K2b, 23.11.: das Handelsfenster entfällt, gehandelt wird nur im Marktmenü, siehe „Handel im Marktmenü“). Karren werden über Heimatbetrieb und Nummer angesprochen; eine Auswahl über mehrere Heimatbetriebe sendet einen Befehl je Betrieb. Maße, Farben und Schrift aus `fenster_thema.tres` (Maße „karren_…“, Farben `FensterStil.Farbe`). | 23.11.2026 |
+| Zugänge | „Karren fahren …“ im Bedienfeld (ersetzt „Handel am Markt …“, solange selbst gefahren wird), in der Zunftlade (Fach „Karren“), im Karrenhof; `--tafel=fahrt\|laden` mit `--innen` (`handel` öffnet das Marktmenü). Aus dem Transportmenü führen „Beladen …“ in das Ladefenster und „Handeln …“ (am Markt) ins Marktmenü mit diesem Karren vorgewählt. | 23.11.2026 |
+| Schnittstelle K3 | `KarrenFahrtAnzeige.ZielWahlImBild(bool)` meldet, dass die Wahl im Bild beginnt oder endet; die Stadtansicht ruft nach dem Klick aufs Gebäude `ZielSetzen(betriebsname)` (null = Markt); `ZielGewaehlt(name)` meldet jedes gewählte Ziel. Die Tafel wird über `Hauptszene._fahrtTafel` erreicht. | 23.11.2026 |
+| Handelsauftrag | Wo `VerwalterhandelVerboten(spieler)` einen Grund nennt, fehlt der Handelsauftrag im Marktfenster (`MarktAnzeige`) und der Knopf im Bedienfeld. | 23.11.2026 |
+| Handel im Marktmenü (K2b) | Nutzer 23.11.: gehandelt wird nur im Marktmenü und nur mit eigenem Karren am Markt (`MarktAnzeige.Karren.cs`): Karren wählen, Ladung und freie Flächen, verkaufen aus der Ladung, kaufen in die Ladung (`KarrenHandeln`, Gründe aus `KarrenHandelnVerboten`); ohne Karren am Markt der Hinweis „Kein Karren am Markt – schicke einen Karren her, um zu handeln.“ Der Block ersetzt im Selbstfahren das Handelsfenster; beim Selbstfahren gibt es weiter keinen Handelsauftrag (Kern: `VerwalterhandelVerboten`). Kasse nach Verkauf: Erlös minus Marktsteuer (5 %), kein Fehler; die Meldung nennt den Erlös vor Steuer. | 23.11.2026 |
+| Neue Partien | Menü „Neue Partie“ und Start ohne Menü setzen `KarrenSelbstFahren = true`; `--karrenselbst=0` schaltet es für einen Start aus. Entwicklerfenster: Haken „Karren fahren automatisch“ (`EntwicklerKarrenAutomatisch`), der Stand kommt aus `Stadtwirtschaft.KarrenAutomatisch`. | 23.11.2026 |
+| Meldung | Neue Art „KarrenAngekommen“ in `meldungen.json` (Thema Handel, eigenes Haus als Siegel, sonst nur Verlauf, ohne Textmuster über die Kern-Art). | 23.11.2026 |

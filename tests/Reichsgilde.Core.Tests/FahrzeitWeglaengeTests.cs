@@ -63,7 +63,7 @@ static class FahrzeitWeglaengeTests
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
+    static readonly string[] Arten = { "Handkarren", "Pferdekarren", "Großer Pferdekarren" };
 
     /// <summary>Ein Spielstand von vor Datenversion 65 (Greybox, Herbst 1406, mit festen Fahrzeiten gespeichert; siehe UhrumstellungTests).</summary>
     static readonly Lazy<string> AlterStand = new(() =>
@@ -79,10 +79,10 @@ static class FahrzeitWeglaengeTests
         ("Fahrzeit nach Weglänge: Daten – Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s; 1 m/s = 0,79 m je Spielminute; mindestens 10, höchstens 360 Minuten; Ausbau höchstens 1,15", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(96, d.Version);
-            Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Ochsenkarren"].Tempo, d.Logistik.Karren["Pferdekarren"].Tempo));
+            Pruefe.Gleich(99, d.Version);
+            Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Pferdekarren"].Tempo, d.Logistik.Karren["Großer Pferdekarren"].Tempo));
             Pruefe.Ungefaehr(MeterJeMinuteBei1, Taktgeber.SekundenJeSpielminute, 1e-12);
-            Pruefe.Ungefaehr(0.8 * MeterJeMinuteBei1, d.Logistik.Karren["Ochsenkarren"].MeterJeMinute, 1e-12);
+            Pruefe.Ungefaehr(0.8 * MeterJeMinuteBei1, d.Logistik.Karren["Pferdekarren"].MeterJeMinute, 1e-12);
             Pruefe.Gleich((10, 360), (d.Logistik.Weglaenge!.MindestMinuten, d.Logistik.Weglaenge.HoechstMinuten));
             Pruefe.Gleich(1.15, d.Wegebau!.AusbauHoechstens);
             Pruefe.Gleich(30, d.Logistik.FahrzeitAb(Arbeitsort.Werkstatt));
@@ -103,8 +103,8 @@ static class FahrzeitWeglaengeTests
                 Pruefe.Gleich(erwartet, w.Fahrzeit(werkstatt, typ, zumMarkt: true), typ);
                 Pruefe.Gleich(NachFormel(w, werkstatt, typ, false), w.Fahrzeit(werkstatt, typ, zumMarkt: false), typ + " zurück");
             }
-            Pruefe.Wahr(w.Fahrzeit(werkstatt, "Ochsenkarren", true) > w.Fahrzeit(werkstatt, "Handkarren", true)
-                        && w.Fahrzeit(werkstatt, "Handkarren", true) > w.Fahrzeit(werkstatt, "Pferdekarren", true), "Ochse > Hand > Pferd");
+            Pruefe.Wahr(w.Fahrzeit(werkstatt, "Pferdekarren", true) > w.Fahrzeit(werkstatt, "Handkarren", true)
+                        && w.Fahrzeit(werkstatt, "Handkarren", true) > w.Fahrzeit(werkstatt, "Großer Pferdekarren", true), "Ochse > Hand > Pferd");
             var karren = werkstatt.Karren[0];
             Pruefe.Gleich("Handkarren", karren.Typ);
             Pruefe.Gleich(w.Fahrzeit(werkstatt, "Handkarren", true), w.Fahrzeit(karren, true));
@@ -147,7 +147,7 @@ static class FahrzeitWeglaengeTests
             var kurz = DatenMit(d => d["logistik"]!["weglaenge"]!["hoechstMinuten"] = 20);
             var (simK, _, wk) = Partie(kurz);
             Pruefe.Wahr(simK.Wirtschaft!.Fahrten(wk)!.Value.Hin.Sum(s => s.Laenge) / (0.8 * MeterJeMinuteBei1) > 20, "ohne Grenze länger als 20 Minuten");
-            Pruefe.Gleich(20, simK.Wirtschaft.Fahrzeit(wk, "Ochsenkarren", true));
+            Pruefe.Gleich(20, simK.Wirtschaft.Fahrzeit(wk, "Pferdekarren", true));
         }),
 
         ("Fahrzeit: ohne Karte, ohne Platz und mit alten Daten (ohne logistik.weglaenge) die feste Fahrzeit wie bisher", () =>
@@ -229,13 +229,13 @@ static class FahrzeitWeglaengeTests
         ("Fahrzeit nach Weglänge: Datenprüfung – ohne Tempo, Höchst- unter Mindestdauer, Ausbau unter 1", () =>
         {
             // fehlerhafte Daten lädt der Kern gar nicht erst (Wirtschaftsdaten.AusJson prüft und nennt den Fehler)
-            Pruefe.WirftMitMeldung(() => DatenMit(d => d["logistik"]!["karren"]!["Ochsenkarren"]!.AsObject().Remove("tempo")), "Karren Ochsenkarren: tempo");
+            Pruefe.WirftMitMeldung(() => DatenMit(d => d["logistik"]!["karren"]!["Pferdekarren"]!.AsObject().Remove("tempo")), "Karren Pferdekarren: tempo");
             Pruefe.WirftMitMeldung(() => DatenMit(d => d["logistik"]!["weglaenge"]!["hoechstMinuten"] = 5), "hoechstMinuten");
             Pruefe.WirftMitMeldung(() => DatenMit(d => d["logistik"]!["weglaenge"]!["mindestMinuten"] = 0), "mindestMinuten");
             Pruefe.WirftMitMeldung(() => DatenMit(d => d["wegebau"]!["ausbauHoechstens"] = 0.9), "ausbauHoechstens");
             // ohne logistik.weglaenge braucht ein Karren kein Tempo (alte Daten)
-            var alt = DatenMit(d => { d["logistik"]!.AsObject().Remove("weglaenge"); d["logistik"]!["karren"]!["Ochsenkarren"]!.AsObject().Remove("tempo"); });
-            Pruefe.Gleich(0.0, alt.Logistik.Karren["Ochsenkarren"].Tempo);
+            var alt = DatenMit(d => { d["logistik"]!.AsObject().Remove("weglaenge"); d["logistik"]!["karren"]!["Pferdekarren"]!.AsObject().Remove("tempo"); });
+            Pruefe.Gleich(0.0, alt.Logistik.Karren["Pferdekarren"].Tempo);
             Pruefe.Gleich(0, Daten.Value.Pruefen().Count);
         }),
 

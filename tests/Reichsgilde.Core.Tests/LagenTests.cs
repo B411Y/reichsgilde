@@ -43,7 +43,7 @@ static class LagenTests
         ("Lagen: Jeder Umlandbetrieb mit Rohwaren hat genau eine Quelle (die Ernte zuerst), alle mit denselben Stufen – Wachturm keine", () =>
         {
             var w = Wirtschaft(1);
-            Pruefe.Gleich(96, Daten.Value.Version);
+            Pruefe.Gleich(99, Daten.Value.Version);
             Pruefe.Gleich(7, w.Lagen.Quellen.Count);
             Pruefe.Gleich("Ernte", w.Lagen.Quellen[0].Kennung);
             Pruefe.Gleich(Betriebsart.Bauernhof, w.Lagen.Quellen[0].Betrieb);

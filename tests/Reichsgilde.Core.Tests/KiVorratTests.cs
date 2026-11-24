@@ -40,7 +40,7 @@ static class KiVorratTests
     static long Minute(int jahr, int stunde) => jahr * (long)Spielzeit.MinutenProTag + stunde * 60 - Spielzeit.TagesbeginnMinute;
 
     /// <summary>Ein KI-Haus in der Probestadt zu dieser Minute.</summary>
-    /// <summary>Die KI würfelt schon beim Anmelden (ihre erste Stunde) – eine Tischlerei mit Pferdekarren gibt es dann schon, wenn gewünscht.</summary>
+    /// <summary>Die KI würfelt schon beim Anmelden (ihre erste Stunde) – eine Tischlerei mit Großem Pferdekarren gibt es dann schon, wenn gewünscht.</summary>
     static (Simulation Sim, Stadtwirtschaft W, Konto K, KiRivale Ki) KiHaus(Wirtschaftsdaten daten, long minute, double geld = 30_000,
         string? tischlerei = null)
     {
@@ -49,7 +49,7 @@ static class KiVorratTests
         var w = sim.Wirtschaft!;
         w.KarteSetzen(Stadtkarte.AusDatei(Datenpfad.Karte("probestadt")));
         var k = w.KontoEroeffnen("Haus Vorrat", startvermoegen: geld);
-        if (tischlerei is not null) w.BetriebEroeffnen(tischlerei, Betriebsart.Tischlerei, k, startkarren: "Pferdekarren");
+        if (tischlerei is not null) w.BetriebEroeffnen(tischlerei, Betriebsart.Tischlerei, k, startkarren: "Großer Pferdekarren");
         return (sim, w, k, w.KiAnmelden(k));
     }
 

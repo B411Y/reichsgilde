@@ -94,6 +94,13 @@ public sealed record EntwicklerHausbrand(string? Haus = null) : EntwicklerBefehl
 public sealed record EntwicklerBlitz(string? Gebaeude = null) : EntwicklerBefehl;
 
 /// <summary>
+/// Entwicklerhaken „Karren fahren automatisch“ (Nutzer 23.11.2026): für die ganze Partie an (alle Karren fahren nach der Verwalterregel) oder aus
+/// (die Spieler fahren ihre Karren selbst, die KI weiter automatisch). Steht im Spielstand (<see cref="Wirtschaft.Stadtwirtschaft.KarrenAutomatisch"/>).
+/// Stehende selbst gefahrene Karren fahren beim Einschalten zuerst heim.
+/// </summary>
+public sealed record EntwicklerKarrenAutomatisch(bool An) : EntwicklerBefehl;
+
+/// <summary>
 /// Ein Versteck der Diebe (Unterschlupf) für dieses Haus eröffnen, falls es noch keines hat, und mit Gesellen füllen – ohne Kosten. Zum Ausprobieren
 /// der Taschendiebe am Markt (Startoption <c>--diebtest=1</c>); der Betrieb hat keinen Platz auf der Karte, die Diebe sind trotzdem am Markt.
 /// </summary>

@@ -28,8 +28,8 @@ public partial class Stadtansicht
     /// <summary>Breite des Gespanns (Meter, Karren samt Tieren) quer zur Fahrtrichtung, aus den Modellen: Karren 2,38 / 2,08 / 1,50 m, Tiere und Läufer innerhalb bzw. knapp daneben.</summary>
     internal static float KarrenBreite(string typ) => typ switch
     {
-        "Pferdekarren" => 2.4f,
-        "Ochsenkarren" => 2.2f,
+        "Großer Pferdekarren" => 2.4f,
+        "Pferdekarren" => 2.2f,
         _ => 1.6f,
     };
 

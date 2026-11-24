@@ -113,7 +113,7 @@ sealed class Betriebsjahr
     public bool Neubau;
     /// <summary>Das erste Jahresende, an dem es den Betrieb gab (1 = am Ende des ersten Jahres).</summary>
     public int SeitJahr;
-    /// <summary>Hinfahrt des ersten Karrens zum Markt nach dem Kern (Minuten); ohne Karren die Hinfahrt eines Handkarrens bzw. Ochsenkarrens.</summary>
+    /// <summary>Hinfahrt des ersten Karrens zum Markt nach dem Kern (Minuten); ohne Karren die Hinfahrt eines Handkarrens bzw. Pferdekarrens.</summary>
     public int FahrzeitHin;
     public int Fahrten;
     public double StillstandProzent, Umsatz, Gewinn;
@@ -366,7 +366,7 @@ static class Messpartie
             var haus = -1;
             for (var i = 0; i < w.Konten.Count; i++)
                 if (w.Konten[i] == b.Konto) { haus = i; break; }
-            var typ = b.Karren.Count > 0 ? b.Karren[0].Typ : b.InDerStadt ? "Handkarren" : "Ochsenkarren";
+            var typ = b.Karren.Count > 0 ? b.Karren[0].Typ : b.InDerStadt ? "Handkarren" : "Pferdekarren";
             if (!seit.TryGetValue(b.Name, out var ab)) seit[b.Name] = ab = jahr;
             e.Betriebe.Add(new Betriebsjahr
             {

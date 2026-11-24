@@ -95,17 +95,54 @@ public partial class Hauptmenue
         Konfession.Katholisch => "katholisch",
         Konfession.Evangelisch => "evangelisch",
         Konfession.Naturglaube => "Naturglaube",
+        Konfession.Altahtnisch => "altahtnisch",
+        Konfession.Neuahtnisch => "neuahtnisch",
         _ => k.ToString(),
     };
 
-    /// <summary>Die Glauben, mit denen das gewählte Volk beginnen kann; die bisherige (oder die übergebene) Wahl bleibt, wenn sie dazu passt.</summary>
+    /// <summary>Ob und warum ein Volk mit diesem Glauben nicht beginnen kann (Kern, <see cref="GlaubeDaten.StartglaubeVerboten"/>); null = erlaubt.</summary>
+    private static string? StartglaubeGrund(Volk volk, Konfession g) =>
+        DatenLesekopie()?.Glaube is { } gd ? gd.StartglaubeVerboten(volk, g) : Startaufstellung.Startglauben(volk).Contains(g) ? null : "Dieses Bekenntnis nimmt das Volk nicht auf.";
+
+    /// <summary>
+    /// Die Glauben des gewählten Volkes: Orks und Oger den Naturglauben, alle anderen die vier Bekenntnisse, wobei nicht erlaubte (z. B. altahtnisch bei Menschen)
+    /// ausgegraut sind und den Grund im Tooltip nennen. Die bisherige (oder die übergebene) Wahl bleibt, wenn sie dazu passt.
+    /// </summary>
     private void GlaubeFuellen(Konfession? wahl = null)
     {
         var bisher = wahl is { } w ? (int)w : _glaube.ItemCount > 0 ? _glaube.GetSelectedId() : -1;
+        var volk = (Volk)_volk.GetSelectedId();
         _glaube.Clear();
-        foreach (var g in Startaufstellung.Startglauben((Volk)_volk.GetSelectedId()))
+        var liste = volk is Volk.Ork or Volk.Oger ? Startaufstellung.Startglauben(volk) : KonfessionTexte.Kirchliche;
+        foreach (var g in liste)
+        {
             _glaube.AddItem(GlaubeName(g), (int)g);
-        _glaube.Select(Math.Max(0, _glaube.GetItemIndex(bisher)));
+            if (StartglaubeGrund(volk, g) is { } grund)
+            {
+                _glaube.SetItemDisabled(_glaube.ItemCount - 1, true);
+                _glaube.SetItemTooltip(_glaube.ItemCount - 1, grund);
+            }
+        }
+        var index = _glaube.GetItemIndex(bisher);
+        if (index < 0 || _glaube.IsItemDisabled(index)) index = Enumerable.Range(0, _glaube.ItemCount).FirstOrDefault(i => !_glaube.IsItemDisabled(i));
+        _glaube.Select(index);
+    }
+
+    /// <summary>
+    /// Im Glaubensfeld einer KI-Zeile sind die Bekenntnisse ausgegraut, mit denen das gewählte Volk nicht beginnen kann (Tooltip: der Grund);
+    /// war so eines gewählt, springt das Feld auf „zufällig“. Bei „Volk: zufällig“ ist alles frei – der Kern würfelt dann ein passendes Volk.
+    /// </summary>
+    private static void KiGlaubeSperren(KiZeile z)
+    {
+        var volk = Gewaehlt(z.Volk) is { } v ? (Volk?)(Volk)v : null;
+        for (var i = 0; i < z.Glaube.ItemCount; i++)
+        {
+            if (z.Glaube.GetItemId(i) == Zufaellig) continue;
+            var grund = volk is { } vk ? StartglaubeGrund(vk, (Konfession)z.Glaube.GetItemId(i)) : null;
+            z.Glaube.SetItemDisabled(i, grund is not null);
+            z.Glaube.SetItemTooltip(i, grund ?? "");
+        }
+        if (z.Glaube.Selected >= 0 && z.Glaube.IsItemDisabled(z.Glaube.Selected)) z.Glaube.Select(0);
     }
 
     /// <summary>Alle Berufe, mit denen ein Haus beginnen kann, aus den Daten (<see cref="Startaufstellung.FreieBerufe"/>), mit der Werkstatt in Klammern; „zufällig“ davor für die KI.</summary>
@@ -220,7 +257,7 @@ public partial class Hauptmenue
             foreach (var v in Startaufstellung.KiVoelker) volk.AddItem(v.Mehrzahl(), (int)v);
             var glaube = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
             glaube.AddItem("Glaube: zufällig", Zufaellig);
-            foreach (var g in new[] { Konfession.Katholisch, Konfession.Evangelisch }) glaube.AddItem(GlaubeName(g), (int)g);
+            foreach (var g in KonfessionTexte.Kirchliche) glaube.AddItem(GlaubeName(g), (int)g);
             var beruf = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(120, 0) };
             BerufFuellen(beruf, true);
             unten.AddChild(volk);
@@ -229,7 +266,9 @@ public partial class Hauptmenue
             wurzel.AddChild(unten);
 
             _kiListe.AddChild(wurzel);
-            _kiZeilen.Add(new KiZeile { Wurzel = wurzel, Name = name, Wappen = wappen, Volk = volk, Glaube = glaube, Beruf = beruf });
+            var zeile = new KiZeile { Wurzel = wurzel, Name = name, Wappen = wappen, Volk = volk, Glaube = glaube, Beruf = beruf };
+            volk.ItemSelected += _ => KiGlaubeSperren(zeile);
+            _kiZeilen.Add(zeile);
         }
         KiZeilenZeigen();
     }

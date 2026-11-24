@@ -81,7 +81,6 @@ public static class Speicherung
     public static (Simulation Simulation, Konto? Spieler) Laden(string json, Bauen.Stadtkarte? karte = null)
     {
         var stand = Lesen(json);
-        stand.Daten?.Logistik.AlteKarrenartenUmstellen(); // Spielstand von vor dem 04.11.2026: Kriegskarren → Pferdekarren
         stand.Daten?.Wohnen?.Raeume?.AltenFestsaalUmstellen(); // Datenversion 87: Festsaal nicht mehr im Wohnhaus (erst mit der Stadtvilla)
 
         if (stand.Daten is { } daten && daten.Pruefen() is { Count: > 0 } fehler)
@@ -137,6 +136,8 @@ public static class Speicherung
             // Format 2 (Spieltag 05–22 Uhr): erst die Uhr und alle Zeitpunkte auf den Spieltag 04–23 Uhr umrechnen
             var knoten = System.Text.Json.Nodes.JsonNode.Parse(json);
             if (knoten is System.Text.Json.Nodes.JsonObject o) Uhrumstellung.Umrechnen(o);
+            // Umbenannte Karren (Format bis 3, Datenversion 99): Ochsenkarren → Pferdekarren, Pferdekarren/Kriegskarren → Großer Pferdekarren
+            if (knoten is System.Text.Json.Nodes.JsonObject k) Karrenumbenennung.Umrechnen(k);
             // Umbenannte Waren (Rapier → Dolch, PR #232): überall im Spielstand, auch in den mitgespeicherten Daten
             if (json.Contains("Rapier", StringComparison.Ordinal)) Warenumbenennung.Umbenennen(knoten);
             stand = knoten.Deserialize<Speicherstand>(Optionen);

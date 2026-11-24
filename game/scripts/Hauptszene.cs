@@ -57,7 +57,7 @@ namespace Reichsgilde;
 ///   --lexikon=1        das Lexikon öffnen (=<kennung>: gleich bei diesem Begriff, =suche:<text>: mit diesem Suchtext); --lexikon-pruefen=1 prüft die Datei und beendet das Spiel
 ///   --meldung=⚠_Text   eine Meldung einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
 ///   --meldungen=demo   sechs Siegel in der Ecke unten rechts (Familie, Handel, Rat, Gefahr, Stadt, Befehl) und einen Stillstand; mit =brief dazu ein Brief
-///   --karren=Ochsenkarren,Pferdekarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Pferdekarren)
+///   --karren=Pferdekarren,Großer_Pferdekarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Pferdekarren, Großer_Pferdekarren)
 ///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
 ///   --schiffsauftrag=vorschlag  jedem eigenen Schiff am Kai den Vorschlag geben (=<Ziel>: den Vorschlag für diese ferne Stadt, z. B. Eisenfurt)
 ///   --hafen=1          die Hafentafel des ersten Hafens öffnen (=<Kennung> eines Hafens der Karte, =staedte: auf dem Reiter „Ferne Städte“)
@@ -143,6 +143,8 @@ public partial class Hauptszene : Node
     private ProduktionAnzeige _produktionTafel = null!;
     private LagerAnzeige _lagerTafel = null!;
     private KarrenAnzeige _karrenTafel = null!;
+    private KarrenFahrtAnzeige _fahrtTafel = null!;
+    private KarrenLadeAnzeige _ladeTafel = null!;
     private EinrichtenAnzeige _einrichtenTafel = null!;
     private WohnhausBaumAnzeige _wohnhausBaum = null!;
     private WachplanAnzeige _wachplanTafel = null!;
@@ -510,6 +512,37 @@ public partial class Hauptszene : Node
             tafel.Auswahl = () => _stadt.GewaehlteArbeiter;
         }
         _karrenTafel.HandelGewuenscht += b => { TafelnSchliessen(); _markt.Oeffnen(b); };
+        _karrenTafel.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
+        _uebersicht.KarrenFahrtGewuenscht += b => { TafelnSchliessen(); _fahrtTafel.Oeffnen(b); };
+        foreach (var karrenTafel in new KarrenTafel[] { _fahrtTafel, _ladeTafel })
+            karrenTafel.Wechseln += (name, betrieb, schluessel) =>
+            {
+                TafelnSchliessen();
+                if (name == "handel") { _markt.Oeffnen(betrieb, schluessel); return; } // gehandelt wird nur im Marktmenü, mit diesem Karren vorgewählt
+                KarrenTafel ziel = name == "laden" ? _ladeTafel : _fahrtTafel;
+                ziel.Vorwahl = schluessel;
+                ziel.Oeffnen(betrieb);
+            };
+        // Karren selbst fahren: das Ziel im Bild wählen (Stadtansicht.Karrenziel.cs). Das Transportmenü steht in der Werkstatt; die Stadt sieht man nur draußen,
+        // darum geht der Spieler für die Wahl kurz hinaus und kommt danach mit dem gewählten Ziel (oder ohne, bei Esc) in die Werkstatt zurück.
+        _fahrtTafel.ZielWahlImBild += an =>
+        {
+            if (!an) { if (_stadt.KarrenZielWahlLaeuft) _stadt.GebaeudeWahlAbbrechen(); return; }
+            var drinnen = _stadt.InnenBetrieb;
+            if (drinnen is not null) _stadt.InnenansichtVerlassen();
+            void Zurueck(string? ziel, bool gewaehlt)
+            {
+                if (drinnen is null) { if (gewaehlt) _fahrtTafel.ZielSetzen(ziel); else _fahrtTafel.ImBildAbgebrochen(); return; }
+                if (gewaehlt) _fahrtTafel.ZielVorgeben(ziel);
+                _fahrtTafel.ImBildAbgebrochen();
+                BetriebBetreten(drinnen, "fahrt");
+            }
+            if (_spieler is null || !_stadt.KarrenZielWaehlen(_spieler, z => Zurueck(z, true), Protokollieren, () => Zurueck(null, false)))
+            {
+                Protokollieren("Ein Ziel im Bild lässt sich jetzt nicht wählen – nimm die Liste.");
+                Zurueck(null, false);
+            }
+        };
         _stadt.BedienungAngeklickt += (tafel, _) => InnenTafelOeffnen(tafel);
         BuecherVerbinden(); // 3D-Bücher: Kamera-Schwenk, Aufklappen, Tafel darüber (Hauptszene.Buecher.cs)
         GegenstaendeVerbinden(); // Kartentisch und Geldtruhe im Kontor (Hauptszene.Gegenstaende.cs)
@@ -592,7 +625,7 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("karren", out var karrenTypen) && _eigeneGiesserei is { } kaeufer && _simulation.Wirtschaft is { } wKarren && _spieler is not null)
             foreach (var typ in karrenTypen.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ), ergebnis =>
+                _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ.Replace('_', ' ')), ergebnis => // Leerzeichen als _: Großer_Pferdekarren
                 {
                     if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
                 });
@@ -607,7 +640,7 @@ public partial class Hauptszene : Node
                     if (!ergebnis.Erfolg) Protokollieren("--vorrat=" + eintrag + ": " + ergebnis.Meldung);
                 });
             }
-        if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Ochsenkarren" : umlandWert);
+        if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Pferdekarren" : umlandWert.Replace('_', ' '));
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat != "")
@@ -840,7 +873,9 @@ public partial class Hauptszene : Node
         _wohnhausBaum = new WohnhausBaumAnzeige();
         _wachplanTafel = new WachplanAnzeige();
         _bankTafel = new BankAnzeige();
-        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel };
+        _fahrtTafel = new KarrenFahrtAnzeige();
+        _ladeTafel = new KarrenLadeAnzeige();
+        _innenTafeln = new InnenTafel[] { _personalTafel, _produktionTafel, _lagerTafel, _karrenTafel, _einrichtenTafel, _wachplanTafel, _bankTafel, _fahrtTafel, _ladeTafel };
         var rand = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         rand.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         rand.AddThemeConstantOverride("margin_left", 16);
@@ -878,12 +913,20 @@ public partial class Hauptszene : Node
             _hinterzimmer.Oeffnen();
             return;
         }
+        if (tafel.Equals("handel", StringComparison.OrdinalIgnoreCase)) // Karren selbst fahren: gehandelt wird im Marktmenü
+        {
+            TafelnSchliessen();
+            _markt.Oeffnen(betrieb, null);
+            return;
+        }
         InnenTafel? ziel = tafel.ToLowerInvariant() switch
         {
             "personal" => _personalTafel,
             "produktion" => _produktionTafel,
             "lager" => _lagerTafel,
             "karren" => _karrenTafel,
+            "fahrt" => _fahrtTafel, // Karren selbst fahren: Transportmenü, Ladefenster
+            "laden" => _ladeTafel,
             "einrichten" or "talentbaum" => _einrichtenTafel,
             "wache" => _wachplanTafel,
             "bank" => _bankTafel,
@@ -916,10 +959,10 @@ public partial class Hauptszene : Node
     /// (dafür braucht es Geld: --vermoegen=20000).
     /// </summary>
     /// <summary>
-    /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Ochsenkarren dazukaufen und
+    /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Pferdekarren dazukaufen und
     /// seine Kurzübersicht zeigen – ohne Innenansicht stehen Karren, Eskorte und „Verkaufen“ dort unter „…“.
     /// </summary>
-    private void UmlandVorbereiten(string karrenTyp = "Ochsenkarren")
+    private void UmlandVorbereiten(string karrenTyp = "Pferdekarren")
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
         Betrieb? Erwerben()
@@ -1079,7 +1122,7 @@ public partial class Hauptszene : Node
             Rivalen: Math.Min(3, haeuser),
             Startwahl: optionen.GetValueOrDefault("startwahl") == "1"); // --startwahl=1: der Spieler setzt Wohnhaus und Werkstatt selbst (Hauptszene.Startwahl.cs)
         if (neu.Rivalen > haeuser) neu = neu with { Rivalen = haeuser };
-        einstellungen ??= Partieeinstellungen.Standard;
+        einstellungen ??= Partieeinstellungen.Standard with { KarrenSelbstFahren = optionen.GetValueOrDefault("karrenselbst") != "0" }; // --karrenselbst=0: die Karren fahren von selbst wie bisher
         if (optionen.TryGetValue("schwierigkeit", out var stufe) && Enum.TryParse<Schwierigkeit>(stufe, true, out var schwierigkeit))
             einstellungen = einstellungen with { Schwierigkeit = schwierigkeit }; // --schwierigkeit=Schwer: nur für diesen Start
         if (optionen.TryGetValue("startwert", out var sw) && int.TryParse(sw, out var startwert))
@@ -1120,6 +1163,7 @@ public partial class Hauptszene : Node
         });
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
         Hauptmenue.Knopf(_menueKnoepfe, "Hilfe (F1)", HilfeOeffnen);
+        EntwicklerKnopfBauen(); // „Entwickler“, nur mit dem Haken (Hauptszene.Entwickler.cs)
         ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
         Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => { UmgebungAusblenden(); GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"); });
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
@@ -1701,8 +1745,8 @@ public partial class Hauptszene : Node
         {
             var markt when Stadtansicht.IstMarktplatz(markt) => $"{_stadt.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
-            "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
-                     + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
+            "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker; die Kirchen der Altahtnen (Elben, Zwerge, Halblinge) "
+                     + "und Neuahtnen (alle vier Kulturvölker) gehören zum Ahtnentum. Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)

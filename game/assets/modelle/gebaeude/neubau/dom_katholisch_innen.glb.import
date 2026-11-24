@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://f72ev6gls7y7"
-path="res://.godot/imported/karren_ochse.glb-8a81703381362dac5d7d2cae0ddfb55d.scn"
+uid="uid://dcn2drrt8rqmk"
+path="res://.godot/imported/dom_katholisch_innen.glb-10b972b8d3c0f7e17bbc1495eaa21bea.scn"
 
 [deps]
 
-source_file="res://assets/modelle/karren/karren_ochse.glb"
-dest_files=["res://.godot/imported/karren_ochse.glb-8a81703381362dac5d7d2cae0ddfb55d.scn"]
+source_file="res://assets/modelle/gebaeude/neubau/dom_katholisch_innen.glb"
+dest_files=["res://.godot/imported/dom_katholisch_innen.glb-10b972b8d3c0f7e17bbc1495eaa21bea.scn"]
 
 [params]
 

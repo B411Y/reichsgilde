@@ -124,11 +124,11 @@ static class WerkstattVerkaufTests
             Pruefe.Gleich(true, frei.IstPacht);
             Pruefe.Gleich(Betriebsart.Mine, frei.Art);
 
-            // Wiederpachten: leer, mit Ochsenkarren
+            // Wiederpachten: leer, mit Pferdekarren
             Pruefe.Wahr(w.Ausfuehren(k, new LiegenschaftErwerben("Grube am Silberberg")).Erfolg, "erneut pachten");
             var neu = w.Betriebe.Single(b => b.Name == "Grube am Silberberg");
             Pruefe.Wahr(neu != grube && neu.Belegt == 0 && neu.Lager.Count == 0, "nicht leer");
-            Pruefe.Gleich("Ochsenkarren", neu.Karren.Single().Typ);
+            Pruefe.Gleich("Pferdekarren", neu.Karren.Single().Typ);
             Pruefe.Gleich(anzahl, w.FreieLiegenschaften.Count());
         }),
 
@@ -145,7 +145,7 @@ static class WerkstattVerkaufTests
             Pruefe.Wahr(!e1.Erfolg && e1.Meldung.Contains("umgebaut"), e1.Meldung);
             Pruefe.Wahr(w.VerkaufVorschau(g).Verboten?.Contains("umgebaut") == true, "Vorschau nennt den Umbau");
 
-            grube.Einlagern("Eisen", 60); // genug für eine Fahrt: Der Ochsenkarren fährt los
+            grube.Einlagern("Eisen", 60); // genug für eine Fahrt: Der Pferdekarren fährt los
             for (var i = 0; i < 5 && grube.Karren[0].Zustand == KarrenZustand.AmBetrieb; i++) sim.Tick();
             Pruefe.Wahr(grube.Karren[0].Zustand != KarrenZustand.AmBetrieb, "Karren fährt nicht los");
             var e2 = w.Ausfuehren(k, new BetriebVerkaufen(grube.Name));
@@ -163,7 +163,7 @@ static class WerkstattVerkaufTests
             g.Ausbauen(Betriebsart.Schmiede, 0);
             w.Einstellen(g, "Geselle", 3);
             g.Waechter = true;
-            g.KarrenKaufen("Ochsenkarren");
+            g.KarrenKaufen("Pferdekarren");
             Pruefe.Wahr(w.Ausfuehren(k, new BetriebVerkaufen(g.Name)).Erfolg, "Verkauf");
 
             var kaeufer = Buerger(w, "Käufer", 20000);

@@ -8,7 +8,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Das <b>Entwicklerfenster</b> („Trainer“, Taste <b>F12</b> und Knopf „Entwickler“ in der Betriebsleiste – beides nur mit dem Haken
+/// Das <b>Entwicklerfenster</b> („Trainer“, Taste <b>F12</b> und Knopf „Entwickler“ im Spielmenü – beides nur mit dem Haken
 /// „Entwickler-Optionen“ im Hauptmenü, <see cref="Entwickler.Aktiv"/>): in der Bildmitte sechs Reiter. <b>Haus und Zeit</b> (Gulden, Aktionspunkte, Stand, Ansehen,
 /// Meinung, Vorspulen), <b>Familie und Ereignisse</b> (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), <b>Wirtschaft</b> (Ware, Zutaten),
 /// <b>Wetter und Darstellung</b>, <b>Messwerte</b> (EntwicklerAnzeige.Darstellung.cs) und <b>Klänge</b> (alle Klänge zum Anhören mit Bus und Pegel, EntwicklerAnzeige.Klaenge.cs).
@@ -244,9 +244,17 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         _meinung = Zahl(z, -100, 100, 1, 50, 90);
         Knopf(z, "Setzen", () => { if (_meinungVon.Schluessel is { } von) Befehlen(new EntwicklerMeinung(von, Wert(_meinung), HausName)); });
 
+        z = Zeile(s, "Karren", "Gesetzt, fahren die Karren aller Häuser wieder von selbst zum Markt (so wie vor „Karren selbst fahren“); sonst bedient der Spieler seine Karren selbst. Gilt für die ganze Partie und steht im Spielstand.");
+        _karrenAuto = new CheckBox { Text = "Karren fahren automatisch", FocusMode = FocusModeEnum.None, TooltipText = "Gesetzt: die Karren fahren von selbst, losschicken und handeln entfällt. Beim Setzen schicken sich stehende Karren heim." };
+        _karrenAuto.Toggled += an => { if (!_karrenAutoSetzt) Befehlen(new EntwicklerKarrenAutomatisch(an)); };
+        z.AddChild(_karrenAuto);
+
         s.AddChild(new HSeparator());
         ZeitAbschnitt(s);
     }
+
+    private CheckBox _karrenAuto = null!;
+    private bool _karrenAutoSetzt;
 
     private SpinBox _spulZahl = null!, _uhrStunde = null!, _uhrMinute = null!;
     private OptionButton _spulEinheit = null!;
@@ -380,6 +388,12 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     {
         if (_sim?.Wirtschaft is not { } w) return;
         var aktiv = w.Konten.Where(k => k.IstAktiv).ToList();
+        if (_karrenAuto is not null && _karrenAuto.ButtonPressed != w.KarrenAutomatisch)
+        {
+            _karrenAutoSetzt = true; // der Stand kommt aus dem Kern: kein neuer Befehl
+            _karrenAuto.SetPressedNoSignal(w.KarrenAutomatisch);
+            _karrenAutoSetzt = false;
+        }
         _haus.Fuellen(aktiv.Select(k => (k.Inhaber, k == _spieler ? k.Inhaber + " (ihr)" : k.Inhaber)).ToList(), _spieler.Inhaber);
         if (_hausFertig)
         {

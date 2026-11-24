@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://blxu31blcpqd0"
+path.bptc="res://.godot/imported/dom_innen_trim_orm.png-1766b4b3fa5c3d93d66f554a95e86e7f.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://assets/texturen/neubau/dom_innen_trim_orm.png"
+dest_files=["res://.godot/imported/dom_innen_trim_orm.png-1766b4b3fa5c3d93d66f554a95e86e7f.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=true
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=1

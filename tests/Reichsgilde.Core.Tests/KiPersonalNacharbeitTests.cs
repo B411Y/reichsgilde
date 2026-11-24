@@ -78,7 +78,7 @@ static class KiPersonalNacharbeitTests
                     daten, new NeuePartie(Rivalen: haeuser, Aufstellung: Aufstellungsart.Vorgabe), karte: Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(pfad));
                 var w = sim.Wirtschaft!;
                 var b = w.Betriebe.Single(x => x.Name == "Holzschlag Hardevust"); // nur Holz, Lager 40
-                b.KarrenHinzufuegen("Pferdekarren"); // lädt 75, das Lager gibt 40 her – mehr Lager lädt mehr
+                b.KarrenHinzufuegen("Großer Pferdekarren"); // lädt 75, das Lager gibt 40 her – mehr Lager lädt mehr
                 typeof(Betrieb).GetProperty(nameof(Betrieb.StillstandMinutenVorjahr))!.SetValue(b, b.Arbeitsminuten * 3 / 10);
                 return (w, w.Rivalen.Single(r => r.Konto == b.Konto), b);
             }

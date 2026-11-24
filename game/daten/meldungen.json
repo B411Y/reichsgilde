@@ -806,6 +806,22 @@
    "muster": []
   },
   {
+   "id": "KarrenAngekommen",
+   "name": "Karren angekommen",
+   "kern": [
+    "KarrenAngekommen"
+   ],
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Der Karren steht",
+   "absender": "Euer Fuhrmann",
+   "erklaerung": "Ein Karren, den ihr selbst losgeschickt habt, ist am Markt oder an einem eigenen Betrieb angekommen und wartet auf Euren Befehl.",
+   "ziel": "betrieb",
+   "muster": []
+  },
+  {
    "id": "KI-Zug",
    "name": "Züge der Rivalen",
    "thema": "stadt",

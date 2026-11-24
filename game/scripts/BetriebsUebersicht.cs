@@ -46,6 +46,9 @@ public partial class BetriebsUebersicht : VBoxContainer
     /// <summary>Handel am Markt (aus dem Bedienfeld eines Betriebs ohne Innenansicht).</summary>
     public event Action<Betrieb>? HandelGewuenscht;
 
+    /// <summary>Karren selbst fahren: das Transportmenü öffnen.</summary>
+    public event Action<Betrieb>? KarrenFahrtGewuenscht;
+
     /// <summary>Der Spieler möchte den Talentbaum der Einrichtung dieses Betriebs sehen (PR #224).</summary>
     public event Action<Betrieb>? EinrichtungGewuenscht;
 
@@ -107,6 +110,7 @@ public partial class BetriebsUebersicht : VBoxContainer
         AddChild(_verwaltung);
         _verwaltung.Gemeldet += t => Gemeldet?.Invoke(t);
         _verwaltung.HandelGewuenscht += b => HandelGewuenscht?.Invoke(b);
+        _verwaltung.KarrenFahrtGewuenscht += b => KarrenFahrtGewuenscht?.Invoke(b);
         _verwaltung.VerkaufGewuenscht += b => VerkaufGewuenscht?.Invoke(b);
         // Ausbau und Verkaufen (bzw. Pacht kündigen) als eigene Knöpfe in einer zweiten Reihe unter „Hineingehen“ (die Leiste ist nur 300 px breit); im „…“-Menü stehen sie nicht mehr
         var knoepfe2 = new HBoxContainer();

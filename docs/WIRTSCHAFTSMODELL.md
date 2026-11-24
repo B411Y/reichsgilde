@@ -108,11 +108,12 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Karren | Ladeflächen × Stück | Preis | Startausstattung |
 |---|---|---|---|
 | Handkarren | 1 × 15 | 150 | Gießerei |
-| Ochsenkarren | 2 × 20 | 400 | Mine |
-| Pferdekarren | 3 × 25 | 900 | – |
+| Pferdekarren (ein Pferd) | 2 × 20 | 400 | Mine und alle Umlandbetriebe |
+| Großer Pferdekarren (zwei Pferde) | 3 × 25 | 900 | – |
 
-- Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
-- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
+- Bis Datenversion 97 hießen sie Ochsenkarren und Pferdekarren (gleiche Werte, siehe „Karrenarten ohne Ochsen (Datenversion 99)“).
+- Ladeflächen sind frei belegbar (ein Pferdekarren kann 40 Eisen laden).
+- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Pferdekarren 0,8, Handkarren 1,0, Großer Pferdekarren 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
 - Lager je Betrieb: 40 Stück je Ware.
 - **Verwalter-Regel:** Der Karren fährt los, wenn eines davon zutrifft:
   - Er kann mindestens drei Viertel einer Ladung mitnehmen.
@@ -120,7 +121,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
   - Die Zutaten reichen für weniger als 5 Stück.
   - Ware wartet seit 4 Stunden.
 - Ins Umland fährt der Karren nachts (21–06 Uhr) nur, wenn es ausdrücklich erlaubt ist.
-- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Ochsenkarren 200, Pferdekarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
+- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Pferdekarren 200, Großer Pferdekarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
 
 ### Eskorten und Überfälle
 | Eskorte | Kosten je beladener Fahrt | Schutz |
@@ -154,7 +155,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Handkarren | keine | −215 | 51 |
 
 **Spielerische Folge:**
-- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Ochsenkarren die normale, beim Pferdekarren die schwere.
+- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Pferdekarren die normale, beim Großen Pferdekarren die schwere (gemessen mit den Namen bis Datenversion 97: Ochsenkarren, Pferdekarren).
 - Mit einem Handkarren kommt die Mine mit dem Abtransport nicht nach.
 
 ### Neue Referenzwerte mit Logistik (automatische Tests, Mittel über 20 Jahre)
@@ -800,7 +801,7 @@ Eisenbart (Zwerg, Schmied – der einzige Startberuf mit Bonus) gewinnt am meist
 | Händlerspanne beim Einkauf | +10 % auf den Marktpreis (`handel.aufschlag`), Verhandeln −1,5 % je Stern |
 | Preiswirkung | je gekauftes Stück −1 im Angebotsfenster des Jahres (symmetrisch zum Verkauf) |
 | Marktzeit | 8–20 Uhr, maßgeblich ist die Ankunft des Karrens (Stadt 30 Min., Umland 120 Min.) |
-| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Ochsenkarren 2 × 20, Pferdekarren 3 × 25) |
+| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Pferdekarren 2 × 20, Großer Pferdekarren 3 × 25) |
 
 **Rechenbeispiel:** 10 Gold bei Grundpreis 60 (Preis 61,6) kosten von Hand ≈ 675 Gulden (Ø 67,5 je Stück); der Goldpreis steigt dadurch auf 63,2. Wer sofort wieder verkauft, bekommt nach Umsatzsteuer ≈ 600 – Spekulation lohnt nur, wenn der Preis inzwischen deutlich steigt (z. B. weil andere Häuser Gold brauchen und niemand verkauft).
 
@@ -2608,3 +2609,53 @@ Seit dem 17.11.2026 nennen die Karten keine festen KI-Häuser mehr; jede Partie 
 
 **Befund:** Das Vermögen der KI-Häuser bleibt gleich (Köln −0,8 %, Messstadt −0,1 bis +6,2 %) – alles innerhalb der Streuung von 10 Startwerten. Der Bezugsspieler liegt höher (+4,5 %, auf „Schwer“ +9,6 %), bei einem Fehler des Mittels von über 11.000 Gulden lässt sich das mit 10 Startwerten nicht von Zufall trennen. Nichts nachgesteuert. Wer es genauer wissen will: `messen bericht 20 20` (900 Partien) vorher und nachher.
 
+
+## Ahtnentum: dritter Glaube der Anderlinge (Datenversion 97, 23.11.2026)
+
+Gemessen auf main 6bc4b696 + dieser PR (vorher: main 6bc4b696). `glaube.voelker` (Elb K 0,35 / E 0,15 / Alt 0,25 / Neu 0,25, Zwerg 0,15 / 0,35 / 0,30 / 0,20, Halbling 0,22 / 0,28 / 0,23 / 0,27, Menschen ohne Ahtnentum), `glaube.stadt` aus den Volksanteilen der Bürger (M 5, H 2, Z 2, E 1) hergeleitet: K 0,41 / E 0,34 / Alt 0,13 / Neu 0,12. Drei Ratsherren ahtnisch (Kämmerer altahtnisch, Marktmeister und ein Nachrücker neuahtnisch).
+
+| Messung | vorher | nachher |
+|---|---|---|
+| `messen 30 20`: Stadtglaube am Ende (20 Partien) | katholisch 14, evangelisch 6 | katholisch 12, neuahtnisch 3, altahtnisch 1, Glaubensfreiheit 4 |
+| Anträge Stadtglaube (gestellt/angenommen) | 22/22 | 41/40 |
+| Katholiken Ø am Ende | 62 % | 43 % |
+| Glaube der drei KI-Häuser am Ende (60) | katholisch 40, evangelisch 20 | katholisch 31, evangelisch 9, neuahtnisch 12, altahtnisch 8 |
+| Glaubenszins Ø je Jahr (Stadtkasse) | 42 | 39 |
+| Vermögen des Spielers Ø (30 J.) | 161.106 | 158.669 |
+| `messen bericht 20 10 --teile=1`: Prediger (ein Betrieb, 20 J.) | 29.801 (+10,6 %) | 29.185 (+5,6 %) |
+
+Ergebnis: Die Gemeinden ohne eigene Kirche (heute meist die Ahtnen) geben in fremden Kirchen nur die halbe Spende; der Prediger verliert dadurch etwa 2 % Vermögen (im Rauschen von 10 Startwerten) und bleibt über dem Mittel. Ein Stadtglaube geht seltener durch, der Rat ist jetzt gemischter (in 4 von 20 Partien bleibt Glaubensfreiheit), ahtnische Stadtglauben kommen vor (4 von 20). Die übrigen Berufe bewegen sich im Rauschen (statische Rechnung unverändert).
+
+## Karren verweilen am Markt (Datenversion 98, 23.11.2026)
+
+Ein automatisch fahrender Karren (heute alle; später KI-Häuser und der Entwicklerhaken „Karren fahren automatisch“) bleibt nach Verkauf und Einkauf `logistik.verweilenMinuten` = 20 Minuten am Markt bzw. Hafen stehen, erst dann fährt er zurück (Nutzer 23.11.2026: die Zeit steht für das Ab- und Aufladen, das der Spieler beim Selbstfahren selbst macht). Jede Rundfahrt wird 20 Minuten länger; im Umland kann der Rückweg dadurch hinter den Torschluss fallen.
+
+**Messung:** vorher auf main 0e6e6e25, nachher auf main 0e6e6e25 + dieser Branch (`phase5/karren-selbst`, Paket V). `messen 30 20`, `messen 30 20 greybox` und `messen bericht 20 20` (je 780 Partien, 0 mit Fehler). Dateien `docs/messungen/balancing-2026-11-23-verweilen-vorher.json` und `…-nachher.json`.
+
+| Größe | vorher | nachher | Unterschied |
+|---|---|---|---|
+| `messen 30 20`: Spieler (passiv), Vermögen Ø | 158.669 | 152.879 | −3,6 % |
+| `messen 30 20`: KI-Häuser (40), Vermögen Ø | 154.817 | 143.456 | −7,3 % |
+| `messen 30 20 greybox`: Spieler (passiv), Vermögen Ø | 216.394 | 195.019 | −9,9 % |
+| `messen 30 20 greybox`: Eichwald und Kieselbach (9 Fälle), Vermögen Ø | 192.340 | 175.208 | −8,9 % |
+| `messen 30 20 greybox`: Umsatzsteuer je Jahr | 2.168 | 2.088 | −3,7 % |
+| Bericht: Berufe simuliert, Mittel des Vermögenszuwachses (ein Betrieb, 20 J.) | 26.256 | 24.402 | −7,1 % |
+| Bericht: Spieler mit einem Betrieb, Greybox / Probestadt | 28.146 / 21.403 | 24.854 / 20.578 | −11,7 % / −3,9 % |
+| Bericht: Messstadt, Vermögen je KI-Haus mit 1 / 3 / 7 Häusern | 29.584 / 45.264 / 50.425 | 26.007 / 41.603 / 48.128 | −12 % / −8 % / −5 % |
+| Bericht: KI-Stärke Greybox, Bezug / KI-Häuser (Median KI ÷ Bezug) | 63.889 / 62.823 (0,95) | 60.747 / 57.023 (0,96) | −4,9 % / −9,2 % |
+| Bericht: „Schwer“, Bezug / KI-Häuser (Median) | 63.204 / 70.674 (1,07) | 56.556 / 67.425 (1,19) | −10,5 % / −4,6 % |
+| Bericht: Karren der KI verkauft in Not / nach einem Jahr ohne Fahrt | 9 / 193 | 29 / 229 | |
+| Bericht: Berufe außerhalb ±15 % (simuliert) | Tischler −15, Geldleiher +48, Gardist −21 | Wirt −15, Dieb +19, Geldleiher +59 | |
+| Minengewinn ohne Karte (Test, 3 Bergleute / 3 Orks) | 996 / 1.365 | 924 / 1.293 | −7 % / −5 % |
+
+**Befund:** Längere Rundfahrten bringen weniger Ware zum Markt; das Vermögen sinkt überall um etwa 4 bis 12 %, am stärksten bei langen Umlandwegen und bei Häusern mit einem Karren. Das Verhältnis KI ÷ Bezug bleibt in der Greybox gleich (0,95 → 0,96); auf „Schwer“ verliert der Bezugsspieler mehr als die KI (1,07 → 1,19). Die KI verkauft öfter Karren in Not (9 → 29 in 780 Partien). Ihre Eichung (Durchfluss beim Karrenkauf und `FahrminutenJeKarrenUndJahr` beim Pachten rechnen noch ohne Verweilen) zieht Paket V-KI nach. Nichts an anderen Werten nachgesteuert.
+
+**Nachgezogen (Paket V-KI):** Karrenkauf der KI (`Werkstattwesen.Durchfluss`) und Schätzung beim Pachten (`KiRivale.UmlandSchaetzen`) rechnen die Rundfahrt mit dem Verweilen; `FahrminutenJeKarrenUndJahr` bleibt 600 (Eichung in `docs/bereiche/spiel-ki.md`). Gemessen auf main 0e6e6e25 + Branch (Paket V und V-KI), gegen Paket V: `messen 30 20` Zeichen für Zeichen gleich; Greybox Spieler 195.019 → 195.696, Eichwald und Kieselbach 175.208 → 174.674; Bericht: KI-Stärke Greybox Median 0,96 → 0,96, „Schwer“ 1,19 → 1,22, Berufe-Mittel 24.402 → 24.271, Karren der KI in Not verkauft 29 → 27, nach einem Jahr ohne Fahrt 229 → 236. Die Notverkäufe bleiben also etwa dreimal so häufig wie vor dem Verweilen (9) – nicht nachgesteuert, bis über das Vermögen (−4 bis −12 %) entschieden ist. Datei `docs/messungen/balancing-2026-11-23-verweilen-ki.json`.
+
+## Karrenarten ohne Ochsen (Datenversion 99, 23.11.2026)
+
+Nutzer 23.11.2026: Den Ochsenkarren gibt es nicht mehr. Der **Pferdekarren** (ein Pferd) übernimmt seine Werte (2 × 20 Stück, 400 Gulden, Tempo 0,8 m/s), der bisherige Pferdekarren (zwei Pferde) heißt **Großer Pferdekarren** (3 × 25, 900, 1,3 – unverändert). Startkarren von Mine und allen Umlandbetrieben und die Kaufregel der KI ohne Fahrzeit nach Weglänge: Pferdekarren. Keine Zahl ändert sich; ältere Messungen in diesem Dokument nennen die alten Namen (Ochsenkarren = heute Pferdekarren, Pferdekarren = heute Großer Pferdekarren).
+
+Gemessen auf main 0e6e6e25 + dieser PR (vorher: main 0e6e6e25 mit dem Stand des Branches `phase5/zugpferd`). `messen karren --jahre=10` (Greybox und Köln, „Schwer“, alle KI-Häuser: Fahrzeiten je Art, je Jahr und Betrieb Karren, Fahrten, Stillstand, Umsatz, Gewinn) und `messen 20 10`: Nach dem Gleichsetzen der Namen sind beide Ausgaben Zeile für Zeile gleich (bis auf die Datenversion in der Kopfzeile). Auch die KI kauft und tauscht dieselben Karren: Die Reihenfolge der Arten (ordinal nach Namen) ändert sich zwar, sie entscheidet aber nur bei gleichem Wert und gleichen Kosten, und das kommt bei verschiedenen Preisen nicht vor.
+
+**Zusammengeführt mit „Karren selbst fahren“ (#559, Datenversion 98 mit dem Verweilen am Markt):** Die Umbenennung ist jetzt Datenversion 99, Spielstand-Format 4 (main schrieb weiter Format 3; dessen Spielstände mit Selbstfahr- und Verweilfeldern werden beim Laden ebenso umbenannt). Gemessen auf main 95a145a7 + dieser Branch gegen main 95a145a7: `messen 30 20` Zeile für Zeile gleich (die Ausgabe nennt keine Karrenart; Spieler Vermögen Ø 152.879 vorher wie nachher).

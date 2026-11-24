@@ -48,6 +48,9 @@ public enum Meldungsart
     Entscheidung,
     /// <summary>Gefahr durch die Wache: Die Wache eines Hauses macht eine Razzia bei diesem Haus (betroffen ist das durchsuchte Haus).</summary>
     Bedrohung,
+
+    /// <summary>Ein selbst gefahrener Karren ist am Ziel angekommen (Markt oder eigener Betrieb) und wartet auf Befehle.</summary>
+    KarrenAngekommen,
 }
 
 /// <summary>Wie wichtig eine Meldung aus Sicht des Kerns ist. Was die Oberfläche daraus macht (Verlauf, Siegel, Brief), entscheidet sie selbst.</summary>

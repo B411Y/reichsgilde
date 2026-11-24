@@ -1,0 +1,54 @@
+// Abzeichen des Zugpferds (Stern, Blesse, Schnippe, weiße Fesseln/Socken, Maulpartie) als zweite Schicht über der Albedo; gemeinsam für tier_vat.gdshader (fern)
+// und tier_skelett.gdshader (nah). Masken im UV des Fells (tools/modelle/pferd2_abzeichen.py):
+//   abzeichen_kopf  RGBA: R Stern, G Blesse, B Schnippe, A Maulpartie (weich)
+//   abzeichen_beine L:    (Beinnummer + Höhe/0,5 m) / 4, ohne Filter gelesen (0 LF, 1 RF, 2 LH, 3 RH)
+// Code je Pferd (Stadtansicht.Zugtiere.cs, fester Hash aus Karren und Tier, nur Darstellung):
+//   kopf + 6 * (lf + 3 * (rf + 3 * (lh + 3 * rh))) + 486 * maul
+//   kopf 0 keins, 1 Stern, 2 Blesse, 3 Schnippe, 4 Stern+Schnippe, 5 Blesse+Schnippe; Bein 0 nichts, 1 Krone/Fessel, 2 Socke; maul 0 wie Fell, 1 dunkler, 2 heller
+uniform bool hat_abzeichen = false;
+uniform sampler2D abzeichen_kopf : hint_default_black, filter_linear_mipmap, repeat_disable;
+uniform sampler2D abzeichen_beine : hint_default_black, filter_nearest, repeat_disable;
+
+const vec3 ABZEICHEN_WEISS = vec3(0.84, 0.81, 0.75);   // sRGB 236/232/224, leicht warm
+const vec3 ABZEICHEN_MEHL = vec3(0.58, 0.41, 0.22);    // sRGB 200/172/128, Mehlmaul
+const vec3 ABZEICHEN_HORN = vec3(0.55, 0.40, 0.20);    // sRGB 196/170/124, heller (wachsgelber) Huf unter weißem Bein
+
+// huf_maske: Alpha der ORM-Karte (1 = Huf, aus tools/modelle/pferd3_karten.py); unter einem weißen Bein wird der Huf hell-wachsgelb statt weiß.
+vec3 abzeichen(vec3 albedo, vec2 uv, float code_f, float huf_maske) {
+	int code = int(round(code_f));
+	if (!hat_abzeichen || code <= 0) {
+		return albedo;
+	}
+	int kopf = code % 6;
+	int beine = (code / 6) % 81;
+	int maul = (code / 486) % 3;
+	vec4 k = texture(abzeichen_kopf, uv);
+	vec3 farbe = albedo;
+	if (maul == 1) {
+		farbe = farbe * (1.0 - 0.90 * k.a);   // linear 0,10 = sRGB etwa 0,35 (wie die Vorschau in pferd2_abzeichen.py)
+	} else if (maul == 2) {
+		farbe = mix(farbe, ABZEICHEN_MEHL, 0.45 * k.a);
+	}
+	float weiss = 0.0;
+	float huf = 0.0;   // Anteil Huf unter weißem Bein: heller Horn statt Weiß, Streifen der Albedo bleiben
+	if (kopf == 1 || kopf == 4) weiss = max(weiss, k.r);
+	if (kopf == 2 || kopf == 5) weiss = max(weiss, k.g);
+	if (kopf >= 3) weiss = max(weiss, k.b);
+	float b = texture(abzeichen_beine, uv).r;
+	if (b > 0.0) {
+		float x = b * 4.0;
+		int bein = int(floor(x + 1e-4));
+		float h = x - float(bein);
+		int art = (beine / int(pow(3.0, float(bein)) + 0.5)) % 3;
+		if (art > 0) {
+			// oberer Rand weich (0,06 = 3 cm) und leicht unregelmäßig (±1,25 cm), wie in pferd2_abzeichen.py (einbrennen)
+			float grenze = (art == 1 ? 0.36 : 0.70) + 0.025 * sin(uv.x * 157.0) * sin(uv.y * 211.0);
+			float w = 1.0 - smoothstep(grenze - 0.06, grenze, h);
+			weiss = max(weiss, w);
+			huf = max(huf, w * huf_maske);
+		}
+	}
+	float hell_horn = clamp(dot(albedo, vec3(0.3333)) / 0.028, 0.7, 1.35);
+	vec3 ziel = mix(ABZEICHEN_WEISS, ABZEICHEN_HORN * hell_horn, huf / max(weiss, 1e-4));
+	return mix(farbe, ziel, weiss);
+}

@@ -1,5 +1,5 @@
 {
-  "version": 96,
+  "version": 99,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -845,6 +845,7 @@
     "zutatenVorratStunden": 4,
     "zutatenAnteilKasse": 0.5,
     "maxWartezeitMinuten": 240,
+    "verweilenMinuten": 20,
     "karrenVerkaufAnteil": 0.5,
     "tore": {
       "schliessenUm": 20,
@@ -874,13 +875,13 @@
         "preis": 150,
         "tempo": 1.0
       },
-      "Ochsenkarren": {
+      "Pferdekarren": {
         "sorten": 2,
         "kapazitaetJeSorte": 20,
         "preis": 400,
         "tempo": 0.8
       },
-      "Pferdekarren": {
+      "Großer Pferdekarren": {
         "sorten": 3,
         "kapazitaetJeSorte": 25,
         "preis": 900,
@@ -1084,31 +1085,31 @@
     "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Beschlag", "Dolch", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
     "Schmiede":      { "name": "Schmiede",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Beschlag", "Dolch", "Silberring", "Werkzeug", "Silberkette" ], "standardprodukt": "Silberkette", "startkarren": "Handkarren", "ausbau": "Goldschmiede", "ausbauKosten": 5000 },
     "Goldschmiede":  { "name": "Goldschmiede", "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Beschlag", "Dolch", "Silberring", "Werkzeug", "Silberkette", "Goldkette", "Prunkschwert" ], "standardprodukt": "Goldkette", "startkarren": "Handkarren" },
-    "Mine":          { "name": "Grube",        "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
+    "Mine":          { "name": "Grube",        "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Pferdekarren" },
     "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
     "Drechslerei":   { "name": "Drechslerei",  "beruf": "Tischler", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust" ], "standardprodukt": "Armbrust", "startkarren": "Handkarren", "ausbau": "Saegewerk", "ausbauKosten": 5000 },
     "Saegewerk":     { "name": "Sägewerk",     "beruf": "Tischler", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust", "Schrank", "Prunktruhe" ], "standardprodukt": "Schrank", "startkarren": "Handkarren" },
-    "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Ochsenkarren" },
+    "Holzfaellerei": { "name": "Holzschlag",   "beruf": "Tischler", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Holz" ], "startkarren": "Pferdekarren" },
     "Maurerei":         { "name": "Maurerei",         "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein" ], "standardprodukt": "Grabstein", "startkarren": "Handkarren", "ausbau": "Steinschneiderei", "ausbauKosten": 2500 },
     "Steinschneiderei": { "name": "Steinschneiderei", "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken" ], "standardprodukt": "Taufbecken", "startkarren": "Handkarren", "ausbau": "Steinmetzhuette", "ausbauKosten": 5000 },
     "Steinmetzhuette":  { "name": "Steinmetzhütte",   "beruf": "Steinmetz", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Schleifziegel", "Grabstein", "Mühlstein", "Säule", "Taufbecken", "Steinfigur", "Grabmal" ], "standardprodukt": "Steinfigur", "startkarren": "Handkarren" },
-    "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Ochsenkarren" },
+    "Steinbruch":       { "name": "Steinbruch",       "beruf": "Steinmetz", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Bruchstein", "Granit" ], "startkarren": "Pferdekarren" },
     "Tinkturei":        { "name": "Tinkturei",        "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe" ], "standardprodukt": "Heilsalbe", "startkarren": "Handkarren", "ausbau": "Kraeuterladen", "ausbauKosten": 2500 },
     "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
     "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
-    "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" },
+    "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Pferdekarren" },
     "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Blume der Zwietracht", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
     "Duftwerkstatt":    { "name": "Duftwerkstatt",    "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft" ], "standardprodukt": "Moschusduft", "startkarren": "Handkarren", "ausbau": "Parfumerie", "ausbauKosten": 5000 },
     "Parfumerie":       { "name": "Parfumerie",       "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft", "Heiligenduft", "Schattendolch" ], "standardprodukt": "Heiligenduft", "startkarren": "Handkarren" },
-    "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Ochsenkarren" },
+    "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Pferdekarren" },
     "Schaenke":         { "name": "Schänke",          "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier" ], "standardprodukt": "Körnermahlzeit", "startkarren": "Handkarren", "ausbau": "Wirtshaus", "ausbauKosten": 2500, "arbeitsminuten": 840 },
     "Wirtshaus":        { "name": "Wirtshaus",        "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör" ], "standardprodukt": "Starkbier", "startkarren": "Handkarren", "ausbau": "Gasthaus", "ausbauKosten": 5000, "arbeitsminuten": 840 },
     "Gasthaus":         { "name": "Gasthaus",         "beruf": "Wirt",      "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Weingeist", "Körnermahlzeit", "Dünnbier", "Starkbier", "Kräuterlikör", "Festbier", "Schädelbrand" ], "standardprodukt": "Festbier", "startkarren": "Handkarren", "arbeitsminuten": 840 },
-    "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Ochsenkarren" },
+    "Bauernhof":        { "name": "Bauernhof",        "beruf": "Wirt",      "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Gerste", "Roggen" ], "startkarren": "Pferdekarren" },
     "Kirche":           { "name": "Kapelle",          "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Papier", "Kerze", "Lehrschrift" ], "standardprodukt": "Kerze", "startkarren": "Handkarren", "ausbau": "Dom", "ausbauKosten": 2500 },
     "Dom":              { "name": "Kirche",           "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter" ], "standardprodukt": "Psalter", "startkarren": "Handkarren", "ausbau": "Kathedrale", "ausbauKosten": 5000 },
     "Kathedrale":       { "name": "Stadtkirche",      "beruf": "Prediger",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Papier", "Kerze", "Lehrschrift", "Hetzschrift", "Psalter", "Stundenbuch", "Reliquiar" ], "standardprodukt": "Stundenbuch", "startkarren": "Handkarren" },
-    "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Ochsenkarren" },
+    "Klosterhof":       { "name": "Klosterhof",       "beruf": "Prediger",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lumpen", "Wachs" ], "startkarren": "Pferdekarren" },
     "Schmugglerloch":   { "name": "Schmugglerloch",   "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 1, "plaetze": 4, "fixkosten": 80,  "kaufpreis": 3000, "startkarren": "Handkarren", "ausbau": "Unterschlupf", "ausbauKosten": 2500, "erfahrungFaktor": 0.5 },
     "Unterschlupf":     { "name": "Unterschlupf",     "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 2, "plaetze": 6, "fixkosten": 120, "startkarren": "Handkarren", "ausbau": "Diebesgilde", "ausbauKosten": 5000, "erfahrungFaktor": 0.5 },
     "Diebesgilde":      { "name": "Diebesgilde",      "beruf": "Dieb",      "ort": "Werkstatt", "stufe": 3, "plaetze": 8, "fixkosten": 180, "startkarren": "Handkarren", "erfahrungFaktor": 0.5 },
@@ -1662,7 +1663,7 @@
       {
         "name": "Thorgrim Erzhammer",
         "volk": "Zwerg",
-        "glaube": "Evangelisch",
+        "glaube": "Altahtnisch",
         "haltung": "Bestienfron",
         "amt": "Kämmerer",
         "geschlecht": "Mann",
@@ -1680,7 +1681,7 @@
       {
         "name": "Bertram Kesselflick",
         "volk": "Halbling",
-        "glaube": "Katholisch",
+        "glaube": "Neuahtnisch",
         "haltung": "FreieStadt",
         "amt": "Marktmeister",
         "geschlecht": "Mann",
@@ -1734,7 +1735,7 @@
       {
         "name": "Ilvaris Mondtau",
         "volk": "Elb",
-        "glaube": "Katholisch",
+        "glaube": "Neuahtnisch",
         "haltung": "FreieStadt",
         "amt": null,
         "geschlecht": "Mann",
@@ -2432,19 +2433,23 @@
   "glaube": {
     "voelker": {
       "Mensch": { "Katholisch": 0.6, "Evangelisch": 0.4 },
-      "Elb": { "Katholisch": 0.7, "Evangelisch": 0.3 },
-      "Zwerg": { "Katholisch": 0.3, "Evangelisch": 0.7 },
-      "Halbling": { "Katholisch": 0.45, "Evangelisch": 0.55 },
+      "Elb": { "Katholisch": 0.35, "Evangelisch": 0.15, "Altahtnisch": 0.25, "Neuahtnisch": 0.25 },
+      "Zwerg": { "Katholisch": 0.15, "Evangelisch": 0.35, "Altahtnisch": 0.3, "Neuahtnisch": 0.2 },
+      "Halbling": { "Katholisch": 0.22, "Evangelisch": 0.28, "Altahtnisch": 0.23, "Neuahtnisch": 0.27 },
       "Ork": { "Naturglaube": 1 },
       "Oger": { "Naturglaube": 1 }
     },
-    "stadt": { "Katholisch": 0.55, "Evangelisch": 0.45 },
+    "stadt": { "Katholisch": 0.41, "Evangelisch": 0.34, "Altahtnisch": 0.13, "Neuahtnisch": 0.12 },
     "rueckkehr": 0.1,
     "mindestAnteil": 0.1,
     "fremdeKirche": 0.5,
     "gunst": { "gleich": 5, "anders": -3, "heide": -8, "mischehe": -2 },
     "konvertieren": { "gebuehr": 300, "ansehen": 3 },
     "bekehrung": { "anteil": 0.04, "jeRhetorik": 0.1, "gunst": 3 },
-    "stadtglaube": { "abgabe": 150, "schwelleFrei": 25, "schwelleFremd": 60, "ketzerpredigt": 200 }
+    "stadtglaube": { "abgabe": 150, "schwelleFrei": 25, "schwelleFremd": 60, "ketzerpredigt": 200 },
+    "bekenntnisse": {
+      "Altahtnisch": { "offenFuer": ["Elb", "Zwerg", "Halbling"] },
+      "Neuahtnisch": { "offenFuer": ["Mensch", "Elb", "Zwerg", "Halbling"], "gleicheReligion": -1 }
+    }
   }
 }
