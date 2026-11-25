@@ -78,7 +78,7 @@ def rastern(d, step):
     U, V = allv @ np.array(u), allv @ np.array(v)
     u0, v0 = U.min() - 0.3, V.min() - 0.3
     nu, nv = int((U.max() + 0.3 - u0) / step) + 1, int((V.max() + 0.3 - v0) / step) + 1
-    C = MITTE - d * RADIUS * 2
+    C = -d * (RADIUS * 3 + MITTE.length)          # u0, v0 sind vom Ursprung aus gemessen: die Mitte des Gitters darf nicht seitlich verschoben sein (sonst fehlt ein Teil der Huelle)
     hit = np.zeros((nv, nu), bool); pos = np.zeros((nv, nu, 3), np.float32); rueck = np.zeros((nv, nu), bool); gl = np.zeros((nv, nu), bool)
     idx = np.zeros((nv, nu), np.int32); dist = np.zeros((nv, nu), np.float32)
     for j in range(nv):
@@ -128,8 +128,14 @@ def loecher(d, step, tag):
         ja, ia = [c[0] for c in comp], [c[1] for c in comp]
         ps = [pos[a, b] for a in range(max(0, min(ja) - 3), min(nv, max(ja) + 4)) for b in range(max(0, min(ia) - 3), min(nu, max(ia) + 4)) if hit[a, b]]
         p = tuple(float(x) for x in np.mean(ps, axis=0)) if ps else (0.0, 0.0, 0.0)
-        ds = [rastern.dist[a, b] for a in range(max(0, min(ja) - 3), min(nv, max(ja) + 4)) for b in range(max(0, min(ia) - 3), min(nu, max(ia) + 4)) if hit[a, b]]
-        if ds and max(ds) - min(ds) > 1.5: continue      # Tiefensprung: Luecke zwischen einem nahen und einem fernen Teil (Turm und Knauf), kein Loch
+        # Tiefensprung: Luecke zwischen einem nahen und einem fernen Teil (offene Luft neben einer Turmkante, Stoss zweier getrennter Baukoerper): dort
+        # springt die Entfernung schon zwischen benachbarten Bildpunkten am Rand des Lochs. Eine Fuge zwischen zwei Flaechen, die sich beruehren
+        # sollen, hat auf beiden Seiten nahezu dieselbe Entfernung (Umgebung von 2 Bildpunkten je Lochpunkt, nicht das ganze Rechteck ringsum).
+        ds = []
+        for (a_, b_) in comp:
+            nb_ = [rastern.dist[x, y] for x in range(max(0, a_ - 2), min(nv, a_ + 3)) for y in range(max(0, b_ - 2), min(nu, b_ + 3)) if hit[x, y]]
+            if nb_: ds.append(max(nb_) - min(nb_))
+        sprung = bool(ds) and max(ds) > 1.5
         C, u, v, u0, v0, st_, dd = rastern.o
         o_ = C + u * (u0 + float(np.mean(ia)) * step) + v * (v0 + float(np.mean(ja)) * step)
         entlang = any(ERLAUBT(tuple(o_ + dd * ((z - o_.z) / dd.z))) for z in np.arange(0.0, hi[2] + 1.0, 0.4)) if abs(dd.z) > 1e-6 else False
@@ -142,6 +148,8 @@ def loecher(d, step, tag):
             if not (lo[0] - 1 <= q.x <= hi[0] + 1 and lo[1] - 1 <= q.y <= hi[1] + 1 and lo[2] - 1 <= q.z <= hi[2] + 1): continue
             r = bvh.find_nearest(q)
             if r[0] is not None and r[3] < bestm: bestm, bestq = r[3], q
+        schmal = min(max(ia) - min(ia) + 1, max(ja) - min(ja) + 1) * step <= 0.13          # Riss von hoechstens 13 cm Breite: zaehlt auch dann, wenn die Naehe springt
+        if sprung and not schmal: continue                        # weite Luecke zwischen einem nahen und einem fernen Teil: kein Loch
         res.append((len(comp) * step * step * 1e4, tuple(float(x) for x in bestq), tag))
     return res
 

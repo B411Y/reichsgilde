@@ -27,15 +27,20 @@ from rathaus_bib import EZ, mauer                        # noqa: E402
 BA = D.BAENDER_DOM
 MODELL = "dom_katholisch"
 QUADER = lambda ph: {"links": ("Sandstein", "sandstein", ph), "rechts": ("Sandstein", "sandstein", ph + 1)}
-LAGE = 0.38                      # Lagenhoehe des Schiefers (0,30 m am Wohnhaus und beim Dom evangelisch): haelt die Huelle mit den Gratabdeckungen im Budget
+LAGE = 0.44                      # Lagenhoehe des Schiefers (0,30 m am Wohnhaus und beim Dom evangelisch): haelt die Huelle mit den Gratabdeckungen im Budget
 Z_QUERFIRST = M.Z_TRAUFE + ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30) * M.NEIGUNG
 
 
 def giebel(h, name, zf, halb):
-    """Giebeldreieck ueber einer Wand: von der Traufe bis zum First zf, das Dach faellt beiderseits der Wandmitte mit NEIGUNG."""
+    """Giebeldreieck ueber einer Wand: von der Traufe bis zum First zf, das Dach faellt beiderseits der Wandmitte mit NEIGUNG.
+    Die Grenze knickt dort, wo das Dreieck die Wandbreite erreicht; innerhalb einer Lage muss sie gerade laufen, darum zwei Teile
+    (sonst blieb ein Dreieck neben dem Turm offen, Pruefung 25.11.2026)."""
     l = M.wand(name)[2]
     g = lambda z: (l / 2 - (zf - z) / M.NEIGUNG, l / 2 + (zf - z) / M.NEIGUNG)
-    D.aussenwand(h, M, name, M.Z_TRAUFE, zf - 0.05, grenze=g, laibung=None)
+    zk = zf - (l / 2) * M.NEIGUNG
+    zs = [M.Z_TRAUFE] + ([zk] if M.Z_TRAUFE + 0.01 < zk < zf - 0.01 else []) + [zf]
+    for za, zb in zip(zs, zs[1:]):
+        D.aussenwand(h, M, name, za, zb, grenze=g, laibung=None)
 
 
 def fenster(h, s, name):
@@ -80,8 +85,28 @@ def baue_haus(s):
     D.aussenwand(h, M, "west", 0.0, M.Z_TRAUFE)
     giebel(h, "west", M.Z_FIRST, 0)
     # Die Tuerme springen je Geschoss um 0,12 zurueck: die Westwand reicht dort bis hinter ihre Flanken (sonst bliebe ein Spalt)
+    zt_, N_, xe_ = M.Z_TRAUFE, M.NEIGUNG, M.X_ARKADE + 0.30
     for x0 in (M.X_TURM[0] + 0.45, -M.X_TURM[0]):
-        mauer(h, "Bruchstein", (x0, M.Y_WESTWAND), (-1, 0), (0, -1), 0.45, M.TURM_STUFEN[1], M.Z_TRAUFE + (M.X_ARKADE + 0.30 - M.X_TURM[0] - 0.45) * M.NEIGUNG - 0.05, "mauer")   # bis unter das Dach an dieser Stelle
+        def dach_grenze(z, x0=x0):
+            """Streifen s (laeuft nach -x, 0,45 breit): die Oberkante folgt der Dachschraege des Hochschiffs (|x| <= R, 5 cm darunter)."""
+            R = xe_ - max(z - zt_, 0.0) / N_
+            return (min(max(x0 - R, 0.0), 0.45), 0.45) if x0 > 0 else (0.0, min(max(R - M.X_TURM[0], 0.0), 0.45))
+        zk = zt_ + (xe_ - (M.X_TURM[0] + 0.45)) * N_                 # hier beginnt die Schraege den Streifen zu kuerzen
+        zo = zt_ + (xe_ - M.X_TURM[0]) * N_                          # hier ist er ganz weg
+        for za, zb in ((M.TURM_STUFEN[1], zk), (zk, zo)):
+            mauer(h, "Bruchstein", (x0, M.Y_WESTWAND), (-1, 0), (0, -1), 0.45, za, zb, "mauer", grenze=dach_grenze)
+    # Die Ostwand der Tuerme springt je Geschoss um 0,12 zurueck, die Hochschiffwand beginnt bei Y_TURM: in der Ebene |x| = X_ARKADE blieb eine
+    # lotrechte Fuge (Pruefer 25.11.2026). Verschluss je Geschoss ueber dem Pultdach, Sichtseite nach aussen (|x| > X_ARKADE).
+    for sx in (-1, 1):
+        for i, (zu_, zo_) in enumerate(((M.Z_PULT - 0.30, M.TURM_STUFEN[2]), (M.TURM_STUFEN[2], M.Z_TRAUFE))):
+            e_ = 0.12 * (i + 1)
+            h.rechteck("Bruchstein", V((sx * M.X_ARKADE, M.Y_TURM - e_, zu_)), V((0, 1, 0)), EZ, e_, zo_ - zu_, "mauer",
+                       zu=V((sx * (M.X_ARKADE + 3), M.Y_TURM - e_ / 2, (zu_ + zo_) / 2)))
+    # Tasche zwischen Westwand-Giebel und Turmflanke (0,24 m breit, 0,26 m tief): ausgefuellt bis unter die Dachschraege
+    for sx in (-1, 1):
+        zt_s = M.Z_TRAUFE + (M.X_ARKADE + 0.30 - M.X_TURM[0]) * M.NEIGUNG
+        D.block(h, "Bruchstein", "mauer", (sx * M.X_TURM[0] - (0.24 if sx < 0 else 0.0), M.Y_WESTWAND - 0.26), (1, 0), (0, 1), 0.24, 0.26, M.TURM_STUFEN[2], zt_s,
+                ohne=("unten", "u+" if sx > 0 else "u-", "v+"))
     for name in M.WAENDE:
         fenster(h, s, name)
         # Sockel und Traufgesims
@@ -92,9 +117,9 @@ def baue_haus(s):
         zt = M.Z_SEITE if name.startswith("seite") else M.Z_TRAUFE
         if name != "west" and not name.endswith("_g"):
             D.gesimsband(h, a, b, n, zt - 0.24, ueber=0.10)
-            if name in ("quer_l_o", "quer_r_o"):                     # offene Stirn des Gesimses am Querhausgiebel schliessen (Blick von der Seite unter das Dach)
-                ende = b if name == "quer_r_o" else a                   # das Ende am Giebel (|x| = X_QUER)
-                ed = V((ex, ey, 0)) * (1 if ende is b else -1)
+            if name in ("quer_l_o", "quer_r_o", "quer_l_w", "quer_r_w"):   # offene Stirn des Gesimses am Querhausgiebel schliessen (Blick von der Seite unter das Dach)
+                ende, anfang = (a, b) if abs(a[0]) > abs(b[0]) else (b, a)            # das Ende am Giebel (|x| = X_QUER)
+                ed = (V((ende[0], ende[1], 0)) - V((anfang[0], anfang[1], 0))).normalized()
                 c = V((ende[0], ende[1], zt - 0.24)) + ed * 0.10
                 h.rechteck("Sandstein", c, V((n[0], n[1], 0)), EZ, 0.12, 0.22, "werkstein", zu=c + ed * 3 + EZ * 0.11)
     # Kaffgesims der Westwand ueber dem Portal und unter dem Giebel
@@ -131,7 +156,9 @@ def portal(h):
     b, z0, z1 = M.PORTAL
     # Tuerblaetter (zweifluegelig) in der Laibung
     for seite in (-1, 1):
-        B.bretttuer(h, "Bretter", "planken", "Bretter", "eisen", (seite * b / 4, y + 0.30, z0), (1, 0, 0), (0, -1, 0), b / 2 - 0.01, z1 - z0, bretter=4)
+        B.bretttuer(h, "Bretter", "planken", "Bretter", "eisen", (seite * b / 4, y + 0.30, z0), (1, 0, 0), (0, -1, 0), b / 2 + 0.01, z1 - z0, bretter=4)
+    # Schwelle unter den Tuerblaettern: sonst blickt man unter der Tuer durch (kein Boden im Modell)
+    D.block(h, "Sandstein", "sandstein", (-b / 2, y - 0.30), (1, 0), (0, 1), b, 1.40, 0.0, z0 + 0.01, ohne=("unten",))
     # Gewaende: Pfosten mit Fialen, Spitzbogen mit Bogenfeld ueber dem Sturz, darueber der Wimperg (Giebel)
     halb = b / 2 + 0.36
     vorn = y - 0.30
@@ -166,7 +193,7 @@ def portal(h):
     # Stufen vor dem Portal
     for i in range(3):                                     # i = 0 unterste, breiteste Stufe
         tiefe = 0.6 + 0.35 * (2 - i)
-        D.block(h, "Sandstein", "sandstein", (-2.2, y - tiefe), (1, 0), (0, 1), 4.4, tiefe, 0.0, 0.1 * (i + 1), ohne=("v+", "unten"))
+        D.block(h, "Sandstein", "sandstein", (-M.X_TURM[0], y - tiefe), (1, 0), (0, 1), 2 * M.X_TURM[0], tiefe, 0.0, 0.1 * (i + 1), ohne=("v+", "unten"))   # bis an die Turmflanken (sonst ein offener Schacht daneben)
 
 
 def wimperg_dicke(h, a, eu, n, hw, zh, d=0.20, hoch=3.0):
@@ -238,6 +265,10 @@ def turm(h, s, sx):
             if i < 2 and ((wo == "x1" and sx > 0) or (wo == "x0" and sx < 0)):
                 # Das Gesims der Aussenseite endet an der Ostkante des Turms offen (die Ostseite hat dort keins): Stirn schliessen
                 c, ed = ((a[0] - eu[0] * 0.14, a[1] - eu[1] * 0.14), (-eu[0], -eu[1])) if wo == "x1" else ((b[0] + eu[0] * 0.14, b[1] + eu[1] * 0.14), eu)
+                h.rechteck("Sandstein", V((c[0], c[1], z1 - 0.26)), V((n[0], n[1], 0)), EZ, 0.14, 0.26, "werkstein", zu=V((c[0] + ed[0] * 3, c[1] + ed[1] * 3, z1 - 0.13)))
+            if wo == "y0":
+                # Das Gesims der Westseite endet am inneren Rand (zur Vorhalle hin) offen: Stirn schliessen
+                c, ed = ((b[0] + eu[0] * 0.14, b[1] + eu[1] * 0.14), eu) if sx > 0 else ((a[0] - eu[0] * 0.14, a[1] - eu[1] * 0.14), (-eu[0], -eu[1]))
                 h.rechteck("Sandstein", V((c[0], c[1], z1 - 0.26)), V((n[0], n[1], 0)), EZ, 0.14, 0.26, "werkstein", zu=V((c[0] + ed[0] * 3, c[1] + ed[1] * 3, z1 - 0.13)))
             if i < 3:
                 # Absatz: Oberseite der Wand, wo das naechste Geschoss um 0,12 zurueckspringt (sonst sieht man von oben die Rueckseite der Wand)
