@@ -458,12 +458,12 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
     rh = (v1 - v0) / reihen
     rand = 1.5 / 2048                                       # Abstand zur Nachbarreihe (kein Durchscheinen beim Filtern)
     anz = max(1, round(lang / (lage * (1 if stufe > 0 else SCHIEFER_REIHEN))))
-    hub = n * (stufe * n.z)                                 # Fuss der Lage: so weit ueber der Dachebene, dass die Stirn senkrecht `stufe` hoch ist
-    fall = EZ * stufe
+    hub = EZ * stufe        # Fuss der Lage: senkrecht `stufe` ueber der Dachebene. Nur senkrecht: Nachbarflaechen (Grate, First) teilen dann dieselben
+                            # Punkte der Gratlinie; ein Hub entlang der Flaechennormalen liess an jedem Grat einen Spalt von 35 mm (Pruefung 25.11.2026)
     for k in range(anz):
         t0, t1 = k / anz, (k + 1) / anz
         p0, q0, p1, q1 = a0.lerp(b0, t0), a1.lerp(b1, t0), a0.lerp(b0, t1), a1.lerp(b1, t1)
-        if k < anz - 1: p1, q1 = p1 + hub - fall, q1 + hub - fall        # Oberkante = Fuss der Stirn der naechsten Lage (liegt in der Dachebene)
+        # Oberkante der Lage = Fuss der Stirn der naechsten Lage (liegt in der Dachebene)
         r = (k + saat) % reihen
         va, vb = v0 + r * rh + rand, v0 + (r + 1) * rh - rand            # va oben (Schatten der naechsten Reihe), vb unten (helle Kante)
         off = ((k * 7919 + saat * 31) % 1000) / 1000.0 * m
@@ -474,14 +474,43 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
         teil.vieleck("Schiefer", pts, uvs, zu=(pts[0] + pts[1] + pts[2]) / 3 + n)
         if stufe > 0:                                       # senkrechte Stirn der Lage, dunkel (Mitte des Bandes "schiefer_kante")
             cm, ch = (c0 + c1) / 2, (c1 - c0) * 0.2
-            teil.vieleck("Schiefer", [p0 + hub - fall, q0 + hub - fall, q0 + hub, p0 + hub],
-                         [(u(p0), cm + ch), (u(q0), cm + ch), (u(q0), cm - ch), (u(p0), cm - ch)], zu=(p0 + q0) / 2 + hub + (n - EZ * n.z) * 5 - fall / 2)
+            teil.vieleck("Schiefer", [p0, q0, q0 + hub, p0 + hub],
+                         [(u(p0), cm + ch), (u(q0), cm + ch), (u(q0), cm - ch), (u(p0), cm - ch)], zu=(p0 + q0) / 2 + hub / 2 + (n - EZ * n.z).normalized() * 5)
+        if stufe > 0:                                       # Seitenflaechen der Keile an den freien Randern (Giebel, Gauben): sonst blickt man unter jede Lage
+            cm2 = (c0 + c1) / 2
+            mitte_f = (a0 + a1 + b0 + b1) / 4
+            for ep, eq in ((p0, p1), (q0, q1)):
+                nh = (eq - ep).cross(EZ)
+                if nh.length < 1e-6: continue
+                nh.normalize()
+                if nh.dot(mitte_f - ep) > 0: nh = -nh            # waagerecht nach aussen, vom Inneren der Flaeche weg
+                teil.vieleck("Schiefer", [ep, ep + hub, eq], [(u(ep), cm2), (u(ep) + 0.01, cm2), (u(eq), cm2)], zu=(ep + eq) / 2 + nh * 3)
     if karte:
         hk = 0.20
         hebe = hub + n * 0.012
         pts = [a0 + runter * 0.14 + hebe, a1 + runter * 0.14 + hebe, a1 - runter * (hk - 0.14) + hebe, a0 - runter * (hk - 0.14) + hebe]
         uu = lambda p: ((p - a0).dot(e) + 0.3) / m
         teil.vieleck("Schieferkante", pts, [(uu(a0), c1), (uu(a1), c1), (uu(a1), c0), (uu(a0), c0)], zu=(pts[0] + pts[2]) / 2 + n)
+
+
+def grat(teil, p, q, pa, pb, breite=0.14, hoehe=0.13, lift=0.11):
+    """Gratabdeckung (Blei): schmales Dach aus zwei Streifen ueber der Gratlinie p-q zweier Schieferflaechen; pa, pb: je ein Punkt
+    der beiden Flaechen abseits des Grats. Deckt den Stoss der Lagen (Hub senkrecht `stufe` = 9 cm) und jede Fuge an der Linie ab."""
+    p, q, pa, pb = Vector(p), Vector(q), Vector(pa), Vector(pb)
+    e = (q - p).normalized()
+    seiten = []
+    for x in (pa, pb):
+        d = (x - p) - e * (x - p).dot(e)
+        d.normalize()
+        nn = e.cross(d)
+        if nn.z < 0: nn = -nn
+        seiten.append((d, nn))
+    nb = (seiten[0][1] + seiten[1][1]).normalized()
+    for d, nn in seiten:
+        pts = [p + d * breite + EZ * lift, q + d * breite + EZ * lift, q + nb * hoehe, p + nb * hoehe]
+        farbflaeche(teil, "Firstblech", pts, "blei", zu=(pts[0] + pts[2]) / 2 + nn * 3 + EZ * 3)
+    for ende, sg in ((p, -1), (q, 1)):                    # Stirn der Abdeckung an beiden Enden (sonst blickt man in das Dach aus Blei)
+        farbflaeche(teil, "Firstblech", [ende + seiten[0][0] * breite + EZ * lift, ende + nb * hoehe, ende + seiten[1][0] * breite + EZ * lift], "blei", zu=ende + e * sg * 3)
 
 
 def stoffe_aussen():

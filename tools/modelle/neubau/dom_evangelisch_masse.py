@@ -104,6 +104,11 @@ X_QUER = OKT_A               # groesste halbe Breite der Huelle (Achteck)
 Z_FIRST = Z_FIRST_L
 
 
+def durchsicht_erlaubt(p):
+    """Punkt p (x, y, z) in der offenen Glockenstube samt Haubenrand: dort darf man durchsehen und Rueckseiten treffen (dom_geometrie.py)."""
+    return Z_GLOCKEN[0] - 0.1 <= p[2] <= Z_HAUBE + 0.4 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN + 1.2
+
+
 def vieleck(mx, my, apothem, n=8, phase=0.0):
     """Regelmaessiges n-Eck, Flaeche k mit Normale phase + k * 360/n Grad: Liste (Ecke a, Ecke b, Normale), gegen den Uhrzeigersinn."""
     r = apothem / math.cos(math.pi / n)
@@ -169,6 +174,7 @@ def _oeffnungen():
         o.append(("seite_r", s - b / 2, s + b / 2, z0, z1, "spitz", st))
     _, _, l, _, _ = wand("seite_l")
     for y in SEITE_Y:
+        if y < TURM_M[1] + TURM_R + 0.30: continue      # das erste Fenster der linken Seite stuende hinter dem Turm (Pruefung 25.11.2026)
         s = Y_LANG1 - y
         o.append(("seite_l", s - b / 2, s + b / 2, z0, z1, "spitz", st))
     l = wand("west")[2]

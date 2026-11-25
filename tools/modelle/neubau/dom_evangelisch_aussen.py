@@ -98,8 +98,8 @@ def giebel(h, stoff, band, o, e, n, l, zt, zf, neigung, loecher=(), mitte_halb=N
     zk = min(max(zf - l / 2 * neigung, zt), zf)
     if zk - zt > 1e-4:
         mauer(h, stoff, o, e, n, l, zt, zk, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (0.0, l))
-    if zf - 0.05 - zk > 1e-4:
-        mauer(h, stoff, o, e, n, l, zk, zf - 0.05, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (l / 2 - halb(z), l / 2 + halb(z)))
+    if zf - 0.01 - zk > 1e-4:
+        mauer(h, stoff, o, e, n, l, zk, zf - 0.01, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (l / 2 - halb(z), l / 2 + halb(z)))
 
 
 def pfeiler(h, fuss, raus, zt, breite=0.70, tiefe=0.90):
@@ -224,7 +224,7 @@ def chor(h, sc):
         pfeiler(h, (XA + sx * F.CHOR_A, F.CHOR_Y0 + 1.0), (sx, 0), zt, breite=0.60)
 
 
-def kegelturm(h, sc, mx, my, saat):
+def kegelturm(h, sc, mx, my, saat, fenster=(8, 10)):
     """Treppentuermchen: Sandsteinfuss, runder Backsteinschaft mit Schlitzfenster; Kegeldach in dach()."""
     n = 12
     r = F.TM_R
@@ -238,9 +238,9 @@ def kegelturm(h, sc, mx, my, saat):
             a, b = ring[k2], ring[k]
             l = math.hypot(b[0] - a[0], b[1] - a[1]); eu = ((b[0] - a[0]) / l, (b[1] - a[1]) / l)
             ls = []
-            if band == "mauer" and k == 8:
+            if band == "mauer" and k == fenster[0]:
                 ls = [D.Spitzloch(l / 2 - 0.14, l / 2 + 0.14, 6.0, 7.2, 1.5)]
-            if band == "mauer" and k == 10:
+            if band == "mauer" and k == fenster[1]:
                 ls = [D.Spitzloch(l / 2 - 0.14, l / 2 + 0.14, 8.6, 9.8, 1.5)]
             mauer(h, stoff, a, eu, nn, l, z0, z1, band, ls, laibung=LAIBUNG, dicke=0.25, saat=saat + k)
             for loch in ls:
@@ -248,6 +248,9 @@ def kegelturm(h, sc, mx, my, saat):
                 D.gewaende(h, P, V((nn[0], nn[1], 0)), loch, breite=0.08)
                 zu = P(l / 2, loch.z0, 5)
                 D.scheibe(sc, "Fenster", lambda q, z, P=P: P(q, z, -0.25), loch, zu)
+        # Deckring: Oberseite des Sockels (r + 0,10) bis zum Schaft (r), sonst liegt die Oberseite offen
+        h.vieleck("Sandstein", [V((*sockel[k2], ZS)), V((*sockel[k], ZS)), V((*ecken[k], ZS)), V((*ecken[k2], ZS))],
+                  [(0, BA["sandstein"][1]), (0.4 / BA["sandstein"][2], BA["sandstein"][1]), (0.4 / BA["sandstein"][2], BA["sandstein"][1] - 0.1 / BA["sandstein"][2]), (0, BA["sandstein"][1] - 0.1 / BA["sandstein"][2])], zu=V((mx, my, ZS + 5)))
         # Gesims unter dem Dach
         D.gesimsband(h, ecken[k2], ecken[k], nn, F.Z_TM_WAND - 0.2, hoehe=0.2, vor=0.12, ueber=0.12 * math.tan(math.pi / n))
 
@@ -359,7 +362,7 @@ def turm(h, s):
                 D.block(h, "Sandstein", "sandstein", c + d * (turm_r(zs0) - 0.2) - q * (hw + 0.07), (q.x, q.y), (d.x, d.y), 2 * hw + 0.14, vor + 0.30, 0.0, zs0, ohne=("v-", "unten"))
             h.rechteck("Bruchstein", aus(za) - q * hw, q, neig, 2 * hw, (zb - za) * sl, "mauer", weg_von=zm)
             for sg in (-1, 1):
-                h.rechteck("Bruchstein", aus(za) + q * hw * sg, -d, neig, vor + 0.12, (zb - za) * sl, "mauer", laengs="v", weg_von=c + q * sg * 5 + EZ * zb)
+                h.rechteck("Bruchstein", aus(za) + q * hw * sg, -d, neig, vor + 0.12, (zb - za) * sl, "mauer", laengs="v", weg_von=c + d * (turm_r((za + zb) / 2) + vor / 2) + EZ * (za + zb) / 2)       # Normale zeigt von der Mitte des Streifens weg zur Seite
             # Abdeckung aus Sandstein auf dem Absatz (Platte mit Ueberstand, wie das Sockelband)
             o_ = c + d * (turm_r(zb) - 0.2)
             D.block(h, "Sandstein", "werkstein", o_ + EZ * zb - q * (hw + 0.06), (q.x, q.y), (d.x, d.y), 2 * hw + 0.12, vor + 0.2 + 0.07, zb, zb + 0.26)
@@ -400,7 +403,7 @@ def baue_haus(sc):
     achteck(h, sc)
     chor(h, sc)
     for i, (x, y) in enumerate(F.TUERMCHEN):
-        kegelturm(h, sc, *W(x, y), saat=5 + 3 * i)
+        kegelturm(h, sc, *W(x, y), saat=5 + 3 * i, fenster=(8, 10) if i == 0 else (11, 1))     # Tuermchen 2 steht an Achteck und Chor: Fenster nach Osten/Nordosten
     turm(h, sc)
     h.yv = yv
     return h
@@ -459,8 +462,11 @@ def gaube(d, h, sc, mx, my, theta, rho_f, saat):
             t = (zb - za) / kurs
             vo = mv1 - t * (mv1 - mv0)
             uvs = [(vers / mmm, mv1), ((rho_f - ra + vers) / mmm, mv1), ((rho_f - rb + vers) / mmm, vo), (vers / mmm, vo)]
-            if abs(rb - rho_f) < 1e-4: pts, uvs = pts[:3], uvs[:3]
+            if abs(ra - rho_f) < 1e-4: pts, uvs = [pts[0], pts[2], pts[3]], [uvs[0], uvs[2], uvs[3]]       # unterste Lage: die Wand beginnt in einer Spitze
+            elif abs(rb - rho_f) < 1e-4: pts, uvs = pts[:3], uvs[:3]
             h.vieleck("Bruchstein", pts, uvs, zu=p(rho_f, sg * w / 2, (za + zb) / 2) + t_ * sg * 4)
+    # Gratabdeckung auf dem First des Gaubendachs
+    D.grat(d, p(rho_f + ue, 0.0, zfi + 0.05), p(rho_r, 0.0, zfi + 0.05), p(rho_f + ue, -(w / 2 + ue), ze - 0.05), p(rho_f + ue, (w / 2 + ue), ze - 0.05))
 
 
 def baue_dach():
@@ -472,18 +478,23 @@ def baue_dach():
     y0, y1 = (F.Y_WEST, F.Y_LANG1)
     for sx in (-1, 1):
         sch(d, (XA + sx * xe, y0, zt), (XA + sx * xe, y1 + 0.6, zt), (XA, y0, F.Z_FIRST_L), (XA, y1 + 0.6, F.Z_FIRST_L), (XA + sx * 40, 0, 60), saat=1 + sx)
+    D.grat(d, (XA, y0, F.Z_FIRST_L), (XA, y1 + 0.6, F.Z_FIRST_L), (XA - xe, y0, zt), (XA + xe, y0, zt))
     # ── Vorhalle (45 Grad) ──
     cx = XA + F.VH_X
     vx = F.VH_HALB + 0.25
     yv = F.Y_WEST - F.VH_TIEFE
     for sx in (-1, 1):
         sch(d, (cx + sx * vx, yv, F.VH_Z[0]), (cx + sx * vx, F.Y_WEST, F.VH_Z[0]), (cx, yv, F.VH_Z[1]), (cx, F.Y_WEST, F.VH_Z[1]), (cx + sx * 40, 0, 60), saat=8 + sx)
+    D.grat(d, (cx, yv, F.VH_Z[1]), (cx, F.Y_WEST, F.VH_Z[1]), (cx - vx, yv, F.VH_Z[0]), (cx + vx, yv, F.VH_Z[0]))
     # ── Achteck: Zeltdach ──
     mx, my = W(*F.OKT_M)
     spitze = (mx, my, F.Z_SPITZE_O)
     flaechen = F.vieleck(mx, my, F.OKT_A + 0.30, 8, 0.0)
     for k, (a, b, n) in enumerate(flaechen):
         sch(d, (*a, F.Z_TRAUFE_O), (*b, F.Z_TRAUFE_O), spitze, spitze, (mx + n[0] * 40, my + n[1] * 40, 60), saat=20 + k)
+    for k, (a, b, n) in enumerate(flaechen):
+        a2, b2, _ = flaechen[(k + 1) % 8]
+        D.grat(d, (*b, F.Z_TRAUFE_O), spitze, (*a, F.Z_TRAUFE_O), (*b2, F.Z_TRAUFE_O))
     D.farbstab(d, "Firstblech", (mx, my, F.Z_SPITZE_O - 0.3), (mx, my, F.Z_SPITZE_O + 1.6), 0.08, "bronze")
     # ── Chor ──
     cmx, cmy = W(*F.CHOR_M)
@@ -500,6 +511,12 @@ def baue_dach():
     for k in (1, 2, 3):
         a, b, n = sf[k]
         sch(d, (*a, zc), (*b, zc), top, top, (cmx + n[0] * 40, cmy + n[1] * 40, 60), saat=44 + k)
+    # Grate des Chordachs: First der Schraegen, Grat zwischen Schraege und Schluss, Grate des Schlusses
+    D.grat(d, (XA, ya, F.Z_FIRST_C), top, (XA - xc, ya, zc), (XA + xc, ya, zc))
+    D.grat(d, (*sf[1][0], zc), top, (XA + xc, ya, zc), (*sf[1][1], zc))
+    D.grat(d, (*sf[1][1], zc), top, (*sf[1][0], zc), (*sf[2][1], zc))
+    D.grat(d, (*sf[2][1], zc), top, (*sf[2][0], zc), (*sf[3][1], zc))
+    D.grat(d, (*sf[3][1], zc), top, (*sf[3][0], zc), (XA - xc, ya, zc))
     return d
 
 

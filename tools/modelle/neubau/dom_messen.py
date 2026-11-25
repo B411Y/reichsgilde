@@ -1,6 +1,6 @@
-"""Neubau Dom: Soll gegen Ist aus den fertigen GLBs (reines Python mit numpy, ohne Blender).
+"""Neubau Dom: Soll gegen Ist aus den fertigen GLBs (Python mit numpy; die Strahlenpruefungen laufen in Blender).
 
-    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch|dom_evangelisch] [--md=<datei>]
+    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch|dom_evangelisch] [--md=<datei>] [--ohne-geometrie] [--glb=<datei>] [--schnell]
 
 Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb und prueft gegen die Massdatei des Modells
 (dom_masse.py fuer den Dom katholisch, sonst <modell>_masse.py):
@@ -12,6 +12,8 @@ Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb un
   * Anker: Blick_Auge 1,60 ueber dem Boden, Tuer_Dom_Stadt im Portal, 48 Sitzplaetze Glaeubig_<n> auf den Baenken (Sitzflaeche darunter),
     Predigt_1 auf dem Kanzelboden, Anker_Bischof, Anker_Pfarrer; die Knoten der Einrichtung je Stadtglaube.
 Dazu rechnet es die Tabelle aus dom_masse.soll_ist() mit (Masse, die schon ohne GLB feststehen).
+Und ruft (ohne --ohne-geometrie) dom_geometrie.py in Blender auf: Strahlenpruefungen (Durchsicht, Rueckseiten, Oberseiten, Spalt zwischen
+Schieferteilen, Fenster in freier Wand); deren Zeilen kommen in dieselbe Tabelle. `--glb=<datei>` prueft eine andere GLB der Huelle.
 """
 import json
 import os
@@ -189,6 +191,24 @@ def pruefen(modell):
     return z
 
 
+def geometrie(modell, glb=None, schnell=False):
+    """Zeilen der Strahlenpruefungen (dom_geometrie.py in Blender); ohne Blender eine Zeile mit Hinweis (kein Fehler)."""
+    import subprocess
+    blender = os.path.expanduser("~/werkzeuge/blender/blender.sh")
+    if not os.path.exists(blender): return [("Geometrie (Strahlen)", "Blender", "nicht vorhanden, uebersprungen", True)]
+    kmd = ["nice", "-n", "19", blender, "-b", "--python", os.path.join(HIER, "dom_geometrie.py"), "--", "--modell=" + modell] + ([f"--glb={glb}"] if glb else []) + (["--schnell"] if schnell else [])
+    sperre = "/tmp/claude-1000/blender.lock"
+    if os.path.isdir(os.path.dirname(sperre)): kmd = ["flock", sperre] + kmd
+    aus = subprocess.run(kmd, capture_output=True, text=True, cwd="/tmp").stdout
+    zeilen = []
+    for z in aus.splitlines():
+        if z.startswith("GEOMETRIE|"):
+            _, name, soll, ist, ok = z.split("|")
+            zeilen.append((name, soll, ist, ok == "ok"))
+        elif z.startswith("BEFUND|"): print("  " + z[7:])
+    return zeilen or [("Geometrie (Strahlen)", "Zeilen von dom_geometrie.py", "keine Ausgabe", False)]
+
+
 def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in sys.argv[1:] if a.startswith("--"))
     global M
@@ -197,6 +217,7 @@ def main():
         import importlib
         M = importlib.import_module(modell + "_masse")
     zeilen = pruefen(modell)
+    if "ohne-geometrie" not in opt: zeilen += geometrie(modell, opt.get("glb"), "schnell" in opt)
     text = M.tabelle(zeilen)
     print(text)
     fehler = [n for n, _, _, ok in zeilen if not ok]
