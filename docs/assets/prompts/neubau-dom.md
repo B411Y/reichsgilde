@@ -19,6 +19,8 @@ Keine Bild-KI und keine Image-to-3D-KI. Modelle, UV und Texturen entstehen aus S
 
 **Nachtrag 24.11.2026, Runde 2 (Branch phase5/dom-stein, Wunsch des Nutzers):** (1) Das Mauerband bleibt der Stein der Menschenhäuser mit denselben Lagen und Fugen, wird aber kühl grau eingefärbt (`MAUER_GRAU`), damit sich die gelben Sandstein-Glieder abheben. (2) Das Schieferdach zeigt Deckreihen wie das Ziegeldach des Wohnhauses: `dom_trimsheet.schiefer_reihen` malt drei Reihen von 0,25 m ins Band `schiefer`, `dom_bib.schieferflaeche` legt die Dachflächen in Lagen von 0,30 m mit senkrechter Stirn (9 cm), die ihre Farbe aus dem jetzt dunklen Band `schiefer_kante` nimmt. Hülle und `dom_ao_atlas.png` neu gebaut, Innenraum unverändert.
 
+**Nachtrag 25.11.2026 (Branch phase5/dom-evangelisch, Paket 2: Dom evangelisch):** Keine Bild- und keine Image-to-3D-KI im Bauweg. Vorlage des Nutzers: ein Artwork (Gemini, Google; Prompt unbekannt; nicht im Repository, nur zum Ansehen) und ein Bausatz aus zwölf Modulen (`Dom_Module.blend`, `Dom_Assets.blend`: Tripo3D, bezahltes Abo des Nutzers, Prompt unbekannt; nicht im Repository). Aus dem Bausatz sind keine Netze übernommen, nur Größenordnungen (Achteck 11,5 m, Turm 8 m, Giebel 8 m). Hülle und Innenraum entstehen aus `dom_evangelisch_aussen.py`, `dom_evangelisch_innen.py` und `dom_evangelisch_masse.py` (alle Maße) mit den Bausteinen des Dom-Grundgerüsts; Blatt `dom_evangelisch_trim` (Backstein im Mauerband, Sandsteinsockel). Messung: `blender -b --python tools/modelle/neubau/dom_messen.py -- --modell=dom_evangelisch`.
+
 **Aufruf**
 
 ```bash
@@ -26,5 +28,7 @@ python tools/modelle/neubau/dom_masse.py --soll-ist
 blender -b --python tools/modelle/neubau/dom_trimsheet.py -- --quellen=<ordner mit den Poly-Haven-Paketen>
 blender -b --python tools/modelle/neubau/dom_katholisch_aussen.py -- [--bilder=<ordner>] [--ohne-ao]
 blender -b --python tools/modelle/neubau/dom_katholisch_innen.py -- [--bilder=<ordner>] [--ohne-ao]
+blender -b --python tools/modelle/neubau/dom_evangelisch_aussen.py -- [--bilder=<ordner>] [--ohne-ao]
+blender -b --python tools/modelle/neubau/dom_evangelisch_innen.py -- [--bilder=<ordner>] [--ohne-ao]
 python tools/modelle/neubau/dom_messen.py [--md=<datei>]
 ```

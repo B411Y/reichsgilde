@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://ebdssoq5rgls"
+path.bptc="res://.godot/imported/dom_evangelisch_trim_orm.png-3347e7039482d5bb30ab719147db8bae.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://assets/texturen/neubau/dom_evangelisch_trim_orm.png"
+dest_files=["res://.godot/imported/dom_evangelisch_trim_orm.png-3347e7039482d5bb30ab719147db8bae.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=true
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=1
