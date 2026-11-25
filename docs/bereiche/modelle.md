@@ -145,6 +145,17 @@ Blender-Bauskripte, Trim-Sheets, Texturen, GLB, Asset-Protokoll, Messskripte. Ne
 | Innenraum | Langhaus als Saal ohne Pfeiler (9,60 m lichte Breite, Kreuzgewölbe über 4 Joche), Bogen in der Stirnwand zum Achteck als Altarraum (Zeltgewölbe, Fußboden 0,45 m höher, Podest für den Hochaltar). Bänke 8 Reihen zu 3 Plätzen je Seite (48 Plätze), Kanzel und Orgelempore an den Wänden zwischen den Fenstern, Chorgestühl an zwei Flächen des Achtecks. Einrichtung und Anker wie beim Dom katholisch (`Einrichtung_Katholisch`, `Einrichtung_Evangelisch`, `Einrichtung_Simultan`, `Kreuz_Evangelisch`, `Weihrauch`); 8.600 Dreiecke. Der Chor-Anbau hat keinen Innenraum. | 25.11.2026 |
 | Darstellung | Klickfläche, Schild und Turmmaß in `Stadtansicht.Domneubau.cs` auf die neue Hülle gesetzt (kleine Änderung außerhalb des Bereichs). | 25.11.2026 |
 
+### Dom evangelisch, Nacharbeit (Branch phase5/dom-evangelisch-folge)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befunde | Nutzer 25.11.2026 am gemergten Dom (PR #566): Turm wie im Artwork verjüngt und mit Lisenen; Strebepfeiler ragen durch das Dach; großes Westfenster liegt hinter dem Vorhallendach, kleines Eckfenster berührt das Dach | 25.11.2026 |
+| Turm | Schaft in drei Stufen (3,00 bis 9,00 m Umkreis 3,30 m, bis 14,00 m 3,13 m, bis 18,40 m 2,96 m) mit Sandsteingesims auf jedem Absatz; Stufen statt glatter Kegel, weil die Mauer-Bausteine nur senkrechte Rechtecke kennen und das Artwork ebenfalls Absätze zeigt. Sechs Lisenen (0,80 m breit, 0,40 m Vorsprung über der untersten Stufe, Sandsteinfuß bis 3,00 m, Wasserschlag 1,50 m unter dem Fries) auf den geraden Seiten; Seite 14 bleibt frei (zu nah an der Vorhalle), Seite 0 liegt im Langhaus. Die Schlitzfenster sitzen auf den ungeraden Seiten (Seite 12 wanderte auf 7). Glockenstube, Fries, Haube und Knauf unverändert, nur auf den oberen Umkreis (`TURM_R_OBEN`) bezogen. | 25.11.2026 |
+| Strebepfeiler | `pfeiler()` bekommt die Traufhöhe und endet 1,0 m darunter mit einem Wasserschlag von 0,6 m (vorher 0,6 m unter der Traufe mit 1,0 m Schräge: die Schräge lag über der Dachkante). Gilt für Langhaus und Chor. | 25.11.2026 |
+| Westfassade | Großes Fenster 2,40 m breit, Brüstung 8,20 m (First der Vorhalle 7,65 m plus Deckung plus Abstand), Scheitel 11,40 m. Die kleinen Fenster stehen symmetrisch in Wandmitte x = Vorhalle ∓ 2,30 m, 0,80 m breit, 7,90 bis 9,40 m (das linke lag vorher im Turm, das rechte ragte aus der Giebelschräge). | 25.11.2026 |
+| Achteck | Die schrägen Vorderflächen 5 und 7 standen unten ganz weg und ließen neben den Langhauswänden ein rund 1,5 m breites Loch bis 10,8 m Höhe (Blick in den Raum, im Blender-Bild von der Turmseite gefunden). Der Teil außerhalb der Langhauswand steht jetzt in voller Höhe, nur der Rest im Langhaus beginnt erst bei 10,8 m. | 25.11.2026 |
+| Prüfung | `dom_messen.py` rechnet für beide Dome den Abstand aller Scheibenecken der Hülle zu allen Dachdreiecken (Lot auf die Fläche oder Kante) und verlangt mindestens 0,30 m; läuft mit dem Python von Blender (numpy). Dom evangelisch: kleinster Abstand 0,90 m (vorher 0,12 m), Dom katholisch 0,50 m. 69 Prüfungen, 0 Fehler. Hülle 12.593 Dreiecke, Fläche 17,8 × 37,8 m. | 25.11.2026 |
+
 ### Dom-Mauer Mensch-Stein (Branch phase5/dom-stein)
 
 | Thema | Entscheidung | Datum |

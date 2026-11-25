@@ -87,10 +87,14 @@ TM_R = 1.30
 Z_TM_WAND = 12.0
 Z_TM_SPITZE = 17.0
 
-# ── Turm: rund (16 Seiten), links vor der Westwand ──────────────────────────────────────────────────────────────────────
+# ── Turm: rund (16 Seiten), links vor der Westwand; verjuengt sich in drei Stufen (Absaetze mit Sandsteingesims) nach oben ─
 TURM_M = (-5.6, -15.5)
 TURM_SEITEN = 16
-TURM_R = 3.30
+TURM_R = 3.30                # Umkreis am Fuss (Sockel, unterste Stufe)
+TURM_R_OBEN = 2.96           # Umkreis der obersten Stufe und der Glockenstube (Haube, Fries)
+TURM_STUFEN = ((3.00, 9.00, 3.30), (9.00, 14.00, 3.13), (14.00, 18.40, TURM_R_OBEN))   # z0, z1, Umkreis
+TURM_LISENEN = tuple(range(0, 14, 2))      # Seiten mit Lisene (die Schlitzfenster sitzen auf den ungeraden; Seite 14 bleibt frei, sie steht der Vorhalle zu nah)
+LISENE = (0.80, 0.40)                      # Breite, Vorsprung ueber der untersten Stufe
 Z_TURMSOCKEL = 3.00
 Z_GLOCKEN = (18.40, 22.00)
 Z_HAUBE = 22.00
@@ -151,7 +155,10 @@ SEITE_Y = (-12.70, -8.40, -4.10)                # Mitten der Fenster im Langhaus
 OKT_FENSTER = (0.80, 7.60, 11.80, 1.6)          # Paar im Achteck
 OKT_ABSTAND = 0.30
 CHOR_FENSTER = (1.30, 2.90, 6.50, 1.6)         # Blendfenster des Chors (nur aussen)
-WEST_FENSTER = ((VH_X, 2.70, 6.40, 11.40, 1.9), (None, 0.90, 7.00, 9.80, 1.7), (None, 0.90, 7.00, 9.80, 1.7))
+# Das grosse Fenster sitzt ganz ueber dem Vorhallendach (First VH_Z[1] + Deckung + 0,45); die kleinen stehen beiderseits im Giebel,
+# in Wandmitte x = VH_X -/+ 2,30 (links neben dem Turm, rechts mit Abstand zur Dachschraege des Langhauses)
+WEST_FENSTER = ((VH_X, 2.40, VH_Z[1] + 0.55, 11.40, 1.9), (None, 0.80, 7.90, 9.40, 1.7), (None, 0.80, 7.90, 9.40, 1.7))
+WEST_KLEIN = (VH_X - 2.30, VH_X + 2.30)
 
 
 def _oeffnungen():
@@ -170,8 +177,8 @@ def _oeffnungen():
     sm = l / 2 + xm
     o.append(("west", sm - bw / 2, sm + bw / 2, zb0, zb1, "spitz", st1))
     o.append(("west", sm - PORTAL[0] / 2, sm + PORTAL[0] / 2, PORTAL[1], PORTAL[2], "portal", 0.0))
-    o.append(("west", 2.10, 2.10 + bk, zk0, zk1, "spitz", st2))
-    o.append(("west", l - 1.90, l - 1.90 + bk, zk0, zk1, "spitz", st2))
+    for xk in WEST_KLEIN:
+        o.append(("west", l / 2 + xk - bk / 2, l / 2 + xk + bk / 2, zk0, zk1, "spitz", st2))
     b, z0, z1, st = OKT_FENSTER
     for k in (0, 4):
         l = wand(f"okt_{k}")[2]

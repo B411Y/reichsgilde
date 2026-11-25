@@ -102,11 +102,13 @@ def giebel(h, stoff, band, o, e, n, l, zt, zf, neigung, loecher=(), mitte_halb=N
         mauer(h, stoff, o, e, n, l, zk, zf - 0.05, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (l / 2 - halb(z), l / 2 + halb(z)))
 
 
-def pfeiler(h, fuss, raus, z1, breite=0.70, tiefe=0.90):
-    """Strebepfeiler aus Backstein auf dem Sandsteinsockel, Wasserschlag aus Sandstein."""
+def pfeiler(h, fuss, raus, zt, breite=0.70, tiefe=0.90):
+    """Strebepfeiler aus Backstein auf dem Sandsteinsockel; enden 1,0 m unter der Traufe `zt` mit einem Wasserschlag aus Sandstein
+    (Schraege 0,6 hoch), sodass nichts ins Dach ragt (Befund 25.11.2026)."""
+    z1 = zt - 1.0
     f = V((fuss[0], fuss[1], 0.0)); r = V((raus[0], raus[1], 0.0)).normalized(); q = V((-r.y, r.x, 0.0))
     D.block(h, "Sandstein", "sandstein", f - q * breite / 2, q, r, breite, tiefe, 0.0, ZS, ohne=("v-", "unten", "oben"))
-    D.strebepfeiler(h, fuss, raus, breite, tiefe, ZS, z1, schraege=1.0, stoff="Bruchstein", band="mauer")
+    D.strebepfeiler(h, fuss, raus, breite, tiefe, ZS, z1, schraege=0.6, stoff="Bruchstein", band="mauer")
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -133,7 +135,7 @@ def langhaus(h, sc):
     # Strebepfeiler an den Seiten (Nahtstellen der Fenster)
     for sx in (-1, 1):
         for y in (y0 + 0.35, -10.55, -6.25, -1.95):
-            pfeiler(h, (XA + sx * x1, y), (sx, 0), zt - 0.6)
+            pfeiler(h, (XA + sx * x1, y), (sx, 0), zt)
 
 
 def vorhalle(h, sc):
@@ -181,7 +183,16 @@ def achteck(h, sc):
     zt = F.Z_TRAUFE_O
     for k, (a, b, n) in enumerate(F.vieleck(mx, my, F.OKT_A, 8, 0.0)):
         # die Vorderseite des Achtecks (Flaechen 5, 6, 7) steht im Langhaus: unten weder zu sehen noch erwuenscht (von innen im Weg)
-        wandbau(h, sc, a, b, zt, lochliste(f"okt_{k}"), ph=k % 2, d=0.7, saat=3 + k, ab=10.8 if k in (5, 6, 7) else None)
+        if k in (5, 7):
+            # die schraegen Flaechen schneiden die Langhauswand: der Teil ausserhalb (rund 1,5 m) steht in voller Hoehe, der Rest im Langhaus erst ab 10,8 m
+            xg = XA + (-1 if k == 5 else 1) * (F.X_AUSSEN - 0.15)
+            t = (xg - a[0]) / (b[0] - a[0])
+            pm = (xg, a[1] + t * (b[1] - a[1]))
+            aussen, innen = ((a, pm), (pm, b)) if k == 5 else ((pm, b), (a, pm))
+            wandbau(h, sc, *aussen, zt, (), ph=k % 2, d=0.7, saat=3 + k)
+            wandbau(h, sc, *innen, zt, (), ph=k % 2, d=0.7, saat=30 + k, ab=10.8, ecken=False)
+            continue
+        wandbau(h, sc, a, b, zt, lochliste(f"okt_{k}"), ph=k % 2, d=0.7, saat=3 + k, ab=10.8 if k == 6 else None)
 
 
 def chor(h, sc):
@@ -200,9 +211,9 @@ def chor(h, sc):
     for k in range(-1, 5):
         w = math.radians(22.5 + 45 * k)
         px, py = mx + r * math.cos(w), my + r * math.sin(w)
-        pfeiler(h, (px - 0.05 * math.cos(w), py - 0.05 * math.sin(w)), (math.cos(w), math.sin(w)), zt - 0.6, breite=0.60)
+        pfeiler(h, (px - 0.05 * math.cos(w), py - 0.05 * math.sin(w)), (math.cos(w), math.sin(w)), zt, breite=0.60)
     for sx in (-1, 1):
-        pfeiler(h, (XA + sx * F.CHOR_A, F.CHOR_Y0 + 1.0), (sx, 0), zt - 0.6, breite=0.60)
+        pfeiler(h, (XA + sx * F.CHOR_A, F.CHOR_Y0 + 1.0), (sx, 0), zt, breite=0.60)
 
 
 def kegelturm(h, sc, mx, my, saat):
@@ -239,12 +250,18 @@ def turm_ecken(r):
 
 
 def turm(h, s):
-    """Runder Turm: Sandsteinsockel, Schaft aus Backstein mit Schlitzfenstern, Gesims, offene Glockenstube aus Holz, Kupferhaube."""
+    """Runder Turm nach dem Artwork: Sandsteinsockel, Schaft aus Backstein in drei Stufen (verjuengt sich nach oben, Absaetze mit
+    Sandsteingesims) mit Schlitzfenstern und acht Lisenen (Strebepfeiler-Streifen mit Wasserschlag), Gesims, Rundbogenfries,
+    offene Glockenstube aus Holz, Kupferhaube."""
     cx, cy = W(*F.TURM_M); n_ = F.TURM_SEITEN
     zg0, zg1 = F.Z_GLOCKEN
     c = V((cx, cy, 0))
-    sockel, schaft = turm_ecken(F.TURM_R + 0.12), turm_ecken(F.TURM_R)
-    schlitze = {11: 6.8, 13: 10.6, 9: 14.4, 12: 15.2}      # Seite -> Bruestung eines Schlitzfensters
+    ro = F.TURM_R_OBEN
+    sockel = turm_ecken(F.TURM_R + 0.12)
+    ringe = [turm_ecken(r) for _, _, r in F.TURM_STUFEN]
+    schaft = ringe[-1]
+    ap = math.cos(math.pi / n_)                      # Umkreis -> Innenkreis (Abstand der Wandmitte)
+    schlitze = {11: 6.8, 13: 10.6, 9: 14.4, 7: 15.2}      # Seite -> Bruestung eines Schlitzfensters
     wv0, wv1, wm = BA["werkstein"]
     lx, ly0 = XA - F.X_AUSSEN, F.Y_WEST
     for k in range(n_):
@@ -254,18 +271,24 @@ def turm(h, s):
         mid = ((schaft[k][0] + schaft[k2][0]) / 2, (schaft[k][1] + schaft[k2][1]) / 2)
         drin = mid[0] > lx + 0.1 and mid[1] > ly0 + 0.1      # liegt im Langhaus: nie zu sehen
         if drin: continue
-        for ecken, z0, z1, stoff, band in ((sockel, 0.0, F.Z_TURMSOCKEL, "Sandstein", "sandstein"), (schaft, F.Z_TURMSOCKEL, zg0, "Bruchstein", "mauer")):
+        teile = [(sockel, 0.0, F.Z_TURMSOCKEL, "Sandstein", "sandstein")] + [(ring, z0, z1, "Bruchstein", "mauer") for ring, (z0, z1, _) in zip(ringe, F.TURM_STUFEN)]
+        for ecken, z0, z1, stoff, band in teile:
             a, b = ecken[k2], ecken[k]
             l = math.hypot(b[0] - a[0], b[1] - a[1]); eu = ((b[0] - a[0]) / l, (b[1] - a[1]) / l)
-            ls = [D.Spitzloch(l / 2 - 0.24, l / 2 + 0.24, schlitze[k], schlitze[k] + 1.5, 1.3)] if band == "mauer" and k in schlitze else []
-            mauer(h, stoff, a, eu, n, l, z0, z1, band, ls, laibung=LAIBUNG, dicke=0.30, saat=k + 1)
+            ls = [D.Spitzloch(l / 2 - 0.24, l / 2 + 0.24, schlitze[k], schlitze[k] + 1.5, 1.3)] if band == "mauer" and k in schlitze and z0 <= schlitze[k] and schlitze[k] + 1.5 <= z1 else []
+            mauer(h, stoff, a, eu, n, l, z0, z1, band, ls, laibung=LAIBUNG, dicke=0.30, saat=k + 1 + 17 * int(z0))
             P = lambda s_, z, raus=0.0, a=a, eu=eu, n=n: V((a[0] + eu[0] * s_ + n[0] * raus, a[1] + eu[1] * s_ + n[1] * raus, z))
             for loch in ls:
                 D.gewaende(h, P, n3, loch, breite=0.12)
                 zu = P(l / 2, loch.z0, 5)
                 D.scheibe(s, "Fenster", lambda q, z, P=P: P(q, z, -0.30), loch, zu)
                 D.scheibe(s, "Bleinetz", lambda q, z, P=P: P(q, z, -0.294), loch, zu)
-        pa, pb, qa, qb = V((*sockel[k2], F.Z_TURMSOCKEL)), V((*sockel[k], F.Z_TURMSOCKEL)), V((*schaft[k2], F.Z_TURMSOCKEL + 0.16)), V((*schaft[k], F.Z_TURMSOCKEL + 0.16))
+        # Absaetze: Sandsteingesims auf dem Rücksprung jeder oberen Stufe
+        for i in range(1, len(ringe)):
+            z0, _, r1 = F.TURM_STUFEN[i]
+            vor = (F.TURM_STUFEN[i - 1][2] - r1) * ap + 0.06
+            D.gesimsband(h, ringe[i][k2], ringe[i][k], n, z0, hoehe=0.20, vor=vor, ueber=vor * math.tan(math.pi / n_))
+        pa, pb, qa, qb = V((*sockel[k2], F.Z_TURMSOCKEL)), V((*sockel[k], F.Z_TURMSOCKEL)), V((*ringe[0][k2], F.Z_TURMSOCKEL + 0.16)), V((*ringe[0][k], F.Z_TURMSOCKEL + 0.16))
         lang = (pb - pa).length
         h.vieleck("Sandstein", [pa, pb, qb, qa], [(0, wv1), (lang / wm, wv1), (lang / wm, wv1 - 0.2 / wm), (0, wv1 - 0.2 / wm)], zu=(pa + pb) / 2 + n3 * 3 + EZ * 3)
         D.gesimsband(h, schaft[k2], schaft[k], n, zg0 - 0.30, hoehe=0.30, vor=0.18, ueber=0.18 * math.tan(math.pi / n_))
@@ -278,8 +301,19 @@ def turm(h, s):
             zb, zsp = zg0 - 0.30 - 0.62, zg0 - 0.30 - 0.30
             pts = [Pf(sm - rr, zb), Pf(sm + rr, zb)] + [Pf(sm + rr * math.cos(math.pi * j / 6), zsp + rr * math.sin(math.pi * j / 6)) for j in range(7)]
             D.farbflaeche(h, "Sandstein", pts, "nacht", zu=Pf(lf / 2, zb, 5))
+        # Lisene (Artwork: Strebepfeiler-Streifen am Turmschaft): Sandsteinfuss, Backsteinstreifen, Wasserschlag unter dem Fries
+        if k in F.TURM_LISENEN:
+            lis_aus = F.TURM_R * ap + F.LISENE[1]
+            fuss_aus = lis_aus + 0.10
+            a_in = ro * ap - 0.05
+            f = (cx + n[0] * a_in, cy + n[1] * a_in)
+            br = F.LISENE[0]
+            q = V((-n[1], n[0], 0.0))
+            o = V((cx + n[0] * a_in, cy + n[1] * a_in, 0.0)) - q * (br + 0.16) / 2
+            D.block(h, "Sandstein", "sandstein", o, q, n3, br + 0.16, fuss_aus - a_in, 0.0, F.Z_TURMSOCKEL, ohne=("v-", "unten"))
+            D.strebepfeiler(h, f, n, br, lis_aus - a_in, F.Z_TURMSOCKEL, zg0 - 1.50, schraege=0.5, stoff="Bruchstein", band="mauer")
     # Glockenstube: Boden, Pfosten und Rahmen aus Eiche, Bruestung aus Brettern, dahinter der dunkle Raum
-    rand, pfosten = turm_ecken(F.TURM_R + 0.18), turm_ecken(F.TURM_R - 0.16)
+    rand, pfosten = turm_ecken(F.TURM_R_OBEN + 0.18), turm_ecken(F.TURM_R_OBEN - 0.16)
     zr = zg1 - 0.25
     for k in range(n_):
         k2 = (k + 1) % n_
@@ -296,9 +330,9 @@ def turm(h, s):
         ia, ib = c + (V((*pfosten[k2], 0)) - c) * 0.8, c + (V((*pfosten[k], 0)) - c) * 0.8
         ha, hb = c + (V((*rand[k2], 0)) - c) * 1.09, c + (V((*rand[k], 0)) - c) * 1.09
         D.farbflaeche(h, "Sandstein", [ia + EZ * zg1, ib + EZ * zg1, hb + EZ * zg1, ha + EZ * zg1], "holz_dunkel", zu=c)
-    h.dreh("Sandstein", (cx, cy, 0), [(F.TURM_R - 0.55, zg0), (F.TURM_R - 0.55, zg1)], "kleinteile", seiten=n_, u_bereich=D.feld("nacht"), deckel=False, glatt=False)
+    h.dreh("Sandstein", (cx, cy, 0), [(F.TURM_R_OBEN - 0.55, zg0), (F.TURM_R_OBEN - 0.55, zg1)], "kleinteile", seiten=n_, u_bereich=D.feld("nacht"), deckel=False, glatt=False)
     # Kupferhaube (welsche Haube): ausschwingende Traufe, Bauch, Einzug, Spitze
-    r = F.TURM_R
+    r = F.TURM_R_OBEN
     zh, zsp = F.Z_HAUBE, F.Z_SPITZE
     t = lambda anteil: zh + (zsp - zh) * anteil
     profil = [(r + 0.60, zh), (r + 0.32, t(0.035)), (r + 0.16, t(0.10)), (r + 0.06, t(0.22)), (r - 0.30, t(0.36)), (r - 0.95, t(0.48)), (r - 1.70, t(0.57)),
@@ -461,6 +495,8 @@ def main():
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         B.kontrollbild(os.path.join(o, "domev_blick_artwork.jpg"), (XA + 34.0, -46.0, 38.0), (XA - 1.0, 0.0, 9.0), brennweite=42)
         B.kontrollbild(os.path.join(o, "domev_blick_portal.jpg"), (XA - 10.0, -36.0, 6.0), (XA - 3.0, -14.0, 7.0), brennweite=26)
+        B.kontrollbild(os.path.join(o, "domev_blick_west.jpg"), (XA - 1.0, -33.0, 9.5), (XA + 0.5, -15.0, 9.0), brennweite=34)
+        B.kontrollbild(os.path.join(o, "domev_blick_turm.jpg"), (XA - 24.0, -30.0, 14.0), (XA - 5.6, -15.5, 12.0), brennweite=36)
         B.kontrollbild(os.path.join(o, "domev_blick_chor.jpg"), (XA + 30.0, 40.0, 28.0), (XA, 4.0, 9.0), brennweite=40)
 
 

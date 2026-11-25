@@ -26,6 +26,7 @@ from rathaus_messen import Glb         # noqa: E402
 
 ORDNER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(HIER))), "game", "assets", "modelle", "gebaeude", "neubau")
 f = lambda v: f"{v:.2f}".replace(".", ",")
+ABSTAND_DACH = 0.30                 # Fenster zu Dachflaechen mindestens (m)
 
 
 def uv2(glb, name):
@@ -35,6 +36,32 @@ def uv2(glb, name):
         if "TEXCOORD_1" not in p["attributes"]: return None
         aus.append(glb.accessor(p["attributes"]["TEXCOORD_1"]))
     return np.concatenate(aus)
+
+
+def punkt_dreieck(P, T):
+    """Kleinster Abstand jedes Punkts P (n,3) zu allen Dreiecken T (m,3,3): Lot auf die Flaeche, wenn es im Dreieck landet, sonst
+    Abstand zu den drei Kanten. Rueckgabe (n,)."""
+    A, B, C = T[:, 0], T[:, 1], T[:, 2]
+    N = np.cross(B - A, C - A)
+    ln = np.linalg.norm(N, axis=1)
+    N = N / np.where(ln < 1e-12, 1.0, ln)[:, None]
+
+    def strecke(p, a, b):
+        ab = b - a
+        t = np.clip(((p - a) * ab).sum(-1) / np.maximum((ab * ab).sum(-1), 1e-12), 0, 1)
+        return np.linalg.norm(p - (a + ab * t[..., None]), axis=-1)
+
+    aus = np.empty(len(P))
+    for i0 in range(0, len(P), 64):
+        p = P[i0:i0 + 64][:, None, :]
+        d = ((p - A) * N).sum(-1)
+        q = p - N * d[..., None]
+        innen = np.ones(d.shape, bool)
+        for a, b in ((A, B), (B, C), (C, A)):
+            innen &= (np.cross(b - a, q - a) * N).sum(-1) >= -1e-9
+        dk = np.minimum(np.minimum(strecke(p, A, B), strecke(p, B, C)), strecke(p, C, A))
+        aus[i0:i0 + 64] = np.where(innen, np.abs(d), dk).min(axis=1)
+    return aus
 
 
 def zelle(gruppe, modell):
@@ -105,6 +132,23 @@ def pruefen(modell):
             fehlt_a += da > 0.002; fehlt_i += di > 0.002
     add("Fenster aussen in der Wandmitte", f"{anzahl} Oeffnungen, Abweichung <= 0,002", f"{anzahl - (fehlt_a + 1) // 2} passen", fehlt_a == 0)
     add("Fenster innen = aussen", f"{anzahl} Oeffnungen, Abweichung <= 0,002", f"{anzahl - (fehlt_i + 1) // 2} passen, groesste Abweichung {groesste:.4f}".replace(".", ","), fehlt_i == 0)
+    # ── Fenster zu Dachflaechen: kein Fenster schneidet oder beruehrt ein Dach (Abstand der Scheibenecken zu allen Dachdreiecken) ──
+    dp, di_ = None, None
+    tris = []
+    for pos, idx in aussen.ecken("Dach").values(): tris.append(pos[idx])
+    tris = np.concatenate(tris)
+    gp = []
+    for pos, idx in aussen.ecken("Scheiben", "Fenster").values(): gp.append(pos)
+    gp = np.concatenate(gp)
+    gp = np.unique(np.round(gp, 3), axis=0)
+    # nur Punkte in Dachnaehe pruefen (Quader um die Dreiecke, 2 m Rand)
+    d_min = np.full(len(gp), 99.0)
+    lo_t, hi_t = tris.min(axis=1) - 2.0, tris.max(axis=1) + 2.0
+    for i, p in enumerate(gp):
+        nah = np.all((p >= lo_t) & (p <= hi_t), axis=1)
+        if nah.any(): d_min[i] = punkt_dreieck(p[None, :], tris[nah]).min()
+    zu_nah = d_min < ABSTAND_DACH
+    add("Fenster zu Dachflaechen", f"Abstand >= {f(ABSTAND_DACH)} ({len(gp)} Scheibenecken)", f"kleinster Abstand {f(d_min.min())}" + (f", {int(zu_nah.sum())} zu nah, z.B. bei " + "/".join(f(v) for v in gp[zu_nah][0]) if zu_nah.any() else ""), not zu_nah.any())
     # ── Raum ──
     raum = np.concatenate([p for p, _ in innen.ecken("Raum_Dom").values()])
     rlo, rhi = raum.min(axis=0), raum.max(axis=0)
