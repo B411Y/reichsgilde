@@ -27,6 +27,7 @@ from rathaus_bib import EZ, mauer                        # noqa: E402
 BA = D.BAENDER_DOM
 MODELL = "dom_katholisch"
 QUADER = lambda ph: {"links": ("Sandstein", "sandstein", ph), "rechts": ("Sandstein", "sandstein", ph + 1)}
+LAGE = 0.38                      # Lagenhoehe des Schiefers (0,30 m am Wohnhaus und beim Dom evangelisch): haelt die Huelle mit den Gratabdeckungen im Budget
 Z_QUERFIRST = M.Z_TRAUFE + ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30) * M.NEIGUNG
 
 
@@ -65,9 +66,11 @@ def baue_haus(s):
     for seite in "lr":
         D.aussenwand(h, M, f"quer_{seite}_w", 0.0, M.Z_TRAUFE)
         # ueber dem Pultdach (darunter liegt in derselben Ebene die Ostwand des Seitenschiffs): s laeuft von der Hochschiffwand nach aussen
-        D.aussenwand(h, M, f"quer_{seite}_w_oben", M.Z_SEITE - 0.25, M.Z_TRAUFE,
-                     grenze=lambda z, links=(seite == "l"): (lambda g: (M.X_AUSSEN - M.X_ARKADE - g, M.X_AUSSEN - M.X_ARKADE) if links else (0.0, g))(
-                         min(max((z + 0.25 - M.Z_SEITE) / (M.Z_PULT - M.Z_SEITE), 0.0), 1.0) * (M.X_AUSSEN - M.X_ARKADE)) if z < M.Z_PULT - 0.25 else (0.0, M.X_AUSSEN - M.X_ARKADE))
+        # in zwei Teilen, geteilt bei Z_PULT - 0,25: Dort knickt die Grenze; innerhalb einer Lage muss sie gerade laufen (sonst bleibt ein Dreieck offen)
+        for za, zb in ((M.Z_SEITE - 0.25, M.Z_PULT - 0.25), (M.Z_PULT - 0.25, M.Z_TRAUFE)):
+            D.aussenwand(h, M, f"quer_{seite}_w_oben", za, zb,
+                         grenze=lambda z, links=(seite == "l"): (lambda g: (M.X_AUSSEN - M.X_ARKADE - g, M.X_AUSSEN - M.X_ARKADE) if links else (0.0, g))(
+                             min(max((z + 0.25 - M.Z_SEITE) / (M.Z_PULT - M.Z_SEITE), 0.0), 1.0) * (M.X_AUSSEN - M.X_ARKADE)) if z < M.Z_PULT - 0.25 else (0.0, M.X_AUSSEN - M.X_ARKADE))
         D.aussenwand(h, M, f"quer_{seite}_o", 0.0, M.Z_TRAUFE)
         D.aussenwand(h, M, f"quer_{seite}_g", 0.0, M.Z_TRAUFE, ecken=QUADER(0))
         giebel(h, f"quer_{seite}_g", Z_QUERFIRST, 0)
@@ -89,6 +92,11 @@ def baue_haus(s):
         zt = M.Z_SEITE if name.startswith("seite") else M.Z_TRAUFE
         if name != "west" and not name.endswith("_g"):
             D.gesimsband(h, a, b, n, zt - 0.24, ueber=0.10)
+            if name in ("quer_l_o", "quer_r_o"):                     # offene Stirn des Gesimses am Querhausgiebel schliessen (Blick von der Seite unter das Dach)
+                ende = b if name == "quer_r_o" else a                   # das Ende am Giebel (|x| = X_QUER)
+                ed = V((ex, ey, 0)) * (1 if ende is b else -1)
+                c = V((ende[0], ende[1], zt - 0.24)) + ed * 0.10
+                h.rechteck("Sandstein", c, V((n[0], n[1], 0)), EZ, 0.12, 0.22, "werkstein", zu=c + ed * 3 + EZ * 0.11)
     # Kaffgesims der Westwand ueber dem Portal und unter dem Giebel
     for z in (7.4, M.Z_TRAUFE):
         D.gesimsband(h, (M.X_TURM[0], M.Y_WESTWAND), (-M.X_TURM[0], M.Y_WESTWAND), (0, -1), z - 0.22)
@@ -161,6 +169,25 @@ def portal(h):
         D.block(h, "Sandstein", "sandstein", (-2.2, y - tiefe), (1, 0), (0, 1), 4.4, tiefe, 0.0, 0.1 * (i + 1), ohne=("v+", "unten"))
 
 
+def wimperg_dicke(h, a, eu, n, hw, zh, d=0.20, hoch=3.0):
+    """Rueckwand des Wimpergs: ein Dreieck um `d` hinter der Aussenwand (vorher eine zweite Wand in derselben Ebene: die Pruefung sah
+    ihre Rueckseite) und die beiden Schraegen als Deckstreifen dazwischen, damit man von oben nicht in das Giebeldreieck blickt."""
+    P = lambda s_, z, raus=0.0: V((a[0] + eu[0] * s_ + n[0] * raus, a[1] + eu[1] * s_ + n[1] * raus, z))
+    mitte = P(hw, zh + 1.0, -2.0)
+    ecken = [P(0, zh, -d), P(2 * hw, zh, -d), P(hw, zh + hoch, -d)]
+    v0, v1, m = h.baender["sandstein"]
+    h.vieleck("Sandstein", ecken, [(q / m, (v0 + v1) / 2) for q in (0.0, 2 * hw, hw)], zu=mitte)
+    for links in (True, False):
+        s0 = 0.0 if links else 2 * hw
+        richt = (P(hw, zh + hoch) - P(s0, zh)).normalized()
+        laenge = (P(hw, zh + hoch) - P(s0, zh)).length
+        o = P(s0, zh)
+        tief = V((-n[0], -n[1], 0))
+        aus = (richt.cross(tief)).normalized()
+        if aus.z < 0: aus = -aus
+        h.rechteck("Sandstein", o, richt, tief, laenge, d, "werkstein", zu=(o + richt * laenge / 2 + tief * d / 2) + aus * 3)
+
+
 def turm(h, s, sx):
     xa, xb = (M.X_TURM if sx > 0 else (-M.X_TURM[1], -M.X_TURM[0]))
     cx, cy = (xa + xb) / 2, (M.Y_WEST + M.Y_TURM) / 2
@@ -195,7 +222,9 @@ def turm(h, s, sx):
                     xg = min(max(xg, M.X_ARKADE), M.X_AUSSEN)
                     return (xg - a[0], l) if a[0] > 0 else (0.0, -xg - a[0])
                 kw["grenze"] = ueber_pult
-            mauer(h, "Bruchstein", a, eu, n, l, z0, z1, "mauer", ls, laibung=("Sandstein", "werkstein"), dicke=0.45 if i == 3 else 0.30, ecken=QUADER(i), **kw)
+            zk = [z0] + [zz for zz in (M.Z_SEITE - 0.25, M.Z_PULT - 0.25) if "grenze" in kw and z0 < zz < z1] + [z1]     # Knicke der Grenze: je Teil gerade
+            for za, zb in zip(zk, zk[1:]):
+                mauer(h, "Bruchstein", a, eu, n, l, za, zb, "mauer", ls, laibung=("Sandstein", "werkstein"), dicke=0.45 if i == 3 else 0.30, ecken=QUADER(i), **kw)
             P = lambda s_, z, raus=0.0, a=a, eu=eu, n=n: V((a[0] + eu[0] * s_ + n[0] * raus, a[1] + eu[1] * s_ + n[1] * raus, z))
             n3 = V((n[0], n[1], 0))
             for loch in ls:
@@ -206,6 +235,18 @@ def turm(h, s, sx):
                     D.scheibe(s, "Bleinetz", lambda q, z, P=P: P(q, z, -0.294), loch, zu)
             if i >= 2 or not (innenseite or wo == "y1"):
                 D.gesimsband(h, a, b, n, z1 - 0.26, hoehe=0.26, vor=0.14, ueber=0.14)
+            if i < 2 and ((wo == "x1" and sx > 0) or (wo == "x0" and sx < 0)):
+                # Das Gesims der Aussenseite endet an der Ostkante des Turms offen (die Ostseite hat dort keins): Stirn schliessen
+                c, ed = ((a[0] - eu[0] * 0.14, a[1] - eu[1] * 0.14), (-eu[0], -eu[1])) if wo == "x1" else ((b[0] + eu[0] * 0.14, b[1] + eu[1] * 0.14), eu)
+                h.rechteck("Sandstein", V((c[0], c[1], z1 - 0.26)), V((n[0], n[1], 0)), EZ, 0.14, 0.26, "werkstein", zu=V((c[0] + ed[0] * 3, c[1] + ed[1] * 3, z1 - 0.13)))
+            if i < 3:
+                # Absatz: Oberseite der Wand, wo das naechste Geschoss um 0,12 zurueckspringt (sonst sieht man von oben die Rueckseite der Wand)
+                sa_, sb_ = kw.get("s_bereich", (0.0, l))
+                if "grenze" in kw:
+                    sa_, sb_ = kw["grenze"](z1)         # Ostseite: nur der Teil ueber dem Pultdach
+                if sb_ - sa_ > 1e-3:
+                    h.rechteck("Sandstein", V((a[0] + eu[0] * sa_, a[1] + eu[1] * sa_, z1)), V((eu[0], eu[1], 0)), V((-n[0], -n[1], 0)), sb_ - sa_, 0.12, "werkstein",
+                               zu=V((a[0] + eu[0] * (sa_ + sb_) / 2, a[1] + eu[1] * (sa_ + sb_) / 2, z1 + 5)))
         if i == 3:
             # Glockenstube: dunkler Innenraum hinter den Schalloeffnungen, darin die Glocke
             t = 0.45
@@ -221,7 +262,7 @@ def turm(h, s, sx):
         eu = ((b[0] - a[0]) / (2 * hw), (b[1] - a[1]) / (2 * hw)); n = (-eu[1], eu[0])
         g = lambda z: (hw - hw * (zh + 3.0 - z) / 3.0, hw + hw * (zh + 3.0 - z) / 3.0)
         mauer(h, "Sandstein", a, eu, n, 2 * hw, zh, zh + 3.0, "sandstein", zbasis=zh, grenze=g)
-        mauer(h, "Sandstein", b, (-eu[0], -eu[1]), (-n[0], -n[1]), 2 * hw, zh, zh + 3.0, "sandstein", zbasis=zh, grenze=g)
+        wimperg_dicke(h, a, eu, n, hw, zh)
     # Deckplatte der Glockenstube: schliesst die Ecken zwischen Wimpergen und achtseitigem Helm (sonst sieht man in den Turm)
     h.rechteck("Sandstein", (cx - hw, cy - hw, zh + 0.02), (1, 0, 0), (0, 1, 0), 2 * hw, 2 * hw, "werkstein", zu=(cx, cy, zh + 5))
     for fx in (-1, 1):
@@ -233,6 +274,19 @@ def turm(h, s, sx):
     D.farbkasten(h, "Firstblech", (cx - 0.17, cy - 0.17, M.Z_SPITZE - 0.1), (cx + 0.17, cy + 0.17, M.Z_SPITZE + 0.24), "gold")
 
 
+def kehle(teil, p, q, pa, pb, breite=0.30, lift=0.20):
+    """Kehlblech: Bleistreifen beiderseits der Kehllinie p-q, je auf der Dachflaeche, zu der pa bzw. pb gehoert."""
+    p, q = V(p), V(q)
+    e = (q - p).normalized()
+    p = p - e * 0.45                                       # ueber die Traufecke hinaus: dort liegen die Kanten der Lagen beider Daecher
+    for x in (pa, pb):
+        x = V(x)
+        dd = (x - p) - e * (x - p).dot(e)
+        dd.normalize()
+        pts = [p + EZ * lift, q + EZ * lift, q + dd * breite + EZ * lift, p + dd * breite + EZ * lift]
+        D.farbflaeche(teil, "Firstblech", pts, "blei", zu=(p + q) / 2 + EZ * 5)
+
+
 def baue_dach():
     d = D.Teil("Dach", BA, saat=11)
     zt, zf = M.Z_TRAUFE, M.Z_FIRST
@@ -240,22 +294,33 @@ def baue_dach():
     oben = (0, 0, 60)
     for sx in (-1, 1):
         # Hochschiff
-        D.schieferflaeche(d, (sx * xe, M.Y_WESTWAND, zt), (sx * xe, M.Y_APSIS, zt), (0, M.Y_WESTWAND, zf), (0, M.Y_APSIS, zf), (sx * 40, 0, 60), saat=1 + sx)
+        D.schieferflaeche(d, (sx * xe, M.Y_WESTWAND, zt), (sx * xe, M.Y_APSIS, zt), (0, M.Y_WESTWAND, zf), (0, M.Y_APSIS, zf), (sx * 40, 0, 60), saat=1 + sx, lage=LAGE, seiten=(True, True))
         # Pultdach des Seitenschiffs
-        D.schieferflaeche(d, (sx * (M.X_AUSSEN + 0.30), M.Y_TURM, M.Z_SEITE - 0.19), (sx * (M.X_AUSSEN + 0.30), M.Y_QUER[0], M.Z_SEITE - 0.19),
-                    (sx * M.X_ARKADE, M.Y_TURM, M.Z_PULT), (sx * M.X_ARKADE, M.Y_QUER[0], M.Z_PULT), (sx * 40, 0, 60), saat=5 + sx)
+        yp = (M.Y_TURM - 0.25, M.Y_QUER[0] + 0.25)        # 0,25 m in Turm und Querhauswand hinein: dort schliesst das Dach ohne Luecke an
+        D.schieferflaeche(d, (sx * (M.X_AUSSEN + 0.30), yp[0], M.Z_SEITE - 0.19), (sx * (M.X_AUSSEN + 0.30), yp[1], M.Z_SEITE - 0.19),
+                    (sx * M.X_ARKADE, yp[0], M.Z_PULT), (sx * M.X_ARKADE, yp[1], M.Z_PULT), (sx * 40, 0, 60), saat=5 + sx, lage=LAGE, seiten=(False, False))
+    # Gratabdeckung am First des Hochschiffs (Reparatur 25.11.2026: Stoss der beiden Flaechen)
+    D.grat(d, (0, M.Y_WESTWAND, zf), (0, M.Y_APSIS, zf), (-xe, M.Y_WESTWAND, zt), (xe, M.Y_WESTWAND, zt))
     # Querhaus: First quer zum Hochschiff, niedriger als dessen First
     ym = (M.Y_QUER[0] + M.Y_QUER[1]) / 2
     xq = M.X_QUER + 0.25
     for sy in (-1, 1):
         ye = ym + sy * ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30)
-        D.schieferflaeche(d, (-xq, ye, zt), (xq, ye, zt), (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (0, ym + sy * 40, 60), saat=8 + sy)
+        D.schieferflaeche(d, (-xq, ye, zt), (xq, ye, zt), (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (0, ym + sy * 40, 60), saat=8 + sy, lage=LAGE)
+    for sx in (-1, 1):                                     # Kehlen: wo die Querhausdaecher auf das Hochschiff treffen (Bleistreifen auf beiden Flaechen)
+        for sy in (-1, 1):
+            ye = ym + sy * ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30)
+            kehle(d, (sx * xe, ye, zt), (sx * (xe - (Z_QUERFIRST - zt) / M.NEIGUNG), ym, Z_QUERFIRST), (sx * (xe - 1.0), ye, zt + M.NEIGUNG), (sx * xe, ye - sy * 1.0, zt + M.NEIGUNG))
+    D.grat(d, (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (-xq, ym - (M.Y_QUER[1] - M.Y_QUER[0]) / 2 - 0.30, zt), (-xq, ym + (M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30, zt))
     # Chorschluss: fuenf Flaechen zum Firstpunkt
     spitze = (0, M.Y_APSIS, zf)
     for k in range(5):
         a, b = M.apsis_ecke(k, M.R_APSIS + 0.30), M.apsis_ecke(k + 1, M.R_APSIS + 0.30)
         m = ((a[0] + b[0]) * 2, M.Y_APSIS + (a[1] + b[1] - 2 * M.Y_APSIS) * 2, 60)
-        D.schieferflaeche(d, (*a, zt), (*b, zt), spitze, spitze, m, saat=20 + k)
+        D.schieferflaeche(d, (*a, zt), (*b, zt), spitze, spitze, m, saat=20 + k, lage=LAGE, seiten=(False, False))
+    for k in range(1, 5):                                  # Grate zwischen den fuenf Flaechen des Chorschlusses
+        e0, e1, e2 = (M.apsis_ecke(i, M.R_APSIS + 0.30) for i in (k - 1, k, k + 1))
+        D.grat(d, (*e1, zt), spitze, (*e0, zt), (*e2, zt))
     # Turmhelme: achtseitig
     for sx in (-1, 1):
         xa, xb = (M.X_TURM if sx > 0 else (-M.X_TURM[1], -M.X_TURM[0]))
@@ -268,6 +333,9 @@ def baue_dach():
             a, b = ecken[k], ecken[(k + 1) % 8]
             D.schieferflaeche(d, (cx + a[0], cy + a[1], M.Z_HELM), (cx + b[0], cy + b[1], M.Z_HELM), sp, sp, (cx + (a[0] + b[0]) * 4, cy + (a[1] + b[1]) * 4, 60),
                         stufe=0.0, karte=False, saat=30 + k + 4 * sx)   # glatte Flaechen: Keile und Karten ueberschnitten sich an den Graten; Reihen aus der Textur
+        for k in range(8):                                 # Gratabdeckung der acht Grate des Helms
+            e0, e1, e2 = ecken[k - 1], ecken[k], ecken[(k + 1) % 8]
+            D.grat(d, (cx + e1[0], cy + e1[1], M.Z_HELM), sp, (cx + e0[0], cy + e0[1], M.Z_HELM), (cx + e2[0], cy + e2[1], M.Z_HELM))
     return d
 
 
@@ -296,6 +364,15 @@ def main():
         B.kontrollbild(os.path.join(o, "dom_aussen_artwork_blick.jpg"), (-42.0, -52.0, 46.0), (0.0, -1.0, 12.0), brennweite=40)
         B.kontrollbild(os.path.join(o, "dom_aussen_portal_nah.jpg"), (-5.0, -27.0, 2.4), (0.0, -17.0, 5.5), brennweite=28)
         B.kontrollbild(os.path.join(o, "dom_aussen_helme.jpg"), (-16.0, -40.0, 44.0), (0.0, -14.7, 32.0), brennweite=50)
+        if "alle" in opt:                                   # 8 Ansichten rundum und Nahbilder (Reparatur 25.11.2026)
+            for i in range(8):
+                w = math.radians(i * 45 - 90)
+                B.kontrollbild(os.path.join(o, f"dom_rund{i}.jpg"), (math.cos(w) * 66, 1.0 + math.sin(w) * 66, 36.0), (0.0, 0.0, 14.0), brennweite=40, proben=24)
+            for name, auge, ziel, f in (("grate_hochschiff", (-12, -6, 24), (0, 4, 17), 45), ("helm", (-14, -26, 36), (5.1, -14.7, 31), 50),
+                                        ("helm_wimperge", (12, -24, 31), (5.1, -14.7, 27), 50), ("strebebogen", (-17, -4, 11), (-7, 0, 8), 40),
+                                        ("chor", (10, 33, 20), (0, 13.5, 14), 40), ("kehle", (14, 2, 20), (4.5, 7.5, 14.5), 45),
+                                        ("turm_pultdach", (14, -20, 11), (7.7, -11.9, 7), 40), ("querhaus", (22, 2, 22), (6, 6, 12), 40)):
+                B.kontrollbild(os.path.join(o, f"dom_nah_{name}.jpg"), auge, ziel, brennweite=f, proben=24)
 
 
 if __name__ == "__main__":

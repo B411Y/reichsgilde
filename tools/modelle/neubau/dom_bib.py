@@ -434,7 +434,7 @@ def saeule(teil, mitte, radius, z0, z1, seiten=8, band="werkstein", kapitell=0.5
 #  Stoffe, Bau, Export
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=True, saat=1, band="schiefer"):
+def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=True, saat=1, band="schiefer", seiten=(True, True)):
     """Schieferdach in Deckreihen (Nutzer, 24.11.2026), nach dem Verfahren von wohnhaus_mensch_s23.ziegelflaeche: Die Flaeche von der
     Unterkante a0-a1 zur Oberkante b0-b1 (b0 == b1: Dreieck, Helm) liegt in Lagen von `lage` Metern, jede am Fuss angehoben (Keil).
     Jede Lage fuellt eine der Reihen des Bandes (dom_trimsheet.SCHIEFER_REIHEN, reihum).
@@ -443,7 +443,7 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
     (rund 0,25 m je Texel), und eine Stirn quer zur Dachflaeche zeigt nach unten - von der Kamera aus unsichtbar. Die senkrechte
     Stirn sieht die Kamera als dunkle Linie; die Lage darunter endet am Fuss der Stirn.
     `stufe=0`: glatte Flaeche in Streifen von Bandhoehe (Turmhelme: Keile ueberschnitten sich an den Graten), die Reihen kommen dort
-    nur aus der Textur. `karte`: Alpha-Card (Schieferkante) an der Traufe. Lage 0,30 m statt 0,25 m wie am Wohnhaus: mit 0,25 m lag
+    nur aus der Textur. `seiten`: (Rand a0-b0, Rand a1-b1) mit Seitenflaechen der Keile; False an Raendern, die an eine Wand, eine Nachbarflaeche oder ein Gratblech stossen. `karte`: Alpha-Card (Schieferkante) an der Traufe. Lage 0,30 m statt 0,25 m wie am Wohnhaus: mit 0,25 m lag
     die Huelle 163 Dreiecke ueber dem Budget (15.163 von 15.000); die Reihe der Textur (0,25 m) wird dafuer um ein Fuenftel gestreckt."""
     a0, a1, b0, b1 = Vector(a0), Vector(a1), Vector(b0), Vector(b1)
     e = (a1 - a0).normalized()
@@ -476,10 +476,11 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
             cm, ch = (c0 + c1) / 2, (c1 - c0) * 0.2
             teil.vieleck("Schiefer", [p0, q0, q0 + hub, p0 + hub],
                          [(u(p0), cm + ch), (u(q0), cm + ch), (u(q0), cm - ch), (u(p0), cm - ch)], zu=(p0 + q0) / 2 + hub / 2 + (n - EZ * n.z).normalized() * 5)
-        if stufe > 0:                                       # Seitenflaechen der Keile an den freien Randern (Giebel, Gauben): sonst blickt man unter jede Lage
+        if stufe > 0 and any(seiten):                          # Seitenflaechen der Keile an den freien Randern (Giebel, Gauben): sonst blickt man unter jede Lage
             cm2 = (c0 + c1) / 2
             mitte_f = (a0 + a1 + b0 + b1) / 4
-            for ep, eq in ((p0, p1), (q0, q1)):
+            for ep, eq, mit in ((p0, p1, seiten[0]), (q0, q1, seiten[1])):
+                if not mit: continue
                 nh = (eq - ep).cross(EZ)
                 if nh.length < 1e-6: continue
                 nh.normalize()
