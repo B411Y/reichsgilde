@@ -383,7 +383,8 @@ def turm(h, s):
         h.stab("Fachwerk", a + e * 0.11 + EZ * (zg0 + 1.0), b - e * 0.11 + EZ * (zg0 + 1.0), 0.10, "balken", breite=0.14)
         ia, ib = c + (V((*pfosten[k2], 0)) - c) * 0.8, c + (V((*pfosten[k], 0)) - c) * 0.8
         ha, hb = c + (V((*rand[k2], 0)) - c) * 1.09, c + (V((*rand[k], 0)) - c) * 1.09
-        D.farbflaeche(h, "Sandstein", [ia + EZ * zg1, ib + EZ * zg1, hb + EZ * zg1, ha + EZ * zg1], "holz_dunkel", zu=c)
+        D.farbflaeche(h, "Sandstein", [ia + EZ * zg1, ib + EZ * zg1, hb + EZ * zg1, ha + EZ * zg1], "holz_dunkel", zu=c + EZ * 60)       # Oberseite des Haubenrings (Normale nach oben)
+        D.farbflaeche(h, "Sandstein", [ia + EZ * zg1, ib + EZ * zg1, hb + EZ * zg1, ha + EZ * zg1], "holz_dunkel", zu=c - EZ * 60)       # Unterseite, von der Glockenstube aus gesehen
     h.dreh("Sandstein", (cx, cy, 0), [(F.TURM_R_OBEN - 0.55, zg0), (F.TURM_R_OBEN - 0.55, zg1)], "kleinteile", seiten=n_, u_bereich=D.feld("nacht"), deckel=False, glatt=False)
     # Kupferhaube (welsche Haube): ausschwingende Traufe, Bauch, Einzug, Spitze
     r = F.TURM_R_OBEN
@@ -403,7 +404,7 @@ def baue_haus(sc):
     achteck(h, sc)
     chor(h, sc)
     for i, (x, y) in enumerate(F.TUERMCHEN):
-        kegelturm(h, sc, *W(x, y), saat=5 + 3 * i, fenster=(8, 10) if i == 0 else (11, 1))     # Tuermchen 2 steht an Achteck und Chor: Fenster nach Osten/Nordosten
+        kegelturm(h, sc, *W(x, y), saat=5 + 3 * i, fenster=(8, 10) if i == 0 else (10, 11))     # Tuermchen 2 steht an Achteck und Chor: Fenster nach Osten, fern vom Wandwinkel
     turm(h, sc)
     h.yv = yv
     return h
@@ -449,7 +450,7 @@ def gaube(d, h, sc, mx, my, theta, rho_f, saat):
         d_a1 = p(rho_e, sg * (w / 2 + ue), ze - 0.05)
         d_b0 = p(rho_f + ue, 0.0, zfi + 0.05)
         d_b1 = p(rho_r, 0.0, zfi + 0.05)
-        D.schieferflaeche(d, d_a0, d_a1, d_b0, d_b1, (d_a0 + d_b0) / 2 + V((sg * t_.x, sg * t_.y, 0)) * 3 + EZ * 3, saat=saat + sg + 2, karte=True)
+        D.schieferflaeche(d, d_a0, d_a1, d_b0, d_b1, (d_a0 + d_b0) / 2 + V((sg * t_.x, sg * t_.y, 0)) * 3 + EZ * 3, saat=saat + sg + 2, karte=True, stufe=0)     # glatte Flaeche: Stufenenden haengen hinten sonst heraus (Pruefung 2)
         # Wange: Dreieck zwischen Wand und Hauptdach, aus Backstein wie die Stirnseite (in Lagen, die Oberkante folgt dem Hauptdach)
         mv0, mv1, mmm = BA["mauer"]
         kurs = (mv1 - mv0) * mmm
@@ -571,7 +572,7 @@ def main():
     B.exportiere([o_haus, o_dach, o_scheiben] + anker, os.path.join(B.ZIEL_MODELL, MODELL + ".glb"))
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
-        B.kontrollbild(os.path.join(o, "domev_blick_artwork.jpg"), (XA + 34.0, -46.0, 38.0), (XA - 1.0, 0.0, 9.0), brennweite=42)
+        B.kontrollbild(os.path.join(o, "domev_blick_turmkopf.jpg"), (XA + 4.0, -26.0, 26.5), (XA - 5.6, -15.5, 22.0), brennweite=42)
         B.kontrollbild(os.path.join(o, "domev_blick_gauben.jpg"), (XA + 10.5, -4.0, 21.0), (XA + 4.9, 3.2, 17.3), brennweite=40)
 
 

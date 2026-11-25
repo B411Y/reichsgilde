@@ -167,7 +167,8 @@ step = 0.4 if SCHNELL else 0.25
 bad = {}
 art = {}
 nstr = 0
-for d in dirs:
+tri_rueck = {}                  # Dreieck -> Richtungen, aus denen seine Rueckseite zuerst getroffen wurde
+for dkey, d in enumerate(dirs):
     hit, pos, rueck, gl = rastern(d, step)
     nstr += int(hit.sum())
     steil = d.z < -0.8                          # ab 55 Grad Hoehenwinkel
@@ -179,9 +180,25 @@ for d in dirs:
         key = tuple(round(x / 0.5) for x in p)
         bad[key] = bad.get(key, 0) + 1
         art[key] = info[int(rastern.idx[j, i])] + (tuple(round(x, 2) for x in d),)
+        tri_rueck.setdefault(int(rastern.idx[j, i]), set()).add(dkey)
 bad = {k: n for k, n in bad.items() if n >= 6}                  # wenige Treffer an einer Kante oder durch eine Fensteroeffnung sind Streifschuesse
 for key, n in sorted(bad.items(), key=lambda kv: -kv[1])[:25]: befunde.append(f"Rueckseite bei {f(key[0] * 0.5)}/{f(key[1] * 0.5)}/{f(key[2] * 0.5)}: {n} Treffer, {art[key][0]}/{art[key][1]}, Strahl {art[key][2]}")
 zeile("Rueckseiten (64 Richtungen)", "erster Treffer nie eine Rueckseite", f"{len(bad)} Stellen ({nstr} Strahlen)", not bad)
+
+# ── b2  kleine Fehlstellen ──
+# Eine Flaeche mit falscher Normale zeigt ihre Rueckseite aus vielen Richtungen; ein Streifschuss an einer Kante trifft sie nur aus einer
+# oder zwei. Darum: Dreiecke, deren Rueckseite aus mindestens 3 verschiedenen der 64 Richtungen als erstes getroffen wird (Haus, ausser
+# Glockenstube; Dach nur ab 55 Grad ist hier ohne Wirkung, es zaehlen alle Treffer ausser Blech und Schieferkante).
+klein = []
+for t, ds in tri_rueck.items():
+    if len(ds) < 3 or info[t][1] in ("Firstblech", "Schieferkante"): continue
+    pa = [verts[k] for k in tris[t]]
+    c = (pa[0] + pa[1] + pa[2]) / 3
+    if ERLAUBT((c.x, c.y, c.z)): continue
+    klein.append((len(ds), c, info[t]))
+klein.sort(key=lambda x: -x[0])
+for n, c, inf in klein[:15]: befunde.append(f"Rueckseite einer Flaeche aus {n} Richtungen bei {f(c.x)}/{f(c.y)}/{f(c.z)}, {inf[0]}/{inf[1]}")
+zeile("Rueckseiten einzelner Flaechen (aus >= 3 Richtungen)", "keine", f"{len(klein)} Dreiecke", not klein)
 
 # ── d  Oberseiten ──
 cl = {}

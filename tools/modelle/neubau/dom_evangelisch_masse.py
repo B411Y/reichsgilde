@@ -105,8 +105,9 @@ Z_FIRST = Z_FIRST_L
 
 
 def durchsicht_erlaubt(p):
-    """Punkt p (x, y, z) in der offenen Glockenstube samt Haubenrand: dort darf man durchsehen und Rueckseiten treffen (dom_geometrie.py)."""
-    return Z_GLOCKEN[0] - 0.1 <= p[2] <= Z_HAUBE + 0.4 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN + 1.2
+    """Punkt p (x, y, z) im Inneren der offenen Glockenstube (innerhalb der Pfosten, unter dem Haubenring): dort darf man durchsehen und
+    Rueckseiten treffen (dom_geometrie.py). Der Haubenring selbst und alles ausserhalb gehoert nicht dazu."""
+    return Z_GLOCKEN[0] - 0.1 <= p[2] < Z_GLOCKEN[1] - 0.05 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN - 0.05
 
 
 def vieleck(mx, my, apothem, n=8, phase=0.0):
