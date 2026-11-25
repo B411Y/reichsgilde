@@ -447,10 +447,20 @@ def gaube(d, h, sc, mx, my, theta, rho_f, saat):
         d_b0 = p(rho_f + ue, 0.0, zfi + 0.05)
         d_b1 = p(rho_r, 0.0, zfi + 0.05)
         D.schieferflaeche(d, d_a0, d_a1, d_b0, d_b1, (d_a0 + d_b0) / 2 + V((sg * t_.x, sg * t_.y, 0)) * 3 + EZ * 3, saat=saat + sg + 2, karte=True)
-        # Wange: Dreieck zwischen Wand und Hauptdach
-        for sg2 in (sg,):
-            pts = [p(rho_f, sg2 * w / 2, zf), p(rho_e, sg2 * w / 2, ze), p(rho_f, sg2 * w / 2, ze)]
-            D.schieferflaeche(d, pts[0], pts[1], pts[2], pts[2], p(rho_f, sg2 * w / 2, ze) + t_ * sg2 * 4, stufe=0, karte=False, saat=saat)
+        # Wange: Dreieck zwischen Wand und Hauptdach, aus Backstein wie die Stirnseite (in Lagen, die Oberkante folgt dem Hauptdach)
+        mv0, mv1, mmm = BA["mauer"]
+        kurs = (mv1 - mv0) * mmm
+        nl = max(1, math.ceil((ze - zf) / kurs - 1e-6))
+        for i in range(nl):
+            za, zb = zf + (ze - zf) * i / nl, zf + (ze - zf) * (i + 1) / nl
+            ra, rb = (zsp - za) / k, (zsp - zb) / k
+            pts = [p(rho_f, sg * w / 2, za), p(ra, sg * w / 2, za), p(rb, sg * w / 2, zb), p(rho_f, sg * w / 2, zb)]
+            vers = B._lagen_versatz(i, saat) * mmm
+            t = (zb - za) / kurs
+            vo = mv1 - t * (mv1 - mv0)
+            uvs = [(vers / mmm, mv1), ((rho_f - ra + vers) / mmm, mv1), ((rho_f - rb + vers) / mmm, vo), (vers / mmm, vo)]
+            if abs(rb - rho_f) < 1e-4: pts, uvs = pts[:3], uvs[:3]
+            h.vieleck("Bruchstein", pts, uvs, zu=p(rho_f, sg * w / 2, (za + zb) / 2) + t_ * sg * 4)
 
 
 def baue_dach():
@@ -545,9 +555,7 @@ def main():
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         B.kontrollbild(os.path.join(o, "domev_blick_artwork.jpg"), (XA + 34.0, -46.0, 38.0), (XA - 1.0, 0.0, 9.0), brennweite=42)
-        B.kontrollbild(os.path.join(o, "domev_blick_turm_dach.jpg"), (XA + 13.0, -8.0, 21.0), (XA - 5.6, -15.5, 14.0), brennweite=36)
-        B.kontrollbild(os.path.join(o, "domev_blick_gauben.jpg"), (XA + 17.0, -9.0, 24.0), (XA, 3.2, 17.0), brennweite=36)
-        B.kontrollbild(os.path.join(o, "domev_blick_achteck_ecke.jpg"), (XA - 17.0, -9.0, 14.0), (XA - 5.4, -1.0, 10.0), brennweite=34)
+        B.kontrollbild(os.path.join(o, "domev_blick_gauben.jpg"), (XA + 10.5, -4.0, 21.0), (XA + 4.9, 3.2, 17.3), brennweite=40)
 
 
 if __name__ == "__main__":
