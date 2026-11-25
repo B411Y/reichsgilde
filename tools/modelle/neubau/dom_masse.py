@@ -25,7 +25,7 @@ GROESSTE = max(h for h, _ in FIGUREN.values())
 BREITESTE = max(b for _, b in FIGUREN.values())
 
 FLAECHE = (20.0, 38.0)   # belegte Flaeche (Breite x Tiefe) fuer den Katalog; Paket 3 setzt sie in die Karten
-BUDGET = (8000, 15000)   # Dreiecke der Huelle (Style-Guide: Monument)
+BUDGET = (8000, 17000)   # Dreiecke der Huelle (Style-Guide: Monument 8.000-15.000; Nutzer 25.11.2026: Optik vor Optimierung, Schieferlage 0,30 m, bis 17.000)
 
 # ── Hoehen ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 Z_SOCKEL = 0.30          # Fussboden (drei Stufen vor dem Portal)

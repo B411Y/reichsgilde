@@ -23,7 +23,7 @@ GROESSTE = max(h for h, _ in FIGUREN.values())
 BREITESTE = max(b for _, b in FIGUREN.values())
 
 FLAECHE = (20.0, 38.0)   # belegte Flaeche (Breite x Tiefe) fuer den Katalog, wie beim Dom katholisch
-BUDGET = (8000, 15000)   # Dreiecke der Huelle (Style-Guide: Monument)
+BUDGET = (8000, 17000)   # Dreiecke der Huelle (Style-Guide: Monument 8.000-15.000; Nutzer 25.11.2026: Optik vor Optimierung, Schieferlage 0,30 m, bis 17.000)
 XA = 0.0                 # Achse von Langhaus, Achteck und Chor
 
 # ── Hoehen ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -107,6 +107,7 @@ Z_FIRST = Z_FIRST_L
 def durchsicht_erlaubt(p):
     """Punkt p (x, y, z) im Inneren der offenen Glockenstube (innerhalb der Pfosten, unter dem Haubenring): dort darf man durchsehen und
     Rueckseiten treffen (dom_geometrie.py). Der Haubenring selbst und alles ausserhalb gehoert nicht dazu."""
+    if Z_KNAUF - 2.2 <= p[2] <= Z_KNAUF + 0.6 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < 0.7: return True     # Luft um Stange und Knauf ueber dem Helm
     return Z_GLOCKEN[0] - 0.1 <= p[2] < Z_GLOCKEN[1] - 0.05 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN - 0.05
 
 

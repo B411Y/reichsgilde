@@ -74,7 +74,7 @@ def paar(l, breite, z0, z1, steil=1.6, abstand=0.30):
     return [D.Spitzloch(l / 2 + s * (abstand + breite / 2) - breite / 2, l / 2 + s * (abstand + breite / 2) + breite / 2, z0, z1, steil) for s in (-1, 1)]
 
 
-def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0.7, z_stein=None, ecken=True, gesims=True, saat=1, ab=None):
+def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0.7, z_stein=None, ecken=True, gesims=True, saat=1, ab=None, z_oben=None):
     """Eine Aussenwand: Sandsteinsockel, Backstein (oder Sandstein), Fenster, Sockel- und Traufgesims. `ab`: nur von dieser Hoehe an
     (Wand im Inneren des Langhauses, unten nicht zu sehen und von innen im Weg)."""
     zs = ZS if z_stein is None else z_stein
@@ -83,7 +83,7 @@ def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0
     stoff, band = ("Sandstein", "sandstein") if ganz_sandstein else ("Bruchstein", "mauer")
     if zs > 0 and ab is None:
         mauer(h, "Sandstein", o, e, n, l, 0.0, zs, "sandstein", saat=saat)
-    mauer(h, stoff, o, e, n, l, zs, z_traufe, band, list(loecher), laibung=LAIBUNG, dicke=d / 2, ecken=QUADER(ph) if ecken else None, saat=saat)
+    mauer(h, stoff, o, e, n, l, zs, z_oben or z_traufe, band, list(loecher), laibung=LAIBUNG, dicke=d / 2, ecken=QUADER(ph) if ecken else None, saat=saat)
     fenster(h, sc, o, e, n, loecher, d)
     a, b = (o[0], o[1]), (o[0] + e[0] * l, o[1] + e[1] * l)
     if gesims:
@@ -131,7 +131,7 @@ def langhaus(h, sc):
     fenster(h, sc, o, e, n, lo, 0.7)
     # Seitenwaende (Backstein): +X und -X
     for (name, p0, p1, ph) in (("seite_r", W(x1, y0), W(x1, y1), 0), ("seite_l", W(x0, y1), W(x0, y0), 1)):
-        wandbau(h, sc, p0, p1, zt, lochliste(name), ph=ph, ecken=True)
+        wandbau(h, sc, p0, p1, zt, lochliste(name), ph=ph, ecken=True, z_oben=zt + 0.30 * F.NEIGUNG_L - 0.02)     # bis an die Dachflaeche (Traufueberstand 0,30 m): sonst Schlitz unter dem Dach
     # Strebepfeiler an den Seiten (Nahtstellen der Fenster)
     for sx in (-1, 1):
         for y in (y0 + 0.35, -10.55, -6.25, -1.95):
@@ -146,8 +146,10 @@ def vorhalle(h, sc):
     zt, zf = F.VH_Z
     b, z0, z1 = F.PORTAL
     tief = yw - yv
-    mauer(h, "Sandstein", (cx - hx, yw), (0, -1), (-1, 0), tief, 0.0, zt, "sandstein")
-    mauer(h, "Sandstein", (cx + hx, yv), (0, 1), (1, 0), tief, 0.0, zt, "sandstein")
+    # Die Seitenwaende reichen bis an die Dachflaeche (Dach faellt von der Traufe bei hx + 0,25 zum First): sonst Schlitz zwischen Wand und Dach
+    zw = zt + 0.25 * (zf - zt) / (hx + 0.25) - 0.02
+    mauer(h, "Sandstein", (cx - hx, yw), (0, -1), (-1, 0), tief, 0.0, zw, "sandstein")
+    mauer(h, "Sandstein", (cx + hx, yv), (0, 1), (1, 0), tief, 0.0, zw, "sandstein")
     for sx in (-1, 1):
         D.gesimsband(h, (cx + sx * hx, yv), (cx + sx * hx, yw), (sx, 0), zt - 0.20, hoehe=0.20, vor=0.10)
     bogen = D.Spitzloch(hx - b / 2, hx + b / 2, z0, zt, (zt - z1) / (b / 2), sohlbank=False)
@@ -156,7 +158,8 @@ def vorhalle(h, sc):
     P = lambda s_, z, raus=0.0: V((cx - hx + s_, yv - raus, z))
     D.gewaende(h, P, V((0, -1, 0)), bogen, breite=0.20, vor=0.05)
     for seite in (-1, 1):
-        B.bretttuer(h, "Bretter", "planken", "Bretter", "eisen", (cx + seite * b / 4, yv + 0.40, z0), (1, 0, 0), (0, -1, 0), b / 2 - 0.01, z1 - z0, bretter=4)
+        B.bretttuer(h, "Bretter", "planken", "Bretter", "eisen", (cx + seite * b / 4, yv + 0.40, z0), (1, 0, 0), (0, -1, 0), b / 2 + 0.01, z1 - z0, bretter=4)
+    D.block(h, "Sandstein", "sandstein", (cx - b / 2, yv - 0.30), (1, 0), (0, 1), b, 1.40, 0.0, z0 + 0.01, ohne=("unten",))     # Schwelle unter den Tuerblaettern (sonst Durchsicht unter der Tuer)
     v0, v1, mm = BA["werkstein"]
     kurs = (v1 - v0) * mm
     zs = sorted({z for z in bogen.hoehen() if z >= z1 - 1e-6} | {z1 + kurs * i for i in range(1, int((zt - z1) / kurs) + 1)})
@@ -546,6 +549,7 @@ def stoffe():
 
 
 def main():
+    D.GESIMS_KAPPEN = True
     opt = B.optionen()
     D.neu()
     st = stoffe()

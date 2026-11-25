@@ -228,6 +228,9 @@ def fiale_bauen(teil, mitte, kante, z0, schaft, helm, stoff="Sandstein", band="w
     teil.vieleck(stoff, ecken, [(0, v1), (0.1, v1), (0.1, v0), (0, v0)], zu=V((x, y, z0 - 5)))
 
 
+GESIMS_KAPPEN = False                                  # die Bauskripte schalten es ein (Dom evangelisch)
+
+
 def gesimsband(teil, a, b, n, z, hoehe=0.22, vor=0.12, stoff="Sandstein", band="werkstein", ueber=0.0, unten=True):
     """Gesims auf einer Wandflaeche von a nach b (x, y), Sichtseite n: Stirn, Ober- und Unterseite; `ueber`: Ueberstand an den Enden."""
     a3, b3 = V((a[0], a[1], z)), V((b[0], b[1], z)); n3 = V((n[0], n[1], 0)).normalized()
@@ -238,6 +241,9 @@ def gesimsband(teil, a, b, n, z, hoehe=0.22, vor=0.12, stoff="Sandstein", band="
     teil.rechteck(stoff, a3 + n3 * vor, e, EZ, lang, hoehe, band, zu=m + n3 * 3)
     teil.rechteck(stoff, a3 + EZ * hoehe, e, n3, lang, vor, band, zu=m + EZ * 3)
     if unten: teil.rechteck(stoff, a3, e, n3, lang, vor, band, zu=m - EZ * 3)
+    if GESIMS_KAPPEN:                                     # offene Stirn an beiden Enden schliessen (sonst Blick unter das Gesims, Pruefung 25.11.2026)
+        teil.rechteck(stoff, a3, n3, EZ, vor, hoehe, band, zu=a3 - e * 3 + n3 * vor / 2 + EZ * hoehe / 2)
+        teil.rechteck(stoff, b3, n3, EZ, vor, hoehe, band, zu=b3 + e * 3 + n3 * vor / 2 + EZ * hoehe / 2)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════

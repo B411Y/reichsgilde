@@ -76,7 +76,7 @@ def rastern(d, step):
     """Treffer-Gitter einer Parallelprojektion in Richtung d: (hit, pos, rueck, glas) je Gitterpunkt und die Basis."""
     d = d.normalized(); u, v = basis(d)
     U, V = allv @ np.array(u), allv @ np.array(v)
-    u0, v0 = U.min() - 0.3, V.min() - 0.3
+    u0, v0 = U.min() - 0.3 + 0.0071, V.min() - 0.3 + 0.0043        # kleiner Versatz: Strahlen, die genau in der Ebene einer Wand laufen (Himmelsrichtung 0/90/180/270), streifen sie sonst nur und melden ein Loch
     nu, nv = int((U.max() + 0.3 - u0) / step) + 1, int((V.max() + 0.3 - v0) / step) + 1
     C = -d * (RADIUS * 3 + MITTE.length)          # u0, v0 sind vom Ursprung aus gemessen: die Mitte des Gitters darf nicht seitlich verschoben sein (sonst fehlt ein Teil der Huelle)
     hit = np.zeros((nv, nu), bool); pos = np.zeros((nv, nu, 3), np.float32); rueck = np.zeros((nv, nu), bool); gl = np.zeros((nv, nu), bool)
@@ -148,6 +148,8 @@ def loecher(d, step, tag):
             if not (lo[0] - 1 <= q.x <= hi[0] + 1 and lo[1] - 1 <= q.y <= hi[1] + 1 and lo[2] - 1 <= q.z <= hi[2] + 1): continue
             r = bvh.find_nearest(q)
             if r[0] is not None and r[3] < bestm: bestm, bestq = r[3], q
+        rn = bvh.find_nearest(bestq)
+        if rn[0] is not None and rn[2] in glas and rn[3] < 0.25: continue        # Spalt am Fensterglas: durch Fenster sieht man ohnehin in den Raum
         schmal = min(max(ia) - min(ia) + 1, max(ja) - min(ja) + 1) * step <= 0.13          # Riss von hoechstens 13 cm Breite: zaehlt auch dann, wenn die Naehe springt
         if sprung and not schmal: continue                        # weite Luecke zwischen einem nahen und einem fernen Teil: kein Loch
         res.append((len(comp) * step * step * 1e4, tuple(float(x) for x in bestq), tag))

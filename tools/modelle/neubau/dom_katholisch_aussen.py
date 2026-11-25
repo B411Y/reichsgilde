@@ -27,7 +27,7 @@ from rathaus_bib import EZ, mauer                        # noqa: E402
 BA = D.BAENDER_DOM
 MODELL = "dom_katholisch"
 QUADER = lambda ph: {"links": ("Sandstein", "sandstein", ph), "rechts": ("Sandstein", "sandstein", ph + 1)}
-LAGE = 0.44                      # Lagenhoehe des Schiefers (0,30 m am Wohnhaus und beim Dom evangelisch): haelt die Huelle mit den Gratabdeckungen im Budget
+LAGE = 0.30                      # Lagenhoehe des Schiefers wie am Wohnhaus und beim Dom evangelisch (Nutzer 25.11.2026: Reihen im Pixel-Look lesbar)
 Z_QUERFIRST = M.Z_TRAUFE + ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30) * M.NEIGUNG
 
 

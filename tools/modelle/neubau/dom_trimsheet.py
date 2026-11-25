@@ -91,7 +91,7 @@ def haus_stein_band(quellen, hoehe, meter=4.0):
 MAUER_GRAU = (0.69, 0.70, 0.71)       # helles, leicht kuehles Grau der Dom-Mauer (frueherer grauer Werkstein: 0,68 / 0,67 / 0,65)
 SCHIEFER_REIHEN = 3                   # Deckreihen im Band "schiefer": je 0,25 m = 128 Bildpunkte (wie die Ziegellage "stroh_franse" der Wohnhaeuser)
 SCHIEFER_TON = (0.50, 0.53, 0.60)     # Schiefergrau-Blau (unveraendert seit 23.11.2026)
-SCHIEFER_FUGE = (0.33, 0.36, 0.43)    # Band "schiefer_kante": Fuge zwischen den Deckreihen und Karten an der Traufe
+SCHIEFER_FUGE = (0.20, 0.22, 0.29)    # Band "schiefer_kante": Fuge zwischen den Deckreihen und Karten an der Traufe
 SCHIEFER_REIHE_HELL = (0.93, 1.00, 1.07)   # die drei Reihen leicht verschieden hell: im Pixel-Look ist eine Reihe ein einziger Texel (Mip 7)
 
 
@@ -106,13 +106,15 @@ def schiefer_reihen(blatt, band, q):
     h = (e - a) // SCHIEFER_REIHEN
     gewicht = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
     y = np.arange(h, dtype=np.float32)
-    fy = 0.50 + 0.50 * np.clip(y / 60.0, 0, 1) ** 0.8                 # oben: Schatten der naechsten Reihe
-    fy = fy * (1.0 + 0.25 * np.clip((y - (h - 14)) / 6.0, 0, 1))      # unten: helle Kante der Platten
+    # Reihenkontrast erhoeht (Nutzer 25.11.2026: im Pixel-Look so lesbar wie die Ziegel der Wohnhaeuser): tieferer Schatten unter der naechsten
+    # Reihe, breitere und hellere Kante der Platten, insgesamt heller (Schiefergrau-Blau bleibt)
+    fy = 0.42 + 0.58 * np.clip(y / 56.0, 0, 1) ** 0.8                 # oben: Schatten der naechsten Reihe
+    fy = fy * (1.0 + 0.90 * np.clip((y - (h - 26)) / 8.0, 0, 1))      # unten: helle Kante der Platten
     ziel = None
     for r in range(SCHIEFER_REIHEN):
         f, n, arm = q.streifen(h, ab=60 + 311 * r, versatz=397 * r)
         lin = srgb_zu_linear(faerbe(f, SCHIEFER_TON, kontrast=1.15, eigenfarbe=0.35))
-        if ziel is None: ziel = 0.96 * float((lin @ gewicht).mean())
+        if ziel is None: ziel = 2.00 * float((lin @ gewicht).mean())
         z = np.random.default_rng(140 + r)
         fx = np.ones(N, dtype=np.float32)
         x = int(z.integers(0, 120))
