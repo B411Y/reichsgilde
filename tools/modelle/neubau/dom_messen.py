@@ -1,6 +1,6 @@
-"""Neubau Dom: Soll gegen Ist aus den fertigen GLBs (reines Python mit numpy, ohne Blender).
+"""Neubau Dom: Soll gegen Ist aus den fertigen GLBs (Python mit numpy; die Strahlenpruefungen laufen in Blender).
 
-    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch|dom_evangelisch] [--md=<datei>]
+    python tools/modelle/neubau/dom_messen.py [--modell=dom_katholisch|dom_evangelisch] [--md=<datei>] [--ohne-geometrie] [--glb=<datei>] [--schnell]
 
 Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb und prueft gegen die Massdatei des Modells
 (dom_masse.py fuer den Dom katholisch, sonst <modell>_masse.py):
@@ -12,6 +12,8 @@ Liest game/assets/modelle/gebaeude/neubau/<modell>.glb und <modell>_innen.glb un
   * Anker: Blick_Auge 1,60 ueber dem Boden, Tuer_Dom_Stadt im Portal, 48 Sitzplaetze Glaeubig_<n> auf den Baenken (Sitzflaeche darunter),
     Predigt_1 auf dem Kanzelboden, Anker_Bischof, Anker_Pfarrer; die Knoten der Einrichtung je Stadtglaube.
 Dazu rechnet es die Tabelle aus dom_masse.soll_ist() mit (Masse, die schon ohne GLB feststehen).
+Und ruft (ohne --ohne-geometrie) dom_geometrie.py in Blender auf: Strahlenpruefungen (Durchsicht, Rueckseiten, Oberseiten, Spalt zwischen
+Schieferteilen, Fenster in freier Wand); deren Zeilen kommen in dieselbe Tabelle. `--glb=<datei>` prueft eine andere GLB der Huelle.
 """
 import json
 import os
@@ -26,6 +28,7 @@ from rathaus_messen import Glb         # noqa: E402
 
 ORDNER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(HIER))), "game", "assets", "modelle", "gebaeude", "neubau")
 f = lambda v: f"{v:.2f}".replace(".", ",")
+ABSTAND_DACH = 0.30                 # Fenster zu Dachflaechen mindestens (m)
 
 
 def uv2(glb, name):
@@ -35,6 +38,32 @@ def uv2(glb, name):
         if "TEXCOORD_1" not in p["attributes"]: return None
         aus.append(glb.accessor(p["attributes"]["TEXCOORD_1"]))
     return np.concatenate(aus)
+
+
+def punkt_dreieck(P, T):
+    """Kleinster Abstand jedes Punkts P (n,3) zu allen Dreiecken T (m,3,3): Lot auf die Flaeche, wenn es im Dreieck landet, sonst
+    Abstand zu den drei Kanten. Rueckgabe (n,)."""
+    A, B, C = T[:, 0], T[:, 1], T[:, 2]
+    N = np.cross(B - A, C - A)
+    ln = np.linalg.norm(N, axis=1)
+    N = N / np.where(ln < 1e-12, 1.0, ln)[:, None]
+
+    def strecke(p, a, b):
+        ab = b - a
+        t = np.clip(((p - a) * ab).sum(-1) / np.maximum((ab * ab).sum(-1), 1e-12), 0, 1)
+        return np.linalg.norm(p - (a + ab * t[..., None]), axis=-1)
+
+    aus = np.empty(len(P))
+    for i0 in range(0, len(P), 64):
+        p = P[i0:i0 + 64][:, None, :]
+        d = ((p - A) * N).sum(-1)
+        q = p - N * d[..., None]
+        innen = np.ones(d.shape, bool)
+        for a, b in ((A, B), (B, C), (C, A)):
+            innen &= (np.cross(b - a, q - a) * N).sum(-1) >= -1e-9
+        dk = np.minimum(np.minimum(strecke(p, A, B), strecke(p, B, C)), strecke(p, C, A))
+        aus[i0:i0 + 64] = np.where(innen, np.abs(d), dk).min(axis=1)
+    return aus
 
 
 def zelle(gruppe, modell):
@@ -105,6 +134,23 @@ def pruefen(modell):
             fehlt_a += da > 0.002; fehlt_i += di > 0.002
     add("Fenster aussen in der Wandmitte", f"{anzahl} Oeffnungen, Abweichung <= 0,002", f"{anzahl - (fehlt_a + 1) // 2} passen", fehlt_a == 0)
     add("Fenster innen = aussen", f"{anzahl} Oeffnungen, Abweichung <= 0,002", f"{anzahl - (fehlt_i + 1) // 2} passen, groesste Abweichung {groesste:.4f}".replace(".", ","), fehlt_i == 0)
+    # ── Fenster zu Dachflaechen: kein Fenster schneidet oder beruehrt ein Dach (Abstand der Scheibenecken zu allen Dachdreiecken) ──
+    dp, di_ = None, None
+    tris = []
+    for pos, idx in aussen.ecken("Dach").values(): tris.append(pos[idx])
+    tris = np.concatenate(tris)
+    gp = []
+    for pos, idx in aussen.ecken("Scheiben", "Fenster").values(): gp.append(pos)
+    gp = np.concatenate(gp)
+    gp = np.unique(np.round(gp, 3), axis=0)
+    # nur Punkte in Dachnaehe pruefen (Quader um die Dreiecke, 2 m Rand)
+    d_min = np.full(len(gp), 99.0)
+    lo_t, hi_t = tris.min(axis=1) - 2.0, tris.max(axis=1) + 2.0
+    for i, p in enumerate(gp):
+        nah = np.all((p >= lo_t) & (p <= hi_t), axis=1)
+        if nah.any(): d_min[i] = punkt_dreieck(p[None, :], tris[nah]).min()
+    zu_nah = d_min < ABSTAND_DACH
+    add("Fenster zu Dachflaechen", f"Abstand >= {f(ABSTAND_DACH)} ({len(gp)} Scheibenecken)", f"kleinster Abstand {f(d_min.min())}" + (f", {int(zu_nah.sum())} zu nah, z.B. bei " + "/".join(f(v) for v in gp[zu_nah][0]) if zu_nah.any() else ""), not zu_nah.any())
     # ── Raum ──
     raum = np.concatenate([p for p, _ in innen.ecken("Raum_Dom").values()])
     rlo, rhi = raum.min(axis=0), raum.max(axis=0)
@@ -145,6 +191,24 @@ def pruefen(modell):
     return z
 
 
+def geometrie(modell, glb=None, schnell=False):
+    """Zeilen der Strahlenpruefungen (dom_geometrie.py in Blender); ohne Blender eine Zeile mit Hinweis (kein Fehler)."""
+    import subprocess
+    blender = os.path.expanduser("~/werkzeuge/blender/blender.sh")
+    if not os.path.exists(blender): return [("Geometrie (Strahlen)", "Blender", "nicht vorhanden, uebersprungen", True)]
+    kmd = ["nice", "-n", "19", blender, "-b", "--python", os.path.join(HIER, "dom_geometrie.py"), "--", "--modell=" + modell] + ([f"--glb={glb}"] if glb else []) + (["--schnell"] if schnell else [])
+    sperre = "/tmp/claude-1000/blender.lock"
+    if os.path.isdir(os.path.dirname(sperre)): kmd = ["flock", sperre] + kmd
+    aus = subprocess.run(kmd, capture_output=True, text=True, cwd="/tmp").stdout
+    zeilen = []
+    for z in aus.splitlines():
+        if z.startswith("GEOMETRIE|"):
+            _, name, soll, ist, ok = z.split("|")
+            zeilen.append((name, soll, ist, ok == "ok"))
+        elif z.startswith("BEFUND|"): print("  " + z[7:])
+    return zeilen or [("Geometrie (Strahlen)", "Zeilen von dom_geometrie.py", "keine Ausgabe", False)]
+
+
 def main():
     opt = dict((a[2:].split("=", 1) + ["1"])[:2] for a in sys.argv[1:] if a.startswith("--"))
     global M
@@ -153,6 +217,7 @@ def main():
         import importlib
         M = importlib.import_module(modell + "_masse")
     zeilen = pruefen(modell)
+    if "ohne-geometrie" not in opt: zeilen += geometrie(modell, opt.get("glb"), "schnell" in opt)
     text = M.tabelle(zeilen)
     print(text)
     fehler = [n for n, _, _, ok in zeilen if not ok]
