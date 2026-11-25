@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Kartenwerkstatt;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -49,6 +50,17 @@ public readonly record struct Hausflaeche(double X, double Z, double Breite, dou
 
     /// <summary>Die Fläche eines Grundrisses (Drehung in 90°-Schritten).</summary>
     public static Hausflaeche Von(Grundriss g) => new(g.X, g.Z, g.Breite, g.Tiefe, g.Drehung * 90);
+
+    /// <summary>Die vier Ecken der Fläche (für die Einebnung des Geländes, <see cref="Gelaendeform"/>).</summary>
+    public IReadOnlyList<Kartenort> Ecken()
+    {
+        var (w, t, x, z, grad) = (Breite / 2, Tiefe / 2, X, Z, DrehungGrad);
+        return new[] { (-w, -t), (w, -t), (w, t), (-w, t) }.Select(e =>
+        {
+            var d = Kartengeometrie.Dreh(e.Item1, e.Item2, grad);
+            return new Kartenort(x + d.X, z + d.Z);
+        }).ToArray();
+    }
 }
 
 /// <summary>Was auf einer Baustelle gerade geschieht.</summary>
@@ -941,6 +953,7 @@ public sealed partial class Bauwesen
             AufWerkstattplatz = AufWerkstattplatz(kennung),
         };
         _grundstuecke.Add(g);
+        Karte?.BauflaechenGeaendert(); // das Gelände unter dem neuen Haus einebnen
         return g;
     }
 
@@ -1022,6 +1035,7 @@ public sealed partial class Bauwesen
     private void Entfernen(Grundstueck g)
     {
         _grundstuecke.Remove(g);
+        Karte?.BauflaechenGeaendert(); // die Einebnung fällt weg
         g.Besitzer = null;
         g.Arbeit = null;
         g.FertigAb = null;
@@ -1103,5 +1117,6 @@ public sealed partial class Bauwesen
                 Betrieb = gs.Betrieb, Betriebsart = gs.Betriebsart, Arbeit = gs.Arbeit, FertigAb = gs.FertigAb, LeerSeit = gs.LeerSeit,
                 AufWerkstattplatz = AufWerkstattplatz(gs.Kennung), // aus der Karte im Spielstand
             });
+        Karte?.BauflaechenGeaendert();
     }
 }

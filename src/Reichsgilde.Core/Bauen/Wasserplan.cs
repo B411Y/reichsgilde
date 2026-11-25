@@ -500,7 +500,7 @@ public sealed class Wasserplan
             feldlaenge = (weite - SteinPfeiler * (felder - 1)) / felder;
             for (var i = 1; i < felder; i++) pfeilerStellen.Add(ua + i * (feldlaenge + SteinPfeiler) - SteinPfeiler / 2);
         }
-        var pfeiler = pfeilerStellen.Select(x => OrtAn(v, stellen, x)).Select(p => new Brueckenpfeiler(p, _gelaende.Hoehe(p.X, p.Z))).ToList();
+        var pfeiler = pfeilerStellen.Select(x => OrtAn(v, stellen, x)).Select(p => new Brueckenpfeiler(p, _gelaende.Weghoehe(p.X, p.Z))).ToList();
         return new Wasserquerung
         {
             Art = art, Weg = index, WegName = weg.Name, Gewaesser = lauf.Nummer, GewaesserName = lauf.Name, Anfang = anfang, Ende = ende,

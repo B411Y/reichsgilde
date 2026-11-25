@@ -166,7 +166,7 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
 
     /// <summary>
     /// Die Fahrt über das Netz mit den Stücken davor: vom Anker zum Hof und vom Hof gerade zum Anschluss am Netz (dem ersten Punkt der Fahrt).
-    /// Anstieg nach dem Boden (<see cref="Gelaendeform.Hoehe"/>); die Stücke gehören zu keinem Weg der Karte. Ohne Fahrt: leer.
+    /// Anstieg nach dem Boden ohne Einebnung der Bauplätze (<see cref="Gelaendeform.Weghoehe"/>); die Stücke gehören zu keinem Weg der Karte. Ohne Fahrt: leer.
     /// </summary>
     public static Netzfahrt MitZubringer(Netzfahrt fahrt, Kartenort anker, Kartenort hof, Gelaendeform gelaende)
     {
@@ -188,7 +188,7 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
             var von = liste[^1];
             var laenge = von.Abstand(bis);
             if (laenge <= 1e-9) continue;
-            stuecke.Add(new Fahrtstueck(laenge, gelaende.Hoehe(bis.X, bis.Z) - gelaende.Hoehe(von.X, von.Z)));
+            stuecke.Add(new Fahrtstueck(laenge, gelaende.Weghoehe(bis.X, bis.Z) - gelaende.Weghoehe(von.X, von.Z))); // ohne Einebnung der Bauplätze
             liste.Add(bis);
         }
         return new Netzfahrt(stuecke, liste);

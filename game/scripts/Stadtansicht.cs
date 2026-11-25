@@ -1117,6 +1117,7 @@ public partial class Stadtansicht : Node3D
         GiVergleichSchritt(delta); // nur mit --givergleich: Räume mit und ohne SDFGI (Stadtansicht.GlobaleBeleuchtung.Vergleich.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
+        EinebnungNachziehen();   // Gelände unter neu gebauten oder abgerissenen Häusern neu eingeebnet (Stadtansicht.Gelaende.cs)
         var belag = Pinselmessung.Uhr();
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
         Pinselmessung.Dazu("im Bild: Wegbelag", belag);

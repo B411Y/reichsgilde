@@ -72,6 +72,10 @@ public sealed partial class Kartenentwurf
         _wege.Where(w => w.Punkte.Count >= 2).Select(w => new Bettlinie(w.Verlauf, w.BreiteWirksam))
             .Concat(_mauern.Where(m => m.Ecken.Count >= 2).Select(m => new Bettlinie(m.Ecken, Gelaendeform.Mauerbett, m.Geschlossen))).ToList();
 
+    /// <summary>Die Grundflächen, unter denen das Gelände eingeebnet wird, wenn es flach genug ist (<see cref="Gelaendeform.WirdEingeebnet"/>).</summary>
+    private IReadOnlyList<IReadOnlyList<Kartenort>> Bauflaechen() =>
+        _gebaeude.Where(g => Gelaendeform.WirdEingeebnet(g.Baustein)).Select(g => g.Ecken()).Where(e => e.Count >= 3).ToList();
+
     /// <summary>Die Kaimauern der Häfen (Gebäude am Ufer): Vor ihnen hebt das Gelände ein Hafenbecken aus (<see cref="Wasserform"/>).</summary>
     private IReadOnlyList<Kaimauer> Kaimauern() =>
         _gebaeude.Where(g => g.Baustein?.AmUfer == true && g.Groesse is not null)
