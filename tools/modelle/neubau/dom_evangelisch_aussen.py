@@ -74,18 +74,20 @@ def paar(l, breite, z0, z1, steil=1.6, abstand=0.30):
     return [D.Spitzloch(l / 2 + s * (abstand + breite / 2) - breite / 2, l / 2 + s * (abstand + breite / 2) + breite / 2, z0, z1, steil) for s in (-1, 1)]
 
 
-def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0.7, z_stein=None, ecken=True, gesims=True, saat=1):
-    """Eine Aussenwand: Sandsteinsockel, Backstein (oder Sandstein), Fenster, Sockel- und Traufgesims."""
+def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0.7, z_stein=None, ecken=True, gesims=True, saat=1, ab=None):
+    """Eine Aussenwand: Sandsteinsockel, Backstein (oder Sandstein), Fenster, Sockel- und Traufgesims. `ab`: nur von dieser Hoehe an
+    (Wand im Inneren des Langhauses, unten nicht zu sehen und von innen im Weg)."""
     zs = ZS if z_stein is None else z_stein
+    if ab is not None: zs = ab
     o, e, l, n = wand(p0, p1)
     stoff, band = ("Sandstein", "sandstein") if ganz_sandstein else ("Bruchstein", "mauer")
-    if zs > 0:
+    if zs > 0 and ab is None:
         mauer(h, "Sandstein", o, e, n, l, 0.0, zs, "sandstein", saat=saat)
     mauer(h, stoff, o, e, n, l, zs, z_traufe, band, list(loecher), laibung=LAIBUNG, dicke=d / 2, ecken=QUADER(ph) if ecken else None, saat=saat)
     fenster(h, sc, o, e, n, loecher, d)
     a, b = (o[0], o[1]), (o[0] + e[0] * l, o[1] + e[1] * l)
     if gesims:
-        if zs > 0: D.gesimsband(h, a, b, n, zs - 0.02, hoehe=0.14, vor=0.06, ueber=0.06)
+        if zs > 0 and ab is None: D.gesimsband(h, a, b, n, zs - 0.02, hoehe=0.14, vor=0.06, ueber=0.06)
         D.gesimsband(h, a, b, n, z_traufe - 0.24, ueber=0.10)
     return o, e, l, n
 
@@ -178,7 +180,8 @@ def achteck(h, sc):
     mx, my = W(*F.OKT_M)
     zt = F.Z_TRAUFE_O
     for k, (a, b, n) in enumerate(F.vieleck(mx, my, F.OKT_A, 8, 0.0)):
-        wandbau(h, sc, a, b, zt, lochliste(f"okt_{k}"), ph=k % 2, d=0.7, saat=3 + k)
+        # die Vorderseite des Achtecks (Flaechen 5, 6, 7) steht im Langhaus: unten weder zu sehen noch erwuenscht (von innen im Weg)
+        wandbau(h, sc, a, b, zt, lochliste(f"okt_{k}"), ph=k % 2, d=0.7, saat=3 + k, ab=10.8 if k in (5, 6, 7) else None)
 
 
 def chor(h, sc):
