@@ -92,7 +92,7 @@ TURM_M = (-5.6, -15.5)
 TURM_SEITEN = 16
 TURM_R = 3.30                # Umkreis am Fuss (ueber dem Sockel, bei Z_TURMSOCKEL)
 TURM_R_OBEN = 2.65           # Umkreis unter der Glockenstube (bei Z_GLOCKEN[0]); Glockenstube und Haube beziehen sich darauf
-LISENE = (0.52, 0.28)        # Breite, Vorsprung (folgt der Schraege); 16 Stueck, je eine auf jeder Ecke des 16-Ecks
+LISENE_STUFEN = ((3.00, 9.00, 0.55, 0.42), (9.00, 14.00, 0.40, 0.34), (14.00, 17.90, 0.27, 0.27))   # z0, z1, Vorsprung, halbe Breite (abgetreppt)
 TURM_BAENDER = (9.00, 14.80) # Sandsteingesimse als Baender ohne Absatz
 Z_TURMSOCKEL = 3.00
 Z_GLOCKEN = (19.40, 23.00)
@@ -265,7 +265,7 @@ def retabel_abstand():
 
 def umriss():
     """(x0, x1, y0, y1) der belegten Flaeche: Turmsockel, Turmchen, Strebepfeiler, Stufen."""
-    x0 = TURM_M[0] - TURM_R - 0.12 - 0.30     # Lisenenfuesse
+    x0 = TURM_M[0] - TURM_R - 0.12 - 0.55     # Lisenenfuesse
     x1 = max(OKT_A, TUERMCHEN[0][0] + TM_R + 0.25)
     y0 = min(TURM_M[1] - TURM_R - 0.12, VORHALLE_Y - 1.30)
     y1 = CHOR_M[1] + (CHOR_A / math.cos(math.pi / 8) + 0.85) * math.sin(math.radians(67.5))     # Strebepfeiler an den Ecken des Chorschlusses
