@@ -201,6 +201,10 @@ def achteck(h, sc):
                 pa_ = (ia[0] + (ib[0] - ia[0]) * i / nst, ia[1] + (ib[1] - ia[1]) * i / nst)
                 pb_ = (ia[0] + (ib[0] - ia[0]) * (i + 1) / nst, ia[1] + (ib[1] - ia[1]) * (i + 1) / nst)
                 ab_ = min(roof(pa_[0]), roof(pb_[0])) - 0.15
+                ln_ = math.hypot(ib[0] - ia[0], ib[1] - ia[1])
+                ue_ = ((ib[0] - ia[0]) / ln_ * 0.04, (ib[1] - ia[1]) / ln_ * 0.04)          # Stuecke 4 cm ueberlappen: sonst Fugen zwischen den Stufen der Unterkante
+                pa_ = (pa_[0] - ue_[0], pa_[1] - ue_[1]) if i > 0 else pa_
+                pb_ = (pb_[0] + ue_[0], pb_[1] + ue_[1]) if i < nst - 1 else pb_
                 wandbau(h, sc, pa_, pb_, zt, (), ph=k % 2, d=0.7, saat=30 + k + i, ab=ab_, ecken=False)
             continue
         wandbau(h, sc, a, b, zt, lochliste(f"okt_{k}"), ph=k % 2, d=0.7, saat=3 + k, ab=10.8 if k == 6 else None)

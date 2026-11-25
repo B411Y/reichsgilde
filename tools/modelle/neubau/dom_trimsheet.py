@@ -95,7 +95,7 @@ SCHIEFER_FUGE = (0.20, 0.22, 0.29)    # Band "schiefer_kante": Fuge zwischen den
 SCHIEFER_REIHE_HELL = (0.93, 1.00, 1.07)   # die drei Reihen leicht verschieden hell: im Pixel-Look ist eine Reihe ein einziger Texel (Mip 7)
 
 
-def schiefer_reihen(blatt, band, q):
+def schiefer_reihen(blatt, band, q, hell=2.00, ruhig=False):
     """Schieferdach in Deckreihen (Nutzer, 24.11.2026: Reihen sichtbar wie am Ziegeldach des Wohnhauses). Dasselbe Verfahren wie
     trimsheet_stufen.dach_band: eine Reihe = 0,25 m = 128 Bildpunkte, oben der Schatten der naechsten Reihe, unten die helle Kante; das
     Bauskript (dom_bib.schieferflaeche) legt die Dachflaeche in Lagen von 0,25 m mit kleiner Stufe. Das Band traegt drei solche Reihen
@@ -113,17 +113,17 @@ def schiefer_reihen(blatt, band, q):
     ziel = None
     for r in range(SCHIEFER_REIHEN):
         f, n, arm = q.streifen(h, ab=60 + 311 * r, versatz=397 * r)
-        lin = srgb_zu_linear(faerbe(f, SCHIEFER_TON, kontrast=1.15, eigenfarbe=0.35))
-        if ziel is None: ziel = 2.00 * float((lin @ gewicht).mean())
+        lin = srgb_zu_linear(faerbe(f, SCHIEFER_TON, kontrast=0.85 if ruhig else 1.15, eigenfarbe=0.25 if ruhig else 0.35))
+        if ziel is None: ziel = hell * float((lin @ gewicht).mean())
         z = np.random.default_rng(140 + r)
         fx = np.ones(N, dtype=np.float32)
         x = int(z.integers(0, 120))
         while x < N + 120:                                            # Platten 0,27 bis 0,43 m breit, waagerecht nahtlos
             w = int(z.integers(140, 221))
-            hell = float(z.uniform(0.86, 1.14))
+            hell_p = float(z.uniform(0.93, 1.07) if ruhig else z.uniform(0.86, 1.14))
             sp = np.arange(x, x + w)
             fuge = 1.0 - 0.45 * np.clip(1.0 - np.abs(np.arange(w) - 2.5) / 3.5, 0, 1)   # Stossfuge am linken Rand der Platte
-            fx[sp % N] = hell * fuge
+            fx[sp % N] = hell_p * fuge
             x += w
         lin = lin * fx[None, :, None] * fy[:, None, None]
         lin = lin * (ziel * SCHIEFER_REIHE_HELL[r] / max(float((lin @ gewicht).mean()), 1e-4))
@@ -138,7 +138,8 @@ def baue_aussen(quellen, evangelisch=False):
     B = BAENDER_DOM
     blatt = Blatt()
     schiefer = Quelle(quellen, "roof_slates_02")
-    schiefer_reihen(blatt, B["schiefer"], schiefer)
+    # Dom katholisch (Pruefer 25.11.2026: Schattenseite fast schwarz, im Pixel-Look koernig): heller und ruhigeres Korn; der evangelische bleibt
+    schiefer_reihen(blatt, B["schiefer"], schiefer, hell=2.0 if evangelisch else 2.6, ruhig=not evangelisch)
     a2, e2 = blatt.zeilen(B["schiefer_kante"])
     h2 = e2 - a2
     f, n, arm = schiefer.streifen(h2, ab=400, versatz=200)

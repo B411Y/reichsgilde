@@ -148,10 +148,21 @@ def loecher(d, step, tag):
             if not (lo[0] - 1 <= q.x <= hi[0] + 1 and lo[1] - 1 <= q.y <= hi[1] + 1 and lo[2] - 1 <= q.z <= hi[2] + 1): continue
             r = bvh.find_nearest(q)
             if r[0] is not None and r[3] < bestm: bestm, bestq = r[3], q
-        rn = bvh.find_nearest(bestq)
-        if rn[0] is not None and rn[2] in glas and rn[3] < 0.25: continue        # Spalt am Fensterglas: durch Fenster sieht man ohnehin in den Raum
+        # Fensterglas: Liegt mindestens die Haelfte der Treffer unmittelbar am Loch auf Glas, ist es ein Spalt im Fenster (dort sieht man ohnehin in den Raum)
+        glasanteil = np.mean([bool(gl[x, y]) for (a_, b_) in comp for x in range(max(0, a_ - 2), min(nv, a_ + 3)) for y in range(max(0, b_ - 2), min(nu, b_ + 3)) if hit[x, y]] or [False])
+        if glasanteil >= 0.5: continue
         schmal = min(max(ia) - min(ia) + 1, max(ja) - min(ja) + 1) * step <= 0.13          # Riss von hoechstens 13 cm Breite: zaehlt auch dann, wenn die Naehe springt
-        if sprung and not schmal: continue                        # weite Luecke zwischen einem nahen und einem fernen Teil: kein Loch
+        if sprung and not schmal:
+            # weite Luecke zwischen einem nahen und einem fernen Teil: nur Luft, wenn der Strahl nie in das Innere der Huelle laeuft
+            # (Punkt innen: der erste Treffer nach oben ist die Rueckseite einer Flaeche, z. B. unter dem Dach oder im Turm); sonst ein Loch ins Gebaeude
+            drin = 0.0; lauf = 0.0
+            for t in np.arange(0.0, 2 * RADIUS, 0.1):
+                q = o_ + dd * t
+                if not (lo[0] <= q.x <= hi[0] and lo[1] <= q.y <= hi[1] and 0.3 <= q.z <= hi[2]): lauf = 0.0; continue
+                hu = bvh.ray_cast(q, Vector((0, 0, 1)))
+                if hu[0] is not None and hu[1].z > 0: lauf += 0.1; drin = max(drin, lauf)
+                else: lauf = 0.0
+            if drin < 0.6: continue
         res.append((len(comp) * step * step * 1e4, tuple(float(x) for x in bestq), tag))
     return res
 

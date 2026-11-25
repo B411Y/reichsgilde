@@ -117,11 +117,6 @@ def baue_haus(s):
         zt = M.Z_SEITE if name.startswith("seite") else M.Z_TRAUFE
         if name != "west" and not name.endswith("_g"):
             D.gesimsband(h, a, b, n, zt - 0.24, ueber=0.10)
-            if name in ("quer_l_o", "quer_r_o", "quer_l_w", "quer_r_w"):   # offene Stirn des Gesimses am Querhausgiebel schliessen (Blick von der Seite unter das Dach)
-                ende, anfang = (a, b) if abs(a[0]) > abs(b[0]) else (b, a)            # das Ende am Giebel (|x| = X_QUER)
-                ed = (V((ende[0], ende[1], 0)) - V((anfang[0], anfang[1], 0))).normalized()
-                c = V((ende[0], ende[1], zt - 0.24)) + ed * 0.10
-                h.rechteck("Sandstein", c, V((n[0], n[1], 0)), EZ, 0.12, 0.22, "werkstein", zu=c + ed * 3 + EZ * 0.11)
     # Kaffgesims der Westwand ueber dem Portal und unter dem Giebel
     for z in (7.4, M.Z_TRAUFE):
         D.gesimsband(h, (M.X_TURM[0], M.Y_WESTWAND), (-M.X_TURM[0], M.Y_WESTWAND), (0, -1), z - 0.22)
@@ -262,14 +257,6 @@ def turm(h, s, sx):
                     D.scheibe(s, "Bleinetz", lambda q, z, P=P: P(q, z, -0.294), loch, zu)
             if i >= 2 or not (innenseite or wo == "y1"):
                 D.gesimsband(h, a, b, n, z1 - 0.26, hoehe=0.26, vor=0.14, ueber=0.14)
-            if i < 2 and ((wo == "x1" and sx > 0) or (wo == "x0" and sx < 0)):
-                # Das Gesims der Aussenseite endet an der Ostkante des Turms offen (die Ostseite hat dort keins): Stirn schliessen
-                c, ed = ((a[0] - eu[0] * 0.14, a[1] - eu[1] * 0.14), (-eu[0], -eu[1])) if wo == "x1" else ((b[0] + eu[0] * 0.14, b[1] + eu[1] * 0.14), eu)
-                h.rechteck("Sandstein", V((c[0], c[1], z1 - 0.26)), V((n[0], n[1], 0)), EZ, 0.14, 0.26, "werkstein", zu=V((c[0] + ed[0] * 3, c[1] + ed[1] * 3, z1 - 0.13)))
-            if wo == "y0":
-                # Das Gesims der Westseite endet am inneren Rand (zur Vorhalle hin) offen: Stirn schliessen
-                c, ed = ((b[0] + eu[0] * 0.14, b[1] + eu[1] * 0.14), eu) if sx > 0 else ((a[0] - eu[0] * 0.14, a[1] - eu[1] * 0.14), (-eu[0], -eu[1]))
-                h.rechteck("Sandstein", V((c[0], c[1], z1 - 0.26)), V((n[0], n[1], 0)), EZ, 0.14, 0.26, "werkstein", zu=V((c[0] + ed[0] * 3, c[1] + ed[1] * 3, z1 - 0.13)))
             if i < 3:
                 # Absatz: Oberseite der Wand, wo das naechste Geschoss um 0,12 zurueckspringt (sonst sieht man von oben die Rueckseite der Wand)
                 sa_, sb_ = kw.get("s_bereich", (0.0, l))
@@ -342,6 +329,11 @@ def baue_dach():
         for sy in (-1, 1):
             ye = ym + sy * ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30)
             kehle(d, (sx * xe, ye, zt), (sx * (xe - (Z_QUERFIRST - zt) / M.NEIGUNG), ym, Z_QUERFIRST), (sx * (xe - 1.0), ye, zt + M.NEIGUNG), (sx * xe, ye - sy * 1.0, zt + M.NEIGUNG))
+    for sx in (-1, 1):                                     # Ortbrett (Bleiblech) am Rand der Querhausdaecher: schliesst den Ueberstand von der Seite her
+        for sy in (-1, 1):
+            ye = ym + sy * ((M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30)
+            a_, b_ = V((sx * xq, ye, zt)), V((sx * xq, ym, Z_QUERFIRST))
+            D.farbflaeche(d, "Firstblech", [a_, b_, b_ - EZ * 0.32, a_ - EZ * 0.32], "blei", zu=(a_ + b_) / 2 + V((sx * 5, 0, 0)))
     D.grat(d, (-xq, ym, Z_QUERFIRST), (xq, ym, Z_QUERFIRST), (-xq, ym - (M.Y_QUER[1] - M.Y_QUER[0]) / 2 - 0.30, zt), (-xq, ym + (M.Y_QUER[1] - M.Y_QUER[0]) / 2 + 0.30, zt))
     # Chorschluss: fuenf Flaechen zum Firstpunkt
     spitze = (0, M.Y_APSIS, zf)
@@ -371,6 +363,7 @@ def baue_dach():
 
 
 def main():
+    D.GESIMS_KAPPEN = True                                   # alle Gesimse mit geschlossener Stirn
     opt = B.optionen()
     D.neu()
     stoffe = D.stoffe_aussen()
