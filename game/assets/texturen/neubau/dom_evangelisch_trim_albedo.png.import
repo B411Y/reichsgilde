@@ -1,0 +1,29 @@
+[remap]
+
+importer="2d_array_texture"
+type="CompressedTexture2DArray"
+uid="uid://bshw2bxtbjntw"
+path.bptc="res://.godot/imported/dom_evangelisch_trim_albedo.png-8548bb92ecb7e73c391eccab0b9d658b.bptc.ctexarray"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+
+[deps]
+
+source_file="res://assets/texturen/neubau/dom_evangelisch_trim_albedo.png"
+dest_files=["res://.godot/imported/dom_evangelisch_trim_albedo.png-8548bb92ecb7e73c391eccab0b9d658b.bptc.ctexarray"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=true
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+slices/horizontal=1
+slices/vertical=1

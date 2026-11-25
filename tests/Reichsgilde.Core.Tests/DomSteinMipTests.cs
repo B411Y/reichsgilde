@@ -23,5 +23,13 @@ static class DomSteinMipTests
             Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.05f, d, true));     // Schachbrettboden
             Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.80f, d, true));     // Eiche
         });
+        yield return ("Dom evangelisch außen: Backstein und Sandstein liegen in denselben Bändern wie beim Dom katholisch", () =>
+        {
+            var d = SteinMip.Von("dom_evangelisch_trim");
+            Pruefe.Gleich(SteinMip.Von("dom_trim"), d);
+            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.50f, d, true));       // Backstein (0,325–0,625)
+            Pruefe.Gleich(1f, SteinMip.Zuschlag(0.75f, d, true));       // Sandstein (0,70–0,85)
+            Pruefe.Gleich(2.5f, SteinMip.Zuschlag(0.10f, d, true));     // Gegenprobe Schiefer
+        });
     }
 }
