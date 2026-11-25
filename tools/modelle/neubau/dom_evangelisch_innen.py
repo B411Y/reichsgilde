@@ -33,81 +33,104 @@ from rathaus_bib import EZ                               # noqa: E402
 
 BI = D.BAENDER_DOM_INNEN
 MODELL = "dom_evangelisch"
-ZB, ZK, ZS = M.Z_SOCKEL, M.Z_KAEMPFER, M.Z_SCHEITEL
-XM, XP, XS = M.X_MITTE, M.PFEILER_X, M.X_SEITE
+ZB, ZK, ZS, ZO, ZSC = M.Z_SOCKEL, M.Z_KAEMPFER, M.Z_SCHEITEL_L, M.Z_OKT_KAEMPFER, M.Z_SCHEITEL
+XS = M.X_SEITE
 Y0, Y1 = M.Y_INNEN0, M.Y_INNEN1
+CX, CY = M.OKT_M
+AI = M.OKT_A_INNEN
 PUTZ = "gewoelbe"
 
 
-def scheidbogen(r, x, ya, yb, teile=5):
-    """Bogen zwischen zwei Pfeilern in der Achse x (Grenze von Mittel- und Seitenschiffgewoelbe)."""
-    cy, ay, H = (ya + yb) / 2, (yb - ya) / 2, ZS - ZK
-    hs = [H * math.sin(math.pi / 2 * k / teile) for k in range(teile + 1)]
-    dy = [D.spitz_breite(ay, H, h) for h in hs]
-    for sy in (-1, 1):
-        for k in range(teile):
-            D.rippe(r, (x, cy + sy * dy[k], ZK + hs[k]), (x, cy + sy * dy[k + 1], ZK + hs[k + 1]), breite=0.30, tiefe=0.22, band="sandstein")
+def innen_drin(x, y):
+    """Liegt der Punkt im Innenraum (Langhaus bis zur Stirnwand oder Achteck)?"""
+    if abs(x) < XS and Y0 < y < Y1: return True
+    for _, _, n in M.vieleck(CX, CY, AI, 8, 0.0):
+        if (x - CX) * n[0] + (y - CY) * n[1] > AI: return False
+    return True
+
+
+def wandbereiche(name):
+    """Teile der Innenflaeche einer Wand (s ab dem Anfang der Aussenflaeche), an denen wirklich Wand steht: innen Raum, aussen Mauer."""
+    (ox, oy), (ex, ey), l, (nx, ny), d = M.wand(name)
+    qx, qy = ox - nx * d, oy - ny * d
+    wand_da = lambda s: innen_drin(qx + ex * s - nx * 0.05, qy + ey * s - ny * 0.05) and not innen_drin(qx + ex * s + nx * 0.05, qy + ey * s + ny * 0.05)
+    schritt = 0.05
+    n_ = int((l + 3.0) / schritt)
+    ss = [-1.5 + i * schritt for i in range(n_ + 1)]
+    aus, start = [], None
+    for i, s_ in enumerate(ss):
+        da = wand_da(s_)
+        if da and start is None:
+            start = s_ if i == 0 else _bisekt(wand_da, ss[i - 1], s_)
+        if not da and start is not None:
+            aus.append((start, _bisekt(wand_da, s_, ss[i - 1]))); start = None
+    if start is not None: aus.append((start, ss[-1]))
+    return [(a, b) for a, b in aus if b - a > 0.05]
+
+
+def _bisekt(f, ohne, mit):
+    """Grenze zwischen einem Punkt ohne Wand (`ohne`) und einem mit Wand (`mit`) auf 1 mm."""
+    for _ in range(20):
+        m = (ohne + mit) / 2
+        if f(m): mit = m
+        else: ohne = m
+    return mit
 
 
 def raum():
     r = D.Teil("Raum_Dom", BI, saat=51)
     cs0, cs1 = M.CHORSTUFEN_Y
-    # ── Boeden ──
+    xb, xf = M.X_BOGEN, M.X_FLAECHE
+    t = M.T_WAND
+    # ── Boeden: Schachbrett im Langhaus, drei Stufen zum Achteck, dort Sandsteinplatten, zwei Stufen zum Podest des Hochaltars ──
     D.schachboden(r, -XS, XS, Y0, cs0, ZB)
     for sx in (-1, 1):
-        D.schachboden(r, min(sx * XM, sx * XS), max(sx * XM, sx * XS), cs0, Y1, ZB)
-    D.schachboden(r, -XM, XM, Y1, M.ALTARSTUFEN_Y[1], M.Z_CHOR)
-    B.gerade_treppe(r, "Innen", "sandstein", (0, cs0), (0, 1, 0), (1, 0, 0), 2 * XM, 3, 0.15, 0.30, ZB, block=True)
-    B.gerade_treppe(r, "Innen", "sandstein", (0, M.ALTARSTUFEN_Y[0]), (0, 1, 0), (1, 0, 0), 6.4, 2, 0.15, 0.30, M.Z_CHOR, block=True)
+        D.schachboden(r, min(sx * xb, sx * XS), max(sx * xb, sx * XS), cs0, Y1, ZB)
+    B.gerade_treppe(r, "Innen", "sandstein", (0, cs0), (0, 1, 0), (1, 0, 0), 2 * xb, 3, 0.15, 0.30, ZB, block=True)
     v0, v1, mm = BI["sandstein"]
-    mitte = V((0, M.Y_APSIS + 1.9, M.Z_ALTAR))
-    rand = [V((-3.3, M.ALTARSTUFEN_Y[1], M.Z_ALTAR)), V((3.3, M.ALTARSTUFEN_Y[1], M.Z_ALTAR))] + [V((*M.apsis_ecke(k, M.R_APSIS_INNEN + 0.2), M.Z_ALTAR)) for k in range(1, 5)]
-    for i in range(len(rand)):
-        a, b = rand[i], rand[(i + 1) % len(rand)]
-        r.vieleck("Innen", [mitte, a, b], [(0, v1), (1, v1), (1, v0)], zu=mitte + EZ * 5)
-    # ── Waende der Halle: heller Putz, Laibungen und Masswerk aus Werkstein ──
-    t = M.T_WAND
-    for name in ("seite_l", "seite_r", "west"):
-        D.innenwand(r, M, name, ZB, ZS, band=PUTZ, s_bereich=(t, M.wand(name)[2] - t))
-    # Ostwand mit dem Chorbogen (Laibung = volle Wandstaerke)
-    D.flaeche(r, (XS, Y1), (-XS, Y1), (0, -1), ZB, ZS, band=PUTZ, loecher_=[D.Spitzloch(XS - XM, XS + XM, ZB, ZS, (ZS - ZK) / XM, sohlbank=False)], dicke=t)
-    # ── Chor ──
-    for seite in "lr":
-        D.innenwand(r, M, f"chor_{seite}", ZB, ZS, band=PUTZ)
-    b_, z0, z1 = M.FENSTER_CHOR
-    c = V((0, M.Y_APSIS, 0))
-    teile = 5
-    H = ZS - ZK
-    hs = [H * math.sin(math.pi / 2 * k / teile) for k in range(teile + 1)]
-    ts = [D.spitz_breite(M.R_APSIS_INNEN, H, h) / M.R_APSIS_INNEN for h in hs]
-    for k in range(5):
-        a, b = M.apsis_ecke(k + 1, M.R_APSIS_INNEN), M.apsis_ecke(k, M.R_APSIS_INNEN)
-        l = math.hypot(b[0] - a[0], b[1] - a[1])
-        n = ((a[0] + b[0]) / -2, M.Y_APSIS - (a[1] + b[1]) / 2)
-        D.flaeche(r, a, b, n, ZB, ZS, band=PUTZ, loecher_=[D.Spitzloch(l / 2 - b_ / 2, l / 2 + b_ / 2, z0, z1, M.STEIL)], dicke=M.wand("apsis_0")[4] / 2)
-        A = [c + (V((*a, 0)) - c) * t_ + EZ * (ZK + h) for t_, h in zip(ts, hs)]
-        Bn = [c + (V((*b, 0)) - c) * t_ + EZ * (ZK + h) for t_, h in zip(ts, hs)]
-        for j in range(teile):
-            D._kappe(r, [A[j], Bn[j], Bn[j + 1], A[j + 1]], c + EZ * (ZK - 5))
-            D.rippe(r, A[j], A[j + 1])
-            if k == 4: D.rippe(r, Bn[j], Bn[j + 1])
+    mitte = V((CX, CY, M.Z_CHOR))
+    ecken = [V((*a, M.Z_CHOR)) for a, _, _ in M.vieleck(CX, CY, AI + 0.05, 8, 0.0)]
+    for i in range(8):
+        r.vieleck("Innen", [mitte, ecken[i], ecken[(i + 1) % 8]], [(0, v1), (1, v1), (1, v0)], zu=mitte + EZ * 5)
+    ay0, ay1 = M.ALTARSTUFEN_Y
+    B.gerade_treppe(r, "Innen", "sandstein", (0, ay0), (0, 1, 0), (1, 0, 0), 9.0, 2, 0.15, 0.30, M.Z_CHOR, block=True)
+    pm = V((0, M.HOCHALTAR[1], M.Z_ALTAR))
+    rand = [V((-4.5, ay1, M.Z_ALTAR)), V((4.5, ay1, M.Z_ALTAR)), V((2.35, CY + AI - 0.1, M.Z_ALTAR)), V((-2.35, CY + AI - 0.1, M.Z_ALTAR))]
+    for i in range(4):
+        r.vieleck("Innen", [pm, rand[i], rand[(i + 1) % 4]], [(0, v1), (1, v1), (1, v0)], zu=pm + EZ * 5)
+    # ── Waende: heller Putz, Laibungen und Masswerk aus Werkstein; Stuecke nach der Lage von Raum und Mauer ──
+    for name in ("west", "seite_r", "seite_l") + tuple(f"okt_{k}" for k in range(8)):
+        (ox, oy), e, l, (nx, ny), d = M.wand(name)
+        ls = [D.loch_von(o) for o in M.OEFFNUNGEN if o[0] == name]
+        zo = ZS if name in ("west", "seite_r", "seite_l") else ZO
+        for sa, sb in wandbereiche(name):
+            B.mauer(r, "Innen", (ox - nx * d, oy - ny * d), e, (-nx, -ny), l, ZB, zo, PUTZ, ls, laibung=("Innen", "werkstein"), dicke=d / 2, zbasis=ZB, s_bereich=(sa, sb))
+    # Stirnwand zwischen Langhaus und Achteck: der Bogen (Kaempfer unter dem Fuss des Zeltgewoelbes)
+    bogen = lambda a: D.Spitzloch(a - xb, a + xb, ZB, ZK, 1.2, sohlbank=False)
+    D.flaeche(r, (XS, Y1), (-XS, Y1), (0, -1), ZB, ZS, band=PUTZ, loecher_=[bogen(XS)], dicke=t)
+    D.flaeche(r, (-xf, Y1), (xf, Y1), (0, 1), ZB, ZO, band=PUTZ, loecher_=[bogen(xf)])
     # Masswerk von innen (vor der Scheibe), wie aussen
     for o in M.OEFFNUNGEN:
         if o[5] != "spitz": continue
         name = o[0]; d = M.wand(name)[4]; nn = M.wand(name)[3]
         D.masswerk(r, lambda s_, z, name=name, d=d: V(M.punkt(name, s_, z, -d / 2 - 0.07)), V((-nn[0], -nn[1], 0)), D.loch_von(o), stoff="Innen")
-    # ── Rundpfeiler und Gewoelbe: drei gleich hohe Schiffe, Scheidboegen zwischen den Pfeilern ──
-    for sx in (-1, 1):
-        for y in M.PFEILER_Y:
-            D.saeule(r, (sx * XP, y), M.PFEILER_R, ZB, ZK)
+    # ── Gewoelbe: Kreuzgewoelbe ueber dem Langhaus (Gurtboegen zwischen den Jochen), Zeltgewoelbe ueber dem Achteck ──
+    joch = (Y1 - Y0) / M.JOCHE
     for i in range(M.JOCHE):
-        ya, yb = Y0 + i * M.JOCH, Y0 + (i + 1) * M.JOCH
-        gurt = ("y1",) if i < M.JOCHE - 1 else ()
-        D.kreuzgewoelbe(r, -XP, XP, ya, yb, ZK, ZS, gurt=gurt)
-        for sx in (-1, 1):
-            D.kreuzgewoelbe(r, min(sx * XP, sx * XS), max(sx * XP, sx * XS), ya, yb, ZK, ZS, gurt=gurt)
-            scheidbogen(r, sx * XP, ya, yb)
-    D.kreuzgewoelbe(r, -XM, XM, M.Y_OST, M.Y_APSIS, ZK, ZS, gurt=("y1",))
+        ya, yb = Y0 + i * joch, Y0 + (i + 1) * joch
+        D.kreuzgewoelbe(r, -XS, XS, ya, yb, ZK, ZS, gurt=("y1",) if i < M.JOCHE - 1 else ())
+    c = V((CX, CY, 0))
+    ecke = [V((*a, 0)) for a, _, _ in M.vieleck(CX, CY, AI, 8, 0.0)]
+    teile = 5
+    ring = lambda j, k: c + (ecke[k % 8] - c) * math.cos(math.pi / 2 * j / teile) + EZ * (ZO + (ZSC - ZO) * math.sin(math.pi / 2 * j / teile))
+    for j in range(teile):
+        for k in range(8):
+            pts = [ring(j, k), ring(j, k + 1), ring(j + 1, k + 1), ring(j + 1, k)]
+            D._kappe(r, pts, c + EZ * (ZO - 5))
+        for k in range(8):
+            D.rippe(r, ring(j, k), ring(j + 1, k))
+    for k in range(8):
+        D.rippe(r, ring(0, k), ring(0, k + 1))
     return r
 
 
@@ -127,8 +150,8 @@ def kerze(t, x, y, z, hoehe=0.25, dick=0.05):
     D.farbkasten(t, "Innen", (x - dick / 2, y - dick / 2, z), (x + dick / 2, y + dick / 2, z + hoehe), "wachs", ohne=("-z",))
 
 
-LEUCHTER = [(-3.0, M.CHORSTUFEN_Y[0] - 0.5, ZB), (3.0, M.CHORSTUFEN_Y[0] - 0.5, ZB), (-2.7, M.Y_APSIS + 0.3, M.Z_CHOR), (2.7, M.Y_APSIS + 0.3, M.Z_CHOR),
-            (-3.0, Y0 + 0.6, ZB), (3.0, Y0 + 0.6, ZB)]
+LEUCHTER = [(-3.2, M.CHORSTUFEN_Y[0] - 0.5, ZB), (3.2, M.CHORSTUFEN_Y[0] - 0.5, ZB), (-2.9, 5.6, M.Z_CHOR), (2.9, 5.6, M.Z_CHOR),
+            (-3.2, Y0 + 0.6, ZB), (3.2, Y0 + 0.6, ZB)]
 ALTARKERZEN = [(M.HOCHALTAR[0] - 1.05 + i * 0.42, M.HOCHALTAR[1] + 0.28, M.Z_ALTAR + 1.04) for i in range(6)]
 
 
@@ -193,7 +216,7 @@ def moebel():
     y0, y1 = M.CHORGESTUEHL
     zc = M.Z_CHOR
     for sx in (-1, 1):
-        w = sx * (XM - 0.06)
+        w = sx * (AI - 0.06)
         def k(xa, xb, ya, yb, za, zb, **kw):
             m.kasten("Innen", (min(w - sx * xa, w - sx * xb), ya, za), (max(w - sx * xa, w - sx * xb), yb, zb), "holz", **kw)
         k(0.0, 0.06, y0, y1, zc, zc + 1.90, laengs="y", ohne=("-z",))                 # Rueckwand
@@ -212,7 +235,7 @@ def moebel():
     # Portal von innen: zwei Tuerblaetter in der Wandmitte
     b_, z0, z1 = M.PORTAL
     for seite in (-1, 1):
-        B.bretttuer(m, "Innen", "holz", "Innen", "kleinteile", (seite * b_ / 4, M.Y_WEST + 0.32, z0), (1, 0, 0), (0, 1, 0), b_ / 2 - 0.01, z1 - z0, bretter=4, eisen_ub=D.feld("eisen", True))
+        B.bretttuer(m, "Innen", "holz", "Innen", "kleinteile", (M.PORTAL_X + seite * b_ / 4, M.Y_WEST + 0.32, z0), (1, 0, 0), (0, 1, 0), b_ / 2 - 0.01, z1 - z0, bretter=4, eisen_ub=D.feld("eisen", True))
     return m
 
 
@@ -291,9 +314,9 @@ def katholisch():
     for dy in (-0.3, 0.3):
         kerze(k, mx - 0.25, my + dy, ZB + 1.03, hoehe=0.3)
     # Fahnen an den beiden vorderen Pfeilerpaaren (zum Mittelschiff)
-    rp = XP - M.PFEILER_R
+    rp = XS
     for sx in (-1, 1):
-        for y in M.PFEILER_Y[:2]:
+        for y in M.FAHNEN_Y:
             x0, x1 = sx * (rp - 0.16), sx * (rp - 0.95)
             D.farbstab(k, "Innen", (sx * (rp + 0.04), y, 6.25), (sx * (rp - 1.05), y, 6.25), 0.035, "eisen")
             for seite in (-1, 1):
@@ -305,7 +328,7 @@ def katholisch():
 def weihrauch():
     w = D.Teil("Weihrauch", BI, saat=73)
     x, y, z = M.WEIHRAUCH
-    oben = ZK + 3.3                                        # knapp unter dem Gewoelbe des Chorjochs
+    oben = M.WEIHRAUCH_OBEN                                # knapp unter dem Zeltgewoelbe
     D.farbstab(w, "Innen", (x, y, z + 0.3), (x, y, oben), 0.02, "eisen")
     w.dreh("Innen", (x, y, 0), [(0.0, z + 0.10), (0.07, z + 0.14), (0.09, z + 0.21), (0.06, z + 0.27), (0.02, z + 0.32)], "kleinteile", seiten=8, u_bereich=D.feld("gold", True), deckel=False)
     return w, (x, y, oben)
@@ -314,13 +337,13 @@ def weihrauch():
 def evangelisch():
     e = D.Teil("Einrichtung_Evangelisch", BI, saat=75)
     x, y = M.ABENDMAHLSTISCH
-    B.tisch(e, "Innen", "holz", x - 1.10, x + 1.10, y - 0.45, y + 0.45, hoehe=0.92, z0=ZB)
-    e.kasten("Innen", (x - 1.16, y - 0.50, ZB + 0.92), (x + 1.16, y + 0.50, ZB + 0.95), "leinen", laengs="x", ohne=("-z",))
-    D.farbkasten(e, "Innen", (x + 0.10, y - 0.17, ZB + 0.95), (x + 0.60, y + 0.17, ZB + 1.03), "tinte", ohne=("-z",))            # Bibel
-    D.farbkasten(e, "Innen", (x + 0.12, y - 0.15, ZB + 1.03), (x + 0.58, y + 0.15, ZB + 1.045), "pergament", ohne=("-z",))
+    B.tisch(e, "Innen", "holz", x - 1.10, x + 1.10, y - 0.45, y + 0.45, hoehe=0.92, z0=M.Z_CHOR)
+    e.kasten("Innen", (x - 1.16, y - 0.50, M.Z_CHOR + 0.92), (x + 1.16, y + 0.50, M.Z_CHOR + 0.95), "leinen", laengs="x", ohne=("-z",))
+    D.farbkasten(e, "Innen", (x + 0.10, y - 0.17, M.Z_CHOR + 0.95), (x + 0.60, y + 0.17, M.Z_CHOR + 1.03), "tinte", ohne=("-z",))            # Bibel
+    D.farbkasten(e, "Innen", (x + 0.12, y - 0.15, M.Z_CHOR + 1.03), (x + 0.58, y + 0.15, M.Z_CHOR + 1.045), "pergament", ohne=("-z",))
     for dx in (-0.8, -0.5):
-        D.farbkasten(e, "Innen", (x + dx - 0.04, y - 0.04, ZB + 0.95), (x + dx + 0.04, y + 0.04, ZB + 1.10), "messing", ohne=("-z",))
-        kerze(e, x + dx, y, ZB + 1.10)
+        D.farbkasten(e, "Innen", (x + dx - 0.04, y - 0.04, M.Z_CHOR + 0.95), (x + dx + 0.04, y + 0.04, M.Z_CHOR + 1.10), "messing", ohne=("-z",))
+        kerze(e, x + dx, y, M.Z_CHOR + 1.10)
     return e
 
 
@@ -356,10 +379,10 @@ def anker():
     k = [
         B.anker("Blick_Auge", M.BLICK_AUGE),
         B.anker("Blick_Ziel", M.BLICK_ZIEL),
-        B.anker("Tuer_Dom_Stadt", (0.0, Y0 + 0.02, ZB + 1.35), ziel="stadt", breite=M.PORTAL[0], hoehe=M.PORTAL[2] - M.PORTAL[1], achse="y"),
-        B.anker("Licht_Raum_1", (0.0, Y0 + 4.2, 7.6), art="Raum"),
-        B.anker("Licht_Raum_2", (0.0, Y0 + 12.8, 7.6), art="Raum"),
-        B.anker("Licht_Raum_3", (0.0, M.Y_APSIS + 0.5, 6.4), art="Raum"),
+        B.anker("Tuer_Dom_Stadt", (M.PORTAL_X, Y0 + 0.02, ZB + 1.35), ziel="stadt", breite=M.PORTAL[0], hoehe=M.PORTAL[2] - M.PORTAL[1], achse="y"),
+        B.anker("Licht_Raum_1", (0.0, Y0 + 3.0, 7.6), art="Raum"),
+        B.anker("Licht_Raum_2", (0.0, Y0 + 8.2, 7.6), art="Raum"),
+        B.anker("Licht_Raum_3", (0.0, CY + 1.0, 9.0), art="Raum"),
         B.anker("Predigt_1", (M.KANZEL[0], M.KANZEL[1], ZB + M.KANZEL[2]), grad=math.degrees(math.atan2(-M.KANZEL[0], -6.6))),
         B.anker("Anker_Bischof", M.PLATZ_BISCHOF, grad=180),
         B.anker("Anker_Pfarrer", M.PLATZ_PFARRER, grad=180),
@@ -392,8 +415,8 @@ def main():
 
 def bilder(o):
     os.makedirs(o, exist_ok=True)
-    for i, (p, energie) in enumerate((((0, Y0 + 4.2, 8), 9000), ((0, Y0 + 12.8, 8), 9000), ((0, M.Y_APSIS + 0.5, 6.4), 5000), ((-5.4, Y0 + 8.5, 5), 3000), ((5.4, Y0 + 8.5, 5), 3000),
-                                      ((-5.4, Y1 - 2, 5), 2000), ((5.4, Y1 - 2.2, 6.5), 2000))):
+    for i, (p, energie) in enumerate((((0, Y0 + 3.0, 8), 7000), ((0, Y0 + 8.2, 8), 7000), ((0, CY + 1.0, 10.5), 9000), ((-3.6, Y0 + 6.0, 5), 2500), ((3.6, Y0 + 6.0, 5), 2500),
+                                      ((-4.0, CY + 3.0, 6), 2500), ((4.0, CY + 3.0, 6), 2500))):
         l = bpy.data.objects.new(f"Kontrolllicht{i}", bpy.data.lights.new(f"Kontrolllicht{i}", "POINT"))
         l.data.energy = energie * 0.2; l.data.color = (1.0, 0.86, 0.68); l.data.shadow_soft_size = 0.6; l.location = p
         bpy.context.scene.collection.objects.link(l)
@@ -401,8 +424,9 @@ def bilder(o):
     ev = ("Einrichtung_Evangelisch", "Kreuz_Evangelisch"); ka = ("Einrichtung_Katholisch", "Weihrauch"); si = ("Einrichtung_Simultan",)
     B.kontrollbild(os.path.join(o, "domev_innen_blick_evangelisch.jpg"), M.BLICK_AUGE, M.BLICK_ZIEL, brennweite=brenn, verbergen=ka + si, proben=32)
     B.kontrollbild(os.path.join(o, "domev_innen_blick_katholisch.jpg"), M.BLICK_AUGE, M.BLICK_ZIEL, brennweite=brenn, verbergen=ev + si, proben=32)
-    B.kontrollbild(os.path.join(o, "domev_innen_orgel_kanzel.jpg"), (-5.6, Y0 + 9.0, ZB + 1.7), (3.5, Y1 - 1.0, 3.6), brennweite=brenn, verbergen=ka + si, proben=32)
-    B.kontrollbild(os.path.join(o, "domev_innen_rueckblick.jpg"), (0.0, Y1 - 2.6, ZB + 1.7), (0.0, Y0, 5.0), brennweite=brenn, verbergen=ka + si, proben=32)
+    B.kontrollbild(os.path.join(o, "domev_innen_orgel_kanzel.jpg"), (-3.4, Y0 + 3.0, ZB + 1.7), (3.5, -6.0, 3.6), brennweite=brenn, verbergen=ka + si, proben=32)
+    B.kontrollbild(os.path.join(o, "domev_innen_altar.jpg"), (0.0, Y1 + 0.2, M.Z_CHOR + 1.7), (0.0, 9.0, 4.0), brennweite=brenn, verbergen=ka + si, proben=32)
+    B.kontrollbild(os.path.join(o, "domev_innen_rueckblick.jpg"), (0.0, Y1 + 3.5, M.Z_CHOR + 1.7), (0.0, Y0, 5.0), brennweite=brenn, verbergen=ka + si, proben=32)
 
 
 if __name__ == "__main__":

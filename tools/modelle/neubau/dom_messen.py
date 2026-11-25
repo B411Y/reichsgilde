@@ -119,7 +119,7 @@ def pruefen(modell):
     tuer, ex = innen.anker("Tuer_Dom_Stadt")
     add("Tuer_Dom_Stadt", f"im Portal, {f(M.PORTAL[0])} breit, {f(M.PORTAL[2] - M.PORTAL[1])} hoch, ziel stadt",
         f"{f(tuer[0])}/{f(tuer[1])}, {f(float(ex.get('breite', 0)))} x {f(float(ex.get('hoehe', 0)))}, ziel {ex.get('ziel')}",
-        abs(tuer[0]) < 0.01 and y_west <= tuer[1] <= y_west + M.T_WAND + 0.05 and ex.get("ziel") == "stadt"
+        abs(tuer[0] - getattr(M, "PORTAL_X", 0.0)) < 0.01 and y_west <= tuer[1] <= y_west + M.T_WAND + 0.05 and ex.get("ziel") == "stadt"
         and abs(float(ex.get("breite", 0)) - M.PORTAL[0]) < 0.01)
     moebel = np.concatenate([p for p, _ in innen.ecken("Moebel_Dom").values()])
     sitz = moebel[np.abs(moebel[:, 2] - (M.Z_SOCKEL + M.SITZHOEHE)) < 0.003]

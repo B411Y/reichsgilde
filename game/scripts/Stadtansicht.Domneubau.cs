@@ -40,8 +40,8 @@ public partial class Stadtansicht
     private sealed record DomNeuMasse(Vector3 Klick, Vector3 Schild, (float X, float Z, float Kante, float Hoehe)[] Tuerme);
 
     private static DomNeuMasse DomNeuMasseVon(string datei) => datei.EndsWith("dom_evangelisch")
-        // Halle 15,4 m breit, mit Vorhalle und Chor 33 m lang; ein runder Turm (5,6 m) vorn links, 32 m mit Spitze
-        ? new DomNeuMasse(new Vector3(17.2f, 20, 33.2f), new Vector3(-5.2f, 36, 13.6f), new[] { (-5.2f, 13.6f, 5.9f, 32f) })
+        // belegte Fläche 18,2 × 37,9 m (Langhaus, Achteck, Chor, Vorhalle), Zeltdach des Achtecks 23,6 m; ein runder Turm (6,9 m) vorn links, 31,4 m mit Knauf
+        ? new DomNeuMasse(new Vector3(18.2f, 24, 37.9f), new Vector3(-5.6f, 35, 15.5f), new[] { (-5.6f, 15.5f, 6.9f, 31.4f) })
         // Langhaus 15,8 m breit, Querhaus 18,8 m, 35 m lang, Türme 5,6 × 5,6 m vorn, 42 m mit Kreuz
         : new DomNeuMasse(new Vector3(18.8f, 20, 35.5f), new Vector3(0, 45, 14.7f), new[] { (-5.1f, 14.7f, 5.6f, 42f), (5.1f, 14.7f, 5.6f, 42f) });
     private Node3D? _domNeuHuelle;   // Wurzel des Modells in der Stadt

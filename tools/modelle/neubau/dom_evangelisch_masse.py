@@ -1,22 +1,20 @@
-"""Neubau Dom evangelisch: alle Masse an einer Stelle (Aussen, Innenraum, Oeffnungen, Plaetze) - reines Python.
+"""Neubau Dom evangelisch: alle Masse an einer Stelle (Huelle aussen, Innenraum, Oeffnungen, Plaetze) - reines Python.
 
-    python tools/modelle/neubau/dom_evangelisch_masse.py [--soll-ist]
+    python tools/modelle/neubau/dom_evangelisch_masse.py
 
-Gleicher Aufbau wie dom_masse.py (Dom katholisch): WAENDE, OEFFNUNGEN, wand(), punkt(), Einrichtung, soll_ist(). Die Bausteine
-aus dom_bib.py arbeiten mit beiden Massdateien; die Blender-Skripte dom_evangelisch_aussen.py und dom_evangelisch_innen.py lesen
-ihre Masse von hier ("innen = aussen minus Wandstaerke").
+Form nach dem Artwork des Nutzers (24.11.2026): verschachtelte Backsteinkirche. Vorn (-Y) das Langhaus (Saalkirche, 11 m breit) mit
+Sandsteingiebel und Vorhalle, dahinter das Achteck (zweiter Raum: Altarraum mit Zeltgewoelbe), dahinter ein Chor als Anbau mit
+5/8-Schluss (nur aussen, mit Blendfenstern; der Altar steht im Achteck), zwei Treppentuermchen mit Kegeldach, ein grosser runder
+Turm links vor der Westwand. Die Module des Bausatzes (Dom_Module.blend) geben nur die Groessenordnungen vor.
 
-Bauform nach der Vorlage "Dom evangelisch": dreischiffige Hallenkirche aus Backstein unter einem grossen Schieferdach, Sockel,
-Ecken, Gewaende und Vorhalle aus Sandstein, ein runder Turm mit Kupferhaube vorn links vor der Westwand, Chor mit 5/10-Schluss.
-Keine Turmuhr (um 1400 gibt es sie hier nicht).
-
-Koordinaten wie bei allen Bauskripten: X rechts, Y nach hinten (Portal bei -Y, im Spiel +Z; der Chor bei +Y), Z oben; Ursprung
-in der Mitte der belegten Flaeche (FLAECHE).
+Gleicher Aufbau wie dom_masse.py (Dom katholisch): wand(), punkt(), OEFFNUNGEN, soll_ist(). Waende laufen gegen den Uhrzeigersinn
+(Aussenflaeche rechts der Laufrichtung, Normale (dy, -dx)); die Innenflaeche liegt um die Wandstaerke nach innen versetzt.
+Koordinaten: X rechts, Y nach hinten (Portal bei -Y, im Spiel +Z), Z oben; Ursprung in der Mitte der belegten Flaeche.
 """
 import math
 import sys
 
-# ── Figuren (wie dom_masse.py) ───────────────────────────────────────────────────────────────────────────────────────
+# ── Figuren (wie dom_masse.py) ──────────────────────────────────────────────────────────────────────────────────────────
 FIGUREN = {
     "Halbling": (1.10, 0.32), "Zwerg": (1.35, 0.46), "Mensch": (1.75, 0.46), "Elb": (1.85, 0.44),
     "Ork": (1.93, 0.52), "Oger": (2.50, 0.66),
@@ -24,77 +22,113 @@ FIGUREN = {
 GROESSTE = max(h for h, _ in FIGUREN.values())
 BREITESTE = max(b for _, b in FIGUREN.values())
 
-FLAECHE = (20.0, 38.0)   # belegte Flaeche (Breite x Tiefe) fuer den Katalog, wie beim Dom katholisch; Paket 3 setzt sie in die Karten
+FLAECHE = (20.0, 38.0)   # belegte Flaeche (Breite x Tiefe) fuer den Katalog, wie beim Dom katholisch
 BUDGET = (8000, 15000)   # Dreiecke der Huelle (Style-Guide: Monument)
+XA = 0.0                 # Achse von Langhaus, Achteck und Chor
 
-# ── Hoehen ───────────────────────────────────────────────────────────────────────────────────────────────────────────
-Z_SOCKEL = 0.30          # Fussboden (drei Stufen vor der Vorhalle)
-Z_CHOR = 0.75            # Fussboden des Chors (drei Stufen hoeher)
+# ── Hoehen ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Z_SOCKEL = 0.30          # Fussboden des Langhauses (drei Stufen vor der Vorhalle)
+Z_CHOR = 0.75            # Fussboden des Achtecks (drei Stufen hoeher)
 Z_ALTAR = 1.05           # Podest des Hochaltars
-Z_STEIN = 1.20           # Oberkante des Sandsteinsockels aussen, darueber Backstein
-Z_TRAUFE = 11.40         # Traufe der Halle und des Chors
-NEIGUNG = math.tan(math.radians(52))
-Z_KAEMPFER = 7.00        # Kaempfer aller Gewoelbe (Halle: drei gleich hohe Schiffe)
-Z_SCHEITEL = 11.00       # Scheitel der Gewoelbe (4,00 ueber dem Kaempfer)
+Z_STEIN = 2.40           # Oberkante des Sandsteinsockels aussen (zwei Lagen Backstein zu 1,20 m)
 
-# ── Grundriss ────────────────────────────────────────────────────────────────────────────────────────────────────────
+# ── Langhaus ────────────────────────────────────────────────────────────────────────────────────────────────────────────
 T_WAND = 0.70
-X_MITTE = 3.50           # halbe lichte Breite des Chors und des Chorbogens
-X_ARKADE = X_MITTE + T_WAND      # 4,20: Aussenflaeche der Chorwaende
-X_SEITE = 7.00           # Innenflaeche der Seitenschiffwaende (Halle 14,00 m licht)
-X_AUSSEN = X_SEITE + T_WAND      # 7,70
-PFEILER_X = 3.85         # Achse der Rundpfeiler (Mittelschiff 7,70, Seitenschiffe 3,15 zwischen Achse und Wand)
-PFEILER_R = 0.45
-Y_WEST = -10.90          # Aussenflaeche der Westwand (Giebel)
-Y_INNEN0 = Y_WEST + T_WAND       # Innenflaeche der Westwand
-JOCH = 4.25
+X_AUSSEN = 5.50          # halbe Breite aussen
+X_SEITE = X_AUSSEN - T_WAND      # 4,80: halbe lichte Breite
+Y_WEST = -15.00          # Aussenflaeche der Westwand (Giebel)
+Y_INNEN0 = Y_WEST + T_WAND
+Z_TRAUFE_L = 8.40
+NEIGUNG_L = math.tan(math.radians(42))
+Z_FIRST_L = Z_TRAUFE_L + (X_AUSSEN + 0.30) * NEIGUNG_L
+Z_KAEMPFER = 7.40        # Kaempfer der Kreuzgewoelbe im Langhaus (Fensterscheitel)
+Z_SCHEITEL_L = Z_KAEMPFER + X_SEITE     # Scheitel: Bogenhoehe = halbe Spannweite
 JOCHE = 4
-Y_INNEN1 = Y_INNEN0 + JOCHE * JOCH   # Innenflaeche der Ostwand der Halle (6,80)
-Y_OST = Y_INNEN1 + T_WAND        # Aussenflaeche der Ostwand (7,50); dort beginnt der Chor
-Y_APSIS = Y_OST + 4.00           # Mitte des Chorschlusses
-R_APSIS = 4.20           # Umkreis der Aussenflaeche (5 Seiten von 10)
-R_APSIS_INNEN = 3.50
-PFEILER_Y = tuple(round(Y_INNEN0 + JOCH * i, 3) for i in range(1, JOCHE))
-Z_FIRST = Z_TRAUFE + (X_AUSSEN + 0.30) * NEIGUNG         # First der Halle
-Z_CHORFIRST = Z_TRAUFE + (X_ARKADE + 0.30) * NEIGUNG     # First des Chors (niedriger: der Ostgiebel der Halle steht darueber)
 
+# ── Achteck ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+OKT_M = (0.0, 3.2)       # Mitte
+OKT_A = 6.60             # Apothem aussen (Mitte bis Wandmitte)
+OKT_A_INNEN = OKT_A - T_WAND     # 5,90
+Z_TRAUFE_O = 13.20
+Z_SPITZE_O = 23.60       # Spitze des Zeltdachs
+Z_OKT_KAEMPFER = 12.00   # Fuss des Zeltgewoelbes
+Z_SCHEITEL = 17.20       # Scheitel des Zeltgewoelbes (hoechster Punkt des Innenraums)
+Y_INNEN1 = OKT_M[1] - OKT_A_INNEN      # -2,70: Stirnwand des Langhauses = Vorderseite des Achtecks (Bogen in den Altarraum)
+X_FLAECHE = OKT_A_INNEN * math.tan(math.pi / 8)  # halbe Laenge einer Innenflaeche des Achtecks (2,44)
+X_BOGEN = X_FLAECHE - 0.20       # halbe Breite des Bogens in der Stirnwand (Pfeilerrest 0,20 je Seite)
+Z_BOGEN = Z_SOCKEL + 7.10     # Kaempfer des Bogens
+Z_BOGEN_SCHEITEL = Z_KAEMPFER    # Scheitel des Bogens (der Zeltgewoelbe-Fuss liegt dahinter hoeher)
 
-def apsis_ecke(k, r=R_APSIS):
-    """Ecke k (0 rechts ... 5 links) des Chorschlusses."""
-    w = math.radians(36 * k)
-    return (r * math.cos(w), Y_APSIS + r * math.sin(w))
+# ── Chor (Anbau hinten, nur aussen) ─────────────────────────────────────────────────────────────────────────────────────
+CHOR_M = (0.0, 13.1)
+CHOR_A = 4.50
+Z_TRAUFE_C = 7.20
+NEIGUNG_C = math.tan(math.radians(50))
+Z_FIRST_C = Z_TRAUFE_C + (CHOR_A + 0.30) * NEIGUNG_C
+CHOR_Y0 = 7.90           # die Seitenwaende des Chors beginnen im Achteck
+Y_APSIS = CHOR_M[1]
+R_APSIS = CHOR_A
+# Langhaus endet im Achteck, wo seine Aussenwand auf eine Flaeche des Achtecks stoesst
+_T = math.tan(math.pi / 8)
+Y_LANG1 = OKT_M[1] - (OKT_A * (1 + _T) - X_AUSSEN) + 0.10       # -0,53
 
+# ── Vorhalle ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+VH_X = 1.00              # Mitte
+VH_HALB = 2.60
+VH_TIEFE = 3.00
+VH_Z = (4.80, 4.80 + VH_HALB + 0.25)       # Traufe, First (45 Grad)
+PORTAL = (2.40, Z_SOCKEL, 3.00)            # Breite, Schwelle, Sturz (lichte Hoehe 2,70)
+PORTAL_X = VH_X
+VORHALLE_Y = Y_WEST - VH_TIEFE
 
-# ── Turm: rund (16 Seiten), steht vorn links vor der Westwand; eine Seite liegt 3 cm hinter der Wandflaeche ───────────
+# ── Treppentuermchen ────────────────────────────────────────────────────────────────────────────────────────────────────
+TUERMCHEN = [(7.0, -0.9), (5.8, 8.2)]
+TM_R = 1.30
+Z_TM_WAND = 12.0
+Z_TM_SPITZE = 17.0
+
+# ── Turm: rund (16 Seiten), links vor der Westwand ──────────────────────────────────────────────────────────────────────
+TURM_M = (-5.6, -15.5)
 TURM_SEITEN = 16
-TURM_R = 2.80                            # Umkreis des Schafts
-TURM_M = (-5.20, Y_WEST + 0.03 - TURM_R * math.cos(math.pi / TURM_SEITEN))      # Mitte
-Z_TURMSOCKEL = 3.00                      # Sandsteinsockel des Turms (um 0,12 breiter)
-Z_GLOCKEN = (19.00, 22.60)               # offene Glockenstube aus Holz
-Z_HAUBE = 22.60                          # Fuss der Kupferhaube
-Z_SPITZE = 30.40                         # Spitze der Haube; Kreuz bis Z_KREUZ
-Z_KREUZ = 32.40
-
-# ── Vorhalle aus Sandstein vor dem Portal ────────────────────────────────────────────────────────────────────────────
-VORHALLE_X = 1.70                        # halbe Breite
-VORHALLE_Y = Y_WEST - 2.40               # Stirnflaeche
-VORHALLE_Z = (4.30, 4.30 + (1.70 + 0.25) * 1.0)      # Traufe, First (45 Grad)
-
-# ── Aussenwaende: Name -> (Anfang, Ende, Dicke); die Aussenseite liegt links der Laufrichtung (Umlauf im Uhrzeigersinn von oben) ──
+TURM_R = 3.30
+Z_TURMSOCKEL = 3.00
+Z_GLOCKEN = (18.40, 22.00)
+Z_HAUBE = 22.00
+Z_SPITZE = 29.80
+Z_KNAUF = 31.30
+Z_KREUZ = Z_KNAUF + 0.06     # hoechster Punkt der Huelle (Knauf statt Kreuz)
+X_QUER = OKT_A               # groesste halbe Breite der Huelle (Achteck)
+Z_FIRST = Z_FIRST_L
 
 
+def vieleck(mx, my, apothem, n=8, phase=0.0):
+    """Regelmaessiges n-Eck, Flaeche k mit Normale phase + k * 360/n Grad: Liste (Ecke a, Ecke b, Normale), gegen den Uhrzeigersinn."""
+    r = apothem / math.cos(math.pi / n)
+    aus = []
+    for k in range(n):
+        w = phase + 2 * math.pi * k / n
+        aus.append(((mx + r * math.cos(w - math.pi / n), my + r * math.sin(w - math.pi / n)),
+                    (mx + r * math.cos(w + math.pi / n), my + r * math.sin(w + math.pi / n)), (math.cos(w), math.sin(w))))
+    return aus
+
+
+# ── Aussenwaende: Name -> (Anfang, Ende, Dicke) ─────────────────────────────────────────────────────────────────────────
 def _waende():
     w = {}
-    w["seite_l"] = ((-X_AUSSEN, Y_WEST), (-X_AUSSEN, Y_OST), T_WAND)
-    w["ost_l"] = ((-X_AUSSEN, Y_OST), (-X_ARKADE, Y_OST), T_WAND)
-    w["chor_l"] = ((-X_ARKADE, Y_OST), (-X_ARKADE, Y_APSIS), T_WAND)
-    for k in range(5):
-        w[f"apsis_{k}"] = (apsis_ecke(5 - k), apsis_ecke(4 - k), (R_APSIS - R_APSIS_INNEN) * math.cos(math.radians(18)))
-    w["chor_r"] = ((X_ARKADE, Y_APSIS), (X_ARKADE, Y_OST), T_WAND)
-    w["ost_r"] = ((X_ARKADE, Y_OST), (X_AUSSEN, Y_OST), T_WAND)
-    w["seite_r"] = ((X_AUSSEN, Y_OST), (X_AUSSEN, Y_WEST), T_WAND)
-    w["west"] = ((X_AUSSEN, Y_WEST), (-X_AUSSEN, Y_WEST), T_WAND)
+    w["west"] = ((-X_AUSSEN, Y_WEST), (X_AUSSEN, Y_WEST), T_WAND)
+    w["seite_r"] = ((X_AUSSEN, Y_WEST), (X_AUSSEN, Y_LANG1), T_WAND)
+    w["seite_l"] = ((-X_AUSSEN, Y_LANG1), (-X_AUSSEN, Y_WEST), T_WAND)
+    for k, (a, b, _) in enumerate(vieleck(*OKT_M, OKT_A, 8, 0.0)):
+        w[f"okt_{k}"] = (a, b, T_WAND)
+    ys = CHOR_M[1] + CHOR_A * _T
+    w["chor_r"] = ((CHOR_A, CHOR_Y0), (CHOR_A, ys), T_WAND)
+    w["chor_l"] = ((-CHOR_A, ys), (-CHOR_A, CHOR_Y0), T_WAND)
+    for k, (a, b, _) in enumerate(vieleck(*CHOR_M, CHOR_A, 8, 0.0)):
+        if k in (1, 2, 3): w[f"chor_{k}"] = (a, b, T_WAND)
     return w
+
+
+WAENDE = _waende()
 
 
 def wand(name):
@@ -102,38 +136,7 @@ def wand(name):
     (ax, ay), (bx, by), d = WAENDE[name]
     l = math.hypot(bx - ax, by - ay)
     ex, ey = (bx - ax) / l, (by - ay) / l
-    return (ax, ay), (ex, ey), l, (-ey, ex), d
-
-
-WAENDE = _waende()
-
-# ── Oeffnungen: (Wand, s0, s1, z0, z1, Art, Steilheit) - s entlang der Wand ab ihrem Anfang ───────────────────────────
-FENSTER_SEITE = (1.30, 2.60, 9.20)       # Breite, Bruestung, Scheitel (im Schildbogen des Gewoelbes)
-FENSTER_CHOR = (1.20, 2.60, 6.80)        # Scheitel unter dem Gewoelbekaempfer (der Chorschluss hat keine Stichkappen)
-FENSTER_WEST = ((0.0, 1.20, 6.60, 10.40), (-1.75, 0.90, 6.60, 9.40), (1.75, 0.90, 6.60, 9.40))   # x, Breite, Bruestung, Scheitel
-PORTAL = (2.40, Z_SOCKEL, 3.00)          # Breite, Schwelle, Sturz (lichte Hoehe 2,70); aussen sitzt die Tuer in der Vorhalle
-STEIL = 1.25
-
-
-def _oeffnungen():
-    o = []
-    mitte = lambda name: wand(name)[2] / 2
-    b, z0, z1 = FENSTER_SEITE
-    for seite in ("seite_l", "seite_r"):
-        for i in range(JOCHE):
-            s = T_WAND + (i + 0.5) * JOCH
-            o.append((seite, s - b / 2, s + b / 2, z0, z1, "spitz", STEIL))
-    b, z0, z1 = FENSTER_CHOR
-    for name in ("chor_l", "chor_r") + tuple(f"apsis_{k}" for k in range(5)):
-        o.append((name, mitte(name) - b / 2, mitte(name) + b / 2, z0, z1, "spitz", STEIL))
-    b, z0, z1 = PORTAL
-    o.append(("west", mitte("west") - b / 2, mitte("west") + b / 2, z0, z1, "portal", 0.0))
-    for x, b, z0, z1 in FENSTER_WEST:
-        o.append(("west", mitte("west") - x - b / 2, mitte("west") - x + b / 2, z0, z1, "spitz", STEIL))
-    return o
-
-
-OEFFNUNGEN = _oeffnungen()
+    return (ax, ay), (ex, ey), l, (ey, -ex), d
 
 
 def punkt(name, s, z, raus=0.0):
@@ -142,33 +145,86 @@ def punkt(name, s, z, raus=0.0):
     return (ox + ex * s + nx * raus, oy + ey * s + ny * raus, z)
 
 
-# ── Einrichtung (Innenraum) ──────────────────────────────────────────────────────────────────────────────────────────
+# ── Oeffnungen: (Wand, s0, s1, z0, z1, Art, Steilheit) - s entlang der Wand ab ihrem Anfang; nur solche mit Innenseite ─────
+SEITE_FENSTER = (1.40, 2.90, 7.40, 1.5)         # Breite, Bruestung, Scheitel, Steilheit
+SEITE_Y = (-12.70, -8.40, -4.10)                # Mitten der Fenster im Langhaus (beide Seiten)
+OKT_FENSTER = (0.80, 7.60, 11.80, 1.6)          # Paar im Achteck
+OKT_ABSTAND = 0.30
+CHOR_FENSTER = (1.30, 2.90, 6.50, 1.6)         # Blendfenster des Chors (nur aussen)
+WEST_FENSTER = ((VH_X, 2.70, 6.40, 11.40, 1.9), (None, 0.90, 7.00, 9.80, 1.7), (None, 0.90, 7.00, 9.80, 1.7))
+
+
+def _oeffnungen():
+    o = []
+    b, z0, z1, st = SEITE_FENSTER
+    _, _, l, _, _ = wand("seite_r")
+    for y in SEITE_Y:
+        s = y - Y_WEST
+        o.append(("seite_r", s - b / 2, s + b / 2, z0, z1, "spitz", st))
+    _, _, l, _, _ = wand("seite_l")
+    for y in SEITE_Y:
+        s = Y_LANG1 - y
+        o.append(("seite_l", s - b / 2, s + b / 2, z0, z1, "spitz", st))
+    l = wand("west")[2]
+    (xm, bw, zb0, zb1, st1), (_, bk, zk0, zk1, st2), _ = WEST_FENSTER
+    sm = l / 2 + xm
+    o.append(("west", sm - bw / 2, sm + bw / 2, zb0, zb1, "spitz", st1))
+    o.append(("west", sm - PORTAL[0] / 2, sm + PORTAL[0] / 2, PORTAL[1], PORTAL[2], "portal", 0.0))
+    o.append(("west", 2.10, 2.10 + bk, zk0, zk1, "spitz", st2))
+    o.append(("west", l - 1.90, l - 1.90 + bk, zk0, zk1, "spitz", st2))
+    b, z0, z1, st = OKT_FENSTER
+    for k in (0, 4):
+        l = wand(f"okt_{k}")[2]
+        for sg in (-1, 1):
+            m = l / 2 + sg * (OKT_ABSTAND + b / 2)
+            o.append((f"okt_{k}", m - b / 2, m + b / 2, z0, z1, "spitz", st))
+    return o
+
+
+OEFFNUNGEN = _oeffnungen()
+
+
+def blendfenster():
+    """Fenster des Chors (nur aussen, ohne Innenraum): (Wand, s0, s1, z0, z1, Art, Steilheit)."""
+    b, z0, z1, st = CHOR_FENSTER
+    o = []
+    for name, mitten in (("chor_r", (1.9, 5.5)), ("chor_l", (wand("chor_l")[2] - 1.9, wand("chor_l")[2] - 5.5)), ("chor_1", (None,)), ("chor_2", (None,)), ("chor_3", (None,))):
+        l = wand(name)[2]
+        for m in mitten:
+            m = l / 2 if m is None else m
+            o.append((name, m - b / 2, m + b / 2, z0, z1, "spitz", st))
+    return o
+
+
+# ── Einrichtung (Innenraum, Langhaus 9,60 m breit, 11,6 m lang bis zur Stirnwand) ───────────────────────────────────────
 MITTELGANG = 1.40
-BANK = (2.60, 0.45, 1.45)                # Breite, Sitztiefe, Abstand der Reihen
+BANK = (1.70, 0.45, 1.15)                # Breite, Sitztiefe, Abstand der Reihen
 BANK_REIHEN = 8
-BANK_Y0 = Y_INNEN0 + 1.80                # hinterste Reihe (Westen); die Reihen laufen nach Osten
+BANK_Y0 = Y_INNEN0 + 1.60                # hinterste Reihe (Westen); die Reihen laufen nach Osten
 BANK_X = MITTELGANG / 2 + BANK[0] / 2
-SITZE_JE_BANK = (-0.85, 0.0, 0.85)
+SITZE_JE_BANK = (-0.52, 0.0, 0.52)
 SITZHOEHE = 0.44
-KANZEL = (-2.55, Y_INNEN0 + 13.40, 1.50) # x, y, Hoehe des Kanzelbodens: am dritten Pfeiler links
-TAUFSTEIN = (-5.60, Y_INNEN0 + 1.80)
-CHORSTUFEN_Y = (Y_INNEN1 - 0.90, Y_INNEN1)       # drei Stufen vor dem Chorbogen
-ALTARSTUFEN_Y = (Y_APSIS + 0.60, Y_APSIS + 1.20)
-HOCHALTAR = (0.0, Y_APSIS + 2.25)
-RETABEL_Y = Y_APSIS + 2.85
+KANZEL = (-3.75, -7.00, 1.50)            # x, y, Hoehe des Kanzelbodens: an der Wand zwischen zwei Fenstern
+TAUFSTEIN = (-3.60, Y_INNEN0 + 1.80)
+CHORSTUFEN_Y = (Y_INNEN1 - 0.90, Y_INNEN1)       # drei Stufen vor dem Bogen
+ALTARSTUFEN_Y = (6.20, 6.80)
+HOCHALTAR = (0.0, 8.00)
+RETABEL_Y = 8.60
 RETABEL_HALB = 1.40
 RETABEL_FLUEGEL = 1.07
-CHORGESTUEHL = (Y_APSIS - 3.00, Y_APSIS - 0.60)
-MARIENALTAR = (-6.00, Y_INNEN1 - 0.70)   # im linken Seitenschiff an der Aussenwand, neben dem letzten Fenster
-ORGEL = ((4.40, X_SEITE - 0.06), (Y_INNEN1 - 2.70, Y_INNEN1 - 0.06), 3.00)   # Empore im rechten Seitenschiff vor der Ostwand: x, y, Hoehe des Bodens
-ABENDMAHLSTISCH = (0.0, Y_INNEN1 - 1.80)
-KREUZ = (0.0, Y_APSIS + 3.00)
+CHORGESTUEHL = (1.20, 5.20)              # an den beiden Seitenflaechen des Achtecks (x = +-5,90)
+MARIENALTAR = (-3.80, -3.40)             # im Langhaus an der linken Wand, neben dem letzten Fenster
+ORGEL = ((2.60, X_SEITE - 0.06), (-7.60, -4.90), 3.00)   # Empore an der rechten Wand zwischen zwei Fenstern: x, y, Hoehe des Bodens
+ABENDMAHLSTISCH = (0.0, 4.90)            # im Achteck vor den Altarstufen (auf dem Fussboden des Achtecks)
+KREUZ = (0.0, 8.75)
+FAHNEN_Y = (-10.55, -6.25)               # katholisch: Fahnen an den Wandpfeilern zwischen den Fenstern
 SCHRANKE_Y = (BANK_Y0 - 0.6, BANK_Y0 + (BANK_REIHEN - 1) * BANK[2] + 0.8)
 BLICK_AUGE = (0.0, Y_INNEN0 + 0.50, Z_SOCKEL + 1.60)
-BLICK_ZIEL = (0.0, Y_APSIS - 2.0, 4.2)
-PLATZ_BISCHOF = (0.0, Y_APSIS + 1.40, Z_ALTAR)
-PLATZ_PFARRER = (0.0, Y_INNEN1 - 1.20, Z_SOCKEL)
-WEIHRAUCH = (1.70, Y_APSIS - 0.90, 2.60)
+BLICK_ZIEL = (0.0, 3.0, 5.0)
+PLATZ_BISCHOF = (0.0, 7.15, Z_ALTAR)
+PLATZ_PFARRER = (0.0, 5.70, Z_CHOR)
+WEIHRAUCH = (2.60, 1.60, 2.60)
+WEIHRAUCH_OBEN = 14.50                   # Haken unter dem Zeltgewoelbe
 
 
 def sitzplaetze():
@@ -183,7 +239,7 @@ def sitzplaetze():
 
 
 def retabel_punkte():
-    """Aeusserste Punkte (x, y) des Retabels auf der rechten Seite (wie dom_masse.py)."""
+    """Aeusserste Punkte (x, y) des Retabels auf der rechten Seite."""
     w = math.radians(45); c, s = math.cos(w), math.sin(w)
     ry, hx, t = RETABEL_Y, RETABEL_HALB, 0.06
     return [(1.50, ry + 0.12), (hx, ry + t), (1.46, ry + 0.09), (hx + s * t, ry + c * t),
@@ -191,63 +247,63 @@ def retabel_punkte():
 
 
 def retabel_abstand():
-    """Kleinster Abstand der Punkte des Retabels zur Innenflaeche des Chorschlusses (negativ = in der Wand)."""
-    ecken = [apsis_ecke(k, R_APSIS_INNEN) for k in range(6)]
+    """Kleinster Abstand der Punkte des Retabels zu den Innenflaechen des Achtecks hinten (negativ = in der Wand)."""
+    flaechen = vieleck(*OKT_M, OKT_A_INNEN, 8, 0.0)
     kleinster = 1e9
     for px, py in retabel_punkte():
-        for a, b in zip(ecken, ecken[1:]):
-            ex, ey = b[0] - a[0], b[1] - a[1]; l = math.hypot(ex, ey)
-            nx, ny = -ey / l, ex / l
-            if (0 - a[0]) * nx + (Y_APSIS - a[1]) * ny < 0: nx, ny = -nx, -ny
-            kleinster = min(kleinster, (px - a[0]) * nx + (py - a[1]) * ny)
+        for k in (0, 1, 2):
+            a, b, n = flaechen[k]
+            kleinster = min(kleinster, OKT_A_INNEN - ((px - OKT_M[0]) * n[0] + (py - OKT_M[1]) * n[1]))
     return kleinster
 
 
 def umriss():
-    """(x0, x1, y0, y1) der belegten Flaeche: Turmsockel, Strebepfeiler, Stufen."""
+    """(x0, x1, y0, y1) der belegten Flaeche: Turmsockel, Turmchen, Strebepfeiler, Stufen."""
     x0 = TURM_M[0] - TURM_R - 0.12
-    x1 = X_AUSSEN + 0.90
+    x1 = max(OKT_A, TUERMCHEN[0][0] + TM_R + 0.25)
     y0 = min(TURM_M[1] - TURM_R - 0.12, VORHALLE_Y - 1.30)
-    y1 = Y_APSIS + R_APSIS + 0.85
+    y1 = CHOR_M[1] + (CHOR_A / math.cos(math.pi / 8) + 0.85) * math.sin(math.radians(67.5))     # Strebepfeiler an den Ecken des Chorschlusses
     return x0, x1, y0, y1
 
 
-# ── Soll und Ist ─────────────────────────────────────────────────────────────────────────────────────────────────────
-
+# ── Soll und Ist ────────────────────────────────────────────────────────────────────────────────────────────────────────
 def soll_ist():
     z = []
     f = lambda v: f"{v:.2f}".replace(".", ",")
     x0, x1, y0, y1 = umriss()
-    breite, tiefe = 2 * max(-x0, x1), 2 * max(-y0, y1)        # um den Ursprung (Mitte der belegten Flaeche)
-    z.append(("Belegte Flaeche Breite", f"<= {f(FLAECHE[0])}", f(breite), breite <= FLAECHE[0]))
-    z.append(("Belegte Flaeche Tiefe", f"<= {f(FLAECHE[1])}", f(tiefe), tiefe <= FLAECHE[1]))
+    z.append(("Belegte Flaeche Breite", f"<= {f(FLAECHE[0])}", f(x1 - x0), x1 - x0 <= FLAECHE[0]))
+    z.append(("Belegte Flaeche Tiefe", f"<= {f(FLAECHE[1])}", f(y1 - y0), y1 - y0 <= FLAECHE[1]))
     z.append(("Portal lichte Hoehe", f">= {f(GROESSTE + 0.2)} (Oger + 0,20)", f(PORTAL[2] - PORTAL[1]), PORTAL[2] - PORTAL[1] >= GROESSTE + 0.2 - 1e-9))
     z.append(("Portal lichte Breite", f">= {f(2 * BREITESTE)} (zwei Oger)", f(PORTAL[0]), PORTAL[0] >= 2 * BREITESTE))
     z.append(("Mittelgang", f">= {f(2 * BREITESTE)} (zwei Oger)", f(MITTELGANG), MITTELGANG >= 2 * BREITESTE))
-    seitengang = PFEILER_X - PFEILER_R - (BANK_X + BANK[0] / 2)
-    z.append(("Gang zwischen Bank und Pfeiler", ">= 0,00 (Baenke stehen im Mittelschiff)", f(seitengang), seitengang >= 0))
-    z.append(("Seitenschiff lichte Breite", f">= {f(3 * BREITESTE)}", f(X_SEITE - PFEILER_X - PFEILER_R), X_SEITE - PFEILER_X - PFEILER_R >= 3 * BREITESTE))
+    seitengang = X_SEITE - (BANK_X + BANK[0] / 2)
+    z.append(("Gang zwischen Bank und Wand", ">= 1,32 (zwei Oger nebeneinander)", f(seitengang), seitengang >= 2 * BREITESTE))
     frei = BANK[2] - BANK[1] - 0.07
     z.append(("Kniefreiheit zwischen den Baenken", ">= 0,60", f(frei), frei >= 0.60))
-    z.append(("Pfeiler lichter Abstand", ">= 3,00", f(JOCH - 2 * PFEILER_R), JOCH - 2 * PFEILER_R >= 3.0))
-    z.append(("Halle lichte Hoehe", "10,70 (Scheitel 11,00)", f(Z_SCHEITEL - Z_SOCKEL), abs(Z_SCHEITEL - Z_SOCKEL - 10.7) < 0.01))
-    z.append(("Gewoelbe unter der Traufe", f"< {f(Z_TRAUFE)}", f(Z_SCHEITEL), Z_SCHEITEL < Z_TRAUFE))
-    z.append(("Gewoelbe: Bogenhoehe >= halbe Spannweite", f">= {f(PFEILER_X)}", f(Z_SCHEITEL - Z_KAEMPFER), Z_SCHEITEL - Z_KAEMPFER >= PFEILER_X))
-    z.append(("Westfenster ueber dem First der Vorhalle", f">= {f(VORHALLE_Z[1] + 0.2)}", f(FENSTER_WEST[0][2]), FENSTER_WEST[0][2] >= VORHALLE_Z[1] + 0.2))
+    z.append(("Gewoelbe Langhaus: Bogenhoehe = halbe Spannweite", f">= {f(X_SEITE)}", f(Z_SCHEITEL_L - Z_KAEMPFER), Z_SCHEITEL_L - Z_KAEMPFER >= X_SEITE - 1e-9))
+    z.append(("Gewoelbe Langhaus unter dem First", f"< {f(Z_FIRST_L)}", f(Z_SCHEITEL_L), Z_SCHEITEL_L < Z_FIRST_L - 0.3))
+    z.append(("Zeltgewoelbe unter dem Zeltdach", f"< {f(Z_SPITZE_O)}", f(Z_SCHEITEL), Z_SCHEITEL < Z_SPITZE_O - 1.0))
+    z.append(("Bogen zum Altarraum unter dem Zeltgewoelbe-Fuss", f"<= {f(Z_OKT_KAEMPFER)}", f(Z_BOGEN_SCHEITEL), Z_BOGEN_SCHEITEL <= Z_OKT_KAEMPFER))
     z.append(("Sitzplaetze der Gemeinde", "48 (wie bisher)", str(len(sitzplaetze())), len(sitzplaetze()) == 48))
     hinten = BANK_Y0 - 0.5
     z.append(("Baenke hinter dem Portal", f">= {f(Y_INNEN0 + 1.0)}", f(hinten), hinten >= Y_INNEN0 + 1.0))
     vorn = BANK_Y0 + (BANK_REIHEN - 1) * BANK[2] + 0.5
-    z.append(("Baenke vor der Kanzel", f"<= {f(KANZEL[1] - 0.9)}", f(vorn), vorn <= KANZEL[1] - 0.9))
-    for py in PFEILER_Y:
-        for name, (kx, ky), r in (("Kanzel (Schalldeckel)", KANZEL[:2], 0.95), ("Taufstein", TAUFSTEIN, 0.60)):
-            d = math.hypot(kx + PFEILER_X, ky - py) - PFEILER_R - r
-            if d < 1.0: z.append((f"{name} frei vom Pfeiler bei y {f(py)}", ">= 0,03", f(d), d >= 0.03))
-    z.append(("Turmhoehe zu Firsthoehe", "1,3 - 1,6", f(Z_SPITZE / Z_FIRST), 1.3 <= Z_SPITZE / Z_FIRST <= 1.6))
-    z.append(("Turm frei neben der Vorhalle", ">= 0,30", f(-VORHALLE_X - 0.25 - (TURM_M[0] + TURM_R + 0.12)), -VORHALLE_X - 0.25 - (TURM_M[0] + TURM_R + 0.12) >= 0.30))
+    z.append(("Baenke vor den Stufen", f"<= {f(CHORSTUFEN_Y[0])}", f(vorn), vorn <= CHORSTUFEN_Y[0]))
+    kx, ky, _ = KANZEL
+    z.append(("Kanzel frei von den Baenken (Schalldeckel)", ">= 0,10", f(-kx - 0.95 - (BANK_X + BANK[0] / 2)), -kx - 0.95 - (BANK_X + BANK[0] / 2) >= 0.10))
+    z.append(("Kanzel (Schalldeckel) frei von der Wand", ">= 0,03", f(X_SEITE + kx - 0.95), X_SEITE + kx - 0.95 >= 0.03))
+    z.append(("Taufstein frei von den Baenken", ">= 0,10", f(-TAUFSTEIN[0] - 0.60 - (BANK_X + BANK[0] / 2)), -TAUFSTEIN[0] - 0.60 - (BANK_X + BANK[0] / 2) >= 0.10))
+    z.append(("Turmhoehe zu Firsthoehe des Achtecks", "1,2 - 1,6", f(Z_SPITZE / Z_SPITZE_O), 1.2 <= Z_SPITZE / Z_SPITZE_O <= 1.6))
+    luecke = (VH_X - VH_HALB - 0.25) - (TURM_M[0] + TURM_R + 0.12)
+    z.append(("Turm frei neben der Vorhalle", ">= 0,30", f(luecke), luecke >= 0.30))
     z.append(("Blick_Auge", "1,60 ueber dem Boden", f(BLICK_AUGE[2] - Z_SOCKEL), abs(BLICK_AUGE[2] - Z_SOCKEL - 1.6) < 1e-6))
     frei = retabel_abstand()
-    z.append(("Retabel frei vor der Chorwand (Sockel, Schrein, Fluegel)", ">= 0,04", f(frei), frei >= 0.04))
+    z.append(("Retabel frei vor der Wand des Achtecks (Sockel, Schrein, Fluegel)", ">= 0,04", f(frei), frei >= 0.04))
+    tisch = ABENDMAHLSTISCH[1] + 0.50
+    z.append(("Abendmahlstisch vor den Altarstufen", f"<= {f(ALTARSTUFEN_Y[0])}", f(tisch), tisch <= ALTARSTUFEN_Y[0]))
+    gy0, gy1 = CHORGESTUEHL
+    ok_g = gy0 >= OKT_M[1] - OKT_A_INNEN * _T and gy1 <= OKT_M[1] + OKT_A_INNEN * _T
+    z.append(("Chorgestuehl an der Flaeche des Achtecks", f"y {f(OKT_M[1] - OKT_A_INNEN * _T)} - {f(OKT_M[1] + OKT_A_INNEN * _T)}", f"{f(gy0)} - {f(gy1)}", ok_g))
     return z
 
 
