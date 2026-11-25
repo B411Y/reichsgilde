@@ -49,7 +49,7 @@ Blender-Bauskripte, Trim-Sheets, Texturen, GLB, Asset-Protokoll, Messskripte. Ne
 - (Steinebenen) Die einzelnen Blätter `trim_*.png`, `innen_trim_*.png` und die AO-Atlanten liegen weiter in `game/assets/texturen/neubau/` (Quellen des Bauskripts); das Spiel lädt sie nicht mehr, sie würden aber mit exportiert. Vorschlag: aus dem Spielordner nehmen oder vom Export ausschließen.
 
 
-- (Dom evangelisch) Rundbogenfries am Turm ist nur dunkel aufgemalt (Farbfeld, keine Kragsteine); die Glockenstube bleibt ohne Läutwerk. Der Chor-Anbau hinten hat Blendfenster ohne Innenraum (der Altar steht im Achteck). Im Spiel nicht gesehen: Nacht, Schnee, Brand und die Fenster-Beleuchtung der Hülle; Klick auf den Dom und das Schild an der neuen Stelle nur auf der Greybox.
+- (Dom evangelisch) Rundbogenfries am Turm ist nur dunkel aufgemalt (Farbfeld, keine Kragsteine); die Glockenstube bleibt ohne Läutwerk. Der Chor-Anbau hinten hat Blendfenster ohne Innenraum (der Altar steht im Achteck). Im Spiel nicht gesehen: Nacht, Schnee, Brand, die Fenster-Beleuchtung der Hülle und die rein evangelische bzw. rein katholische Einrichtung (die Greybox hat Glaubensfreiheit, dort steht die Simultankirche); Klick auf den Dom und das Schild an der neuen Stelle nur auf der Greybox.
 - (von Darstellung) `Stadtansicht.Domneubau.cs`: Klickfläche, Schild und Turmmaß des evangelischen Doms sind von Modelle auf die neue Hülle gesetzt (18,2 × 37,9 m, Turm 31,4 m, x −5,6 / z 15,5); prüfen.
 
 
