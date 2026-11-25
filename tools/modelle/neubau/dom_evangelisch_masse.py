@@ -87,18 +87,27 @@ TM_R = 1.30
 Z_TM_WAND = 12.0
 Z_TM_SPITZE = 17.0
 
-# ── Turm: rund (16 Seiten), links vor der Westwand ──────────────────────────────────────────────────────────────────────
+# ── Turm: rund (16 Seiten), links vor der Westwand; verjuengt sich durchgehend schraeg (Kegelstumpf) nach oben ─────────────
 TURM_M = (-5.6, -15.5)
 TURM_SEITEN = 16
-TURM_R = 3.30
+TURM_R = 3.30                # Umkreis am Fuss (ueber dem Sockel, bei Z_TURMSOCKEL)
+TURM_R_OBEN = 2.65           # Umkreis unter der Glockenstube (bei Z_GLOCKEN[0]); Glockenstube und Haube beziehen sich darauf
+LISENE_STUFEN = ((3.00, 9.00, 0.55, 0.42), (9.00, 14.00, 0.40, 0.34), (14.00, 17.90, 0.27, 0.27))   # z0, z1, Vorsprung, halbe Breite (abgetreppt)
+TURM_BAENDER = (9.00, 14.80) # Sandsteingesimse als Baender ohne Absatz
 Z_TURMSOCKEL = 3.00
-Z_GLOCKEN = (18.40, 22.00)
-Z_HAUBE = 22.00
-Z_SPITZE = 29.80
+Z_GLOCKEN = (19.40, 23.00)
+Z_HAUBE = 23.00
+Z_SPITZE = 29.90
 Z_KNAUF = 31.30
 Z_KREUZ = Z_KNAUF + 0.06     # hoechster Punkt der Huelle (Knauf statt Kreuz)
 X_QUER = OKT_A               # groesste halbe Breite der Huelle (Achteck)
 Z_FIRST = Z_FIRST_L
+
+
+def durchsicht_erlaubt(p):
+    """Punkt p (x, y, z) im Inneren der offenen Glockenstube (innerhalb der Pfosten, unter dem Haubenring): dort darf man durchsehen und
+    Rueckseiten treffen (dom_geometrie.py). Der Haubenring selbst und alles ausserhalb gehoert nicht dazu."""
+    return Z_GLOCKEN[0] - 0.1 <= p[2] < Z_GLOCKEN[1] - 0.05 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN - 0.05
 
 
 def vieleck(mx, my, apothem, n=8, phase=0.0):
@@ -151,7 +160,10 @@ SEITE_Y = (-12.70, -8.40, -4.10)                # Mitten der Fenster im Langhaus
 OKT_FENSTER = (0.80, 7.60, 11.80, 1.6)          # Paar im Achteck
 OKT_ABSTAND = 0.30
 CHOR_FENSTER = (1.30, 2.90, 6.50, 1.6)         # Blendfenster des Chors (nur aussen)
-WEST_FENSTER = ((VH_X, 2.70, 6.40, 11.40, 1.9), (None, 0.90, 7.00, 9.80, 1.7), (None, 0.90, 7.00, 9.80, 1.7))
+# Das grosse Fenster sitzt ganz ueber dem Vorhallendach (First VH_Z[1] + Deckung + 0,45); die kleinen stehen beiderseits im Giebel,
+# in Wandmitte x = VH_X -/+ 2,30 (links neben dem Turm, rechts mit Abstand zur Dachschraege des Langhauses)
+WEST_FENSTER = ((VH_X, 2.40, VH_Z[1] + 0.55, 11.40, 1.9), (None, 0.80, 7.90, 9.40, 1.7), (None, 0.80, 7.90, 9.40, 1.7))
+WEST_KLEIN = (VH_X - 2.30, VH_X + 2.30)
 
 
 def _oeffnungen():
@@ -163,6 +175,7 @@ def _oeffnungen():
         o.append(("seite_r", s - b / 2, s + b / 2, z0, z1, "spitz", st))
     _, _, l, _, _ = wand("seite_l")
     for y in SEITE_Y:
+        if y < TURM_M[1] + TURM_R + 0.30: continue      # das erste Fenster der linken Seite stuende hinter dem Turm (Pruefung 25.11.2026)
         s = Y_LANG1 - y
         o.append(("seite_l", s - b / 2, s + b / 2, z0, z1, "spitz", st))
     l = wand("west")[2]
@@ -170,8 +183,8 @@ def _oeffnungen():
     sm = l / 2 + xm
     o.append(("west", sm - bw / 2, sm + bw / 2, zb0, zb1, "spitz", st1))
     o.append(("west", sm - PORTAL[0] / 2, sm + PORTAL[0] / 2, PORTAL[1], PORTAL[2], "portal", 0.0))
-    o.append(("west", 2.10, 2.10 + bk, zk0, zk1, "spitz", st2))
-    o.append(("west", l - 1.90, l - 1.90 + bk, zk0, zk1, "spitz", st2))
+    for xk in WEST_KLEIN:
+        o.append(("west", l / 2 + xk - bk / 2, l / 2 + xk + bk / 2, zk0, zk1, "spitz", st2))
     b, z0, z1, st = OKT_FENSTER
     for k in (0, 4):
         l = wand(f"okt_{k}")[2]
@@ -259,7 +272,7 @@ def retabel_abstand():
 
 def umriss():
     """(x0, x1, y0, y1) der belegten Flaeche: Turmsockel, Turmchen, Strebepfeiler, Stufen."""
-    x0 = TURM_M[0] - TURM_R - 0.12
+    x0 = TURM_M[0] - TURM_R - 0.12 - 0.55     # Lisenenfuesse
     x1 = max(OKT_A, TUERMCHEN[0][0] + TM_R + 0.25)
     y0 = min(TURM_M[1] - TURM_R - 0.12, VORHALLE_Y - 1.30)
     y1 = CHOR_M[1] + (CHOR_A / math.cos(math.pi / 8) + 0.85) * math.sin(math.radians(67.5))     # Strebepfeiler an den Ecken des Chorschlusses
