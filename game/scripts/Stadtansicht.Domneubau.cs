@@ -33,10 +33,6 @@ public partial class Stadtansicht
     /// <summary>Startoption <c>--neuerdom</c>: die Kennung des Neubaus, der an die Stelle des alten <c>dom</c> tritt (null: keiner).</summary>
     private static readonly string? DomNeuOption = NeubauOption("--neuerdom") switch { "1" or "katholisch" => "dom_katholisch", "evangelisch" => "dom_evangelisch", _ => null };
 
-    /// <summary>Startoption <c>--domhaube=tripo</c>: die Kupferhaube des evangelischen Doms (Knoten „Haube“ der Hülle) durch die in Tripo3D texturierte Fassung
-    /// ersetzen (<c>dom_evangelisch_haube_tripo.glb</c>); ohne die Option bleibt die Haube mit der eigenen Textur (nur zum Vergleich, der Nutzer wählt).</summary>
-    private static readonly bool DomHaubeTripo = NeubauOption("--domhaube") == "tripo";
-
     /// <summary>
     /// Maße einer Hülle für Klickflächen und Schild (aus <c>tools/modelle/neubau/dom_masse.py</c> bzw. <c>dom_evangelisch_masse.py</c>; im Spiel
     /// liegt das Portal bei +Z): Größe der Klickfläche, Ort des Schilds, Türme (x, z, Kantenlänge, Höhe).
@@ -90,18 +86,6 @@ public partial class Stadtansicht
         FenstergruppeSetzen(huelle, Fenstergruppe.Kirche);
         a.Huelle = huelle.Wurzel;
         _domNeuHuelle = huelle.Wurzel;
-        if (DomHaubeTripo && datei.EndsWith("dom_evangelisch") && huelle.Wurzel.FindChild("Haube", true, false) is Node3D eigeneHaube
-            && Modell(NeubauOrdner + "dom_evangelisch_haube_tripo") is { } tripo)
-        {
-            // Maße des Bauskripts (dom_evangelisch_masse.py): Turmmitte (XA + TURM_M) = (-5,6; -15,5), Traufe der Haube bei 23,0 m; die Fassung aus Tripo3D ist auf
-            // 1 m Höhe normiert (echte Höhe 9,58 m) und um 90 Grad um die Hochachse gedreht
-            eigeneHaube.Visible = false;
-            var neueHaube = tripo.Instantiate<Node3D>();
-            neueHaube.Name = "Haube_Tripo";
-            neueHaube.Basis = new Basis(Vector3.Up, Mathf.Pi / 2) * Basis.FromScale(Vector3.One * 9.58f);
-            neueHaube.Position = new Vector3(-5.6f, 23.0f, 15.5f);
-            huelle.Wurzel.AddChild(neueHaube);
-        }
         // Stein in seiner eigenen Farbe: kein Putzton und keine Akzentfarbe aus dem Standort
         foreach (var teil in huelle.Wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
