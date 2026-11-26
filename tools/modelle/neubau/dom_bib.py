@@ -254,9 +254,11 @@ def _wp(M, name, s, z, raus):
     return V(M.punkt(name, s, z, raus))
 
 
-def scheibe(teil, stoff, P, loch, zu):
+def scheibe(teil, stoff, P, loch, zu, fein=0):
     """Scheibe in der Form der Oeffnung; P(s, z) liefert den Punkt in der Scheibenebene. UV in Metern ab der linken unteren Ecke."""
-    zs = sorted(loch.hoehen())
+    hs = set(loch.hoehen())
+    if fein and hasattr(loch, "zk"): hs |= {loch.zk + loch.h * math.sin(math.pi / 2 * i / fein) for i in range(fein + 1)}      # Bogen feiner: die Wand folgt ihm in kleineren Sehnen (sonst ein Spalt zwischen Glas und Laibung)
+    zs = sorted(hs)
     for za, zb in zip(zs[:-1], zs[1:]):
         if zb - za < 1e-5: continue
         (a0, a1), (b0, b1) = loch.breite_bei(za + 1e-6), loch.breite_bei(zb - 1e-6)

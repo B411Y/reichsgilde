@@ -16,7 +16,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb, lade  # noqa: E402
+from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb, lade, skaliere  # noqa: E402
 
 # (v0, v1, Meter je UV.x 0..1). Hoehe eines Bandes in Metern = (v1 - v0) * Meter.
 # Reihenfolge nach Farbe: Im Pixel-Look liest der Shader grobe Mip-Stufen, dort mischen sich benachbarte Baender. Neben dem Schiefer
@@ -193,11 +193,32 @@ def baue_aussen(quellen, evangelisch=False):
         "eisen": (True, (0.13, 0.13, 0.13), 0.55), "kupfer": (True, (0.30, 0.52, 0.44), 0.6),
     })
     if evangelisch:
-        # Kupfer mit Patina: helle und dunkle Laeufer von oben nach unten (das Feld wird um die Haube gelegt, v laeuft die Haube hinab)
+        # Kupferhaube mit Gruenspan-Patina (Nutzer 26.11.2026: wie alte Kupferdaecher, heller, tuerkis bis blaugruen, fleckig, in Fugen und Rippen
+        # dunkleres Kupferbraun). Textur: ambientCG "Metal 058 C" (CC0, Kupfer mit Oxidation, https://ambientcg.com/view?id=Metal058C), Farbe,
+        # Normale, Rauheit und Metallwert in das Farbfeld "kupfer"; Rippenfugen und die Traufkante in Kupferbraun darueber gelegt.
         a, e = blatt.zeilen(B["kleinteile"])
         feld = N // len(FELDER_DOM); i = FELDER_DOM.index("kupfer")
-        lauf = 0.78 + 0.44 * rauschen(N, 33, 6)[i * feld:(i + 1) * feld]
-        blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] = np.clip(blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] * lauf[None, :, None], 0, 1)
+        h_ = e - a
+        o = os.path.join(quellen, "Metal058C")
+        farbe = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Color.jpg")), 1024, 1024)
+        norm = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_NormalGL.jpg"), daten=True), 1024, 1024)
+        rau = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Roughness.jpg"), daten=True), 1024, 1024)
+        met = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Metalness.jpg"), daten=True), 1024, 1024)
+        zl, sp = (150 + np.arange(h_)) % 1024, (300 + np.arange(feld)) % 1024
+        c3 = farbe[zl][:, sp][..., :3]
+        col = np.clip(c3 * 0.95, 0, 1)                                   # hell, aber nicht ausgebleicht: im Pixel-Look klar als Patina lesbar
+        u = np.arange(feld, dtype=np.float32)
+        rippe = ((u % (feld / 16.0)) < 4.0).astype(np.float32)[None, :] * np.ones((h_, 1), np.float32)       # Rippenfuge der 16 Seiten
+        kante = (np.arange(h_)[:, None] > h_ - 6).astype(np.float32) * np.ones((1, feld), np.float32)        # Traufkante unten
+        m = np.clip(rippe * 0.8 + kante * 0.9, 0, 1)[..., None]
+        braun = np.array([0.36, 0.22, 0.13], dtype=np.float32)
+        col = col * (1 - m) + braun[None, None, :] * m
+        x0, x1 = i * feld, (i + 1) * feld
+        blatt.albedo[a:e, x0:x1, :3] = np.clip(col, 0, 1)
+        blatt.normal[a:e, x0:x1] = norm[zl][:, sp]
+        blatt.orm[a:e, x0:x1, 0] = 1.0
+        blatt.orm[a:e, x0:x1, 1] = np.clip(rau[zl][:, sp][..., 0] * 0.9 + 0.1, 0, 1)
+        blatt.orm[a:e, x0:x1, 2] = 0.25 * met[zl][:, sp][..., 0]
     blatt.speichere("dom_evangelisch_trim" if evangelisch else "dom_trim")
 
 

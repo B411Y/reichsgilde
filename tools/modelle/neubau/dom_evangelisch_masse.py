@@ -107,7 +107,6 @@ Z_FIRST = Z_FIRST_L
 def durchsicht_erlaubt(p):
     """Punkt p (x, y, z) im Inneren der offenen Glockenstube (innerhalb der Pfosten, unter dem Haubenring): dort darf man durchsehen und
     Rueckseiten treffen (dom_geometrie.py). Der Haubenring selbst und alles ausserhalb gehoert nicht dazu."""
-    if 8.2 <= p[2] <= 9.3 and -15.2 <= p[1] <= -14.3 and abs(p[0] - XA) <= 5.8: return True     # Anschluss der Achteckflaechen im Langhaus unter dem Dach (Stuecke, innen, nicht zu sehen)
     if Z_KNAUF - 2.2 <= p[2] <= Z_KNAUF + 0.6 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < 0.7: return True     # Luft um Stange und Knauf ueber dem Helm
     return Z_GLOCKEN[0] - 0.1 <= p[2] < Z_GLOCKEN[1] - 0.05 and math.hypot(p[0] - (XA + TURM_M[0]), p[1] - TURM_M[1]) < TURM_R_OBEN - 0.05
 

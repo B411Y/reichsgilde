@@ -56,8 +56,8 @@ def fenster(h, sc, o, e, n, loecher, d):
     P = lambda s_, z, raus=0.0: punkt(o, e, n, s_, z, raus)
     for loch in loecher:
         zu = P((loch.s0 + loch.s1) / 2, (loch.z0 + loch.z1) / 2, 5)
-        D.scheibe(sc, "Fenster", lambda a, z: P(a, z, -d / 2), loch, zu)
-        D.scheibe(sc, "Bleinetz", lambda a, z: P(a, z, -d / 2 + 0.006), loch, zu)
+        D.scheibe(sc, "Fenster", lambda a, z: P(a, z, -d / 2), loch, zu, fein=16)
+        D.scheibe(sc, "Bleinetz", lambda a, z: P(a, z, -d / 2 + 0.006), loch, zu, fein=16)
         D.gewaende(h, P, n3, loch)
         if loch.s1 - loch.s0 > 0.9:
             D.masswerk(h, lambda a, z: P(a, z, -d / 2 + 0.07), n3, loch)
@@ -92,14 +92,14 @@ def wandbau(h, sc, p0, p1, z_traufe, loecher=(), ph=0, ganz_sandstein=False, d=0
     return o, e, l, n
 
 
-def giebel(h, stoff, band, o, e, n, l, zt, zf, neigung, loecher=(), mitte_halb=None):
+def giebel(h, stoff, band, o, e, n, l, zt, zf, neigung, loecher=(), mitte_halb=None, dicke=0.3):
     """Giebelfeld ueber einer Wand der Laenge l von der Traufe zt bis unter den First zf; das Dach faellt beiderseits der Mitte."""
     halb = lambda z: (zf - z) / neigung
     zk = min(max(zf - l / 2 * neigung, zt), zf)
     if zk - zt > 1e-4:
-        mauer(h, stoff, o, e, n, l, zt, zk, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (0.0, l))
+        mauer(h, stoff, o, e, n, l, zt, zk, band, list(loecher), laibung=LAIBUNG, dicke=dicke, grenze=lambda z: (0.0, l))
     if zf - 0.01 - zk > 1e-4:
-        mauer(h, stoff, o, e, n, l, zk, zf - 0.01, band, list(loecher), laibung=LAIBUNG, dicke=0.3, grenze=lambda z: (l / 2 - halb(z), l / 2 + halb(z)))
+        mauer(h, stoff, o, e, n, l, zk, zf - 0.01, band, list(loecher), laibung=LAIBUNG, dicke=dicke, grenze=lambda z: (l / 2 - halb(z), l / 2 + halb(z)))
 
 
 def pfeiler(h, fuss, raus, zt, breite=0.70, tiefe=0.90):
@@ -127,7 +127,7 @@ def langhaus(h, sc):
     lo = lochliste("west")
     o, e, l, n = wand(W(x0, y0), W(x1, y0))
     mauer(h, "Sandstein", o, e, n, l, 0.0, zt, "sandstein", lo, laibung=LAIBUNG, dicke=0.35, ecken=QUADER(0))
-    giebel(h, "Sandstein", "sandstein", o, e, n, l, zt, F.Z_FIRST_L, F.NEIGUNG_L, lo)
+    giebel(h, "Sandstein", "sandstein", o, e, n, l, zt, F.Z_FIRST_L, F.NEIGUNG_L, lo, dicke=0.35)      # wie die Wand darunter: Laibung bis zur Scheibe in der Wandmitte (sonst Schlitz am Kaempfer)
     fenster(h, sc, o, e, n, lo, 0.7)
     # Seitenwaende (Backstein): +X und -X
     for (name, p0, p1, ph) in (("seite_r", W(x1, y0), W(x1, y1), 0), ("seite_l", W(x0, y1), W(x0, y0), 1)):
@@ -177,7 +177,8 @@ def vorhalle(h, sc):
     for i in range(3):
         tiefe = 0.6 + 0.35 * (2 - i)
         D.block(h, "Sandstein", "sandstein", (cx - 2.0, yv - tiefe), (1, 0), (0, 1), 4.0, tiefe, 0.0, 0.1 * (i + 1), ohne=("v+", "unten"))
-    # kleines Fenster in der Seitenwand der Vorhalle (Artwork: Schlitz im Giebel)
+    # Pflasterstreifen im Spalt zwischen Turmsockel (Lisene bis x = -2,25) und Traufe der Vorhalle (x = -1,85): sonst Blick von oben bis in die Tiefe (Pruefer 26.11.2026)
+    D.block(h, "Sandstein", "sandstein", (cx - 3.35, yv + 1.50), (1, 0), (0, 1), 0.70, 1.60, 0.0, 0.05, ohne=("unten",))
     return yv
 
 
@@ -320,14 +321,14 @@ def turm(h, s):
             h.vieleck("Bruchstein", pts, uvs, zu=(pts[0] + pts[1]) / 2 + n3 * 3 + EZ * 3)
         # Schlitzfenster: flach auf die schraege Wand gesetzt (Gewaende und Scheibe folgen der Schraege)
         if k in schlitze:
-            z0w = schlitze[k]; loch = D.Spitzloch(l / 2 - 0.24, l / 2 + 0.24, z0w, z0w + 1.5, 1.3)
+            z0w = schlitze[k]; loch = D.Spitzloch(l / 2 - 0.20, l / 2 + 0.20, z0w, z0w + 1.5, 1.5)
             zm = z0w + 0.75
             em = ring(zm); a = em[k2]; bq = em[k]
             lm = math.hypot(bq[0] - a[0], bq[1] - a[1]); eum = ((bq[0] - a[0]) / lm, (bq[1] - a[1]) / lm)
             sh = (lm - l) / 2
             P = lambda s_, z, raus=0.0, a=a, eum=eum, n=n, zm=zm, sh=sh: V((a[0] + eum[0] * (s_ + sh) + n[0] * (raus + (turm_r(z) - turm_r(zm)) * ap),
                                                                           a[1] + eum[1] * (s_ + sh) + n[1] * (raus + (turm_r(z) - turm_r(zm)) * ap), z))
-            D.gewaende(h, P, n3, loch, breite=0.12)
+            D.gewaende(h, P, n3, loch, breite=0.10)
             zu = P(l / 2, loch.z0, 5)
             D.scheibe(s, "Fenster", lambda q, z, P=P: P(q, z, 0.02), loch, zu)
             D.scheibe(s, "Bleinetz", lambda q, z, P=P: P(q, z, 0.026), loch, zu)
@@ -355,23 +356,23 @@ def turm(h, s):
     sl = math.hypot(m_lean, 1.0)
     stufen = F.LISENE_STUFEN
     for m_ in range(8):
-        w = 2 * math.pi * (0.5 / n_ + m_ / 8)
+        w = 2 * math.pi * (1.0 / n_ + m_ / 8)           # Mitte jeder zweiten Flaeche des 16-Ecks (22,5 + 45 m Grad): die Schlitzfenster auf den Flaechen dazwischen liegen genau mittig zwischen zwei Lisenen
         d = V((math.cos(w), math.sin(w), 0)); q = V((-d.y, d.x, 0))
-        ex, ey = cx + d.x * turm_r(zs0), cy + d.y * turm_r(zs0)
+        ex, ey = cx + d.x * turm_r(zs0) * ap, cy + d.y * turm_r(zs0) * ap
         clip = roof_z(ex) - 0.2 if (ex > lx + 0.1 and ey > ly0 + 0.1) else 0.0
         neig = (d * m_lean + EZ).normalized()
         for (za, zb, vor, hw) in stufen:
             if zb <= clip: continue
             za = max(za, clip)
-            aus = lambda z, vor=vor: c + d * (turm_r(z) + vor) + EZ * z
+            aus = lambda z, vor=vor: c + d * (turm_r(z) * ap + vor) + EZ * z
             zm = V((cx, cy, (za + zb) / 2))
             if za <= zs0 + 1e-6:        # Sandsteinfuss bis zum Sockelrand
-                D.block(h, "Sandstein", "sandstein", c + d * (turm_r(zs0) - 0.2) - q * (hw + 0.07), (q.x, q.y), (d.x, d.y), 2 * hw + 0.14, vor + 0.30, 0.0, zs0, ohne=("v-", "unten"))
+                D.block(h, "Sandstein", "sandstein", c + d * (turm_r(zs0) * ap - 0.2) - q * (hw + 0.07), (q.x, q.y), (d.x, d.y), 2 * hw + 0.14, vor + 0.30, 0.0, zs0, ohne=("v-", "unten"))
             h.rechteck("Bruchstein", aus(za) - q * hw, q, neig, 2 * hw, (zb - za) * sl, "mauer", weg_von=zm)
             for sg in (-1, 1):
-                h.rechteck("Bruchstein", aus(za) + q * hw * sg, -d, neig, vor + 0.12, (zb - za) * sl, "mauer", laengs="v", weg_von=c + d * (turm_r((za + zb) / 2) + vor / 2) + EZ * (za + zb) / 2)       # Normale zeigt von der Mitte des Streifens weg zur Seite
+                h.rechteck("Bruchstein", aus(za) + q * hw * sg, -d, neig, vor + 0.12, (zb - za) * sl, "mauer", laengs="v", weg_von=c + d * (turm_r((za + zb) / 2) * ap + vor / 2) + EZ * (za + zb) / 2)       # Normale zeigt von der Mitte des Streifens weg zur Seite
             # Abdeckung aus Sandstein auf dem Absatz (Platte mit Ueberstand, wie das Sockelband)
-            o_ = c + d * (turm_r(zb) - 0.2)
+            o_ = c + d * (turm_r(zb) * ap - 0.2)
             D.block(h, "Sandstein", "werkstein", o_ + EZ * zb - q * (hw + 0.06), (q.x, q.y), (d.x, d.y), 2 * hw + 0.12, vor + 0.2 + 0.07, zb, zb + 0.26)
     # Glockenstube: Boden, Pfosten und Rahmen aus Eiche, Bruestung aus Brettern, dahinter der dunkle Raum
     rand, pfosten = turm_ecken(F.TURM_R_OBEN + 0.14), turm_ecken(F.TURM_R_OBEN - 0.14)
