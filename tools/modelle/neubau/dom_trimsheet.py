@@ -199,20 +199,21 @@ def baue_aussen(quellen, evangelisch=False):
         a, e = blatt.zeilen(B["kleinteile"])
         feld = N // len(FELDER_DOM); i = FELDER_DOM.index("kupfer")
         h_ = e - a
-        o = os.path.join(quellen, "Metal058C")
-        farbe = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Color.jpg")), 1024, 1024)
-        norm = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_NormalGL.jpg"), daten=True), 1024, 1024)
-        rau = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Roughness.jpg"), daten=True), 1024, 1024)
-        met = skaliere(lade(os.path.join(o, "Metal058C_1K-JPG_Metalness.jpg"), daten=True), 1024, 1024)
+        name = os.environ.get("KUPFER", "Metal058C")                     # Kandidaten fuer den Vergleich (Nutzer 26.11.2026); Standard: die gewaehlte Textur
+        o = os.path.join(os.environ.get("KUPFER_ORDNER", os.path.join(quellen, "kupfer")), name)
+        if name.startswith("Metal"):               # ambientCG
+            fd, fn, fr, fm = (os.path.join(o, f"{name}_1K-JPG_{k}.jpg") for k in ("Color", "NormalGL", "Roughness", "Metalness"))
+        else:                                      # Poly Haven (<name>_diff_1k.jpg usw., kein Metallwert)
+            fd, fn, fr, fm = (os.path.join(o, f"{name}_{k}_1k.jpg") for k in ("diff", "nor_gl", "rough", None)); fm = None
+        farbe = skaliere(lade(fd), 1024, 1024)
+        norm = skaliere(lade(fn, daten=True), 1024, 1024)
+        rau = skaliere(lade(fr, daten=True), 1024, 1024)
+        met = skaliere(lade(fm, daten=True), 1024, 1024) if fm else np.full((1024, 1024, 4), 0.8, np.float32)
         zl, sp = (150 + np.arange(h_)) % 1024, (300 + np.arange(feld)) % 1024
         c3 = farbe[zl][:, sp][..., :3]
         col = np.clip(c3 * 0.95, 0, 1)                                   # hell, aber nicht ausgebleicht: im Pixel-Look klar als Patina lesbar
-        u = np.arange(feld, dtype=np.float32)
-        rippe = ((u % (feld / 16.0)) < 4.0).astype(np.float32)[None, :] * np.ones((h_, 1), np.float32)       # Rippenfuge der 16 Seiten
-        kante = (np.arange(h_)[:, None] > h_ - 6).astype(np.float32) * np.ones((1, feld), np.float32)        # Traufkante unten
-        m = np.clip(rippe * 0.8 + kante * 0.9, 0, 1)[..., None]
-        braun = np.array([0.36, 0.22, 0.13], dtype=np.float32)
-        col = col * (1 - m) + braun[None, None, :] * m
+        kante = (np.arange(h_)[:, None] > h_ - 6).astype(np.float32) * np.ones((1, feld), np.float32)        # Traufkante unten: nur ganz dezent dunkler (keine Rippenlinien mehr, Nutzer 26.11.2026)
+        col = col * (1 - 0.18 * kante[..., None])
         x0, x1 = i * feld, (i + 1) * feld
         blatt.albedo[a:e, x0:x1, :3] = np.clip(col, 0, 1)
         blatt.normal[a:e, x0:x1] = norm[zl][:, sp]
