@@ -19,6 +19,15 @@ namespace Reichsgilde.Core.Bauen;
 //  Seit Schritt 5c gräbt auch das Wasser sein Bett in dieselbe Schicht (Wasserform: Flussbett, See, weiches Ufer, Hafenbecken). Es kommt nach dem Bett
 //  der Wege: Im Fluss und im See gewinnt das Wasser, am Ufer der Kern eines Weges oder einer Mauer. Auch eine Karte ohne Höhen ist mit
 //  Wasser nicht mehr flach (IstFlach).
+//
+//  Einebnung der Bauplätze (24.11.2026): Unter einem Gebäude, dessen Boden um höchstens EinebnenBis (0,5 m) schwankt, wird das Gelände auf eine
+//  Zielhöhe gesetzt – die Mitte zwischen höchstem und tiefstem Punkt (bergseitig abgegraben, talseitig aufgeschüttet, je höchstens 25 cm). Eben ist
+//  die Grundfläche mit einem Rand von Hofrand (2 m, eine Rasterzelle – so ist auch das Netz der Kacheln an den Kanten eben), danach läuft eine
+//  Böschung über Boeschung (4 m) weich ins Gelände aus. Darüber bleibt alles wie bisher: Das Haus steht auf dem höchsten Punkt, darunter ein Sockel.
+//  Die Einebnung liegt in derselben Schicht wie das Bett: Ein Weg (sein Kern) gewinnt vor dem Bauplatz, der Bauplatz (Grundfläche und Rand) vor dem
+//  Bankett eines Weges und vor der Böschung eines Nachbarn; Böschungen untereinander und mit dem Bankett mischen sich weich (Gewicht w/(1 − w), so geht
+//  jede ohne Sprung in ihren ebenen Kern über). Das Längsprofil der Wege und Weghoehe (Fahrzeiten der Karren) lesen das Gelände ohne Einebnung – die
+//  Wirtschaft bleibt dieselbe. Welche Flächen eingeebnet werden, fragt die Form bei jedem Neurechnen (FlaechenVeraltet: Bauen, Abriss, Werkstatt).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Eine Linie, unter der das Gelände quer eingeebnet wird: Mittellinie, Breite des Betts (Meter), Ring oder offen.</summary>
@@ -48,13 +57,42 @@ public sealed class Gelaendeform
     /// <summary>Seitenlänge der Fenster, in denen die Hangneigung gemessen wird (Meter; 4 × 4 Rasterzellen).</summary>
     public const double Hangfenster = 8;
 
+    /// <summary>
+    /// Bis zu diesem Unterschied (Meter) zwischen höchstem und tiefstem Punkt des gespeicherten Rasters unter einer Grundfläche wird das Gelände dort
+    /// eingeebnet; darüber steht das Haus wie bisher auf einem Sockel (Nutzer, 24.11.2026).
+    /// </summary>
+    public const double EinebnenBis = 0.5;
+
+    /// <summary>So breit (Meter) ist der ebene Rand um eine eingeebnete Grundfläche – eine Rasterzelle, damit das Netz bis an die Kanten eben ist.</summary>
+    public const double Hofrand = 2;
+
+    /// <summary>Über so viele Meter läuft die Böschung nach dem ebenen Rand weich ins Gelände aus.</summary>
+    public const double Boeschung = 4;
+
     private readonly Func<IReadOnlyList<Bettlinie>> _linien;
 
     /// <summary>Die Gewässer mit Spiegel und Bett (Schritt 5c).</summary>
     public Wasserform Wasser { get; }
 
-    /// <summary>Boden minus Raster in cm – nur unter Wegen und Mauern ungleich 0.</summary>
+    /// <summary>Boden minus Raster in cm – unter Wegen, Mauern, Gewässern und eingeebneten Bauplätzen ungleich 0.</summary>
     private readonly Hoehenraster _bett = new();
+
+    /// <summary>Dasselbe ohne die Einebnung der Bauplätze (nur Wege, Mauern, Gewässer) – für <see cref="Weghoehe"/>.</summary>
+    private readonly Hoehenraster _wegbett = new();
+
+    private readonly Func<IReadOnlyList<IReadOnlyList<Kartenort>>> _flaechen;
+
+    /// <summary>Die eingeebneten Bauplätze, wie das letzte Neurechnen sie fand.</summary>
+    private List<Einebnung> _einebnungen = new();
+
+    /// <summary>Die Flächen oder das Raster haben sich geändert: die Einebnungen beim nächsten Lesen neu bestimmen.</summary>
+    private bool _flaechenNeu = true;
+
+    /// <summary>Wurden die Einebnungen schon einmal bestimmt? Erst danach zählt eine Änderung für <see cref="EinebnungAbholen"/>.</summary>
+    private bool _einebnungGerechnet;
+
+    /// <summary>Wo sich eine Einebnung geändert hat, seit die Darstellung zuletzt abholte.</summary>
+    private readonly List<Kartenrechteck> _einebnungGeaendert = new();
 
     private bool _allesNeu = true;
     private readonly List<Kartenrechteck> _veraltet = new();
@@ -63,10 +101,13 @@ public sealed class Gelaendeform
     /// <param name="linien">Wege und Mauern – wird bei jedem Neurechnen gefragt.</param>
     /// <param name="gewaesser">Flüsse und Seen (Schritt 5c) – wird nach <see cref="WasserVeraltet"/> neu gefragt; null: kein Wasser.</param>
     /// <param name="kaie">Die Kaimauern der Häfen (vor ihnen ein Hafenbecken, <see cref="Wasserform"/>) – ebenso; null: keine.</param>
+    /// <param name="flaechen">Die Grundflächen (Ecken), unter denen das Gelände eingeebnet wird, wenn es flach genug ist – wird nach
+    /// <see cref="FlaechenVeraltet"/> und jeder Änderung des Rasters neu gefragt; null: keine.</param>
     public Gelaendeform(Hoehenraster roh, Func<IReadOnlyList<Bettlinie>> linien, Func<IReadOnlyList<Gewaesser>>? gewaesser = null,
-        Func<IReadOnlyList<Kaimauer>>? kaie = null)
+        Func<IReadOnlyList<Kaimauer>>? kaie = null, Func<IReadOnlyList<IReadOnlyList<Kartenort>>>? flaechen = null)
     {
         (Roh, _linien) = (roh, linien);
+        _flaechen = flaechen ?? (() => Array.Empty<IReadOnlyList<Kartenort>>());
         Wasser = new Wasserform(roh, gewaesser ?? (() => Array.Empty<Gewaesser>()), kaie);
     }
 
@@ -84,8 +125,34 @@ public sealed class Gelaendeform
     /// <summary>Wege oder Mauern haben sich geändert: das ganze Bett beim nächsten Lesen neu.</summary>
     public void AllesVeraltet()
     {
-        _allesNeu = true;
+        (_allesNeu, _flaechenNeu) = (true, true);
         _durchgang++;
+    }
+
+    /// <summary>
+    /// Ein Gebäude kam dazu, fiel weg oder wurde verschoben (Bauen, Abriss, Kartenwerkstatt): die eingeebneten Flächen beim nächsten Lesen neu bestimmen.
+    /// Neu gerechnet wird nur, wo sich eine Einebnung wirklich geändert hat (Grundfläche mit Rand und Böschung).
+    /// </summary>
+    public void FlaechenVeraltet()
+    {
+        _flaechenNeu = true;
+        _durchgang++;
+    }
+
+    /// <summary>Hat sich eine Einebnung geändert, seit die Darstellung zuletzt <see cref="EinebnungAbholen"/> rief (oder steht eine Prüfung aus)?</summary>
+    public bool EinebnungOffen => _flaechenNeu || _einebnungGeaendert.Count > 0;
+
+    /// <summary>
+    /// Die Rechtecke, in denen sich der Boden durch eine Einebnung geändert hat, seit dem letzten Abholen (Bauen und Abriss im Spiel, Gebäude in der
+    /// Werkstatt) – die Darstellung baut dort die Kacheln neu. Das erste Bestimmen zählt nicht (da baut sie ohnehin alles).
+    /// </summary>
+    public IReadOnlyList<Kartenrechteck> EinebnungAbholen()
+    {
+        if (!IstFlach) Aktualisieren();
+        else if (_flaechenNeu) EinebnungenNachfuehren();
+        var aus = _einebnungGeaendert.ToList();
+        _einebnungGeaendert.Clear();
+        return aus;
     }
 
     /// <summary>
@@ -95,6 +162,7 @@ public sealed class Gelaendeform
     public void Veraltet(Kartenrechteck bereich)
     {
         _veraltet.Add(bereich);
+        _flaechenNeu = true; // die Zielhöhe eines Bauplatzes im Rechteck ändert sich mit
         _durchgang++;
         var nass = Wasser.Bereiche.Where(b => b.Ueberdeckt(bereich.Vergroessert(Wasserform.Glaettung))).ToList();
         if (nass.Count == 0) return;
@@ -151,12 +219,15 @@ public sealed class Gelaendeform
     /// </summary>
     internal IEnumerable<int> AktualisierenSchritte()
     {
-        if (!_allesNeu && _veraltet.Count == 0 && _geleert.Count == 0) yield break;
+        if (!_allesNeu && !_flaechenNeu && _veraltet.Count == 0 && _geleert.Count == 0) yield break;
         var mein = ++_durchgang;
+        // die Einebnungen zuerst: Wo sich eine geändert hat, rechnet dieser Durchgang das Bett mit neu
+        if (_flaechenNeu) EinebnungenNachfuehren();
         if (IstFlach)
         {
             // flach: das Profil ist überall 0, das Bett auch
             if (!_bett.IstLeer) _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
+            if (!_wegbett.IstLeer) _wegbett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
             _allesNeu = false;
             _veraltet.Clear();
             _geleert.Clear();
@@ -166,6 +237,7 @@ public sealed class Gelaendeform
         if (_allesNeu)
         {
             _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
+            _wegbett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
             foreach (var _ in BettRechnen(linien, null))
             {
                 yield return 0;
@@ -182,6 +254,7 @@ public sealed class Gelaendeform
             {
                 if (!_geleert.Contains((i0, j0, i1, j1))) _geleert.Add((i0, j0, i1, j1));
                 _bett.BereichLeeren(i0, j0, i1, j1);
+                _wegbett.BereichLeeren(i0, j0, i1, j1);
                 foreach (var _ in BettRechnen(linien, (i0, j0, i1, j1)))
                 {
                     yield return 0;
@@ -251,6 +324,7 @@ public sealed class Gelaendeform
             }
         }
         yield return 0;
+        var eben = _einebnungen.Count == 0 ? null : EbenRechnen(nur);
         // jeden Punkt einmal schreiben (die Reihenfolge der Punkte ändert nichts: jeder hat seinen eigenen Wert)
         foreach (var ((i, j), (w, _, ziel)) in beste)
         {
@@ -262,8 +336,25 @@ public sealed class Gelaendeform
             int roh = Roh.Wert(i, j);
             var boden = roh + (ziel * 100 - roh) * w;
             var unterschied = (int)Math.Round(boden - roh, MidpointRounding.AwayFromZero);
+            if (unterschied != 0) _wegbett.WertSetzen(i, j, unterschied);
+            if (eben is not null && eben.TryGetValue((i, j), out var e))
+                unterschied = (int)Math.Round(BodenCm(roh, (w, ziel), e) - roh, MidpointRounding.AwayFromZero);
             if (unterschied != 0) _bett.WertSetzen(i, j, unterschied);
         }
+        // die eingeebneten Punkte ohne Weg
+        if (eben is not null)
+            foreach (var ((i, j), e) in eben)
+            {
+                if (beste.ContainsKey((i, j))) continue;
+                if (++gezaehlt >= PunkteJeSchritt)
+                {
+                    gezaehlt = 0;
+                    yield return 0;
+                }
+                int roh = Roh.Wert(i, j);
+                var unterschied = (int)Math.Round(BodenCm(roh, null, e) - roh, MidpointRounding.AwayFromZero);
+                if (unterschied != 0) _bett.WertSetzen(i, j, unterschied);
+            }
         foreach (var _ in WasserbettRechnen(beste, nur)) yield return 0;
     }
 
@@ -291,10 +382,14 @@ public sealed class Gelaendeform
                     }
                     if (!erledigt.Add((i, j))) continue;
                     int roh = Roh.Wert(i, j);
-                    var boden = (roh + _bett.Wert(i, j)) / 100.0;
+                    var boden = (roh + _wegbett.Wert(i, j)) / 100.0;
                     var kern = wege.TryGetValue((i, j), out var weg) && weg.Gewicht >= 1;
                     var ziel = Wasser.Boden(i * Hoehenraster.Abstand, j * Hoehenraster.Abstand, boden, kern);
-                    if (ziel < boden - 0.005) _bett.WertSetzen(i, j, (int)Math.Round(ziel * 100 - roh, MidpointRounding.AwayFromZero));
+                    if (ziel >= boden - 0.005) continue;
+                    // im Wasser gewinnt das Bett des Gewässers (auch vor einer Einebnung)
+                    var unterschied = (int)Math.Round(ziel * 100 - roh, MidpointRounding.AwayFromZero);
+                    _wegbett.WertSetzen(i, j, unterschied);
+                    _bett.WertSetzen(i, j, unterschied);
                 }
         }
     }
@@ -304,6 +399,123 @@ public sealed class Gelaendeform
     {
         t = Math.Clamp(t, 0, 1);
         return t * t * (3 - 2 * t);
+    }
+
+    // ── Einebnung der Bauplätze ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Wird unter einem Gebäude aus diesem Baustein eingeebnet? Häuser, Plätze, Sonderbauten und Betriebe vor der Stadt – nicht Felder, Weiden und
+    /// Wald (Umlandstelle), Berge, Natur, Mauern und nichts am Ufer (dort gräbt der Hafen sein Becken).
+    /// </summary>
+    public static bool WirdEingeebnet(Baustein? b) =>
+        b is { AmUfer: false, Groesse.Length: 2 } && b.Art is Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz
+            or Bausteinart.Kulisse or Bausteinart.Sonderbau or Bausteinart.Umlandbetrieb;
+
+    /// <summary>Ein eingeebneter Bauplatz: Umriss, Zielhöhe (Meter) und das Rechteck, das Rand und Böschung erreichen.</summary>
+    private sealed record Einebnung(Kartenort[] Umriss, double Ziel, Kartenrechteck Bereich)
+    {
+        public bool GleichWie(Einebnung o) => Ziel == o.Ziel && Umriss.SequenceEqual(o.Umriss);
+    }
+
+    /// <summary>
+    /// Was die Einebnungen an einem Rasterpunkt wollen: im ebenen Kern (Grundfläche mit <see cref="Hofrand"/>) der nächste Bauplatz – bei genau
+    /// gleichem Abstand das Mittel –, sonst die Böschungen mit ihrem Gewicht.
+    /// </summary>
+    private struct Ebenpunkt
+    {
+        public int KernAnzahl;
+        public double KernAbstand, KernSumme;
+        /// <summary>Böschungen: Summe der Gewichte w/(1 − w), Summe Gewicht · Zielhöhe, größtes w.</summary>
+        public double Chancen, ChancenZiel, Gewicht;
+    }
+
+    /// <summary>Bestimmt die Einebnungen neu und merkt, wo sich eine geändert hat (dort rechnet das Bett neu, die Darstellung baut die Kacheln neu).</summary>
+    private void EinebnungenNachfuehren()
+    {
+        var neu = EinebnungenRechnen();
+        var geaendert = neu.Where(e => !_einebnungen.Any(a => a.GleichWie(e)))
+            .Concat(_einebnungen.Where(a => !neu.Any(e => e.GleichWie(a)))).Select(e => e.Bereich).ToList();
+        var erstes = !_einebnungGerechnet;
+        (_einebnungen, _flaechenNeu, _einebnungGerechnet) = (neu, false, true);
+        if (!_allesNeu) _veraltet.AddRange(geaendert);
+        if (!erstes) _einebnungGeaendert.AddRange(geaendert);
+    }
+
+    /// <summary>
+    /// Die Bauplätze, unter denen das gespeicherte Raster um höchstens <see cref="EinebnenBis"/> schwankt (Ecken und Rasterpunkte darin), mit
+    /// der Mitte zwischen höchstem und tiefstem Punkt als Zielhöhe. In der Reihenfolge der Flächen (fest: Karte, dann Grundstücke nach Nummer).
+    /// </summary>
+    private List<Einebnung> EinebnungenRechnen()
+    {
+        var aus = new List<Einebnung>();
+        if (Roh.IstLeer) return aus;
+        foreach (var umriss in _flaechen())
+        {
+            if (umriss.Count < 3) continue;
+            double hoch = double.MinValue, tief = double.MaxValue;
+            foreach (var h in Proben(umriss, boden: false))
+                (hoch, tief) = (Math.Max(hoch, h), Math.Min(tief, h));
+            if (hoch - tief > EinebnenBis + 1e-9) continue;
+            aus.Add(new Einebnung(umriss.ToArray(), (hoch + tief) / 2, Kartenrechteck.Um(umriss)!.Value.Vergroessert(Hofrand + Boeschung)));
+        }
+        return aus;
+    }
+
+    /// <summary>Die Wünsche der Einebnungen an jedem Rasterpunkt, den sie erreichen (nur in <paramref name="nur"/>; null: überall).</summary>
+    private Dictionary<(int, int), Ebenpunkt> EbenRechnen((int I0, int J0, int I1, int J1)? nur)
+    {
+        var aus = new Dictionary<(int, int), Ebenpunkt>();
+        const double weite = Hofrand + Boeschung;
+        foreach (var e in _einebnungen)
+        {
+            var (i0, j0, i1, j1) = Hoehenraster.Punkte(e.Bereich);
+            if (nur is { } n) (i0, j0, i1, j1) = (Math.Max(i0, n.I0), Math.Max(j0, n.J0), Math.Min(i1, n.I1), Math.Min(j1, n.J1));
+            for (var j = j0; j <= j1; j++)
+                for (var i = i0; i <= i1; i++)
+                {
+                    var p = new Kartenort(i * Hoehenraster.Abstand, j * Hoehenraster.Abstand);
+                    var d = 0.0;
+                    if (!Kartengeometrie.ImVieleck(p, e.Umriss))
+                    {
+                        d = double.MaxValue;
+                        for (var k = 0; k < e.Umriss.Length; k++)
+                            d = Math.Min(d, Kartengeometrie.AbstandStrecke(p, e.Umriss[k], e.Umriss[(k + 1) % e.Umriss.Length]));
+                    }
+                    if (d >= weite) continue;
+                    aus.TryGetValue((i, j), out var ep);
+                    var w = d <= Hofrand ? 1 : Weich((weite - d) / Boeschung); // knapp hinter dem Rand rundet Weich schon auf 1: dann wie im Rand
+                    if (w >= 1)
+                    {
+                        if (ep.KernAnzahl == 0 || d < ep.KernAbstand) (ep.KernAnzahl, ep.KernAbstand, ep.KernSumme) = (1, d, e.Ziel);
+                        else if (d == ep.KernAbstand) (ep.KernAnzahl, ep.KernSumme) = (ep.KernAnzahl + 1, ep.KernSumme + e.Ziel);
+                    }
+                    else
+                    {
+                        var chance = w / (1 - w);
+                        (ep.Chancen, ep.ChancenZiel, ep.Gewicht) = (ep.Chancen + chance, ep.ChancenZiel + chance * e.Ziel, Math.Max(ep.Gewicht, w));
+                    }
+                    aus[(i, j)] = ep;
+                }
+        }
+        return aus;
+    }
+
+    /// <summary>
+    /// Der Boden eines Rasterpunkts in cm aus Raster, Weg (Gewicht und Profilhöhe in Metern, null: keiner) und Einebnung: Der Kern eines Weges
+    /// gewinnt, dann der ebene Kern eines Bauplatzes; sonst mischen sich Bankett und Böschungen (Gewicht w/(1 − w)) und gehen mit dem größten w ins Raster über.
+    /// </summary>
+    private static double BodenCm(int roh, (double Gewicht, double Ziel)? weg, Ebenpunkt eben)
+    {
+        if (weg is { Gewicht: >= 1 } kern) return kern.Ziel * 100;
+        if (eben.KernAnzahl > 0) return eben.KernSumme / eben.KernAnzahl * 100;
+        var (chancen, summe, gewicht) = (eben.Chancen, eben.ChancenZiel, eben.Gewicht);
+        if (weg is { } w)
+        {
+            var chance = w.Gewicht / (1 - w.Gewicht);
+            (chancen, summe, gewicht) = (chancen + chance, summe + chance * w.Ziel, Math.Max(gewicht, w.Gewicht));
+        }
+        if (chancen <= 0) return roh;
+        return roh + (summe / chancen * 100 - roh) * gewicht;
     }
 
     // ── Längsprofil ──────────────────────────────────────────────────────────
@@ -417,12 +629,23 @@ public sealed class Gelaendeform
 
     // ── Boden lesen ──────────────────────────────────────────────────────────
 
-    /// <summary>Die Höhe des Bodens in Metern (Raster mit Bett der Wege und Mauern), bilinear.</summary>
+    /// <summary>Die Höhe des Bodens in Metern (Raster mit Bett der Wege, Mauern und Gewässer und den eingeebneten Bauplätzen), bilinear.</summary>
     public double Hoehe(double x, double z)
     {
         if (IstFlach) return 0;
         Aktualisieren();
         return Roh.Hoehe(x, z) + _bett.Hoehe(x, z);
+    }
+
+    /// <summary>
+    /// Die Höhe des Bodens in Metern ohne die Einebnung der Bauplätze (Raster mit Bett der Wege, Mauern und Gewässer), bilinear – für die
+    /// Fahrzeiten der Karren (Zubringer) und die Brückenpfeiler: Die Wirtschaft hängt nicht an der Einebnung.
+    /// </summary>
+    public double Weghoehe(double x, double z)
+    {
+        if (IstFlach) return 0;
+        Aktualisieren();
+        return Roh.Hoehe(x, z) + _wegbett.Hoehe(x, z);
     }
 
     /// <summary>Die Höhe eines Rasterpunkts des Bodens in Metern.</summary>
@@ -471,11 +694,18 @@ public sealed class Gelaendeform
 
     /// <summary>
     /// Das Fundament eines Gebäudes mit diesem Umriss (Ecken der Grundfläche): Der Boden im Haus liegt auf dem höchsten Punkt des Bodens
-    /// darunter (Ecken und Rasterpunkte darin), der Sockel reicht bis zum tiefsten. Das Gelände bleibt unverändert. Flach: (0, 0).
+    /// darunter (Ecken und Rasterpunkte darin), der Sockel reicht bis zum tiefsten. Ist der Bauplatz eingeebnet (<see cref="EinebnenBis"/>), ist der
+    /// Boden dort eben: Höhe = Zielhöhe, Tiefe 0 – es braucht keinen Sockel. Flach: (0, 0).
     /// </summary>
     public Fundament Fundament(IReadOnlyList<Kartenort> umriss)
     {
         if (IstFlach || umriss.Count == 0) return default;
+        // ein eingeebneter Bauplatz: der Fußboden auf der Zielhöhe, ohne Sockel – auch wo das 2-m-Raster an der Wand zum Nachbarn (Reihenhaus) oder am
+        // Weg schon dessen Höhe mischt (dieselbe Fläche: jede Ecke höchstens 0,25 m von einer Ecke der Einebnung; die Darstellung rechnet die Ecken selbst)
+        Aktualisieren();
+        foreach (var e in _einebnungen)
+            if (e.Umriss.Length == umriss.Count && umriss.All(p => e.Umriss.Any(q => p.Abstand(q) <= 0.25)))
+                return new Fundament(Math.Round(e.Ziel, 2, MidpointRounding.AwayFromZero), 0);
         double hoch = double.MinValue, tief = double.MaxValue;
         foreach (var h in Proben(umriss, boden: true))
             (hoch, tief) = (Math.Max(hoch, h), Math.Min(tief, h));

@@ -108,7 +108,19 @@ static class GleichheitTests
         "Gleichheit: Felspinsel P5 (eigene Felsgruppen im Katalog, gedreht, gespiegelt, verbunden gestempelt und gestreut, Kopien, Gruppe auflösen, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Katalog- und Kartendatei",
         FelsgruppenPruefen)).Append((
         "Gleichheit: Felspinsel P6 (Fläche füllen im Umriss und im Kreis, Voreinstellungen Schutthalde, Felskuppe, Steinbruch, Lücken, auf Fels, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelsfuellungPruefen));
+        FelsfuellungPruefen)).Append((
+        "Gleichheit: Einebnung der Bauplätze (Hang, Häuser mit überlappender Böschung, Weg, Verschieben, Abriss) ergibt zweimal und mit deutscher Ländereinstellung dieselben Bits",
+        EinebnungPruefen));
+
+    /// <summary>Einebnung der Bauplätze (24.11.2026): Boden eines festen Ablaufs – gleiche Bits (Zeile „einebnung …“ in der Datei der CI).</summary>
+    static void EinebnungPruefen()
+    {
+        var a = Sha256(EinebnungTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(EinebnungTests.Ablauf()), "Einebnung: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(EinebnungTests.Ablauf())), "Einebnung: de-DE");
+        Zeilen[-12] = new[] { $"einebnung {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felspinsel P6: Fläche füllen nach Regeln – gleiche Bytes der Kartendatei (Zeile „felsfuellung …“ in der Datei der CI).</summary>
     static void FelsfuellungPruefen()
