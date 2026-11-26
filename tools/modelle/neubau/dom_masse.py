@@ -25,7 +25,7 @@ GROESSTE = max(h for h, _ in FIGUREN.values())
 BREITESTE = max(b for _, b in FIGUREN.values())
 
 FLAECHE = (20.0, 38.0)   # belegte Flaeche (Breite x Tiefe) fuer den Katalog; Paket 3 setzt sie in die Karten
-BUDGET = (8000, 15000)   # Dreiecke der Huelle (Style-Guide: Monument)
+BUDGET = (8000, 17000)   # Dreiecke der Huelle (Style-Guide: Monument 8.000-15.000; Nutzer 25.11.2026: Optik vor Optimierung, Schieferlage 0,30 m, bis 17.000)
 
 # ── Hoehen ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 Z_SOCKEL = 0.30          # Fussboden (drei Stufen vor dem Portal)
@@ -76,6 +76,14 @@ TURM_STUFEN = (0.0, 7.4, 13.8, 20.2)     # Unterkanten der Geschosse (Gesimse da
 Z_GLOCKEN = (20.2, 25.6)                 # Glockenstube
 Z_HELM = 25.6                            # Fuss des Helms (Wimperge bis 28,6)
 Z_SPITZE = 40.0                          # Helmspitze; Kreuz bis 42,4
+
+
+def durchsicht_erlaubt(p):
+    """Punkt p (x, y, z) im dunklen Hohlraum der Glockenstube (hinter den Schallöffnungen, mind. 0,40 m hinter der Aussenflaeche des Geschosses):
+    dort treffen Blicke durch die Oeffnungen die Rueckseiten der nach innen gewendeten Hohlraumflaechen (dom_geometrie.py, wie beim Dom evangelisch)."""
+    x, y, z = abs(p[0]), p[1], p[2]
+    e = 0.36 + 0.40
+    return (Z_GLOCKEN[0] + 0.5 <= z <= Z_GLOCKEN[1] - 0.2 and X_TURM[0] + e <= x <= X_TURM[1] - e and Y_WEST + e <= y <= Y_TURM - e)
 Z_KREUZ = 42.4
 
 # ── Aussenwaende: Name -> (Anfang, Ende, Dicke); die Aussenseite liegt rechts der Laufrichtung Anfang -> Ende ──────────

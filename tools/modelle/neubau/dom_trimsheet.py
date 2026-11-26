@@ -16,7 +16,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb, lade  # noqa: E402
+from trimsheet import N, Blatt, Quelle, faerbe, rauschen, srgb_zu_linear, linear_zu_srgb, lade, skaliere  # noqa: E402
 
 # (v0, v1, Meter je UV.x 0..1). Hoehe eines Bandes in Metern = (v1 - v0) * Meter.
 # Reihenfolge nach Farbe: Im Pixel-Look liest der Shader grobe Mip-Stufen, dort mischen sich benachbarte Baender. Neben dem Schiefer
@@ -91,11 +91,11 @@ def haus_stein_band(quellen, hoehe, meter=4.0):
 MAUER_GRAU = (0.69, 0.70, 0.71)       # helles, leicht kuehles Grau der Dom-Mauer (frueherer grauer Werkstein: 0,68 / 0,67 / 0,65)
 SCHIEFER_REIHEN = 3                   # Deckreihen im Band "schiefer": je 0,25 m = 128 Bildpunkte (wie die Ziegellage "stroh_franse" der Wohnhaeuser)
 SCHIEFER_TON = (0.50, 0.53, 0.60)     # Schiefergrau-Blau (unveraendert seit 23.11.2026)
-SCHIEFER_FUGE = (0.33, 0.36, 0.43)    # Band "schiefer_kante": Fuge zwischen den Deckreihen und Karten an der Traufe
+SCHIEFER_FUGE = (0.20, 0.22, 0.29)    # Band "schiefer_kante": Fuge zwischen den Deckreihen und Karten an der Traufe
 SCHIEFER_REIHE_HELL = (0.93, 1.00, 1.07)   # die drei Reihen leicht verschieden hell: im Pixel-Look ist eine Reihe ein einziger Texel (Mip 7)
 
 
-def schiefer_reihen(blatt, band, q):
+def schiefer_reihen(blatt, band, q, hell=2.00, ruhig=False):
     """Schieferdach in Deckreihen (Nutzer, 24.11.2026: Reihen sichtbar wie am Ziegeldach des Wohnhauses). Dasselbe Verfahren wie
     trimsheet_stufen.dach_band: eine Reihe = 0,25 m = 128 Bildpunkte, oben der Schatten der naechsten Reihe, unten die helle Kante; das
     Bauskript (dom_bib.schieferflaeche) legt die Dachflaeche in Lagen von 0,25 m mit kleiner Stufe. Das Band traegt drei solche Reihen
@@ -106,22 +106,24 @@ def schiefer_reihen(blatt, band, q):
     h = (e - a) // SCHIEFER_REIHEN
     gewicht = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
     y = np.arange(h, dtype=np.float32)
-    fy = 0.50 + 0.50 * np.clip(y / 60.0, 0, 1) ** 0.8                 # oben: Schatten der naechsten Reihe
-    fy = fy * (1.0 + 0.25 * np.clip((y - (h - 14)) / 6.0, 0, 1))      # unten: helle Kante der Platten
+    # Reihenkontrast erhoeht (Nutzer 25.11.2026: im Pixel-Look so lesbar wie die Ziegel der Wohnhaeuser): tieferer Schatten unter der naechsten
+    # Reihe, breitere und hellere Kante der Platten, insgesamt heller (Schiefergrau-Blau bleibt)
+    fy = 0.42 + 0.58 * np.clip(y / 56.0, 0, 1) ** 0.8                 # oben: Schatten der naechsten Reihe
+    fy = fy * (1.0 + 0.90 * np.clip((y - (h - 26)) / 8.0, 0, 1))      # unten: helle Kante der Platten
     ziel = None
     for r in range(SCHIEFER_REIHEN):
         f, n, arm = q.streifen(h, ab=60 + 311 * r, versatz=397 * r)
-        lin = srgb_zu_linear(faerbe(f, SCHIEFER_TON, kontrast=1.15, eigenfarbe=0.35))
-        if ziel is None: ziel = 0.96 * float((lin @ gewicht).mean())
+        lin = srgb_zu_linear(faerbe(f, SCHIEFER_TON, kontrast=0.85 if ruhig else 1.15, eigenfarbe=0.25 if ruhig else 0.35))
+        if ziel is None: ziel = hell * float((lin @ gewicht).mean())
         z = np.random.default_rng(140 + r)
         fx = np.ones(N, dtype=np.float32)
         x = int(z.integers(0, 120))
         while x < N + 120:                                            # Platten 0,27 bis 0,43 m breit, waagerecht nahtlos
             w = int(z.integers(140, 221))
-            hell = float(z.uniform(0.86, 1.14))
+            hell_p = float(z.uniform(0.93, 1.07) if ruhig else z.uniform(0.86, 1.14))
             sp = np.arange(x, x + w)
             fuge = 1.0 - 0.45 * np.clip(1.0 - np.abs(np.arange(w) - 2.5) / 3.5, 0, 1)   # Stossfuge am linken Rand der Platte
-            fx[sp % N] = hell * fuge
+            fx[sp % N] = hell_p * fuge
             x += w
         lin = lin * fx[None, :, None] * fy[:, None, None]
         lin = lin * (ziel * SCHIEFER_REIHE_HELL[r] / max(float((lin @ gewicht).mean()), 1e-4))
@@ -136,7 +138,8 @@ def baue_aussen(quellen, evangelisch=False):
     B = BAENDER_DOM
     blatt = Blatt()
     schiefer = Quelle(quellen, "roof_slates_02")
-    schiefer_reihen(blatt, B["schiefer"], schiefer)
+    # Dom katholisch (Pruefer 25.11.2026: Schattenseite fast schwarz, im Pixel-Look koernig): heller und ruhigeres Korn; der evangelische bleibt
+    schiefer_reihen(blatt, B["schiefer"], schiefer, hell=2.0 if evangelisch else 2.6, ruhig=not evangelisch)
     a2, e2 = blatt.zeilen(B["schiefer_kante"])
     h2 = e2 - a2
     f, n, arm = schiefer.streifen(h2, ab=400, versatz=200)
@@ -190,11 +193,51 @@ def baue_aussen(quellen, evangelisch=False):
         "eisen": (True, (0.13, 0.13, 0.13), 0.55), "kupfer": (True, (0.30, 0.52, 0.44), 0.6),
     })
     if evangelisch:
-        # Kupfer mit Patina: helle und dunkle Laeufer von oben nach unten (das Feld wird um die Haube gelegt, v laeuft die Haube hinab)
+        # Kupferhaube mit Gruenspan-Patina (Nutzer 26.11.2026: wie alte Kupferdaecher, heller, tuerkis bis blaugruen, fleckig, in Fugen und Rippen
+        # dunkleres Kupferbraun). Textur: ambientCG "Metal 058 C" (CC0, Kupfer mit Oxidation, https://ambientcg.com/view?id=Metal058C), Farbe,
+        # Normale, Rauheit und Metallwert in das Farbfeld "kupfer"; Rippenfugen und die Traufkante in Kupferbraun darueber gelegt.
         a, e = blatt.zeilen(B["kleinteile"])
         feld = N // len(FELDER_DOM); i = FELDER_DOM.index("kupfer")
-        lauf = 0.78 + 0.44 * rauschen(N, 33, 6)[i * feld:(i + 1) * feld]
-        blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] = np.clip(blatt.albedo[a:e, i * feld:(i + 1) * feld, :3] * lauf[None, :, None], 0, 1)
+        h_ = e - a
+        name = os.environ.get("KUPFER", "Metal058C")                     # Kandidaten fuer den Vergleich (Nutzer 26.11.2026); Standard: die gewaehlte Textur
+        o = os.path.join(os.environ.get("KUPFER_ORDNER", os.path.join(quellen, "kupfer")), name)
+        if name.startswith("Metal"):               # ambientCG
+            fd, fn, fr, fm = (os.path.join(o, f"{name}_1K-JPG_{k}.jpg") for k in ("Color", "NormalGL", "Roughness", "Metalness"))
+        else:                                      # Poly Haven (<name>_diff_1k.jpg usw., kein Metallwert)
+            fd, fn, fr, fm = (os.path.join(o, f"{name}_{k}_1k.jpg") for k in ("diff", "nor_gl", "rough", None)); fm = None
+        farbe = skaliere(lade(fd), 1024, 1024)
+        norm = skaliere(lade(fn, daten=True), 1024, 1024)
+        rau = skaliere(lade(fr, daten=True), 1024, 1024)
+        met = skaliere(lade(fm, daten=True), 1024, 1024) if fm else np.full((1024, 1024, 4), 0.8, np.float32)
+        zl, sp = (150 + np.arange(h_)) % 1024, (300 + np.arange(feld)) % 1024
+        c3 = farbe[zl][:, sp][..., :3]
+        col = np.clip(c3 * 0.95, 0, 1)                                   # hell, aber nicht ausgebleicht: im Pixel-Look klar als Patina lesbar
+        # Patina gemischt (Nutzer 26.11.2026): stellenweise warmes Kupfer durchscheinend, fleckig (rund ein Viertel der Flaeche), an den Rippenkanten
+        # und an der Traufe etwas mehr; keine dunklen Linien. Kupferton aus der Helligkeit der Patina-Textur.
+        z_ = np.random.default_rng(71)
+        g = z_.random((13, 25)).astype(np.float32); g[:, -1] = g[:, 0]                      # waagerecht nahtlos
+        yy, xx = np.linspace(0, 12, h_, dtype=np.float32), np.linspace(0, 24, feld, dtype=np.float32)
+        y0_, x0_ = np.floor(yy).astype(int).clip(0, 11), np.floor(xx).astype(int).clip(0, 23)
+        ty, tx = (yy - y0_)[:, None], (xx - x0_)[None, :]
+        ty, tx = ty * ty * (3 - 2 * ty), tx * tx * (3 - 2 * tx)
+        rg = (g[y0_][:, x0_] * (1 - tx) + g[y0_][:, x0_ + 1] * tx) * (1 - ty) + (g[y0_ + 1][:, x0_] * (1 - tx) + g[y0_ + 1][:, x0_ + 1] * tx) * ty
+        fein = 0.35 * rauschen(feld, 72, 6)[None, :] + 0.2 * rauschen(h_, 73, 6)[:, None]
+        u = np.arange(feld, dtype=np.float32)
+        d_ = np.abs(((u + feld / 32.0) % (feld / 16.0)) - feld / 32.0)                      # Abstand zur naechsten Rippenkante (16 Rippen)
+        rand = np.exp(-(d_ / 7.0) ** 2)[None, :] * np.ones((h_, 1), np.float32)
+        traufe = np.clip((np.arange(h_)[:, None] - (h_ - 40)) / 40.0, 0, 1) * np.ones((1, feld), np.float32)
+        feld_ = rg + 0.25 * (fein - fein.mean()) + 0.14 * rand + 0.12 * traufe
+        schwelle = np.quantile(feld_, 0.74)
+        mk = 0.62 * np.clip((feld_ - schwelle) / 0.20, 0, 1)[..., None]
+        lum = col.mean(axis=2, keepdims=True)
+        kupfer = np.clip(np.array([0.62, 0.42, 0.30], np.float32)[None, None, :] * (0.55 + 0.6 * lum), 0, 1)
+        col = col * (1 - mk) + kupfer * mk
+        x0, x1 = i * feld, (i + 1) * feld
+        blatt.albedo[a:e, x0:x1, :3] = np.clip(col, 0, 1)
+        blatt.normal[a:e, x0:x1] = norm[zl][:, sp]
+        blatt.orm[a:e, x0:x1, 0] = 1.0
+        blatt.orm[a:e, x0:x1, 1] = np.clip(rau[zl][:, sp][..., 0] * 0.9 + 0.1, 0, 1)
+        blatt.orm[a:e, x0:x1, 2] = 0.25 * met[zl][:, sp][..., 0]
     blatt.speichere("dom_evangelisch_trim" if evangelisch else "dom_trim")
 
 

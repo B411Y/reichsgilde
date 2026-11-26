@@ -96,7 +96,7 @@ def pruefen(modell):
         add(f"Dreiecke innen {n}", "", str(d), True)
     add("Dreiecke innen Summe", "(kein Budget im Style-Guide; Hinweis)", str(summe_i), True)
     # ── Huelle: Flaeche, Hoehe ──
-    alle = np.concatenate([p for n in ("Haus", "Dach") for p, _ in aussen.ecken(n).values()])
+    alle = np.concatenate([p for n in ("Haus", "Dach", "Haube") if n in netze_a for p, _ in aussen.ecken(n).values()])
     lo, hi = alle.min(axis=0), alle.max(axis=0)
     add("Huelle Breite", f"<= {f(M.FLAECHE[0])}", f(hi[0] - lo[0]), hi[0] - lo[0] <= M.FLAECHE[0] + 1e-3)
     add("Huelle Tiefe", f"<= {f(M.FLAECHE[1])}", f(hi[1] - lo[1]), hi[1] - lo[1] <= M.FLAECHE[1] + 1e-3)
@@ -106,7 +106,7 @@ def pruefen(modell):
     dach = np.concatenate([p for p, _ in aussen.ecken("Dach").values()])
     add("First des Hochschiffs", f"{f(M.Z_FIRST)} (+ Deckung)", f(dach[np.abs(dach[:, 0]) < 0.5][:, 2][dach[np.abs(dach[:, 0]) < 0.5][:, 1] > y_dach].max()), True)
     # ── UV2 ──
-    for glb, gruppe, namen in ((aussen, "dom", ("Haus", "Dach")), (innen, "dom_innen", [n for n in netze_i if not n.startswith("Glas_")])):
+    for glb, gruppe, namen in ((aussen, "dom", tuple(n for n in ("Haus", "Dach", "Haube") if n in netze_a)), (innen, "dom_innen", [n for n in netze_i if not n.startswith("Glas_")])):
         n, sp, ze = zelle(gruppe, modell)
         for name in namen:
             uv = uv2(glb, name)

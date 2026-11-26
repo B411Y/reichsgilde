@@ -141,3 +141,9 @@ Die AO-Atlanten `wohnhaus_halbling_s2_ao_atlas.png`, `wohnhaus_halbling_s3_ao_at
 Nachbearbeitung wie oben (Umfärben je Band, gemalte Kanten); dazu die ausgezahnte Unterkante der Schieferkante (Alpha aus einem Zufallsprofil), das Schachbrett (acht Platten je Blattbreite, abwechselnd hell und dunkel, dunkle Fugen), die Kehlen im Goldband und Farbfelder für Kleinteile. Keine Bild-KI.
 
 `dom_ao_atlas.png` und `dom_innen_ao_atlas.png` (je 2048 × 2048, 2 × 2 Zellen zu 1024 Bildpunkten, eine Zelle je Dom) sind gebackene Verdeckung der Dom-Modelle auf UV2 (Blender Cycles, `tools/modelle/neubau/rathaus_bib.py`; Plätze in `tools/modelle/neubau/ao_atlas.json`, Gruppen „dom“ und „dom_innen“), keine Fremdtexturen.
+
+## Kupferhaube Dom evangelisch (26.11.2026)
+
+| Asset | Titel | Urheber | Quelle | Verwendung |
+|---|---|---|---|---|
+| `Metal058C` (1K-JPG: Color, NormalGL, Roughness, Metalness) | Metal 058 C | ambientCG (Lizenz: **CC0 1.0**, https://docs.ambientcg.com/license/) | https://ambientcg.com/view?id=Metal058C | `dom_evangelisch_trim_*`, Farbfeld „kupfer“: Kupfer mit Grünspan-Patina (Farbe mit Faktor 0,95), keine Rippenlinien, nur die Traufkante um 18 % dunkler (26.11.2026 nach Nutzer-Rückmeldung; geprüft und verworfen: ambientCG Metal058B (zu grau), Metal047B (braunes Kupfer, keine Patina), Poly Haven green_metal_rust (zu dunkelgrün)) (`tools/modelle/neubau/dom_trimsheet.py`). Die Quelldateien liegen nicht im Repository. |

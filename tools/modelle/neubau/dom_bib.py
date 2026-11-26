@@ -228,6 +228,9 @@ def fiale_bauen(teil, mitte, kante, z0, schaft, helm, stoff="Sandstein", band="w
     teil.vieleck(stoff, ecken, [(0, v1), (0.1, v1), (0.1, v0), (0, v0)], zu=V((x, y, z0 - 5)))
 
 
+GESIMS_KAPPEN = False                                  # die Bauskripte schalten es ein (Dom evangelisch)
+
+
 def gesimsband(teil, a, b, n, z, hoehe=0.22, vor=0.12, stoff="Sandstein", band="werkstein", ueber=0.0, unten=True):
     """Gesims auf einer Wandflaeche von a nach b (x, y), Sichtseite n: Stirn, Ober- und Unterseite; `ueber`: Ueberstand an den Enden."""
     a3, b3 = V((a[0], a[1], z)), V((b[0], b[1], z)); n3 = V((n[0], n[1], 0)).normalized()
@@ -238,6 +241,9 @@ def gesimsband(teil, a, b, n, z, hoehe=0.22, vor=0.12, stoff="Sandstein", band="
     teil.rechteck(stoff, a3 + n3 * vor, e, EZ, lang, hoehe, band, zu=m + n3 * 3)
     teil.rechteck(stoff, a3 + EZ * hoehe, e, n3, lang, vor, band, zu=m + EZ * 3)
     if unten: teil.rechteck(stoff, a3, e, n3, lang, vor, band, zu=m - EZ * 3)
+    if GESIMS_KAPPEN:                                     # offene Stirn an beiden Enden schliessen (sonst Blick unter das Gesims, Pruefung 25.11.2026)
+        teil.rechteck(stoff, a3, n3, EZ, vor, hoehe, band, zu=a3 - e * 3 + n3 * vor / 2 + EZ * hoehe / 2)
+        teil.rechteck(stoff, b3, n3, EZ, vor, hoehe, band, zu=b3 + e * 3 + n3 * vor / 2 + EZ * hoehe / 2)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -248,9 +254,11 @@ def _wp(M, name, s, z, raus):
     return V(M.punkt(name, s, z, raus))
 
 
-def scheibe(teil, stoff, P, loch, zu):
+def scheibe(teil, stoff, P, loch, zu, fein=0):
     """Scheibe in der Form der Oeffnung; P(s, z) liefert den Punkt in der Scheibenebene. UV in Metern ab der linken unteren Ecke."""
-    zs = sorted(loch.hoehen())
+    hs = set(loch.hoehen())
+    if fein and hasattr(loch, "zk"): hs |= {loch.zk + loch.h * math.sin(math.pi / 2 * i / fein) for i in range(fein + 1)}      # Bogen feiner: die Wand folgt ihm in kleineren Sehnen (sonst ein Spalt zwischen Glas und Laibung)
+    zs = sorted(hs)
     for za, zb in zip(zs[:-1], zs[1:]):
         if zb - za < 1e-5: continue
         (a0, a1), (b0, b1) = loch.breite_bei(za + 1e-6), loch.breite_bei(zb - 1e-6)
@@ -434,7 +442,7 @@ def saeule(teil, mitte, radius, z0, z1, seiten=8, band="werkstein", kapitell=0.5
 #  Stoffe, Bau, Export
 # ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
-def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=True, saat=1, band="schiefer"):
+def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=True, saat=1, band="schiefer", seiten=(True, True)):
     """Schieferdach in Deckreihen (Nutzer, 24.11.2026), nach dem Verfahren von wohnhaus_mensch_s23.ziegelflaeche: Die Flaeche von der
     Unterkante a0-a1 zur Oberkante b0-b1 (b0 == b1: Dreieck, Helm) liegt in Lagen von `lage` Metern, jede am Fuss angehoben (Keil).
     Jede Lage fuellt eine der Reihen des Bandes (dom_trimsheet.SCHIEFER_REIHEN, reihum).
@@ -443,7 +451,7 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
     (rund 0,25 m je Texel), und eine Stirn quer zur Dachflaeche zeigt nach unten - von der Kamera aus unsichtbar. Die senkrechte
     Stirn sieht die Kamera als dunkle Linie; die Lage darunter endet am Fuss der Stirn.
     `stufe=0`: glatte Flaeche in Streifen von Bandhoehe (Turmhelme: Keile ueberschnitten sich an den Graten), die Reihen kommen dort
-    nur aus der Textur. `karte`: Alpha-Card (Schieferkante) an der Traufe. Lage 0,30 m statt 0,25 m wie am Wohnhaus: mit 0,25 m lag
+    nur aus der Textur. `seiten`: (Rand a0-b0, Rand a1-b1) mit Seitenflaechen der Keile; False an Raendern, die an eine Wand, eine Nachbarflaeche oder ein Gratblech stossen. `karte`: Alpha-Card (Schieferkante) an der Traufe. Lage 0,30 m statt 0,25 m wie am Wohnhaus: mit 0,25 m lag
     die Huelle 163 Dreiecke ueber dem Budget (15.163 von 15.000); die Reihe der Textur (0,25 m) wird dafuer um ein Fuenftel gestreckt."""
     a0, a1, b0, b1 = Vector(a0), Vector(a1), Vector(b0), Vector(b1)
     e = (a1 - a0).normalized()
@@ -476,10 +484,11 @@ def schieferflaeche(teil, a0, a1, b0, b1, aussen, lage=0.30, stufe=0.09, karte=T
             cm, ch = (c0 + c1) / 2, (c1 - c0) * 0.2
             teil.vieleck("Schiefer", [p0, q0, q0 + hub, p0 + hub],
                          [(u(p0), cm + ch), (u(q0), cm + ch), (u(q0), cm - ch), (u(p0), cm - ch)], zu=(p0 + q0) / 2 + hub / 2 + (n - EZ * n.z).normalized() * 5)
-        if stufe > 0:                                       # Seitenflaechen der Keile an den freien Randern (Giebel, Gauben): sonst blickt man unter jede Lage
+        if stufe > 0 and any(seiten):                          # Seitenflaechen der Keile an den freien Randern (Giebel, Gauben): sonst blickt man unter jede Lage
             cm2 = (c0 + c1) / 2
             mitte_f = (a0 + a1 + b0 + b1) / 4
-            for ep, eq in ((p0, p1), (q0, q1)):
+            for ep, eq, mit in ((p0, p1, seiten[0]), (q0, q1, seiten[1])):
+                if not mit: continue
                 nh = (eq - ep).cross(EZ)
                 if nh.length < 1e-6: continue
                 nh.normalize()
