@@ -23,6 +23,7 @@ from mathutils import Vector as V
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rathaus_bib as B                                  # noqa: E402
 import dom_bib as D                                      # noqa: E402
+import dom_haubenspitze as HS                              # noqa: E402
 import dom_evangelisch_masse as F                         # noqa: E402
 from rathaus_bib import EZ, mauer                        # noqa: E402
 
@@ -274,7 +275,7 @@ def turm_r(z):
     return F.TURM_R + (F.TURM_R_OBEN - F.TURM_R) * min(max((z - z0) / (z1 - z0), 0.0), 1.0)
 
 
-def turm(h, s):
+def turm(h, s, kopf):
     """Runder Turm nach dem Artwork: Sandsteinsockel, Schaft aus Backstein als Kegelstumpf (unten breit, oben schmal, ohne Absaetze)
     mit Schlitzfenstern, zwei Sandsteinbaendern und 16 Lisenen (je eine auf jeder Ecke, folgen der Schraege, Wasserschlag unter dem
     Fries), Gesims, Rundbogenfries, offene Glockenstube aus Holz, Kupferhaube."""
@@ -400,21 +401,34 @@ def turm(h, s):
     t = lambda anteil: zh + (zsp - zh) * anteil
     profil = [(r + 0.30, zh), (r + 0.18, t(0.035)), (r + 0.08, t(0.10)), (r + 0.02, t(0.22)), (r - 0.25, t(0.36)), (r - 0.80, t(0.48)), (r - 1.40, t(0.57)),
               (0.50, t(0.64)), (0.25, t(0.76)), (0.11, t(0.90)), (0.0, zsp)]
-    h.dreh("Firstblech", (cx, cy, 0), profil, "kleinteile", seiten=n_, u_bereich=D.feld("kupfer"), deckel=False, glatt=False)
-    D.farbstab(h, "Firstblech", (cx, cy, zsp - 0.5), (cx, cy, F.Z_KNAUF - 0.12), 0.07, "gold")
-    D.farbkasten(h, "Firstblech", (cx - 0.15, cy - 0.15, F.Z_KNAUF - 0.24), (cx + 0.15, cy + 0.15, F.Z_KNAUF + 0.06), "gold")
+    kopf.dreh("Firstblech", (cx, cy, 0), profil, "kleinteile", seiten=2 * n_, u_bereich=D.feld("kupfer"), deckel=False, glatt=True)      # glatt schattiert, 32 Seiten (Nutzer 26.11.2026: die Facetten schienen durch den Schatten)
+    # Spitze (Nutzer 26.11.2026): Stange, Turmkugel aus Kupfer (0,54 m) und darauf ein Wetterhahn aus Blech (flache Silhouette, Schnabel nach Osten)
+    D.farbstab(kopf, "Firstblech", (cx, cy, zsp - 0.5), (cx, cy, F.Z_KNAUF), 0.07, "gold")
+    kopf.dreh("Firstblech", (cx, cy, 0), HS.kugel_profil(F.Z_KNAUF), "kleinteile", seiten=12, u_bereich=D.feld("kupfer"), deckel=False, glatt=True)
+    D.farbstab(kopf, "Firstblech", (cx, cy, F.Z_KNAUF + HS.KUGEL_R - 0.05), (cx, cy, F.Z_KNAUF + HS.HAHN_FUSS), 0.05, "gold")
+    z0 = F.Z_KNAUF + HS.HAHN_FUSS; dk = HS.HAHN_DICKE / 2
+    pt = lambda i, y: V((cx + HS.HAHN[i][0], cy + y, z0 + HS.HAHN[i][1]))
+    for tri in HS.dreiecke():                                   # zwei Blechflaechen
+        for y in (-dk, dk):
+            D.farbflaeche(kopf, "Firstblech", [pt(i, y) for i in tri], "gold", zu=V((cx, cy + y * 400, z0 + 0.4)))
+    n_h = len(HS.HAHN)
+    for i in range(n_h):                                        # Kante ringsum, sonst blickt man von der Seite in das Blech
+        j = (i + 1) % n_h
+        D.farbflaeche(kopf, "Firstblech", [pt(i, -dk), pt(j, -dk), pt(j, dk), pt(i, dk)], "gold", weg_von=V((cx + 0.05, cy, z0 + 0.4)))
 
 
 def baue_haus(sc):
     h = D.Teil("Haus", BA, saat=3)
+    kopf = D.Teil("Haube", BA, saat=6)           # Kupferhaube mit Stange, Kugel und Hahn: eigenes Netz (im Spiel gegen eine andere Fassung austauschbar)
     langhaus(h, sc)
     yv = vorhalle(h, sc)
     achteck(h, sc)
     chor(h, sc)
     for i, (x, y) in enumerate(F.TUERMCHEN):
         kegelturm(h, sc, *W(x, y), saat=5 + 3 * i, fenster=(8, 10) if i == 0 else (10, 11))     # Tuermchen 2 steht an Achteck und Chor: Fenster nach Osten, fern vom Wandwinkel
-    turm(h, sc)
+    turm(h, sc, kopf)
     h.yv = yv
+    h.kopf = kopf
     return h
 
 
@@ -565,23 +579,24 @@ def main():
     mx, my = W(*F.OKT_M)
     for i, (theta, rho) in enumerate(((0, 4.9), (90, 4.9), (180, 4.9), (270, 4.9))):
         gaube(dach, haus, scheiben, mx, my, math.radians(theta), rho, 70 + 3 * i)
-    summe = haus.dreiecke() + dach.dreiecke() + scheiben.dreiecke()
+    summe = haus.dreiecke() + haus.kopf.dreiecke() + dach.dreiecke() + scheiben.dreiecke()
     print(f"DREIECKE aussen: Haus {haus.dreiecke()}, Dach {dach.dreiecke()}, Scheiben {scheiben.dreiecke()}, Summe {summe} (Budget {F.BUDGET[0]}-{F.BUDGET[1]})")
-    o_haus, o_dach = haus.objekt(st), dach.objekt(st)
+    o_haus, o_dach, o_haube = haus.objekt(st), dach.objekt(st), haus.kopf.objekt(st)
     o_scheiben = scheiben.objekt(st, mit_farbe=False)
     bpy.ops.mesh.primitive_plane_add(size=120, location=(0, 0, 0))
     boden = bpy.context.active_object; boden.name = "Kontrollboden"
     boden.data.materials.append(B.stoff("Kontrollboden", farbe=(0.36, 0.33, 0.28)))
-    B.uv2_und_ao([([o_haus, o_dach], [boden])], "dom", MODELL, mit_ao="ohne-ao" not in opt)
+    B.uv2_und_ao([([o_haus, o_haube, o_dach], [boden])], "dom", MODELL, mit_ao="ohne-ao" not in opt)
     yv = haus.yv
     anker = [
         B.anker("Anker_Tuer", (XA + F.VH_X, yv - 2.2, 0.02), blick="nord"),
         B.anker("Anker_Laterne", (XA + F.VH_X + F.PORTAL[0] / 2 + 0.28, yv - 0.05, 2.6), blick="sued"),
     ]
-    B.exportiere([o_haus, o_dach, o_scheiben] + anker, os.path.join(B.ZIEL_MODELL, MODELL + ".glb"))
+    B.exportiere([o_haus, o_haube, o_dach, o_scheiben] + anker, os.path.join(B.ZIEL_MODELL, MODELL + ".glb"))
     if "bilder" in opt:
         o = opt["bilder"]; os.makedirs(o, exist_ok=True)
         B.kontrollbild(os.path.join(o, "domev_blick_turmkopf.jpg"), (XA + 4.0, -26.0, 26.5), (XA - 5.6, -15.5, 22.0), brennweite=42)
+        B.kontrollbild(os.path.join(o, "turmspitze.jpg"), (XA + F.TURM_M[0] + 1.5, F.TURM_M[1] - 9.0, 33.2), (XA + F.TURM_M[0], F.TURM_M[1], 31.6), brennweite=60)
         B.kontrollbild(os.path.join(o, "domev_blick_gauben.jpg"), (XA + 10.5, -4.0, 21.0), (XA + 4.9, 3.2, 17.3), brennweite=40)
 
 

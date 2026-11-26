@@ -212,8 +212,26 @@ def baue_aussen(quellen, evangelisch=False):
         zl, sp = (150 + np.arange(h_)) % 1024, (300 + np.arange(feld)) % 1024
         c3 = farbe[zl][:, sp][..., :3]
         col = np.clip(c3 * 0.95, 0, 1)                                   # hell, aber nicht ausgebleicht: im Pixel-Look klar als Patina lesbar
-        kante = (np.arange(h_)[:, None] > h_ - 6).astype(np.float32) * np.ones((1, feld), np.float32)        # Traufkante unten: nur ganz dezent dunkler (keine Rippenlinien mehr, Nutzer 26.11.2026)
-        col = col * (1 - 0.18 * kante[..., None])
+        # Patina gemischt (Nutzer 26.11.2026): stellenweise warmes Kupfer durchscheinend, fleckig (rund ein Viertel der Flaeche), an den Rippenkanten
+        # und an der Traufe etwas mehr; keine dunklen Linien. Kupferton aus der Helligkeit der Patina-Textur.
+        z_ = np.random.default_rng(71)
+        g = z_.random((13, 25)).astype(np.float32); g[:, -1] = g[:, 0]                      # waagerecht nahtlos
+        yy, xx = np.linspace(0, 12, h_, dtype=np.float32), np.linspace(0, 24, feld, dtype=np.float32)
+        y0_, x0_ = np.floor(yy).astype(int).clip(0, 11), np.floor(xx).astype(int).clip(0, 23)
+        ty, tx = (yy - y0_)[:, None], (xx - x0_)[None, :]
+        ty, tx = ty * ty * (3 - 2 * ty), tx * tx * (3 - 2 * tx)
+        rg = (g[y0_][:, x0_] * (1 - tx) + g[y0_][:, x0_ + 1] * tx) * (1 - ty) + (g[y0_ + 1][:, x0_] * (1 - tx) + g[y0_ + 1][:, x0_ + 1] * tx) * ty
+        fein = 0.35 * rauschen(feld, 72, 6)[None, :] + 0.2 * rauschen(h_, 73, 6)[:, None]
+        u = np.arange(feld, dtype=np.float32)
+        d_ = np.abs(((u + feld / 32.0) % (feld / 16.0)) - feld / 32.0)                      # Abstand zur naechsten Rippenkante (16 Rippen)
+        rand = np.exp(-(d_ / 7.0) ** 2)[None, :] * np.ones((h_, 1), np.float32)
+        traufe = np.clip((np.arange(h_)[:, None] - (h_ - 40)) / 40.0, 0, 1) * np.ones((1, feld), np.float32)
+        feld_ = rg + 0.25 * (fein - fein.mean()) + 0.14 * rand + 0.12 * traufe
+        schwelle = np.quantile(feld_, 0.74)
+        mk = 0.62 * np.clip((feld_ - schwelle) / 0.20, 0, 1)[..., None]
+        lum = col.mean(axis=2, keepdims=True)
+        kupfer = np.clip(np.array([0.62, 0.42, 0.30], np.float32)[None, None, :] * (0.55 + 0.6 * lum), 0, 1)
+        col = col * (1 - mk) + kupfer * mk
         x0, x1 = i * feld, (i + 1) * feld
         blatt.albedo[a:e, x0:x1, :3] = np.clip(col, 0, 1)
         blatt.normal[a:e, x0:x1] = norm[zl][:, sp]

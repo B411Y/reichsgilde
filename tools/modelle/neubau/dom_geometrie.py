@@ -41,7 +41,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=GLB)
 verts, tris, info = [], [], []                  # info je Dreieck: (Objekt, Stoff)
 glas = set()
-for name in ("Haus", "Dach", "Scheiben"):
+for name in ("Haus", "Haube", "Dach", "Scheiben"):
     o = bpy.data.objects.get(name)
     if o is None: continue
     me = o.data; me.calc_loop_triangles()
@@ -197,7 +197,7 @@ for dkey, d in enumerate(dirs):
         p = tuple(float(x) for x in pos[j, i])
         if ERLAUBT(p): continue
         # Dach: nur steile Strahlen (flach gesehen streifen Keile der Deckreihen und Gratbleche die Rueckseite des Nachbarn: kein Fehler)
-        if info[int(rastern.idx[j, i])][0] != "Haus" and not steil: continue
+        if info[int(rastern.idx[j, i])][0] not in ("Haus", "Haube") and not steil: continue
         key = tuple(round(x / 0.5) for x in p)
         bad[key] = bad.get(key, 0) + 1
         art[key] = info[int(rastern.idx[j, i])] + (tuple(round(x, 2) for x in d),)
@@ -227,7 +227,7 @@ for az in range(-1, 360, 45):                    # -1: senkrecht von oben; sonst
     d = Vector((0, 0, -1)) if az < 0 else Vector((math.cos(math.radians(70)) * math.cos(math.radians(az)), math.cos(math.radians(70)) * math.sin(math.radians(az)), -math.sin(math.radians(70))))
     hit, pos, rueck, gl = rastern(d, 0.05)
     for j, i in zip(*np.nonzero(hit & rueck & ~gl)):
-        if info[int(rastern.idx[j, i])][0] != "Haus": continue
+        if info[int(rastern.idx[j, i])][0] not in ("Haus", "Haube"): continue
         p = tuple(float(x) for x in pos[j, i])
         if ERLAUBT(p): continue
         key = tuple(round(x / 0.5) for x in p)
