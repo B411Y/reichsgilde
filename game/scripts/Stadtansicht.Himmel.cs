@@ -86,6 +86,9 @@ public partial class Stadtansicht
         HimmelSetzen("mond_staerke", mond, new Vector4(mond, 0, 0, 0));
         HimmelSetzen("nacht", NebelDunkel(), new Vector4(NebelDunkel(), 0, 0, 0));
         HimmelSetzen("deckung", deckung, new Vector4(deckung, 0, 0, 0));
+        HimmelSetzen("schichten", Fenster.AktuelleWettereffekte == Wettereffekte.Niedrig ? 1f : 2f, new Vector4(Fenster.AktuelleWettereffekte == Wettereffekte.Niedrig ? 1f : 2f, 0, 0, 0));
+        var wr = _windRichtung.LengthSquared() > 0.0001f ? _windRichtung.Normalized() : Vector2.Right;
+        HimmelSetzen("wind_richtung", wr, new Vector4(wr.X, wr.Y, 0, 0));
         HimmelSetzen("truebe", truebe, new Vector4(truebe, 0, 0, 0));
         HimmelSetzen("nebel", Mathf.Clamp(_wetter.Nebel, 0f, 1f), new Vector4(Mathf.Clamp(_wetter.Nebel, 0f, 1f), 0, 0, 0));
 

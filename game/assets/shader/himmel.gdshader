@@ -20,6 +20,8 @@ uniform float nacht = 0.0;           // 0 Tag … 1 tiefe Nacht
 uniform float deckung = 0.3;         // Bewölkung 0–1
 uniform float truebe = 0.0;          // 0 weiße Wolken … 1 graue Regenwolken
 uniform float nebel = 0.0;           // 0–1: Dunst bis in den Himmel
+uniform float schichten = 2.0;       // 1 = nur die tiefe Wolkenschicht (Wettereffekte Niedrig), 2 = dazu die hohe, streifige Schicht
+uniform vec2 wind_richtung = vec2(1.0, 0.0); // Richtung des Winds (Streifen der hohen Schicht liegen quer dazu)
 global uniform vec2 himmel_drift;    // Verschiebung der Wolken (Wind, aufsummiert; global, damit sich der Stoff nicht ändert)
 
 float h_hash(vec2 p) {
@@ -45,6 +47,11 @@ float h_wolken(vec2 p) {
 		a *= 0.5;
 	}
 	return s;
+}
+
+// Hohe Schicht: nur zwei Proben, in Windrichtung gestreckt (Schleierwolken), langsamer als die tiefe Schicht, mit größerem Höhenversatz (Parallaxe)
+float h_schleier(vec2 p) {
+	return 0.6 * h_rausch(p) + 0.4 * h_rausch(p * 2.3 + vec2(5.2, 1.7));
 }
 
 void sky() {
@@ -103,7 +110,25 @@ void sky() {
 		// Silberrand an dünnen Stellen im Sonnenlicht
 		wolke += licht_f * sonne_staerke * 0.30 * pow(s, 10.0) * (1.0 - dichte_w * 0.5);
 
+		// Hohe Schicht (Parallaxe): streifig, dünn, zieht mit 60 % der Drift; ein dichter Himmel (Regen, Nebel) verdeckt sie
+		float dichte_h = 0.0;
+		if (schichten > 1.5 && sicht > 0.0) {
+			vec2 uv_h = d.xz / (max(h, 0.0) + 0.42) * 0.55 + himmel_drift * 0.6 + vec2(31.7, 12.3);
+			vec2 w = normalize(wind_richtung + vec2(0.0001));
+			vec2 q = vec2(dot(uv_h, w) * 1.4, dot(uv_h, vec2(-w.y, w.x)) * 4.5);   // dünne Fäden, dreimal so lang wie breit
+			float dh = h_schleier(q);
+			float dh_s = mix(0.74, 0.46, clamp(deckung, 0.0, 1.0));
+			dichte_h = smoothstep(dh_s, dh_s + 0.22, dh) * 0.4 * sicht * (1.0 - truebe * 0.7) * (1.0 - nebel * 0.8);
+		}
+		vec3 wolke_h = mix(wolke_dunkel * 1.25, wolke_hell, 0.55 + 0.3 * sonne_staerke);
+		wolke_h += licht_f * sonne_staerke * 0.18 * pow(s, 8.0);
+
+		// Weicher Sonnenhof, weit und gedämpft: im Dunst und Nebel breiter und heller, bei Bewölkung schwächer
+		float hof_weit = pow(s, 7.0) * 0.12 * (1.0 + nebel * 1.2) * ueber * (1.0 - smoothstep(0.0, 0.8, h)) * (1.0 - 0.75 * deckung) * (1.0 - 0.6 * dichte_w);
+
 		vec3 farbe = himmel;
+		farbe += licht_f * hof_weit * (sonne_staerke + mond_staerke * 0.25) * mix(vec3(1.0), vec3(1.0, 0.92, 0.78), 0.5);
+		farbe = mix(farbe, wolke_h, dichte_h);
 		farbe += licht_f * hof * (sonne_staerke + mond_staerke * 0.35) * (1.0 - 0.7 * dichte_w) * (1.0 - nebel * 0.5);
 		farbe += licht_f * scheibe * (sonne_staerke * 3.0 + mond_staerke * 1.2) * (1.0 - dichte_w);
 		farbe += vec3(0.8, 0.85, 1.0) * sterne * 0.9;
