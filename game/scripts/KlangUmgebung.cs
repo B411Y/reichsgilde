@@ -83,7 +83,7 @@ public partial class KlangUmgebung : Node
     private bool _laeuft, _beendet;
     private int _logStufe;
     private bool _wolfFahrt;
-    private bool _fahrt, _kurzeFahrt, _gewitterFahrt, _einschlagFahrt, _einschlagGeschehen, _regenFahrt;
+    private bool _fahrt, _kurzeFahrt, _gewitterFahrt, _einschlagFahrt, _einschlagGeschehen, _regenFahrt, _innenFahrt;
     private double _zeit, _logUhr, _fahrtZeit;
     private int _fahrtRuf;
 
@@ -125,6 +125,7 @@ public partial class KlangUmgebung : Node
             if (arg == "--umgebungfahrt=4") (_fahrt, _einschlagFahrt) = (true, true);
             if (arg == "--umgebungfahrt=5") (_fahrt, _regenFahrt) = (true, true);
             if (arg == "--umgebungfahrt=6") (_fahrt, _wolfFahrt) = (true, true);
+            if (arg == "--umgebungfahrt=7") (_fahrt, _innenFahrt) = (true, true);
         }
         if (_fahrt)
         {
@@ -486,7 +487,7 @@ public partial class KlangUmgebung : Node
 
     /// <summary>
     /// Ein Haltepunkt der Hörprobe. Uhr (Stunden), Zoom und Blickpunkt (Meter) gleiten linear bis zum nächsten Punkt; Wetter (0 klar, 1 Regen, 2 Gewitter,
-    /// 3 Schnee), Jahreszeit (0 Frühling … 3 Winter) und Innen (1 = in der Schankstube) gelten ab dem Punkt bis zum nächsten.
+    /// 3 Schnee), Jahreszeit (0 Frühling … 3 Winter) und Innen (1 = in der Schankstube, 2 = in einem Raum) gelten ab dem Punkt bis zum nächsten.
     /// </summary>
     public readonly record struct FahrtPunkt(float T, float Stunde, float Zoom, float X, float Z, int Wetter = 0, int Jahreszeit = 0, int Innen = 0);
 
@@ -583,8 +584,24 @@ public partial class KlangUmgebung : Node
         new(24.01f, 18.2f, 40, 175, 10), new(40, 19.6f, 40, 175, 10),
     };
     public const float FahrtEndeWolf = 40f;
+
+    /// <summary>
+    /// Die Hörprobe <c>--umgebungfahrt=7</c> (90 s, Wetter von drinnen): Regen im Freien am Mittag (0–15 s), Raum betreten (15 s, die Regenschleife blendet in 2 s ein),
+    /// im Raum bei Regen am Mittag (Tag, bis 40 s), Uhr gleitet in die Nacht (40–55 s, Tag blendet in Nacht), Gewitter mit Sturm im Raum (55–75 s, Regen weicht dem Sturm), Raum verlassen (75 s).
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkteInnen =
+    {
+        new(0, 12.0f, 40, 175, 10, 1), new(15, 12.1f, 40, 175, 10, 1),
+        new(15.01f, 12.2f, 40, 175, 10, 1, 0, 2), new(40, 14.0f, 40, 175, 10, 1, 0, 2),
+        new(40.01f, 20.0f, 40, 175, 10, 1, 0, 2), new(55, 23.0f, 40, 175, 10, 1, 0, 2),
+        new(55.01f, 23.1f, 40, 175, 10, 5, 0, 2), new(75, 23.3f, 40, 175, 10, 5, 0, 2),
+        new(75.01f, 23.4f, 40, 175, 10, 1), new(90, 23.5f, 40, 175, 10, 1),
+    };
+    public const float FahrtEndeInnen = 90f;
     /// <summary>Das Wetter des Tons bei Wetter 5 der Hörprobe: starker Regen ohne Blitze (die Stadtansicht zeigt dazu die Lage Regen).</summary>
     public static readonly M.KlangWetter FahrtStarkerRegen = new(1f, 0f, 0.6f, 0f, 0.05f);
+    /// <summary>Das Wetter des Tons bei Wetter 5 der Innen-Hörprobe (7): Sturm mit Guss, ohne Blitze (der Donner käme über den Donner-Bus).</summary>
+    public static readonly M.KlangWetter FahrtSturm = new(1f, 0f, 0.9f, 0f, 0.05f);
 
     /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
@@ -609,8 +626,8 @@ public partial class KlangUmgebung : Node
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
         _fahrtZeit += delta;
-        var punkte = _wolfFahrt ? FahrtPunkteWolf : _regenFahrt ? FahrtPunkteRegen : _einschlagFahrt ? FahrtPunkteEinschlag : _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
-        if (_fahrtZeit >= (_wolfFahrt ? FahrtEndeWolf : _regenFahrt ? FahrtEndeRegen : _einschlagFahrt ? FahrtEndeEinschlag : _gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
+        var punkte = _innenFahrt ? FahrtPunkteInnen : _wolfFahrt ? FahrtPunkteWolf : _regenFahrt ? FahrtPunkteRegen : _einschlagFahrt ? FahrtPunkteEinschlag : _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
+        if (_fahrtZeit >= (_innenFahrt ? FahrtEndeInnen : _wolfFahrt ? FahrtEndeWolf : _regenFahrt ? FahrtEndeRegen : _einschlagFahrt ? FahrtEndeEinschlag : _gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
         {
             GD.Print("UMGEBUNG Fahrt fertig");
             GetTree().Quit();
@@ -637,12 +654,12 @@ public partial class KlangUmgebung : Node
         if (_einschlagFahrt && !_einschlagGeschehen && t >= EinschlagBei) { _einschlagGeschehen = true; EinschlagVorgeben?.Invoke(); }
         if (_einschlagFahrt) GewitterVorgeben?.Invoke(0.5f); // über der Stadt: die nächsten normalen Blitze (ab 1 km)
         if (_gewitterFahrt) GewitterVorgeben?.Invoke(t >= GewitterVon ? Math.Clamp((t - GewitterVon) / (GewitterBis - GewitterVon), 0f, 1f) : null);
-        while (!_wolfFahrt && !_kurzeFahrt && !_gewitterFahrt && !_einschlagFahrt && !_regenFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
+        while (!_innenFahrt && !_wolfFahrt && !_kurzeFahrt && !_gewitterFahrt && !_einschlagFahrt && !_regenFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));
         }
-        return e with { UhrMinute = stunde * 60f, Zoom = zoom, Pausiert = t >= FahrtPauseAb, Innen = p0.Innen == 1 ? M.Innenart.Schankstube : M.Innenart.Draussen,
-                        Wetter = p0.Wetter == 5 ? FahrtStarkerRegen : e.Wetter };
+        return e with { UhrMinute = stunde * 60f, Zoom = zoom, Pausiert = t >= FahrtPauseAb, Innen = p0.Innen == 1 ? M.Innenart.Schankstube : p0.Innen == 2 ? M.Innenart.Raum : M.Innenart.Draussen,
+                        Wetter = p0.Wetter == 5 ? (_innenFahrt ? FahrtSturm : FahrtStarkerRegen) : e.Wetter };
     }
 }

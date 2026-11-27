@@ -199,3 +199,16 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 |---|---|---|
 | Glaubensname | `MusikModell.GlaubeName` liefert für `Altahtnisch` und `Neuahtnisch` „Ahtnisch“ (eine Religion, ein Stück); der Naturglaube bleibt stumm. Von oberflaeche im Anschluss ans Ahtnentum geändert, keine neuen Stücke. `MusikRegelnTests` entsprechend umgestellt (Ahtnisch spielt, Naturglaube stumm). | 23.11.2026 |
 
+### Wetter von drinnen (Innenraum-Regen und -Sturm, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Was | Vier Schichten am Innenbus: `innen_regen_tag`, `innen_regen_nacht`, `innen_sturm_tag`, `innen_sturm_nacht` (60 s, Stereo, nahtlos, −26 LUFS, Grundpegel −8 dB Regen und −6 dB Sturm, also −34 und −32 LUFS vor dem Regler). Eigene, freie Fassung: Mischung aus den vorhandenen Außenschichten (Bandpass wie durch eine Wand) und eigener Synthese (Fenstertropfen, Pfeifen in den Ritzen, Knarzen der Balken, Raumton). Das fremde Vorbild (TomMusic Inside Rain/Storm) wurde nur angehört; Zielwerte daraus: Regenbett etwa −34 LUFS, Energie 200 Hz–1 kHz, Nacht heller. Nichts daraus im Repository. Bau: `tools/ton/innen_wetter_bauen.py`, Rezept `docs/assets/prompts/innen_wetter.md`; Gemessen (Bänder in dB zur Gesamtleistung): Regen Tag 200 Hz–1 kHz −1,8, 1–4 kHz −6,9; Regen Nacht −3,4 und −3,6 | 27.11.2026 |
+| Wann | Nur im **Raum** (volle Stärke) und in der **Schankstube** (Gewicht 0,4, die Stimmen sollen bleiben); nicht im Freien, nicht im Dom (dort gelten die gedämpften Außenschichten). Regen: ab Regenstärke 0,03 voll bei 0,5. **Sturm** = starker Wind (0,45–0,85) bei Regen (ab 0,1 voll bei 0,4); die Sturmschleife trägt den Guss schon, der Regen weicht ihr (Leistungen ergänzen sich zu 1, stetig, kein Sprung bei Wetterwechsel). Kein Donner in den Schleifen: der kommt weiter zufällig über den Donner-Bus | 27.11.2026 |
+| Tag und Nacht | Gleiche Kurve wie die Nacht draußen (`Nacht(Bezugsstunde)`, Bezugsstunde aus dem Sonnenlauf der Spielzeit), Tag- und Nachtfassung ergänzen sich zu Leistung 1 (gleiche Lautheit beim Übergang) | 27.11.2026 |
+| Überblendung | Betreten, Verlassen, Wetter- und Tageszeitwechsel blenden über 2 s (`InnenWetterAmplitudeJeSekunde` 0,5 je Sekunde; die übrigen Schichten 2 je Sekunde); der Außenbus sinkt dabei wie bisher in 0,6 s auf −14 dB und 500 Hz | 27.11.2026 |
+| Deckel | Die Innenwetter-Schichten zählen nicht in den Summendeckel der Außenschichten und werden von ihm nicht gesenkt (eigener Pegel am Innenbus; sonst drückte der Außenregen sie um 3 dB) | 27.11.2026 |
+| Prüfung | `--umgebungtest=1`: Kurven (Tag/Nacht, Raum/Schankstube/Dom/draußen, Regen-Sturm-Übergang stetig) und ein **Pegelprotokoll** (`UMGEBUNGTEST Innenwetter-Pegel …`: Betreten −19,8 dB nach 0,5 s, Regen −8,0, Nacht, Sturm −6,0, nach dem Verlassen aus). `--umgebungfahrt=7`: Hörprobe 90 s (Regen im Freien, Raum betreten, Nacht, Sturm, verlassen) | 27.11.2026 |
+
+**Offen (Innenwetter):** nur gemessen, nicht gehört (Pegel gegen Schankstube, Fenstertropfen, Pfeifen und Knarzen, Nahtlosigkeit nach OGG). Starker Wind **ohne** Regen hat drinnen keine eigene Schleife (nur der gedämpfte Außenwind). Keine Fassung für Schnee oder Nebel. Dom und Kirchen haben keinen eigenen Innenklang bei Wetter.
+

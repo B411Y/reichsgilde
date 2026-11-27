@@ -92,11 +92,18 @@ public static class KlangUmgebungModell
         new("regen_stark", "Starker Regen im Freien, Guss (Hauptschicht ab etwa halber bis voller Regenstärke)", -3f, Bus.Draussen),
         new("regen_dach", "Regen auf Ziegeldächern: nur nahe an Häusern, herangezoomt", -9f, Bus.Draussen),
         new("regen_traufe", "Wasser tropft und läuft aus der Dachrinne: nur ganz nah an Häusern bei Regen", -10f, Bus.Draussen),
+        new("innen_regen_tag", "Regen von drinnen am Tag: Prasseln auf dem Dach, Tropfen am Fenster, dumpfer Raumton (nur in der Innenansicht, eigene Fassung aus dem Bestand)", -8f, Bus.Innen),
+        new("innen_regen_nacht", "Regen von drinnen in der Nacht: etwas heller (1–4 kHz), Tropfen deutlicher (nur in der Innenansicht)", -8f, Bus.Innen),
+        new("innen_sturm_tag", "Sturm von drinnen am Tag: Guss, Wind, Pfeifen in den Ritzen, Knarzen der Balken, ohne Donner (der kommt über den Donner-Bus)", -6f, Bus.Innen),
+        new("innen_sturm_nacht", "Sturm von drinnen in der Nacht: heller, Pfeifen stärker (nur in der Innenansicht)", -6f, Bus.Innen),
         new("schenke_innen", "Schankstube von innen: Stimmen, Lachen, Krüge – laut und lebendig, nach der Zahl der Gäste (nur in der Innenansicht des Wirtshauses)", -3f, Bus.Innen),
     };
 
     /// <summary>Die Summe aller Schichten (Leistung, relativ zum Dateipegel −26 LUFS) bleibt darunter: −4 dB = −30 LUFS vor dem Regler.</summary>
     public const float DeckelDb = -4f;
+    /// <summary>Wetter von drinnen (Schichten „innen_regen_*“ und „innen_sturm_*“) blendet langsamer: ganzer Hub in 2 s beim Betreten, Verlassen und Wetterwechsel (sonst 0,5 s).</summary>
+    public const float InnenWetterAmplitudeJeSekunde = 0.5f;
+    public static bool IstInnenWetter(int i) => Schichten[i].Name.StartsWith("innen_");
     /// <summary>Höchste Änderung der Amplitude (0–1) einer Schicht je Sekunde Echtzeit (ganzer Hub in 0,5 s).</summary>
     public const float AmplitudeJeSekunde = 2f;
     /// <summary>Überblendung bei einem Sprung der Uhr (Sekunden Echtzeit); auch beim ersten Bild von der Stille her.</summary>
@@ -186,6 +193,13 @@ public static class KlangUmgebungModell
         var trocken = Trocken(wt);
         var regen = wt.Regen;
         var schank = u.Innen == Innenart.Schankstube;
+        // Wetter von drinnen: nur im Raum und in der Schankstube (dort leiser, die Stimmen sollen bleiben); Sturm = starker Wind bei Regen (die Sturmschleife
+        // trägt den Guss schon), dann weicht der Regen; Tag und Nacht nach der Bezugsstunde (gleiche Kurve wie die Nacht draußen), Leistungen ergänzen sich zu 1
+        var drinnen = u.Innen == Innenart.Raum ? 1f : schank ? 0.4f : 0f;
+        var sturm = Glatt(0.45f, 0.85f, wt.Wind) * Glatt(0.1f, 0.4f, regen);
+        var innenRegen = drinnen * Glatt(0.03f, 0.5f, regen) * (1f - sturm);
+        var innenSturm = drinnen * sturm;
+        var nachtAnteil = Nacht(Math.Clamp(b, 5f, 22f));
         float w = Schichten[i].Name switch
         {
             "stadt_tag" => StadtTag(stunde, b) * (l.Gemessen ? StadtGrund + (1f - StadtGrund) * Math.Max(l.Menge, l.Markt) : 1f) * sf * (1f - 0.5f * Glatt(0.05f, 0.6f, regen)),
@@ -205,6 +219,10 @@ public static class KlangUmgebungModell
             // Dächer nur nahe an Häusern: erst bei spürbarem Stadtanteil im Umkreis (Wiese und Wald: nichts), dann nach der Nähe der Kamera
             "regen_dach" => Glatt(0.05f, 0.5f, regen) * Glatt(0.15f, 0.65f, um.Stadt) * (0.25f + 0.75f * n),
             "regen_traufe" => Glatt(0.1f, 0.6f, regen) * Glatt(0.3f, 0.8f, um.Stadt) * (0.05f + 0.95f * n * n),
+            "innen_regen_tag" => innenRegen * (1f - nachtAnteil),
+            "innen_regen_nacht" => innenRegen * nachtAnteil,
+            "innen_sturm_tag" => innenSturm * (1f - nachtAnteil),
+            "innen_sturm_nacht" => innenSturm * nachtAnteil,
             "schenke_innen" => schank ? (l.Gemessen ? l.SchenkeInnen : 0.6f) : 0f,
             _ => 0f,
         };
@@ -315,6 +333,7 @@ public static class KlangUmgebungModell
             {
                 var w = Gewicht(i, stunde, b, _n, _h, leben, umfeld) * JahreszeitFaktor(Schichten[i].Name, e.Jahreszeit);
                 aus.Ziel[i] = MathF.Sqrt(Math.Clamp(w, 0f, 1f));
+                if (IstInnenWetter(i)) continue; // Wetter von drinnen hat seinen eigenen Pegel am Innenbus und zählt nicht in den Deckel der Außenschichten
                 var busDb = Schichten[i].Bus switch { Bus.Stadt => aus.StadtDb, Bus.Schenke => aus.StadtDb + aus.SchenkeDb, _ => 0f };
                 summe += aus.Ziel[i] * aus.Ziel[i] * Math.Pow(10, (Schichten[i].GrundDb + busDb) / 10.0);
             }
@@ -322,7 +341,7 @@ public static class KlangUmgebungModell
             if (summe > deckel)
             {
                 var f = (float)Math.Sqrt(deckel / summe);
-                for (var i = 0; i < Schichten.Length; i++) aus.Ziel[i] *= f;
+                for (var i = 0; i < Schichten.Length; i++) if (!IstInnenWetter(i)) aus.Ziel[i] *= f;
             }
 
             if (sprung)
@@ -338,9 +357,11 @@ public static class KlangUmgebungModell
             }
             else
             {
-                var schritt = AmplitudeJeSekunde * dt;
                 for (var i = 0; i < Schichten.Length; i++)
+                {
+                    var schritt = (IstInnenWetter(i) ? InnenWetterAmplitudeJeSekunde : AmplitudeJeSekunde) * dt;
                     aus.Amplitude[i] += Math.Clamp(aus.Ziel[i] - aus.Amplitude[i], -schritt, schritt);
+                }
             }
             aus.Sprungblende = _blende < 1f;
             for (var i = 0; i < Schichten.Length; i++)
@@ -1036,6 +1057,40 @@ public static class KlangUmgebungModell
             Pruefe(lufs <= -26 + DeckelDb + 0.3, $"{name}: Summe {lufs:0.0} LUFS über dem Deckel");
         }
 
+        // Pegelprotokoll Wetter von drinnen: ein Zustand, die Eingaben ändern sich wie im Spiel (Betreten, Wetterwechsel, Nacht, Verlassen);
+        // die Zeilen zeigen die Pegel der Innenschichten (dB der Schleife, Dateipegel −26 LUFS) samt weicher Überblendung
+        {
+            var z = new Zustand();
+            var t = 0.0;
+            var drinnenSchichten = Enumerable.Range(0, Schichten.Length).Where(i => Schichten[i].Name.StartsWith("innen_")).ToArray();
+            var regenW = new KlangWetter(0.7f, 0f, 0.2f, 0f, 0f);
+            var sturmW = new KlangWetter(1f, 0f, 0.9f, 0.6f, 0.05f);
+            var Eingaben0 = new Eingaben(12 * 60, 12, Jahreszeit.Fruehling, 95, 140, Innenart.Draussen, false, 1.27, Wetter: regenW);
+            float[] Phase(string name, Eingaben e, double sek)
+            {
+                Ausgabe a = z.Aus;
+                for (var u = 0.0; u < sek; u += 1.0 / 60) { a = z.Schritt(e, 1.0 / 60); t += 1.0 / 60; }
+                log($"UMGEBUNGTEST Innenwetter-Pegel t={t,5:0} s {name,-34} " + string.Join(" ", drinnenSchichten.Select(i => $"{Schichten[i].Name[6..]} {(a.Db[i] > AusDb ? a.Db[i].ToString("0.0") : "aus")}")));
+                return a.Db.ToArray(); // Abzug: z.Aus wird beim nächsten Schritt überschrieben
+            }
+            var p0 = Phase("draußen, Regen, Mittag", Eingaben0, 8);
+            var p1 = Phase("Raum betreten, 0,5 s danach", Eingaben0 with { Innen = Innenart.Raum }, 0.5);
+            var p2 = Phase("Raum, Regen, Mittag", Eingaben0 with { Innen = Innenart.Raum }, 6);
+            var p3 = Phase("Raum, Regen, Nacht (1 Uhr)", Eingaben0 with { Innen = Innenart.Raum, UhrMinute = 25 * 60 - 24 * 60, Bezug = 22 }, 6);
+            var p4 = Phase("Raum, Sturm, Nacht", Eingaben0 with { Innen = Innenart.Raum, UhrMinute = 60, Bezug = 22, Wetter = sturmW }, 6);
+            var p5 = Phase("Raum, Sturm, Mittag", Eingaben0 with { Innen = Innenart.Raum, Wetter = sturmW }, 6);
+            var p6 = Phase("Raum, Regen, Mittag (Sturm legt sich)", Eingaben0 with { Innen = Innenart.Raum }, 6);
+            var p7 = Phase("Raum verlassen, 6 s danach", Eingaben0, 6);
+            int Reg(string n) => Array.FindIndex(Schichten, s => s.Name == n);
+            Pruefe(p0[Reg("innen_regen_tag")] <= AusDb && p0[Reg("innen_sturm_tag")] <= AusDb, "Innenwetter: draußen klingt es drinnen");
+            Pruefe(p1[Reg("innen_regen_tag")] > AusDb && p1[Reg("innen_regen_tag")] < p2[Reg("innen_regen_tag")] - 6f, "Innenwetter: Betreten nicht weich eingeblendet");
+            Pruefe(p2[Reg("innen_regen_tag")] > -10f && p2[Reg("innen_regen_nacht")] <= AusDb, "Innenwetter: Regen am Mittag drinnen");
+            Pruefe(p3[Reg("innen_regen_nacht")] > -10f && p3[Reg("innen_regen_tag")] <= AusDb, "Innenwetter: Regen nachts drinnen");
+            Pruefe(p4[Reg("innen_sturm_nacht")] > -8f && p4[Reg("innen_regen_nacht")] <= AusDb, "Innenwetter: Sturm nachts drinnen");
+            Pruefe(p5[Reg("innen_sturm_tag")] > -8f && p6[Reg("innen_regen_tag")] > -10f && p6[Reg("innen_sturm_tag")] <= AusDb, "Innenwetter: Wetterwechsel Sturm zu Regen");
+            Pruefe(p7[Reg("innen_regen_tag")] <= AusDb, "Innenwetter: nach dem Verlassen noch zu hören");
+        }
+
         // Regen im Freien ist die Hauptschicht: klar über der Stadt-Grundschicht (Regen 0,5 mindestens 3 dB), starker Regen dominiert (mindestens 9 dB)
         foreach (var (name, regenWert, mindestens) in new[] { ("Regen 0,5", 0.5f, 6.0), ("Regen 0,75", 0.75f, 9.0), ("Guss 1,0", 1f, 10.0) })
         {
@@ -1387,6 +1442,34 @@ public static class KlangUmgebungModell
             float a = F(19f), b = F(21.25f), c = F(22.5f), d = F(23f);
             log($"UMGEBUNGTEST Abend: Gesprächsfenster 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
             pruefe(a >= 0.9f && b is >= 0.5f and <= 0.65f && c < b && d <= 0.1f, $"Gesprächsfenster: 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
+        }
+        // e2. Wetter von drinnen: nur im Raum (leiser in der Schankstube), Tag/Nacht nach der Bezugsstunde, Sturm löst Regen ab, ohne Wetter und im Freien still
+        {
+            var regenW = new KlangWetter(0.7f, 0f, 0.2f, 0f, 0f);
+            var sturmW = new KlangWetter(1f, 0f, 0.9f, 0.5f, 0.05f);
+            float Tag(string n, float h, KlangWetter w, Innenart i) => G(n, h, stadt, w, innen: i);
+            pruefe(Tag("innen_regen_tag", 12f, regenW, Innenart.Raum) >= 0.9f && Tag("innen_regen_nacht", 12f, regenW, Innenart.Raum) <= 0.01f, "Innen-Regen am Mittag nicht die Tagfassung");
+            pruefe(Tag("innen_regen_nacht", 1f, regenW, Innenart.Raum) >= 0.9f && Tag("innen_regen_tag", 1f, regenW, Innenart.Raum) <= 0.01f, "Innen-Regen nachts nicht die Nachtfassung");
+            var dm = Tag("innen_regen_tag", 21f, regenW, Innenart.Raum) + Tag("innen_regen_nacht", 21f, regenW, Innenart.Raum);
+            pruefe(Math.Abs(dm - 1f) < 0.02f, $"Innen-Regen: Tag und Nacht ergänzen sich nicht zu 1 ({dm:0.00})");
+            pruefe(Tag("innen_regen_tag", 12f, regenW, Innenart.Draussen) == 0f && Tag("innen_regen_tag", 12f, regenW, Innenart.InnenLeicht) == 0f, "Innen-Regen draußen oder im Dom");
+            pruefe(Tag("innen_regen_tag", 12f, klar, Innenart.Raum) == 0f && Tag("innen_sturm_tag", 12f, klar, Innenart.Raum) == 0f, "Innen-Wetter ohne Wetter");
+            pruefe(Tag("innen_regen_tag", 12f, regenW, Innenart.Schankstube) is > 0.2f and < 0.6f, "Schankstube: Regen von drinnen nicht leiser");
+            pruefe(Tag("innen_sturm_tag", 12f, sturmW, Innenart.Raum) >= 0.9f && Tag("innen_regen_tag", 12f, sturmW, Innenart.Raum) <= 0.01f, "Innen-Sturm löst den Regen nicht ab");
+            pruefe(Tag("innen_sturm_nacht", 2f, sturmW, Innenart.Raum) >= 0.9f && Tag("innen_sturm_tag", 2f, sturmW, Innenart.Raum) <= 0.01f, "Innen-Sturm nachts nicht die Nachtfassung");
+            // Übergang Regen -> Sturm stetig, Leistung bleibt 1 (gleiche Lautheit, keine Lücke)
+            var maxSprung = 0f;
+            var vor = -1f;
+            for (var wind = 0f; wind <= 1f; wind += 0.02f)
+            {
+                var w = new KlangWetter(0.8f, 0f, wind, 0f, 0f);
+                var sum = Tag("innen_regen_tag", 12f, w, Innenart.Raum) + Tag("innen_sturm_tag", 12f, w, Innenart.Raum);
+                pruefe(Math.Abs(sum - Glatt(0.03f, 0.5f, 0.8f)) < 0.01f, $"Innen-Wetter: Regen+Sturm nicht gleichbleibend bei Wind {wind:0.00} ({sum:0.00})");
+                if (vor >= 0) maxSprung = Math.Max(maxSprung, Math.Abs(sum - vor));
+                vor = sum;
+            }
+            pruefe(maxSprung < 0.02f, $"Innen-Wetter: Sprung beim Übergang Regen-Sturm ({maxSprung:0.000})");
+            log($"UMGEBUNGTEST Innenwetter: Regen {Tag("innen_regen_tag", 12f, regenW, Innenart.Raum):0.00}, Sturm {Tag("innen_sturm_tag", 12f, sturmW, Innenart.Raum):0.00}, Nacht {Tag("innen_regen_nacht", 1f, regenW, Innenart.Raum):0.00}, Schankstube {Tag("innen_regen_tag", 12f, regenW, Innenart.Schankstube):0.00}");
         }
         // f. Schankstube: nur in ihr, laut nach den Gästen; draußen verstummt die Schänke dabei (sie ist im Raum ohnehin dumpf)
         {
