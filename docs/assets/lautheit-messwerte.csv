@@ -285,6 +285,10 @@ umgebung/rufe/pferd_5.ogg,Umgebung,rufe,1.10,-24.2,-21.9,,0.0,-8.3
 umgebung/rufe/pferd_6.ogg,Umgebung,rufe,2.00,-26.1,-23.7,,0.0,-15.3
 umgebung/rufe/wolf_nacht.ogg,Umgebung,rufe,3.00,-25.9,-23.7,-26.5,20.0,-15.8
 umgebung/schichten/abend_voegel.ogg,Umgebung,schichten,83.00,-26.2,-17.3,-19.9,8.1,-9.8
+umgebung/schichten/innen_regen_nacht.ogg,Umgebung,schichten,60.00,-26.3,-25.1,-25.6,1.0,-9.2
+umgebung/schichten/innen_regen_tag.ogg,Umgebung,schichten,60.00,-26.2,-24.2,-25.0,1.6,-10.4
+umgebung/schichten/innen_sturm_nacht.ogg,Umgebung,schichten,60.00,-26.3,-24.2,-24.8,2.0,-11.5
+umgebung/schichten/innen_sturm_tag.ogg,Umgebung,schichten,60.00,-26.2,-25.0,-25.4,1.0,-14.0
 umgebung/schichten/morgen_voegel.ogg,Umgebung,schichten,97.00,-26.2,-17.9,-22.9,8.8,-9.9
 umgebung/schichten/nacht.ogg,Umgebung,schichten,61.00,-26.1,-24.6,-24.9,1.9,-13.5
 umgebung/schichten/natur_fluss.ogg,Umgebung,schichten,56.00,-26.4,-17.5,-23.0,3.7,-9.6
