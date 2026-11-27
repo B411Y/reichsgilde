@@ -1288,3 +1288,14 @@ Rückmeldung des Nutzers vom 23.11.2026 („Der Dom gefällt mir richtig gut, au
 | Sockel | Wände aus dunklem Bruchstein (Poly Haven rock_wall_08, CC0, dreiseitig gekachelt, Albedo um 25 % abgedunkelt, `SockelStein()`), oben Erde statt Pflaster (der Bodenfleck liegt darauf, Deckung 0,9). Der Sockel reicht nur noch 12 cm (vorher 35 cm) unter den tiefsten Punkt: bergseits steckt er im Boden, talseits steht die Mauer |
 | Kleine Einebnung (bis 0,5 m) | nur geprüft, nicht gebaut (Nutzer 24.11.: kommt als eigener Kern-Auftrag): Das Gelände (Höhenraster, Wegbett, Normalen, Fundamente) kommt aus `Gelaendeform` im Kern; die Darstellung liest `Punkthoehe` nur an vier Stellen, aber Normale, Fundament und Wegbett kämen weiter aus dem Kern. Sauber geht es nur dort (Einebnung als Schicht im Kern); Entscheidung beim Teamleiter |
 
+### Himmel: Wolken-Parallaxe und weiter Sonnenhof (Branch phase5/himmel-wolken)
+
+Zwei Ideen aus dem Binbun-Sky-Paket (CC0), nur als Idee, ohne Code und ohne Rauschtextur (kein Protokolleintrag nötig); der eigene Himmel bleibt.
+
+| Frage | Entscheidung |
+|---|---|
+| Hohe Wolkenschicht | `himmel.gdshader`: zweite Schicht aus nur zwei Rauschproben (`h_schleier`), in Windrichtung zu dünnen Fäden gestreckt (Uniform `wind_richtung`, Verhältnis 1:3 – stärker gestreckt wirkten sie wie Lichtsäulen zum Zenit), mit größerem Höhenversatz und 60 % der Drift der tiefen Schicht (Parallaxe); dünn (höchstens 40 % Deckkraft), liegt unter der tiefen Schicht |
+| Kopplung | Deckung aus dem Wetter wie bisher; Regenwolken (Trübung) und Nebel blenden die hohe Schicht aus; Farbe aus den Wolkenfarben der Lichtstimmung (nachts dunkel, Silberrand zur Sonne) |
+| Sonnenhof | Zum bestehenden Hof ein etwas weiterer, schwacher dazu (`hof_weit`, nach oben ausgeblendet): im Nebel stärker, bei Bewölkung und hinter dichten Wolken schwächer |
+| Grafikstufen | Uniform `schichten`: Wettereffekte Niedrig nur die tiefe Schicht, sonst beide; Mehrkosten eine Schicht = zwei Proben |
+

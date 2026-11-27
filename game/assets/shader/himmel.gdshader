@@ -115,16 +115,16 @@ void sky() {
 		if (schichten > 1.5 && sicht > 0.0) {
 			vec2 uv_h = d.xz / (max(h, 0.0) + 0.42) * 0.55 + himmel_drift * 0.6 + vec2(31.7, 12.3);
 			vec2 w = normalize(wind_richtung + vec2(0.0001));
-			vec2 q = vec2(dot(uv_h, w) * 0.35, dot(uv_h, vec2(-w.y, w.x)) * 2.4);   // lang in Windrichtung, schmal quer dazu
+			vec2 q = vec2(dot(uv_h, w) * 1.4, dot(uv_h, vec2(-w.y, w.x)) * 4.5);   // dünne Fäden, dreimal so lang wie breit
 			float dh = h_schleier(q);
 			float dh_s = mix(0.74, 0.46, clamp(deckung, 0.0, 1.0));
-			dichte_h = smoothstep(dh_s, dh_s + 0.22, dh) * 0.5 * sicht * (1.0 - truebe * 0.7) * (1.0 - nebel * 0.8);
+			dichte_h = smoothstep(dh_s, dh_s + 0.22, dh) * 0.4 * sicht * (1.0 - truebe * 0.7) * (1.0 - nebel * 0.8);
 		}
 		vec3 wolke_h = mix(wolke_dunkel * 1.25, wolke_hell, 0.55 + 0.3 * sonne_staerke);
 		wolke_h += licht_f * sonne_staerke * 0.18 * pow(s, 8.0);
 
 		// Weicher Sonnenhof, weit und gedämpft: im Dunst und Nebel breiter und heller, bei Bewölkung schwächer
-		float hof_weit = pow(s, 2.5) * 0.07 * (1.0 + nebel * 1.2) * ueber * (1.0 - 0.75 * deckung) * (1.0 - 0.6 * dichte_w);
+		float hof_weit = pow(s, 7.0) * 0.12 * (1.0 + nebel * 1.2) * ueber * (1.0 - smoothstep(0.0, 0.8, h)) * (1.0 - 0.75 * deckung) * (1.0 - 0.6 * dichte_w);
 
 		vec3 farbe = himmel;
 		farbe += licht_f * hof_weit * (sonne_staerke + mond_staerke * 0.25) * mix(vec3(1.0), vec3(1.0, 0.92, 0.78), 0.5);

@@ -6,6 +6,8 @@ Die Reichsstadt ist als begehbare Schrägansicht zu sehen: Mauer (100 × 100 m) 
 
 **Tag und Nacht.** Sonne und Mond wandern über den Himmel und werfen beide Schatten: die Sonne über den ganzen hellen Tag von Aufgang bis Untergang, der Mond über die ganze Nacht von Osten nach Westen (um 23 Uhr steht er dort, wo er um 4 Uhr im nächsten Jahr noch steht), und mit ihnen wandern die Schatten. Der Tag gleitet ohne Sprung in die Nacht: Vor dem Sonnenuntergang färbt sich das Licht zum Abendrot, die Sonne sinkt zum Horizont und blendet dabei aus, danach geht der Mond im Osten auf, und kurz darauf ist richtig Nacht. Morgens ist es umgekehrt: Der Himmel hellt sich auf, der Mond blendet aus, die Sonne geht im Morgenrot auf. Wann das geschieht, richtet sich nach der Jahreszeit und dem Vorbild Köln (51° N); es gilt je Jahreszeit fest für das ganze Spieljahr, einen Übergang zwischen den Jahreszeiten gibt es nicht:
 
+**Himmel.** In der Ich-Ansicht und mit der freien Kamera ziehen zwei Wolkenschichten mit leicht verschiedenem Tempo: tief die Ballen, darüber dünne Schleier in Windrichtung. Mit Regen oder Nebel verschwinden die Schleier, nachts sind sie dunkel. Um die Sonne liegt ein weicher Hof, im Nebel breiter, bei Bewölkung schwächer. In den Wettereffekten *Niedrig* gibt es nur die tiefe Schicht.
+
 | Jahreszeit (Stichtag) | Dämmerung beginnt | Sonnenaufgang | Sonnenuntergang | dunkel |
 |---|---|---|---|---|
 | Frühling (Ende März) | 5:15 | 5:55 | 18:05 | 18:45 |
